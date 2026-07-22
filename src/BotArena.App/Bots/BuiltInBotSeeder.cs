@@ -19,18 +19,7 @@ public static class BuiltInBotSeeder
         if (artifact is null)
             return; // Nothing to seed against; doctor/scripts surface this.
 
-        var system = await db.Users.SingleOrDefaultAsync(u => u.IsSystem);
-        if (system is null)
-        {
-            system = new User
-            {
-                DisplayName = "Bot Arena",
-                Email = "system@botarena.local",
-                PasswordHash = "!locked",
-                IsSystem = true,
-            };
-            db.Users.Add(system);
-        }
+        var system = await GetOrCreateSystemUser(db);
 
         string artifactHash = BotBuilder.Sha256File(artifact);
         string stored = Path.Combine(DataPaths.Artifacts, artifactHash + ".wasm");
@@ -79,5 +68,22 @@ public static class BuiltInBotSeeder
             }
         }
         await db.SaveChangesAsync();
+    }
+
+    internal static async Task<User> GetOrCreateSystemUser(AppDbContext db)
+    {
+        var system = await db.Users.SingleOrDefaultAsync(u => u.IsSystem);
+        if (system is null)
+        {
+            system = new User
+            {
+                DisplayName = "Bot Arena",
+                Email = "system@botarena.local",
+                PasswordHash = "!locked",
+                IsSystem = true,
+            };
+            db.Users.Add(system);
+        }
+        return system;
     }
 }

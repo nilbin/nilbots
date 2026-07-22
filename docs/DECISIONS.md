@@ -212,6 +212,16 @@ configuration) and changing them is a version bump, not an edit.
     thread-safe for this: same-cache-key builds serialize on a per-key lock
     (shared workspace), distinct keys build concurrently, and the one-time
     Sdk/Guest toolchain-assembly build is double-check locked.
+43. **Champions are seeded server bots, and the tournament bar.**
+    `ChampionSeeder` registers every `champions/<slug>/` (needs `champion.json`
+    + `bot.wasm`) as a system-owned bot on startup, keyed by slug, re-versioned
+    if the committed artifact ever changes. The committed .wasm IS the artifact
+    — champions are never rebuilt from source, so the crowned bot stays
+    bit-identical forever; sources are carried as viewable SourcesJson only.
+    agent-arena brackets now include all reigning champions instead of
+    hunter-baseline sets, and a new generation is crowned only by finishing
+    above every reigning champion (a defended title is a valid outcome).
+    Pilot bonus: players can challenge the champion on the site like any bot.
 
 ## Deferred decisions
 

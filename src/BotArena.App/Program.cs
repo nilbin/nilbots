@@ -98,6 +98,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
     await BuiltInBotSeeder.SeedAsync(db);
+    await ChampionSeeder.SeedAsync(db);
     await OpenIddictSetup.SeedClientAsync(scope.ServiceProvider);
 }
 
