@@ -43,7 +43,9 @@ public class Match
         double elapsed = (utcNow - start).TotalSeconds;
         if (elapsed < 0)
             return -1;
-        return (int)(elapsed * PresentationTicksPerSecond);
+        // Old matches: elapsed * tps overflows int after weeks; clamp or they un-reveal.
+        double tick = elapsed * PresentationTicksPerSecond;
+        return tick >= int.MaxValue ? int.MaxValue : (int)tick;
     }
 
     public bool BroadcastComplete(DateTime utcNow) =>

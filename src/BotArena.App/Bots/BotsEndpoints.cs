@@ -112,8 +112,9 @@ public static class BotsEndpoints
             if (bot.Versions.Any(v => v.Status is BuildStatus.Pending or BuildStatus.Building))
                 return Results.Problem("A build is already in progress for this bot.", statusCode: 409);
 
+            // Null-tolerant: absent name/content must 400 via validation below, not 500 here.
             var sources = (request.Files ?? [])
-                .Select(f => new SourceFile(f.Name.Trim(), f.Content))
+                .Select(f => new SourceFile((f.Name ?? "").Trim(), f.Content ?? ""))
                 .ToArray();
             try
             {

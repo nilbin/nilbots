@@ -9,37 +9,70 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Jobs;
 
 /// <summary>
-/// The single background worker (plan §22): claims jobs from the database with
+/// The background worker (plan §22): claims jobs from the database with
 /// FOR UPDATE SKIP LOCKED and runs compilation and match execution in-process.
 /// Bot execution is already sandboxed by the WASM runtime, so no extra process
 /// isolation is needed for matches; compilation runs dotnet in a child process.
+///
+/// Jobs run in typed lanes (DECISIONS #42): exactly ONE match lane — set
+/// finalization is race-free only because match jobs have a single consumer —
+/// plus BOTARENA_COMPILE_WORKERS compile lanes (default 1), so a 3-minute
+/// NativeAOT compile never blocks match execution and concurrent submissions
+/// compile in parallel (BotBuilder serializes same-cache-key builds itself).
 /// </summary>
 public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWorker> logger)
     : BackgroundService
 {
+    private static readonly int CompileWorkers =
+        ReadEnv("BOTARENA_COMPILE_WORKERS", fallback: 1, min: 1, max: 8);
+
+    /// <summary>Presentation pacing (plan §28). Production default: 5 ticks/s after a
+    /// 3 s countdown. Eval/CI deployments crank BOTARENA_BROADCAST_TPS so harnesses
+    /// aren't rate-limited by the spectator clock (DECISIONS #41); the no-spoiler
+    /// invariant is untouched — this configures the clock, never bypasses it.</summary>
+    private static readonly int BroadcastTicksPerSecond =
+        ReadEnv("BOTARENA_BROADCAST_TPS", fallback: 5, min: 1, max: 1000);
+    private static readonly int BroadcastDelaySeconds =
+        ReadEnv("BOTARENA_BROADCAST_DELAY_SECONDS", fallback: 3, min: 0, max: 300);
+
+    private static int ReadEnv(string name, int fallback, int min, int max) =>
+        int.TryParse(Environment.GetEnvironmentVariable(name), out int value)
+            ? Math.Clamp(value, min, max)
+            : fallback;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Job worker started");
+        logger.LogInformation(
+            "Job worker started: 1 match lane, {CompileWorkers} compile lane(s), broadcast {Tps} ticks/s + {Delay}s countdown",
+            CompileWorkers, BroadcastTicksPerSecond, BroadcastDelaySeconds);
+        var lanes = new List<Task> { RunLane(BackgroundJob.ExecuteMatchType, stoppingToken) };
+        for (int i = 0; i < CompileWorkers; i++)
+            lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
+        await Task.WhenAll(lanes);
+    }
+
+    private async Task RunLane(string jobType, CancellationToken stoppingToken)
+    {
         while (!stoppingToken.IsCancellationRequested)
         {
             bool didWork = false;
             try
             {
-                didWork = await RunOneJob(stoppingToken);
+                didWork = await RunOneJob(jobType, stoppingToken);
             }
             catch (OperationCanceledException)
             {
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Job worker iteration failed");
+                logger.LogError(ex, "Job lane ({Type}) iteration failed", jobType);
             }
             if (!didWork)
                 await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken).ContinueWith(_ => { });
         }
     }
 
-    private async Task<bool> RunOneJob(CancellationToken cancellationToken)
+    private async Task<bool> RunOneJob(string jobType, CancellationToken cancellationToken)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -49,13 +82,14 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 UPDATE "BackgroundJobs" SET "Status" = 'Running', "LockedUntil" = now() + interval '10 minutes'
                 WHERE "Id" = (
                     SELECT "Id" FROM "BackgroundJobs"
-                    WHERE ("Status" = 'Pending' AND "AvailableAt" <= now())
-                       OR ("Status" = 'Running' AND "LockedUntil" < now())
+                    WHERE "Type" = {0}
+                      AND (("Status" = 'Pending' AND "AvailableAt" <= now())
+                       OR ("Status" = 'Running' AND "LockedUntil" < now()))
                     ORDER BY "Id"
                     LIMIT 1
                     FOR UPDATE SKIP LOCKED)
                 RETURNING *
-                """)
+                """, jobType)
             .AsNoTracking()
             .ToListAsync(cancellationToken);   // ToList: no SQL composition over UPDATE..RETURNING
         var job = jobs.FirstOrDefault();
@@ -219,8 +253,8 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 match.Status = MatchStatus.Completed;
                 match.CompletedAt = DateTime.UtcNow;
                 // Presentation timeline (plan §28): computed instantly, watched at human speed.
-                match.BroadcastStartedAt = DateTime.UtcNow.AddSeconds(3);
-                match.PresentationTicksPerSecond = 5;
+                match.BroadcastStartedAt = DateTime.UtcNow.AddSeconds(BroadcastDelaySeconds);
+                match.PresentationTicksPerSecond = BroadcastTicksPerSecond;
                 foreach (var participant in participants)
                 {
                     var botResult = run.Result.Bots.Single(b => b.Slot == participant.Slot);

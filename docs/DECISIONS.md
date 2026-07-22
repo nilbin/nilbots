@@ -194,6 +194,24 @@ configuration) and changing them is a version bump, not an edit.
     parallel runs stopped clobbering each other's replays, while identical
     reruns of a deterministic match still overwrite in place. `--out` pins an
     exact directory; scripts that need a fixed path pass it explicitly.
+41. **Broadcast pacing is server configuration, not a request option.**
+    `BOTARENA_BROADCAST_TPS` (default 5) and `BOTARENA_BROADCAST_DELAY_SECONDS`
+    (default 3) tune the presentation clock so eval deployments (agent-arena)
+    aren't rate-limited by spectator pacing — the first tournament spent most
+    of its wall clock literally watching matches at 5 ticks/s. Deliberately not
+    a per-request bypass: the no-spoiler invariant (§28, nothing revealed
+    before `BroadcastComplete`) holds identically at any speed, and a request
+    flag would be a spoiler hole. Also fixed: `PresentationTick` now clamps
+    instead of overflowing int after weeks (which would have un-revealed old
+    matches, sooner at high TPS).
+42. **Typed job lanes: one match lane + N compile lanes**
+    (`BOTARENA_COMPILE_WORKERS`, default 1). Set finalization stays race-free
+    because match jobs keep a single consumer (#26 still holds); compiles are
+    embarrassingly parallel and were the tournament's other bottleneck — a
+    3-minute NativeAOT build blocked every match behind it. BotBuilder is now
+    thread-safe for this: same-cache-key builds serialize on a per-key lock
+    (shared workspace), distinct keys build concurrently, and the one-time
+    Sdk/Guest toolchain-assembly build is double-check locked.
 
 ## Deferred decisions
 

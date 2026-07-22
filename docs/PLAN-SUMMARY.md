@@ -81,14 +81,19 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 
 ## Next session pointers
 
-1. Sprites/appearances (§33); site docs pages (§29.6); logotype (§31).
-2. SignalR as the live transport (timeline model already in place, DECISIONS #33).
-3. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
+1. **Game design backlog: `docs/GAME-DESIGN.md`** — depth assessment from the
+   agent-arena tournament, ranked rule-change candidates (anti-draw first),
+   progression/monetization stance. agent-arena is the balance harness for
+   all of it (eval-speed knobs: DECISIONS #41/#42).
+2. Sprites/appearances (§33); logotype (§31).
+3. SignalR as the live transport (timeline model already in place, DECISIONS #33).
+4. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).
-4. §15.3 completion: network-less submission builds (vendor the ILC packages)
+5. §15.3 completion: network-less submission builds (vendor the ILC packages)
    and cgroup memory limits for the build user.
-5. Phase 6 (competitions/seasons) and browser editing (phase 7).
-3. Sound out artifact-hash parity local vs server once a second build
+6. Phase 6 (competitions/seasons — also the progression container per
+   GAME-DESIGN) and browser editing (phase 7).
+7. Sound out artifact-hash parity local vs server once a second build
    environment exists (§40.5); record reasons where bytes differ.
-4. Phase 0B polish: logotype assets, match-start countdown, destruction pause,
+8. Phase 0B polish: logotype assets, match-start countdown, destruction pause,
    spectator vs developer mode split (plan §32.3/32.4).

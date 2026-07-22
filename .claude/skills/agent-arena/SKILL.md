@@ -15,9 +15,19 @@ compete. This evaluates both the docs and the full pipeline; the tournament is t
 bash scripts/setup.sh
 service postgresql start   # create role/db per CLAUDE.md if first boot
 WASI_SDK_PATH=/opt/botarena/wasi-sdk-29.0 ASPNETCORE_URLS=http://127.0.0.1:8080 \
-  BOTARENA_DATA=$PWD/var nohup dotnet run --project src/BotArena.App > /tmp/app.log 2>&1 &
+  BOTARENA_DATA=$PWD/var \
+  BOTARENA_BROADCAST_TPS=250 BOTARENA_BROADCAST_DELAY_SECONDS=0 \
+  BOTARENA_COMPILE_WORKERS=3 \
+  nohup dotnet run --project src/BotArena.App > /tmp/app.log 2>&1 &
 ```
 Verify `curl -s localhost:8080/api/meta` returns 200 before continuing.
+
+The three BOTARENA_* knobs are the eval-speed configuration (DECISIONS #41/#42):
+results reveal ~instantly (a 500-tick match broadcasts in 2 s instead of 100 s)
+and up to 3 submissions compile in parallel without blocking match execution.
+Production keeps the defaults (5 ticks/s, 3 s countdown, 1 compile lane) — never
+set these on a server humans spectate. The no-spoiler API semantics are
+unchanged either way; polls just resolve much sooner.
 
 ## 2. Fan out competitor agents (parallel, isolation: worktree not needed)
 

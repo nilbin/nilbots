@@ -57,7 +57,7 @@ public static class BuiltInBotSeeder
             {
                 foreach (var old in bot.Versions)
                     old.IsActive = false;
-                bot.Versions.Add(new BotVersion
+                var version = new BotVersion
                 {
                     BotId = bot.Id,
                     VersionNumber = bot.Versions.Count + 1,
@@ -70,7 +70,12 @@ public static class BuiltInBotSeeder
                     GuestBotName = name,
                     BuiltAt = DateTime.UtcNow,
                     IsActive = true,
-                });
+                };
+                bot.Versions.Add(version);
+                // Explicit Add: the pre-set Guid key means graph discovery on a tracked
+                // existing bot would classify this as Modified (an UPDATE of a row that
+                // doesn't exist) — the artifact-rotation path crashed on exactly that.
+                db.BotVersions.Add(version);
             }
         }
         await db.SaveChangesAsync();

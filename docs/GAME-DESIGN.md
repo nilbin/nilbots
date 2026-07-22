@@ -1,0 +1,113 @@
+# Game design — depth assessment and backlog
+
+The design counterpart to `docs/PLAN-SUMMARY.md` (engineering) and
+`docs/DECISIONS.md` (choices made). This file owns the questions "is the game
+deep enough?", "what do we add next?", and "how do progression and monetization
+fit without poisoning the premise?". Rule changes decided here still get a
+DECISIONS entry when implemented.
+
+## Where the game stands (evidence: agent-arena tournament, 2026-07-22)
+
+Real emergent depth showed up with zero prompting:
+
+- **Crossing shots** — exploiting move-before-shoot resolution to trade or
+  mutual-kill on approach (the very first smoke match after the eval-speed work
+  ended in a mutual elimination at tick 52).
+- **Corner play** — camping and peeking around corner-strict LOS.
+- **Cooldown baiting** — drawing a shot, then advancing during the 2-tick gap.
+- The champion (Warden, elo 1216) won on disciplined sight-line control, not
+  aggression.
+
+And the limits showed up just as clearly:
+
+- The **leaderboard stabilized within 3–4 improvement iterations** — the
+  strategy space is real but converges fast.
+- **Draws are too common**: phase-locked patrol cycles that never cross sight
+  lines, and 500-tick health stalemates. Passive play is too safe.
+
+**Verdict: deep enough to pilot with friends for a few weeks; not deep enough
+to hold a community. The #1 design debt is that passivity is under-punished.**
+
+## Design constraints (non-negotiable, from the plan)
+
+1. Every gameplay value lives in `GameRules`, pinned by the rules version; maps
+   are versioned; SDK/protocol changes bump their axes. A rule change is a
+   version bump, never a silent edit (golden tests enforce this).
+2. Determinism is the product: any new mechanic must be a pure function of
+   (artifacts, map, rules, seed). Pickups, hazards and loadouts must derive
+   from the match seed, never from new entropy.
+3. Replays stay legible: a spectator should see *why* something happened. Favor
+   mechanics with visible state over hidden modifiers.
+
+## Methodology: agent-arena is the balance harness
+
+Before/after any candidate rule change, run the tournament (now fast:
+`BOTARENA_BROADCAST_TPS=250`, `BOTARENA_COMPILE_WORKERS=3`, DECISIONS #41/#42)
+and compare:
+
+- **Draw rate** (target: sharply down from today)
+- **Median end tick** (target: down; 500-tick walls should be rare)
+- **Elimination share of results** (target: up)
+- **Strategy diversity** — do distinct personas still produce distinct
+  action mixes, or did the change collapse everything into one build?
+- **Champion turnover** — does the reigning champion (champions/) survive?
+  A good change shakes the top without invalidating skill.
+
+Ship a rule change only if draws drop without collapsing diversity.
+
+## Backlog (ranked)
+
+| # | Item | Size | Touches |
+| --- | --- | --- | --- |
+| 1 | **More maps, asymmetric geometry** (chokepoints, rooms, long lanes) | S | maps/ only — no code |
+| 2 | **Anti-draw: energy-cost shots** — shots spend energy that regenerates; camping starves, tempo play is rewarded. First candidate; alternatives: shrinking zone, health pickups | M | GameRules + context field → SDK/protocol bump |
+| 3 | **New actions: Scan / Shield / Dash** — information and commitment trades | M each | SDK + protocol + rules bump |
+| 4 | **Seed-deterministic pickups / map events** | M–L | engine events, map format, viewer |
+| 5 | **Loadout modules** — pick 1 of N sidegrades pre-set (vision+1 / cooldown−1 / HP+1); the progression hook | L | match config + replay header + Matches snapshot + docs |
+| 6 | **2v2 team matches** | XL | engine slots, ranked pairing, viewer |
+
+Rule of thumb from the constraint list: items 1–2 are "rules data" changes;
+3–5 are version-axis changes the architecture was explicitly built to absorb
+(loadout = one more match input feeding the replay hash); 6 is a redesign.
+
+## Progression (retention without power creep)
+
+- **Leagues/divisions** derived from Elo (data already exists) — visible rank
+  is the cheapest retention feature we can ship.
+- **Achievements** tied to replay facts ("won on health at tick 500", "won
+  without taking damage", "3 wins with zero faults") — computable from stored
+  replays, no engine change.
+- **Seasons** (frozen phase 6) are the natural container: rating soft-reset,
+  seasonal cosmetic rewards, a champion's gallery per season (champions/
+  already started this tradition).
+- **Bot version history as the journey** — the garage already shows it; lean
+  in (diff view between versions, per-version win rates).
+- If loadout modules land (backlog #5), they are **earned by playing, never
+  bought** — see below.
+
+## Monetization stance (decide now, build later)
+
+**Never stats-for-money.** The audience is programmers; pay-to-win kills both
+the competitive claim ("your code wins matches") and this crowd's trust.
+What we can charge for, in rough order of credibility:
+
+1. **Cosmetics** — custom sprites (plan §33, already roadmapped), accents,
+   chassis variants, kill-effects. Pure identity, zero gameplay.
+2. **Private leagues / hosted tournaments** — companies, classrooms, meetups.
+   This is a feature businesses expense.
+3. **Supporter tier** — name flair, replay GIF export, priority queue.
+4. **Compute quota** — every submission is a real NativeAOT compile on our
+   hardware. A generous free tier plus paid headroom for heavy iterators is
+   honest cost recovery, not pay-to-win.
+
+Architecture note: entitlements are an Accounts-module concern (a table and a
+check), cosmetics ride the existing appearance/snapshot pipeline, and the
+Engine never learns any of this exists.
+
+## Docs implications
+
+When the first rule change ships: the site Rules card gains a version header
+and a changelog section; `GameRulesVersion` is already surfaced everywhere it
+needs to be. Loadouts/pickups additionally need SDK doc updates and a template
+README refresh (the tournament proved agents build exactly what the docs say —
+no more, no less).

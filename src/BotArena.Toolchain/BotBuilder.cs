@@ -20,6 +20,11 @@ public static class BotBuilder
     public const int MaxSourceFiles = 16;
     public const int MaxTotalSourceBytes = 256 * 1024;
 
+    // Parallel compile lanes (DECISIONS #42) make this class multi-threaded: builds of
+    // the same cache key share a workspace and must serialize; distinct keys don't.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> BuildLocks = new();
+    private static readonly object ToolchainAssembliesLock = new();
+
     public static BuiltBot EnsureBuilt(BotProject project, bool noCache = false, bool quiet = false)
     {
         var sources = project.SourceFiles
@@ -40,6 +45,19 @@ public static class BotBuilder
         if (!noCache && File.Exists(wasmPath))
             return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: true, cacheKey);
 
+        lock (BuildLocks.GetOrAdd(cacheKey, static _ => new object()))
+        {
+            // A concurrent identical submission may have finished while we waited.
+            if (!noCache && File.Exists(wasmPath))
+                return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: true, cacheKey);
+            return BuildLocked(sources, entryType, displayName, cacheKey, cacheDir, wasmPath, quiet);
+        }
+    }
+
+    private static BuiltBot BuildLocked(
+        IReadOnlyList<SourceFile> sources, string entryType, string displayName,
+        string cacheKey, string cacheDir, string wasmPath, bool quiet)
+    {
         string repoRoot = RepoPaths.ToolchainRoot();
         Directory.CreateDirectory(cacheDir);
         string toolchainLibs = EnsureToolchainAssemblies(repoRoot);
@@ -175,7 +193,17 @@ public static class BotBuilder
         string guestDll = Path.Combine(libsDir, "BotArena.Guest.dll");
         if (File.Exists(sdkDll) && File.Exists(guestDll))
             return libsDir;
+        lock (ToolchainAssembliesLock)
+        {
+            if (File.Exists(sdkDll) && File.Exists(guestDll))
+                return libsDir;
+            return BuildToolchainAssemblies(repoRoot, libsDir, sdkDll, guestDll);
+        }
+    }
 
+    private static string BuildToolchainAssemblies(
+        string repoRoot, string libsDir, string sdkDll, string guestDll)
+    {
         Directory.CreateDirectory(libsDir);
         string guestProject = Path.Combine(repoRoot, "src", "BotArena.Guest");
         using var process = Process.Start(new ProcessStartInfo(
