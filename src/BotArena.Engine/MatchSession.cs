@@ -1,0 +1,362 @@
+namespace BotArena.Engine;
+
+public sealed record BotTickResolution(
+    int Slot, BotAction ChosenAction, BotAction ValidatedAction, ActionResult Result, bool Faulted);
+
+public sealed class TickResult
+{
+    public required int Tick { get; init; }
+    public required IReadOnlyList<BotTickResolution> Bots { get; init; }
+    public required IReadOnlyList<GameEvent> Events { get; init; }
+    public required bool MatchCompleted { get; init; }
+}
+
+/// <summary>
+/// The stepping core of the simulation (plan §24). Holds authoritative state and resolves one
+/// tick at a time using the versioned resolution order of §4.7. It knows nothing about
+/// runtimes, replays, or presentation — callers feed it decisions and read back events.
+/// </summary>
+public sealed class MatchSession
+{
+    public GameState State { get; }
+    public bool IsCompleted { get; private set; }
+    public MatchResultInfo? Result { get; private set; }
+
+    private IReadOnlyList<GameEvent> _lastTickEvents = [];
+
+    public MatchSession(ArenaMap map, GameRules rules)
+    {
+        if (map.Spawns.Count != 2)
+            throw new ArgumentException("MatchSession currently requires a 2-spawn map.");
+        var bots = new List<BotState>();
+        for (int slot = 0; slot < map.Spawns.Count; slot++)
+        {
+            var spawn = map.Spawns[slot];
+            bots.Add(new BotState
+            {
+                Slot = slot,
+                Position = new Position(spawn.X, spawn.Y),
+                Facing = spawn.Facing,
+                Health = rules.MaxHealth,
+            });
+        }
+        State = new GameState { Map = map, Rules = rules, Bots = bots };
+    }
+
+    /// <summary>Step 1 of §4.7: observations always come from the pre-tick state.</summary>
+    public BotObservation BuildObservation(int slot)
+    {
+        var bot = State.Bots[slot];
+        var map = State.Map;
+        var visible = Visibility.ComputeVisibleTiles(map, bot.Position, State.Rules.VisionRange);
+        var visibleSet = new HashSet<Position>(visible);
+        var tiles = visible.Select(p => new ObservedTile(p, map.IsWall(p))).ToArray();
+        var enemies = State.Bots
+            .Where(other => other.Slot != slot && other.IsActive && visibleSet.Contains(other.Position))
+            .Select(other => new ObservedBot(other.Slot, other.Position, other.Facing, other.Health))
+            .ToArray();
+        var events = _lastTickEvents
+            .Where(e => e.ReferencePositions().Any(visibleSet.Contains))
+            .ToArray();
+        return new BotObservation
+        {
+            Tick = State.Tick,
+            Slot = slot,
+            Position = bot.Position,
+            Facing = bot.Facing,
+            Health = bot.Health,
+            Cooldown = bot.Cooldown,
+            PreviousActionResult = bot.LastActionResult,
+            VisibleTiles = tiles,
+            VisibleEnemies = enemies,
+            VisibleEvents = events,
+        };
+    }
+
+    /// <summary>Steps 3–11 of §4.7. Decisions must be indexed by slot.</summary>
+    public TickResult Step(IReadOnlyList<BotDecision> decisions)
+    {
+        if (IsCompleted)
+            throw new InvalidOperationException("Match already completed.");
+        var bots = State.Bots;
+        if (decisions.Count != bots.Count)
+            throw new ArgumentException($"Expected {bots.Count} decisions, got {decisions.Count}.");
+
+        int n = bots.Count;
+        var events = new List<GameEvent>();
+        var chosen = new BotAction[n];
+        var validated = new BotAction[n];
+        var results = new ActionResult[n];
+        var faulted = new bool[n];
+
+        // 3. Validate returned actions.
+        for (int slot = 0; slot < n; slot++)
+        {
+            var decision = decisions[slot];
+            if (decision.Faulted || !Enum.IsDefined(decision.Action))
+            {
+                chosen[slot] = BotAction.Wait;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.Faulted;
+                faulted[slot] = true;
+            }
+            else if (decision.Action == BotAction.Shoot && bots[slot].Cooldown > 0)
+            {
+                chosen[slot] = BotAction.Shoot;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.OnCooldown;
+            }
+            else
+            {
+                chosen[slot] = decision.Action;
+                validated[slot] = decision.Action;
+                results[slot] = ActionResult.Success;
+            }
+        }
+
+        // 4. Resolve rotations.
+        for (int slot = 0; slot < n; slot++)
+        {
+            if (validated[slot] is not (BotAction.TurnLeft or BotAction.TurnRight))
+                continue;
+            var bot = bots[slot];
+            var from = bot.Facing;
+            bot.Facing = validated[slot] == BotAction.TurnLeft ? from.TurnedLeft() : from.TurnedRight();
+            events.Add(GameEvent.Turn(slot, bot.Position, from, bot.Facing));
+        }
+
+        // 5. Resolve movement (§4.8).
+        ResolveMovement(validated, results, events);
+
+        // 6.–7. Resolve shooting from post-movement state; apply damage simultaneously.
+        var shotThisTick = ResolveShooting(validated, events);
+
+        // 8. Update cooldowns.
+        for (int slot = 0; slot < n; slot++)
+        {
+            var bot = bots[slot];
+            bot.Cooldown = shotThisTick[slot]
+                ? State.Rules.ShootCooldownTicks
+                : Math.Max(0, bot.Cooldown - 1);
+        }
+
+        // 9. Apply runtime-fault rules.
+        for (int slot = 0; slot < n; slot++)
+        {
+            if (!faulted[slot])
+                continue;
+            var bot = bots[slot];
+            bot.Faults++;
+            events.Add(GameEvent.Fault(slot, decisions[slot].FaultMessage ?? "Runtime fault"));
+            if (bot.Faults >= State.Rules.FaultLimit && bot.Status == BotStatus.Active)
+            {
+                bot.Status = BotStatus.Disqualified;
+                events.Add(GameEvent.Disqualified(slot));
+            }
+        }
+
+        for (int slot = 0; slot < n; slot++)
+            bots[slot].LastActionResult = results[slot];
+
+        // 10. Determine completion.
+        int executedTick = State.Tick;
+        State.Tick++;
+        bool anyInactive = bots.Any(b => !b.IsActive);
+        if (anyInactive || State.Tick >= State.Rules.MaxTicks)
+        {
+            IsCompleted = true;
+            Result = ComputeResult(executedTick);
+        }
+
+        _lastTickEvents = events;
+        return new TickResult
+        {
+            Tick = executedTick,
+            Bots = Enumerable.Range(0, n)
+                .Select(s => new BotTickResolution(s, chosen[s], validated[s], results[s], faulted[s]))
+                .ToArray(),
+            Events = events,
+            MatchCompleted = IsCompleted,
+        };
+    }
+
+    private void ResolveMovement(BotAction[] validated, ActionResult[] results, List<GameEvent> events)
+    {
+        var bots = State.Bots;
+        int n = bots.Count;
+        var wantsMove = new bool[n];
+        var target = new Position[n];
+        var blocked = new bool[n];
+
+        for (int slot = 0; slot < n; slot++)
+        {
+            if (validated[slot] != BotAction.MoveForward)
+                continue;
+            wantsMove[slot] = true;
+            var (dx, dy) = bots[slot].Facing.Vector();
+            target[slot] = bots[slot].Position.Offset(dx, dy);
+            blocked[slot] = State.Map.IsWall(target[slot]);
+        }
+
+        // Same destination: neither moves. Swap: both fail.
+        for (int a = 0; a < n; a++)
+        {
+            for (int b = a + 1; b < n; b++)
+            {
+                if (!wantsMove[a] || !wantsMove[b])
+                    continue;
+                if (target[a] == target[b])
+                {
+                    blocked[a] = blocked[b] = true;
+                }
+                else if (target[a] == bots[b].Position && target[b] == bots[a].Position)
+                {
+                    blocked[a] = blocked[b] = true;
+                }
+            }
+        }
+
+        // Moving into a tile occupied by a bot that is not successfully vacating it fails.
+        // Two passes reach a fixed point for two bots (a chain: A follows B, B hits a wall).
+        for (int pass = 0; pass < n; pass++)
+        {
+            for (int slot = 0; slot < n; slot++)
+            {
+                if (!wantsMove[slot] || blocked[slot])
+                    continue;
+                for (int other = 0; other < n; other++)
+                {
+                    if (other == slot || bots[other].Position != target[slot])
+                        continue;
+                    bool vacating = wantsMove[other] && !blocked[other];
+                    if (!vacating)
+                        blocked[slot] = true;
+                }
+            }
+        }
+
+        for (int slot = 0; slot < n; slot++)
+        {
+            if (!wantsMove[slot])
+                continue;
+            var bot = bots[slot];
+            if (blocked[slot])
+            {
+                results[slot] = ActionResult.Blocked;
+                events.Add(GameEvent.MoveBlocked(slot, bot.Position, target[slot]));
+            }
+            else
+            {
+                var from = bot.Position;
+                bot.Position = target[slot];
+                events.Add(GameEvent.Move(slot, from, bot.Position));
+            }
+        }
+    }
+
+    private bool[] ResolveShooting(BotAction[] validated, List<GameEvent> events)
+    {
+        var bots = State.Bots;
+        int n = bots.Count;
+        var shotThisTick = new bool[n];
+        var pendingHits = new List<(int TargetSlot, int BySlot)>();
+
+        for (int slot = 0; slot < n; slot++)
+        {
+            if (validated[slot] != BotAction.Shoot)
+                continue;
+            shotThisTick[slot] = true;
+            var shooter = bots[slot];
+            var (dx, dy) = shooter.Facing.Vector();
+            var current = shooter.Position;
+            int? hitSlot = null;
+            while (true)
+            {
+                current = current.Offset(dx, dy);
+                if (State.Map.IsWall(current))
+                    break;
+                var occupant = bots.FirstOrDefault(b => b.Slot != slot && b.IsActive && b.Position == current);
+                if (occupant is not null)
+                {
+                    hitSlot = occupant.Slot;
+                    break;
+                }
+            }
+            events.Add(GameEvent.Shot(slot, shooter.Position, current, hitSlot));
+            if (hitSlot is int hit)
+                pendingHits.Add((hit, slot));
+        }
+
+        // 7. Apply damage simultaneously: all hits use pre-damage health.
+        var healthBefore = bots.Select(b => b.Health).ToArray();
+        foreach (var (targetSlot, bySlot) in pendingHits)
+        {
+            var target = bots[targetSlot];
+            int amount = Math.Min(State.Rules.DamagePerHit, healthBefore[targetSlot]);
+            target.Health = Math.Max(0, target.Health - State.Rules.DamagePerHit);
+            bots[bySlot].DamageDealt += amount;
+            events.Add(GameEvent.Damage(targetSlot, bySlot, target.Position, State.Rules.DamagePerHit, target.Health));
+        }
+        foreach (var bot in bots)
+        {
+            if (bot.Health <= 0 && bot.Status == BotStatus.Active)
+            {
+                bot.Status = BotStatus.Destroyed;
+                events.Add(GameEvent.Destroyed(bot.Slot, bot.Position));
+            }
+        }
+        return shotThisTick;
+    }
+
+    private MatchResultInfo ComputeResult(int endTick)
+    {
+        var bots = State.Bots;
+        var active = bots.Where(b => b.IsActive).ToList();
+        int? winnerSlot;
+        MatchEndReason reason;
+
+        if (active.Count == 1)
+        {
+            winnerSlot = active[0].Slot;
+            reason = bots.Any(b => b.Status == BotStatus.Disqualified)
+                ? MatchEndReason.Disqualification
+                : MatchEndReason.Elimination;
+        }
+        else if (active.Count == 0)
+        {
+            winnerSlot = null;
+            reason = bots.All(b => b.Status == BotStatus.Disqualified)
+                ? MatchEndReason.Disqualification
+                : MatchEndReason.Elimination;
+        }
+        else
+        {
+            reason = MatchEndReason.MaxTicks;
+            // §4.9: more health wins, then more damage dealt, else draw.
+            var best = active
+                .OrderByDescending(b => b.Health)
+                .ThenByDescending(b => b.DamageDealt)
+                .ThenBy(b => b.Slot)
+                .ToList();
+            winnerSlot = best[0].Health == best[1].Health && best[0].DamageDealt == best[1].DamageDealt
+                ? null
+                : best[0].Slot;
+        }
+
+        var perBot = bots.Select(b => new BotMatchResult(
+            b.Slot,
+            winnerSlot is null ? BotOutcome.Draw : (b.Slot == winnerSlot ? BotOutcome.Win : BotOutcome.Loss),
+            b.Health,
+            b.DamageDealt,
+            b.Faults,
+            b.Status)).ToArray();
+
+        return new MatchResultInfo
+        {
+            WinnerSlot = winnerSlot,
+            Reason = reason,
+            EndTick = endTick,
+            Bots = perBot,
+        };
+    }
+}

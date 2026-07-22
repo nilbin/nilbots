@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Runtime adapters (IBotRuntime implementations) and built-in bots. -->
+  <ItemGroup>
+    <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
+    <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
+  </ItemGroup>
+</Project>

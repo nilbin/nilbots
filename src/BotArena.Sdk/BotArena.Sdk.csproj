@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Developer-facing SDK. Must not reference the engine (plan section 8). -->
+  <PropertyGroup>
+    <PackageId>BotArena.Sdk</PackageId>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

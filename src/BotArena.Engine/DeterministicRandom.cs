@@ -1,0 +1,68 @@
+using System.Text;
+
+namespace BotArena.Engine;
+
+/// <summary>
+/// The Bot Arena-owned PRNG (plan §6): SplitMix64. Pure 64-bit integer arithmetic, so the
+/// stream is identical on every OS, architecture and .NET runtime. The algorithm is pinned
+/// by the game-rules version; changing it requires a new rules version.
+/// </summary>
+public sealed class DeterministicRandom
+{
+    private ulong _state;
+
+    public DeterministicRandom(ulong seed) => _state = seed;
+
+    public ulong NextUInt64()
+    {
+        _state += 0x9E3779B97F4A7C15UL;
+        return Mix(_state);
+    }
+
+    internal static ulong Mix(ulong z)
+    {
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+        return z ^ (z >> 31);
+    }
+
+    /// <summary>Uniform-enough integer in [minInclusive, maxExclusive). Uses modulo reduction;
+    /// the bias is negligible for game-sized ranges and the mapping is pinned by the rules version.</summary>
+    public int NextInt(int minInclusive, int maxExclusive)
+    {
+        if (maxExclusive <= minInclusive)
+            throw new ArgumentException("maxExclusive must be greater than minInclusive.");
+        ulong range = (ulong)((long)maxExclusive - minInclusive);
+        return (int)((long)(NextUInt64() % range) + minInclusive);
+    }
+
+    public bool NextBool() => (NextUInt64() >> 63) != 0;
+
+    public double NextDouble() => (NextUInt64() >> 11) * (1.0 / (1UL << 53));
+}
+
+/// <summary>
+/// Derives each participant's independent random stream from
+/// match seed + participant slot + game-rules version (plan §6).
+/// </summary>
+public static class SeedDerivation
+{
+    public static ulong DeriveBotSeed(ulong matchSeed, int participantSlot, string gameRulesVersion)
+    {
+        ulong h = Fnv1a64(gameRulesVersion);
+        ulong x = DeterministicRandom.Mix(matchSeed ^ h);
+        x = DeterministicRandom.Mix(x + 0x9E3779B97F4A7C15UL * ((ulong)participantSlot + 1));
+        return x;
+    }
+
+    private static ulong Fnv1a64(string value)
+    {
+        ulong hash = 14695981039346656037UL;
+        foreach (byte b in Encoding.UTF8.GetBytes(value))
+        {
+            hash ^= b;
+            hash *= 1099511628211UL;
+        }
+        return hash;
+    }
+}

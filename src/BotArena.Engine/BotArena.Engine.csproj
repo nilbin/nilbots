@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pure simulation library: no ASP.NET, EF, SignalR, or WASM-host dependencies (plan section 24). -->
+</Project>
