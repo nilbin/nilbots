@@ -144,6 +144,44 @@ public static class BotsEndpoints
             return Results.Ok(new { version.Id, version.VersionNumber, Status = version.Status.ToString() });
         }).RequireAuthorization().RequireRateLimiting("submission");
 
+        group.MapGet("/{botId:guid}/matches", async (Guid botId, AppDbContext db) =>
+        {
+            var now = DateTime.UtcNow;
+            var matches = await db.Matches
+                .Include(m => m.Participants)
+                .Where(m => m.Participants.Any(p => p.BotId == botId))
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+            int wins = 0, losses = 0, draws = 0;
+            var rows = matches.Select(m =>
+            {
+                bool visible = m.BroadcastComplete(now);
+                var self = m.Participants.Single(p => p.BotId == botId);
+                if (visible && m.Status == Matches.MatchStatus.Completed)
+                {
+                    if (m.WinnerSlot == self.Slot) wins++;
+                    else if (m.WinnerSlot is null) draws++;
+                    else losses++;
+                }
+                return new
+                {
+                    m.Id,
+                    m.MapId,
+                    Status = m.Status.ToString(),
+                    Broadcasting = m.Status == Matches.MatchStatus.Completed && !visible,
+                    m.MatchSetId,
+                    m.SetGame,
+                    m.CreatedAt,
+                    Outcome = visible ? (m.WinnerSlot == self.Slot ? "Win" : m.WinnerSlot is null ? "Draw" : "Loss") : null,
+                    Opponent = m.Participants.Where(p => p.BotId != botId)
+                        .Select(p => new { p.BotId, p.NameSnapshot, p.AccentSnapshot })
+                        .FirstOrDefault(),
+                };
+            }).ToList();
+            return Results.Ok(new { Wins = wins, Losses = losses, Draws = draws, Matches = rows });
+        });
+
         group.MapGet("/mine", async (ClaimsPrincipal principal, AppDbContext db) =>
         {
             if (principal.UserId() is not Guid userId)

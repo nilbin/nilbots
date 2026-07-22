@@ -9,6 +9,7 @@ namespace BotArena.App.Accounts;
 
 public sealed record RegisterRequest(string DisplayName, string Email, string Password);
 public sealed record LoginRequest(string Email, string Password);
+public sealed record CreateTokenRequest(string? Name);
 public sealed record UserResponse(Guid Id, string DisplayName, string Email);
 
 public static class AccountsEndpoints
@@ -61,6 +62,29 @@ public static class AccountsEndpoints
             var user = await principal.LoadUserAsync(db);
             return user is null ? Results.Unauthorized() : Results.Ok(ToResponse(user));
         });
+
+        // CLI tokens: created in the browser, shown once, stored hashed.
+        group.MapPost("/tokens", async (CreateTokenRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (principal.UserId() is not Guid userId)
+                return Results.Unauthorized();
+            string name = string.IsNullOrWhiteSpace(request.Name) ? "cli" : request.Name.Trim();
+            string plaintext = "ba_" + Convert.ToHexStringLower(
+                System.Security.Cryptography.RandomNumberGenerator.GetBytes(24));
+            db.ApiTokens.Add(new ApiToken { UserId = userId, Name = name, TokenHash = ApiToken.Hash(plaintext) });
+            await db.SaveChangesAsync();
+            return Results.Ok(new { Token = plaintext, Name = name });
+        }).RequireAuthorization();
+
+        group.MapGet("/tokens", async (ClaimsPrincipal principal, AppDbContext db) =>
+        {
+            if (principal.UserId() is not Guid userId)
+                return Results.Unauthorized();
+            return Results.Ok(await db.ApiTokens.Where(t => t.UserId == userId)
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t => new { t.Id, t.Name, t.CreatedAt, t.LastUsedAt })
+                .ToListAsync());
+        }).RequireAuthorization();
     }
 
     private static async Task SignIn(HttpContext http, User user)

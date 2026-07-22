@@ -5,6 +5,10 @@ try
     return args switch
     {
         ["new", var name] => NewCommand.Run(name),
+        ["login", .. var rest] => ServerCommands.Login(rest),
+        ["logout"] => ServerCommands.Logout(),
+        ["whoami"] => ServerCommands.WhoAmI(),
+        ["submit", .. var rest] => ServerCommands.Submit(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
@@ -30,6 +34,10 @@ static int Help()
 
         Usage:
           botarena new <Name>                     create a bot project
+          botarena login [--server url] [--token] sign in with an API token (web UI: My garage)
+          botarena submit [dir]                   build locally + submit for the canonical
+                                                  server build; reports artifact parity
+          botarena whoami | botarena logout
           botarena build [dir] [--no-cache]       compile a bot project to WASM (cached)
           botarena play [--bot <spec>] [--opponent <spec>] [--map <id>] [--seed <n>]
                         [--runtime wasm|in-process] [--max-ticks <n>] [--out <dir>]

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, type BotDetail, type BotSummary, type Meta } from '../api';
 
 const STARTER_SOURCE = `using BotArena.Sdk;
@@ -118,8 +118,82 @@ export default function BotDetailPage() {
         </ul>
       </section>
 
+      <MatchHistory botId={bot.id} />
+
       {bot.isOwner && <SubmitPanel bot={bot} onSubmitted={load} />}
     </div>
+  );
+}
+
+interface BotMatchRow {
+  id: string;
+  mapId: string;
+  status: string;
+  broadcasting: boolean;
+  setGame: number | null;
+  createdAt: string;
+  outcome: string | null;
+  opponent: { botId: string; nameSnapshot: string; accentSnapshot: string } | null;
+}
+
+function MatchHistory({ botId }: { botId: string }) {
+  const [data, setData] = useState<{
+    wins: number;
+    losses: number;
+    draws: number;
+    matches: BotMatchRow[];
+  } | null>(null);
+
+  useEffect(() => {
+    void api.get<NonNullable<typeof data>>(`/api/bots/${botId}/matches`).then(setData);
+  }, [botId]);
+
+  if (!data || data.matches.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
+        MATCH HISTORY ·{' '}
+        <span className="text-emerald-400">{data.wins}W</span>{' '}
+        <span className="text-red-400">{data.losses}L</span>{' '}
+        <span className="text-arena-text">{data.draws}D</span>
+      </h2>
+      <ul className="flex flex-col gap-1.5">
+        {data.matches.map((match) => (
+          <li key={match.id}>
+            <Link
+              to={`/matches/${match.id}`}
+              className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 px-4 py-2 text-sm transition-colors hover:border-arena-dim"
+            >
+              <span
+                className={
+                  'w-10 font-mono text-[11px] ' +
+                  (match.outcome === 'Win'
+                    ? 'text-emerald-400'
+                    : match.outcome === 'Loss'
+                      ? 'text-red-400'
+                      : 'text-arena-dim')
+                }
+              >
+                {match.broadcasting ? 'LIVE' : (match.outcome ?? match.status.toLowerCase())}
+              </span>
+              <span className="flex items-center gap-2">
+                vs
+                <span
+                  className="inline-block size-2.5 rounded-full"
+                  style={{ background: match.opponent?.accentSnapshot }}
+                />
+                {match.opponent?.nameSnapshot ?? '?'}
+              </span>
+              <span className="ml-auto font-mono text-[11px] text-arena-dim">
+                {match.setGame ? `ranked g${match.setGame} · ` : ''}
+                {match.mapId} · {new Date(match.createdAt).toLocaleString()}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

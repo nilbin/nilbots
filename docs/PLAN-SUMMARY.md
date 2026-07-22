@@ -46,7 +46,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 0A engine proof | Pure deterministic engine + replay + tests | **DONE** (55 tests) |
 | 0B presentation proof | Convincing match page | **DONE (lite)** — React canvas viewer; logotype/design pass still to come |
 | 0C WASM proof | Two WASM bots through official engine + limits | **DONE** (7 contract tests) |
-| 1 local DX | SDK, template, CLI build/watch/doctor, build cache | **MOSTLY DONE** — remaining: NuGet/template packaging, analyzers, login/submit (needs server) |
+| 1 local DX | SDK, template, CLI build/watch/doctor/login/submit, build cache | **DONE (pilot)** — remaining: NuGet/template packaging, analyzers |
 | 2 monolith | ASP.NET Core + Postgres + accounts/bots/matches modules | **DONE (pilot)** — cookie auth; OpenIddict/PKCE deferred |
 | 3 submissions | Server builds, validation, immutable versions | **DONE (pilot)** — controlled build + smoke test; process isolation & sprites deferred |
 | 4 public matches | Server execution, live broadcast, match pages | **DONE (pilot)** — synchronized presentation clock over polling; SignalR transport later |
@@ -81,7 +81,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 
 ## Next session pointers
 
-1. OpenIddict + CLI PKCE login and `botarena submit`.
+1. OpenIddict PKCE to replace pilot API tokens (DECISIONS #37); sprites/appearances (§33); site docs pages (§29.6); logotype (§31).
 2. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 3. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).

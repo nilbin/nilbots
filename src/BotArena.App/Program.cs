@@ -17,7 +17,17 @@ string connectionString = builder.Configuration.GetConnectionString("BotArena")
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services
-    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddAuthentication("CookieOrToken")
+    .AddPolicyScheme("CookieOrToken", "Cookie or API token", options =>
+    {
+        options.ForwardDefaultSelector = context =>
+            context.Request.Headers.Authorization.ToString().StartsWith("Bearer ba_")
+                ? BotArena.App.Accounts.ApiTokenAuthenticationHandler.Scheme
+                : CookieAuthenticationDefaults.AuthenticationScheme;
+    })
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
+        BotArena.App.Accounts.ApiTokenAuthenticationHandler>(
+        BotArena.App.Accounts.ApiTokenAuthenticationHandler.Scheme, null)
     .AddCookie(options =>
     {
         options.Cookie.Name = "botarena.auth";

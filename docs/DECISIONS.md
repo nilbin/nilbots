@@ -162,6 +162,20 @@ configuration) and changing them is a version bump, not an edit.
     endpoints null out winners, outcomes and rating changes until the relevant
     broadcasts complete server-side.
 
+## CLI ↔ server loop
+
+37. **API tokens instead of OpenIddict PKCE for CLI auth** (pilot): tokens are
+    minted in the web UI (shown once, stored as SHA-256), sent as
+    `Authorization: Bearer ba_...`, selected by a policy scheme alongside
+    cookies. Credentials live in `~/.botarena/credentials.json` (0600) or
+    `BOTARENA_TOKEN`. OpenIddict PKCE (§13.2) replaces this when accounts
+    leave the friends circle.
+38. **`botarena submit` reports artifact parity** (§46): it builds locally,
+    uploads sources, waits for the canonical server build, and compares
+    hashes. On a shared toolchain/sysroot the hashes are expected IDENTICAL
+    (verified in-container); drift means toolchain/sysroot mismatch and the
+    server artifact wins (§14).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
