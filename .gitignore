@@ -9,3 +9,4 @@ out/
 *.binlog
 artifacts/
 out/
+sandbox/

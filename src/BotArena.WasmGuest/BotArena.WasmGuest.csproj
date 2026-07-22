@@ -20,6 +20,7 @@
     <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" />
     <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" />
     <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
+    <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
     <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
   </ItemGroup>
 </Project>

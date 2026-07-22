@@ -22,6 +22,19 @@ bash scripts/play.sh --bot hunter --opponent coward --seed 7
 # → prints the result + replay hash, writes out/replay.json and out/viewer.html
 ```
 
+Write your own bot:
+
+```bash
+alias botarena='dotnet run --project src/BotArena.Cli --'
+botarena new MyBot && cd MyBot     # scaffolded project: MyBot.cs + botarena.json
+botarena play --bot . --opponent hunter --seed 42   # compiles YOUR bot to WASM
+botarena watch . --opponent hunter --seed 42        # rebuild + replay on save
+botarena doctor                                      # toolchain status
+```
+
+Builds are cached deterministically (`botarena cache status|clear`); only your
+source changes trigger recompilation.
+
 Open `out/viewer.html` in a browser: play/pause, step ticks, scrub the
 timeline, click a bot to see its field of view, decisions, and debug output.
 

@@ -1,8 +1,7 @@
 using System.Text;
-using BotArena.Bots.BuiltIn;
 using BotArena.Sdk;
 
-namespace BotArena.WasmGuest;
+namespace BotArena.Guest;
 
 /// <summary>One bot instance living for exactly one match (plan §7), driven by tick lines.</summary>
 internal sealed class GuestSession
@@ -16,17 +15,10 @@ internal sealed class GuestSession
         _random = new GuestRandom(seed);
     }
 
-    public static GuestSession Start(string initLine)
+    public static GuestSession Start(string initLine, Func<string, IBot> botFactory)
     {
         var init = GuestProtocol.ParseInit(initLine);
-        IBot bot = init.BotName switch
-        {
-            // Deliberately hostile test bots, available only in the guest artifact:
-            "guest-faulty" => new FaultyBot(),
-            "guest-hog" => new HogBot(),
-            _ => BuiltInBotCatalog.Create(init.BotName),
-        };
-        return new GuestSession(bot, init.Seed);
+        return new GuestSession(botFactory(init.BotName), init.Seed);
     }
 
     public string HandleTick(string line)
@@ -51,26 +43,8 @@ internal sealed class GuestSession
         return GuestProtocol.FormatDecision(action, debug.TextOrNull);
     }
 
-    /// <summary>Throws on every tick — exercises the fault path end to end.</summary>
-    private sealed class FaultyBot : IBot
-    {
-        public BotAction Tick(BotContext context) =>
-            throw new InvalidOperationException("FaultyBot always fails");
-    }
 
-    /// <summary>Burns fuel until the limit trips. The instance-field LCG gives every
-    /// iteration an observable side effect so the optimizer cannot elide the loop.</summary>
-    private sealed class HogBot : IBot
-    {
-        private ulong _state = 1;
 
-        public BotAction Tick(BotContext context)
-        {
-            while (_state != 0)
-                _state = _state * 6364136223846793005UL + 1442695040888963407UL;
-            return Actions.Wait();
-        }
-    }
 
     private sealed class GuestDebug : IBotDebug
     {

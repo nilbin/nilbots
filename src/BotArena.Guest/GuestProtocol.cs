@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using BotArena.Sdk;
 
-namespace BotArena.WasmGuest;
+namespace BotArena.Guest;
 
 /// <summary>
 /// Guest side of runtime protocol 0.1. Twin of BotArena.Runtime.Wasm/WasmProtocol.cs —
@@ -17,7 +17,7 @@ internal static class GuestProtocol
     public static InitMessage ParseInit(string line)
     {
         var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 6 || parts[0] != "I")
+        if (parts.Length < 5 || parts[0] != "I")
             throw new FormatException("Malformed init line.");
         if (parts[1] != ProtocolVersion)
             throw new FormatException($"Protocol mismatch: host {parts[1]}, guest {ProtocolVersion}.");
@@ -25,7 +25,7 @@ internal static class GuestProtocol
             int.Parse(parts[2], CultureInfo.InvariantCulture),
             ulong.Parse(parts[3], CultureInfo.InvariantCulture),
             parts[4],
-            parts[5]);
+            parts.Length > 5 ? parts[5] : "");
     }
 
     public static ParsedObservation ParseObservation(string line)

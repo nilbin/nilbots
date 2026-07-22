@@ -22,7 +22,8 @@ public static class WasmProtocol
 
     public static string FormatInit(BotMatchStart start, string botName) =>
         string.Create(CultureInfo.InvariantCulture,
-            $"I {ProtocolVersion} {start.Slot} {start.BotRandomSeed} {start.GameRulesVersion} {botName}");
+            $"I {ProtocolVersion} {start.Slot} {start.BotRandomSeed} {start.GameRulesVersion}")
+        + (botName.Length > 0 ? " " + botName : "");
 
     public static string FormatObservation(BotObservation observation)
     {

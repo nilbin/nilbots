@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The framework-owned WASM entry-point plumbing (plan §8, §11.1): tick loop,
+       runtime protocol, deterministic SDK random. Player projects never touch this;
+       the controlled build project wires their bot into GuestHost.Run(...). -->
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
+  </ItemGroup>
+</Project>

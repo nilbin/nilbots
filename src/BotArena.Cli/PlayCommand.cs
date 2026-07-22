@@ -11,8 +11,8 @@ public static class PlayCommand
     public static int Run(IReadOnlyList<string> args)
     {
         var options = CliSupport.ParseOptions(args);
-        string botName = options.GetValueOrDefault("bot", "hunter");
-        string opponentName = options.GetValueOrDefault("opponent", "wander");
+        string botSpec = options.GetValueOrDefault("bot", "hunter");
+        string opponentSpec = options.GetValueOrDefault("opponent", "wander");
         string mapId = options.GetValueOrDefault("map", "basic-01");
         ulong seed = ulong.Parse(options.GetValueOrDefault("seed", "42"), CultureInfo.InvariantCulture);
         string runtimeKind = options.GetValueOrDefault("runtime", "wasm");
@@ -23,15 +23,15 @@ public static class PlayCommand
             rules = rules with { MaxTicks = int.Parse(maxTicks, CultureInfo.InvariantCulture) };
 
         var map = CliSupport.LoadMap(mapId);
-        using var runtime0 = CreateRuntime(runtimeKind, botName);
-        using var runtime1 = CreateRuntime(runtimeKind, opponentName);
+        using var bot0 = ResolvedBot.Resolve(botSpec, runtimeKind);
+        using var bot1 = ResolvedBot.Resolve(opponentSpec, runtimeKind);
 
         Console.WriteLine($"Runtime:          {runtimeKind}");
         Console.WriteLine($"Game rules:       {rules.RulesVersion}");
         Console.WriteLine($"Runtime protocol: {BotArenaVersions.RuntimeProtocolVersion}");
         Console.WriteLine($"Map:              {map.Id} v{map.Version} ({map.Width}x{map.Height})");
         Console.WriteLine($"Seed:             {seed}");
-        Console.WriteLine($"Match:            {botName} vs {opponentName}");
+        Console.WriteLine($"Match:            {bot0.Name} vs {bot1.Name}");
         Console.WriteLine();
 
         var run = new MatchEngine().Run(new MatchConfiguration
@@ -39,28 +39,10 @@ public static class PlayCommand
             Map = map,
             Rules = rules,
             Seed = seed,
-            Participants =
-            [
-                new MatchParticipantConfig
-                {
-                    Name = botName,
-                    Runtime = runtime0.Runtime,
-                    RuntimeKind = runtimeKind,
-                    ArtifactHash = runtime0.ArtifactHash,
-                    Accent = BuiltInBotCatalog.Accent(botName),
-                },
-                new MatchParticipantConfig
-                {
-                    Name = opponentName,
-                    Runtime = runtime1.Runtime,
-                    RuntimeKind = runtimeKind,
-                    ArtifactHash = runtime1.ArtifactHash,
-                    Accent = BuiltInBotCatalog.Accent(opponentName),
-                },
-            ],
+            Participants = [bot0.ToParticipant(runtimeKind), bot1.ToParticipant(runtimeKind)],
         });
 
-        PrintResult(run, botName, opponentName);
+        PrintResult(run, bot0.Name, bot1.Name);
         var written = ReplayOutput.Write(run.Replay, outDir);
         Console.WriteLine();
         Console.WriteLine($"Replay:  {written.ReplayPath}");
@@ -70,38 +52,101 @@ public static class PlayCommand
         return 0;
     }
 
-    private sealed record DisposableRuntime(IBotRuntime Runtime, string ArtifactHash) : IDisposable
+    /// <summary>
+    /// A participant resolved from a CLI spec: a built-in name ("hunter"), a bot project
+    /// directory (built through the official toolchain, cached), or a path to a .wasm artifact.
+    /// </summary>
+    private sealed class ResolvedBot : IDisposable
     {
-        public void Dispose() => Runtime.Dispose();
-    }
+        public required string Name { get; init; }
+        public required string Accent { get; init; }
+        public required IBotRuntime Runtime { get; init; }
+        public required string ArtifactHash { get; init; }
 
-    private static DisposableRuntime CreateRuntime(string kind, string botName)
-    {
-        switch (kind)
+        public MatchParticipantConfig ToParticipant(string runtimeKind) => new()
         {
-            case "wasm":
-                string? artifact = CliSupport.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
-                if (artifact is null)
-                    throw new InvalidOperationException(
-                        "WASM artifact not found — run scripts/build-wasm-guest.sh first, " +
-                        "or use --runtime in-process (diagnostic mode, not submission-equivalent).");
-                return new DisposableRuntime(
-                    new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = artifact, BotName = botName }),
-                    Sha256Of(artifact));
-            case "in-process":
-                Console.WriteLine("NOTE: in-process runtime is a diagnostic mode; it does not enforce");
-                Console.WriteLine("      fuel or memory limits and is not submission-equivalent (plan §3.1).");
-                return new DisposableRuntime(
-                    new InProcessBotRuntime(() => BuiltInBotCatalog.Create(botName)), "");
-            default:
-                throw new InvalidOperationException($"Unknown runtime '{kind}' (use wasm or in-process).");
-        }
-    }
+            Name = Name,
+            Runtime = Runtime,
+            RuntimeKind = runtimeKind,
+            ArtifactHash = ArtifactHash,
+            Accent = Accent,
+        };
 
-    private static string Sha256Of(string path)
-    {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(stream));
+        public void Dispose() => Runtime.Dispose();
+
+        public static ResolvedBot Resolve(string spec, string runtimeKind)
+        {
+            if (BuiltInBotCatalog.Names.Contains(spec.ToLowerInvariant()) || spec.StartsWith("guest-", StringComparison.Ordinal))
+                return ResolveBuiltIn(spec, runtimeKind);
+            if (File.Exists(spec) && spec.EndsWith(".wasm", StringComparison.OrdinalIgnoreCase))
+            {
+                RequireWasmRuntime(runtimeKind, spec);
+                return new ResolvedBot
+                {
+                    Name = Path.GetFileNameWithoutExtension(spec),
+                    Accent = "#22d3ee",
+                    Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = Path.GetFullPath(spec) }),
+                    ArtifactHash = BotBuilder.Sha256File(spec),
+                };
+            }
+            if (Directory.Exists(spec) && BotProject.LooksLikeProject(spec))
+            {
+                RequireWasmRuntime(runtimeKind, spec);
+                var project = BotProject.Load(spec);
+                var built = BotBuilder.EnsureBuilt(project);
+                Console.WriteLine($"{project.Manifest.Name}: WASM artifact {built.ArtifactHash[..12]}… " +
+                                  $"({(built.FromCache ? "cache" : "compiled")})");
+                return new ResolvedBot
+                {
+                    Name = project.Manifest.Name,
+                    Accent = project.Accent,
+                    Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = built.WasmPath }),
+                    ArtifactHash = built.ArtifactHash,
+                };
+            }
+            throw new InvalidOperationException(
+                $"Cannot resolve bot '{spec}': not a built-in ({string.Join(", ", BuiltInBotCatalog.Names)}), " +
+                "not a bot project directory, not a .wasm file.");
+        }
+
+        private static void RequireWasmRuntime(string runtimeKind, string spec)
+        {
+            if (runtimeKind != "wasm")
+                throw new InvalidOperationException(
+                    $"'{spec}' is a WASM artifact/project; --runtime {runtimeKind} only supports built-in bots.");
+        }
+
+        private static ResolvedBot ResolveBuiltIn(string name, string runtimeKind)
+        {
+            switch (runtimeKind)
+            {
+                case "wasm":
+                    string? artifact = CliSupport.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
+                    if (artifact is null)
+                        throw new InvalidOperationException(
+                            "WASM artifact not found — run scripts/build-wasm-guest.sh first, " +
+                            "or use --runtime in-process (diagnostic mode, not submission-equivalent).");
+                    return new ResolvedBot
+                    {
+                        Name = name,
+                        Accent = BuiltInBotCatalog.Accent(name),
+                        Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = artifact, BotName = name }),
+                        ArtifactHash = BotBuilder.Sha256File(artifact),
+                    };
+                case "in-process":
+                    Console.WriteLine("NOTE: in-process runtime is a diagnostic mode; it does not enforce");
+                    Console.WriteLine("      fuel or memory limits and is not submission-equivalent (plan §3.1).");
+                    return new ResolvedBot
+                    {
+                        Name = name,
+                        Accent = BuiltInBotCatalog.Accent(name),
+                        Runtime = new InProcessBotRuntime(() => BuiltInBotCatalog.Create(name)),
+                        ArtifactHash = "",
+                    };
+                default:
+                    throw new InvalidOperationException($"Unknown runtime '{runtimeKind}' (use wasm or in-process).");
+            }
+        }
     }
 
     private static void PrintResult(MatchRunResult run, string bot0, string bot1)

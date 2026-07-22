@@ -164,6 +164,19 @@ public class WasmRuntimeTests
     }
 
     [SkippableFact]
+    public void BotUsingWallClockAndAmbientRandomness_IsStillDeterministic()
+    {
+        // guest-clock calls DateTime.UtcNow, Random.Shared and Environment.TickCount
+        // every tick (all prohibited by §6.1). The host's WASI shims must make even
+        // that bot fully deterministic — defense in depth below the analyzers.
+        RequireArtifact();
+        var first = Run(Wasm("guest-clock"), Wasm("hunter"), seed: 5);
+        var second = Run(Wasm("guest-clock"), Wasm("hunter"), seed: 5);
+        Assert.Equal(first.ReplayHash, second.ReplayHash);
+        Assert.Contains(first.Replay.Ticks[0].Bots[0].Debug ?? "", second.Replay.Ticks[0].Bots[0].Debug ?? "");
+    }
+
+    [SkippableFact]
     public void DebugMessages_CrossTheWasmBoundary()
     {
         RequireArtifact();

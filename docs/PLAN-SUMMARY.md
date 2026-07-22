@@ -46,7 +46,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 0A engine proof | Pure deterministic engine + replay + tests | **DONE** (55 tests) |
 | 0B presentation proof | Convincing match page | **DONE (lite)** — React canvas viewer; logotype/design pass still to come |
 | 0C WASM proof | Two WASM bots through official engine + limits | **DONE** (7 contract tests) |
-| 1 local DX | NuGet SDK, `dotnet new botarena`, real CLI (login/build/watch/submit), build cache, doctor | **NEXT** |
+| 1 local DX | SDK, template, CLI build/watch/doctor, build cache | **MOSTLY DONE** — remaining: NuGet/template packaging, analyzers, login/submit (needs server) |
 | 2 monolith | ASP.NET Core + Postgres + OpenIddict + accounts/bots/matches/replays modules | not started |
 | 3 submissions | Isolated server builds, validation, immutable versions, sprites | not started |
 | 4 public matches | Server execution, SignalR live viewing, match pages | **MVP boundary** |
@@ -66,19 +66,21 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   memory limits, trap isolation, runtime protocol 0.1.
 - `src/BotArena.WasmGuest` — guest program (built-ins as WASM;
   `scripts/build-wasm-guest.sh` → `artifacts/wasm/builtin-bots.wasm`).
-- `src/BotArena.Cli` — `play` / `replay` / `verify` / `bots` / `maps`.
+- `src/BotArena.Guest` — reusable guest loop (`GuestHost.Run`) + protocol.
+- `src/BotArena.Cli` — `new` / `build` (cached) / `play` / `watch` / `replay` /
+  `verify` / `doctor` / `cache` / `bots` / `maps`.
+- `templates/botarena-bot` — the player project template.
 - `web/` — React replay viewer, single-file build the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (62 tests).
+- `tests/` — engine, determinism, and WASM contract suites (63 tests).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh.
 
 ## Next session pointers
 
-1. Phase 1: package `BotArena.Sdk` as a NuGet + `dotnet new botarena` template;
-   per-player guest compilation (template project → own .wasm artifact);
-   `botarena watch`; deterministic build cache keyed on
-   source-hash + toolchain versions; `botarena doctor`.
-2. Roslyn analyzers for prohibited APIs (plan §6.1) — DX only.
+1. Roslyn analyzers for prohibited APIs (plan §6.1) — DX only; the runtime
+   already neutralizes clock/entropy (see DECISIONS #20).
+2. Phase 2: ASP.NET Core modular monolith (accounts, bots, matches, replays),
+   PostgreSQL + EF Core, OpenIddict cookie + PKCE login, dark app shell.
 3. Sound out artifact-hash parity local vs server once a second build
    environment exists (§40.5); record reasons where bytes differ.
 4. Phase 0B polish: logotype assets, match-start countdown, destruction pause,

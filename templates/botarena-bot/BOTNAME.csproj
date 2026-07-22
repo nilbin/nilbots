@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Your bot project: a plain class library for editing and IDE support.
+       `botarena build` compiles these sources into a WASM artifact using the
+       official controlled build project — this csproj is never used for the
+       actual artifact, so keep bot logic in .cs files, not build tricks. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--BOTARENA_SDK_REFERENCE-->
+  </ItemGroup>
+</Project>

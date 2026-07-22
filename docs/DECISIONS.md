@@ -85,6 +85,29 @@ configuration) and changing them is a version bump, not an edit.
     server these become owner-only (plan §27.2); locally they are always there.
 19. The header embeds the map tiles, making every replay self-contained.
 
+## Phase 1 (local developer experience)
+
+20. **The WASI clock and entropy imports are shimmed deterministically by the
+    host** (`clock_time_get` = logical clock advancing 1 ms/call; `random_get` =
+    SplitMix64 stream derived from the bot seed). Even a bot calling
+    `DateTime.UtcNow` or `Random.Shared` replays identically — defense in depth
+    below the future analyzers (§6.1). Covered by the `guest-clock` contract test.
+21. **`botarena build` mirrors the server submission flow (§14/§15.1)**: only
+    `.cs` sources are taken from the player project; the artifact is compiled
+    through a generated *controlled build project* wired to `GuestHost.Run`.
+    The player's own csproj exists purely for IDE experience.
+22. **Build cache key** = SHA-256 over sources + entry type + pinned versions
+    (SDK, ILC, guest adapter, runtime protocol, runtime configuration).
+    Framework code changes must bump `Toolchain.GuestAdapterVersion` (or use
+    `--no-cache` during framework development) — player sources are hashed,
+    framework sources are versioned.
+23. The protocol init line's bot-name token is optional: multi-bot artifacts
+    (built-ins) get a name, single-bot player artifacts don't.
+24. SDK/Guest are consumed as project references from the repo for now; NuGet
+    packaging + `dotnet new` template packaging happen when there is a registry
+    to publish to (the `templates/botarena-bot` folder is already
+    template-shaped for that move).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

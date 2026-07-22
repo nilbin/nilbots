@@ -73,12 +73,13 @@ public sealed class WasmBotRuntime : IBotRuntime
         _store.SetWasiConfiguration(new WasiConfiguration().WithArgs("bot.wasm"));
         _store.Fuel = _options.StartupFuel;
 
-        var linker = new Linker(_engine);
+        var linker = new Linker(_engine) { AllowShadowing = true };
         linker.DefineWasi();
         linker.DefineFunction("botarena", "next_observation",
             (Caller caller, int pointer, int capacity) => NextObservation(caller, pointer, capacity));
         linker.DefineFunction("botarena", "post_decision",
             (Caller caller, int pointer, int length) => PostDecision(caller, pointer, length));
+        DefineDeterministicWasiShims(linker, start.BotRandomSeed);
 
         var instance = linker.Instantiate(_store, _module);
         var startFunction = instance.GetAction("_start")
@@ -155,6 +156,50 @@ public sealed class WasmBotRuntime : IBotRuntime
             _deathReason = reason;
             _guestDead.Cancel();
         }
+    }
+
+    /// <summary>
+    /// Replaces the ambient-nondeterminism WASI imports with deterministic versions
+    /// (plan §5, §18: no host clock, no OS entropy). The .NET runtime inside the guest
+    /// boots via these (hash seeds, timers), and a bot calling DateTime.UtcNow or
+    /// Random.Shared gets deterministic values instead of real ones.
+    /// - clock_time_get: a logical clock advancing 1ms per call, never wall time.
+    /// - random_get: a SplitMix64 stream derived from the bot seed — stable per
+    ///   match/slot/rules version, unrelated to the SDK's IBotRandom stream.
+    /// </summary>
+    private void DefineDeterministicWasiShims(Linker linker, ulong botSeed)
+    {
+        long logicalNanos = 0;
+        var entropy = new DeterministicRandom(DeterministicRandom.Mix(botSeed ^ 0xB07A_5EED_C10C_0FF5UL));
+
+        linker.DefineFunction("wasi_snapshot_preview1", "clock_time_get",
+            (Caller caller, int clockId, long precision, int resultPointer) =>
+            {
+                logicalNanos += 1_000_000;
+                var memory = caller.GetMemory("memory");
+                if (memory is null || resultPointer < 0 || resultPointer + 8 > memory.GetLength())
+                    return 28; // WASI errno: EINVAL
+                System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(
+                    memory.GetSpan(resultPointer, 8), logicalNanos);
+                return 0;
+            });
+
+        linker.DefineFunction("wasi_snapshot_preview1", "random_get",
+            (Caller caller, int bufferPointer, int bufferLength) =>
+            {
+                var memory = caller.GetMemory("memory");
+                if (memory is null || bufferPointer < 0 || bufferLength < 0 ||
+                    bufferPointer + bufferLength > memory.GetLength())
+                    return 28; // WASI errno: EINVAL
+                var span = memory.GetSpan(bufferPointer, bufferLength);
+                for (int i = 0; i < span.Length; i += 8)
+                {
+                    ulong value = entropy.NextUInt64();
+                    for (int b = 0; b < 8 && i + b < span.Length; b++)
+                        span[i + b] = (byte)(value >> (b * 8));
+                }
+                return 0;
+            });
     }
 
     private int NextObservation(Caller caller, int pointer, int capacity)
