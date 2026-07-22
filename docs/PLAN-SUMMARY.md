@@ -81,19 +81,28 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 
 ## Next session pointers
 
-1. **Game design backlog: `docs/GAME-DESIGN.md`** — depth assessment from the
+1. **Fast inner loop (top DX priority)**: extend the diagnostic in-process
+   runtime to player bot sources — Roslyn-compile the .cs to a plain assembly
+   (~2 s) and run it in the same engine with the same deterministic RNG, so
+   iteration stops paying the 2–4 min NativeAOT-LLVM WASM compile (which
+   redoes the whole runtime/BCL per bot; no incremental mode exists). WASM
+   stays the canonical pre-submit verification. Companion: shave the guest
+   build itself (StackTraceSupport=false, UseSystemResourceKeys,
+   EventSourceSupport=false, reflection-free if possible) — needs a
+   GuestAdapterVersion bump; measure before/after.
+2. **Game design backlog: `docs/GAME-DESIGN.md`** — depth assessment from the
    agent-arena tournament, ranked rule-change candidates (anti-draw first),
    progression/monetization stance. agent-arena is the balance harness for
    all of it (eval-speed knobs: DECISIONS #41/#42).
-2. Sprites/appearances (§33); logotype (§31).
-3. SignalR as the live transport (timeline model already in place, DECISIONS #33).
-4. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
+3. Sprites/appearances (§33); logotype (§31).
+4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
+5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).
-5. §15.3 completion: network-less submission builds (vendor the ILC packages)
+6. §15.3 completion: network-less submission builds (vendor the ILC packages)
    and cgroup memory limits for the build user.
-6. Phase 6 (competitions/seasons — also the progression container per
+7. Phase 6 (competitions/seasons — also the progression container per
    GAME-DESIGN) and browser editing (phase 7).
-7. Sound out artifact-hash parity local vs server once a second build
+8. Sound out artifact-hash parity local vs server once a second build
    environment exists (§40.5); record reasons where bytes differ.
-8. Phase 0B polish: logotype assets, match-start countdown, destruction pause,
+9. Phase 0B polish: logotype assets, match-start countdown, destruction pause,
    spectator vs developer mode split (plan §32.3/32.4).
