@@ -64,4 +64,21 @@ public sealed record GameRules
     /// <summary>The version new matches play. Historical versions stay constructible for
     /// replay verification and A/B harness runs.</summary>
     public static GameRules Current => V0_2;
+
+    /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
+    /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
+    /// strings (they flow into replays and seed derivation).</summary>
+    public static GameRules Resolve(string name) => name switch
+    {
+        "0.2" => V0_2,
+        "0.1" => V0_1,
+        "energy" => V0_2 with
+        {
+            RulesVersion = "0.3-exp-energy",
+            MaxEnergy = 6,
+            ShotEnergyCost = 2,
+            EnergyRegenTicks = 3,
+        },
+        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.2, 0.1, or energy)."),
+    };
 }

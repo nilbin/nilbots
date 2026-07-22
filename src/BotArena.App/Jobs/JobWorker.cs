@@ -35,6 +35,16 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
     private static readonly int BroadcastDelaySeconds =
         ReadEnv("BOTARENA_BROADCAST_DELAY_SECONDS", fallback: 3, min: 0, max: 300);
 
+    /// <summary>The ruleset every match on this server plays (BOTARENA_RULES, default
+    /// GameRules.Current). Eval deployments set "energy" etc. to run whole tournaments
+    /// under a rules experiment; NEVER set an experiment on a production server — the
+    /// version string lands in every replay and rating. Server config, not per-request,
+    /// for the same reason broadcast pacing is (DECISIONS #41).</summary>
+    private static readonly GameRules MatchRules =
+        Environment.GetEnvironmentVariable("BOTARENA_RULES") is { Length: > 0 } name
+            ? GameRules.Resolve(name)
+            : GameRules.Current;
+
     private static int ReadEnv(string name, int fallback, int min, int max) =>
         int.TryParse(Environment.GetEnvironmentVariable(name), out int value)
             ? Math.Clamp(value, min, max)
@@ -43,8 +53,8 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation(
-            "Job worker started: 1 match lane, {CompileWorkers} compile lane(s), broadcast {Tps} ticks/s + {Delay}s countdown",
-            CompileWorkers, BroadcastTicksPerSecond, BroadcastDelaySeconds);
+            "Job worker started: 1 match lane, {CompileWorkers} compile lane(s), broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
+            CompileWorkers, BroadcastTicksPerSecond, BroadcastDelaySeconds, MatchRules.RulesVersion);
         var lanes = new List<Task> { RunLane(BackgroundJob.ExecuteMatchType, stoppingToken) };
         for (int i = 0; i < CompileWorkers; i++)
             lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
@@ -181,7 +191,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
     {
         string? builtin = RepoPaths.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
         var map = LoadMap("basic-01");
-        var rules = GameRules.Current with { MaxTicks = 5 };
+        var rules = MatchRules with { MaxTicks = 5 };
         using var candidate = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = wasmPath });
         using var idle = builtin is null
             ? (IBotRuntime)new Runtime.InProcessBotRuntime(() => new BotArena.Bots.BuiltIn.IdleBot())
@@ -230,7 +240,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 var run = new MatchEngine().Run(new MatchConfiguration
                 {
                     Map = LoadMap(match.MapId),
-                    Rules = GameRules.Current,
+                    Rules = MatchRules,
                     Seed = unchecked((ulong)match.Seed),
                     Participants = participants.Select((p, slot) => new MatchParticipantConfig
                     {
@@ -247,6 +257,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
 
                 match.ReplayPath = replayPath;
                 match.ReplayHash = run.ReplayHash;
+                match.GameRulesVersion = MatchRules.RulesVersion; // actual, not creation-time default
                 match.WinnerSlot = run.Result.WinnerSlot;
                 match.EndReason = run.Result.Reason.ToString();
                 match.EndTick = run.Result.EndTick;

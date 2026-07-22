@@ -5,25 +5,10 @@ namespace BotArena.Cli;
 
 public static class CliSupport
 {
-    /// <summary>--rules 0.2 (default, seed-spawn variation) | 0.1 (legacy fixed spawns) |
-    /// energy (0.2 + the unshipped energy-shot candidate: 6 max, 2/shot, +1 every 3
-    /// ticks — DECISIONS #47). Experiment versions are visibly non-official.</summary>
+    /// <summary>--rules 0.2 (default) | 0.1 | energy — see GameRules.Resolve.</summary>
     public static GameRules ResolveRules(Dictionary<string, string> options)
     {
-        var rules = options.GetValueOrDefault("rules", "0.2") switch
-        {
-            "0.2" => GameRules.V0_2,
-            "0.1" => GameRules.V0_1,
-            "energy" => GameRules.V0_2 with
-            {
-                RulesVersion = "0.3-exp-energy",
-                MaxEnergy = 6,
-                ShotEnergyCost = 2,
-                EnergyRegenTicks = 3,
-            },
-            var unknown => throw new InvalidOperationException(
-                $"Unknown rules '{unknown}' (use 0.2, 0.1, or energy)."),
-        };
+        var rules = GameRules.Resolve(options.GetValueOrDefault("rules", "0.2"));
         if (options.TryGetValue("max-ticks", out string? maxTicks))
             rules = rules with { MaxTicks = int.Parse(maxTicks, CultureInfo.InvariantCulture) };
         return rules;

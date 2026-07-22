@@ -29,6 +29,35 @@ Production keeps the defaults (5 ticks/s, 3 s countdown, 1 compile lane) — nev
 set these on a server humans spectate. The no-spoiler API semantics are
 unchanged either way; polls just resolve much sooner.
 
+## 1.5 Fresh generation
+
+Archive the previous generation's agent state or `scripts/tournament-drive.py`
+will resurrect its bots into the bracket:
+
+```bash
+[ -d sandbox/agents ] && mv sandbox/agents "sandbox/agents-prev-$(date +%s)"
+mkdir -p sandbox/agents
+```
+
+Old generations' server bots keep their accounts/elo (that's history); only the
+state.json files decide who plays. Note: champion server-bots start at elo 1200
+regardless of the elo noted in their README — the ladder position is earned per
+deployment.
+
+### Running a rules-experiment tournament (e.g. the energy re-test)
+
+Add `BOTARENA_RULES=energy` to the app env in step 1 (the worker log line
+confirms the ruleset) and have agents test locally with `--rules energy`.
+Player-facing docs only describe SHIPPED rules, so append the experiment spec
+to every agent brief — for energy:
+
+> EXPERIMENTAL RULES for this tournament (on top of the documented v0.2): you
+> have an energy meter, visible as `context.Energy` (max 6). Each shot costs 2
+> energy; +1 energy regenerates every 3 ticks (cap 6). A Shoot without enough
+> energy becomes Wait with an OnCooldown result. Enemy energy is not
+> observable — count their shots. Sustained fire is therefore ~1 shot per 6
+> ticks; bursts of 3 are available from full. Manage it or run dry mid-fight.
+
 ## 2. Fan out competitor agents (parallel, isolation: worktree not needed)
 
 Give each agent: a persona (aggressive / evasive / ambusher / adaptive), a distinct
