@@ -30,6 +30,9 @@ public class Match
     /// then events are presented from this instant at PresentationTicksPerSecond.</summary>
     public DateTime? BroadcastStartedAt { get; set; }
     public int PresentationTicksPerSecond { get; set; } = 5;
+    public Guid? MatchSetId { get; set; }
+    /// <summary>1-based game number inside a ranked set.</summary>
+    public int? SetGame { get; set; }
     public List<MatchParticipant> Participants { get; set; } = [];
 
     /// <summary>The tick the shared presentation clock has reached (-1 during countdown).</summary>

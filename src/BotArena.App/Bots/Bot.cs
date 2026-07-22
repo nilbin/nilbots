@@ -8,6 +8,12 @@ public class Bot
     public required string Slug { get; set; }
     public string Accent { get; set; } = "#22d3ee";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>Elo rating; moves only on completed ranked match sets. Pilot deviation:
+    /// the plan attaches ratings to immutable versions (§36) — the bot-level rating keeps
+    /// the leaderboard stable across resubmissions, and MatchSet rows record which
+    /// versions actually played (see docs/DECISIONS.md).</summary>
+    public double Rating { get; set; } = 1200;
+    public int RankedSets { get; set; }
     public List<BotVersion> Versions { get; set; } = [];
 }
 

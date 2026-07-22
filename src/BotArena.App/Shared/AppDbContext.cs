@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Bot> Bots => Set<Bot>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
 
@@ -27,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Bot>(entity =>
         {
             entity.HasIndex(b => b.Slug).IsUnique();
+            entity.Property(b => b.Rating).HasDefaultValue(1200.0);
             entity.Property(b => b.Name).HasMaxLength(60);
             entity.Property(b => b.Slug).HasMaxLength(80);
             entity.Property(b => b.Accent).HasMaxLength(16);
@@ -46,6 +48,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasIndex(m => m.CreatedAt);
+            entity.HasIndex(m => m.MatchSetId);
+        });
+
+        modelBuilder.Entity<MatchSet>(entity =>
+        {
+            entity.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(s => s.CreatedAt);
         });
 
         modelBuilder.Entity<MatchParticipant>(entity =>

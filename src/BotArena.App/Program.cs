@@ -92,6 +92,7 @@ app.UseRateLimiter();
 app.MapAccounts();
 app.MapBots();
 app.MapMatches();
+app.MapRanked();
 
 app.MapGet("/api/meta", () =>
 {

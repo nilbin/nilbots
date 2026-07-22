@@ -1,0 +1,38 @@
+namespace BotArena.App.Matches;
+
+public enum MatchSetStatus
+{
+    Running,
+    Completed,
+    Failed,
+}
+
+/// <summary>
+/// A ranked match set (plan §36): six games — three map/seed pairs, each played twice
+/// with mirrored starting slots so positional advantage cancels out. Ratings change
+/// only when a whole set completes.
+/// </summary>
+public class MatchSet
+{
+    public const int Games = 6;
+    public const double EloK = 32;
+
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid BotAId { get; set; }
+    public Guid BotBId { get; set; }
+    public Guid BotAVersionId { get; set; }
+    public Guid BotBVersionId { get; set; }
+    public string GameRulesVersion { get; set; } = Engine.BotArenaVersions.GameRulesVersion;
+    public string RuntimeConfigurationVersion { get; set; } = Engine.BotArenaVersions.RuntimeConfigurationVersion;
+    public MatchSetStatus Status { get; set; } = MatchSetStatus.Running;
+    /// <summary>Set points: 1 per game win, 0.5 per draw.</summary>
+    public double ScoreA { get; set; }
+    public double ScoreB { get; set; }
+    public double RatingABefore { get; set; }
+    public double RatingBBefore { get; set; }
+    public double RatingChangeA { get; set; }
+    public double RatingChangeB { get; set; }
+    public Guid? WinnerBotId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
+}

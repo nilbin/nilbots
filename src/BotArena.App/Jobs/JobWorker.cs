@@ -242,6 +242,59 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
             match.Error = ex.Message;
         }
         await db.SaveChangesAsync(cancellationToken);
+        if (match.MatchSetId is Guid setId)
+            await TryFinalizeSet(db, setId, cancellationToken);
+    }
+
+    /// <summary>Applies Elo once all six games of a ranked set have executed (plan §36).
+    /// The single-consumer worker makes this race-free.</summary>
+    private static async Task TryFinalizeSet(AppDbContext db, Guid setId, CancellationToken cancellationToken)
+    {
+        var set = await db.MatchSets.SingleAsync(s => s.Id == setId, cancellationToken);
+        if (set.Status != MatchSetStatus.Running)
+            return;
+        var games = await db.Matches.Include(m => m.Participants)
+            .Where(m => m.MatchSetId == setId)
+            .ToListAsync(cancellationToken);
+        if (games.Count < MatchSet.Games ||
+            games.Any(m => m.Status is MatchStatus.Pending or MatchStatus.Running))
+            return;
+
+        if (games.Any(m => m.Status == MatchStatus.Failed))
+        {
+            set.Status = MatchSetStatus.Failed;
+            set.CompletedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        double scoreA = 0;
+        foreach (var game in games)
+        {
+            if (game.WinnerSlot is int winner)
+                scoreA += game.Participants.Single(p => p.Slot == winner).BotId == set.BotAId ? 1 : 0;
+            else
+                scoreA += 0.5;
+        }
+        set.ScoreA = scoreA;
+        set.ScoreB = MatchSet.Games - scoreA;
+
+        var botA = await db.Bots.SingleAsync(b => b.Id == set.BotAId, cancellationToken);
+        var botB = await db.Bots.SingleAsync(b => b.Id == set.BotBId, cancellationToken);
+        set.RatingABefore = botA.Rating;
+        set.RatingBBefore = botB.Rating;
+        double expectedA = 1.0 / (1.0 + Math.Pow(10, (botB.Rating - botA.Rating) / 400.0));
+        double change = MatchSet.EloK * (scoreA / MatchSet.Games - expectedA);
+        set.RatingChangeA = change;
+        set.RatingChangeB = -change;
+        botA.Rating += change;
+        botB.Rating -= change;
+        botA.RankedSets++;
+        botB.RankedSets++;
+        set.WinnerBotId = scoreA > set.ScoreB ? set.BotAId : scoreA < set.ScoreB ? set.BotBId : null;
+        set.Status = MatchSetStatus.Completed;
+        set.CompletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private static ArenaMap LoadMap(string mapId)

@@ -45,6 +45,8 @@ export interface BotSummary {
   slug: string;
   accent: string;
   owner: string;
+  rating: number;
+  rankedSets: number;
   activeVersion: { id: string; versionNumber: number; artifactHash: string } | null;
   versionCount: number;
 }
@@ -81,6 +83,9 @@ export interface MatchSummary {
   id: string;
   mapId: string;
   status: string;
+  broadcasting: boolean;
+  matchSetId: string | null;
+  setGame: number | null;
   winnerSlot: number | null;
   endReason: string | null;
   endTick: number | null;
@@ -104,4 +109,38 @@ export interface Meta {
   engineVersion: string;
   gameRulesVersion: string;
   maps: { id: string; width: number; height: number }[];
+}
+
+export interface SetGame {
+  id: string;
+  game: number;
+  mapId: string;
+  status: string;
+  broadcasting: boolean;
+  winnerBotId: string | null;
+  draw: boolean;
+  participants: { slot: number; botId: string; nameSnapshot: string; accentSnapshot: string }[];
+}
+
+export interface MatchSetDetail {
+  id: string;
+  status: string;
+  botA: { id: string; name: string; accent: string };
+  botB: { id: string; name: string; accent: string };
+  revealed: boolean;
+  scoreA: number | null;
+  scoreB: number | null;
+  ratingChangeA: number | null;
+  ratingChangeB: number | null;
+  winnerBotId: string | null;
+  games: SetGame[];
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  name: string;
+  accent: string;
+  owner: string;
+  rating: number;
+  rankedSets: number;
 }

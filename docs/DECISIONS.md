@@ -148,6 +148,20 @@ configuration) and changing them is a version bump, not an edit.
     same clock → synchronized without a socket. SignalR remains the intended
     transport upgrade; the timeline model won't change.
 
+## Rankings (phase 5)
+
+34. **Ranked sets are 6 games**: three map/seed pairs (basic-01, arena-01 ×2),
+    each played from both starting slots (§36 mirrored starts). Ratings move
+    only when a whole set completes; a failed game voids the set.
+35. **Elo at the bot level** (K=32, initial 1200, set score fraction as the
+    game result). Deviation from §36's version-level rankings: bot-level keeps
+    the pilot leaderboard stable across resubmissions; MatchSet rows snapshot
+    the exact versions and pre-set ratings, so version-level rankings can be
+    reconstructed later.
+36. **Nothing spoils an unwatched broadcast**: match list/detail and match-set
+    endpoints null out winners, outcomes and rating changes until the relevant
+    broadcasts complete server-side.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -7,6 +7,8 @@ import BotsPage from './pages/BotsPage';
 import BotDetailPage from './pages/BotDetailPage';
 import GaragePage from './pages/GaragePage';
 import MatchPage from './pages/MatchPage';
+import MatchSetPage from './pages/MatchSetPage';
+import LeaderboardPage from './pages/LeaderboardPage';
 
 export default function Site() {
   return (
@@ -20,6 +22,8 @@ export default function Site() {
             <Route path="/bots/:botId" element={<BotDetailPage />} />
             <Route path="/garage" element={<GaragePage />} />
             <Route path="/matches/:matchId" element={<MatchPage />} />
+            <Route path="/sets/:setId" element={<MatchSetPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

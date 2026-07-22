@@ -50,7 +50,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 2 monolith | ASP.NET Core + Postgres + accounts/bots/matches modules | **DONE (pilot)** — cookie auth; OpenIddict/PKCE deferred |
 | 3 submissions | Server builds, validation, immutable versions | **DONE (pilot)** — controlled build + smoke test; process isolation & sprites deferred |
 | 4 public matches | Server execution, live broadcast, match pages | **DONE (pilot)** — synchronized presentation clock over polling; SignalR transport later |
-| 5 competitive | Ranked match sets, ratings, leaderboard | later |
+| 5 competitive | Ranked match sets, ratings, leaderboard | **DONE (pilot)** — 6-game mirrored sets, bot-level Elo, leaderboard |
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
 
@@ -87,7 +87,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    already neutralizes clock/entropy (DECISIONS #20).
 4. §15.3 completion: network-less submission builds (vendor the ILC packages)
    and cgroup memory limits for the build user.
-5. Rankings (phase 5): mirrored match sets, ratings, leaderboard.
+5. Phase 6 (competitions/seasons) and browser editing (phase 7).
 3. Sound out artifact-hash parity local vs server once a second build
    environment exists (§40.5); record reasons where bytes differ.
 4. Phase 0B polish: logotype assets, match-start countdown, destruction pause,

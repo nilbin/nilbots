@@ -26,7 +26,12 @@ export default function BotsPage() {
                   <span className="inline-block size-3 rounded-full" style={{ background: bot.accent }} />
                   {bot.name}
                 </span>
-                <span className="text-xs text-arena-dim">by {bot.owner}</span>
+                <span className="text-xs text-arena-dim">
+                  by {bot.owner}
+                  {bot.rankedSets > 0 && (
+                    <span className="ml-2 font-mono text-arena-accent">{bot.rating} elo</span>
+                  )}
+                </span>
                 <span className="font-mono text-[11px] text-arena-dim">
                   {bot.activeVersion
                     ? `v${bot.activeVersion.versionNumber} active · ${bot.activeVersion.artifactHash?.slice(0, 10)}…`

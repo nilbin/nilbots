@@ -15,6 +15,7 @@ export default function Shell() {
         <nav className="flex items-center gap-1 text-sm">
           <TopLink to="/">Arena</TopLink>
           <TopLink to="/bots">Bots</TopLink>
+          <TopLink to="/leaderboard">Leaderboard</TopLink>
           {user && <TopLink to="/garage">My garage</TopLink>}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">

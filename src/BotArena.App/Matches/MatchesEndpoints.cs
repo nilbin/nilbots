@@ -58,26 +58,38 @@ public static class MatchesEndpoints
         group.MapGet("/", async (AppDbContext db, int take) =>
         {
             take = take is > 0 and <= 100 ? take : 25;
-            var matches = await db.Matches
+            var now = DateTime.UtcNow;
+            var matches = await db.Matches.Include(m => m.Participants)
                 .OrderByDescending(m => m.CreatedAt)
                 .Take(take)
-                .Select(m => new
+                .ToListAsync();
+            // Outcomes stay hidden until the broadcast catches up (plan §28).
+            return Results.Ok(matches.Select(m =>
+            {
+                bool visible = m.BroadcastComplete(now);
+                return new
                 {
                     m.Id,
                     m.MapId,
                     Status = m.Status.ToString(),
-                    m.WinnerSlot,
-                    m.EndReason,
-                    m.EndTick,
+                    Broadcasting = m.Status == MatchStatus.Completed && !visible,
+                    m.MatchSetId,
+                    m.SetGame,
+                    WinnerSlot = visible ? m.WinnerSlot : null,
+                    EndReason = visible ? m.EndReason : null,
+                    EndTick = visible ? m.EndTick : null,
                     m.CreatedAt,
                     m.CompletedAt,
                     Participants = m.Participants.OrderBy(p => p.Slot).Select(p => new
                     {
-                        p.Slot, p.NameSnapshot, p.AccentSnapshot, p.Outcome, p.FinalHealth,
+                        p.Slot,
+                        p.NameSnapshot,
+                        p.AccentSnapshot,
+                        Outcome = visible ? p.Outcome : null,
+                        FinalHealth = visible ? p.FinalHealth : null,
                     }),
-                })
-                .ToListAsync();
-            return Results.Ok(matches);
+                };
+            }));
         });
 
         group.MapGet("/{matchId:guid}", async (Guid matchId, AppDbContext db) =>
@@ -86,23 +98,29 @@ public static class MatchesEndpoints
                 .SingleOrDefaultAsync(m => m.Id == matchId);
             if (match is null)
                 return Results.NotFound();
+            bool visible = match.BroadcastComplete(DateTime.UtcNow);
             return Results.Ok(new
             {
                 match.Id,
                 match.MapId,
                 match.Seed,
                 Status = match.Status.ToString(),
-                match.WinnerSlot,
-                match.EndReason,
-                match.EndTick,
-                match.ReplayHash,
+                match.MatchSetId,
+                match.SetGame,
+                WinnerSlot = visible ? match.WinnerSlot : null,
+                EndReason = visible ? match.EndReason : null,
+                EndTick = visible ? match.EndTick : null,
+                ReplayHash = visible ? match.ReplayHash : null,
                 match.Error,
                 match.CreatedAt,
                 match.CompletedAt,
                 Participants = match.Participants.OrderBy(p => p.Slot).Select(p => new
                 {
-                    p.Slot, p.BotId, p.NameSnapshot, p.AccentSnapshot,
-                    p.ArtifactHashSnapshot, p.Outcome, p.FinalHealth, p.DamageDealt, p.Faults,
+                    p.Slot, p.BotId, p.NameSnapshot, p.AccentSnapshot, p.ArtifactHashSnapshot,
+                    Outcome = visible ? p.Outcome : null,
+                    FinalHealth = visible ? p.FinalHealth : null,
+                    DamageDealt = visible ? p.DamageDealt : null,
+                    Faults = visible ? p.Faults : null,
                 }),
             });
         });

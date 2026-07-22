@@ -79,13 +79,23 @@ export function MatchRow({ match }: { match: MatchSummary }) {
         <Fighter name={a?.nameSnapshot} accent={a?.accentSnapshot} bold={winner === 0} />
         <span className="font-mono text-xs text-arena-dim">vs</span>
         <Fighter name={b?.nameSnapshot} accent={b?.accentSnapshot} bold={winner === 1} />
-        <span className="ml-auto font-mono text-[11px] text-arena-dim">
+        <span className="ml-auto flex items-center gap-2 font-mono text-[11px] text-arena-dim">
+          {match.setGame && <span className="rounded bg-arena-edge px-1.5 py-0.5">ranked g{match.setGame}</span>}
           {match.mapId} ·{' '}
-          {match.status === 'Completed'
-            ? winner === null
-              ? 'draw'
-              : `${match.participants[winner]?.nameSnapshot} wins`
-            : match.status.toLowerCase()}
+          {match.broadcasting ? (
+            <span className="flex items-center gap-1 font-bold text-red-400">
+              <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-500" />
+              LIVE
+            </span>
+          ) : match.status === 'Completed' ? (
+            winner === null || winner === undefined ? (
+              'draw'
+            ) : (
+              `${match.participants[winner]?.nameSnapshot} wins`
+            )
+          ) : (
+            match.status.toLowerCase()
+          )}
         </span>
       </Link>
     </li>

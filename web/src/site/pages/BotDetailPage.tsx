@@ -203,6 +203,7 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
   const [opponentId, setOpponentId] = useState('');
   const [challengerId, setChallengerId] = useState('');
   const [mapId, setMapId] = useState('arena-01');
+  const [ranked, setRanked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -234,12 +235,20 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
   const fight = async () => {
     setError(null);
     try {
-      const match = await api.post<{ id: string }>('/api/matches/challenge', {
-        botId: challenger,
-        opponentBotId: opponent,
-        mapId,
-      });
-      navigate(`/matches/${match.id}`);
+      if (ranked) {
+        const set = await api.post<{ id: string }>('/api/matches/ranked', {
+          botId: challenger,
+          opponentBotId: opponent,
+        });
+        navigate(`/sets/${set.id}`);
+      } else {
+        const match = await api.post<{ id: string }>('/api/matches/challenge', {
+          botId: challenger,
+          opponentBotId: opponent,
+          mapId,
+        });
+        navigate(`/matches/${match.id}`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Challenge failed.');
     }
@@ -276,12 +285,21 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
           ))}
         </select>
       </div>
+      <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-arena-dim select-none">
+        <input
+          type="checkbox"
+          checked={ranked}
+          onChange={(e) => setRanked(e.target.checked)}
+          className="accent-(--color-arena-accent)"
+        />
+        Ranked set (6 games, mirrored starts, moves elo)
+      </label>
       <button
         onClick={() => void fight()}
         disabled={!challenger || !opponent}
         className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
       >
-        FIGHT
+        {ranked ? 'FIGHT FOR RATING' : 'FIGHT'}
       </button>
       {error && <p className="w-full text-sm text-red-400">{error}</p>}
     </section>
