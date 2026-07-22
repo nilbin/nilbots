@@ -1,6 +1,6 @@
 using BotArena.Engine;
 using BotArena.Runtime;
-using BotArena.Runtime.BuiltIn;
+using BotArena.Bots.BuiltIn;
 
 namespace BotArena.Determinism.Tests;
 

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The canonical player runtime host (plan §3): executes validated WASM bot artifacts
+       inside Wasmtime with fuel and memory limits. Pinned Wasmtime version is part of the
+       runtime configuration version. -->
+  <ItemGroup>
+    <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
+    <PackageReference Include="Wasmtime" Version="44.0.0" />
+  </ItemGroup>
+</Project>

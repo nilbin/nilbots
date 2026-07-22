@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The WASM guest: built-in bots compiled to a WASI p1 core module via NativeAOT-LLVM.
+       Not part of BotArena.sln — build with scripts/build-wasm-guest.sh (requires
+       WASI_SDK_PATH; see scripts/setup-wasi-sdk.sh for the container toolchain). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifier>wasi-wasm</RuntimeIdentifier>
+    <UseAppHost>false</UseAppHost>
+    <PublishTrimmed>true</PublishTrimmed>
+    <SelfContained>true</SelfContained>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Pinned bot toolchain (plan §3): changing these versions changes artifact hashes. -->
+    <IlcLlvmVersion>10.0.0-rc.1.26306.1</IlcLlvmVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Resolve the botarena host functions as direct wasm imports, not lazy P/Invokes. -->
+    <DirectPInvoke Include="botarena" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" />
+    <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" />
+    <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
+    <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
+  </ItemGroup>
+</Project>

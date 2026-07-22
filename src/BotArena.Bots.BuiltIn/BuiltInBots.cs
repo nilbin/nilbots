@@ -1,6 +1,6 @@
 using BotArena.Sdk;
 
-namespace BotArena.Runtime.BuiltIn;
+namespace BotArena.Bots.BuiltIn;
 
 /// <summary>Always waits. Baseline runtime test target (plan §26).</summary>
 public sealed class IdleBot : IBot

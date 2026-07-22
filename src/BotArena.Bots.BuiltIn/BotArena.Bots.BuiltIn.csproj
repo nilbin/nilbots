@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Built-in opponents written against the public SDK only (plan section 26),
+       so they compile both in-process and as WASM guests. -->
+  <ItemGroup>
+    <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
+  </ItemGroup>
+</Project>
