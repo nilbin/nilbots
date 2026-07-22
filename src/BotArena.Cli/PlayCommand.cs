@@ -93,7 +93,7 @@ public static class PlayCommand
             Map = map,
             Rules = rules,
             Seed = seed,
-            Participants = [bot0.ToParticipant(runtimeKind), bot1.ToParticipant(runtimeKind)],
+            Participants = [bot0.ToParticipant(), bot1.ToParticipant()],
         });
         var written = ReplayOutput.Write(run.Replay, outDir);
         return (run, bot0.Name, bot1.Name, written);
@@ -116,12 +116,16 @@ public static class PlayCommand
         public required string Accent { get; init; }
         public required IBotRuntime Runtime { get; init; }
         public required string ArtifactHash { get; init; }
+        /// <summary>The runtime this participant actually runs under — can differ from the
+        /// match-level --runtime: a .wasm artifact always runs in the sandbox, so
+        /// `--runtime in-process` sparring against a champion is a mixed-runtime match.</summary>
+        public required string Kind { get; init; }
 
-        public MatchParticipantConfig ToParticipant(string runtimeKind) => new()
+        public MatchParticipantConfig ToParticipant() => new()
         {
             Name = Name,
             Runtime = Runtime,
-            RuntimeKind = runtimeKind,
+            RuntimeKind = Kind,
             ArtifactHash = ArtifactHash,
             Accent = Accent,
         };
@@ -134,7 +138,13 @@ public static class PlayCommand
                 return ResolveBuiltIn(spec, runtimeKind, quiet);
             if (File.Exists(spec) && spec.EndsWith(".wasm", StringComparison.OrdinalIgnoreCase))
             {
-                RequireWasmRuntime(runtimeKind, spec);
+                // A prebuilt artifact has no sources, so it ALWAYS runs in the sandbox —
+                // even in an in-process match. That mixed mode is the fast champion-sparring
+                // loop: your bot skips fuel limits, the champion doesn't; verify all-WASM
+                // before submitting.
+                if (runtimeKind == "in-process" && !quiet)
+                    Console.WriteLine($"note: {Path.GetFileName(spec)} is a prebuilt artifact — it runs in the " +
+                                      "WASM sandbox (mixed runtimes, diagnostic).");
                 // "bot.wasm" is every champion's file name; the parent directory is the
                 // identity (champions/warden-gen1/bot.wasm → "warden-gen1"), otherwise
                 // every champion collides on the label "bot" (gen-2 finding #4). A
@@ -154,6 +164,7 @@ public static class PlayCommand
                     Accent = "#22d3ee",
                     Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = Path.GetFullPath(spec) }),
                     ArtifactHash = BotBuilder.Sha256File(spec),
+                    Kind = "wasm",
                 };
             }
             if (Directory.Exists(spec) && BotProject.LooksLikeProject(spec))
@@ -168,6 +179,7 @@ public static class PlayCommand
                         Accent = project.Accent,
                         Runtime = new InProcessBotRuntime(InProcessProject.LoadFactory(project, quiet)),
                         ArtifactHash = "",
+                        Kind = "in-process",
                     };
                 }
                 var built = BotBuilder.EnsureBuilt(project, quiet: quiet);
@@ -180,19 +192,12 @@ public static class PlayCommand
                     Accent = project.Accent,
                     Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = built.WasmPath }),
                     ArtifactHash = built.ArtifactHash,
+                    Kind = "wasm",
                 };
             }
             throw new InvalidOperationException(
                 $"Cannot resolve bot '{spec}': not a built-in ({string.Join(", ", BuiltInBotCatalog.Names)}), " +
                 "not a bot project directory, not a .wasm file.");
-        }
-
-        private static void RequireWasmRuntime(string runtimeKind, string spec)
-        {
-            if (runtimeKind != "wasm")
-                throw new InvalidOperationException(
-                    $"'{spec}' is a prebuilt WASM artifact — it has no sources to run in-process. " +
-                    "Use --runtime wasm, or pass a bot project directory instead.");
         }
 
         private static ResolvedBot ResolveBuiltIn(string name, string runtimeKind, bool quiet = false)
@@ -211,6 +216,7 @@ public static class PlayCommand
                         Accent = BuiltInBotCatalog.Accent(name),
                         Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = artifact, BotName = name }),
                         ArtifactHash = BotBuilder.Sha256File(artifact),
+                        Kind = "wasm",
                     };
                 case "in-process":
                     if (!quiet)
@@ -224,6 +230,7 @@ public static class PlayCommand
                         Accent = BuiltInBotCatalog.Accent(name),
                         Runtime = new InProcessBotRuntime(() => BuiltInBotCatalog.Create(name)),
                         ArtifactHash = "",
+                        Kind = "in-process",
                     };
                 default:
                     throw new InvalidOperationException($"Unknown runtime '{runtimeKind}' (use wasm or in-process).");

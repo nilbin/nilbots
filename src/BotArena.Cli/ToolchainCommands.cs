@@ -71,7 +71,7 @@ public static class BuildCommand
         Console.WriteLine($"Runtime protocol: {BotArenaVersions.RuntimeProtocolVersion}");
         Console.WriteLine($"SDK:              {ToolchainInfo.SdkVersion}");
         Console.WriteLine($"Compiler:         NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
-        Console.WriteLine($"Cache:            {(built.FromCache ? "hit" : "miss (compiled)")} · key {built.CacheKey[..16]}…");
+        Console.WriteLine($"Cache:            {(built.FromCache ? "hit" : "miss (compiled)")} · key {built.CacheKey}");
         Console.WriteLine($"Artifact hash:    {built.ArtifactHash}");
     }
 

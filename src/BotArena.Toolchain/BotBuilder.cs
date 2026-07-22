@@ -112,8 +112,10 @@ public static class BotBuilder
         if (File.Exists(nugetConfig))
             File.Copy(nugetConfig, Path.Combine(workspace, "nuget.config"));
 
+        string buildLogPath = Path.Combine(cacheDir, "build.log");
         if (!quiet)
-            Console.WriteLine($"Compiling {displayName} to WASM (cold cache{(isolated ? ", isolated" : "")})...");
+            Console.WriteLine($"Compiling {displayName} to WASM (cold cache{(isolated ? ", isolated" : "")}, " +
+                              $"~10 s idle / longer under load — tail {buildLogPath})...");
         var startInfo = isolated
             ? BuildIsolation.WrapPublish(workspace)
             : new ProcessStartInfo("dotnet", "publish -c Release -v q")
@@ -125,17 +127,40 @@ public static class BotBuilder
         startInfo.Environment["WASI_SDK_PATH"] = ToolchainInfo.ResolveWasiSdkPath();
         if (isolated)
             BuildIsolation.GrantWorkspace(workspace);
-        using var process = Process.Start(startInfo)!;
-        string output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
-        if (!process.WaitForExit(TimeSpan.FromMinutes(5)))
+
+        // Stream the compiler output into build.log as it happens, so a slow build is
+        // tailable instead of looking like a hang (gen-2 report, Rampart #9).
+        var outputBuffer = new StringBuilder();
+        using (var logWriter = new StreamWriter(buildLogPath, append: false) { AutoFlush = true })
         {
-            process.Kill(entireProcessTree: true);
-            throw new BotBuildException("Build timed out after 5 minutes.", output);
+            using var process = Process.Start(startInfo)!;
+            void OnLine(object sender, DataReceivedEventArgs e)
+            {
+                if (e.Data is null)
+                    return;
+                lock (outputBuffer)
+                {
+                    outputBuffer.AppendLine(e.Data);
+                    logWriter.WriteLine(e.Data);
+                }
+            }
+            process.OutputDataReceived += OnLine;
+            process.ErrorDataReceived += OnLine;
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            if (!process.WaitForExit(TimeSpan.FromMinutes(5)))
+            {
+                process.Kill(entireProcessTree: true);
+                throw new BotBuildException("Build timed out after 5 minutes.", outputBuffer.ToString());
+            }
+            process.WaitForExit(); // drain the async output streams
+            if (process.ExitCode != 0)
+            {
+                string failureOutput = outputBuffer.ToString();
+                throw new BotBuildException(BuildFailureMessage(failureOutput, workspace, buildLogPath), failureOutput);
+            }
         }
-        string buildLogPath = Path.Combine(cacheDir, "build.log");
-        File.WriteAllText(buildLogPath, output);
-        if (process.ExitCode != 0)
-            throw new BotBuildException(BuildFailureMessage(output, workspace, buildLogPath), output);
+        string output = outputBuffer.ToString();
 
         string produced = Path.Combine(workspace, "bin", "Release", "net10.0", "wasi-wasm", "native", "bot.wasm");
         if (!File.Exists(produced))
