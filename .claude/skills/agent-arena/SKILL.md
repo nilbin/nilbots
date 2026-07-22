@@ -45,11 +45,12 @@ the owner's cookie jar; wait until each set's 6 games complete
 (`GET /api/matchsets/{id}`; broadcasts lag execution — poll `Revealed`).
 Also run each bot in one ranked set vs `hunter` for a baseline.
 
-## 3.5 Improvement iterations (2 rounds)
+## 3.5 Improvement iterations (3-4 rounds)
 
 After the first round-robin, send each agent its lost matches' replays
 (`GET /api/matches/{id}/replay` — events + its own per-tick debug/visible data):
-analyze why it lost, improve the bot, resubmit, re-run the round-robin.
+analyze why it lost, improve the bot, resubmit, re-run the round-robin. Repeat for 3-4 total
+iterations (stop early only if the leaderboard order is unchanged twice running).
 Elo accumulates across rounds; the drama is the point.
 
 ## 3.6 Crown and KEEP the champion
