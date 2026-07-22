@@ -45,6 +45,23 @@ the owner's cookie jar; wait until each set's 6 games complete
 (`GET /api/matchsets/{id}`; broadcasts lag execution — poll `Revealed`).
 Also run each bot in one ranked set vs `hunter` for a baseline.
 
+## 3.5 Improvement iterations (2 rounds)
+
+After the first round-robin, send each agent its lost matches' replays
+(`GET /api/matches/{id}/replay` — events + its own per-tick debug/visible data):
+analyze why it lost, improve the bot, resubmit, re-run the round-robin.
+Elo accumulates across rounds; the drama is the point.
+
+## 3.6 Crown and KEEP the champion
+
+The final #1 becomes a permanent built-in opponent:
+- Copy its sources to `champions/<slug>/` and its server artifact
+  (`var/artifacts/<hash>.wasm`) to `champions/<slug>/bot.wasm` (this dir IS
+  tracked — `artifacts/` is not). Add a README noting date, elo, record, strategy.
+- It is playable locally forever: `botarena play --opponent champions/<slug>/bot.wasm`.
+- Commit + push. Future tournaments must beat the reigning champion (include it
+  in the bracket via the same .wasm path).
+
 ## 4. Report (the deliverable)
 
 - Final leaderboard (`GET /api/leaderboard`) with set scores and elo.
