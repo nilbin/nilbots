@@ -47,9 +47,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 0B presentation proof | Convincing match page | **DONE (lite)** — React canvas viewer; logotype/design pass still to come |
 | 0C WASM proof | Two WASM bots through official engine + limits | **DONE** (7 contract tests) |
 | 1 local DX | SDK, template, CLI build/watch/doctor, build cache | **MOSTLY DONE** — remaining: NuGet/template packaging, analyzers, login/submit (needs server) |
-| 2 monolith | ASP.NET Core + Postgres + OpenIddict + accounts/bots/matches/replays modules | not started |
-| 3 submissions | Isolated server builds, validation, immutable versions, sprites | not started |
-| 4 public matches | Server execution, SignalR live viewing, match pages | **MVP boundary** |
+| 2 monolith | ASP.NET Core + Postgres + accounts/bots/matches modules | **DONE (pilot)** — cookie auth; OpenIddict/PKCE deferred |
+| 3 submissions | Server builds, validation, immutable versions | **DONE (pilot)** — controlled build + smoke test; process isolation & sprites deferred |
+| 4 public matches | Server execution, match pages, replay viewing | **DONE (pilot)** — replay-based "live"; SignalR synchronized broadcast deferred |
 | 5 competitive | Ranked match sets, ratings, leaderboard | later |
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
@@ -70,17 +70,24 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 - `src/BotArena.Cli` — `new` / `build` (cached) / `play` / `watch` / `replay` /
   `verify` / `doctor` / `cache` / `bots` / `maps`.
 - `templates/botarena-bot` — the player project template.
-- `web/` — React replay viewer, single-file build the CLI embeds replays into.
+- `src/BotArena.App` — the monolith: cookie auth, bots/submissions/challenges,
+  DB-backed job worker (compile + match execution), PostgreSQL via EF Core,
+  serves the SPA. Dockerfile + docker-compose for deployment.
+- `web/` — one React build, two modes: the Bot Arena site (router) and the
+  standalone replay viewer the CLI embeds replays into.
 - `tests/` — engine, determinism, and WASM contract suites (63 tests).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh.
 
 ## Next session pointers
 
-1. Roslyn analyzers for prohibited APIs (plan §6.1) — DX only; the runtime
-   already neutralizes clock/entropy (see DECISIONS #20).
-2. Phase 2: ASP.NET Core modular monolith (accounts, bots, matches, replays),
-   PostgreSQL + EF Core, OpenIddict cookie + PKCE login, dark app shell.
+1. Pilot hardening: process/container isolation for submission builds
+   (plan §15.3 — currently dotnet runs as the app user), rate limiting,
+   OpenIddict + CLI PKCE login, `botarena submit`.
+2. SignalR live broadcast with synchronized spectators (§28) — the pilot
+   plays completed replays, which feels live but is not synchronized.
+3. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
+   already neutralizes clock/entropy (DECISIONS #20).
 3. Sound out artifact-hash parity local vs server once a second build
    environment exists (§40.5); record reasons where bytes differ.
 4. Phase 0B polish: logotype assets, match-start countdown, destruction pause,

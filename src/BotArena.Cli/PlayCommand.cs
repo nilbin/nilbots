@@ -1,4 +1,5 @@
 using System.Globalization;
+using BotArena.Toolchain;
 using BotArena.Bots.BuiltIn;
 using BotArena.Engine;
 using BotArena.Runtime;

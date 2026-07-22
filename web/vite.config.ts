@@ -7,4 +7,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 // anywhere and inject a replay (see BotArena.Cli/ReplayOutput.cs).
 export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
+  server: {
+    proxy: { '/api': 'http://127.0.0.1:8080' },
+  },
 });

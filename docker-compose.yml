@@ -1,0 +1,35 @@
+# Pilot deployment: `docker compose up -d --build`, then open http://<host>:8080.
+# Put a TLS reverse proxy (Caddy/Traefik/nginx) in front before inviting friends
+# over the public internet.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: botarena
+      POSTGRES_PASSWORD: botarena
+      POSTGRES_DB: botarena
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botarena"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      BOTARENA_DB: "Host=db;Database=botarena;Username=botarena;Password=botarena"
+    volumes:
+      - appdata:/data
+      - buildcache:/root/.botarena
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:
+  appdata:
+  buildcache:

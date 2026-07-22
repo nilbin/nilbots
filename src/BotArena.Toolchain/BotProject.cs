@@ -1,10 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BotArena.Engine;
 
-namespace BotArena.Cli;
+namespace BotArena.Toolchain;
 
 public sealed record BotManifest
 {
@@ -21,7 +19,7 @@ public sealed record BotAppearance
 
 /// <summary>Pinned toolchain identity. Every value participates in the build-cache key —
 /// bump any of them and every bot rebuilds (plan §12).</summary>
-public static class Toolchain
+public static class ToolchainInfo
 {
     public const string CliVersion = "0.1.0";
     public const string SdkVersion = "0.1.0";
@@ -67,25 +65,9 @@ public sealed class BotProject
 
     /// <summary>Deterministic cache key over sources + manifest + every pinned toolchain
     /// version (plan §12). Any relevant change produces a different key.</summary>
-    public string ComputeCacheKey()
-    {
-        using var sha = SHA256.Create();
-        void Add(string label, byte[] content)
-        {
-            var header = Encoding.UTF8.GetBytes($"\n--{label}--\n");
-            sha.TransformBlock(header, 0, header.Length, null, 0);
-            sha.TransformBlock(content, 0, content.Length, null, 0);
-        }
-        Add("toolchain", Encoding.UTF8.GetBytes(string.Join('|',
-            Toolchain.SdkVersion,
-            Toolchain.IlcLlvmVersion,
-            Toolchain.GuestAdapterVersion,
-            BotArenaVersions.RuntimeProtocolVersion,
-            BotArenaVersions.RuntimeConfigurationVersion)));
-        Add("entry", Encoding.UTF8.GetBytes(Manifest.EntryType));
-        foreach (var file in SourceFiles)
-            Add(Path.GetRelativePath(Directory, file), File.ReadAllBytes(file));
-        sha.TransformFinalBlock([], 0, 0);
-        return Convert.ToHexStringLower(sha.Hash!);
-    }
+    public string ComputeCacheKey() =>
+        BotBuilder.ComputeCacheKey(
+            SourceFiles.Select(f => new SourceFile(
+                Path.GetRelativePath(Directory, f), File.ReadAllText(f))).ToArray(),
+            Manifest.EntryType);
 }

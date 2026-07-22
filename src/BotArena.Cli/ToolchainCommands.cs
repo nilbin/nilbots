@@ -1,4 +1,5 @@
 using BotArena.Engine;
+using BotArena.Toolchain;
 
 namespace BotArena.Cli;
 
@@ -52,8 +53,20 @@ public static class BuildCommand
         var options = CliSupport.ParseOptions(rest);
         var project = BotProject.Load(directory);
         var built = BotBuilder.EnsureBuilt(project, noCache: options.ContainsKey("no-cache"));
-        BotBuilder.PrintSummary(project, built);
+        PrintSummary(project, built);
         return 0;
+    }
+
+    public static void PrintSummary(BotProject project, BuiltBot built)
+    {
+        Console.WriteLine($"Bot:              {project.Manifest.Name} (entry {project.Manifest.EntryType})");
+        Console.WriteLine($"Runtime:          WASM");
+        Console.WriteLine($"Game rules:       {BotArenaVersions.GameRulesVersion}");
+        Console.WriteLine($"Runtime protocol: {BotArenaVersions.RuntimeProtocolVersion}");
+        Console.WriteLine($"SDK:              {ToolchainInfo.SdkVersion}");
+        Console.WriteLine($"Compiler:         NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
+        Console.WriteLine($"Cache:            {(built.FromCache ? "hit" : "miss (compiled)")} · key {built.CacheKey[..16]}…");
+        Console.WriteLine($"Artifact hash:    {built.ArtifactHash}");
     }
 
     public static (string Directory, IReadOnlyList<string> Remaining) TakeDirectory(IReadOnlyList<string> args) =>
@@ -69,19 +82,19 @@ public static class CacheCommand
         switch (args.FirstOrDefault() ?? "status")
         {
             case "status":
-                if (!Directory.Exists(Toolchain.CacheRoot))
+                if (!Directory.Exists(ToolchainInfo.CacheRoot))
                 {
-                    Console.WriteLine($"Cache empty ({Toolchain.CacheRoot}).");
+                    Console.WriteLine($"Cache empty ({ToolchainInfo.CacheRoot}).");
                     return 0;
                 }
-                var entries = Directory.GetDirectories(Toolchain.CacheRoot);
+                var entries = Directory.GetDirectories(ToolchainInfo.CacheRoot);
                 long bytes = entries.SelectMany(d => Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories))
                     .Sum(f => new FileInfo(f).Length);
-                Console.WriteLine($"Cache: {entries.Length} artifact(s), {bytes / (1024.0 * 1024):F1} MB at {Toolchain.CacheRoot}");
+                Console.WriteLine($"Cache: {entries.Length} artifact(s), {bytes / (1024.0 * 1024):F1} MB at {ToolchainInfo.CacheRoot}");
                 return 0;
             case "clear":
-                if (Directory.Exists(Toolchain.CacheRoot))
-                    Directory.Delete(Toolchain.CacheRoot, recursive: true);
+                if (Directory.Exists(ToolchainInfo.CacheRoot))
+                    Directory.Delete(ToolchainInfo.CacheRoot, recursive: true);
                 Console.WriteLine("Cache cleared.");
                 return 0;
             default:
@@ -95,9 +108,9 @@ public static class DoctorCommand
 {
     public static int Run()
     {
-        Console.WriteLine($"CLI version:            {Toolchain.CliVersion}");
-        Console.WriteLine($"SDK version:            {Toolchain.SdkVersion}");
-        Console.WriteLine($"Compiler:               NativeAOT-LLVM {Toolchain.IlcLlvmVersion}");
+        Console.WriteLine($"CLI version:            {ToolchainInfo.CliVersion}");
+        Console.WriteLine($"SDK version:            {ToolchainInfo.SdkVersion}");
+        Console.WriteLine($"Compiler:               NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
         Console.WriteLine($"WASM target:            wasi-wasm (p1 core module)");
         Console.WriteLine($"Runtime host:           Wasmtime {typeof(Wasmtime.Engine).Assembly.GetName().Version}");
         Console.WriteLine($"Runtime configuration:  {BotArenaVersions.RuntimeConfigurationVersion}");

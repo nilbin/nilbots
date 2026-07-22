@@ -17,9 +17,15 @@ if [ -x "$SDK/bin/clang" ] && [ -f "$SDK/stubs/libbotarena_stubs.a" ]; then
   exit 0
 fi
 
-echo "Installing Ubuntu wasm32 toolchain packages..."
-apt-get install -y clang-18 lld-18 wasi-libc \
-  libclang-rt-18-dev-wasm32 libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 >/dev/null
+if dpkg -s clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32 \
+    libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 >/dev/null 2>&1; then
+  echo "Ubuntu wasm32 toolchain packages already installed."
+else
+  echo "Installing Ubuntu wasm32 toolchain packages..."
+  apt-get update >/dev/null
+  apt-get install -y clang-18 lld-18 wasi-libc \
+    libclang-rt-18-dev-wasm32 libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 >/dev/null
+fi
 
 mkdir -p "$SDK/bin" "$SDK/share/wasi-sysroot/include" "$SDK/share/wasi-sysroot/lib" "$SDK/stubs"
 echo "29.0" > "$SDK/VERSION"

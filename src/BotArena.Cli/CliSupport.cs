@@ -4,21 +4,8 @@ namespace BotArena.Cli;
 
 public static class CliSupport
 {
-    public static string? FindUpward(string relativePath)
-    {
-        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
-        {
-            var dir = new DirectoryInfo(start);
-            while (dir is not null)
-            {
-                string candidate = Path.Combine(dir.FullName, relativePath);
-                if (File.Exists(candidate) || Directory.Exists(candidate))
-                    return candidate;
-                dir = dir.Parent;
-            }
-        }
-        return null;
-    }
+    public static string? FindUpward(string relativePath) =>
+        BotArena.Toolchain.RepoPaths.FindUpward(relativePath);
 
     public static ArenaMap LoadMap(string idOrPath)
     {

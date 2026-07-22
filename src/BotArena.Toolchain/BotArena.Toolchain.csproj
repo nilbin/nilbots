@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The controlled build pipeline (plan §14/§15.1): compiles bot sources to WASM
+       through a generated project. Shared by the CLI (local builds) and the server
+       (submission builds) so both paths are literally the same code. -->
+  <ItemGroup>
+    <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
+  </ItemGroup>
+</Project>

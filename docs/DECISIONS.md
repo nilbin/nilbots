@@ -108,6 +108,26 @@ configuration) and changing them is a version bump, not an edit.
     to publish to (the `templates/botarena-bot` folder is already
     template-shaped for that move).
 
+## Pilot platform (phases 2–4 compressed)
+
+25. **Cookie auth only for the pilot**; OpenIddict + PKCE arrive with
+    `botarena login/submit`. SameSite=Lax cookies are the CSRF stance.
+26. **Server builds run through the same BotArena.Toolchain controlled build as
+    the CLI** — plan §14's "one submission path" made literal. Submissions are
+    validated (§15.2 first pass: .cs only, ≤16 files, ≤256 KB, no traversal)
+    and smoke-tested (§15.4: 5-tick match vs idle; total faulting fails the build).
+    NOT yet done: running the compiler in a locked-down container/user (§15.3) —
+    required before opening to untrusted strangers; acceptable for a friends pilot.
+27. **Auto-activate newest successful build** (plan wants manual activation §35)
+    — friendlier for a pilot; revisit with qualification matches.
+28. **"Live" matches are completed replays played from tick 0.** Feels live,
+    is not synchronized across viewers; SignalR broadcast is the plan's §28
+    design and remains open.
+29. BotSubmission and BotVersion are merged into one row for the pilot; split
+    them when qualification matches arrive.
+30. Built-in opponents are seeded as system-owned bots whose versions carry a
+    `GuestBotName` selector into the shared catalog artifact.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

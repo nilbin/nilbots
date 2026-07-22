@@ -61,6 +61,27 @@ dotnet run --project src/BotArena.Cli -- verify out/replay.json
 | `tests/` | Engine, determinism, and WASM contract tests |
 | `scripts/` | Setup and dev-loop tooling |
 
+## Run the platform (pilot)
+
+The web app is an ASP.NET Core modular monolith (accounts, bots, submissions,
+matches) backed by PostgreSQL. Friends register in the browser, paste their
+bot's C# source, the server compiles it to WASM with the official toolchain,
+and challenges play out server-side with shareable replay pages.
+
+```bash
+docker compose up -d --build     # app on :8080 + postgres, volumes for data
+```
+
+Or natively: run PostgreSQL, then
+
+```bash
+ASPNETCORE_URLS=http://0.0.0.0:8080 dotnet run --project src/BotArena.App
+```
+
+Configuration: `BOTARENA_DB` (connection string), `BOTARENA_DATA` (artifact and
+replay volume), `BOTARENA_ROOT` (toolchain checkout root). Put a TLS proxy in
+front before exposing it publicly.
+
 ## Development
 
 ```bash
