@@ -24,7 +24,10 @@ same sandbox the server uses) to confirm nothing changes.
 overwrite each other; `--out <dir>` pins a directory). Open the viewer in a
 browser, click your bot, and inspect what it saw and why it acted.
 
-## Rules that decide matches (v0.1)
+## Rules that decide matches (v0.2)
+
+- Spawn positions/facings vary by match seed (v0.2) — don't hardcode an
+  opening. Ranked sets play both spawns of the same seed, so starts are fair.
 
 - 5 actions (Wait / MoveForward / TurnLeft / TurnRight / Shoot), one per tick,
   both bots decide simultaneously from the pre-tick state.

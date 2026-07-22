@@ -5,30 +5,24 @@ namespace BotArena.Cli;
 
 public static class CliSupport
 {
-    /// <summary>--rules 0.1 (default) | spawns | energy. The named experiments are the
-    /// GAME-DESIGN candidates for rules 0.2: "spawns" = seed-derived spawn variation;
-    /// "energy" = spawns + energy-cost shots (6 max, 2/shot, +1 every 3 ticks).
-    /// Experiment versions are visibly non-official until pinned by a real bump.</summary>
+    /// <summary>--rules 0.2 (default, seed-spawn variation) | 0.1 (legacy fixed spawns) |
+    /// energy (0.2 + the unshipped energy-shot candidate: 6 max, 2/shot, +1 every 3
+    /// ticks — DECISIONS #47). Experiment versions are visibly non-official.</summary>
     public static GameRules ResolveRules(Dictionary<string, string> options)
     {
-        var rules = options.GetValueOrDefault("rules", "0.1") switch
+        var rules = options.GetValueOrDefault("rules", "0.2") switch
         {
+            "0.2" => GameRules.V0_2,
             "0.1" => GameRules.V0_1,
-            "spawns" => GameRules.V0_1 with
+            "energy" => GameRules.V0_2 with
             {
-                RulesVersion = "0.2-exp-spawns",
-                SeedSpawnVariation = true,
-            },
-            "energy" => GameRules.V0_1 with
-            {
-                RulesVersion = "0.2-exp-energy",
-                SeedSpawnVariation = true,
+                RulesVersion = "0.3-exp-energy",
                 MaxEnergy = 6,
                 ShotEnergyCost = 2,
                 EnergyRegenTicks = 3,
             },
             var unknown => throw new InvalidOperationException(
-                $"Unknown rules '{unknown}' (use 0.1, spawns, or energy)."),
+                $"Unknown rules '{unknown}' (use 0.2, 0.1, or energy)."),
         };
         if (options.TryGetValue("max-ticks", out string? maxTicks))
             rules = rules with { MaxTicks = int.Parse(maxTicks, CultureInfo.InvariantCulture) };

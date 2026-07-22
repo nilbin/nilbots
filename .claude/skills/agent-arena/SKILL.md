@@ -62,12 +62,12 @@ system-owned server bots automatically at app startup (`ChampionSeeder` reads
 `champions/*/champion.json` + `bot.wasm`; find their botIds via
 `GET /api/bots` — slug = the champions/ directory name).
 
-Round-robin: for every pair — including each agent vs each champion —
-`POST /api/matches/ranked {botId, opponentBotId}` with the agent-owner's cookie
-jar (champions are valid opponents; ownership is only checked for the
-initiating bot); wait until each set's 6 games complete
-(`GET /api/matchsets/{id}`; broadcasts lag execution — poll `Revealed`).
-The champion's set results ARE the baseline — don't bother with hunter sets.
+Round-robin: `python3 scripts/tournament-drive.py` fires every agent-vs-agent
+and agent-vs-champion ranked set (champions discovered by slug on the server;
+each agent's state.json supplies its botId + cookie jar), waits for all sets,
+and prints scores + the leaderboard. Rerun it after each improvement
+iteration — elo accumulates. The champions' set results ARE the baseline —
+don't bother with hunter sets.
 
 ## 3.5 Improvement iterations (3-4 rounds)
 

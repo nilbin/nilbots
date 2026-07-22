@@ -255,6 +255,17 @@ configuration) and changing them is a version bump, not an edit.
     convention), `build` drops `<project>/out/bot.wasm`, and `.wasm` opponents
     are labeled by their directory (every champion is a `bot.wasm`). Server:
     `GET /api/bots/{id}/build-status` is the slim polling view.
+47. **Game rules 0.2 = seed-spawn variation; energy candidate held back.**
+    First balance-harness verdict (scripts/balance-eval.py, champions + gen-2
+    bots, fixed seeds, 36 games/arm): spawn variation cut draws 42% → 28% and
+    median game length 196 → 151 ticks; adding energy (6 max, 2/shot, +1 per
+    3 ticks) cancelled those gains (draws back to 42%) because energy-unaware
+    bots run dry mid-attack — it taxes aggression as much as camping until
+    bots manage the resource. So `GameRules.Current` → V0_2 (spawns only);
+    energy stays fully implemented behind `--rules energy` pending a gen-3
+    tournament played under it. Both mechanics are wire-compatible with 0.1
+    artifacts (energy is an optional trailing observation field; champions
+    never rebuild). Historical rules stay constructible for verification.
 
 ## Deferred decisions
 

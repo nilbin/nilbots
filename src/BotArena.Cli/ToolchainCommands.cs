@@ -122,7 +122,7 @@ public static class DoctorCommand
         Console.WriteLine($"Runtime configuration:  {BotArenaVersions.RuntimeConfigurationVersion}");
         Console.WriteLine($"Runtime protocol:       {BotArenaVersions.RuntimeProtocolVersion}");
         Console.WriteLine($"Game rules:             {BotArenaVersions.GameRulesVersion}");
-        var rules = GameRules.V0_1;
+        var rules = GameRules.Current;
         Console.WriteLine($"Fuel limit:             200000000 per tick (initial calibration)");
         Console.WriteLine($"Memory limit:           64 MB");
         Console.WriteLine($"Fault limit:            {rules.FaultLimit} per match");

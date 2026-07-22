@@ -111,6 +111,20 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 - Version axes (SDK / runtime protocol / runtime config / game rules) are in
   `BotArenaVersions` + `ToolchainInfo`; all of them feed the build-cache key.
 
+## Conventions
+
+- **One top-level class per file**, named for it — tests included (one test
+  class per file). Small records/DTOs tightly coupled to a main type may
+  colocate (the `Replay.cs` pattern). Legacy grouped CLI files
+  (`ToolchainCommands.cs`, `OtherCommands.cs`) are grandfathered — split them
+  when you next touch them.
+- **`sandbox/` is gitignored scratch** — agent workdirs, throwaway experiments.
+  Anything worth keeping goes in `scripts/` (tracked, generalized — no
+  session-specific paths) or `.claude/skills/`. If a scratch script proved
+  useful once, promote it before the container dies.
+- Rule changes follow the balance-harness skill: implement behind `GameRules`
+  flags, A/B with `scripts/balance-eval.py`, ship on data (GAME-DESIGN).
+
 ## Footguns
 
 - WASM contract tests run against `artifacts/wasm/builtin-bots.wasm` — rebuild

@@ -181,7 +181,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
     {
         string? builtin = RepoPaths.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
         var map = LoadMap("basic-01");
-        var rules = GameRules.V0_1 with { MaxTicks = 5 };
+        var rules = GameRules.Current with { MaxTicks = 5 };
         using var candidate = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = wasmPath });
         using var idle = builtin is null
             ? (IBotRuntime)new Runtime.InProcessBotRuntime(() => new BotArena.Bots.BuiltIn.IdleBot())
@@ -230,7 +230,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 var run = new MatchEngine().Run(new MatchConfiguration
                 {
                     Map = LoadMap(match.MapId),
-                    Rules = GameRules.V0_1,
+                    Rules = GameRules.Current,
                     Seed = unchecked((ulong)match.Seed),
                     Participants = participants.Select((p, slot) => new MatchParticipantConfig
                     {

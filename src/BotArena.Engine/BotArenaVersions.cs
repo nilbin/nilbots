@@ -7,7 +7,8 @@ namespace BotArena.Engine;
 public static class BotArenaVersions
 {
     public const string EngineVersion = "0.1.0";
-    public const string GameRulesVersion = "0.1";
+    // 0.2: seed-spawn variation (DECISIONS #47; GameRules.V0_2).
+    public const string GameRulesVersion = "0.2";
     public const string RuntimeProtocolVersion = "0.1";
     public const string RuntimeConfigurationVersion = "0.1";
     public const int ReplayFormatVersion = 1;

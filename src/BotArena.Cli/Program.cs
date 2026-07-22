@@ -55,7 +55,7 @@ static int Help(int exitCode = 1)
                                                   also copies the artifact to <dir>/out/bot.wasm)
           botarena play [--bot <spec>] [--opponent <spec>] [--map <id>]
                         [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
-                        [--max-ticks <n>] [--out <dir>]
+                        [--rules 0.2|0.1|energy] [--max-ticks <n>] [--out <dir>]
           botarena set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...]           the ranked 6-game mirrored set, locally
           botarena watch [dir] [play options]     rebuild + replay on every change

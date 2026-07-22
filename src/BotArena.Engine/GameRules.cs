@@ -49,4 +49,19 @@ public sealed record GameRules
     public int EnergyRegenTicks { get; init; }
 
     public static GameRules V0_1 => new() { RulesVersion = "0.1" };
+
+    /// <summary>Rules 0.2 = 0.1 + seed-spawn variation. Pinned by the A/B balance run of
+    /// 2026-07-22 (GAME-DESIGN): draws 42% → 28%, median game 196 → 151 ticks, more
+    /// eliminations, across champions + gen-2 bots on fixed seeds. The energy candidate
+    /// did NOT ship: with energy-unaware bots it cancelled the spawn gains (draws back
+    /// to 42%) — it stays behind `--rules energy` until bots can manage a resource.</summary>
+    public static GameRules V0_2 => V0_1 with
+    {
+        RulesVersion = "0.2",
+        SeedSpawnVariation = true,
+    };
+
+    /// <summary>The version new matches play. Historical versions stay constructible for
+    /// replay verification and A/B harness runs.</summary>
+    public static GameRules Current => V0_2;
 }

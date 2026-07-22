@@ -53,10 +53,14 @@ public sealed class MyBot : IBot
         </ul>
       </Doc>
 
-      <Doc title="Rules of the arena (v0.1)">
+      <Doc title="Rules of the arena (v0.2)">
         <ul className="list-disc space-y-1 pl-5">
           <li>Tile grid, four facings, both bots decide simultaneously from the
             pre-tick state. 3 HP each, max 500 ticks.</li>
+          <li><b>New in v0.2:</b> spawn positions and facings vary by match seed
+            (deterministically — replays are still exact). Don't hardcode an
+            opening; read your surroundings. Ranked sets mirror both spawns, so
+            asymmetric starts stay fair across a set.</li>
           <li>Shooting is an instant ray in your facing direction with <b>unlimited
             range</b> — the first wall or bot stops it; 1 damage; 2-tick cooldown
             (a shot every 3rd tick).</li>

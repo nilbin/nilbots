@@ -56,6 +56,27 @@ the strongest shape, and its games only end when someone else takes a risk.
 3. Replays stay legible: a spectator should see *why* something happened. Favor
    mechanics with visible state over hidden modifiers.
 
+## Rules 0.2 shipped; energy candidate held back (2026-07-22)
+
+First full harness run (`scripts/balance-eval.py`: champions + gen-2 bots,
+round-robin 6-game sets, fixed seeds 101/202/303, 36 games/arm):
+
+| ruleset          | draws | draw% | elims | med tick | avg tick |
+| ---------------- | ----- | ----- | ----- | -------- | -------- |
+| 0.1 baseline     | 15    | 42%   | 30    | 196      | 244      |
+| + seed spawns    | 10    | 28%   | 33    | 151      | 197      |
+| + spawns + energy| 15    | 42%   | 32    | 158      | 212      |
+
+**Seed-spawn variation shipped as rules 0.2** — draws down a third, games a
+quarter shorter, more eliminations, and it also fixes "seeds don't vary
+battles". **Energy (6 max, 2/shot, +1 per 3 ticks) did not ship**: with
+energy-UNAWARE bots it cancelled the spawn gains — attackers ran dry
+mid-assault, converting kills into stalemates. It taxes aggression as much as
+camping when nobody manages the resource. It stays implemented behind
+`--rules energy`; the fair re-test is a gen-3 agent-arena tournament played
+UNDER those rules, so bots are written to manage energy (backlog #2 stays
+open with this evidence attached).
+
 ## Methodology: agent-arena is the balance harness
 
 Before/after any candidate rule change, run the tournament (now fast:
