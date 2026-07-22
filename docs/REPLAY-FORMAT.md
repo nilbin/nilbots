@@ -1,5 +1,29 @@
 # Replay format (replay version 1)
 
+> Quick digest instead of raw JSON: `botarena replay <file> --summary` prints a
+> compact timeline (states, shots, damage, debug lines) built on the
+> conventions below.
+
+## How to read a replay (the conventions that bite)
+
+- **`ticks[i].state` is the POST-tick state** — positions, facings, health and
+  cooldowns *after* tick `i` resolved. The decisions on the same entry
+  (`ticks[i].bots[].chosenAction`) were made from the PRE-tick state, i.e.
+  `ticks[i-1].state`. A `TurnRight` on tick `i` already shows the turned facing
+  in tick `i`'s state.
+- **`Damage.slot` is the DEALER; `targetSlot` is the victim** (the event sits
+  at the victim's tile). Every event's `slot` is the *acting* bot.
+- A `Shot`'s `toX/toY` is where the ray stopped: the wall it hit, or the tile
+  of the bot it hit (`hitSlot` set on hits).
+- `bots[].debug` is **absent** (not empty) on ticks where the bot wrote
+  nothing; both players' debug lines are public once the replay is revealed
+  (DECISIONS #39).
+- `cooldown` counts 2 → 1 → 0 on the ticks after a shot: shoot on tick t, and
+  ticks t+1/t+2 show cooldown 2/1, shootable again on t+3.
+- Position encodings differ by section (historical, pinned by the hash):
+  `visibleTiles` are `[x, y]` pairs, `state` uses `{x, y}` fields, events use
+  `fromX/fromY/toX/toY`.
+
 The file `botarena play` writes (and `GET /api/matches/{id}/replay` returns) is
 one JSON document: `{ header, ticks, result, replayHash }`. Canonical encoding:
 camelCase property names, enums as strings, `null` fields omitted, no

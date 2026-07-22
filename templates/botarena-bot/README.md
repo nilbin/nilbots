@@ -4,7 +4,10 @@ A Bot Arena bot. Edit `BOTNAME.cs`, then:
 
 ```bash
 botarena play --runtime in-process --bot . --opponent hunter --seed 42   # fastest loop
-botarena build .            # compile to WASM (cached; only rebuilds on changes)
+botarena play --bot . --opponent hunter --seeds 7,42,1337   # batch a seed matrix
+botarena set --bot . --opponent hunter                      # the ranked 6-game format
+botarena replay out/<match>/replay.json --summary           # compact loss forensics
+botarena build .            # compile to WASM (cached; artifact also at out/bot.wasm)
 botarena play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
 botarena watch . --opponent hunter --seed 42 --runtime in-process   # replay on every save
 ```
@@ -27,9 +30,15 @@ browser, click your bot, and inspect what it saw and why it acted.
   both bots decide simultaneously from the pre-tick state.
 - 3 HP. Shooting is an instant ray in your facing with **unlimited range** —
   the first wall or bot stops it. 2-tick cooldown (a shot every 3rd tick).
-- Vision is range 6 and **corner-strict**: if the sight line clips a wall
-  corner, you can't see past it. Shots outrange sight — you can be hit by (and
-  hit) a bot you cannot see, if it's straight ahead down a clear line.
+- Vision is omnidirectional (facing doesn't matter), Chebyshev range 6, and
+  **corner-strict**: if the sight line touches a wall — corners included — the
+  tile is hidden. Even a *diagonally adjacent* wall can be invisible, and
+  `IsWall()` returns false for unseen tiles — remember the map yourself.
+  Shots outrange sight — you can be hit by (and hit) a bot you cannot see, if
+  it's straight ahead down a clear line.
+- `context.Slot` is your slot; a `VisibleEvent.Slot` is the *acting* bot (for
+  Damage: the dealer). Events describe last tick and are delivered when part
+  of them is inside your current vision — distant muzzle flashes included.
 - Resolution order each tick: turn → move → shoot (from post-move positions) →
   damage (simultaneous). Both bots destroyed on the same tick = **draw**.
 - If nobody wins by tick 500, the bot with more health wins; equal health is a

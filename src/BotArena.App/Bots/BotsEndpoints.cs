@@ -101,6 +101,24 @@ public static class BotsEndpoints
             });
         });
 
+        // Slim polling view (gen-2 finding #8): build-status pollers shouldn't re-download
+        // every version's sources and log on each poll.
+        group.MapGet("/{botId:guid}/build-status", async (Guid botId, AppDbContext db) =>
+        {
+            var versions = await db.BotVersions
+                .Where(v => v.BotId == botId)
+                .OrderByDescending(v => v.VersionNumber)
+                .Select(v => new
+                {
+                    v.Id, v.VersionNumber, Status = v.Status.ToString(), v.ArtifactHash,
+                    v.IsActive, v.CreatedAt, v.BuiltAt,
+                })
+                .ToListAsync();
+            return versions.Count == 0 && !await db.Bots.AnyAsync(b => b.Id == botId)
+                ? Results.NotFound()
+                : Results.Ok(versions);
+        });
+
         group.MapPost("/{botId:guid}/versions",
             async (Guid botId, SubmitVersionRequest request, ClaimsPrincipal principal, AppDbContext db) =>
         {

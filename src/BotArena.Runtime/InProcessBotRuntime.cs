@@ -13,6 +13,7 @@ public sealed class InProcessBotRuntime : IBotRuntime
     private readonly Func<Sdk.IBot> _botFactory;
     private Sdk.IBot? _bot;
     private DeterministicRandom? _random;
+    private int _slot;
 
     public InProcessBotRuntime(Func<Sdk.IBot> botFactory) => _botFactory = botFactory;
 
@@ -21,6 +22,7 @@ public sealed class InProcessBotRuntime : IBotRuntime
         // A fresh instance every match: bot state must never leak across matches (plan §7).
         _bot = _botFactory();
         _random = new DeterministicRandom(start.BotRandomSeed);
+        _slot = start.Slot;
     }
 
     public BotDecision ExecuteTick(BotObservation observation)
@@ -28,7 +30,7 @@ public sealed class InProcessBotRuntime : IBotRuntime
         if (_bot is null || _random is null)
             throw new InvalidOperationException("StartMatch must be called before ExecuteTick.");
         var debug = new DebugCollector();
-        var context = SdkModelMapper.ToContext(observation, new SdkRandom(_random), debug);
+        var context = SdkModelMapper.ToContext(observation, _slot, new SdkRandom(_random), debug);
         try
         {
             var action = _bot.Tick(context);
@@ -72,10 +74,11 @@ public sealed class InProcessBotRuntime : IBotRuntime
 /// <summary>Maps engine observation/action models to the SDK's and back (plan §8).</summary>
 internal static class SdkModelMapper
 {
-    public static Sdk.BotContext ToContext(BotObservation observation, Sdk.IBotRandom random, Sdk.IBotDebug debug) =>
+    public static Sdk.BotContext ToContext(BotObservation observation, int slot, Sdk.IBotRandom random, Sdk.IBotDebug debug) =>
         new()
         {
             Tick = observation.Tick,
+            Slot = slot,
             Position = new Sdk.Position(observation.Position.X, observation.Position.Y),
             Facing = ToSdkDirection(observation.Facing),
             Health = observation.Health,

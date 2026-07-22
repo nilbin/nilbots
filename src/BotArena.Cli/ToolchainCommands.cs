@@ -53,7 +53,13 @@ public static class BuildCommand
         var options = CliSupport.ParseOptions(rest);
         var project = BotProject.Load(directory);
         var built = BotBuilder.EnsureBuilt(project, noCache: options.ContainsKey("no-cache"));
+        // A tangible artifact in the project (gen-2 finding #10): lets you point
+        // `play --opponent` at this build as a file, like champions/*/bot.wasm.
+        string artifactCopy = Path.Combine(project.Directory, "out", "bot.wasm");
+        Directory.CreateDirectory(Path.GetDirectoryName(artifactCopy)!);
+        File.Copy(built.WasmPath, artifactCopy, overwrite: true);
         PrintSummary(project, built);
+        Console.WriteLine($"Artifact:         {artifactCopy}");
         return 0;
     }
 

@@ -16,9 +16,9 @@ namespace BotArena.Cli;
 /// </summary>
 internal static class InProcessProject
 {
-    public static Func<Sdk.IBot> LoadFactory(BotProject project)
+    public static Func<Sdk.IBot> LoadFactory(BotProject project, bool quiet = false)
     {
-        string dllPath = Build(project);
+        string dllPath = Build(project, quiet);
         var context = new BotLoadContext(dllPath);
         var assembly = context.LoadFromAssemblyPath(dllPath);
         var entryType = assembly.GetType(project.Manifest.EntryType, throwOnError: false)
@@ -31,7 +31,7 @@ internal static class InProcessProject
         return () => (Sdk.IBot)Activator.CreateInstance(entryType)!;
     }
 
-    private static string Build(BotProject project)
+    private static string Build(BotProject project, bool quiet)
     {
         string? csproj = Directory.EnumerateFiles(project.Directory, "*.csproj").FirstOrDefault()
             ?? throw new InvalidOperationException(
@@ -60,8 +60,9 @@ internal static class InProcessProject
             Path.GetFileNameWithoutExtension(csproj) + ".dll");
         if (!File.Exists(dllPath))
             throw new InvalidOperationException($"Build succeeded but no assembly at {dllPath}.");
-        Console.WriteLine($"{project.Manifest.Name}: in-process build in {stopwatch.Elapsed.TotalSeconds:F1}s " +
-                          "(diagnostic — fuel/memory limits NOT enforced; verify in WASM before submitting)");
+        if (!quiet)
+            Console.WriteLine($"{project.Manifest.Name}: in-process build in {stopwatch.Elapsed.TotalSeconds:F1}s " +
+                              "(diagnostic — fuel/memory limits NOT enforced; verify in WASM before submitting)");
         return dllPath;
     }
 

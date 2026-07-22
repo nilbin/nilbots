@@ -4,8 +4,18 @@ Reported by 3 agents (Rampart, Oracle, Switchblade) across build + 2 ranked
 rounds + 1 improvement iteration. All gen-1 findings stayed fixed; every agent
 reached Built-with-identical-parity on the first submission attempt and called
 the submission flow "frictionless". These are the NEW findings, consolidated
-and severity-ranked. Status: **all open** (filed during the tournament wrap;
-the fast-inner-loop work from PLAN-SUMMARY #1 outranks them).
+and severity-ranked.
+
+**Status: all 11 fixed** in the follow-up pass (DECISIONS #46). Per item:
+1 → REPLAY-FORMAT.md "How to read a replay" + `replay --summary`; 2 →
+`BotContext.Slot` (SDK 0.2.0, no wire change); 3 → SDK XML docs + site docs
+event-semantics bullet; 4 → `.wasm` labels from the parent directory; 5 →
+`--swap`, `--seeds`, and the `botarena set` command; 6 → rules bullets on the
+site + template README; 7 → ranked pool named in docs; 8 →
+`GET /api/bots/{id}/build-status`; 9 → "Scripting the API" docs card; 10 →
+`build` copies the artifact to `<project>/out/bot.wasm`; 11 → determinism
+card explains seed-invariance (spawn variation itself stays a GAME-DESIGN
+backlog item). Original findings below for the record.
 
 1. **[high] Replay semantics are undocumented where it matters.**
    `docs/REPLAY-FORMAT.md` documents the shapes but not the load-bearing

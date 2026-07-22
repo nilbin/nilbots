@@ -17,6 +17,7 @@ try
         ["submit", .. var rest] => ServerCommands.Submit(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
+        ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
         ["verify", var file] => VerifyCommand.Run(file),
@@ -50,11 +51,16 @@ static int Help(int exitCode = 1)
           botarena submit [dir]                   build locally + submit for the canonical
                                                   server build; reports artifact parity
           botarena whoami | botarena logout
-          botarena build [dir] [--no-cache]       compile a bot project to WASM (cached)
-          botarena play [--bot <spec>] [--opponent <spec>] [--map <id>] [--seed <n>]
-                        [--runtime wasm|in-process] [--max-ticks <n>] [--out <dir>]
+          botarena build [dir] [--no-cache]       compile a bot project to WASM (cached;
+                                                  also copies the artifact to <dir>/out/bot.wasm)
+          botarena play [--bot <spec>] [--opponent <spec>] [--map <id>]
+                        [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
+                        [--max-ticks <n>] [--out <dir>]
+          botarena set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
+                        [--runtime ...]           the ranked 6-game mirrored set, locally
           botarena watch [dir] [play options]     rebuild + replay on every change
-          botarena replay <replay.json> [--out]   re-emit the visual viewer
+          botarena replay <replay.json> [--summary [--no-debug]] [--out]
+                                                  compact match digest, or the visual viewer
           botarena verify <replay.json>           check a replay's hash
           botarena doctor                         toolchain and environment status
           botarena cache [status|clear]           build cache maintenance
@@ -68,6 +74,9 @@ static int Help(int exitCode = 1)
         a self-contained viewer.html, and prints the result and replay hash.
         Output defaults to out/<bot>-vs-<opponent>-<map>-s<seed>/ so parallel runs
         never overwrite each other; --out <dir> pins an exact directory.
+        Iterate with --runtime in-process (plain build, seconds; not
+        submission-equivalent), batch seeds with --seeds, play slot 1 with --swap,
+        and use `set` + `replay --summary` for ranked-shape testing and loss forensics.
         """);
     return exitCode;
 }

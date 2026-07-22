@@ -21,10 +21,13 @@ public sealed record BotAppearance
 /// bump any of them and every bot rebuilds (plan §12).</summary>
 public static class ToolchainInfo
 {
-    public const string CliVersion = "0.1.0";
-    public const string SdkVersion = "0.1.0";
+    public const string CliVersion = "0.2.0";
+    // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46). Additive —
+    // the wire protocol is unchanged (the init line always carried the slot), so 0.1
+    // artifacts (champions) still run; only recompiles see the new surface.
+    public const string SdkVersion = "0.2.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.1.0";
+    public const string GuestAdapterVersion = "0.2.0";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

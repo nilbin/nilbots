@@ -38,10 +38,12 @@ bot name + accent, a working dir `sandbox/agents/<name>`, and this brief:
 > `web/src/site/pages/DocsPage.tsx` and `templates/botarena-bot/README.md`) and
 > `src/BotArena.Sdk/` public API only. Create your bot with
 > `dotnet run --project src/BotArena.Cli -- new <Name>`, iterate fast with
-> `-- play --runtime in-process --bot . --opponent hunter --seed <n>` (~2 s
-> builds, same engine; verify in default WASM mode before submitting), then
-> spar the REIGNING CHAMPION(S) in WASM mode:
-> `-- play --bot . --opponent champions/<slug>/bot.wasm`
+> `-- play --runtime in-process --bot . --opponent hunter --seeds 7,42,1337`
+> (~2 s builds, batch seed tables, same engine; verify in default WASM mode
+> before submitting), analyze losses with `-- replay <file> --summary`
+> (never parse raw replay JSON), and rehearse the ranked format with
+> `-- set --bot . --opponent <spec>`. Then spar the REIGNING CHAMPION(S) in
+> WASM mode: `-- set --bot . --opponent champions/<slug>/bot.wasm`
 > (test ≥3 seeds each; the champions are the bar, the built-ins are training
 > wheels). Then STOP. Report: your strategy, win rates incl. vs champion, and
 > every point of friction — confusing docs, bad errors, missing commands. Your

@@ -8,17 +8,19 @@ internal sealed class GuestSession
 {
     private readonly IBot _bot;
     private readonly GuestRandom _random;
+    private readonly int _slot;
 
-    private GuestSession(IBot bot, ulong seed)
+    private GuestSession(IBot bot, ulong seed, int slot)
     {
         _bot = bot;
         _random = new GuestRandom(seed);
+        _slot = slot;
     }
 
     public static GuestSession Start(string initLine, Func<string, IBot> botFactory)
     {
         var init = GuestProtocol.ParseInit(initLine);
-        return new GuestSession(botFactory(init.BotName), init.Seed);
+        return new GuestSession(botFactory(init.BotName), init.Seed, init.Slot);
     }
 
     public string HandleTick(string line)
@@ -28,6 +30,7 @@ internal sealed class GuestSession
         var context = new BotContext
         {
             Tick = observation.Tick,
+            Slot = _slot,
             Position = observation.Position,
             Facing = observation.Facing,
             Health = observation.Health,

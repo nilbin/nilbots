@@ -241,6 +241,20 @@ configuration) and changing them is a version bump, not an edit.
     exit 126. Resolution order is now env → `/opt/botarena/wasi-sdk-29.0`
     (world-readable, where setup-wasi-sdk.sh installs) → legacy home dir;
     doctor reports the same resolution.
+46. **Gen-2 findings pass: SDK 0.2.0 + batch CLI tooling.** `BotContext.Slot`
+    ships as a guest-side change only — the init line always carried the slot,
+    so the wire protocol is untouched and 0.1 champion artifacts keep running
+    (SdkVersion + GuestAdapterVersion → 0.2.0; builtin artifact rebuilt;
+    champions never rebuild by design, #43). Event semantics are now
+    documented where they live (SDK XML docs + site rules) instead of adding
+    fields — Damage's dealer-slot convention is pinned by replay hashes, so
+    clarity beats churn. New CLI surface for the iteration loop the agents
+    actually ran: `--seeds` batches, `--swap`, `botarena set` (the ranked
+    6-game mirrored format locally — also the GAME-DESIGN balance-harness
+    primitive), `replay --summary` (compact digest; states are post-tick by
+    convention), `build` drops `<project>/out/bot.wasm`, and `.wasm` opponents
+    are labeled by their directory (every champion is a `bot.wasm`). Server:
+    `GET /api/bots/{id}/build-status` is the slim polling view.
 
 ## Deferred decisions
 

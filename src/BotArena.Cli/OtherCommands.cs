@@ -8,9 +8,12 @@ public static class ReplayCommand
     public static int Run(string file, IReadOnlyList<string> args)
     {
         var options = CliSupport.ParseOptions(args);
-        string outDir = options.GetValueOrDefault("out", Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".");
         string json = File.ReadAllText(file);
         var document = ReplaySerializer.FromJson(json); // Validates the format.
+        if (options.ContainsKey("summary"))
+            return Summarize(document, includeDebug: !options.ContainsKey("no-debug"));
+
+        string outDir = options.GetValueOrDefault("out", Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".");
         Console.WriteLine($"Replay:  {document.Header.MapId} seed {document.Header.Seed} " +
                           $"({document.Ticks.Count} ticks, rules {document.Header.GameRulesVersion})");
         string? viewer = ReplayOutput.WriteViewer(json, outDir);
@@ -21,6 +24,76 @@ public static class ReplayCommand
         }
         Console.WriteLine($"Viewer:  {viewer}");
         return 0;
+    }
+
+    /// <summary>
+    /// Compact, grep-friendly digest of a match (gen-2 findings: agents burned entire
+    /// analysis turns parsing megabytes of replay JSON with ad-hoc scripts). Convention
+    /// reminder, documented in docs/REPLAY-FORMAT.md: state lines show the POST-tick
+    /// state; the actions on the same line were decided from the PREVIOUS line's state.
+    /// </summary>
+    private static int Summarize(ReplayDocument document, bool includeDebug)
+    {
+        var header = document.Header;
+        var names = header.Participants.ToDictionary(p => p.Slot, p => p.Name);
+        Console.WriteLine($"Match:  {string.Join(" vs ", header.Participants.OrderBy(p => p.Slot).Select(p => $"{p.Name} (s{p.Slot})"))}");
+        Console.WriteLine($"Map:    {header.MapId} v{header.MapVersion} ({header.MapWidth}x{header.MapHeight})  seed {header.Seed}  rules {header.GameRulesVersion}");
+        var result = document.Result;
+        string verdict = result.WinnerSlot is int w ? $"{names[w]} (s{w}) wins" : "draw";
+        Console.WriteLine($"Result: {verdict} — {result.Reason} at tick {result.EndTick}");
+        foreach (var bot in result.Bots.OrderBy(b => b.Slot))
+        {
+            int fired = document.Ticks.SelectMany(t => t.Events)
+                .Count(e => e.Type == GameEventType.Shot && e.Slot == bot.Slot);
+            int hits = document.Ticks.SelectMany(t => t.Events)
+                .Count(e => e.Type == GameEventType.Shot && e.Slot == bot.Slot && e.HitSlot is not null);
+            Console.WriteLine($"        s{bot.Slot} {names[bot.Slot],-14} {bot.Outcome,-5} " +
+                              $"health {bot.FinalHealth}  dealt {bot.DamageDealt}  " +
+                              $"shots {fired} ({hits} hit)  faults {bot.Faults}");
+        }
+        Console.WriteLine();
+        Console.WriteLine("Timeline (post-tick state; actions were decided from the previous line's state):");
+
+        int lastPrinted = -100;
+        foreach (var tick in document.Ticks)
+        {
+            bool significant = tick.Events.Any(e => e.Type is GameEventType.Shot or GameEventType.Damage
+                or GameEventType.Destroyed or GameEventType.Fault or GameEventType.Disqualified)
+                || (includeDebug && tick.Bots.Any(b => b.Debug is not null));
+            // Periodic keep-alive lines so quiet phases still show movement.
+            if (!significant && tick.Tick - lastPrinted < 25)
+                continue;
+            lastPrinted = tick.Tick;
+
+            string state = string.Join(" ", tick.State.OrderBy(s => s.Slot).Select(s =>
+                $"s{s.Slot}@({s.X},{s.Y}){s.Facing.ToString()[0]}h{s.Health}c{s.Cooldown}"));
+            string actions = string.Join(" ", tick.Bots.OrderBy(b => b.Slot).Select(b =>
+                b.ChosenAction == b.ValidatedAction ? $"{b.ChosenAction}" : $"{b.ChosenAction}→{b.ValidatedAction}"));
+            string events = string.Join("; ", tick.Events
+                .Where(e => e.Type is not (GameEventType.Turn or GameEventType.Move))
+                .Select(FormatEvent));
+            string line = $"t{tick.Tick,4} | {state} | {actions}";
+            if (events.Length > 0)
+                line += $" | {events}";
+            Console.WriteLine(line);
+            if (includeDebug)
+                foreach (var bot in tick.Bots.Where(b => b.Debug is not null).OrderBy(b => b.Slot))
+                    foreach (var debugLine in bot.Debug!.Split('\n'))
+                        Console.WriteLine($"      s{bot.Slot}» {(debugLine.Length > 100 ? debugLine[..100] + "…" : debugLine)}");
+        }
+        return 0;
+
+        static string FormatEvent(GameEvent e) => e.Type switch
+        {
+            GameEventType.Shot => $"Shot s{e.Slot} ({e.FromX},{e.FromY})->({e.ToX},{e.ToY})" +
+                                  (e.HitSlot is int hit ? $" HIT s{hit}" : " miss"),
+            GameEventType.Damage => $"Damage s{e.TargetSlot} by s{e.Slot} (h->{e.NewHealth})",
+            GameEventType.Destroyed => $"DESTROYED s{e.Slot}",
+            GameEventType.Fault => $"Fault s{e.Slot}: {e.Message}",
+            GameEventType.Disqualified => $"DISQUALIFIED s{e.Slot}",
+            GameEventType.MoveBlocked => $"MoveBlocked s{e.Slot}",
+            _ => e.Type.ToString(),
+        };
     }
 }
 

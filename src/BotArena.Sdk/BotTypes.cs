@@ -80,4 +80,11 @@ public enum VisibleEventKind
     Disqualified,
 }
 
+/// <summary>
+/// Something that happened LAST tick, delivered when part of it was within your vision.
+/// <c>Slot</c> is the ACTING bot: the mover/turner, the shooter — for <c>Damage</c> it is
+/// the bot that DEALT the damage, not the victim (compare it with <see cref="BotContext.Slot"/>
+/// to attribute). <c>Position</c> is the event's primary tile: where the actor stood
+/// (Turn/Move-from/Shot origin), or the victim's tile for Damage/Destroyed.
+/// </summary>
 public sealed record VisibleEvent(VisibleEventKind Kind, int? Slot, Position Position);

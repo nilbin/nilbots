@@ -60,9 +60,17 @@ public sealed class MyBot : IBot
           <li>Shooting is an instant ray in your facing direction with <b>unlimited
             range</b> — the first wall or bot stops it; 1 damage; 2-tick cooldown
             (a shot every 3rd tick).</li>
-          <li>Vision (range 6) is <b>corner-strict</b>: a sight line that clips a
-            wall corner is blocked. Shots outrange sight — a bot you can't see can
-            still hit you down a clear straight line, and vice versa.</li>
+          <li>Vision is <b>omnidirectional</b> (facing only affects moving and
+            shooting), measured as Chebyshev distance ≤ 6, and <b>corner-strict</b>:
+            if the straight line to a tile touches any wall — corners included —
+            the tile is hidden. That can hide even a <i>diagonally adjacent</i> wall,
+            and <code className="font-mono">IsWall()</code> returns false for unseen tiles: remember the
+            map yourself. Shots outrange sight — a bot you can't see can still hit
+            you down a clear straight line, and vice versa.</li>
+          <li>Two duel-deciding corollaries of the resolution order: a shooter's ray
+            fires from its <b>pre-move</b> position and facing (you cannot move and
+            shoot the same tick), and moves resolve <b>before</b> shots — so a
+            perpendicular sidestep dodges a ray fired at where you stood.</li>
           <li>Movement: two bots can't share a tile; moving into the same tile or
             swapping fails for both; blocked moves become Wait.</li>
           <li>Resolution order each tick: turn → move → shoot (from post-move
@@ -72,8 +80,14 @@ public sealed class MyBot : IBot
             500</b>; equal health at the limit is a draw. A bot that crashes 3
             times is disqualified — exceptions, infinite loops and out-of-memory
             all count.</li>
-          <li>Ranked sets are 6 games across 3 map/seed pairs, each played from both
-            starting positions; elo moves once per set.</li>
+          <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01 and
+            arena-01), each played from both starting positions; elo moves once per
+            set. Rehearse the exact format locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
+          <li><code className="font-mono">VisibleEvents</code> describe <b>last</b> tick, delivered when part of
+            the event is on a tile you can see now — a shot fired from beyond your
+            vision is still delivered if the ray enters it. An event's
+            <code className="font-mono"> Slot</code> is the <i>acting</i> bot (for Damage: the dealer, not the
+            victim); compare with <code className="font-mono">context.Slot</code> to attribute your own.</li>
         </ul>
       </Doc>
 
@@ -83,8 +97,30 @@ public sealed class MyBot : IBot
           version and the seed — replaying it always produces the identical battle,
           byte for byte (that's the replay hash). <code className="font-mono">context.Random</code> is
           derived from the match seed and your slot, so even your "random" choices
-          replay exactly. Test across several seeds before concluding your bot
-          improved: one seed is one battle, not a benchmark.
+          replay exactly. Corollary: if neither bot consults
+          <code className="font-mono"> Random</code>, different seeds produce the <i>same</i> game — vary
+          maps and starting positions (<code className="font-mono">--swap</code>), not just seeds, when
+          testing. The replay JSON schema and its reading conventions are documented
+          in <code className="font-mono">docs/REPLAY-FORMAT.md</code> in the repo, and
+          <code className="font-mono"> botarena replay &lt;file&gt; --summary</code> prints a compact digest.
+        </p>
+      </Doc>
+
+      <Doc title="Scripting the API (bots, CI, headless)">
+        <p className="mb-2">
+          Everything the site does goes through the JSON API, and cookie auth works
+          headless — no browser needed:
+        </p>
+        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`curl -c jar -H 'Content-Type: application/json' \\
+  -d '{"displayName":"Me","email":"me@x","password":"..."}' <server>/api/accounts/register
+curl -b jar -d '{"name":"MyBot","accent":"#22d3ee"}' <server>/api/bots
+curl -b jar -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
+  <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
+curl -b jar -d '{"botId":"...","opponentBotId":"..."}' <server>/api/matches/ranked
+curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>
+        <p className="mt-2 text-arena-dim">
+          <code className="font-mono">/build-status</code> is the slim polling view; the CLI's
+          <code className="font-mono"> botarena submit</code> wraps this flow plus artifact-parity checking.
         </p>
       </Doc>
 
