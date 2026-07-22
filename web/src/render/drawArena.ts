@@ -137,14 +137,33 @@ export function drawArena(
       ctx.setLineDash([]);
     }
 
-    // Body: rounded chassis with an accent ring and a facing wedge.
+    // Chassis variant derived from the bot's name: recognizable identity (§33.3-lite).
+    const variant = nameHash(participant?.name ?? '');
     ctx.fillStyle = '#232f42';
     ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    const sides = [0, 6, 8][variant % 3];
+    if (sides === 0) ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    else
+      for (let i = 0; i <= sides; i++) {
+        const a = (i / sides) * Math.PI * 2 + Math.PI / sides;
+        ctx[i === 0 ? 'moveTo' : 'lineTo'](Math.cos(a) * radius, Math.sin(a) * radius);
+      }
+    ctx.closePath();
     ctx.fill();
     ctx.lineWidth = Math.max(2, tile * 0.06);
     ctx.strokeStyle = accent;
     ctx.stroke();
+    if (variant & 4) {
+      // Antenna.
+      ctx.beginPath();
+      ctx.moveTo(-radius * 0.9, 0);
+      ctx.lineTo(-radius * 1.35, 0);
+      ctx.stroke();
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(-radius * 1.35, 0, radius * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.fillStyle = accent;
     ctx.beginPath();
@@ -253,6 +272,12 @@ export function drawArena(
     if (x === undefined || y === undefined) return null;
     return { x: px(x) + tile / 2, y: py(y) + tile / 2 };
   }
+}
+
+function nameHash(name: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < name.length; i++) hash = ((hash ^ name.charCodeAt(i)) * 16777619) >>> 0;
+  return hash;
 }
 
 function hexWithAlpha(hex: string, alpha: number): string {

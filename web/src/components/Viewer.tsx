@@ -5,6 +5,7 @@ import ArenaCanvas from './ArenaCanvas';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
+import Logo from './Logo';
 
 export interface LiveFollow {
   /** The shared presentation tick from the server clock. */
@@ -59,9 +60,7 @@ export default function Viewer({
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col gap-3 p-3 md:p-5">
       <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <h1 className="text-xl font-black tracking-[0.2em] text-arena-text uppercase">
-          Bot<span className="text-arena-accent">Arena</span>
-        </h1>
+        <h1 className="text-xl"><Logo size={24} /></h1>
         <span className="font-mono text-xs text-arena-dim">
           {header.mapId} · seed {header.seed} · rules {header.gameRulesVersion} ·{' '}
           {header.participants.map((p) => p.name).join(' vs ')}

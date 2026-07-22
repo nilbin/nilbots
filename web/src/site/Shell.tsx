@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from './auth';
+import Logo from '../components/Logo';
 
 export default function Shell() {
   const { user, logout } = useAuth();
@@ -9,13 +10,14 @@ export default function Shell() {
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 md:px-6">
       <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-arena-edge py-4">
-        <Link to="/" className="text-xl font-black tracking-[0.2em] uppercase">
-          Bot<span className="text-arena-accent">Arena</span>
+        <Link to="/" className="text-xl">
+          <Logo size={26} />
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <TopLink to="/">Arena</TopLink>
           <TopLink to="/bots">Bots</TopLink>
           <TopLink to="/leaderboard">Leaderboard</TopLink>
+          <TopLink to="/docs">Docs</TopLink>
           {user && <TopLink to="/garage">My garage</TopLink>}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">

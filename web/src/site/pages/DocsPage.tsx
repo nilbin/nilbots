@@ -1,0 +1,95 @@
+/// On-site documentation (plan §29.6): enough for a player to go from zero to a
+/// submitted bot without reading the repository.
+export default function DocsPage() {
+  return (
+    <div className="prose-invert mx-auto flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
+      <section>
+        <h1 className="mb-2 text-2xl font-black tracking-wide">How to play</h1>
+        <p className="text-arena-dim">
+          Write a C# bot, submit it, and watch it fight. Matches are deterministic:
+          the same bots, map and seed always produce the same battle — so when your
+          bot loses, you can replay the exact match and see why.
+        </p>
+      </section>
+
+      <Doc title="Quick start (browser only)">
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>Create an account and open <b>My garage</b>.</li>
+          <li>Create a bot, then paste your C# into <b>Submit new version</b> — the
+            server compiles it to WebAssembly and validates it.</li>
+          <li>Open any bot's page and hit <b>FIGHT</b> — or <b>FIGHT FOR RATING</b>
+            for a ranked 6-game set that moves elo.</li>
+          <li>Watch the broadcast live; click your bot in the viewer to see exactly
+            what it saw and why it acted.</li>
+        </ol>
+      </Doc>
+
+      <Doc title="The bot API">
+        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`using BotArena.Sdk;
+
+public sealed class MyBot : IBot
+{
+    public BotAction Tick(BotContext context)
+    {
+        // One action per tick: Actions.Wait/MoveForward/TurnLeft/TurnRight/Shoot
+        return Actions.MoveForward();
+    }
+}`}</pre>
+        <p className="mt-2">
+          One instance lives for the whole match — fields persist between ticks.
+          <code className="font-mono"> BotContext</code> gives you:
+        </p>
+        <ul className="mt-1 list-disc space-y-1 pl-5">
+          <li><code className="font-mono">Position, Facing, Health, Cooldown, Tick</code> — your own state.</li>
+          <li><code className="font-mono">VisibleTiles / VisibleEnemies / VisibleEvents</code> — what you can
+            see (range 6, walls block sight). You never get the full map.</li>
+          <li><code className="font-mono">PreviousActionResult</code> — Success, Blocked, OnCooldown…</li>
+          <li><code className="font-mono">Random</code> — the <i>only</i> allowed randomness. System clocks and
+            <code className="font-mono"> System.Random</code> are neutralized in the sandbox.</li>
+          <li><code className="font-mono">Debug.Write(...)</code> — private notes shown in the replay viewer,
+            visible only to you.</li>
+          <li>Helpers: <code className="font-mono">IsWallAhead(), CanSee(p), CanShoot</code>.</li>
+        </ul>
+      </Doc>
+
+      <Doc title="Rules of the arena (v0.1)">
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Tile grid, four facings, both bots decide simultaneously from the
+            pre-tick state. 3 HP each, max 500 ticks.</li>
+          <li>Shooting is an instant ray in your facing direction; first wall or bot
+            stops it; 1 damage; 2-tick cooldown (a shot every 3rd tick).</li>
+          <li>Movement: two bots can't share a tile; moving into the same tile or
+            swapping fails for both; blocked moves become Wait.</li>
+          <li>Resolution order each tick: turn → move → shoot (from post-move
+            positions) → damage (simultaneous).</li>
+          <li>Win: survive; tie-break by health. A bot that crashes 3 times is
+            disqualified — exceptions, infinite loops and out-of-memory all count.</li>
+          <li>Ranked sets are 6 games across 3 map/seed pairs, each played from both
+            starting positions; elo moves once per set.</li>
+        </ul>
+      </Doc>
+
+      <Doc title="Local development (CLI)">
+        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`botarena new MyBot && cd MyBot
+botarena play --bot . --opponent hunter --seed 42   # your bot as WASM, locally
+botarena watch . --opponent hunter                  # rebuild + replay on save
+botarena login                                      # browser sign-in (OAuth + PKCE)
+botarena submit .                                   # official server build + parity check`}</pre>
+        <p className="mt-2 text-arena-dim">
+          Local play uses the same engine, limits and WASM sandbox as the server, and
+          <code className="font-mono"> submit</code> reports whether your local artifact is bit-identical to
+          the server's build.
+        </p>
+      </Doc>
+    </div>
+  );
+}
+
+function Doc({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-xl border border-arena-edge bg-arena-panel/60 p-5">
+      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim uppercase">{title}</h2>
+      {children}
+    </section>
+  );
+}
