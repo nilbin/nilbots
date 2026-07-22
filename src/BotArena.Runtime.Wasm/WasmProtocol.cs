@@ -56,6 +56,11 @@ public static class WasmProtocol
             builder.Append(' ').Append((int)gameEvent.Type).Append(':')
                 .Append(gameEvent.Slot ?? -1).Append(':').Append(position.X).Append(':').Append(position.Y);
         }
+        // Optional trailing section: energy (rules with MaxEnergy > 0 only). Appended
+        // LAST so protocol-0.1 guests — which parse exactly the tokens they expect and
+        // never index further — remain compatible (same trick as the optional botName).
+        if (observation.Energy is int energy)
+            builder.Append(" E ").Append(energy);
         return builder.ToString();
     }
 

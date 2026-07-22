@@ -55,6 +55,11 @@ public static class SeedDerivation
         return x;
     }
 
+    /// <summary>Independent stream for seed-spawn variation — labeled so it can never
+    /// collide with a bot's own stream (same shape as DeriveBotSeed, distinct domain).</summary>
+    public static ulong DeriveSpawnSeed(ulong matchSeed, string gameRulesVersion) =>
+        DeterministicRandom.Mix(matchSeed ^ Fnv1a64("spawns:" + gameRulesVersion));
+
     private static ulong Fnv1a64(string value)
     {
         ulong hash = 14695981039346656037UL;

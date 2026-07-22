@@ -120,7 +120,8 @@ public sealed class ArenaMap
 
     private static readonly (int Dx, int Dy)[] CardinalOffsets = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
-    private bool AreConnected(Position a, Position b)
+    /// <summary>Floor connectivity via 4-neighbor BFS (also used by seed-spawn variation).</summary>
+    public bool AreConnected(Position a, Position b)
     {
         var seen = new bool[Width * Height];
         var queue = new Queue<Position>();

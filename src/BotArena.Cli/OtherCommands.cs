@@ -66,7 +66,8 @@ public static class ReplayCommand
             lastPrinted = tick.Tick;
 
             string state = string.Join(" ", tick.State.OrderBy(s => s.Slot).Select(s =>
-                $"s{s.Slot}@({s.X},{s.Y}){s.Facing.ToString()[0]}h{s.Health}c{s.Cooldown}"));
+                $"s{s.Slot}@({s.X},{s.Y}){s.Facing.ToString()[0]}h{s.Health}c{s.Cooldown}" +
+                (s.Energy is int energy ? $"e{energy}" : "")));
             string actions = string.Join(" ", tick.Bots.OrderBy(b => b.Slot).Select(b =>
                 b.ChosenAction == b.ValidatedAction ? $"{b.ChosenAction}" : $"{b.ChosenAction}→{b.ValidatedAction}"));
             string events = string.Join("; ", tick.Events

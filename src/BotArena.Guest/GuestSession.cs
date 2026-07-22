@@ -35,6 +35,7 @@ internal sealed class GuestSession
             Facing = observation.Facing,
             Health = observation.Health,
             Cooldown = observation.Cooldown,
+            Energy = observation.Energy,
             PreviousActionResult = observation.PreviousActionResult,
             VisibleTiles = observation.VisibleTiles,
             VisibleEnemies = observation.VisibleEnemies,

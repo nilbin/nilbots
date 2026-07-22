@@ -22,6 +22,12 @@ public sealed class BotContext
     /// shot, so with a 2-tick cooldown you can fire every 3rd tick. See <see cref="CanShoot"/>.</summary>
     public required int Cooldown { get; init; }
 
+    /// <summary>Your current energy, or null when these rules have no energy system.
+    /// With energy on, each shot costs energy and regeneration is slow — a Shoot without
+    /// enough energy becomes Wait with an OnCooldown result. Enemy energy is not
+    /// observable; count their shots to estimate it.</summary>
+    public int? Energy { get; init; }
+
     public required ActionResult PreviousActionResult { get; init; }
 
     /// <summary>Every tile you can currently see (Chebyshev range 6, corner-strict wall

@@ -24,20 +24,22 @@ public sealed class MatchSession
 
     private IReadOnlyList<GameEvent> _lastTickEvents = [];
 
-    public MatchSession(ArenaMap map, GameRules rules)
+    public MatchSession(ArenaMap map, GameRules rules, IReadOnlyList<Spawn>? spawns = null)
     {
-        if (map.Spawns.Count != 2)
-            throw new ArgumentException("MatchSession currently requires a 2-spawn map.");
+        spawns ??= map.Spawns; // Callers with seed-spawn variation resolve first (MatchEngine).
+        if (spawns.Count != 2)
+            throw new ArgumentException("MatchSession currently requires exactly 2 spawns.");
         var bots = new List<BotState>();
-        for (int slot = 0; slot < map.Spawns.Count; slot++)
+        for (int slot = 0; slot < spawns.Count; slot++)
         {
-            var spawn = map.Spawns[slot];
+            var spawn = spawns[slot];
             bots.Add(new BotState
             {
                 Slot = slot,
                 Position = new Position(spawn.X, spawn.Y),
                 Facing = spawn.Facing,
                 Health = rules.MaxHealth,
+                Energy = rules.MaxEnergy,
             });
         }
         State = new GameState { Map = map, Rules = rules, Bots = bots };
@@ -66,6 +68,7 @@ public sealed class MatchSession
             Facing = bot.Facing,
             Health = bot.Health,
             Cooldown = bot.Cooldown,
+            Energy = State.Rules.MaxEnergy > 0 ? bot.Energy : null,
             PreviousActionResult = bot.LastActionResult,
             VisibleTiles = tiles,
             VisibleEnemies = enemies,
@@ -106,6 +109,15 @@ public sealed class MatchSession
                 validated[slot] = BotAction.Wait;
                 results[slot] = ActionResult.OnCooldown;
             }
+            else if (decision.Action == BotAction.Shoot
+                     && State.Rules.MaxEnergy > 0 && bots[slot].Energy < State.Rules.ShotEnergyCost)
+            {
+                // Dry gun. OnCooldown is reused deliberately: "the gun is not ready" —
+                // no new enum value, so pre-energy bots stay wire-compatible.
+                chosen[slot] = BotAction.Shoot;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.OnCooldown;
+            }
             else
             {
                 chosen[slot] = decision.Action;
@@ -131,13 +143,20 @@ public sealed class MatchSession
         // 6.–7. Resolve shooting from post-movement state; apply damage simultaneously.
         var shotThisTick = ResolveShooting(validated, events);
 
-        // 8. Update cooldowns.
+        // 8. Update cooldowns and energy (shots spend first, then the regen cadence).
         for (int slot = 0; slot < n; slot++)
         {
             var bot = bots[slot];
             bot.Cooldown = shotThisTick[slot]
                 ? State.Rules.ShootCooldownTicks
                 : Math.Max(0, bot.Cooldown - 1);
+            if (State.Rules.MaxEnergy > 0)
+            {
+                if (shotThisTick[slot])
+                    bot.Energy -= State.Rules.ShotEnergyCost;
+                if (State.Rules.EnergyRegenTicks > 0 && (State.Tick + 1) % State.Rules.EnergyRegenTicks == 0)
+                    bot.Energy = Math.Min(State.Rules.MaxEnergy, bot.Energy + 1);
+            }
         }
 
         // 9. Apply runtime-fault rules.

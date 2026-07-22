@@ -16,6 +16,8 @@ public sealed class BotObservation
     public required Direction Facing { get; init; }
     public required int Health { get; init; }
     public required int Cooldown { get; init; }
+    /// <summary>Null when the rules have no energy system (rules 0.1).</summary>
+    public int? Energy { get; init; }
     public required ActionResult PreviousActionResult { get; init; }
     public required IReadOnlyList<ObservedTile> VisibleTiles { get; init; }
     public required IReadOnlyList<ObservedBot> VisibleEnemies { get; init; }

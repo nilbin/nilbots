@@ -49,8 +49,11 @@ public sealed record ReplayBotTick
     public required IReadOnlyList<ReplayVisibleEnemy> VisibleEnemies { get; init; }
 }
 
+/// <summary>Energy is null (omitted from canonical JSON) under rules without an energy
+/// system, so pre-energy replay hashes are unaffected.</summary>
 public sealed record ReplayBotState(
-    int Slot, int X, int Y, Direction Facing, int Health, int Cooldown, BotStatus Status);
+    int Slot, int X, int Y, Direction Facing, int Health, int Cooldown, BotStatus Status,
+    int? Energy = null);
 
 public sealed record ReplayTick
 {

@@ -30,5 +30,23 @@ public sealed record GameRules
 
     public int MaxDebugBytesPerMatch { get; init; } = 64 * 1024;
 
-    public static GameRules V0_1 => new();
+    /// <summary>When true, spawn positions/facings derive deterministically from the match
+    /// seed (distance-constrained floor pair facing each other) instead of the map's fixed
+    /// spawns — so different seeds genuinely produce different battles (GAME-DESIGN).</summary>
+    public bool SeedSpawnVariation { get; init; }
+
+    /// <summary>Energy a bot starts with and can hold. 0 disables the energy system
+    /// entirely (rules 0.1 behavior): shots are then limited by cooldown alone.</summary>
+    public int MaxEnergy { get; init; }
+
+    /// <summary>Energy consumed per shot. A Shoot without enough energy becomes Wait with
+    /// an OnCooldown result (deliberately reusing the enum — old bots stay compatible).</summary>
+    public int ShotEnergyCost { get; init; }
+
+    /// <summary>One energy point regenerates every N ticks (at end-of-tick, capped at
+    /// MaxEnergy). Sustained fire is throttled below the pure-cooldown rate, so camping
+    /// on a lane has a real cost — the anti-draw lever (GAME-DESIGN backlog #2).</summary>
+    public int EnergyRegenTicks { get; init; }
+
+    public static GameRules V0_1 => new() { RulesVersion = "0.1" };
 }

@@ -33,7 +33,7 @@ public static class SetCommand
             throw new InvalidOperationException(
                 $"--seeds must provide one seed per map ({maps.Length} map(s), {seeds.Length} seed(s)).");
 
-        var rules = GameRules.V0_1;
+        var rules = CliSupport.ResolveRules(options);
         Console.WriteLine($"Local ranked-format set: {maps.Length} map/seed pair(s) x both positions " +
                           $"({runtimeKind}, rules {rules.RulesVersion})");
         Console.WriteLine();

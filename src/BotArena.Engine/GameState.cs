@@ -7,6 +7,8 @@ public sealed class BotState
     public Direction Facing { get; set; }
     public int Health { get; set; }
     public int Cooldown { get; set; }
+    /// <summary>Current energy; meaningful only when rules.MaxEnergy > 0.</summary>
+    public int Energy { get; set; }
     public int Faults { get; set; }
     public int DamageDealt { get; set; }
     public BotStatus Status { get; set; } = BotStatus.Active;

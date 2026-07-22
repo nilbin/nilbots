@@ -83,6 +83,7 @@ internal static class SdkModelMapper
             Facing = ToSdkDirection(observation.Facing),
             Health = observation.Health,
             Cooldown = observation.Cooldown,
+            Energy = observation.Energy,
             PreviousActionResult = ToSdkResult(observation.PreviousActionResult),
             VisibleTiles = observation.VisibleTiles
                 .Select(t => new Sdk.VisibleTile(new Sdk.Position(t.Position.X, t.Position.Y), t.IsWall))

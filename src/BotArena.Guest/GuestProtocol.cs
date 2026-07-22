@@ -66,9 +66,17 @@ internal static class GuestProtocol
             events[i] = new VisibleEvent((VisibleEventKind)f[0], f[1] < 0 ? null : f[1], new Position(f[2], f[3]));
         }
 
+        // Optional trailing sections (additive, protocol 0.1-compatible): "E <energy>".
+        int? energy = null;
+        if (index < parts.Length && parts[index] == "E")
+        {
+            index++;
+            energy = Next();
+        }
+
         return new ParsedObservation(
             tick, new Position(x, y), (Direction)facing, health, cooldown,
-            (ActionResult)previous, tiles, enemies, events);
+            (ActionResult)previous, tiles, enemies, events, energy);
 
         void Expect(string marker)
         {
@@ -97,7 +105,8 @@ internal static class GuestProtocol
         ActionResult PreviousActionResult,
         IReadOnlyList<VisibleTile> VisibleTiles,
         IReadOnlyList<VisibleEnemy> VisibleEnemies,
-        IReadOnlyList<VisibleEvent> VisibleEvents);
+        IReadOnlyList<VisibleEvent> VisibleEvents,
+        int? Energy);
 
     public static string FormatDecision(BotAction action, string? debug)
     {

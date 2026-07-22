@@ -19,9 +19,7 @@ public static class PlayCommand
         string mapId = options.GetValueOrDefault("map", "basic-01");
         string runtimeKind = options.GetValueOrDefault("runtime", "wasm");
 
-        var rules = GameRules.V0_1;
-        if (options.TryGetValue("max-ticks", out string? maxTicks))
-            rules = rules with { MaxTicks = int.Parse(maxTicks, CultureInfo.InvariantCulture) };
+        var rules = CliSupport.ResolveRules(options);
 
         // --seeds a,b,c batches N matches into one process: one CLI startup, one build,
         // one summary table — the iteration loop the gen-2 agents asked for (findings #5).

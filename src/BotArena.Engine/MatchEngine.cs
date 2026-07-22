@@ -41,7 +41,8 @@ public sealed class MatchEngine
             throw new ArgumentException(
                 $"Map '{map.Id}' has {map.Spawns.Count} spawns but {participants.Count} participants were supplied.");
 
-        var session = new MatchSession(map, rules);
+        var spawns = SpawnVariation.Resolve(map, rules, configuration.Seed);
+        var session = new MatchSession(map, rules, spawns);
         int n = participants.Count;
         var debugBudgetRemaining = new int[n];
         for (int slot = 0; slot < n; slot++)
@@ -81,7 +82,7 @@ public sealed class MatchEngine
 
         var replay = new Replay
         {
-            Header = BuildHeader(configuration),
+            Header = BuildHeader(configuration, spawns),
             Ticks = replayTicks,
             Result = session.Result!,
         };
@@ -143,7 +144,8 @@ public sealed class MatchEngine
             });
         }
         var snapshots = state.Bots
-            .Select(b => new ReplayBotState(b.Slot, b.Position.X, b.Position.Y, b.Facing, b.Health, b.Cooldown, b.Status))
+            .Select(b => new ReplayBotState(b.Slot, b.Position.X, b.Position.Y, b.Facing, b.Health, b.Cooldown, b.Status,
+                state.Rules.MaxEnergy > 0 ? b.Energy : null))
             .ToArray();
         return new ReplayTick
         {
@@ -154,7 +156,7 @@ public sealed class MatchEngine
         };
     }
 
-    private static ReplayHeader BuildHeader(MatchConfiguration configuration)
+    private static ReplayHeader BuildHeader(MatchConfiguration configuration, IReadOnlyList<Spawn> spawns)
     {
         var map = configuration.Map;
         return new ReplayHeader
@@ -175,7 +177,7 @@ public sealed class MatchEngine
             Participants = configuration.Participants
                 .Select((p, slot) => new ReplayParticipant(
                     slot, p.Name, p.RuntimeKind, p.ArtifactHash, p.Accent,
-                    map.Spawns[slot].X, map.Spawns[slot].Y, map.Spawns[slot].Facing))
+                    spawns[slot].X, spawns[slot].Y, spawns[slot].Facing))
                 .ToArray(),
         };
     }
