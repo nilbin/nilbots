@@ -81,15 +81,13 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 
 ## Next session pointers
 
-1. **Fast inner loop (top DX priority)**: extend the diagnostic in-process
-   runtime to player bot sources — Roslyn-compile the .cs to a plain assembly
-   (~2 s) and run it in the same engine with the same deterministic RNG, so
-   iteration stops paying the 2–4 min NativeAOT-LLVM WASM compile (which
-   redoes the whole runtime/BCL per bot; no incremental mode exists). WASM
-   stays the canonical pre-submit verification. Companion: shave the guest
-   build itself (StackTraceSupport=false, UseSystemResourceKeys,
-   EventSourceSupport=false, reflection-free if possible) — needs a
-   GuestAdapterVersion bump; measure before/after.
+1. ~~Fast inner loop~~ **DONE** (DECISIONS #44): `--runtime in-process` runs
+   player bot projects via a plain ~2 s assembly build — same engine, same
+   deterministic RNG; WASM stays the canonical pre-submit verification.
+   Measurement note: cold WASM compiles are ~8 s on an idle box (the
+   tournament's "2–4 min" was compile contention + first-boot NuGet), so the
+   trim-flags companion was dropped as not worth a cache-invalidating
+   version bump.
 2. **Game design backlog: `docs/GAME-DESIGN.md`** — depth assessment from the
    agent-arena tournament, ranked rule-change candidates (anti-draw first),
    progression/monetization stance. agent-arena is the balance harness for

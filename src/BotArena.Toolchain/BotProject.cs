@@ -30,6 +30,20 @@ public static class ToolchainInfo
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home
             ? Path.Combine(home, "cache")
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".botarena", "cache");
+
+    /// <summary>env → system install (/opt, readable by the isolated build user) → legacy
+    /// home dir. A home-dir sdk breaks isolated builds (botbuild cannot traverse /root),
+    /// so it is the last resort, not the default.</summary>
+    public static string ResolveWasiSdkPath()
+    {
+        if (Environment.GetEnvironmentVariable("WASI_SDK_PATH") is { Length: > 0 } env)
+            return env;
+        const string system = "/opt/botarena/wasi-sdk-29.0";
+        if (File.Exists(Path.Combine(system, "bin", "clang")))
+            return system;
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".wasi-sdk", "wasi-sdk-29.0");
+    }
 }
 
 /// <summary>A player bot project on disk: botarena.json + .cs sources.</summary>

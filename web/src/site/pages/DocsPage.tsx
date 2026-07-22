@@ -90,14 +90,17 @@ public sealed class MyBot : IBot
 
       <Doc title="Local development (CLI)">
         <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`botarena new MyBot && cd MyBot
-botarena play --bot . --opponent hunter --seed 42   # your bot as WASM, locally
-botarena watch . --opponent hunter                  # rebuild + replay on save
+botarena play --runtime in-process --bot . --opponent hunter   # fastest — iterate here
+botarena play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
+botarena watch . --opponent hunter --runtime in-process        # replay on every save
 botarena login                                      # browser sign-in (OAuth + PKCE)
 botarena submit .                                   # official server build + parity check`}</pre>
         <p className="mt-2 text-arena-dim">
-          Local play uses the same engine, limits and WASM sandbox as the server, and
-          <code className="font-mono"> submit</code> reports whether your local artifact is bit-identical to
-          the server's build.
+          Iterate in-process (plain .NET build, same engine and deterministic
+          randomness, seconds per run), then verify in the default WASM mode — the
+          exact sandbox the server uses, with fuel/memory limits enforced —
+          before submitting. <code className="font-mono"> submit</code> reports whether your local artifact is
+          bit-identical to the server's build.
         </p>
       </Doc>
     </div>

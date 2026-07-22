@@ -3,10 +3,18 @@
 A Bot Arena bot. Edit `BOTNAME.cs`, then:
 
 ```bash
+botarena play --runtime in-process --bot . --opponent hunter --seed 42   # fastest loop
 botarena build .            # compile to WASM (cached; only rebuilds on changes)
-botarena play --bot . --opponent hunter --seed 42
-botarena watch . --opponent hunter --seed 42   # rebuild + replay on every save
+botarena play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
+botarena watch . --opponent hunter --seed 42 --runtime in-process   # replay on every save
 ```
+
+**Iterate in-process, verify in WASM.** `--runtime in-process` builds your bot
+as a plain .NET assembly in seconds and runs the exact same engine and
+deterministic per-bot randomness — perfect for the edit→watch→improve loop.
+It does NOT enforce the fuel/memory limits or the sandbox clock/entropy
+neutralization, so before you submit, run once in the default WASM mode (the
+same sandbox the server uses) to confirm nothing changes.
 
 `botarena play` prints where it wrote `replay.json` and `viewer.html`
 (default: `out/<bot>-vs-<opponent>-<map>-s<seed>/`, so parallel runs never

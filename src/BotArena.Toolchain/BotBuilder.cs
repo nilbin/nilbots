@@ -122,10 +122,7 @@ public static class BotBuilder
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
-        startInfo.Environment["WASI_SDK_PATH"] =
-            Environment.GetEnvironmentVariable("WASI_SDK_PATH")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ".wasi-sdk", "wasi-sdk-29.0");
+        startInfo.Environment["WASI_SDK_PATH"] = ToolchainInfo.ResolveWasiSdkPath();
         if (isolated)
             BuildIsolation.GrantWorkspace(workspace);
         using var process = Process.Start(startInfo)!;

@@ -104,8 +104,18 @@ public static class PlayCommand
             }
             if (Directory.Exists(spec) && BotProject.LooksLikeProject(spec))
             {
-                RequireWasmRuntime(runtimeKind, spec);
                 var project = BotProject.Load(spec);
+                if (runtimeKind == "in-process")
+                {
+                    // Fast inner loop (DECISIONS #44): plain assembly build, same engine.
+                    return new ResolvedBot
+                    {
+                        Name = project.Manifest.Name,
+                        Accent = project.Accent,
+                        Runtime = new InProcessBotRuntime(InProcessProject.LoadFactory(project)),
+                        ArtifactHash = "",
+                    };
+                }
                 var built = BotBuilder.EnsureBuilt(project);
                 Console.WriteLine($"{project.Manifest.Name}: WASM artifact {built.ArtifactHash[..12]}… " +
                                   $"({(built.FromCache ? "cache" : "compiled")})");
@@ -126,7 +136,8 @@ public static class PlayCommand
         {
             if (runtimeKind != "wasm")
                 throw new InvalidOperationException(
-                    $"'{spec}' is a WASM artifact/project; --runtime {runtimeKind} only supports built-in bots.");
+                    $"'{spec}' is a prebuilt WASM artifact — it has no sources to run in-process. " +
+                    "Use --runtime wasm, or pass a bot project directory instead.");
         }
 
         private static ResolvedBot ResolveBuiltIn(string name, string runtimeKind)

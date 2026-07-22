@@ -222,6 +222,25 @@ configuration) and changing them is a version bump, not an edit.
     hunter-baseline sets, and a new generation is crowned only by finishing
     above every reigning champion (a defended title is a valid outcome).
     Pilot bonus: players can challenge the champion on the site like any bot.
+44. **Fast inner loop: `--runtime in-process` runs player bot projects.**
+    The CLI builds the project's own csproj as a plain .NET assembly (~2 s,
+    incremental) and loads it into the diagnostic in-process runtime via an
+    AssemblyLoadContext that shares the host's BotArena.Sdk (type identity).
+    Same engine, same deterministic per-bot RNG; fuel/memory limits and WASI
+    shims NOT enforced — docs say "iterate in-process, verify in WASM", which
+    stays the §3.1 boundary. Measurement that reshaped this work: a cold
+    NativeAOT-LLVM WASM compile on an idle box is ~8 s regardless of bot size
+    (warm NuGet) — the tournament's "2–4 minutes" was 3-way compile
+    contention on 4 cores plus first-boot package downloads, not intrinsic
+    cost. Consequently the planned guest trim-flags companion (PLAN-SUMMARY
+    pointer #1) is DROPPED: saving ~seconds does not justify invalidating
+    every build cache with a GuestAdapterVersion bump.
+45. **WASI SDK fallback prefers the system install.** Without WASI_SDK_PATH,
+    BotBuilder fell back to `~/.wasi-sdk/wasi-sdk-29.0`; under isolated
+    builds the `botbuild` user cannot traverse /root, so clang failed with
+    exit 126. Resolution order is now env → `/opt/botarena/wasi-sdk-29.0`
+    (world-readable, where setup-wasi-sdk.sh installs) → legacy home dir;
+    doctor reports the same resolution.
 
 ## Deferred decisions
 

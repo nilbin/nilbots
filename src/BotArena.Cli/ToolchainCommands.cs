@@ -124,8 +124,7 @@ public static class DoctorCommand
             ? "on — compiles run as the 'botbuild' user with ulimits"
             : "off — compiles run as the current user (needs root + setpriv + a botbuild account; BOTARENA_BUILD_ISOLATION=off forces off)")}");
 
-        string wasiSdk = Environment.GetEnvironmentVariable("WASI_SDK_PATH")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".wasi-sdk", "wasi-sdk-29.0");
+        string wasiSdk = ToolchainInfo.ResolveWasiSdkPath();
         Report("wasi-sdk toolchain", File.Exists(Path.Combine(wasiSdk, "bin", "clang")), wasiSdk,
             "run scripts/setup-wasi-sdk.sh");
         string? builtin = CliSupport.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
