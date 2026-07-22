@@ -41,10 +41,17 @@ public static class BotBuilder
             return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: true, cacheKey);
 
         string repoRoot = RepoPaths.ToolchainRoot();
-        string workspace = Path.Combine(cacheDir, "build");
+        string toolchainLibs = EnsureToolchainAssemblies(repoRoot);
+        bool isolated = BuildIsolation.Available;
+        string workspace = isolated
+            ? Path.Combine(BuildIsolation.WorkRoot, cacheKey[..24])
+            : Path.Combine(cacheDir, "build");
         if (Directory.Exists(workspace))
             Directory.Delete(workspace, recursive: true);
         Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(Path.Combine(workspace, "libs"));
+        foreach (var lib in Directory.EnumerateFiles(toolchainLibs, "*.dll"))
+            File.Copy(lib, Path.Combine(workspace, "libs", Path.GetFileName(lib)));
 
         // Only .cs sources cross into the controlled project (plan §15.1).
         foreach (var source in sources)
@@ -77,8 +84,8 @@ public static class BotBuilder
               <ItemGroup>
                 <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" />
                 <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" />
-                <ProjectReference Include="{repoRoot}/src/BotArena.Sdk/BotArena.Sdk.csproj" />
-                <ProjectReference Include="{repoRoot}/src/BotArena.Guest/BotArena.Guest.csproj" />
+                <Reference Include="BotArena.Sdk"><HintPath>libs/BotArena.Sdk.dll</HintPath></Reference>
+                <Reference Include="BotArena.Guest"><HintPath>libs/BotArena.Guest.dll</HintPath></Reference>
               </ItemGroup>
             </Project>
             """);
@@ -87,17 +94,21 @@ public static class BotBuilder
             File.Copy(nugetConfig, Path.Combine(workspace, "nuget.config"));
 
         if (!quiet)
-            Console.WriteLine($"Compiling {displayName} to WASM (cold cache)...");
-        var startInfo = new ProcessStartInfo("dotnet", "publish -c Release -v q")
-        {
-            WorkingDirectory = workspace,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
+            Console.WriteLine($"Compiling {displayName} to WASM (cold cache{(isolated ? ", isolated" : "")})...");
+        var startInfo = isolated
+            ? BuildIsolation.WrapPublish(workspace)
+            : new ProcessStartInfo("dotnet", "publish -c Release -v q")
+            {
+                WorkingDirectory = workspace,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
         startInfo.Environment["WASI_SDK_PATH"] =
             Environment.GetEnvironmentVariable("WASI_SDK_PATH")
             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 ".wasi-sdk", "wasi-sdk-29.0");
+        if (isolated)
+            BuildIsolation.GrantWorkspace(workspace);
         using var process = Process.Start(startInfo)!;
         string output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
         if (!process.WaitForExit(TimeSpan.FromMinutes(5)))
@@ -117,7 +128,42 @@ public static class BotBuilder
         if (!File.Exists(produced))
             throw new BotBuildException($"Build succeeded but no artifact at {produced}.", output);
         File.Copy(produced, wasmPath, overwrite: true);
+        if (isolated)
+            Directory.Delete(workspace, recursive: true);
         return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: false, cacheKey);
+    }
+
+    /// <summary>
+    /// Builds BotArena.Sdk/Guest once per toolchain version and returns the directory
+    /// holding their assemblies. The controlled workspace references these DLLs, so
+    /// submission builds never touch (or need write access to) the repo tree.
+    /// </summary>
+    public static string EnsureToolchainAssemblies(string repoRoot)
+    {
+        string libsDir = Path.Combine(ToolchainInfo.CacheRoot,
+            "toolchain-" + ToolchainInfo.GuestAdapterVersion);
+        string sdkDll = Path.Combine(libsDir, "BotArena.Sdk.dll");
+        string guestDll = Path.Combine(libsDir, "BotArena.Guest.dll");
+        if (File.Exists(sdkDll) && File.Exists(guestDll))
+            return libsDir;
+
+        Directory.CreateDirectory(libsDir);
+        string guestProject = Path.Combine(repoRoot, "src", "BotArena.Guest");
+        using var process = Process.Start(new ProcessStartInfo(
+            "dotnet", "build -c Release -v q")
+        {
+            WorkingDirectory = guestProject,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        })!;
+        string log = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+            throw new BotBuildException("Toolchain assembly build failed.", log);
+        string binDir = Path.Combine(guestProject, "bin", "Release", "net10.0");
+        File.Copy(Path.Combine(binDir, "BotArena.Sdk.dll"), sdkDll, overwrite: true);
+        File.Copy(Path.Combine(binDir, "BotArena.Guest.dll"), guestDll, overwrite: true);
+        return libsDir;
     }
 
     /// <summary>First line of submission hardening (plan §15.2); the full limits list

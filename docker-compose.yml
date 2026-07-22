@@ -25,6 +25,7 @@ services:
     volumes:
       - appdata:/data
       - buildcache:/root/.botarena
+      - botbuildhome:/var/lib/botbuild
     depends_on:
       db:
         condition: service_healthy
@@ -33,3 +34,4 @@ volumes:
   dbdata:
   appdata:
   buildcache:
+  botbuildhome:

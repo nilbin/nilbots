@@ -11,7 +11,9 @@
 # so a tiny stub archive supplies those symbols (see botarena_stubs.c below).
 set -euo pipefail
 
-SDK="$HOME/.wasi-sdk/wasi-sdk-29.0"
+# World-readable so unprivileged submission builds (BuildIsolation) can use it;
+# ~/.wasi-sdk keeps a compatibility symlink.
+SDK="${BOTARENA_WASI_SDK:-/opt/botarena/wasi-sdk-29.0}"
 if [ -x "$SDK/bin/clang" ] && [ -f "$SDK/stubs/libbotarena_stubs.a" ]; then
   echo "Synthetic wasi-sdk already present at $SDK"
   exit 0
@@ -34,7 +36,8 @@ echo "29.0" > "$SDK/VERSION"
 RT=$(dpkg -L libclang-rt-18-dev-wasm32 | grep "libclang_rt.builtins-wasm32.a$" | head -1)
 for d in wasip2 wasip1 wasi; do
   mkdir -p "/usr/lib/llvm-18/lib/clang/18/lib/$d"
-  ln -sf "$RT" "/usr/lib/llvm-18/lib/clang/18/lib/$d/libclang_rt.builtins-wasm32.a"
+  TARGET="/usr/lib/llvm-18/lib/clang/18/lib/$d/libclang_rt.builtins-wasm32.a"
+  [ "$RT" = "$TARGET" ] || ln -sf "$RT" "$TARGET"
 done
 
 # Sysroot: Ubuntu wasi-libc + wasm32 libc++ under every triple spelling clang may use.
@@ -105,5 +108,9 @@ llvm-ar-18 rcs "$SDK/stubs/libbotarena_stubs.a" "$SDK/stubs/botarena_stubs.o"
 for t in wasm32-wasi wasm32-wasip1 wasm32-wasip2 wasm32-unknown-wasip2; do
   ln -sf "$SDK/stubs/libbotarena_stubs.a" "$SDK/share/wasi-sysroot/lib/$t/"
 done
+
+mkdir -p "$HOME/.wasi-sdk"
+ln -sfn "$SDK" "$HOME/.wasi-sdk/wasi-sdk-29.0"
+chmod -R a+rX "$SDK"
 
 echo "Synthetic wasi-sdk ready at $SDK"

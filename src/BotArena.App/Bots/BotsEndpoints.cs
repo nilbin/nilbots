@@ -140,7 +140,7 @@ public static class BotsEndpoints
             db.BackgroundJobs.Add(BackgroundJob.CompileSubmission(version.Id));
             await db.SaveChangesAsync();
             return Results.Ok(new { version.Id, version.VersionNumber, Status = version.Status.ToString() });
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting("submission");
 
         group.MapGet("/mine", async (ClaimsPrincipal principal, AppDbContext db) =>
         {

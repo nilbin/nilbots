@@ -218,6 +218,9 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 match.EndTick = run.Result.EndTick;
                 match.Status = MatchStatus.Completed;
                 match.CompletedAt = DateTime.UtcNow;
+                // Presentation timeline (plan §28): computed instantly, watched at human speed.
+                match.BroadcastStartedAt = DateTime.UtcNow.AddSeconds(3);
+                match.PresentationTicksPerSecond = 5;
                 foreach (var participant in participants)
                 {
                     var botResult = run.Result.Bots.Single(b => b.Slot == participant.Slot);

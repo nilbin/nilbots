@@ -128,6 +128,26 @@ configuration) and changing them is a version bump, not an edit.
 30. Built-in opponents are seeded as system-owned bots whose versions carry a
     `GuestBotName` selector into the shared catalog artifact.
 
+## Hardening + live viewing
+
+31. **Submission builds run as an unprivileged `botbuild` user** via setpriv with
+    CPU/process/file-size ulimits when the host is privileged and provisioned
+    (Docker image does this); the controlled workspace is fully self-contained —
+    it references prebuilt BotArena.Sdk/Guest *assemblies*, not repo projects,
+    so the build user needs no access to the checkout. Falls back to in-process
+    user for local dev. Still open for §15.3 completeness: network-less builds
+    (NuGet restore needs the experimental feed until packages are vendored) and
+    cgroup memory limits.
+32. **Rate limits**: 600 req/min/IP global, 10/min auth, 6/10min submissions per
+    user, 20/min challenges per user.
+33. **Live viewing implements §28's semantics over HTTP polling, not SignalR
+    yet**: matches compute instantly, then a server-side presentation clock
+    (BroadcastStartedAt + 5 ticks/s) governs what every viewer sees; the replay
+    endpoint truncates ticks and withholds the result until the clock passes
+    them, so the outcome cannot be peeked. Viewers derive the same tick from the
+    same clock → synchronized without a socket. SignalR remains the intended
+    transport upgrade; the timeline model won't change.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

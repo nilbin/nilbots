@@ -49,7 +49,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 1 local DX | SDK, template, CLI build/watch/doctor, build cache | **MOSTLY DONE** — remaining: NuGet/template packaging, analyzers, login/submit (needs server) |
 | 2 monolith | ASP.NET Core + Postgres + accounts/bots/matches modules | **DONE (pilot)** — cookie auth; OpenIddict/PKCE deferred |
 | 3 submissions | Server builds, validation, immutable versions | **DONE (pilot)** — controlled build + smoke test; process isolation & sprites deferred |
-| 4 public matches | Server execution, match pages, replay viewing | **DONE (pilot)** — replay-based "live"; SignalR synchronized broadcast deferred |
+| 4 public matches | Server execution, live broadcast, match pages | **DONE (pilot)** — synchronized presentation clock over polling; SignalR transport later |
 | 5 competitive | Ranked match sets, ratings, leaderboard | later |
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
@@ -81,13 +81,13 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 
 ## Next session pointers
 
-1. Pilot hardening: process/container isolation for submission builds
-   (plan §15.3 — currently dotnet runs as the app user), rate limiting,
-   OpenIddict + CLI PKCE login, `botarena submit`.
-2. SignalR live broadcast with synchronized spectators (§28) — the pilot
-   plays completed replays, which feels live but is not synchronized.
+1. OpenIddict + CLI PKCE login and `botarena submit`.
+2. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 3. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).
+4. §15.3 completion: network-less submission builds (vendor the ILC packages)
+   and cgroup memory limits for the build user.
+5. Rankings (phase 5): mirrored match sets, ratings, leaderboard.
 3. Sound out artifact-hash parity local vs server once a second build
    environment exists (§40.5); record reasons where bytes differ.
 4. Phase 0B polish: logotype assets, match-start countdown, destruction pause,

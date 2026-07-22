@@ -26,7 +26,26 @@ public class Match
     public string? Error { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+    /// <summary>Presentation timeline start (plan §28.1): the simulation completes first,
+    /// then events are presented from this instant at PresentationTicksPerSecond.</summary>
+    public DateTime? BroadcastStartedAt { get; set; }
+    public int PresentationTicksPerSecond { get; set; } = 5;
     public List<MatchParticipant> Participants { get; set; } = [];
+
+    /// <summary>The tick the shared presentation clock has reached (-1 during countdown).</summary>
+    public int PresentationTick(DateTime utcNow)
+    {
+        if (BroadcastStartedAt is not DateTime start)
+            return int.MaxValue; // Legacy matches: fully visible.
+        double elapsed = (utcNow - start).TotalSeconds;
+        if (elapsed < 0)
+            return -1;
+        return (int)(elapsed * PresentationTicksPerSecond);
+    }
+
+    public bool BroadcastComplete(DateTime utcNow) =>
+        Status == MatchStatus.Completed &&
+        (BroadcastStartedAt is null || EndTick is null || PresentationTick(utcNow) > EndTick.Value);
 }
 
 /// <summary>Snapshot of who fought (plan §33.4/§39): names, accents and artifact hashes are

@@ -53,7 +53,7 @@ public static class MatchesEndpoints
             db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
             await db.SaveChangesAsync();
             return Results.Ok(new { match.Id });
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting("challenge");
 
         group.MapGet("/", async (AppDbContext db, int take) =>
         {
@@ -107,12 +107,51 @@ public static class MatchesEndpoints
             });
         });
 
+        // Shared presentation clock (plan §28.3): all viewers derive the same tick.
+        group.MapGet("/{matchId:guid}/live", async (Guid matchId, AppDbContext db) =>
+        {
+            var match = await db.Matches.FindAsync(matchId);
+            if (match is null)
+                return Results.NotFound();
+            var now = DateTime.UtcNow;
+            int presentationTick = Math.Clamp(
+                match.PresentationTick(now), -1, match.EndTick.GetValueOrDefault(int.MaxValue - 1) + 1);
+            return Results.Ok(new
+            {
+                Status = match.Status.ToString(),
+                match.PresentationTicksPerSecond,
+                PresentationTick = presentationTick,
+                TotalTicks = match.EndTick + 1,
+                BroadcastComplete = match.BroadcastComplete(now),
+                CountdownMs = match.BroadcastStartedAt is DateTime start && start > now
+                    ? (int)(start - now).TotalMilliseconds
+                    : 0,
+            });
+        });
+
+        // The replay never reveals events or the result ahead of the presentation
+        // clock (plan §28.1): mid-broadcast requests get a truncated document.
         group.MapGet("/{matchId:guid}/replay", async (Guid matchId, AppDbContext db) =>
         {
             var match = await db.Matches.FindAsync(matchId);
             if (match?.ReplayPath is null || !File.Exists(match.ReplayPath))
                 return Results.NotFound();
-            return Results.File(match.ReplayPath, "application/json");
+            var now = DateTime.UtcNow;
+            if (match.BroadcastComplete(now))
+                return Results.File(match.ReplayPath, "application/json");
+
+            int visibleTicks = Math.Max(0, match.PresentationTick(now) + 1);
+            var document = Engine.ReplaySerializer.FromJson(
+                await File.ReadAllTextAsync(match.ReplayPath));
+            var partial = new
+            {
+                document.Header,
+                Ticks = document.Ticks.Take(visibleTicks),
+                Result = (Engine.MatchResultInfo?)null,
+                ReplayHash = (string?)null,
+                Partial = true,
+            };
+            return Results.Json(partial, Engine.ReplaySerializer.Canonical);
         });
     }
 

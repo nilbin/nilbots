@@ -114,8 +114,10 @@ export interface MatchResult {
 export interface ReplayDocument {
   header: ReplayHeader;
   ticks: ReplayTick[];
-  result: MatchResult;
-  replayHash: string;
+  /** Absent while a live broadcast is still withholding the outcome. */
+  result?: MatchResult;
+  replayHash?: string;
+  partial?: boolean;
 }
 
 declare global {

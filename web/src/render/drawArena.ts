@@ -92,7 +92,7 @@ export function drawArena(
 
   function drawShadowsAndBots(): void {
     for (const pose of poses) {
-      if (pose.status !== 'Active' && time > replay.result.endTick + 0.9) continue;
+      if (pose.status !== 'Active' && time > (replay.result?.endTick ?? replay.ticks.length - 1) + 0.9) continue;
       drawShadow(pose);
     }
     for (const pose of poses) {

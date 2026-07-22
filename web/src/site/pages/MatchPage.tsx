@@ -2,54 +2,111 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { ReplayDocument } from '../../types';
 import Viewer from '../../components/Viewer';
-import { api, type MatchDetail } from '../api';
+import { api } from '../api';
+
+interface LiveState {
+  status: string;
+  presentationTicksPerSecond: number;
+  presentationTick: number;
+  totalTicks: number | null;
+  broadcastComplete: boolean;
+  countdownMs: number;
+}
 
 export default function MatchPage() {
   const { matchId } = useParams<{ matchId: string }>();
-  const [match, setMatch] = useState<MatchDetail | null>(null);
+  const [live, setLive] = useState<LiveState | null>(null);
   const [replay, setReplay] = useState<ReplayDocument | null>(null);
+  const [finished, setFinished] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let stopped = false;
     let timer: number | undefined;
+
     const poll = async () => {
-      const data = await api.get<MatchDetail>(`/api/matches/${matchId}`);
-      setMatch(data);
-      if (data.status === 'Completed') {
+      try {
+        const state = await api.get<LiveState>(`/api/matches/${matchId}/live`);
+        if (stopped) return;
+        setLive(state);
+
+        if (state.status === 'Failed') {
+          const detail = await api.get<{ error: string | null }>(`/api/matches/${matchId}`);
+          setError(detail.error ?? 'Match failed to execute.');
+          return;
+        }
+        if (state.status !== 'Completed') {
+          timer = window.setTimeout(poll, 1500);
+          return;
+        }
+        if (state.broadcastComplete) {
+          setReplay(await api.get<ReplayDocument>(`/api/matches/${matchId}/replay`));
+          setFinished(true);
+          return;
+        }
+        // Mid-broadcast: pick up the ticks revealed so far and keep following.
         setReplay(await api.get<ReplayDocument>(`/api/matches/${matchId}/replay`));
-      } else if (data.status !== 'Failed') {
         timer = window.setTimeout(poll, 1500);
+      } catch {
+        if (!stopped) timer = window.setTimeout(poll, 3000);
       }
     };
     void poll();
-    return () => window.clearTimeout(timer);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
   }, [matchId]);
 
-  if (!match) return <p className="text-sm text-arena-dim">Loading…</p>;
-
-  if (match.status === 'Failed')
+  if (error)
     return (
       <div className="rounded-xl border border-red-900 bg-arena-panel p-6">
         <p className="font-semibold text-red-400">Match failed to execute.</p>
-        {match.error && (
-          <pre className="mt-2 font-mono text-xs whitespace-pre-wrap text-arena-dim">{match.error}</pre>
-        )}
+        <pre className="mt-2 font-mono text-xs whitespace-pre-wrap text-arena-dim">{error}</pre>
       </div>
     );
 
-  if (!replay)
+  if (!live) return <p className="text-sm text-arena-dim">Loading…</p>;
+
+  if (live.status !== 'Completed')
     return (
-      <div className="flex flex-col items-center gap-3 py-24">
-        <div className="size-10 animate-spin rounded-full border-2 border-arena-edge border-t-arena-accent" />
-        <p className="font-mono text-sm text-arena-dim">
-          {match.status === 'Pending' ? 'Match queued…' : 'Bots are fighting…'}
-        </p>
-      </div>
+      <Waiting
+        label={live.status === 'Pending' ? 'Match queued…' : 'Bots are fighting…'}
+      />
     );
 
-  // The viewer is designed for a full viewport; give it a fixed-height stage here.
+  if (!finished && (live.countdownMs > 0 || !replay || replay.ticks.length === 0))
+    return <Waiting label="Broadcast starting…" countdown />;
+
+  if (!replay) return <Waiting label="Loading replay…" />;
+
   return (
-    <div className="h-[85vh] min-h-[560px]">
-      <Viewer replay={replay} />
+    <div className="h-[calc(100dvh-140px)] min-h-[560px]">
+      <Viewer
+        replay={replay}
+        live={
+          finished
+            ? undefined
+            : {
+                tick: live.presentationTick,
+                ticksPerSecond: live.presentationTicksPerSecond,
+              }
+        }
+      />
+    </div>
+  );
+}
+
+function Waiting({ label, countdown }: { label: string; countdown?: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-24">
+      <div
+        className={
+          'size-10 rounded-full border-2 border-arena-edge ' +
+          (countdown ? 'animate-pulse border-t-red-500' : 'animate-spin border-t-arena-accent')
+        }
+      />
+      <p className="font-mono text-sm text-arena-dim">{label}</p>
     </div>
   );
 }

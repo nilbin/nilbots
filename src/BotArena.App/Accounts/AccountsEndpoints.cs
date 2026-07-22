@@ -36,7 +36,7 @@ public static class AccountsEndpoints
             await db.SaveChangesAsync();
             await SignIn(http, user);
             return Results.Ok(ToResponse(user));
-        });
+        }).RequireRateLimiting("auth");
 
         group.MapPost("/login", async (LoginRequest request, AppDbContext db, HttpContext http) =>
         {
@@ -48,7 +48,7 @@ public static class AccountsEndpoints
                 return Results.Problem("Invalid email or password.", statusCode: 401);
             await SignIn(http, user);
             return Results.Ok(ToResponse(user));
-        });
+        }).RequireRateLimiting("auth");
 
         group.MapPost("/logout", async (HttpContext http) =>
         {

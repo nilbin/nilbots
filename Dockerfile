@@ -23,15 +23,20 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && ln -s /opt/dotnet/dotnet /usr/local/bin/dotnet \
     && rm /tmp/dotnet-install.sh
 
+# Unprivileged account for submission compilation (BuildIsolation, plan §15.3).
+RUN useradd --system --create-home --home-dir /var/lib/botbuild --shell /usr/sbin/nologin botbuild
+
 WORKDIR /app
 COPY . .
 RUN rm -rf web && bash scripts/setup-wasi-sdk.sh
 RUN dotnet build BotArena.sln -c Release -v q
 RUN bash scripts/build-wasm-guest.sh
-# Prime the submission toolchain: one throwaway bot build pre-downloads the
-# NativeAOT-LLVM packages so the first player submission doesn't pay for it.
+# Prime the submission toolchain: one throwaway bot build (which runs isolated,
+# as botbuild) pre-downloads the NativeAOT-LLVM packages into the build user's
+# cache so the first player submission doesn't pay for it.
 RUN cd /tmp && dotnet run --project /app/src/BotArena.Cli -c Release -- new PrimeBot \
-    && BOTARENA_ROOT=/app dotnet run --project /app/src/BotArena.Cli -c Release -- build /tmp/PrimeBot \
+    && BOTARENA_ROOT=/app WASI_SDK_PATH=/opt/botarena/wasi-sdk-29.0 \
+       dotnet run --project /app/src/BotArena.Cli -c Release -- build /tmp/PrimeBot \
     && rm -rf /tmp/PrimeBot
 COPY --from=web /src/web/dist /app/web/dist
 
