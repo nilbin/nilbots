@@ -7,5 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
+    <ProjectReference Include="../BotArena.Runtime.Wasm/BotArena.Runtime.Wasm.csproj" />
+    <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
   </ItemGroup>
 </Project>
