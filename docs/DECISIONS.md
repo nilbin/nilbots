@@ -182,6 +182,18 @@ configuration) and changing them is a version bump, not an edit.
     hashes. On a shared toolchain/sysroot the hashes are expected IDENTICAL
     (verified in-container); drift means toolchain/sysroot mismatch and the
     server artifact wins (§14).
+39. **Debug lines are public in v0.1 replays.** `Debug.Write` output is part
+    of the canonical (hashed) replay document, so the server cannot redact it
+    per-viewer without breaking hash verification. The docs used to promise
+    "visible only to you" — corrected to state reality (public once the
+    broadcast reveals the replay). If strategy-leak becomes a real complaint,
+    the fix is a format change: hash the match without debug and ship debug as
+    a sidecar keyed by owner. Not worth it for the pilot.
+40. **`botarena play` output defaults to a per-matchup directory**
+    (`out/<bot>-vs-<opponent>-<map>-s<seed>/`, tournament DX finding #3):
+    parallel runs stopped clobbering each other's replays, while identical
+    reruns of a deterministic match still overwrite in place. `--out` pins an
+    exact directory; scripts that need a fixed path pass it explicitly.
 
 ## Deferred decisions
 

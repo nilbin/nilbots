@@ -17,7 +17,6 @@ public static class PlayCommand
         string mapId = options.GetValueOrDefault("map", "basic-01");
         ulong seed = ulong.Parse(options.GetValueOrDefault("seed", "42"), CultureInfo.InvariantCulture);
         string runtimeKind = options.GetValueOrDefault("runtime", "wasm");
-        string outDir = options.GetValueOrDefault("out", "out");
 
         var rules = GameRules.V0_1;
         if (options.TryGetValue("max-ticks", out string? maxTicks))
@@ -26,6 +25,12 @@ public static class PlayCommand
         var map = CliSupport.LoadMap(mapId);
         using var bot0 = ResolvedBot.Resolve(botSpec, runtimeKind);
         using var bot1 = ResolvedBot.Resolve(opponentSpec, runtimeKind);
+
+        // Default output is unique per matchup so parallel runs (or two terminals in the
+        // same project) never clobber each other's replays; identical reruns of a
+        // deterministic match land in the same place, which is the right kind of overwrite.
+        string outDir = options.GetValueOrDefault("out",
+            Path.Combine("out", $"{Slug(bot0.Name)}-vs-{Slug(bot1.Name)}-{Slug(map.Id)}-s{seed}"));
 
         Console.WriteLine($"Runtime:          {runtimeKind}");
         Console.WriteLine($"Game rules:       {rules.RulesVersion}");
@@ -51,6 +56,13 @@ public static class PlayCommand
             ? $"Viewer:  {written.ViewerPath}"
             : "Viewer:  (web/dist not found — run `npm run build` in web/ for the visual viewer)");
         return 0;
+    }
+
+    private static string Slug(string name)
+    {
+        var slug = new string(name.ToLowerInvariant()
+            .Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-').ToArray()).Trim('-');
+        return slug.Length == 0 ? "bot" : slug;
     }
 
     /// <summary>

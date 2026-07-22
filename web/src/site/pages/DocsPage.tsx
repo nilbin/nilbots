@@ -46,8 +46,9 @@ public sealed class MyBot : IBot
           <li><code className="font-mono">PreviousActionResult</code> — Success, Blocked, OnCooldown…</li>
           <li><code className="font-mono">Random</code> — the <i>only</i> allowed randomness. System clocks and
             <code className="font-mono"> System.Random</code> are neutralized in the sandbox.</li>
-          <li><code className="font-mono">Debug.Write(...)</code> — private notes shown in the replay viewer,
-            visible only to you.</li>
+          <li><code className="font-mono">Debug.Write(...)</code> — notes shown in the replay viewer. They are
+            part of the replay, which is public once the broadcast reveals it —
+            great for debugging, bad for secrets.</li>
           <li>Helpers: <code className="font-mono">IsWallAhead(), CanSee(p), CanShoot</code>.</li>
         </ul>
       </Doc>
@@ -56,17 +57,35 @@ public sealed class MyBot : IBot
         <ul className="list-disc space-y-1 pl-5">
           <li>Tile grid, four facings, both bots decide simultaneously from the
             pre-tick state. 3 HP each, max 500 ticks.</li>
-          <li>Shooting is an instant ray in your facing direction; first wall or bot
-            stops it; 1 damage; 2-tick cooldown (a shot every 3rd tick).</li>
+          <li>Shooting is an instant ray in your facing direction with <b>unlimited
+            range</b> — the first wall or bot stops it; 1 damage; 2-tick cooldown
+            (a shot every 3rd tick).</li>
+          <li>Vision (range 6) is <b>corner-strict</b>: a sight line that clips a
+            wall corner is blocked. Shots outrange sight — a bot you can't see can
+            still hit you down a clear straight line, and vice versa.</li>
           <li>Movement: two bots can't share a tile; moving into the same tile or
             swapping fails for both; blocked moves become Wait.</li>
           <li>Resolution order each tick: turn → move → shoot (from post-move
-            positions) → damage (simultaneous).</li>
-          <li>Win: survive; tie-break by health. A bot that crashes 3 times is
-            disqualified — exceptions, infinite loops and out-of-memory all count.</li>
+            positions) → damage (simultaneous). Both bots destroyed on the same
+            tick is a <b>draw</b> — crossing shots are real, watch your approach.</li>
+          <li>Win by destroying the opponent or having <b>more health at tick
+            500</b>; equal health at the limit is a draw. A bot that crashes 3
+            times is disqualified — exceptions, infinite loops and out-of-memory
+            all count.</li>
           <li>Ranked sets are 6 games across 3 map/seed pairs, each played from both
             starting positions; elo moves once per set.</li>
         </ul>
+      </Doc>
+
+      <Doc title="Determinism (why replays are trustworthy)">
+        <p>
+          A match is a pure function of the two artifacts, the map, the rules
+          version and the seed — replaying it always produces the identical battle,
+          byte for byte (that's the replay hash). <code className="font-mono">context.Random</code> is
+          derived from the match seed and your slot, so even your "random" choices
+          replay exactly. Test across several seeds before concluding your bot
+          improved: one seed is one battle, not a benchmark.
+        </p>
       </Doc>
 
       <Doc title="Local development (CLI)">

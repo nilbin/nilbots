@@ -117,13 +117,10 @@ public static class BotBuilder
             process.Kill(entireProcessTree: true);
             throw new BotBuildException("Build timed out after 5 minutes.", output);
         }
-        File.WriteAllText(Path.Combine(cacheDir, "build.log"), output);
+        string buildLogPath = Path.Combine(cacheDir, "build.log");
+        File.WriteAllText(buildLogPath, output);
         if (process.ExitCode != 0)
-        {
-            var lines = output.Split('\n');
-            string tail = string.Join('\n', lines[^Math.Min(15, lines.Length)..]);
-            throw new BotBuildException($"Build failed:\n{tail}", output);
-        }
+            throw new BotBuildException(BuildFailureMessage(output, workspace, buildLogPath), output);
 
         string produced = Path.Combine(workspace, "bin", "Release", "net10.0", "wasi-wasm", "native", "bot.wasm");
         if (!File.Exists(produced))
@@ -133,6 +130,37 @@ public static class BotBuilder
             Directory.Delete(workspace, recursive: true);
         return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: false, cacheKey);
     }
+
+    /// <summary>
+    /// A failed build must read like a compiler run, not a crash dump: pull the actual
+    /// diagnostic lines out of the MSBuild/ILC/linker noise and show sources by the
+    /// player's own relative paths. Falls back to the log tail when nothing matches
+    /// (toolchain misconfiguration rather than bad player code).
+    /// </summary>
+    private static string BuildFailureMessage(string output, string workspace, string buildLogPath)
+    {
+        string prefix = Path.GetFullPath(workspace).TrimEnd(Path.DirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var diagnostics = output.Split('\n')
+            .Select(l => l.TrimEnd())
+            .Where(l => DiagnosticPattern.IsMatch(l))
+            .Select(l => System.Text.RegularExpressions.Regex.Replace(
+                l.Replace(prefix, ""), @" \[[^\[\]]+\.csproj\]$", ""))
+            .Distinct()
+            .ToList();
+        var errors = diagnostics.Where(d => !d.Contains(": warning ", StringComparison.Ordinal)).ToList();
+        if (errors.Count > 0)
+            return $"Build failed:\n  {string.Join("\n  ", errors.Take(20))}" +
+                   (errors.Count > 20 ? $"\n  … {errors.Count - 20} more error(s)" : "") +
+                   $"\nFull log: {buildLogPath}";
+        var lines = output.Split('\n');
+        string tail = string.Join('\n', lines[^Math.Min(15, lines.Length)..]);
+        return $"Build failed (no compiler diagnostics found — likely a toolchain problem):\n{tail}\nFull log: {buildLogPath}";
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex DiagnosticPattern = new(
+        @"(:\s(error|warning)\s[A-Z]+\d+\s*:)|(\b(clang|wasm-ld|wasm-component-ld|ilc)\b.*\berror\b)",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
 
     /// <summary>
     /// Builds BotArena.Sdk/Guest once per toolchain version and returns the directory

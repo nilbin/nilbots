@@ -19,7 +19,8 @@ ties them together. See `docs/PLAN-SUMMARY.md` for the roadmap and
 ```bash
 bash scripts/setup.sh        # .NET 10, wasi toolchain, web deps, all builds
 bash scripts/play.sh --bot hunter --opponent coward --seed 7
-# → prints the result + replay hash, writes out/replay.json and out/viewer.html
+# → prints the result + replay hash, writes replay.json + viewer.html under
+#   out/<bot>-vs-<opponent>-<map>-s<seed>/ (the paths are printed; --out overrides)
 ```
 
 Write your own bot:
@@ -35,14 +36,14 @@ botarena doctor                                      # toolchain status
 Builds are cached deterministically (`botarena cache status|clear`); only your
 source changes trigger recompilation.
 
-Open `out/viewer.html` in a browser: play/pause, step ticks, scrub the
+Open the printed `viewer.html` in a browser: play/pause, step ticks, scrub the
 timeline, click a bot to see its field of view, decisions, and debug output.
 
 Same seed, same bots, same map ⇒ same match, always:
 
 ```bash
 bash scripts/play.sh --seed 42   # run it twice — identical replay hash
-dotnet run --project src/BotArena.Cli -- verify out/replay.json
+dotnet run --project src/BotArena.Cli -- verify <printed replay.json path>
 ```
 
 ## Layout

@@ -119,6 +119,9 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   missing entirely).
 - The build cache hashes **player sources only**; framework changes need a
   `Toolchain.GuestAdapterVersion` bump (or `--no-cache` while iterating).
+- `BOTARENA_BUILD_ISOLATION=off` forces submission builds to run as the
+  current user (isolation needs root + setpriv + a `botbuild` account);
+  `botarena doctor` shows which mode is active.
 - `dotnet run --no-build` after adding a migration runs the pre-migration
   binary — rebuild first.
 - EF cannot compose LINQ over `FromSqlRaw` with `UPDATE...RETURNING`; use

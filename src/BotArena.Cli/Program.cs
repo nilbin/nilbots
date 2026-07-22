@@ -1,4 +1,10 @@
 using BotArena.Cli;
+using BotArena.Toolchain;
+
+// A help request anywhere wins over command dispatch — otherwise `build --help`
+// tries to build a project directory literally named "--help".
+if (args.Length == 0 || args is ["help", ..] || args.Any(a => a is "--help" or "-h"))
+    return Help(exitCode: args.Length == 0 ? 1 : 0);
 
 try
 {
@@ -21,20 +27,26 @@ try
         _ => Help(),
     };
 }
+catch (BotBuildException ex)
+{
+    // The message already carries the extracted compiler diagnostics and the log path.
+    Console.Error.WriteLine($"error: {ex.Message}");
+    return 1;
+}
 catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
 {
     Console.Error.WriteLine($"error: {ex.Message}");
     return 1;
 }
 
-static int Help()
+static int Help(int exitCode = 1)
 {
     Console.WriteLine("""
         Bot Arena CLI (prototype)
 
         Usage:
           botarena new <Name>                     create a bot project
-          botarena login [--server url] [--token] sign in with an API token (web UI: My garage)
+          botarena login [--server url]           sign in via the browser (OAuth + PKCE)
           botarena submit [dir]                   build locally + submit for the canonical
                                                   server build; reports artifact parity
           botarena whoami | botarena logout
@@ -54,6 +66,8 @@ static int Help()
 
         `play` runs the match in the official WASM sandbox, writes replay.json plus
         a self-contained viewer.html, and prints the result and replay hash.
+        Output defaults to out/<bot>-vs-<opponent>-<map>-s<seed>/ so parallel runs
+        never overwrite each other; --out <dir> pins an exact directory.
         """);
-    return 1;
+    return exitCode;
 }
