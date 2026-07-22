@@ -41,6 +41,7 @@ public static class BotBuilder
             return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: true, cacheKey);
 
         string repoRoot = RepoPaths.ToolchainRoot();
+        Directory.CreateDirectory(cacheDir);
         string toolchainLibs = EnsureToolchainAssemblies(repoRoot);
         bool isolated = BuildIsolation.Available;
         string workspace = isolated
