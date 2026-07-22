@@ -28,6 +28,23 @@ And the limits showed up just as clearly:
 **Verdict: deep enough to pilot with friends for a few weeks; not deep enough
 to hold a community. The #1 design debt is that passivity is under-punished.**
 
+### Gen-2 tournament data (same day, 2 rounds, 36 games/round)
+
+The second tournament sharpened the picture. Depth is real: gen-2 bots beat
+the gen-1 champion 32.5-3.5 on aggregate (the ratchet works), and the meta
+evolved visibly between rounds — Rampart's round-2 "hold fire against
+orbiting lane-dancers" discipline turned Switchblade's 5-draw standoff
+profile into a 6-0 rout, and Oracle's cadence-timed lane entries were the
+only thing that ever beat the eventual champion. But the defense-beats-
+offense skew got MORE pronounced at higher skill: across both rounds the
+three new bots' 18 head-to-head games produced 3 decisive results in round 1
+(15 draws/1-point margins) and a fortress sweep in round 2 only because one
+side's aggression misfired. Draw mechanisms observed: mutual-elimination
+trade chains, phase-locked standoffs where neither side finds a safe commit,
+and full-health tick-500 sieges. This is direct evidence for backlog #2
+(energy-cost shots / engagement forcing): a disciplined fortress is currently
+the strongest shape, and its games only end when someone else takes a risk.
+
 ## Design constraints (non-negotiable, from the plan)
 
 1. Every gameplay value lives in `GameRules`, pinned by the rules version; maps
