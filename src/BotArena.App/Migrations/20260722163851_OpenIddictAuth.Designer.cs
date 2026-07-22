@@ -3,6 +3,7 @@ using System;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BotArena.App.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722163851_OpenIddictAuth")]
+    partial class OpenIddictAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,7 +56,7 @@ namespace BotArena.App.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("BotArena.App.Bots.Bot", b =>
@@ -98,7 +101,7 @@ namespace BotArena.App.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.ToTable("Bots", (string)null);
+                    b.ToTable("Bots");
                 });
 
             modelBuilder.Entity("BotArena.App.Bots.BotVersion", b =>
@@ -168,7 +171,7 @@ namespace BotArena.App.Migrations
                     b.HasIndex("BotId", "VersionNumber")
                         .IsUnique();
 
-                    b.ToTable("BotVersions", (string)null);
+                    b.ToTable("BotVersions");
                 });
 
             modelBuilder.Entity("BotArena.App.Jobs.BackgroundJob", b =>
@@ -214,7 +217,7 @@ namespace BotArena.App.Migrations
 
                     b.HasIndex("Status", "AvailableAt");
 
-                    b.ToTable("BackgroundJobs", (string)null);
+                    b.ToTable("BackgroundJobs");
                 });
 
             modelBuilder.Entity("BotArena.App.Matches.Match", b =>
@@ -288,7 +291,7 @@ namespace BotArena.App.Migrations
 
                     b.HasIndex("MatchSetId");
 
-                    b.ToTable("Matches", (string)null);
+                    b.ToTable("Matches");
                 });
 
             modelBuilder.Entity("BotArena.App.Matches.MatchParticipant", b =>
@@ -338,7 +341,7 @@ namespace BotArena.App.Migrations
                     b.HasIndex("MatchId", "Slot")
                         .IsUnique();
 
-                    b.ToTable("MatchParticipants", (string)null);
+                    b.ToTable("MatchParticipants");
                 });
 
             modelBuilder.Entity("BotArena.App.Matches.MatchSet", b =>
@@ -403,7 +406,7 @@ namespace BotArena.App.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.ToTable("MatchSets", (string)null);
+                    b.ToTable("MatchSets");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

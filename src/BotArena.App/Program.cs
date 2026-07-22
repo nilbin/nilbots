@@ -14,20 +14,25 @@ string connectionString = builder.Configuration.GetConnectionString("BotArena")
     ?? Environment.GetEnvironmentVariable("BOTARENA_DB")
     ?? "Host=127.0.0.1;Database=botarena;Username=botarena;Password=botarena";
 
-builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+    options.UseOpenIddict();
+    // OpenIddict's EF model trips EF 10's pending-changes heuristic with no actual diff.
+    options.ConfigureWarnings(w => w.Ignore(
+        Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
+builder.Services.AddBotArenaOpenIddict();
 builder.Services
-    .AddAuthentication("CookieOrToken")
-    .AddPolicyScheme("CookieOrToken", "Cookie or API token", options =>
+    .AddAuthentication("CookieOrBearer")
+    .AddPolicyScheme("CookieOrBearer", "Cookie or access token", options =>
     {
         options.ForwardDefaultSelector = context =>
-            context.Request.Headers.Authorization.ToString().StartsWith("Bearer ba_")
-                ? BotArena.App.Accounts.ApiTokenAuthenticationHandler.Scheme
+            context.Request.Headers.Authorization.ToString().StartsWith("Bearer ")
+                ? OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme
                 : CookieAuthenticationDefaults.AuthenticationScheme;
     })
-    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
-        BotArena.App.Accounts.ApiTokenAuthenticationHandler>(
-        BotArena.App.Accounts.ApiTokenAuthenticationHandler.Scheme, null)
     .AddCookie(options =>
     {
         options.Cookie.Name = "botarena.auth";
@@ -93,6 +98,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
     await BuiltInBotSeeder.SeedAsync(db);
+    await OpenIddictSetup.SeedClientAsync(scope.ServiceProvider);
 }
 
 app.UseAuthentication();
@@ -100,6 +106,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapAccounts();
+app.MapConnect();
 app.MapBots();
 app.MapMatches();
 app.MapRanked();

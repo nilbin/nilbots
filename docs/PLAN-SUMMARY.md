@@ -81,7 +81,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 
 ## Next session pointers
 
-1. OpenIddict PKCE to replace pilot API tokens (DECISIONS #37); sprites/appearances (§33); site docs pages (§29.6); logotype (§31).
+1. Sprites/appearances (§33); site docs pages (§29.6); logotype (§31).
 2. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 3. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).

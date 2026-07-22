@@ -22,7 +22,9 @@ export default function AuthPage() {
         await api.post('/api/accounts/register', { displayName, email, password });
       else await api.post('/api/accounts/login', { email, password });
       await refresh();
-      navigate('/garage');
+      const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+      if (returnUrl && returnUrl.startsWith('/')) window.location.assign(returnUrl);
+      else navigate('/garage');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {

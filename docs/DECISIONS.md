@@ -164,12 +164,19 @@ configuration) and changing them is a version bump, not an edit.
 
 ## CLI ↔ server loop
 
-37. **API tokens instead of OpenIddict PKCE for CLI auth** (pilot): tokens are
-    minted in the web UI (shown once, stored as SHA-256), sent as
-    `Authorization: Bearer ba_...`, selected by a policy scheme alongside
-    cookies. Credentials live in `~/.botarena/credentials.json` (0600) or
-    `BOTARENA_TOKEN`. OpenIddict PKCE (§13.2) replaces this when accounts
-    leave the friends circle.
+37. **CLI auth is OpenIddict Authorization Code + PKCE, per §13.2** (an earlier
+    API-token stand-in was removed the same day). OpenIddict is embedded in the
+    monolith with EF stores in the same Postgres DB; the CLI is a seeded public
+    client (`botarena-cli`, implicit consent, PKCE required) with four
+    registered loopback redirect ports. `botarena login` opens the browser,
+    catches the code on 127.0.0.1, exchanges with the verifier, and stores
+    access+refresh tokens in the OS secret service when available
+    (`secret-tool`), else a 0600 file with a printed warning. Access tokens
+    live 1 h and auto-refresh (rotating refresh tokens honored). Signing and
+    encryption certificates persist under `BOTARENA_DATA/keys` so tokens
+    survive restarts. Note: EF 10's pending-model-changes heuristic
+    false-positives on OpenIddict's model — suppressed with an empty-diff
+    proof, see Program.cs.
 38. **`botarena submit` reports artifact parity** (§46): it builds locally,
     uploads sources, waits for the canonical server build, and compares
     hashes. On a shared toolchain/sysroot the hashes are expected IDENTICAL

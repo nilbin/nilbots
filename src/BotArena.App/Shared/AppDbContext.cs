@@ -15,7 +15,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
-    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,12 +60,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<MatchParticipant>(entity =>
         {
             entity.HasIndex(p => new { p.MatchId, p.Slot }).IsUnique();
-        });
-
-        modelBuilder.Entity<ApiToken>(entity =>
-        {
-            entity.HasIndex(t => t.TokenHash).IsUnique();
-            entity.Property(t => t.Name).HasMaxLength(60);
         });
 
         modelBuilder.Entity<BackgroundJob>(entity =>

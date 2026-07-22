@@ -5,40 +5,16 @@ import { useAuth } from '../auth';
 
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
-  const [token, setToken] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const create = async () => {
-    setBusy(true);
-    try {
-      const result = await api.post<{ token: string }>('/api/accounts/tokens', { name: 'cli' });
-      setToken(result.token);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <section className="max-w-xl rounded-xl border border-arena-edge bg-arena-panel p-5">
       <h2 className="mb-2 font-mono text-xs tracking-widest text-arena-dim">CLI ACCESS</h2>
-      <p className="mb-3 text-xs text-arena-dim">
-        Develop locally (<code className="font-mono">botarena new / play / watch</code>) and submit
-        from your terminal with <code className="font-mono">botarena submit</code>. Create a token,
-        then run <code className="font-mono">botarena login</code> and paste it — it is shown once.
+      <p className="text-xs text-arena-dim">
+        Develop locally and submit from your terminal:{' '}
+        <code className="font-mono">botarena login</code> opens this site in your browser to
+        sign you in securely (OAuth + PKCE), then{' '}
+        <code className="font-mono">botarena submit</code> uploads your bot for the official
+        server build and reports whether your local artifact matches it bit-for-bit.
       </p>
-      {token ? (
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs text-arena-accent select-all">
-          {token}
-        </pre>
-      ) : (
-        <button
-          onClick={() => void create()}
-          disabled={busy}
-          className="rounded-md border border-arena-accent px-4 py-1.5 text-sm text-arena-accent transition-colors hover:bg-arena-accent/15 disabled:opacity-50"
-        >
-          Create CLI token
-        </button>
-      )}
     </section>
   );
 }

@@ -1,94 +1,197 @@
+using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using BotArena.Toolchain;
 
 namespace BotArena.Cli;
 
-/// <summary>Stored CLI credentials (~/.botarena/credentials.json, 0600). Pilot stand-in
-/// for the plan's §13.2 PKCE flow; tokens are minted in the web UI (My garage).</summary>
-public sealed record Credentials(string Server, string Token)
+/// <summary>
+/// CLI credentials from the OpenIddict Authorization Code + PKCE flow (plan §13.2).
+/// Refresh credentials go to the OS secret service when available (Linux
+/// `secret-tool`); otherwise a 0600 file with a warning.
+/// </summary>
+public sealed record StoredCredentials(
+    string Server, string AccessToken, string RefreshToken, DateTimeOffset ExpiresAt)
 {
-    private static string PathFor() => Path.Combine(
+    private const string SecretService = "botarena-cli";
+
+    private static string FilePath() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".botarena", "credentials.json");
 
-    public static Credentials? Load()
+    public static StoredCredentials? Load()
     {
-        if (Environment.GetEnvironmentVariable("BOTARENA_TOKEN") is { Length: > 0 } token)
-            return new Credentials(
-                Environment.GetEnvironmentVariable("BOTARENA_SERVER") ?? "http://127.0.0.1:8080", token);
-        string path = PathFor();
-        if (!File.Exists(path))
-            return null;
-        return JsonSerializer.Deserialize<Credentials>(File.ReadAllText(path));
+        string? json = SecretToolLookup() ??
+            (File.Exists(FilePath()) ? File.ReadAllText(FilePath()) : null);
+        return json is null ? null : JsonSerializer.Deserialize<StoredCredentials>(json);
     }
 
     public void Save()
     {
-        string path = PathFor();
+        string json = JsonSerializer.Serialize(this);
+        if (SecretToolStore(json))
+            return;
+        string path = FilePath();
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(this));
+        File.WriteAllText(path, json);
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        Console.Error.WriteLine(
+            "note: no OS secret service available — credentials stored in ~/.botarena (0600).");
     }
 
     public static void Delete()
     {
-        if (File.Exists(PathFor()))
-            File.Delete(PathFor());
+        TryRun("secret-tool", $"clear service {SecretService}", null);
+        if (File.Exists(FilePath()))
+            File.Delete(FilePath());
     }
 
-    public HttpClient CreateClient()
+    private static string? SecretToolLookup() =>
+        TryRun("secret-tool", $"lookup service {SecretService}", null);
+
+    private static bool SecretToolStore(string secret) =>
+        TryRun("secret-tool", $"store --label \"Bot Arena CLI\" service {SecretService}", secret) is not null;
+
+    private static string? TryRun(string file, string arguments, string? stdin)
     {
-        var client = new HttpClient { BaseAddress = new Uri(Server) };
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
-        return client;
+        try
+        {
+            var info = new ProcessStartInfo(file, arguments)
+            {
+                RedirectStandardInput = stdin is not null,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            using var process = Process.Start(info);
+            if (process is null)
+                return null;
+            if (stdin is not null)
+            {
+                process.StandardInput.Write(stdin);
+                process.StandardInput.Close();
+            }
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(5000);
+            return process.ExitCode == 0 ? (stdin is not null ? "" : output.TrimEnd('\n')) : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 
 public static class ServerCommands
 {
+    private static readonly int[] CallbackPorts = [43117, 43118, 43119, 43120];
+
     public static int Login(IReadOnlyList<string> args)
     {
         var options = CliSupport.ParseOptions(args);
         string server = options.GetValueOrDefault("server", "http://127.0.0.1:8080").TrimEnd('/');
-        string? token = options.GetValueOrDefault("token");
-        if (token is null)
+
+        // RFC 7636 PKCE material.
+        string verifier = Base64Url(RandomNumberGenerator.GetBytes(48));
+        string challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
+        string state = Base64Url(RandomNumberGenerator.GetBytes(16));
+
+        using var listener = new HttpListener();
+        int port = 0;
+        foreach (int candidate in CallbackPorts)
         {
-            Console.WriteLine($"Create a token in the web UI ({server}/garage → CLI access), then paste it:");
-            token = Console.ReadLine()?.Trim();
+            try
+            {
+                listener.Prefixes.Clear();
+                listener.Prefixes.Add($"http://127.0.0.1:{candidate}/callback/");
+                listener.Start();
+                port = candidate;
+                break;
+            }
+            catch (HttpListenerException)
+            {
+            }
         }
-        if (string.IsNullOrEmpty(token))
+        if (port == 0)
         {
-            Console.Error.WriteLine("No token provided.");
+            Console.Error.WriteLine("No loopback callback port available (43117-43120).");
             return 1;
         }
-        var credentials = new Credentials(server, token);
-        using var client = credentials.CreateClient();
+
+        string redirect = $"http://127.0.0.1:{port}/callback/";
+        string url = $"{server}/connect/authorize" +
+            "?client_id=botarena-cli&response_type=code&scope=offline_access" +
+            $"&redirect_uri={Uri.EscapeDataString(redirect)}" +
+            $"&state={state}&code_challenge={challenge}&code_challenge_method=S256";
+
+        Console.WriteLine("Opening your browser to sign in. If nothing opens, visit:");
+        Console.WriteLine($"  {url}");
+        TryOpenBrowser(url);
+
+        var contextTask = listener.GetContextAsync();
+        if (!contextTask.Wait(TimeSpan.FromMinutes(5)))
+        {
+            Console.Error.WriteLine("Timed out waiting for the browser sign-in.");
+            return 1;
+        }
+        var context = contextTask.Result;
+        string? code = context.Request.QueryString["code"];
+        string? returnedState = context.Request.QueryString["state"];
+        byte[] page = Encoding.UTF8.GetBytes(
+            "<html><body style=\"background:#0a0e14;color:#c9d5e3;font-family:monospace;" +
+            "display:flex;align-items:center;justify-content:center;height:100vh\">" +
+            "Signed in — you can close this tab and return to the terminal.</body></html>");
+        context.Response.ContentType = "text/html";
+        context.Response.OutputStream.Write(page);
+        context.Response.Close();
+        listener.Stop();
+
+        if (code is null || returnedState != state)
+        {
+            Console.Error.WriteLine("Sign-in failed: missing code or state mismatch.");
+            return 1;
+        }
+
+        using var http = new HttpClient();
+        var tokens = http.PostAsync($"{server}/connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "authorization_code",
+            ["client_id"] = "botarena-cli",
+            ["code"] = code,
+            ["redirect_uri"] = redirect,
+            ["code_verifier"] = verifier,
+        })).GetAwaiter().GetResult();
+        if (!tokens.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine($"Token exchange failed: {tokens.Content.ReadAsStringAsync().Result}");
+            return 1;
+        }
+        SaveTokens(server, tokens.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult());
+
+        using var client = CreateClient()!;
         var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
-        credentials.Save();
         Console.WriteLine($"Signed in to {server} as {me.GetProperty("displayName").GetString()}.");
         return 0;
     }
 
     public static int Logout()
     {
-        Credentials.Delete();
+        StoredCredentials.Delete();
         Console.WriteLine("Signed out.");
         return 0;
     }
 
     public static int WhoAmI()
     {
-        var credentials = Credentials.Load();
-        if (credentials is null)
-        {
-            Console.WriteLine("Not signed in — run: botarena login");
-            return 1;
-        }
-        using var client = credentials.CreateClient();
+        using var client = CreateClient();
+        if (client is null)
+            return NotSignedIn();
         var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
-        Console.WriteLine($"{me.GetProperty("displayName").GetString()} ({me.GetProperty("email").GetString()}) on {credentials.Server}");
+        Console.WriteLine($"{me.GetProperty("displayName").GetString()} " +
+            $"({me.GetProperty("email").GetString()}) on {StoredCredentials.Load()!.Server}");
         return 0;
     }
 
@@ -97,19 +200,17 @@ public static class ServerCommands
     public static int Submit(IReadOnlyList<string> args)
     {
         var (directory, _) = BuildCommand.TakeDirectory(args);
-        var credentials = Credentials.Load();
-        if (credentials is null)
-        {
-            Console.Error.WriteLine("Not signed in — run: botarena login");
-            return 1;
-        }
+        using var client = CreateClient();
+        if (client is null)
+            return NotSignedIn();
+        string server = StoredCredentials.Load()!.Server;
+
         var project = BotProject.Load(directory);
         Console.WriteLine($"Building {project.Manifest.Name} locally...");
         var local = BotBuilder.EnsureBuilt(project);
         Console.WriteLine($"Local artifact:   {local.ArtifactHash} ({(local.FromCache ? "cache" : "compiled")})");
 
-        using var client = credentials.CreateClient();
-        string slug = BotSlug(project.Manifest.Name);
+        string slug = BotsEndpointSlug(project.Manifest.Name);
         var bots = client.GetFromJsonAsync<JsonElement>("/api/bots").GetAwaiter().GetResult();
         string? botId = bots.EnumerateArray()
             .Where(b => b.GetProperty("slug").GetString() == slug)
@@ -117,11 +218,8 @@ public static class ServerCommands
             .FirstOrDefault();
         if (botId is null)
         {
-            var created = client.PostAsJsonAsync("/api/bots", new
-            {
-                name = project.Manifest.Name,
-                accent = project.Accent,
-            }).GetAwaiter().GetResult();
+            var created = client.PostAsJsonAsync("/api/bots",
+                new { name = project.Manifest.Name, accent = project.Accent }).GetAwaiter().GetResult();
             if (!created.IsSuccessStatusCode)
             {
                 Console.Error.WriteLine($"Could not create bot: {created.Content.ReadAsStringAsync().Result}");
@@ -137,11 +235,8 @@ public static class ServerCommands
             name = Path.GetRelativePath(project.Directory, f),
             content = File.ReadAllText(f),
         }).ToArray();
-        var submitted = client.PostAsJsonAsync($"/api/bots/{botId}/versions", new
-        {
-            entryType = project.Manifest.EntryType,
-            files,
-        }).GetAwaiter().GetResult();
+        var submitted = client.PostAsJsonAsync($"/api/bots/{botId}/versions",
+            new { entryType = project.Manifest.EntryType, files }).GetAwaiter().GetResult();
         if (!submitted.IsSuccessStatusCode)
         {
             Console.Error.WriteLine($"Submission rejected: {submitted.Content.ReadAsStringAsync().Result}");
@@ -172,17 +267,86 @@ public static class ServerCommands
                     ? "Parity:           IDENTICAL — local and server toolchains agree."
                     : "Parity:           DIFFERENT — likely toolchain/sysroot drift; the server " +
                       "artifact is canonical (see docs/DECISIONS.md #5).");
-                Console.WriteLine($"Version {versionNumber} is now the active version. Fight: " +
-                    $"{credentials.Server}/bots/{botId}");
+                Console.WriteLine($"Version {versionNumber} is now the active version. Fight: {server}/bots/{botId}");
                 return 0;
             }
             Console.WriteLine($"  ...{status.ToLowerInvariant()}");
         }
     }
 
-    private static string BotSlug(string name)
+    /// <summary>Authenticated client; transparently refreshes an expired access token.</summary>
+    private static HttpClient? CreateClient()
     {
-        var builder = new System.Text.StringBuilder();
+        var credentials = StoredCredentials.Load();
+        if (credentials is null)
+            return null;
+        if (credentials.ExpiresAt <= DateTimeOffset.UtcNow.AddMinutes(1))
+        {
+            using var http = new HttpClient();
+            var refreshed = http.PostAsync($"{credentials.Server}/connect/token",
+                new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["grant_type"] = "refresh_token",
+                    ["client_id"] = "botarena-cli",
+                    ["refresh_token"] = credentials.RefreshToken,
+                })).GetAwaiter().GetResult();
+            if (!refreshed.IsSuccessStatusCode)
+            {
+                Console.Error.WriteLine("Session expired — run: botarena login");
+                return null;
+            }
+            SaveTokens(credentials.Server,
+                refreshed.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult());
+            credentials = StoredCredentials.Load()!;
+        }
+        var client = new HttpClient { BaseAddress = new Uri(credentials.Server) };
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", credentials.AccessToken);
+        return client;
+    }
+
+    private static void SaveTokens(string server, JsonElement response)
+    {
+        // OpenIddict rotates refresh tokens; keep the old one only if none is returned.
+        string refresh = response.TryGetProperty("refresh_token", out var r)
+            ? r.GetString()!
+            : StoredCredentials.Load()?.RefreshToken ?? "";
+        new StoredCredentials(
+            server,
+            response.GetProperty("access_token").GetString()!,
+            refresh,
+            DateTimeOffset.UtcNow.AddSeconds(response.GetProperty("expires_in").GetInt32())).Save();
+    }
+
+    private static int NotSignedIn()
+    {
+        Console.Error.WriteLine("Not signed in — run: botarena login");
+        return 1;
+    }
+
+    private static void TryOpenBrowser(string url)
+    {
+        try
+        {
+            if (OperatingSystem.IsWindows())
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            else if (OperatingSystem.IsMacOS())
+                Process.Start("open", url);
+            else
+                Process.Start("xdg-open", url);
+        }
+        catch
+        {
+            // The URL is printed; the user can open it manually.
+        }
+    }
+
+    private static string Base64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static string BotsEndpointSlug(string name)
+    {
+        var builder = new StringBuilder();
         foreach (char c in name.ToLowerInvariant())
         {
             if (char.IsAsciiLetterOrDigit(c))
