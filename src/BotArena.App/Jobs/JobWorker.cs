@@ -35,12 +35,12 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
     private static readonly int BroadcastDelaySeconds =
         ReadEnv("BOTARENA_BROADCAST_DELAY_SECONDS", fallback: 3, min: 0, max: 300);
 
-    /// <summary>The ruleset every match on this server plays (BOTARENA_RULES, default
-    /// GameRules.Current). Eval deployments set "energy" etc. to run whole tournaments
-    /// under a rules experiment; NEVER set an experiment on a production server — the
-    /// version string lands in every replay and rating. Server config, not per-request,
-    /// for the same reason broadcast pacing is (DECISIONS #41).</summary>
-    private static readonly GameRules MatchRules =
+    /// <summary>The DEFAULT ruleset for matches on this server (BOTARENA_RULES, default
+    /// GameRules.Current). A ranked set may pin a different ruleset per request
+    /// (DECISIONS #54 — every ruleset has its own elo ladder, so legacy queues stay
+    /// playable); sets without a pin follow this default. Eval deployments set
+    /// "energy" etc. to run whole tournaments under a rules experiment.</summary>
+    internal static readonly GameRules MatchRules =
         Environment.GetEnvironmentVariable("BOTARENA_RULES") is { Length: > 0 } name
             ? GameRules.Resolve(name)
             : GameRules.Current;
@@ -228,6 +228,14 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
             foreach (var participant in participants)
                 versions.Add(await db.BotVersions.SingleAsync(v => v.Id == participant.BotVersionId, cancellationToken));
 
+            // A set may pin its own ruleset (DECISIONS #54); unpinned sets and
+            // setless matches play the server default.
+            GameRules rules = MatchRules;
+            if (match.MatchSetId is Guid rulesSetId &&
+                await db.MatchSets.Where(s => s.Id == rulesSetId)
+                    .Select(s => s.RulesName).SingleAsync(cancellationToken) is { Length: > 0 } pinned)
+                rules = GameRules.Resolve(pinned);
+
             var runtimes = versions
                 .Select(v => new WasmBotRuntime(new WasmRuntimeOptions
                 {
@@ -240,7 +248,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 var run = new MatchEngine().Run(new MatchConfiguration
                 {
                     Map = LoadMap(match.MapId),
-                    Rules = MatchRules,
+                    Rules = rules,
                     Seed = unchecked((ulong)match.Seed),
                     Participants = participants.Select((p, slot) => new MatchParticipantConfig
                     {
@@ -257,7 +265,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
 
                 match.ReplayPath = replayPath;
                 match.ReplayHash = run.ReplayHash;
-                match.GameRulesVersion = MatchRules.RulesVersion; // actual, not creation-time default
+                match.GameRulesVersion = rules.RulesVersion; // actual, not creation-time default
                 match.WinnerSlot = run.Result.WinnerSlot;
                 match.EndReason = run.Result.Reason.ToString();
                 match.EndTick = run.Result.EndTick;
@@ -324,22 +332,39 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
         set.ScoreA = scoreA;
         set.ScoreB = MatchSet.Games - scoreA;
 
-        var botA = await db.Bots.SingleAsync(b => b.Id == set.BotAId, cancellationToken);
-        var botB = await db.Bots.SingleAsync(b => b.Id == set.BotBId, cancellationToken);
-        set.RatingABefore = botA.Rating;
-        set.RatingBBefore = botB.Rating;
-        double expectedA = 1.0 / (1.0 + Math.Pow(10, (botB.Rating - botA.Rating) / 400.0));
+        // Elo moves on the ladder of the rules the games were ACTUALLY played under
+        // (DECISIONS #54): every rules version has its own ladder, created lazily.
+        string ladder = games[0].GameRulesVersion;
+        set.GameRulesVersion = ladder;
+        var ratingA = await GetOrCreateRating(db, set.BotAId, ladder, cancellationToken);
+        var ratingB = await GetOrCreateRating(db, set.BotBId, ladder, cancellationToken);
+        set.RatingABefore = ratingA.Rating;
+        set.RatingBBefore = ratingB.Rating;
+        double expectedA = 1.0 / (1.0 + Math.Pow(10, (ratingB.Rating - ratingA.Rating) / 400.0));
         double change = MatchSet.EloK * (scoreA / MatchSet.Games - expectedA);
         set.RatingChangeA = change;
         set.RatingChangeB = -change;
-        botA.Rating += change;
-        botB.Rating -= change;
-        botA.RankedSets++;
-        botB.RankedSets++;
+        ratingA.Rating += change;
+        ratingB.Rating -= change;
+        ratingA.RankedSets++;
+        ratingB.RankedSets++;
         set.WinnerBotId = scoreA > set.ScoreB ? set.BotAId : scoreA < set.ScoreB ? set.BotBId : null;
         set.Status = MatchSetStatus.Completed;
         set.CompletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task<BotRating> GetOrCreateRating(
+        AppDbContext db, Guid botId, string rulesVersion, CancellationToken cancellationToken)
+    {
+        var rating = await db.BotRatings
+            .SingleOrDefaultAsync(r => r.BotId == botId && r.RulesVersion == rulesVersion, cancellationToken);
+        if (rating is null)
+        {
+            rating = new BotRating { BotId = botId, RulesVersion = rulesVersion };
+            db.BotRatings.Add(rating); // explicit Add: pre-set Guid keys read as Modified otherwise
+        }
+        return rating;
     }
 
     private static ArenaMap LoadMap(string mapId)

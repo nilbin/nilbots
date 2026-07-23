@@ -28,9 +28,14 @@ export default function BotsPage() {
                 </span>
                 <span className="text-xs text-arena-dim">
                   by {bot.owner}
-                  {bot.rankedSets > 0 && (
-                    <span className="ml-2 font-mono text-arena-accent">{bot.rating} elo</span>
-                  )}
+                  {bot.ratings
+                    .filter((ladder) => ladder.rankedSets > 0)
+                    .map((ladder) => (
+                      <span key={ladder.rulesVersion} className="ml-2 font-mono text-arena-accent">
+                        {ladder.rating} elo
+                        <span className="text-arena-dim"> @{ladder.rulesVersion}</span>
+                      </span>
+                    ))}
                 </span>
                 <span className="font-mono text-[11px] text-arena-dim">
                   {bot.activeVersion

@@ -63,8 +63,8 @@ export default function MatchSetPage() {
               'The set is drawn.'
             )}{' '}
             <span className="font-mono text-xs text-arena-dim">
-              elo {set.botA.name} {formatDelta(set.ratingChangeA)} · {set.botB.name}{' '}
-              {formatDelta(set.ratingChangeB)}
+              rules {set.rulesVersion} ladder: {set.botA.name} {formatDelta(set.ratingChangeA)} ·{' '}
+              {set.botB.name} {formatDelta(set.ratingChangeB)}
             </span>
           </p>
         )}

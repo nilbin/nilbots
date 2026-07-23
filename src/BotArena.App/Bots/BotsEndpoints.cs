@@ -30,8 +30,10 @@ public static class BotsEndpoints
                     b.Slug,
                     b.Accent,
                     b.CreatedAt,
-                    Rating = Math.Round(b.Rating),
-                    b.RankedSets,
+                    // One rating per rules-version ladder (DECISIONS #54), newest first.
+                    Ratings = b.Ratings
+                        .OrderByDescending(r => r.RulesVersion)
+                        .Select(r => new { r.RulesVersion, Rating = Math.Round(r.Rating), r.RankedSets }),
                     Owner = db.Users.Where(u => u.Id == b.OwnerUserId).Select(u => u.DisplayName).First(),
                     ActiveVersion = b.Versions
                         .Where(v => v.IsActive && v.Status == BuildStatus.Built)

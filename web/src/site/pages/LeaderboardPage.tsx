@@ -1,30 +1,53 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, type LeaderboardEntry } from '../api';
+import clsx from 'clsx';
+import { api, type Leaderboard } from '../api';
 
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
+  const [board, setBoard] = useState<Leaderboard | null>(null);
+  const [rules, setRules] = useState<string | null>(null); // null = server default
 
   useEffect(() => {
-    void api.get<LeaderboardEntry[]>('/api/leaderboard').then(setEntries);
-  }, []);
+    const query = rules === null ? '' : `?rules=${encodeURIComponent(rules)}`;
+    void api.get<Leaderboard>(`/api/leaderboard${query}`).then(setBoard);
+  }, [rules]);
 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-1 text-2xl font-black tracking-wide">Leaderboard</h1>
-      <p className="mb-5 text-sm text-arena-dim">
+      <p className="mb-3 text-sm text-arena-dim">
         Ratings move only through ranked sets: six games across three map/seed pairs,
-        each played from both starting positions.
+        each played from both starting positions. Every rules version has its own
+        ladder — a new era never erases old standings.
       </p>
-      {entries === null ? (
+      {board !== null && board.ladders.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Ruleset ladder">
+          {board.ladders.map((ladder) => (
+            <button
+              key={ladder}
+              onClick={() => setRules(ladder)}
+              className={clsx(
+                'rounded px-2.5 py-1 font-mono text-xs transition-colors',
+                ladder === board.rulesVersion
+                  ? 'bg-arena-accent text-slate-950'
+                  : 'border border-arena-edge text-arena-dim hover:border-arena-dim hover:text-arena-text',
+              )}
+            >
+              rules {ladder}
+            </button>
+          ))}
+        </div>
+      )}
+      {board === null ? (
         <p className="text-sm text-arena-dim">Loading…</p>
-      ) : entries.length === 0 ? (
+      ) : board.entries.length === 0 ? (
         <p className="text-sm text-arena-dim">
-          Nobody has fought for rating yet. Open a bot page and start a ranked set.
+          Nobody has fought on the rules {board.rulesVersion} ladder yet. Open a bot
+          page and start a ranked set.
         </p>
       ) : (
         <ol className="flex flex-col gap-2">
-          {entries.map((entry, index) => (
+          {board.entries.map((entry, index) => (
             <li key={entry.id}>
               <Link
                 to={`/bots/${entry.id}`}

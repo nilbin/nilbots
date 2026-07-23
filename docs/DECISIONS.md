@@ -365,6 +365,23 @@ configuration) and changing them is a version bump, not an edit.
     zone spec (site rules card + template README), enforced by
     DocDriftTests' version stamps.
 
+54. **One elo ladder per rules version.** Owner call after 0.4 shipped: a
+    rules era change must not vaporize a bot's standing, and old rulesets
+    stay playable. `BotRating(BotId, RulesVersion, Rating, RankedSets)`
+    replaces the bot-level rating; a ranked request may pin any
+    `GameRules.Resolve` name (default = the server's ruleset) and the set's
+    elo moves the ladder of the rules its games actually played —
+    experiments therefore rate on their own ladders instead of polluting
+    official elo (fixes the era-mixing that put tournament-arm results into
+    one number through gen-4). Pre-#54 ratings migrate to the "0.3" ladder
+    as the legacy record (closest official era; they were earned across
+    0.2/0.3/experiment play); the 0.4 ladder starts fresh. Verified live:
+    the same pairing produced Talon 6-0 rampart-gen2 on the 0.4 ladder and
+    rampart-gen2 4.5-1.5 Talon pinned to 0.3 — the legacy champion is still
+    the better duelist in its own era, which is precisely the point.
+    Matchmaking stays a single queue; ladders partition ratings, not
+    players.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

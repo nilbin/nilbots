@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Bot> Bots => Set<Bot>();
+    public DbSet<BotRating> BotRatings => Set<BotRating>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
@@ -28,12 +29,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<Bot>(entity =>
         {
             entity.HasIndex(b => b.Slug).IsUnique();
-            entity.Property(b => b.Rating).HasDefaultValue(1200.0);
             entity.Property(b => b.Name).HasMaxLength(60);
             entity.Property(b => b.Slug).HasMaxLength(80);
             entity.Property(b => b.Accent).HasMaxLength(16);
             entity.HasMany(b => b.Versions).WithOne().HasForeignKey(v => v.BotId);
+            entity.HasMany(b => b.Ratings).WithOne().HasForeignKey(r => r.BotId);
             entity.HasOne<User>().WithMany().HasForeignKey(b => b.OwnerUserId);
+        });
+
+        modelBuilder.Entity<BotRating>(entity =>
+        {
+            entity.HasIndex(r => new { r.BotId, r.RulesVersion }).IsUnique();
+            entity.Property(r => r.RulesVersion).HasMaxLength(40);
+            entity.Property(r => r.Rating).HasDefaultValue(1200.0);
         });
 
         modelBuilder.Entity<BotVersion>(entity =>

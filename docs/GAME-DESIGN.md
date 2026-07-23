@@ -220,16 +220,14 @@ Rule of thumb from the constraint list: items 1–2 are "rules data" changes;
 3–5 are version-axis changes the architecture was explicitly built to absorb
 (loadout = one more match input feeding the replay hash); 6 is a redesign.
 
-Rules-targeting note (0.4-ship question): bots are deliberately
-rules-agnostic — one artifact plays whatever ruleset the match declares
-(version-tolerant protocol, graceful degradation), the server runs one
-official ruleset, ratings are global. Bot-declared ruleset participation
-would break the champions ratchet (titles must be defended under current
-rules, not retired out of them) and fragment a pilot-sized queue; if
-multiple rulesets ever run concurrently, model them as server-owned
-queues/seasons, not bot flags. Cheap and worth doing sometime: surface the
-existing per-version era stamp (BotVersion.GameRulesVersion) in the UI —
-it explains why pre-zone bots sank after a rules era change.
+Rules-targeting note (0.4-ship question, resolved by DECISIONS #54): bots
+stay deliberately rules-agnostic — one artifact plays whatever ruleset the
+match declares — and participation stays universal (the champions ratchet
+needs titles defended under current rules, and a pilot-sized queue must
+not fragment). What partitions is the RATING: one elo ladder per rules
+version, a ranked challenge may pin any resolvable ruleset, and legacy
+ladders stay playable forever — a rules era change never vaporizes a
+bot's standing, it just opens a fresh ladder.
 
 Map knowledge note (gen-4 question): observations carry no map id, but
 MapWidth×MapHeight uniquely fingerprints the 3-map pool (12×8 / 16×12 /

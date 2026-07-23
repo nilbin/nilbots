@@ -22,6 +22,10 @@ public class MatchSet
     public Guid BotBId { get; set; }
     public Guid BotAVersionId { get; set; }
     public Guid BotBVersionId { get; set; }
+    /// <summary>The rules NAME the challenger pinned (null = server default at execution
+    /// time). The worker resolves this when running each game; GameRulesVersion below is
+    /// the resolved version string and the elo ladder the set moves (DECISIONS #54).</summary>
+    public string? RulesName { get; set; }
     public string GameRulesVersion { get; set; } = Engine.BotArenaVersions.GameRulesVersion;
     public string RuntimeConfigurationVersion { get; set; } = Engine.BotArenaVersions.RuntimeConfigurationVersion;
     public MatchSetStatus Status { get; set; } = MatchSetStatus.Running;

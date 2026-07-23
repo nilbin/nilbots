@@ -7,7 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Matches;
 
-public sealed record RankedChallengeRequest(Guid BotId, Guid OpponentBotId);
+/// <summary>Rules is an optional GameRules.Resolve name ("0.4", "0.3", "hill"…) —
+/// omitted means the server's default ruleset. Every ruleset has its own elo ladder
+/// (DECISIONS #54), so challenging on an old ruleset never touches current standings.</summary>
+public sealed record RankedChallengeRequest(Guid BotId, Guid OpponentBotId, string? Rules = null);
 
 public static class RankedEndpoints
 {
@@ -37,14 +40,28 @@ public static class RankedEndpoints
             if (versionA is null || versionB is null)
                 return Results.Problem("Both bots need a successfully built active version.", statusCode: 409);
 
+            Engine.GameRules setRules;
+            try
+            {
+                setRules = request.Rules is { Length: > 0 } rulesName
+                    ? Engine.GameRules.Resolve(rulesName)
+                    : JobWorker.MatchRules;
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: 400);
+            }
+
             var set = new MatchSet
             {
                 BotAId = botA.Id,
                 BotBId = botB.Id,
                 BotAVersionId = versionA.Id,
                 BotBVersionId = versionB.Id,
-                RatingABefore = botA.Rating,
-                RatingBBefore = botB.Rating,
+                RulesName = request.Rules is { Length: > 0 } ? request.Rules : null,
+                GameRulesVersion = setRules.RulesVersion,
+                RatingABefore = await LadderRating(db, botA.Id, setRules.RulesVersion),
+                RatingBBefore = await LadderRating(db, botB.Id, setRules.RulesVersion),
             };
             db.MatchSets.Add(set);
 
@@ -96,6 +113,7 @@ public static class RankedEndpoints
             {
                 set.Id,
                 Status = set.Status.ToString(),
+                RulesVersion = set.GameRulesVersion,
                 BotA = new { Id = set.BotAId, botA?.Name, botA?.Accent },
                 BotB = new { Id = set.BotBId, botB?.Name, botB?.Accent },
                 set.CreatedAt,
@@ -126,25 +144,41 @@ public static class RankedEndpoints
             });
         });
 
-        routes.MapGet("/api/leaderboard", async (AppDbContext db) =>
+        // One ladder per rules version (DECISIONS #54). ?rules=<version string> picks
+        // the ladder; default = the server's current ruleset. `ladders` lists every
+        // ladder that has results, newest-looking first.
+        routes.MapGet("/api/leaderboard", async (string? rules, AppDbContext db) =>
         {
-            var bots = await db.Bots
-                .Where(b => b.RankedSets > 0)
-                .OrderByDescending(b => b.Rating)
+            string version = rules is { Length: > 0 } ? rules : JobWorker.MatchRules.RulesVersion;
+            var ladders = await db.BotRatings
+                .Where(r => r.RankedSets > 0)
+                .Select(r => r.RulesVersion)
+                .Distinct()
+                .OrderByDescending(v => v)
+                .ToListAsync();
+            var entries = await db.BotRatings
+                .Where(r => r.RulesVersion == version && r.RankedSets > 0)
+                .OrderByDescending(r => r.Rating)
                 .Take(100)
-                .Select(b => new
+                .Join(db.Bots, r => r.BotId, b => b.Id, (r, b) => new
                 {
                     b.Id,
                     b.Name,
                     b.Accent,
                     Owner = db.Users.Where(u => u.Id == b.OwnerUserId).Select(u => u.DisplayName).First(),
-                    Rating = Math.Round(b.Rating),
-                    b.RankedSets,
+                    Rating = Math.Round(r.Rating),
+                    r.RankedSets,
                 })
                 .ToListAsync();
-            return Results.Ok(bots);
+            return Results.Ok(new { RulesVersion = version, Ladders = ladders, Entries = entries });
         });
     }
+
+    private static async Task<double> LadderRating(AppDbContext db, Guid botId, string rulesVersion) =>
+        await db.BotRatings
+            .Where(r => r.BotId == botId && r.RulesVersion == rulesVersion)
+            .Select(r => (double?)r.Rating)
+            .SingleOrDefaultAsync() ?? 1200;
 
     private static MatchParticipant Snapshot(Guid matchId, int slot, Bot bot, BotVersion version) => new()
     {

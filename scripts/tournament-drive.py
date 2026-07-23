@@ -97,9 +97,12 @@ def main():
         print(f"{names[a_id]:14} {d['scoreA']:>4}-{d['scoreB']:<4} {names[b_id]:14} "
               f"games(A-persp): {games}  elo: {d['ratingChangeA']:+.1f}/{d['ratingChangeB']:+.1f}")
 
-    print("\n=== LEADERBOARD ===")
-    for row in call("GET", "/api/leaderboard"):
+    board = call("GET", "/api/leaderboard")
+    print(f"\n=== LEADERBOARD (rules {board['rulesVersion']} ladder) ===")
+    for row in board["entries"]:
         print(f"  {row['name']:16} elo {row['rating']:7.1f}  sets {row.get('rankedSets', '?')}")
+    if len(board["ladders"]) > 1:
+        print(f"  other ladders: {', '.join(v for v in board['ladders'] if v != board['rulesVersion'])}")
 
 
 if __name__ == "__main__":

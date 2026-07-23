@@ -103,7 +103,10 @@ public sealed class MyBot : IBot
             exceptions, infinite loops and out-of-memory all count.</li>
           <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01,
             arena-01 and crossfire-01), each played from both starting positions; elo
-            moves once per set. Rehearse the exact format locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
+            moves once per set, on the <b>ladder of the rules the set was played
+            under</b> — every rules version has its own ladder, and a challenge may
+            pin an older ruleset. Rehearse the exact format
+            locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
           <li><code className="font-mono">VisibleEvents</code> describe <b>last</b> tick, delivered when part of
             the event is on a tile you can see now — a shot fired from beyond your
             vision is still delivered if the ray enters it. An event's
@@ -142,7 +145,9 @@ public sealed class MyBot : IBot
 curl -b jar -d '{"name":"MyBot","accent":"#22d3ee"}' <server>/api/bots
 curl -b jar -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
-curl -b jar -d '{"botId":"...","opponentBotId":"..."}' <server>/api/matches/ranked
+curl -b jar -d '{"botId":"...","opponentBotId":"...","rules":"0.3"}' \\
+  <server>/api/matches/ranked          # rules optional; every ruleset has its own ladder
+curl <server>/api/leaderboard?rules=0.3      # pick a ladder; default = current rules
 curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>
         <p className="mt-2 text-arena-dim">
           <code className="font-mono">/build-status</code> is the slim polling view — it returns an

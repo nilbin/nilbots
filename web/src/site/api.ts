@@ -39,14 +39,20 @@ export interface Me {
   email: string;
 }
 
+export interface LadderRating {
+  rulesVersion: string;
+  rating: number;
+  rankedSets: number;
+}
+
 export interface BotSummary {
   id: string;
   name: string;
   slug: string;
   accent: string;
   owner: string;
-  rating: number;
-  rankedSets: number;
+  /** One entry per rules-version ladder the bot has fought on, newest first. */
+  ratings: LadderRating[];
   activeVersion: { id: string; versionNumber: number; artifactHash: string } | null;
   versionCount: number;
 }
@@ -125,6 +131,7 @@ export interface SetGame {
 export interface MatchSetDetail {
   id: string;
   status: string;
+  rulesVersion: string;
   botA: { id: string; name: string; accent: string };
   botB: { id: string; name: string; accent: string };
   revealed: boolean;
@@ -143,4 +150,11 @@ export interface LeaderboardEntry {
   owner: string;
   rating: number;
   rankedSets: number;
+}
+
+/** One elo ladder per rules version; `ladders` lists every version with results. */
+export interface Leaderboard {
+  rulesVersion: string;
+  ladders: string[];
+  entries: LeaderboardEntry[];
 }

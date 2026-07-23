@@ -8,13 +8,25 @@ public class Bot
     public required string Slug { get; set; }
     public string Accent { get; set; } = "#22d3ee";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    /// <summary>Elo rating; moves only on completed ranked match sets. Pilot deviation:
-    /// the plan attaches ratings to immutable versions (§36) — the bot-level rating keeps
-    /// the leaderboard stable across resubmissions, and MatchSet rows record which
-    /// versions actually played (see docs/DECISIONS.md).</summary>
+    public List<BotVersion> Versions { get; set; } = [];
+    public List<BotRating> Ratings { get; set; } = [];
+}
+
+/// <summary>One elo ladder entry per (bot, rules version) — DECISIONS #54: a rules era
+/// change must not vaporize a bot's standing. The ladder a set moves is the ladder of
+/// the rules it was played under; legacy bots keep their old-era ratings and rank
+/// fresh (1200) on new eras. Pilot deviation from plan §36 (version-level ratings)
+/// carries over from the bot-level design: bots, not versions, hold ladder identity.</summary>
+public class BotRating
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid BotId { get; set; }
+    /// <summary>The resolved rules version string a set was played under ("0.4", "0.3",
+    /// "0.4-exp-hill3"…) — experiments get their own ladders instead of polluting
+    /// official elo.</summary>
+    public required string RulesVersion { get; set; }
     public double Rating { get; set; } = 1200;
     public int RankedSets { get; set; }
-    public List<BotVersion> Versions { get; set; } = [];
 }
 
 public enum BuildStatus
