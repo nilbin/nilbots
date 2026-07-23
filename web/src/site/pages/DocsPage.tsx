@@ -85,9 +85,9 @@ public sealed class MyBot : IBot
             500</b>; equal health at the limit is a draw. A bot that crashes 3
             times is disqualified — exceptions, infinite loops and out-of-memory
             all count.</li>
-          <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01 and
-            arena-01), each played from both starting positions; elo moves once per
-            set. Rehearse the exact format locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
+          <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01,
+            arena-01 and crossfire-01), each played from both starting positions; elo
+            moves once per set. Rehearse the exact format locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
           <li><code className="font-mono">VisibleEvents</code> describe <b>last</b> tick, delivered when part of
             the event is on a tile you can see now — a shot fired from beyond your
             vision is still delivered if the ray enters it. An event's

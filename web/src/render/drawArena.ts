@@ -32,8 +32,8 @@ export function drawArena(
 
   drawFloor();
   drawZone();
-  if (showVisibility && selectedSlot !== null) drawVisibility(selectedSlot);
   drawWalls();
+  if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
   drawShadowsAndBots();
   drawShots();
   drawImpacts();
@@ -78,14 +78,17 @@ export function drawArena(
     }
   }
 
-  function drawVisibility(slot: number): void {
+  function drawFog(slot: number): void {
+    // Show the selected bot's field of view by FOGGING what it can NOT see.
+    // Vision range 6 spans most of a small map, so tinting the visible tiles
+    // read as "everything highlighted"; darkening the blind area reads at any size.
     const botTick = currentTick.bots.find((b) => b.slot === slot);
     if (!botTick) return;
-    const accent = participants[slot]?.accent ?? '#38bdf8';
-    ctx.fillStyle = hexWithAlpha(accent, 0.10);
-    for (const [x, y] of botTick.visibleTiles) {
-      ctx.fillRect(px(x), py(y), tile, tile);
-    }
+    const visible = new Set(botTick.visibleTiles.map(([x, y]) => `${x},${y}`));
+    ctx.fillStyle = 'rgba(4, 7, 12, 0.55)';
+    for (let y = 0; y < mapHeight; y++)
+      for (let x = 0; x < mapWidth; x++)
+        if (!visible.has(`${x},${y}`)) ctx.fillRect(px(x), py(y), tile, tile);
   }
 
   function drawWalls(): void {

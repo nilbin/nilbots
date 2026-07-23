@@ -24,7 +24,11 @@ export default function EventFeed({
   }, [replay, tick]);
 
   useEffect(() => {
-    feedRef.current?.lastElementChild?.scrollIntoView({ block: 'nearest' });
+    // Scroll only the feed's own container — scrollIntoView walks every
+    // scrollable ancestor, which on stacked (mobile) layouts yanked the whole
+    // page down to the feed on every event, hiding the arena.
+    const el = feedRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [entries.length]);
 
   const name = (slot: number | undefined) =>
@@ -58,7 +62,7 @@ export default function EventFeed({
       </h2>
       <ol
         ref={feedRef}
-        className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3 font-mono text-xs"
+        className="max-h-56 min-h-0 flex-1 space-y-1 overflow-y-auto p-3 font-mono text-xs lg:max-h-none"
         aria-live="polite"
       >
         {entries.length === 0 && (
