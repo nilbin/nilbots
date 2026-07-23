@@ -238,6 +238,19 @@ ship-individually lesson vs a candidate genuine combo — data decides).
 Spec decisions for the design doc: bolt speed (1-2 tiles/tick),
 sweep-collision semantics (bot entering a bolt's tile mid-flight),
 bolt-bolt pass-through, in-flight cap via cooldown, viewer rendering.
+0.5 design-doc requirement (owner scene): NAMED EXECUTABLE PLAYS —
+concrete scenes the tuning must make possible, each with tick-math as an
+acceptance test. Entry #1, THE DOUBLE-LANE SQUEEZE: solo attacker forces
+a camper fully off a 2x2 zone by making both rows hot simultaneously.
+Math: sequential per-lane bolts fail (the camper hops rows on-zone; the
+attacker's reposition cycle turn+move+turn ≈ 4 ticks dwarfs a fast
+bolt's ~2-tick lane window) — the enabling lever is ProjectileSpeed as a
+rules value tuned SLOW (1 tile per 2+ ticks → lane occupancy ≥ the
+reposition cycle; also the most spectator-legible variant). Counterplay
+stays: the squeeze costs 2 shots + ~8 non-accruing ticks, the camper can
+advance on the shooter mid-cycle, keep walls shorten lanes, and under
+cone vision wave two can arrive unseen. Falsification test: the gen-5
+fortress 90-0 freeze must be breakable under shipped 0.5 numbers.
 Next step when called: RULES-0.5 design doc → GameRules flags → harness →
 gen-6 tournament of cone-and-projectile-aware bots.
 
