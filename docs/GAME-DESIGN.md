@@ -170,6 +170,23 @@ zone control creates decisions and variety among bots that play it.
 **The open ship question was the meta reset, not the mechanic** — resolved
 same day: SHIPPED as official 0.4 (DECISIONS #53).
 
+## Gen-5 season premiere: the duel era ends (2026-07-23, DECISIONS #55)
+
+Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
+Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions
+(swept 48-0). Design findings: (a) the meta has depth — a fresh,
+well-briefed challenger with one iteration could NOT displace the gen-4
+doctrines (rock-paper-scissors persisted: Talon beat Bastille twice but
+lost the league); (b) the 6-map pool with 3-of-6 sampling adds real
+set-to-set variance — bots strong on the classic trio struggled on
+sampled keep/bridge/edge hills; (c) suspected bug to verify: SpawnVariation's
+64-attempt fallback returns MAP-FIXED spawns that bypass ZoneSpawnFairness
+(a ranked game showed zone distances 1 vs 4+); (d) accepted follow-ups
+from Meridian's report: `play` should refresh out/bot.wasm or print the
+artifact hash it used; `set` should accept pinned map/seed pairs for exact
+A/B; a `maps --show` ASCII render; shot events could carry ray direction.
+
+
 ## Rules 0.4 shipped: zone control (2026-07-23)
 
 Pre-registered harness run, 5 bots (2 frozen champions + 3 zone-aware

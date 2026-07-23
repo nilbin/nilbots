@@ -382,6 +382,22 @@ configuration) and changing them is a version bump, not an edit.
     Matchmaking stays a single queue; ladders partition ratings, not
     players.
 
+55. **Gen-5 verdict: the duel era ends — Bastille gen-5 is the first
+    zone-control champion.** Season premiere under official 0.4 (new
+    challenger Meridian + the three gen-4 veterans as ladder opposition,
+    one improvement iteration, 6-map pool with 3-of-6 sampling). Final 0.4
+    ladder: Bastille 1279, Talon 1268, Castellan 1244, Meridian 1219,
+    Warden gen-1 1101, Rampart gen-2 1089 — every agent finished above
+    both duel-era champions (48-0 across two rounds), so per the ratchet
+    (#43) the #1 non-champion is crowned: champions/bastille-gen5.
+    Asterisk for the record books: Talon beat Bastille head-to-head in
+    BOTH rounds (3.5-2.5 twice) but lost the league on its other results —
+    crowning follows the final leaderboard, as written. The new challenger
+    finishing last among agents is itself a finding: the gen-4 veterans'
+    doctrines survived a fresh, well-briefed opponent with an iteration —
+    0.4's meta has real depth, not a single dominant trick. Dethroned
+    champions remain in champions/ per the ladder-of-history rule.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
