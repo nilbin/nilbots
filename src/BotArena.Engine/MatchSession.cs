@@ -22,6 +22,10 @@ public sealed class MatchSession
     public bool IsCompleted { get; private set; }
     public MatchResultInfo? Result { get; private set; }
 
+    /// <summary>Zone-control tiles (empty unless rules.ZoneControl) — resolved once.</summary>
+    public IReadOnlyList<Position> ZoneTiles { get; }
+
+    private readonly HashSet<Position> _zoneLookup;
     private IReadOnlyList<GameEvent> _lastTickEvents = [];
 
     public MatchSession(ArenaMap map, GameRules rules, IReadOnlyList<Spawn>? spawns = null)
@@ -43,6 +47,8 @@ public sealed class MatchSession
             });
         }
         State = new GameState { Map = map, Rules = rules, Bots = bots };
+        ZoneTiles = rules.ZoneControl ? map.EffectiveZone() : [];
+        _zoneLookup = [.. ZoneTiles];
     }
 
     /// <summary>Step 1 of §4.7: observations always come from the pre-tick state.</summary>
@@ -69,6 +75,13 @@ public sealed class MatchSession
             Health = bot.Health,
             Cooldown = bot.Cooldown,
             Energy = State.Rules.MaxEnergy > 0 ? bot.Energy : null,
+            MapWidth = map.Width,
+            MapHeight = map.Height,
+            ZoneTiles = State.Rules.ZoneControl ? ZoneTiles : null,
+            MyZoneTicks = State.Rules.ZoneControl ? bot.ZoneTicks : null,
+            EnemyZoneTicks = State.Rules.ZoneControl
+                ? State.Bots.Where(b => b.Slot != slot).Select(b => b.ZoneTicks).FirstOrDefault()
+                : null,
             PreviousActionResult = bot.LastActionResult,
             VisibleTiles = tiles,
             VisibleEnemies = enemies,
@@ -117,6 +130,14 @@ public sealed class MatchSession
                 chosen[slot] = BotAction.Shoot;
                 validated[slot] = BotAction.Wait;
                 results[slot] = ActionResult.OnCooldown;
+            }
+            else if (decision.Action is BotAction.StrafeLeft or BotAction.StrafeRight
+                     && !State.Rules.AllowStrafe)
+            {
+                // Graceful degradation for newer bots on older rules — never a fault.
+                chosen[slot] = decision.Action;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.Blocked;
             }
             else
             {
@@ -177,14 +198,22 @@ public sealed class MatchSession
         for (int slot = 0; slot < n; slot++)
             bots[slot].LastActionResult = results[slot];
 
+        // 9.5 Zone control: active bots standing on zone tiles accrue at end of tick
+        // (post-move, post-damage: a bot destroyed this tick earns nothing).
+        if (State.Rules.ZoneControl)
+            foreach (var bot in bots)
+                if (bot.IsActive && _zoneLookup.Contains(bot.Position))
+                    bot.ZoneTicks++;
+
         // 10. Determine completion.
         int executedTick = State.Tick;
         State.Tick++;
         bool anyInactive = bots.Any(b => !b.IsActive);
-        if (anyInactive || State.Tick >= State.Rules.MaxTicks)
+        int? dominator = ComputeDominator();
+        if (anyInactive || dominator is not null || State.Tick >= State.Rules.MaxTicks)
         {
             IsCompleted = true;
-            Result = ComputeResult(executedTick);
+            Result = ComputeResult(executedTick, dominator);
         }
 
         _lastTickEvents = events;
@@ -209,10 +238,19 @@ public sealed class MatchSession
 
         for (int slot = 0; slot < n; slot++)
         {
-            if (validated[slot] != BotAction.MoveForward)
+            // Movement actions share one resolution: forward moves along facing,
+            // strafes move perpendicular WITHOUT rotating (RULES-0.3-DESIGN §B).
+            var direction = validated[slot] switch
+            {
+                BotAction.MoveForward => bots[slot].Facing,
+                BotAction.StrafeLeft => bots[slot].Facing.TurnedLeft(),
+                BotAction.StrafeRight => bots[slot].Facing.TurnedRight(),
+                _ => (Direction?)null,
+            };
+            if (direction is null)
                 continue;
             wantsMove[slot] = true;
-            var (dx, dy) = bots[slot].Facing.Vector();
+            var (dx, dy) = direction.Value.Vector();
             target[slot] = bots[slot].Position.Offset(dx, dy);
             blocked[slot] = State.Map.IsWall(target[slot]);
         }
@@ -289,11 +327,17 @@ public sealed class MatchSession
             var (dx, dy) = shooter.Facing.Vector();
             var current = shooter.Position;
             int? hitSlot = null;
-            while (true)
+            int traveled = 0;
+            while (State.Rules.ShotRange <= 0 || traveled < State.Rules.ShotRange)
             {
-                current = current.Offset(dx, dy);
-                if (State.Map.IsWall(current))
+                var next = current.Offset(dx, dy);
+                if (State.Map.IsWall(next))
+                {
+                    current = next; // the wall the ray hit — matches pre-cap event shape
                     break;
+                }
+                current = next;
+                traveled++;
                 var occupant = bots.FirstOrDefault(b => b.Slot != slot && b.IsActive && b.Position == current);
                 if (occupant is not null)
                 {
@@ -327,14 +371,38 @@ public sealed class MatchSession
         return shotThisTick;
     }
 
-    private MatchResultInfo ComputeResult(int endTick)
+    /// <summary>Domination check (RULES-0.3-DESIGN §C): the sole active bot at or above
+    /// the threshold wins; if both cross simultaneously the higher total wins and equal
+    /// totals play on (they resolve by the MaxTicks zone tiebreak at the latest).</summary>
+    private int? ComputeDominator()
+    {
+        if (!State.Rules.ZoneControl || State.Rules.ZoneDominationTicks <= 0)
+            return null;
+        var crossed = State.Bots
+            .Where(b => b.IsActive && b.ZoneTicks >= State.Rules.ZoneDominationTicks)
+            .OrderByDescending(b => b.ZoneTicks)
+            .ToList();
+        return crossed.Count switch
+        {
+            0 => null,
+            1 => crossed[0].Slot,
+            _ => crossed[0].ZoneTicks == crossed[1].ZoneTicks ? null : crossed[0].Slot,
+        };
+    }
+
+    private MatchResultInfo ComputeResult(int endTick, int? dominator = null)
     {
         var bots = State.Bots;
         var active = bots.Where(b => b.IsActive).ToList();
         int? winnerSlot;
         MatchEndReason reason;
 
-        if (active.Count == 1)
+        if (dominator is int dominantSlot && active.Count > 1)
+        {
+            winnerSlot = dominantSlot;
+            reason = MatchEndReason.Domination;
+        }
+        else if (active.Count == 1)
         {
             winnerSlot = active[0].Slot;
             reason = bots.Any(b => b.Status == BotStatus.Disqualified)
@@ -351,13 +419,20 @@ public sealed class MatchSession
         else
         {
             reason = MatchEndReason.MaxTicks;
-            // §4.9: more health wins, then more damage dealt, else draw.
+            // §4.9: more health wins, then more damage dealt, else draw. Under zone
+            // control the zone comes FIRST — a turtled health lead loses to the bot on
+            // the hill; that ordering is the anti-entrenchment teeth (0.3-DESIGN §C).
+            bool zone = State.Rules.ZoneControl;
             var best = active
-                .OrderByDescending(b => b.Health)
+                .OrderByDescending(b => zone ? b.ZoneTicks : 0)
+                .ThenByDescending(b => b.Health)
                 .ThenByDescending(b => b.DamageDealt)
                 .ThenBy(b => b.Slot)
                 .ToList();
-            winnerSlot = best[0].Health == best[1].Health && best[0].DamageDealt == best[1].DamageDealt
+            winnerSlot =
+                (!zone || best[0].ZoneTicks == best[1].ZoneTicks)
+                && best[0].Health == best[1].Health
+                && best[0].DamageDealt == best[1].DamageDealt
                 ? null
                 : best[0].Slot;
         }
@@ -368,7 +443,8 @@ public sealed class MatchSession
             b.Health,
             b.DamageDealt,
             b.Faults,
-            b.Status)).ToArray();
+            b.Status,
+            State.Rules.ZoneControl ? b.ZoneTicks : null)).ToArray();
 
         return new MatchResultInfo
         {

@@ -21,14 +21,15 @@ public sealed record BotAppearance
 /// bump any of them and every bot rebuilds (plan §12).</summary>
 public static class ToolchainInfo
 {
-    public const string CliVersion = "0.3.0";
+    public const string CliVersion = "0.4.0";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
-    // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47) —
-    // carried as an optional trailing observation field, so the wire protocol stays 0.1
-    // and older artifacts (champions) keep running under any rules.
-    public const string SdkVersion = "0.3.0";
+    // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
+    // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
+    // (RULES-0.3-DESIGN). All carried as trailing observation sections / additive
+    // action values, so the wire protocol stays 0.1 and older artifacts keep running.
+    public const string SdkVersion = "0.4.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.3.0";
+    public const string GuestAdapterVersion = "0.4.0";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

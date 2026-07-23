@@ -18,6 +18,15 @@ public sealed class BotObservation
     public required int Cooldown { get; init; }
     /// <summary>Null when the rules have no energy system (rules 0.1).</summary>
     public int? Energy { get; init; }
+    /// <summary>Arena dimensions — static per match, sent so bots can bound pathfinding
+    /// without discovering edges by walking into them (gen-3 finding).</summary>
+    public int MapWidth { get; init; }
+    public int MapHeight { get; init; }
+    /// <summary>Zone-control tiles; null when rules.ZoneControl is off.</summary>
+    public IReadOnlyList<Position>? ZoneTiles { get; init; }
+    /// <summary>Zone scores (mine, theirs) — public like any scoreboard. Null when off.</summary>
+    public int? MyZoneTicks { get; init; }
+    public int? EnemyZoneTicks { get; init; }
     public required ActionResult PreviousActionResult { get; init; }
     public required IReadOnlyList<ObservedTile> VisibleTiles { get; init; }
     public required IReadOnlyList<ObservedBot> VisibleEnemies { get; init; }

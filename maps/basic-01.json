@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "id": "basic-01",
-  "version": 1,
+  "version": 2,
   "width": 12,
   "height": 8,
   "tiles": [
@@ -15,7 +15,33 @@
     "############"
   ],
   "spawns": [
-    { "x": 1, "y": 1, "facing": "East" },
-    { "x": 10, "y": 6, "facing": "West" }
+    {
+      "x": 1,
+      "y": 1,
+      "facing": "East"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "facing": "West"
+    }
+  ],
+  "zone": [
+    [
+      5,
+      3
+    ],
+    [
+      6,
+      3
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      6,
+      4
+    ]
   ]
 }

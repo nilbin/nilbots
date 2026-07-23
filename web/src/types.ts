@@ -40,6 +40,8 @@ export interface ReplayHeader {
   seed: number;
   maxTicks: number;
   visionRange: number;
+  /** [x,y] pairs; present only under zone-control rules (0.3+). */
+  zoneTiles?: number[][];
   participants: ReplayParticipant[];
 }
 

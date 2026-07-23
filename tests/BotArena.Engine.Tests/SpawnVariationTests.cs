@@ -58,6 +58,31 @@ public class SpawnVariationTests
     }
 
     [Fact]
+    public void LaneSafety_NeverSpawnsOnClearMutualLane()
+    {
+        var rules = SpawnRules with { SpawnLaneSafety = true, ShotRange = 8 };
+        var map = TestMaps.OpenRoom(); // open room: any shared row/col is a clear lane
+        for (ulong seed = 0; seed < 50; seed++)
+        {
+            var spawns = SpawnVariation.Resolve(map, rules, seed);
+            bool sharedLane = spawns[0].X == spawns[1].X || spawns[0].Y == spawns[1].Y;
+            Assert.False(sharedLane, $"seed {seed} spawned on a mutual lane: " +
+                $"({spawns[0].X},{spawns[0].Y}) / ({spawns[1].X},{spawns[1].Y})");
+        }
+    }
+
+    [Fact]
+    public void LaneSafetyOff_LeavesV0_2StreamsUnchanged()
+    {
+        // 0.2 spawn derivation must stay bit-identical when the 0.3 flag is off.
+        var map = TestMaps.OpenRoom();
+        for (ulong seed = 0; seed < 20; seed++)
+            Assert.Equal(
+                SpawnVariation.Resolve(map, GameRules.V0_2, seed),
+                SpawnVariation.Resolve(map, GameRules.V0_2 with { MaxTicks = 123 }, seed));
+    }
+
+    [Fact]
     public void FullMatch_IsDeterministicUnderSpawnVariation()
     {
         MatchRunResult Run() => new MatchEngine().Run(new MatchConfiguration

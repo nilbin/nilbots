@@ -5,6 +5,8 @@ public enum MatchEndReason
     Elimination,
     Disqualification,
     MaxTicks,
+    /// <summary>Zone control held for ZoneDominationTicks (rules 0.3 candidate).</summary>
+    Domination,
 }
 
 public enum BotOutcome
@@ -14,8 +16,11 @@ public enum BotOutcome
     Draw,
 }
 
+/// <summary>ZoneTicks is null (omitted from canonical JSON) under rules without zone
+/// control, so pre-0.3 replay hashes are unaffected.</summary>
 public sealed record BotMatchResult(
-    int Slot, BotOutcome Outcome, int FinalHealth, int DamageDealt, int Faults, BotStatus FinalStatus);
+    int Slot, BotOutcome Outcome, int FinalHealth, int DamageDealt, int Faults, BotStatus FinalStatus,
+    int? ZoneTicks = null);
 
 public sealed record MatchResultInfo
 {

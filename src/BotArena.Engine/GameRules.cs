@@ -48,6 +48,27 @@ public sealed record GameRules
     /// on a lane has a real cost — the anti-draw lever (GAME-DESIGN backlog #2).</summary>
     public int EnergyRegenTicks { get; init; }
 
+    /// <summary>Maximum shot travel in tiles; 0 = unlimited (rules ≤ 0.2). Capped rays
+    /// end cross-map lane denial while staying above VisionRange, preserving the
+    /// shots-outrange-sight information game (RULES-0.3-DESIGN §A).</summary>
+    public int ShotRange { get; init; }
+
+    /// <summary>Enables StrafeLeft/StrafeRight (move perpendicular without rotating).
+    /// Under rules without strafe the actions validate to Wait with a Blocked result —
+    /// never a fault, so newer bots degrade gracefully (RULES-0.3-DESIGN §B).</summary>
+    public bool AllowStrafe { get; init; }
+
+    /// <summary>King of the hill (RULES-0.3-DESIGN §C): active bots on zone tiles accrue
+    /// zone-ticks; the MaxTicks tiebreak becomes zone → health → damage, and reaching
+    /// ZoneDominationTicks wins outright (reason Domination).</summary>
+    public bool ZoneControl { get; init; }
+
+    public int ZoneDominationTicks { get; init; }
+
+    /// <summary>Seed-spawn constraint: never spawn a pair sharing a clear firing lane
+    /// within ShotRange (gen-3 finding: tick-0 hits before the first decision).</summary>
+    public bool SpawnLaneSafety { get; init; }
+
     public static GameRules V0_1 => new() { RulesVersion = "0.1" };
 
     /// <summary>Rules 0.2 = 0.1 + seed-spawn variation. Pinned by the A/B balance run of
@@ -61,17 +82,34 @@ public sealed record GameRules
         SeedSpawnVariation = true,
     };
 
+    /// <summary>The 0.3 candidate slate (RULES-0.3-DESIGN): range cap + strafe + zone
+    /// control + lane-safe spawns. NOT the default until the balance harness ships it.</summary>
+    public static GameRules V0_3 => V0_2 with
+    {
+        RulesVersion = "0.3",
+        ShotRange = 8,
+        AllowStrafe = true,
+        ZoneControl = true,
+        ZoneDominationTicks = 150,
+        SpawnLaneSafety = true,
+    };
+
     /// <summary>The version new matches play. Historical versions stay constructible for
     /// replay verification and A/B harness runs.</summary>
     public static GameRules Current => V0_2;
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
-    /// strings (they flow into replays and seed derivation).</summary>
+    /// strings (they flow into replays and seed derivation). The single-feature arms
+    /// (range/strafe/hill) isolate one 0.3 mechanic over 0.2 for A/B runs.</summary>
     public static GameRules Resolve(string name) => name switch
     {
         "0.2" => V0_2,
         "0.1" => V0_1,
+        "0.3" => V0_3,
+        "range" => V0_2 with { RulesVersion = "0.3-exp-range", ShotRange = 8, SpawnLaneSafety = true },
+        "strafe" => V0_2 with { RulesVersion = "0.3-exp-strafe", AllowStrafe = true },
+        "hill" => V0_2 with { RulesVersion = "0.3-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
         "energy" => V0_2 with
         {
             RulesVersion = "0.3-exp-energy",
@@ -79,6 +117,6 @@ public sealed record GameRules
             ShotEnergyCost = 2,
             EnergyRegenTicks = 3,
         },
-        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.2, 0.1, or energy)."),
+        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.2, 0.1, 0.3, range, strafe, hill, or energy)."),
     };
 }

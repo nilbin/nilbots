@@ -32,10 +32,33 @@ public static class SpawnVariation
                 continue;
             if (!map.AreConnected(a, b))
                 continue;
+            if (rules.SpawnLaneSafety && SharesClearLane(map, a, b, rules.ShotRange))
+                continue; // no tick-0 firing lanes between spawns (gen-3 finding)
             return [new Spawn(a.X, a.Y, FacingToward(a, b)), new Spawn(b.X, b.Y, FacingToward(b, a))];
         }
         // Deterministic fallback for degenerate maps: the fixed spawns are always valid.
         return map.Spawns;
+    }
+
+    /// <summary>True when the two tiles share a row/column with no wall between them,
+    /// within firing range (range 0 = unlimited) — i.e. a tick-0 shot could connect.</summary>
+    private static bool SharesClearLane(ArenaMap map, Position a, Position b, int shotRange)
+    {
+        if (a.X != b.X && a.Y != b.Y)
+            return false;
+        int distance = Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
+        if (shotRange > 0 && distance > shotRange)
+            return false;
+        int stepX = Math.Sign(b.X - a.X), stepY = Math.Sign(b.Y - a.Y);
+        var current = a;
+        while (true)
+        {
+            current = current.Offset(stepX, stepY);
+            if (current == b)
+                return true;
+            if (map.IsWall(current))
+                return false;
+        }
     }
 
     /// <summary>Dominant-axis facing toward the opponent; ties (perfect diagonals)

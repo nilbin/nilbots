@@ -31,6 +31,7 @@ export function drawArena(
   const poses = posesAt(replay, time);
 
   drawFloor();
+  drawZone();
   if (showVisibility && selectedSlot !== null) drawVisibility(selectedSlot);
   drawWalls();
   drawShadowsAndBots();
@@ -59,6 +60,21 @@ export function drawArena(
       ctx.moveTo(px(0), py(y) + 0.5);
       ctx.lineTo(px(mapWidth), py(y) + 0.5);
       ctx.stroke();
+    }
+  }
+
+  function drawZone(): void {
+    // Zone-control tiles (rules 0.3+): the contested objective, kept subtle so
+    // bots and beams stay readable on top of it.
+    if (!replay.header.zoneTiles) return;
+    for (const [x, y] of replay.header.zoneTiles) {
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.10)';
+      ctx.fillRect(px(x), py(y), tile, tile);
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(px(x) + 1.5, py(y) + 1.5, tile - 3, tile - 3);
+      ctx.setLineDash([]);
     }
   }
 

@@ -66,17 +66,42 @@ internal static class GuestProtocol
             events[i] = new VisibleEvent((VisibleEventKind)f[0], f[1] < 0 ? null : f[1], new Position(f[2], f[3]));
         }
 
-        // Optional trailing sections (additive, protocol 0.1-compatible): "E <energy>".
+        // Optional trailing sections (additive, protocol 0.1-compatible), fixed order:
+        // "E <energy>", "M <w> <h>", "Z <n> x:y ... ZT <mine> <theirs>".
         int? energy = null;
         if (index < parts.Length && parts[index] == "E")
         {
             index++;
             energy = Next();
         }
+        int mapWidth = 0, mapHeight = 0;
+        if (index < parts.Length && parts[index] == "M")
+        {
+            index++;
+            mapWidth = Next();
+            mapHeight = Next();
+        }
+        Position[]? zone = null;
+        int? myZoneTicks = null, enemyZoneTicks = null;
+        if (index < parts.Length && parts[index] == "Z")
+        {
+            index++;
+            int zoneCount = Next();
+            zone = new Position[zoneCount];
+            for (int i = 0; i < zoneCount; i++)
+            {
+                var f = Fields(2);
+                zone[i] = new Position(f[0], f[1]);
+            }
+            Expect("ZT");
+            myZoneTicks = Next();
+            enemyZoneTicks = Next();
+        }
 
         return new ParsedObservation(
             tick, new Position(x, y), (Direction)facing, health, cooldown,
-            (ActionResult)previous, tiles, enemies, events, energy);
+            (ActionResult)previous, tiles, enemies, events, energy,
+            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks);
 
         void Expect(string marker)
         {
@@ -106,7 +131,12 @@ internal static class GuestProtocol
         IReadOnlyList<VisibleTile> VisibleTiles,
         IReadOnlyList<VisibleEnemy> VisibleEnemies,
         IReadOnlyList<VisibleEvent> VisibleEvents,
-        int? Energy);
+        int? Energy,
+        int MapWidth,
+        int MapHeight,
+        IReadOnlyList<Position>? ZoneTiles,
+        int? MyZoneTicks,
+        int? EnemyZoneTicks);
 
     public static string FormatDecision(BotAction action, string? debug)
     {

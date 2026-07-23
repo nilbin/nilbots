@@ -31,11 +31,12 @@ def default_bots():
     return bots
 
 
-def run_set(bots, a, b, rules, seeds, workdir):
-    out = subprocess.run(
-        ["dotnet", "run", "--project", str(ROOT / "src" / "BotArena.Cli"), "--", "set",
-         "--bot", bots[a], "--opponent", bots[b], "--seeds", seeds, "--rules", rules],
-        capture_output=True, text=True, cwd=workdir, timeout=1800)
+def run_set(bots, a, b, rules, seeds, workdir, maps=None):
+    command = ["dotnet", "run", "--project", str(ROOT / "src" / "BotArena.Cli"), "--", "set",
+               "--bot", bots[a], "--opponent", bots[b], "--seeds", seeds, "--rules", rules]
+    if maps:
+        command += ["--maps", maps]
+    out = subprocess.run(command, capture_output=True, text=True, cwd=workdir, timeout=1800)
     games = [(m.group(1), m.group(2), int(m.group(3)))
              for line in out.stdout.splitlines()
              if (m := LINE.match(line.strip()))]
@@ -50,6 +51,7 @@ def main():
     parser.add_argument("--bots", nargs="*", default=[], help="name=path/to/bot.wasm (default: champions/)")
     parser.add_argument("--rulesets", default="0.1,0.2,energy")
     parser.add_argument("--seeds", default="101,202,303")
+    parser.add_argument("--maps", default=None, help="comma list; default = the set command's pool")
     parser.add_argument("--workdir", default="/tmp/balance-eval")
     args = parser.parse_args()
 
@@ -64,7 +66,7 @@ def main():
     for rules in args.rulesets.split(","):
         games = []
         for a, b in pairs:
-            games += run_set(bots, a, b, rules, args.seeds, args.workdir)
+            games += run_set(bots, a, b, rules, args.seeds, args.workdir, args.maps)
             print(f"  done {a} vs {b} [{rules}]", flush=True)
         if not games:
             continue

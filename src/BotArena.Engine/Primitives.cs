@@ -42,6 +42,11 @@ public enum BotAction
     TurnLeft = 2,
     TurnRight = 3,
     Shoot = 4,
+    /// <summary>Move one tile perpendicular to facing without rotating (rules with
+    /// AllowStrafe; otherwise validates to Wait/Blocked). Values 5-6 are additive —
+    /// pre-0.3 artifacts never emit them (RULES-0.3-DESIGN §B).</summary>
+    StrafeLeft = 5,
+    StrafeRight = 6,
 }
 
 public enum ActionResult

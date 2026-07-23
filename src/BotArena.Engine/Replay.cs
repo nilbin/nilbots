@@ -31,6 +31,9 @@ public sealed record ReplayHeader
     public required ulong Seed { get; init; }
     public required int MaxTicks { get; init; }
     public required int VisionRange { get; init; }
+    /// <summary>[x,y] pairs; null (omitted) under rules without zone control, so
+    /// pre-0.3 replay hashes are unaffected. The viewer highlights these tiles.</summary>
+    public IReadOnlyList<int[]>? ZoneTiles { get; init; }
     public required IReadOnlyList<ReplayParticipant> Participants { get; init; }
 }
 

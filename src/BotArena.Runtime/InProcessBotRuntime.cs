@@ -84,6 +84,11 @@ internal static class SdkModelMapper
             Health = observation.Health,
             Cooldown = observation.Cooldown,
             Energy = observation.Energy,
+            MapWidth = observation.MapWidth,
+            MapHeight = observation.MapHeight,
+            ZoneTiles = observation.ZoneTiles?.Select(p => new Sdk.Position(p.X, p.Y)).ToArray(),
+            MyZoneTicks = observation.MyZoneTicks,
+            EnemyZoneTicks = observation.EnemyZoneTicks,
             PreviousActionResult = ToSdkResult(observation.PreviousActionResult),
             VisibleTiles = observation.VisibleTiles
                 .Select(t => new Sdk.VisibleTile(new Sdk.Position(t.Position.X, t.Position.Y), t.IsWall))
@@ -108,6 +113,8 @@ internal static class SdkModelMapper
         Sdk.BotActionKind.TurnLeft => Engine.BotAction.TurnLeft,
         Sdk.BotActionKind.TurnRight => Engine.BotAction.TurnRight,
         Sdk.BotActionKind.Shoot => Engine.BotAction.Shoot,
+        Sdk.BotActionKind.StrafeLeft => Engine.BotAction.StrafeLeft,
+        Sdk.BotActionKind.StrafeRight => Engine.BotAction.StrafeRight,
         _ => Engine.BotAction.Wait,
     };
 

@@ -9,6 +9,8 @@ public sealed class BotState
     public int Cooldown { get; set; }
     /// <summary>Current energy; meaningful only when rules.MaxEnergy > 0.</summary>
     public int Energy { get; set; }
+    /// <summary>Accrued zone-control ticks; meaningful only when rules.ZoneControl.</summary>
+    public int ZoneTicks { get; set; }
     public int Faults { get; set; }
     public int DamageDealt { get; set; }
     public BotStatus Status { get; set; } = BotStatus.Active;

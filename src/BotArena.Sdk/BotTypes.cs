@@ -50,6 +50,8 @@ public enum BotActionKind
     TurnLeft = 2,
     TurnRight = 3,
     Shoot = 4,
+    StrafeLeft = 5,
+    StrafeRight = 6,
 }
 
 public readonly record struct BotAction(BotActionKind Kind);
@@ -62,6 +64,15 @@ public static class Actions
     public static BotAction TurnLeft() => new(BotActionKind.TurnLeft);
     public static BotAction TurnRight() => new(BotActionKind.TurnRight);
     public static BotAction Shoot() => new(BotActionKind.Shoot);
+
+    /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (left of the
+    /// facing vector). Rules 0.3+: under older rules this becomes Wait with a Blocked
+    /// result. Movement conflicts resolve exactly like MoveForward.</summary>
+    public static BotAction StrafeLeft() => new(BotActionKind.StrafeLeft);
+
+    /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (right of
+    /// the facing vector). See <see cref="StrafeLeft"/>.</summary>
+    public static BotAction StrafeRight() => new(BotActionKind.StrafeRight);
 }
 
 public readonly record struct VisibleTile(Position Position, bool IsWall);

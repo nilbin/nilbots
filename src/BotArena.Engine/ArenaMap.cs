@@ -20,15 +20,19 @@ public sealed class ArenaMap
     public int Height { get; }
     public IReadOnlyList<string> TileRows { get; }
     public IReadOnlyList<Spawn> Spawns { get; }
+    /// <summary>Declared zone-control tiles (RULES-0.3-DESIGN §C); empty when the map
+    /// declares none — <see cref="EffectiveZone"/> falls back to the open center.</summary>
+    public IReadOnlyList<Position> Zone { get; }
 
     private readonly bool[] _walls;
 
-    private ArenaMap(string id, int version, string[] tileRows, Spawn[] spawns)
+    private ArenaMap(string id, int version, string[] tileRows, Spawn[] spawns, Position[]? zone = null)
     {
         Id = id;
         Version = version;
         TileRows = tileRows;
         Spawns = spawns;
+        Zone = zone ?? [];
         Height = tileRows.Length;
         Width = tileRows.Length > 0 ? tileRows[0].Length : 0;
         _walls = new bool[Width * Height];
@@ -43,11 +47,26 @@ public sealed class ArenaMap
 
     public bool IsWall(Position position) => IsWall(position.X, position.Y);
 
-    public static ArenaMap Create(string id, string[] tileRows, Spawn[] spawns, int version = 1)
+    public static ArenaMap Create(string id, string[] tileRows, Spawn[] spawns, int version = 1, Position[]? zone = null)
     {
-        var map = new ArenaMap(id, version, tileRows, spawns);
+        var map = new ArenaMap(id, version, tileRows, spawns, zone);
         map.Validate();
         return map;
+    }
+
+    /// <summary>Zone tiles for zone-control rules: the declared zone, else the floor
+    /// tiles of the center 3x3. Deterministic per map — never seed-dependent.</summary>
+    public IReadOnlyList<Position> EffectiveZone()
+    {
+        if (Zone.Count > 0)
+            return Zone;
+        int cx = Width / 2, cy = Height / 2;
+        var fallback = new List<Position>();
+        for (int y = cy - 1; y <= cy + 1; y++)
+            for (int x = cx - 1; x <= cx + 1; x++)
+                if (!IsWall(x, y))
+                    fallback.Add(new Position(x, y));
+        return fallback;
     }
 
     public static ArenaMap FromJson(string json)
@@ -82,7 +101,8 @@ public sealed class ArenaMap
         if (errors.Count > 0)
             throw new MapValidationException(errors);
 
-        var map = new ArenaMap(dto.Id!, dto.Version, dto.Tiles, spawns.ToArray());
+        var zone = dto.Zone?.Select(pair => new Position(pair[0], pair[1])).ToArray();
+        var map = new ArenaMap(dto.Id!, dto.Version, dto.Tiles, spawns.ToArray(), zone);
         map.Validate();
         return map;
     }
@@ -114,6 +134,12 @@ public sealed class ArenaMap
         if (errors.Count == 0 && Spawns.Count == 2 && !AreConnected(
                 new Position(Spawns[0].X, Spawns[0].Y), new Position(Spawns[1].X, Spawns[1].Y)))
             errors.Add("Spawns are not connected by floor tiles.");
+        foreach (var tile in Zone)
+            if (IsWall(tile))
+                errors.Add($"Zone tile ({tile.X},{tile.Y}) is on a wall or outside the map.");
+        if (errors.Count == 0 && Zone.Count > 0 && Spawns.Count == 2
+            && !AreConnected(new Position(Spawns[0].X, Spawns[0].Y), Zone[0]))
+            errors.Add("Zone is not reachable from the spawns.");
         if (errors.Count > 0)
             throw new MapValidationException(errors);
     }
@@ -159,6 +185,7 @@ public sealed class ArenaMap
         [JsonPropertyName("height")] public int Height { get; set; }
         [JsonPropertyName("tiles")] public string[]? Tiles { get; set; }
         [JsonPropertyName("spawns")] public SpawnDto[]? Spawns { get; set; }
+        [JsonPropertyName("zone")] public int[][]? Zone { get; set; }
     }
 
     private sealed class SpawnDto

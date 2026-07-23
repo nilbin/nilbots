@@ -28,6 +28,25 @@ public sealed class BotContext
     /// observable; count their shots to estimate it.</summary>
     public int? Energy { get; init; }
 
+    /// <summary>Arena width in tiles (0 on servers older than SDK 0.4). Static per match —
+    /// use it to bound pathfinding instead of discovering edges by walking into them.</summary>
+    public int MapWidth { get; init; }
+
+    /// <summary>Arena height in tiles (0 on servers older than SDK 0.4).</summary>
+    public int MapHeight { get; init; }
+
+    /// <summary>Zone-control tiles (rules 0.3+ with zone control), or null. Standing on
+    /// them accrues zone-ticks: the MaxTicks tiebreak is zone → health → damage, and
+    /// holding for the domination threshold wins outright. The zone is the objective —
+    /// ignoring it forfeits ties.</summary>
+    public IReadOnlyList<Position>? ZoneTiles { get; init; }
+
+    /// <summary>Your accrued zone-ticks (null when zone control is off). Public score.</summary>
+    public int? MyZoneTicks { get; init; }
+
+    /// <summary>The enemy's accrued zone-ticks (null when zone control is off).</summary>
+    public int? EnemyZoneTicks { get; init; }
+
     public required ActionResult PreviousActionResult { get; init; }
 
     /// <summary>Every tile you can currently see (Chebyshev range 6, corner-strict wall
