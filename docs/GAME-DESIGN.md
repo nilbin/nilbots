@@ -201,6 +201,19 @@ an AIMED SHOT candidate: hold facing N consecutive ticks → next shot
 resolves BEFORE moves (undodgeable, spectator-readable stance, threatens
 statues and dancers alike). Harness it alongside the stall levers.
 
+Follow-up (owner question "why not shoot the camper from behind?"):
+there IS no behind — vision is omnidirectional and facing is public, so
+the aim-turn is a broadcast telegraph and the sidestep (orientation-
+agnostic, resolves before shots) beats any seen shot. The one counter to
+a reactive statue — a blind range-7-8 snipe from outside vision at its
+remembered tile — is map-dependent: crossfire-01's longest clear lane
+onto its zone is 4 tiles (measured), so the map deletes its own hill's
+only ranged threat. Two consequences: the aimed-shot candidate converts
+exactly this scene into a kill threat; and a zone-map design guideline —
+keep at least one 7+ tile lane onto the hill as the anti-statue channel.
+Parked bigger hammer: cone vision (make "behind" real) — transformative,
+revisit only with strong pilot demand.
+
 Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
 Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions
 (swept 48-0). Design findings: (a) the meta has depth — a fresh,
