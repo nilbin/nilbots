@@ -5,9 +5,18 @@ description: Evaluate Bot Arena end to end by having subagents write bots from t
 
 # Agent Arena: multi-agent evaluation tournament
 
-Goal: N subagents (default 4) each build a bot **using only the player-facing docs**
+Goal: challenger agent(s) build bots **using only the player-facing docs**
 (site `/docs`, `templates/botarena-bot/README.md` — NOT the engine source), then
-compete. This evaluates both the docs and the full pipeline; the tournament is the fun part.
+fight the reigning champions for the title. This evaluates the docs and the full
+pipeline; the tournament is the fun part.
+
+**Default: ONE challenger.** A tournament agent costs ~200-400k tokens per
+phase, so a 3-agent bracket runs 1.5-2M+ and triples wall-clock (and restart
+exposure). Since champions are seeded server bots (DECISIONS #43), a single
+challenger vs the champion lineage is a full title fight. Use a multi-agent
+bracket (3-4 personas) ONLY when explicitly requested, or when a balance
+verdict needs archetype diversity (distinct doctrines fighting each other —
+frozen champions can't co-evolve).
 
 ## 1. Boot the environment
 
@@ -58,10 +67,12 @@ to every agent brief — for energy:
 > observable — count their shots. Sustained fire is therefore ~1 shot per 6
 > ticks; bursts of 3 are available from full. Manage it or run dry mid-fight.
 
-## 2. Fan out competitor agents (parallel, isolation: worktree not needed)
+## 2. Launch the challenger(s)
 
-Give each agent: a persona (aggressive / evasive / ambusher / adaptive), a distinct
-bot name + accent, a working dir `sandbox/agents/<name>`, and this brief:
+Give each agent: a persona (one challenger: pick the archetype most relevant
+to what this run tests; bracket mode: aggressive / evasive / ambusher /
+adaptive), a distinct bot name + accent, a working dir `sandbox/agents/<name>`,
+and this brief:
 
 > Read site docs (`curl -s localhost:8080/docs` renders SPA — instead read
 > `web/src/site/pages/DocsPage.tsx` and `templates/botarena-bot/README.md`) and
@@ -97,6 +108,11 @@ each agent's state.json supplies its botId + cookie jar), waits for all sets,
 and prints scores + the leaderboard. Rerun it after each improvement
 iteration — elo accumulates. The champions' set results ARE the baseline —
 don't bother with hunter sets.
+
+Single-challenger experiment runs: also run a MIRROR set — the challenger vs
+its own submitted artifact (`botarena set --bot <srcDir> --opponent
+var/artifacts/<serverHash>.wasm --rules <exp>`) — as the aware-vs-aware data
+point a one-agent bracket otherwise lacks.
 
 ## 3.5 Improvement iterations (3-4 rounds)
 
