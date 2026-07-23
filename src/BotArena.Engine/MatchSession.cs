@@ -56,15 +56,20 @@ public sealed class MatchSession
     {
         var bot = State.Bots[slot];
         var map = State.Map;
-        var visible = Visibility.ComputeVisibleTiles(map, bot.Position, State.Rules.VisionRange);
+        var visible = Visibility.ComputeVisibleTiles(map, bot.Position, State.Rules.VisionRange,
+            State.Rules.VisionCone ? bot.Facing : null);
         var visibleSet = new HashSet<Position>(visible);
         var tiles = visible.Select(p => new ObservedTile(p, map.IsWall(p))).ToArray();
         var enemies = State.Bots
             .Where(other => other.Slot != slot && other.IsActive && visibleSet.Contains(other.Position))
             .Select(other => new ObservedBot(other.Slot, other.Position, other.Facing, other.Health))
             .ToArray();
+        // Loud events carry within HearingRadius regardless of sight (RULES-0.5-DESIGN §A);
+        // quiet events (Turn/Move/MoveBlocked) stay sight-gated.
         var events = _lastTickEvents
-            .Where(e => e.ReferencePositions().Any(visibleSet.Contains))
+            .Where(e => e.ReferencePositions().Any(visibleSet.Contains)
+                || (State.Rules.HearingRadius > 0 && IsLoud(e.Type)
+                    && e.ReferencePositions().Any(p => bot.Position.ChebyshevDistance(p) <= State.Rules.HearingRadius)))
             .ToArray();
         return new BotObservation
         {
@@ -85,9 +90,18 @@ public sealed class MatchSession
             PreviousActionResult = bot.LastActionResult,
             VisibleTiles = tiles,
             VisibleEnemies = enemies,
+            VisibleProjectiles = State.Rules.ProjectileTicksPerTile > 0
+                ? State.Projectiles
+                    .Where(p => visibleSet.Contains(p.Position))
+                    .Select(p => new ObservedProjectile(p.Position, p.Direction, p.OwnerSlot))
+                    .ToArray()
+                : null,
             VisibleEvents = events,
         };
     }
+
+    private static bool IsLoud(GameEventType type) => type is GameEventType.Shot
+        or GameEventType.Damage or GameEventType.Destroyed or GameEventType.Disqualified;
 
     /// <summary>Steps 3–11 of §4.7. Decisions must be indexed by slot.</summary>
     public TickResult Step(IReadOnlyList<BotDecision> decisions)
@@ -161,8 +175,16 @@ public sealed class MatchSession
         // 5. Resolve movement (§4.8).
         ResolveMovement(validated, results, events);
 
-        // 6.–7. Resolve shooting from post-movement state; apply damage simultaneously.
-        var shotThisTick = ResolveShooting(validated, events);
+        // 5.5 Bolts in flight advance and hit against post-move positions
+        // (RULES-0.5-DESIGN §B) — before new shots spawn, so a fresh bolt never
+        // moves on its spawn tick.
+        var pendingHits = new List<(int TargetSlot, int BySlot)>();
+        if (State.Rules.ProjectileTicksPerTile > 0 && State.Projectiles.Count > 0)
+            AdvanceProjectiles(pendingHits);
+
+        // 6.–7. Resolve shooting from post-movement state; apply damage simultaneously
+        // (bolt occupancy hits land in the same simultaneous batch).
+        var shotThisTick = ResolveShooting(validated, events, pendingHits);
 
         // 8. Update cooldowns and energy (shots spend first, then the regen cadence).
         for (int slot = 0; slot < n; slot++)
@@ -315,12 +337,53 @@ public sealed class MatchSession
         }
     }
 
-    private bool[] ResolveShooting(BotAction[] validated, List<GameEvent> events)
+    /// <summary>Advances bolts in flight and collects occupancy hits (RULES-0.5-DESIGN
+    /// §B). Runs after movement, before new shots: a bolt sharing a tile with an active
+    /// non-owner bot — whether the bolt advanced onto it or the bot walked into it —
+    /// is a hit. Bolts despawn on walls, hits, or after ShotRange tiles.</summary>
+    private void AdvanceProjectiles(List<(int TargetSlot, int BySlot)> pendingHits)
+    {
+        var bots = State.Bots;
+        var alive = new List<ProjectileState>();
+        foreach (var bolt in State.Projectiles)
+        {
+            bolt.Phase++;
+            bool despawn = false;
+            if (bolt.Phase >= State.Rules.ProjectileTicksPerTile)
+            {
+                bolt.Phase = 0;
+                var (dx, dy) = bolt.Direction.Vector();
+                var next = bolt.Position.Offset(dx, dy);
+                if (State.Map.IsWall(next))
+                    despawn = true;
+                else
+                {
+                    bolt.Position = next;
+                    bolt.TilesTraveled++;
+                    if (State.Rules.ShotRange > 0 && bolt.TilesTraveled >= State.Rules.ShotRange)
+                        despawn = true; // lethal on this, its final, tile — checked below
+                }
+            }
+            var victim = bots.FirstOrDefault(b =>
+                b.Slot != bolt.OwnerSlot && b.IsActive && b.Position == bolt.Position);
+            if (victim is not null)
+            {
+                pendingHits.Add((victim.Slot, bolt.OwnerSlot));
+                continue; // bolt consumed by the hit
+            }
+            if (!despawn)
+                alive.Add(bolt);
+        }
+        State.Projectiles.Clear();
+        State.Projectiles.AddRange(alive);
+    }
+
+    private bool[] ResolveShooting(BotAction[] validated, List<GameEvent> events,
+        List<(int TargetSlot, int BySlot)> pendingHits)
     {
         var bots = State.Bots;
         int n = bots.Count;
         var shotThisTick = new bool[n];
-        var pendingHits = new List<(int TargetSlot, int BySlot)>();
 
         for (int slot = 0; slot < n; slot++)
         {
@@ -329,6 +392,34 @@ public sealed class MatchSession
             shotThisTick[slot] = true;
             var shooter = bots[slot];
             var (dx, dy) = shooter.Facing.Vector();
+
+            if (State.Rules.ProjectileTicksPerTile > 0)
+            {
+                // Projectile mode: spawn a bolt on the first tile in facing. Walls
+                // swallow it; a point-blank occupant is an immediate hit (matching
+                // the instant ray at range 1); otherwise it enters flight.
+                var spawn = shooter.Position.Offset(dx, dy);
+                if (State.Map.IsWall(spawn))
+                {
+                    events.Add(GameEvent.Shot(slot, shooter.Position, spawn, null));
+                    continue;
+                }
+                var pointBlank = bots.FirstOrDefault(b =>
+                    b.Slot != slot && b.IsActive && b.Position == spawn);
+                events.Add(GameEvent.Shot(slot, shooter.Position, spawn, pointBlank?.Slot));
+                if (pointBlank is not null)
+                    pendingHits.Add((pointBlank.Slot, slot));
+                else
+                    State.Projectiles.Add(new ProjectileState
+                    {
+                        Position = spawn,
+                        Direction = shooter.Facing,
+                        OwnerSlot = slot,
+                        TilesTraveled = 1,
+                    });
+                continue;
+            }
+
             var current = shooter.Position;
             int? hitSlot = null;
             int traveled = 0;

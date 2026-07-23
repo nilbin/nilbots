@@ -4,6 +4,8 @@ public readonly record struct ObservedTile(Position Position, bool IsWall);
 
 public readonly record struct ObservedBot(int Slot, Position Position, Direction Facing, int Health);
 
+public readonly record struct ObservedProjectile(Position Position, Direction Direction, int OwnerSlot);
+
 /// <summary>
 /// Everything a bot is allowed to know on one tick (plan §4.5). Built from the pre-tick state;
 /// never contains the full map or the opponent's pending action.
@@ -30,6 +32,9 @@ public sealed class BotObservation
     public required ActionResult PreviousActionResult { get; init; }
     public required IReadOnlyList<ObservedTile> VisibleTiles { get; init; }
     public required IReadOnlyList<ObservedBot> VisibleEnemies { get; init; }
+    /// <summary>Bolts in flight on visible tiles; null when these rules have instant
+    /// shots (no projectile system).</summary>
+    public IReadOnlyList<ObservedProjectile>? VisibleProjectiles { get; init; }
     /// <summary>Previous-tick events whose reference positions are inside the current field of view.</summary>
     public required IReadOnlyList<GameEvent> VisibleEvents { get; init; }
 }

@@ -99,11 +99,20 @@ export interface ReplayBotState {
   energy?: number;
 }
 
+/** Present only under projectile rules; omitted for instant-shot replays. */
+export interface ReplayProjectile {
+  x: number;
+  y: number;
+  direction: Direction;
+  ownerSlot: number;
+}
+
 export interface ReplayTick {
   tick: number;
   bots: ReplayBotTick[];
   events: GameEvent[];
   state: ReplayBotState[];
+  projectiles?: ReplayProjectile[];
 }
 
 export interface BotMatchResult {

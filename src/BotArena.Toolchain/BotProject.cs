@@ -31,9 +31,11 @@ public static class ToolchainInfo
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
     // (RULES-0.3-DESIGN). All carried as trailing observation sections / additive
     // action values, so the wire protocol stays 0.1 and older artifacts keep running.
-    public const string SdkVersion = "0.4.0";
+    // 0.5.0: VisibleProjectiles (trailing P section) for the 0.5 watchability slate
+    // (RULES-0.5-DESIGN) — same additive pattern, wire protocol still 0.1.
+    public const string SdkVersion = "0.5.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.4.0";
+    public const string GuestAdapterVersion = "0.5.0";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

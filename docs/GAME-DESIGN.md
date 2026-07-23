@@ -267,8 +267,11 @@ already punishes hiding); THE VANGUARD PUSH — advance behind a slow bolt
 ANTI-PLAY (must NOT survive): THE RADAR STATUE — a wall-backed optimal
 scanner no composition of squeeze/flush/backstab can evict = 0.5 failed
 its own goal.
-Next step when called: RULES-0.5 design doc → GameRules flags → harness →
-gen-6 tournament of cone-and-projectile-aware bots.
+Status: IMPLEMENTED behind flags (DECISIONS #56) — design doc, engine,
+SDK 0.5.0, viewer bolts, play-acceptance tests, 4-arm mechanical harness
+(conebolts: 3% draws, the lowest arm ever recorded; combo beats both
+singles). Remaining: the gen-6 tournament of 0.5-aware bots = the ship
+verdict.
 
 Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
 Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions

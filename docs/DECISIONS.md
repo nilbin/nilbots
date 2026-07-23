@@ -398,6 +398,35 @@ configuration) and changing them is a version bump, not an edit.
     0.4's meta has real depth, not a single dominant trick. Dethroned
     champions remain in champions/ per the ladder-of-history rule.
 
+56. **Rules 0.5 slate implemented behind flags: cone vision + projectiles
+    (RULES-0.5-DESIGN).** Arms `cone` (90° facing quadrant + Chebyshev-1
+    proximity ring + hearing radius 8 for loud events), `bolts`
+    (projectiles: spawn adjacent, advance 1 tile/2 ticks, tile-lethal,
+    owner-immune, point-blank instant), `conebolts` (both); all carry
+    SpawnAttempts 256 (fixes the gen-5 fairness-fallback finding, rules-
+    gated). Zero wire change — trailing `P` observation section; SDK/
+    GuestAdapter 0.5.0; rules 0.1-0.4 bit-identical (full suite green,
+    110 tests). The executable plays are ENGINE TESTS: Backstab connects
+    unseen, a tile-holding camper is hit by a bolt, and the documented
+    counter-surf limit holds exactly (PlayAcceptanceTests) — the spec's
+    promises are pinned, not prose. Mechanical harness (gen-5 population,
+    0.5-blind, 60 games/arm, fixed seeds):
+
+    | arm       | draw% | elims | med tick | avg tick |
+    | --------- | ----- | ----- | -------- | -------- |
+    | 0.4 ctrl  | 7%    | 13    | 160      | 260      |
+    | cone      | 10%   | 19    | 160      | 208      |
+    | bolts     | 12%   | 20    | 157      | 217      |
+    | conebolts | **3%**| 17    | 159      | 217      |
+
+    Nothing breaks with unaware bots; combat is already deadlier (unseen
+    approaches land, old dodge models mistime bolts); the COMBO lowers
+    draws below every arm in recorded history while each mechanic alone
+    raises them slightly — first evidence for the pairing hypothesis.
+    Ship decision awaits the real verdict: a gen-6 tournament of bots
+    written FOR 0.5 (owner drives it on a different model), per the
+    0.3/0.4 pattern.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

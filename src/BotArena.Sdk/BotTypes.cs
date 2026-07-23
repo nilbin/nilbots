@@ -80,6 +80,11 @@ public readonly record struct VisibleTile(Position Position, bool IsWall);
 
 public sealed record VisibleEnemy(int Slot, Position Position, Direction Facing, int Health);
 
+/// <summary>A bolt in flight on a tile you can see. Bolts occupy their tile — standing
+/// on or stepping onto one is a hit — and advance along their direction on a fixed
+/// cadence. A bolt never hits the bot that fired it.</summary>
+public sealed record VisibleProjectile(Position Position, Direction Direction, int OwnerSlot);
+
 public enum VisibleEventKind
 {
     Turn,

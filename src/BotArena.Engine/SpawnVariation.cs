@@ -32,7 +32,7 @@ public static class SpawnVariation
             : null;
 
         int minDistance = Math.Max(map.Width, map.Height) / 2;
-        for (int attempt = 0; attempt < 64; attempt++)
+        for (int attempt = 0; attempt < rules.SpawnAttempts; attempt++)
         {
             var a = floors[random.NextInt(0, floors.Count)];
             var b = floors[random.NextInt(0, floors.Count)];

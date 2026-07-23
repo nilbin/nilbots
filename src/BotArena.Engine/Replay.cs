@@ -58,12 +58,18 @@ public sealed record ReplayBotState(
     int Slot, int X, int Y, Direction Facing, int Health, int Cooldown, BotStatus Status,
     int? Energy = null);
 
+/// <summary>Null (omitted) under instant-shot rules, so pre-projectile replay hashes
+/// are unaffected.</summary>
+public sealed record ReplayProjectile(int X, int Y, Direction Direction, int OwnerSlot);
+
 public sealed record ReplayTick
 {
     public required int Tick { get; init; }
     public required IReadOnlyList<ReplayBotTick> Bots { get; init; }
     public required IReadOnlyList<GameEvent> Events { get; init; }
     public required IReadOnlyList<ReplayBotState> State { get; init; }
+    /// <summary>Bolts in flight after this tick resolved; null under instant-shot rules.</summary>
+    public IReadOnlyList<ReplayProjectile>? Projectiles { get; init; }
 }
 
 public sealed record Replay

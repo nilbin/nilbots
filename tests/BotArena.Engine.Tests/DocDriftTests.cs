@@ -45,6 +45,7 @@ public class DocDriftTests
         string ts = ReadRepoFile("web", "src", "types.ts");
         Type[] records = [typeof(ReplayHeader), typeof(ReplayParticipant), typeof(ReplayBotTick),
                           typeof(ReplayBotState), typeof(ReplayVisibleEnemy), typeof(GameEvent),
+                          typeof(ReplayTick), typeof(ReplayProjectile),
                           typeof(MatchResultInfo), typeof(BotMatchResult)];
         foreach (var type in records)
             foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))

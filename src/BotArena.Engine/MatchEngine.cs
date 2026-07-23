@@ -153,6 +153,11 @@ public sealed class MatchEngine
             Bots = bots,
             Events = tickResult.Events,
             State = snapshots,
+            Projectiles = state.Rules.ProjectileTicksPerTile > 0
+                ? state.Projectiles
+                    .Select(p => new ReplayProjectile(p.Position.X, p.Position.Y, p.Direction, p.OwnerSlot))
+                    .ToArray()
+                : null,
         };
     }
 

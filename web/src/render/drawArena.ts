@@ -46,6 +46,7 @@ export function drawArena(
   drawZone();
   drawWalls();
   if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
+  drawProjectiles();
   drawShadowsAndBots();
   drawShots();
   drawImpacts();
@@ -118,6 +119,48 @@ export function drawArena(
         ctx.lineWidth = 1;
         ctx.strokeRect(px(x) + 0.5, py(y) + 0.5, tile - 1, tile - 1);
       }
+    }
+  }
+
+  function drawProjectiles(): void {
+    // Bolts in flight (projectile rules): a glowing dart in the owner's accent with a
+    // short trail against its travel direction. Drawn at tick positions — the engine's
+    // discrete truth — with a soft pulse so slow bolts read as live threats.
+    const bolts = currentTick.projectiles;
+    if (!bolts || bolts.length === 0) return;
+    // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
+    // (an unseen bolt is precisely the threat it doesn't know about).
+    const seen =
+      fogSource !== undefined
+        ? new Set(fogSource.visibleTiles.map(([x, y]) => `${x},${y}`))
+        : null;
+    for (const bolt of bolts) {
+      if (seen !== null && !seen.has(`${bolt.x},${bolt.y}`)) continue;
+      const accent = participants[bolt.ownerSlot]?.accent ?? '#38bdf8';
+      const cx = px(bolt.x) + tile / 2;
+      const cy = py(bolt.y) + tile / 2;
+      const angle = { North: -Math.PI / 2, East: 0, South: Math.PI / 2, West: Math.PI }[
+        bolt.direction
+      ];
+      const pulse = 0.75 + 0.25 * Math.sin(fraction * Math.PI);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.35 * pulse);
+      ctx.lineWidth = Math.max(2, tile * 0.08);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-tile * 0.42, 0);
+      ctx.lineTo(-tile * 0.1, 0);
+      ctx.stroke();
+      ctx.fillStyle = hexWithAlpha(accent, 0.95 * pulse);
+      ctx.beginPath();
+      ctx.moveTo(tile * 0.22, 0);
+      ctx.lineTo(-tile * 0.1, -tile * 0.12);
+      ctx.lineTo(-tile * 0.1, tile * 0.12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     }
   }
 

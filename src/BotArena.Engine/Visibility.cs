@@ -22,6 +22,13 @@ public static class Visibility
     }
 
     public static List<Position> ComputeVisibleTiles(ArenaMap map, Position origin, int range)
+        => ComputeVisibleTiles(map, origin, range, facing: null);
+
+    /// <summary>With a facing, sight is directional (RULES-0.5-DESIGN §A): the 90°
+    /// quadrant toward the facing (forward ≥ 0 and |lateral| ≤ forward, diagonal edges
+    /// included) plus a Chebyshev-1 omnidirectional proximity ring. Range and
+    /// corner-strict LOS apply in both modes.</summary>
+    public static List<Position> ComputeVisibleTiles(ArenaMap map, Position origin, int range, Direction? facing)
     {
         var result = new List<Position>();
         for (int y = origin.Y - range; y <= origin.Y + range; y++)
@@ -31,11 +38,26 @@ public static class Visibility
                 if (x < 0 || y < 0 || x >= map.Width || y >= map.Height)
                     continue;
                 var target = new Position(x, y);
+                if (facing is Direction cone && !InCone(origin, target, cone))
+                    continue;
                 if (HasLineOfSight(map, origin, target))
                     result.Add(target);
             }
         }
         return result;
+    }
+
+    /// <summary>Cone membership: inside the facing quadrant, or within the Chebyshev-1
+    /// proximity ring (point-blank is never blind).</summary>
+    public static bool InCone(Position origin, Position target, Direction facing)
+    {
+        int dx = target.X - origin.X, dy = target.Y - origin.Y;
+        if (Math.Max(Math.Abs(dx), Math.Abs(dy)) <= 1)
+            return true;
+        var (fx, fy) = facing.Vector();
+        int forward = dx * fx + dy * fy;
+        int lateral = Math.Abs(dx * fy) + Math.Abs(dy * fx); // one term is always zero
+        return forward >= 0 && lateral <= forward;
     }
 
     /// <summary>

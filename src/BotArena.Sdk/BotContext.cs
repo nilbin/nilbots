@@ -55,15 +55,25 @@ public sealed class BotContext
     /// <summary>Every tile you can currently see (Chebyshev range 6, corner-strict wall
     /// blocking). WARNING: even a diagonally adjacent wall can be outside this list when
     /// the sight line clips another wall's corner — remember the map yourself if you need
-    /// terrain knowledge beyond the current cone.</summary>
+    /// terrain knowledge beyond the current cone. Under rules with directional vision,
+    /// sight is the 90° quadrant toward your facing plus the adjacent ring — turning is
+    /// also looking, and your back is genuinely blind.</summary>
     public required IReadOnlyList<VisibleTile> VisibleTiles { get; init; }
 
     public required IReadOnlyList<VisibleEnemy> VisibleEnemies { get; init; }
 
+    /// <summary>Bolts in flight on tiles you can see, or null when these rules have
+    /// instant shots (no projectile system). When non-null, dodge them like rays that
+    /// take time: a bolt's tile is lethal, and it advances along its direction on a
+    /// fixed cadence you can observe across ticks.</summary>
+    public IReadOnlyList<VisibleProjectile>? VisibleProjectiles { get; init; }
+
     /// <summary>What happened LAST tick, filtered by your CURRENT vision: an event is
     /// delivered when any of its reference positions is on a tile you can see now. Shots
     /// are delivered even when the shooter itself is beyond your vision, as long as part
-    /// of the ray's start/end is visible — muzzle flashes carry information.</summary>
+    /// of the ray's start/end is visible — muzzle flashes carry information. Under rules
+    /// with hearing, LOUD events (shots, damage, destruction) also arrive from beyond
+    /// your sight when within the hearing radius — sound has no facing.</summary>
     public required IReadOnlyList<VisibleEvent> VisibleEvents { get; init; }
 
     /// <summary>The only permitted randomness: seeded from the match seed and your slot,

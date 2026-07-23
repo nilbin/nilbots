@@ -82,6 +82,27 @@ public sealed record GameRules
     /// under exclusive accrual first arrival is a real per-game edge).</summary>
     public bool ZoneSpawnFairness { get; init; }
 
+    /// <summary>Seed-spawn sampler attempts before falling back to the map's fixed
+    /// spawns (which bypass every constraint — gen-5 finding #1). Gameplay-affecting,
+    /// hence a rules value: 64 legacy, raised under 0.5 arms.</summary>
+    public int SpawnAttempts { get; init; } = 64;
+
+    /// <summary>Directional vision (RULES-0.5-DESIGN §A): sight is the 90° quadrant in
+    /// the facing direction plus a Chebyshev-1 omnidirectional proximity ring, still
+    /// range- and LOS-limited. Off = classic omnidirectional sight.</summary>
+    public bool VisionCone { get; init; }
+
+    /// <summary>Loud events (Shot/Damage/Destroyed/Disqualified) are delivered within
+    /// this Chebyshev radius regardless of sight (RULES-0.5-DESIGN §A: the Decoy Shot
+    /// needs out-of-cone signals). 0 = off; quiet events stay sight-gated always.</summary>
+    public int HearingRadius { get; init; }
+
+    /// <summary>Projectile travel (RULES-0.5-DESIGN §B): a shot spawns a bolt that
+    /// occupies its tile (lethal to non-owners standing on or entering it) and advances
+    /// one tile every this-many ticks, despawning on walls or after ShotRange tiles.
+    /// 0 = instant rays (legacy). Deliberately slow values make bolts zoning tools.</summary>
+    public int ProjectileTicksPerTile { get; init; }
+
     public static GameRules V0_1 => new() { RulesVersion = "0.1" };
 
     /// <summary>Rules 0.2 = 0.1 + seed-spawn variation. Pinned by the A/B balance run of
@@ -128,7 +149,7 @@ public sealed record GameRules
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
     public static readonly IReadOnlyList<string> KnownNames =
-        ["0.4", "0.3", "0.2", "0.1", "strafe", "hill", "hill-shared", "slate", "energy"];
+        ["0.4", "0.3", "0.2", "0.1", "cone", "bolts", "conebolts", "strafe", "hill", "hill-shared", "slate", "energy"];
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
@@ -140,6 +161,29 @@ public sealed record GameRules
         "0.3" => V0_3,
         "0.2" => V0_2,
         "0.1" => V0_1,
+        // The 0.5 watchability slate (RULES-0.5-DESIGN): cone vision and projectiles,
+        // separately and combined — the harness + gen-6 tournament decide the ship.
+        "cone" => V0_4 with
+        {
+            RulesVersion = "0.5-exp-cone",
+            VisionCone = true,
+            HearingRadius = 8,
+            SpawnAttempts = 256,
+        },
+        "bolts" => V0_4 with
+        {
+            RulesVersion = "0.5-exp-bolts",
+            ProjectileTicksPerTile = 2,
+            SpawnAttempts = 256,
+        },
+        "conebolts" => V0_4 with
+        {
+            RulesVersion = "0.5-exp-conebolts",
+            VisionCone = true,
+            HearingRadius = 8,
+            ProjectileTicksPerTile = 2,
+            SpawnAttempts = 256,
+        },
         "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
         // The hill experiment graduated to official 0.4 (DECISIONS #53); "hill" stays
         // as an alias so gen-4 project pins and scripts keep working. hill-shared

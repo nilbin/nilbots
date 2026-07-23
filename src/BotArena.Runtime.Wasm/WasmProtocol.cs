@@ -56,7 +56,7 @@ public static class WasmProtocol
             builder.Append(' ').Append((int)gameEvent.Type).Append(':')
                 .Append(gameEvent.Slot ?? -1).Append(':').Append(position.X).Append(':').Append(position.Y);
         }
-        // Optional trailing sections, in fixed order (E, M, Z, ZT). Appended LAST so
+        // Optional trailing sections, in fixed order (E, M, Z, ZT, P). Appended LAST so
         // protocol-0.1 guests — which parse exactly the tokens they expect and never
         // index further — remain compatible (same trick as the optional botName).
         if (observation.Energy is int energy)
@@ -70,6 +70,13 @@ public static class WasmProtocol
                 builder.Append(' ').Append(tile.X).Append(':').Append(tile.Y);
             builder.Append(" ZT ").Append(observation.MyZoneTicks ?? 0)
                 .Append(' ').Append(observation.EnemyZoneTicks ?? 0);
+        }
+        if (observation.VisibleProjectiles is not null)
+        {
+            builder.Append(" P ").Append(observation.VisibleProjectiles.Count);
+            foreach (var bolt in observation.VisibleProjectiles)
+                builder.Append(' ').Append(bolt.Position.X).Append(':').Append(bolt.Position.Y)
+                    .Append(':').Append((int)bolt.Direction).Append(':').Append(bolt.OwnerSlot);
         }
         return builder.ToString();
     }

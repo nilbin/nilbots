@@ -89,6 +89,10 @@ internal static class SdkModelMapper
             ZoneTiles = observation.ZoneTiles?.Select(p => new Sdk.Position(p.X, p.Y)).ToArray(),
             MyZoneTicks = observation.MyZoneTicks,
             EnemyZoneTicks = observation.EnemyZoneTicks,
+            VisibleProjectiles = observation.VisibleProjectiles
+                ?.Select(p => new Sdk.VisibleProjectile(
+                    new Sdk.Position(p.Position.X, p.Position.Y), ToSdkDirection(p.Direction), p.OwnerSlot))
+                .ToArray(),
             PreviousActionResult = ToSdkResult(observation.PreviousActionResult),
             VisibleTiles = observation.VisibleTiles
                 .Select(t => new Sdk.VisibleTile(new Sdk.Position(t.Position.X, t.Position.Y), t.IsWall))

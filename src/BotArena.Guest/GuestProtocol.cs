@@ -67,7 +67,8 @@ internal static class GuestProtocol
         }
 
         // Optional trailing sections (additive, protocol 0.1-compatible), fixed order:
-        // "E <energy>", "M <w> <h>", "Z <n> x:y ... ZT <mine> <theirs>".
+        // "E <energy>", "M <w> <h>", "Z <n> x:y ... ZT <mine> <theirs>",
+        // "P <n> x:y:dir:owner ...".
         int? energy = null;
         if (index < parts.Length && parts[index] == "E")
         {
@@ -97,11 +98,23 @@ internal static class GuestProtocol
             myZoneTicks = Next();
             enemyZoneTicks = Next();
         }
+        VisibleProjectile[]? projectiles = null;
+        if (index < parts.Length && parts[index] == "P")
+        {
+            index++;
+            int boltCount = Next();
+            projectiles = new VisibleProjectile[boltCount];
+            for (int i = 0; i < boltCount; i++)
+            {
+                var f = Fields(4);
+                projectiles[i] = new VisibleProjectile(new Position(f[0], f[1]), (Direction)f[2], f[3]);
+            }
+        }
 
         return new ParsedObservation(
             tick, new Position(x, y), (Direction)facing, health, cooldown,
             (ActionResult)previous, tiles, enemies, events, energy,
-            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks);
+            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks, projectiles);
 
         void Expect(string marker)
         {
@@ -136,7 +149,8 @@ internal static class GuestProtocol
         int MapHeight,
         IReadOnlyList<Position>? ZoneTiles,
         int? MyZoneTicks,
-        int? EnemyZoneTicks);
+        int? EnemyZoneTicks,
+        IReadOnlyList<VisibleProjectile>? VisibleProjectiles = null);
 
     public static string FormatDecision(BotAction action, string? debug)
     {
