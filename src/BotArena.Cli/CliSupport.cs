@@ -5,10 +5,11 @@ namespace BotArena.Cli;
 
 public static class CliSupport
 {
-    /// <summary>--rules 0.2 (default) | 0.1 | energy — see GameRules.Resolve.</summary>
+    /// <summary>--rules 0.3 (default) | 0.2 | 0.1 | strafe | hill | slate | energy —
+    /// see GameRules.Resolve.</summary>
     public static GameRules ResolveRules(Dictionary<string, string> options)
     {
-        var rules = GameRules.Resolve(options.GetValueOrDefault("rules", "0.2"));
+        var rules = GameRules.Resolve(options.GetValueOrDefault("rules", "0.3"));
         if (options.TryGetValue("max-ticks", out string? maxTicks))
             rules = rules with { MaxTicks = int.Parse(maxTicks, CultureInfo.InvariantCulture) };
         return rules;

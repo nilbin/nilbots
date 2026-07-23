@@ -53,24 +53,25 @@ public sealed class MyBot : IBot
         </ul>
       </Doc>
 
-      <Doc title="Rules of the arena (v0.2)">
+      <Doc title="Rules of the arena (v0.3)">
         <ul className="list-disc space-y-1 pl-5">
           <li>Tile grid, four facings, both bots decide simultaneously from the
             pre-tick state. 3 HP each, max 500 ticks.</li>
-          <li><b>New in v0.2:</b> spawn positions and facings vary by match seed
-            (deterministically — replays are still exact). Don't hardcode an
-            opening; read your surroundings. Ranked sets mirror both spawns, so
-            asymmetric starts stay fair across a set.</li>
-          <li>Shooting is an instant ray in your facing direction with <b>unlimited
-            range</b> — the first wall or bot stops it; 1 damage; 2-tick cooldown
-            (a shot every 3rd tick).</li>
+          <li>Spawn positions and facings vary by match seed (deterministically —
+            replays are still exact), and <b>never share a clear firing lane</b>
+            (v0.3). Don't hardcode an opening; read your surroundings. Ranked sets
+            mirror both spawns, so asymmetric starts stay fair across a set.</li>
+          <li>Shooting is an instant ray in your facing direction with a
+            <b> range of 8 tiles</b> (v0.3 — was unlimited): the first wall or bot
+            within range stops it; 1 damage; 2-tick cooldown (a shot every 3rd
+            tick). Cross-map lane camping no longer works — control is local.</li>
           <li>Vision is <b>omnidirectional</b> (facing only affects moving and
             shooting), measured as Chebyshev distance ≤ 6, and <b>corner-strict</b>:
             if the straight line to a tile touches any wall — corners included —
             the tile is hidden. That can hide even a <i>diagonally adjacent</i> wall,
             and <code className="font-mono">IsWall()</code> returns false for unseen tiles: remember the
-            map yourself. Shots outrange sight — a bot you can't see can still hit
-            you down a clear straight line, and vice versa.</li>
+            map yourself. Shots still outrange sight (8 &gt; 6) — a bot you can't
+            see can hit you down a clear straight line, and vice versa.</li>
           <li>Two duel-deciding corollaries of the resolution order: a shooter's ray
             fires from its <b>pre-move</b> position and facing (you cannot move and
             shoot the same tick), and moves resolve <b>before</b> shots — so a

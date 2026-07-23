@@ -82,34 +82,40 @@ public sealed record GameRules
         SeedSpawnVariation = true,
     };
 
-    /// <summary>The 0.3 candidate slate (RULES-0.3-DESIGN): range cap + strafe + zone
-    /// control + lane-safe spawns. NOT the default until the balance harness ships it.</summary>
+    /// <summary>Rules 0.3 = 0.2 + shot range cap + lane-safe spawns — the slate subset
+    /// the 300-game harness shipped (DECISIONS #49): draws 38% → 22%, median game
+    /// 153 → 120 ticks, eliminations intact. Strafe and zone control measured
+    /// draw-positive/length-positive with this population and stay behind their
+    /// experiment arms (strafe: oscillation dodging; hill: needs zone-aware bots).</summary>
     public static GameRules V0_3 => V0_2 with
     {
         RulesVersion = "0.3",
         ShotRange = 8,
-        AllowStrafe = true,
-        ZoneControl = true,
-        ZoneDominationTicks = 150,
         SpawnLaneSafety = true,
     };
 
     /// <summary>The version new matches play. Historical versions stay constructible for
     /// replay verification and A/B harness runs.</summary>
-    public static GameRules Current => V0_2;
+    public static GameRules Current => V0_3;
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
-    /// strings (they flow into replays and seed derivation). The single-feature arms
-    /// (range/strafe/hill) isolate one 0.3 mechanic over 0.2 for A/B runs.</summary>
+    /// strings (they flow into replays and seed derivation); the held 0.3-slate
+    /// mechanics layer on the shipped 0.3 for future re-tests.</summary>
     public static GameRules Resolve(string name) => name switch
     {
+        "0.3" => V0_3,
         "0.2" => V0_2,
         "0.1" => V0_1,
-        "0.3" => V0_3,
-        "range" => V0_2 with { RulesVersion = "0.3-exp-range", ShotRange = 8, SpawnLaneSafety = true },
-        "strafe" => V0_2 with { RulesVersion = "0.3-exp-strafe", AllowStrafe = true },
-        "hill" => V0_2 with { RulesVersion = "0.3-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
+        "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
+        "hill" => V0_3 with { RulesVersion = "0.4-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
+        "slate" => V0_3 with
+        {
+            RulesVersion = "0.4-exp-slate",
+            AllowStrafe = true,
+            ZoneControl = true,
+            ZoneDominationTicks = 150,
+        },
         "energy" => V0_2 with
         {
             RulesVersion = "0.3-exp-energy",
@@ -117,6 +123,6 @@ public sealed record GameRules
             ShotEnergyCost = 2,
             EnergyRegenTicks = 3,
         },
-        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.2, 0.1, 0.3, range, strafe, hill, or energy)."),
+        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.3, 0.2, 0.1, strafe, hill, slate, or energy)."),
     };
 }

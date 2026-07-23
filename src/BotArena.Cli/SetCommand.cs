@@ -12,7 +12,7 @@ namespace BotArena.Cli;
 public static class SetCommand
 {
     // Mirrors RankedEndpoints.SetMaps — the server's ranked pool.
-    private static readonly string[] DefaultMaps = ["basic-01", "arena-01", "arena-01"];
+    private static readonly string[] DefaultMaps = ["basic-01", "arena-01", "crossfire-01"];
 
     public static int Run(IReadOnlyList<string> args)
     {
@@ -38,7 +38,7 @@ public static class SetCommand
                           $"({runtimeKind}, rules {rules.RulesVersion})");
         // Reproducibility (gen-3 finding): default seeds are random — echo the exact
         // flags so a before/after comparison can rerun this set instead of new dice.
-        Console.WriteLine($"Repro:  --maps {string.Join(',', maps)} --seeds {string.Join(',', seeds)} --rules {options.GetValueOrDefault("rules", "0.2")}");
+        Console.WriteLine($"Repro:  --maps {string.Join(',', maps)} --seeds {string.Join(',', seeds)} --rules {options.GetValueOrDefault("rules", "0.3")}");
         Console.WriteLine();
 
         double myScore = 0;

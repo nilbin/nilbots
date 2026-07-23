@@ -24,21 +24,22 @@ same sandbox the server uses) to confirm nothing changes.
 overwrite each other; `--out <dir>` pins a directory). Open the viewer in a
 browser, click your bot, and inspect what it saw and why it acted.
 
-## Rules that decide matches (v0.2)
+## Rules that decide matches (v0.3)
 
-- Spawn positions/facings vary by match seed (v0.2) — don't hardcode an
-  opening. Ranked sets play both spawns of the same seed, so starts are fair.
-
+- Spawn positions/facings vary by match seed and never share a clear firing
+  lane — don't hardcode an opening. Ranked sets play both spawns of the same
+  seed, so starts are fair.
 - 5 actions (Wait / MoveForward / TurnLeft / TurnRight / Shoot), one per tick,
   both bots decide simultaneously from the pre-tick state.
-- 3 HP. Shooting is an instant ray in your facing with **unlimited range** —
-  the first wall or bot stops it. 2-tick cooldown (a shot every 3rd tick).
+- 3 HP. Shooting is an instant ray in your facing with **range 8** (v0.3 —
+  cross-map lane camping is dead): the first wall or bot within range stops
+  it. 2-tick cooldown (a shot every 3rd tick).
 - Vision is omnidirectional (facing doesn't matter), Chebyshev range 6, and
   **corner-strict**: if the sight line touches a wall — corners included — the
   tile is hidden. Even a *diagonally adjacent* wall can be invisible, and
   `IsWall()` returns false for unseen tiles — remember the map yourself.
-  Shots outrange sight — you can be hit by (and hit) a bot you cannot see, if
-  it's straight ahead down a clear line.
+  Shots still outrange sight (8 > 6) — you can be hit by (and hit) a bot you
+  cannot see, if it's straight ahead down a clear line within range.
 - `context.Slot` is your slot; a `VisibleEvent.Slot` is the *acting* bot (for
   Damage: the dealer). Events describe last tick and are delivered when part
   of them is inside your current vision — distant muzzle flashes included.

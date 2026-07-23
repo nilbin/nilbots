@@ -12,7 +12,9 @@ public sealed record RankedChallengeRequest(Guid BotId, Guid OpponentBotId);
 public static class RankedEndpoints
 {
     /// <summary>The three map/seed pairs of a set; each is played twice with mirrored slots.</summary>
-    private static readonly string[] SetMaps = ["basic-01", "arena-01", "arena-01"];
+    // One game pair per pool map; crossfire-01 joined with rules 0.3 (broken
+    // sightlines — the map-side answer to lane suppression, RULES-0.3-DESIGN §F).
+    private static readonly string[] SetMaps = ["basic-01", "arena-01", "crossfire-01"];
 
     public static void MapRanked(this IEndpointRouteBuilder routes)
     {

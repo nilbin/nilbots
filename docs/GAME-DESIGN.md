@@ -106,7 +106,29 @@ lane (tick-0 hit before its first decision — basic-01 s5150). Mirrored sets
 keep it fair set-wise; still worth a no-mutual-lane constraint in
 SpawnVariation at the next rules bump.
 
-## Methodology: agent-arena is the balance harness
+## Rules 0.3 shipped: range cap + lane-safe spawns (2026-07-23)
+
+The basics review (RULES-0.3-DESIGN) went through the 5-arm harness: 5 bots
+(both champions + Metronome/Oracle/Switchblade), 3 maps incl. the new
+crossfire-01, fixed seeds, 60 games/arm:
+
+| arm            | draw% | med tick | elims |
+| -------------- | ----- | -------- | ----- |
+| 0.2 control    | 38%   | 153      | 52    |
+| range cap 8    | **22%** | **120** | 50    |
+| strafe         | 32%   | 278      | 48    |
+| hill           | 23%   | 302      | 41    |
+| full slate     | 33%   | 263      | 41    |
+
+**Shipped as rules 0.3: shot range 8 + spawn lane safety** — the only arm
+passing every criterion (draws nearly halved, games shorter, eliminations
+intact). crossfire-01 joined the ranked pool. **Strafe held**: the predicted
+oscillation-dodging materialized (games +80% length for −6pp draws).
+**Hill held for gen-4**: draws −15pp but games doubled with zone-IGNORANT
+bots — its fair test needs agents that contest the zone (`--rules hill`,
+implementation complete incl. viewer/SDK/docs-in-skill). The combined slate
+underperformed range alone — mechanics dilute each other; ship the winner,
+not the bundle.
 
 Before/after any candidate rule change, run the tournament (now fast:
 `BOTARENA_BROADCAST_TPS=250`, `BOTARENA_COMPILE_WORKERS=3`, DECISIONS #41/#42)

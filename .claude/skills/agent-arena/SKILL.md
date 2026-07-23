@@ -55,10 +55,21 @@ deployment.
 
 ### Running a rules-experiment tournament (e.g. the energy re-test)
 
-Add `BOTARENA_RULES=energy` to the app env in step 1 (the worker log line
-confirms the ruleset) and have agents test locally with `--rules energy`.
+Add `BOTARENA_RULES=<arm>` to the app env in step 1 (the worker log line
+confirms the ruleset) and have agents test locally with `--rules <arm>`.
 Player-facing docs only describe SHIPPED rules, so append the experiment spec
-to every agent brief — for energy:
+to every agent brief. For the HILL re-test (the named gen-4 confirmation,
+DECISIONS #49):
+
+> EXPERIMENTAL RULES for this tournament (on top of documented v0.3): ZONE
+> CONTROL. The map declares zone tiles (see `context.ZoneTiles`; your score is
+> `context.MyZoneTicks`, theirs `context.EnemyZoneTicks` — both public). Each
+> tick you stand on a zone tile while alive adds 1 zone-tick. Holding 150
+> zone-ticks wins immediately (Domination). At tick 500 the tiebreak is
+> zone-ticks → health → damage: a health lead WITHOUT the zone loses. The
+> zone is the objective; shooting is how you hold it.
+
+For energy re-tests:
 
 > EXPERIMENTAL RULES for this tournament (on top of the documented v0.2): you
 > have an energy meter, visible as `context.Energy` (max 6). Each shot costs 2

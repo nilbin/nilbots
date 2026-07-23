@@ -279,6 +279,22 @@ configuration) and changing them is a version bump, not an edit.
     stalemates, and fortresses with a health lead become unbreakable. The
     mechanic stays behind its flags as a reference failed candidate.
 
+49. **Rules 0.3 = shot range 8 + lane-safe spawns; strafe and hill held.**
+    The basics review (RULES-0.3-DESIGN) built four mechanics behind flags
+    and ran the pre-registered 5-arm harness (5 bots, 3 maps incl. new
+    crossfire-01, 60 games/arm). Range cap was the only arm passing every
+    ship criterion: draws 38% → 22%, median game 153 → 120 ticks,
+    eliminations intact — infinite lane suppression was the most indicted
+    basic and its removal measured cleanly. Strafe (−6pp draws, +80% game
+    length) exhibited the predicted oscillation-dodging and stays behind
+    `--rules strafe`. Zone control (−15pp draws, games ×2 with zone-IGNORANT
+    bots) stays behind `--rules hill` pending a gen-4 tournament of
+    zone-aware bots — its implementation (map-declared zones, Domination,
+    zone-first tiebreak, SDK/viewer support) is complete. The combined slate
+    underperformed range alone (mechanics dilute each other): ship winners
+    individually, not bundles. crossfire-01 joined the ranked pool; the
+    champions remain compatible (they simply lose their cross-map lanes).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
