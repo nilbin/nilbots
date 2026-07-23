@@ -251,6 +251,22 @@ stays: the squeeze costs 2 shots + ~8 non-accruing ticks, the camper can
 advance on the shooter mid-cycle, keep walls shorten lanes, and under
 cone vision wave two can arrive unseen. Falsification test: the gen-5
 fortress 90-0 freeze must be breakable under shipped 0.5 numbers.
+Further named plays (each pins a distinct spec parameter):
+THE BACKSTAB — unseen approach connects (pins cone angle + proximity
+ring); THE RED-LIGHT APPROACH — stalk a scanning defender (pins turn/
+sweep economics; a spinner can't keep its gun trained — eyes and muzzle
+are one resource); THE DECOY SHOT — flash one flank, strike the other
+(forces the hearing-radius decision: out-of-cone muzzle events within R
+tiles); THE CORNER FLUSH — a wall-backed scanner must still fall to
+suppression (no absolute defensive posture); THE SHEPHERD — bolt-deny a
+lane so the forced dodge lands in a pre-aimed one (pins two-threat
+windows under cooldown 2); THE VANISH — break LOS and genuinely escape,
+pursuer must guess (pins memory-divergence gameplay; the zone clock
+already punishes hiding); THE VANGUARD PUSH — advance behind a slow bolt
+(forces the bolt-bolt collision decision; lean pass-through for 0.5).
+ANTI-PLAY (must NOT survive): THE RADAR STATUE — a wall-backed optimal
+scanner no composition of squeeze/flush/backstab can evict = 0.5 failed
+its own goal.
 Next step when called: RULES-0.5 design doc → GameRules flags → harness →
 gen-6 tournament of cone-and-projectile-aware bots.
 
