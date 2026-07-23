@@ -44,6 +44,7 @@ export function drawArena(
 
   drawFloor();
   drawZone();
+  if (replay.header.visionCone) drawVisionCones();
   drawWalls();
   if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
   drawProjectiles();
@@ -119,6 +120,29 @@ export function drawArena(
         ctx.lineWidth = 1;
         ctx.strokeRect(px(x) + 0.5, py(y) + 0.5, tile - 1, tile - 1);
       }
+    }
+  }
+
+  function drawVisionCones(): void {
+    // Directional sight (rules with cone vision): a faint 90° wedge in each active
+    // bot's facing direction, in its accent — so "who is looking where, and who is in
+    // whose blind arc" reads at a glance. The exact per-tile cone (wall-accurate) is
+    // still available by selecting a bot with the field-of-view toggle.
+    const radius = replay.header.visionRange * tile;
+    for (const pose of poses) {
+      if (pose.status !== 'Active') continue;
+      const accent = participants[pose.slot]?.accent ?? '#38bdf8';
+      const cx = px(pose.x) + tile / 2;
+      const cy = py(pose.y) + tile / 2;
+      const gradient = ctx.createRadialGradient(cx, cy, tile * 0.4, cx, cy, radius);
+      gradient.addColorStop(0, hexWithAlpha(accent, 0.16));
+      gradient.addColorStop(1, hexWithAlpha(accent, 0));
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, radius, pose.angle - Math.PI / 4, pose.angle + Math.PI / 4);
+      ctx.closePath();
+      ctx.fill();
     }
   }
 

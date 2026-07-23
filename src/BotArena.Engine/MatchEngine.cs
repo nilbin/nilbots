@@ -179,6 +179,7 @@ public sealed class MatchEngine
             Seed = configuration.Seed,
             MaxTicks = configuration.Rules.MaxTicks,
             VisionRange = configuration.Rules.VisionRange,
+            VisionCone = configuration.Rules.VisionCone ? true : null,
             ZoneTiles = configuration.Rules.ZoneControl
                 ? map.EffectiveZone().Select(p => new[] { p.X, p.Y }).ToArray()
                 : null,

@@ -47,6 +47,8 @@ export interface ReplayHeader {
   seed: number;
   maxTicks: number;
   visionRange: number;
+  /** True when sight is the directional facing cone rather than omnidirectional. */
+  visionCone?: boolean;
   /** [x,y] pairs; present only when these rules have zone control (experiment arms). */
   zoneTiles?: number[][];
   participants: ReplayParticipant[];
