@@ -111,6 +111,11 @@ public sealed record GameRules
     /// replay verification and A/B harness runs.</summary>
     public static GameRules Current => V0_3;
 
+    /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
+    /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
+    public static readonly IReadOnlyList<string> KnownNames =
+        ["0.3", "0.2", "0.1", "strafe", "hill", "hill-shared", "slate", "energy"];
+
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
     /// strings (they flow into replays and seed derivation); the held 0.3-slate
@@ -148,6 +153,6 @@ public sealed record GameRules
             ShotEnergyCost = 2,
             EnergyRegenTicks = 3,
         },
-        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.3, 0.2, 0.1, strafe, hill, hill-shared, slate, or energy)."),
+        _ => throw new ArgumentException($"Unknown rules '{name}' (use {string.Join(", ", KnownNames)})."),
     };
 }

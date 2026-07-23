@@ -124,6 +124,14 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   useful once, promote it before the container dies.
 - Rule changes follow the balance-harness skill: implement behind `GameRules`
   flags, A/B with `scripts/balance-eval.py`, ship on data (GAME-DESIGN).
+- **Rules-change surfaces.** A rules/gameplay change is not done until every
+  derived surface agrees: engine (`GameRules` + `MatchSession`), SDK
+  doc-comments (describe when a field/action is *inert* — never name a rules
+  version, they rot when ship decisions change), site DocsPage + template
+  README (shipped rules only), agent-arena experiment briefs (experiment
+  rules), CLI help, `web/src/types.ts` (replay mirror), `replay --summary`.
+  `DocDriftTests` pins the mechanical ones (enum/property mirror, version
+  stamps, rules-name lists); prose accuracy is on the author.
 
 ## Footguns
 
