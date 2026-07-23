@@ -10,6 +10,10 @@ public sealed record BotManifest
     [JsonPropertyName("entryType")] public required string EntryType { get; init; }
     [JsonPropertyName("sdkVersion")] public string SdkVersion { get; init; } = "0.1";
     [JsonPropertyName("appearance")] public BotAppearance? Appearance { get; init; }
+    /// <summary>Optional default for the CLI's --rules when this project is the --bot
+    /// (gen-3 finding: repeating --rules on every command is easy to silently drop
+    /// while practicing for a rules experiment). An explicit flag always wins.</summary>
+    [JsonPropertyName("rules")] public string? Rules { get; init; }
 }
 
 public sealed record BotAppearance

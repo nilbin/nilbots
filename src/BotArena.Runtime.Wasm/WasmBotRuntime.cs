@@ -57,9 +57,14 @@ public sealed class WasmBotRuntime : IBotRuntime
     /// <summary>Fuel left after the most recent tick — surfaced for diagnostics/metrics.</summary>
     public ulong LastFuelRemaining { get; private set; }
 
+    /// <summary>Peak fuel consumed in a single tick this match (gen-3 finding: fuel DQs
+    /// were undiagnosable — this lets the CLI report how close a bot runs to the limit).</summary>
+    public ulong MaxFuelUsedPerTick { get; private set; }
+
     public void StartMatch(BotMatchStart start)
     {
         CleanUp();
+        MaxFuelUsedPerTick = 0;
         _guestDead = new CancellationTokenSource();
         _toGuest = new BlockingCollection<string>(boundedCapacity: 1);
         _fromGuest = new BlockingCollection<string>(boundedCapacity: 1);
@@ -100,6 +105,11 @@ public sealed class WasmBotRuntime : IBotRuntime
         if (reply is null)
             return BotDecision.Fault(_deathReason);
         LastFuelRemaining = _store?.Fuel ?? 0;
+        ulong used = _options.FuelPerTick > LastFuelRemaining
+            ? _options.FuelPerTick - LastFuelRemaining
+            : 0;
+        if (used > MaxFuelUsedPerTick)
+            MaxFuelUsedPerTick = used;
         return WasmProtocol.ParseReply(reply);
     }
 

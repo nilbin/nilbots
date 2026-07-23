@@ -33,12 +33,14 @@ public static class SetCommand
             throw new InvalidOperationException(
                 $"--seeds must provide one seed per map ({maps.Length} map(s), {seeds.Length} seed(s)).");
 
+        string rulesName = CliSupport.ResolveRulesName(options, botSpec, opponentSpec);
+        options["rules"] = rulesName; // freeze so ResolveRules skips a second pin lookup
         var rules = CliSupport.ResolveRules(options);
         Console.WriteLine($"Local ranked-format set: {maps.Length} map/seed pair(s) x both positions " +
                           $"({runtimeKind}, rules {rules.RulesVersion})");
         // Reproducibility (gen-3 finding): default seeds are random — echo the exact
         // flags so a before/after comparison can rerun this set instead of new dice.
-        Console.WriteLine($"Repro:  --maps {string.Join(',', maps)} --seeds {string.Join(',', seeds)} --rules {options.GetValueOrDefault("rules", "0.3")}");
+        Console.WriteLine($"Repro:  --maps {string.Join(',', maps)} --seeds {string.Join(',', seeds)} --rules {rulesName}");
         Console.WriteLine();
 
         double myScore = 0;
@@ -51,7 +53,7 @@ public static class SetCommand
             {
                 game++;
                 var (first, second) = mirrored ? (opponentSpec, botSpec) : (botSpec, opponentSpec);
-                var (run, name0, name1, written) = PlayCommand.RunSingle(
+                var (run, name0, name1, written, _) = PlayCommand.RunSingle(
                     first, second, map, seed, runtimeKind, rules, outDirOverride: null, quiet: true);
                 int mySlot = mirrored ? 1 : 0;
                 (myName, oppName) = mirrored ? (name1, name0) : (name0, name1);

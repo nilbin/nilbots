@@ -19,6 +19,10 @@ It does NOT enforce the fuel/memory limits or the sandbox clock/entropy
 neutralization, so before you submit, run once in the default WASM mode (the
 same sandbox the server uses) to confirm nothing changes.
 
+Practicing for a rules experiment? Add `"rules": "<name>"` to `botarena.json`
+and every `play`/`set` defaults to that ruleset (an explicit `--rules` flag
+still wins) — no more losing a practice session to one dropped flag.
+
 `botarena play` prints where it wrote `replay.json` and `viewer.html`
 (default: `out/<bot>-vs-<opponent>-<map>-s<seed>/`, so parallel runs never
 overwrite each other; `--out <dir>` pins a directory). Open the viewer in a

@@ -16,20 +16,24 @@ Built-with-identical-parity on both submissions. Findings:
 3. **[low] `set` default seeds were unreproducible** — a `Repro:` line now
    echoes the exact `--maps/--seeds/--rules` flags.
 
-## Open
+## Fixed in the pre-gen-4 batch
 4. **[med] Fuel faults are undiagnosable.** Accidental mutual recursion passed
    in-process and died in WASM as `Fuel limit exceeded` ×3 → DQ with no depth/
-   fuel info. Wanted: per-tick fuel report in in-process mode or fault
-   diagnostics. (Enforcement itself judged fair — bounded BFS fits easily.)
+   fuel info. Fixed (lite): single-seed `play` in WASM mode now prints a
+   `Fuel: peak <bot> <N>M per tick (limit 200M)` line, so a bot can see how
+   close it runs before it dies. (Enforcement itself judged fair.)
+6. **[low] `/build-status` returns an array** while the docs read like an
+   object — docs now say array-newest-first, poll `[0].status`.
+7. **[low] No way to pin default rules per-project** (`--rules` silently
+   dropped = practicing the wrong game) — botarena.json now takes a `rules`
+   field used by play/set when no `--rules` flag is given (announced when it
+   engages; explicit flag always wins).
+
+## Open
 5. **[med] `OnCooldown` is overloaded** for energy-blocked shots — a bot
    cannot distinguish "reloading" from "dry" about ITSELF. If energy ever
    ships, add a distinct `OutOfEnergy` result (additive enum value; old
    compiled bots simply won't match it).
-6. **[low] `/build-status` returns an array** while the docs read like an
-   object — one sentence in the docs would prevent the first-parse failure.
-7. **[low] No way to pin default rules per-project** (`--rules` silently
-   dropped = practicing the wrong game) — consider a `rules` field in
-   botarena.json.
 8. **[doc] Energy semantics were reverse-engineered** (regen at end of ticks
    where tick % 3 == 2, globally; legality checked pre-regen; dry Shoot
    neither starts cooldown nor spends) — recorded in the agent-arena skill's

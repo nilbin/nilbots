@@ -38,8 +38,13 @@ public static class ReplayCommand
     {
         var header = document.Header;
         var names = header.Participants.ToDictionary(p => p.Slot, p => p.Name);
+        // Zone-control matches (rules with ZoneControl): mark bots standing on zone
+        // tiles with * in state lines and show per-bot zone-tick totals.
+        var zone = (header.ZoneTiles ?? []).Select(t => (t[0], t[1])).ToHashSet();
         Console.WriteLine($"Match:  {string.Join(" vs ", header.Participants.OrderBy(p => p.Slot).Select(p => $"{p.Name} (s{p.Slot})"))}");
         Console.WriteLine($"Map:    {header.MapId} v{header.MapVersion} ({header.MapWidth}x{header.MapHeight})  seed {header.Seed}  rules {header.GameRulesVersion}");
+        if (zone.Count > 0)
+            Console.WriteLine($"Zone:   {string.Join(" ", header.ZoneTiles!.Select(t => $"({t[0]},{t[1]})"))}  (* in state lines = on zone tile)");
         var result = document.Result;
         string verdict = result.WinnerSlot is int w ? $"{names[w]} (s{w}) wins" : "draw";
         Console.WriteLine($"Result: {verdict} — {result.Reason} at tick {result.EndTick}");
@@ -51,7 +56,8 @@ public static class ReplayCommand
                 .Count(e => e.Type == GameEventType.Shot && e.Slot == bot.Slot && e.HitSlot is not null);
             Console.WriteLine($"        s{bot.Slot} {names[bot.Slot],-14} {bot.Outcome,-5} " +
                               $"health {bot.FinalHealth}  dealt {bot.DamageDealt}  " +
-                              $"shots {fired} ({hits} hit)  faults {bot.Faults}");
+                              $"shots {fired} ({hits} hit)  faults {bot.Faults}" +
+                              (bot.ZoneTicks is int zt ? $"  zone {zt}" : ""));
         }
         Console.WriteLine();
         Console.WriteLine("Timeline (post-tick state; actions were decided from the previous line's state):");
@@ -69,7 +75,8 @@ public static class ReplayCommand
             lastPrinted = tick.Tick;
 
             string state = string.Join(" ", tick.State.OrderBy(s => s.Slot).Select(s =>
-                $"s{s.Slot}@({s.X},{s.Y}){s.Facing.ToString()[0]}h{s.Health}c{s.Cooldown}" +
+                $"s{s.Slot}@({s.X},{s.Y}){(zone.Contains((s.X, s.Y)) ? "*" : "")}" +
+                $"{s.Facing.ToString()[0]}h{s.Health}c{s.Cooldown}" +
                 (s.Energy is int energy ? $"e{energy}" : "")));
             string actions = string.Join(" ", tick.Bots.OrderBy(b => b.Slot).Select(b =>
                 b.ChosenAction == b.ValidatedAction ? $"{b.ChosenAction}" : $"{b.ChosenAction}→{b.ValidatedAction}"));

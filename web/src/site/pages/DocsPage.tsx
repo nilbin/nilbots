@@ -124,7 +124,9 @@ curl -b jar -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."
 curl -b jar -d '{"botId":"...","opponentBotId":"..."}' <server>/api/matches/ranked
 curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>
         <p className="mt-2 text-arena-dim">
-          <code className="font-mono">/build-status</code> is the slim polling view; the CLI's
+          <code className="font-mono">/build-status</code> is the slim polling view — it returns an
+          <b> array</b> of versions, newest first, so poll <code className="font-mono">[0].status</code>,
+          not <code className="font-mono">.status</code>. The CLI's
           <code className="font-mono"> botarena submit</code> wraps this flow plus artifact-parity checking.
         </p>
       </Doc>

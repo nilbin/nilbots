@@ -5,11 +5,28 @@ namespace BotArena.Cli;
 
 public static class CliSupport
 {
-    /// <summary>--rules 0.3 (default) | 0.2 | 0.1 | strafe | hill | slate | energy —
-    /// see GameRules.Resolve.</summary>
-    public static GameRules ResolveRules(Dictionary<string, string> options)
+    /// <summary>The rules *name* a command will play, before GameRules.Resolve. Precedence:
+    /// explicit --rules flag → the first given bot project's botarena.json "rules" pin
+    /// (announced, since nothing on the command line asked for it) → the current default.
+    /// Names: 0.3 (default) | 0.2 | 0.1 | strafe | hill | slate | energy.</summary>
+    public static string ResolveRulesName(Dictionary<string, string> options, params string?[] botSpecs)
     {
-        var rules = GameRules.Resolve(options.GetValueOrDefault("rules", "0.3"));
+        if (options.GetValueOrDefault("rules") is { } explicitName)
+            return explicitName;
+        foreach (var spec in botSpecs)
+            if (spec is not null && Directory.Exists(spec)
+                && BotArena.Toolchain.BotProject.LooksLikeProject(spec)
+                && BotArena.Toolchain.BotProject.Load(spec).Manifest.Rules is { Length: > 0 } pinned)
+            {
+                Console.WriteLine($"Rules pinned by {Path.Combine(spec, "botarena.json")}: {pinned}");
+                return pinned;
+            }
+        return "0.3";
+    }
+
+    public static GameRules ResolveRules(Dictionary<string, string> options, params string?[] botSpecs)
+    {
+        var rules = GameRules.Resolve(ResolveRulesName(options, botSpecs));
         if (options.TryGetValue("max-ticks", out string? maxTicks))
             rules = rules with { MaxTicks = int.Parse(maxTicks, CultureInfo.InvariantCulture) };
         return rules;

@@ -70,6 +70,9 @@ static int Help(int exitCode = 1)
         A bot <spec> is a built-in name (hunter, wander, coward, idle), a bot
         project directory, or a path to a .wasm artifact.
         Defaults: --bot hunter --opponent wander --map basic-01 --seed 42 --runtime wasm
+        A `"rules"` field in your project's botarena.json pins the default --rules
+        for play/set (an explicit flag always wins) — set it while practicing for
+        a rules experiment so a dropped flag can't put you on the wrong game.
 
         `play` runs the match in the official WASM sandbox, writes replay.json plus
         a self-contained viewer.html, and prints the result and replay hash.

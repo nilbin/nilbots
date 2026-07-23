@@ -19,7 +19,10 @@ public static class PlayCommand
         string mapId = options.GetValueOrDefault("map", "basic-01");
         string runtimeKind = options.GetValueOrDefault("runtime", "wasm");
 
-        var rules = CliSupport.ResolveRules(options);
+        // Pin lookup uses the pre-swap specs: --swap changes which slot you play,
+        // not whose project this is.
+        var rules = CliSupport.ResolveRules(options,
+            options.GetValueOrDefault("bot"), options.GetValueOrDefault("opponent"));
 
         // --seeds a,b,c batches N matches into one process: one CLI startup, one build,
         // one summary table — the iteration loop the gen-2 agents asked for (findings #5).
@@ -37,7 +40,7 @@ public static class PlayCommand
         int wins = 0, losses = 0, draws = 0;
         foreach (ulong seed in seeds)
         {
-            var (run, name0, name1, written) = RunSingle(
+            var (run, name0, name1, written, fuelNote) = RunSingle(
                 botSpec, opponentSpec, map, seed, runtimeKind, rules,
                 options.GetValueOrDefault("out"), quiet: seeds.Length > 1);
             if (seeds.Length == 1)
@@ -46,6 +49,8 @@ public static class PlayCommand
                 Console.WriteLine($"Match:            {name0} vs {name1}");
                 Console.WriteLine();
                 PrintResult(run, name0, name1);
+                if (fuelNote is not null)
+                    Console.WriteLine($"Fuel:    {fuelNote}");
                 Console.WriteLine();
                 Console.WriteLine($"Replay:  {written.ReplayPath}");
                 Console.WriteLine(written.ViewerPath is not null
@@ -75,7 +80,7 @@ public static class PlayCommand
 
     /// <summary>Runs one match with freshly resolved runtimes (never reused across
     /// matches) and writes its replay. Shared by play, --seeds batches, and `set`.</summary>
-    internal static (MatchRunResult Run, string Name0, string Name1, WrittenReplay Written) RunSingle(
+    internal static (MatchRunResult Run, string Name0, string Name1, WrittenReplay Written, string? FuelNote) RunSingle(
         string botSpec, string opponentSpec, ArenaMap map, ulong seed,
         string runtimeKind, GameRules rules, string? outDirOverride, bool quiet)
     {
@@ -94,7 +99,16 @@ public static class PlayCommand
             Participants = [bot0.ToParticipant(), bot1.ToParticipant()],
         });
         var written = ReplayOutput.Write(run.Replay, outDir);
-        return (run, bot0.Name, bot1.Name, written);
+        // Peak per-tick fuel (gen-3: fuel DQs were undiagnosable). Captured before
+        // dispose; only WASM participants meter fuel.
+        var fuelParts = new[] { bot0, bot1 }
+            .Where(b => b.Runtime is WasmBotRuntime)
+            .Select(b => $"{b.Name} {((WasmBotRuntime)b.Runtime).MaxFuelUsedPerTick / 1_000_000.0:F1}M")
+            .ToArray();
+        string? fuelNote = fuelParts.Length > 0
+            ? $"peak {string.Join(", ", fuelParts)} per tick (limit 200M)"
+            : null;
+        return (run, bot0.Name, bot1.Name, written, fuelNote);
     }
 
     private static string Slug(string name)

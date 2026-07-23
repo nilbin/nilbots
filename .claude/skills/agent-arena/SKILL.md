@@ -56,9 +56,11 @@ deployment.
 ### Running a rules-experiment tournament (e.g. the energy re-test)
 
 Add `BOTARENA_RULES=<arm>` to the app env in step 1 (the worker log line
-confirms the ruleset) and have agents test locally with `--rules <arm>`.
-Player-facing docs only describe SHIPPED rules, so append the experiment spec
-to every agent brief. For the HILL re-test (the named gen-4 confirmation,
+confirms the ruleset) and tell agents to set `"rules": "<arm>"` in their
+project's botarena.json — every play/set they run then defaults to the
+experiment arm (an explicit `--rules` still wins; gen-3 lost practice games
+to silently dropped flags). Player-facing docs only describe SHIPPED rules,
+so append the experiment spec to every agent brief. For the HILL re-test (the named gen-4 confirmation,
 DECISIONS #49):
 
 > EXPERIMENTAL RULES for this tournament (on top of documented v0.3): ZONE
