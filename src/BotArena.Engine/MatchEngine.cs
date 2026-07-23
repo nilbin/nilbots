@@ -141,11 +141,15 @@ public sealed class MatchEngine
                 VisibleEnemies = observations[slot].VisibleEnemies
                     .Select(e => new ReplayVisibleEnemy(e.Slot, e.Position.X, e.Position.Y, e.Facing, e.Health))
                     .ToArray(),
+                HeardSounds = observations[slot].HeardSounds is { Count: > 0 } sounds
+                    ? sounds.Select(h => new ReplayHeardSound(h.Type, h.Bearing, h.Distance)).ToArray()
+                    : null,
             });
         }
         var snapshots = state.Bots
             .Select(b => new ReplayBotState(b.Slot, b.Position.X, b.Position.Y, b.Facing, b.Health, b.Cooldown, b.Status,
-                state.Rules.MaxEnergy > 0 ? b.Energy : null))
+                state.Rules.MaxEnergy > 0 ? b.Energy : null,
+                state.Rules.ReplayZoneTallies && state.Rules.ZoneControl ? b.ZoneTicks : null))
             .ToArray();
         return new ReplayTick
         {
@@ -155,7 +159,9 @@ public sealed class MatchEngine
             State = snapshots,
             Projectiles = state.Rules.ProjectileTicksPerTile > 0
                 ? state.Projectiles
-                    .Select(p => new ReplayProjectile(p.Position.X, p.Position.Y, p.Direction, p.OwnerSlot))
+                    .Select(p => new ReplayProjectile(p.Position.X, p.Position.Y, p.Direction, p.OwnerSlot,
+                        state.Rules.ProjectileTicksPerTile - p.Phase,
+                        state.Rules.ShotRange > 0 ? state.Rules.ShotRange - p.TilesTraveled : -1))
                     .ToArray()
                 : null,
         };

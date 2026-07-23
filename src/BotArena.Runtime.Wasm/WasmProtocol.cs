@@ -56,9 +56,12 @@ public static class WasmProtocol
             builder.Append(' ').Append((int)gameEvent.Type).Append(':')
                 .Append(gameEvent.Slot ?? -1).Append(':').Append(position.X).Append(':').Append(position.Y);
         }
-        // Optional trailing sections, in fixed order (E, M, Z, ZT, P). Appended LAST so
-        // protocol-0.1 guests — which parse exactly the tokens they expect and never
+        // Optional trailing sections, in fixed order (E, M, Z, ZT, P, H). Appended LAST
+        // so protocol-0.1 guests — which parse exactly the tokens they expect and never
         // index further — remain compatible (same trick as the optional botName).
+        // P grew 4→6 fields in the 0.5 hardening (§H item 2): breaking for the gen-6
+        // experiment adapters that parsed 4, deliberate and documented (DECISIONS #59);
+        // pre-bolt adapters never read P at all.
         if (observation.Energy is int energy)
             builder.Append(" E ").Append(energy);
         if (observation.MapWidth > 0)
@@ -76,7 +79,15 @@ public static class WasmProtocol
             builder.Append(" P ").Append(observation.VisibleProjectiles.Count);
             foreach (var bolt in observation.VisibleProjectiles)
                 builder.Append(' ').Append(bolt.Position.X).Append(':').Append(bolt.Position.Y)
-                    .Append(':').Append((int)bolt.Direction).Append(':').Append(bolt.OwnerSlot);
+                    .Append(':').Append((int)bolt.Direction).Append(':').Append(bolt.OwnerSlot)
+                    .Append(':').Append(bolt.TicksUntilAdvance).Append(':').Append(bolt.RemainingTiles);
+        }
+        if (observation.HeardSounds is not null)
+        {
+            builder.Append(" H ").Append(observation.HeardSounds.Count);
+            foreach (var sound in observation.HeardSounds)
+                builder.Append(' ').Append((int)sound.Type).Append(':').Append(sound.Bearing)
+                    .Append(':').Append(sound.Distance);
         }
         return builder.ToString();
     }

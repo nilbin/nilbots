@@ -4,7 +4,17 @@ public readonly record struct ObservedTile(Position Position, bool IsWall);
 
 public readonly record struct ObservedBot(int Slot, Position Position, Direction Facing, int Health);
 
-public readonly record struct ObservedProjectile(Position Position, Direction Direction, int OwnerSlot);
+/// <summary><c>TicksUntilAdvance</c>: engine steps until this bolt moves one tile along
+/// its direction — 1 means it advances THIS tick, immediately after movement resolves.
+/// <c>RemainingTiles</c>: further tiles it can advance before despawning (−1 = uncapped).
+/// Dodge timing is computable, never measured (RULES-0.5-DESIGN §H item 2).</summary>
+public readonly record struct ObservedProjectile(
+    Position Position, Direction Direction, int OwnerSlot, int TicksUntilAdvance, int RemainingTiles);
+
+/// <summary>A loud event beyond sight, redacted to type + coarse bearing octant
+/// (<see cref="Hearing.BearingOctant"/>) + coarse distance band
+/// (<see cref="Hearing.DistanceBand"/>) — never exact coordinates.</summary>
+public readonly record struct HeardSound(GameEventType Type, int Bearing, int Distance);
 
 /// <summary>
 /// Everything a bot is allowed to know on one tick (plan §4.5). Built from the pre-tick state;
@@ -37,6 +47,10 @@ public sealed class BotObservation
     public IReadOnlyList<ObservedProjectile>? VisibleProjectiles { get; init; }
     /// <summary>Previous-tick events whose reference positions are inside the current field of view.</summary>
     public required IReadOnlyList<GameEvent> VisibleEvents { get; init; }
+    /// <summary>Previous-tick LOUD events beyond sight but within the hearing radius,
+    /// redacted to sounds; null when the rules have no hearing. Sighted events are
+    /// delivered in <see cref="VisibleEvents"/> instead, never in both.</summary>
+    public IReadOnlyList<HeardSound>? HeardSounds { get; init; }
 }
 
 /// <summary>A bot's answer for one tick, as seen by the engine (runtime-neutral, plan §8).</summary>

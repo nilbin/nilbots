@@ -48,6 +48,7 @@ export function drawArena(
   drawWalls();
   if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
   drawProjectiles();
+  drawHeardSounds();
   drawShadowsAndBots();
   drawShots();
   drawImpacts();
@@ -174,10 +175,20 @@ export function drawArena(
         bolt.direction
       ];
       const pulse = 0.75 + 0.25 * Math.sin(fraction * Math.PI);
+      // Telegraph from replay data (never re-derived): a bolt about to advance next
+      // tick glows hot and shows a heading tick on its next tile.
+      const imminent = bolt.ticksUntilAdvance === 1;
+      if (imminent) {
+        const step = { North: [0, -1], East: [1, 0], South: [0, 1], West: [-1, 0] }[
+          bolt.direction
+        ];
+        ctx.fillStyle = hexWithAlpha(accent, 0.18);
+        ctx.fillRect(px(bolt.x + step[0]), py(bolt.y + step[1]), tile, tile);
+      }
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(angle);
-      ctx.strokeStyle = hexWithAlpha(accent, 0.35 * pulse);
+      ctx.strokeStyle = hexWithAlpha(accent, (imminent ? 0.55 : 0.35) * pulse);
       ctx.lineWidth = Math.max(2, tile * 0.08);
       ctx.lineCap = 'round';
       ctx.beginPath();
@@ -192,6 +203,30 @@ export function drawArena(
       ctx.closePath();
       ctx.fill();
       ctx.restore();
+    }
+  }
+
+  function drawHeardSounds(): void {
+    // Redacted hearing, made visible: the selected bot's heard sounds render as
+    // neutral arcs on the bearing octant, at a radius keyed to the distance band.
+    // Deliberately identity-free and coordinate-free — exactly what the bot knows.
+    if (fogSource === undefined) return;
+    const sounds = fogSource.heardSounds;
+    if (!sounds || sounds.length === 0) return;
+    const me = poses.find((p) => p.slot === fogSource.slot);
+    if (!me) return;
+    const cx = px(me.x) + tile / 2;
+    const cy = py(me.y) + tile / 2;
+    for (const sound of sounds) {
+      // Octant 0 = North, clockwise; canvas angles start East, clockwise (y down).
+      const angle = -Math.PI / 2 + (sound.bearing * Math.PI) / 4;
+      const radius = tile * (1.6 + sound.distance * 0.9);
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.85)';
+      ctx.lineWidth = Math.max(2, tile * 0.09);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, angle - Math.PI / 10, angle + Math.PI / 10);
+      ctx.stroke();
     }
   }
 

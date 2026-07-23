@@ -3,13 +3,16 @@
 
 Runs the same round-robin of 6-game mirrored sets under each candidate ruleset
 with FIXED seeds, then prints the comparison table (draw rate, elimination
-share, game length). Ship a rule change only if draws drop and games shorten
-without collapsing strategy diversity.
+share, game length) AND a paired per-game analysis against the first ruleset
+(the control): every game is matched across arms by (pairing, game index), so
+the deltas measure what the mechanics changed game-by-game, not aggregate
+noise (external review §H). Ship a rule change only if draws drop and games
+shorten without collapsing strategy diversity.
 
 Usage:
   python3 scripts/balance-eval.py                     # all champions/, default rulesets
   python3 scripts/balance-eval.py --bots a=path/bot.wasm b=... \
-      --rulesets 0.2,energy --seeds 101,202,303
+      --rulesets 0.5-control,cone,conebolts,conebolts1 --seeds 101,202,303
 
 Bots default to every champions/<slug>/bot.wasm (the frozen population — add
 current-gen artifacts via --bots for a stronger sample). Rulesets are whatever
@@ -19,7 +22,7 @@ per match.
 import argparse, pathlib, re, statistics, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-LINE = re.compile(r"^g\d+ \S+\s+s\d+\s+slot\d\s+(WIN|LOSS|DRAW)\S*.*?(Elimination|MaxTicks|Disqualification|Domination)\s+t(\d+)")
+LINE = re.compile(r"^g(\d+) \S+\s+s\d+\s+slot\d\s+(WIN|LOSS|DRAW)\S*.*?(Elimination|MaxTicks|Disqualification|Domination)\s+t(\d+)")
 
 
 def default_bots():
@@ -37,7 +40,7 @@ def run_set(bots, a, b, rules, seeds, workdir, maps=None):
     if maps:
         command += ["--maps", maps]
     out = subprocess.run(command, capture_output=True, text=True, cwd=workdir, timeout=1800)
-    games = [(m.group(1), m.group(2), int(m.group(3)))
+    games = [(int(m.group(1)), m.group(2), m.group(3), int(m.group(4)))
              for line in out.stdout.splitlines()
              if (m := LINE.match(line.strip()))]
     if len(games) != 6:
@@ -65,6 +68,7 @@ def main():
     pairs = [(names[i], names[j]) for i in range(len(names)) for j in range(i + 1, len(names))]
 
     stats = {}
+    by_game = {}  # rules -> {(a, b, game#): (outcome, reason, tick)}
     for rules in args.rulesets.split(","):
         # Per-arm subdirectory: replay dirs are named by bots/map/seed only, so two
         # arms sharing a workdir silently clobber each other's replays (found during
@@ -72,11 +76,15 @@ def main():
         arm_dir = pathlib.Path(args.workdir) / rules.replace("/", "-")
         arm_dir.mkdir(parents=True, exist_ok=True)
         games = []
+        keyed = {}
         for a, b in pairs:
-            games += run_set(bots, a, b, rules, args.seeds, str(arm_dir), args.maps)
+            for num, outcome, reason, tick in run_set(bots, a, b, rules, args.seeds, str(arm_dir), args.maps):
+                games.append((outcome, reason, tick))
+                keyed[(a, b, num)] = (outcome, reason, tick)
             print(f"  done {a} vs {b} [{rules}]", flush=True)
         if not games:
             continue
+        by_game[rules] = keyed
         draws = sum(1 for g in games if g[0] == "DRAW")
         eliminations = sum(1 for g in games if g[1] == "Elimination")
         ticks = [g[2] for g in games]
@@ -86,6 +94,34 @@ def main():
     print(f"{'ruleset':14} {'games':>5} {'draws':>5} {'draw%':>6} {'elims':>5} {'medTick':>8} {'avgTick':>8}")
     for rules, (n, draws, elims, med, avg) in stats.items():
         print(f"{rules:14} {n:5} {draws:5} {100 * draws / n:5.0f}% {elims:5} {med:8.0f} {avg:8.0f}")
+
+    # Paired per-game analysis vs the FIRST arm (the control). Same pairing, same
+    # game slot, same seeds and maps — so every row is one game observed under two
+    # rule sets, and the transition counts are the mechanics' causal footprint.
+    ordered = [r for r in args.rulesets.split(",") if r in by_game]
+    if len(ordered) < 2:
+        return
+    control = ordered[0]
+    print(f"\n=== PAIRED VS CONTROL [{control}] (per-game transitions) ===")
+    print(f"{'ruleset':14} {'paired':>6} {'drw→dec':>8} {'dec→drw':>8} {'outcome flips':>14} {'medΔtick':>9}")
+    for rules in ordered[1:]:
+        keys = sorted(set(by_game[control]) & set(by_game[rules]))
+        if not keys:
+            continue
+        draw_to_decisive = decisive_to_draw = flips = 0
+        tick_deltas = []
+        for key in keys:
+            c_outcome, _, c_tick = by_game[control][key]
+            r_outcome, _, r_tick = by_game[rules][key]
+            if c_outcome == "DRAW" and r_outcome != "DRAW":
+                draw_to_decisive += 1
+            elif c_outcome != "DRAW" and r_outcome == "DRAW":
+                decisive_to_draw += 1
+            elif c_outcome != r_outcome:
+                flips += 1  # decisive both, but the winner changed
+            tick_deltas.append(r_tick - c_tick)
+        print(f"{rules:14} {len(keys):6} {draw_to_decisive:8} {decisive_to_draw:8} "
+              f"{flips:14} {statistics.median(tick_deltas):+9.0f}")
 
 
 if __name__ == "__main__":

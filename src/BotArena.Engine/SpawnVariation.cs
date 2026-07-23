@@ -32,6 +32,10 @@ public static class SpawnVariation
             : null;
 
         int minDistance = Math.Max(map.Width, map.Height) / 2;
+
+        if (rules.ExhaustiveSpawns)
+            return ResolveExhaustive(map, rules, random, floors, zoneDistance, minDistance);
+
         for (int attempt = 0; attempt < rules.SpawnAttempts; attempt++)
         {
             var a = floors[random.NextInt(0, floors.Count)];
@@ -53,6 +57,78 @@ public static class SpawnVariation
         }
         // Deterministic fallback for degenerate maps: the fixed spawns are always valid.
         return map.Spawns;
+    }
+
+    /// <summary>Exhaustive spawn selection (§H item 3): enumerate every ordered floor
+    /// pair meeting ALL constraints — same predicates as the sampler, in canonical scan
+    /// order — and let the seed pick one uniformly. No attempt budget, so no silent
+    /// constraint-bypassing fallback; an empty valid set rejects the map loudly.</summary>
+    private static IReadOnlyList<Spawn> ResolveExhaustive(ArenaMap map, GameRules rules,
+        DeterministicRandom random, List<Position> floors, int[]? zoneDistance, int minDistance)
+    {
+        var component = ComponentLabels(map, floors);
+        var valid = new List<(Position A, Position B)>();
+        foreach (var a in floors)
+        {
+            foreach (var b in floors)
+            {
+                if (a == b || a.ChebyshevDistance(b) < minDistance)
+                    continue;
+                if (component[a.Y * map.Width + a.X] != component[b.Y * map.Width + b.X])
+                    continue;
+                if (rules.SpawnLaneSafety && SharesClearLane(map, a, b, rules.ShotRange))
+                    continue;
+                if (zoneDistance is not null)
+                {
+                    int da = zoneDistance[a.Y * map.Width + a.X];
+                    int db = zoneDistance[b.Y * map.Width + b.X];
+                    if (da == int.MaxValue || db == int.MaxValue || Math.Abs(da - db) > ZoneDistanceTolerance)
+                        continue;
+                }
+                valid.Add((a, b));
+            }
+        }
+        if (valid.Count == 0)
+            throw new InvalidOperationException(
+                $"Map '{map.Id}' has no valid spawn pair under rules {rules.RulesVersion}; " +
+                "it cannot host fair matches under these constraints (RULES-0.5-DESIGN §H item 3).");
+        var (spawnA, spawnB) = valid[random.NextInt(0, valid.Count)];
+        return
+        [
+            new Spawn(spawnA.X, spawnA.Y, FacingToward(spawnA, spawnB)),
+            new Spawn(spawnB.X, spawnB.Y, FacingToward(spawnB, spawnA)),
+        ];
+    }
+
+    /// <summary>Connected-component labels over floor tiles (4-neighbor, matching
+    /// <see cref="ArenaMap.AreConnected"/>) — one flood fill instead of one BFS per pair.</summary>
+    private static int[] ComponentLabels(ArenaMap map, List<Position> floors)
+    {
+        var labels = new int[map.Width * map.Height];
+        Array.Fill(labels, -1);
+        int next = 0;
+        foreach (var start in floors)
+        {
+            if (labels[start.Y * map.Width + start.X] != -1)
+                continue;
+            labels[start.Y * map.Width + start.X] = next;
+            var queue = new Queue<Position>();
+            queue.Enqueue(start);
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                foreach (var (dx, dy) in Steps)
+                {
+                    var neighbor = current.Offset(dx, dy);
+                    if (map.IsWall(neighbor) || labels[neighbor.Y * map.Width + neighbor.X] != -1)
+                        continue;
+                    labels[neighbor.Y * map.Width + neighbor.X] = next;
+                    queue.Enqueue(neighbor);
+                }
+            }
+            next++;
+        }
+        return labels;
     }
 
     /// <summary>Walking distance (4-neighbor BFS over floor, matching orthogonal

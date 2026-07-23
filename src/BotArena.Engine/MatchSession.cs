@@ -64,13 +64,39 @@ public sealed class MatchSession
             .Where(other => other.Slot != slot && other.IsActive && visibleSet.Contains(other.Position))
             .Select(other => new ObservedBot(other.Slot, other.Position, other.Facing, other.Health))
             .ToArray();
-        // Loud events carry within HearingRadius regardless of sight (RULES-0.5-DESIGN §A);
-        // quiet events (Turn/Move/MoveBlocked) stay sight-gated.
+        // Sighted events are authoritative and full. Loud events beyond sight arrive
+        // REDACTED as sounds — bearing octant + distance band, never coordinates — so
+        // hearing is a cue, not a radar (RULES-0.5-DESIGN §A, hardened per §H item 1).
+        // Quiet events (Turn/Move/MoveBlocked) stay sight-gated always.
         var events = _lastTickEvents
-            .Where(e => e.ReferencePositions().Any(visibleSet.Contains)
-                || (State.Rules.HearingRadius > 0 && IsLoud(e.Type)
-                    && e.ReferencePositions().Any(p => bot.Position.ChebyshevDistance(p) <= State.Rules.HearingRadius)))
+            .Where(e => e.ReferencePositions().Any(visibleSet.Contains))
             .ToArray();
+        List<HeardSound>? heard = null;
+        if (State.Rules.HearingRadius > 0)
+        {
+            heard = [];
+            foreach (var e in _lastTickEvents)
+            {
+                if (!IsLoud(e.Type) || e.ReferencePositions().Any(visibleSet.Contains))
+                    continue;
+                // The loudest (nearest) reference position defines what is heard.
+                Position source = default;
+                int nearest = int.MaxValue;
+                foreach (var p in e.ReferencePositions())
+                {
+                    int d = bot.Position.ChebyshevDistance(p);
+                    if (d < nearest)
+                    {
+                        nearest = d;
+                        source = p;
+                    }
+                }
+                if (nearest > State.Rules.HearingRadius)
+                    continue;
+                heard.Add(new HeardSound(
+                    e.Type, Hearing.BearingOctant(bot.Position, source), Hearing.DistanceBand(nearest)));
+            }
+        }
         return new BotObservation
         {
             Tick = State.Tick,
@@ -93,10 +119,13 @@ public sealed class MatchSession
             VisibleProjectiles = State.Rules.ProjectileTicksPerTile > 0
                 ? State.Projectiles
                     .Where(p => visibleSet.Contains(p.Position))
-                    .Select(p => new ObservedProjectile(p.Position, p.Direction, p.OwnerSlot))
+                    .Select(p => new ObservedProjectile(p.Position, p.Direction, p.OwnerSlot,
+                        State.Rules.ProjectileTicksPerTile - p.Phase,
+                        State.Rules.ShotRange > 0 ? State.Rules.ShotRange - p.TilesTraveled : -1))
                     .ToArray()
                 : null,
             VisibleEvents = events,
+            HeardSounds = heard,
         };
     }
 
@@ -338,15 +367,20 @@ public sealed class MatchSession
     }
 
     /// <summary>Advances bolts in flight and collects occupancy hits (RULES-0.5-DESIGN
-    /// §B). Runs after movement, before new shots: a bolt sharing a tile with an active
-    /// non-owner bot — whether the bolt advanced onto it or the bot walked into it —
-    /// is a hit. Bolts despawn on walls, hits, or after ShotRange tiles.</summary>
+    /// §B). Runs after movement, before new shots. Occupancy is checked BOTH before and
+    /// after a bolt advances: without the pre-advance check, stepping onto a bolt's tile
+    /// on exactly its advance tick is safe — the phase-surfing gap (§H item 2). Bolts
+    /// despawn on walls, hits, or after ShotRange tiles.</summary>
     private void AdvanceProjectiles(List<(int TargetSlot, int BySlot)> pendingHits)
     {
-        var bots = State.Bots;
         var alive = new List<ProjectileState>();
         foreach (var bolt in State.Projectiles)
         {
+            if (FindBoltVictim(bolt) is { } early)
+            {
+                pendingHits.Add((early.Slot, bolt.OwnerSlot));
+                continue; // bolt consumed by the hit
+            }
             bolt.Phase++;
             bool despawn = false;
             if (bolt.Phase >= State.Rules.ProjectileTicksPerTile)
@@ -364,12 +398,10 @@ public sealed class MatchSession
                         despawn = true; // lethal on this, its final, tile — checked below
                 }
             }
-            var victim = bots.FirstOrDefault(b =>
-                b.Slot != bolt.OwnerSlot && b.IsActive && b.Position == bolt.Position);
-            if (victim is not null)
+            if (FindBoltVictim(bolt) is { } victim)
             {
                 pendingHits.Add((victim.Slot, bolt.OwnerSlot));
-                continue; // bolt consumed by the hit
+                continue;
             }
             if (!despawn)
                 alive.Add(bolt);
@@ -377,6 +409,10 @@ public sealed class MatchSession
         State.Projectiles.Clear();
         State.Projectiles.AddRange(alive);
     }
+
+    private BotState? FindBoltVictim(ProjectileState bolt) =>
+        State.Bots.FirstOrDefault(b =>
+            b.Slot != bolt.OwnerSlot && b.IsActive && b.Position == bolt.Position);
 
     private bool[] ResolveShooting(BotAction[] validated, List<GameEvent> events,
         List<(int TargetSlot, int BySlot)> pendingHits)

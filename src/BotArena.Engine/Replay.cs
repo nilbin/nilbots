@@ -54,17 +54,30 @@ public sealed record ReplayBotTick
     /// <summary>[x,y] pairs; wall/floor is derivable from the header map.</summary>
     public required int[][] VisibleTiles { get; init; }
     public required IReadOnlyList<ReplayVisibleEnemy> VisibleEnemies { get; init; }
+    /// <summary>Sounds this bot heard this tick; null when none (and always under
+    /// rules without hearing), keeping pre-hearing replay hashes unaffected.</summary>
+    public IReadOnlyList<ReplayHeardSound>? HeardSounds { get; init; }
 }
 
 /// <summary>Energy is null (omitted from canonical JSON) under rules without an energy
-/// system, so pre-energy replay hashes are unaffected.</summary>
+/// system, so pre-energy replay hashes are unaffected. ZoneTicks (cumulative) is
+/// emitted only under <see cref="GameRules.ReplayZoneTallies"/> — viewers read the
+/// tally instead of re-deriving accrual rules; null keeps official 0.4 bytes stable.</summary>
 public sealed record ReplayBotState(
     int Slot, int X, int Y, Direction Facing, int Health, int Cooldown, BotStatus Status,
-    int? Energy = null);
+    int? Energy = null, int? ZoneTicks = null);
 
 /// <summary>Null (omitted) under instant-shot rules, so pre-projectile replay hashes
-/// are unaffected.</summary>
-public sealed record ReplayProjectile(int X, int Y, Direction Direction, int OwnerSlot);
+/// are unaffected. TicksUntilAdvance/RemainingTiles mirror the bot observation (§H
+/// item 2: dodge timing is data, not something viewers re-derive); their defaults let
+/// pre-hardening bolt replays still deserialize.</summary>
+public sealed record ReplayProjectile(
+    int X, int Y, Direction Direction, int OwnerSlot,
+    int TicksUntilAdvance = 0, int RemainingTiles = 0);
+
+/// <summary>A redacted heard sound (see <see cref="Hearing"/>): bearing is the 8-way
+/// octant 0=N..7=NW, distance the band 0=Near/1=Medium/2=Far.</summary>
+public sealed record ReplayHeardSound(GameEventType Type, int Bearing, int Distance);
 
 public sealed record ReplayTick
 {

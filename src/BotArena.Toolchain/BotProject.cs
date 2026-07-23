@@ -33,9 +33,12 @@ public static class ToolchainInfo
     // action values, so the wire protocol stays 0.1 and older artifacts keep running.
     // 0.5.0: VisibleProjectiles (trailing P section) for the 0.5 watchability slate
     // (RULES-0.5-DESIGN) — same additive pattern, wire protocol still 0.1.
-    public const string SdkVersion = "0.5.0";
+    // 0.6.0: hardened 0.5 (§H / DECISIONS #59): HeardSounds (trailing H section) and
+    // computable bolt timing — the P section grew 4→6 fields, which 0.5.0 adapters
+    // cannot parse; wire protocol still 0.1 for every pre-bolt adapter.
+    public const string SdkVersion = "0.6.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.5.0";
+    public const string GuestAdapterVersion = "0.6.0";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

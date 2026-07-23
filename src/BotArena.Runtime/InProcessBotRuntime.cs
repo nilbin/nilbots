@@ -91,7 +91,12 @@ internal static class SdkModelMapper
             EnemyZoneTicks = observation.EnemyZoneTicks,
             VisibleProjectiles = observation.VisibleProjectiles
                 ?.Select(p => new Sdk.VisibleProjectile(
-                    new Sdk.Position(p.Position.X, p.Position.Y), ToSdkDirection(p.Direction), p.OwnerSlot))
+                    new Sdk.Position(p.Position.X, p.Position.Y), ToSdkDirection(p.Direction), p.OwnerSlot,
+                    p.TicksUntilAdvance, p.RemainingTiles))
+                .ToArray(),
+            HeardSounds = observation.HeardSounds
+                ?.Select(h => new Sdk.HeardSound(
+                    ToSdkEventKind(h.Type), (Sdk.SoundBearing)h.Bearing, (Sdk.SoundDistance)h.Distance))
                 .ToArray(),
             PreviousActionResult = ToSdkResult(observation.PreviousActionResult),
             VisibleTiles = observation.VisibleTiles
@@ -141,26 +146,25 @@ internal static class SdkModelMapper
         _ => throw new ArgumentOutOfRangeException(nameof(result)),
     };
 
+    private static Sdk.VisibleEventKind ToSdkEventKind(GameEventType type) => type switch
+    {
+        GameEventType.Turn => Sdk.VisibleEventKind.Turn,
+        GameEventType.Move => Sdk.VisibleEventKind.Move,
+        GameEventType.MoveBlocked => Sdk.VisibleEventKind.MoveBlocked,
+        GameEventType.Shot => Sdk.VisibleEventKind.Shot,
+        GameEventType.Damage => Sdk.VisibleEventKind.Damage,
+        GameEventType.Destroyed => Sdk.VisibleEventKind.Destroyed,
+        GameEventType.Fault => Sdk.VisibleEventKind.Fault,
+        GameEventType.Disqualified => Sdk.VisibleEventKind.Disqualified,
+        _ => throw new ArgumentOutOfRangeException(nameof(type)),
+    };
+
     private static Sdk.VisibleEvent? ToSdkEvent(GameEvent gameEvent)
     {
         var position = gameEvent.ReferencePositions().Cast<Position?>().FirstOrDefault();
         if (position is null)
             return null;
-        var kind = gameEvent.Type switch
-        {
-            GameEventType.Turn => Sdk.VisibleEventKind.Turn,
-            GameEventType.Move => Sdk.VisibleEventKind.Move,
-            GameEventType.MoveBlocked => Sdk.VisibleEventKind.MoveBlocked,
-            GameEventType.Shot => Sdk.VisibleEventKind.Shot,
-            GameEventType.Damage => Sdk.VisibleEventKind.Damage,
-            GameEventType.Destroyed => Sdk.VisibleEventKind.Destroyed,
-            GameEventType.Fault => Sdk.VisibleEventKind.Fault,
-            GameEventType.Disqualified => Sdk.VisibleEventKind.Disqualified,
-            _ => (Sdk.VisibleEventKind?)null,
-        };
-        if (kind is null)
-            return null;
         return new Sdk.VisibleEvent(
-            kind.Value, gameEvent.Slot, new Sdk.Position(position.Value.X, position.Value.Y));
+            ToSdkEventKind(gameEvent.Type), gameEvent.Slot, new Sdk.Position(position.Value.X, position.Value.Y));
     }
 }

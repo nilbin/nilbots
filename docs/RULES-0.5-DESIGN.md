@@ -29,12 +29,17 @@ Push, Double-Lane Squeeze; anti-plays: Radar Statue, the gen-5 fortress
   not broken).
 - **Hearing** (forced by the Decoy Shot play): without out-of-cone
   signals, cone vision starves bots into random wandering; with
-  omniscient events it is undermined. Middle: **loud events (Shot,
-  Damage, Destroyed, Disqualified) are delivered when any reference
-  position is within Chebyshev `HearingRadius` of the observer,
-  regardless of cone or LOS**; quiet events (Turn, Move, MoveBlocked)
-  stay sight-gated. `HearingRadius = 8` (= ShotRange: you hear as far as
-  guns reach).
+  omniscient events it is undermined. Middle (hardened per §H item 1):
+  **loud events (Shot, Damage, Destroyed, Disqualified) beyond sight but
+  within Chebyshev `HearingRadius` arrive REDACTED as sounds** — event
+  type, an 8-way bearing octant (cardinal only when one axis dominates
+  by more than 2:1), and a distance band (near ≤2 / medium ≤5 / far) —
+  never coordinates, slots, or outcomes. A sighted event is a full event
+  and never also a sound; quiet events (Turn, Move, MoveBlocked) stay
+  sight-gated. `HearingRadius = 8` (= ShotRange: you hear as far as guns
+  reach). Sound is a cue and a decoy channel, not a radar — the v1
+  behavior (full authoritative events through walls) was radar and is
+  retired with the v1 arms.
 - Why 90° and not 180°: turning is 90°/tick, so a spinner sweeps the full
   circle in 4 ticks. At 180° the sweep closes in 2 ticks and stalking
   (Red-Light Approach) dies; at 90° a blind arc always exists, corner
@@ -58,18 +63,25 @@ Push, Double-Lane Squeeze; anti-plays: Radar Statue, the gen-5 fortress
   `ProjectileTicksPerTile` ticks, despawning on walls or after
   `ShotRange` tiles.
 - **Resolution order** (within the §4.7 tick): turns → bot moves →
-  existing bolts advance (phase-due) → occupancy hit-check for every
-  bolt against post-move positions → new shots spawn (+ spawn checks) →
-  all damage lands simultaneously. Crossing bolts pass through each
-  other (collision is a future dial — Vanguard Push note); a bolt never
-  hits its OWNER (Vanguard Push requires overtaking your own slow bolt).
+  for each existing bolt: occupancy hit-check against post-move
+  positions, THEN advance (phase-due), THEN occupancy hit-check again →
+  new shots spawn (+ spawn checks) → all damage lands simultaneously.
+  The double check (hardened per §H item 2) closes the phase-surfing
+  gap: stepping onto a bolt's tile is lethal even on exactly the tick
+  the bolt advances away. Crossing bolts pass through each other
+  (collision is a future dial — Vanguard Push note); a bolt never hits
+  its OWNER (Vanguard Push requires overtaking your own slow bolt).
 - **Cooldown/energy semantics unchanged** — Shoot is still Shoot; no
   action parameters, no protocol bump. Damage events fire on hit with
   the existing shape; the Shot event marks the launch (to = spawn tile).
-- Replay: per-tick `projectiles` list (x, y, direction, owner) — omitted
-  (null) under instant-ray rules, so all historical hashes stand.
-  Observation: trailing `P` section with visible bolts (position,
-  direction, owner), sight-gated like everything else.
+- Replay: per-tick `projectiles` list (x, y, direction, owner,
+  ticksUntilAdvance, remainingTiles) — omitted (null) under instant-ray
+  rules, so all historical hashes stand. Observation: trailing `P`
+  section with visible bolts carrying the same six fields, sight-gated
+  like everything else. Dodge timing is COMPUTABLE, never measured
+  (§H item 2): `ticksUntilAdvance == 1` means the bolt moves this very
+  tick, right after movement; `remainingTiles` is its residual range
+  (−1 = uncapped), lethal on the final tile.
 
 ## C. Squeeze math — why bolts alone don't evict, and what does
 
@@ -97,21 +109,37 @@ This is also the Shepherd play in its purest form.
 
 Gen-5 finding #1: SpawnVariation's 64-attempt sampler can exhaust and
 fall back to map-fixed spawns, silently bypassing ZoneSpawnFairness.
-`int SpawnAttempts` joins GameRules (64 legacy; 256 under 0.5 arms —
-gameplay-affecting, hence rules-gated, not a silent edit).
+The v1 mitigation (`SpawnAttempts` 256) shrank the window but kept the
+silent fallback; the hardened fix (§H item 3) removes sampling from the
+arms entirely: **`ExhaustiveSpawns` enumerates every ordered floor pair
+satisfying ALL constraints** (min distance, connectivity via one
+component labeling, lane safety, zone-distance fairness) in canonical
+scan order and lets the seed pick one uniformly. No attempt budget, no
+fallback; a map whose valid set is empty is rejected loudly
+(`SpawnVariationTests` gates every shipped map under every arm). Legacy
+rules keep the sampler bit-identically.
 
 ## E. Arms and versions
 
-| arm         | version string      | on top of 0.4                                  |
-| ----------- | ------------------- | ---------------------------------------------- |
-| 0.5-control | 0.5-exp-control     | SpawnAttempts 256 only (spawn-matched baseline, §H item 3) |
-| cone        | 0.5-exp-cone        | VisionCone + HearingRadius 8 + SpawnAttempts 256 |
-| bolts       | 0.5-exp-bolts       | ProjectileTicksPerTile 2 + SpawnAttempts 256   |
-| conebolts   | 0.5-exp-conebolts   | both                                           |
+Hardened revision **v2** (DECISIONS #59) — every arm shares redacted
+hearing, double-check collision, computable bolt timing, exhaustive
+spawns, and per-tick replay zone tallies:
 
-Rules 0.1–0.4 stay bit-identical (all new code behind flags; full suite
-+ goldens must pass untouched). SDK/GuestAdapter bump to 0.5.0 (new
-trailing `P` observation section + `VisibleProjectiles` context field).
+| arm         | version string          | on top of 0.4                          |
+| ----------- | ----------------------- | -------------------------------------- |
+| 0.5-control | 0.5-exp-control-v2      | spawn-matched baseline only (§H item 3) |
+| cone        | 0.5-exp-cone-v2         | VisionCone + HearingRadius 8           |
+| bolts       | 0.5-exp-bolts-v2        | ProjectileTicksPerTile 2               |
+| conebolts   | 0.5-exp-conebolts-v2    | both                                   |
+| conebolts1  | 0.5-exp-conebolts1-v2   | both, bolts at movement speed (§G counter-tune) |
+
+The v1 strings are retired, not preserved: experiments carry no
+bit-compat promise, and gen-6 artifacts cannot parse the widened `P`
+section regardless (their stored replays remain viewable; only re-
+verification by re-simulation is lost). Rules 0.1–0.4 stay bit-identical
+(all new code behind flags; full suite + goldens pass untouched).
+SDK/GuestAdapter 0.6.0: `HeardSounds` (trailing `H` section, additive)
+and the 4→6-field `P` section (breaking for 0.5.0 adapters only).
 
 ## F. Evaluation plan
 
@@ -233,3 +261,29 @@ Sequencing: hardening batch → gen-6 DX docs/tooling pass
 (DX-FINDINGS-GEN6: player rules card, `replay --summary` cone/bolt
 columns) → gen-7 aware tournament under the final arms = the official
 0.5 ship decision.
+
+### §H status (hardening batch, DECISIONS #59)
+
+- Item 1 hearing redaction: **DONE** (HeardSound = type + octant + band;
+  ConeVisionTests/HearingTests pin delivery, redaction, dedup, cutoff).
+- Item 2 projectile state: **DONE** (6-field observations + replay,
+  double-check collision; ProjectileTests pin the surf hit and that the
+  exposed timing predicts the actual advance; §C prose fixed earlier).
+- Item 3 spawns: **DONE** (ExhaustiveSpawns everywhere in v2; loud map
+  rejection; every shipped map × every arm gated by test; the
+  spawn-matched 0.5-control arm is the harness baseline).
+- Item 4 adversarial tests: **DONE for scriptable defense**
+  (AdversarialPlayTests): open-field Radar Statue detection theorem
+  (straight stealth approach impossible — sweeps beat walkers — but the
+  sweep has exploitable latency), cover-timed Red-Light backstab kills
+  the optimal scanner without ever being seen before the first hit,
+  bolts+body squeeze denies a PERFECT timing-aware dodging camper (and
+  bolts alone still don't kill it — §C honesty holds), Vanish breaks
+  contact laterally inside vision range, and the gen-5 fortress freeze
+  breaks via doorway bolts + Vanguard entry. NOT yet pinned: the
+  armed door-watcher (a defender that shoots back) and Shepherd's
+  follow-up-shot timing — those need adaptive play and are exactly what
+  gen-7's aware bots + ship criteria #2/#8 evaluate.
+- Evaluation: paired per-game transitions vs control landed in
+  balance-eval.py; conebolts1 (speed-1) is a first-class arm; the ten
+  ship criteria above are frozen.

@@ -78,6 +78,14 @@ export interface ReplayVisibleEnemy {
   health: number;
 }
 
+/** A redacted heard sound: bearing is the 8-way octant 0=N..7=NW (clockwise),
+ * distance the band 0=Near/1=Medium/2=Far. */
+export interface ReplayHeardSound {
+  type: GameEventType;
+  bearing: number;
+  distance: number;
+}
+
 export interface ReplayBotTick {
   slot: number;
   chosenAction: BotAction;
@@ -87,6 +95,8 @@ export interface ReplayBotTick {
   debug?: string;
   visibleTiles: number[][];
   visibleEnemies: ReplayVisibleEnemy[];
+  /** Sounds this bot heard this tick; absent when none or no hearing rules. */
+  heardSounds?: ReplayHeardSound[];
 }
 
 export interface ReplayBotState {
@@ -99,6 +109,9 @@ export interface ReplayBotState {
   status: BotStatus;
   /** Present only when these rules have an energy system. */
   energy?: number;
+  /** Cumulative zone-ticks; present only when the rules emit per-tick tallies —
+   * read this, never re-derive accrual in the viewer. */
+  zoneTicks?: number;
 }
 
 /** Present only under projectile rules; omitted for instant-shot replays. */
@@ -107,6 +120,10 @@ export interface ReplayProjectile {
   y: number;
   direction: Direction;
   ownerSlot: number;
+  /** 1 = the bolt advances next tick; absent in pre-hardening replays. */
+  ticksUntilAdvance?: number;
+  /** Tiles it can still advance before despawning (−1 = uncapped). */
+  remainingTiles?: number;
 }
 
 export interface ReplayTick {

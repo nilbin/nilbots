@@ -97,6 +97,54 @@ public class ProjectileTests
     }
 
     [Fact]
+    public void PhaseSurfing_EnteringTheTileABoltIsLeaving_IsAHit()
+    {
+        // The §H item 2 gap: the bolt at (4,3) advances on t2; the victim walks ONTO
+        // (4,3) that very tick. Occupancy must be checked before the advance too —
+        // under the old post-only check the bolt slid away and the walker survived.
+        var map = ArenaMap.Create("test-surf-room", [
+            "############",
+            "#..........#",
+            "#..........#",
+            "#..........#",
+            "#..........#",
+            "#..........#",
+            "############",
+        ], [new Spawn(3, 3, Direction.East), new Spawn(7, 3, Direction.West)]);
+        var session = new MatchSession(map, BoltRules);
+        Steps(session,
+            (BotAction.Shoot, BotAction.MoveForward),  // t0: bolt → (4,3); walker → (6,3)
+            (BotAction.Wait, BotAction.MoveForward),   // t1: bolt dwells; walker → (5,3)
+            (BotAction.Wait, BotAction.MoveForward));  // t2: walker → (4,3); bolt advance is due
+        Assert.Equal(2, session.State.Bots[1].Health);
+        Assert.Empty(session.State.Projectiles); // consumed by the hit, not surfed past
+    }
+
+    [Fact]
+    public void Observation_ExposesBoltTiming_ThatPredictsTheActualAdvance()
+    {
+        var session = new MatchSession(Room(), BoltRules);
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+
+        // Start of t1: the bolt dwells this tick, advances on the NEXT one.
+        var bolt = Assert.Single(session.BuildObservation(0).VisibleProjectiles!);
+        Assert.Equal(2, bolt.TicksUntilAdvance);
+        Assert.Equal(7, bolt.RemainingTiles); // range 8, spawned on tile 1
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+        // Start of t2: TicksUntilAdvance == 1 must mean "advances THIS tick".
+        bolt = Assert.Single(session.BuildObservation(0).VisibleProjectiles!);
+        Assert.Equal(1, bolt.TicksUntilAdvance);
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+        Assert.Equal(new Position(5, 3), session.State.Projectiles[0].Position);
+
+        // After the advance the countdown resets and a range tile is spent.
+        bolt = Assert.Single(session.BuildObservation(0).VisibleProjectiles!);
+        Assert.Equal(2, bolt.TicksUntilAdvance);
+        Assert.Equal(6, bolt.RemainingTiles);
+    }
+
+    [Fact]
     public void Bolt_DespawnsOnWalls_AndAtRange()
     {
         // Wall: shoot with a wall directly ahead.

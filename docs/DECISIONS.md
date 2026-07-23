@@ -484,6 +484,36 @@ configuration) and changing them is a version bump, not an edit.
     Sequencing: hardening batch → gen-6 DX docs pass → gen-7 aware
     tournament = the official-0.5 decision.
 
+59. **The 0.5 hardening batch shipped as arm revision v2 — one version
+    bump for every gameplay-affecting fix (§H program, one commit).**
+    All arms move to `-v2` strings (0.5-exp-control-v2 / cone-v2 /
+    bolts-v2 / conebolts-v2) plus the new `conebolts1` arm
+    (0.5-exp-conebolts1-v2, bolts at movement speed). In the batch:
+    (1) hearing redacted to HeardSound(type, 8-way octant at >2:1
+    dominance, near≤2/medium≤5/far bands) — sighted events stay full,
+    heard-only events never carry coordinates; (2) bolt observations and
+    replays carry ticksUntilAdvance + remainingTiles (P section 4→6
+    fields; additive H section) and occupancy is checked before AND
+    after each advance, closing the phase-surfing gap while the §C
+    counter-surf survives (both pinned by tests); (3) ExhaustiveSpawns
+    replaces sampling in every arm — full valid-pair enumeration,
+    seed-picked, empty set rejects the map loudly, every shipped map
+    gated by test; (4) AdversarialPlayTests prove the plays against the
+    strongest SCRIPTED defense (optimal 4-tick scanner, perfect
+    timing-aware dodging camper): open-field stealth is impossible
+    (detection theorem), cover-timed backstab kills the scanner unseen,
+    bolts+body denies the perfect dodger, the gen-5 fortress freeze
+    breaks. Also: per-tick zone tallies in replays (ReplayZoneTallies —
+    the viewer reads, never re-derives; flag-gated so official 0.4
+    bytes are untouched), paired per-game analysis in balance-eval.py,
+    SDK/GuestAdapter 0.6.0. The v1 arm strings are retired without a
+    compat shim: experiments make no bit-compat promise and gen-6
+    artifacts cannot parse the widened P section anyway — their ladders
+    and replays stay as history, re-verification is lost, accepted.
+    Deliberately NOT pinned by script: shooting/adaptive defenders
+    (armed door-watcher, Shepherd follow-up) — that is gen-7's job
+    under the frozen §H ship criteria.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

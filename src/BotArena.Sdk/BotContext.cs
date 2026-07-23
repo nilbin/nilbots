@@ -12,8 +12,9 @@ public sealed class BotContext
 
     public required Position Position { get; init; }
 
-    /// <summary>Which way you face. Facing only affects movement and shooting —
-    /// vision is omnidirectional.</summary>
+    /// <summary>Which way you face. Movement and shooting always follow it; under rules
+    /// with directional vision your sight does too (see <see cref="VisibleTiles"/>) —
+    /// turning is also looking.</summary>
     public required Direction Facing { get; init; }
 
     public required int Health { get; init; }
@@ -63,18 +64,25 @@ public sealed class BotContext
     public required IReadOnlyList<VisibleEnemy> VisibleEnemies { get; init; }
 
     /// <summary>Bolts in flight on tiles you can see, or null when these rules have
-    /// instant shots (no projectile system). When non-null, dodge them like rays that
-    /// take time: a bolt's tile is lethal, and it advances along its direction on a
-    /// fixed cadence you can observe across ticks.</summary>
+    /// instant shots (no projectile system). When non-null, dodge them by arithmetic,
+    /// not observation: a bolt's tile is lethal, <see cref="VisibleProjectile.TicksUntilAdvance"/>
+    /// says exactly when it moves, and <see cref="VisibleProjectile.RemainingTiles"/>
+    /// says how far it can still reach.</summary>
     public IReadOnlyList<VisibleProjectile>? VisibleProjectiles { get; init; }
 
     /// <summary>What happened LAST tick, filtered by your CURRENT vision: an event is
     /// delivered when any of its reference positions is on a tile you can see now. Shots
     /// are delivered even when the shooter itself is beyond your vision, as long as part
-    /// of the ray's start/end is visible — muzzle flashes carry information. Under rules
-    /// with hearing, LOUD events (shots, damage, destruction) also arrive from beyond
-    /// your sight when within the hearing radius — sound has no facing.</summary>
+    /// of the ray's start/end is visible — muzzle flashes carry information. Events you
+    /// only HEAR are not here: they arrive redacted in <see cref="HeardSounds"/>.</summary>
     public required IReadOnlyList<VisibleEvent> VisibleEvents { get; init; }
+
+    /// <summary>Sounds from LOUD events (shots, damage, destruction) LAST tick that were
+    /// beyond your sight but within hearing, or null when these rules have no hearing.
+    /// Each is redacted to kind + coarse bearing + coarse distance band — enough to know
+    /// someone is fighting north of you, not enough to aim. An event you saw appears in
+    /// <see cref="VisibleEvents"/> instead, never in both.</summary>
+    public IReadOnlyList<HeardSound>? HeardSounds { get; init; }
 
     /// <summary>The only permitted randomness: seeded from the match seed and your slot,
     /// so replays are exact. System clocks and System.Random are neutralized in the sandbox.</summary>

@@ -60,7 +60,7 @@ public class ConeVisionTests
     }
 
     [Fact]
-    public void LoudEvents_CarryThroughTheBlindArc_QuietOnesDoNot()
+    public void LoudEvents_ArriveThroughTheBlindArc_AsRedactedSounds()
     {
         var session = new MatchSession(OpenMap(), ConeRules);
         // Bot 0 turns North (its shot will travel away from bot 1's row);
@@ -68,12 +68,19 @@ public class ConeVisionTests
         session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnLeft)]);
         session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.TurnLeft)]);
         var heard = session.BuildObservation(1); // shot fired last tick, 8 tiles behind
-        Assert.Contains(heard.VisibleEvents, e => e.Type == GameEventType.Shot);
+        // Redaction (§H item 1): the unseen shot is a SOUND — type, coarse bearing,
+        // coarse band — never the full authoritative event with coordinates.
+        Assert.DoesNotContain(heard.VisibleEvents, e => e.Type == GameEventType.Shot);
+        var sound = Assert.Single(heard.HeardSounds!);
+        Assert.Equal(GameEventType.Shot, sound.Type);
+        Assert.Equal(6, sound.Bearing);  // due west of the listener
+        Assert.Equal(2, sound.Distance); // Chebyshev 8 = Far
 
-        // A turn (quiet) in the same blind arc is NOT delivered.
+        // A turn (quiet) in the same blind arc is delivered as NOTHING at all.
         session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.Wait)]);
         var afterTurn = session.BuildObservation(1);
         Assert.DoesNotContain(afterTurn.VisibleEvents, e => e.Type == GameEventType.Turn);
+        Assert.Empty(afterTurn.HeardSounds!);
     }
 
     [Fact]

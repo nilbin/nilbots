@@ -82,8 +82,44 @@ public sealed record VisibleEnemy(int Slot, Position Position, Direction Facing,
 
 /// <summary>A bolt in flight on a tile you can see. Bolts occupy their tile — standing
 /// on or stepping onto one is a hit — and advance along their direction on a fixed
-/// cadence. A bolt never hits the bot that fired it.</summary>
-public sealed record VisibleProjectile(Position Position, Direction Direction, int OwnerSlot);
+/// cadence. A bolt never hits the bot that fired it. <c>TicksUntilAdvance</c> makes the
+/// cadence computable: 1 means the bolt moves one tile along <c>Direction</c> THIS very
+/// tick, immediately after movement resolves — so do not end this tick's move on its
+/// next tile (nor on its current one: a bolt's tile is checked before AND after it
+/// advances). <c>RemainingTiles</c> is how many more tiles it can advance before
+/// despawning (−1 = uncapped); it is lethal on its final tile.</summary>
+public sealed record VisibleProjectile(
+    Position Position, Direction Direction, int OwnerSlot, int TicksUntilAdvance, int RemainingTiles);
+
+/// <summary>Coarse 8-way bearing of a heard sound, relative to your position (not your
+/// facing): the octant from you toward the source.</summary>
+public enum SoundBearing
+{
+    North = 0,
+    NorthEast = 1,
+    East = 2,
+    SouthEast = 3,
+    South = 4,
+    SouthWest = 5,
+    West = 6,
+    NorthWest = 7,
+}
+
+/// <summary>Coarse loudness band of a heard sound: Near is Chebyshev ≤ 2, Medium ≤ 5,
+/// Far anything beyond that within the rules' hearing radius.</summary>
+public enum SoundDistance
+{
+    Near = 0,
+    Medium = 1,
+    Far = 2,
+}
+
+/// <summary>A LOUD event (shot, damage, destruction, disqualification) from LAST tick
+/// that happened beyond your sight but within hearing. Deliberately redacted: you learn
+/// the kind, a coarse bearing, and a coarse distance band — never who, never exact
+/// coordinates. Sound is a cue to investigate or evade, not a radar; it can also be a
+/// decoy.</summary>
+public sealed record HeardSound(VisibleEventKind Kind, SoundBearing Bearing, SoundDistance Distance);
 
 public enum VisibleEventKind
 {

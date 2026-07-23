@@ -22,14 +22,20 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
-  // Zone scores are not carried in per-tick state; re-derive them from positions.
-  // Accrual mode differs by ruleset (shared pre-DECISIONS #50, exclusive since) and
-  // the replay doesn't name the mode — so compute both series and keep the one
-  // whose totals match the authoritative result. Default: exclusive (current rules).
+  // Zone scores: hardened replays carry the engine's cumulative tally per tick
+  // (state.zoneTicks) — read it, never re-derive. Legacy replays (pre-tally) fall
+  // back to re-deriving both accrual modes and keeping the one whose totals match
+  // the authoritative result (the pattern that once showed 136/118 for a true 18/0).
   const zone = useMemo(() => {
     const tiles = replay.header.zoneTiles;
     if (!tiles) return null;
     const onZone = new Set(tiles.map(([x, y]) => `${x},${y}`));
+    if (replay.ticks.some((t) => t.state.some((s) => s.zoneTicks !== undefined))) {
+      const cumulative = replay.ticks.map((t) =>
+        Object.fromEntries(t.state.map((s) => [s.slot, s.zoneTicks ?? 0])),
+      ) as Record<number, number>[];
+      return { onZone, cumulative };
+    }
     const sharedRun: Record<number, number> = {};
     const exclusiveRun: Record<number, number> = {};
     const shared: Record<number, number>[] = [];

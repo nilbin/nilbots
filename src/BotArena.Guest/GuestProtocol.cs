@@ -68,7 +68,8 @@ internal static class GuestProtocol
 
         // Optional trailing sections (additive, protocol 0.1-compatible), fixed order:
         // "E <energy>", "M <w> <h>", "Z <n> x:y ... ZT <mine> <theirs>",
-        // "P <n> x:y:dir:owner ...".
+        // "P <n> x:y:dir:owner:ticksUntilAdvance:remainingTiles ...",
+        // "H <n> kind:bearing:band ..." (redacted heard sounds).
         int? energy = null;
         if (index < parts.Length && parts[index] == "E")
         {
@@ -106,15 +107,29 @@ internal static class GuestProtocol
             projectiles = new VisibleProjectile[boltCount];
             for (int i = 0; i < boltCount; i++)
             {
-                var f = Fields(4);
-                projectiles[i] = new VisibleProjectile(new Position(f[0], f[1]), (Direction)f[2], f[3]);
+                var f = Fields(6);
+                projectiles[i] = new VisibleProjectile(
+                    new Position(f[0], f[1]), (Direction)f[2], f[3], f[4], f[5]);
+            }
+        }
+        HeardSound[]? heardSounds = null;
+        if (index < parts.Length && parts[index] == "H")
+        {
+            index++;
+            int soundCount = Next();
+            heardSounds = new HeardSound[soundCount];
+            for (int i = 0; i < soundCount; i++)
+            {
+                var f = Fields(3);
+                heardSounds[i] = new HeardSound(
+                    (VisibleEventKind)f[0], (SoundBearing)f[1], (SoundDistance)f[2]);
             }
         }
 
         return new ParsedObservation(
             tick, new Position(x, y), (Direction)facing, health, cooldown,
             (ActionResult)previous, tiles, enemies, events, energy,
-            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks, projectiles);
+            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks, projectiles, heardSounds);
 
         void Expect(string marker)
         {
@@ -150,7 +165,8 @@ internal static class GuestProtocol
         IReadOnlyList<Position>? ZoneTiles,
         int? MyZoneTicks,
         int? EnemyZoneTicks,
-        IReadOnlyList<VisibleProjectile>? VisibleProjectiles = null);
+        IReadOnlyList<VisibleProjectile>? VisibleProjectiles = null,
+        IReadOnlyList<HeardSound>? HeardSounds = null);
 
     public static string FormatDecision(BotAction action, string? debug)
     {

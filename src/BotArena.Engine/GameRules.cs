@@ -84,8 +84,21 @@ public sealed record GameRules
 
     /// <summary>Seed-spawn sampler attempts before falling back to the map's fixed
     /// spawns (which bypass every constraint — gen-5 finding #1). Gameplay-affecting,
-    /// hence a rules value: 64 legacy, raised under 0.5 arms.</summary>
+    /// hence a rules value: 64 legacy. Irrelevant when <see cref="ExhaustiveSpawns"/>
+    /// replaces sampling entirely.</summary>
     public int SpawnAttempts { get; init; } = 64;
+
+    /// <summary>Replaces spawn sampling with exhaustive enumeration (§H item 3): every
+    /// floor pair satisfying ALL constraints is precomputed and the seed picks one —
+    /// no attempt budget, no silent unfair fallback. A map with an empty valid set is
+    /// rejected loudly instead of played unfairly.</summary>
+    public bool ExhaustiveSpawns { get; init; }
+
+    /// <summary>Replay-surface flag: per-tick bot snapshots carry cumulative zone-ticks,
+    /// so viewers read the tally instead of re-deriving accrual rules (the source of a
+    /// real scoreboard bug). Rules-gated only to keep official 0.4 replay bytes stable;
+    /// no gameplay effect.</summary>
+    public bool ReplayZoneTallies { get; init; }
 
     /// <summary>Directional vision (RULES-0.5-DESIGN §A): sight is the 90° quadrant in
     /// the facing direction plus a Chebyshev-1 omnidirectional proximity ring, still
@@ -149,7 +162,7 @@ public sealed record GameRules
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
     public static readonly IReadOnlyList<string> KnownNames =
-        ["0.4", "0.3", "0.2", "0.1", "0.5-control", "cone", "bolts", "conebolts", "strafe", "hill", "hill-shared", "slate", "energy"];
+        ["0.4", "0.3", "0.2", "0.1", "0.5-control", "cone", "bolts", "conebolts", "conebolts1", "strafe", "hill", "hill-shared", "slate", "energy"];
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
@@ -161,36 +174,52 @@ public sealed record GameRules
         "0.3" => V0_3,
         "0.2" => V0_2,
         "0.1" => V0_1,
-        // The 0.5 watchability slate (RULES-0.5-DESIGN): cone vision and projectiles,
-        // separately and combined — the harness + gen-6 tournament decide the ship.
-        // 0.5-control is the spawn-matched baseline (external review §H item 3): every
-        // arm shares SpawnAttempts 256, so A/B deltas measure the mechanics, not the
-        // spawn-sampler change that rode along with them.
+        // The 0.5 watchability slate (RULES-0.5-DESIGN), hardened revision v2 (§H,
+        // DECISIONS #58): redacted hearing, both-checks bolt collision, computable
+        // bolt timing on the wire, exhaustive fair spawns. The v1 strings
+        // (0.5-exp-cone/-bolts/-conebolts/-control) are retired, not preserved —
+        // experiments carry no bit-compat promise, and gen-6 artifacts cannot parse
+        // the widened P section anyway (hill v1→v2 precedent: new behavior, new
+        // string). 0.5-control is the spawn-matched A/B baseline (§H item 3);
+        // conebolts1 is the §G counter-tune (bolts at movement speed).
         "0.5-control" => V0_4 with
         {
-            RulesVersion = "0.5-exp-control",
-            SpawnAttempts = 256,
+            RulesVersion = "0.5-exp-control-v2",
+            ExhaustiveSpawns = true,
+            ReplayZoneTallies = true,
         },
         "cone" => V0_4 with
         {
-            RulesVersion = "0.5-exp-cone",
+            RulesVersion = "0.5-exp-cone-v2",
             VisionCone = true,
             HearingRadius = 8,
-            SpawnAttempts = 256,
+            ExhaustiveSpawns = true,
+            ReplayZoneTallies = true,
         },
         "bolts" => V0_4 with
         {
-            RulesVersion = "0.5-exp-bolts",
+            RulesVersion = "0.5-exp-bolts-v2",
             ProjectileTicksPerTile = 2,
-            SpawnAttempts = 256,
+            ExhaustiveSpawns = true,
+            ReplayZoneTallies = true,
         },
         "conebolts" => V0_4 with
         {
-            RulesVersion = "0.5-exp-conebolts",
+            RulesVersion = "0.5-exp-conebolts-v2",
             VisionCone = true,
             HearingRadius = 8,
             ProjectileTicksPerTile = 2,
-            SpawnAttempts = 256,
+            ExhaustiveSpawns = true,
+            ReplayZoneTallies = true,
+        },
+        "conebolts1" => V0_4 with
+        {
+            RulesVersion = "0.5-exp-conebolts1-v2",
+            VisionCone = true,
+            HearingRadius = 8,
+            ProjectileTicksPerTile = 1,
+            ExhaustiveSpawns = true,
+            ReplayZoneTallies = true,
         },
         "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
         // The hill experiment graduated to official 0.4 (DECISIONS #53); "hill" stays

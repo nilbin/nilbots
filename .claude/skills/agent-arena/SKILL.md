@@ -86,29 +86,38 @@ so append the experiment spec to every agent brief. (Zone control needs no
 brief anymore — it shipped as official 0.4 after the gen-4 bracket,
 DECISIONS #53, and the site docs + template README now cover it.)
 
-For the 0.5 watchability slate (gen-6; arms `cone` / `bolts` / `conebolts`,
-RULES-0.5-DESIGN — include only the paragraphs matching the arm):
+For the hardened 0.5 slate (gen-7; arms `cone` / `bolts` / `conebolts` /
+`conebolts1`, plus the `0.5-control` baseline, RULES-0.5-DESIGN §E —
+include only the paragraphs matching the arm):
 
 > EXPERIMENTAL RULES for this tournament (on top of documented v0.4):
 > DIRECTIONAL VISION. You see only a 90° cone toward your facing — the
 > quadrant where |lateral| ≤ forward — plus the 8 adjacent tiles; turning
 > is also looking, and your back is genuinely blind (so is theirs: unseen
 > approaches land unanswered shots). LOUD events (shots, damage,
-> destruction) are heard within Chebyshev 8 of any reference position
-> regardless of facing; quiet events (moves, turns) only when seen. A
-> spinning scan sweeps the full circle in 4 ticks but points your gun
-> wherever you are looking — eyes and muzzle are one resource.
+> destruction) beyond your sight arrive within Chebyshev 8 as
+> `context.HeardSounds`: event kind, an 8-way bearing, a near/medium/far
+> band — NEVER exact positions or slots. Sound is a cue to investigate,
+> reorient, or be decoyed; you cannot aim from it. Events you SEE stay
+> full-detail in `context.VisibleEvents`, never duplicated as sounds;
+> quiet events (moves, turns) only exist when seen. A spinning scan
+> sweeps the full circle in 4 ticks but points your gun wherever you are
+> looking — eyes and muzzle are one resource.
 
 > EXPERIMENTAL RULES for this tournament (on top of documented v0.4):
 > PROJECTILES. Shoot launches a bolt onto the adjacent tile in your
-> facing; it advances 1 tile every 2 ticks, up to range 8, and despawns
-> on walls. A bolt's tile is LETHAL — standing on it or stepping into it
-> costs 1 health — but a bolt never hits its owner, and a point-blank
-> shot still hits instantly. Missing has value: bolts deny lanes for
-> seconds at a time (`context.VisibleProjectiles` shows bolts you can
-> see). Suppress the zone tile a camper stands on and it must vacate or
-> bleed; note a 2x2-zone camper can surf BEHIND a one-sided volley — the
-> executable eviction is bolts + your body on the forced refuge tile.
+> facing; it advances 1 tile every 2 ticks (1 per tick under the
+> conebolts1 arm), up to range 8, and despawns on walls. A bolt's tile
+> is LETHAL — standing on it or stepping into it costs 1 health, checked
+> both before AND after the bolt advances (you cannot slip onto the tile
+> it is just leaving) — but a bolt never hits its owner, and a
+> point-blank shot still hits instantly. Dodge by arithmetic:
+> `context.VisibleProjectiles` gives each bolt's `TicksUntilAdvance`
+> (1 = it moves THIS tick, right after movement) and `RemainingTiles`.
+> Missing has value: bolts deny lanes for seconds at a time. Suppress
+> the zone tile a camper stands on and it must vacate or bleed; note a
+> 2x2-zone camper can surf BEHIND a one-sided volley — the executable
+> eviction is bolts + your body on the forced refuge tile.
 
 For energy re-tests:
 

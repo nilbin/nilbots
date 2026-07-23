@@ -116,6 +116,98 @@ public class SpawnVariationTests
         return int.MaxValue;
     }
 
+    private static readonly GameRules ExhaustiveRules = SpawnRules with
+    {
+        RulesVersion = "test-exhaustive-spawns",
+        ShotRange = 8,
+        SpawnLaneSafety = true,
+        ExhaustiveSpawns = true,
+    };
+
+    [Fact]
+    public void Exhaustive_IsSeedDeterministic_AndSeedsVary()
+    {
+        var map = TestMaps.WideRoom();
+        Assert.Equal(
+            SpawnVariation.Resolve(map, ExhaustiveRules, 11),
+            SpawnVariation.Resolve(map, ExhaustiveRules, 11));
+        int distinct = Enumerable.Range(0, 16)
+            .Select(seed => SpawnVariation.Resolve(map, ExhaustiveRules, (ulong)seed))
+            .Select(s => (s[0].X, s[0].Y, s[1].X, s[1].Y))
+            .Distinct()
+            .Count();
+        Assert.True(distinct > 4, $"Expected varied exhaustive spawns across seeds, got {distinct} distinct.");
+    }
+
+    [Fact]
+    public void Exhaustive_HonorsEveryConstraint_OnEverySeed()
+    {
+        // The whole point of §H item 3: no seed can ever bypass a constraint, because
+        // there is no fallback path — so this must hold for ALL seeds, not most.
+        var rules = ExhaustiveRules with { ZoneControl = true, ZoneSpawnFairness = true };
+        var map = TestMaps.WideRoom();
+        var zone = map.EffectiveZone();
+        int minDistance = Math.Max(map.Width, map.Height) / 2;
+        for (ulong seed = 0; seed < 100; seed++)
+        {
+            var spawns = SpawnVariation.Resolve(map, rules, seed);
+            var a = new Position(spawns[0].X, spawns[0].Y);
+            var b = new Position(spawns[1].X, spawns[1].Y);
+            Assert.True(a.ChebyshevDistance(b) >= minDistance, $"seed {seed}: too close");
+            Assert.True(map.AreConnected(a, b), $"seed {seed}: disconnected");
+            // Lane safety bars a shared row/col only within firing range (an open room
+            // has no walls, so range is the only out).
+            bool tickZeroLane = (a.X == b.X || a.Y == b.Y)
+                && Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y) <= rules.ShotRange;
+            Assert.False(tickZeroLane, $"seed {seed}: mutual firing lane");
+            int da = zone.Min(z => WalkDistance(map, a, z));
+            int db = zone.Min(z => WalkDistance(map, b, z));
+            Assert.True(Math.Abs(da - db) <= SpawnVariation.ZoneDistanceTolerance,
+                $"seed {seed}: unfair zone race {da} vs {db}");
+        }
+    }
+
+    [Fact]
+    public void Exhaustive_AMapWithNoValidPair_IsRejectedLoudly()
+    {
+        // A pure corridor: every distant-enough pair shares the row → lane safety
+        // rejects all of them. The sampler would silently fall back to the map's
+        // fixed (lane-sharing!) spawns; exhaustive enumeration must refuse instead.
+        var corridor = ArenaMap.Create("test-corridor", [
+            "########",
+            "#......#",
+            "########",
+        ], [new Spawn(1, 1, Direction.East), new Spawn(6, 1, Direction.West)]);
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => SpawnVariation.Resolve(corridor, ExhaustiveRules, 5));
+        Assert.Contains("no valid spawn pair", ex.Message);
+        // And the sampler fallback it replaces really would have been unfair:
+        var sampled = SpawnVariation.Resolve(corridor, ExhaustiveRules with { ExhaustiveSpawns = false }, 5);
+        Assert.Equal(sampled[0].Y, sampled[1].Y);
+    }
+
+    [Fact]
+    public void Exhaustive_EveryShippedMap_HasValidPairs_UnderEveryExperimentArm()
+    {
+        // "Map rejected loudly" is only acceptable if no shipped map trips it. Gate
+        // the whole pool against every arm that uses exhaustive spawns.
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "BotArena.sln")))
+            root = root.Parent;
+        Assert.NotNull(root);
+        var mapFiles = Directory.EnumerateFiles(Path.Combine(root.FullName, "maps"), "*.json").Order().ToList();
+        Assert.NotEmpty(mapFiles);
+        var arms = GameRules.KnownNames.Select(GameRules.Resolve).Where(r => r.ExhaustiveSpawns).ToList();
+        Assert.NotEmpty(arms);
+        foreach (var file in mapFiles)
+        {
+            var map = ArenaMap.FromJson(File.ReadAllText(file));
+            foreach (var arm in arms)
+                for (ulong seed = 0; seed < 8; seed++)
+                    _ = SpawnVariation.Resolve(map, arm, seed); // must not throw
+        }
+    }
+
     [Fact]
     public void LaneSafetyOff_LeavesV0_2StreamsUnchanged()
     {
