@@ -223,9 +223,23 @@ Aimed shot: rejected by owner. Grenades: parked until after cone vision —
 under perfect information they collapse into forced-move puzzles, and a
 target tile needs parameterized actions (first real protocol bump).
 Strafe-attack (move+shoot): declined — it breaks single-action-per-tick
-and move-before-shoot, the beams under the whole tempo economy. Next
-step when called: RULES-0.5 design doc → GameRules flags → harness →
-gen-6 tournament of cone-aware bots.
+and move-before-shoot, the beams under the whole tempo economy. Owner addition: PROJECTILES (travel time instead of instant rays)
+join cone vision as 0.5 co-flagship — "the watchability release".
+Mechanics case: a bolt fired at an occupied zone tile forces vacate-or-eat
+(missing acquires zoning value; suppression is the eviction tool the
+statue equilibrium lacks), and no protocol params are needed (Shoot is
+unchanged; bolts are world state — trailing observation section +
+additive replay field, both proven hash-safe patterns). Honest caveat:
+against a SEEN shooter travel time makes dodging easier — alone,
+projectiles may deepen pacifism while fixing camping; paired with cone
+vision, seen bolts are dodgeable counterplay and unseen bolts connect.
+Harness four arms: 0.4 control / cone / projectiles / both (0.3's
+ship-individually lesson vs a candidate genuine combo — data decides).
+Spec decisions for the design doc: bolt speed (1-2 tiles/tick),
+sweep-collision semantics (bot entering a bolt's tile mid-flight),
+bolt-bolt pass-through, in-flight cap via cooldown, viewer rendering.
+Next step when called: RULES-0.5 design doc → GameRules flags → harness →
+gen-6 tournament of cone-and-projectile-aware bots.
 
 Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
 Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions
