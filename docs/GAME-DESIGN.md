@@ -172,6 +172,22 @@ same day: SHIPPED as official 0.4 (DECISIONS #53).
 
 ## Gen-5 season premiere: the duel era ends (2026-07-23, DECISIONS #55)
 
+### The spectator cost at the top of the meta (owner-observed)
+
+The crown-defining Bastille-Talon crossfire game measured: leader 454/500
+Waits, 5 shots; trailer 117 moves, 108 turns, ZERO shots; zone contested
+from t7, 403 frozen ticks — decided 90-0 by t~90, then theater until 499.
+Both bots are playing CORRECTLY: a leader's frozen board is a won board
+(statue), and shooting a perfect-timing dodger always misses (pacifist
+dance). The anti-draw goal held — the game has a merit winner — but this
+is the camping problem transformed, not killed, and it worsens as bots
+improve. Candidate levers for the next harness run, in test order:
+(1) MaxTicks 500→~300 (median decided game is 158; pure rules-data);
+(2) contested decay — while contested, the LEADER's ledger decays 1/N
+ticks, breaking the statue equilibrium from both sides (root-cause fix);
+(3) stalemate sudden death — no accrual and no damage for N ticks →
+seed-deterministic zone relocation.
+
 Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
 Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions
 (swept 48-0). Design findings: (a) the meta has depth — a fresh,
