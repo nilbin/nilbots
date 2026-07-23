@@ -72,6 +72,51 @@ public class SpawnVariationTests
     }
 
     [Fact]
+    public void ZoneSpawnFairness_KeepsHillRaceEven()
+    {
+        var rules = SpawnRules with
+        {
+            RulesVersion = "test-hill-spawns",
+            ZoneControl = true,
+            ZoneSpawnFairness = true,
+        };
+        var map = TestMaps.OpenRoom(); // no declared zone → EffectiveZone center fallback
+        var zone = map.EffectiveZone();
+        for (ulong seed = 0; seed < 50; seed++)
+        {
+            var spawns = SpawnVariation.Resolve(map, rules, seed);
+            int da = zone.Min(z => WalkDistance(map, new Position(spawns[0].X, spawns[0].Y), z));
+            int db = zone.Min(z => WalkDistance(map, new Position(spawns[1].X, spawns[1].Y), z));
+            Assert.True(Math.Abs(da - db) <= SpawnVariation.ZoneDistanceTolerance,
+                $"seed {seed}: zone distances {da} vs {db} exceed the fairness tolerance.");
+        }
+    }
+
+    /// <summary>4-neighbor BFS walking distance (open room: equals Manhattan, but
+    /// computed honestly so the test also holds for walled maps).</summary>
+    private static int WalkDistance(ArenaMap map, Position from, Position to)
+    {
+        var seen = new HashSet<Position> { from };
+        var queue = new Queue<(Position At, int Steps)>([(from, 0)]);
+        while (queue.Count > 0)
+        {
+            var (at, steps) = queue.Dequeue();
+            if (at == to)
+                return steps;
+            foreach (var (dx, dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+            {
+                var next = at.Offset(dx, dy);
+                if (next.X < 0 || next.Y < 0 || next.X >= map.Width || next.Y >= map.Height)
+                    continue;
+                if (map.IsWall(next) || !seen.Add(next))
+                    continue;
+                queue.Enqueue((next, steps + 1));
+            }
+        }
+        return int.MaxValue;
+    }
+
+    [Fact]
     public void LaneSafetyOff_LeavesV0_2StreamsUnchanged()
     {
         // 0.2 spawn derivation must stay bit-identical when the 0.3 flag is off.

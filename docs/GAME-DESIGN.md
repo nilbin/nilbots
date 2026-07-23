@@ -140,8 +140,10 @@ firing a shot (150-146, zero damage, every game a slot-1 Domination at the
 identical tick) — the hill degenerates into a spawn-order footrace.
 `--rules hill` is now **exclusive accrual** (sole occupant accrues;
 contested zone pays nobody), which makes eviction the game; shared stays
-at `--rules hill-shared` as the baseline. Open risk to measure in the
-gen-4 tournament: two hold-averse bots could stand off adjacent to the
+at `--rules hill-shared` as the baseline. Same-day follow-up (DECISIONS
+#51): spawns under hill are **zone-distance-fair** (BFS delta ≤ 2), so the
+opening race is decided by play, not spawn luck. Open risk to measure in
+the gen-4 tournament: two hold-averse bots could stand off adjacent to the
 zone — watch draw rate among aware-vs-aware games.
 
 Before/after any candidate rule change, run the tournament (now fast:

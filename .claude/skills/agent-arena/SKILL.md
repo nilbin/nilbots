@@ -86,7 +86,9 @@ DECISIONS #49):
 > pays NOBODY: evict the enemy, don't share with them. Reaching 150
 > zone-ticks ends the match immediately (Domination). At tick 500 the
 > tiebreak is zone-ticks → health → damage: a health lead WITHOUT the zone
-> loses. The zone is the objective; shooting is how you take and hold it.
+> loses. Spawns are zone-distance-fair (within 2 walking steps of each
+> other), so the opening race is winnable from either side. The zone is the
+> objective; shooting is how you take and hold it.
 
 For energy re-tests:
 

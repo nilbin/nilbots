@@ -30,6 +30,18 @@ export function drawArena(
   const currentTick = replay.ticks[tick];
   const poses = posesAt(replay, time);
 
+  // FOV mode: fog what the selected bot can't see, and ghost enemies it has no
+  // sight of — the panel view answers "what did this bot know?", so an unseen
+  // opponent rendered at full strength would be lying.
+  const fogSource =
+    showVisibility && selectedSlot !== null
+      ? currentTick.bots.find((b) => b.slot === selectedSlot)
+      : undefined;
+  const hiddenByFog = (slot: number): boolean =>
+    fogSource !== undefined &&
+    slot !== selectedSlot &&
+    !fogSource.visibleEnemies.some((e) => e.slot === slot);
+
   drawFloor();
   drawZone();
   drawWalls();
@@ -112,6 +124,7 @@ export function drawArena(
   function drawShadowsAndBots(): void {
     for (const pose of poses) {
       if (pose.status !== 'Active' && time > (replay.result?.endTick ?? replay.ticks.length - 1) + 0.9) continue;
+      if (hiddenByFog(pose.slot)) continue;
       drawShadow(pose);
     }
     for (const pose of poses) {
@@ -135,6 +148,7 @@ export function drawArena(
     const cy = py(pose.y) + tile / 2;
     const radius = tile * 0.34;
     const destroyed = pose.status !== 'Active';
+    const ghosted = hiddenByFog(pose.slot);
 
     ctx.save();
     ctx.translate(cx, cy);
@@ -145,6 +159,7 @@ export function drawArena(
     } else {
       ctx.rotate(pose.angle);
     }
+    if (ghosted) ctx.globalAlpha = 0.15; // true position, but the selected bot can't see it
 
     if (pose.slot === selectedSlot) {
       ctx.strokeStyle = hexWithAlpha(accent, 0.9);
@@ -204,7 +219,7 @@ export function drawArena(
 
     ctx.restore();
 
-    if (!destroyed) drawHealthPips(pose, cx, cy - radius - tile * 0.22, accent);
+    if (!destroyed && !ghosted) drawHealthPips(pose, cx, cy - radius - tile * 0.22, accent);
   }
 
   function drawHealthPips(pose: BotPose, cx: number, cy: number, accent: string): void {

@@ -310,6 +310,18 @@ configuration) and changing them is a version bump, not an edit.
     accrual and a bracket of distinct zone doctrines is the recommended
     shape.
 
+51. **Hill v3 adds zone-distance-fair spawns.** Exclusive accrual (#50)
+    makes first arrival a real per-game edge, and SpawnVariation had no
+    zone-distance term — a seed could legally start one bot beside the hill
+    and the other across the map (mirrored sets average it out; individual
+    games were still lopsided). Under `ZoneSpawnFairness` (on in
+    `--rules hill`, now 0.4-exp-hill3) the two spawns' walking distances to
+    the nearest zone tile (4-neighbor BFS, matching orthogonal movement) may
+    differ by at most SpawnVariation.ZoneDistanceTolerance = 2 steps.
+    Viewer-side, the FOV overlay was also made honest the same day: enemies
+    outside the selected bot's sight ghost to 15% instead of rendering at
+    full strength (the panel answers "what did this bot know?").
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

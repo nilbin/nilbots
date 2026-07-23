@@ -76,6 +76,12 @@ public sealed record GameRules
     /// within ShotRange (gen-3 finding: tick-0 hits before the first decision).</summary>
     public bool SpawnLaneSafety { get; init; }
 
+    /// <summary>Seed-spawn constraint for zone rules: both spawns must be within
+    /// SpawnVariation.ZoneDistanceTolerance walking steps of the same distance to the
+    /// zone, so the opening race is decided by play rather than spawn luck (gen-4:
+    /// under exclusive accrual first arrival is a real per-game edge).</summary>
+    public bool ZoneSpawnFairness { get; init; }
+
     public static GameRules V0_1 => new() { RulesVersion = "0.1" };
 
     /// <summary>Rules 0.2 = 0.1 + seed-spawn variation. Pinned by the A/B balance run of
@@ -115,15 +121,17 @@ public sealed record GameRules
         "0.2" => V0_2,
         "0.1" => V0_1,
         "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
-        // hill v2 (exclusive accrual) superseded shared accrual after the gen-4 trial:
-        // co-occupying equals turned the hill into a spawn-order race (DECISIONS #50).
-        // hill-shared stays resolvable as the A/B baseline.
+        // hill v3 = exclusive accrual (DECISIONS #50: co-occupying equals turned the
+        // hill into a spawn-order race) + zone-distance-fair spawns (DECISIONS #51:
+        // exclusive accrual makes first arrival a per-game edge, so neither bot may
+        // start meaningfully closer). hill-shared stays resolvable as the A/B baseline.
         "hill" => V0_3 with
         {
-            RulesVersion = "0.4-exp-hill2",
+            RulesVersion = "0.4-exp-hill3",
             ZoneControl = true,
             ZoneDominationTicks = 150,
             ZoneExclusiveAccrual = true,
+            ZoneSpawnFairness = true,
         },
         "hill-shared" => V0_3 with { RulesVersion = "0.4-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
         "slate" => V0_3 with
