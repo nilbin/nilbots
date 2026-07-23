@@ -134,6 +134,25 @@ creates the bot, and submits sources via `POST /api/bots/{id}/versions`
 (files JSON from its .cs sources; poll until Built; record artifact-hash parity vs
 `-- build .` local hash).
 
+## 2.5 Babysit the run
+
+Agents have died silently before (environment restarts killed two
+mid-tournament in gen-2); completion notifications can't distinguish "still
+thinking" from "dead". After launching, schedule a self check-in every
+~20-30 min (send_later if available) until every agent has reported. Each
+firing, check PASSIVELY — don't message a healthy agent:
+
+```bash
+find sandbox/agents -newermt '-15 minutes' -type f | head   # fresh mtimes = alive
+curl -s localhost:8080/api/bots       # registered/submitted yet?
+```
+
+Fresh workdir mtimes → healthy, re-arm silently. Stale >15 min with no
+completion notification → the agent likely died with the environment:
+verify postgres + the app are up (restart per §1 if not), then SendMessage
+the agent — it resumes from its transcript. Stop the check-ins once all
+reports are in.
+
 ## 3. Tournament
 
 The bracket is the agents PLUS every reigning champion. Champions are seeded as
