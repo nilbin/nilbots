@@ -66,8 +66,9 @@ public static class Actions
     public static BotAction Shoot() => new(BotActionKind.Shoot);
 
     /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (left of the
-    /// facing vector). Rules 0.3+: under older rules this becomes Wait with a Blocked
-    /// result. Movement conflicts resolve exactly like MoveForward.</summary>
+    /// facing vector). Only available when the active rules enable strafing (no shipped
+    /// ruleset does yet — experiment arms only); under all other rules this becomes Wait
+    /// with a Blocked result. Movement conflicts resolve exactly like MoveForward.</summary>
     public static BotAction StrafeLeft() => new(BotActionKind.StrafeLeft);
 
     /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (right of

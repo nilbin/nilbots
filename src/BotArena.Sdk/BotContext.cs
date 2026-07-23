@@ -35,7 +35,8 @@ public sealed class BotContext
     /// <summary>Arena height in tiles (0 on servers older than SDK 0.4).</summary>
     public int MapHeight { get; init; }
 
-    /// <summary>Zone-control tiles (rules 0.3+ with zone control), or null. Standing on
+    /// <summary>Zone-control tiles, or null when these rules have no zone control
+    /// (no shipped ruleset does yet — experiment arms only). Standing on
     /// them accrues zone-ticks: the MaxTicks tiebreak is zone → health → damage, and
     /// holding for the domination threshold wins outright. The zone is the objective —
     /// ignoring it forfeits ties.</summary>
