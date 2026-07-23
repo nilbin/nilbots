@@ -175,6 +175,16 @@ Rule of thumb from the constraint list: items 1–2 are "rules data" changes;
 3–5 are version-axis changes the architecture was explicitly built to absorb
 (loadout = one more match input feeding the replay hash); 6 is a redesign.
 
+Map knowledge note (gen-4 question): observations carry no map id, but
+MapWidth×MapHeight uniquely fingerprints the 3-map pool (12×8 / 16×12 /
+24×18), so a bot can legally ship embedded layouts and skip wall discovery.
+That's chess-opening-style skill, not an exploit — maps are public — and
+spawn overfit is already impossible (seeded spawns + lane safety + zone
+fairness). It stops being healthy if the pool stagnates: the counter is
+backlog #1 (grow/rotate the pool) or, further out, seed-generated maps
+(validated the same way zone/spawn constraints already are), which would
+make wall-memory a live skill again.
+
 ## Progression (retention without power creep)
 
 - **Leagues/divisions** derived from Elo (data already exists) — visible rank
