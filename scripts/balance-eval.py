@@ -19,7 +19,7 @@ per match.
 import argparse, pathlib, re, statistics, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-LINE = re.compile(r"^g\d+ \S+\s+s\d+\s+slot\d\s+(WIN|LOSS|DRAW)\S*.*?(Elimination|MaxTicks|Disqualification)\s+t(\d+)")
+LINE = re.compile(r"^g\d+ \S+\s+s\d+\s+slot\d\s+(WIN|LOSS|DRAW)\S*.*?(Elimination|MaxTicks|Disqualification|Domination)\s+t(\d+)")
 
 
 def default_bots():
@@ -55,7 +55,9 @@ def main():
     parser.add_argument("--workdir", default="/tmp/balance-eval")
     args = parser.parse_args()
 
-    bots = {kv.split("=", 1)[0]: kv.split("=", 1)[1] for kv in args.bots} or default_bots()
+    # Absolute paths: sets run from --workdir, so relative bot paths would not resolve.
+    bots = {kv.split("=", 1)[0]: str(pathlib.Path(kv.split("=", 1)[1]).resolve())
+            for kv in args.bots} or default_bots()
     if len(bots) < 2:
         sys.exit("Need at least 2 bots (champions/ empty? pass --bots).")
     pathlib.Path(args.workdir).mkdir(parents=True, exist_ok=True)
