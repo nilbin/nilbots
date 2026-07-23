@@ -30,16 +30,21 @@ Push, Double-Lane Squeeze; anti-plays: Radar Statue, the gen-5 fortress
 - **Hearing** (forced by the Decoy Shot play): without out-of-cone
   signals, cone vision starves bots into random wandering; with
   omniscient events it is undermined. Middle (hardened per §H item 1):
-  **loud events (Shot, Damage, Destroyed, Disqualified) beyond sight but
-  within Chebyshev `HearingRadius` arrive REDACTED as sounds** — event
-  type, an 8-way bearing octant (cardinal only when one axis dominates
-  by more than 2:1), and a distance band (near ≤2 / medium ≤5 / far) —
-  never coordinates, slots, or outcomes. A sighted event is a full event
-  and never also a sound; quiet events (Turn, Move, MoveBlocked) stay
-  sight-gated. `HearingRadius = 8` (= ShotRange: you hear as far as guns
-  reach). Sound is a cue and a decoy channel, not a radar — the v1
-  behavior (full authoritative events through walls) was radar and is
-  retired with the v1 arms.
+  **loud events (Shot, Damage, Destroyed) beyond sight but within
+  Chebyshev `HearingRadius` arrive REDACTED as sounds** — event type, an
+  8-way bearing octant (cardinal only when one axis dominates by more
+  than 2:1), and a distance band (near ≤2 / medium ≤5 / far) — never
+  coordinates, slots, or outcomes. The sound sits at the event's PRIMARY
+  position (the muzzle, the victim). Disqualification is not loud: no
+  world position, and it ends the match (§I). A sighted event is a full
+  event and never also a sound — and under the cone, "sighted" means the
+  ACTOR's tile is visible: seeing a ray's endpoint is not seeing the
+  gun, so an impact from an unseen shooter degrades to a sound too (§I).
+  Quiet events (Turn, Move, MoveBlocked) stay sight-gated.
+  `HearingRadius = 8` (= ShotRange: you hear as far as guns reach).
+  Sound is a cue and a decoy channel, not a radar — the v1 behavior
+  (full authoritative events through walls) was radar and is retired
+  with the v1 arms.
 - Why 90° and not 180°: turning is 90°/tick, so a spinner sweeps the full
   circle in 4 ticks. At 180° the sweep closes in 2 ticks and stalking
   (Red-Light Approach) dies; at 90° a blind arc always exists, corner
@@ -121,20 +126,25 @@ rules keep the sampler bit-identically.
 
 ## E. Arms and versions
 
-Hardened revision **v2** (DECISIONS #59) — every arm shares redacted
+Hardened revision **v3** (DECISIONS #59-#60) — every arm shares redacted
 hearing, double-check collision, computable bolt timing, exhaustive
-spawns, and per-tick replay zone tallies:
+spawns, per-tick replay zone tallies, AND the seed profile
+`0.5-exp-shared`: spawn selection and per-bot RNG streams derive from
+the profile, not the arm's version string, so the same map + seed gives
+every arm identical starting geometry and identical bot streams — a
+paired A/B row differs only by the tested mechanic (§I finding: the
+version-salted spawn seed silently unpaired the harness).
 
 | arm         | version string          | on top of 0.4                          |
 | ----------- | ----------------------- | -------------------------------------- |
-| 0.5-control | 0.5-exp-control-v2      | spawn-matched baseline only (§H item 3) |
-| cone        | 0.5-exp-cone-v2         | VisionCone + HearingRadius 8           |
-| bolts       | 0.5-exp-bolts-v2        | ProjectileTicksPerTile 2               |
-| conebolts   | 0.5-exp-conebolts-v2    | both                                   |
-| conebolts1  | 0.5-exp-conebolts1-v2   | both, bolts at movement speed (§G counter-tune) |
+| 0.5-control | 0.5-exp-control-v3      | matched baseline only (§H item 3)      |
+| cone        | 0.5-exp-cone-v3         | VisionCone + HearingRadius 8           |
+| bolts       | 0.5-exp-bolts-v3        | ProjectileTicksPerTile 2               |
+| conebolts   | 0.5-exp-conebolts-v3    | both                                   |
+| conebolts1  | 0.5-exp-conebolts1-v3   | both, bolts at movement speed (§G counter-tune) |
 
-The v1 strings are retired, not preserved: experiments carry no
-bit-compat promise, and gen-6 artifacts cannot parse the widened `P`
+Earlier revision strings are retired, not preserved: experiments carry
+no bit-compat promise, and gen-6 artifacts cannot parse the widened `P`
 section regardless (their stored replays remain viewable; only re-
 verification by re-simulation is lost). Rules 0.1–0.4 stay bit-identical
 (all new code behind flags; full suite + goldens pass untouched).
@@ -287,3 +297,39 @@ columns) → gen-7 aware tournament under the final arms = the official
 - Evaluation: paired per-game transitions vs control landed in
   balance-eval.py; conebolts1 (speed-1) is a first-class arm; the ten
   ship criteria above are frozen.
+
+## I. Follow-up review (Sol, 2026-07-23) — dispositions
+
+Verdict accepted: hardening approved for gen-7; one experimental-design
+flaw and two cleanup items, all fixed in revision v3 (DECISIONS #60):
+
+1. **The control arm was not actually matched per game — CONFIRMED,
+   fixed.** Spawn seeds derived from `RulesVersion`, which differs per
+   arm, so the "same game under different rules" rows of the paired
+   harness had DIFFERENT starting geometry — a transition could be
+   mechanics, spawns, or both. Worse than reported: per-bot RNG streams
+   were version-salted too (`DeriveBotSeed`), so even spawn-matched
+   games would diverge for any bot that rolls dice. Fix:
+   `GameRules.SeedProfile` (null = RulesVersion, the historical
+   behavior) feeds BOTH derivations; all v3 arms share
+   `0.5-exp-shared`. Consequence, pinned by test: a mechanics-blind bot
+   plays the bit-identical game under every arm, so every paired
+   transition is caused by the tested mechanic. The v2 paired table
+   (18 games, blind champions) is VOID — re-run under v3.
+2. **Disqualification could not be heard — CONFIRMED, resolved by
+   de-louding.** The event has no world position (nothing physical
+   happened anywhere) and a disqualification ends the match on the same
+   tick, so a sound could never inform a decision. `IsLoud` drops
+   Disqualified; docs updated. (The alternative — positioning the
+   event — would change 0.4 replay bytes for DQ games; not worth it for
+   a sound no one can act on.)
+3. **A seen impact revealed the unseen shooter — CONFIRMED, fixed under
+   cone rules.** The any-reference visibility rule delivered the full
+   Shot event (exact shooter tile + slot) when only the ray's endpoint
+   was visible — including a shot in the back landing ON the observer.
+   Under `VisionCone`, full delivery now requires the event's PRIMARY
+   position (the actor) to be visible; otherwise the event degrades to
+   a HeardSound located at that primary position (bearing to the
+   muzzle, not the impact). Omnidirectional rules keep the legacy
+   any-reference rule bit-identically — there the shooter would be
+   visible at those ranges anyway, and 0.4 must not change.

@@ -186,26 +186,53 @@ public class SpawnVariationTests
         Assert.Equal(sampled[0].Y, sampled[1].Y);
     }
 
+    private static List<ArenaMap> ShippedMaps()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "BotArena.sln")))
+            root = root.Parent;
+        Assert.NotNull(root);
+        var maps = Directory.EnumerateFiles(Path.Combine(root!.FullName, "maps"), "*.json").Order()
+            .Select(file => ArenaMap.FromJson(File.ReadAllText(file)))
+            .ToList();
+        Assert.NotEmpty(maps);
+        return maps;
+    }
+
     [Fact]
     public void Exhaustive_EveryShippedMap_HasValidPairs_UnderEveryExperimentArm()
     {
         // "Map rejected loudly" is only acceptable if no shipped map trips it. Gate
         // the whole pool against every arm that uses exhaustive spawns.
-        var root = new DirectoryInfo(AppContext.BaseDirectory);
-        while (root is not null && !File.Exists(Path.Combine(root.FullName, "BotArena.sln")))
-            root = root.Parent;
-        Assert.NotNull(root);
-        var mapFiles = Directory.EnumerateFiles(Path.Combine(root.FullName, "maps"), "*.json").Order().ToList();
-        Assert.NotEmpty(mapFiles);
         var arms = GameRules.KnownNames.Select(GameRules.Resolve).Where(r => r.ExhaustiveSpawns).ToList();
         Assert.NotEmpty(arms);
-        foreach (var file in mapFiles)
-        {
-            var map = ArenaMap.FromJson(File.ReadAllText(file));
+        foreach (var map in ShippedMaps())
             foreach (var arm in arms)
                 for (ulong seed = 0; seed < 8; seed++)
                     _ = SpawnVariation.Resolve(map, arm, seed); // must not throw
-        }
+    }
+
+    [Fact]
+    public void HardenedArms_ShareSpawnsAndBotStreams_ForTheSameMapAndSeed()
+    {
+        // The paired-harness prerequisite (follow-up review): the same map + seed must
+        // give every arm IDENTICAL spawn geometry and IDENTICAL per-bot RNG streams,
+        // so a paired A/B row differs only by the tested mechanic — a mechanics-blind
+        // bot plays the bit-identical game under every arm.
+        var arms = new[] { "0.5-control", "cone", "bolts", "conebolts", "conebolts1" }
+            .Select(GameRules.Resolve).ToList();
+        foreach (var map in ShippedMaps())
+            for (ulong seed = 0; seed < 25; seed++)
+            {
+                var expected = SpawnVariation.Resolve(map, arms[0], seed);
+                foreach (var arm in arms.Skip(1))
+                    Assert.Equal(expected, SpawnVariation.Resolve(map, arm, seed));
+            }
+        foreach (var arm in arms)
+            for (int slot = 0; slot < 2; slot++)
+                Assert.Equal(
+                    SeedDerivation.DeriveBotSeed(0xBEEF, slot, arms[0].SeedProfile ?? arms[0].RulesVersion),
+                    SeedDerivation.DeriveBotSeed(0xBEEF, slot, arm.SeedProfile ?? arm.RulesVersion));
     }
 
     [Fact]

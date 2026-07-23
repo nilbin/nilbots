@@ -51,7 +51,8 @@ public sealed class MatchEngine
             participants[slot].Runtime.StartMatch(new BotMatchStart
             {
                 Slot = slot,
-                BotRandomSeed = SeedDerivation.DeriveBotSeed(configuration.Seed, slot, rules.RulesVersion),
+                BotRandomSeed = SeedDerivation.DeriveBotSeed(
+                    configuration.Seed, slot, rules.SeedProfile ?? rules.RulesVersion),
                 GameRulesVersion = rules.RulesVersion,
                 RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
             });

@@ -114,11 +114,10 @@ public enum SoundDistance
     Far = 2,
 }
 
-/// <summary>A LOUD event (shot, damage, destruction, disqualification) from LAST tick
-/// that happened beyond your sight but within hearing. Deliberately redacted: you learn
-/// the kind, a coarse bearing, and a coarse distance band — never who, never exact
-/// coordinates. Sound is a cue to investigate or evade, not a radar; it can also be a
-/// decoy.</summary>
+/// <summary>A LOUD event (shot, damage, destruction) from LAST tick that happened
+/// beyond your sight but within hearing. Deliberately redacted: you learn the kind, a
+/// coarse bearing, and a coarse distance band — never who, never exact coordinates.
+/// Sound is a cue to investigate or evade, not a radar; it can also be a decoy.</summary>
 public sealed record HeardSound(VisibleEventKind Kind, SoundBearing Bearing, SoundDistance Distance);
 
 public enum VisibleEventKind

@@ -70,11 +70,13 @@ public sealed class BotContext
     /// says how far it can still reach.</summary>
     public IReadOnlyList<VisibleProjectile>? VisibleProjectiles { get; init; }
 
-    /// <summary>What happened LAST tick, filtered by your CURRENT vision: an event is
-    /// delivered when any of its reference positions is on a tile you can see now. Shots
-    /// are delivered even when the shooter itself is beyond your vision, as long as part
-    /// of the ray's start/end is visible — muzzle flashes carry information. Events you
-    /// only HEAR are not here: they arrive redacted in <see cref="HeardSounds"/>.</summary>
+    /// <summary>What happened LAST tick, filtered by your CURRENT vision. Under
+    /// omnidirectional rules an event is delivered when any of its reference positions
+    /// is visible — so a shot whose ray ends in your view reveals its shooter. Under
+    /// rules with directional vision the gate is stricter: you get the full event only
+    /// when its ACTOR's tile (the shooter, the mover's origin, the victim) is visible —
+    /// seeing an impact is not seeing the gun, and such events reach you only as
+    /// redacted <see cref="HeardSounds"/>.</summary>
     public required IReadOnlyList<VisibleEvent> VisibleEvents { get; init; }
 
     /// <summary>Sounds from LOUD events (shots, damage, destruction) LAST tick that were

@@ -514,6 +514,26 @@ configuration) and changing them is a version bump, not an edit.
     (armed door-watcher, Shepherd follow-up) — that is gen-7's job
     under the frozen §H ship criteria.
 
+60. **Follow-up review adopted: arm revision v3 — shared seed profile,
+    de-louded disqualification, actor-gated event visibility under the
+    cone (RULES-0.5-DESIGN §I).** The important one: the paired harness
+    was not actually paired — spawn seeds (and, found while fixing,
+    per-bot RNG streams) derive from RulesVersion, which differs per
+    arm, so "the same game under two rule sets" had different spawn
+    geometry and different bot dice. New `GameRules.SeedProfile`
+    (null = RulesVersion) feeds both derivations; all v3 arms share
+    `0.5-exp-shared`, giving the strongest pairing property: a
+    mechanics-blind bot plays the bit-identical game under every arm
+    (pinned by HardenedArms_ShareSpawnsAndBotStreams across all shipped
+    maps). The v2 mechanical-harness paired table is VOID and re-run.
+    Also: Disqualified leaves the loud list (no world position, match
+    ends same tick — a sound no decision can use); and under VisionCone
+    an event is fully visible only when its PRIMARY position (the
+    actor) is seen — a ray's endpoint no longer reveals an unseen
+    shooter's tile and slot; such events degrade to sounds at the
+    muzzle. Omnidirectional rules keep the any-reference rule
+    bit-identically. Legacy versions 0.1-0.4 untouched throughout.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

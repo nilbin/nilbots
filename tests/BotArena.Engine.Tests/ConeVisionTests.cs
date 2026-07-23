@@ -84,6 +84,30 @@ public class ConeVisionTests
     }
 
     [Fact]
+    public void ASeenImpact_DoesNotRevealTheUnseenShooter()
+    {
+        // Follow-up review (§I): the shooter is 8 tiles away — beyond vision range —
+        // and its ray lands ON the observer. The ray's endpoint is a visible tile
+        // (the observer's own), so the any-reference rule would deliver the full Shot
+        // event: the unseen shooter's exact tile and slot. Under cone rules the event
+        // must be gated on the ACTOR's tile instead — the observer feels the Damage
+        // (its own tile, full event) and hears a bearing, nothing more.
+        var session = new MatchSession(OpenMap(), ConeRules);
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+        var observation = session.BuildObservation(1);
+        Assert.DoesNotContain(observation.VisibleEvents, e => e.Type == GameEventType.Shot);
+        Assert.Contains(observation.VisibleEvents, e => e.Type == GameEventType.Damage);
+        var sound = observation.HeardSounds!.Single(s => s.Type == GameEventType.Shot);
+        Assert.Equal(6, sound.Bearing);  // due west: a direction, not a coordinate
+        Assert.Equal(2, sound.Distance); // far
+
+        // Where vision is omnidirectional the legacy any-reference rule is unchanged.
+        var classic = new MatchSession(OpenMap(), GameRules.V0_1);
+        classic.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+        Assert.Contains(classic.BuildObservation(1).VisibleEvents, e => e.Type == GameEventType.Shot);
+    }
+
+    [Fact]
     public void ClassicRules_AreUntouchedByConeCode()
     {
         var classic = new MatchSession(OpenMap(), GameRules.V0_1);

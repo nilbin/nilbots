@@ -67,34 +67,40 @@ public sealed class MatchSession
         // Sighted events are authoritative and full. Loud events beyond sight arrive
         // REDACTED as sounds — bearing octant + distance band, never coordinates — so
         // hearing is a cue, not a radar (RULES-0.5-DESIGN §A, hardened per §H item 1).
-        // Quiet events (Turn/Move/MoveBlocked) stay sight-gated always.
-        var events = _lastTickEvents
-            .Where(e => e.ReferencePositions().Any(visibleSet.Contains))
-            .ToArray();
+        // Quiet events (Turn/Move/MoveBlocked) stay sight-gated always. Under cone
+        // vision "sighted" means the event's PRIMARY position (the actor: shooter,
+        // mover-from, victim) is visible — seeing only a ray's endpoint must not
+        // reveal an unseen shooter's exact tile and slot (§I follow-up review); such
+        // events degrade to sounds like everything else beyond the cone.
+        bool FullyVisible(GameEvent e) => State.Rules.VisionCone
+            ? e.ReferencePositions().Take(1).Any(visibleSet.Contains)
+            : e.ReferencePositions().Any(visibleSet.Contains);
+        var events = _lastTickEvents.Where(FullyVisible).ToArray();
         List<HeardSound>? heard = null;
         if (State.Rules.HearingRadius > 0)
         {
             heard = [];
             foreach (var e in _lastTickEvents)
             {
-                if (!IsLoud(e.Type) || e.ReferencePositions().Any(visibleSet.Contains))
+                if (!IsLoud(e.Type) || FullyVisible(e))
                     continue;
-                // The loudest (nearest) reference position defines what is heard.
-                Position source = default;
-                int nearest = int.MaxValue;
+                // The sound is located at the event's PRIMARY position — the bang at
+                // the muzzle, the thud at the victim — never at a ray's endpoint,
+                // which can be a tile the listener SEES (even its own, on a shot in
+                // the back): a sound must always point at something unseen.
+                Position? source = null;
                 foreach (var p in e.ReferencePositions())
                 {
-                    int d = bot.Position.ChebyshevDistance(p);
-                    if (d < nearest)
-                    {
-                        nearest = d;
-                        source = p;
-                    }
+                    source = p;
+                    break;
                 }
-                if (nearest > State.Rules.HearingRadius)
+                if (source is not Position at)
+                    continue;
+                int distance = bot.Position.ChebyshevDistance(at);
+                if (distance > State.Rules.HearingRadius)
                     continue;
                 heard.Add(new HeardSound(
-                    e.Type, Hearing.BearingOctant(bot.Position, source), Hearing.DistanceBand(nearest)));
+                    e.Type, Hearing.BearingOctant(bot.Position, at), Hearing.DistanceBand(distance)));
             }
         }
         return new BotObservation
@@ -129,8 +135,11 @@ public sealed class MatchSession
         };
     }
 
+    // Disqualification is deliberately NOT loud: the event carries no world position
+    // (nothing physical happened anywhere), and a disqualification ends the match on
+    // the same tick — there is no next observation that could use the sound (§I).
     private static bool IsLoud(GameEventType type) => type is GameEventType.Shot
-        or GameEventType.Damage or GameEventType.Destroyed or GameEventType.Disqualified;
+        or GameEventType.Damage or GameEventType.Destroyed;
 
     /// <summary>Steps 3–11 of §4.7. Decisions must be indexed by slot.</summary>
     public TickResult Step(IReadOnlyList<BotDecision> decisions)

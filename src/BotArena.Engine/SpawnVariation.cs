@@ -20,7 +20,7 @@ public static class SpawnVariation
             return map.Spawns;
 
         var random = new DeterministicRandom(
-            SeedDerivation.DeriveSpawnSeed(matchSeed, rules.RulesVersion));
+            SeedDerivation.DeriveSpawnSeed(matchSeed, rules.SeedProfile ?? rules.RulesVersion));
         var floors = new List<Position>();
         for (int y = 0; y < map.Height; y++)
             for (int x = 0; x < map.Width; x++)

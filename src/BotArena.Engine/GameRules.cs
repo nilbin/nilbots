@@ -105,10 +105,20 @@ public sealed record GameRules
     /// range- and LOS-limited. Off = classic omnidirectional sight.</summary>
     public bool VisionCone { get; init; }
 
-    /// <summary>Loud events (Shot/Damage/Destroyed/Disqualified) are delivered within
-    /// this Chebyshev radius regardless of sight (RULES-0.5-DESIGN §A: the Decoy Shot
-    /// needs out-of-cone signals). 0 = off; quiet events stay sight-gated always.</summary>
+    /// <summary>Loud events (Shot/Damage/Destroyed) beyond sight arrive within this
+    /// Chebyshev radius as REDACTED sounds — type + bearing octant + distance band,
+    /// never coordinates (RULES-0.5-DESIGN §A: the Decoy Shot needs out-of-cone
+    /// signals, not a radar). 0 = off; quiet events stay sight-gated always.
+    /// Disqualification is not loud: it has no world position and ends the match.</summary>
     public int HearingRadius { get; init; }
+
+    /// <summary>Namespace for seed-derived randomness (spawn selection AND per-bot RNG
+    /// streams); null = the RulesVersion, the historical behavior. Experiment arms share
+    /// one profile so the SAME map + seed gives every arm identical spawns and identical
+    /// bot streams — paired A/B rows then differ ONLY by the tested mechanic (a
+    /// mechanics-blind bot plays bit-identical games across arms). External review
+    /// finding: version-salted spawn seeds silently unpaired the harness.</summary>
+    public string? SeedProfile { get; init; }
 
     /// <summary>Projectile travel (RULES-0.5-DESIGN §B): a shot spawns a bolt that
     /// occupies its tile (lethal to non-owners standing on or entering it) and advances
@@ -174,52 +184,35 @@ public sealed record GameRules
         "0.3" => V0_3,
         "0.2" => V0_2,
         "0.1" => V0_1,
-        // The 0.5 watchability slate (RULES-0.5-DESIGN), hardened revision v2 (§H,
-        // DECISIONS #58): redacted hearing, both-checks bolt collision, computable
-        // bolt timing on the wire, exhaustive fair spawns. The v1 strings
-        // (0.5-exp-cone/-bolts/-conebolts/-control) are retired, not preserved —
-        // experiments carry no bit-compat promise, and gen-6 artifacts cannot parse
-        // the widened P section anyway (hill v1→v2 precedent: new behavior, new
-        // string). 0.5-control is the spawn-matched A/B baseline (§H item 3);
-        // conebolts1 is the §G counter-tune (bolts at movement speed).
-        "0.5-control" => V0_4 with
+        // The 0.5 watchability slate (RULES-0.5-DESIGN), hardened revision v3 (§H,
+        // DECISIONS #58-#60): redacted hearing, both-checks bolt collision, computable
+        // bolt timing on the wire, exhaustive fair spawns, and a SHARED seed profile —
+        // same map + seed gives every arm identical spawns and bot streams, so paired
+        // A/B rows differ only by the tested mechanic. Earlier revision strings are
+        // retired, not preserved — experiments carry no bit-compat promise (hill
+        // v1→v2 precedent: new behavior, new string). 0.5-control is the matched
+        // baseline; conebolts1 is the §G counter-tune (bolts at movement speed).
+        "0.5-control" => HardenedBase("0.5-exp-control-v3"),
+        "cone" => HardenedBase("0.5-exp-cone-v3") with
         {
-            RulesVersion = "0.5-exp-control-v2",
-            ExhaustiveSpawns = true,
-            ReplayZoneTallies = true,
-        },
-        "cone" => V0_4 with
-        {
-            RulesVersion = "0.5-exp-cone-v2",
             VisionCone = true,
             HearingRadius = 8,
-            ExhaustiveSpawns = true,
-            ReplayZoneTallies = true,
         },
-        "bolts" => V0_4 with
+        "bolts" => HardenedBase("0.5-exp-bolts-v3") with
         {
-            RulesVersion = "0.5-exp-bolts-v2",
             ProjectileTicksPerTile = 2,
-            ExhaustiveSpawns = true,
-            ReplayZoneTallies = true,
         },
-        "conebolts" => V0_4 with
+        "conebolts" => HardenedBase("0.5-exp-conebolts-v3") with
         {
-            RulesVersion = "0.5-exp-conebolts-v2",
             VisionCone = true,
             HearingRadius = 8,
             ProjectileTicksPerTile = 2,
-            ExhaustiveSpawns = true,
-            ReplayZoneTallies = true,
         },
-        "conebolts1" => V0_4 with
+        "conebolts1" => HardenedBase("0.5-exp-conebolts1-v3") with
         {
-            RulesVersion = "0.5-exp-conebolts1-v2",
             VisionCone = true,
             HearingRadius = 8,
             ProjectileTicksPerTile = 1,
-            ExhaustiveSpawns = true,
-            ReplayZoneTallies = true,
         },
         "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
         // The hill experiment graduated to official 0.4 (DECISIONS #53); "hill" stays
@@ -242,5 +235,16 @@ public sealed record GameRules
             EnergyRegenTicks = 3,
         },
         _ => throw new ArgumentException($"Unknown rules '{name}' (use {string.Join(", ", KnownNames)})."),
+    };
+
+    /// <summary>The shared foundation of every hardened 0.5 arm — one place for the
+    /// cross-arm invariants, so no arm can silently drop the seed profile that keeps
+    /// the A/B harness paired.</summary>
+    private static GameRules HardenedBase(string rulesVersion) => V0_4 with
+    {
+        RulesVersion = rulesVersion,
+        SeedProfile = "0.5-exp-shared",
+        ExhaustiveSpawns = true,
+        ReplayZoneTallies = true,
     };
 }
