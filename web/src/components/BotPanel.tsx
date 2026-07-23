@@ -22,19 +22,30 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
-  // Zone scores are not carried in per-tick state; re-derive them exactly as the
-  // engine accrues (an Active bot standing on a zone tile at end of tick = +1).
+  // Zone scores are not carried in per-tick state; re-derive them from positions.
+  // Accrual mode differs by ruleset (shared pre-DECISIONS #50, exclusive since) and
+  // the replay doesn't name the mode — so compute both series and keep the one
+  // whose totals match the authoritative result. Default: exclusive (current rules).
   const zone = useMemo(() => {
     const tiles = replay.header.zoneTiles;
     if (!tiles) return null;
     const onZone = new Set(tiles.map(([x, y]) => `${x},${y}`));
-    const running: Record<number, number> = {};
-    const cumulative = replay.ticks.map((t) => {
-      for (const s of t.state)
-        if (s.status === 'Active' && onZone.has(`${s.x},${s.y}`))
-          running[s.slot] = (running[s.slot] ?? 0) + 1;
-      return { ...running };
-    });
+    const sharedRun: Record<number, number> = {};
+    const exclusiveRun: Record<number, number> = {};
+    const shared: Record<number, number>[] = [];
+    const exclusive: Record<number, number>[] = [];
+    for (const t of replay.ticks) {
+      const on = t.state.filter((s) => s.status === 'Active' && onZone.has(`${s.x},${s.y}`));
+      for (const s of on) sharedRun[s.slot] = (sharedRun[s.slot] ?? 0) + 1;
+      if (on.length === 1) exclusiveRun[on[0].slot] = (exclusiveRun[on[0].slot] ?? 0) + 1;
+      shared.push({ ...sharedRun });
+      exclusive.push({ ...exclusiveRun });
+    }
+    const final = replay.result?.bots;
+    const matchesResult = (series: Record<number, number>[]) =>
+      final !== undefined &&
+      final.every((b) => (series[series.length - 1]?.[b.slot] ?? 0) === (b.zoneTicks ?? 0));
+    const cumulative = matchesResult(exclusive) ? exclusive : matchesResult(shared) ? shared : exclusive;
     return { onZone, cumulative };
   }, [replay]);
 
