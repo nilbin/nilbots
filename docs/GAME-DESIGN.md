@@ -146,6 +146,36 @@ opening race is decided by play, not spawn luck. Open risk to measure in
 the gen-4 tournament: two hold-averse bots could stand off adjacent to the
 zone — watch draw rate among aware-vs-aware games.
 
+## Gen-4 bracket verdict (2026-07-23, DECISIONS #52)
+
+Three zone doctrines (Bastille fortress / Talon denial / Castellan legacy),
+two rounds, one improvement iteration, all under hill v3. **Talon won every
+head-to-head** and topped the ladder (1258). The mechanic's data:
+
+| pairing (6 games each)   | round 1 draws | round 2 draws |
+| ------------------------ | ------------- | ------------- |
+| Bastille vs Talon        | 1             | 1             |
+| Bastille vs Castellan    | 1             | 2             |
+| Castellan vs Talon       | 4             | 0             |
+| any agent vs any champion| 0 (36 games)  | 0 (36 games)  |
+
+Aware-vs-aware draws fell 33% → 17% in one iteration, and the fix was
+counter-play, not rule tuning: Talon's sorties broke the freeze-camper
+stalemate; Bastille's bait-refusal ended the dodge-bait accrual exploit.
+Emergent depth actually observed: shoot-to-bait (not to hit), position
+inference from frozen public zone counters, timed off-pad sorties,
+lead-aware freeze/evict switching. The hill hypothesis is confirmed:
+zone control creates decisions and variety among bots that play it.
+
+**The open ship question is the meta reset, not the mechanic**: every
+pre-zone bot loses ~t151-166 by Domination to any zone-aware bot (72/72
+decisive champion games). Shipping hill as official 0.4 obsoletes the
+entire existing bot population overnight. Options when we decide: ship and
+declare a new season (fresh ladder, zone-aware era), keep hill as a
+permanent named queue beside classic 0.3, or hold. Needs an owner call; a
+criteria'd harness run (0.3 vs hill with the now-existing aware population,
+draw/length/elimination targets pre-registered) should accompany it.
+
 Before/after any candidate rule change, run the tournament (now fast:
 `BOTARENA_BROADCAST_TPS=250`, `BOTARENA_COMPILE_WORKERS=3`, DECISIONS #41/#42)
 and compare:

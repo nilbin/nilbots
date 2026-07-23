@@ -322,6 +322,25 @@ configuration) and changing them is a version bump, not an edit.
     outside the selected bot's sight ghost to 15% instead of rendering at
     full strength (the panel answers "what did this bot know?").
 
+52. **Gen-4 verdict: Talon wins the hill bracket; hill v3 behaves as
+    designed; no crown moves.** Two-challenger bracket + the trial's
+    Castellan, one improvement iteration, all under 0.4-exp-hill3 —
+    experiment rules, so the official-rules ratchet (#43) keeps Rampart
+    gen-2 champion regardless of the table. Talon (zone-denial tempo) won
+    every head-to-head in both rounds (3.5-2.5, 3.5-2.5 vs Bastille;
+    3.5-2.5, 4-2 vs Castellan) and finished top of the ladder at 1258.
+    Balance read: aware-vs-aware draws fell 6/18 → 3/18 across the
+    iteration — counter-play (Talon's sorties broke all four Castellan
+    freeze-draws; Bastille's bait-refusal converted exploit losses to
+    trades) fixed what rule-tuning didn't have to. All 72 champion games
+    were decisive (zone-ignorant bots lose ~t151-166 by Domination —
+    shipping hill officially would obsolete every pre-zone bot; that meta
+    reset, not the mechanic, is the open ship question). Emergent depth on
+    record: dodge-bait accrual exploits, contested-inference from frozen
+    public counters, timed sorties — the strategic variety the mechanic was
+    hypothesized to create. Ship decision deferred to a criteria'd harness
+    run + owner call (GAME-DESIGN).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
