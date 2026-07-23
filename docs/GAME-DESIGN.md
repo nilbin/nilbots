@@ -211,8 +211,21 @@ onto its zone is 4 tiles (measured), so the map deletes its own hill's
 only ranged threat. Two consequences: the aimed-shot candidate converts
 exactly this scene into a kill threat; and a zone-map design guideline —
 keep at least one 7+ tile lane onto the hill as the anti-statue channel.
-Parked bigger hammer: cone vision (make "behind" real) — transformative,
-revisit only with strong pilot demand.
+Owner direction (same day): CONE VISION promoted to the rules-0.5
+flagship candidate — root-cause analysis: every degenerate equilibrium on
+record (energy disarmament, statue/dance, 0-for-122 sprays) stems from
+perfect information + perfect reaction; directional perception creates
+unseen wind-ups, the first landable shots. Zero wire change (visibleTiles
+already explicit), spectator-legible (fog view shows the cone; spin-scan
+is a readable tell with exploitable lag), composes with the zone. Pair
+with a 1-tile omnidirectional proximity ring; MaxTicks trim rides along.
+Aimed shot: rejected by owner. Grenades: parked until after cone vision —
+under perfect information they collapse into forced-move puzzles, and a
+target tile needs parameterized actions (first real protocol bump).
+Strafe-attack (move+shoot): declined — it breaks single-action-per-tick
+and move-before-shoot, the beams under the whole tempo economy. Next
+step when called: RULES-0.5 design doc → GameRules flags → harness →
+gen-6 tournament of cone-aware bots.
 
 Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
 Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions
