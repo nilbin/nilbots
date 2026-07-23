@@ -31,7 +31,8 @@ public static class SetCommand
             : maps.Select(_ => (ulong)System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, int.MaxValue)).ToArray();
         if (seeds.Length != maps.Length)
             throw new InvalidOperationException(
-                $"--seeds must provide one seed per map ({maps.Length} map(s), {seeds.Length} seed(s)).");
+                $"--seeds must provide one seed per map ({maps.Length} map(s), {seeds.Length} seed(s)). " +
+                "Tip: --maps <subset> shrinks the required list, e.g. --maps basic-01 --seeds 7.");
 
         string rulesName = CliSupport.ResolveRulesName(options, botSpec, opponentSpec);
         options["rules"] = rulesName; // freeze so ResolveRules skips a second pin lookup
@@ -54,15 +55,21 @@ public static class SetCommand
                 game++;
                 var (first, second) = mirrored ? (opponentSpec, botSpec) : (botSpec, opponentSpec);
                 var (run, name0, name1, written, _) = PlayCommand.RunSingle(
-                    first, second, map, seed, runtimeKind, rules, outDirOverride: null, quiet: true);
+                    first, second, map, seed, runtimeKind, rules, outDirOverride: null, quiet: true,
+                    mirrored: mirrored);
                 int mySlot = mirrored ? 1 : 0;
                 (myName, oppName) = mirrored ? (name1, name0) : (name0, name1);
+                // Mirror sets: both copies share a name, so "LOSS (Talon wins)" reads as a
+                // contradiction (gen-4 finding) — disambiguate with the slot.
+                string oppLabel = myName == oppName ? $"{oppName} s{1 - mySlot}" : oppName!;
                 string verdict;
                 if (run.Result.WinnerSlot is int winner)
                 {
                     bool iWon = winner == mySlot;
                     myScore += iWon ? 1 : 0;
-                    verdict = iWon ? $"WIN  ({myName})" : $"LOSS ({oppName} wins)";
+                    verdict = iWon
+                        ? $"WIN  ({(myName == oppName ? $"{myName} s{mySlot}" : myName)})"
+                        : $"LOSS ({oppLabel} wins)";
                 }
                 else
                 {

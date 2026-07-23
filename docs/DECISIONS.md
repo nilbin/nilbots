@@ -341,6 +341,30 @@ configuration) and changing them is a version bump, not an edit.
     hypothesized to create. Ship decision deferred to a criteria'd harness
     run + owner call (GAME-DESIGN).
 
+53. **Rules 0.4 shipped: zone control is official.** The gen-4 experiment
+    graduated on the pre-registered harness run (5 bots: both champions +
+    3 zone-aware doctrines, 3 maps, fixed seeds, 60 games/arm):
+
+    | arm  | draw% | decisive% | med tick | notes                          |
+    | ---- | ----- | --------- | -------- | ------------------------------ |
+    | 0.3  | 37%   | 63%       | 77       | aware bots are strong duelists |
+    | hill | 12%   | 88%       | 158      | 0 draws in 36 aware-vs-champ   |
+
+    Draws and decisiveness pass decisively; diversity holds (all three
+    doctrines win aware-vs-aware games: 7/4/3). **Median length doubled and
+    literal Eliminations fell (Domination replaces them) — recorded as the
+    accepted trade**, not hidden: four generations showed draws are the
+    product's disease, and a long decided game beats a fast dead one.
+    V0_4 = V0_3 + ZoneControl + ZoneDominationTicks 150 + exclusive accrual
+    + zone-fair spawns; `Current`/`GameRulesVersion` → 0.4; "hill" stays as
+    a Resolve alias; hill-shared remains the A/B baseline. Consequences
+    accepted openly: this is a meta reset — every pre-zone bot (both
+    champions included) loses to any zone-aware bot, so gen-5 challengers
+    can dethrone Rampart legitimately under official rules; pre-launch is
+    the cheapest this reset will ever be. Player docs now carry the full
+    zone spec (site rules card + template README), enforced by
+    DocDriftTests' version stamps.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -9,7 +9,7 @@ public static class BotArenaVersions
     public const string EngineVersion = "0.1.0";
     // 0.2: seed-spawn variation (DECISIONS #47). 0.3: shot range cap 8 + lane-safe
     // spawns (DECISIONS #49; GameRules.V0_3).
-    public const string GameRulesVersion = "0.3";
+    public const string GameRulesVersion = "0.4";
     public const string RuntimeProtocolVersion = "0.1";
     public const string RuntimeConfigurationVersion = "0.1";
     public const int ReplayFormatVersion = 1;

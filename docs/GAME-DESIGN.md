@@ -167,14 +167,29 @@ inference from frozen public zone counters, timed off-pad sorties,
 lead-aware freeze/evict switching. The hill hypothesis is confirmed:
 zone control creates decisions and variety among bots that play it.
 
-**The open ship question is the meta reset, not the mechanic**: every
-pre-zone bot loses ~t151-166 by Domination to any zone-aware bot (72/72
-decisive champion games). Shipping hill as official 0.4 obsoletes the
-entire existing bot population overnight. Options when we decide: ship and
-declare a new season (fresh ladder, zone-aware era), keep hill as a
-permanent named queue beside classic 0.3, or hold. Needs an owner call; a
-criteria'd harness run (0.3 vs hill with the now-existing aware population,
-draw/length/elimination targets pre-registered) should accompany it.
+**The open ship question was the meta reset, not the mechanic** — resolved
+same day: SHIPPED as official 0.4 (DECISIONS #53).
+
+## Rules 0.4 shipped: zone control (2026-07-23)
+
+Pre-registered harness run, 5 bots (2 frozen champions + 3 zone-aware
+doctrines), 3 maps, fixed seeds 101/202/303, 60 games/arm:
+
+| arm  | draw% | decisive% | med tick | aware-aware detail                   |
+| ---- | ----- | --------- | -------- | ------------------------------------ |
+| 0.3  | 37%   | 63%       | 77       | (aware bots are strong duelists too) |
+| hill | 12%   | 88%       | 158      | 18 games: 4 draws, wins 7/4/3 — all  |
+|      |       |           |          | three doctrines viable; 0 draws in   |
+|      |       |           |          | all 36 aware-vs-champion games       |
+
+Draw rate and decisiveness passed decisively; diversity held. **Median
+length doubled and Domination replaced most Eliminations — recorded as the
+accepted trade, against the standard criteria's letter**: draws were the
+product's disease across four generations; a long decided game beats a
+fast dead one. Meta reset accepted deliberately (pre-launch is the
+cheapest it will ever be): every pre-zone bot loses to any zone-aware bot,
+so the gen-5 title fight under official rules is open — Rampart gen-2's
+crown is now genuinely at stake, which is the season story, not a bug.
 
 Before/after any candidate rule change, run the tournament (now fast:
 `BOTARENA_BROADCAST_TPS=250`, `BOTARENA_COMPILE_WORKERS=3`, DECISIONS #41/#42)

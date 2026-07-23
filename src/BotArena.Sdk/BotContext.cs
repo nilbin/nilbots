@@ -35,11 +35,13 @@ public sealed class BotContext
     /// <summary>Arena height in tiles (0 on servers older than SDK 0.4).</summary>
     public int MapHeight { get; init; }
 
-    /// <summary>Zone-control tiles, or null when these rules have no zone control
-    /// (no shipped ruleset does yet — experiment arms only). Standing on
-    /// them accrues zone-ticks: the MaxTicks tiebreak is zone → health → damage, and
-    /// holding for the domination threshold wins outright. The zone is the objective —
-    /// ignoring it forfeits ties.</summary>
+    /// <summary>Zone-control tiles, or null when these rules have no zone control.
+    /// The full list from tick 0, not gated by vision; a map's zone may be split
+    /// into disconnected pads. At the end of every tick you are alive on zone tiles
+    /// you accrue 1 zone-tick — under exclusive accrual (the shipped form) only a
+    /// SOLE occupant accrues, so a contested zone pays nobody. The tick-limit
+    /// tiebreak is zone → health → damage, and holding for the domination threshold
+    /// wins outright. The zone is the objective — ignoring it forfeits ties.</summary>
     public IReadOnlyList<Position>? ZoneTiles { get; init; }
 
     /// <summary>Your accrued zone-ticks (null when zone control is off). Public score.</summary>

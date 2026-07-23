@@ -107,14 +107,28 @@ public sealed record GameRules
         SpawnLaneSafety = true,
     };
 
+    /// <summary>Rules 0.4 = 0.3 + zone control (exclusive accrual, domination at 150,
+    /// zone-first tiebreak, zone-distance-fair spawns) — the gen-4 hill experiment
+    /// graduated on harness + bracket data (DECISIONS #53): draws 37% → 12%, decisive
+    /// endings 63% → 88%, three distinct zone doctrines all viable. Median game length
+    /// rose 77 → 158 ticks — the accepted trade for decided games.</summary>
+    public static GameRules V0_4 => V0_3 with
+    {
+        RulesVersion = "0.4",
+        ZoneControl = true,
+        ZoneDominationTicks = 150,
+        ZoneExclusiveAccrual = true,
+        ZoneSpawnFairness = true,
+    };
+
     /// <summary>The version new matches play. Historical versions stay constructible for
     /// replay verification and A/B harness runs.</summary>
-    public static GameRules Current => V0_3;
+    public static GameRules Current => V0_4;
 
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
     public static readonly IReadOnlyList<string> KnownNames =
-        ["0.3", "0.2", "0.1", "strafe", "hill", "hill-shared", "slate", "energy"];
+        ["0.4", "0.3", "0.2", "0.1", "strafe", "hill", "hill-shared", "slate", "energy"];
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
@@ -122,22 +136,15 @@ public sealed record GameRules
     /// mechanics layer on the shipped 0.3 for future re-tests.</summary>
     public static GameRules Resolve(string name) => name switch
     {
+        "0.4" => V0_4,
         "0.3" => V0_3,
         "0.2" => V0_2,
         "0.1" => V0_1,
         "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
-        // hill v3 = exclusive accrual (DECISIONS #50: co-occupying equals turned the
-        // hill into a spawn-order race) + zone-distance-fair spawns (DECISIONS #51:
-        // exclusive accrual makes first arrival a per-game edge, so neither bot may
-        // start meaningfully closer). hill-shared stays resolvable as the A/B baseline.
-        "hill" => V0_3 with
-        {
-            RulesVersion = "0.4-exp-hill3",
-            ZoneControl = true,
-            ZoneDominationTicks = 150,
-            ZoneExclusiveAccrual = true,
-            ZoneSpawnFairness = true,
-        },
+        // The hill experiment graduated to official 0.4 (DECISIONS #53); "hill" stays
+        // as an alias so gen-4 project pins and scripts keep working. hill-shared
+        // remains the shared-accrual A/B baseline (DECISIONS #50).
+        "hill" => V0_4,
         "hill-shared" => V0_3 with { RulesVersion = "0.4-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
         "slate" => V0_3 with
         {

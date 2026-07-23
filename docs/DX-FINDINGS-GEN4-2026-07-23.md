@@ -6,7 +6,12 @@ the trial's Castellan as a third doctrine, under `BOTARENA_RULES=hill`
 data live in GAME-DESIGN + DECISIONS #52; trial-phase findings in
 DX-FINDINGS-GEN4-TRIAL. New findings from the bracket phase:
 
-## Open
+## Fixed in the 0.4 ship batch
+All six items below were resolved the same day (mirror `-mirror` dir
+suffix + slot-tagged verdict lines; runtime-scoped-hash + coordinate +
+`--full` doc lines; `--seeds` error tip; zone counters documented as an
+intended mechanic in the official v0.4 rules docs). Kept for the record:
+
 1. **[bug, med] Mirror sets overwrite their own replays.** Same-name
    matchups (`set --bot . --opponent out/bot.wasm`) write both orientations
    of a map/seed pair to the same `out/talon-vs-talon-<map>-s<seed>/`

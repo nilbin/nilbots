@@ -8,7 +8,7 @@ public static class CliSupport
     /// <summary>The rules *name* a command will play, before GameRules.Resolve. Precedence:
     /// explicit --rules flag → the first given bot project's botarena.json "rules" pin
     /// (announced, since nothing on the command line asked for it) → the current default.
-    /// Names: 0.3 (default) | 0.2 | 0.1 | strafe | hill | slate | energy.</summary>
+    /// Names: 0.4 (default) | 0.3 | 0.2 | 0.1 | strafe | hill | hill-shared | slate | energy.</summary>
     public static string ResolveRulesName(Dictionary<string, string> options, params string?[] botSpecs)
     {
         if (options.GetValueOrDefault("rules") is { } explicitName)
@@ -21,7 +21,7 @@ public static class CliSupport
                 Console.WriteLine($"Rules pinned by {Path.Combine(spec, "botarena.json")}: {pinned}");
                 return pinned;
             }
-        return "0.3";
+        return "0.4";
     }
 
     public static GameRules ResolveRules(Dictionary<string, string> options, params string?[] botSpecs)

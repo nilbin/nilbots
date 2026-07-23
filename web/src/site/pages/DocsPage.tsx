@@ -53,13 +53,25 @@ public sealed class MyBot : IBot
         </ul>
       </Doc>
 
-      <Doc title="Rules of the arena (v0.3)">
+      <Doc title="Rules of the arena (v0.4)">
         <ul className="list-disc space-y-1 pl-5">
           <li>Tile grid, four facings, both bots decide simultaneously from the
             pre-tick state. 3 HP each, max 500 ticks.</li>
+          <li><b>The zone (v0.4).</b> Every map declares zone tiles —
+            <code className="font-mono"> context.ZoneTiles</code>, the full list from tick 0, not gated by
+            vision; some maps split the zone into disconnected pads. At the end of
+            every tick you are alive and the <b>sole</b> bot standing on zone tiles
+            you gain 1 zone-tick; a <b>contested</b> zone (both bots on it) pays
+            nobody — evict, don't share. Reaching <b>150 zone-ticks wins
+            immediately</b> (Domination). Scores are public:
+            <code className="font-mono"> MyZoneTicks</code> / <code className="font-mono">EnemyZoneTicks</code> — a
+            frozen counter while you stand on the zone proves the enemy is on it
+            too, even unseen.</li>
           <li>Spawn positions and facings vary by match seed (deterministically —
-            replays are still exact), and <b>never share a clear firing lane</b>
-            (v0.3). Don't hardcode an opening; read your surroundings. Ranked sets
+            replays are still exact), <b>never share a clear firing lane</b>, and
+            are <b>zone-distance-fair</b> (within 2 walking steps of each other to
+            the nearest zone tile, v0.4) — the opening race is winnable from either
+            side. Don't hardcode an opening; read your surroundings. Ranked sets
             mirror both spawns, so asymmetric starts stay fair across a set.</li>
           <li>Shooting is an instant ray in your facing direction with a
             <b> range of 8 tiles</b> (v0.3 — was unlimited): the first wall or bot
@@ -83,10 +95,12 @@ public sealed class MyBot : IBot
             shooter itself hasn't moved (shooting was its action for the tick), but
             its target may have. Both bots destroyed on the same
             tick is a <b>draw</b> — crossing shots are real, watch your approach.</li>
-          <li>Win by destroying the opponent, or at <b>tick 500</b> by more health,
-            then more damage dealt; all equal is a draw. A bot that crashes 3
-            times is disqualified — exceptions, infinite loops and out-of-memory
-            all count.</li>
+          <li>Win by <b>Domination</b> (150 zone-ticks), by destroying the opponent,
+            or at <b>tick 500</b> by more <b>zone-ticks</b>, then more health, then
+            more damage dealt; all equal is a draw. A health lead <i>without</i> the
+            zone loses the tiebreak — the zone is the objective; shooting is how you
+            take and hold it. A bot that crashes 3 times is disqualified —
+            exceptions, infinite loops and out-of-memory all count.</li>
           <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01,
             arena-01 and crossfire-01), each played from both starting positions; elo
             moves once per set. Rehearse the exact format locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
@@ -107,9 +121,14 @@ public sealed class MyBot : IBot
           replay exactly. Corollary: if neither bot consults
           <code className="font-mono"> Random</code>, different seeds produce the <i>same</i> game — vary
           maps and starting positions (<code className="font-mono">--swap</code>), not just seeds, when
-          testing. The replay JSON schema and its reading conventions are documented
+          testing. Replay hashes are comparable only within one runtime kind —
+          in-process and WASM runs of the same match match in behavior but hash
+          differently, because the runtime is part of a replay's identity; verify
+          cross-runtime by comparing results, not hashes. The replay JSON schema and
+          its reading conventions are documented
           in <code className="font-mono">docs/REPLAY-FORMAT.md</code> in the repo, and
-          <code className="font-mono"> botarena replay &lt;file&gt; --summary</code> prints a compact digest.
+          <code className="font-mono"> botarena replay &lt;file&gt; --summary</code> prints a
+          compact digest (<code className="font-mono">--full</code> for every tick).
         </p>
       </Doc>
 

@@ -78,22 +78,9 @@ confirms the ruleset) and tell agents to set `"rules": "<arm>"` in their
 project's botarena.json — every play/set they run then defaults to the
 experiment arm (an explicit `--rules` still wins; gen-3 lost practice games
 to silently dropped flags). Player-facing docs only describe SHIPPED rules,
-so append the experiment spec to every agent brief. For the HILL re-test (the named gen-4 confirmation,
-DECISIONS #49):
-
-> EXPERIMENTAL RULES for this tournament (on top of documented v0.3): ZONE
-> CONTROL with exclusive accrual. `context.ZoneTiles` lists the full zone
-> from tick 0 (not gated by vision); your score is `context.MyZoneTicks`,
-> theirs `context.EnemyZoneTicks` — both public. At the end of every tick
-> where you are alive and the SOLE bot standing on zone tiles you gain 1
-> zone-tick — any action counts (holding, turning, shooting from the hill
-> all accrue) — but a CONTESTED zone (both bots on zone tiles that tick)
-> pays NOBODY: evict the enemy, don't share with them. Reaching 150
-> zone-ticks ends the match immediately (Domination). At tick 500 the
-> tiebreak is zone-ticks → health → damage: a health lead WITHOUT the zone
-> loses. Spawns are zone-distance-fair (within 2 walking steps of each
-> other), so the opening race is winnable from either side. The zone is the
-> objective; shooting is how you take and hold it.
+so append the experiment spec to every agent brief. (Zone control needs no
+brief anymore — it shipped as official 0.4 after the gen-4 bracket,
+DECISIONS #53, and the site docs + template README now cover it.)
 
 For energy re-tests:
 

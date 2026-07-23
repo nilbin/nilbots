@@ -66,9 +66,14 @@ def main():
 
     stats = {}
     for rules in args.rulesets.split(","):
+        # Per-arm subdirectory: replay dirs are named by bots/map/seed only, so two
+        # arms sharing a workdir silently clobber each other's replays (found during
+        # the 0.4 ship run — aggregates were fine, post-hoc replay analysis wasn't).
+        arm_dir = pathlib.Path(args.workdir) / rules.replace("/", "-")
+        arm_dir.mkdir(parents=True, exist_ok=True)
         games = []
         for a, b in pairs:
-            games += run_set(bots, a, b, rules, args.seeds, args.workdir, args.maps)
+            games += run_set(bots, a, b, rules, args.seeds, str(arm_dir), args.maps)
             print(f"  done {a} vs {b} [{rules}]", flush=True)
         if not games:
             continue

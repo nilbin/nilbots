@@ -7,8 +7,13 @@ description: A/B-test a game-rules candidate against the current rules using the
 
 Methodology lives in docs/GAME-DESIGN.md; the instrument is
 `scripts/balance-eval.py` + the CLI's `--rules` flag. History: rules 0.2
-(seed-spawn variation) shipped on this data; the energy candidate did not
-(DECISIONS #47).
+(seed-spawn variation), 0.3 (range cap + lane-safe spawns), and 0.4 (zone
+control — shipped on draws 37%→12% despite median length doubling, the
+recorded trade) all shipped on this data; the energy candidate did not
+(DECISIONS #47). When a candidate changes what "a good game" looks like
+(hill's Domination endings replaced Eliminations), report against the
+standard criteria AND say which criterion the candidate redefines — don't
+quietly bend the gate.
 
 ## 1. Implement the candidate behind GameRules flags
 

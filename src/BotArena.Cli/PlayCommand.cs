@@ -42,7 +42,8 @@ public static class PlayCommand
         {
             var (run, name0, name1, written, fuelNote) = RunSingle(
                 botSpec, opponentSpec, map, seed, runtimeKind, rules,
-                options.GetValueOrDefault("out"), quiet: seeds.Length > 1);
+                options.GetValueOrDefault("out"), quiet: seeds.Length > 1,
+                mirrored: options.ContainsKey("swap"));
             if (seeds.Length == 1)
             {
                 Console.WriteLine($"Seed:             {seed}");
@@ -82,15 +83,19 @@ public static class PlayCommand
     /// matches) and writes its replay. Shared by play, --seeds batches, and `set`.</summary>
     internal static (MatchRunResult Run, string Name0, string Name1, WrittenReplay Written, string? FuelNote) RunSingle(
         string botSpec, string opponentSpec, ArenaMap map, ulong seed,
-        string runtimeKind, GameRules rules, string? outDirOverride, bool quiet)
+        string runtimeKind, GameRules rules, string? outDirOverride, bool quiet,
+        bool mirrored = false)
     {
         using var bot0 = ResolvedBot.Resolve(botSpec, runtimeKind, quiet);
         using var bot1 = ResolvedBot.Resolve(opponentSpec, runtimeKind, quiet);
         // Default output is unique per matchup so parallel runs (or two terminals in the
         // same project) never clobber each other's replays; identical reruns of a
         // deterministic match land in the same place, which is the right kind of overwrite.
+        // Same-name matchups (mirror rehearsal) collapse both orientations to one name,
+        // so the swapped game gets a -mirror suffix (gen-4 finding: g2 clobbered g1).
+        string suffix = mirrored && Slug(bot0.Name) == Slug(bot1.Name) ? "-mirror" : "";
         string outDir = outDirOverride
-            ?? Path.Combine("out", $"{Slug(bot0.Name)}-vs-{Slug(bot1.Name)}-{Slug(map.Id)}-s{seed}");
+            ?? Path.Combine("out", $"{Slug(bot0.Name)}-vs-{Slug(bot1.Name)}-{Slug(map.Id)}-s{seed}{suffix}");
         var run = new MatchEngine().Run(new MatchConfiguration
         {
             Map = map,
