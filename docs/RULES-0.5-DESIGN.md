@@ -125,6 +125,20 @@ trailing `P` observation section + `VisibleProjectiles` context field).
 
 ## G. Failure modes to watch
 
+- Slow-bolt kinematics (owner question): at 1 tile/2 ticks a bolt never
+  catches a fleeing bot and cannot hit a seen, unconstrained crosser —
+  intended (bolts zone, cone kills). The direct-hit paths that remain:
+  approach interception (closing speed 1.5 tiles/tick — doorways become
+  defensible), the solo lane-web (cooldown 2 + ~14-tick flight = up to
+  FIVE bolts in flight from one shooter: rotational sustained fire is
+  area control without a prepared ambush), constrained targets (zone
+  campers are semi-stationary by choice — that is the anti-camp
+  mandate), and unseen launches under the cone. Gen-6 failure signature:
+  bolt hit-rate ~0 outside ambushes AND falling shot counts (fire judged
+  pointless again). Counter-tune ready: ProjectileTicksPerTile = 1 as a
+  harness arm (equal-speed bolts: thinner denial, halved prediction
+  horizon).
+
 - Cone alone: mutual blindness could produce wander-draws with unaware
   bots (expected in the harness; gen-6 decides).
 - Bolts alone: seen bolts are easier to dodge than rays — pacifism could
