@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { useMemo } from 'react';
 import type { ReplayDocument } from '../types';
 import { stateBefore } from '../render/interpolate';
 
@@ -21,6 +22,21 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
+  // Zone scores are not carried in per-tick state; re-derive them exactly as the
+  // engine accrues (an Active bot standing on a zone tile at end of tick = +1).
+  const zone = useMemo(() => {
+    const tiles = replay.header.zoneTiles;
+    if (!tiles) return null;
+    const onZone = new Set(tiles.map(([x, y]) => `${x},${y}`));
+    const running: Record<number, number> = {};
+    const cumulative = replay.ticks.map((t) => {
+      for (const s of t.state)
+        if (s.status === 'Active' && onZone.has(`${s.x},${s.y}`))
+          running[s.slot] = (running[s.slot] ?? 0) + 1;
+      return { ...running };
+    });
+    return { onZone, cumulative };
+  }, [replay]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -75,6 +91,27 @@ export default function BotPanel({
               <span className="text-arena-dim">
                 CD <span className="text-arena-text">{state.cooldown}</span>
               </span>
+              {state.energy !== undefined && (
+                <span className="text-arena-dim" aria-label={`Energy ${state.energy}`}>
+                  ⚡ <span className="text-arena-text">{state.energy}</span>
+                </span>
+              )}
+              {zone && (
+                <span
+                  className={clsx(
+                    zone.onZone.has(`${state.x},${state.y}`) && state.status === 'Active'
+                      ? 'text-yellow-400'
+                      : 'text-arena-dim',
+                  )}
+                  aria-label="Zone ticks"
+                  title="Zone ticks (gold = on the zone now)"
+                >
+                  ⬢{' '}
+                  <span className="text-arena-text">
+                    {zone.cumulative[Math.min(tick, replay.ticks.length - 1)][participant.slot] ?? 0}
+                  </span>
+                </span>
+              )}
               {botTick && (
                 <span className="text-arena-dim">
                   → <span className="text-arena-text">{botTick.chosenAction}</span>

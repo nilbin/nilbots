@@ -106,6 +106,15 @@ export default function Viewer({
                     'DRAW'
                   )}
                 </p>
+                {result.bots.some((b) => b.zoneTicks !== undefined) && (
+                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                    zone{' '}
+                    {[...result.bots]
+                      .sort((a, b) => a.slot - b.slot)
+                      .map((b) => `${header.participants[b.slot]?.name ?? `s${b.slot}`} ${b.zoneTicks ?? 0}`)
+                      .join(' · ')}
+                  </p>
+                )}
                 <button
                   onClick={playback.restart}
                   className="mt-4 rounded-md border border-arena-accent px-4 py-1.5 font-mono text-sm text-arena-accent transition-colors hover:bg-arena-accent/15"

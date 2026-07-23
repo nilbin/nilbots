@@ -64,7 +64,7 @@ export function drawArena(
   }
 
   function drawZone(): void {
-    // Zone-control tiles (rules 0.3+): the contested objective, kept subtle so
+    // Zone-control tiles (experiment arms): the contested objective, kept subtle so
     // bots and beams stay readable on top of it.
     if (!replay.header.zoneTiles) return;
     for (const [x, y] of replay.header.zoneTiles) {

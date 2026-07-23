@@ -2,7 +2,14 @@
 // The C# canonical serializer is the source of truth; keep this file in sync.
 
 export type Direction = 'North' | 'East' | 'South' | 'West';
-export type BotAction = 'Wait' | 'MoveForward' | 'TurnLeft' | 'TurnRight' | 'Shoot';
+export type BotAction =
+  | 'Wait'
+  | 'MoveForward'
+  | 'TurnLeft'
+  | 'TurnRight'
+  | 'Shoot'
+  | 'StrafeLeft'
+  | 'StrafeRight';
 export type ActionResult = 'None' | 'Success' | 'Blocked' | 'OnCooldown' | 'Faulted';
 export type BotStatus = 'Active' | 'Destroyed' | 'Disqualified';
 export type GameEventType =
@@ -40,7 +47,7 @@ export interface ReplayHeader {
   seed: number;
   maxTicks: number;
   visionRange: number;
-  /** [x,y] pairs; present only under zone-control rules (0.3+). */
+  /** [x,y] pairs; present only when these rules have zone control (experiment arms). */
   zoneTiles?: number[][];
   participants: ReplayParticipant[];
 }
@@ -88,6 +95,8 @@ export interface ReplayBotState {
   health: number;
   cooldown: number;
   status: BotStatus;
+  /** Present only when these rules have an energy system. */
+  energy?: number;
 }
 
 export interface ReplayTick {
@@ -104,11 +113,13 @@ export interface BotMatchResult {
   damageDealt: number;
   faults: number;
   finalStatus: BotStatus;
+  /** Present only when these rules have zone control. */
+  zoneTicks?: number;
 }
 
 export interface MatchResult {
   winnerSlot: number | null;
-  reason: 'Elimination' | 'Disqualification' | 'MaxTicks';
+  reason: 'Elimination' | 'Disqualification' | 'MaxTicks' | 'Domination';
   endTick: number;
   bots: BotMatchResult[];
 }
