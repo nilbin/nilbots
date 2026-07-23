@@ -149,7 +149,7 @@ public sealed record GameRules
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
     public static readonly IReadOnlyList<string> KnownNames =
-        ["0.4", "0.3", "0.2", "0.1", "cone", "bolts", "conebolts", "strafe", "hill", "hill-shared", "slate", "energy"];
+        ["0.4", "0.3", "0.2", "0.1", "0.5-control", "cone", "bolts", "conebolts", "strafe", "hill", "hill-shared", "slate", "energy"];
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
@@ -163,6 +163,14 @@ public sealed record GameRules
         "0.1" => V0_1,
         // The 0.5 watchability slate (RULES-0.5-DESIGN): cone vision and projectiles,
         // separately and combined — the harness + gen-6 tournament decide the ship.
+        // 0.5-control is the spawn-matched baseline (external review §H item 3): every
+        // arm shares SpawnAttempts 256, so A/B deltas measure the mechanics, not the
+        // spawn-sampler change that rode along with them.
+        "0.5-control" => V0_4 with
+        {
+            RulesVersion = "0.5-exp-control",
+            SpawnAttempts = 256,
+        },
         "cone" => V0_4 with
         {
             RulesVersion = "0.5-exp-cone",

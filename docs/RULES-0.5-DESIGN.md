@@ -73,9 +73,12 @@ Push, Double-Lane Squeeze; anti-plays: Radar Statue, the gen-5 fortress
 
 ## C. Squeeze math — why bolts alone don't evict, and what does
 
-With TicksPerTile 2, a bolt fired from (6,5) eastward occupies (7,5) for
-ticks t+2..t+3 and (8,5) for t+4..t+5: each zone tile is hot for 2 ticks,
-sweeping west→east. Tick-table the 2×2 camper against a two-bolt volley
+With TicksPerTile 2, a bolt fired from (6,5) eastward at tick t spawns
+directly on (7,5) during t's shooting step and occupies it for t..t+1,
+then (8,5) for t+2..t+3: each zone tile is hot for 2 ticks, sweeping
+west→east, with the first tile hot the moment the trigger is pulled
+(§H item 2 fixed an earlier off-by-two here — prose only, the
+implementation and its tests always had spawn-at-t). Tick-table the 2×2 camper against a two-bolt volley
 (rows y=5 then y=6, second bolt ~3 ticks later after turn-move-turn):
 the camper **counter-surfs** — it steps east-to-west *behind* the sweep,
 returning to already-swept tiles, staying on zone throughout. Slower
@@ -99,11 +102,12 @@ gameplay-affecting, hence rules-gated, not a silent edit).
 
 ## E. Arms and versions
 
-| arm        | version string      | on top of 0.4                                  |
-| ---------- | ------------------- | ---------------------------------------------- |
-| cone       | 0.5-exp-cone        | VisionCone + HearingRadius 8 + SpawnAttempts 256 |
-| bolts      | 0.5-exp-bolts       | ProjectileTicksPerTile 2 + SpawnAttempts 256   |
-| conebolts  | 0.5-exp-conebolts   | both                                           |
+| arm         | version string      | on top of 0.4                                  |
+| ----------- | ------------------- | ---------------------------------------------- |
+| 0.5-control | 0.5-exp-control     | SpawnAttempts 256 only (spawn-matched baseline, §H item 3) |
+| cone        | 0.5-exp-cone        | VisionCone + HearingRadius 8 + SpawnAttempts 256 |
+| bolts       | 0.5-exp-bolts       | ProjectileTicksPerTile 2 + SpawnAttempts 256   |
+| conebolts   | 0.5-exp-conebolts   | both                                           |
 
 Rules 0.1–0.4 stay bit-identical (all new code behind flags; full suite
 + goldens must pass untouched). SDK/GuestAdapter bump to 0.5.0 (new
@@ -149,3 +153,83 @@ trailing `P` observation section + `VisibleProjectiles` context field).
 - Hearing radius 8 on small maps (12×8) ≈ map-wide — the Decoy Shot may
   be free information there; acceptable for 0.5, map-size dependent
   tuning noted for later.
+
+## H. External review (Sol, 2026-07-23) — dispositions
+
+Verdict accepted: **0.5 stays experimental; none of the arms promote to
+official until the items below land.** Adopted as the pre-official-0.5
+program (DECISIONS #58). Gameplay-affecting fixes ship as ONE coherent
+hardening batch with a single version-string bump per arm (the hill
+v1→v2→v3 precedent: behavior changes under a version string require a
+new string — never mutate in place).
+
+1. **Hearing is currently radar — AGREED, fix in batch.** Confirmed in
+   code: `IsLoud` events inside HearingRadius are delivered as full
+   authoritative GameEvents (exact shooter slot, coords, destination,
+   hit/target, health) — at radius 8 on small maps that is a global
+   tracking feed, undermining the cone it was meant to complement.
+   Redaction design: a `HeardSound` record carrying only event Type, a
+   coarse relative bearing (8-way octant from the listener), and a
+   distance band (near ≤2 / medium ≤5 / far ≤8) — enough for the Decoy
+   Shot and "someone is fighting north of me", not enough to aim.
+   Heard-only events leave `VisibleEvents`; sighted events stay full
+   (you SEE those). New trailing protocol section + SDK field.
+2. **Projectile hidden state — AGREED, fix in batch.** `ObservedProjectile`
+   gains `TicksUntilAdvance` and `RemainingTiles` (dodge timing must be
+   computable, not measured); replay projectiles gain the same so the
+   viewer can telegraph advances. The `P` protocol section grows 4→6
+   fields — breaks gen-6 experiment bots' parsers; acceptable for
+   experiment artifacts, documented. The **phase-surfing edge** (a bot
+   entering a bolt's pre-advance tile on its advance tick survives) is
+   real — occupancy is checked only post-advance. Fix: check before AND
+   after advancement. The §C counter-surf conclusion survives (the
+   counter-surfer enters tiles vacated on EARLIER ticks —
+   `Squeeze_CounterSurf_SurvivesBoltsAlone` pins this and must still
+   pass). §C prose timing corrected in place (spawn at t, not t+2 —
+   prose-only error).
+3. **Spawn fallback + experiment confound — AGREED.** The 64→256 raise
+   shrinks the fallback window but keeps a silent unfair fallback.
+   Batch fix: exhaustive deterministic enumeration — precompute the
+   valid pair set (connectivity + lane safety + zone-distance fairness),
+   seed-derived pick from it; if the set is EMPTY the map is rejected
+   loudly, never silently unfair. Landed now (this commit): the
+   **0.5-control arm** (`0.5-exp-control` = 0.4 + SpawnAttempts 256),
+   so every A/B delta is measured against a spawn-matched baseline —
+   the old 0.4-control-at-64 comparison confounded spawn-sampler and
+   mechanics effects.
+4. **Play tests prove mechanics vs passive defenders, not vs competent
+   defense — AGREED, tests in batch.** New adversarial acceptance tests:
+   optimal 4-tick scanner as the Radar Statue (does the anti-play
+   actually break it?), Red-Light Approach vs that scanner, Corner
+   Flush vs wall-backed defender, Shepherd forced-dodge window, Vanish,
+   Vanguard Push counterplay, the gen-5 fortress geometry under
+   conebolts, and the full §C squeeze (bolts + body) against both
+   camper policies.
+
+Evaluation upgrades (batch): paired per-scenario analysis in
+balance-eval.py (same population/map/seed across arms — per-game
+deltas, not aggregate rates); a speed-1 bolt arm in the aware
+evaluation (final arm set: 0.5-control / cone / conebolts / conebolts-1
+per §G's counter-tune); and pre-registered ship criteria, frozen before
+gen-7 runs:
+
+1. conebolts beats the spawn-matched control on paired decisiveness.
+2. The Radar Statue is breakable by at least one executable play, shown
+   in an adversarial test AND observed in a ranked replay.
+3. Aware bots actually fire — suppression/feints appear unprompted.
+4. Shot count does not collapse vs 0.4 baseline.
+5. Hit rate is meaningful beyond point-blank (bolts land at range ≥2
+   outside scripted ambushes).
+6. ≥2 distinct doctrines viable at the top (no forced monoculture).
+7. Median duration does not regress past the 0.4 accepted trade.
+8. The gen-5 fortress scenario is breakable under the new rules.
+9. Hearing produces uncertainty behavior (search/reorient), not
+   tracking behavior (beeline to exact coords).
+10. Each mechanic individually justifies its complexity via paired
+    results (cone alone, bolts alone) — the combo ships only if the
+    pairing hypothesis holds.
+
+Sequencing: hardening batch → gen-6 DX docs/tooling pass
+(DX-FINDINGS-GEN6: player rules card, `replay --summary` cone/bolt
+columns) → gen-7 aware tournament under the final arms = the official
+0.5 ship decision.

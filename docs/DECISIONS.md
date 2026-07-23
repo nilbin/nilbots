@@ -460,6 +460,30 @@ configuration) and changing them is a version bump, not an edit.
     also renders bolts, but `replay --summary` must gain cone/bolt columns.
     Pre-ship task list recorded in GAME-DESIGN + DX-FINDINGS-GEN6.
 
+58. **External review adopted: 0.5 stays experimental until the hardening
+    program lands (RULES-0.5-DESIGN §H).** Sol's review of the 0.5 design +
+    implementation, point-by-point verified against the code and accepted:
+    (1) hearing is currently radar — `IsLoud` delivers full authoritative
+    GameEvents within radius 8, a tracking feed; redact to
+    HeardSound(Type, octant bearing, near/medium/far band); (2) observed
+    bolts hide phase/remaining-range (dodge timing must be computable, not
+    measured) and the phase-surfing collision edge is real (occupancy
+    checked post-advance only) — fix is check-before-AND-after, under
+    which the §C counter-surf conclusion still holds (pinned by test);
+    (3) the spawn fix was incomplete (silent unfair fallback survives at
+    256 attempts) AND the harness confounded spawn-sampler with mechanics
+    — landed now: a spawn-matched **0.5-control** arm (0.4 +
+    SpawnAttempts 256); batch: exhaustive deterministic pair enumeration,
+    empty set = map rejected loudly; (4) play tests prove mechanics vs
+    passive defenders only — adversarial tests (optimal 4-tick scanner et
+    al.) required. Ten ship criteria pre-registered in §H, frozen before
+    gen-7. All gameplay-affecting fixes ship as ONE hardening batch with
+    a single version-string bump per arm (hill v1→v3 precedent). §C
+    timing prose corrected (bolt spawns adjacent at the shot tick — the
+    t+2 phrasing was a prose error, implementation was always right).
+    Sequencing: hardening batch → gen-6 DX docs pass → gen-7 aware
+    tournament = the official-0.5 decision.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

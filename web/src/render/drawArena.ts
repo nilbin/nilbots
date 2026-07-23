@@ -143,6 +143,13 @@ export function drawArena(
       ctx.arc(cx, cy, radius, pose.angle - Math.PI / 4, pose.angle + Math.PI / 4);
       ctx.closePath();
       ctx.fill();
+      // The omnidirectional Chebyshev-1 proximity ring: the 8 adjacent tiles are
+      // always visible, even directly behind — without this the glyph understates
+      // real vision (owner finding).
+      ctx.fillStyle = hexWithAlpha(accent, 0.10);
+      ctx.beginPath();
+      ctx.arc(cx, cy, tile * 1.5, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
