@@ -199,11 +199,15 @@ public sealed class MatchSession
             bots[slot].LastActionResult = results[slot];
 
         // 9.5 Zone control: active bots standing on zone tiles accrue at end of tick
-        // (post-move, post-damage: a bot destroyed this tick earns nothing).
+        // (post-move, post-damage: a bot destroyed this tick earns nothing). Under
+        // exclusive accrual a contested zone pays nobody — sole occupancy is the point.
         if (State.Rules.ZoneControl)
-            foreach (var bot in bots)
-                if (bot.IsActive && _zoneLookup.Contains(bot.Position))
+        {
+            var occupants = bots.Where(b => b.IsActive && _zoneLookup.Contains(b.Position)).ToList();
+            if (!State.Rules.ZoneExclusiveAccrual || occupants.Count == 1)
+                foreach (var bot in occupants)
                     bot.ZoneTicks++;
+        }
 
         // 10. Determine completion.
         int executedTick = State.Tick;

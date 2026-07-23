@@ -65,6 +65,13 @@ public sealed record GameRules
 
     public int ZoneDominationTicks { get; init; }
 
+    /// <summary>When true, zone-ticks accrue only for a SOLE active occupant — a contested
+    /// zone pays nobody. Without this, two zone-aware bots co-occupy the hill peacefully
+    /// and spawn order decides the accrual race (gen-4 trial: every mirror game was a
+    /// slot-1 Domination at the identical tick, 150-146, zero shots exchanged). Exclusive
+    /// accrual makes the fight FOR the hill the game.</summary>
+    public bool ZoneExclusiveAccrual { get; init; }
+
     /// <summary>Seed-spawn constraint: never spawn a pair sharing a clear firing lane
     /// within ShotRange (gen-3 finding: tick-0 hits before the first decision).</summary>
     public bool SpawnLaneSafety { get; init; }
@@ -108,7 +115,17 @@ public sealed record GameRules
         "0.2" => V0_2,
         "0.1" => V0_1,
         "strafe" => V0_3 with { RulesVersion = "0.4-exp-strafe", AllowStrafe = true },
-        "hill" => V0_3 with { RulesVersion = "0.4-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
+        // hill v2 (exclusive accrual) superseded shared accrual after the gen-4 trial:
+        // co-occupying equals turned the hill into a spawn-order race (DECISIONS #50).
+        // hill-shared stays resolvable as the A/B baseline.
+        "hill" => V0_3 with
+        {
+            RulesVersion = "0.4-exp-hill2",
+            ZoneControl = true,
+            ZoneDominationTicks = 150,
+            ZoneExclusiveAccrual = true,
+        },
+        "hill-shared" => V0_3 with { RulesVersion = "0.4-exp-hill", ZoneControl = true, ZoneDominationTicks = 150 },
         "slate" => V0_3 with
         {
             RulesVersion = "0.4-exp-slate",
@@ -123,6 +140,6 @@ public sealed record GameRules
             ShotEnergyCost = 2,
             EnergyRegenTicks = 3,
         },
-        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.3, 0.2, 0.1, strafe, hill, slate, or energy)."),
+        _ => throw new ArgumentException($"Unknown rules '{name}' (use 0.3, 0.2, 0.1, strafe, hill, hill-shared, slate, or energy)."),
     };
 }

@@ -130,6 +130,20 @@ implementation complete incl. viewer/SDK/docs-in-skill). The combined slate
 underperformed range alone — mechanics dilute each other; ship the winner,
 not the bundle.
 
+## Gen-4 trial: hill v2 = exclusive accrual (2026-07-23, DECISIONS #50)
+
+The trial's zone-aware challenger (Castellan) swept both champions 12-0 on
+the server (mostly Domination ~t151-162) — zone-aware vs zone-ignorant is
+no contest, as predicted. The design finding came from the mirror set:
+under shared accrual two zone-aware equals co-occupy the zone without
+firing a shot (150-146, zero damage, every game a slot-1 Domination at the
+identical tick) — the hill degenerates into a spawn-order footrace.
+`--rules hill` is now **exclusive accrual** (sole occupant accrues;
+contested zone pays nobody), which makes eviction the game; shared stays
+at `--rules hill-shared` as the baseline. Open risk to measure in the
+gen-4 tournament: two hold-averse bots could stand off adjacent to the
+zone — watch draw rate among aware-vs-aware games.
+
 Before/after any candidate rule change, run the tournament (now fast:
 `BOTARENA_BROADCAST_TPS=250`, `BOTARENA_COMPILE_WORKERS=3`, DECISIONS #41/#42)
 and compare:

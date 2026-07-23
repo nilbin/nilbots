@@ -78,11 +78,13 @@ public sealed class MyBot : IBot
             perpendicular sidestep dodges a ray fired at where you stood.</li>
           <li>Movement: two bots can't share a tile; moving into the same tile or
             swapping fails for both; blocked moves become Wait.</li>
-          <li>Resolution order each tick: turn → move → shoot (from post-move
-            positions) → damage (simultaneous). Both bots destroyed on the same
+          <li>Resolution order each tick: turn → move → shoot → damage
+            (simultaneous). Shots resolve against the <b>post-move</b> board — the
+            shooter itself hasn't moved (shooting was its action for the tick), but
+            its target may have. Both bots destroyed on the same
             tick is a <b>draw</b> — crossing shots are real, watch your approach.</li>
-          <li>Win by destroying the opponent or having <b>more health at tick
-            500</b>; equal health at the limit is a draw. A bot that crashes 3
+          <li>Win by destroying the opponent, or at <b>tick 500</b> by more health,
+            then more damage dealt; all equal is a draw. A bot that crashes 3
             times is disqualified — exceptions, infinite loops and out-of-memory
             all count.</li>
           <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01,

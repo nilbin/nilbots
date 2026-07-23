@@ -67,7 +67,9 @@ public static class BuildCommand
     {
         Console.WriteLine($"Bot:              {project.Manifest.Name} (entry {project.Manifest.EntryType})");
         Console.WriteLine($"Runtime:          WASM");
-        Console.WriteLine($"Game rules:       {BotArenaVersions.GameRulesVersion}");
+        // No "Game rules" line: the artifact is rules-agnostic — the ruleset is chosen
+        // per match by play/set/server, not baked in at build time (gen-4 trial #4:
+        // printing the default here read as "built for the wrong game" under a pin).
         Console.WriteLine($"Runtime protocol: {BotArenaVersions.RuntimeProtocolVersion}");
         Console.WriteLine($"SDK:              {ToolchainInfo.SdkVersion}");
         Console.WriteLine($"Compiler:         NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");

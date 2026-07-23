@@ -77,12 +77,16 @@ so append the experiment spec to every agent brief. For the HILL re-test (the na
 DECISIONS #49):
 
 > EXPERIMENTAL RULES for this tournament (on top of documented v0.3): ZONE
-> CONTROL. The map declares zone tiles (see `context.ZoneTiles`; your score is
-> `context.MyZoneTicks`, theirs `context.EnemyZoneTicks` — both public). Each
-> tick you stand on a zone tile while alive adds 1 zone-tick. Holding 150
-> zone-ticks wins immediately (Domination). At tick 500 the tiebreak is
-> zone-ticks → health → damage: a health lead WITHOUT the zone loses. The
-> zone is the objective; shooting is how you hold it.
+> CONTROL with exclusive accrual. `context.ZoneTiles` lists the full zone
+> from tick 0 (not gated by vision); your score is `context.MyZoneTicks`,
+> theirs `context.EnemyZoneTicks` — both public. At the end of every tick
+> where you are alive and the SOLE bot standing on zone tiles you gain 1
+> zone-tick — any action counts (holding, turning, shooting from the hill
+> all accrue) — but a CONTESTED zone (both bots on zone tiles that tick)
+> pays NOBODY: evict the enemy, don't share with them. Reaching 150
+> zone-ticks ends the match immediately (Domination). At tick 500 the
+> tiebreak is zone-ticks → health → damage: a health lead WITHOUT the zone
+> loses. The zone is the objective; shooting is how you take and hold it.
 
 For energy re-tests:
 

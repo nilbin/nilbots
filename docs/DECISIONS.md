@@ -295,6 +295,21 @@ configuration) and changing them is a version bump, not an edit.
     individually, not bundles. crossfire-01 joined the ranked pool; the
     champions remain compatible (they simply lose their cross-map lanes).
 
+50. **Hill v2 = exclusive accrual; shared accrual demoted to A/B baseline.**
+    The gen-4 trial (single zone-aware challenger, Castellan) exposed shared
+    accrual's degenerate equal case: two zone-aware bots co-occupy the 2×2
+    zone peacefully and spawn order decides the race — every mirror game was
+    a slot-1 Domination at the identical tick (150-146, zero damage dealt).
+    Decision: `--rules hill` (0.4-exp-hill2) now accrues only for a SOLE
+    active occupant — a contested zone pays nobody, making eviction the
+    game; `--rules hill-shared` keeps the old semantics as the harness
+    baseline. Aside: the trial also confirmed zone-aware crushes
+    zone-ignorant (12-0 server sweep vs both champions, no crown per the
+    official-rules ratchet), so the mechanic's real evaluation needs
+    aware-vs-aware play — the gen-4 tournament brief now specifies exclusive
+    accrual and a bracket of distinct zone doctrines is the recommended
+    shape.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
