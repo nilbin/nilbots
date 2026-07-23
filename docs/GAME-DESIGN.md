@@ -398,3 +398,6 @@ and a changelog section; `GameRulesVersion` is already surfaced everywhere it
 needs to be. Loadouts/pickups additionally need SDK doc updates and a template
 README refresh (the tournament proved agents build exactly what the docs say —
 no more, no less).
+
+
+Gen-6 verdict: see DECISIONS #57 and DX-FINDINGS-GEN6 (gameplay passes; docs+tooling pass required before 0.5 ships).

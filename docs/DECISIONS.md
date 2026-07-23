@@ -427,6 +427,39 @@ configuration) and changing them is a version bump, not an edit.
     written FOR 0.5 (owner drives it on a different model), per the
     0.3/0.4 pattern.
 
+57. **Gen-6 verdict (round 1, stopped early): 0.5 conebolts is a
+    gameplay success but NOT docs-ready — ships only after a docs + viewer
+    pass.** Two challengers written for 0.5 (Nightjar scout-flanker,
+    Ballista suppression-zoner), one round on the 0.5-exp-conebolts ladder
+    before the owner called it (enough signal). No crown moves (experiment
+    rules; Bastille gen-5 defends). Ladder: Nightjar 1233, Ballista 1229,
+    Bastille gen-5 1200, Rampart 1170, Warden 1169.
+    GAMEPLAY = success: a clean rock-paper-scissors formed (Ballista beats
+    Nightjar 4.5-1.5 with bolt-walls; Nightjar beats the camper Bastille
+    5-1 with ranged blind-arc eviction; Bastille beats Ballista 4.5-1.5 by
+    out-shuffling suppression), both new bots swept the 0.5-blind Warden/
+    Rampart 6-0, and every aware-vs-aware head-to-head was a DECISIVE
+    elimination with real damage landing (e.g. Ballista kills Nightjar on
+    crossfire, hits t41/t47/t50) — versus the identical-bot mirror's 74
+    shots / 0 damage, proving directional vision + differing doctrine is
+    what makes shots land. Executable plays observed unprompted: Ballista's
+    Shepherd (bolt-wall reroute flipping a 36-150 loss to a 20-9 win) and
+    5-bolt picket-fence; Nightjar's ranged blind-arc kill (t9/t21/t28,
+    zero taken) and closing-enemy interception counter-fire (t28-29).
+    DOCS = fail for a docs-only player: BOTH challengers independently
+    reverse-engineered the cone predicate, the bolt 2-tick-per-tile
+    occupancy, the point-blank-instant vs ranged-slow-bolt split, and the
+    split-zone "contested pays nobody (even across pads)" rule — all
+    experiment-only — and `replay --summary` shows NEITHER cone contents
+    nor bolt state, so decisions can only be debugged via Debug.Write.
+    Both said a docs-only player designs the wrong bot first try.
+    SHIP DECISION: 0.5 held behind its flags until (a) the player rules
+    card is rewritten for point-blank-instant, no-strafe 2-tick dodging,
+    the exact cone predicate, bolt occupancy timing, and split-zone
+    contest; (b) the viewer already shows cones (done mid-run) and now
+    also renders bolts, but `replay --summary` must gain cone/bolt columns.
+    Pre-ship task list recorded in GAME-DESIGN + DX-FINDINGS-GEN6.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
