@@ -101,8 +101,10 @@ public sealed class MyBot : IBot
             zone loses the tiebreak — the zone is the objective; shooting is how you
             take and hold it. A bot that crashes 3 times is disqualified —
             exceptions, infinite loops and out-of-memory all count.</li>
-          <li>Ranked sets are 6 games across 3 map/seed pairs (pool: basic-01,
-            arena-01 and crossfire-01), each played from both starting positions; elo
+          <li>Ranked sets are 6 games across 3 map/seed pairs — 3 maps sampled per
+            set from the pool (basic-01, arena-01, crossfire-01, bastion-01,
+            causeway-01, gallery-01; see <code className="font-mono">botarena maps</code>) — each
+            played from both starting positions; elo
             moves once per set, on the <b>ladder of the rules the set was played
             under</b> — every rules version has its own ladder, and a challenge may
             pin an older ruleset. Rehearse the exact format

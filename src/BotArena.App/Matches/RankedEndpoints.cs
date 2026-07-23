@@ -14,10 +14,12 @@ public sealed record RankedChallengeRequest(Guid BotId, Guid OpponentBotId, stri
 
 public static class RankedEndpoints
 {
-    /// <summary>The three map/seed pairs of a set; each is played twice with mirrored slots.</summary>
-    // One game pair per pool map; crossfire-01 joined with rules 0.3 (broken
-    // sightlines — the map-side answer to lane suppression, RULES-0.3-DESIGN §F).
-    private static readonly string[] SetMaps = ["basic-01", "arena-01", "crossfire-01"];
+    /// <summary>The ranked map pool: each set samples 3 distinct maps, each played
+    /// twice with mirrored slots. crossfire-01 joined with rules 0.3 (broken
+    /// sightlines, RULES-0.3-DESIGN §F); bastion/causeway/gallery joined for the
+    /// 0.4 era — zone placement is the map-design lever (keep, bridge, edge hill).</summary>
+    private static readonly string[] MapPool =
+        ["basic-01", "arena-01", "crossfire-01", "bastion-01", "causeway-01", "gallery-01"];
 
     public static void MapRanked(this IEndpointRouteBuilder routes)
     {
@@ -65,8 +67,9 @@ public static class RankedEndpoints
             };
             db.MatchSets.Add(set);
 
+            string[] setMaps = [.. MapPool.OrderBy(_ => Random.Shared.Next()).Take(3)];
             int game = 0;
-            foreach (string mapId in SetMaps)
+            foreach (string mapId in setMaps)
             {
                 long seed = Random.Shared.NextInt64();
                 foreach (bool mirrored in new[] { false, true })

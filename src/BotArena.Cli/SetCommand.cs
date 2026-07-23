@@ -11,7 +11,9 @@ namespace BotArena.Cli;
 /// </summary>
 public static class SetCommand
 {
-    // Mirrors RankedEndpoints.SetMaps — the server's ranked pool.
+    // The server samples 3 maps per set from its full pool (RankedEndpoints.MapPool);
+    // the local default stays this fixed trio for reproducible rehearsal — pass
+    // --maps to drill the others (see `botarena maps` for the list).
     private static readonly string[] DefaultMaps = ["basic-01", "arena-01", "crossfire-01"];
 
     public static int Run(IReadOnlyList<string> args)
