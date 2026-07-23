@@ -38,6 +38,7 @@ public static class PlayCommand
         Console.WriteLine();
 
         int wins = 0, losses = 0, draws = 0;
+        string slot0Name = "slot 0";
         foreach (ulong seed in seeds)
         {
             var (run, name0, name1, written, fuelNote) = RunSingle(
@@ -70,11 +71,14 @@ public static class PlayCommand
                 };
                 Console.WriteLine($"seed {seed,-12} {verdict,-22} {run.Result.Reason,-16} t{run.Result.EndTick,-4} {written.ReplayPath}");
             }
+            slot0Name = name0;
         }
         if (seeds.Length > 1)
         {
             Console.WriteLine();
-            Console.WriteLine($"Total ({seeds.Length} seeds, slot-0 perspective): {wins}W {losses}L {draws}D");
+            // Name the perspective explicitly: under --swap, slot 0 is the OPPONENT,
+            // and a bare "slot-0 perspective" read as inverted totals (gen-6 finding).
+            Console.WriteLine($"Total ({seeds.Length} seeds, W = {slot0Name} wins): {wins}W {losses}L {draws}D");
         }
         return 0;
     }

@@ -38,19 +38,20 @@ try. Before 0.5 ships, the player rules card must state, plainly:
    docs give no split-zone geometry.
 
 ## Ship-blocking: the replay tooling can't show the two new state channels
-6. **[blocker] `replay --summary` shows neither cone contents nor bolts.**
-   Decisions can only be debugged by instrumenting every branch with
-   `Debug.Write` and grepping — for the two mechanics that DEFINE 0.5. The
-   viewer now renders cones (added mid-run) and bolts; the CLI summary needs
-   the same: a per-tick cone/bolt column, or at least a bolt list.
-7. **[med] `--full` is a sub-flag of `--summary`.** `replay <f> --full`
-   alone silently prints only the header. And long `Debug.Write` lines are
-   truncated with "…", forcing compact encodings.
-8. **[med] Ranged hits read as two events 2 ticks apart.** A shot logs
-   "miss" at launch; the real hit is a separate Damage line when the bolt
-   lands — correlating them is manual. A launch→land linkage id would help.
-9. **[low] `--swap` "slot-0 perspective" is the opponent when swapped** —
-   totals read inverted until you check winner names (looked like a bug).
+All four items below RESOLVED in the 0.5 hardening batch (DECISIONS #59):
+
+6. ~~**[blocker] `replay --summary` shows neither cone contents nor bolts.**~~
+   Fixed: printed ticks now carry `bolts»` lines (owner, tile, direction,
+   `advN` ticks-until-advance, `remN` residual range) and, under cone rules,
+   per-bot `sees»`/`hears»` lines — the bot's actual contact picture.
+7. ~~**[med] `--full` is a sub-flag of `--summary`.**~~ Fixed: `--full` alone
+   implies the summary; debug truncation is 200 chars and OFF under `--full`.
+8. ~~**[med] Ranged hits read as two events 2 ticks apart.**~~ Fixed the lie,
+   not the shape: under projectile rules an unresolved Shot prints `launch`
+   (never `miss`); the landing stays a Damage event, now correlatable via the
+   `bolts»` flight lines.
+9. ~~**[low] `--swap` "slot-0 perspective" reads inverted.**~~ Fixed: batch
+   totals name the bot (`W = <name> wins`).
 
 ## What worked (kept for the record)
 Bit-identical parity on first submission for both; fuel headroom ~300-500x;

@@ -10,7 +10,9 @@ public static class ReplayCommand
         var options = CliSupport.ParseOptions(args);
         string json = File.ReadAllText(file);
         var document = ReplaySerializer.FromJson(json); // Validates the format.
-        if (options.ContainsKey("summary"))
+        // --full alone implies --summary (gen-6 finding: it silently printed only the
+        // header as a sub-flag, which read as a bug).
+        if (options.ContainsKey("summary") || options.ContainsKey("full"))
             return Summarize(document,
                 includeDebug: !options.ContainsKey("no-debug"),
                 full: options.ContainsKey("full"));
@@ -41,10 +43,18 @@ public static class ReplayCommand
         // Zone-control matches (rules with ZoneControl): mark bots standing on zone
         // tiles with * in state lines and show per-bot zone-tick totals.
         var zone = (header.ZoneTiles ?? []).Select(t => (t[0], t[1])).ToHashSet();
+        // The two 0.5 state channels (gen-6 blockers 6/3): bolts and cone contents
+        // must be readable here, not only in the viewer.
+        bool boltMode = document.Ticks.Any(t => t.Projectiles is { Count: > 0 });
+        bool coneMode = header.VisionCone == true;
         Console.WriteLine($"Match:  {string.Join(" vs ", header.Participants.OrderBy(p => p.Slot).Select(p => $"{p.Name} (s{p.Slot})"))}");
         Console.WriteLine($"Map:    {header.MapId} v{header.MapVersion} ({header.MapWidth}x{header.MapHeight})  seed {header.Seed}  rules {header.GameRulesVersion}");
         if (zone.Count > 0)
             Console.WriteLine($"Zone:   {string.Join(" ", header.ZoneTiles!.Select(t => $"({t[0]},{t[1]})"))}  (* in state lines = on zone tile)");
+        if (coneMode)
+            Console.WriteLine("Vision: 90° cone toward facing + adjacent ring; `sees»`/`hears»` lines show each bot's actual contact");
+        if (boltMode)
+            Console.WriteLine("Bolts:  `bolts»` lines list flight state — advN = ticks until it moves (1 = this tick), remN = tiles left");
         var result = document.Result;
         string verdict = result.WinnerSlot is int w ? $"{names[w]} (s{w}) wins" : "draw";
         Console.WriteLine($"Result: {verdict} — {result.Reason} at tick {result.EndTick}");
@@ -87,17 +97,35 @@ public static class ReplayCommand
             if (events.Length > 0)
                 line += $" | {events}";
             Console.WriteLine(line);
+            if (tick.Projectiles is { Count: > 0 } inFlight)
+                Console.WriteLine($"      bolts» {string.Join("  ", inFlight.Select(p =>
+                    $"s{p.OwnerSlot}@({p.X},{p.Y}){p.Direction.ToString()[0]} adv{p.TicksUntilAdvance} rem{p.RemainingTiles}"))}");
+            if (coneMode)
+                foreach (var bot in tick.Bots.OrderBy(b => b.Slot))
+                {
+                    string sees = string.Join(" ", bot.VisibleEnemies
+                        .Select(e => $"s{e.Slot}@({e.X},{e.Y}){e.Facing.ToString()[0]}h{e.Health}"));
+                    string hears = string.Join(" ", (bot.HeardSounds ?? []).Select(h =>
+                        $"{h.Type}:{"N,NE,E,SE,S,SW,W,NW".Split(',')[h.Bearing]}:{"near,med,far".Split(',')[h.Distance]}"));
+                    if (sees.Length > 0)
+                        Console.WriteLine($"      s{bot.Slot} sees» {sees}");
+                    if (hears.Length > 0)
+                        Console.WriteLine($"      s{bot.Slot} hears» {hears}");
+                }
             if (includeDebug)
                 foreach (var bot in tick.Bots.Where(b => b.Debug is not null).OrderBy(b => b.Slot))
                     foreach (var debugLine in bot.Debug!.Split('\n'))
-                        Console.WriteLine($"      s{bot.Slot}» {(debugLine.Length > 100 ? debugLine[..100] + "…" : debugLine)}");
+                        Console.WriteLine($"      s{bot.Slot}» {(!full && debugLine.Length > 200 ? debugLine[..200] + "…" : debugLine)}");
         }
         return 0;
 
-        static string FormatEvent(GameEvent e) => e.Type switch
+        string FormatEvent(GameEvent e) => e.Type switch
         {
+            // Under projectile rules an unresolved Shot is a LAUNCH — the verdict
+            // arrives as a later Damage event or never (gen-6 finding: "miss" at
+            // launch time read as a bug for shots that then landed).
             GameEventType.Shot => $"Shot s{e.Slot} ({e.FromX},{e.FromY})->({e.ToX},{e.ToY})" +
-                                  (e.HitSlot is int hit ? $" HIT s{hit}" : " miss"),
+                                  (e.HitSlot is int hit ? $" HIT s{hit}" : boltMode ? " launch" : " miss"),
             GameEventType.Damage => $"Damage s{e.TargetSlot} by s{e.Slot} (h->{e.NewHealth})",
             GameEventType.Destroyed => $"DESTROYED s{e.Slot}",
             GameEventType.Fault => $"Fault s{e.Slot}: {e.Message}",

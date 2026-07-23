@@ -53,30 +53,39 @@ Facings are `North | East | South | West`.
 
 ## `ticks[]`
 
-One entry per simulated tick: `{ tick, bots, events, state }`.
+One entry per simulated tick: `{ tick, bots, events, state, projectiles? }`.
 
 - `bots[]` — each bot's decision that tick:
-  `{ slot, chosenAction, validatedAction, result, faulted?, debug?, visibleTiles, visibleEnemies }`.
+  `{ slot, chosenAction, validatedAction, result, faulted?, debug?, visibleTiles, visibleEnemies, heardSounds? }`.
   `chosenAction` is what the bot asked for, `validatedAction` what the engine
   accepted (an illegal ask becomes `Wait`), `result` is the
   `PreviousActionResult` the bot will see next tick (`Success`, `Blocked`,
   `OnCooldown`, …). `visibleTiles` is `[x, y]` pairs; `visibleEnemies` is
-  `{ slot, x, y, facing, health }`. `debug` is that bot's `Debug.Write` output.
-  Debug lines are part of the canonical (hashed) replay and therefore as public
-  as the replay itself — the server cannot strip them per-viewer without
-  breaking hash verification (DECISIONS #39).
+  `{ slot, x, y, facing, health }`. `heardSounds` (rules with hearing, and
+  only on ticks with any) is `{ type, bearing, distance }` — the REDACTED
+  form the bot itself received: bearing octant `0`=N clockwise to `7`=NW,
+  distance band `0` near / `1` medium / `2` far. `debug` is that bot's
+  `Debug.Write` output. Debug lines are part of the canonical (hashed) replay
+  and therefore as public as the replay itself — the server cannot strip them
+  per-viewer without breaking hash verification (DECISIONS #39).
 - `events[]` — authoritative flat records, ordered by resolution:
   `{ type, slot?, fromX?, fromY?, toX?, toY?, fromFacing?, toFacing?, hitSlot?, targetSlot?, amount?, newHealth?, message? }`
   with `type` ∈ `Turn | Move | MoveBlocked | Shot | Damage | Destroyed | Fault |
-  Disqualified`. A `Shot`'s `toX/toY` is where the ray stopped (wall or bot);
-  `Damage.slot` is the shooter, `targetSlot` the victim.
+  Disqualified`. A `Shot`'s `toX/toY` is where the ray stopped (wall or bot) —
+  under projectile rules it is the LAUNCH tile and an eventual hit arrives as
+  a later `Damage`; `Damage.slot` is the shooter, `targetSlot` the victim.
 - `state[]` — post-tick truth per bot:
-  `{ slot, x, y, facing, health, cooldown, status, energy? }` with `status` ∈
-  `Active | Destroyed | Disqualified`. `energy` appears only under rules with
-  an energy system. Zone scores are NOT in per-tick state — derive them by
-  the accrual rule (sole active occupant of a zone tile at end of tick, or
-  any active occupant under shared-accrual arms) or read the totals from
-  `result`.
+  `{ slot, x, y, facing, health, cooldown, status, energy?, zoneTicks? }` with
+  `status` ∈ `Active | Destroyed | Disqualified`. `energy` appears only under
+  rules with an energy system. `zoneTicks` (cumulative) appears under rules
+  with per-tick zone tallies (the hardened 0.5 arms onward) — read it rather
+  than re-deriving accrual; on older zone replays derive by the accrual rule
+  or read the totals from `result`.
+- `projectiles[]` — bolts in flight after this tick (projectile rules only):
+  `{ x, y, direction, ownerSlot, ticksUntilAdvance, remainingTiles }`.
+  `ticksUntilAdvance` = 1 means the bolt moves on the NEXT tick, right after
+  movement; `remainingTiles` is residual range (−1 = uncapped), lethal on its
+  final tile.
 
 ## `result`
 
