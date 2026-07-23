@@ -27,9 +27,14 @@ frozen champions can't co-evolve).
   valid trial outcome. A healthy trial PROMOTES in place: keep the agent's
   state.json, message the agent to iterate, rerun the driver — elo
   accumulates, nothing restarts.
-- **standard** (the default) — trial shape plus 2 improvement iterations.
-- **full** — 3-4 iterations and/or a multi-agent bracket; explicit request
-  only.
+- **standard** (the default) — trial shape plus ONE improvement iteration,
+  then a final round. Cost intuition: round-robins are nearly free (server
+  matches + the driver, no agent tokens); iterations are the expensive part
+  (~200k tokens per agent each). One adapt-and-rematch cycle answers "does
+  counter-play change the picture?"; further cycles are mostly drama.
+- **full** — 2-4 iterations and/or a multi-agent bracket; explicit request
+  only. Drop champion pairings from later rounds once they're proven
+  uninformative (0-6 sweeps every time) — rerunning them is elo noise.
 
 ## 1. Boot the environment
 
@@ -179,7 +184,7 @@ Trial runs skip this section entirely — report after the first round-robin.
 After the first round-robin, send each agent its lost matches' replays
 (`GET /api/matches/{id}/replay` — events + its own per-tick debug/visible data):
 analyze why it lost, improve the bot, resubmit, re-run the round-robin.
-Standard runs do 2 iterations, full runs 3-4 (stop early only if the
+Standard runs do 1 iteration, full runs 2-4 (stop early only if the
 leaderboard order is unchanged twice running). Elo accumulates across
 rounds; the drama is the point.
 
