@@ -267,6 +267,18 @@ configuration) and changing them is a version bump, not an edit.
     artifacts (energy is an optional trailing observation field; champions
     never rebuild). Historical rules stay constructible for verification.
 
+48. **Gen-3 verdict: Rampart defends; energy closed as-tuned; experiment
+    winners must earn the crown under official rules.** The energy tournament
+    (single challenger per the new skill default) produced a dominant
+    energy-specialist — Metronome swept Warden 6-0 and drew Rampart 3-3 under
+    `0.3-exp-energy` — but under OFFICIAL 0.2 rules it drew Warden and lost
+    the Rampart set 2-4: no crown, champion defended. Precedent: a rules
+    experiment cannot mint a champion; the title is earned in the game people
+    play. Energy's balance case is closed as-tuned (GAME-DESIGN gen-3
+    section): unaware bots run dry, aware bots produce 6/6 tick-499 mirror
+    stalemates, and fortresses with a health lead become unbreakable. The
+    mechanic stays behind its flags as a reference failed candidate.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

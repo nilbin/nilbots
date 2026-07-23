@@ -36,6 +36,9 @@ public static class SetCommand
         var rules = CliSupport.ResolveRules(options);
         Console.WriteLine($"Local ranked-format set: {maps.Length} map/seed pair(s) x both positions " +
                           $"({runtimeKind}, rules {rules.RulesVersion})");
+        // Reproducibility (gen-3 finding): default seeds are random — echo the exact
+        // flags so a before/after comparison can rerun this set instead of new dice.
+        Console.WriteLine($"Repro:  --maps {string.Join(',', maps)} --seeds {string.Join(',', seeds)} --rules {options.GetValueOrDefault("rules", "0.2")}");
         Console.WriteLine();
 
         double myScore = 0;

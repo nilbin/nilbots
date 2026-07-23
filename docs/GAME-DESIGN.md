@@ -77,6 +77,35 @@ camping when nobody manages the resource. It stays implemented behind
 UNDER those rules, so bots are written to manage energy (backlog #2 stays
 open with this evidence attached).
 
+## Energy candidate: closed as-tuned (gen-3 verdict, 2026-07-23)
+
+The re-test the gen-2 data demanded — a tournament played UNDER energy rules
+by a bot built for them (Metronome, single challenger) — closed the case.
+Energy (6 max, 2/shot, +1 per 3 ticks) fails in both directions:
+
+- **Energy-unaware bots** run dry mid-attack (gen-2 A/B: cancelled the spawn
+  gains; gen-3 ranked round: Rampart blind-fired its meter to 0-1 permanently
+  and Warden was swept 6-0 by simple meter exploitation).
+- **Energy-aware play** makes it worse: the challenger's mirror set was
+  **six tick-499 stalemates out of six** — two disciplined meters never find
+  a spend worth making. And its 9-fix improvement branch proved a fortress
+  WITH a health lead is structurally unbreakable under energy (every
+  aggression dial converted draws into deaths; the agent shipped v1 back
+  unchanged — an honest convergence signal).
+
+Verdict per the methodology: draws UP, entrenched leads stronger — the
+opposite of the anti-draw goal. Energy stays implemented behind
+`--rules energy` (and `BOTARENA_RULES=energy` server-side) as a reference
+failed candidate. If ever revisited, change the SHAPE, not the numbers:
+energy as a tiebreak at MaxTicks, late-game regen escalation, or
+movement-coupled costs. Next anti-draw candidates worth a harness run:
+health pickups (forces map contests) and shrinking-zone variants.
+
+Also filed from gen-3: seed spawns can start a bot on the opponent's firing
+lane (tick-0 hit before its first decision — basic-01 s5150). Mirrored sets
+keep it fair set-wise; still worth a no-mutual-lane constraint in
+SpawnVariation at the next rules bump.
+
 ## Methodology: agent-arena is the balance harness
 
 Before/after any candidate rule change, run the tournament (now fast:
