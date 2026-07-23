@@ -18,6 +18,19 @@ bracket (3-4 personas) ONLY when explicitly requested, or when a balance
 verdict needs archetype diversity (distinct doctrines fighting each other —
 frozen champions can't co-evolve).
 
+## Run length (pick before launching, per the request)
+
+- **trial** — a pipeline shakedown before committing to a long run: one
+  challenger with a TIME-BOXED brief (see §2), one round-robin + mirror set,
+  NO improvement iterations, then the report. It answers "are the mechanics,
+  logs, and docs on point?", not "who is champion" — losing every set is a
+  valid trial outcome. A healthy trial PROMOTES in place: keep the agent's
+  state.json, message the agent to iterate, rerun the driver — elo
+  accumulates, nothing restarts.
+- **standard** (the default) — trial shape plus 2 improvement iterations.
+- **full** — 3-4 iterations and/or a multi-agent bracket; explicit request
+  only.
+
 ## 1. Boot the environment
 
 ```bash
@@ -102,6 +115,13 @@ and this brief:
 > every point of friction — confusing docs, bad errors, missing commands. Your
 > final text is data.
 
+Trial runs: append a time-box to the brief —
+
+> TIME-BOX (trial run): this is a pipeline shakedown, not a title bid. Once
+> your bot beats hunter on a seed batch, play ONE set vs each champion,
+> submit, and report — even if you lost every champion game. Do not keep
+> tuning; if the trial is promoted you'll get the replays and iterate then.
+
 Registration (cookie auth is simplest for agents): each agent registers a user via
 `curl -c jar -d '{"displayName":...,"email":...,"password":...}' /api/accounts/register`,
 creates the bot, and submits sources via `POST /api/bots/{id}/versions`
@@ -127,13 +147,16 @@ its own submitted artifact (`botarena set --bot <srcDir> --opponent
 var/artifacts/<serverHash>.wasm --rules <exp>`) — as the aware-vs-aware data
 point a one-agent bracket otherwise lacks.
 
-## 3.5 Improvement iterations (3-4 rounds)
+## 3.5 Improvement iterations (per run length)
+
+Trial runs skip this section entirely — report after the first round-robin.
 
 After the first round-robin, send each agent its lost matches' replays
 (`GET /api/matches/{id}/replay` — events + its own per-tick debug/visible data):
-analyze why it lost, improve the bot, resubmit, re-run the round-robin. Repeat for 3-4 total
-iterations (stop early only if the leaderboard order is unchanged twice running).
-Elo accumulates across rounds; the drama is the point.
+analyze why it lost, improve the bot, resubmit, re-run the round-robin.
+Standard runs do 2 iterations, full runs 3-4 (stop early only if the
+leaderboard order is unchanged twice running). Elo accumulates across
+rounds; the drama is the point.
 
 ## 3.6 Crown only a dethroner — and KEEP it
 
