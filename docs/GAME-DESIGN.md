@@ -188,6 +188,19 @@ ticks, breaking the statue equilibrium from both sides (root-cause fix);
 (3) stalemate sudden death — no accrual and no damage for N ticks →
 seed-deterministic zone relocation.
 
+Deeper cut from the same game (owner question "why did Talon never
+shoot?"): in 499 ticks Talon NEVER occupied a clear, loaded, aligned
+firing line — because lanes are mutual and the action economy favors the
+reactor: attacker needs arrive→turn→shoot (2-3 telegraphed ticks,
+facing-locked fire), defender needs one sidestep (moves resolve before
+shots) or one counter-turn with an always-loaded gun. Between tempo-model
+bots, initiated shots beyond point-blank are strictly negative EV; kills
+happen only in forced geometry (doorways, bridges, crossings, baits).
+Contested decay fixes the stall but not this — the mechanic that does is
+an AIMED SHOT candidate: hold facing N consecutive ticks → next shot
+resolves BEFORE moves (undodgeable, spectator-readable stance, threatens
+statues and dancers alike). Harness it alongside the stall levers.
+
 Final 0.4 ladder: Bastille 1279 (crowned — champions/bastille-gen5),
 Talon 1268, Castellan 1244, Meridian 1219, then the duel-era champions
 (swept 48-0). Design findings: (a) the meta has depth — a fresh,
