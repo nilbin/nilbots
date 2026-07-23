@@ -11,7 +11,9 @@ public static class ReplayCommand
         string json = File.ReadAllText(file);
         var document = ReplaySerializer.FromJson(json); // Validates the format.
         if (options.ContainsKey("summary"))
-            return Summarize(document, includeDebug: !options.ContainsKey("no-debug"));
+            return Summarize(document,
+                includeDebug: !options.ContainsKey("no-debug"),
+                full: options.ContainsKey("full"));
 
         string outDir = options.GetValueOrDefault("out", Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".");
         Console.WriteLine($"Replay:  {document.Header.MapId} seed {document.Header.Seed} " +
@@ -32,7 +34,7 @@ public static class ReplayCommand
     /// reminder, documented in docs/REPLAY-FORMAT.md: state lines show the POST-tick
     /// state; the actions on the same line were decided from the PREVIOUS line's state.
     /// </summary>
-    private static int Summarize(ReplayDocument document, bool includeDebug)
+    private static int Summarize(ReplayDocument document, bool includeDebug, bool full = false)
     {
         var header = document.Header;
         var names = header.Participants.ToDictionary(p => p.Slot, p => p.Name);
@@ -57,10 +59,11 @@ public static class ReplayCommand
         int lastPrinted = -100;
         foreach (var tick in document.Ticks)
         {
-            bool significant = tick.Events.Any(e => e.Type is GameEventType.Shot or GameEventType.Damage
-                or GameEventType.Destroyed or GameEventType.Fault or GameEventType.Disqualified)
+            bool significant = full
+                || tick.Events.Any(e => e.Type is GameEventType.Shot or GameEventType.Damage
+                    or GameEventType.Destroyed or GameEventType.Fault or GameEventType.Disqualified)
                 || (includeDebug && tick.Bots.Any(b => b.Debug is not null));
-            // Periodic keep-alive lines so quiet phases still show movement.
+            // Periodic keep-alive lines so quiet phases still show movement (--full prints all).
             if (!significant && tick.Tick - lastPrinted < 25)
                 continue;
             lastPrinted = tick.Tick;

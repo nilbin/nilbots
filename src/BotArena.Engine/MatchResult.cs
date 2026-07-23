@@ -19,7 +19,10 @@ public sealed record BotMatchResult(
 
 public sealed record MatchResultInfo
 {
-    public required int? WinnerSlot { get; init; }
+    /// <summary>Null on a draw. Not `required`: canonical JSON omits nulls, so a drawn
+    /// replay has no winnerSlot property and deserialization must tolerate its absence
+    /// (gen-3 finding: `replay --summary`/`verify` crashed on every drawn match).</summary>
+    public int? WinnerSlot { get; init; }
     public required MatchEndReason Reason { get; init; }
     public required int EndTick { get; init; }
     public required IReadOnlyList<BotMatchResult> Bots { get; init; }

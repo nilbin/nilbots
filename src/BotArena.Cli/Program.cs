@@ -59,7 +59,7 @@ static int Help(int exitCode = 1)
           botarena set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...]           the ranked 6-game mirrored set, locally
           botarena watch [dir] [play options]     rebuild + replay on every change
-          botarena replay <replay.json> [--summary [--no-debug]] [--out]
+          botarena replay <replay.json> [--summary [--no-debug] [--full]] [--out]
                                                   compact match digest, or the visual viewer
           botarena verify <replay.json>           check a replay's hash
           botarena doctor                         toolchain and environment status
