@@ -46,6 +46,7 @@ The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 | `mapTiles` | Array of row strings, `#` = wall, `.` = floor — the viewer is self-contained |
 | `seed` | Match seed (unsigned 64-bit) |
 | `maxTicks`, `visionRange` | Rule values the viewer needs |
+| `zoneTiles` | `[x, y]` pairs of the zone (rules with zone control); omitted otherwise — pre-zone hashes are unaffected |
 | `participants[]` | `{ slot, name, runtimeKind, artifactHash, accent, spawnX, spawnY, spawnFacing }` |
 
 Facings are `North | East | South | West`.
@@ -70,13 +71,20 @@ One entry per simulated tick: `{ tick, bots, events, state }`.
   Disqualified`. A `Shot`'s `toX/toY` is where the ray stopped (wall or bot);
   `Damage.slot` is the shooter, `targetSlot` the victim.
 - `state[]` — post-tick truth per bot:
-  `{ slot, x, y, facing, health, cooldown, status }` with `status` ∈
-  `Active | Destroyed | Disqualified`.
+  `{ slot, x, y, facing, health, cooldown, status, energy? }` with `status` ∈
+  `Active | Destroyed | Disqualified`. `energy` appears only under rules with
+  an energy system. Zone scores are NOT in per-tick state — derive them by
+  the accrual rule (sole active occupant of a zone tile at end of tick, or
+  any active occupant under shared-accrual arms) or read the totals from
+  `result`.
 
 ## `result`
 
 `{ winnerSlot, reason, endTick, bots }` — `winnerSlot` is `null` on a draw
 (omitted in canonical JSON), `reason` ∈ `Elimination | Disqualification |
-MaxTicks`, and `bots[]` is
-`{ slot, outcome, finalHealth, damageDealt, faults, finalStatus }` with
-`outcome` ∈ `Win | Loss | Draw`.
+MaxTicks | Domination` (Domination = the zone threshold was reached), and
+`bots[]` is
+`{ slot, outcome, finalHealth, damageDealt, faults, finalStatus, zoneTicks? }`
+with `outcome` ∈ `Win | Loss | Draw`; `zoneTicks` appears only under rules
+with zone control. All optional fields follow one rule: absent under
+rulesets that predate them, so historical replay hashes never change.

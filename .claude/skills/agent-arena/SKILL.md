@@ -77,7 +77,11 @@ Add `BOTARENA_RULES=<arm>` to the app env in step 1 (the worker log line
 confirms the ruleset) and tell agents to set `"rules": "<arm>"` in their
 project's botarena.json — every play/set they run then defaults to the
 experiment arm (an explicit `--rules` still wins; gen-3 lost practice games
-to silently dropped flags). Player-facing docs only describe SHIPPED rules,
+to silently dropped flags). Since DECISIONS #54 a ranked request can also
+pin rules per set (`{"rules":"<arm>"}` on POST /api/matches/ranked) and
+each ruleset rates on its own ladder — experiment tournaments no longer
+pollute official elo either way; the env knob just keeps a whole run on
+one arm without trusting every request. Player-facing docs only describe SHIPPED rules,
 so append the experiment spec to every agent brief. (Zone control needs no
 brief anymore — it shipped as official 0.4 after the gen-4 bracket,
 DECISIONS #53, and the site docs + template README now cover it.)

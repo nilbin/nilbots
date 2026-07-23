@@ -28,6 +28,14 @@ edit → build → watch → understand → improve loop enjoyable?**
   rules. Bot versions and appearances are immutable; history never changes.
 - Ranked play uses mirrored deterministic match sets, not single matches.
 
+## Game rules (0.4 current; 0.1 text below is the initial baseline)
+
+Shipped evolution — every step data-driven via the balance harness
+(GAME-DESIGN, DECISIONS #47/#49/#53): 0.2 seed-spawn variation; 0.3 shot
+range 8 + lane-safe spawns; 0.4 zone control (exclusive accrual, Domination
+at 150 zone-ticks, zone→health→damage tiebreak, zone-distance-fair spawns).
+Elo is per-ruleset (one ladder per rules version, DECISIONS #54).
+
 ## Game rules 0.1 (initial)
 
 24×18 (prod) or 12×8 (slice) tile arena, 2 bots, 4 facings, 5 actions
@@ -50,11 +58,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 2 monolith | ASP.NET Core + Postgres + accounts/bots/matches modules | **DONE (pilot)** — cookie auth; OpenIddict/PKCE deferred |
 | 3 submissions | Server builds, validation, immutable versions | **DONE (pilot)** — controlled build + smoke test; process isolation & sprites deferred |
 | 4 public matches | Server execution, live broadcast, match pages | **DONE (pilot)** — synchronized presentation clock over polling; SignalR transport later |
-| 5 competitive | Ranked match sets, ratings, leaderboard | **DONE (pilot)** — 6-game mirrored sets, bot-level Elo, leaderboard |
+| 5 competitive | Ranked match sets, ratings, leaderboard | **DONE (pilot)** — 6-game mirrored sets, per-ruleset Elo ladders (#54), leaderboard |
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
 
-## What exists in this repo (2026-07-22)
+## What exists in this repo (2026-07-23)
 
 - `src/BotArena.Engine` — pure engine: rules, maps, FOV, RNG, tick resolution,
   replay + SHA-256 hash. No web/DB/WASM dependencies.
@@ -75,7 +83,8 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   serves the SPA. Dockerfile + docker-compose for deployment.
 - `web/` — one React build, two modes: the Bot Arena site (router) and the
   standalone replay viewer the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (63 tests).
+- `tests/` — engine, determinism, and WASM contract suites (97 tests, incl.
+  DocDriftTests pinning docs/mirrors to the engine).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh.
 
@@ -88,10 +97,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    tournament's "2–4 min" was compile contention + first-boot NuGet), so the
    trim-flags companion was dropped as not worth a cache-invalidating
    version bump.
-2. **Game design backlog: `docs/GAME-DESIGN.md`** — depth assessment from the
-   agent-arena tournament, ranked rule-change candidates (anti-draw first),
-   progression/monetization stance. agent-arena is the balance harness for
-   all of it (eval-speed knobs: DECISIONS #41/#42).
+2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
+   control; DECISIONS #49/#53, four tournament generations of data in
+   GAME-DESIGN). Open design threads: gen-5 title tournament under official
+   0.4 (Rampart gen-2's crown is genuinely at stake for the first time),
+   more maps (backlog #1), energy/strafe retunes behind their arms.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
