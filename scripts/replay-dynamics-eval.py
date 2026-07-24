@@ -260,6 +260,14 @@ def analyze(document):
     metrics["draws"] = int(result.get("winnerSlot") is None)
     metrics["eliminations"] = int(result.get("reason") == "Elimination")
     metrics["max_ticks"] = int(result.get("reason") == "MaxTicks")
+    metrics["faults"] = sum(bot.get("faults", 0) for bot in result.get("bots", []))
+    metrics["fault_games"] = int(metrics["faults"] > 0)
+    metrics["non_wasm_games"] = int(
+        any(
+            participant.get("runtimeKind") != "wasm"
+            for participant in header.get("participants", [])
+        )
+    )
     metrics["damage_games"] = int(metrics["damage"] > 0)
     metrics["reciprocal_damage_games"] = int(
         len(result.get("bots", [])) >= 2
@@ -272,18 +280,22 @@ def analyze(document):
     metrics["looped_games"] = int(max_repeat_run >= 20)
 
     winner = None
+    participant_names = {
+        participant["slot"]: participant["name"]
+        for participant in header["participants"]
+    }
     if result.get("winnerSlot") is not None:
-        winner = next(
-            participant["name"]
-            for participant in header["participants"]
-            if participant["slot"] == result["winnerSlot"]
-        )
+        winner = participant_names[result["winnerSlot"]]
     return {
         "metrics": metrics,
         "end_tick": result.get("endTick", max(0, len(ticks) - 1)),
         "entropies": bot_entropies,
         "max_runs": [max(runs, default=0) for runs in action_runs.values()],
         "winner": winner,
+        "records": [
+            (participant_names[bot["slot"]], bot["outcome"])
+            for bot in result.get("bots", [])
+        ],
         "reason": result.get("reason"),
         "rules": header.get("gameRulesVersion"),
     }
@@ -299,6 +311,7 @@ def aggregate(paths):
     entropies = []
     max_runs = []
     winners = collections.Counter()
+    records = collections.defaultdict(collections.Counter)
     reasons = collections.Counter()
     rules = collections.Counter()
     for path in replay_files(paths):
@@ -309,13 +322,15 @@ def aggregate(paths):
         max_runs.extend(analyzed["max_runs"])
         if analyzed["winner"] is not None:
             winners[analyzed["winner"]] += 1
+        for name, outcome in analyzed["records"]:
+            records[name][outcome] += 1
         reasons[analyzed["reason"]] += 1
         rules[analyzed["rules"]] += 1
-    return totals, ticks, entropies, max_runs, winners, reasons, rules
+    return totals, ticks, entropies, max_runs, winners, records, reasons, rules
 
 
 def print_group(label, paths):
-    totals, ticks, entropies, max_runs, winners, reasons, rules = aggregate(paths)
+    totals, ticks, entropies, max_runs, winners, records, reasons, rules = aggregate(paths)
     games = totals["games"]
     decisions = totals["decisions"]
     decided = games - totals["draws"]
@@ -325,7 +340,8 @@ def print_group(label, paths):
         f"games={games} draws={totals['draws']}({ratio(totals['draws'], games):.1f}%) "
         f"eliminations={totals['eliminations']}({ratio(totals['eliminations'], games):.1f}%) "
         f"maxTicks={totals['max_ticks']} medianEndTick={statistics.median(ticks) if ticks else 0:g} "
-        f"p90EndTick={percentile(ticks, 0.9)}"
+        f"p90EndTick={percentile(ticks, 0.9)} faults={totals['faults']} "
+        f"nonWasmGames={totals['non_wasm_games']}"
     )
     print(
         "  combat "
@@ -368,6 +384,16 @@ def print_group(label, paths):
     print(
         f"  diversity winners={len(winners)} top={top_text} "
         f"reasons={dict(sorted(reasons.items()))}"
+    )
+    print(
+        "  records "
+        + " ".join(
+            f"{name}={record['Win']}-{record['Loss']}-{record['Draw']}"
+            for name, record in sorted(
+                records.items(),
+                key=lambda item: (-item[1]["Win"], item[1]["Loss"], item[0]),
+            )
+        )
     )
     print(f"  rules={dict(sorted(rules.items()))}")
 
