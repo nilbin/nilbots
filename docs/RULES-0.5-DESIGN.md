@@ -1092,3 +1092,76 @@ substantially adapted territorial doctrines. Freeze the dynamics thresholds
 and outcome-blind viewer sample before opening aggregate outcomes. Do not add a
 hard tick cap merely to hide the 30 loops; make candidate-aware bots prove they
 can evict, escape, or punish a persistent physical contest.
+
+## Q. Pre-registered territorial-native holdout
+
+This is the first prospective run under
+`EVALUATION-METHODOLOGY.md`. Freeze v8 exactly as implemented; no rules,
+health, damage, curve, control, overtime, map, or viewer tuning may enter this
+holdout.
+
+Commission four isolated docs/SDK/CLI-only doctrines with equal budgets:
+
+- **Pincer:** aggressive body contest and refuge-tile forks;
+- **Comet:** mobile zone skirmishing and changing attack angles;
+- **Augur:** motion prediction and private curved interception;
+- **Echo:** sound-driven ambush and flank eviction.
+
+Each author gets an initial implementation, one six-game set against each of
+the same two black-box candidate-aware training artifacts (Breacher and
+Shepherd), at most one summary-driven revision, the same final sets, and one
+canonical WASM verification. Authors may not inspect engine/design internals,
+raw replay JSON, or any bot source.
+
+After all four final WASM hashes freeze, run their native v8 round-robin and
+rerun the previous native quartet—ActiveHolder, Suppressor, SoundHunter, and
+MobileFlanker—under their native v7 rules. Both product generations receive
+the same fresh map/seed blocks:
+
+- maps `basic-01,arena-01,crossfire-01`, seeds `1103,2207,3301`;
+- maps `bastion-01,gallery-01,basic-01`, seeds `4409,5501,6607`;
+- maps `arena-01,crossfire-01,bastion-01`, seeds `7703,8807,9901`.
+
+Each native cohort has six pairings × six mirrored games × three blocks =
+108 games. V7 and v8 share `0.5-redesign-shared`, so map/spawn/RNG
+distributions remain comparable, but the table is explicitly a product
+generation comparison, not a single-mechanic paired A/B.
+
+Run each new bot against unchanged Bastille and Helix as a separately labeled
+historical-sentinel screen. Sentinel records cannot veto the native product
+gate unless they expose faults, deterministic breakage, or a concrete
+degenerate exploit.
+
+### Frozen native-v8 gates
+
+All final games must use WASM, verify deterministically, and record zero
+faults. Across the 108 native games:
+
+1. draws are at or below 10%;
+2. all four doctrines win, and no bot owns more than 35% of decided wins;
+3. damage occurs in at least 75% of games;
+4. both bots deal damage in at least 40%;
+5. damage lands on multiple ticks in at least 60%;
+6. active-world ticks are at least 75%;
+7. stalled games are at or below 5%;
+8. repeated-frame loop games are at or below 10%;
+9. median normalized action-family entropy is at least 0.60;
+10. at least half of sole-occupancy score ticks use non-Wait actions;
+11. replays contain at least 36 contest-to-sole transitions, including at
+    least 24 coinciding with real damage eviction;
+12. median end tick stays at or below 100; average and p90 are reported as
+    viewing context, not comparative ship gates.
+
+Before opening the aggregate outcome or dynamics tables, select 12 v8 replays
+with `replay-review-sample.py` using selection seed `20260724`. Export and
+publish their self-contained viewers with outcome-neutral titles. At normal
+speed, record legibility, tension, visible action/counter-action,
+repetition/downtime, and whether the ending feels earned. At least 9/12 must
+score 3 or better on action/counter-action, and no more than two may score 1–2
+for repetition/downtime. Publish a separate, clearly labeled highlight set
+only after the representative notes are frozen.
+
+One numeric failure or a confusing/dull blind sample keeps official 0.5 on
+HOLD and records the exact residue. Passing makes territorial v8 the preferred
+0.5 candidate; official pinning still requires completion of the replay review,
+not just the outcome table.
