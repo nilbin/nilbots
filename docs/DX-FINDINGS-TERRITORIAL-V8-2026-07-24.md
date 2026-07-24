@@ -1,5 +1,10 @@
 # Territorial-v8 native holdout and DX findings — 2026-07-24
 
+**Subsequent status:** decision #75 promoted this frozen candidate as official
+0.5 and crowned Pincer after the product owner changed the future
+leader-share ceiling to 45%. The original 35% gate failure below is preserved,
+not retroactively relabeled.
+
 Four isolated authors built Pincer, Comet, Augur, and Echo from the player
 docs, public SDK, experiment brief, and CLI only. Each received the same
 training artifacts and one bounded improvement opportunity. Final evidence
@@ -7,8 +12,9 @@ used canonical WASM with zero faults.
 
 ## Product result
 
-Territorial v8 passes the activity and outcome-blind viewer study, but remains
-on strict HOLD because one pre-registered diversity gate failed.
+Territorial v8 passed the activity and outcome-blind viewer study, but its
+initial strict verdict was HOLD because one pre-registered diversity gate
+failed.
 
 | native v8 gate | threshold | result |
 | --- | ---: | ---: |
@@ -90,7 +96,7 @@ All 108 native-v8 replay hashes matched an independent rerun.
 
 1. **One experiment brief.** Territorial control, cone/hearing semantics,
    projectile timing, programmed-shot limits, and the fast iteration path now
-   live in `docs/EXPERIMENTAL-TERRITORIAL-V8.md`. Future isolated authors get
+   live in `docs/RULES-0.5-PLAYER-GUIDE.md`. Future isolated authors get
    this player-facing document instead of reconstructing rules from scattered
    comments.
 2. **Set replay preservation.** `botarena set --out <dir>` now writes a unique
@@ -108,11 +114,11 @@ All 108 native-v8 replay hashes matched an independent rerun.
 7. **Evaluation output includes mean duration.** Median and p90 stay the
    guardrails; the script also emits average end tick for complete context.
 
-## Next experiment
+## Subsequent promotion decision
 
-Do not tune health, damage, control, projectiles, maps, or the 35% gate.
-Freeze Pincer's artifact and the v8 rules. Give losing doctrines a bounded,
-equal docs/SDK/CLI-only counterplay iteration, then run fresh seeds. The exact
-question is whether strategic adaptation lowers the leader below 35% without
-losing v8's combat, activity, objective, and viewer results. The full frozen
-protocol and unopened blocks are pre-registered in RULES-0.5-DESIGN §R.
+The product owner judged Pincer's 42.5% share healthy for a champion in a
+four-doctrine field and selected 45% as the future ceiling. The frozen v8
+mechanics became official 0.5 without retuning, and the exact Pincer artifact
+became `pincer-gen10`. RULES-0.5-DESIGN §R records the counterplay trial that
+would have followed the original 35% policy; it was superseded before its
+fresh seeds were opened.

@@ -118,7 +118,7 @@ defaults never retroactively promote an already observed arm:
 
 - zero WASM faults and deterministic verification;
 - draw rate at or below 10%;
-- at least four winning native doctrines and no bot above 35% of decided wins;
+- at least four winning native doctrines and no bot above 45% of decided wins;
 - damage in at least 75% of games;
 - reciprocal damage in at least 40%;
 - multiple damage ticks in at least 60%;
@@ -130,8 +130,12 @@ defaults never retroactively promote an already observed arm:
   scale.
 
 These are guardrails, not a weighted score. A candidate that barely passes
-numbers but looks confusing or repetitive on replay remains a hold. A future
-change to the thresholds must be documented and frozen before its holdout.
+numbers but looks confusing or repetitive on replay remains a hold. The first
+territorial holdout used 35%; after it produced an otherwise excellent field
+with a 42.5% leader, the product owner changed the future policy to 45% and
+promoted it as an explicit override (DECISIONS #74–#75). The original 35%
+failure remains in the record. Future threshold changes should normally be
+documented and frozen before their holdout.
 
 ## After a holdout
 
@@ -154,6 +158,12 @@ That adaptation is a new pre-registered holdout, not permission to reuse the
 opened seeds or erase the original result. Reopen rule tuning only if
 candidate-aware counterplay cannot meet the frozen diversity target without
 destroying the previously passed dynamics.
+
+A product owner may still accept a failed **product** gate after seeing the
+result. Treat that as an explicit policy override, never as a retroactive pass:
+preserve the failed pre-registration, record who changed the acceptance policy
+and why, update the future default, and keep every safety/determinism hard gate
+non-overridable.
 
 ## Outcome-blind replay study
 

@@ -1211,6 +1211,10 @@ results. Full artifacts, sentinel rows, and DX findings are in
 
 ## R. Pre-registered frozen-Pincer counterplay trial
 
+**Superseded before execution by the product-owner promotion in §S.** None of
+the fresh seeds below were opened. The protocol remains in the record to show
+the follow-up that the original 35% policy would have required.
+
 This follow-up isolates strategic adaptation. The v8 rules, ranked maps,
 viewer, Pincer WASM
 `0c0271655d25e6b91d520b2f0d55acdefaabd3e205646fff6b98a82b4c1e5abd`,
@@ -1243,3 +1247,33 @@ with selection seed `20260725` and apply the same viewer gates. Preserve the
 counter Pincer without rules tuning and territorial v8 may return to the
 official-pinning decision. Any failure remains a HOLD and names the failed
 dimension before rules work reopens.
+
+## S. Product-owner promotion: official 0.5
+
+After reviewing the complete result, the product owner judged Pincer's 42.5%
+share to be an appropriate champion performance rather than unhealthy
+concentration. The future substantial-rules diversity ceiling is therefore
+45%, the conservative end of the proposed 45–50% range.
+
+This is not a retroactive pass under §Q. The 35% pre-registration failed and
+stays visible. Decision #75 is a separate product-policy override:
+
+- every safety and determinism hard gate passed;
+- all four native doctrines won;
+- every combat, activity, repetition, objective, duration, and blind-viewer
+  gate passed;
+- Pincer's 45-9-0 record is below the new 45% ceiling at 42.5%;
+- v8 ships without a single mechanic or numeric retune;
+- §R is cancelled before its fresh seeds or adaptations are used.
+
+Official `GameRules.V0_5` is the exact v8 mechanic set with rules version
+`0.5` and the same `0.5-redesign-shared` seed profile: cone vision, redacted
+hearing, territorial sole-occupancy pressure, contested/empty decay,
+speed-two ordered projectiles, private immutable skill-shot programs, and the
+tick-200 pressure overtime. The historical
+`cone-occupancy-bolt2-arcs` alias retains its experimental version string for
+old scripts and evidence.
+
+Pincer is crowned as `champions/pincer-gen10`, preserving its final source and
+the exact holdout WASM hash
+`0c0271655d25e6b91d520b2f0d55acdefaabd3e205646fff6b98a82b4c1e5abd`.

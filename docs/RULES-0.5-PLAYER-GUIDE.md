@@ -1,17 +1,16 @@
-# Experimental territorial v8: player guide
+# Rules 0.5 territorial control: player guide
 
-This is the single player-facing brief for the unshipped
-`cone-occupancy-bolt2-arcs` experiment
-(`0.5-exp-cone-occupancy-bolt2-arcs-v8`). It supplements the shipped 0.4
-documentation. Bot authors may use this guide, the public SDK, template, and
-CLI without reading engine or opponent source.
+This is the detailed player-facing guide for official rules `0.5`, promoted
+unchanged from the `cone-occupancy-bolt2-arcs` experiment
+(`0.5-exp-cone-occupancy-bolt2-arcs-v8`). Bot authors may use this guide, the
+public SDK, template, and CLI without reading engine or opponent source.
 
-Pin the experiment in `botarena.json` so a dropped CLI flag cannot put practice
-matches on the wrong rules:
+New matches default to 0.5. Pin it in `botarena.json` when you want a project
+to keep using 0.5 even after a future version ships:
 
 ```json
 {
-  "rules": "cone-occupancy-bolt2-arcs"
+  "rules": "0.5"
 }
 ```
 
@@ -145,11 +144,11 @@ WASM verification:
 ```bash
 export PATH="$PWD/scripts:$PATH"
 botarena play --bot . --opponent hunter --runtime in-process \
-  --rules cone-occupancy-bolt2-arcs --seeds 7,42,1337
+  --rules 0.5 --seeds 7,42,1337
 
 botarena build .
 botarena set --bot . --opponent <opponent.wasm> \
-  --rules cone-occupancy-bolt2-arcs \
+  --rules 0.5 \
   --maps basic-01,arena-01,crossfire-01 \
   --seeds 7,42,1337 --out out/final-set
 ```
@@ -169,10 +168,11 @@ available. The emitted WASM is portable. Strategy edits should stay
 in-process; unchanged WASM source is a content-cache hit. See
 `docs/WASM-DEVELOPMENT.md` for setup, timing, and troubleshooting.
 
-## Experiment status
+## Promotion evidence
 
-This arm is not official 0.5. Its first four-doctrine native holdout passed
-combat, activity, repetition, objective, determinism, and blind-viewer gates,
-but remained on HOLD because Pincer owned 42.5% of decided wins against the
-pre-registered 35% ceiling. The rules stay frozen while counter-doctrines test
-whether adaptation broadens the field.
+The four-doctrine native holdout passed combat, activity, repetition,
+objective, determinism, and blind-viewer gates. Pincer owned 42.5% of decided
+wins, above the run's pre-registered 35% ceiling; that original result remains
+recorded as a gate failure. The product owner subsequently judged 42.5% to be
+a healthy champion share, set 45% as the future diversity ceiling, and
+promoted the frozen rules without retuning them (DECISIONS #75).

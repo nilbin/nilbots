@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Matches;
 
-/// <summary>Rules is an optional GameRules.Resolve name ("0.4", "0.3", "hill"…) —
+/// <summary>Rules is an optional GameRules.Resolve name ("0.5", "0.4", "hill"…) —
 /// omitted means the server's default ruleset. Every ruleset has its own elo ladder
 /// (DECISIONS #54), so challenging on an old ruleset never touches current standings.</summary>
 public sealed record RankedChallengeRequest(Guid BotId, Guid OpponentBotId, string? Rules = null);

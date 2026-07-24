@@ -83,7 +83,7 @@ public sealed record ReplayBotTick
 /// <summary>Energy is null (omitted from canonical JSON) under rules without an energy
 /// system, so pre-energy replay hashes are unaffected. ZoneTicks (cumulative) is
 /// emitted only under <see cref="GameRules.ReplayZoneTallies"/> — viewers read the
-/// tally instead of re-deriving accrual rules; null keeps official 0.4 bytes stable.</summary>
+/// tally instead of re-deriving accrual rules; null preserves historical replay bytes.</summary>
 public sealed record ReplayBotState(
     int Slot, int X, int Y, Direction Facing, int Health, int Cooldown, BotStatus Status,
     int? Energy = null, int? ZoneTicks = null);

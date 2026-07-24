@@ -810,9 +810,30 @@ configuration) and changing them is a version bump, not an edit.
     maximum. Do not relax that gate or tune the rules post hoc. Keep v8 and
     Pincer frozen; the next experiment is an equal-budget, fresh-seed
     counterplay adaptation trial pre-registered in RULES-0.5-DESIGN §R.
-    `docs/EXPERIMENTAL-TERRITORIAL-V8.md` becomes the one player-facing
+    `docs/RULES-0.5-PLAYER-GUIDE.md` becomes the one player-facing
     experiment brief, and the shared skills preserve this native-cohort →
     blind review → strict verdict workflow.
+
+75. **The product owner accepts a 42.5% champion share, sets the future
+    diversity ceiling to 45%, promotes frozen territorial v8 as official 0.5,
+    and crowns Pincer gen-10.** This does not rewrite decision #74: the
+    completed holdout failed its pre-registered 35% gate. It is a subsequent
+    product-policy override based on the judgment that 45/106 decided wins is
+    strong but healthy in a four-doctrine field where every doctrine won.
+    Every safety and watchability gate passed: 108/108 all-WASM games
+    reproduced with zero faults; draws were 1.9%; damage, multi-damage-tick,
+    and active-world incidence were 100%; reciprocal damage was 78.7%; there
+    were no stalled or looped games; median/p90 were 23/41; the blind viewer
+    study passed. `GameRules.V0_5` is mechanically identical to
+    `0.5-exp-cone-occupancy-bolt2-arcs-v8` except for the official version
+    string, retains the shared seed profile, and becomes `Current`.
+    `pincer-gen10` preserves the exact
+    `0c0271655d25e6b91d520b2f0d55acdefaabd3e205646fff6b98a82b4c1e5abd`
+    artifact and source. The §R counterplay holdout is superseded before any
+    of its fresh seeds were opened; it remains documented as the road not
+    taken. Future substantial-rule native cohorts use a 45% leader ceiling,
+    while safety, deterministic verification, and replay integrity remain
+    non-overridable hard gates.
 
 ## Deferred decisions
 

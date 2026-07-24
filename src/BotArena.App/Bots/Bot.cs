@@ -21,7 +21,7 @@ public class BotRating
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid BotId { get; set; }
-    /// <summary>The resolved rules version string a set was played under ("0.4", "0.3",
+    /// <summary>The resolved rules version string a set was played under ("0.5", "0.4",
     /// "0.4-exp-hill3"…) — experiments get their own ladders instead of polluting
     /// official elo.</summary>
     public required string RulesVersion { get; set; }

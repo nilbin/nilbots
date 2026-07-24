@@ -62,7 +62,7 @@ static int Help(int exitCode = 1)
                                                   also copies the artifact to <dir>/out/bot.wasm)
           botarena play [--bot <spec>] [--opponent <spec>] [--map <id>]
                         [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
-                        [--rules 0.4|0.3|0.2|0.1|control|cone-control|cone-active|
+                        [--rules 0.5|0.4|0.3|0.2|0.1|control|cone-control|cone-active|
                                  cone-active-bolt1|cone-active-bolt2|cone-active-bolt2-overtime|
                                  cone-active-bolt2-overtime-gain|cone-active-bolt2-arcs|
                                  cone-occupancy-bolt2-arcs|
@@ -82,7 +82,8 @@ static int Help(int exitCode = 1)
 
         A bot <spec> is a built-in name (hunter, wander, coward, idle), a bot
         project directory, or a path to a .wasm artifact.
-        Defaults: --bot hunter --opponent wander --map basic-01 --seed 42 --runtime wasm
+        Defaults: --bot hunter --opponent wander --map basic-01 --seed 42
+                  --runtime wasm --rules 0.5
         A `"rules"` field in your project's botarena.json pins the default --rules
         for play/set (an explicit flag always wins) — set it while practicing for
         a rules experiment so a dropped flag can't put you on the wrong game.

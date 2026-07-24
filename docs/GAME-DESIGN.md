@@ -734,3 +734,26 @@ next design question belongs to bot strategy: can equal-budget counterplay
 bring Pincer's share below 35% on fresh seeds while retaining the combat,
 objective, non-repetition, and viewer results? Only a failed adaptation trial
 should reopen rules tuning.
+
+## Rules 0.5 ships; Pincer becomes the champion
+
+The product owner accepts the shape the holdout actually produced: one clear
+champion at 42.5%, three challengers that all won games, and exceptionally
+active combat. The ongoing native-cohort leader ceiling is 45%, not 35%.
+
+That is a product judgment made after the result, so the original 35% gate
+remains recorded as failed. The promotion is a separate override, not a
+statistical relabel. Its rationale is that Pincer's lead is meaningful without
+being dominant enough to erase the field:
+
+- Pincer 45-9-0; Echo 26-27-1; Comet 18-35-1; Augur 17-35-2;
+- 1.9% draws, 100% damage games, 78.7% reciprocal damage;
+- zero stalled games, zero repeated-frame loops, 0.728 median action entropy;
+- 87 contest breaks, 51 damage evictions, 97.7% non-Wait scoring;
+- 4.33/5 blind-review action/counter-action and 4.75/5 earned endings.
+
+Frozen territorial v8 therefore becomes official rules 0.5 unchanged, and
+Pincer gen-10 becomes its launch champion. The main known presentation debt is
+not balance: delayed projectile impacts can still require the event feed to
+connect hit and originating shot. Improve that causality without changing the
+authoritative projectile simulation.

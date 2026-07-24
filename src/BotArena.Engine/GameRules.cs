@@ -136,8 +136,8 @@ public sealed record GameRules
 
     /// <summary>Replay-surface flag: per-tick bot snapshots carry cumulative zone-ticks,
     /// so viewers read the tally instead of re-deriving accrual rules (the source of a
-    /// real scoreboard bug). Rules-gated only to keep official 0.4 replay bytes stable;
-    /// no gameplay effect.</summary>
+    /// real scoreboard bug). Rules-gated to keep historical replay bytes stable; no
+    /// gameplay effect.</summary>
     public bool ReplayZoneTallies { get; init; }
 
     /// <summary>Directional vision (RULES-0.5-DESIGN §A): sight is the 90° quadrant in
@@ -279,14 +279,33 @@ public sealed record GameRules
         ZoneSpawnFairness = true,
     };
 
+    /// <summary>Rules 0.5 = the frozen territorial-v8 candidate: cone vision,
+    /// redacted hearing, sole-occupancy shared pressure, ordered speed-two
+    /// projectiles, private immutable programmed arcs, and the tick-200
+    /// pressure overtime. Promoted after the four-doctrine native holdout
+    /// (DECISIONS #75); the experiment's original 35% diversity gate remains
+    /// recorded as a failure, while the product policy now accepts a champion
+    /// below 45% of decided wins.</summary>
+    public static GameRules V0_5 => ActiveControlBase("0.5") with
+    {
+        ControlBySoleOccupancy = true,
+        ProjectileTicksPerTile = 1,
+        ProjectileTilesPerAdvance = 2,
+        ControlOvertimeStartTick = 200,
+        ControlOvertimePressureLimit = 10,
+        ControlOvertimePressureGain = 2,
+        AllowProgrammedShots = true,
+        ProgrammedShotLaunchTiles = 1,
+    };
+
     /// <summary>The version new matches play. Historical versions stay constructible for
     /// replay verification and A/B harness runs.</summary>
-    public static GameRules Current => V0_4;
+    public static GameRules Current => V0_5;
 
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
     public static readonly IReadOnlyList<string> KnownNames =
-        ["0.4", "0.3", "0.2", "0.1",
+        ["0.5", "0.4", "0.3", "0.2", "0.1",
          "control", "cone-control", "cone-active", "cone-active-bolt1", "cone-active-bolt2",
          "cone-active-bolt2-overtime", "cone-active-bolt2-overtime-gain",
          "cone-active-bolt2-arcs", "cone-occupancy-bolt2-arcs",
@@ -299,6 +318,7 @@ public sealed record GameRules
     /// mechanics layer on the shipped 0.3 for future re-tests.</summary>
     public static GameRules Resolve(string name) => name switch
     {
+        "0.5" => V0_5,
         "0.4" => V0_4,
         "0.3" => V0_3,
         "0.2" => V0_2,

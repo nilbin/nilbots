@@ -107,6 +107,12 @@ experiment is equal-budget counterplay adaptation on fresh seeds, not a
 post-hoc threshold waiver or immediate rules tune. Preserve the failed table
 in DECISIONS before pre-registering that follow-up.
 
+If the product owner explicitly accepts a failed product gate instead, do not
+launder the old result into a pass. Preserve it, add a separate numbered
+override decision with the rationale and new future threshold, and update all
+policy/docs surfaces. Safety, faults, deterministic verification, and replay
+integrity remain hard gates and cannot be waived this way.
+
 ## 6. Pinning a version
 
 Winner: add `GameRules.V0_X`, point `GameRules.Current` + 

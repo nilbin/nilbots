@@ -28,39 +28,32 @@ edit → build → watch → understand → improve loop enjoyable?**
   rules. Bot versions and appearances are immutable; history never changes.
 - Ranked play uses mirrored deterministic match sets, not single matches.
 
-## Game rules (0.4 current; 0.1 text below is the initial baseline)
+## Game rules (0.5 current; 0.1 text below is the initial baseline)
 
 Shipped evolution — every step data-driven via the balance harness
-(GAME-DESIGN, DECISIONS #47/#49/#53): 0.2 seed-spawn variation; 0.3 shot
+(GAME-DESIGN, DECISIONS #47/#49/#53/#75): 0.2 seed-spawn variation; 0.3 shot
 range 8 + lane-safe spawns; 0.4 zone control (exclusive accrual, Domination
-at 150 zone-ticks, zone→health→damage tiebreak, zone-distance-fair spawns).
-Elo is per-ruleset (one ladder per rules version, DECISIONS #54).
+at 150 zone-ticks, zone→health→damage tiebreak, zone-distance-fair spawns);
+0.5 cone vision + redacted hearing + territorial shared pressure + ordered
+speed-two projectiles + private immutable programmed skill shots. Elo is
+per-ruleset (one ladder per rules version, DECISIONS #54).
 
-Rules 0.5 remains experimental. The Gen-8 overtime program retains cone
-vision, redacted hearing, active Wait-to-control, ordered speed-two bolts,
-and a tick-200 control overtime; revision v6 doubles overtime hold gain while
-preserving decay. Overtime fixes the diagnosed long tail (MaxTicks 24→5, average
-134.9→102.2) but the unchanged population still misses the median duration
-and elimination-share ship gates (DECISIONS #64–#66).
+Official 0.5 is the frozen territorial-v8 candidate. Any action scores for the
+sole active zone occupant; a contested or empty zone decays existing pressure.
+±100 dominates, with a short ±10 / gain-2 pressure overtime from tick 200.
+Projectiles launch one tile and then traverse two ordered substeps per tick,
+checking every intermediate wall, strict corner, range boundary, and bot.
+Future programmed bends remain private while current eight-way heading is
+observable.
 
-The programmed-arc direction passed theory, engine/SDK/WASM, docs-only
-learnability, and its first population gates (DECISIONS #67–#71).
-Territorial v8 then replaces Wait-to-control with sole physical occupancy:
-any action scores while alone; a contested or empty zone decays. Its adapted
-field is materially more combative (damage in 91.1%, reciprocal damage in
-61.5%, 81.1% Eliminations), and 53.2% of score ticks use non-Wait actions, but
-30/270 games enter repeated physical-contest loops (DECISIONS #72).
-
-Official 0.5 remains on HOLD. The evaluation policy is now explicitly
-generation-aware (DECISIONS #73): old bots are compatibility/causal sentinels,
-not a veto over a substantial redesign; primary evidence comes from bots built
-for their rules, replay-dynamics metrics, and an outcome-blind viewer sample.
-The four-doctrine territorial holdout is complete (DECISIONS #74): all dynamics
-and blind-viewer gates passed, but Pincer owned 42.5% of decided wins against a
-frozen 35% ceiling. Keep v8 on HOLD. The next step is a fresh-seed,
-equal-budget counterplay iteration against frozen Pincer—not a rules tune or a
-post-hoc gate change. The consolidated player brief is
-`docs/EXPERIMENTAL-TERRITORIAL-V8.md`.
+The four-doctrine all-WASM holdout had 1.9% draws, 100% damage and active-world
+incidence, 78.7% reciprocal damage, zero stalled/looped games, and passed its
+outcome-blind viewer review. Pincer led at 45-9-0 (42.5% of decided wins).
+That exceeded the original pre-registered 35% ceiling, so decision #74 remains
+a recorded failure. The product owner then accepted 42.5% as a healthy
+champion share, set 45% as the future ceiling, promoted the unchanged rules,
+and crowned Pincer gen-10 (decision #75). Detailed player rules:
+`docs/RULES-0.5-PLAYER-GUIDE.md`.
 
 ## Game rules 0.1 (initial)
 
@@ -109,7 +102,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   serves the SPA. Dockerfile + docker-compose for deployment.
 - `web/` — one React build, two modes: the Bot Arena site (router) and the
   standalone replay viewer the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (193 tests, incl.
+- `tests/` — engine, determinism, and WASM contract suites (195 tests, incl.
   DocDriftTests pinning docs/mirrors to the engine).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
@@ -125,12 +118,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    trim-flags companion was dropped as not worth a cache-invalidating
    version bump. Cross-process cache-key locks and named Docker timeout cleanup
    now prevent CLI/server builds from corrupting one workspace (#70).
-2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
-   control; DECISIONS #49/#53). Territorial v8 passed its native dynamics and
-   viewer gates but failed strategy diversity because Pincer led 42.5% (#74).
-   Freeze v8 and Pincer; next run an equal-budget counterplay adaptation on
-   fresh seeds under RULES-0.5-DESIGN §R. Do not change the 35% gate or tune
-   rules first.
+2. ~~Game design: anti-draw + skill-shot program~~ **SHIPPED through rules
+   0.5** (DECISIONS #49/#53/#75). Pincer gen-10 is the launch champion. Next
+   improve delayed-projectile visual causality without changing simulation,
+   then let future challengers test the 45% diversity policy on the 0.5 ladder.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime

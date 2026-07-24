@@ -47,6 +47,17 @@ public class ActiveZoneControlTests
     ], [new Spawn(2, 2, Direction.North), new Spawn(4, 2, Direction.North)],
         zone: [new Position(2, 2), new Position(3, 2), new Position(4, 2)]);
 
+    [Fact]
+    public void OfficialV05_PinsTheFrozenTerritorialV8Mechanics()
+    {
+        var experimentalV8 = GameRules.Resolve("cone-occupancy-bolt2-arcs");
+
+        Assert.Equal(experimentalV8 with { RulesVersion = "0.5" }, GameRules.V0_5);
+        Assert.Equal(GameRules.V0_5, GameRules.Current);
+        Assert.Equal(GameRules.V0_5, GameRules.Resolve("0.5"));
+        Assert.Equal("0.5-redesign-shared", GameRules.V0_5.SeedProfile);
+    }
+
     [Theory]
     [InlineData(BotAction.MoveForward)]
     [InlineData(BotAction.TurnLeft)]

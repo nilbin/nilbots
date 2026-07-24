@@ -78,6 +78,13 @@ public class DocDriftTests
     }
 
     [Fact]
+    public void CliDefault_FollowsTheCurrentRulesVersion()
+    {
+        string support = ReadRepoFile("src", "BotArena.Cli", "CliSupport.cs");
+        Assert.Contains("return BotArenaVersions.GameRulesVersion;", support);
+    }
+
+    [Fact]
     public void EveryKnownRulesName_Resolves()
     {
         foreach (string name in GameRules.KnownNames)
