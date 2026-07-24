@@ -112,3 +112,9 @@ This layout is appropriate for a private/friends pilot. Do not accept
 submissions from arbitrary strangers until the public-submission gate in the
 deployment plan is complete: compiler inputs vendored, outbound build network
 disabled, cgroup/workspace limits verified, and hostile-input tests passing.
+
+The production Caddyfile therefore returns `403` from the public registration
+endpoint by default. Keep public viewing and existing-account login available;
+replace the edge rule with an application-level invitation flow before
+inviting pilot players. Do not simply remove it for open internet registration
+until the full public-submission gate is complete.

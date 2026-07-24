@@ -1,4 +1,14 @@
 {$BOTARENA_DOMAIN} {
+	# The compiler-isolation gate is not complete yet. Keep the site public for
+	# spectators, but do not let arbitrary internet visitors create accounts.
+	# Replace this edge gate with an application-level invitation flow before
+	# opening the friends pilot.
+	@closedRegistration {
+		method POST
+		path /api/accounts/register
+	}
+	respond @closedRegistration "Registration is currently invite-only." 403
+
 	encode zstd gzip
 
 	header {
