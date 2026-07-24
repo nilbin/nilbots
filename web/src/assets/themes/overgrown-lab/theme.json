@@ -4,10 +4,14 @@
   "textures": {
     "floor": "floor-ceramic-v2.png",
     "wall": "wall-overgrown-v2.png",
-    "zone": "zone-capture-lattice.png"
+    "zone": {
+      "file": "zone-capture-lattice.png",
+      "scaleTiles": 4
+    }
   },
   "wall": {
     "depth": 0.17,
+    "cornerRadius": 0.19,
     "edge": "rgba(69, 77, 63, 0.78)",
     "highlight": "rgba(255, 255, 242, 0.72)",
     "side": "rgba(53, 63, 49, 0.62)",

@@ -84,9 +84,11 @@ no TypeScript registry edit.
   motifs that look broken when the wall silhouette clips them.
 - The renderer constructs one connected shape from all `#` cells, clips one
   material field through it, and derives only the wall-to-floor perimeter from
-  ASCII adjacency. Theme-defined top/left highlights, south/right side faces,
-  and a soft silhouette shadow make internal wall islands read as raised
-  obstacles. No edge is drawn between adjacent wall cells.
+  ASCII adjacency. Exposed convex corners use the theme's normalized corner
+  radius; connected neighbours remain seamless. Theme-defined top/left
+  highlights, south/right side faces, and a soft silhouette shadow make
+  internal wall islands read as raised obstacles. No edge is drawn between
+  adjacent wall cells.
 
 ### Zone material
 
@@ -95,9 +97,11 @@ no TypeScript registry edit.
   as powered inlays or capture hardware—not merely a recolored base floor.
 - Exact top-down view with continuous, mask-safe detail. Do not bake in an
   outer frame, central emblem, gameplay-cell borders, or an assumed zone size.
-- The renderer fits the material once across the declared zone's bounding
-  region, clips it to the exact zone mask, and adds the theme-colored gameplay
-  tint and exterior pulse. Bots and projectiles must remain legible over it.
+- The manifest declares the material's fixed world scale in gameplay tiles.
+  The renderer anchors that repeating field to the map origin, clips it to the
+  exact zone mask, and adds the theme-colored gameplay tint and exterior pulse.
+  A zone changing size therefore reveals more material instead of stretching
+  existing detail. Bots and projectiles must remain legible over it.
 
 ### Palette and registration
 
@@ -105,12 +109,12 @@ Create `web/src/assets/themes/<theme-id>/theme.json` with:
 
 - Stable ID and player-facing label.
 - Floor and wall filenames relative to the manifest, plus an optional dedicated
-  zone-floor filename. The renderer maps that material once across the zone's
-  bounding region and clips it to the map's declared zone mask, so irregular
-  zones remain continuous without per-cell borders.
+  zone-floor filename and its `scaleTiles` world scale. The renderer clips the
+  fixed-scale material to the map's declared zone mask, so irregular zones
+  remain continuous without per-cell borders or size-dependent distortion.
 - Canvas, floor, wall, frame, and objective-zone colors.
-- A `wall` treatment with normalized side depth plus edge, highlight, side-face,
-  and silhouette-shadow colors.
+- A `wall` treatment with normalized side depth and corner radius plus edge,
+  highlight, side-face, and silhouette-shadow colors.
 
 Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
 version. The loader discovers the package automatically. Do not add a viewer

@@ -7,6 +7,7 @@
   },
   "wall": {
     "depth": 0.15,
+    "cornerRadius": 0.12,
     "edge": "rgba(1, 5, 10, 0.88)",
     "highlight": "rgba(126, 155, 178, 0.58)",
     "side": "rgba(0, 3, 7, 0.78)",

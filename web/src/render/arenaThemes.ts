@@ -13,8 +13,10 @@ export interface ArenaTheme {
   floorTexture: HTMLImageElement | null;
   wallTexture: HTMLImageElement | null;
   zoneTexture: HTMLImageElement | null;
+  zoneTextureScale: number;
   wall: {
     depth: number;
+    cornerRadius: number;
     edge: string;
     highlight: string;
     side: string;
@@ -36,7 +38,10 @@ interface ThemeManifest {
   textures: {
     floor: string;
     wall: string;
-    zone?: string;
+    zone?: {
+      file: string;
+      scaleTiles: number;
+    };
   };
   wall: ArenaTheme['wall'];
   palette: ArenaTheme['palette'];
@@ -125,7 +130,7 @@ function buildThemes(): Map<string, ArenaTheme> {
     const zoneUrl = manifest.textures.zone
       ? requireAsset(
           themeImages,
-          `${directory}/${manifest.textures.zone}`,
+          `${directory}/${manifest.textures.zone.file}`,
           manifest.id,
         )
       : undefined;
@@ -137,6 +142,10 @@ function buildThemes(): Map<string, ArenaTheme> {
       floorTexture: loadImage(floorUrl),
       wallTexture: loadImage(wallUrl),
       zoneTexture: zoneUrl ? loadImage(zoneUrl) : null,
+      zoneTextureScale: Math.max(
+        0.5,
+        manifest.textures.zone?.scaleTiles ?? 4,
+      ),
       wall: manifest.wall,
       palette: manifest.palette,
     });

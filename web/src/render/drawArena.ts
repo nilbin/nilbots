@@ -127,26 +127,23 @@ export function drawArena(
     for (const [x, y] of replay.header.zoneTiles)
       zoneShape.rect(px(x), py(y), tile, tile);
 
-    if (
-      theme.zoneTexture?.complete &&
-      theme.zoneTexture.naturalWidth > 0 &&
-      replay.header.zoneTiles.length > 0
-    ) {
-      const xs = replay.header.zoneTiles.map(([x]) => x);
-      const ys = replay.header.zoneTiles.map(([, y]) => y);
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      const minY = Math.min(...ys);
-      const maxY = Math.max(...ys);
+    if (theme.zoneTexture?.complete && theme.zoneTexture.naturalWidth > 0) {
+      // World-space UVs: changing the zone mask reveals or hides material;
+      // it never rescales the artwork to fit that particular zone.
+      const materialSize = tile * theme.zoneTextureScale;
       ctx.save();
       ctx.clip(zoneShape);
-      ctx.drawImage(
-        theme.zoneTexture,
-        px(minX),
-        py(minY),
-        tile * (maxX - minX + 1),
-        tile * (maxY - minY + 1),
-      );
+      for (let y = py(0); y < py(mapHeight); y += materialSize) {
+        for (let x = px(0); x < px(mapWidth); x += materialSize) {
+          ctx.drawImage(
+            theme.zoneTexture,
+            x,
+            y,
+            materialSize,
+            materialSize,
+          );
+        }
+      }
       ctx.restore();
     }
 
@@ -205,12 +202,7 @@ export function drawArena(
   }
 
   function drawWalls(): void {
-    const wallShape = new Path2D();
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++)
-        if (mapTiles[y][x] === '#')
-          wallShape.rect(px(x), py(y), tile, tile);
-    }
+    const wallShape = buildWallShape();
 
     ctx.save();
     ctx.shadowColor = theme.wall.shadow;
@@ -234,9 +226,55 @@ export function drawArena(
     drawWallPerimeter();
   }
 
+  function buildWallShape(): Path2D {
+    // ASCII remains the collision topology. Only convex wall-to-floor corners
+    // are softened; shared edges stay full-width so connected cells render as
+    // one structure and visual clearance never exceeds gameplay clearance.
+    const wallShape = new Path2D();
+    const radius = wallRadius();
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        if (!wallAt(x, y)) continue;
+        const north = !wallAt(x, y - 1);
+        const east = !wallAt(x + 1, y);
+        const south = !wallAt(x, y + 1);
+        const west = !wallAt(x - 1, y);
+        const left = px(x);
+        const top = py(y);
+        const right = left + tile;
+        const bottom = top + tile;
+        const northWest = north && west;
+        const northEast = north && east;
+        const southEast = south && east;
+        const southWest = south && west;
+
+        wallShape.moveTo(left + (northWest ? radius : 0), top);
+        wallShape.lineTo(right - (northEast ? radius : 0), top);
+        if (northEast)
+          wallShape.quadraticCurveTo(right, top, right, top + radius);
+        else wallShape.lineTo(right, top);
+        wallShape.lineTo(right, bottom - (southEast ? radius : 0));
+        if (southEast)
+          wallShape.quadraticCurveTo(right, bottom, right - radius, bottom);
+        else wallShape.lineTo(right, bottom);
+        wallShape.lineTo(left + (southWest ? radius : 0), bottom);
+        if (southWest)
+          wallShape.quadraticCurveTo(left, bottom, left, bottom - radius);
+        else wallShape.lineTo(left, bottom);
+        wallShape.lineTo(left, top + (northWest ? radius : 0));
+        if (northWest)
+          wallShape.quadraticCurveTo(left, top, left + radius, top);
+        else wallShape.lineTo(left, top);
+        wallShape.closePath();
+      }
+    }
+    return wallShape;
+  }
+
   function drawWallPerimeter(): void {
     const depth = Math.max(3, tile * theme.wall.depth);
     const edgeWidth = Math.max(1.5, tile * 0.045);
+    const radius = wallRadius();
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         if (!wallAt(x, y)) continue;
@@ -245,17 +283,40 @@ export function drawArena(
         const south = !wallAt(x, y + 1);
         const west = !wallAt(x - 1, y);
 
-        if (east) drawWallSide(x, y, 'east', depth);
-        if (south) drawWallSide(x, y, 'south', depth);
+        if (east) drawWallSide(x, y, 'east', depth, radius);
+        if (south) drawWallSide(x, y, 'south', depth, radius);
 
         if (north)
-          drawWallEdge(x, y, 'north', edgeWidth, theme.wall.highlight);
+          drawWallEdge(x, y, 'north', edgeWidth, radius, theme.wall.highlight);
         if (west)
-          drawWallEdge(x, y, 'west', edgeWidth, theme.wall.highlight);
+          drawWallEdge(x, y, 'west', edgeWidth, radius, theme.wall.highlight);
         if (east)
-          drawWallEdge(x, y, 'east', edgeWidth, theme.wall.edge);
+          drawWallEdge(x, y, 'east', edgeWidth, radius, theme.wall.edge);
         if (south)
-          drawWallEdge(x, y, 'south', edgeWidth, theme.wall.edge);
+          drawWallEdge(x, y, 'south', edgeWidth, radius, theme.wall.edge);
+
+        if (north && west)
+          drawWallCorner(
+            x,
+            y,
+            'northWest',
+            edgeWidth,
+            radius,
+            theme.wall.highlight,
+          );
+        if (north && east)
+          drawWallCorner(
+            x,
+            y,
+            'northEast',
+            edgeWidth,
+            radius,
+            theme.wall.highlight,
+          );
+        if (south && east)
+          drawWallCorner(x, y, 'southEast', edgeWidth, radius, theme.wall.edge);
+        if (south && west)
+          drawWallCorner(x, y, 'southWest', edgeWidth, radius, theme.wall.edge);
       }
     }
   }
@@ -265,9 +326,16 @@ export function drawArena(
     y: number,
     side: 'east' | 'south',
     depth: number,
+    radius: number,
   ): void {
     const left = px(x);
     const top = py(y);
+    const leadingOpen =
+      side === 'east' ? !wallAt(x, y - 1) : !wallAt(x - 1, y);
+    const trailingOpen =
+      side === 'east' ? !wallAt(x, y + 1) : !wallAt(x + 1, y);
+    const leadingInset = leadingOpen ? radius * 0.55 : 0;
+    const trailingInset = trailingOpen ? radius * 0.55 : 0;
     const gradient =
       side === 'south'
         ? ctx.createLinearGradient(0, top + tile - depth, 0, top + tile)
@@ -276,10 +344,10 @@ export function drawArena(
     gradient.addColorStop(1, theme.wall.side);
     ctx.fillStyle = gradient;
     ctx.fillRect(
-      side === 'east' ? left + tile - depth : left,
-      side === 'south' ? top + tile - depth : top,
-      side === 'east' ? depth : tile,
-      side === 'south' ? depth : tile,
+      side === 'east' ? left + tile - depth : left + leadingInset,
+      side === 'south' ? top + tile - depth : top + leadingInset,
+      side === 'east' ? depth : tile - leadingInset - trailingInset,
+      side === 'south' ? depth : tile - leadingInset - trailingInset,
     );
   }
 
@@ -288,24 +356,68 @@ export function drawArena(
     y: number,
     side: 'north' | 'east' | 'south' | 'west',
     width: number,
+    radius: number,
     color: string,
   ): void {
     const left = px(x);
     const top = py(y);
+    const horizontal = side === 'north' || side === 'south';
+    const leadingOpen = horizontal
+      ? !wallAt(x - 1, y)
+      : !wallAt(x, y - 1);
+    const trailingOpen = horizontal
+      ? !wallAt(x + 1, y)
+      : !wallAt(x, y + 1);
+    const leadingInset = leadingOpen ? radius : 0;
+    const trailingInset = trailingOpen ? radius : 0;
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     ctx.lineCap = 'square';
     ctx.beginPath();
-    if (side === 'north' || side === 'south') {
+    if (horizontal) {
       const edgeY = side === 'north' ? top + width * 0.35 : top + tile - width * 0.35;
-      ctx.moveTo(left, edgeY);
-      ctx.lineTo(left + tile, edgeY);
+      ctx.moveTo(left + leadingInset, edgeY);
+      ctx.lineTo(left + tile - trailingInset, edgeY);
     } else {
       const edgeX = side === 'west' ? left + width * 0.35 : left + tile - width * 0.35;
-      ctx.moveTo(edgeX, top);
-      ctx.lineTo(edgeX, top + tile);
+      ctx.moveTo(edgeX, top + leadingInset);
+      ctx.lineTo(edgeX, top + tile - trailingInset);
     }
     ctx.stroke();
+  }
+
+  function drawWallCorner(
+    x: number,
+    y: number,
+    corner: 'northWest' | 'northEast' | 'southEast' | 'southWest',
+    width: number,
+    radius: number,
+    color: string,
+  ): void {
+    const left = px(x);
+    const top = py(y);
+    const insetRadius = Math.max(0.5, radius - width * 0.35);
+    const [centerX, centerY, start, end] =
+      corner === 'northWest'
+        ? [left + radius, top + radius, Math.PI, Math.PI * 1.5]
+        : corner === 'northEast'
+          ? [left + tile - radius, top + radius, -Math.PI / 2, 0]
+          : corner === 'southEast'
+            ? [left + tile - radius, top + tile - radius, 0, Math.PI / 2]
+            : [left + radius, top + tile - radius, Math.PI / 2, Math.PI];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'square';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, insetRadius, start, end);
+    ctx.stroke();
+  }
+
+  function wallRadius(): number {
+    return Math.max(
+      0,
+      Math.min(tile * 0.42, tile * theme.wall.cornerRadius),
+    );
   }
 
   function wallAt(x: number, y: number): boolean {
