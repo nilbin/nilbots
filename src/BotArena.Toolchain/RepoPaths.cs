@@ -20,16 +20,19 @@ public static class RepoPaths
         return null;
     }
 
-    /// <summary>Repo/toolchain root: the directory containing src/BotArena.Guest.
-    /// Overridable with BOTARENA_ROOT for deployed servers.</summary>
+    /// <summary>Repo/toolchain root: a source checkout or the assets embedded beside
+    /// an installed global tool. Overridable with BOTARENA_ROOT for deployed servers.</summary>
     public static string ToolchainRoot()
     {
         if (Environment.GetEnvironmentVariable("BOTARENA_ROOT") is { Length: > 0 } root)
             return root;
+        string? buildScript = FindUpward(Path.Combine("scripts", "run-wasm-publish.sh"));
+        if (buildScript is not null)
+            return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(buildScript)!, ".."));
         string guest = FindUpward(Path.Combine("src", "BotArena.Guest", "BotArena.Guest.csproj"))
             ?? throw new InvalidOperationException(
-                "nilbots toolchain not found (src/BotArena.Guest missing above the current " +
-                "directory) — set BOTARENA_ROOT to the checkout root.");
+                "nilbots toolchain assets not found — reinstall the CLI or set BOTARENA_ROOT " +
+                "to a source checkout.");
         return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(guest)!, "..", ".."));
     }
 }

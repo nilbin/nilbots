@@ -10,9 +10,9 @@ function CliAccess() {
       <h2 className="mb-2 font-mono text-xs tracking-widest text-arena-dim">CLI ACCESS</h2>
       <p className="text-xs text-arena-dim">
         Develop locally and submit from your terminal:{' '}
-        <code className="font-mono">botarena login</code> opens this site in your browser to
-        sign you in securely (OAuth + PKCE), then{' '}
-        <code className="font-mono">botarena submit</code> uploads your bot for the official
+        <code className="font-mono">nilbots register</code> opens this site in your browser to
+        create an account and sign you in securely (OAuth + PKCE), then{' '}
+        <code className="font-mono">nilbots submit</code> creates your bot and uploads it for the official
         server build and reports whether your local artifact matches it bit-for-bit.
       </p>
     </section>

@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - verify
+          - publish-cli
           - publish
           - publish-and-deploy
 
@@ -53,9 +54,20 @@ jobs:
           WASI_SDK_PATH: /opt/botarena/wasi-sdk-29.0
         run: bash scripts/e2e.sh
 
+      - name: Preserve generated CLI assets
+        if: inputs.operation == 'publish-cli'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nilbots-cli-assets
+          path: |
+            artifacts/wasm/builtin-bots.wasm
+            web/dist/index.html
+          if-no-files-found: error
+          retention-days: 1
+
   publish:
     name: Publish immutable images
-    if: inputs.operation != 'verify'
+    if: inputs.operation == 'publish' || inputs.operation == 'publish-and-deploy'
     needs: verify
     runs-on: ubuntu-latest
     permissions:
@@ -145,6 +157,47 @@ jobs:
             echo "- Runtime: \`${RUNTIME_REF}\`"
             echo "- Compiler: \`${COMPILER_REF}\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-cli:
+    name: Publish CLI to NuGet.org
+    if: inputs.operation == 'publish-cli'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out selected revision
+        uses: actions/checkout@v6
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore generated CLI assets
+        uses: actions/download-artifact@v4
+        with:
+          name: nilbots-cli-assets
+
+      - name: Pack Nilbots global tool
+        run: dotnet pack src/BotArena.Cli/BotArena.Cli.csproj --configuration Release --output artifacts/nuget
+
+      - name: Smoke-test installed global tool
+        run: bash scripts/test-packaged-cli.sh artifacts/nuget
+
+      - name: Obtain short-lived NuGet.org credential
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Publish Nilbots global tool
+        run: |
+          dotnet nuget push "artifacts/nuget/Nilbots.*.nupkg" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
 
   deploy:
     name: Deploy production

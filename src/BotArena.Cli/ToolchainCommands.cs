@@ -31,16 +31,32 @@ public static class NewCommand
         }
         Directory.CreateDirectory(targetDir);
 
-        string sdkProject = CliSupport.FindUpward(
-            Path.Combine("src", "BotArena.Sdk", "BotArena.Sdk.csproj"))!;
-        string sdkProjectFromBot = Path.GetRelativePath(targetDir, sdkProject);
+        string? sdkProject = CliSupport.FindUpward(
+            Path.Combine("src", "BotArena.Sdk", "BotArena.Sdk.csproj"));
+        string sdkReference;
+        if (sdkProject is not null)
+        {
+            sdkReference =
+                $"<ProjectReference Include=\"{Path.GetRelativePath(targetDir, sdkProject)}\" />";
+        }
+        else
+        {
+            string packagedSdk = Path.Combine(AppContext.BaseDirectory, "BotArena.Sdk.dll");
+            if (!File.Exists(packagedSdk))
+                throw new InvalidOperationException(
+                    "The installed CLI is missing BotArena.Sdk.dll; reinstall the Nilbots tool.");
+            string botLib = Path.Combine(targetDir, "lib");
+            Directory.CreateDirectory(botLib);
+            File.Copy(packagedSdk, Path.Combine(botLib, "BotArena.Sdk.dll"), overwrite: true);
+            sdkReference =
+                "<Reference Include=\"BotArena.Sdk\"><HintPath>lib/BotArena.Sdk.dll</HintPath></Reference>";
+        }
         foreach (var file in Directory.EnumerateFiles(templateDir))
         {
             string content = File.ReadAllText(file)
                 .Replace("BOTNAME", entryType)
                 .Replace("SDKVERSION", ToolchainInfo.SdkVersion)
-                .Replace("<!--BOTARENA_SDK_REFERENCE-->",
-                    $"<ProjectReference Include=\"{sdkProjectFromBot}\" />");
+                .Replace("<!--BOTARENA_SDK_REFERENCE-->", sdkReference);
             File.WriteAllText(
                 Path.Combine(targetDir, Path.GetFileName(file).Replace("BOTNAME", entryType)),
                 content);
@@ -48,12 +64,15 @@ public static class NewCommand
         Console.WriteLine($"Created bot project: {targetDir}");
         Console.WriteLine();
         Console.WriteLine($"  cd {name}");
-        Console.WriteLine("  botarena play --bot . --opponent hunter --seed 42");
-        Console.WriteLine();
-        Console.WriteLine("Source checkout without `botarena` on PATH:");
-        string wrapper = Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(sdkProject)!, "..", "..", "scripts", "botarena"));
-        Console.WriteLine($"  {wrapper} play --bot . --opponent hunter --seed 42");
+        Console.WriteLine("  nilbots play --bot . --opponent hunter --seed 42");
+        if (sdkProject is not null)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Source checkout without `nilbots` on PATH:");
+            string wrapper = Path.GetFullPath(Path.Combine(
+                Path.GetDirectoryName(sdkProject)!, "..", "..", "scripts", "botarena"));
+            Console.WriteLine($"  {wrapper} play --bot . --opponent hunter --seed 42");
+        }
         return 0;
     }
 }
@@ -119,7 +138,7 @@ public static class CacheCommand
                 Console.WriteLine("Cache cleared.");
                 return 0;
             default:
-                Console.Error.WriteLine("Usage: botarena cache [status|clear]");
+                Console.Error.WriteLine("Usage: nilbots cache [status|clear]");
                 return 1;
         }
     }

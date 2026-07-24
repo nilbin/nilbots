@@ -88,11 +88,16 @@ public sealed record StoredCredentials(
 public static class ServerCommands
 {
     private static readonly int[] CallbackPorts = [43117, 43118, 43119, 43120];
+    private const string DefaultServer = "https://nilbots.com";
 
-    public static int Login(IReadOnlyList<string> args)
+    public static int Register(IReadOnlyList<string> args) => Authenticate(args, register: true);
+
+    public static int Login(IReadOnlyList<string> args) => Authenticate(args, register: false);
+
+    private static int Authenticate(IReadOnlyList<string> args, bool register)
     {
         var options = CliSupport.ParseOptions(args);
-        string server = options.GetValueOrDefault("server", "http://127.0.0.1:8080").TrimEnd('/');
+        string server = options.GetValueOrDefault("server", DefaultServer).TrimEnd('/');
 
         // RFC 7636 PKCE material.
         string verifier = Base64Url(RandomNumberGenerator.GetBytes(48));
@@ -122,19 +127,24 @@ public static class ServerCommands
         }
 
         string redirect = $"http://127.0.0.1:{port}/callback/";
-        string url = $"{server}/connect/authorize" +
+        string authorizePath = "/connect/authorize" +
             "?client_id=botarena-cli&response_type=code&scope=offline_access" +
             $"&redirect_uri={Uri.EscapeDataString(redirect)}" +
             $"&state={state}&code_challenge={challenge}&code_challenge_method=S256";
+        string url = register
+            ? $"{server}/login?mode=register&returnUrl={Uri.EscapeDataString(authorizePath)}"
+            : server + authorizePath;
 
-        Console.WriteLine("Opening your browser to sign in. If nothing opens, visit:");
+        Console.WriteLine(register
+            ? "Opening your browser to create an account. If nothing opens, visit:"
+            : "Opening your browser to sign in. If nothing opens, visit:");
         Console.WriteLine($"  {url}");
         TryOpenBrowser(url);
 
         var contextTask = listener.GetContextAsync();
         if (!contextTask.Wait(TimeSpan.FromMinutes(5)))
         {
-            Console.Error.WriteLine("Timed out waiting for the browser sign-in.");
+            Console.Error.WriteLine("Timed out waiting for browser authentication.");
             return 1;
         }
         var context = contextTask.Result;
@@ -151,7 +161,7 @@ public static class ServerCommands
 
         if (code is null || returnedState != state)
         {
-            Console.Error.WriteLine("Sign-in failed: missing code or state mismatch.");
+            Console.Error.WriteLine("Authentication failed: missing code or state mismatch.");
             return 1;
         }
 
@@ -173,7 +183,8 @@ public static class ServerCommands
 
         using var client = CreateClient()!;
         var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
-        Console.WriteLine($"Signed in to {server} as {me.GetProperty("displayName").GetString()}.");
+        Console.WriteLine($"{(register ? "Account created; signed" : "Signed")} in to {server} " +
+            $"as {me.GetProperty("displayName").GetString()}.");
         return 0;
     }
 
@@ -292,7 +303,7 @@ public static class ServerCommands
                 })).GetAwaiter().GetResult();
             if (!refreshed.IsSuccessStatusCode)
             {
-                Console.Error.WriteLine("Session expired — run: botarena login");
+                Console.Error.WriteLine("Session expired — run: nilbots login");
                 return null;
             }
             SaveTokens(credentials.Server,
@@ -320,7 +331,7 @@ public static class ServerCommands
 
     private static int NotSignedIn()
     {
-        Console.Error.WriteLine("Not signed in — run: botarena login");
+        Console.Error.WriteLine("Not signed in — run: nilbots register or nilbots login");
         return 1;
     }
 

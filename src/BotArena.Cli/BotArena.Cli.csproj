@@ -3,6 +3,19 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>botarena</AssemblyName>
     <RootNamespace>BotArena.Cli</RootNamespace>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>nilbots</ToolCommandName>
+    <PackageId>Nilbots</PackageId>
+    <Version>0.4.0</Version>
+    <Authors>nilbin</Authors>
+    <Description>Build, test, replay, and submit C# bots for the nilbots programming game.</Description>
+    <PackageProjectUrl>https://nilbots.com</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/nilbin/nilbots</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>nilbots;bot;game;webassembly;wasm;cli;dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
@@ -10,5 +23,33 @@
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />
     <ProjectReference Include="../BotArena.Runtime.Wasm/BotArena.Runtime.Wasm.csproj" />
     <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
+    <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="../../artifacts/wasm/builtin-bots.wasm"
+          Pack="true"
+          PackagePath="tools/net10.0/any/artifacts/wasm/" />
+    <None Include="../../docker/wasm-builder.Dockerfile"
+          Pack="true"
+          PackagePath="tools/net10.0/any/docker/" />
+    <None Include="../../maps/*.json"
+          Pack="true"
+          PackagePath="tools/net10.0/any/maps/" />
+    <None Include="../../nuget.config"
+          Pack="true"
+          PackagePath="tools/net10.0/any/" />
+    <None Include="../../scripts/run-wasm-publish.sh"
+          Pack="true"
+          PackagePath="tools/net10.0/any/scripts/" />
+    <None Include="../../scripts/setup-wasi-sdk.sh"
+          Pack="true"
+          PackagePath="tools/net10.0/any/scripts/" />
+    <None Include="../../templates/botarena-bot/*"
+          Pack="true"
+          PackagePath="tools/net10.0/any/templates/botarena-bot/" />
+    <None Include="../../web/dist/index.html"
+          Pack="true"
+          PackagePath="tools/net10.0/any/web/dist/" />
   </ItemGroup>
 </Project>

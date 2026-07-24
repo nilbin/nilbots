@@ -16,7 +16,7 @@ export default function App() {
       .then((data: ReplayDocument) => setReplay(data))
       .catch(() =>
         setLoadError(
-          'No replay embedded and no replay.json found. Generate one with: botarena play',
+          'No replay embedded and no replay.json found. Generate one with: nilbots play',
         ),
       );
   }, [replay]);

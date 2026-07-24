@@ -153,7 +153,7 @@ public sealed class MyBot : IBot
           cross-runtime by comparing results, not hashes. The replay JSON schema and
           its reading conventions are documented
           in <code className="font-mono">docs/REPLAY-FORMAT.md</code> in the repo, and
-          <code className="font-mono"> botarena replay &lt;file&gt; --summary</code> prints a
+          <code className="font-mono"> nilbots replay &lt;file&gt; --summary</code> prints a
           compact digest (<code className="font-mono">--full</code> for every tick).
         </p>
       </Doc>
@@ -179,17 +179,18 @@ curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals
           <code className="font-mono">/build-status</code> is the slim polling view — it returns an
           <b> array</b> of versions, newest first, so poll <code className="font-mono">[0].status</code>,
           not <code className="font-mono">.status</code>. The CLI's
-          <code className="font-mono"> botarena submit</code> wraps this flow plus artifact-parity checking.
+          <code className="font-mono"> nilbots submit</code> wraps this flow plus artifact-parity checking.
         </p>
       </Doc>
 
       <Doc title="Local development (CLI)">
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`botarena new MyBot && cd MyBot
-botarena play --runtime in-process --bot . --opponent hunter   # fastest — iterate here
-botarena play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
-botarena watch . --opponent hunter --runtime in-process        # replay on every save
-botarena login                                      # browser sign-in (OAuth + PKCE)
-botarena submit .                                   # official server build + parity check`}</pre>
+        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`dotnet tool install --global Nilbots
+nilbots register                                   # create account + OAuth/PKCE sign-in
+nilbots new MyBot && cd MyBot
+nilbots play --runtime in-process --bot . --opponent hunter   # fastest — iterate here
+nilbots play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
+nilbots watch . --opponent hunter --runtime in-process        # replay on every save
+nilbots submit .                                   # creates bot + official build + parity`}</pre>
         <p className="mt-2 text-arena-dim">
           Iterate in-process (plain .NET build, same engine and deterministic
           randomness, seconds per run), then verify in the default WASM mode — the

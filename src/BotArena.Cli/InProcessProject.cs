@@ -12,7 +12,7 @@ namespace BotArena.Cli;
 /// the NativeAOT-LLVM WASM compile on every iteration. NOT submission-equivalent:
 /// fuel/memory limits and the WASI clock/entropy shims are not enforced here, which is
 /// exactly why the plan calls in-process execution diagnostic-only. Verify in WASM
-/// (default `botarena play`) before submitting.
+/// (default `nilbots play`) before submitting.
 /// </summary>
 internal static class InProcessProject
 {
@@ -54,7 +54,7 @@ internal static class InProcessProject
         string? csproj = Directory.EnumerateFiles(project.Directory, "*.csproj").FirstOrDefault()
             ?? throw new InvalidOperationException(
                 $"No .csproj in {project.Directory} — in-process mode builds the project file " +
-                "(`botarena new` scaffolds one).");
+                "(`nilbots new` scaffolds one).");
         var stopwatch = Stopwatch.StartNew();
         using var process = Process.Start(new ProcessStartInfo(
             "dotnet", "build -c Release -v q --nologo")

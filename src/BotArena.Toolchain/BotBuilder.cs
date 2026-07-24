@@ -257,6 +257,11 @@ public static class BotBuilder
             return provisioned;
         }
 
+        string packagedSdk = Path.Combine(AppContext.BaseDirectory, "BotArena.Sdk.dll");
+        string packagedGuest = Path.Combine(AppContext.BaseDirectory, "BotArena.Guest.dll");
+        if (File.Exists(packagedSdk) && File.Exists(packagedGuest))
+            return AppContext.BaseDirectory;
+
         string libsDir = Path.Combine(ToolchainInfo.CacheRoot,
             "toolchain-" + ToolchainInfo.GuestAdapterVersion);
         string sdkDll = Path.Combine(libsDir, "BotArena.Sdk.dll");

@@ -4,7 +4,9 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register'>(() =>
+    new URLSearchParams(window.location.search).get('mode') === 'register' ? 'register' : 'login',
+  );
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
