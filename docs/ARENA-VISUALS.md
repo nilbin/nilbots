@@ -82,13 +82,20 @@ no TypeScript registry edit.
 - No surrounding floor or outer ornamental frame.
 - Must be homogeneous and mask-safe: no large frames, rails, conduits, or
   motifs that look broken when the wall silhouette clips them.
-- The renderer constructs one connected shape from all `#` cells, clips one
-  material field through it, and derives only the wall-to-floor perimeter from
-  ASCII adjacency. Exposed convex corners use the theme's normalized corner
-  radius; connected neighbours remain seamless. Theme-defined top/left
-  highlights, south/right side faces, and a soft silhouette shadow make
-  internal wall islands read as raised obstacles. No edge is drawn between
-  adjacent wall cells.
+- Each theme also provides a transparent 512×512 wall-trim donor and baked
+  shadow donor. Generate the trim as one isolated square slab with a broad
+  center, four detailed edges, four corners, and uniform transparent padding.
+- The renderer constructs one connected shape from all `#` cells and clips the
+  base material through it. It then uses ASCII adjacency only to crop and place
+  the trim donor's north/east/south/west strips and convex corners. All bevels,
+  lips, side faces, fasteners, grime, ambient occlusion, and cast-shadow pixels
+  come from the theme assets; canvas code does not synthesize them.
+- `sourceInner` and `sourceCorner` locate reusable regions in the donor.
+  `inset` and `outset` control their world-space placement without changing the
+  artwork. No trim is drawn between adjacent wall cells.
+- Bake the shadow donor from the extracted trim with
+  `scripts/build-wall-shadow.py`. It is composited before the connected wall
+  top, while the trim donor is composited afterward.
 
 ### Zone material
 
@@ -112,9 +119,9 @@ Create `web/src/assets/themes/<theme-id>/theme.json` with:
   zone-floor filename and its `scaleTiles` world scale. The renderer clips the
   fixed-scale material to the map's declared zone mask, so irregular zones
   remain continuous without per-cell borders or size-dependent distortion.
+- Wall-trim and baked-shadow filenames, plus the donor's normalized
+  `sourceInner`, `sourceCorner`, `inset`, and `outset` measurements.
 - Canvas, floor, wall, frame, and objective-zone colors.
-- A `wall` treatment with normalized side depth and corner radius plus edge,
-  highlight, side-face, and silhouette-shadow colors.
 
 Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
 version. The loader discovers the package automatically. Do not add a viewer
@@ -202,6 +209,11 @@ production candidates, then normalized locally:
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
+- Wall trims are generated as isolated square donor slabs on removable
+  magenta, extracted to alpha, and reduced to 512×512. Do not ask an image
+  model for a 16- or 47-cell atlas: exact atlas alignment drifts. One coherent
+  donor gives the renderer repeatable edge and corner crops, while the baked
+  shadow retains consistent softness.
 
 Generate distinct assets separately rather than asking for one large atlas.
 Large generated atlases tend to drift in perspective and create mismatched

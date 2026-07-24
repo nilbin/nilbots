@@ -885,7 +885,10 @@ configuration) and changing them is a version bump, not an edit.
     states/events. Base materials must be homogeneous and mask-safe; rivers,
     trenches, cable runs, and other map-scale visual features require explicit
     map presentation data rather than being baked into a reusable theme.
-    Mutable viewer/account preferences must never rewrite historical playback.
+    Wall boundaries use theme-owned nine-slice trim and baked-shadow donors
+    selected from ASCII adjacency; the renderer must not invent bevel, corner,
+    or shadow styling. Mutable viewer/account preferences must never rewrite
+    historical playback.
 
 ## Deferred decisions
 
