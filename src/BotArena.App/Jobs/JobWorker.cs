@@ -25,6 +25,8 @@ namespace BotArena.App.Jobs;
 public sealed class JobWorker(
     IServiceScopeFactory scopeFactory,
     IObjectStore objectStore,
+    ISubmissionCompiler submissionCompiler,
+    BuildProvenance buildProvenance,
     ApplicationMode mode,
     ILogger<JobWorker> logger)
     : BackgroundService
@@ -255,7 +257,13 @@ public sealed class JobWorker(
         var sources = System.Text.Json.JsonSerializer.Deserialize<List<SourceFile>>(version.SourcesJson)!;
         try
         {
-            var built = BotBuilder.BuildFromSources(sources, version.EntryType, $"version {version.VersionNumber}", quiet: true);
+            CompiledSubmission built = await submissionCompiler.CompileAsync(
+                version.Id,
+                sources,
+                version.EntryType,
+                $"version {version.VersionNumber}",
+                cancellationToken);
+            _ = WasmArtifactValidator.Validate(built.WasmPath);
             SmokeTest(built.WasmPath);
 
             string artifactKey = ObjectKeys.Artifact(built.ArtifactHash);
@@ -264,9 +272,24 @@ public sealed class JobWorker(
             version.ArtifactKey = artifactKey;
             version.ArtifactHash = built.ArtifactHash;
             version.Status = BuildStatus.Built;
-            version.BuiltAt = DateTime.UtcNow;
-            string logPath = Path.Combine(ToolchainInfo.CacheRoot, built.CacheKey[..24], "build.log");
-            version.BuildLog = File.Exists(logPath) ? Tail(File.ReadAllText(logPath), 8000) : "(cached build)";
+            DateTime builtAt = DateTime.UtcNow;
+            version.BuiltAt = builtAt;
+            version.BuildReceiptJson = System.Text.Json.JsonSerializer.Serialize(new BuildReceipt(
+                version.Id,
+                version.SourceHash,
+                built.ArtifactHash,
+                new FileInfo(built.WasmPath).Length,
+                ToolchainInfo.SdkVersion,
+                ToolchainInfo.GuestAdapterVersion,
+                ToolchainInfo.IlcLlvmVersion,
+                ToolchainInfo.BuildPipelineVersion,
+                version.GameRulesVersion,
+                version.RuntimeProtocolVersion,
+                version.RuntimeConfigurationVersion,
+                buildProvenance.CompilerImageReference,
+                buildProvenance.GitCommit,
+                builtAt));
+            version.BuildLog = Tail(built.BuildLog, 8000);
 
             // Pilot behavior: the newest successful build becomes the active version.
             var siblings = await db.BotVersions
@@ -291,6 +314,7 @@ public sealed class JobWorker(
             version.BuildLog = Tail($"Artifact validation failed: {ex.Message}", 8000);
         }
         await db.SaveChangesAsync(cancellationToken);
+        await submissionCompiler.CleanupAsync(version.Id);
     }
 
     /// <summary>Minimal §15.4 artifact validation: the artifact must load, handshake and

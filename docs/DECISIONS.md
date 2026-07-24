@@ -851,6 +851,25 @@ configuration) and changing them is a version bump, not an edit.
     tests. No broker, microservices, Kubernetes, shared network filesystem, or
     database cluster is introduced without measurements that justify it.
 
+77. **The first internet launch is a bounded public beta with manual releases
+    and a same-VPS, networkless compiler runner.** GitHub Actions runs only
+    through `workflow_dispatch`; `verify`, `publish`, and
+    `publish-and-deploy` make free-tier usage intentional. Releases produce
+    separate runtime and compiler images in GHCR, tagged by the full Git SHA,
+    deployed by digest, and accompanied by SBOM and GitHub provenance
+    attestations. The networked compile role is a database/object coordinator;
+    an unprivileged sidecar consumes a filesystem queue with no network,
+    application secrets, or Docker socket and with read-only/cgroup/tmpfs/
+    process/file limits. PostgreSQL admission locks make account, hashed
+    network, account-queue, and global-queue compiler quotas durable across web
+    replicas; network pseudonyms use a server-secret HMAC rather than a
+    reversible plain IPv4 hash. Successful output must pass a WASM
+    import/export/memory contract check before storage, after which its hash,
+    build receipt, and artifact are public while source and logs remain
+    private. Registration is public from launch; a dedicated compiler VPS and
+    external S3-compatible objects remain measured scaling/defense-in-depth
+    promotions, not prerequisites.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -10,12 +10,14 @@ public sealed class ApplicationMode
         string name,
         bool runsWeb,
         bool runsCompileWorker,
+        bool runsCompilerRunner,
         bool runsMatchWorker,
         bool runsMigrations)
     {
         Name = name;
         RunsWeb = runsWeb;
         RunsCompileWorker = runsCompileWorker;
+        RunsCompilerRunner = runsCompilerRunner;
         RunsMatchWorker = runsMatchWorker;
         RunsMigrations = runsMigrations;
     }
@@ -23,6 +25,7 @@ public sealed class ApplicationMode
     public string Name { get; }
     public bool RunsWeb { get; }
     public bool RunsCompileWorker { get; }
+    public bool RunsCompilerRunner { get; }
     public bool RunsMatchWorker { get; }
     public bool RunsMigrations { get; }
     public bool RunsAnyWorker => RunsCompileWorker || RunsMatchWorker;
@@ -35,19 +38,25 @@ public sealed class ApplicationMode
             : value.Trim().ToLowerInvariant();
         return role switch
         {
-            "all" => new("all", runsWeb: true, runsCompileWorker: true,
+            "all" => new("all", runsWeb: true, runsCompileWorker: true, runsCompilerRunner: false,
                 runsMatchWorker: true, runsMigrations: false),
-            "web" => new("web", runsWeb: true, runsCompileWorker: false,
+            "web" => new("web", runsWeb: true, runsCompileWorker: false, runsCompilerRunner: false,
                 runsMatchWorker: false, runsMigrations: false),
             "compile-worker" => new("compile-worker", runsWeb: false,
-                runsCompileWorker: true, runsMatchWorker: false, runsMigrations: false),
+                runsCompileWorker: true, runsCompilerRunner: false,
+                runsMatchWorker: false, runsMigrations: false),
+            "compiler-runner" => new("compiler-runner", runsWeb: false,
+                runsCompileWorker: false, runsCompilerRunner: true,
+                runsMatchWorker: false, runsMigrations: false),
             "match-worker" => new("match-worker", runsWeb: false,
-                runsCompileWorker: false, runsMatchWorker: true, runsMigrations: false),
+                runsCompileWorker: false, runsCompilerRunner: false,
+                runsMatchWorker: true, runsMigrations: false),
             "migrate" => new("migrate", runsWeb: false, runsCompileWorker: false,
+                runsCompilerRunner: false,
                 runsMatchWorker: false, runsMigrations: true),
             _ => throw new InvalidOperationException(
                 $"Unknown BOTARENA_ROLE '{value}'. Expected all, web, " +
-                "compile-worker, match-worker, or migrate."),
+                "compile-worker, compiler-runner, match-worker, or migrate."),
         };
     }
 }

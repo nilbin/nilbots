@@ -48,10 +48,14 @@ public class BotVersion
     /// <summary>Submitted sources as JSON: [{"relativePath":..., "content":...}].</summary>
     public required string SourcesJson { get; set; }
     public required string SourceHash { get; set; }
+    /// <summary>Server-keyed /24 IPv4 or /64 IPv6 pseudonym used only for abuse limits.</summary>
+    public string? SubmissionNetworkHash { get; set; }
     public BuildStatus Status { get; set; } = BuildStatus.Pending;
     public string? BuildLog { get; set; }
     public string? ArtifactKey { get; set; }
     public string? ArtifactHash { get; set; }
+    /// <summary>Public provenance receipt for a successful server build.</summary>
+    public string? BuildReceiptJson { get; set; }
     /// <summary>For built-in bots hosted in the shared catalog artifact: the guest-side bot name.</summary>
     public string? GuestBotName { get; set; }
     public string GameRulesVersion { get; set; } = Engine.BotArenaVersions.GameRulesVersion;

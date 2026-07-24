@@ -50,8 +50,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<BotVersion>(entity =>
         {
             entity.HasIndex(v => new { v.BotId, v.VersionNumber }).IsUnique();
+            entity.HasIndex(v => new { v.SubmissionNetworkHash, v.CreatedAt });
             entity.Property(v => v.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(v => v.SourcesJson).HasColumnType("jsonb");
+            entity.Property(v => v.BuildReceiptJson).HasColumnType("jsonb");
+            entity.Property(v => v.SubmissionNetworkHash).HasMaxLength(64);
         });
 
         modelBuilder.Entity<Match>(entity =>

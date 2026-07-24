@@ -76,7 +76,7 @@ dotnet run --project src/BotArena.Cli -- verify <printed replay.json path>
 ## Run the platform (pilot)
 
 The web app is an ASP.NET Core modular monolith (accounts, bots, submissions,
-matches) backed by PostgreSQL. Friends register in the browser, paste their
+matches) backed by PostgreSQL. Players register in the browser, paste their
 bot's C# source, the server compiles it to WASM with the official toolchain,
 and challenges play out server-side with shareable replay pages.
 
@@ -92,8 +92,9 @@ ASPNETCORE_URLS=http://0.0.0.0:8080 dotnet run --project src/BotArena.App
 
 Configuration: `BOTARENA_DB` (connection string), `BOTARENA_DATA` (durable
 object volume), `BOTARENA_ROOT` (toolchain checkout root), and
-`BOTARENA_ROLE` (`all`, `web`, `compile-worker`, `match-worker`, or
-`migrate`). Put a TLS proxy in front before exposing it publicly.
+`BOTARENA_ROLE` (`all`, `web`, `compile-worker`, `compiler-runner`,
+`match-worker`, or `migrate`). Put a TLS proxy in front before exposing it
+publicly.
 
 For an internet-facing single-VPS installation, see the
 [production deployment runbook](deploy/README.md). For the path from one

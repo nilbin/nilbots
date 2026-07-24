@@ -1,10 +1,10 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using BotArena.App.Accounts;
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
+using BotArena.App.Storage;
 using BotArena.Toolchain;
 using Microsoft.EntityFrameworkCore;
 
@@ -93,6 +93,7 @@ public static class BotsEndpoints
                         v.ArtifactHash,
                         v.IsActive,
                         v.CreatedAt,
+                        BuildReceipt = DeserializeReceipt(v.BuildReceiptJson),
                         // Build logs and sources are owner-only (plan §13.3, §14).
                         BuildLog = isOwner ? v.BuildLog : null,
                         EntryType = isOwner ? v.EntryType : null,
@@ -121,25 +122,78 @@ public static class BotsEndpoints
                 : Results.Ok(versions);
         });
 
+        group.MapGet(
+            "/{botId:guid}/versions/{versionId:guid}/artifact",
+            async (
+                Guid botId,
+                Guid versionId,
+                AppDbContext db,
+                IObjectStore objectStore,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                var artifact = await db.BotVersions
+                    .Where(v => v.Id == versionId && v.BotId == botId &&
+                                v.Status == BuildStatus.Built &&
+                                v.ArtifactKey != null && v.ArtifactHash != null)
+                    .Join(
+                        db.Bots,
+                        version => version.BotId,
+                        bot => bot.Id,
+                        (version, bot) => new
+                        {
+                            version.ArtifactKey,
+                            version.ArtifactHash,
+                            version.VersionNumber,
+                            bot.Slug,
+                        })
+                    .SingleOrDefaultAsync(cancellationToken);
+                if (artifact is null)
+                    return Results.NotFound();
+
+                Stream? stream = await objectStore.OpenReadAsync(
+                    artifact.ArtifactKey!,
+                    cancellationToken);
+                if (stream is null)
+                    return Results.NotFound();
+
+                http.Response.Headers.ETag = $"\"sha256-{artifact.ArtifactHash}\"";
+                http.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+                http.Response.Headers["X-Content-SHA256"] = artifact.ArtifactHash;
+                return Results.Stream(
+                    stream,
+                    "application/wasm",
+                    $"{artifact.Slug}-v{artifact.VersionNumber}.wasm",
+                    enableRangeProcessing: true);
+            });
+
         group.MapPost("/{botId:guid}/versions",
-            async (Guid botId, SubmitVersionRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+            async (
+                Guid botId,
+                SubmitVersionRequest request,
+                ClaimsPrincipal principal,
+                AppDbContext db,
+                CompilerSubmissionService submissions,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
         {
-            var bot = await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Id == botId);
+            var bot = await db.Bots.AsNoTracking().SingleOrDefaultAsync(
+                b => b.Id == botId,
+                cancellationToken);
             if (bot is null)
                 return Results.NotFound();
-            if (principal.UserId() != bot.OwnerUserId)
+            if (principal.UserId() is not Guid userId || userId != bot.OwnerUserId)
                 return Results.Forbid();
-            if (bot.Versions.Any(v => v.Status is BuildStatus.Pending or BuildStatus.Building))
-                return Results.Problem("A build is already in progress for this bot.", statusCode: 409);
 
             // Null-tolerant: absent name/content must 400 via validation below, not 500 here.
             var sources = (request.Files ?? [])
                 .Select(f => new SourceFile((f.Name ?? "").Trim(), f.Content ?? ""))
                 .ToArray();
+            string entryType = request.EntryType?.Trim() ?? "";
             try
             {
                 // Fail fast on obviously invalid submissions; the job re-validates.
-                _ = BotBuilder.ComputeCacheKey(sources, request.EntryType);
+                _ = BotBuilder.ComputeCacheKey(sources, entryType);
                 if (sources.Length == 0)
                     return Results.Problem("At least one source file is required.", statusCode: 400);
                 if (sources.Any(s => !s.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)))
@@ -150,18 +204,22 @@ public static class BotsEndpoints
                 return Results.Problem(ex.Message, statusCode: 400);
             }
 
-            var version = new BotVersion
+            CompilerSubmissionDecision decision = await submissions.EnqueueAsync(
+                bot.Id,
+                userId,
+                entryType,
+                sources,
+                http.Connection.RemoteIpAddress,
+                cancellationToken);
+            if (!decision.Accepted)
             {
-                BotId = bot.Id,
-                VersionNumber = bot.Versions.Count == 0 ? 1 : bot.Versions.Max(v => v.VersionNumber) + 1,
-                EntryType = request.EntryType.Trim(),
-                SourcesJson = JsonSerializer.Serialize(sources),
-                SourceHash = Convert.ToHexStringLower(SHA256.HashData(
-                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(sources)))),
-            };
-            db.BotVersions.Add(version);
-            db.BackgroundJobs.Add(BackgroundJob.CompileSubmission(version.Id));
-            await db.SaveChangesAsync();
+                CompilerSubmissionDenial denial = decision.Denial!;
+                http.Response.Headers.RetryAfter =
+                    Math.Max(1, (int)Math.Ceiling(denial.RetryAfter.TotalSeconds)).ToString();
+                return Results.Problem(denial.Message, statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
+            BotVersion version = decision.Version!;
             return Results.Ok(new { version.Id, version.VersionNumber, Status = version.Status.ToString() });
         }).RequireAuthorization().RequireRateLimiting("submission");
 
@@ -237,4 +295,7 @@ public static class BotsEndpoints
         }
         return builder.ToString().Trim('-');
     }
+
+    private static BuildReceipt? DeserializeReceipt(string? json) =>
+        json is null ? null : JsonSerializer.Deserialize<BuildReceipt>(json);
 }

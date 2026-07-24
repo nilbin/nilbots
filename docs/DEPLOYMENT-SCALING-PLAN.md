@@ -1,7 +1,7 @@
 # Nilbots deployment and scaling plan
 
-Status: single-VPS foundation implemented; public-submission hardening and
-multi-VPS storage remain deliberate gates.
+Status: public-beta single-VPS path implemented; external object storage and
+additional VPSs remain measured promotion steps.
 
 Last updated: 2026-07-24.
 
@@ -59,7 +59,9 @@ flowchart LR
     W1 --> P[(PostgreSQL)]
     W2 --> P
 
-    CW[Compile worker role] --> P
+    CW[Compile coordinator] --> P
+    CW --> Q[Filesystem request queue]
+    Q --> CR[Networkless compiler runner]
     MW[Match worker role] --> P
     CW --> O[(Private object store)]
     MW --> O
@@ -81,6 +83,7 @@ Introduce an explicit configuration such as:
 ```text
 BOTARENA_ROLE=web
 BOTARENA_ROLE=compile-worker
+BOTARENA_ROLE=compiler-runner
 BOTARENA_ROLE=match-worker
 BOTARENA_ROLE=all
 ```
@@ -89,7 +92,10 @@ BOTARENA_ROLE=all
 roles even while they share one VPS:
 
 - `web`: API, authentication, static site, and replay delivery; no job loops.
-- `compile-worker`: claims compile jobs only; includes the compiler toolchain.
+- `compile-worker`: claims compile jobs and coordinates PostgreSQL/object
+  state with the filesystem request queue; does not invoke a compiler.
+- `compiler-runner`: consumes one filesystem-queued compile request at a time;
+  has the compiler toolchain but no network or application secrets.
 - `match-worker`: claims match jobs only; starts with exactly one replica.
 - `migrate`: a one-shot invocation used during deployment.
 
@@ -103,14 +109,14 @@ existing database and object store.
 | --- | --- | --- |
 | Application | Explicit web, compile, match, migrate, and local `all` roles | Keep role compatibility across rolling upgrades |
 | Jobs | PostgreSQL queue with claims, worker IDs, and renewable leases | Ranked-set finalization still limits match processing to one global consumer |
-| Compilation | Independent worker image, deterministic cache keys, resource limits | Build inputs/outbound networking are not hardened for arbitrary strangers |
+| Compilation | Networkless unprivileged runner, baked inputs, durable admission limits, deterministic cache keys, cgroup/tmpfs limits | Move the runner to a dedicated VPS if measured load or abuse warrants it |
 | Matches | Deterministic WASM execution with fuel and memory limits | Forced-death retry and concurrent-finalization tests remain |
 | Artifacts | Immutable, content-hashed objects behind `IObjectStore` | Local backend must become S3-compatible before workers move hosts |
 | Replays | Stable object keys and authorization-gated streaming | Local backend remains a single-host dependency |
 | Authentication | Shared provisioned OpenIddict certificates; Data Protection keys in PostgreSQL | Operational certificate rotation still needs rehearsal |
 | Database | One-shot migration role and expansion-safe key migration | Backup restore rehearsal and monitoring remain |
 | Edge | Caddy, trusted forwarded headers, secure cookies, live/ready health | External uptime alerting remains |
-| Operations | Commit-tagged Compose deployment and backup/deploy runbooks | Off-host backup automation, log alerts, and restore rehearsal remain |
+| Operations | Manual Actions release, two GHCR images, digest deployment, SBOM/provenance, backup/deploy runbooks | Off-host logical backup automation, log alerts, and restore rehearsal remain |
 
 The first implementation work should remove these gaps without changing the
 game architecture.
@@ -133,7 +139,7 @@ authorization and lifecycle policy, not in storage mechanics.
 Initial implementations:
 
 - `LocalObjectStore`, rooted under `BOTARENA_DATA`, for development and the
-  first private VPS.
+  first VPS.
 - `S3ObjectStore`, for any S3-compatible external provider before a second VPS
   is introduced.
 
@@ -211,7 +217,7 @@ adjacent application versions can process the same queued work.
 
 Start with Ubuntu 26.04 LTS on an x86-64 VPS:
 
-- workable private-pilot minimum: 2 vCPU, 4 GB RAM;
+- workable beta minimum: 2 vCPU, 4 GB RAM;
 - more comfortable starting point: 4 vCPU, 8 GB RAM;
 - 40–80 GB SSD/NVMe, with disk alerts and off-site backups;
 - one compile worker until measurements show spare CPU and memory.
@@ -226,9 +232,10 @@ The production Compose definition should contain:
 - `caddy`
 - `web`
 - `match-worker` with one replica
-- `compile-worker` with one replica
+- `compile-worker` coordinator with one replica
+- `compiler-runner` with one replica and no network
 - `postgres`
-- a scheduled backup job
+- persistent Caddy/PostgreSQL/object volumes
 
 Only Caddy publishes host ports. PostgreSQL, web port 8080, and worker
 processes stay on an internal Docker network. Persistent named volumes hold
@@ -263,37 +270,44 @@ cookies and public callback URLs.
 
 ## Public-submission security gate
 
-A friends-only pilot and an internet-open programming game are different
-security stages. Do not invite untrusted strangers to compile submissions
-until all of the following are complete:
+An internet-open programming game compiles hostile input by design. Public
+registration is acceptable only while all of the following remain enforced:
 
-- The controlled build accepts sources only and never trusts the submitted
+- [x] The controlled build accepts sources only and never trusts the submitted
   project file.
-- Required compiler/NuGet inputs are baked into the worker image or a
+- [x] Required compiler/NuGet inputs are baked into the worker image or a
   read-only cache so compilation runs without outbound network access.
-- Builds run as an unprivileged user with CPU, wall-clock, memory, process,
+- [x] Builds run as an unprivileged user with CPU, wall-clock, memory, process,
   file-size, and workspace-size limits.
-- The build workspace is disposable; the container has no web/auth secrets and
+- [x] The build workspace is disposable; the container has no web/auth secrets and
   no Docker socket.
-- The compile worker can be placed on a separate VPS for defense in depth.
-- Request-size, submission-frequency, and per-account limits are enforced.
-- Failed and timed-out builds cannot leave child processes or fill the disk.
-- Dependency and base-image updates have a routine cadence.
+- [x] The compiler runner has no container network and communicates through a
+  bounded filesystem queue.
+- [x] Request-size, account, network, account-queue, and global-queue limits are
+  enforced; durable admission uses PostgreSQL locks.
+- [x] Failed and timed-out builds cannot leave child processes or persistent
+  workspaces.
+- [x] WASM outputs are validated against the allowed ABI/import/memory contract
+  before storage.
+- [x] Hostile validation, queue recovery, real PostgreSQL admission, and real
+  networkless compile tests pass.
+- [ ] Dependency and base-image updates have a documented recurring cadence.
 
-WASM fuel and memory limits protect match execution, but compiler isolation is
-a separate boundary. The current plan's remaining network-less build and
-cgroup work is therefore a launch gate for a public service, not optional
-polish.
+The runner is intentionally a sidecar on the first VPS. Moving it to a
+dedicated x86-64 VPS is the next defense-in-depth step when queue latency, host
+contention, or abuse makes that operational cost worthwhile; it is not a
+public-beta prerequisite.
 
 ## Deployment and rollback
 
 Use a deliberately boring release flow:
 
-1. CI runs the full test suite and builds an image tagged with the Git commit
-   SHA.
-2. Push the immutable image to a registry.
+1. A manually triggered GitHub Actions workflow runs the full end-to-end
+   suite. No push or pull-request trigger consumes the free Actions tier.
+2. For a publish operation, build separate runtime and compiler images tagged
+   with the full Git commit SHA and push them to GHCR with SBOM and provenance.
 3. Take or verify a recent database backup.
-4. Pull the new image on the VPS.
+4. Pass the resulting immutable image digests to the VPS.
 5. Stop/drain workers.
 6. Run the one-shot migration command exactly once.
 7. Start web and workers with the new image.
@@ -358,27 +372,24 @@ becomes materially difficult.
 
 ## Scaling ladder and promotion triggers
 
-### Stage 1: one VPS, private pilot
+### Stage 1: one VPS, public beta
 
-Everything runs in one Compose project. Use local object storage with off-site
-backups. Keep one compile and one match worker.
+Everything runs in one Compose project. Registration is public, compiler
+admission is bounded, and the compiler runner is offline. Use local object
+storage with off-site backups. Keep one compile and one match worker.
 
-Promote when friends can register, submit, play, watch, and survive a restore
-test—not merely when the homepage loads.
+Promote only after real usage shows a reason: register, submit, play, watch,
+monitor queue pressure, and survive a restore test—not merely when the
+homepage loads.
 
-### Stage 2: one VPS, public beta
+### Stage 2: first additional VPS
 
-Complete the public-submission security gate. Use an external S3-compatible
-object store if losing local replay/artifact data would be unacceptable.
-Establish monitoring, abuse controls, and a tested rollback.
-
-### Stage 3: first additional VPS
-
-The likely first bottleneck is compilation. Move `compile-worker` to a second
-x86-64 VPS connected over a provider-private network or WireGuard/Tailscale.
-Switch artifacts and replays to the private S3-compatible store first.
-PostgreSQL may remain on the original machine, reachable only over the private
-network and firewall-restricted to known hosts.
+The likely first bottleneck is compilation. Move the compilation coordinator
+and its networkless runner together to a second x86-64 VPS connected over a
+provider-private network or WireGuard/Tailscale. Keep their filesystem queue
+local to that host. Switch artifacts and replays to the private S3-compatible
+store first. PostgreSQL may remain on the original machine, reachable only
+over the private network and firewall-restricted to known hosts.
 
 Add a compile worker when any of these persist under normal use:
 
@@ -387,7 +398,7 @@ Add a compile worker when any of these persist under normal use:
 - memory pressure or OOM events threaten the web/database roles;
 - builds noticeably degrade spectator/API latency.
 
-### Stage 4: horizontal web capacity
+### Stage 3: horizontal web capacity
 
 Run two or more `web` roles behind Caddy only after shared keys, object
 storage, one-shot migrations, and role separation are complete. Configure
@@ -399,7 +410,7 @@ Add a web instance when p95 API latency or availability is poor while the
 database and workers are healthy. One Caddy instance can remain the edge for
 considerable traffic; this stage adds capacity, not full high availability.
 
-### Stage 5: database separation
+### Stage 4: database separation
 
 Move PostgreSQL to its own VPS or a managed service when database resource
 contention, backup burden, or desired recovery time—not fashion—justifies it.
@@ -407,7 +418,7 @@ Prefer one well-backed-up primary over a self-managed cluster. Add a connection
 pooler or read replicas only after connection or read measurements demonstrate
 the need.
 
-### Stage 6: higher availability
+### Stage 5: higher availability
 
 Only pursue redundant edge nodes, automated failover, multi-zone databases,
 or an orchestrator after downtime has a real user or revenue cost. Capacity
@@ -418,7 +429,8 @@ PostgreSQL, and object storage can each remain a single failure point.
 
 ### Milestone A — scale-ready application boundaries
 
-- [x] Add explicit web/compile-worker/match-worker/migrate roles.
+- [x] Add explicit web/compile-worker/compiler-runner/match-worker/migrate
+      roles.
 - [x] Stop starting `JobWorker` in every web process.
 - [x] Add `IObjectStore` plus local implementation.
 - [x] Migrate artifact/replay database fields from host paths to object keys.
@@ -432,7 +444,10 @@ PostgreSQL, and object storage can each remain a single failure point.
 ### Milestone B — reproducible single-VPS deployment
 
 - [x] Add production Compose configuration with Caddy and explicit roles.
-- [x] Build immutable runtime/compiler image targets tagged by commit SHA.
+- [x] Build separate immutable runtime/compiler image targets tagged by commit
+      SHA and deploy them by registry digest.
+- [x] Add a manual-only GitHub Actions verify/publish/deploy workflow.
+- [x] Publish SBOM and provenance attestations with both GHCR images.
 - [x] Add a documented `.env.example` containing names, never secrets.
 - [x] Add database/object backup and restore runbook plus database backup script.
 - [x] Add deployment, health smoke-test, and rollback commands.
@@ -441,17 +456,22 @@ PostgreSQL, and object storage can each remain a single failure point.
 
 ### Milestone C — public submission hardening
 
-- [ ] Vendor/cache all required compiler inputs into the image.
-- [ ] Disable build-time outbound networking.
-- [ ] Add cgroup memory plus CPU/PID/file/workspace limits.
-- [ ] Ensure cleanup survives cancellation, timeout, and worker death.
-- [ ] Confirm compile workers receive no web/auth secrets.
-- [ ] Run hostile-input and resource-exhaustion tests.
+- [x] Vendor/cache all required compiler inputs into the image.
+- [x] Disable build-time outbound networking.
+- [x] Add cgroup memory plus CPU/PID/file/workspace limits.
+- [x] Ensure cleanup survives cancellation, timeout, and worker death.
+- [x] Confirm the compiler runner receives no web/auth secrets.
+- [x] Add durable account/network/queue admission limits.
+- [x] Validate produced WASM before accepting it.
+- [x] Publish build receipts and immutable artifacts without exposing source.
+- [x] Run hostile-input, queue-recovery, PostgreSQL-concurrency, and real
+      networkless compiler tests.
 
 ### Milestone D — second-VPS readiness
 
 - [ ] Add and test the S3-compatible object-store backend.
-- [ ] Move a compile worker across a private VPS network.
+- [ ] Move a compiler runner/coordinator across a private VPS network if
+      measurements justify it.
 - [x] Add worker IDs and lease renewal.
 - [ ] Prove compile job retry/idempotency through forced worker termination.
 - [ ] Make ranked-set finalization transactionally exactly-once before adding

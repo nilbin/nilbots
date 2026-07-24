@@ -30,7 +30,7 @@ services:
 
   migrate:
     platform: linux/amd64
-    image: "botarena-runtime:${BOTARENA_IMAGE_TAG:-local}"
+    image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
     environment:
       <<: *database-environment
@@ -46,7 +46,7 @@ services:
 
   web:
     platform: linux/amd64
-    image: "botarena-runtime:${BOTARENA_IMAGE_TAG:-local}"
+    image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
     restart: unless-stopped
     environment:
@@ -56,6 +56,13 @@ services:
       BOTARENA_OPENIDDICT_SIGNING_CERT: "/run/botarena-secrets/openiddict-signing.pfx"
       BOTARENA_OPENIDDICT_ENCRYPTION_CERT: "/run/botarena-secrets/openiddict-encryption.pfx"
       BOTARENA_OPENIDDICT_CERT_PASSWORD: "${BOTARENA_OPENIDDICT_CERT_PASSWORD}"
+      BOTARENA_NETWORK_HASH_KEY: "${BOTARENA_NETWORK_HASH_KEY:-${BOTARENA_OPENIDDICT_CERT_PASSWORD}}"
+      BOTARENA_COMPILE_ACCOUNT_10M: "${BOTARENA_COMPILE_ACCOUNT_10M:-6}"
+      BOTARENA_COMPILE_ACCOUNT_DAILY: "${BOTARENA_COMPILE_ACCOUNT_DAILY:-30}"
+      BOTARENA_COMPILE_NETWORK_10M: "${BOTARENA_COMPILE_NETWORK_10M:-12}"
+      BOTARENA_COMPILE_NETWORK_DAILY: "${BOTARENA_COMPILE_NETWORK_DAILY:-60}"
+      BOTARENA_COMPILE_ACCOUNT_QUEUED: "${BOTARENA_COMPILE_ACCOUNT_QUEUED:-2}"
+      BOTARENA_COMPILE_GLOBAL_QUEUED: "${BOTARENA_COMPILE_GLOBAL_QUEUED:-20}"
     volumes:
       - objectdata:/data:ro
       - ./secrets:/run/botarena-secrets:ro
@@ -75,7 +82,7 @@ services:
 
   match-worker:
     platform: linux/amd64
-    image: "botarena-runtime:${BOTARENA_IMAGE_TAG:-local}"
+    image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
     restart: unless-stopped
     environment:
@@ -102,31 +109,77 @@ services:
 
   compile-worker:
     platform: linux/amd64
-    image: "botarena-compiler:${BOTARENA_IMAGE_TAG:-local}"
-    build:
-      context: ..
-      target: compiler
+    image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
+    build: *runtime-build
     restart: unless-stopped
     environment:
       <<: *database-environment
       BOTARENA_ROLE: "compile-worker"
       BOTARENA_INSTANCE_ID: "${BOTARENA_COMPILE_INSTANCE_ID:-compile-1}"
       BOTARENA_COMPILE_WORKERS: "${BOTARENA_COMPILE_WORKERS:-1}"
-      WASI_SDK_PATH: "/opt/botarena/wasi-sdk-29.0"
+      BOTARENA_COMPILER_IPC: "/compiler-ipc"
+      BOTARENA_COMPILER_IMAGE_REFERENCE: "${BOTARENA_COMPILER_IMAGE:-local}"
+      BOTARENA_RELEASE_GIT_SHA: "${BOTARENA_RELEASE_GIT_SHA:-local}"
     volumes:
       - objectdata:/data
-      - buildcache:/root/.botarena
-      - botbuildhome:/var/lib/botbuild
+      - compileripc:/compiler-ipc
     networks:
       - backend
     depends_on:
       migrate:
         condition: service_completed_successfully
+      compiler-runner:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: "${BOTARENA_COMPILE_COORDINATOR_MEMORY:-512m}"
+    cpus: "${BOTARENA_COMPILE_COORDINATOR_CPUS:-0.5}"
+    stop_grace_period: 5m
+
+  compiler-runner:
+    platform: linux/amd64
+    image: "${BOTARENA_COMPILER_IMAGE:-botarena-compiler:${BOTARENA_IMAGE_TAG:-local}}"
+    build:
+      context: ..
+      target: compiler
+    restart: unless-stopped
+    environment:
+      BOTARENA_ROLE: "compiler-runner"
+      BOTARENA_COMPILER_IPC: "/compiler-ipc"
+      BOTARENA_BUILD_TIMEOUT_SECONDS: "${BOTARENA_BUILD_TIMEOUT_SECONDS:-300}"
+      WASI_SDK_PATH: "/opt/botarena/wasi-sdk-29.0"
+    volumes:
+      - compileripc:/compiler-ipc
+    network_mode: "none"
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+      - /work:size=${BOTARENA_COMPILE_WORKSPACE_SIZE:-1g},mode=0700,uid=1654,gid=1654
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     init: true
-    pids_limit: 768
+    pids_limit: 512
     mem_limit: "${BOTARENA_COMPILE_MEMORY:-3g}"
     cpus: "${BOTARENA_COMPILE_CPUS:-3}"
-    stop_grace_period: 5m
+    ulimits:
+      fsize:
+        soft: 536870912
+        hard: 536870912
+      nofile:
+        soft: 1024
+        hard: 1024
+      nproc:
+        soft: 512
+        hard: 512
+    stop_grace_period: 6m
 
   caddy:
     image: caddy:2-alpine
@@ -152,8 +205,7 @@ services:
 volumes:
   dbdata:
   objectdata:
-  buildcache:
-  botbuildhome:
+  compileripc:
   caddydata:
   caddyconfig:
 

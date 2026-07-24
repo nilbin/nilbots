@@ -19,6 +19,8 @@ public static class BotBuilder
 {
     public const int MaxSourceFiles = 16;
     public const int MaxTotalSourceBytes = 256 * 1024;
+    public const int MaxBuildLogCharacters = 1024 * 1024;
+    public const int MaxArtifactBytes = 16 * 1024 * 1024;
 
     // Parallel compile lanes (DECISIONS #42) make this class multi-threaded: builds of
     // the same cache key share a workspace and must serialize; distinct keys don't.
@@ -40,7 +42,6 @@ public static class BotBuilder
         IReadOnlyList<SourceFile> sources, string entryType, string displayName,
         bool noCache = false, bool quiet = false)
     {
-        ValidateSubmission(sources, entryType);
         string cacheKey = ComputeCacheKey(sources, entryType);
         string cacheDir = Path.Combine(ToolchainInfo.CacheRoot, cacheKey[..24]);
         string wasmPath = Path.Combine(cacheDir, "bot.wasm");
@@ -112,7 +113,10 @@ public static class BotBuilder
               </ItemGroup>
             </Project>
             """);
-        string nugetConfig = Path.Combine(repoRoot, "nuget.config");
+        string nugetConfig =
+            Environment.GetEnvironmentVariable("BOTARENA_NUGET_CONFIG") is { Length: > 0 } configured
+                ? configured
+                : Path.Combine(repoRoot, "nuget.config");
         if (File.Exists(nugetConfig))
             File.Copy(nugetConfig, Path.Combine(workspace, "nuget.config"));
 
@@ -142,21 +146,34 @@ public static class BotBuilder
         using (var logWriter = new StreamWriter(buildLogPath, append: false) { AutoFlush = true })
         {
             using var process = Process.Start(startInfo)!;
+            bool logTruncated = false;
             void OnLine(object sender, DataReceivedEventArgs e)
             {
                 if (e.Data is null)
                     return;
                 lock (outputBuffer)
                 {
-                    outputBuffer.AppendLine(e.Data);
-                    logWriter.WriteLine(e.Data);
+                    int remaining = MaxBuildLogCharacters - outputBuffer.Length;
+                    if (remaining > 0)
+                    {
+                        string line = e.Data.Length <= remaining ? e.Data : e.Data[..remaining];
+                        outputBuffer.AppendLine(line);
+                        logWriter.WriteLine(line);
+                    }
+                    else if (!logTruncated)
+                    {
+                        const string marker = "[build log truncated at 1 MiB]";
+                        outputBuffer.AppendLine(marker);
+                        logWriter.WriteLine(marker);
+                        logTruncated = true;
+                    }
                 }
             }
             process.OutputDataReceived += OnLine;
             process.ErrorDataReceived += OnLine;
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
-            if (!process.WaitForExit(TimeSpan.FromMinutes(5)))
+            if (!process.WaitForExit(BuildTimeout()))
             {
                 // Killing the local `docker run` client does not necessarily stop
                 // its daemon-owned container (observed on Docker Desktop). Remove
@@ -166,7 +183,9 @@ public static class BotBuilder
                     WasmBuildPlatform.AbortDockerPublish(startInfo);
                 if (!process.HasExited)
                     process.Kill(entireProcessTree: true);
-                throw new BotBuildException("Build timed out after 5 minutes.", outputBuffer.ToString());
+                throw new BotBuildException(
+                    $"Build timed out after {BuildTimeout().TotalMinutes:0.#} minutes.",
+                    outputBuffer.ToString());
             }
             process.WaitForExit(); // drain the async output streams
             if (process.ExitCode != 0)
@@ -180,6 +199,10 @@ public static class BotBuilder
         string produced = Path.Combine(workspace, "bin", "Release", "net10.0", "wasi-wasm", "native", "bot.wasm");
         if (!File.Exists(produced))
             throw new BotBuildException($"Build succeeded but no artifact at {produced}.", output);
+        if (new FileInfo(produced).Length > MaxArtifactBytes)
+            throw new BotBuildException(
+                $"Compiled artifact exceeds the {MaxArtifactBytes / 1024 / 1024} MiB limit.",
+                output);
         File.Copy(produced, wasmPath, overwrite: true);
         if (isolated)
             Directory.Delete(workspace, recursive: true);
@@ -224,6 +247,16 @@ public static class BotBuilder
     /// </summary>
     public static string EnsureToolchainAssemblies(string repoRoot)
     {
+        if (Environment.GetEnvironmentVariable("BOTARENA_TOOLCHAIN_LIBS") is { Length: > 0 } provisioned)
+        {
+            string sdk = Path.Combine(provisioned, "BotArena.Sdk.dll");
+            string guest = Path.Combine(provisioned, "BotArena.Guest.dll");
+            if (!File.Exists(sdk) || !File.Exists(guest))
+                throw new InvalidOperationException(
+                    $"Provisioned toolchain assemblies are incomplete at {provisioned}.");
+            return provisioned;
+        }
+
         string libsDir = Path.Combine(ToolchainInfo.CacheRoot,
             "toolchain-" + ToolchainInfo.GuestAdapterVersion);
         string sdkDll = Path.Combine(libsDir, "BotArena.Sdk.dll");
@@ -269,24 +302,44 @@ public static class BotBuilder
         if (sources.Count > MaxSourceFiles)
             throw new BotBuildException($"Too many source files (max {MaxSourceFiles}).", "");
         long total = 0;
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var source in sources)
         {
             if (!source.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
                 throw new BotBuildException($"Only .cs files are accepted ('{source.RelativePath}').", "");
-            if (source.RelativePath.Contains("..") || Path.IsPathRooted(source.RelativePath))
+            if (source.RelativePath.Length > 160 ||
+                !System.Text.RegularExpressions.Regex.IsMatch(
+                    source.RelativePath,
+                    @"^[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$") ||
+                source.RelativePath.Split('/').Any(part => part is "." or "..") ||
+                Path.IsPathRooted(source.RelativePath))
                 throw new BotBuildException($"Invalid source path '{source.RelativePath}'.", "");
             if (Path.GetFileName(source.RelativePath) == "__BotArenaMain.cs")
                 throw new BotBuildException("Reserved file name __BotArenaMain.cs.", "");
+            if (!paths.Add(source.RelativePath))
+                throw new BotBuildException($"Duplicate source path '{source.RelativePath}'.", "");
             total += Encoding.UTF8.GetByteCount(source.Content);
         }
         if (total > MaxTotalSourceBytes)
             throw new BotBuildException($"Sources too large (max {MaxTotalSourceBytes / 1024} KB).", "");
-        if (!System.Text.RegularExpressions.Regex.IsMatch(entryType, @"^[A-Za-z_][A-Za-z0-9_.]*$"))
+        if (entryType.Length > 200 ||
+            !System.Text.RegularExpressions.Regex.IsMatch(entryType, @"^[A-Za-z_][A-Za-z0-9_.]*$"))
             throw new BotBuildException($"Invalid entry type '{entryType}'.", "");
+    }
+
+    private static TimeSpan BuildTimeout()
+    {
+        int seconds = int.TryParse(
+            Environment.GetEnvironmentVariable("BOTARENA_BUILD_TIMEOUT_SECONDS"),
+            out int configured)
+            ? Math.Clamp(configured, 30, 900)
+            : 300;
+        return TimeSpan.FromSeconds(seconds);
     }
 
     public static string ComputeCacheKey(IReadOnlyList<SourceFile> sources, string entryType)
     {
+        ValidateSubmission(sources, entryType);
         using var sha = SHA256.Create();
         void Add(string label, byte[] content)
         {

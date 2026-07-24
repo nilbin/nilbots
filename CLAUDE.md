@@ -91,10 +91,13 @@ Project boundaries that must not be violated:
   Matches, Jobs). Modules talk in-process; durable work goes through the
   `BackgroundJobs` table claimed via `FOR UPDATE SKIP LOCKED`. Deployment
   roles are selected with `BOTARENA_ROLE`: `web`, `compile-worker`,
-  `match-worker`, `migrate`, or local-only `all`. Production runs exactly one
+  `compiler-runner`, `match-worker`, `migrate`, or local-only `all`.
+  Production's networked `compile-worker` coordinates database jobs with a
+  filesystem queue; the `compiler-runner` compiles one request at a time with
+  no container network or application secrets. Production runs exactly one
   match worker because ranked-set finalization is not yet safe for concurrent
-  match consumers; compile workers may scale independently. There is still no
-  message broker or microservice boundary.
+  match consumers; compilation capacity may scale independently. There is
+  still no message broker or microservice boundary.
 - Durable artifacts and replays are addressed by stable object keys through
   `IObjectStore`; database rows must never regain machine-local paths. The
   first-VPS backend is a local persistent volume. Add an S3-compatible backend
@@ -103,6 +106,9 @@ Project boundaries that must not be violated:
   performs the one-shot deployment bootstrap. ASP.NET Data Protection keys
   live in PostgreSQL, and production OpenIddict certificates are provisioned
   shared secrets rather than generated independently by each process.
+- Production releases are manual-only GitHub Actions runs. They publish the
+  runtime and compiler images to GHCR with immutable SHA tags, digest-pinned
+  deployment references, SBOMs, and provenance attestations.
 
 Runtime protocol 0.1 is a line-oriented text protocol over two wasm imports
 (`botarena::next_observation` / `post_decision`). Host and guest halves live in

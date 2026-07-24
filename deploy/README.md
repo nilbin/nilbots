@@ -1,10 +1,19 @@
 # Nilbots production deployment
 
-This directory is the single-VPS production shape from
+This directory is the public-beta, single-VPS production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):
-Caddy, one web role, one match worker, one compile worker, PostgreSQL, and a
-private local object volume. The roles are separate processes of the same
-modular monolith.
+Caddy, one web role, one match worker, a compilation coordinator, a
+networkless compiler runner, PostgreSQL, and a private local object volume.
+The application roles remain separate processes of the same modular monolith.
+
+Production uses two custom images:
+
+- `nilbots-runtime`: web, migrations, match worker, and compilation
+  coordinator;
+- `nilbots-compiler`: the unprivileged, offline compiler runner.
+
+GitHub Actions publishes both to GHCR by immutable digest. It is deliberately
+manual-only: no push or pull-request event consumes Actions minutes.
 
 ## Host prerequisites
 
@@ -51,15 +60,25 @@ set +a
 bash scripts/generate-deployment-certificates.sh "$PWD/deploy/secrets"
 ```
 
-Check that DNS is live, then deploy:
+Check that DNS is live, then perform a local-image deployment:
 
 ```bash
-bash deploy/deploy.sh
+bash deploy/deploy.sh --build-local
 ```
 
-The script tags images with the current Git commit, starts PostgreSQL, runs the
-one-shot migration/seeding role, waits for web and worker readiness, and then
-starts Caddy. Verify:
+The normal production release path is the repository's **Manual release**
+workflow:
+
+- `verify` runs the end-to-end test pipeline only;
+- `publish` also publishes both SHA-tagged images, SBOMs, and GitHub build
+  provenance to GHCR;
+- `publish-and-deploy` additionally deploys those exact image digests to the
+  production environment.
+
+The deploy script validates immutable GHCR digests, starts PostgreSQL, takes
+and validates a local pre-release database dump, drains workers, runs the
+one-shot migration/seeding role, waits for the compiler runner, web, and
+workers, and then starts Caddy. Verify:
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/compose.production.yml ps
@@ -68,15 +87,22 @@ curl --fail "https://$(awk -F= '/^BOTARENA_DOMAIN=/{print $2}' deploy/.env)/heal
 
 ## Updating
 
-1. Fetch and check out the exact reviewed commit.
-2. Take a database backup and ensure it has copied off the VPS.
-3. Run `bash deploy/deploy.sh`.
-4. Test login, `/api/meta`, a submission, one match, and replay playback.
+1. Select the exact reviewed commit in GitHub Actions.
+2. Run **Manual release** with `publish-and-deploy`.
+3. Confirm every service is healthy.
+4. Test registration/login, `/api/meta`, a submission, its public build
+   receipt and WASM artifact, one match, and replay playback.
 
-The deploy script drains job workers before migration. The migration uses an
-expand-first schema change where rollback compatibility matters. To roll back,
-check out the previous commit and rerun the script; do not reverse a database
-migration unless that release explicitly documents a safe downgrade.
+The deploy script retains the previous digest pair. To roll back application
+images:
+
+```bash
+bash deploy/deploy.sh --rollback
+```
+
+The migration uses an expand-first schema change where rollback compatibility
+matters. Do not reverse a database migration unless that release explicitly
+documents a safe downgrade.
 
 ## Backup
 
@@ -108,13 +134,22 @@ job failure, and the age of the oldest pending job.
 
 ## Security boundary
 
-This layout is appropriate for a private/friends pilot. Do not accept
-submissions from arbitrary strangers until the public-submission gate in the
-deployment plan is complete: compiler inputs vendored, outbound build network
-disabled, cgroup/workspace limits verified, and hostile-input tests passing.
+Registration is public. Compilation admission is bounded durably in
+PostgreSQL by account, server-keyed `/24` IPv4 or `/64` IPv6 network
+pseudonym, per-account queue depth, and global queue depth. Caddy and Kestrel
+both reject oversized submission bodies.
 
-The production Caddyfile therefore returns `403` from the public registration
-endpoint by default. Keep public viewing and existing-account login available;
-replace the edge rule with an application-level invitation flow before
-inviting pilot players. Do not simply remove it for open internet registration
-until the full public-submission gate is complete.
+The networked `compile-worker` is only a coordinator: it reads jobs and moves
+files through a shared queue. The `compiler-runner` has no network, database,
+object-store, authentication, registry, or Docker credentials. It runs as UID
+1654 with a read-only root filesystem, dropped capabilities, PID/memory/CPU/
+file limits, and disposable tmpfs workspaces. Its required SDK, guest, NuGet,
+and WASI inputs are baked into the compiler image.
+
+Successful builds are validated as WASM before storage. The bot detail API
+publishes a build receipt and content hash, and the immutable WASM artifact is
+publicly downloadable; submitted source and compiler logs remain owner-only.
+
+This is a strong hobby public-beta boundary, not a claim that compiling hostile
+code is risk-free. Monitor queue pressure and failures. A dedicated compiler
+VPS remains the next defense-in-depth move if usage or abuse justifies it.
