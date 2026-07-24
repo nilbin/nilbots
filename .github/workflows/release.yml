@@ -165,6 +165,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Check out selected revision
         uses: actions/checkout@v6
@@ -185,13 +186,16 @@ jobs:
       - name: Smoke-test installed global tool
         run: bash scripts/test-packaged-cli.sh artifacts/nuget
 
+      - name: Obtain short-lived NuGet.org credential
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
       - name: Publish Nilbots global tool
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          test -n "$NUGET_API_KEY"
           dotnet nuget push "artifacts/nuget/Nilbots.*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
