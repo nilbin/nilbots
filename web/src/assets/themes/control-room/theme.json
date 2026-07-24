@@ -3,7 +3,7 @@
   "label": "Control Room",
   "textures": {
     "floor": "floor-metal.png",
-    "wall": "wall-bulkhead.png"
+    "wall": "wall-bulkhead-v2.png"
   },
   "palette": {
     "canvas": "#05080d",
@@ -12,6 +12,6 @@
     "wallTint": "rgba(4, 8, 13, 0.20)",
     "zone": "#fbbf24",
     "frame": "#26384b",
-    "serviceLight": "#38bdf8"
+    "wallShadow": "rgba(0, 0, 0, 0.46)"
   }
 }

@@ -16,8 +16,9 @@ visibility, projectiles, or outcomes.
 - Props must tell the truth. Solid-looking machinery belongs on blocked tiles;
   walkable tiles may contain only flat details such as seams, stains, lights,
   cables, or grates.
-- Presentation randomness is derived from stable map ID and cell coordinates.
-  It must not flicker between frames or depend on `Math.random()`.
+- Map-scale features such as rivers, trenches, cable runs, or vegetation paths
+  must be explicit map presentation data. They do not belong in a reusable
+  base material where collision could arbitrarily cut them.
 
 Each `maps/*.json` document names its standalone presentation package:
 
@@ -39,12 +40,12 @@ replays without the optional field fall back to `control-room`.
 web/src/assets/themes/control-room/
   theme.json
   floor-metal.png
-  wall-bulkhead.png
+  wall-bulkhead-v2.png
 
 web/src/assets/themes/overgrown-lab/
   theme.json
-  floor-ceramic.png
-  wall-overgrown.png
+  floor-ceramic-v2.png
+  wall-overgrown-v2.png
 
 web/src/assets/bot-looks/<look-id>/
   look.json
@@ -67,25 +68,23 @@ no TypeScript registry edit.
 - Opaque square PNG, currently 1024×1024.
 - Exactly orthographic/top-down; no horizon or perspective.
 - Even upper-left illumination without a central spotlight.
-- Large readable material features; avoid high-frequency noise that aliases at
-  a 40–70 px tile.
-- No baked gameplay grid, props, text, logos, or deep shadows.
-- The renderer maps the full image continuously across the arena. Adjacent
-  gameplay cells sample adjacent UV rectangles, so seams and channels cannot
-  become a shuffled collage.
-- Sparse coordinate-stable service details are layered on top. The renderer
-  does not draw gameplay-cell borders; the material owns its visible seams.
+- Medium-scale readable material detail; avoid high-frequency noise that
+  aliases at a 40–70 px gameplay cell.
+- No baked gameplay grid, props, text, logos, deep shadows, or map-scale
+  features such as rivers and long conduits.
+- The renderer maps the image once across the whole arena below the wall mask.
+  It does not slice, shuffle, outline, or decorate individual gameplay cells.
 
 ### Wall material
 
 - Opaque square PNG, currently 1024×1024.
 - Top-down armored material, visually heavier than the floor.
 - No surrounding floor or outer ornamental frame.
-- Must read coherently as a continuous material field. Only regions selected by
-  `#` cells are visible, but neighboring wall cells share adjacent UVs.
-- The renderer uses the ASCII wall mask only to reveal the corresponding
-  material regions and add occasional service lights. It does not outline or
-  bevel individual wall cells; the source material owns seams and depth cues.
+- Must be homogeneous and mask-safe: no large frames, rails, conduits, or
+  motifs that look broken when the wall silhouette clips them.
+- The renderer constructs one connected shape from all `#` cells, clips one
+  material field through it, and applies one subtle silhouette shadow. It does
+  not render independent wall sprites or cell borders.
 
 ### Palette and registration
 
@@ -94,7 +93,7 @@ Create `web/src/assets/themes/<theme-id>/theme.json` with:
 - Stable ID and player-facing label.
 - Floor and wall filenames relative to the manifest.
 - Canvas, floor, wall, frame, and objective-zone colors.
-- A service-light color.
+- A wall silhouette-shadow color.
 
 Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
 version. The loader discovers the package automatically. Do not add a viewer
@@ -179,8 +178,9 @@ production candidates, then normalized locally:
 - No text, branding, people, horizon, perspective, or scene-level spotlight.
 - Bot sources used a flat magenta removal background, no shadows, and one
   centered East-facing chassis.
-- Overgrown Lab uses pale ceramic/composite slabs, restrained moss and water
-  channels, and root-wrapped lab bulkheads.
+- Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
+  mask-safe reinforced lab plating. Water channels were removed from the base
+  material: a future river belongs in explicit map presentation data.
 
 Generate distinct assets separately rather than asking for one large atlas.
 Large generated atlases tend to drift in perspective and create mismatched

@@ -882,8 +882,10 @@ configuration) and changing them is a version bump, not an edit.
     Vanguard, Bulwark, Needle, and Orbiter; slot-based selection remains only
     for old replays without a `lookId`. Movement, turning, recoil, projectiles,
     damage, and destruction animate only from authoritative replay
-    states/events. Mutable viewer/account preferences must never rewrite
-    historical playback.
+    states/events. Base materials must be homogeneous and mask-safe; rivers,
+    trenches, cable runs, and other map-scale visual features require explicit
+    map presentation data rather than being baked into a reusable theme.
+    Mutable viewer/account preferences must never rewrite historical playback.
 
 ## Deferred decisions
 

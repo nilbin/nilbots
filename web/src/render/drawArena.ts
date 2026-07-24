@@ -109,51 +109,12 @@ export function drawArena(
     ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
     ctx.restore();
 
-    for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        if (mapTiles[y][x] === '#') continue;
-        if (!drawTextureCell(theme.floorTexture, x, y))
-          fallbackFloor(x, y);
-        ctx.fillStyle = theme.palette.floorTint;
-        ctx.fillRect(px(x), py(y), tile, tile);
-
-        const detail = cellHash(replay.header.mapId, x, y, 47);
-        if (detail % 29 === 0) drawServiceLight(x, y);
-        else if (detail % 31 === 0) drawFloorVent(x, y);
-      }
+    if (!drawTextureField(theme.floorTexture)) {
+      ctx.fillStyle = theme.palette.arena;
+      ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
     }
-  }
-
-  function fallbackFloor(x: number, y: number): void {
-    ctx.fillStyle = (x + y) % 2 === 0 ? '#101722' : '#0e141e';
-    ctx.fillRect(px(x), py(y), tile, tile);
-  }
-
-  function drawServiceLight(x: number, y: number): void {
-    const inset = tile * 0.23;
-    const barHeight = Math.max(1.5, tile * 0.055);
-    ctx.save();
-    ctx.shadowColor = theme.palette.serviceLight;
-    ctx.shadowBlur = Math.max(2, tile * 0.12);
-    ctx.fillStyle = hexWithAlpha(theme.palette.serviceLight, 0.78);
-    ctx.fillRect(px(x) + inset, py(y) + tile - inset, tile - inset * 2, barHeight);
-    ctx.restore();
-  }
-
-  function drawFloorVent(x: number, y: number): void {
-    const left = px(x) + tile * 0.2;
-    const top = py(y) + tile * 0.28;
-    ctx.fillStyle = 'rgba(2, 6, 11, 0.72)';
-    ctx.fillRect(left, top, tile * 0.6, tile * 0.44);
-    ctx.strokeStyle = 'rgba(105, 130, 157, 0.28)';
-    ctx.lineWidth = Math.max(1, tile * 0.025);
-    for (let i = 1; i < 5; i++) {
-      const lineY = top + (tile * 0.44 * i) / 5;
-      ctx.beginPath();
-      ctx.moveTo(left + tile * 0.08, lineY);
-      ctx.lineTo(left + tile * 0.52, lineY);
-      ctx.stroke();
-    }
+    ctx.fillStyle = theme.palette.floorTint;
+    ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
   }
 
   function drawZone(): void {
@@ -196,59 +157,46 @@ export function drawArena(
   }
 
   function drawWalls(): void {
+    const wallShape = new Path2D();
     for (let y = 0; y < mapHeight; y++) {
-      for (let x = 0; x < mapWidth; x++) {
-        if (mapTiles[y][x] !== '#') continue;
-        if (!drawTextureCell(theme.wallTexture, x, y)) {
-          ctx.fillStyle = '#2e3d55';
-          ctx.fillRect(px(x), py(y), tile, tile);
-        }
-        ctx.fillStyle = theme.palette.wallTint;
-        ctx.fillRect(px(x), py(y), tile, tile);
-
-        if (cellHash(replay.header.mapId, x, y, 131) % 23 === 0)
-          drawWallLight(x, y);
-      }
+      for (let x = 0; x < mapWidth; x++)
+        if (mapTiles[y][x] === '#')
+          wallShape.rect(px(x), py(y), tile, tile);
     }
-  }
 
-  function drawWallLight(x: number, y: number): void {
-    const width = tile * 0.42;
-    const height = Math.max(2, tile * 0.07);
-    const left = px(x) + (tile - width) / 2;
-    const top = py(y) + tile * 0.2;
     ctx.save();
-    ctx.shadowColor = theme.palette.serviceLight;
-    ctx.shadowBlur = Math.max(3, tile * 0.16);
-    ctx.fillStyle = hexWithAlpha(theme.palette.serviceLight, 0.9);
-    ctx.fillRect(left, top, width, height);
+    ctx.shadowColor = theme.palette.wallShadow;
+    ctx.shadowBlur = Math.max(3, tile * 0.12);
+    ctx.shadowOffsetY = Math.max(1, tile * 0.055);
+    ctx.fillStyle = theme.palette.wallShadow;
+    ctx.fill(wallShape);
+    ctx.restore();
+
+    ctx.save();
+    ctx.clip(wallShape);
+    if (!drawTextureField(theme.wallTexture)) {
+      ctx.fillStyle = '#2e3d55';
+      ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
+    }
+    ctx.fillStyle = theme.palette.wallTint;
+    ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
     ctx.restore();
   }
 
-  function drawTextureCell(
-    image: HTMLImageElement | null,
-    x: number,
-    y: number,
-  ): boolean {
+  function drawTextureField(image: HTMLImageElement | null): boolean {
     if (!image?.complete || image.naturalWidth === 0) return false;
-    // The texture is one continuous material field over the whole map. Each
-    // gameplay cell samples the corresponding adjacent UV rectangle, so plate
-    // seams and structural lines continue across tile boundaries instead of
-    // looking like a shuffled collage.
-    const sourceWidth = image.naturalWidth / mapWidth;
-    const sourceHeight = image.naturalHeight / mapHeight;
-    const sourceX = x * sourceWidth;
-    const sourceY = y * sourceHeight;
+    // Materials are mapped once over the arena, then geometry masks reveal
+    // them. The renderer never slices them into independently bordered cells.
     ctx.drawImage(
       image,
-      sourceX,
-      sourceY,
-      sourceWidth,
-      sourceHeight,
-      px(x),
-      py(y),
-      tile,
-      tile,
+      0,
+      0,
+      image.naturalWidth,
+      image.naturalHeight,
+      px(0),
+      py(0),
+      tile * mapWidth,
+      tile * mapHeight,
     );
     return true;
   }
@@ -741,13 +689,6 @@ function nameHash(name: string): number {
   let hash = 2166136261;
   for (let i = 0; i < name.length; i++) hash = ((hash ^ name.charCodeAt(i)) * 16777619) >>> 0;
   return hash;
-}
-
-function cellHash(mapId: string, x: number, y: number, salt: number): number {
-  let hash = nameHash(mapId) ^ salt;
-  hash = Math.imul(hash ^ (x + 0x9e3779b9), 0x85ebca6b);
-  hash = Math.imul(hash ^ (y + 0xc2b2ae35), 0x27d4eb2f);
-  return (hash ^ (hash >>> 16)) >>> 0;
 }
 
 function hexWithAlpha(hex: string, alpha: number): string {

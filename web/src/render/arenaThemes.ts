@@ -19,7 +19,7 @@ export interface ArenaTheme {
     wallTint: string;
     zone: string;
     frame: string;
-    serviceLight: string;
+    wallShadow: string;
   };
 }
 
