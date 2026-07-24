@@ -1,0 +1,4 @@
+interface:
+  display_name: "Replay Highlights"
+  short_description: "Build and publish phone-friendly replay galleries"
+  default_prompt: "Use $replay-highlights to publish selected Bot Arena replays as a phone-friendly gallery."
