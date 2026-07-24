@@ -163,7 +163,7 @@ Animations describe recorded events; they do not create events.
 | Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
 | Damage | `Damage` event | Short brightness flash, ring, and radial sparks |
 | Destruction | `Destroyed` event | Collapse/rotation plus expanding sparks |
-| Zone activity | Recorded zone tiles/control state | Low-amplitude holographic pulse |
+| Zone activity | Recorded zone tiles/control state | Continuous themed fill with a pulsing exterior perimeter |
 | Fog/vision | Recorded visible tiles/enemies | Existing truthful visibility masks |
 
 Animation timing is expressed inside the current replay tick window. Do not

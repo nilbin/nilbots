@@ -119,28 +119,50 @@ export function drawArena(
 
   function drawZone(): void {
     if (!replay.header.zoneTiles) return;
-    const pulse = 0.68 + Math.sin(time * Math.PI * 2) * 0.12;
+    const pulse = 0.88 + Math.sin(time * Math.PI * 2) * 0.12;
+    const zoneTiles = new Set(
+      replay.header.zoneTiles.map(([x, y]) => `${x},${y}`),
+    );
+    const zoneShape = new Path2D();
+    for (const [x, y] of replay.header.zoneTiles)
+      zoneShape.rect(px(x), py(y), tile, tile);
+
+    ctx.save();
+    ctx.shadowColor = theme.palette.zone;
+    ctx.shadowBlur = Math.max(5, tile * 0.16);
+    ctx.fillStyle = hexWithAlpha(theme.palette.zone, 0.15 * pulse);
+    ctx.fill(zoneShape);
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = hexWithAlpha(theme.palette.zone, 0.72 * pulse);
+    ctx.lineWidth = Math.max(1.5, tile * 0.045);
+    ctx.lineCap = 'square';
+    ctx.setLineDash([Math.max(5, tile * 0.18), Math.max(3, tile * 0.11)]);
+    const strokeEdge = (
+      fromX: number,
+      fromY: number,
+      toX: number,
+      toY: number,
+    ) => {
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+    };
     for (const [x, y] of replay.header.zoneTiles) {
-      const centerX = px(x) + tile / 2;
-      const centerY = py(y) + tile / 2;
-      const gradient = ctx.createRadialGradient(
-        centerX,
-        centerY,
-        tile * 0.08,
-        centerX,
-        centerY,
-        tile * 0.7,
-      );
-      gradient.addColorStop(0, hexWithAlpha(theme.palette.zone, 0.16 * pulse));
-      gradient.addColorStop(1, hexWithAlpha(theme.palette.zone, 0));
-      ctx.fillStyle = gradient;
-      ctx.fillRect(px(x), py(y), tile, tile);
-      ctx.strokeStyle = hexWithAlpha(theme.palette.zone, 0.3 * pulse);
-      ctx.lineWidth = Math.max(1, tile * 0.025);
-      ctx.setLineDash([Math.max(3, tile * 0.13), Math.max(2, tile * 0.09)]);
-      ctx.strokeRect(px(x) + 2, py(y) + 2, tile - 4, tile - 4);
-      ctx.setLineDash([]);
+      const left = px(x);
+      const top = py(y);
+      if (!zoneTiles.has(`${x},${y - 1}`))
+        strokeEdge(left, top, left + tile, top);
+      if (!zoneTiles.has(`${x + 1},${y}`))
+        strokeEdge(left + tile, top, left + tile, top + tile);
+      if (!zoneTiles.has(`${x},${y + 1}`))
+        strokeEdge(left, top + tile, left + tile, top + tile);
+      if (!zoneTiles.has(`${x - 1},${y}`))
+        strokeEdge(left, top, left, top + tile);
     }
+    ctx.restore();
   }
 
   function drawFog(slot: number): void {
