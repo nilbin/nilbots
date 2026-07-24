@@ -83,8 +83,10 @@ no TypeScript registry edit.
 - Must be homogeneous and mask-safe: no large frames, rails, conduits, or
   motifs that look broken when the wall silhouette clips them.
 - The renderer constructs one connected shape from all `#` cells, clips one
-  material field through it, and applies one subtle silhouette shadow. It does
-  not render independent wall sprites or cell borders.
+  material field through it, and derives only the wall-to-floor perimeter from
+  ASCII adjacency. Theme-defined top/left highlights, south/right side faces,
+  and a soft silhouette shadow make internal wall islands read as raised
+  obstacles. No edge is drawn between adjacent wall cells.
 
 ### Palette and registration
 
@@ -93,7 +95,8 @@ Create `web/src/assets/themes/<theme-id>/theme.json` with:
 - Stable ID and player-facing label.
 - Floor and wall filenames relative to the manifest.
 - Canvas, floor, wall, frame, and objective-zone colors.
-- A wall silhouette-shadow color.
+- A `wall` treatment with normalized side depth plus edge, highlight, side-face,
+  and silhouette-shadow colors.
 
 Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
 version. The loader discovers the package automatically. Do not add a viewer

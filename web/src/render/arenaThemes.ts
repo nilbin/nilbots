@@ -12,6 +12,13 @@ export interface ArenaTheme {
   label: string;
   floorTexture: HTMLImageElement | null;
   wallTexture: HTMLImageElement | null;
+  wall: {
+    depth: number;
+    edge: string;
+    highlight: string;
+    side: string;
+    shadow: string;
+  };
   palette: {
     canvas: string;
     arena: string;
@@ -19,7 +26,6 @@ export interface ArenaTheme {
     wallTint: string;
     zone: string;
     frame: string;
-    wallShadow: string;
   };
 }
 
@@ -30,6 +36,7 @@ interface ThemeManifest {
     floor: string;
     wall: string;
   };
+  wall: ArenaTheme['wall'];
   palette: ArenaTheme['palette'];
 }
 
@@ -120,6 +127,7 @@ function buildThemes(): Map<string, ArenaTheme> {
       label: manifest.label,
       floorTexture: loadImage(floorUrl),
       wallTexture: loadImage(wallUrl),
+      wall: manifest.wall,
       palette: manifest.palette,
     });
   }

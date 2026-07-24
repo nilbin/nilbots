@@ -165,10 +165,11 @@ export function drawArena(
     }
 
     ctx.save();
-    ctx.shadowColor = theme.palette.wallShadow;
-    ctx.shadowBlur = Math.max(3, tile * 0.12);
-    ctx.shadowOffsetY = Math.max(1, tile * 0.055);
-    ctx.fillStyle = theme.palette.wallShadow;
+    ctx.shadowColor = theme.wall.shadow;
+    ctx.shadowBlur = Math.max(4, tile * 0.16);
+    ctx.shadowOffsetX = Math.max(1, tile * 0.035);
+    ctx.shadowOffsetY = Math.max(2, tile * 0.08);
+    ctx.fillStyle = theme.wall.shadow;
     ctx.fill(wallShape);
     ctx.restore();
 
@@ -181,6 +182,87 @@ export function drawArena(
     ctx.fillStyle = theme.palette.wallTint;
     ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
     ctx.restore();
+
+    drawWallPerimeter();
+  }
+
+  function drawWallPerimeter(): void {
+    const depth = Math.max(3, tile * theme.wall.depth);
+    const edgeWidth = Math.max(1.5, tile * 0.045);
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        if (!wallAt(x, y)) continue;
+        const north = !wallAt(x, y - 1);
+        const east = !wallAt(x + 1, y);
+        const south = !wallAt(x, y + 1);
+        const west = !wallAt(x - 1, y);
+
+        if (east) drawWallSide(x, y, 'east', depth);
+        if (south) drawWallSide(x, y, 'south', depth);
+
+        if (north)
+          drawWallEdge(x, y, 'north', edgeWidth, theme.wall.highlight);
+        if (west)
+          drawWallEdge(x, y, 'west', edgeWidth, theme.wall.highlight);
+        if (east)
+          drawWallEdge(x, y, 'east', edgeWidth, theme.wall.edge);
+        if (south)
+          drawWallEdge(x, y, 'south', edgeWidth, theme.wall.edge);
+      }
+    }
+  }
+
+  function drawWallSide(
+    x: number,
+    y: number,
+    side: 'east' | 'south',
+    depth: number,
+  ): void {
+    const left = px(x);
+    const top = py(y);
+    const gradient =
+      side === 'south'
+        ? ctx.createLinearGradient(0, top + tile - depth, 0, top + tile)
+        : ctx.createLinearGradient(left + tile - depth, 0, left + tile, 0);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(1, theme.wall.side);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(
+      side === 'east' ? left + tile - depth : left,
+      side === 'south' ? top + tile - depth : top,
+      side === 'east' ? depth : tile,
+      side === 'south' ? depth : tile,
+    );
+  }
+
+  function drawWallEdge(
+    x: number,
+    y: number,
+    side: 'north' | 'east' | 'south' | 'west',
+    width: number,
+    color: string,
+  ): void {
+    const left = px(x);
+    const top = py(y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'square';
+    ctx.beginPath();
+    if (side === 'north' || side === 'south') {
+      const edgeY = side === 'north' ? top + width * 0.35 : top + tile - width * 0.35;
+      ctx.moveTo(left, edgeY);
+      ctx.lineTo(left + tile, edgeY);
+    } else {
+      const edgeX = side === 'west' ? left + width * 0.35 : left + tile - width * 0.35;
+      ctx.moveTo(edgeX, top);
+      ctx.lineTo(edgeX, top + tile);
+    }
+    ctx.stroke();
+  }
+
+  function wallAt(x: number, y: number): boolean {
+    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) return true;
+    return mapTiles[y][x] === '#';
   }
 
   function drawTextureField(image: HTMLImageElement | null): boolean {

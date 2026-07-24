@@ -5,13 +5,19 @@
     "floor": "floor-metal.png",
     "wall": "wall-bulkhead-v2.png"
   },
+  "wall": {
+    "depth": 0.15,
+    "edge": "rgba(1, 5, 10, 0.88)",
+    "highlight": "rgba(126, 155, 178, 0.58)",
+    "side": "rgba(0, 3, 7, 0.78)",
+    "shadow": "rgba(0, 0, 0, 0.56)"
+  },
   "palette": {
     "canvas": "#05080d",
     "arena": "#09101a",
     "floorTint": "rgba(5, 12, 20, 0.24)",
     "wallTint": "rgba(4, 8, 13, 0.20)",
     "zone": "#fbbf24",
-    "frame": "#26384b",
-    "wallShadow": "rgba(0, 0, 0, 0.46)"
+    "frame": "#26384b"
   }
 }
