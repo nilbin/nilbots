@@ -67,6 +67,9 @@ case "$deploy_mode" in
       echo "usage: $0 --build-local" >&2
       exit 2
     fi
+    if [[ -f "$release_env" ]]; then
+      cp -p "$release_env" "$previous_release_env"
+    fi
     rm -f "$release_env"
     ;;
   existing)
