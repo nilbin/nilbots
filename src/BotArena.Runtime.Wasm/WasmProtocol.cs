@@ -14,7 +14,8 @@ namespace BotArena.Runtime.Wasm;
 /// guest -> host:  R &lt;protocol&gt;
 /// host -> guest:  T &lt;tick&gt; &lt;x&gt; &lt;y&gt; &lt;facing&gt; &lt;health&gt; &lt;cooldown&gt; &lt;prevResult&gt;
 ///                   NT &lt;n&gt; x:y:w ... NE &lt;n&gt; slot:x:y:facing:health ... NV &lt;n&gt; kind:slot:x:y ...
-/// guest -> host:  A &lt;action&gt; [D &lt;base64 debug&gt;]   |   F &lt;base64 fault message&gt;
+/// guest -> host:  A &lt;action&gt; [SP aim:bend:after:every:count] [D &lt;base64 debug&gt;]
+///                  | F &lt;base64 fault message&gt;
 /// </summary>
 public static class WasmProtocol
 {
@@ -56,7 +57,8 @@ public static class WasmProtocol
             builder.Append(' ').Append((int)gameEvent.Type).Append(':')
                 .Append(gameEvent.Slot ?? -1).Append(':').Append(position.X).Append(':').Append(position.Y);
         }
-        // Optional trailing sections, in fixed order (E, M, Z, ZT, C, P, H). Appended LAST
+        // Optional trailing sections, in fixed order (E, M, Z, ZT, C, P, H, SP, PH).
+        // Appended LAST
         // so protocol-0.1 guests — which parse exactly the tokens they expect and never
         // index further — remain compatible (same trick as the optional botName).
         // P grew 4→6 fields in the 0.5 hardening and 6→7 for ordered speed-two
@@ -93,6 +95,24 @@ public static class WasmProtocol
                 builder.Append(' ').Append((int)sound.Type).Append(':').Append(sound.Bearing)
                     .Append(':').Append(sound.Distance);
         }
+        if (observation.ShotPrograms is { } limits)
+        {
+            builder.Append(" SP ")
+                .Append(limits.MaxInitialAimOctants).Append(':')
+                .Append(limits.MaxBendAfterTiles).Append(':')
+                .Append(limits.MaxBendEveryTiles).Append(':')
+                .Append(limits.MaxBendCount).Append(':')
+                .Append(limits.MaxPathTiles).Append(':')
+                .Append(limits.LaunchTiles).Append(':')
+                .Append(limits.TilesPerAdvance);
+        }
+        if (observation.VisibleProjectiles is { } projectiles
+            && projectiles.Any(p => p.Heading is not null))
+        {
+            builder.Append(" PH ").Append(projectiles.Count);
+            foreach (var bolt in projectiles)
+                builder.Append(' ').Append(bolt.Heading is { } heading ? (int)heading : -1);
+        }
         return builder.ToString();
     }
 
@@ -104,13 +124,42 @@ public static class WasmProtocol
         if (parts.Length >= 2 && parts[0] == "A" && int.TryParse(parts[1], CultureInfo.InvariantCulture, out int action))
         {
             string? debug = null;
-            if (parts.Length >= 4 && parts[2] == "D")
-                debug = DecodeBase64(parts[3]);
+            ShotProgram? program = null;
+            int index = 2;
+            while (index < parts.Length)
+            {
+                switch (parts[index++])
+                {
+                    case "SP" when index < parts.Length:
+                        {
+                            var fields = parts[index++].Split(':');
+                            if (fields.Length != 5
+                                || !fields.All(field => int.TryParse(
+                                    field, CultureInfo.InvariantCulture, out _)))
+                                return BotDecision.Fault("Malformed programmed-shot payload from guest.");
+                            var values = fields
+                                .Select(field => int.Parse(field, CultureInfo.InvariantCulture))
+                                .ToArray();
+                            program = new ShotProgram(values[0], values[1], values[2], values[3], values[4]);
+                            break;
+                        }
+                    case "D" when index < parts.Length:
+                        debug = DecodeBase64(parts[index++]);
+                        break;
+                    default:
+                        return BotDecision.Fault($"Malformed guest reply: '{Truncate(reply, 80)}'");
+                }
+            }
             // 0-6: strafes (5/6) arrived with rules 0.3; the engine gates them by rules,
             // so accepting the wider range here is safe for every ruleset.
             if (action is < 0 or > 6)
                 return BotDecision.Fault($"Invalid action value {action} from guest.");
-            return BotDecision.Of((BotAction)action, debug);
+            return new BotDecision
+            {
+                Action = (BotAction)action,
+                ShotProgram = program,
+                DebugMessage = debug,
+            };
         }
         return BotDecision.Fault($"Malformed guest reply: '{Truncate(reply, 80)}'");
     }

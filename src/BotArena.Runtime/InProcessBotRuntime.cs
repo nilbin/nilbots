@@ -34,7 +34,7 @@ public sealed class InProcessBotRuntime : IBotRuntime
         try
         {
             var action = _bot.Tick(context);
-            return BotDecision.Of(SdkModelMapper.ToEngineAction(action), debug.TextOrNull);
+            return SdkModelMapper.ToEngineDecision(action, debug.TextOrNull);
         }
         catch (Exception ex)
         {
@@ -91,10 +91,21 @@ internal static class SdkModelMapper
             EnemyZoneTicks = observation.EnemyZoneTicks,
             ControlPressure = observation.ControlPressure,
             ControlPressureLimit = observation.ControlPressureLimit,
+            ShotPrograms = observation.ShotPrograms is { } limits
+                ? new Sdk.ShotProgramLimits(
+                    limits.MaxInitialAimOctants,
+                    limits.MaxBendAfterTiles,
+                    limits.MaxBendEveryTiles,
+                    limits.MaxBendCount,
+                    limits.MaxPathTiles,
+                    limits.LaunchTiles,
+                    limits.TilesPerAdvance)
+                : null,
             VisibleProjectiles = observation.VisibleProjectiles
                 ?.Select(p => new Sdk.VisibleProjectile(
                     new Sdk.Position(p.Position.X, p.Position.Y), ToSdkDirection(p.Direction), p.OwnerSlot,
-                    p.TilesPerAdvance, p.TicksUntilAdvance, p.RemainingTiles))
+                    p.TilesPerAdvance, p.TicksUntilAdvance, p.RemainingTiles,
+                    p.Heading is { } heading ? (Sdk.ProjectileHeading)heading : null))
                 .ToArray(),
             HeardSounds = observation.HeardSounds
                 ?.Select(h => new Sdk.HeardSound(
@@ -116,6 +127,24 @@ internal static class SdkModelMapper
             Random = random,
             Debug = debug,
         };
+
+    public static BotDecision ToEngineDecision(Sdk.BotAction action, string? debug = null)
+    {
+        var engineAction = ToEngineAction(action);
+        if (action.ShotProgram is not { } program)
+            return BotDecision.Of(engineAction, debug);
+        return new BotDecision
+        {
+            Action = engineAction,
+            ShotProgram = new Engine.ShotProgram(
+                program.InitialAimOffset,
+                program.BendDirection,
+                program.BendAfterTiles,
+                program.BendEveryTiles,
+                program.BendCount),
+            DebugMessage = debug,
+        };
+    }
 
     public static Engine.BotAction ToEngineAction(Sdk.BotAction action) => action.Kind switch
     {

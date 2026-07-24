@@ -38,9 +38,12 @@ public static class ToolchainInfo
     // cannot parse; wire protocol still 0.1 for every pre-bolt adapter.
     // 0.7.0: active shared control pressure (trailing C section) and ordered
     // multi-tile projectile advances (P section 6→7 fields; DECISIONS #62).
-    public const string SdkVersion = "0.7.0";
+    // 0.8.0: private programmed-shot actions (trailing SP action payload),
+    // public limits (trailing SP observation), and exact currently revealed
+    // eight-way projectile headings (trailing PH observation).
+    public const string SdkVersion = "0.8.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.7.0";
+    public const string GuestAdapterVersion = "0.8.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     public const string BuildPipelineVersion = "1";

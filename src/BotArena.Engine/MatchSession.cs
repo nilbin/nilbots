@@ -4,7 +4,8 @@ public sealed record BotTickResolution(
     int Slot, BotAction ChosenAction, BotAction ValidatedAction, ActionResult Result, bool Faulted);
 
 public sealed record ProjectileTickTraversal(
-    int Id, int OwnerSlot, Direction Direction, Position From, IReadOnlyList<Position> Path);
+    int Id, int OwnerSlot, Direction Direction, Position From, IReadOnlyList<Position> Path,
+    ProjectileHeading? Heading = null, IReadOnlyList<Position>? ProgrammedPath = null);
 
 public sealed class TickResult
 {
@@ -136,9 +137,11 @@ public sealed class MatchSession
                     .Select(p => new ObservedProjectile(p.Position, p.Direction, p.OwnerSlot,
                         State.Rules.ProjectileTilesPerAdvance,
                         State.Rules.ProjectileTicksPerTile - p.Phase,
-                        State.Rules.ShotRange > 0 ? State.Rules.ShotRange - p.TilesTraveled : -1))
+                        State.Rules.ShotRange > 0 ? State.Rules.ShotRange - p.TilesTraveled : -1,
+                        p.Heading))
                     .ToArray()
                 : null,
+            ShotPrograms = State.Rules.GetShotProgramLimits(),
             VisibleEvents = events,
             HeardSounds = heard,
         };
@@ -171,6 +174,31 @@ public sealed class MatchSession
         {
             var decision = decisions[slot];
             if (decision.Faulted || !Enum.IsDefined(decision.Action))
+            {
+                chosen[slot] = BotAction.Wait;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.Faulted;
+                faulted[slot] = true;
+            }
+            else if (decision.ShotProgram is not null && decision.Action != BotAction.Shoot)
+            {
+                chosen[slot] = BotAction.Wait;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.Faulted;
+                faulted[slot] = true;
+            }
+            else if (decision.ShotProgram is not null
+                     && (!State.Rules.AllowProgrammedShots
+                         || State.Rules.ProjectileTicksPerTile <= 0))
+            {
+                // Additive action payload: on rules that do not support programs,
+                // degrade to a blocked Wait rather than faulting a newer bot.
+                chosen[slot] = BotAction.Shoot;
+                validated[slot] = BotAction.Wait;
+                results[slot] = ActionResult.Blocked;
+            }
+            else if (decision.ShotProgram is ShotProgram program
+                     && !State.Rules.IsValidShotProgram(program))
             {
                 chosen[slot] = BotAction.Wait;
                 validated[slot] = BotAction.Wait;
@@ -232,7 +260,12 @@ public sealed class MatchSession
 
         // 6.–7. Resolve shooting from post-movement state; apply damage simultaneously
         // (bolt occupancy hits land in the same simultaneous batch).
-        var shotThisTick = ResolveShooting(validated, events, pendingHits, projectileTraversals);
+        var shotThisTick = ResolveShooting(
+            validated,
+            decisions,
+            events,
+            pendingHits,
+            projectileTraversals);
 
         // 8. Update cooldowns and energy (shots spend first, then the regen cadence).
         for (int slot = 0; slot < n; slot++)
@@ -448,6 +481,54 @@ public sealed class MatchSession
             }
 
             bolt.Phase = 0;
+            if (bolt.ProgrammedPath is { } programmedPath)
+            {
+                var programmedFrom = bolt.Position;
+                var programmedTraversal = new List<Position>();
+                bool programmedConsumed = false;
+                bool programmedDespawn = false;
+                int programmedSubsteps = Math.Max(1, State.Rules.ProjectileTilesPerAdvance);
+                for (int step = 0; step < programmedSubsteps; step++)
+                {
+                    if (bolt.NextProgrammedPathIndex >= programmedPath.Count)
+                    {
+                        programmedDespawn = true;
+                        break;
+                    }
+
+                    var next = programmedPath[bolt.NextProgrammedPathIndex++];
+                    bolt.Heading = ProjectileHeadingExtensions.Between(bolt.Position, next);
+                    bolt.Position = next;
+                    bolt.TilesTraveled++;
+                    programmedTraversal.Add(next);
+
+                    if (FindBoltVictim(bolt) is { } victim)
+                    {
+                        pendingHits.Add((victim.Slot, bolt.OwnerSlot));
+                        programmedConsumed = true;
+                        break;
+                    }
+                    if (bolt.NextProgrammedPathIndex >= programmedPath.Count)
+                    {
+                        programmedDespawn = true;
+                        break;
+                    }
+                }
+
+                if (programmedTraversal.Count > 0)
+                    traversals.Add(new ProjectileTickTraversal(
+                        bolt.Id,
+                        bolt.OwnerSlot,
+                        bolt.Direction,
+                        programmedFrom,
+                        programmedTraversal,
+                        bolt.Heading,
+                        programmedPath));
+                if (!programmedConsumed && !programmedDespawn)
+                    alive.Add(bolt);
+                continue;
+            }
+
             var from = bolt.Position;
             var path = new List<Position>();
             bool consumed = false;
@@ -497,6 +578,7 @@ public sealed class MatchSession
 
     private bool[] ResolveShooting(
         BotAction[] validated,
+        IReadOnlyList<BotDecision> decisions,
         List<GameEvent> events,
         List<(int TargetSlot, int BySlot)> pendingHits,
         List<ProjectileTickTraversal> traversals)
@@ -515,6 +597,18 @@ public sealed class MatchSession
 
             if (State.Rules.ProjectileTicksPerTile > 0)
             {
+                if (State.Rules.AllowProgrammedShots)
+                {
+                    ResolveProgrammedShot(
+                        slot,
+                        shooter,
+                        decisions[slot].ShotProgram ?? ShotProgram.Straight,
+                        events,
+                        pendingHits,
+                        traversals);
+                    continue;
+                }
+
                 // Projectile mode: spawn a bolt on the first tile in facing. Walls
                 // swallow it; a point-blank occupant is an immediate hit (matching
                 // the instant ray at range 1); otherwise it enters flight.
@@ -588,6 +682,84 @@ public sealed class MatchSession
             }
         }
         return shotThisTick;
+    }
+
+    private void ResolveProgrammedShot(
+        int slot,
+        BotState shooter,
+        ShotProgram program,
+        List<GameEvent> events,
+        List<(int TargetSlot, int BySlot)> pendingHits,
+        List<ProjectileTickTraversal> traversals)
+    {
+        var path = ProgrammedProjectilePath.Trace(
+            State.Map,
+            shooter.Position,
+            shooter.Facing,
+            program,
+            State.Rules);
+        var initialHeading = shooter.Facing
+            .ToProjectileHeading()
+            .Turned(program.InitialAimOffset);
+        var (dx, dy) = initialHeading.Vector();
+        var desiredFirstTile = shooter.Position.Offset(dx, dy);
+        if (path.Count == 0)
+        {
+            events.Add(GameEvent.Shot(slot, shooter.Position, desiredFirstTile, null));
+            return;
+        }
+
+        int launchTiles = Math.Max(1, State.Rules.ProgrammedShotLaunchTiles);
+        int enteredCount = Math.Min(launchTiles, path.Count);
+        var launchPath = path.Take(enteredCount).ToArray();
+        int? hitSlot = null;
+        int entered = 0;
+        var current = shooter.Position;
+        var currentHeading = initialHeading;
+        foreach (var next in launchPath)
+        {
+            currentHeading = ProjectileHeadingExtensions.Between(current, next);
+            current = next;
+            entered++;
+            var victim = State.Bots.FirstOrDefault(b =>
+                b.Slot != slot && b.IsActive && b.Position == current);
+            if (victim is not null)
+            {
+                hitSlot = victim.Slot;
+                break;
+            }
+        }
+
+        var traversed = launchPath.Take(entered).ToArray();
+        events.Add(GameEvent.Shot(slot, shooter.Position, current, hitSlot));
+        int projectileId = State.NextProjectileId++;
+        traversals.Add(new ProjectileTickTraversal(
+            projectileId,
+            slot,
+            shooter.Facing,
+            shooter.Position,
+            traversed,
+            currentHeading,
+            path));
+        if (hitSlot is int hit)
+        {
+            pendingHits.Add((hit, slot));
+            return;
+        }
+
+        if (entered >= path.Count)
+            return;
+        State.Projectiles.Add(new ProjectileState
+        {
+            Id = projectileId,
+            Position = current,
+            Direction = shooter.Facing,
+            Heading = currentHeading,
+            ProgrammedPath = path,
+            NextProgrammedPathIndex = entered,
+            OwnerSlot = slot,
+            TilesTraveled = entered,
+        });
     }
 
     /// <summary>Domination check. Active-control rules use the signed shared limit;

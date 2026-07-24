@@ -57,7 +57,7 @@ static int Help(int exitCode = 1)
                         [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
                         [--rules 0.4|0.3|0.2|0.1|control|cone-control|cone-active|
                                  cone-active-bolt1|cone-active-bolt2|cone-active-bolt2-overtime|
-                                 cone-active-bolt2-overtime-gain|
+                                 cone-active-bolt2-overtime-gain|cone-active-bolt2-arcs|
                                  0.5-control|cone|
                                  bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy]
                         [--max-ticks <n>] [--out <dir>]

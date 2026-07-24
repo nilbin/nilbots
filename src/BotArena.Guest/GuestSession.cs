@@ -43,6 +43,7 @@ internal sealed class GuestSession
             EnemyZoneTicks = observation.EnemyZoneTicks,
             ControlPressure = observation.ControlPressure,
             ControlPressureLimit = observation.ControlPressureLimit,
+            ShotPrograms = observation.ShotPrograms,
             VisibleProjectiles = observation.VisibleProjectiles,
             HeardSounds = observation.HeardSounds,
             PreviousActionResult = observation.PreviousActionResult,

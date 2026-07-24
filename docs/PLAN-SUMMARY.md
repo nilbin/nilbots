@@ -43,11 +43,13 @@ preserving decay. Overtime fixes the diagnosed long tail (MaxTicks 24→5, avera
 134.9→102.2) but the unchanged population still misses the median duration
 and elimination-share ship gates (DECISIONS #64–#66).
 
-The next projectile direction has passed only its pre-implementation theory
-gate (DECISIONS #67): privately programmed immutable arcs create prediction
-contests without random accuracy, homing, or unavoidable open-floor shots.
-The reusable `scripts/shot-theory-lab.py` checks the finite path/policy space.
-An in-process engine experiment comes before any SDK/protocol/WASM migration.
+The programmed-arc direction has now passed both its theory gate and the v7
+engine/SDK/WASM usability gate (DECISIONS #67–#68). Private immutable arcs
+create prediction contests without random accuracy or homing; across 180
+paired games they improve v6 draws, eliminations, median, and average duration,
+with 111 ranged curved hits. `scripts/shot-theory-lab.py` checks the finite
+path/policy space and `scripts/arc-replay-eval.py` measures real replay use.
+Official 0.5 remains on HOLD pending the full 0.4 comparison and map gate.
 
 ## Game rules 0.1 (initial)
 
@@ -96,7 +98,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   serves the SPA. Dockerfile + docker-compose for deployment.
 - `web/` — one React build, two modes: the Bot Arena site (router) and the
   standalone replay viewer the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (169 tests, incl.
+- `tests/` — engine, determinism, and WASM contract suites (180 tests, incl.
   DocDriftTests pinning docs/mirrors to the engine).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh.

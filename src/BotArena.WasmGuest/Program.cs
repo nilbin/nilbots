@@ -10,5 +10,6 @@ return GuestHost.Run(name => name switch
     "guest-faulty" => new FaultyBot(),
     "guest-hog" => new HogBot(),
     "guest-clock" => new ClockBot(),
+    "guest-arc" => new ArcProtocolBot(),
     _ => BuiltInBotCatalog.Create(name),
 });

@@ -35,9 +35,10 @@ def default_bots():
     return bots
 
 
-def run_set(bots, a, b, rules, seeds, workdir, maps=None):
+def run_set(bots, a, b, rules, seeds, workdir, maps=None, runtime="wasm"):
     command = [str(ROOT / "scripts" / "botarena"), "set",
-               "--bot", bots[a], "--opponent", bots[b], "--seeds", seeds, "--rules", rules]
+               "--bot", bots[a], "--opponent", bots[b], "--seeds", seeds,
+               "--rules", rules, "--runtime", runtime]
     if maps:
         command += ["--maps", maps]
     out = subprocess.run(command, capture_output=True, text=True, cwd=workdir, timeout=1800)
@@ -59,6 +60,12 @@ def main():
     )
     parser.add_argument("--seeds", default="101,202,303")
     parser.add_argument("--maps", default=None, help="comma list; default = the set command's pool")
+    parser.add_argument(
+        "--runtime",
+        choices=("wasm", "in-process"),
+        default="wasm",
+        help="use in-process for fast strategy iteration; verify a representative WASM set before conclusions",
+    )
     parser.add_argument("--workdir", default="/tmp/balance-eval")
     args = parser.parse_args()
 
@@ -84,7 +91,9 @@ def main():
         keyed = {}
         arm_records = {name: collections.Counter() for name in names}
         for a, b in pairs:
-            for num, outcome, reason, tick in run_set(bots, a, b, rules, args.seeds, str(arm_dir), args.maps):
+            for num, outcome, reason, tick in run_set(
+                bots, a, b, rules, args.seeds, str(arm_dir), args.maps, args.runtime
+            ):
                 games.append((outcome, reason, tick))
                 keyed[(a, b, num)] = (outcome, reason, tick)
                 if outcome == "WIN":
@@ -106,7 +115,10 @@ def main():
         ticks = [g[2] for g in games]
         stats[rules] = (len(games), draws, eliminations, statistics.median(ticks), sum(ticks) / len(ticks))
 
-    print(f"\n=== BALANCE COMPARISON ({len(names)} bots, round-robin, 6-game sets, seeds {args.seeds}) ===")
+    print(
+        f"\n=== BALANCE COMPARISON ({len(names)} bots, round-robin, "
+        f"6-game sets, seeds {args.seeds}, runtime {args.runtime}) ==="
+    )
     print(f"{'ruleset':14} {'games':>5} {'draws':>5} {'draw%':>6} {'elims':>5} {'medTick':>8} {'avgTick':>8}")
     for rules, (n, draws, elims, med, avg) in stats.items():
         print(f"{rules:14} {n:5} {draws:5} {100 * draws / n:5.0f}% {elims:5} {med:8.0f} {avg:8.0f}")

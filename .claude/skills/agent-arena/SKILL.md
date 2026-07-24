@@ -152,6 +152,28 @@ For the revision-v4 active-control arms (`cone-active`,
 > this tick after bot movement. Missing can deny a holder's Wait or force a
 > defensive action that earns no pressure.
 
+For `cone-active-bolt2-arcs` (v7), append the active-control and fast-bolt
+briefs above plus:
+
+> EXPERIMENTAL PROGRAMMED SKILL SHOTS. `context.ShotPrograms` is the nullable
+> capability and exact numeric envelope. When non-null, Shoot may carry a
+> private immutable `ShotProgram`: initial aim −1/0/+1 45° octants, bend
+> direction −1/+1, first bend after 1–4 tiles, later bends every 1–3 tiles,
+> and 1–3 bends. Use `limits.IsValid(program)` and
+> `ShotPaths.Preview(position, facing, program, limits.MaxPathTiles,
+> rememberedWallPredicate)` to enumerate. Return `Actions.Shoot(program)`;
+> ordinary `Actions.Shoot()` remains straight. A shot enters one tile on its
+> firing tick and two ordered tiles on each later tick. Diagonal travel is
+> strict-corner blocked.
+>
+> The future path is NOT in opponent observations and cannot change after
+> firing—this is prediction, not homing or randomness. A visible bolt's exact
+> currently manifested eight-way `Heading` is public, but an already committed
+> future bend remains private. Remember your own program. Dodge against the
+> revealed heading and possible remaining programs rather than treating
+> `Direction` as a guaranteed future lane. A miss that makes a holder Move or
+> Turn denies its control tick.
+
 ## 2. Launch the challenger(s)
 
 Give each agent: a persona (one challenger: pick the archetype most relevant

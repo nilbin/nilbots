@@ -54,7 +54,7 @@ public enum BotActionKind
     StrafeRight = 6,
 }
 
-public readonly record struct BotAction(BotActionKind Kind);
+public readonly record struct BotAction(BotActionKind Kind, ShotProgram? ShotProgram = null);
 
 /// <summary>Action factories — the only supported way to construct actions (plan §7).</summary>
 public static class Actions
@@ -64,6 +64,9 @@ public static class Actions
     public static BotAction TurnLeft() => new(BotActionKind.TurnLeft);
     public static BotAction TurnRight() => new(BotActionKind.TurnRight);
     public static BotAction Shoot() => new(BotActionKind.Shoot);
+    /// <summary>Fire a privately programmed immutable path. If
+    /// <see cref="BotContext.ShotPrograms"/> is null, the host safely blocks it.</summary>
+    public static BotAction Shoot(ShotProgram program) => new(BotActionKind.Shoot, program);
 
     /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (left of the
     /// facing vector). Only available when the active rules enable strafing (no shipped
@@ -81,18 +84,22 @@ public readonly record struct VisibleTile(Position Position, bool IsWall);
 public sealed record VisibleEnemy(int Slot, Position Position, Direction Facing, int Health);
 
 /// <summary>A bolt in flight on a tile you can see. Bolts occupy their tile — standing
-/// on or stepping onto one is a hit — and advance along their direction on a fixed
-/// cadence. A bolt never hits the bot that fired it. <c>TicksUntilAdvance</c> makes the
-/// cadence computable: 1 means the bolt advances along <c>Direction</c> THIS very
-/// tick, immediately after movement resolves — so do not end this tick's move on its
-/// next tile (nor on its current one: a bolt's tile is checked before AND after it
-/// advances). <c>TilesPerAdvance</c> is the number of ordered substeps it takes on
-/// that tick; every intermediate tile can hit, so speed-two bolts never tunnel.
-/// <c>RemainingTiles</c> is how many more tiles it can advance before despawning
-/// (−1 = uncapped); it is lethal on its final tile.</summary>
+/// on or stepping onto one is a hit — and advance on a fixed cadence. A bolt never hits
+/// its owner. <c>TicksUntilAdvance</c> 1 means it advances THIS tick after movement.
+/// <c>TilesPerAdvance</c> is its ordered substep count; every intermediate tile can hit,
+/// so speed-two never tunnels. <c>RemainingTiles</c> is further range (−1 = uncapped).
+/// <c>Direction</c> is the cardinal launch direction retained for compatibility;
+/// use <see cref="Heading"/> for the exact currently manifested eight-way heading.
+/// Under programmed-shot rules a still-private committed bend may change a future
+/// substep, so current heading is evidence rather than a promise of the whole path.</summary>
 public sealed record VisibleProjectile(
     Position Position, Direction Direction, int OwnerSlot, int TilesPerAdvance,
-    int TicksUntilAdvance, int RemainingTiles);
+    int TicksUntilAdvance, int RemainingTiles,
+    ProjectileHeading? ProgrammedHeading = null)
+{
+    /// <summary>Exact currently revealed heading. Future programmed bends stay private.</summary>
+    public ProjectileHeading Heading => ProgrammedHeading ?? Direction.ToProjectileHeading();
+}
 
 /// <summary>Coarse 8-way bearing of a heard sound, relative to your position (not your
 /// facing): the octant from you toward the source.</summary>

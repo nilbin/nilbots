@@ -688,6 +688,25 @@ configuration) and changing them is a version bump, not an edit.
     rules or pay the SDK/WASM migration until engine-scripted tests preserve
     these properties and establish a usable player action contract.
 
+68. **Programmed arcs pass the v7 engine/SDK/WASM usability gate; retain them
+    as the experimental flagship, while official 0.5 remains HOLD.** The
+    `cone-active-bolt2-arcs` arm freezes v6 overtime-gain and adds only a
+    private immutable 125-path action family: one launch tile, speed-two
+    ordered travel, strict diagonal corners, gradual current-heading reveal.
+    SDK/Guest 0.8 adds nullable limits, `Actions.Shoot(ShotProgram)`, exact
+    eight-way current headings, and an SDK preview; protocol 0.1 remains
+    additive and old artifacts ignore trailing sections. Engine/SDK preview
+    parity, no-tunnelling, invalid payload, replay privacy, WASM/in-process
+    replay-hash parity, and an all-WASM legacy-artifact set pass. In 180 paired
+    v6/v7 games, draws improve 15→11, eliminations 97→106, median 71→61,
+    average 102.2→87.2, and MaxTicks 5→3. Suppressor uses 918 programs:
+    821 visibly bend, 110 hits land after a bend, 111 curved hits are ranged,
+    and five misses cross an active-holder tile just vacated. Suppressor wins
+    rise 30→43 while all five doctrines still win. RETAIN v7 as the next
+    experimental flagship and v6 as its straight-bolt causal reference. This
+    proves usable skill shots, not full 0.5 promotion against official 0.4 or
+    completion of the ranked-map geometry gate.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

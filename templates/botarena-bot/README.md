@@ -40,6 +40,34 @@ Experimental observation collections such as `VisibleProjectiles` and
 `HeardSounds` are nullable because official rulesets may not enable them;
 check for null (or use `?? []`) before iterating.
 
+Programmed-shot experiments are capability-gated the same way. When
+`context.ShotPrograms` is non-null, it gives the legal numeric envelope and
+you may return `Actions.Shoot(new ShotProgram(...))`; otherwise use ordinary
+`Actions.Shoot()`. The committed future path is private. Visible bolts expose
+only their exact current eight-way `Heading`, while `ShotPaths.Preview(...)`
+lets you enumerate your own candidate path against a wall predicate:
+
+```csharp
+if (context.CanShoot && context.ShotPrograms is { } limits)
+{
+    var arc = new ShotProgram(
+        InitialAimOffset: -1, BendDirection: 1,
+        BendAfterTiles: 2, BendEveryTiles: 1, BendCount: 2);
+    if (limits.IsValid(arc))
+    {
+        var path = ShotPaths.Preview(
+            context.Position, context.Facing, arc, limits.MaxPathTiles,
+            context.IsWall);
+        return Actions.Shoot(arc);
+    }
+}
+```
+
+`context.IsWall` covers current vision only; pass your own remembered-wall
+predicate once you maintain terrain memory. `InitialAimOffset` and
+`BendDirection` use 45-degree octants (`-1` left, `+1` right). Diagonal paths
+obey strict corners.
+
 `botarena play` prints where it wrote `replay.json` and `viewer.html`
 (default: `out/<bot>-vs-<opponent>-<map>-s<seed>/`, so parallel runs never
 overwrite each other; `--out <dir>` pins a directory). Open the viewer in a

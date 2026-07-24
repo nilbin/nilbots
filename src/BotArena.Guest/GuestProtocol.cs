@@ -70,7 +70,9 @@ internal static class GuestProtocol
         // "E <energy>", "M <w> <h>", "Z <n> x:y ... ZT <mine> <theirs>",
         // "C <signedPressure> <limit>",
         // "P <n> x:y:dir:owner:tilesPerAdvance:ticksUntilAdvance:remainingTiles ...",
-        // "H <n> kind:bearing:band ..." (redacted heard sounds).
+        // "H <n> kind:bearing:band ..." (redacted heard sounds),
+        // "SP maxAim:maxAfter:maxEvery:maxCount:path:launch:speed" (program limits),
+        // "PH <n> heading ..." (exact current headings aligned to P; -1 = legacy).
         int? energy = null;
         if (index < parts.Length && parts[index] == "E")
         {
@@ -135,12 +137,38 @@ internal static class GuestProtocol
                     (VisibleEventKind)f[0], (SoundBearing)f[1], (SoundDistance)f[2]);
             }
         }
+        ShotProgramLimits? shotPrograms = null;
+        if (index < parts.Length && parts[index] == "SP")
+        {
+            index++;
+            var f = Fields(7);
+            shotPrograms = new ShotProgramLimits(
+                f[0], f[1], f[2], f[3], f[4], f[5], f[6]);
+        }
+        if (index < parts.Length && parts[index] == "PH")
+        {
+            index++;
+            int headingCount = Next();
+            if (projectiles is null || projectiles.Length != headingCount)
+                throw new FormatException("Projectile heading count does not match projectile count.");
+            for (int i = 0; i < headingCount; i++)
+            {
+                int rawHeading = Next();
+                if (rawHeading is < -1 or > 7)
+                    throw new FormatException("Malformed projectile heading.");
+                if (rawHeading >= 0)
+                    projectiles[i] = projectiles[i] with
+                    {
+                        ProgrammedHeading = (ProjectileHeading)rawHeading,
+                    };
+            }
+        }
 
         return new ParsedObservation(
             tick, new Position(x, y), (Direction)facing, health, cooldown,
             (ActionResult)previous, tiles, enemies, events, energy,
             mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks,
-            controlPressure, controlPressureLimit, projectiles, heardSounds);
+            controlPressure, controlPressureLimit, projectiles, heardSounds, shotPrograms);
 
         void Expect(string marker)
         {
@@ -179,11 +207,19 @@ internal static class GuestProtocol
         int? ControlPressure,
         int? ControlPressureLimit,
         IReadOnlyList<VisibleProjectile>? VisibleProjectiles = null,
-        IReadOnlyList<HeardSound>? HeardSounds = null);
+        IReadOnlyList<HeardSound>? HeardSounds = null,
+        ShotProgramLimits? ShotPrograms = null);
 
     public static string FormatDecision(BotAction action, string? debug)
     {
         string reply = "A " + (int)action.Kind;
+        if (action.ShotProgram is { } program)
+        {
+            reply += string.Create(
+                CultureInfo.InvariantCulture,
+                $" SP {program.InitialAimOffset}:{program.BendDirection}:" +
+                $"{program.BendAfterTiles}:{program.BendEveryTiles}:{program.BendCount}");
+        }
         if (!string.IsNullOrEmpty(debug))
             reply += " D " + Convert.ToBase64String(Encoding.UTF8.GetBytes(debug));
         return reply;

@@ -63,6 +63,8 @@ public static class ReplayCommand
             Console.WriteLine("Vision: 90° cone toward facing + adjacent ring; `sees»`/`hears»` lines show each bot's actual contact");
         if (boltMode)
             Console.WriteLine("Bolts:  `bolts»` lines list flight state — xN = ordered tiles/advance, advN = ticks until advance, remN = tiles left");
+        if (header.ProgrammedShots == true)
+            Console.WriteLine("Arcs:   programs are private to opponents; this omniscient replay shows committed parameters and paths");
         var result = document.Result;
         string verdict = result.WinnerSlot is int w ? $"{names[w]} (s{w}) wins" : "draw";
         Console.WriteLine($"Result: {verdict} — {result.Reason} at tick {result.EndTick}");
@@ -100,7 +102,14 @@ public static class ReplayCommand
                 $"{s.Facing.ToString()[0]}h{s.Health}c{s.Cooldown}" +
                 (s.Energy is int energy ? $"e{energy}" : "")));
             string actions = string.Join(" ", tick.Bots.OrderBy(b => b.Slot).Select(b =>
-                b.ChosenAction == b.ValidatedAction ? $"{b.ChosenAction}" : $"{b.ChosenAction}→{b.ValidatedAction}"));
+            {
+                string action = b.ChosenAction == b.ValidatedAction
+                    ? $"{b.ChosenAction}"
+                    : $"{b.ChosenAction}→{b.ValidatedAction}";
+                return b.ShotProgram is ShotProgram program
+                    ? $"{action}[{FormatShotProgram(program)}]"
+                    : action;
+            }));
             string events = string.Join("; ", tick.Events
                 .Where(e => e.Type is not (GameEventType.Turn or GameEventType.Move))
                 .Select(FormatEvent));
@@ -114,7 +123,7 @@ public static class ReplayCommand
             Console.WriteLine(line);
             if (tick.Projectiles is { Count: > 0 } inFlight)
                 Console.WriteLine($"      bolts» {string.Join("  ", inFlight.Select(p =>
-                    $"s{p.OwnerSlot}@({p.X},{p.Y}){p.Direction.ToString()[0]} x{p.TilesPerAdvance} adv{p.TicksUntilAdvance} rem{p.RemainingTiles}"))}");
+                    $"s{p.OwnerSlot}@({p.X},{p.Y}){p.Heading?.ToString() ?? p.Direction.ToString()} x{p.TilesPerAdvance} adv{p.TicksUntilAdvance} rem{p.RemainingTiles}"))}");
             if (coneMode)
                 foreach (var bot in tick.Bots.OrderBy(b => b.Slot))
                 {
@@ -133,6 +142,11 @@ public static class ReplayCommand
                         Console.WriteLine($"      s{bot.Slot}» {(!full && debugLine.Length > 200 ? debugLine[..200] + "…" : debugLine)}");
         }
         return 0;
+
+        static string FormatShotProgram(ShotProgram program) =>
+            $"aim{program.InitialAimOffset:+#;-#;0}," +
+            $"bend{program.BendDirection:+#;-#;0}@{program.BendAfterTiles}" +
+            $"/{program.BendEveryTiles}x{program.BendCount}";
 
         string FormatEvent(GameEvent e) => e.Type switch
         {

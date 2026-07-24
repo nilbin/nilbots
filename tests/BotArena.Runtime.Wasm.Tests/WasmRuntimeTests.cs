@@ -91,6 +91,44 @@ public class WasmRuntimeTests
         Assert.Contains(" ZT -1 -1 C 4 100", wire);
     }
 
+    [Fact]
+    public void ProgrammedShotWire_EncodesLimitsCurrentHeadingAndPrivateDecision()
+    {
+        string wire = WasmProtocol.FormatObservation(new BotObservation
+        {
+            Tick = 1,
+            Slot = 0,
+            Position = new Position(1, 1),
+            Facing = Direction.East,
+            Health = 3,
+            Cooldown = 0,
+            PreviousActionResult = ActionResult.Success,
+            VisibleTiles = [],
+            VisibleEnemies = [],
+            VisibleProjectiles =
+            [
+                new ObservedProjectile(
+                    new Position(2, 2),
+                    Direction.East,
+                    1,
+                    2,
+                    1,
+                    6,
+                    ProjectileHeading.NorthEast),
+            ],
+            ShotPrograms = new ShotProgramLimits(1, 4, 3, 3, 8, 1, 2),
+            VisibleEvents = [],
+        });
+
+        Assert.Contains(" P 1 2:2:1:1:2:1:6", wire);
+        Assert.EndsWith(" SP 1:4:3:3:8:1:2 PH 1 1", wire);
+
+        var decision = WasmProtocol.ParseReply("A 4 SP -1:1:2:3:2 D YXJj");
+        Assert.Equal(BotAction.Shoot, decision.Action);
+        Assert.Equal(new ShotProgram(-1, 1, 2, 3, 2), decision.ShotProgram);
+        Assert.Equal("arc", decision.DebugMessage);
+    }
+
     [SkippableFact]
     public void TwoWasmBots_CompleteAMatch()
     {
@@ -167,6 +205,38 @@ public class WasmRuntimeTests
     }
 
     [SkippableFact]
+    public void WasmAndInProcessRuntimes_ProduceIdenticalProgrammedShotMatch()
+    {
+        RequireArtifact();
+        var rules = GameRules.Resolve("cone-active-bolt2-arcs") with { MaxTicks = 20 };
+        var wasm = Run(Wasm("guest-arc"), Wasm("idle"), seed: 17, rules: rules);
+        var inProcess = new MatchEngine().Run(new MatchConfiguration
+        {
+            Map = LoadMap("basic-01"),
+            Rules = rules,
+            Seed = 17,
+            Participants =
+            [
+                new MatchParticipantConfig
+                {
+                    Name = "bot0", RuntimeKind = "wasm",
+                    Runtime = new InProcessBotRuntime(() => new ArcSdkBot()),
+                },
+                new MatchParticipantConfig
+                {
+                    Name = "bot1", RuntimeKind = "wasm",
+                    Runtime = new InProcessBotRuntime(() => new IdleBot()),
+                },
+            ],
+        });
+
+        Assert.Equal(
+            new ShotProgram(0, 1, 2, 1, 2),
+            wasm.Replay.Ticks[0].Bots[0].ShotProgram);
+        Assert.Equal(inProcess.ReplayHash, wasm.ReplayHash);
+    }
+
+    [SkippableFact]
     public void ThrowingWasmBot_FaultsAndIsDisqualified_WithoutCrashingTheHost()
     {
         RequireArtifact();
@@ -220,6 +290,14 @@ public class WasmRuntimeTests
             ],
         });
         Assert.Equal(inProcess.ReplayHash, wasm.ReplayHash);
+    }
+
+    private sealed class ArcSdkBot : BotArena.Sdk.IBot
+    {
+        public BotArena.Sdk.BotAction Tick(BotArena.Sdk.BotContext context) =>
+            context.Tick == 0 && context.ShotPrograms is not null
+                ? BotArena.Sdk.Actions.Shoot(new BotArena.Sdk.ShotProgram(0, 1, 2, 1, 2))
+                : BotArena.Sdk.Actions.Wait();
     }
 
     [SkippableFact]

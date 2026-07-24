@@ -48,6 +48,11 @@ public sealed record ReplayHeader
     public int? ControlOvertimePressureGain { get; init; }
     /// <summary>True when nobody-holding pressure decay is disabled in overtime.</summary>
     public bool? ControlOvertimeStopsDecay { get; init; }
+    /// <summary>True when Shoot may carry a private immutable arc program.</summary>
+    public bool? ProgrammedShots { get; init; }
+    /// <summary>Exact public action envelope for programmed shots. The chosen program
+    /// remains private until its path is revealed by projectile movement.</summary>
+    public ShotProgramLimits? ProgrammedShotLimits { get; init; }
     public required IReadOnlyList<ReplayParticipant> Participants { get; init; }
 }
 
@@ -60,6 +65,9 @@ public sealed record ReplayBotTick
     public required BotAction ValidatedAction { get; init; }
     public required ActionResult Result { get; init; }
     public bool Faulted { get; init; }
+    /// <summary>Omniscient replay-only shot program. Opponent observations never
+    /// receive this private committed intent.</summary>
+    public ShotProgram? ShotProgram { get; init; }
     public string? Debug { get; init; }
     /// <summary>[x,y] pairs; wall/floor is derivable from the header map.</summary>
     public required int[][] VisibleTiles { get; init; }
@@ -84,14 +92,17 @@ public sealed record ReplayBotState(
 public sealed record ReplayProjectile(
     int X, int Y, Direction Direction, int OwnerSlot,
     int TicksUntilAdvance = 0, int RemainingTiles = 0,
-    int TilesPerAdvance = 1, int Id = 0);
+    int TilesPerAdvance = 1, int Id = 0,
+    ProjectileHeading? Heading = null,
+    IReadOnlyList<int[]>? ProgrammedPath = null);
 
 /// <summary>Authoritative ordered path traversed by one projectile during this
 /// visual tick. Path contains each entered tile in order, including the tile where
 /// a first- or second-substep hit occurred. This lets presentation interpolate a
 /// speed-two bolt through both tiles without changing discrete simulation.</summary>
 public sealed record ReplayProjectileTraversal(
-    int Id, int OwnerSlot, Direction Direction, int FromX, int FromY, IReadOnlyList<int[]> Path);
+    int Id, int OwnerSlot, Direction Direction, int FromX, int FromY, IReadOnlyList<int[]> Path,
+    ProjectileHeading? Heading = null, IReadOnlyList<int[]>? ProgrammedPath = null);
 
 /// <summary>A redacted heard sound (see <see cref="Hearing"/>): bearing is the 8-way
 /// octant 0=N..7=NW, distance the band 0=Near/1=Medium/2=Far.</summary>

@@ -167,6 +167,55 @@ public sealed record GameRules
     /// Defaults to 1 so the gen-7 cadence arms retain their behavior.</summary>
     public int ProjectileTilesPerAdvance { get; init; } = 1;
 
+    /// <summary>Allows Shoot decisions to carry a private immutable
+    /// <see cref="ShotProgram"/>. Off preserves straight legacy projectiles.</summary>
+    public bool AllowProgrammedShots { get; init; }
+
+    /// <summary>Maximum absolute initial aim offset in 45-degree octants.</summary>
+    public int ProgrammedShotMaxInitialAimOctants { get; init; } = 1;
+
+    /// <summary>Latest tile count at which the first programmed bend may begin.</summary>
+    public int ProgrammedShotMaxBendAfterTiles { get; init; } = 4;
+
+    /// <summary>Maximum tiles between successive 45-degree programmed bends.</summary>
+    public int ProgrammedShotMaxBendEveryTiles { get; init; } = 3;
+
+    /// <summary>Maximum number of 45-degree bends in one direction.</summary>
+    public int ProgrammedShotMaxBendCount { get; init; } = 3;
+
+    /// <summary>Ordered path tiles entered on the firing tick after bot movement.</summary>
+    public int ProgrammedShotLaunchTiles { get; init; } = 1;
+
+    public ShotProgramLimits? GetShotProgramLimits() =>
+        AllowProgrammedShots
+            ? new ShotProgramLimits(
+                ProgrammedShotMaxInitialAimOctants,
+                ProgrammedShotMaxBendAfterTiles,
+                ProgrammedShotMaxBendEveryTiles,
+                ProgrammedShotMaxBendCount,
+                ShotRange,
+                ProgrammedShotLaunchTiles,
+                ProjectileTilesPerAdvance)
+            : null;
+
+    public bool IsValidShotProgram(ShotProgram program)
+    {
+        if (program.InitialAimOffset < -ProgrammedShotMaxInitialAimOctants
+            || program.InitialAimOffset > ProgrammedShotMaxInitialAimOctants)
+            return false;
+        if (program.BendCount == 0)
+            return program.BendDirection == 0
+                && program.BendAfterTiles == 0
+                && program.BendEveryTiles == 1;
+        return program.BendDirection is -1 or 1
+            && program.BendAfterTiles >= 1
+            && program.BendAfterTiles <= ProgrammedShotMaxBendAfterTiles
+            && program.BendEveryTiles >= 1
+            && program.BendEveryTiles <= ProgrammedShotMaxBendEveryTiles
+            && program.BendCount >= 1
+            && program.BendCount <= ProgrammedShotMaxBendCount;
+    }
+
     public bool IsControlOvertime(int tick) =>
         ActiveZoneControl
         && ControlOvertimeStartTick > 0
@@ -235,6 +284,7 @@ public sealed record GameRules
         ["0.4", "0.3", "0.2", "0.1",
          "control", "cone-control", "cone-active", "cone-active-bolt1", "cone-active-bolt2",
          "cone-active-bolt2-overtime", "cone-active-bolt2-overtime-gain",
+         "cone-active-bolt2-arcs",
          "0.5-control", "cone", "bolts", "conebolts", "conebolts1",
          "strafe", "hill", "hill-shared", "slate", "energy"];
 
@@ -290,6 +340,18 @@ public sealed record GameRules
             ControlOvertimeStartTick = 200,
             ControlOvertimePressureLimit = 10,
             ControlOvertimePressureGain = 2,
+        },
+        // Gen-9 skill-shot isolation arm: identical to the retained v6 flagship
+        // except Shoot may privately commit an immutable eight-way curved path.
+        "cone-active-bolt2-arcs" => ActiveControlBase("0.5-exp-cone-active-bolt2-arcs-v7") with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+            ControlOvertimeStartTick = 200,
+            ControlOvertimePressureLimit = 10,
+            ControlOvertimePressureGain = 2,
+            AllowProgrammedShots = true,
+            ProgrammedShotLaunchTiles = 1,
         },
         // The 0.5 watchability slate (RULES-0.5-DESIGN), hardened revision v3 (§H,
         // DECISIONS #58-#60): redacted hearing, both-checks bolt collision, computable

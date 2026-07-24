@@ -35,6 +35,10 @@ Fixed seeds (default 101,202,303) make arms comparable. Champions are frozen
 and rules-unaware — good for mechanical effects, blind to strategy adaptation.
 For adaptation effects (e.g. resource management), run an agent-arena
 tournament under `--rules <exp>` so the bots are written FOR the candidate.
+During source iteration, pass project directories plus `--runtime in-process`
+to avoid a NativeAOT compile for every edit; the CLI still runs prebuilt
+champion `.wasm` files in the sandbox in this mixed mode. Re-run at least one
+representative set with the default WASM runtime before accepting results.
 
 ## 3. Ship/no-ship
 

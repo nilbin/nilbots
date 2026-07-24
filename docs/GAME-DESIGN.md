@@ -593,3 +593,18 @@ attacks, and 3,484 irrelevant/out-of-envelope states. Every ranked map supports
 both prediction play and a legal around-wall path. The theory passes; an
 engine experiment is justified, while official 0.5 remains on HOLD. Exact
 semantics and tables are in RULES-0.5-DESIGN §M.
+
+### Programmed-arc engine result
+
+The v7 implementation keeps v6 unchanged except for private immutable shot
+programs. Across the same five doctrines and 180 paired games, arcs reduce
+draws 15→11, raise eliminations 97→106, cut median duration 71→61 and average
+102.2→87.2, and reduce MaxTicks finishes 5→3. Every doctrine still wins;
+Suppressor, the sole program-selecting bot, improves 30→43 wins.
+
+This is genuine projectile play rather than unused API surface: 821 paths
+physically bend, 110 hits land after a bend, 111 curved hits land beyond the
+launch tile, and five curved misses cross a zone tile an active holder just
+vacated. The retained uncertainty is only future committed intent; current
+heading, speed, remaining range, action limits, and completed path remain
+exact. RULES-0.5-DESIGN §N contains the frozen contract and full verdict.

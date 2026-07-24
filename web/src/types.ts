@@ -2,6 +2,12 @@
 // The C# canonical serializer is the source of truth; keep this file in sync.
 
 export type Direction = 'North' | 'East' | 'South' | 'West';
+export type ProjectileHeading =
+  | Direction
+  | 'NorthEast'
+  | 'SouthEast'
+  | 'SouthWest'
+  | 'NorthWest';
 export type BotAction =
   | 'Wait'
   | 'MoveForward'
@@ -33,6 +39,16 @@ export interface ReplayParticipant {
   spawnFacing: Direction;
 }
 
+export interface ShotProgramLimits {
+  maxInitialAimOctants: number;
+  maxBendAfterTiles: number;
+  maxBendEveryTiles: number;
+  maxBendCount: number;
+  maxPathTiles: number;
+  launchTiles: number;
+  tilesPerAdvance: number;
+}
+
 export interface ReplayHeader {
   replayVersion: number;
   engineVersion: string;
@@ -61,6 +77,10 @@ export interface ReplayHeader {
   controlOvertimePressureGain?: number;
   /** True when abandoned pressure stops decaying during overtime. */
   controlOvertimeStopsDecay?: boolean;
+  /** True when Shoot may carry a private immutable arc program. */
+  programmedShots?: boolean;
+  /** Exact public action envelope for programmed shots. */
+  programmedShotLimits?: ShotProgramLimits;
   participants: ReplayParticipant[];
 }
 
@@ -96,12 +116,22 @@ export interface ReplayHeardSound {
   distance: number;
 }
 
+export interface ShotProgram {
+  initialAimOffset: number;
+  bendDirection: number;
+  bendAfterTiles: number;
+  bendEveryTiles: number;
+  bendCount: number;
+}
+
 export interface ReplayBotTick {
   slot: number;
   chosenAction: BotAction;
   validatedAction: BotAction;
   result: ActionResult;
   faulted: boolean;
+  /** Omniscient replay-only intent; never part of an opponent observation. */
+  shotProgram?: ShotProgram;
   debug?: string;
   visibleTiles: number[][];
   visibleEnemies: ReplayVisibleEnemy[];
@@ -138,6 +168,10 @@ export interface ReplayProjectile {
   tilesPerAdvance?: number;
   /** Stable replay-local identity used for interpolation. */
   id?: number;
+  /** Exact eight-way heading; absent for legacy straight projectiles. */
+  heading?: ProjectileHeading;
+  /** Omniscient replay-only complete programmed path. */
+  programmedPath?: number[][];
 }
 
 export interface ReplayProjectileTraversal {
@@ -148,6 +182,8 @@ export interface ReplayProjectileTraversal {
   fromY: number;
   /** Entered tiles in authoritative order during this tick. */
   path: number[][];
+  heading?: ProjectileHeading;
+  programmedPath?: number[][];
 }
 
 export interface ReplayTick {

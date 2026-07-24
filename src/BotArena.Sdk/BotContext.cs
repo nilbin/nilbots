@@ -76,8 +76,17 @@ public sealed class BotContext
     /// not observation: a bolt's tile is lethal, <see cref="VisibleProjectile.TicksUntilAdvance"/>
     /// says exactly when it moves, <see cref="VisibleProjectile.TilesPerAdvance"/>
     /// says how many ordered tiles it crosses, and
-    /// <see cref="VisibleProjectile.RemainingTiles"/> says how far it can still reach.</summary>
+    /// <see cref="VisibleProjectile.RemainingTiles"/> says how far it can still reach.
+    /// Under programmed-shot rules, <see cref="VisibleProjectile.Heading"/> reveals
+    /// only the current heading; an already committed future bend remains private.</summary>
     public IReadOnlyList<VisibleProjectile>? VisibleProjectiles { get; init; }
+
+    /// <summary>
+    /// Programmed-shot action envelope, or null when these rules do not support arcs.
+    /// The selected program is private and immutable; opponents observe only each
+    /// projectile's currently manifested heading, never its future bends.
+    /// </summary>
+    public ShotProgramLimits? ShotPrograms { get; init; }
 
     /// <summary>What happened LAST tick, filtered by your CURRENT vision. Under
     /// omnidirectional rules an event is delivered when any of its reference positions

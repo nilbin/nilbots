@@ -696,3 +696,116 @@ travel, as the engine-experiment timing. Keep the 125-path arc family and
 private immutable plan. This result authorizes an in-process engine prototype;
 it does not authorize an official rules promotion or prove that strategy bots
 can use the action space effectively.
+
+## N. Pre-registered v7 engine/SDK experiment: programmed skill shots
+
+The isolation arm is `cone-active-bolt2-arcs`
+(`0.5-exp-cone-active-bolt2-arcs-v7`). It is bit-for-bit the retained v6
+overtime-gain flagship except that `Shoot` may carry a private immutable
+program from the theory-lab family:
+
+- initial aim: forward-left, forward, or forward-right in 45-degree octants;
+- first bend after 1–4 entered tiles;
+- later bends every 1–3 tiles;
+- 1–3 bends, all clockwise or all counter-clockwise;
+- range 8, one ordered launch tile, then two ordered tiles per tick;
+- wall and victim collision after every substep, with strict diagonal corners.
+
+The program is validated once and cannot home or change after firing. Bots get
+the numeric envelope as nullable `context.ShotPrograms` and can enumerate paths
+with `ShotPaths.Preview`. A defender sees only a visible projectile's current
+eight-way `Heading`; neither observations nor the wire contain future path
+tiles. Omniscient replays retain the program and complete path so spectators
+can understand the skill shot. Selecting a bot in developer vision hides an
+opponent's unrevealed plan; selecting the owner may show it for debugging.
+
+The player and WASM contracts are additive. Historical `Actions.Shoot()` means
+the canonical straight program under v7 and behaves exactly as before under all
+older arms. `Actions.Shoot(program)` is safely blocked when
+`context.ShotPrograms` is null. SDK/guest 0.8 carries limits and exact current
+headings in trailing protocol-0.1 sections, so old pre-arc artifacts continue
+to run and simply ignore them.
+
+### Frozen comparison
+
+Compare v6 `cone-active-bolt2-overtime-gain` against v7
+`cone-active-bolt2-arcs` on identical maps, spawns, bot random streams, three
+seed sets, and game ordering. Use the same five policies in both arms:
+ActiveHolder, Suppressor, SoundHunter, MobileFlanker, and unchanged historical
+Bastille. The four aware sources may use exact current headings in both arms;
+only Suppressor branches on `ShotPrograms` to enumerate committed arcs. Under
+v6 that branch is unreachable and its historical straight-shot doctrine is
+preserved.
+
+Use the in-process runtime for the 180-game strategy iteration because it runs
+the same engine and bot code without invoking NativeAOT for every source edit.
+Before accepting evidence, require:
+
+1. engine/SDK path parity tests, strict-corner tests, speed-two no-tunnelling,
+   launch-substep collision, invalid-program faults, and replay privacy;
+2. a real WASM-vs-in-process replay-hash parity match in the v7 arm;
+3. at least one representative all-WASM mirrored set;
+4. replay-derived action counts, curved-shot counts, and hit distances in
+   addition to the standard draw/elimination/duration table.
+
+### Success gates
+
+This experiment succeeds as a usable skill-shot layer only if:
+
+1. aware code selects valid non-straight programs in real matches;
+2. at least one curved shot lands beyond the immediate launch tile;
+3. at least one curved miss forces movement or interrupts active holding, so
+   value is not limited to damage;
+4. v7 creates ranged hits or eliminations that the paired v6 game does not,
+   without increasing draws or collapsing the four aware doctrines into one;
+5. no engine, protocol, or viewer surface exposes unrevealed future path to the
+   defending bot;
+6. the same v7 match is deterministic and identical across in-process and WASM
+   runtimes;
+7. historical straight-shot artifacts still complete v7 matches without
+   protocol faults.
+
+Failure does not imply stronger or homing shots. First inspect whether the
+action catalogue is too large for practical selection, whether one-tile launch
+plus speed two leaves useful reaction timing, and whether the aware policy is
+aiming at plausible refuge tiles. Official 0.5 remains on HOLD regardless of
+this isolated result; promotion still requires the full rules ship gates.
+
+### Gen-9 v7 result: the finite action space works in real bots
+
+The paired 180-game run used seed blocks `101/202/303`, `404/505/606`, and
+`707/808/909`. Strategy iteration ran in-process; the protocol was separately
+pinned by replay-hash parity and an all-WASM Suppressor/Bastille mirrored set.
+
+| arm | draws | eliminations | median | average | MaxTicks | leader |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| overtime-gain v6 | 15/180 (8.3%) | 97/180 (53.9%) | 71 | 102.2 | 5 | ActiveHolder 51 |
+| programmed-arcs v7 | 11/180 (6.1%) | 106/180 (58.9%) | 61 | 87.2 | 3 | ActiveHolder 46 |
+
+All three blocks move in the same direction. Four draws become decisive and
+none become draws; 24 other decisive games flip winner. Suppressor is the only
+policy that selects programs and improves from 30 wins to 43. ActiveHolder
+46, Bastille 45, MobileFlanker 22, and SoundHunter 13 all still win games, so
+the action does not collapse the field into one viable doctrine.
+
+The replay-specific analyzer reports:
+
+- 918 explicit programs, including 824 with requested bends;
+- 821 paths physically manifest a bend before despawning;
+- 137 attributed programmed hits, 113 from curved programs;
+- 110 hits after a bend had manifested;
+- 111 curved hits beyond the one-tile launch, across 46 games;
+- five no-damage crossings of a vacated active-holder tile across four games.
+
+The smoke interaction explains the numbers. A holder saw a northwest-moving
+bolt and correctly knew that heading, but could not know its already committed
+westward bend on the next advance. Waiting lost health; moving would have
+sacrificed control. Complete-path knowledge still makes that exact open-floor
+shot dodgeable, so the eligibility comes from prediction rather than hidden
+randomness.
+
+The v7 usability gate passes. Retain `cone-active-bolt2-arcs` as the next
+experimental flagship and v6 as its causal straight-bolt reference. Official
+0.5 remains on HOLD: this isolation run establishes that programmed skill
+shots are usable and improve v6, not that the complete 0.5 package has passed
+every comparison against shipped 0.4 or its map-geometry gate.

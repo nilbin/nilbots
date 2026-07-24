@@ -16,8 +16,23 @@ namespace BotArena.Cli;
 /// </summary>
 internal static class InProcessProject
 {
+    private sealed record CachedFactory(long SourceStamp, Func<Sdk.IBot> Factory);
+
+    private static readonly Dictionary<string, CachedFactory> Factories =
+        new(StringComparer.Ordinal);
+
     public static Func<Sdk.IBot> LoadFactory(BotProject project, bool quiet = false)
     {
+        string projectDirectory = Path.GetFullPath(project.Directory);
+        long sourceStamp = project.SourceFiles
+            .Append(Path.Combine(projectDirectory, "botarena.json"))
+            .Concat(Directory.EnumerateFiles(projectDirectory, "*.csproj"))
+            .Where(File.Exists)
+            .Max(file => File.GetLastWriteTimeUtc(file).Ticks);
+        if (Factories.TryGetValue(projectDirectory, out var cached)
+            && cached.SourceStamp == sourceStamp)
+            return cached.Factory;
+
         string dllPath = Build(project, quiet);
         var context = new BotLoadContext(dllPath);
         var assembly = context.LoadFromAssemblyPath(dllPath);
@@ -28,7 +43,9 @@ internal static class InProcessProject
         if (!typeof(Sdk.IBot).IsAssignableFrom(entryType))
             throw new InvalidOperationException(
                 $"{entryType.FullName} does not implement BotArena.Sdk.IBot.");
-        return () => (Sdk.IBot)Activator.CreateInstance(entryType)!;
+        Func<Sdk.IBot> factory = () => (Sdk.IBot)Activator.CreateInstance(entryType)!;
+        Factories[projectDirectory] = new CachedFactory(sourceStamp, factory);
+        return factory;
     }
 
     private static string Build(BotProject project, bool quiet)

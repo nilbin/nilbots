@@ -61,6 +61,22 @@ For bot strategy work, use the managed diagnostic runtime:
 botarena play --bot . --opponent hunter --runtime in-process
 ```
 
+Not every code edit pays the NativeAOT cost:
+
+| Change | Inner-loop rebuild |
+| --- | --- |
+| Player `.cs` strategy | in-process assembly, normally under a second after warm-up |
+| Repeat of identical player WASM source | content-cache hit; no compile |
+| Engine, CLI, docs, or web only | managed/web build; built-in WASM stamp stays valid |
+| SDK, Guest, BuiltIn bot, or WasmGuest | one input-stamped shared guest publish |
+| Player source before final verification | one WASM publish for that bot |
+
+On the Apple Silicon reference machine, the programmed-shot change measured
+18.4 seconds for the shared guest and 16.0 seconds for the one arc-aware player
+artifact. The subsequent six-game all-WASM set took under one second because
+both artifacts were cached. These are verification costs, not the per-edit
+strategy loop.
+
 It is incremental and does not invoke NativeAOT. Before sharing or submitting,
 verify the canonical sandbox:
 
@@ -140,7 +156,9 @@ bash scripts/e2e.sh
 `test.sh` always calls the input-stamped guest build first, so WASM contract
 tests cannot accidentally exercise an old tracked artifact. Contract tests
 compare in-process and WASM replay hashes, including active control and
-speed-two projectile observations.
+speed-two projectile observations. SDK/guest 0.8 also pins an arc-program
+round trip: trailing action limits, exact current eight-way headings, and a
+private programmed `Shoot` must produce the same replay through both runtimes.
 
 `e2e.sh` additionally scaffolds a player bot, performs a cold build and cache
 hit, runs it in Wasmtime, verifies the replay, and builds the viewer.

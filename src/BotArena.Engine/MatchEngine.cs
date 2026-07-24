@@ -135,6 +135,7 @@ public sealed class MatchEngine
                 ValidatedAction = resolution.ValidatedAction,
                 Result = resolution.Result,
                 Faulted = resolution.Faulted,
+                ShotProgram = decisions[slot].ShotProgram,
                 Debug = decisions[slot].Faulted ? decisions[slot].FaultMessage : decisions[slot].DebugMessage,
                 VisibleTiles = observations[slot].VisibleTiles
                     .Select(t => new[] { t.Position.X, t.Position.Y })
@@ -166,14 +167,18 @@ public sealed class MatchEngine
                         state.Rules.ProjectileTicksPerTile - p.Phase,
                         state.Rules.ShotRange > 0 ? state.Rules.ShotRange - p.TilesTraveled : -1,
                         state.Rules.ProjectileTilesPerAdvance,
-                        p.Id))
+                        p.Id,
+                        p.Heading,
+                        p.ProgrammedPath?.Select(tile => new[] { tile.X, tile.Y }).ToArray()))
                     .ToArray()
                 : null,
             ProjectileTraversals = state.Rules.ProjectileTicksPerTile > 0
                 ? tickResult.ProjectileTraversals
                     .Select(p => new ReplayProjectileTraversal(
                         p.Id, p.OwnerSlot, p.Direction, p.From.X, p.From.Y,
-                        p.Path.Select(tile => new[] { tile.X, tile.Y }).ToArray()))
+                        p.Path.Select(tile => new[] { tile.X, tile.Y }).ToArray(),
+                        p.Heading,
+                        p.ProgrammedPath?.Select(tile => new[] { tile.X, tile.Y }).ToArray()))
                     .ToArray()
                 : null,
             ControlPressure = state.Rules.ActiveZoneControl ? state.ControlPressure : null,
@@ -219,6 +224,8 @@ public sealed class MatchEngine
             ControlOvertimeStopsDecay = hasControlOvertime
                 ? rules.ControlOvertimeStopsDecay
                 : null,
+            ProgrammedShots = rules.AllowProgrammedShots ? true : null,
+            ProgrammedShotLimits = rules.GetShotProgramLimits(),
             Participants = configuration.Participants
                 .Select((p, slot) => new ReplayParticipant(
                     slot, p.Name, p.RuntimeKind, p.ArtifactHash, p.Accent,

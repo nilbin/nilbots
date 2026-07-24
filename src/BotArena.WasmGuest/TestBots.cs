@@ -41,3 +41,12 @@ internal sealed class ClockBot : IBot
             : Actions.MoveForward();
     }
 }
+
+/// <summary>Exercises the additive programmed-shot observation and action wire.</summary>
+internal sealed class ArcProtocolBot : IBot
+{
+    public BotAction Tick(BotContext context) =>
+        context.Tick == 0 && context.ShotPrograms is not null
+            ? Actions.Shoot(new ShotProgram(0, 1, 2, 1, 2))
+            : Actions.Wait();
+}

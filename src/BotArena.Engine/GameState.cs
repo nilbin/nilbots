@@ -29,6 +29,13 @@ public sealed class ProjectileState
     public required int Id { get; init; }
     public required Position Position { get; set; }
     public required Direction Direction { get; init; }
+    /// <summary>Exact current eight-way heading for a programmed projectile.
+    /// Null for legacy straight projectiles, whose <see cref="Direction"/> is exact.</summary>
+    public ProjectileHeading? Heading { get; set; }
+    /// <summary>Complete private immutable path. Present only for programmed shots;
+    /// replay may expose it to spectators, bot observations never do.</summary>
+    public IReadOnlyList<Position>? ProgrammedPath { get; init; }
+    public int NextProgrammedPathIndex { get; set; }
     public required int OwnerSlot { get; init; }
     public int TilesTraveled { get; set; }
     /// <summary>Ticks since the last advance; advances when it reaches
