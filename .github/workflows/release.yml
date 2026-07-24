@@ -1,0 +1,188 @@
+name: Manual release
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: What should this run do?
+        required: true
+        default: verify
+        type: choice
+        options:
+          - verify
+          - publish
+          - publish-and-deploy
+
+concurrency:
+  group: nilbots-manual-release
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  RUNTIME_IMAGE: ghcr.io/${{ github.repository_owner }}/nilbots-runtime
+  COMPILER_IMAGE: ghcr.io/${{ github.repository_owner }}/nilbots-compiler
+
+jobs:
+  verify:
+    name: Verify source and WASM pipeline
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out selected revision
+        uses: actions/checkout@v6
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install WASI toolchain
+        run: sudo bash scripts/setup-wasi-sdk.sh
+
+      - name: Install web dependencies
+        run: npm ci --prefix web --silent
+
+      - name: Run end-to-end verification
+        env:
+          WASI_SDK_PATH: /opt/botarena/wasi-sdk-29.0
+        run: bash scripts/e2e.sh
+
+  publish:
+    name: Publish immutable images
+    if: inputs.operation != 'verify'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      runtime-ref: ${{ steps.refs.outputs.runtime-ref }}
+      compiler-ref: ${{ steps.refs.outputs.compiler-ref }}
+    steps:
+      - name: Check out selected revision
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish runtime image
+        id: runtime
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: runtime
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.RUNTIME_IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build and publish compiler image
+        id: compiler
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: compiler
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.COMPILER_IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Attest runtime image provenance
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ env.RUNTIME_IMAGE }}
+          subject-digest: ${{ steps.runtime.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest compiler image provenance
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ env.COMPILER_IMAGE }}
+          subject-digest: ${{ steps.compiler.outputs.digest }}
+          push-to-registry: true
+
+      - name: Record immutable image references
+        id: refs
+        shell: bash
+        run: |
+          echo "runtime-ref=${RUNTIME_IMAGE}@${{ steps.runtime.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "compiler-ref=${COMPILER_IMAGE}@${{ steps.compiler.outputs.digest }}" >> "$GITHUB_OUTPUT"
+
+      - name: Write release summary
+        env:
+          RUNTIME_REF: ${{ steps.refs.outputs.runtime-ref }}
+          COMPILER_REF: ${{ steps.refs.outputs.compiler-ref }}
+        run: |
+          {
+            echo "## Nilbots release"
+            echo
+            echo "- Git: \`${GITHUB_SHA}\`"
+            echo "- Runtime: \`${RUNTIME_REF}\`"
+            echo "- Compiler: \`${COMPILER_REF}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy production
+    if: inputs.operation == 'publish-and-deploy'
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Check out deployment script
+        uses: actions/checkout@v6
+
+      - name: Configure deployment SSH key
+        env:
+          DEPLOY_KEY: ${{ secrets.NILBOTS_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.NILBOTS_KNOWN_HOSTS }}
+        run: |
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/nilbots-deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/nilbots-deploy" "$HOME/.ssh/known_hosts"
+
+      - name: Deploy immutable image references
+        env:
+          DEPLOY_HOST: ${{ vars.NILBOTS_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.NILBOTS_DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.NILBOTS_DEPLOY_PATH }}
+          RUNTIME_REF: ${{ needs.publish.outputs.runtime-ref }}
+          COMPILER_REF: ${{ needs.publish.outputs.compiler-ref }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PATH"
+          ssh -i "$HOME/.ssh/nilbots-deploy" \
+            -o BatchMode=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "bash -s -- '$GITHUB_SHA' '$RUNTIME_REF' '$COMPILER_REF' '$DEPLOY_PATH'" \
+            < deploy/remote-release.sh
