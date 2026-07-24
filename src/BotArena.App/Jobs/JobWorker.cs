@@ -18,7 +18,8 @@ namespace BotArena.App.Jobs;
 /// finalization is race-free only because match jobs have a single consumer —
 /// plus BOTARENA_COMPILE_WORKERS compile lanes (default 1), so a 3-minute
 /// NativeAOT compile never blocks match execution and concurrent submissions
-/// compile in parallel (BotBuilder serializes same-cache-key builds itself).
+/// compile in parallel (BotBuilder serializes same-cache-key builds across
+/// threads and processes).
 /// </summary>
 public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWorker> logger)
     : BackgroundService

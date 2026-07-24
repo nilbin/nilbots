@@ -49,7 +49,11 @@ create prediction contests without random accuracy or homing; across 180
 paired games they improve v6 draws, eliminations, median, and average duration,
 with 111 ranged curved hits. `scripts/shot-theory-lab.py` checks the finite
 path/policy space and `scripts/arc-replay-eval.py` measures real replay use.
-Official 0.5 remains on HOLD pending the full 0.4 comparison and map gate.
+The gen-9 docs-only Helix trial then passed the player learnability and ranked
+map gates: 13–5 across the three historical champions, a 3–3 all-elimination
+self mirror, local/server artifact parity, and all five constrained ranked
+maps covered. Official 0.5 remains on HOLD pending the full matched 0.4
+comparison (DECISIONS #69).
 
 ## Game rules 0.1 (initial)
 
@@ -111,12 +115,13 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    Measurement note: cold WASM compiles are ~8 s on an idle box (the
    tournament's "2–4 min" was compile contention + first-boot NuGet), so the
    trim-flags companion was dropped as not worth a cache-invalidating
-   version bump.
+   version bump. Cross-process cache-key locks and named Docker timeout cleanup
+   now prevent CLI/server builds from corrupting one workspace (#70).
 2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
    control; DECISIONS #49/#53). The held 0.5 program now has a clean remaining
-   choice after v6: restore elimination/median tempo, or explicitly redefine
-   the gate around decisive objective endings (DECISIONS #64/#65). More maps
-   remain backlog #1; energy/strafe stay behind failed experiment arms.
+   choice after v7: run the full matched v7-versus-0.4 promotion comparison.
+   The ranked geometry and player-learnability gates are complete (#69);
+   energy/strafe stay behind failed experiment arms.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime

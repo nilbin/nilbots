@@ -38,7 +38,9 @@ botarena doctor                                      # toolchain status
 ```
 
 Builds are cached deterministically (`botarena cache status|clear`); only your
-source changes trigger recompilation.
+source changes trigger recompilation. The CLI and local server safely share
+that cache: simultaneous identical requests perform one compile and reuse its
+artifact.
 
 The WASM compiler backend is selected automatically: native on Linux x64 with
 wasi-sdk, otherwise a focused cached `linux/amd64` Docker builder. See

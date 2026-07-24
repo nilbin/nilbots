@@ -50,6 +50,7 @@ internal static class InProcessProject
 
     private static string Build(BotProject project, bool quiet)
     {
+        using var projectBuildLock = ProjectBuildLock.Acquire(project.Directory, project.Manifest.Name, quiet);
         string? csproj = Directory.EnumerateFiles(project.Directory, "*.csproj").FirstOrDefault()
             ?? throw new InvalidOperationException(
                 $"No .csproj in {project.Directory} — in-process mode builds the project file " +

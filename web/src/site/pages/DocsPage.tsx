@@ -144,10 +144,13 @@ public sealed class MyBot : IBot
         </p>
         <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`curl -c jar -H 'Content-Type: application/json' \\
   -d '{"displayName":"Me","email":"me@x","password":"..."}' <server>/api/accounts/register
-curl -b jar -d '{"name":"MyBot","accent":"#22d3ee"}' <server>/api/bots
-curl -b jar -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
+curl -b jar -H 'Content-Type: application/json' \\
+  -d '{"name":"MyBot","accent":"#22d3ee"}' <server>/api/bots
+curl -b jar -H 'Content-Type: application/json' \\
+  -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
-curl -b jar -d '{"botId":"...","opponentBotId":"...","rules":"0.3"}' \\
+curl -b jar -H 'Content-Type: application/json' \\
+  -d '{"botId":"...","opponentBotId":"...","rules":"0.3"}' \\
   <server>/api/matches/ranked          # rules optional; every ruleset has its own ladder
 curl <server>/api/leaderboard?rules=0.3      # pick a ladder; default = current rules
 curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>

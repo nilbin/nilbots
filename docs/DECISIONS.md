@@ -707,6 +707,40 @@ configuration) and changing them is a version bump, not an edit.
     proves usable skill shots, not full 0.5 promotion against official 0.4 or
     completion of the ranked-map geometry gate.
 
+69. **The isolated gen-9 player trial passes v7 learnability and the ranked-map
+    geometry gate; official 0.5 remains HOLD for the matched 0.4 comparison.**
+    One fresh docs/SDK/CLI-only author built Helix without engine, runtime,
+    toolchain, design, agent-guide, or raw-replay access. Its final WASM was
+    byte-identical locally/server-side and scored 4–2 over Bastille, 4–2 over
+    Rampart, and 5–1 over Warden; a final self mirror drew 3–3 with all six
+    games ending by elimination in 11–31 ticks. Helix independently combined
+    active Wait holding, terrain memory, redacted-sound search, private
+    program enumeration/preview, movement prediction, and conservative
+    speed-two bolt evasion with zero faults. This proves the public action and
+    observation contract is learnable and unchanged Bastille's mirror is no
+    longer self-sufficient. The ranked pool now also has executable geometry
+    constraints (connected ≥4-tile regions, horizontal/vertical local movement,
+    ≥2 approaches, surrounding attack space), excludes the adversarial 2×2
+    causeway, and the trial covered all five ranked maps. No crown: one
+    challenger against historical rules-blind bots is a usability gate, not
+    the full promotion population. Next run the matched v7-versus-shipped-0.4
+    tournament; do not add another combat mechanic first.
+
+70. **Build caches serialize across processes, and timed-out Docker compilers
+    are explicitly reaped.** A gen-9 final build exposed that `BuildLocks`
+    protected only threads: a CLI build and server submission of identical
+    source shared one cache workspace concurrently. On Docker Desktop, the
+    five-minute timeout killed the local `docker run` client but left the
+    daemon-owned Linux x64 compiler alive, causing subsequent empty-log stalls.
+    Each cache key now also holds an OS file lock; waiters consume the completed
+    artifact. Docker publishes receive unique `botarena-wasm-*` names and the
+    timeout path forcibly removes the exact container before killing the
+    client. In-process player MSBuilds likewise serialize per project so seed
+    batches cannot race in `bin/obj`. Verification on Apple Silicon: the
+    formerly blocked Helix build completed in 16.3s; two simultaneous fresh
+    identical builds produced one 14.1s compile plus one cache hit with matching
+    hashes and no remaining compiler container.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

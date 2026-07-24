@@ -22,6 +22,8 @@ public static class BotBuilder
 
     // Parallel compile lanes (DECISIONS #42) make this class multi-threaded: builds of
     // the same cache key share a workspace and must serialize; distinct keys don't.
+    // This lock handles threads in one process; BuildCacheLock below handles a CLI
+    // and server (or two CLI processes) sharing the same content cache.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> BuildLocks = new();
     private static readonly object ToolchainAssembliesLock = new();
 
@@ -47,6 +49,7 @@ public static class BotBuilder
 
         lock (BuildLocks.GetOrAdd(cacheKey, static _ => new object()))
         {
+            using var cacheLock = BuildCacheLock.Acquire(cacheDir, displayName, quiet);
             // A concurrent identical submission may have finished while we waited.
             if (!noCache && File.Exists(wasmPath))
                 return new BuiltBot(wasmPath, Sha256File(wasmPath), FromCache: true, cacheKey);
@@ -155,7 +158,14 @@ public static class BotBuilder
             process.BeginErrorReadLine();
             if (!process.WaitForExit(TimeSpan.FromMinutes(5)))
             {
-                process.Kill(entireProcessTree: true);
+                // Killing the local `docker run` client does not necessarily stop
+                // its daemon-owned container (observed on Docker Desktop). Remove
+                // the named build container first so it cannot keep mutating the
+                // shared workspace after this process reports a timeout.
+                if (docker)
+                    WasmBuildPlatform.AbortDockerPublish(startInfo);
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
                 throw new BotBuildException("Build timed out after 5 minutes.", outputBuffer.ToString());
             }
             process.WaitForExit(); // drain the async output streams

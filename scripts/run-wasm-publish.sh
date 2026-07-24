@@ -167,6 +167,9 @@ if command -v id >/dev/null; then
 fi
 
 docker_command=(docker run --rm --platform linux/amd64)
+if [ -n "${BOTARENA_WASM_CONTAINER_NAME:-}" ]; then
+  docker_command+=(--name "$BOTARENA_WASM_CONTAINER_NAME")
+fi
 if [ "${#docker_user_args[@]}" -gt 0 ]; then
   docker_command+=("${docker_user_args[@]}")
 fi

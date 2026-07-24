@@ -90,6 +90,13 @@ Player builds use two caches:
 - `~/.botarena/cache`: content-addressed final bot artifacts;
 - `~/.cache/nilbots-wasm`: Docker/NuGet state on non-native hosts.
 
+The cache is safe to share between the CLI and a locally running server.
+Identical builds serialize across processes: one process compiles and the
+others consume its artifact instead of writing the same workspace
+concurrently. Docker build containers have unique `botarena-wasm-*` names and
+are forcibly removed if the five-minute compiler timeout fires, so a dead
+client cannot leave an emulated compiler mutating the cache in the background.
+
 The second identical `botarena build` should be a cache hit and perform no
 container compilation.
 
@@ -196,6 +203,12 @@ guest inner loop.
 Verify access to both sources in `nuget.config`. Docker networking must reach
 `api.nuget.org` and `pkgs.dev.azure.com`. The build log path printed by
 `botarena build` streams restore/compiler output while the CLI waits.
+
+If a build approaches the five-minute timeout with an empty log, check
+`docker ps --filter name=botarena-wasm-`. A current checkout cleans timed-out
+containers automatically. Containers from an older checkout can be stopped by
+their exact name; do not clear the whole Docker environment or the shared
+artifact cache.
 
 ### Linux native build cannot find wasi-sdk
 

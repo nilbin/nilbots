@@ -608,3 +608,26 @@ launch tile, and five curved misses cross a zone tile an active holder just
 vacated. The retained uncertainty is only future committed intent; current
 heading, speed, remaining range, action limits, and completed path remain
 exact. RULES-0.5-DESIGN §N contains the frozen contract and full verdict.
+
+### Gen-9 docs-only usability result
+
+A new author restricted to player documentation, public SDK source, and the
+CLI independently produced Helix: an active objective holder that enumerates
+legal private programs, previews paths against remembered terrain, predicts
+movement/refuge tiles, searches from redacted sound, and dodges manifested
+speed-two bolts. Its final WASM matched the server artifact byte-for-byte.
+
+Helix beat unchanged Bastille 4–2, Rampart 4–2, and Warden 5–1 in ranked-format
+v7 sets. Its self mirror drew 3–3; all six games ended by elimination in
+11–31 ticks. This passes the player-learnability gate and demonstrates that
+Bastille's historical passive mirror is no longer sufficient by itself.
+
+The geometry gate is also mechanically complete: every ranked zone is a
+connected region of at least four tiles with two-dimensional local movement,
+multiple approaches, and surrounding attack space; the narrow 2×2 causeway
+is adversarial-only. The trial's three champion sets collectively covered all
+five ranked maps.
+
+Do not crown Helix or ship 0.5 from this bounded trial. The remaining promotion
+step is the matched v7-versus-shipped-0.4 tournament with an aware population.
+That comparison—not another combat mechanic—is next.
