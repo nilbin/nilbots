@@ -760,6 +760,42 @@ configuration) and changing them is a version bump, not an edit.
     an explicit product gate and use fresh holdout seeds while continuing to
     report the original balance table.
 
+72. **Revision-v8 replaces the Wait tax with territorial sole-occupancy
+    scoring; the economy works, but its first retention gates remain a HOLD.**
+    `cone-occupancy-bolt2-arcs`
+    (`0.5-exp-cone-occupancy-bolt2-arcs-v8`) is bit-identical to programmed
+    arcs v7 except that exactly one active zone occupant scores with any action
+    and contested/empty zones decay. Scripted gates and 810 all-WASM games
+    passed with zero faults. The frozen Wait-trained population failed the
+    pre-registered v7 table (draws 17→22, average 99.0→119.1, MaxTicks 14→35)
+    and used Wait for 84.2% of score ticks. Two docs-only adaptations then
+    proved the intended economy: in 270 v8 games, 2,080/3,911 score ticks used
+    Move/Shoot/Turn, all 189 contest-to-sole transitions scored immediately,
+    162 coincided with damage eviction, damage occurred in 91.1% of games,
+    reciprocal damage in 61.5%, and eliminations in 81.1%. Bastille fell to
+    30-47-13 and all six doctrines won. The adapted arm still failed its frozen
+    duration tail: 30 MaxTicks, all ending at zero pressure after 100-tick
+    no-damage physical contests. Retain v8 as a reproducible experiment; do not
+    hide those loops with a post-hoc match cap. Its next verdict requires a
+    fresh, larger territorial-native cohort.
+
+73. **Substantial rules are judged by native generations, dynamics, and blind
+    replay study—not vetoed by old rules-unaware bots or optimized for minimum
+    duration.** Frozen historical artifacts remain mandatory compatibility,
+    determinism, and exploit sentinels; same-cohort fixed-seed A/B remains the
+    mechanic-causality instrument. Primary product evidence now requires at
+    least four independently authored/adapted doctrines under the rules they
+    were built for, compared as a product generation with the prior native
+    cohort under its prior rules. The shared scorecard reports damage tempo,
+    reciprocal/multi-tick exchanges, active/stagnant/repeated frames, action
+    entropy/runs, objective evictions, outcome diversity, faults, and
+    median/p90 as viewing guardrails. At least 12 header-only, map/pair-balanced
+    replays are selected before aggregate outcomes and watched at normal speed;
+    highlights are separate. `docs/EVALUATION-METHODOLOGY.md`, both shared
+    repository skills, `balance-eval.py`, `replay-dynamics-eval.py`, and
+    `replay-review-sample.py` encode the policy. Completed historical gates are
+    not retroactively rescored; the thresholds apply to fresh holdouts.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

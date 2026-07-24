@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""A/B rules balance harness (docs/GAME-DESIGN.md methodology).
+"""Paired outcome harness (docs/EVALUATION-METHODOLOGY.md).
 
 Runs the same round-robin of 6-game mirrored sets under each candidate ruleset
 with FIXED seeds, then prints the comparison table (draw rate, elimination
 share, game length) AND a paired per-game analysis against the first ruleset
 (the control): every game is matched across arms by (pairing, game index), so
 the deltas measure what the mechanics changed game-by-game, not aggregate
-noise (external review §H). Ship a rule change only if draws drop and games
-shorten without collapsing strategy diversity.
+noise for this exact cohort.
+
+This is a mechanic diagnostic, not a complete ship gate. For a substantial
+rules redesign, old rules-unaware bots cannot veto the candidate: build a
+rules-native cohort with the agent-arena skill, evaluate replay dynamics with
+replay-dynamics-eval.py, and conduct outcome-blind viewer review.
 
 Usage:
   python3 scripts/balance-eval.py                     # all champions/, default rulesets
@@ -15,8 +19,8 @@ Usage:
       --rulesets control,cone-control,cone-active,cone-active-bolt1,cone-active-bolt2 \
       --seeds 101,202,303
 
-Bots default to every champions/<slug>/bot.wasm (the frozen population — add
-current-gen artifacts via --bots for a stronger sample). Rulesets are whatever
+Bots default to every champions/<slug>/bot.wasm for a compatibility screen;
+pass an explicitly named cohort for balance evidence. Rulesets are whatever
 the CLI's --rules accepts. The checkout wrapper reuses the CLI assembly built
 by setup; each 6-game set normally takes a few seconds.
 """
@@ -134,6 +138,12 @@ def main():
             for name, record in ordered_records
         )
         print(f"{rules:14} {row}")
+
+    print(
+        "\nNOTE: this table isolates rules effects for this cohort. "
+        "Substantial-rules product verdicts require candidate-native bots, "
+        "replay dynamics, and outcome-blind viewing."
+    )
 
     # Paired per-game analysis vs the FIRST arm (the control). Same pairing, same
     # game slot, same seeds and maps — so every row is one game observed under two

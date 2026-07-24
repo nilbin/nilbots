@@ -243,6 +243,7 @@ public class SpawnVariationTests
                 "control", "cone-control", "cone-active",
                 "cone-active-bolt1", "cone-active-bolt2", "cone-active-bolt2-overtime",
                 "cone-active-bolt2-overtime-gain", "cone-active-bolt2-arcs",
+                "cone-occupancy-bolt2-arcs",
             }
             .Select(GameRules.Resolve)
             .ToList();

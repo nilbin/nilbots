@@ -669,3 +669,39 @@ median 40); first-hit lethality would meet the numbers but creates at least
 16 observed mutual-first-hit situations and overweights one hidden prediction.
 The next move is to decide what “good to watch” means, then validate it without
 post-hoc scoring.
+
+## Evaluation correction: native generations and dynamic play
+
+The product decision is now explicit in
+`docs/EVALUATION-METHODOLOGY.md`. Frozen historical bots remain important for
+compatibility, deterministic A/B diagnostics, and exploit detection, but they
+do not veto a substantial rules redesign they were never authored to use.
+Primary balance evidence comes from a cohort written or substantially adapted
+for the candidate fighting under the candidate. The generational product
+comparison is previous-native-bots + previous rules versus
+current-native-bots + candidate rules; it is not misrepresented as a
+single-mechanic causal comparison.
+
+Game length and Elimination count remain visible guardrails, not the target.
+The watchability scorecard now measures damage incidence and tempo, reciprocal
+and multi-tick exchanges, active/stagnant/repeated tactical frames, action
+entropy and long runs, physical objective evictions, doctrine diversity, and
+an outcome-blind replay sample watched at normal speed. Highlights are
+published separately from the representative sample.
+
+The first replay-dynamics read of the territorial-control experiment
+illustrates the improved diagnosis:
+
+| field in its evaluated rules | damage games | reciprocal damage | multi-damage ticks | active world ticks | looped games | action entropy | median / p90 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| previous v7-aware field, v7 | 70.0% | 38.9% | 64.4% | 83.0% | 6.3% | 0.620 | 64.5 / 200 |
+| v8 adapted field, territorial v8 | 91.1% | 61.5% | 87.4% | 81.0% | 11.1% | 0.743 | 25.5 / 499 |
+
+V8 is substantially more combative and its decisions are more varied; a
+simple “p90 got worse” verdict misses that. The repeated-frame metric also
+shows the precise remaining weakness: 30/270 matches settle into persistent
+physical contest loops. This table is diagnostic, not a retrospective ship
+gate. Only two doctrines in the adapted field were newly commissioned for
+sole-occupancy control, so the next formal holdout needs at least four
+independently authored/adapted territorial doctrines plus the frozen
+outcome-blind viewer study.

@@ -73,11 +73,16 @@ public sealed record GameRules
     public bool ZoneExclusiveAccrual { get; init; }
 
     /// <summary>When true, legacy per-bot zone-tick accrual is replaced by a shared
-    /// signed control-pressure meter. A bot exerts control only by successfully
-    /// validating Wait while alive on a zone tile; movement, turning, shooting,
-    /// blocked actions, and faults do not hold. Positive pressure favors slot 0 and
-    /// negative pressure favors slot 1.</summary>
+    /// signed control-pressure meter. By default a bot exerts control only by
+    /// successfully validating Wait while alive on a zone tile. Positive pressure
+    /// favors slot 0 and negative pressure favors slot 1.</summary>
     public bool ActiveZoneControl { get; init; }
+
+    /// <summary>When true, the shared pressure meter is territorial: the sole active
+    /// zone occupant gains regardless of action, while zero or multiple occupants
+    /// decay existing pressure. Off preserves successful-Wait holding, where two
+    /// committed holders freeze the meter.</summary>
+    public bool ControlBySoleOccupancy { get; init; }
 
     /// <summary>Absolute pressure required for a domination win. 0 disables the
     /// active-control meter even when <see cref="ActiveZoneControl"/> is true.</summary>
@@ -284,7 +289,7 @@ public sealed record GameRules
         ["0.4", "0.3", "0.2", "0.1",
          "control", "cone-control", "cone-active", "cone-active-bolt1", "cone-active-bolt2",
          "cone-active-bolt2-overtime", "cone-active-bolt2-overtime-gain",
-         "cone-active-bolt2-arcs",
+         "cone-active-bolt2-arcs", "cone-occupancy-bolt2-arcs",
          "0.5-control", "cone", "bolts", "conebolts", "conebolts1",
          "strafe", "hill", "hill-shared", "slate", "energy"];
 
@@ -345,6 +350,20 @@ public sealed record GameRules
         // except Shoot may privately commit an immutable eight-way curved path.
         "cone-active-bolt2-arcs" => ActiveControlBase("0.5-exp-cone-active-bolt2-arcs-v7") with
         {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+            ControlOvertimeStartTick = 200,
+            ControlOvertimePressureLimit = 10,
+            ControlOvertimePressureGain = 2,
+            AllowProgrammedShots = true,
+            ProgrammedShotLaunchTiles = 1,
+        },
+        // Revision v8 isolates the objective rule now that private arcs can evict
+        // campers: sole physical occupancy earns pressure with any action; a
+        // contested or empty zone decays it.
+        "cone-occupancy-bolt2-arcs" => ActiveControlBase("0.5-exp-cone-occupancy-bolt2-arcs-v8") with
+        {
+            ControlBySoleOccupancy = true,
             ProjectileTicksPerTile = 1,
             ProjectileTilesPerAdvance = 2,
             ControlOvertimeStartTick = 200,

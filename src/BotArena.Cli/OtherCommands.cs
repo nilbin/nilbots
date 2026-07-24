@@ -53,11 +53,16 @@ public static class ReplayCommand
         if (zone.Count > 0)
             Console.WriteLine($"Zone:   {string.Join(" ", header.ZoneTiles!.Select(t => $"({t[0]},{t[1]})"))}  (* in state lines = on zone tile)");
         if (header.ControlPressureLimit is int pressureLimit)
-            Console.WriteLine($"Control: successful Wait on-zone holds; signed slot-0 pressure, domination at ±{pressureLimit}");
+            Console.WriteLine(header.ControlBySoleOccupancy == true
+                ? $"Control: sole zone occupant gains; contested/empty zone decays; signed slot-0 pressure, domination at ±{pressureLimit}"
+                : $"Control: successful Wait on-zone holds; signed slot-0 pressure, domination at ±{pressureLimit}");
         if (header.ControlOvertimeStartTick is int overtimeTick)
             Console.WriteLine($"Overtime: tick {overtimeTick}; domination at ±{header.ControlOvertimePressureLimit}" +
                               (header.ControlOvertimePressureGain is int overtimeGain
-                                  ? $"; sole holds gain {overtimeGain}" : "") +
+                                  ? header.ControlBySoleOccupancy == true
+                                      ? $"; sole occupancy gains {overtimeGain}"
+                                      : $"; sole holds gain {overtimeGain}"
+                                  : "") +
                               (header.ControlOvertimeStopsDecay == true ? "; abandoned pressure no longer decays" : ""));
         if (coneMode)
             Console.WriteLine("Vision: 90° cone toward facing + adjacent ring; `sees»`/`hears»` lines show each bot's actual contact");

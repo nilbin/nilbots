@@ -7,16 +7,21 @@ description: Evaluate Bot Arena end to end by having subagents write bots from t
 
 Goal: challenger agent(s) build bots **using only the player-facing docs**
 (site `/docs`, `templates/botarena-bot/README.md` — NOT the engine source), then
-fight the reigning champions for the title. This evaluates the docs and the full
-pipeline; the tournament is the fun part.
+fight a tournament. Under shipped rules they challenge reigning champions for
+the title. Under a substantial rules experiment, a rules-native cohort fights
+itself for the primary product verdict while historical champions act as
+non-voting sentinels. This evaluates the docs and the full pipeline; the
+tournament is the fun part.
 
 **Default: ONE challenger.** A tournament agent costs ~200-400k tokens per
 phase, so a 3-agent bracket runs 1.5-2M+ and triples wall-clock (and restart
 exposure). Since champions are seeded server bots (DECISIONS #43), a single
 challenger vs the champion lineage is a full title fight. Use a multi-agent
 bracket (3-4 personas) ONLY when explicitly requested, or when a balance
-verdict needs archetype diversity (distinct doctrines fighting each other —
-frozen champions can't co-evolve).
+verdict needs archetype diversity. A substantial-rules ship verdict is that
+exception: use at least four independently authored or substantially adapted
+candidate-aware doctrines, because frozen champions cannot reveal a strategy
+space they were never written to use.
 
 ## Run length (pick before launching, per the request)
 
@@ -85,6 +90,14 @@ one arm without trusting every request. Player-facing docs only describe SHIPPED
 so append the experiment spec to every agent brief. (Zone control needs no
 brief anymore — it shipped as official 0.4 after the gen-4 bracket,
 DECISIONS #53, and the site docs + template README now cover it.)
+
+For substantial changes, follow `docs/EVALUATION-METHODOLOGY.md`: give every
+native-cohort author the same iteration budget, freeze final artifact hashes,
+and judge the candidate primarily on native-vs-native play. Historical bots
+still catch compatibility failures and obvious exploits, but their candidate
+record is not a ship veto. Compare the previous native cohort on its previous
+rules with the new native cohort on the candidate as a generational product
+comparison; do not call that comparison a causal A/B.
 
 For the hardened 0.5 slate (gen-7; arms `cone` / `bolts` / `conebolts` /
 `conebolts1`, plus the `0.5-control` baseline, RULES-0.5-DESIGN §E —
@@ -174,6 +187,20 @@ briefs above plus:
 > `Direction` as a guaranteed future lane. A miss that makes a holder Move or
 > Turn denies its control tick.
 
+For `cone-occupancy-bolt2-arcs` (v8), use the fast-bolt and programmed-shot
+briefs above, but REPLACE the active-control paragraph with:
+
+> EXPERIMENTAL TERRITORIAL CONTROL. Any action may score. After movement,
+> projectile collision, damage, and faults, exactly one active bot occupying
+> any zone tile gains signed control pressure: Wait, move within the zone,
+> turn, scan, and shoot all count. If both active bots occupy any zone tiles,
+> the zone is physically contested and existing pressure decays one point
+> toward zero every two ticks; an empty zone decays the same way. Dead or
+> disqualified bots do not contest. Evict the opponent completely—body
+> position, straight shots, and private programmed curves are all tools—then
+> keep fighting while the sole occupant scores. A lead cannot remain banked
+> through an unresolved contest.
+
 ## 2. Launch the challenger(s)
 
 Give each agent: a persona (one challenger: pick the archetype most relevant
@@ -230,22 +257,33 @@ reports are in.
 
 ## 3. Tournament
 
-The bracket is the agents PLUS every reigning champion. Champions are seeded as
-system-owned server bots automatically at app startup (`ChampionSeeder` reads
-`champions/*/champion.json` + `bot.wasm`; find their botIds via
-`GET /api/bots` — slug = the champions/ directory name).
+Under shipped rules, the bracket is the agents PLUS every reigning champion.
+Under a substantial rules experiment, first run the complete native-cohort
+round-robin; add every reigning champion as a separately reported sentinel.
+Champions are seeded as system-owned server bots automatically at app startup
+(`ChampionSeeder` reads `champions/*/champion.json` + `bot.wasm`; find their
+botIds via `GET /api/bots` — slug = the champions/ directory name).
 
 Round-robin: `python3 scripts/tournament-drive.py` fires every agent-vs-agent
 and agent-vs-champion ranked set (champions discovered by slug on the server;
 each agent's state.json supplies its botId + cookie jar), waits for all sets,
 and prints scores + the leaderboard. Rerun it after each improvement
-iteration — elo accumulates. The champions' set results ARE the baseline —
-don't bother with hunter sets.
+iteration — elo accumulates. Under shipped rules, champion sets are the title
+baseline; do not substitute hunter sets. Under a substantial experiment,
+native-vs-native sets are primary and champion sets are sentinel evidence.
 
-Single-challenger experiment runs: also run a MIRROR set — the challenger vs
+Single-challenger experiment trials: also run a MIRROR set — the challenger vs
 its own submitted artifact (`botarena set --bot <srcDir> --opponent
 var/artifacts/<serverHash>.wasm --rules <exp>`) — as the aware-vs-aware data
-point a one-agent bracket otherwise lacks.
+point a one-agent trial otherwise lacks. It is not enough for a substantial
+rules ship verdict.
+
+Preserve all final replays by cohort/rules/block. Run
+`scripts/replay-dynamics-eval.py` on the native bracket, and freeze at least 12
+outcome-blind viewer samples with `scripts/replay-review-sample.py` before
+opening the outcome table. Review at normal presentation speed using the
+rubric in `docs/EVALUATION-METHODOLOGY.md`; highlights are a separate,
+explicitly labeled gallery.
 
 ## 3.5 Improvement iterations (per run length)
 
@@ -278,8 +316,15 @@ To crown, make the winner a permanent opponent in `champions/<slug>/`
 ## 4. Report (the deliverable)
 
 - Final leaderboard (`GET /api/leaderboard`) with set scores and elo — lead
-  with where the reigning champion(s) placed.
-- Per-bot: strategy summary, result vs the reigning champion, artifact parity.
+  with where the reigning champion(s) placed for an official tournament. For a
+  substantial experiment, lead with the native-cohort table and list
+  historical sentinels separately.
+- Per-bot: strategy summary, native-cohort record, historical-sentinel record
+  where applicable, and artifact parity.
+- Dynamics scorecard: combat incidence/tempo, action variety, stagnant/repeated
+  play, objective evictions, duration guardrails, and zero-fault evidence.
+- Outcome-blind replay-study manifest and notes, followed by separately labeled
+  highlights.
 - **DX findings ranked by severity**: doc gaps, bad error messages, CLI friction,
   submission/build failures — each with the exact reproduction. File none silently.
 - Fun: name a champion; quote the best debug lines from replays

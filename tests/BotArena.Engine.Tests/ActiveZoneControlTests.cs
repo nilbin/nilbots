@@ -19,6 +19,16 @@ public class ActiveZoneControlTests
             MaxTicks = maxTicks,
         };
 
+    private static GameRules OccupancyRules(
+        int limit = 10,
+        int maxTicks = 40,
+        int decayInterval = 2) =>
+        ActiveRules(limit, maxTicks, decayInterval) with
+        {
+            RulesVersion = "test-occupancy-control",
+            ControlBySoleOccupancy = true,
+        };
+
     private static ArenaMap SingleZoneMap() => ArenaMap.Create("test-active-zone", [
         "#######",
         "#.....#",
@@ -266,5 +276,151 @@ public class ActiveZoneControlTests
         Assert.Equal(MatchEndReason.Domination, session.Result!.Reason);
         Assert.Equal(0, session.Result.WinnerSlot);
         Assert.Equal(4, session.Result.ControlPressure);
+    }
+
+    [Theory]
+    [InlineData(BotAction.Wait)]
+    [InlineData(BotAction.TurnLeft)]
+    [InlineData(BotAction.TurnRight)]
+    [InlineData(BotAction.Shoot)]
+    public void OccupancyControl_SoleOccupantGainsRegardlessOfSuccessfulAction(BotAction action)
+    {
+        var session = new MatchSession(SingleZoneMap(), OccupancyRules());
+
+        session.Step([BotDecision.Of(action), BotDecision.Of(BotAction.TurnLeft)]);
+
+        Assert.Equal(1, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_SoleOccupantStillGainsOnFaultOrInvalidatedAction()
+    {
+        var faulted = new MatchSession(SingleZoneMap(), OccupancyRules());
+        faulted.Step([BotDecision.Fault("nope"), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(1, faulted.State.ControlPressure);
+
+        var cooldown = new MatchSession(SingleZoneMap(), OccupancyRules());
+        cooldown.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.TurnLeft)]);
+        cooldown.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(ActionResult.OnCooldown, cooldown.State.Bots[0].LastActionResult);
+        Assert.Equal(2, cooldown.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_MovingBetweenZoneTilesStillGains()
+    {
+        var session = new MatchSession(SharedZoneMap(), OccupancyRules());
+        session.State.Bots[0].Facing = Direction.East;
+        session.State.Bots[1].Position = new Position(5, 2);
+
+        session.Step([BotDecision.Of(BotAction.MoveForward), BotDecision.Of(BotAction.TurnLeft)]);
+
+        Assert.Equal(new Position(3, 2), session.State.Bots[0].Position);
+        Assert.Equal(1, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_ContestedZoneDecaysEvenWhenBotsWait()
+    {
+        var session = new MatchSession(
+            SharedZoneMap(),
+            OccupancyRules(decayInterval: 1));
+        session.State.ControlPressure = 3;
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(2, session.State.ControlPressure);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+        Assert.Equal(1, session.State.ControlPressure);
+
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnRight)]);
+        Assert.Equal(0, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_EnteringTheZoneStartsDecayOnThatTick()
+    {
+        var map = ArenaMap.Create("test-occupancy-entry", [
+            "#######",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#######",
+        ], [new Spawn(2, 2, Direction.North), new Spawn(4, 2, Direction.West)],
+            zone: [new Position(2, 2), new Position(3, 2)]);
+        var session = new MatchSession(map, OccupancyRules(decayInterval: 1));
+        session.State.ControlPressure = 2;
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.MoveForward)]);
+
+        Assert.Equal(new Position(3, 2), session.State.Bots[1].Position);
+        Assert.Equal(1, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_EvictionStartsSurvivorGainOnThatTick()
+    {
+        var map = ArenaMap.Create("test-occupancy-eviction", [
+            "#######",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#######",
+        ], [new Spawn(2, 2, Direction.North), new Spawn(3, 2, Direction.East)],
+            zone: [new Position(2, 2), new Position(3, 2)]);
+        var session = new MatchSession(map, OccupancyRules(decayInterval: 1));
+
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.MoveForward)]);
+
+        Assert.DoesNotContain(session.State.Bots[1].Position, session.ZoneTiles);
+        Assert.Equal(1, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_DestroyedBotStopsContestingBeforeScoring()
+    {
+        var session = new MatchSession(SharedZoneMap(), OccupancyRules() with
+        {
+            DamagePerHit = 3,
+        });
+        session.State.Bots[0].Facing = Direction.East;
+
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+
+        Assert.False(session.State.Bots[1].IsActive);
+        Assert.Equal(1, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void OccupancyControl_EmptyZoneDecaysTowardZero()
+    {
+        var session = new MatchSession(
+            SharedZoneMap(),
+            OccupancyRules(decayInterval: 1));
+        session.State.Bots[0].Position = new Position(1, 1);
+        session.State.Bots[1].Position = new Position(5, 1);
+        session.State.ControlPressure = -2;
+
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnRight)]);
+
+        Assert.Equal(-1, session.State.ControlPressure);
+    }
+
+    [Fact]
+    public void V8DiffersFromV7OnlyByVersionAndOccupancyControl()
+    {
+        var v7 = GameRules.Resolve("cone-active-bolt2-arcs");
+        var v8 = GameRules.Resolve("cone-occupancy-bolt2-arcs");
+
+        Assert.False(v7.ControlBySoleOccupancy);
+        Assert.True(v8.ControlBySoleOccupancy);
+        Assert.Equal(
+            v7 with
+            {
+                RulesVersion = v8.RulesVersion,
+                ControlBySoleOccupancy = true,
+            },
+            v8);
+        Assert.Equal(v7.SeedProfile, v8.SeedProfile);
     }
 }

@@ -69,6 +69,8 @@ export interface ReplayHeader {
   zoneTiles?: number[][];
   /** Absolute domination limit for the shared active-control meter. */
   controlPressureLimit?: number;
+  /** True when sole physical occupancy gains and a contested zone decays pressure. */
+  controlBySoleOccupancy?: boolean;
   /** Tick when the active-control overtime phase begins. */
   controlOvertimeStartTick?: number;
   /** Reduced domination limit during overtime. */

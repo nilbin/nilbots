@@ -129,8 +129,10 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   Anything worth keeping goes in `scripts/` (tracked, generalized — no
   session-specific paths) or `.claude/skills/`. If a scratch script proved
   useful once, promote it before the container dies.
-- Rule changes follow the balance-harness skill: implement behind `GameRules`
-  flags, A/B with `scripts/balance-eval.py`, ship on data (GAME-DESIGN).
+- Rule changes follow the balance-harness skill and
+  `docs/EVALUATION-METHODOLOGY.md`: implement behind `GameRules` flags; use
+  same-cohort A/B for mechanic causality; evaluate substantial redesigns with
+  rules-native bot generations, replay dynamics, and outcome-blind viewing.
 - **Rules-change surfaces.** A rules/gameplay change is not done until every
   derived surface agrees: engine (`GameRules` + `MatchSession`), SDK
   doc-comments (describe when a field/action is *inert* — never name a rules

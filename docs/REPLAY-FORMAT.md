@@ -48,6 +48,7 @@ The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 | `maxTicks`, `visionRange` | Rule values the viewer needs |
 | `zoneTiles` | `[x, y]` pairs of the zone (rules with zone control); omitted otherwise — pre-zone hashes are unaffected |
 | `controlPressureLimit` | Absolute shared-pressure domination limit (active-control rules only) |
+| `controlBySoleOccupancy` | `true` when one physical occupant gains and a contested/empty zone decays; omitted for successful-Wait control and historical hashes |
 | `participants[]` | `{ slot, name, runtimeKind, artifactHash, accent, spawnX, spawnY, spawnFacing }` |
 
 Facings are `North | East | South | West`.

@@ -43,16 +43,21 @@ preserving decay. Overtime fixes the diagnosed long tail (MaxTicks 24→5, avera
 134.9→102.2) but the unchanged population still misses the median duration
 and elimination-share ship gates (DECISIONS #64–#66).
 
-The programmed-arc direction has passed its theory, engine/SDK/WASM, and
-docs-only learnability gates (DECISIONS #67–#69). The final 810-game all-WASM
-promotion comparison then kept official 0.5 on HOLD (DECISIONS #71). Versus
-shipped 0.4, v7 improves draws 31→17, average ticks 120.1→99.0, p90 499→200,
-combat incidence 67.8%→70.0%, winner diversity, and the Bastille equilibrium;
-it fails the frozen median (31.5→64.5) and elimination-share
-(64.8%→55.9%) criteria. V7 remains the experimental flagship. The next
-decision is whether to retain the instant-ray-centric gate or explicitly
-pre-register an objective/watchability gate and validate it on fresh holdout
-seeds; do not silently re-score the completed tournament.
+The programmed-arc direction passed theory, engine/SDK/WASM, docs-only
+learnability, and its first population gates (DECISIONS #67–#71).
+Territorial v8 then replaces Wait-to-control with sole physical occupancy:
+any action scores while alone; a contested or empty zone decays. Its adapted
+field is materially more combative (damage in 91.1%, reciprocal damage in
+61.5%, 81.1% Eliminations), and 53.2% of score ticks use non-Wait actions, but
+30/270 games enter repeated physical-contest loops (DECISIONS #72).
+
+Official 0.5 remains on HOLD. The evaluation policy is now explicitly
+generation-aware (DECISIONS #73): old bots are compatibility/causal sentinels,
+not a veto over a substantial redesign; primary evidence comes from bots built
+for their rules, replay-dynamics metrics, and an outcome-blind viewer sample.
+The next formal holdout needs at least four independently authored/adapted
+territorial doctrines under the frozen guardrails in
+`docs/EVALUATION-METHODOLOGY.md`.
 
 ## Game rules 0.1 (initial)
 
@@ -117,12 +122,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    version bump. Cross-process cache-key locks and named Docker timeout cleanup
    now prevent CLI/server builds from corrupting one workspace (#70).
 2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
-   control; DECISIONS #49/#53). The full v7-versus-0.4 promotion comparison is
-   now complete (#71): v7 makes the long-tail/replay/diversity shape better but
-   misses the frozen median and elimination-share gate. Next make the product
-   choice explicit: keep those instant-ray-relative criteria, or pre-register
-   an objective/watchability gate plus deterministic non-highlight review and
-   run fresh holdout seeds. Do not add health/damage tuning first.
+   control; DECISIONS #49/#53). The v7-versus-0.4 comparison is complete (#71)
+   and territorial v8 has passed its action-economy test while exposing a
+   physical-contest loop (#72). Next run a fresh four-doctrine territorial
+   generation using the native-cohort dynamics and outcome-blind replay policy
+   (#73); do not hide loops with a post-hoc tick cap or add health tuning first.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime

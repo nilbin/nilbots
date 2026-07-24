@@ -212,6 +212,7 @@ public sealed class MatchEngine
             ControlPressureLimit = rules.ActiveZoneControl
                 ? rules.ControlPressureLimit
                 : null,
+            ControlBySoleOccupancy = rules.ControlBySoleOccupancy ? true : null,
             ControlOvertimeStartTick = hasControlOvertime
                 ? rules.ControlOvertimeStartTick
                 : null,

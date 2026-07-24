@@ -927,3 +927,168 @@ at most 169/270 eliminations (62.6%), median 40, and average 83.1: still below
 cross the numeric thresholds, but 16 games have mutual first-hit ticks and it
 would turn a prediction contest into one-contact lethality. Neither diagnostic
 authorizes an implementation.
+
+## P. Pre-registered v8 isolation: sole occupancy earns, contest decays
+
+Programmed arcs materially changed the premise behind Wait-to-control. V7
+proved that private committed curves can damage, suppress, and dethrone the
+historical diagonal camper. Test whether the objective can now return to the
+more spatial rule the viewer suggests:
+
+- exactly one active bot occupying any zone tile gains signed pressure,
+  regardless of whether it waits, moves, turns, shoots, or faults that tick;
+- two active zone occupants are a physical contest and move existing pressure
+  one decay step toward zero on the normal decay cadence;
+- zero active zone occupants also decays pressure toward zero;
+- dead or disqualified bots do not occupy or contest;
+- occupancy is evaluated after movement, projectile collision, and damage;
+- regulation/overtime limits, gain, decay cadence, maps, cones, hearing,
+  projectiles, arc programs, health, damage, cooldown, and all timing remain
+  bit-for-bit v7.
+
+This is not passive 0.4 banking. There is still one shared decaying tug meter,
+but the commitment is territorial rather than an action tax: hold the space,
+and use skill shots to push the opponent fully out of it.
+
+Add one experimental arm:
+
+`cone-occupancy-bolt2-arcs`
+(`0.5-exp-cone-occupancy-bolt2-arcs-v8`)
+
+It shares v7's `0.5-redesign-shared` seed profile. Keep
+`cone-active-bolt2-arcs` resolvable and behavior-compatible as the exact
+Wait-to-control reference.
+
+### Scripted gates
+
+Before population evidence, prove:
+
+1. a sole occupant gains while waiting, turning, shooting, faulting, and moving
+   between zone tiles;
+2. an opponent entering any zone tile immediately stops gain and starts decay;
+3. both occupants decay even if one or both choose Wait;
+4. when one occupant is evicted, the survivor starts gaining on that same
+   post-movement/post-damage tick;
+5. empty-zone pressure decays and abandoned leads cannot bank;
+6. v7's successful-Wait semantics and historical 0.1–0.4 behavior remain
+   unchanged;
+7. v7 and v8 resolve identical spawns and bot random streams for the same map
+   and seed.
+
+### Frozen population comparison
+
+Reuse the six artifact hashes and all-WASM blocks pre-registered in §O. The
+270 v7 replays are the frozen paired reference; run 270 v8 games with the same
+ordering:
+
+- maps `basic-01,arena-01,crossfire-01`, seeds `101,202,303`;
+- maps `bastion-01,gallery-01,basic-01`, seeds `404,505,606`;
+- maps `arena-01,crossfire-01,bastion-01`, seeds `707,808,909`.
+
+Retain v8 over v7 only if:
+
+1. draws do not exceed 17/270;
+2. eliminations do not fall below 151/270;
+3. median, average, p90, and MaxTicks do not exceed v7's
+   64.5 / 99.0 / 200 / 14;
+4. all six doctrines still win and top share stays at or below 35% of decided
+   games;
+5. unchanged Bastille is not champion and loses at least 20 games;
+6. replays contain both contested-decay ticks and sole-occupancy gains
+   immediately following a real eviction;
+7. every game uses WASM and every bot records zero faults.
+
+Continue reporting the standard shipped-0.4 comparison. One failed criterion
+means v7 remains the flagship and v8 stays only as a reproducible experiment.
+Passing makes v8 the preferred experimental objective rule; it does not by
+itself silently replace the still-unresolved official promotion gate.
+
+### Pre-registered adaptation safeguard
+
+The frozen bots were authored to earn control specifically by Wait. If more
+than 75% of v8 sole-occupancy gain ticks still use Wait, treat that run as a
+mechanical regression screen rather than the final strategy verdict. Before
+seeing adapted results, commission two isolated docs/SDK/CLI-only doctrines:
+
+- an aggressive territorial breacher that body-contests and fires to evict;
+- a predictive arc shepherd that herds opponents off-zone, then patrols while
+  scoring.
+
+Allow one bounded loss-forensics iteration. Their authors may use only player
+docs, public SDK source, CLI play/set/build, and CLI replay summaries—never
+engine source, design documents, other bot source, or raw replay JSON.
+
+The adapted comparison uses the two final artifacts plus ActiveHolder,
+Suppressor, unchanged Bastille, and Helix under both v7 and v8, with identical
+all-WASM blocks from this section. V8 passes the adaptation gate only if,
+relative to v7 in that same population:
+
+1. draws, average, p90, and MaxTicks do not increase;
+2. eliminations do not decrease;
+3. both new doctrines win games, record zero faults, and visibly score with
+   non-Wait actions;
+4. unchanged Bastille is not champion and loses at least 20 games;
+5. the field retains at least four winning doctrines and top share stays at or
+   below 35% of decided games;
+6. authoritative replays show contested pressure decay followed by real
+   eviction and same-tick sole-occupancy gain.
+
+The frozen and adapted tables remain separate. Do not use adaptation to hide a
+mechanical regression, and do not reject a territorial action economy solely
+because Wait-trained bots continue waiting.
+
+### V8 result: territorial economy works; formal product verdict stays open
+
+All 270 frozen-population v8 games and all 270 adapted-population v7/v8 games
+used canonical WASM with zero faults. Scripted gates passed, including
+same-tick scoring after post-damage eviction and byte-identical v7 replay
+compatibility.
+
+The frozen v8 arm failed its pre-registered v7-retention table: draws rose
+17→22, median/average/p90 rose 64.5/99.0/200→66.5/119.1/499, and MaxTicks rose
+14→35, although eliminations held at 151. Eighty-four percent of its score
+ticks were still Wait, so the pre-registered adaptation safeguard correctly
+triggered.
+
+Two isolated docs/SDK/CLI-only authors produced Breacher and Shepherd. Both
+used motion, turning, shooting, body contest, and private curves while scoring;
+both recorded zero faults. In the adapted six-bot field, v8 versus v7 changed:
+
+| arm | draws | eliminations | Domination | MaxTicks | median | average | p90 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| adapted v7 Wait-control | 24 | 218 | 35 | 17 | 26 | 71.7 | 200 |
+| adapted v8 territorial control | 22 | 219 | 21 | 30 | 25.5 | 85.0 | 499 |
+
+The original adaptation gate therefore also failed average, p90, and MaxTicks.
+That completed gate is not retroactively rewritten. V8 stays experimental.
+
+The richer replay evidence nevertheless validates the action economy the arm
+was designed to test:
+
+- 3,911 sole-occupancy gain ticks, including 2,080 (53.2%) with non-Wait
+  actions: 501 Move, 412 Shoot, 764 TurnLeft, and 403 TurnRight;
+- 16,235 contested ticks and 780 real pressure-decay steps;
+- 189 contested-to-sole transitions, all 189 scoring on the same tick;
+- 162 of those transitions coincided with damage to the evicted bot;
+- damage in 246/270 games (91.1%), reciprocal damage in 166/270 (61.5%),
+  and damage on multiple ticks in 236/270 (87.4%);
+- all six doctrines won; Shepherd led only 56/248 decided games (22.6%);
+- unchanged Bastille fell to 30-47-13.
+
+The exact remaining failure is not passive scoring. Thirty matches enter
+MaxTicks with zero pressure; every one spends its final 100 ticks physically
+contested, with no damage in that final window. Replay-dynamics analysis marks
+30/270 (11.1%) as repeated-frame loops. The other 81.1% end by elimination.
+
+This result motivated the generation-aware evaluation policy in
+`EVALUATION-METHODOLOGY.md`: old bots are compatibility and causal diagnostics,
+not the product veto for a substantial redesign; duration is a guardrail, while
+combat, action variety, repetition, objective interaction, and blind replay
+review are primary. That policy is prospective, not permission to recalculate
+this completed v8 gate.
+
+Next run a fresh holdout with at least four independently authored or
+substantially adapted territorial doctrines. Freeze the dynamics thresholds
+and outcome-blind viewer sample before opening aggregate outcomes. Do not add a
+hard tick cap merely to hide the 30 loops; make candidate-aware bots prove they
+can evict, escape, or punish a persistent physical contest.

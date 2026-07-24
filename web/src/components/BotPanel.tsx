@@ -63,6 +63,41 @@ export default function BotPanel({
     const cumulative = matchesResult(exclusive) ? exclusive : matchesResult(shared) ? shared : exclusive;
     return { onZone, cumulative };
   }, [replay]);
+  let controlPhase: string | null = null;
+  if (controlLimit !== undefined && zone) {
+    const activeOccupants = tickData.state.filter(
+      (state) => state.status === 'Active' && zone.onZone.has(`${state.x},${state.y}`),
+    );
+    if (replay.header.controlBySoleOccupancy) {
+      controlPhase =
+        activeOccupants.length === 1
+          ? `SOLE OCCUPANT · ${
+              replay.header.participants[activeOccupants[0].slot]?.name ??
+              `slot ${activeOccupants[0].slot}`
+            } GAINS`
+          : activeOccupants.length > 1
+            ? 'CONTESTED · PRESSURE DECAYS'
+            : 'EMPTY · PRESSURE DECAYS';
+    } else {
+      const holders = tickData.bots.filter((bot) => {
+        const state = tickData.state.find((candidate) => candidate.slot === bot.slot);
+        return (
+          bot.validatedAction === 'Wait' &&
+          bot.result === 'Success' &&
+          state?.status === 'Active' &&
+          zone.onZone.has(`${state.x},${state.y}`)
+        );
+      });
+      controlPhase =
+        holders.length === 1
+          ? `HOLDING · ${
+              replay.header.participants[holders[0].slot]?.name ?? `slot ${holders[0].slot}`
+            } GAINS`
+          : holders.length > 1
+            ? 'BOTH HOLD · PRESSURE FROZEN'
+            : 'NO ACTIVE HOLD · PRESSURE DECAYS';
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -88,6 +123,11 @@ export default function BotPanel({
               }}
             />
           </div>
+          {controlPhase && (
+            <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
+              {controlPhase}
+            </p>
+          )}
         </div>
       )}
       {replay.header.participants.map((participant) => {

@@ -41,6 +41,9 @@ public sealed record ReplayHeader
     /// <summary>Absolute domination limit for the shared active-control meter; null
     /// under passive zone scoring.</summary>
     public int? ControlPressureLimit { get; init; }
+    /// <summary>True when sole physical occupancy gains pressure and a contested zone
+    /// decays it. Null preserves successful-Wait semantics and historical hashes.</summary>
+    public bool? ControlBySoleOccupancy { get; init; }
     /// <summary>Tick and reduced pressure limit for a late active-control overtime;
     /// null when the rules have no overtime phase.</summary>
     public int? ControlOvertimeStartTick { get; init; }

@@ -1,0 +1,171 @@
+# Game-rules evaluation: native generations and watchable dynamics
+
+This is the shared product-evaluation policy for Claude Code and Codex. The
+executable workflows are `.claude/skills/balance-harness/SKILL.md` and
+`.claude/skills/agent-arena/SKILL.md`.
+
+The goal is not the shortest match or the highest count of one result label.
+The goal is a deterministic programming game whose matches are strategically
+varied, visibly active, understandable, and worth watching.
+
+## Separate the three questions
+
+Every rules experiment should label its evidence as one of these:
+
+1. **Regression/compatibility.** Frozen historical artifacts run under the
+   candidate to catch faults, determinism changes, degenerate exploits, and
+   accidental breakage. This is a safety screen.
+2. **Mechanic causality.** The same artifacts, maps, spawns, seeds, and random
+   streams run under two arms. This isolates what a mechanic changed for those
+   policies.
+3. **Product quality.** Bots authored or substantially adapted for a ruleset
+   fight one another under that ruleset. This is the primary balance and
+   entertainment evidence.
+
+The first two are valuable, but old rules-unaware bots do not veto a
+substantial redesign. They cannot reveal a strategy space they were never
+written to use. Conversely, comparing different bot generations does not
+isolate one mechanic; it compares the resulting products. Report both facts
+plainly.
+
+A change is substantial when it changes available actions, observations,
+objective economics, projectile/combat timing, survival rules, or ranked map
+geometry. A narrow number tune whose strategies remain valid may use a
+same-cohort A/B as primary evidence.
+
+## Native cohort requirements
+
+For a substantial rules verdict:
+
+- commission at least four independently authored or substantially adapted
+  candidate-aware doctrines;
+- authors receive only player docs, public SDK, CLI, and the experiment brief,
+  never engine/design internals or another bot's source;
+- give every author the same iteration budget (normally one loss-forensics
+  iteration);
+- run a native round-robin under the candidate, including mirrors where useful;
+- keep historical champions as named sentinels, but report their records
+  separately from the native-cohort gate;
+- freeze artifact hashes, maps, seed blocks, runtime, and evaluation criteria
+  before the final/holdout run;
+- use canonical WASM with zero faults for the final evidence.
+
+The generational product comparison is:
+
+`previous native cohort + previous rules` versus
+`current native cohort + candidate rules`.
+
+It is deliberately not described as a paired causal A/B. A same-population A/B
+may accompany it as a mechanic diagnostic, never as an old-bot veto.
+
+## Dynamics scorecard
+
+`scripts/replay-dynamics-eval.py` reads canonical replays and reports these
+dimensions without combining them into an arbitrary “fun score.”
+
+### Outcomes and safety
+
+- draw, Elimination, Domination, and MaxTicks counts remain separate;
+- distinct winning doctrines and the leading bot's share of decided games;
+- deterministic replay hashes, WASM runtime, and zero faults are mandatory.
+
+### Combat
+
+- **damage games:** matches containing at least one Damage event;
+- **damage per game / per 100 ticks:** volume and length-normalized tempo;
+- **reciprocal damage:** both bots dealt damage;
+- **multi-damage-tick games:** damage landed on at least two distinct ticks;
+- shots and hit-per-shot, interpreted with suppression/eviction evidence.
+
+### Motion and repetition
+
+- **active world tick:** movement, turning, shooting, damage/destruction,
+  projectile presence/traversal, or objective-pressure change occurred;
+- **stagnant tick:** no such activity and no bot state changed;
+- **recent repeat tick:** the complete visible tactical frame (bot
+  position/facing/health/status, action families, public projectile state, and
+  pressure) appeared in the previous 20 ticks;
+- **stalled game:** at least 20 consecutive stagnant ticks;
+- **looped game:** at least 20 consecutive recent-repeat ticks;
+- movement and turning per 100 ticks;
+- Wait share, action-family switch rate, normalized action entropy, and the
+  share of decisions inside runs of four or more identical action families.
+
+No single action is inherently bad. A deliberate Wait or repeated pursuit can
+be correct. The metrics locate replays to inspect; exact loops, low entropy,
+and long inactivity together are the warning.
+
+### Objective interaction
+
+- contested-zone ticks;
+- contested-to-sole transitions (physical evictions);
+- evictions coinciding with damage;
+- rule-specific evidence such as non-Wait scoring, suppression, curved ranged
+  hits, and attacks crossing a tile the defender just vacated.
+
+Duration is a viewing-budget guardrail, not an optimization target. Always
+report median and p90 at the viewer's five ticks per second, but do not reject
+a tense 80-tick game merely because an older instant-ray game ended in 40.
+Long repetitive tails should fail through loop/stall evidence and replay
+review, not through a blanket “new median must be lower” rule.
+
+## Starting holdout guardrails
+
+These thresholds are frozen for the **next fresh substantial-rules holdout**;
+they do not retroactively promote an already observed arm:
+
+- zero WASM faults and deterministic verification;
+- draw rate at or below 10%;
+- at least four winning native doctrines and no bot above 35% of decided wins;
+- damage in at least 75% of games;
+- reciprocal damage in at least 40%;
+- multiple damage ticks in at least 60%;
+- at least 75% active world ticks;
+- stalled games at or below 5%;
+- looped games at or below 10%;
+- median normalized action-family entropy at least 0.60;
+- mechanic-specific evidence proves the advertised interaction at population
+  scale.
+
+These are guardrails, not a weighted score. A candidate that barely passes
+numbers but looks confusing or repetitive on replay remains a hold. A future
+change to the thresholds must be documented and frozen before its holdout.
+
+## Outcome-blind replay study
+
+Numbers cannot certify entertainment. Before reading aggregate outcomes:
+
+1. Select at least 12 replays from the native candidate tournament with
+   `scripts/replay-review-sample.py`. It uses headers only, balances maps and
+   bot pairings, and orders by a recorded deterministic seed.
+2. Convert each selected replay to self-contained HTML:
+   `scripts/botarena replay <replay.json> --out <sample-dir>`.
+3. Watch at normal five-ticks-per-second presentation, preferably on both
+   phone and desktop. Do not reveal winner, reason, damage, or duration first.
+4. Record 1–5 ratings for legibility, sustained tension, visible
+   action/counter-action, repetition/downtime, and whether the ending felt
+   earned. Record the tick/range for every confusing or dull passage.
+5. Only after the blind notes are locked, inspect summaries and dynamics
+   metrics. Diagnose every stalled/looped game and all low-rated samples.
+6. Publish a separately labeled 3–5 replay highlight gallery. Highlights
+   demonstrate the ceiling; they never replace the outcome-blind sample.
+
+The review notes, sample manifest, artifact hashes, metrics table, and explicit
+ship/hold rationale are part of the decision record.
+
+## Commands
+
+```bash
+# Outcome/mechanic A/B for one explicitly named cohort.
+python3 scripts/balance-eval.py --bots a=... b=... \
+  --rulesets <reference>,<candidate> --seeds 101,202,303
+
+# Merge tournament blocks by repeating a group label.
+python3 scripts/replay-dynamics-eval.py \
+  --group current=/tmp/run/block1/<candidate> \
+  --group current=/tmp/run/block2/<candidate>
+
+# Freeze a reproducible header-only review sample.
+python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
+  --count 12 --seed 20260724 --output /tmp/review-sample.json
+```

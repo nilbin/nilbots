@@ -45,6 +45,7 @@ public class ReplaySerializationTests
             ShotRange = 8,
             ZoneControl = true,
             ActiveZoneControl = true,
+            ControlBySoleOccupancy = true,
             ControlPressureLimit = 10,
             ControlPressureGain = 1,
             ControlPressureDecayInterval = 2,
@@ -78,11 +79,12 @@ public class ReplaySerializationTests
         var document = ReplaySerializer.FromJson(ReplaySerializer.ToJson(run.Replay));
 
         Assert.Equal(10, document.Header.ControlPressureLimit);
+        Assert.True(document.Header.ControlBySoleOccupancy);
         Assert.Equal(1, document.Header.ControlOvertimeStartTick);
         Assert.Equal(4, document.Header.ControlOvertimePressureLimit);
         Assert.Equal(2, document.Header.ControlOvertimePressureGain);
         Assert.True(document.Header.ControlOvertimeStopsDecay);
-        Assert.Equal(2, document.Result.ControlPressure);
+        Assert.Equal(3, document.Result.ControlPressure);
         Assert.Equal(2, Assert.Single(document.Ticks[1].ProjectileTraversals!).Path.Count);
         Assert.Equal(2, Assert.Single(document.Ticks[1].Projectiles!).TilesPerAdvance);
         Assert.Equal(run.ReplayHash, document.ReplayHash);

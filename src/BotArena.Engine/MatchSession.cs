@@ -302,8 +302,8 @@ public sealed class MatchSession
             bots[slot].LastActionResult = results[slot];
 
         // 9.5 Zone control is evaluated after damage. Legacy rules bank per-bot
-        // occupancy ticks. Active rules instead require a successful validated Wait
-        // and update one signed, decaying tug-of-war meter.
+        // occupancy ticks. Active rules update one signed, decaying tug-of-war meter
+        // from either successful Waits or sole physical occupancy.
         UpdateZoneControl(validated, results);
 
         // 10. Determine completion.
@@ -348,8 +348,9 @@ public sealed class MatchSession
         var holders = bots
             .Where(b => b.IsActive
                         && _zoneLookup.Contains(b.Position)
-                        && validated[b.Slot] == BotAction.Wait
-                        && results[b.Slot] == ActionResult.Success)
+                        && (State.Rules.ControlBySoleOccupancy
+                            || validated[b.Slot] == BotAction.Wait
+                            && results[b.Slot] == ActionResult.Success))
             .ToList();
         int limit = Math.Max(0, State.Rules.EffectiveControlPressureLimit(State.Tick));
         if (limit > 0)
@@ -363,10 +364,11 @@ public sealed class MatchSession
             return;
         }
 
-        // Two committed holders contest and freeze the meter. Decay represents
-        // abandoned control, so it applies only when nobody actively holds.
+        // Successful-Wait control freezes under two committed holders. Territorial
+        // control treats multiple occupants as an active contest, which erodes either
+        // side's existing claim just like an empty zone.
         int decayInterval = State.Rules.EffectiveControlPressureDecayInterval(State.Tick);
-        if (holders.Count > 1
+        if ((!State.Rules.ControlBySoleOccupancy && holders.Count > 1)
             || State.ControlPressure == 0
             || decayInterval <= 0
             || State.Tick % decayInterval != 0)
