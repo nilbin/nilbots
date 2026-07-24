@@ -41,6 +41,13 @@ public sealed record ReplayHeader
     /// <summary>Absolute domination limit for the shared active-control meter; null
     /// under passive zone scoring.</summary>
     public int? ControlPressureLimit { get; init; }
+    /// <summary>Tick and reduced pressure limit for a late active-control overtime;
+    /// null when the rules have no overtime phase.</summary>
+    public int? ControlOvertimeStartTick { get; init; }
+    public int? ControlOvertimePressureLimit { get; init; }
+    public int? ControlOvertimePressureGain { get; init; }
+    /// <summary>True when nobody-holding pressure decay is disabled in overtime.</summary>
+    public bool? ControlOvertimeStopsDecay { get; init; }
     public required IReadOnlyList<ReplayParticipant> Participants { get; init; }
 }
 

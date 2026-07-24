@@ -22,7 +22,12 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
-  const controlLimit = replay.header.controlPressureLimit;
+  const controlOvertime =
+    replay.header.controlOvertimeStartTick !== undefined &&
+    tickData.tick >= replay.header.controlOvertimeStartTick;
+  const controlLimit = controlOvertime
+    ? (replay.header.controlOvertimePressureLimit ?? replay.header.controlPressureLimit)
+    : replay.header.controlPressureLimit;
   const controlPressure = tickData.controlPressure ?? 0;
   // Zone scores: hardened replays carry the engine's cumulative tally per tick
   // (state.zoneTicks) — read it, never re-derive. Legacy replays (pre-tally) fall
@@ -66,7 +71,7 @@ export default function BotPanel({
           <div className="flex justify-between font-mono text-[11px] text-arena-dim">
             <span>{replay.header.participants[0]?.name ?? 'slot 0'}</span>
             <span>
-              CONTROL {controlPressure > 0 ? '+' : ''}
+              {controlOvertime ? 'OVERTIME ' : ''}CONTROL {controlPressure > 0 ? '+' : ''}
               {controlPressure} / ±{controlLimit}
             </span>
             <span>{replay.header.participants[1]?.name ?? 'slot 1'}</span>

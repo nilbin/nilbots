@@ -118,7 +118,11 @@ export default function Viewer({
                 {result.controlPressure !== undefined && (
                   <p className="mt-1 font-mono text-xs text-arena-dim">
                     final control {result.controlPressure > 0 ? '+' : ''}
-                    {result.controlPressure} / ±{header.controlPressureLimit}
+                    {result.controlPressure} / ±
+                    {header.controlOvertimeStartTick !== undefined &&
+                    result.endTick >= header.controlOvertimeStartTick
+                      ? header.controlOvertimePressureLimit
+                      : header.controlPressureLimit}
                   </p>
                 )}
                 <button

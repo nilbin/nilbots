@@ -125,7 +125,7 @@ public sealed class MatchSession
                 : null,
             ControlPressure = State.Rules.ActiveZoneControl ? State.ControlPressure : null,
             ControlPressureLimit = State.Rules.ActiveZoneControl
-                ? State.Rules.ControlPressureLimit
+                ? State.Rules.EffectiveControlPressureLimit(State.Tick)
                 : null,
             PreviousActionResult = bot.LastActionResult,
             VisibleTiles = tiles,
@@ -275,9 +275,9 @@ public sealed class MatchSession
 
         // 10. Determine completion.
         int executedTick = State.Tick;
-        State.Tick++;
         bool anyInactive = bots.Any(b => !b.IsActive);
-        int? dominator = ComputeDominator();
+        int? dominator = ComputeDominator(executedTick);
+        State.Tick++;
         if (anyInactive || dominator is not null || State.Tick >= State.Rules.MaxTicks)
         {
             IsCompleted = true;
@@ -318,22 +318,25 @@ public sealed class MatchSession
                         && validated[b.Slot] == BotAction.Wait
                         && results[b.Slot] == ActionResult.Success)
             .ToList();
+        int limit = Math.Max(0, State.Rules.EffectiveControlPressureLimit(State.Tick));
+        if (limit > 0)
+            State.ControlPressure = Math.Clamp(State.ControlPressure, -limit, limit);
 
         if (holders.Count == 1)
         {
             int direction = holders[0].Slot == 0 ? 1 : -1;
-            int limit = Math.Max(0, State.Rules.ControlPressureLimit);
-            int gain = Math.Max(0, State.Rules.ControlPressureGain);
+            int gain = Math.Max(0, State.Rules.EffectiveControlPressureGain(State.Tick));
             State.ControlPressure = Math.Clamp(State.ControlPressure + direction * gain, -limit, limit);
             return;
         }
 
         // Two committed holders contest and freeze the meter. Decay represents
         // abandoned control, so it applies only when nobody actively holds.
+        int decayInterval = State.Rules.EffectiveControlPressureDecayInterval(State.Tick);
         if (holders.Count > 1
             || State.ControlPressure == 0
-            || State.Rules.ControlPressureDecayInterval <= 0
-            || State.Tick % State.Rules.ControlPressureDecayInterval != 0)
+            || decayInterval <= 0
+            || State.Tick % decayInterval != 0)
             return;
         State.ControlPressure -= Math.Sign(State.ControlPressure);
     }
@@ -589,13 +592,13 @@ public sealed class MatchSession
 
     /// <summary>Domination check. Active-control rules use the signed shared limit;
     /// passive rules retain the historical per-bot zone-tick threshold.</summary>
-    private int? ComputeDominator()
+    private int? ComputeDominator(int tick)
     {
         if (!State.Rules.ZoneControl)
             return null;
         if (State.Rules.ActiveZoneControl)
         {
-            int limit = State.Rules.ControlPressureLimit;
+            int limit = State.Rules.EffectiveControlPressureLimit(tick);
             if (limit <= 0)
                 return null;
             if (State.ControlPressure >= limit)

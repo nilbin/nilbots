@@ -526,3 +526,49 @@ contest loops, not permanently banked leads. The next test should isolate a
 minimal late-game resolution/overtime rule for near-zero pressure while
 freezing cone, hearing, active holding, map geometry, and bolt2 traversal.
 Continuously strengthening the weapon is not the next move.
+
+### Pre-registered v5 test: short, non-decaying control overtime
+
+Replay classification found one dominant late loop rather than a general
+combat slowdown. Fifteen of the 24 bolt2 MaxTicks games repeat a ten-tick
+holder/suppressor cycle: 40 versus 20 sole holds, 40 defensive no-holder
+ticks, 20 missed launches per final 100 ticks, and decay cancelling the net
+20-hold advantage.
+
+The v5 isolation arm keeps bolt2-v4 unchanged until tick 200. Overtime then
+uses a ±10 pressure target and stops nobody-holding decay while preserving
+the current signed pressure. Exact frozen surfaces and acceptance gates are
+in RULES-0.5-DESIGN §L. This tests late resolution only; it does not redefine
+or waive the official elimination-share gate.
+
+### Gen-8 v5 result: overtime fixes the long tail, not the ship gate
+
+| arm | draws | eliminations | median | average | MaxTicks | leader |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| bolt2-v4 | 15/180 (8.3%) | 97/180 (53.9%) | 71 | 134.9 | 24 | ActiveHolder 51 |
+| bolt2-overtime-v5 | 15/180 (8.3%) | 97/180 (53.9%) | 71 | 102.0 | 5 | ActiveHolder 51 |
+
+This is a successful causal experiment. Nineteen MaxTicks results become
+Domination, seven late Dominations finish earlier, and 5,940 aggregate ticks
+disappear. Draws, eliminations, the leader, and the five-doctrine ordering
+stay stable. Overtime winners split 14/12 by slot; one game flips winner when
+net active holding replaces the old MaxTicks health/damage tiebreak.
+
+Keep overtime as the v5 flagship but keep official rules at 0.4. Relative to
+the matched control arm, v5 passes draw rate and diversity, essentially ties
+average duration, but still fails median duration and elimination share.
+That remaining question is now explicit: either find a combat/tempo design
+that restores eliminations without undoing active commitment, or deliberately
+redefine the gate around decisive objective endings. Do neither silently.
+
+Structural review prevents v5 itself from becoming a ship candidate: stopping
+decay permanently banks an abandoned overtime lead, contradicting the active
+control promise. The pre-registered v6 arm uses doubled overtime hold gain
+with normal decay instead. Its numeric gates are in RULES-0.5-DESIGN §L.
+
+v6 passes. It matches v5's 15 draws, 97 eliminations, median 71, five
+MaxTicks, complete per-bot records, doctrine order, and 14/12 overtime slot
+split. Average duration is 102.2 instead of 102.0; preserving decay costs
+only 45 aggregate ticks across 180 games. The explicit abandonment test also
+passes. v6 therefore supersedes v5 as the experimental flagship without
+changing the official HOLD verdict.

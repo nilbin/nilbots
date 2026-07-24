@@ -36,6 +36,13 @@ range 8 + lane-safe spawns; 0.4 zone control (exclusive accrual, Domination
 at 150 zone-ticks, zone→health→damage tiebreak, zone-distance-fair spawns).
 Elo is per-ruleset (one ladder per rules version, DECISIONS #54).
 
+Rules 0.5 remains experimental. The Gen-8 overtime program retains cone
+vision, redacted hearing, active Wait-to-control, ordered speed-two bolts,
+and a tick-200 control overtime; revision v6 doubles overtime hold gain while
+preserving decay. Overtime fixes the diagnosed long tail (MaxTicks 24→5, average
+134.9→102.2) but the unchanged population still misses the median duration
+and elimination-share ship gates (DECISIONS #64–#66).
+
 ## Game rules 0.1 (initial)
 
 24×18 (prod) or 12×8 (slice) tile arena, 2 bots, 4 facings, 5 actions
@@ -83,7 +90,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   serves the SPA. Dockerfile + docker-compose for deployment.
 - `web/` — one React build, two modes: the Bot Arena site (router) and the
   standalone replay viewer the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (97 tests, incl.
+- `tests/` — engine, determinism, and WASM contract suites (169 tests, incl.
   DocDriftTests pinning docs/mirrors to the engine).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh.
@@ -98,10 +105,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    trim-flags companion was dropped as not worth a cache-invalidating
    version bump.
 2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
-   control; DECISIONS #49/#53, four tournament generations of data in
-   GAME-DESIGN). Open design threads: gen-5 title tournament under official
-   0.4 (Rampart gen-2's crown is genuinely at stake for the first time),
-   more maps (backlog #1), energy/strafe retunes behind their arms.
+   control; DECISIONS #49/#53). The held 0.5 program now has a clean remaining
+   choice after v6: restore elimination/median tempo, or explicitly redefine
+   the gate around decisive objective endings (DECISIONS #64/#65). More maps
+   remain backlog #1; energy/strafe stay behind failed experiment arms.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime

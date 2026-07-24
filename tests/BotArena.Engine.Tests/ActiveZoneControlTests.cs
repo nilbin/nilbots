@@ -190,4 +190,81 @@ public class ActiveZoneControlTests
         Assert.Null(observation.MyZoneTicks);
         Assert.Null(observation.EnemyZoneTicks);
     }
+
+    [Fact]
+    public void Overtime_ReducesTheLimitAndStopsAbandonedPressureDecay()
+    {
+        var rules = ActiveRules(limit: 20, maxTicks: 10, decayInterval: 1) with
+        {
+            ControlOvertimeStartTick = 2,
+            ControlOvertimePressureLimit = 2,
+            ControlOvertimeStopsDecay = true,
+        };
+        var session = new MatchSession(SingleZoneMap(), rules);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(0, session.State.ControlPressure);
+
+        Assert.Equal(2, session.BuildObservation(0).ControlPressureLimit);
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(1, session.State.ControlPressure);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.True(session.IsCompleted);
+        Assert.Equal(MatchEndReason.Domination, session.Result!.Reason);
+        Assert.Equal(0, session.Result.WinnerSlot);
+        Assert.Equal(2, session.Result.ControlPressure);
+    }
+
+    [Fact]
+    public void Overtime_StartResolvesARegulationLeadAtTheReducedLimit()
+    {
+        var rules = ActiveRules(limit: 20, maxTicks: 10, decayInterval: 100) with
+        {
+            ControlOvertimeStartTick = 2,
+            ControlOvertimePressureLimit = 1,
+            ControlOvertimeStopsDecay = true,
+        };
+        var session = new MatchSession(SharedZoneMap(), rules);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.False(session.IsCompleted);
+        Assert.Equal(2, session.State.ControlPressure);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+
+        Assert.Equal(MatchEndReason.Domination, session.Result!.Reason);
+        Assert.Equal(0, session.Result.WinnerSlot);
+        Assert.Equal(1, session.Result.ControlPressure);
+    }
+
+    [Fact]
+    public void Overtime_CanIncreaseHoldingGainWithoutDisablingDecay()
+    {
+        var rules = ActiveRules(limit: 20, maxTicks: 10, decayInterval: 1) with
+        {
+            ControlOvertimeStartTick = 2,
+            ControlOvertimePressureLimit = 4,
+            ControlOvertimePressureGain = 2,
+        };
+        var session = new MatchSession(SingleZoneMap(), rules);
+
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnLeft)]);
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnLeft)]);
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(2, session.State.ControlPressure);
+
+        session.Step([BotDecision.Of(BotAction.TurnLeft), BotDecision.Of(BotAction.TurnLeft)]);
+        Assert.Equal(1, session.State.ControlPressure);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.TurnLeft)]);
+
+        Assert.Equal(MatchEndReason.Domination, session.Result!.Reason);
+        Assert.Equal(0, session.Result.WinnerSlot);
+        Assert.Equal(4, session.Result.ControlPressure);
+    }
 }

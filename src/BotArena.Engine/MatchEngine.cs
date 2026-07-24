@@ -183,11 +183,13 @@ public sealed class MatchEngine
     private static ReplayHeader BuildHeader(MatchConfiguration configuration, IReadOnlyList<Spawn> spawns)
     {
         var map = configuration.Map;
+        var rules = configuration.Rules;
+        bool hasControlOvertime = rules.IsControlOvertime(rules.ControlOvertimeStartTick);
         return new ReplayHeader
         {
             ReplayVersion = BotArenaVersions.ReplayFormatVersion,
             EngineVersion = BotArenaVersions.EngineVersion,
-            GameRulesVersion = configuration.Rules.RulesVersion,
+            GameRulesVersion = rules.RulesVersion,
             RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
             RuntimeConfigurationVersion = BotArenaVersions.RuntimeConfigurationVersion,
             MapId = map.Id,
@@ -196,14 +198,26 @@ public sealed class MatchEngine
             MapHeight = map.Height,
             MapTiles = map.TileRows,
             Seed = configuration.Seed,
-            MaxTicks = configuration.Rules.MaxTicks,
-            VisionRange = configuration.Rules.VisionRange,
-            VisionCone = configuration.Rules.VisionCone ? true : null,
-            ZoneTiles = configuration.Rules.ZoneControl
+            MaxTicks = rules.MaxTicks,
+            VisionRange = rules.VisionRange,
+            VisionCone = rules.VisionCone ? true : null,
+            ZoneTiles = rules.ZoneControl
                 ? map.EffectiveZone().Select(p => new[] { p.X, p.Y }).ToArray()
                 : null,
-            ControlPressureLimit = configuration.Rules.ActiveZoneControl
-                ? configuration.Rules.ControlPressureLimit
+            ControlPressureLimit = rules.ActiveZoneControl
+                ? rules.ControlPressureLimit
+                : null,
+            ControlOvertimeStartTick = hasControlOvertime
+                ? rules.ControlOvertimeStartTick
+                : null,
+            ControlOvertimePressureLimit = hasControlOvertime
+                ? rules.ControlOvertimePressureLimit
+                : null,
+            ControlOvertimePressureGain = hasControlOvertime
+                ? rules.EffectiveControlPressureGain(rules.ControlOvertimeStartTick)
+                : null,
+            ControlOvertimeStopsDecay = hasControlOvertime
+                ? rules.ControlOvertimeStopsDecay
                 : null,
             Participants = configuration.Participants
                 .Select((p, slot) => new ReplayParticipant(

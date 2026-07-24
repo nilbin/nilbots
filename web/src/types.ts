@@ -53,6 +53,14 @@ export interface ReplayHeader {
   zoneTiles?: number[][];
   /** Absolute domination limit for the shared active-control meter. */
   controlPressureLimit?: number;
+  /** Tick when the active-control overtime phase begins. */
+  controlOvertimeStartTick?: number;
+  /** Reduced domination limit during overtime. */
+  controlOvertimePressureLimit?: number;
+  /** Pressure gained per sole-holder tick during overtime. */
+  controlOvertimePressureGain?: number;
+  /** True when abandoned pressure stops decaying during overtime. */
+  controlOvertimeStopsDecay?: boolean;
   participants: ReplayParticipant[];
 }
 

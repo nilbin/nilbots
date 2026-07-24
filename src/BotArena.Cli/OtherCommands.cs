@@ -54,6 +54,11 @@ public static class ReplayCommand
             Console.WriteLine($"Zone:   {string.Join(" ", header.ZoneTiles!.Select(t => $"({t[0]},{t[1]})"))}  (* in state lines = on zone tile)");
         if (header.ControlPressureLimit is int pressureLimit)
             Console.WriteLine($"Control: successful Wait on-zone holds; signed slot-0 pressure, domination at ±{pressureLimit}");
+        if (header.ControlOvertimeStartTick is int overtimeTick)
+            Console.WriteLine($"Overtime: tick {overtimeTick}; domination at ±{header.ControlOvertimePressureLimit}" +
+                              (header.ControlOvertimePressureGain is int overtimeGain
+                                  ? $"; sole holds gain {overtimeGain}" : "") +
+                              (header.ControlOvertimeStopsDecay == true ? "; abandoned pressure no longer decays" : ""));
         if (coneMode)
             Console.WriteLine("Vision: 90° cone toward facing + adjacent ring; `sees»`/`hears»` lines show each bot's actual contact");
         if (boltMode)
@@ -83,6 +88,7 @@ public static class ReplayCommand
             bool significant = full
                 || tick.Events.Any(e => e.Type is GameEventType.Shot or GameEventType.Damage
                     or GameEventType.Destroyed or GameEventType.Fault or GameEventType.Disqualified)
+                || tick.Tick == header.ControlOvertimeStartTick
                 || (includeDebug && tick.Bots.Any(b => b.Debug is not null));
             // Periodic keep-alive lines so quiet phases still show movement (--full prints all).
             if (!significant && tick.Tick - lastPrinted < 25)
@@ -101,6 +107,8 @@ public static class ReplayCommand
             string line = $"t{tick.Tick,4} | {state} | {actions}";
             if (activeControl)
                 line += $" | control {(tick.ControlPressure > 0 ? "+" : "")}{tick.ControlPressure ?? 0}";
+            if (tick.Tick == header.ControlOvertimeStartTick)
+                line += $" | OVERTIME ±{header.ControlOvertimePressureLimit}";
             if (events.Length > 0)
                 line += $" | {events}";
             Console.WriteLine(line);

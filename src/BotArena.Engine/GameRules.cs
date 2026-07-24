@@ -90,6 +90,23 @@ public sealed record GameRules
     /// toward zero every N ticks. 0 disables decay.</summary>
     public int ControlPressureDecayInterval { get; init; }
 
+    /// <summary>Tick at which active-control overtime begins. 0 disables overtime.
+    /// Overtime is a late-game resolution layer; regulation scoring remains unchanged.</summary>
+    public int ControlOvertimeStartTick { get; init; }
+
+    /// <summary>Absolute domination limit during overtime. A positive value replaces
+    /// <see cref="ControlPressureLimit"/> from <see cref="ControlOvertimeStartTick"/>
+    /// onward; 0 leaves the regulation limit in force.</summary>
+    public int ControlOvertimePressureLimit { get; init; }
+
+    /// <summary>Pressure gained per sole-holder tick during overtime. 0 keeps
+    /// <see cref="ControlPressureGain"/>.</summary>
+    public int ControlOvertimePressureGain { get; init; }
+
+    /// <summary>When true, nobody-holding decay stops during overtime so net active
+    /// commitment can resolve a repeated hold/defend cycle instead of returning to zero.</summary>
+    public bool ControlOvertimeStopsDecay { get; init; }
+
     /// <summary>Seed-spawn constraint: never spawn a pair sharing a clear firing lane
     /// within ShotRange (gen-3 finding: tick-0 hits before the first decision).</summary>
     public bool SpawnLaneSafety { get; init; }
@@ -150,6 +167,25 @@ public sealed record GameRules
     /// Defaults to 1 so the gen-7 cadence arms retain their behavior.</summary>
     public int ProjectileTilesPerAdvance { get; init; } = 1;
 
+    public bool IsControlOvertime(int tick) =>
+        ActiveZoneControl
+        && ControlOvertimeStartTick > 0
+        && ControlOvertimePressureLimit > 0
+        && tick >= ControlOvertimeStartTick;
+
+    public int EffectiveControlPressureLimit(int tick) =>
+        IsControlOvertime(tick) ? ControlOvertimePressureLimit : ControlPressureLimit;
+
+    public int EffectiveControlPressureGain(int tick) =>
+        IsControlOvertime(tick) && ControlOvertimePressureGain > 0
+            ? ControlOvertimePressureGain
+            : ControlPressureGain;
+
+    public int EffectiveControlPressureDecayInterval(int tick) =>
+        IsControlOvertime(tick) && ControlOvertimeStopsDecay
+            ? 0
+            : ControlPressureDecayInterval;
+
     public static GameRules V0_1 => new() { RulesVersion = "0.1" };
 
     /// <summary>Rules 0.2 = 0.1 + seed-spawn variation. Pinned by the A/B balance run of
@@ -198,6 +234,7 @@ public sealed record GameRules
     public static readonly IReadOnlyList<string> KnownNames =
         ["0.4", "0.3", "0.2", "0.1",
          "control", "cone-control", "cone-active", "cone-active-bolt1", "cone-active-bolt2",
+         "cone-active-bolt2-overtime", "cone-active-bolt2-overtime-gain",
          "0.5-control", "cone", "bolts", "conebolts", "conebolts1",
          "strafe", "hill", "hill-shared", "slate", "energy"];
 
@@ -231,6 +268,28 @@ public sealed record GameRules
         {
             ProjectileTicksPerTile = 1,
             ProjectileTilesPerAdvance = 2,
+        },
+        // Gen-8 late-game isolation arm (RULES-0.5-DESIGN §L): v4 bolt2 stays
+        // frozen. At tick 200 the objective becomes a short, non-decaying
+        // overtime race so net holding can resolve the observed periodic loop.
+        "cone-active-bolt2-overtime" => ActiveControlBase("0.5-exp-cone-active-bolt2-overtime-v5") with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+            ControlOvertimeStartTick = 200,
+            ControlOvertimePressureLimit = 10,
+            ControlOvertimeStopsDecay = true,
+        },
+        // Revision v6 preserves the v5 timing target but keeps regulation decay:
+        // doubling sole-holder gain resolves the periodic loop without making an
+        // abandoned overtime lead permanently bankable.
+        "cone-active-bolt2-overtime-gain" => ActiveControlBase("0.5-exp-cone-active-bolt2-overtime-gain-v6") with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+            ControlOvertimeStartTick = 200,
+            ControlOvertimePressureLimit = 10,
+            ControlOvertimePressureGain = 2,
         },
         // The 0.5 watchability slate (RULES-0.5-DESIGN), hardened revision v3 (§H,
         // DECISIONS #58-#60): redacted hearing, both-checks bolt collision, computable

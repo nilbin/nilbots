@@ -241,7 +241,8 @@ public class SpawnVariationTests
         var arms = new[]
             {
                 "control", "cone-control", "cone-active",
-                "cone-active-bolt1", "cone-active-bolt2",
+                "cone-active-bolt1", "cone-active-bolt2", "cone-active-bolt2-overtime",
+                "cone-active-bolt2-overtime-gain",
             }
             .Select(GameRules.Resolve)
             .ToList();

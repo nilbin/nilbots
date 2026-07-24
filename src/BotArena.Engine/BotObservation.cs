@@ -43,7 +43,8 @@ public sealed class BotObservation
     public int? MyZoneTicks { get; init; }
     public int? EnemyZoneTicks { get; init; }
     /// <summary>Shared signed control pressure (positive = slot 0, negative = slot 1)
-    /// and its absolute domination limit. Null under passive zone rules.</summary>
+    /// and its current absolute domination limit. The limit may decrease when rules
+    /// enter overtime. Null under passive zone rules.</summary>
     public int? ControlPressure { get; init; }
     public int? ControlPressureLimit { get; init; }
     public required ActionResult PreviousActionResult { get; init; }

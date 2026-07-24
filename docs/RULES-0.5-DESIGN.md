@@ -484,3 +484,104 @@ games reach MaxTicks. Most late games have pressure close to zero, so neither
 a lower control limit nor faster damage is justified by the evidence. Keep
 all v4 arms experimental, keep official rules at 0.4, and investigate only
 the near-zero-pressure late-game loop next.
+
+## L. Gen-8 late-game isolation — control overtime (revision v5)
+
+Pre-registered before the v5 harness: inspect the complete 180-game bolt2
+population, freeze every v4 mechanic, and change only late objective
+resolution.
+
+The diagnosis is specific. Of 24 MaxTicks games, 15 are the same
+holder-versus-suppressor periodic loop. In their final 100 ticks the common
+pattern is 60 sole-holder ticks, 40 nobody-holding defensive ticks, 20
+projectile launches, and zero hits. The two slots contribute 40 versus 20
+sole holds while the normal one-per-two-ticks decay removes the same net 20
+pressure. The meter therefore returns to zero every ten ticks despite one bot
+making twice the active-control commitment. Four additional MaxTicks games
+are mutual-hold or no-contact stalls and may remain unresolved by this arm.
+
+The isolated candidate is `cone-active-bolt2-overtime`
+(`0.5-exp-cone-active-bolt2-overtime-v5`):
+
+- regulation remains bit-for-bit bolt2-v4 through tick 199;
+- tick 200 begins overtime;
+- the domination target changes from ±100 to ±10;
+- nobody-holding pressure decay stops;
+- existing signed pressure carries into overtime;
+- cone, hearing, maps, spawns, active-hold gain, projectile traversal,
+  cooldown, damage, health, and MaxTicks remain frozen;
+- the arm retains seed profile `0.5-redesign-shared`.
+
+The hypothesis is narrow: a net active holder should turn its repeated
+commitment advantage into a short overtime domination instead of a tick-499
+pressure tie. This arm can fix MaxTicks and average duration; by construction
+it does not claim to repair the separate elimination-share gate.
+
+Evaluate the unchanged five-bot final Gen-8 population over the same three
+seed profiles. Retain the candidate only if MaxTicks and average duration
+drop materially without increasing draws, changing the top-level doctrine
+ordering, or introducing a slot-skewed overtime result. Official 0.5 still
+requires the original full gate: draws down, median/average duration down,
+elimination share up, and diversity retained versus matched control.
+
+### Revision-v5 result
+
+The isolated arm passes its own late-resolution test:
+
+| arm | draws | eliminations | median | average | MaxTicks | leader |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| bolt2-v4 | 15/180 | 97/180 | 71 | 134.9 | 24 | ActiveHolder 51 |
+| bolt2-overtime-v5 | 15/180 | 97/180 | 71 | 102.0 | 5 | ActiveHolder 51 |
+
+Overtime changes 26 paired games: 19 MaxTicks become Domination and seven
+existing late Dominations finish earlier. Total tick savings are 5,940
+(median 259.5 among changed games). Overtime Domination winners are balanced
+14 slot 0 to 12 slot 1. The doctrine order remains ActiveHolder, Bastille,
+Suppressor, MobileFlanker, SoundHunter. One of 180 winners flips: on
+Crossfire seed 303, Bastille's net active holding wins the overtime race
+instead of Suppressor taking the old tick-limit tiebreak.
+
+Retain `cone-active-bolt2-overtime` as the v5 experimental flagship: it fixes
+the diagnosed long tail without touching combat. Do not promote official
+0.5. Against matched control it still fails median duration (71 vs 43.5) and
+elimination share (53.9% vs 62.2%); average duration is effectively tied
+(102.0 vs 101.1) and draws are better (8.3% vs 11.7%). The next design
+decision must address the elimination/tempo shape or explicitly redefine
+why a decisive Domination is an acceptable substitute; this experiment does
+not waive the pre-registered gate.
+
+### Structural follow-up: preserve decay in revision v6
+
+Review against the original ship criteria found one unacceptable property:
+v5 stops decay, so an abandoned overtime lead is permanently banked. That is
+acceptable as an isolated diagnosis but cannot ship under criterion 4.
+
+Pre-register `cone-active-bolt2-overtime-gain`
+(`0.5-exp-cone-active-bolt2-overtime-gain-v6`) before its harness. It keeps
+the tick-200 ±10 overtime target, keeps normal one-per-two-ticks decay, and
+changes sole-holder gain from 1 to 2 only during overtime. In the diagnosed
+ten-tick cycle, doubled net active contribution replaces the pressure that
+v5 preserved by disabling decay. If both bots abandon control, the lead still
+returns to zero.
+
+Use the same 180 paired games. v6 is preferred over v5 only if it keeps
+MaxTicks at five or fewer, average duration at 105 or lower, draws and
+eliminations unchanged, doctrine order stable, and the abandonment-decay
+test passes.
+
+Revision v6 passes every pre-registered replacement gate:
+
+| arm | draws | eliminations | median | average | MaxTicks |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| overtime-stop-decay v5 | 15/180 | 97/180 | 71 | 102.0 | 5 |
+| overtime-double-gain v6 | 15/180 | 97/180 | 71 | 102.2 | 5 |
+
+All five bot records, the doctrine order, and the 14/12 overtime slot split
+are identical. Twenty-two games change only their finishing tick, with v6
+costing 45 ticks total across the population. The abandonment test proves a
+lead still decays after overtime begins.
+
+Supersede v5 with `cone-active-bolt2-overtime-gain` as the experimental
+flagship. Keep v5 resolvable as the causal reference. Official 0.5 remains
+HOLD for the same median-duration and elimination-share failures; v6 fixes
+the structural overtime flaw, not those remaining promotion gates.

@@ -48,6 +48,10 @@ public class ReplaySerializationTests
             ControlPressureLimit = 10,
             ControlPressureGain = 1,
             ControlPressureDecayInterval = 2,
+            ControlOvertimeStartTick = 1,
+            ControlOvertimePressureLimit = 4,
+            ControlOvertimePressureGain = 2,
+            ControlOvertimeStopsDecay = true,
             ProjectileTicksPerTile = 1,
             ProjectileTilesPerAdvance = 2,
         };
@@ -74,7 +78,11 @@ public class ReplaySerializationTests
         var document = ReplaySerializer.FromJson(ReplaySerializer.ToJson(run.Replay));
 
         Assert.Equal(10, document.Header.ControlPressureLimit);
-        Assert.Equal(1, document.Result.ControlPressure);
+        Assert.Equal(1, document.Header.ControlOvertimeStartTick);
+        Assert.Equal(4, document.Header.ControlOvertimePressureLimit);
+        Assert.Equal(2, document.Header.ControlOvertimePressureGain);
+        Assert.True(document.Header.ControlOvertimeStopsDecay);
+        Assert.Equal(2, document.Result.ControlPressure);
         Assert.Equal(2, Assert.Single(document.Ticks[1].ProjectileTraversals!).Path.Count);
         Assert.Equal(2, Assert.Single(document.Ticks[1].Projectiles!).TilesPerAdvance);
         Assert.Equal(run.ReplayHash, document.ReplayHash);

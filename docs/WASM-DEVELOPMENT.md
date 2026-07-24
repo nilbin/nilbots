@@ -92,6 +92,13 @@ Relevant changes trigger one NativeAOT publish:
 normally several seconds on native Linux x64 and tens of seconds under Apple
 Silicon x64 emulation—not a full application-image rebuild.
 
+The stamp guarantees reuse of the checked-in artifact; it does not claim that
+two forced NativeAOT publishes are byte-for-byte reproducible. The pinned
+toolchain can emit a different module hash from the same stamped inputs, even
+when both modules pass the deterministic replay contract. Do not commit a
+forced-rebuild artifact when no stamped input changed. Artifact-hash parity
+between independent build environments remains a separate release check.
+
 Useful overrides:
 
 ```bash

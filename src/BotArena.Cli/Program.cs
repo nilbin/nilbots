@@ -56,7 +56,9 @@ static int Help(int exitCode = 1)
           botarena play [--bot <spec>] [--opponent <spec>] [--map <id>]
                         [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
                         [--rules 0.4|0.3|0.2|0.1|control|cone-control|cone-active|
-                                 cone-active-bolt1|cone-active-bolt2|0.5-control|cone|
+                                 cone-active-bolt1|cone-active-bolt2|cone-active-bolt2-overtime|
+                                 cone-active-bolt2-overtime-gain|
+                                 0.5-control|cone|
                                  bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy]
                         [--max-ticks <n>] [--out <dir>]
           botarena set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]

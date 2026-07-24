@@ -633,6 +633,45 @@ configuration) and changing them is a version bump, not an edit.
     rather than strengthen bolts, change cone/hearing, or merely lower the
     control limit (which cannot resolve pressure already near zero).
 
+65. **Gen-8 revision-v5 control overtime is retained experimentally; official
+    0.5 remains HOLD.** Audit of all 180 bolt2-v4 games found 24 MaxTicks,
+    including 15 instances of one exact holder/suppressor cycle: per final
+    100 ticks, 40 vs 20 sole holds, 40 defensive no-holder ticks, 20 missed
+    launches, and normal decay cancelling the net 20-hold advantage. The
+    pre-registered isolation arm freezes every v4 mechanic through tick 199;
+    at tick 200 it carries signed pressure into a ±10 overtime and stops
+    nobody-holding decay. Same five unchanged WASM bots, maps, seed profile,
+    and three seed sets, 180 paired games. Result: MaxTicks 24→5 and average
+    134.9→102.0 while draws stay 15, eliminations stay 97, median stays 71,
+    and ActiveHolder stays first at 51 wins. Nineteen MaxTicks become
+    Domination, seven late Dominations shorten, saving 5,940 total ticks;
+    overtime winners split 14 slot 0 / 12 slot 1. Doctrine order is stable.
+    One winner flips (Bastille vs Suppressor, Crossfire seed 303) because net
+    active holding replaces the old tick-limit tiebreak. RETAIN
+    `cone-active-bolt2-overtime`
+    (`0.5-exp-cone-active-bolt2-overtime-v5`) as the experimental flagship.
+    Do not ship 0.5: versus matched control, median is still 71 vs 43.5 and
+    elimination share 53.9% vs 62.2% (average 102.0 vs 101.1, draws 8.3% vs
+    11.7%). The next decision is either a design that restores combat tempo
+    or an explicit, evidence-backed redefinition of decisive Domination as
+    satisfying the tempo gate; the gate is not silently waived.
+
+66. **Revision-v6 doubled overtime gain supersedes v5 stopped decay; official
+    0.5 remains HOLD.** Structural review caught that v5 violated the original
+    no-banked-lead criterion: once overtime began, abandoning control could
+    preserve pressure forever. The pre-registered replacement keeps the
+    tick-200 ±10 target but retains normal one-per-two-ticks decay and doubles
+    sole-holder gain to 2 during overtime. Same unchanged five-bot, 180-game
+    paired field. v6 exactly preserves v5's 15 draws, 97 eliminations, median
+    71, five MaxTicks, all five W-L-D records, doctrine order, and 14/12
+    overtime winner slot split. Its average is 102.2 versus v5's 102.0;
+    22 games change finishing tick, costing only 45 aggregate ticks, with no
+    winner flips. A scripted test proves abandoned overtime pressure still
+    decays. RETAIN `cone-active-bolt2-overtime-gain`
+    (`0.5-exp-cone-active-bolt2-overtime-gain-v6`) as the flagship; keep v5
+    resolvable only as the causal reference. Do not promote official 0.5:
+    median duration and elimination share still miss matched control.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
