@@ -103,8 +103,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   match, and migration roles share the same model without becoming services.
 - `deploy/` — the scale-ready single-VPS baseline: Caddy, role-separated
   Docker Compose, commit-tagged images, provisioned certificates, a one-shot
-  migration, and backup/deploy runbooks. The S3-compatible backend and
-  public-submission hardening remain gates before multi-VPS/public operation.
+  migration, private Garage S3 storage at replication factor 3, and
+  backup/deploy runbooks. Garage replicas remain co-located until additional
+  VPS nodes justify a private multi-zone layout.
 - `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into.
 - `tests/` — engine, determinism, and WASM contract suites (195 tests, incl.

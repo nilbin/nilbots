@@ -870,6 +870,22 @@ configuration) and changing them is a version bump, not an edit.
     external S3-compatible objects remain measured scaling/defense-in-depth
     promotions, not prerequisites.
 
+78. **Production object storage is a private Garage cluster behind the generic
+    S3 contract, bootstrapped at replication factor 3 in Compose.** The first
+    VPS runs three storage containers plus one gateway, all in the same real
+    HostUp zone. This deliberately does not claim host-level availability; the
+    co-located copies preserve Garage's replication factor so future nodes can
+    join over a private overlay network and rebalance without the dangerous,
+    unsupported replication-factor change from 1 to 3. The application uses
+    `AWSSDK.S3` only and remains replaceable across compatible servers.
+    Garage is pinned to the v2.3.0 multi-architecture image digest, its S3/RPC/
+    admin ports are not published, and bucket-scoped credentials remain in the
+    host environment. The old local volume stays mounted during the first
+    release as a migration source and immediate rollback aid; verified S3
+    materialization, Garage metadata snapshots, HostUp backups, and an
+    independent restore rehearsal remain required because co-location is not
+    backup or physical redundancy.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

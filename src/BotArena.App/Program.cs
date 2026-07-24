@@ -21,7 +21,7 @@ bool trustForwardedHeaders =
     builder.Configuration.GetValue<bool>("BOTARENA_TRUST_FORWARDED_HEADERS");
 
 builder.Services.AddSingleton(mode);
-builder.Services.AddSingleton<IObjectStore, LocalObjectStore>();
+builder.Services.AddObjectStore(builder.Configuration);
 builder.Services.AddSingleton(BuildProvenance.FromConfiguration(builder.Configuration));
 if (mode.RunsCompileWorker && !mode.IsAll)
     builder.Services.AddSingleton<ISubmissionCompiler, QueuedSubmissionCompiler>();

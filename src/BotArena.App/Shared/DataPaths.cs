@@ -13,6 +13,11 @@ public static class DataPaths
             ? Path.GetFullPath(objects)
             : Path.Combine(Root, "objects");
 
+    public static string ObjectCache =>
+        Environment.GetEnvironmentVariable("BOTARENA_OBJECT_CACHE") is { Length: > 0 } cache
+            ? Path.GetFullPath(cache)
+            : Path.Combine(Root, "object-cache");
+
     public static string Keys => Ensure(Path.Combine(Root, "keys"));
 
     private static string Ensure(string path)

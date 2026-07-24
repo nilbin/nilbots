@@ -3,7 +3,8 @@
 This directory is the public-beta, single-VPS production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):
 Caddy, one web role, one match worker, a compilation coordinator, a
-networkless compiler runner, PostgreSQL, and a private local object volume.
+networkless compiler runner, PostgreSQL, and a private S3-compatible Garage
+cluster.
 The application roles remain separate processes of the same modular monolith.
 
 Production uses two custom images:
@@ -46,9 +47,28 @@ Replace every `CHANGE_ME` and set the real domain. Long hexadecimal secrets
 avoid connection-string and `.env` escaping surprises:
 
 ```bash
-openssl rand -hex 32
-openssl rand -hex 32
+openssl rand -hex 32 # POSTGRES_PASSWORD
+openssl rand -hex 32 # BOTARENA_OPENIDDICT_CERT_PASSWORD
+openssl rand -hex 32 # BOTARENA_NETWORK_HASH_KEY
+openssl rand -hex 32 # GARAGE_RPC_SECRET
+openssl rand -hex 32 # GARAGE_ADMIN_TOKEN
+openssl rand -hex 32 # GARAGE_METRICS_TOKEN
+printf 'GK%s\n' "$(openssl rand -hex 16)" # BOTARENA_S3_ACCESS_KEY
+openssl rand -hex 32 # BOTARENA_S3_SECRET_KEY
 ```
+
+On an existing deployment, generate and append only the missing Garage/S3
+settings without replacing any configured values:
+
+```bash
+bash deploy/configure-garage-env.sh
+```
+
+Garage starts as three storage containers plus a gateway, all on the private
+Compose network and all in the same real zone. Replication factor 3 is fixed
+from the beginning so physical nodes can replace the co-located bootstrap
+nodes later without changing the replication factor. It is not host-level
+high availability while all three storage containers share this VPS.
 
 Generate the OpenIddict signing/encryption certificate pair. All future web
 replicas must use this same pair:
@@ -83,6 +103,10 @@ workers, and then starts Caddy. Verify:
 ```bash
 docker compose --env-file deploy/.env -f deploy/compose.production.yml ps
 curl --fail "https://$(awk -F= '/^BOTARENA_DOMAIN=/{print $2}' deploy/.env)/health/ready"
+docker compose --env-file deploy/.env -f deploy/compose.production.yml \
+  exec garage-gateway /garage status
+docker compose --env-file deploy/.env -f deploy/compose.production.yml \
+  exec garage-gateway /garage layout show
 ```
 
 ## Updating
@@ -113,10 +137,16 @@ bash deploy/backup-postgres.sh /absolute/path/synced-off-this-vps
 ```
 
 The command only creates and validates the local dump. A scheduled job must
-copy it to another provider/location and alert on failure. The `objectdata`
-Docker volume also needs an off-host backup until an external S3-compatible
-backend replaces it. Run a restore rehearsal into a disposable deployment at
-least quarterly.
+copy it to another provider/location and alert on failure. Garage's four
+persistent volumes, including LMDB metadata snapshots, also need an off-host
+backup. The three storage nodes are co-located and therefore do not protect
+against loss of the VPS. Run a restore rehearsal into a disposable deployment
+at least quarterly.
+
+The legacy `objectdata` volume remains mounted during the first S3 release as
+the idempotent migration source and an immediate rollback aid. New writes after
+the cutover exist in Garage only; a rollback after accepting such writes must
+backfill the local store or roll forward to an S3-capable release.
 
 ## Operational checks
 
@@ -124,6 +154,9 @@ least quarterly.
 docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 web
 docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 match-worker
 docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 compile-worker
+docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 garage-gateway
+docker compose --env-file deploy/.env -f deploy/compose.production.yml exec garage-gateway \
+  /garage bucket info nilbots
 docker compose --env-file deploy/.env -f deploy/compose.production.yml exec db \
   psql -U botarena -d botarena -c \
   'select "Type", "Status", count(*) from "BackgroundJobs" group by 1,2 order by 1,2;'
@@ -131,6 +164,16 @@ docker compose --env-file deploy/.env -f deploy/compose.production.yml exec db \
 
 Alert at minimum on HTTPS downtime, failed/stale backups, disk usage, repeated
 job failure, and the age of the oldest pending job.
+
+## Adding physical Garage nodes
+
+Join future Garage nodes only over a provider-private or WireGuard network;
+never publish ports 3900-3903 to the internet. Keep `replication_factor = 3`
+and the same RPC secret on every node. Connect the new nodes, assign their true
+datacenter/host zones and capacities, inspect the staged layout, apply exactly
+one new layout version, and wait for data synchronization before removing any
+bootstrap node. With fewer than three physical failure domains, the cluster is
+network-addressable but not physically highly available.
 
 ## Security boundary
 

@@ -5,9 +5,45 @@ x-database-environment: &database-environment
   BOTARENA_DATA: "/data"
   ASPNETCORE_ENVIRONMENT: "Production"
 
+x-application-environment: &application-environment
+  <<: *database-environment
+  BOTARENA_OBJECT_STORE: "${BOTARENA_OBJECT_STORE:-s3}"
+  BOTARENA_S3_ENDPOINT: "${BOTARENA_S3_ENDPOINT:-http://garage-gateway:3900}"
+  BOTARENA_S3_ALLOW_HTTP: "${BOTARENA_S3_ALLOW_HTTP:-true}"
+  BOTARENA_S3_REGION: "${BOTARENA_S3_REGION:-garage}"
+  BOTARENA_S3_BUCKET: "${BOTARENA_S3_BUCKET:-nilbots}"
+  BOTARENA_S3_ACCESS_KEY: "${BOTARENA_S3_ACCESS_KEY}"
+  BOTARENA_S3_SECRET_KEY: "${BOTARENA_S3_SECRET_KEY}"
+  BOTARENA_OBJECT_CACHE: "/cache"
+
 x-runtime-build: &runtime-build
   context: ..
   target: runtime
+
+x-garage-common: &garage-common
+  image: "dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690"
+  platform: linux/amd64
+  restart: unless-stopped
+  environment:
+    GARAGE_RPC_SECRET: "${GARAGE_RPC_SECRET}"
+    GARAGE_ADMIN_TOKEN: "${GARAGE_ADMIN_TOKEN}"
+    GARAGE_METRICS_TOKEN: "${GARAGE_METRICS_TOKEN}"
+  networks:
+    - backend
+  read_only: true
+  tmpfs:
+    - /tmp:size=32m,mode=1777
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 128
+  mem_limit: 256m
+  healthcheck:
+    test: ["CMD", "/garage", "node", "id", "--quiet"]
+    interval: 10s
+    timeout: 3s
+    retries: 10
 
 services:
   db:
@@ -28,19 +64,47 @@ services:
       retries: 20
     shm_size: 256mb
 
+  garage-a:
+    <<: *garage-common
+    volumes:
+      - ./garage/garage-a.toml:/etc/garage.toml:ro
+      - garage-a-data:/var/lib/garage
+
+  garage-b:
+    <<: *garage-common
+    volumes:
+      - ./garage/garage-b.toml:/etc/garage.toml:ro
+      - garage-b-data:/var/lib/garage
+
+  garage-c:
+    <<: *garage-common
+    volumes:
+      - ./garage/garage-c.toml:/etc/garage.toml:ro
+      - garage-c-data:/var/lib/garage
+
+  garage-gateway:
+    <<: *garage-common
+    volumes:
+      - ./garage/garage-gateway.toml:/etc/garage.toml:ro
+      - garage-gateway-data:/var/lib/garage
+
   migrate:
     platform: linux/amd64
     image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
     environment:
-      <<: *database-environment
+      <<: *application-environment
       BOTARENA_ROLE: "migrate"
+      BOTARENA_OBJECT_MIGRATION_SOURCE: "/data/objects"
     volumes:
       - objectdata:/data
+      - migrationcache:/cache
     networks:
       - backend
     depends_on:
       db:
+        condition: service_healthy
+      garage-gateway:
         condition: service_healthy
     restart: "no"
 
@@ -50,7 +114,7 @@ services:
     build: *runtime-build
     restart: unless-stopped
     environment:
-      <<: *database-environment
+      <<: *application-environment
       BOTARENA_ROLE: "web"
       BOTARENA_TRUST_FORWARDED_HEADERS: "true"
       BOTARENA_OPENIDDICT_SIGNING_CERT: "/run/botarena-secrets/openiddict-signing.pfx"
@@ -65,6 +129,7 @@ services:
       BOTARENA_COMPILE_GLOBAL_QUEUED: "${BOTARENA_COMPILE_GLOBAL_QUEUED:-20}"
     volumes:
       - objectdata:/data:ro
+      - webcache:/cache
       - ./secrets:/run/botarena-secrets:ro
     networks:
       - edge
@@ -86,13 +151,14 @@ services:
     build: *runtime-build
     restart: unless-stopped
     environment:
-      <<: *database-environment
+      <<: *application-environment
       BOTARENA_ROLE: "match-worker"
       BOTARENA_INSTANCE_ID: "${BOTARENA_MATCH_INSTANCE_ID:-match-1}"
       BOTARENA_BROADCAST_TPS: "${BOTARENA_BROADCAST_TPS:-5}"
       BOTARENA_BROADCAST_DELAY_SECONDS: "${BOTARENA_BROADCAST_DELAY_SECONDS:-3}"
     volumes:
       - objectdata:/data
+      - matchcache:/cache
     networks:
       - backend
     depends_on:
@@ -113,7 +179,7 @@ services:
     build: *runtime-build
     restart: unless-stopped
     environment:
-      <<: *database-environment
+      <<: *application-environment
       BOTARENA_ROLE: "compile-worker"
       BOTARENA_INSTANCE_ID: "${BOTARENA_COMPILE_INSTANCE_ID:-compile-1}"
       BOTARENA_COMPILE_WORKERS: "${BOTARENA_COMPILE_WORKERS:-1}"
@@ -122,6 +188,7 @@ services:
       BOTARENA_RELEASE_GIT_SHA: "${BOTARENA_RELEASE_GIT_SHA:-local}"
     volumes:
       - objectdata:/data
+      - compilecache:/cache
       - compileripc:/compiler-ipc
     networks:
       - backend
@@ -205,6 +272,14 @@ services:
 volumes:
   dbdata:
   objectdata:
+  migrationcache:
+  webcache:
+  matchcache:
+  compilecache:
+  garage-a-data:
+  garage-b-data:
+  garage-c-data:
+  garage-gateway-data:
   compileripc:
   caddydata:
   caddyconfig:

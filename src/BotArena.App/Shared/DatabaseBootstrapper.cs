@@ -14,8 +14,24 @@ public static class DatabaseBootstrapper
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var objectStore = scope.ServiceProvider.GetRequiredService<IObjectStore>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger(typeof(DatabaseBootstrapper));
 
         await db.Database.MigrateAsync(cancellationToken);
+        if (configuration["BOTARENA_OBJECT_MIGRATION_SOURCE"] is { Length: > 0 } source)
+        {
+            int count = await ObjectStoreMigrator.MigrateAsync(
+                db,
+                objectStore,
+                source,
+                cancellationToken);
+            logger.LogInformation(
+                "Verified or migrated {ObjectCount} database-referenced objects from {Source}",
+                count,
+                source);
+        }
         await LegacyObjectImporter.ImportAsync(db, objectStore, cancellationToken);
         await BuiltInBotSeeder.SeedAsync(db, objectStore, cancellationToken);
         await ChampionSeeder.SeedAsync(db, objectStore, cancellationToken);

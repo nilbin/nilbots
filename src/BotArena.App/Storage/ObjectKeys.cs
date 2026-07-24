@@ -10,4 +10,15 @@ public static class ObjectKeys
     }
 
     public static string Replay(Guid matchId) => $"replays/{matchId:N}.json";
+
+    public static void Validate(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key) ||
+            Path.IsPathRooted(key) ||
+            key.Contains('\\') ||
+            key.Split('/').Any(part => part is "" or "." or ".."))
+        {
+            throw new ArgumentException($"Invalid object key '{key}'.", nameof(key));
+        }
+    }
 }
