@@ -372,6 +372,27 @@ These are tuning values, not a ship verdict. Observations expose
 `EnemyZoneTicks` are null in active arms. Replays carry the pressure per
 tick and at the result.
 
+For bot authors, the experimental observation surface is nullable because
+the same artifact can play official rules without these mechanics:
+
+```csharp
+foreach (HeardSound sound in context.HeardSounds ?? [])
+{
+    // sound.Kind; sound.Bearing (SoundBearing); sound.Distance (SoundDistance)
+}
+
+foreach (VisibleProjectile bolt in context.VisibleProjectiles ?? [])
+{
+    // bolt.Position / Direction / OwnerSlot / TilesPerAdvance /
+    // TicksUntilAdvance / RemainingTiles
+}
+```
+
+Use `context.ControlPressure` / `ControlPressureLimit` only when non-null.
+`ZoneTiles` is nullable for rules with no objective. Treating any of these
+collections as always present makes one rules-aware artifact fault under a
+comparison arm and invalidates the causal experiment.
+
 ### Fast ordered projectiles
 
 `ProjectileTilesPerAdvance` is now independent of
@@ -443,3 +464,23 @@ The aware tournament must still show that unchanged Bastille is no
 longer self-sufficient, at least two doctrines remain viable, ranged
 hits occur beyond point blank, match duration stays acceptable, and
 projectiles add measurable value beyond active control alone.
+
+## K. Gen-8 revision-v4 evaluation
+
+The final aware harness used four isolated docs/CLI-only doctrines plus
+unchanged Bastille, one improvement iteration, three paired seed profiles,
+and 180 games per arm. Full results and the balance-gate decision are in
+GAME-DESIGN and DECISIONS #64.
+
+The redesign passes its core strategic test: active control makes defensive
+actions stop paying, bolt arms dethrone unchanged Bastille, distinct holder
+and suppressor doctrines remain viable, speed-two traversal produces 291
+ranged hits, and bolt1/bolt2 change paired outcomes. Bolt2 wins the speed
+comparison and remains the primary experimental candidate.
+
+The official promotion gate does not pass. Bolt2 improves draw rate versus
+control but reduces elimination share and increases match duration; 24/180
+games reach MaxTicks. Most late games have pressure close to zero, so neither
+a lower control limit nor faster damage is justified by the evidence. Keep
+all v4 arms experimental, keep official rules at 0.4, and investigate only
+the near-zero-pressure late-game loop next.

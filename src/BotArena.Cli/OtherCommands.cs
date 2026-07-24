@@ -68,7 +68,7 @@ public static class ReplayCommand
             int fired = document.Ticks.SelectMany(t => t.Events)
                 .Count(e => e.Type == GameEventType.Shot && e.Slot == bot.Slot);
             int hits = document.Ticks.SelectMany(t => t.Events)
-                .Count(e => e.Type == GameEventType.Shot && e.Slot == bot.Slot && e.HitSlot is not null);
+                .Count(e => e.Type == GameEventType.Damage && e.Slot == bot.Slot);
             Console.WriteLine($"        s{bot.Slot} {names[bot.Slot],-14} {bot.Outcome,-5} " +
                               $"health {bot.FinalHealth}  dealt {bot.DamageDealt}  " +
                               $"shots {fired} ({hits} hit)  faults {bot.Faults}" +

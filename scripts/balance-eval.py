@@ -17,10 +17,10 @@ Usage:
 
 Bots default to every champions/<slug>/bot.wasm (the frozen population — add
 current-gen artifacts via --bots for a stronger sample). Rulesets are whatever
-the CLI's --rules accepts. First run pays one CLI build (~30 s), then ~1-3 s
-per match.
+the CLI's --rules accepts. The checkout wrapper reuses the CLI assembly built
+by setup; each 6-game set normally takes a few seconds.
 """
-import argparse, pathlib, re, statistics, subprocess, sys
+import argparse, collections, pathlib, re, statistics, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LINE = re.compile(r"^g(\d+) \S+\s+s\d+\s+slot\d\s+(WIN|LOSS|DRAW)\S*.*?(Elimination|MaxTicks|Disqualification|Domination)\s+t(\d+)")
@@ -36,7 +36,7 @@ def default_bots():
 
 
 def run_set(bots, a, b, rules, seeds, workdir, maps=None):
-    command = ["dotnet", "run", "--project", str(ROOT / "src" / "BotArena.Cli"), "--", "set",
+    command = [str(ROOT / "scripts" / "botarena"), "set",
                "--bot", bots[a], "--opponent", bots[b], "--seeds", seeds, "--rules", rules]
     if maps:
         command += ["--maps", maps]
@@ -72,6 +72,7 @@ def main():
     pairs = [(names[i], names[j]) for i in range(len(names)) for j in range(i + 1, len(names))]
 
     stats = {}
+    records = {}
     by_game = {}  # rules -> {(a, b, game#): (outcome, reason, tick)}
     for rules in args.rulesets.split(","):
         # Per-arm subdirectory: replay dirs are named by bots/map/seed only, so two
@@ -81,14 +82,25 @@ def main():
         arm_dir.mkdir(parents=True, exist_ok=True)
         games = []
         keyed = {}
+        arm_records = {name: collections.Counter() for name in names}
         for a, b in pairs:
             for num, outcome, reason, tick in run_set(bots, a, b, rules, args.seeds, str(arm_dir), args.maps):
                 games.append((outcome, reason, tick))
                 keyed[(a, b, num)] = (outcome, reason, tick)
+                if outcome == "WIN":
+                    arm_records[a]["wins"] += 1
+                    arm_records[b]["losses"] += 1
+                elif outcome == "LOSS":
+                    arm_records[a]["losses"] += 1
+                    arm_records[b]["wins"] += 1
+                else:
+                    arm_records[a]["draws"] += 1
+                    arm_records[b]["draws"] += 1
             print(f"  done {a} vs {b} [{rules}]", flush=True)
         if not games:
             continue
         by_game[rules] = keyed
+        records[rules] = arm_records
         draws = sum(1 for g in games if g[0] == "DRAW")
         eliminations = sum(1 for g in games if g[1] == "Elimination")
         ticks = [g[2] for g in games]
@@ -98,6 +110,18 @@ def main():
     print(f"{'ruleset':14} {'games':>5} {'draws':>5} {'draw%':>6} {'elims':>5} {'medTick':>8} {'avgTick':>8}")
     for rules, (n, draws, elims, med, avg) in stats.items():
         print(f"{rules:14} {n:5} {draws:5} {100 * draws / n:5.0f}% {elims:5} {med:8.0f} {avg:8.0f}")
+
+    print("\n=== PER-BOT RECORDS (game wins/losses/draws) ===")
+    for rules in stats:
+        ordered_records = sorted(
+            records[rules].items(),
+            key=lambda item: (-item[1]["wins"], item[1]["losses"], item[0]),
+        )
+        row = "  ".join(
+            f"{name} {record['wins']}-{record['losses']}-{record['draws']}"
+            for name, record in ordered_records
+        )
+        print(f"{rules:14} {row}")
 
     # Paired per-game analysis vs the FIRST arm (the control). Same pairing, same
     # game slot, same seeds and maps — so every row is one game observed under two

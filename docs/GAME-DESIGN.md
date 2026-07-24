@@ -487,3 +487,42 @@ the viewer. Cone vision and redacted hearing stay frozen. Ranked zones become
 connected 3×3/3×2 regions; the narrow causeway remains an adversarial map
 outside ranked. Exact v4 arms, timing, observation fields, scripted gates,
 and ship criteria are in RULES-0.5-DESIGN §J and DECISIONS #62.
+
+## Gen-8 verdict: the camper breaks, but the tempo gate does not pass (HOLD)
+
+Four docs/CLI-only bot authors independently produced the requested active
+holder, suppressor, sound hunter, and mobile flanker, then received one
+bounded improvement iteration from replay summaries. Together with unchanged
+Bastille they played three shared seed profiles under every v4 arm: 180 games
+per arm, 900 final games.
+
+| arm | draws | eliminations | median | average | MaxTicks | leader |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| control | 21/180 (11.7%) | 112/180 (62.2%) | 43.5 | 101.1 | 12 | Bastille 61 wins |
+| cone-control | 14/180 (7.8%) | 112/180 (62.2%) | 50 | 103.7 | 12 | Bastille 56 |
+| cone-active | 19/180 (10.6%) | 109/180 (60.6%) | 58.5 | 95.6 | 10 | Bastille 50 |
+| cone-active-bolt1 | 15/180 (8.3%) | 92/180 (51.1%) | 86.5 | 139.1 | 23 | ActiveHolder 53 |
+| cone-active-bolt2 | 15/180 (8.3%) | 97/180 (53.9%) | 71 | 134.9 | 24 | ActiveHolder 51 |
+
+The central design correction works. Moving, turning, scanning, and shooting
+do not earn pressure. Unchanged Bastille is no longer self-sufficient once
+bolts make that commitment contestable: it falls from an undefeated control
+leader (61-0-11) to second under bolt2 (45-16-11), behind a genuinely
+different active-holding doctrine (51-13-8). Suppressor remains viable at
+31-35-6, so the field does not collapse to one policy. Bolt2 records 291
+ranged projectile hits and changes enough paired outcomes to be strategically
+real rather than visual decoration.
+
+Bolt2 is the better speed candidate. Against bolt1 over 180 paired games it
+holds draws equal, adds five eliminations and 18 ranged hits, and cuts median
+duration by 15.5 ticks and average duration by 4.2. Faster ordered traversal
+therefore survives the comparison without making dodging irrelevant.
+
+It still does not ship. Relative to matched control, bolt2 improves draws but
+worsens both elimination share and duration. Twenty-four games reach tick 499;
+their median absolute final pressure is near zero, so lowering the ±100 limit
+would help only a few outliers. These are prolonged aware-vs-aware combat and
+contest loops, not permanently banked leads. The next test should isolate a
+minimal late-game resolution/overtime rule for near-zero pressure while
+freezing cone, hearing, active holding, map geometry, and bolt2 traversal.
+Continuously strengthening the weapon is not the next move.

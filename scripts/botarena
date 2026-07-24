@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Fast source-checkout CLI entry point. setup.sh builds the CLI once; bot strategy
+# iterations then execute that assembly directly instead of starting an MSBuild
+# evaluation for every play/set/replay command.
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cli_project="$repo_dir/src/BotArena.Cli/BotArena.Cli.csproj"
+cli_dll="$repo_dir/src/BotArena.Cli/bin/Debug/net10.0/botarena.dll"
+
+if [ ! -f "$cli_dll" ]; then
+  echo "Bot Arena CLI is not built; building it once..." >&2
+  dotnet build "$cli_project" -v q >&2
+fi
+
+exec dotnet "$cli_dll" "$@"

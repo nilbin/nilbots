@@ -2,6 +2,13 @@
 
 A Bot Arena bot. Edit `BOTNAME.cs`, then:
 
+If `botarena` is not installed globally, expose the checkout's fast wrapper
+once per shell from the repository root:
+
+```bash
+export PATH="$PWD/scripts:$PATH"
+```
+
 ```bash
 botarena play --runtime in-process --bot . --opponent hunter --seed 42   # fastest loop
 botarena play --bot . --opponent hunter --seeds 7,42,1337   # batch a seed matrix
@@ -29,6 +36,9 @@ of a replay's identity, so in-process and WASM hashes differ by design.
 Practicing for a rules experiment? Add `"rules": "<name>"` to `botarena.json`
 and every `play`/`set` defaults to that ruleset (an explicit `--rules` flag
 still wins) — no more losing a practice session to one dropped flag.
+Experimental observation collections such as `VisibleProjectiles` and
+`HeardSounds` are nullable because official rulesets may not enable them;
+check for null (or use `?? []`) before iterating.
 
 `botarena play` prints where it wrote `replay.json` and `viewer.html`
 (default: `out/<bot>-vs-<opponent>-<map>-s<seed>/`, so parallel runs never

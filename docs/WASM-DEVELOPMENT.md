@@ -44,8 +44,14 @@ of the inner-loop compiler image.
 Check what the machine will use:
 
 ```bash
-dotnet run --project src/BotArena.Cli -- doctor
+export PATH="$PWD/scripts:$PATH"
+botarena doctor
 ```
+
+The checkout wrapper executes the CLI assembly built by `setup.sh` directly,
+avoiding a redundant MSBuild evaluation on every play, set, or replay command.
+Run `dotnet build BotArena.sln` after changing CLI/framework code; ordinary bot
+source edits are compiled by `botarena play` and need no CLI rebuild.
 
 ## Fast development loop
 
@@ -80,7 +86,9 @@ bash scripts/build-wasm-guest.sh
 Its input stamp covers the SDK, guest adapter, built-in bots, WASM entry point,
 project files, shared build properties, and NuGet configuration. If none changed,
 the command exits immediately. The stamp is committed beside the tracked guest,
-so a fresh checkout does not rebuild it needlessly. Relevant changes trigger one NativeAOT publish:
+so a fresh checkout does not rebuild it needlessly. Generated `bin/` and `obj/`
+sources are excluded: an ordinary managed build cannot invalidate the guest.
+Relevant changes trigger one NativeAOT publish:
 normally several seconds on native Linux x64 and tens of seconds under Apple
 Silicon x64 emulation—not a full application-image rebuild.
 

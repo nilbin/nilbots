@@ -39,19 +39,23 @@ stamp="artifacts/wasm/builtin-bots.inputs"
 
 input_hash="$(
   {
-    printf '%s\n' "builtin-wasm-inputs-v4"
+    printf '%s\n' "builtin-wasm-inputs-v5"
     {
       find \
         src/BotArena.Sdk \
         src/BotArena.Guest \
         src/BotArena.Bots.BuiltIn \
         src/BotArena.WasmGuest \
-        -type f \( -name '*.cs' -o -name '*.csproj' \) -print
+        -type f \
+        ! -path '*/bin/*' \
+        ! -path '*/obj/*' \
+        \( -name '*.cs' -o -name '*.csproj' \) -print
       printf '%s\n' \
         Directory.Build.props \
         docker/wasm-builder.Dockerfile \
         global.json \
         nuget.config \
+        scripts/build-wasm-guest.sh \
         scripts/run-wasm-publish.sh \
         scripts/setup-wasi-sdk.sh
     } |

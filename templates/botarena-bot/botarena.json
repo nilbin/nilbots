@@ -1,7 +1,7 @@
 {
   "name": "BOTNAME",
   "entryType": "BOTNAME",
-  "sdkVersion": "0.1",
+  "sdkVersion": "SDKVERSION",
   "appearance": {
     "accent": "#22d3ee"
   }

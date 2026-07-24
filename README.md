@@ -30,7 +30,7 @@ bash scripts/play.sh --bot hunter --opponent coward --seed 7
 Write your own bot:
 
 ```bash
-alias botarena='dotnet run --project src/BotArena.Cli --'
+export PATH="$PWD/scripts:$PATH"       # source-checkout `botarena` command
 botarena new MyBot && cd MyBot     # scaffolded project: MyBot.cs + botarena.json
 botarena play --bot . --opponent hunter --seed 42   # compiles YOUR bot to WASM
 botarena watch . --opponent hunter --seed 42        # rebuild + replay on save

@@ -12,6 +12,11 @@ public static class NewCommand
             Console.Error.WriteLine("Bot name must be a valid C# identifier (letters and digits, starting with a letter).");
             return 1;
         }
+        // C# warns for all-lowercase type names because they may become reserved;
+        // solution-wide warnings-as-errors otherwise makes `new suppressor` generate
+        // a project that cannot compile. Preserve the requested directory but emit a
+        // conventional, valid entry type.
+        string entryType = char.ToUpperInvariant(name[0]) + name[1..];
         string? templateDir = CliSupport.FindUpward(Path.Combine("templates", "botarena-bot"));
         if (templateDir is null)
         {
@@ -26,21 +31,29 @@ public static class NewCommand
         }
         Directory.CreateDirectory(targetDir);
 
-        string sdkProject = CliSupport.FindUpward(Path.Combine("src", "BotArena.Sdk", "BotArena.Sdk.csproj"))!;
+        string sdkProject = CliSupport.FindUpward(
+            Path.Combine("src", "BotArena.Sdk", "BotArena.Sdk.csproj"))!;
+        string sdkProjectFromBot = Path.GetRelativePath(targetDir, sdkProject);
         foreach (var file in Directory.EnumerateFiles(templateDir))
         {
             string content = File.ReadAllText(file)
-                .Replace("BOTNAME", name)
+                .Replace("BOTNAME", entryType)
+                .Replace("SDKVERSION", ToolchainInfo.SdkVersion)
                 .Replace("<!--BOTARENA_SDK_REFERENCE-->",
-                    $"<ProjectReference Include=\"{sdkProject}\" />");
+                    $"<ProjectReference Include=\"{sdkProjectFromBot}\" />");
             File.WriteAllText(
-                Path.Combine(targetDir, Path.GetFileName(file).Replace("BOTNAME", name)),
+                Path.Combine(targetDir, Path.GetFileName(file).Replace("BOTNAME", entryType)),
                 content);
         }
         Console.WriteLine($"Created bot project: {targetDir}");
         Console.WriteLine();
         Console.WriteLine($"  cd {name}");
         Console.WriteLine("  botarena play --bot . --opponent hunter --seed 42");
+        Console.WriteLine();
+        Console.WriteLine("Source checkout without `botarena` on PATH:");
+        string wrapper = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(sdkProject)!, "..", "..", "scripts", "botarena"));
+        Console.WriteLine($"  {wrapper} play --bot . --opponent hunter --seed 42");
         return 0;
     }
 }

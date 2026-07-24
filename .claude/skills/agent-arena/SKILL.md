@@ -128,6 +128,30 @@ For energy re-tests:
 > observable — count their shots. Sustained fire is therefore ~1 shot per 6
 > ticks; bursts of 3 are available from full. Manage it or run dry mid-fight.
 
+For the revision-v4 active-control arms (`cone-active`,
+`cone-active-bolt1`, `cone-active-bolt2`; RULES-0.5-DESIGN §J), append:
+
+> EXPERIMENTAL ACTIVE CONTROL. Occupying the zone does not score by itself.
+> Only a successful `Wait` while alive on a zone tile exerts control. Move,
+> turn, scan, shoot, blocked actions, and faults exert none. The objective is
+> a signed shared pressure meter (`context.ControlPressure`, positive for
+> slot 0; limit in `ControlPressureLimit`): one sole active holder gains 1,
+> two holders freeze it, and no holder decays it one point toward zero every
+> two ticks. ±100 dominates. At MaxTicks, pressure sign → health → damage.
+> Collections are nullable across comparison arms: iterate
+> `context.HeardSounds ?? []` and `context.VisibleProjectiles ?? []`.
+> HeardSound exposes Kind/Bearing/Distance. VisibleProjectile exposes
+> Position, Direction, OwnerSlot, TilesPerAdvance, TicksUntilAdvance, and
+> RemainingTiles.
+
+> EXPERIMENTAL FAST BOLTS (bolt arms only). A new shot still appears on the
+> adjacent tile and does not travel farther that firing tick. It advances on
+> every following tick: one ordered tile in bolt1, two ordered tiles in
+> bolt2. Every intermediate tile checks walls, bots, and final range, so
+> speed-two never tunnels. `TicksUntilAdvance == 1` means movement happens
+> this tick after bot movement. Missing can deny a holder's Wait or force a
+> defensive action that earns no pressure.
+
 ## 2. Launch the challenger(s)
 
 Give each agent: a persona (one challenger: pick the archetype most relevant

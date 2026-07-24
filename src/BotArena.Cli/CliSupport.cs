@@ -61,4 +61,18 @@ public static class CliSupport
         }
         return options;
     }
+
+    public static void RejectUnknownOptions(
+        IReadOnlyDictionary<string, string> options,
+        params string[] allowed)
+    {
+        var allowedSet = allowed.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string[] unknown = options.Keys
+            .Where(key => !allowedSet.Contains(key))
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (unknown.Length > 0)
+            throw new InvalidOperationException(
+                $"Unknown option(s): {string.Join(", ", unknown.Select(key => $"--{key}"))}.");
+    }
 }

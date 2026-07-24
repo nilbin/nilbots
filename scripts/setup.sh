@@ -64,4 +64,5 @@ echo "Building web viewer..."
 echo
 echo "Setup complete."
 echo "WASM backend: $(dotnet run --project src/BotArena.Cli --no-build -- doctor | sed -n 's/^WASM build backend:     //p')"
+echo 'Bot CLI: export PATH="$PWD/scripts:$PATH"'
 echo "Try: bash scripts/play.sh --bot hunter --opponent coward --seed 7"

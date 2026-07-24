@@ -19,6 +19,8 @@ public static class SetCommand
     public static int Run(IReadOnlyList<string> args)
     {
         var options = CliSupport.ParseOptions(args);
+        CliSupport.RejectUnknownOptions(
+            options, "bot", "opponent", "runtime", "maps", "seeds", "rules", "max-ticks");
         string botSpec = options.GetValueOrDefault("bot", ".");
         string opponentSpec = options.TryGetValue("opponent", out string? opp)
             ? opp

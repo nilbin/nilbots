@@ -609,6 +609,30 @@ configuration) and changing them is a version bump, not an edit.
     The native in-process runtime remains the recommended strategy inner loop;
     WASM is the required verification/submission boundary.
 
+64. **Gen-8 revision-v4 verdict: HOLD official 0.5; bolt2 wins the
+    experimental speed comparison but misses the duration/elimination gate.**
+    Four isolated docs/CLI-only authors built an active holder, suppressor,
+    sound hunter, and mobile flanker, then received one loss-forensics
+    iteration. Their final WASM artifacts fought unchanged Bastille across
+    three paired seed profiles: 180 games per arm, 900 final games total.
+    Active control fixes the accounting problem, and projectiles finally
+    change the champion equilibrium: control leaves Bastille 61-0-11 and
+    active/no-bolt leaves it first at 50-7-15, while bolt2 puts ActiveHolder
+    first at 51-13-8 over Bastille 45-16-11 and Suppressor 31-35-6. Bolt2
+    also beats bolt1 across the combined 180-game speed sample: identical
+    15 draws, 97 vs 92 eliminations, median 71 vs 86.5, average 134.9 vs
+    139.1, and 291 vs 273 ranged hits. It is the retained flagship.
+    However, versus the matched control population, bolt2 lowers draws
+    11.7%→8.3% but also lowers elimination share 62.2%→53.9% and lengthens
+    median/average games 43.5/101.1→71/134.9; 24/180 reach MaxTicks and
+    most finish near zero pressure. The balance-harness gate requires draws
+    down, duration down, elimination share up, and diversity retained; two
+    of four fail. Therefore 0.4 remains official, no experiment champion is
+    crowned, and v4 stays reproducible behind its arm names. The next
+    experiment must isolate the near-zero-pressure late-game stalemate
+    rather than strengthen bolts, change cone/hearing, or merely lower the
+    control limit (which cannot resolve pressure already near zero).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
