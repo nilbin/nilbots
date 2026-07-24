@@ -50,6 +50,7 @@ export interface BotSummary {
   name: string;
   slug: string;
   accent: string;
+  lookId: string;
   owner: string;
   /** One entry per rules-version ladder the bot has fought on, newest first. */
   ratings: LadderRating[];
@@ -62,6 +63,7 @@ export interface MyBot {
   name: string;
   slug: string;
   accent: string;
+  lookId: string;
   latestVersion: { versionNumber: number; status: string; isActive: boolean } | null;
 }
 
@@ -70,6 +72,7 @@ export interface BotDetail {
   name: string;
   slug: string;
   accent: string;
+  lookId: string;
   owner: string;
   isOwner: boolean;
   versions: {
@@ -114,7 +117,7 @@ export interface MatchDetail extends MatchSummary {
 export interface Meta {
   engineVersion: string;
   gameRulesVersion: string;
-  maps: { id: string; width: number; height: number }[];
+  maps: { id: string; width: number; height: number; themeId?: string }[];
 }
 
 export interface SetGame {

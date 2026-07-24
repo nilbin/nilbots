@@ -3,6 +3,7 @@
   "entryType": "BOTNAME",
   "sdkVersion": "SDKVERSION",
   "appearance": {
-    "accent": "#22d3ee"
+    "accent": "#22d3ee",
+    "look": "vanguard"
   }
 }

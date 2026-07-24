@@ -230,7 +230,12 @@ public static class ServerCommands
         if (botId is null)
         {
             var created = client.PostAsJsonAsync("/api/bots",
-                new { name = project.Manifest.Name, accent = project.Accent }).GetAwaiter().GetResult();
+                new
+                {
+                    name = project.Manifest.Name,
+                    accent = project.Accent,
+                    lookId = project.LookId,
+                }).GetAwaiter().GetResult();
             if (!created.IsSuccessStatusCode)
             {
                 Console.Error.WriteLine($"Could not create bot: {created.Content.ReadAsStringAsync().Result}");
@@ -247,7 +252,12 @@ public static class ServerCommands
             content = File.ReadAllText(f),
         }).ToArray();
         var submitted = client.PostAsJsonAsync($"/api/bots/{botId}/versions",
-            new { entryType = project.Manifest.EntryType, files }).GetAwaiter().GetResult();
+            new
+            {
+                entryType = project.Manifest.EntryType,
+                files,
+                lookId = project.LookId,
+            }).GetAwaiter().GetResult();
         if (!submitted.IsSuccessStatusCode)
         {
             Console.Error.WriteLine($"Submission rejected: {submitted.Content.ReadAsStringAsync().Result}");

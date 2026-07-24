@@ -15,7 +15,11 @@ namespace BotArena.App.Bots;
 /// </summary>
 public static class ChampionSeeder
 {
-    private sealed record ChampionManifest(string Name, string EntryType, string? Accent);
+    private sealed record ChampionManifest(
+        string Name,
+        string EntryType,
+        string? Accent,
+        string? LookId);
 
     private static readonly JsonSerializerOptions ManifestJson = new(JsonSerializerDefaults.Web);
 
@@ -54,8 +58,13 @@ public static class ChampionSeeder
                     Name = manifest.Name,
                     Slug = slug,
                     Accent = manifest.Accent ?? "#f59e0b",
+                    LookId = manifest.LookId ?? "vanguard",
                 };
                 db.Bots.Add(bot);
+            }
+            else
+            {
+                bot.LookId = manifest.LookId ?? "vanguard";
             }
             if (!bot.Versions.Any(v => v.ArtifactHash == artifactHash))
             {

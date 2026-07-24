@@ -18,6 +18,9 @@ public sealed class ArenaMap
     public int Version { get; }
     public int Width { get; }
     public int Height { get; }
+    /// <summary>Presentation theme selected by the map package. It never affects
+    /// collision or simulation and is copied into the replay for immutable playback.</summary>
+    public string? ThemeId { get; }
     public IReadOnlyList<string> TileRows { get; }
     public IReadOnlyList<Spawn> Spawns { get; }
     /// <summary>Declared zone-control tiles (RULES-0.3-DESIGN §C); empty when the map
@@ -26,10 +29,17 @@ public sealed class ArenaMap
 
     private readonly bool[] _walls;
 
-    private ArenaMap(string id, int version, string[] tileRows, Spawn[] spawns, Position[]? zone = null)
+    private ArenaMap(
+        string id,
+        int version,
+        string[] tileRows,
+        Spawn[] spawns,
+        Position[]? zone = null,
+        string? themeId = null)
     {
         Id = id;
         Version = version;
+        ThemeId = themeId;
         TileRows = tileRows;
         Spawns = spawns;
         Zone = zone ?? [];
@@ -47,9 +57,15 @@ public sealed class ArenaMap
 
     public bool IsWall(Position position) => IsWall(position.X, position.Y);
 
-    public static ArenaMap Create(string id, string[] tileRows, Spawn[] spawns, int version = 1, Position[]? zone = null)
+    public static ArenaMap Create(
+        string id,
+        string[] tileRows,
+        Spawn[] spawns,
+        int version = 1,
+        Position[]? zone = null,
+        string? themeId = null)
     {
-        var map = new ArenaMap(id, version, tileRows, spawns, zone);
+        var map = new ArenaMap(id, version, tileRows, spawns, zone, themeId);
         map.Validate();
         return map;
     }
@@ -82,6 +98,8 @@ public sealed class ArenaMap
             errors.Add("Map tiles are required.");
         if (dto.Spawns is null || dto.Spawns.Length == 0)
             errors.Add("Map spawns are required.");
+        if (dto.Theme is not null && !IsPresentationId(dto.Theme))
+            errors.Add($"Invalid map theme '{dto.Theme}'.");
         if (errors.Count > 0)
             throw new MapValidationException(errors);
 
@@ -102,7 +120,7 @@ public sealed class ArenaMap
             throw new MapValidationException(errors);
 
         var zone = dto.Zone?.Select(pair => new Position(pair[0], pair[1])).ToArray();
-        var map = new ArenaMap(dto.Id!, dto.Version, dto.Tiles, spawns.ToArray(), zone);
+        var map = new ArenaMap(dto.Id!, dto.Version, dto.Tiles, spawns.ToArray(), zone, dto.Theme);
         map.Validate();
         return map;
     }
@@ -183,6 +201,7 @@ public sealed class ArenaMap
         [JsonPropertyName("version")] public int Version { get; set; } = 1;
         [JsonPropertyName("width")] public int Width { get; set; }
         [JsonPropertyName("height")] public int Height { get; set; }
+        [JsonPropertyName("theme")] public string? Theme { get; set; }
         [JsonPropertyName("tiles")] public string[]? Tiles { get; set; }
         [JsonPropertyName("spawns")] public SpawnDto[]? Spawns { get; set; }
         [JsonPropertyName("zone")] public int[][]? Zone { get; set; }
@@ -194,4 +213,10 @@ public sealed class ArenaMap
         [JsonPropertyName("y")] public int Y { get; set; }
         [JsonPropertyName("facing")] public string? Facing { get; set; }
     }
+
+    private static bool IsPresentationId(string value) =>
+        value.Length is > 0 and <= 64 &&
+        value[0] is >= 'a' and <= 'z' &&
+        value[^1] != '-' &&
+        value.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-');
 }

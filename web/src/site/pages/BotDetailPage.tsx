@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { botLook } from '../../render/arenaThemes';
 import { api, type BotDetail, type BotSummary, type Meta } from '../api';
 
 const STARTER_SOURCE = `using BotArena.Sdk;
@@ -49,13 +50,21 @@ export default function BotDetailPage() {
   }, [load]);
 
   if (!bot) return <p className="text-sm text-arena-dim">Loading…</p>;
+  const look = botLook(bot.lookId);
 
   return (
     <div className="flex flex-col gap-8">
       <header className="flex items-center gap-3">
-        <span className="inline-block size-4 rounded-full" style={{ background: bot.accent }} />
+        <span
+          className="flex size-12 items-center justify-center rounded-lg border border-arena-edge bg-arena-panel"
+          style={{ boxShadow: `inset 0 -2px 0 ${bot.accent}55` }}
+        >
+          <img src={look.imageUrl} alt="" className="size-11 object-contain" />
+        </span>
         <h1 className="text-2xl font-black tracking-wide">{bot.name}</h1>
-        <span className="text-sm text-arena-dim">by {bot.owner}</span>
+        <span className="text-sm text-arena-dim">
+          {look.label} · by {bot.owner}
+        </span>
       </header>
 
       <ChallengePanel bot={bot} />

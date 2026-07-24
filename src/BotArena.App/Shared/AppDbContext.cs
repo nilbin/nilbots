@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(b => b.Name).HasMaxLength(60);
             entity.Property(b => b.Slug).HasMaxLength(80);
             entity.Property(b => b.Accent).HasMaxLength(16);
+            entity.Property(b => b.LookId).HasMaxLength(64);
             entity.HasMany(b => b.Versions).WithOne().HasForeignKey(v => v.BotId);
             entity.HasMany(b => b.Ratings).WithOne().HasForeignKey(r => r.BotId);
             entity.HasOne<User>().WithMany().HasForeignKey(b => b.OwnerUserId);
@@ -74,6 +75,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<MatchParticipant>(entity =>
         {
             entity.HasIndex(p => new { p.MatchId, p.Slot }).IsUnique();
+            entity.Property(p => p.LookIdSnapshot).HasMaxLength(64);
         });
 
         modelBuilder.Entity<BackgroundJob>(entity =>

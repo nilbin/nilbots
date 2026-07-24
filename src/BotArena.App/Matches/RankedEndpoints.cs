@@ -142,7 +142,14 @@ public static class RankedEndpoints
                             : (Guid?)null,
                         Draw = visible && m.Status == MatchStatus.Completed && m.WinnerSlot is null,
                         Participants = m.Participants.OrderBy(p => p.Slot)
-                            .Select(p => new { p.Slot, p.BotId, p.NameSnapshot, p.AccentSnapshot }),
+                            .Select(p => new
+                            {
+                                p.Slot,
+                                p.BotId,
+                                p.NameSnapshot,
+                                p.AccentSnapshot,
+                                p.LookIdSnapshot,
+                            }),
                     };
                 }),
             });
@@ -192,6 +199,7 @@ public static class RankedEndpoints
         BotVersionId = version.Id,
         NameSnapshot = bot.Name,
         AccentSnapshot = bot.Accent,
+        LookIdSnapshot = bot.LookId,
         ArtifactHashSnapshot = version.ArtifactHash ?? "",
     };
 

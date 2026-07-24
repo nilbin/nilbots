@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { botLook } from '../../render/arenaThemes';
 import { api, type BotSummary } from '../api';
 
 export default function BotsPage() {
@@ -16,18 +17,20 @@ export default function BotsPage() {
         <p className="text-sm text-arena-dim">Loading…</p>
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {bots.map((bot) => (
-            <li key={bot.id}>
-              <Link
-                to={`/bots/${bot.id}`}
-                className="flex flex-col gap-1 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
-              >
-                <span className="flex items-center gap-2 font-semibold">
-                  <span className="inline-block size-3 rounded-full" style={{ background: bot.accent }} />
-                  {bot.name}
-                </span>
+          {bots.map((bot) => {
+            const look = botLook(bot.lookId);
+            return (
+              <li key={bot.id}>
+                <Link
+                  to={`/bots/${bot.id}`}
+                  className="flex flex-col gap-1 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
+                >
+                  <span className="flex items-center gap-2 font-semibold">
+                    <img src={look.imageUrl} alt="" className="size-8 object-contain" />
+                    {bot.name}
+                  </span>
                 <span className="text-xs text-arena-dim">
-                  by {bot.owner}
+                  {look.label} · by {bot.owner}
                   {bot.ratings
                     .filter((ladder) => ladder.rankedSets > 0)
                     .map((ladder) => (
@@ -42,9 +45,10 @@ export default function BotsPage() {
                     ? `v${bot.activeVersion.versionNumber} active · ${bot.activeVersion.artifactHash?.slice(0, 10)}…`
                     : 'no active version yet'}
                 </span>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

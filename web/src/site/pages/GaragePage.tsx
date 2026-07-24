@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { botLook, botLookOptions } from '../../render/arenaThemes';
 import { api, type MyBot } from '../api';
 import { useAuth } from '../auth';
 
@@ -19,11 +20,14 @@ function CliAccess() {
   );
 }
 
+const looks = botLookOptions();
+
 export default function GaragePage() {
   const { user, loading } = useAuth();
   const [bots, setBots] = useState<MyBot[] | null>(null);
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
+  const [lookId, setLookId] = useState('vanguard');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -41,7 +45,11 @@ export default function GaragePage() {
     event.preventDefault();
     setError(null);
     try {
-      const bot = await api.post<{ id: string }>('/api/bots', { name, accent });
+      const bot = await api.post<{ id: string }>('/api/bots', {
+        name,
+        accent,
+        lookId,
+      });
       navigate(`/bots/${bot.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create bot.');
@@ -60,22 +68,30 @@ export default function GaragePage() {
           </p>
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {bots.map((bot) => (
-              <li key={bot.id}>
-                <Link
-                  to={`/bots/${bot.id}`}
-                  className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
-                >
-                  <span className="inline-block size-3 rounded-full" style={{ background: bot.accent }} />
-                  <span className="font-semibold">{bot.name}</span>
-                  <span className="ml-auto font-mono text-[11px] text-arena-dim">
-                    {bot.latestVersion
-                      ? `v${bot.latestVersion.versionNumber} ${bot.latestVersion.status.toLowerCase()}`
-                      : 'no versions'}
-                  </span>
-                </Link>
-              </li>
-            ))}
+            {bots.map((bot) => {
+              const look = botLook(bot.lookId);
+              return (
+                <li key={bot.id}>
+                  <Link
+                    to={`/bots/${bot.id}`}
+                    className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
+                  >
+                    <img src={look.imageUrl} alt="" className="size-9 object-contain" />
+                    <span>
+                      <span className="block font-semibold">{bot.name}</span>
+                      <span className="block font-mono text-[10px] text-arena-dim">
+                        {look.label}
+                      </span>
+                    </span>
+                    <span className="ml-auto font-mono text-[11px] text-arena-dim">
+                      {bot.latestVersion
+                        ? `v${bot.latestVersion.versionNumber} ${bot.latestVersion.status.toLowerCase()}`
+                        : 'no versions'}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -106,6 +122,20 @@ export default function GaragePage() {
               className="h-8 w-14 cursor-pointer rounded border border-arena-edge bg-arena-bg"
             />
             <span className="font-mono">{accent}</span>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-arena-dim">
+            Chassis
+            <select
+              value={lookId}
+              onChange={(event) => setLookId(event.target.value)}
+              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
+            >
+              {looks.map((look) => (
+                <option key={look.id} value={look.id}>
+                  {look.label}
+                </option>
+              ))}
+            </select>
           </label>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button

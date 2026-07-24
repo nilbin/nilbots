@@ -1,0 +1,7 @@
+{
+  "id": "orbiter",
+  "label": "Orbiter",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#a855f7",
+  "scale": 1.2
+}

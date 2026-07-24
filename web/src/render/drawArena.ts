@@ -1,7 +1,7 @@
 import type { Direction, ProjectileHeading, ReplayDocument } from '../types';
 import {
-  arenaThemeForMap,
-  botLookForSlot,
+  arenaTheme,
+  botLook,
   presentationAccent,
 } from './arenaThemes';
 import { posesAt, type BotPose } from './interpolate';
@@ -64,13 +64,16 @@ export function drawArena(
   const fraction = Math.max(0, Math.min(time - tick, 1));
   const currentTick = replay.ticks[tick];
   const poses = posesAt(replay, time);
-  const theme = arenaThemeForMap(replay.header.mapId);
-  const accentFor = (slot: number): string =>
-    presentationAccent(
-      theme,
-      slot,
-      participants[slot]?.accent ?? '#38bdf8',
+  const theme = arenaTheme(replay.header.themeId);
+  const lookFor = (slot: number) =>
+    botLook(participants[slot]?.lookId, slot);
+  const accentFor = (slot: number): string => {
+    const participant = participants[slot];
+    return presentationAccent(
+      lookFor(slot),
+      participant?.accent ?? '#38bdf8',
     );
+  };
 
   // FOV mode: fog what the selected bot can't see, and ghost enemies it has no
   // sight of — the panel view answers "what did this bot know?", so an unseen
@@ -144,9 +147,9 @@ export function drawArena(
     const inset = tile * 0.23;
     const barHeight = Math.max(1.5, tile * 0.055);
     ctx.save();
-    ctx.shadowColor = '#38bdf8';
+    ctx.shadowColor = theme.palette.serviceLight;
     ctx.shadowBlur = Math.max(2, tile * 0.12);
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.78)';
+    ctx.fillStyle = hexWithAlpha(theme.palette.serviceLight, 0.78);
     ctx.fillRect(px(x) + inset, py(y) + tile - inset, tile - inset * 2, barHeight);
     ctx.restore();
   }
@@ -284,9 +287,9 @@ export function drawArena(
     const left = px(x) + (tile - width) / 2;
     const top = py(y) + tile * 0.2;
     ctx.save();
-    ctx.shadowColor = '#38bdf8';
+    ctx.shadowColor = theme.palette.serviceLight;
     ctx.shadowBlur = Math.max(3, tile * 0.16);
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
+    ctx.fillStyle = hexWithAlpha(theme.palette.serviceLight, 0.9);
     ctx.fillRect(left, top, width, height);
     ctx.restore();
   }
@@ -564,7 +567,7 @@ export function drawArena(
   function drawBot(pose: BotPose): void {
     const participant = participants[pose.slot];
     const accent = accentFor(pose.slot);
-    const look = botLookForSlot(theme, pose.slot);
+    const look = botLook(participant?.lookId, pose.slot);
     const cx = px(pose.x) + tile / 2;
     const hover = pose.status === 'Active'
       ? Math.sin((time + pose.slot * 0.31) * Math.PI * 2) * tile * 0.022

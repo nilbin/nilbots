@@ -42,14 +42,14 @@ The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 | --- | --- |
 | `replayVersion` | Format version (this document: 1) |
 | `engineVersion`, `gameRulesVersion`, `runtimeProtocolVersion`, `runtimeConfigurationVersion` | The version axes that pin gameplay |
-| `mapId`, `mapVersion`, `mapWidth`, `mapHeight` | Which arena |
+| `mapId`, `mapVersion`, `themeId`, `mapWidth`, `mapHeight` | Which arena and its map-owned presentation theme (`themeId` is omitted only for legacy/synthetic maps) |
 | `mapTiles` | Array of row strings, `#` = wall, `.` = floor — the viewer is self-contained |
 | `seed` | Match seed (unsigned 64-bit) |
 | `maxTicks`, `visionRange` | Rule values the viewer needs |
 | `zoneTiles` | `[x, y]` pairs of the zone (rules with zone control); omitted otherwise — pre-zone hashes are unaffected |
 | `controlPressureLimit` | Absolute shared-pressure domination limit (active-control rules only) |
 | `controlBySoleOccupancy` | `true` when one physical occupant gains and a contested/empty zone decays; omitted for successful-Wait control and historical hashes |
-| `participants[]` | `{ slot, name, runtimeKind, artifactHash, accent, spawnX, spawnY, spawnFacing }` |
+| `participants[]` | `{ slot, name, runtimeKind, artifactHash, accent, lookId, spawnX, spawnY, spawnFacing }`; `lookId` is bot-owned and omitted only for legacy replays |
 
 Facings are `North | East | South | West`.
 

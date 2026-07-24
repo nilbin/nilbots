@@ -1,9 +1,10 @@
 {
   "formatVersion": 1,
   "id": "causeway-01",
-  "version": 1,
+  "version": 2,
   "width": 18,
   "height": 10,
+  "theme": "overgrown-lab",
   "tiles": [
     "##################",
     "#................#",

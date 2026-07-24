@@ -37,7 +37,8 @@ public class ReplaySerializationTests
             "#.......#",
             "#########",
         ], [new Spawn(1, 2, Direction.East), new Spawn(7, 2, Direction.West)],
-            zone: [new Position(1, 2), new Position(2, 2), new Position(3, 2), new Position(4, 2)]);
+            zone: [new Position(1, 2), new Position(2, 2), new Position(3, 2), new Position(4, 2)],
+            themeId: "overgrown-lab");
         var rules = GameRules.V0_1 with
         {
             RulesVersion = "test-replay-active",
@@ -67,17 +68,22 @@ public class ReplaySerializationTests
                 {
                     Name = "a",
                     Runtime = new ScriptedRuntime(BotAction.Shoot, BotAction.Wait),
+                    LookId = "needle",
                 },
                 new MatchParticipantConfig
                 {
                     Name = "b",
                     Runtime = new ScriptedRuntime(BotAction.Wait, BotAction.Wait),
+                    LookId = "orbiter",
                 },
             ],
         });
 
         var document = ReplaySerializer.FromJson(ReplaySerializer.ToJson(run.Replay));
 
+        Assert.Equal("overgrown-lab", document.Header.ThemeId);
+        Assert.Equal("needle", document.Header.Participants[0].LookId);
+        Assert.Equal("orbiter", document.Header.Participants[1].LookId);
         Assert.Equal(10, document.Header.ControlPressureLimit);
         Assert.True(document.Header.ControlBySoleOccupancy);
         Assert.Equal(1, document.Header.ControlOvertimeStartTick);

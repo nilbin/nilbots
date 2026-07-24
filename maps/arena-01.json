@@ -1,9 +1,10 @@
 {
   "formatVersion": 1,
   "id": "arena-01",
-  "version": 3,
+  "version": 4,
   "width": 24,
   "height": 18,
+  "theme": "control-room",
   "tiles": [
     "########################",
     "#......................#",

@@ -53,8 +53,8 @@ public class Match
         (BroadcastStartedAt is null || EndTick is null || PresentationTick(utcNow) > EndTick.Value);
 }
 
-/// <summary>Snapshot of who fought (plan §33.4/§39): names, accents and artifact hashes are
-/// copied at challenge time so history never changes when bots evolve.</summary>
+/// <summary>Snapshot of who fought (plan §33.4/§39): names, presentation, and
+/// artifact hashes are copied at challenge time so history never changes when bots evolve.</summary>
 public class MatchParticipant
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -64,6 +64,7 @@ public class MatchParticipant
     public Guid BotVersionId { get; set; }
     public required string NameSnapshot { get; set; }
     public required string AccentSnapshot { get; set; }
+    public string LookIdSnapshot { get; set; } = "vanguard";
     public string ArtifactHashSnapshot { get; set; } = "";
     public string? Outcome { get; set; }
     public int? FinalHealth { get; set; }

@@ -19,6 +19,7 @@ public sealed record BotManifest
 public sealed record BotAppearance
 {
     [JsonPropertyName("accent")] public string? Accent { get; init; }
+    [JsonPropertyName("look")] public string? Look { get; init; }
 }
 
 /// <summary>Pinned toolchain identity. Every value participates in the build-cache key —
@@ -76,6 +77,17 @@ public sealed class BotProject
     public required IReadOnlyList<string> SourceFiles { get; init; }
 
     public string Accent => Manifest.Appearance?.Accent ?? "#22d3ee";
+    public string LookId
+    {
+        get
+        {
+            string value = Manifest.Appearance?.Look ?? "vanguard";
+            if (!IsPresentationId(value))
+                throw new InvalidOperationException(
+                    $"Invalid appearance.look '{value}' in botarena.json; use a lowercase kebab-case ID.");
+            return value;
+        }
+    }
 
     public static bool LooksLikeProject(string directory) =>
         File.Exists(Path.Combine(directory, "botarena.json"));
@@ -106,4 +118,10 @@ public sealed class BotProject
             SourceFiles.Select(f => new SourceFile(
                 Path.GetRelativePath(Directory, f), File.ReadAllText(f))).ToArray(),
             Manifest.EntryType);
+
+    private static bool IsPresentationId(string value) =>
+        value.Length is > 0 and <= 64 &&
+        value[0] is >= 'a' and <= 'z' &&
+        value[^1] != '-' &&
+        value.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-');
 }

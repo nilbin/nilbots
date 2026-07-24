@@ -1,9 +1,10 @@
 {
   "formatVersion": 1,
   "id": "crossfire-01",
-  "version": 2,
+  "version": 3,
   "width": 16,
   "height": 12,
+  "theme": "overgrown-lab",
   "tiles": [
     "################",
     "#....#....#....#",

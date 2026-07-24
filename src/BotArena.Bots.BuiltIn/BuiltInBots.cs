@@ -133,4 +133,13 @@ public static class BuiltInBotCatalog
         "coward" => "#a78bfa",
         _ => "#38bdf8",
     };
+
+    public static string Look(string name) => name.ToLowerInvariant() switch
+    {
+        "idle" => "orbiter",
+        "wander" => "needle",
+        "hunter" => "vanguard",
+        "coward" => "bulwark",
+        _ => "vanguard",
+    };
 }

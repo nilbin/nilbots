@@ -19,29 +19,46 @@ visibility, projectiles, or outcomes.
 - Presentation randomness is derived from stable map ID and cell coordinates.
   It must not flicker between frames or depend on `Math.random()`.
 
-The current replay header carries `mapId` but no presentation manifest, so
-`web/src/render/arenaThemes.ts` is the map-to-theme registry. All shipped maps
-currently bind to `control-room`. A future publishable-map package should carry
-an immutable theme manifest and asset hash; the renderer-facing contract should
-remain the same.
+Each `maps/*.json` document names its standalone presentation package:
+
+```json
+{
+  "id": "basic-01",
+  "version": 4,
+  "theme": "control-room"
+}
+```
+
+The engine copies that value to replay header `themeId`. The viewer resolves
+that ID against theme manifests; it never switches on `mapId`. Legacy maps and
+replays without the optional field fall back to `control-room`.
 
 ## File layout
 
 ```text
 web/src/assets/themes/control-room/
+  theme.json
   floor-metal.png
   wall-bulkhead.png
-  bot-vanguard.png
-  bot-bulwark.png
+
+web/src/assets/themes/overgrown-lab/
+  theme.json
+  floor-ceramic.png
+  wall-overgrown.png
+
+web/src/assets/bot-looks/<look-id>/
+  look.json
+  sprite.png
 
 web/src/render/
-  arenaThemes.ts     theme registry, palette, assets, and bot-look metadata
+  arenaThemes.ts     data loader and legacy fallbacks
   drawArena.ts       layered replay-driven rendering and effects
   interpolate.ts     authoritative state interpolation
 ```
 
-The generated image sources are project assets, not runtime dependencies. Vite
-inlines them into the self-contained replay viewer.
+Vite discovers both manifest families with `import.meta.glob` and inlines their
+assets into the self-contained replay viewer. Adding a valid package requires
+no TypeScript registry edit.
 
 ## Theme asset contract
 
@@ -53,28 +70,34 @@ inlines them into the self-contained replay viewer.
 - Large readable material features; avoid high-frequency noise that aliases at
   a 40–70 px tile.
 - No baked gameplay grid, props, text, logos, or deep shadows.
-- The renderer deterministically samples material patches, adds grid lines,
-  and may add flat service lights or vents.
+- The renderer maps the full image continuously across the arena. Adjacent
+  gameplay cells sample adjacent UV rectangles, so seams and channels cannot
+  become a shuffled collage.
+- Grid lines and sparse coordinate-stable service details are layered on top.
 
 ### Wall material
 
 - Opaque square PNG, currently 1024×1024.
 - Top-down armored material, visually heavier than the floor.
 - No surrounding floor or outer ornamental frame.
-- Must tolerate being cropped into many square wall cells.
+- Must read coherently as a continuous material field. Only regions selected by
+  `#` cells are visible, but neighboring wall cells share adjacent UVs.
 - The renderer computes open edges from neighbouring `#` cells and adds the
   directional bevel, shadow, outline, and occasional service light. The source
   image does not encode collision shape.
 
 ### Palette and registration
 
-Create an `ArenaTheme` entry in `arenaThemes.ts` with:
+Create `web/src/assets/themes/<theme-id>/theme.json` with:
 
 - Stable ID and player-facing label.
-- Floor and wall asset URLs.
+- Floor and wall filenames relative to the manifest.
 - Canvas, floor, wall, grid, frame, and objective-zone colors.
-- An ordered set of compatible bot looks.
-- An explicit map binding. Do not add a viewer preference switch.
+- A service-light color.
+
+Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
+version. The loader discovers the package automatically. Do not add a viewer
+preference switch.
 
 Check the theme on the smallest and largest shipped maps. Dense wall maps must
 still distinguish open floor, blocked cells, zone tiles, bots, and projectile
@@ -91,21 +114,34 @@ paths at a glance.
   are rendered separately so they remain consistent between looks.
 - Internal lighting may be baked into the chassis, but the silhouette and
   weapon direction must remain readable around 48 px.
-- Record a stable ID, label, presentation accent, and render scale in
-  `arenaThemes.ts`.
+- Record a stable ID, label, suggested accent, sprite filename, and render scale
+  in the look's standalone `look.json`.
+- A look belongs to the bot. Player projects set it in `botarena.json`:
 
-The starter vertical slice assigns the ordered looks by participant slot:
-Vanguard to slot 0 and Bulwark to slot 1. That guarantees both silhouettes are
-visible in every two-bot match. Player-selectable cosmetics should later add an
-immutable `lookId` to replay participant presentation metadata; do not infer a
-mutable account preference while replaying history.
+  ```json
+  {
+    "appearance": {
+      "accent": "#22d3ee",
+      "look": "needle"
+    }
+  }
+  ```
+
+  The CLI submits it as `lookId`; the server stores it on the bot and snapshots
+  it as `lookIdSnapshot` when a match is created. The engine then copies it to
+  replay participants. Historical playback therefore does not consult the
+  bot's current account record.
+
+Current looks are Vanguard, Bulwark, Needle, and Orbiter. Slot-based Vanguard /
+Bulwark selection exists only as a compatibility fallback for old replays that
+predate `lookId`.
 
 To create another look:
 
 1. Generate or draw the East-facing source against a removable flat background.
 2. Remove the background, downscale to 512×512 RGBA, and inspect for colored
    fringes and transparent corners.
-3. Register the look with a stable ID, accent, and scale.
+3. Add its `look.json`; no TypeScript edit is required.
 4. Test East, South, West, and North facings; movement, recoil, damage,
    destruction, fogging, and the telemetry thumbnail.
 5. Verify the sprite never obscures neighbouring cells or appears smaller than
@@ -133,8 +169,8 @@ live ticks to make an effect look better.
 
 ## Art-generation brief
 
-The Control Room sources were generated as separate production candidates,
-then normalized locally:
+The Control Room and Overgrown Lab sources were generated as separate
+production candidates, then normalized locally:
 
 - Dark graphite, gunmetal, midnight blue, restrained cyan.
 - Matte hard-surface materials with upper-left illumination.
@@ -142,6 +178,8 @@ then normalized locally:
 - No text, branding, people, horizon, perspective, or scene-level spotlight.
 - Bot sources used a flat magenta removal background, no shadows, and one
   centered East-facing chassis.
+- Overgrown Lab uses pale ceramic/composite slabs, restrained moss and water
+  channels, and root-wrapped lab bulkheads.
 
 Generate distinct assets separately rather than asking for one large atlas.
 Large generated atlases tend to drift in perspective and create mismatched
@@ -154,6 +192,7 @@ gameplay scale.
 2. A real replay exercises movement, turns, both bot looks, projectiles, hits,
    destruction, fog, and zone visuals.
 3. The viewer remains readable at desktop and phone widths.
-4. The replay hash and engine test results are unchanged by renderer-only work.
-5. The generated viewer is published through the private replay-highlights
-   workflow for product review.
+4. Replay theme/look IDs round-trip and are included in replay hashes for new
+   matches; legacy null fields remain omitted.
+5. Generate local review viewers first. Publish through the private
+   replay-highlights workflow only when the visual iteration is approved.

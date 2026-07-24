@@ -230,7 +230,7 @@ if (mode.RunsWeb)
             foreach (var file in Directory.EnumerateFiles(mapsDir, "*.json").Order())
             {
                 var map = ArenaMap.FromJson(File.ReadAllText(file));
-                maps.Add(new { map.Id, map.Width, map.Height });
+                maps.Add(new { map.Id, map.Width, map.Height, map.ThemeId });
             }
         }
         return Results.Ok(new

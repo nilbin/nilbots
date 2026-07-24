@@ -399,6 +399,7 @@ public sealed class JobWorker(
                         RuntimeKind = "wasm",
                         ArtifactHash = p.ArtifactHashSnapshot,
                         Accent = p.AccentSnapshot,
+                        LookId = p.LookIdSnapshot,
                     }).ToArray(),
                 });
 

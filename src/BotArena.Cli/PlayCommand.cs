@@ -135,6 +135,7 @@ public static class PlayCommand
     {
         public required string Name { get; init; }
         public required string Accent { get; init; }
+        public required string LookId { get; init; }
         public required IBotRuntime Runtime { get; init; }
         public required string ArtifactHash { get; init; }
         /// <summary>The runtime this participant actually runs under — can differ from the
@@ -149,6 +150,7 @@ public static class PlayCommand
             RuntimeKind = Kind,
             ArtifactHash = ArtifactHash,
             Accent = Accent,
+            LookId = LookId,
         };
 
         public void Dispose() => Runtime.Dispose();
@@ -183,6 +185,7 @@ public static class PlayCommand
                 {
                     Name = name,
                     Accent = "#22d3ee",
+                    LookId = "vanguard",
                     Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = Path.GetFullPath(spec) }),
                     ArtifactHash = BotBuilder.Sha256File(spec),
                     Kind = "wasm",
@@ -198,6 +201,7 @@ public static class PlayCommand
                     {
                         Name = project.Manifest.Name,
                         Accent = project.Accent,
+                        LookId = project.LookId,
                         Runtime = new InProcessBotRuntime(InProcessProject.LoadFactory(project, quiet)),
                         ArtifactHash = "",
                         Kind = "in-process",
@@ -211,6 +215,7 @@ public static class PlayCommand
                 {
                     Name = project.Manifest.Name,
                     Accent = project.Accent,
+                    LookId = project.LookId,
                     Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = built.WasmPath }),
                     ArtifactHash = built.ArtifactHash,
                     Kind = "wasm",
@@ -235,6 +240,7 @@ public static class PlayCommand
                     {
                         Name = name,
                         Accent = BuiltInBotCatalog.Accent(name),
+                        LookId = BuiltInBotCatalog.Look(name),
                         Runtime = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = artifact, BotName = name }),
                         ArtifactHash = BotBuilder.Sha256File(artifact),
                         Kind = "wasm",
@@ -249,6 +255,7 @@ public static class PlayCommand
                     {
                         Name = name,
                         Accent = BuiltInBotCatalog.Accent(name),
+                        LookId = BuiltInBotCatalog.Look(name),
                         Runtime = new InProcessBotRuntime(() => BuiltInBotCatalog.Create(name)),
                         ArtifactHash = "",
                         Kind = "in-process",

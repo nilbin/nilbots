@@ -34,6 +34,8 @@ export interface ReplayParticipant {
   runtimeKind: string;
   artifactHash: string;
   accent: string;
+  /** Bot-owned immutable chassis identity. Absent only in legacy replays. */
+  lookId?: string;
   spawnX: number;
   spawnY: number;
   spawnFacing: Direction;
@@ -57,6 +59,8 @@ export interface ReplayHeader {
   runtimeConfigurationVersion: string;
   mapId: string;
   mapVersion: number;
+  /** Theme copied from the map JSON. Absent only in legacy/synthetic replays. */
+  themeId?: string;
   mapWidth: number;
   mapHeight: number;
   mapTiles: string[];

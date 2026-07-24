@@ -10,8 +10,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Bots;
 
-public sealed record CreateBotRequest(string Name, string? Accent);
-public sealed record SubmitVersionRequest(string EntryType, List<SourceFileDto> Files);
+public sealed record CreateBotRequest(string Name, string? Accent, string? LookId = null);
+public sealed record SubmitVersionRequest(
+    string EntryType,
+    List<SourceFileDto> Files,
+    string? LookId = null);
 public sealed record SourceFileDto(string Name, string Content);
 
 public static class BotsEndpoints
@@ -29,6 +32,7 @@ public static class BotsEndpoints
                     b.Name,
                     b.Slug,
                     b.Accent,
+                    b.LookId,
                     b.CreatedAt,
                     // One rating per rules-version ladder (DECISIONS #54), newest first.
                     Ratings = b.Ratings
@@ -60,10 +64,20 @@ public static class BotsEndpoints
                             System.Text.RegularExpressions.Regex.IsMatch(a, "^#[0-9a-fA-F]{6}$")
                 ? a
                 : "#22d3ee";
-            var bot = new Bot { OwnerUserId = userId, Name = name, Slug = slug, Accent = accent };
+            string lookId = (request.LookId ?? "vanguard").Trim().ToLowerInvariant();
+            if (!IsPresentationId(lookId))
+                return Results.Problem("Bot look must be a lowercase kebab-case ID.", statusCode: 400);
+            var bot = new Bot
+            {
+                OwnerUserId = userId,
+                Name = name,
+                Slug = slug,
+                Accent = accent,
+                LookId = lookId,
+            };
             db.Bots.Add(bot);
             await db.SaveChangesAsync();
-            return Results.Ok(new { bot.Id, bot.Name, bot.Slug, bot.Accent });
+            return Results.Ok(new { bot.Id, bot.Name, bot.Slug, bot.Accent, bot.LookId });
         }).RequireAuthorization();
 
         group.MapGet("/{botId:guid}", async (Guid botId, ClaimsPrincipal principal, AppDbContext db) =>
@@ -80,6 +94,7 @@ public static class BotsEndpoints
                 bot.Name,
                 bot.Slug,
                 bot.Accent,
+                bot.LookId,
                 bot.CreatedAt,
                 Owner = owner,
                 IsOwner = isOwner,
@@ -177,7 +192,7 @@ public static class BotsEndpoints
                 HttpContext http,
                 CancellationToken cancellationToken) =>
         {
-            var bot = await db.Bots.AsNoTracking().SingleOrDefaultAsync(
+            var bot = await db.Bots.SingleOrDefaultAsync(
                 b => b.Id == botId,
                 cancellationToken);
             if (bot is null)
@@ -190,6 +205,9 @@ public static class BotsEndpoints
                 .Select(f => new SourceFile((f.Name ?? "").Trim(), f.Content ?? ""))
                 .ToArray();
             string entryType = request.EntryType?.Trim() ?? "";
+            string? lookId = request.LookId?.Trim().ToLowerInvariant();
+            if (lookId is not null && !IsPresentationId(lookId))
+                return Results.Problem("Bot look must be a lowercase kebab-case ID.", statusCode: 400);
             try
             {
                 // Fail fast on obviously invalid submissions; the job re-validates.
@@ -204,6 +222,8 @@ public static class BotsEndpoints
                 return Results.Problem(ex.Message, statusCode: 400);
             }
 
+            if (lookId is not null)
+                bot.LookId = lookId;
             CompilerSubmissionDecision decision = await submissions.EnqueueAsync(
                 bot.Id,
                 userId,
@@ -273,6 +293,7 @@ public static class BotsEndpoints
                     b.Name,
                     b.Slug,
                     b.Accent,
+                    b.LookId,
                     LatestVersion = b.Versions.OrderByDescending(v => v.VersionNumber)
                         .Select(v => new { v.VersionNumber, Status = v.Status.ToString(), v.IsActive })
                         .FirstOrDefault(),
@@ -298,4 +319,10 @@ public static class BotsEndpoints
 
     private static BuildReceipt? DeserializeReceipt(string? json) =>
         json is null ? null : JsonSerializer.Deserialize<BuildReceipt>(json);
+
+    private static bool IsPresentationId(string value) =>
+        value.Length is > 0 and <= 64 &&
+        value[0] is >= 'a' and <= 'z' &&
+        value[^1] != '-' &&
+        value.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-');
 }

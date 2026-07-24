@@ -11,6 +11,7 @@ public class MapTests
           "id": "basic-01",
           "width": 12,
           "height": 8,
+          "theme": "control-room",
           "tiles": [
             "############",
             "#..........#",
@@ -32,9 +33,33 @@ public class MapTests
         Assert.Equal("basic-01", map.Id);
         Assert.Equal(12, map.Width);
         Assert.Equal(8, map.Height);
+        Assert.Equal("control-room", map.ThemeId);
         Assert.True(map.IsWall(3, 2));
         Assert.False(map.IsWall(1, 1));
         Assert.Equal(2, map.Spawns.Count);
+    }
+
+    [Fact]
+    public void InvalidThemeId_Throws()
+    {
+        const string json = """
+        {
+          "formatVersion": 1,
+          "id": "bad-theme",
+          "width": 5,
+          "height": 3,
+          "theme": "../surprise",
+          "tiles": ["#####", "#...#", "#####"],
+          "spawns": [
+            { "x": 1, "y": 1, "facing": "East" },
+            { "x": 3, "y": 1, "facing": "West" }
+          ]
+        }
+        """;
+
+        var ex = Assert.Throws<MapValidationException>(() => ArenaMap.FromJson(json));
+
+        Assert.Contains(ex.Errors, error => error.Contains("Invalid map theme"));
     }
 
     [Fact]

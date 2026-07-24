@@ -1,9 +1,10 @@
 {
   "formatVersion": 1,
   "id": "gallery-01",
-  "version": 2,
+  "version": 3,
   "width": 20,
   "height": 12,
+  "theme": "overgrown-lab",
   "tiles": [
     "####################",
     "#..................#",

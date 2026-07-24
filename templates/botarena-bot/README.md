@@ -27,6 +27,10 @@ of a replay's identity, so in-process and WASM hashes differ by design.
 **Coordinates:** (0,0) is the top-left tile; x grows east, **y grows south**
 — so North is (0,−1) and South is (0,+1).
 
+Choose the bot's replay chassis with `appearance.look` in `botarena.json`
+(`vanguard`, `bulwark`, `needle`, or `orbiter`). The look belongs to the bot
+and is snapshotted into each match, so historical replays do not change later.
+
 Practicing for a rules experiment? Add `"rules": "<name>"` to `botarena.json`
 and every `play`/`set` defaults to that ruleset (an explicit `--rules` flag
 still wins) — no more losing a practice session to one dropped flag.

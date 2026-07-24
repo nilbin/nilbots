@@ -873,17 +873,17 @@ configuration) and changing them is a version bump, not an edit.
 78. **Maps own immutable presentation themes; the default world is the
     industrial Control Room, and replay viewers do not override it.** ASCII
     `#`/`.` rows remain the authoritative collision layer. A renderer-owned
-    theme package supplies floor and wall materials, map-stable cosmetic
-    variation, objective treatment, bot looks, and replay-driven effects.
-    Until publishable map packages carry a presentation manifest and asset
-    hash, the web theme registry binds every shipped map to `control-room`.
-    The first vertical slice includes two distinct East-authored top-down
-    chassis, Vanguard and Bulwark, assigned by participant slot so both appear
-    in every match. Movement, turning, recoil, projectiles, damage, and
-    destruction animate only from authoritative replay states/events. Future
-    player-selectable cosmetics require an immutable replay participant
-    `lookId`; mutable viewer/account preferences must never rewrite historical
-    playback.
+    standalone JSON theme package supplies floor and wall materials, palette,
+    map-stable cosmetic variation, and objective treatment. Each map JSON names
+    its theme and the engine snapshots that ID into the replay; the frontend
+    never maps map IDs or exposes a viewer skin switch. Bot looks are separate
+    JSON packages owned by bots through `botarena.json` / the bot record and
+    snapshotted into match participants and replays. The initial set is
+    Vanguard, Bulwark, Needle, and Orbiter; slot-based selection remains only
+    for old replays without a `lookId`. Movement, turning, recoil, projectiles,
+    damage, and destruction animate only from authoritative replay
+    states/events. Mutable viewer/account preferences must never rewrite
+    historical playback.
 
 ## Deferred decisions
 

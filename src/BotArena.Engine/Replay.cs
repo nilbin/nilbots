@@ -13,7 +13,8 @@ public sealed record ReplayParticipant(
     string Accent,
     int SpawnX,
     int SpawnY,
-    Direction SpawnFacing);
+    Direction SpawnFacing,
+    string? LookId = null);
 
 public sealed record ReplayHeader
 {
@@ -24,6 +25,9 @@ public sealed record ReplayHeader
     public required string RuntimeConfigurationVersion { get; init; }
     public required string MapId { get; init; }
     public required int MapVersion { get; init; }
+    /// <summary>Map-owned visual theme. Null only for legacy/synthetic maps; viewers
+    /// fall back to the default theme without changing simulation semantics.</summary>
+    public string? ThemeId { get; init; }
     public required int MapWidth { get; init; }
     public required int MapHeight { get; init; }
     /// <summary>Included so the viewer is self-contained; small for MVP-sized maps.</summary>

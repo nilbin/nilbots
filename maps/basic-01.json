@@ -1,9 +1,10 @@
 {
   "formatVersion": 1,
   "id": "basic-01",
-  "version": 3,
+  "version": 4,
   "width": 12,
   "height": 8,
+  "theme": "control-room",
   "tiles": [
     "############",
     "#..........#",

@@ -9,6 +9,9 @@ public sealed class MatchParticipantConfig
     public string RuntimeKind { get; init; } = "in-process";
     public string ArtifactHash { get; init; } = "";
     public string Accent { get; init; } = "#38bdf8";
+    /// <summary>Immutable presentation identity copied into the replay. It has no
+    /// simulation effect and belongs to the bot, not its match slot or map theme.</summary>
+    public string? LookId { get; init; }
 }
 
 public sealed class MatchConfiguration
@@ -199,6 +202,7 @@ public sealed class MatchEngine
             RuntimeConfigurationVersion = BotArenaVersions.RuntimeConfigurationVersion,
             MapId = map.Id,
             MapVersion = map.Version,
+            ThemeId = map.ThemeId,
             MapWidth = map.Width,
             MapHeight = map.Height,
             MapTiles = map.TileRows,
@@ -230,7 +234,7 @@ public sealed class MatchEngine
             Participants = configuration.Participants
                 .Select((p, slot) => new ReplayParticipant(
                     slot, p.Name, p.RuntimeKind, p.ArtifactHash, p.Accent,
-                    spawns[slot].X, spawns[slot].Y, spawns[slot].Facing))
+                    spawns[slot].X, spawns[slot].Y, spawns[slot].Facing, p.LookId))
                 .ToArray(),
         };
     }
