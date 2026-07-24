@@ -53,7 +53,8 @@ def main():
     champion_slugs = {d.name for d in (ROOT / "champions").iterdir() if (d / "bot.wasm").exists()}
     server_bots = call("GET", "/api/bots")
     champions = [(b["name"], b["id"]) for b in server_bots if b.get("slug") in champion_slugs]
-    names = {a["botId"]: a["botName"] for a in agents}
+    # Accept either key — agents have written "botName" or "name" across generations.
+    names = {a["botId"]: (a.get("botName") or a.get("name") or a["botId"][:8]) for a in agents}
     names.update({bot_id: name for name, bot_id in champions})
 
     sets = []
