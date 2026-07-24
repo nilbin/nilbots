@@ -1,6 +1,11 @@
 import clsx from 'clsx';
 import { useMemo } from 'react';
 import type { ReplayDocument } from '../types';
+import {
+  arenaThemeForMap,
+  botLookForSlot,
+  presentationAccent,
+} from '../render/arenaThemes';
 import { stateBefore } from '../render/interpolate';
 
 interface BotPanelProps {
@@ -22,6 +27,7 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
+  const theme = arenaThemeForMap(replay.header.mapId);
   const controlOvertime =
     replay.header.controlOvertimeStartTick !== undefined &&
     tickData.tick >= replay.header.controlOvertimeStartTick;
@@ -146,6 +152,12 @@ export default function BotPanel({
         const state = states.find((s) => s.slot === participant.slot)!;
         const botTick = tickData.bots.find((b) => b.slot === participant.slot);
         const selected = selectedSlot === participant.slot;
+        const look = botLookForSlot(theme, participant.slot);
+        const accent = presentationAccent(
+          theme,
+          participant.slot,
+          participant.accent,
+        );
         return (
           <button
             key={participant.slot}
@@ -159,14 +171,20 @@ export default function BotPanel({
             )}
           >
             <div className="flex items-center gap-2">
-              <span
-                className="inline-block size-3 rounded-full"
-                style={{ background: participant.accent }}
-                aria-hidden
-              />
-              <span className="font-semibold">{participant.name}</span>
-              <span className="font-mono text-[11px] text-arena-dim">
-                slot {participant.slot} · {participant.runtimeKind}
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-arena-bg/85">
+                {look.image && (
+                  <img
+                    src={look.image.src}
+                    alt={`${look.label} chassis`}
+                    className="size-9 object-contain"
+                  />
+                )}
+              </span>
+              <span>
+                <span className="block font-semibold">{participant.name}</span>
+                <span className="block font-mono text-[10px] text-arena-dim">
+                  {look.label} · slot {participant.slot} · {participant.runtimeKind}
+                </span>
               </span>
               <span
                 className={clsx('ml-auto font-mono text-[11px]', {
@@ -184,7 +202,8 @@ export default function BotPanel({
                 {Array.from({ length: 3 }, (_, i) => (
                   <span
                     key={i}
-                    className={i < state.health ? 'text-arena-accent' : 'text-arena-edge'}
+                    style={{ color: i < state.health ? accent : undefined }}
+                    className={i < state.health ? '' : 'text-arena-edge'}
                   >
                     ♥
                   </span>

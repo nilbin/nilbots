@@ -870,6 +870,21 @@ configuration) and changing them is a version bump, not an edit.
     external S3-compatible objects remain measured scaling/defense-in-depth
     promotions, not prerequisites.
 
+78. **Maps own immutable presentation themes; the default world is the
+    industrial Control Room, and replay viewers do not override it.** ASCII
+    `#`/`.` rows remain the authoritative collision layer. A renderer-owned
+    theme package supplies floor and wall materials, map-stable cosmetic
+    variation, objective treatment, bot looks, and replay-driven effects.
+    Until publishable map packages carry a presentation manifest and asset
+    hash, the web theme registry binds every shipped map to `control-room`.
+    The first vertical slice includes two distinct East-authored top-down
+    chassis, Vanguard and Bulwark, assigned by participant slot so both appear
+    in every match. Movement, turning, recoil, projectiles, damage, and
+    destruction animate only from authoritative replay states/events. Future
+    player-selectable cosmetics require an immutable replay participant
+    `lookId`; mutable viewer/account preferences must never rewrite historical
+    playback.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
