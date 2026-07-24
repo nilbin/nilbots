@@ -236,6 +236,30 @@ public class SpawnVariationTests
     }
 
     [Fact]
+    public void RedesignArms_ShareSpawnsAndBotStreams_ForTheSameMapAndSeed()
+    {
+        var arms = new[]
+            {
+                "control", "cone-control", "cone-active",
+                "cone-active-bolt1", "cone-active-bolt2",
+            }
+            .Select(GameRules.Resolve)
+            .ToList();
+        foreach (var map in ShippedMaps())
+            for (ulong seed = 0; seed < 25; seed++)
+            {
+                var expected = SpawnVariation.Resolve(map, arms[0], seed);
+                foreach (var arm in arms.Skip(1))
+                    Assert.Equal(expected, SpawnVariation.Resolve(map, arm, seed));
+            }
+        foreach (var arm in arms)
+            for (int slot = 0; slot < 2; slot++)
+                Assert.Equal(
+                    SeedDerivation.DeriveBotSeed(0xBEEF, slot, arms[0].SeedProfile ?? arms[0].RulesVersion),
+                    SeedDerivation.DeriveBotSeed(0xBEEF, slot, arm.SeedProfile ?? arm.RulesVersion));
+    }
+
+    [Fact]
     public void LaneSafetyOff_LeavesV0_2StreamsUnchanged()
     {
         // 0.2 spawn derivation must stay bit-identical when the 0.3 flag is off.

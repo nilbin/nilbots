@@ -333,3 +333,113 @@ flaw and two cleanup items, all fixed in revision v3 (DECISIONS #60):
    muzzle, not the impact). Omnidirectional rules keep the legacy
    any-reference rule bit-identically — there the shooter would be
    visible at those ranges anyway, and 0.4 must not change.
+
+## J. Gen-7 redesign — active control + fast bolts (revision v4)
+
+Gen-7 validated cone vision and redacted hearing, but rejected the
+anti-camping thesis of slow bolts. Bastille's unchanged diagonal mirror
+remained self-sufficient: a bolt forced movement, but movement did not
+cost zone progress. The correction changes the defender's reward loop
+before adding more weapon power (DECISIONS #61-#62).
+
+### Active holding
+
+Under `ActiveZoneControl`, a bot exerts control only when all are true:
+
+- it is active after damage resolves;
+- it ends the tick on a zone tile;
+- its validated action is `Wait`;
+- the action result is `Success`.
+
+Move, turn, shoot, blocked/inert actions, and faults do not hold. A
+cooldown Shoot that validates to Wait still has `OnCooldown`, so it does
+not accidentally count. This makes suppression economically useful:
+forcing a dodge stops control even when the bolt misses.
+
+Passive per-bot `ZoneTicks` are replaced by one signed meter:
+
+- slot 0 is the positive side; slot 1 is negative;
+- one active holder moves pressure by 1 toward its side;
+- two active holders contest and freeze pressure;
+- no active holder decays non-zero pressure one point toward zero every
+  `ControlPressureDecayInterval` ticks;
+- `±ControlPressureLimit` wins by Domination;
+- at MaxTicks, pressure sign wins, then health, then damage, then draw.
+
+The v4 experiment uses limit 100, gain 1, and decay every 2 ticks.
+These are tuning values, not a ship verdict. Observations expose
+`ControlPressure` and `ControlPressureLimit`; legacy `MyZoneTicks` /
+`EnemyZoneTicks` are null in active arms. Replays carry the pressure per
+tick and at the result.
+
+### Fast ordered projectiles
+
+`ProjectileTilesPerAdvance` is now independent of
+`ProjectileTicksPerTile`. The v4 candidates advance every tick and test
+one versus two ordered tile substeps. For each substep the engine:
+
+1. checks the next tile for a wall;
+2. enters the tile and spends one range tile;
+3. hits the first active non-owner occupant;
+4. checks final-range despawn.
+
+Resolution stops on the first wall, victim, or final-range tile. A
+speed-two bolt therefore cannot tunnel through an intermediate wall,
+bot, or its last legal tile. New shots still spawn only on the adjacent
+tile during their firing tick; their first multi-tile advance is the
+following tick. Point-blank hits stay immediate and damage remains
+simultaneous.
+
+Projectile observations now carry:
+
+```
+Position, Direction, OwnerSlot,
+TilesPerAdvance, TicksUntilAdvance, RemainingTiles
+```
+
+The replay additionally records each projectile's ordered traversal for
+the tick. The viewer interpolates across that path: A→B in the first
+half and B→C in the second. A first-substep hit ends at B; a
+second-substep hit ends at C. Simulation remains discrete and
+deterministic.
+
+### Revision-v4 experiment arms
+
+Every arm shares seed profile `0.5-redesign-shared`, so map, spawn,
+facings, and per-bot random streams are paired.
+
+| arm | version | delta from matched 0.4 foundation |
+| --- | --- | --- |
+| `control` | `0.5-exp-control-v4` | passive zone scoring, no cone |
+| `cone-control` | `0.5-exp-cone-control-v4` | cone + hearing, passive scoring |
+| `cone-active` | `0.5-exp-cone-active-v4` | cone + hearing + active pressure |
+| `cone-active-bolt1` | `0.5-exp-cone-active-bolt1-v4` | active pressure + 1 tile/tick |
+| `cone-active-bolt2` | `0.5-exp-cone-active-bolt2-v4` | active pressure + 2 tiles/tick |
+
+The primary causal comparisons are `cone-control` vs `cone-active`,
+then the three active arms. Trails, residue, strafe, spread, and
+undodgeable attacks remain out so the scoring redesign and speed change
+can be measured independently.
+
+### Geometry and gates
+
+Ranked zones must be connected, contain at least four tiles, have both
+horizontal and vertical local movement, expose at least two approach
+directions, and have surrounding attack space. The five ranked maps now
+use connected 3×3 or 3×2 regions. `causeway-01` keeps its narrow 2×2
+zone as an adversarial map but leaves the ranked pool.
+
+Before a ship decision, scripted tests must prove:
+
+- moving mirrors and turning scanners earn no pressure;
+- a successful stationary Wait does;
+- suppression creates the hit-versus-control choice;
+- abandoned pressure decays instead of banking forever;
+- speed-two bolts hit intermediate targets and never tunnel;
+- MaxTicks resolves pressure, then health, then damage;
+- old rules 0.1–0.4 remain behavior- and replay-compatible.
+
+The aware tournament must still show that unchanged Bastille is no
+longer self-sufficient, at least two doctrines remain viable, ranged
+hits occur beyond point blank, match duration stays acceptable, and
+projectiles add measurable value beyond active control alone.

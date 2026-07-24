@@ -61,7 +61,8 @@ public static class BotBuilder
         string repoRoot = RepoPaths.ToolchainRoot();
         Directory.CreateDirectory(cacheDir);
         string toolchainLibs = EnsureToolchainAssemblies(repoRoot);
-        bool isolated = BuildIsolation.Available;
+        bool docker = !WasmBuildPlatform.NativeToolchainAvailable;
+        bool isolated = !docker && BuildIsolation.Available;
         string workspace = isolated
             ? Path.Combine(BuildIsolation.WorkRoot, cacheKey[..24])
             : Path.Combine(cacheDir, "build");
@@ -114,9 +115,12 @@ public static class BotBuilder
 
         string buildLogPath = Path.Combine(cacheDir, "build.log");
         if (!quiet)
-            Console.WriteLine($"Compiling {displayName} to WASM (cold cache{(isolated ? ", isolated" : "")}, " +
+            Console.WriteLine($"Compiling {displayName} to WASM (cold cache, " +
+                              $"{(docker ? "Docker linux/amd64" : isolated ? "native isolated" : "native")}, " +
                               $"~10 s idle / longer under load — tail {buildLogPath})...");
-        var startInfo = isolated
+        var startInfo = docker
+            ? WasmBuildPlatform.DockerPublish(repoRoot, workspace, "-c", "Release", "-v", "q")
+            : isolated
             ? BuildIsolation.WrapPublish(workspace)
             : new ProcessStartInfo("dotnet", "publish -c Release -v q")
             {
@@ -124,7 +128,8 @@ public static class BotBuilder
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
-        startInfo.Environment["WASI_SDK_PATH"] = ToolchainInfo.ResolveWasiSdkPath();
+        if (!docker)
+            startInfo.Environment["WASI_SDK_PATH"] = ToolchainInfo.ResolveWasiSdkPath();
         if (isolated)
             BuildIsolation.GrantWorkspace(workspace);
 
@@ -283,6 +288,7 @@ public static class BotBuilder
             ToolchainInfo.SdkVersion,
             ToolchainInfo.IlcLlvmVersion,
             ToolchainInfo.GuestAdapterVersion,
+            ToolchainInfo.BuildPipelineVersion,
             BotArenaVersions.RuntimeProtocolVersion,
             BotArenaVersions.RuntimeConfigurationVersion)));
         Add("entry", Encoding.UTF8.GetBytes(entryType));

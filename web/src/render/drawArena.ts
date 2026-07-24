@@ -1,5 +1,19 @@
-import type { ReplayDocument } from '../types';
+import type { Direction, ReplayDocument } from '../types';
 import { posesAt, type BotPose } from './interpolate';
+
+const directionStep: Record<Direction, [number, number]> = {
+  North: [0, -1],
+  East: [1, 0],
+  South: [0, 1],
+  West: [-1, 0],
+};
+
+const directionAngle: Record<Direction, number> = {
+  North: -Math.PI / 2,
+  East: 0,
+  South: Math.PI / 2,
+  West: Math.PI,
+};
 
 export interface DrawOptions {
   time: number;
@@ -155,35 +169,68 @@ export function drawArena(
   }
 
   function drawProjectiles(): void {
-    // Bolts in flight (projectile rules): a glowing dart in the owner's accent with a
-    // short trail against its travel direction. Drawn at tick positions — the engine's
-    // discrete truth — with a soft pulse so slow bolts read as live threats.
-    const bolts = currentTick.projectiles;
-    if (!bolts || bolts.length === 0) return;
+    // Replay traversals are authoritative ordered substeps. Interpolating across the
+    // path makes speed-two travel read A→B in the first half of the visual tick and
+    // B→C in the second; a first-substep hit naturally ends at B.
+    const traversals = currentTick.projectileTraversals ?? [];
+    const bolts = currentTick.projectiles ?? [];
+    if (bolts.length === 0 && traversals.length === 0) return;
     // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
     // (an unseen bolt is precisely the threat it doesn't know about).
     const seen =
       fogSource !== undefined
         ? new Set(fogSource.visibleTiles.map(([x, y]) => `${x},${y}`))
         : null;
-    for (const bolt of bolts) {
-      if (seen !== null && !seen.has(`${bolt.x},${bolt.y}`)) continue;
-      const accent = participants[bolt.ownerSlot]?.accent ?? '#38bdf8';
-      const cx = px(bolt.x) + tile / 2;
-      const cy = py(bolt.y) + tile / 2;
-      const angle = { North: -Math.PI / 2, East: 0, South: Math.PI / 2, West: Math.PI }[
-        bolt.direction
-      ];
+    const movingIds = new Set(traversals.map((move) => move.id));
+
+    for (const move of traversals) {
+      if (move.path.length === 0) continue;
+      const points = [[move.fromX, move.fromY], ...move.path];
+      const progress = fraction * move.path.length;
+      const segment = Math.min(Math.floor(progress), move.path.length - 1);
+      const local = Math.min(1, progress - segment);
+      const [fromX, fromY] = points[segment];
+      const [toX, toY] = points[segment + 1];
+      drawBolt(
+        fromX + (toX - fromX) * local,
+        fromY + (toY - fromY) * local,
+        move.direction,
+        move.ownerSlot,
+        false,
+        1,
+      );
+    }
+    for (const bolt of bolts)
+      if (!movingIds.has(bolt.id ?? 0))
+        drawBolt(
+          bolt.x,
+          bolt.y,
+          bolt.direction,
+          bolt.ownerSlot,
+          bolt.ticksUntilAdvance === 1,
+          bolt.tilesPerAdvance ?? 1,
+        );
+
+    function drawBolt(
+      x: number,
+      y: number,
+      direction: keyof typeof directionStep,
+      ownerSlot: number,
+      imminent: boolean,
+      tilesPerAdvance: number,
+    ): void {
+      if (seen !== null && !seen.has(`${Math.round(x)},${Math.round(y)}`)) return;
+      const accent = participants[ownerSlot]?.accent ?? '#38bdf8';
+      const cx = px(x) + tile / 2;
+      const cy = py(y) + tile / 2;
+      const angle = directionAngle[direction];
       const pulse = 0.75 + 0.25 * Math.sin(fraction * Math.PI);
-      // Telegraph from replay data (never re-derived): a bolt about to advance next
-      // tick glows hot and shows a heading tick on its next tile.
-      const imminent = bolt.ticksUntilAdvance === 1;
       if (imminent) {
-        const step = { North: [0, -1], East: [1, 0], South: [0, 1], West: [-1, 0] }[
-          bolt.direction
-        ];
-        ctx.fillStyle = hexWithAlpha(accent, 0.18);
-        ctx.fillRect(px(bolt.x + step[0]), py(bolt.y + step[1]), tile, tile);
+        const [dx, dy] = directionStep[direction];
+        for (let step = 1; step <= tilesPerAdvance; step++) {
+          ctx.fillStyle = hexWithAlpha(accent, step === 1 ? 0.18 : 0.1);
+          ctx.fillRect(px(x + dx * step), py(y + dy * step), tile, tile);
+        }
       }
       ctx.save();
       ctx.translate(cx, cy);

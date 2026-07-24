@@ -7,7 +7,11 @@ node_modules/
 web/dist/
 out/
 *.binlog
-artifacts/
+artifacts/*
+!artifacts/wasm/
+artifacts/wasm/*
+!artifacts/wasm/builtin-bots.wasm
+!artifacts/wasm/builtin-bots.inputs
 out/
 sandbox/
 var/

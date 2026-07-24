@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.vs
+.claude
+**/bin
+**/obj
+**/node_modules
+web/dist
+artifacts
+out
+sandbox
+var
+*.binlog

@@ -9,11 +9,12 @@ the plan left choices open (cite/extend it when making new ones).
 
 ## Environment bootstrap
 
-Fresh containers have **no .NET SDK** and cannot download from GitHub releases
-(network policy). Everything is scripted:
+Fresh environments are scripted. Linux x64 uses NativeAOT-LLVM natively when
+wasi-sdk is installed; macOS/Apple Silicon and Linux arm64 automatically use
+the focused cached linux/amd64 Docker builder:
 
 ```bash
-bash scripts/setup.sh          # .NET 10, synthetic wasi-sdk, npm deps, all builds
+bash scripts/setup.sh          # platform-aware .NET/WASM/web bootstrap
 service postgresql start       # required by BotArena.App only
 ```
 
@@ -21,10 +22,14 @@ If the `botarena` DB role is missing (first boot):
 `su postgres -c "psql -c \"CREATE ROLE botarena LOGIN PASSWORD 'botarena';\"" && su postgres -c "createdb -O botarena botarena"`.
 
 The C#→WASM toolchain is NativeAOT-LLVM from the `dotnet-experimental` NuGet
-feed (`nuget.config`), pinned in `ToolchainInfo`. The official wasi-sdk is
-unreachable here, so `scripts/setup-wasi-sdk.sh` synthesizes one at
-`/opt/botarena/wasi-sdk-29.0` from Ubuntu clang-18 packages (fake
-`wasm-component-ld` strips WASI-p2 componentization → we ship p1 core modules).
+feed (`nuget.config`), pinned in `ToolchainInfo`. Its compiler host package is
+Linux x64 only. `scripts/run-wasm-publish.sh` is the platform boundary; do not
+invent per-project platform conditions. On Ubuntu,
+`scripts/setup-wasi-sdk.sh` synthesizes wasi-sdk at
+`/opt/botarena/wasi-sdk-29.0`. Other hosts use
+`docker/wasm-builder.Dockerfile`. The `wasm-component-ld` shim strips WASI-p2
+componentization so we ship p1 core modules. Full details and troubleshooting:
+`docs/WASM-DEVELOPMENT.md`.
 
 ## Commands
 
@@ -32,7 +37,7 @@ unreachable here, so `scripts/setup-wasi-sdk.sh` synthesizes one at
 dotnet build BotArena.sln                  # all managed code
 bash scripts/test.sh                       # all test suites (builds WASM guest first)
 dotnet test tests/BotArena.Engine.Tests --filter "FullyQualifiedName~MovementTests"
-bash scripts/build-wasm-guest.sh           # rebuild artifacts/wasm/builtin-bots.wasm
+bash scripts/build-wasm-guest.sh           # cross-platform, input-stamped guest build
 (cd web && npm run build)                  # SPA → web/dist/index.html (single file)
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
@@ -137,8 +142,11 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 
 - WASM contract tests run against `artifacts/wasm/builtin-bots.wasm` — rebuild
   it (`scripts/build-wasm-guest.sh`) after touching Sdk/Guest/Bots.BuiltIn/
-  WasmGuest, or the tests exercise a stale artifact (they *skip* if it is
-  missing entirely).
+  WasmGuest. `scripts/test.sh` calls the input-stamped build unconditionally,
+  preventing a stale tracked artifact.
+- The NativeAOT compiler executable is Linux x64 only. On macOS/arm64, let
+  `run-wasm-publish.sh` use Docker. The portable part is the emitted WASI
+  module, not the compiler process.
 - The build cache hashes **player sources only**; framework changes need a
   `Toolchain.GuestAdapterVersion` bump (or `--no-cache` while iterating).
 - `BOTARENA_BUILD_ISOLATION=off` forces submission builds to run as the

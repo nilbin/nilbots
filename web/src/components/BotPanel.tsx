@@ -22,6 +22,8 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
+  const controlLimit = replay.header.controlPressureLimit;
+  const controlPressure = tickData.controlPressure ?? 0;
   // Zone scores: hardened replays carry the engine's cumulative tally per tick
   // (state.zoneTicks) — read it, never re-derive. Legacy replays (pre-tally) fall
   // back to re-deriving both accrual modes and keeping the one whose totals match
@@ -30,6 +32,8 @@ export default function BotPanel({
     const tiles = replay.header.zoneTiles;
     if (!tiles) return null;
     const onZone = new Set(tiles.map(([x, y]) => `${x},${y}`));
+    if (replay.header.controlPressureLimit !== undefined)
+      return { onZone, cumulative: null };
     if (replay.ticks.some((t) => t.state.some((s) => s.zoneTicks !== undefined))) {
       const cumulative = replay.ticks.map((t) =>
         Object.fromEntries(t.state.map((s) => [s.slot, s.zoneTicks ?? 0])),
@@ -57,6 +61,30 @@ export default function BotPanel({
 
   return (
     <div className="flex flex-col gap-3">
+      {controlLimit !== undefined && (
+        <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
+          <div className="flex justify-between font-mono text-[11px] text-arena-dim">
+            <span>{replay.header.participants[0]?.name ?? 'slot 0'}</span>
+            <span>
+              CONTROL {controlPressure > 0 ? '+' : ''}
+              {controlPressure} / ±{controlLimit}
+            </span>
+            <span>{replay.header.participants[1]?.name ?? 'slot 1'}</span>
+          </div>
+          <div className="relative mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
+            <div className="absolute inset-y-0 left-1/2 w-px bg-arena-dim" />
+            <div
+              className="absolute top-0 h-full w-1 rounded bg-yellow-400 transition-[left]"
+              style={{
+                left: `${Math.max(
+                  0,
+                  Math.min(100, 50 + (50 * controlPressure) / Math.max(1, controlLimit)),
+                )}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
       {replay.header.participants.map((participant) => {
         const state = states.find((s) => s.slot === participant.slot)!;
         const botTick = tickData.bots.find((b) => b.slot === participant.slot);
@@ -116,17 +144,35 @@ export default function BotPanel({
               {zone && (
                 <span
                   className={clsx(
-                    zone.onZone.has(`${state.x},${state.y}`) && state.status === 'Active'
+                    zone.onZone.has(`${state.x},${state.y}`) &&
+                      state.status === 'Active' &&
+                      (controlLimit === undefined ||
+                        (botTick?.validatedAction === 'Wait' && botTick.result === 'Success'))
                       ? 'text-yellow-400'
                       : 'text-arena-dim',
                   )}
-                  aria-label="Zone ticks"
-                  title="Zone ticks (gold = on the zone now)"
+                  aria-label={controlLimit === undefined ? 'Zone ticks' : 'Active zone hold'}
+                  title={
+                    controlLimit === undefined
+                      ? 'Zone ticks (gold = on the zone now)'
+                      : 'Gold = successfully waiting on a zone tile this tick'
+                  }
                 >
                   ⬢{' '}
-                  <span className="text-arena-text">
-                    {zone.cumulative[Math.min(tick, replay.ticks.length - 1)][participant.slot] ?? 0}
-                  </span>
+                  {zone.cumulative !== null && (
+                    <span className="text-arena-text">
+                      {zone.cumulative[Math.min(tick, replay.ticks.length - 1)][participant.slot] ?? 0}
+                    </span>
+                  )}
+                  {zone.cumulative === null && (
+                    <span className="text-arena-text">
+                      {botTick?.validatedAction === 'Wait' &&
+                      botTick.result === 'Success' &&
+                      zone.onZone.has(`${state.x},${state.y}`)
+                        ? 'HOLD'
+                        : 'idle'}
+                    </span>
+                  )}
                 </span>
               )}
               {botTick && (

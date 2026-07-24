@@ -115,6 +115,12 @@ export default function Viewer({
                       .join(' · ')}
                   </p>
                 )}
+                {result.controlPressure !== undefined && (
+                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                    final control {result.controlPressure > 0 ? '+' : ''}
+                    {result.controlPressure} / ±{header.controlPressureLimit}
+                  </p>
+                )}
                 <button
                   onClick={playback.restart}
                   className="mt-4 rounded-md border border-arena-accent px-4 py-1.5 font-mono text-sm text-arena-accent transition-colors hover:bg-arena-accent/15"

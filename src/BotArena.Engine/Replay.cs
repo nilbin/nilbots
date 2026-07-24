@@ -38,6 +38,9 @@ public sealed record ReplayHeader
     /// <summary>[x,y] pairs; null (omitted) under rules without zone control, so
     /// pre-0.3 replay hashes are unaffected. The viewer highlights these tiles.</summary>
     public IReadOnlyList<int[]>? ZoneTiles { get; init; }
+    /// <summary>Absolute domination limit for the shared active-control meter; null
+    /// under passive zone scoring.</summary>
+    public int? ControlPressureLimit { get; init; }
     public required IReadOnlyList<ReplayParticipant> Participants { get; init; }
 }
 
@@ -73,7 +76,15 @@ public sealed record ReplayBotState(
 /// pre-hardening bolt replays still deserialize.</summary>
 public sealed record ReplayProjectile(
     int X, int Y, Direction Direction, int OwnerSlot,
-    int TicksUntilAdvance = 0, int RemainingTiles = 0);
+    int TicksUntilAdvance = 0, int RemainingTiles = 0,
+    int TilesPerAdvance = 1, int Id = 0);
+
+/// <summary>Authoritative ordered path traversed by one projectile during this
+/// visual tick. Path contains each entered tile in order, including the tile where
+/// a first- or second-substep hit occurred. This lets presentation interpolate a
+/// speed-two bolt through both tiles without changing discrete simulation.</summary>
+public sealed record ReplayProjectileTraversal(
+    int Id, int OwnerSlot, Direction Direction, int FromX, int FromY, IReadOnlyList<int[]> Path);
 
 /// <summary>A redacted heard sound (see <see cref="Hearing"/>): bearing is the 8-way
 /// octant 0=N..7=NW, distance the band 0=Near/1=Medium/2=Far.</summary>
@@ -87,6 +98,12 @@ public sealed record ReplayTick
     public required IReadOnlyList<ReplayBotState> State { get; init; }
     /// <summary>Bolts in flight after this tick resolved; null under instant-shot rules.</summary>
     public IReadOnlyList<ReplayProjectile>? Projectiles { get; init; }
+    /// <summary>Ordered projectile paths taken during this tick; null under
+    /// instant-shot rules.</summary>
+    public IReadOnlyList<ReplayProjectileTraversal>? ProjectileTraversals { get; init; }
+    /// <summary>Signed shared objective pressure after this tick; null under passive
+    /// zone scoring.</summary>
+    public int? ControlPressure { get; init; }
 }
 
 public sealed record Replay

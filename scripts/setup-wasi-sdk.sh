@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Builds a synthetic wasi-sdk-29.0 at ~/.wasi-sdk/wasi-sdk-29.0 from Ubuntu packages.
+# Builds a synthetic wasi-sdk-29.0 at /opt/botarena/wasi-sdk-29.0 from
+# Ubuntu 24.04 packages, plus a compatibility symlink under the invoking home.
 #
 # Why: the official wasi-sdk ships via GitHub releases, which some sandboxed
 # environments (like Claude Code remote sessions) cannot download. Ubuntu 24.04
@@ -11,6 +12,16 @@
 # so a tiny stub archive supplies those symbols (see botarena_stubs.c below).
 set -euo pipefail
 
+if [ "$(uname -s)" != "Linux" ] || ! command -v dpkg >/dev/null; then
+  echo "setup-wasi-sdk.sh supports Debian/Ubuntu Linux only." >&2
+  echo "macOS and arm64 developers should use scripts/build-wasm-guest.sh (Docker is automatic)." >&2
+  exit 1
+fi
+if [ "$(id -u)" -ne 0 ]; then
+  echo "setup-wasi-sdk.sh installs system packages and /opt files; run it with sudo." >&2
+  exit 1
+fi
+
 # World-readable so unprivileged submission builds (BuildIsolation) can use it;
 # ~/.wasi-sdk keeps a compatibility symlink.
 SDK="${BOTARENA_WASI_SDK:-/opt/botarena/wasi-sdk-29.0}"
@@ -19,13 +30,13 @@ if [ -x "$SDK/bin/clang" ] && [ -f "$SDK/stubs/libbotarena_stubs.a" ]; then
   exit 0
 fi
 
-if dpkg -s clang-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32 \
+if dpkg -s clang-18 llvm-18 lld-18 wasi-libc libclang-rt-18-dev-wasm32 \
     libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 >/dev/null 2>&1; then
   echo "Ubuntu wasm32 toolchain packages already installed."
 else
   echo "Installing Ubuntu wasm32 toolchain packages..."
   apt-get update >/dev/null
-  apt-get install -y clang-18 lld-18 wasi-libc \
+  apt-get install -y clang-18 llvm-18 lld-18 wasi-libc \
     libclang-rt-18-dev-wasm32 libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 >/dev/null
 fi
 

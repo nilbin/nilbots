@@ -5,7 +5,7 @@ public enum MatchEndReason
     Elimination,
     Disqualification,
     MaxTicks,
-    /// <summary>Zone control held for ZoneDominationTicks (rules 0.3 candidate).</summary>
+    /// <summary>The objective reached its rules-defined domination threshold.</summary>
     Domination,
 }
 
@@ -31,4 +31,7 @@ public sealed record MatchResultInfo
     public required MatchEndReason Reason { get; init; }
     public required int EndTick { get; init; }
     public required IReadOnlyList<BotMatchResult> Bots { get; init; }
+    /// <summary>Final signed shared objective pressure (positive = slot 0,
+    /// negative = slot 1); null under passive or absent zone control.</summary>
+    public int? ControlPressure { get; init; }
 }

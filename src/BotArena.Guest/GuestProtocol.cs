@@ -68,7 +68,8 @@ internal static class GuestProtocol
 
         // Optional trailing sections (additive, protocol 0.1-compatible), fixed order:
         // "E <energy>", "M <w> <h>", "Z <n> x:y ... ZT <mine> <theirs>",
-        // "P <n> x:y:dir:owner:ticksUntilAdvance:remainingTiles ...",
+        // "C <signedPressure> <limit>",
+        // "P <n> x:y:dir:owner:tilesPerAdvance:ticksUntilAdvance:remainingTiles ...",
         // "H <n> kind:bearing:band ..." (redacted heard sounds).
         int? energy = null;
         if (index < parts.Length && parts[index] == "E")
@@ -96,8 +97,17 @@ internal static class GuestProtocol
                 zone[i] = new Position(f[0], f[1]);
             }
             Expect("ZT");
-            myZoneTicks = Next();
-            enemyZoneTicks = Next();
+            int rawMyZoneTicks = Next();
+            int rawEnemyZoneTicks = Next();
+            myZoneTicks = rawMyZoneTicks < 0 ? null : rawMyZoneTicks;
+            enemyZoneTicks = rawEnemyZoneTicks < 0 ? null : rawEnemyZoneTicks;
+        }
+        int? controlPressure = null, controlPressureLimit = null;
+        if (index < parts.Length && parts[index] == "C")
+        {
+            index++;
+            controlPressure = Next();
+            controlPressureLimit = Next();
         }
         VisibleProjectile[]? projectiles = null;
         if (index < parts.Length && parts[index] == "P")
@@ -107,9 +117,9 @@ internal static class GuestProtocol
             projectiles = new VisibleProjectile[boltCount];
             for (int i = 0; i < boltCount; i++)
             {
-                var f = Fields(6);
+                var f = Fields(7);
                 projectiles[i] = new VisibleProjectile(
-                    new Position(f[0], f[1]), (Direction)f[2], f[3], f[4], f[5]);
+                    new Position(f[0], f[1]), (Direction)f[2], f[3], f[4], f[5], f[6]);
             }
         }
         HeardSound[]? heardSounds = null;
@@ -129,7 +139,8 @@ internal static class GuestProtocol
         return new ParsedObservation(
             tick, new Position(x, y), (Direction)facing, health, cooldown,
             (ActionResult)previous, tiles, enemies, events, energy,
-            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks, projectiles, heardSounds);
+            mapWidth, mapHeight, zone, myZoneTicks, enemyZoneTicks,
+            controlPressure, controlPressureLimit, projectiles, heardSounds);
 
         void Expect(string marker)
         {
@@ -165,6 +176,8 @@ internal static class GuestProtocol
         IReadOnlyList<Position>? ZoneTiles,
         int? MyZoneTicks,
         int? EnemyZoneTicks,
+        int? ControlPressure,
+        int? ControlPressureLimit,
         IReadOnlyList<VisibleProjectile>? VisibleProjectiles = null,
         IReadOnlyList<HeardSound>? HeardSounds = null);
 

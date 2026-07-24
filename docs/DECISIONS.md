@@ -568,6 +568,47 @@ configuration) and changing them is a version bump, not an edit.
     validating the babysit protocol; a tournament-drive state.json key
     tolerance fix rode along.
 
+62. **Gen-7 redesign implemented as experimental revision v4: active
+    control pressure + ordered fast bolts + ranked-zone cleanup.** The
+    rejected premise was not cone/hearing but the reward loop: Bastille
+    could spend every tick dodging while permanently banking full zone
+    progress. New `ActiveZoneControl` arms require a successful validated
+    Wait on-zone to exert control; Move/Turn/Shoot/blocked/faulted actions
+    do not. Banked per-bot ticks are replaced by one signed meter
+    (slot 0 positive, slot 1 negative): sole holder gains 1, two holders
+    freeze it, no holder decays it 1 every 2 ticks, ±100 dominates, and
+    MaxTicks uses pressure → health → damage. Projectiles gain
+    `ProjectileTilesPerAdvance`; v4 tests 1 and 2 tiles every tick with
+    ordered substep wall/bot/range checks, adjacent-only launch on the
+    firing tick, and replay traversals for continuous A→B→C viewer
+    animation. New paired arms: `control`, `cone-control`, `cone-active`,
+    `cone-active-bolt1`, `cone-active-bolt2`, all on seed profile
+    `0.5-redesign-shared`; old v3 arms remain reproducible. SDK/
+    GuestAdapter 0.7.0 adds the trailing control section and widens P
+    6→7 fields. Ranked zones on basic/arena/crossfire/bastion/gallery
+    become connected 3×3 or 3×2 regions; narrow `causeway-01` remains an
+    adversarial map but leaves ranked. Trails/residue/strafe/spread stay
+    deferred so the scoring and speed deltas remain attributable.
+
+63. **WASM developer builds select the compiler host, not the target.**
+    The pinned NativeAOT-LLVM release provides only a Linux x64 compiler-host
+    package; the emitted WASI p1 module remains architecture-neutral. Linux x64
+    with wasi-sdk builds natively. macOS (Intel or Apple Silicon) and Linux
+    arm64 automatically publish inside a focused cached `linux/amd64` image
+    (`docker/wasm-builder.Dockerfile`) rather than the full application image.
+    `scripts/run-wasm-publish.sh` is the single platform boundary used by the
+    built-in guest and `BotBuilder`; `doctor` reports the selected backend.
+    Docker compiler/NuGet state persists under `~/.cache/nilbots-wasm`, player
+    artifacts retain their content-addressed `~/.botarena/cache`, and the
+    built-in guest has a source-input stamp so unchanged test runs do not invoke
+    NativeAOT. `ToolchainInfo.BuildPipelineVersion` joins the player cache key
+    for compiler-invocation changes that alter bytes without changing the SDK.
+    A fixed `/src` path map removes checkout-location variance.
+    `scripts/test.sh` still calls that builder every time, closing
+    the stale tracked-artifact footgun without charging an unchanged rebuild.
+    The native in-process runtime remains the recommended strategy inner loop;
+    WASM is the required verification/submission boundary.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

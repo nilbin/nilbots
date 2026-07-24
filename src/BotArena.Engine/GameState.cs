@@ -20,11 +20,13 @@ public sealed class BotState
 }
 
 /// <summary>A bolt in flight (RULES-0.5-DESIGN §B): occupies its tile — lethal to any
-/// active non-owner bot sharing it — and advances one tile every
-/// rules.ProjectileTicksPerTile ticks until it hits a wall, a bot, or travels
-/// rules.ShotRange tiles.</summary>
+/// active non-owner bot sharing it — and advances on its configured cadence through
+/// one or more ordered tile substeps until it hits a wall, a bot, or its range.</summary>
 public sealed class ProjectileState
 {
+    /// <summary>Stable within one replay so presentation can interpolate ordered
+    /// substeps even when several projectiles share an owner and direction.</summary>
+    public required int Id { get; init; }
     public required Position Position { get; set; }
     public required Direction Direction { get; init; }
     public required int OwnerSlot { get; init; }
@@ -42,5 +44,9 @@ public sealed class GameState
     /// <summary>Bolts in flight, in spawn order (deterministic); empty unless
     /// rules.ProjectileTicksPerTile > 0.</summary>
     public List<ProjectileState> Projectiles { get; } = [];
+    /// <summary>Signed shared objective pressure: positive favors slot 0, negative
+    /// favors slot 1. Meaningful only under rules.ActiveZoneControl.</summary>
+    public int ControlPressure { get; set; }
+    public int NextProjectileId { get; set; }
     public int Tick { get; set; }
 }

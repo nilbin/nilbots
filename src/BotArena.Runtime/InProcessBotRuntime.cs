@@ -89,10 +89,12 @@ internal static class SdkModelMapper
             ZoneTiles = observation.ZoneTiles?.Select(p => new Sdk.Position(p.X, p.Y)).ToArray(),
             MyZoneTicks = observation.MyZoneTicks,
             EnemyZoneTicks = observation.EnemyZoneTicks,
+            ControlPressure = observation.ControlPressure,
+            ControlPressureLimit = observation.ControlPressureLimit,
             VisibleProjectiles = observation.VisibleProjectiles
                 ?.Select(p => new Sdk.VisibleProjectile(
                     new Sdk.Position(p.Position.X, p.Position.Y), ToSdkDirection(p.Direction), p.OwnerSlot,
-                    p.TicksUntilAdvance, p.RemainingTiles))
+                    p.TilesPerAdvance, p.TicksUntilAdvance, p.RemainingTiles))
                 .ToArray(),
             HeardSounds = observation.HeardSounds
                 ?.Select(h => new Sdk.HeardSound(

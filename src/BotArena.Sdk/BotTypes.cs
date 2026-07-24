@@ -83,13 +83,16 @@ public sealed record VisibleEnemy(int Slot, Position Position, Direction Facing,
 /// <summary>A bolt in flight on a tile you can see. Bolts occupy their tile — standing
 /// on or stepping onto one is a hit — and advance along their direction on a fixed
 /// cadence. A bolt never hits the bot that fired it. <c>TicksUntilAdvance</c> makes the
-/// cadence computable: 1 means the bolt moves one tile along <c>Direction</c> THIS very
+/// cadence computable: 1 means the bolt advances along <c>Direction</c> THIS very
 /// tick, immediately after movement resolves — so do not end this tick's move on its
 /// next tile (nor on its current one: a bolt's tile is checked before AND after it
-/// advances). <c>RemainingTiles</c> is how many more tiles it can advance before
-/// despawning (−1 = uncapped); it is lethal on its final tile.</summary>
+/// advances). <c>TilesPerAdvance</c> is the number of ordered substeps it takes on
+/// that tick; every intermediate tile can hit, so speed-two bolts never tunnel.
+/// <c>RemainingTiles</c> is how many more tiles it can advance before despawning
+/// (−1 = uncapped); it is lethal on its final tile.</summary>
 public sealed record VisibleProjectile(
-    Position Position, Direction Direction, int OwnerSlot, int TicksUntilAdvance, int RemainingTiles);
+    Position Position, Direction Direction, int OwnerSlot, int TilesPerAdvance,
+    int TicksUntilAdvance, int RemainingTiles);
 
 /// <summary>Coarse 8-way bearing of a heard sound, relative to your position (not your
 /// facing): the octant from you toward the source.</summary>

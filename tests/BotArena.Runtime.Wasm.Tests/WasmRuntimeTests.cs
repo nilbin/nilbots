@@ -42,7 +42,12 @@ public class WasmRuntimeTests
             FuelPerTick = fuelPerTick ?? 200_000_000,
         });
 
-    private static MatchRunResult Run(IBotRuntime bot0, IBotRuntime bot1, ulong seed, string map = "basic-01")
+    private static MatchRunResult Run(
+        IBotRuntime bot0,
+        IBotRuntime bot1,
+        ulong seed,
+        string map = "basic-01",
+        GameRules? rules = null)
     {
         using (bot0 as IDisposable)
         using (bot1 as IDisposable)
@@ -50,7 +55,7 @@ public class WasmRuntimeTests
             return new MatchEngine().Run(new MatchConfiguration
             {
                 Map = LoadMap(map),
-                Rules = GameRules.V0_1,
+                Rules = rules ?? GameRules.V0_1,
                 Seed = seed,
                 Participants =
                 [
@@ -59,6 +64,31 @@ public class WasmRuntimeTests
                 ],
             });
         }
+    }
+
+    [Fact]
+    public void ActiveControlObservation_EncodesLegacyZoneScoresAsAbsent()
+    {
+        string wire = WasmProtocol.FormatObservation(new BotObservation
+        {
+            Tick = 1,
+            Slot = 0,
+            Position = new Position(1, 1),
+            Facing = Direction.North,
+            Health = 3,
+            Cooldown = 0,
+            MapWidth = 5,
+            MapHeight = 5,
+            ZoneTiles = [new Position(1, 1)],
+            ControlPressure = 4,
+            ControlPressureLimit = 100,
+            PreviousActionResult = ActionResult.Success,
+            VisibleTiles = [],
+            VisibleEnemies = [],
+            VisibleEvents = [],
+        });
+
+        Assert.Contains(" ZT -1 -1 C 4 100", wire);
     }
 
     [SkippableFact]
@@ -104,6 +134,35 @@ public class WasmRuntimeTests
                 },
             ],
         });
+        Assert.Equal(inProcess.ReplayHash, wasm.ReplayHash);
+    }
+
+    [SkippableFact]
+    public void WasmAndInProcessRuntimes_ProduceIdenticalActiveControlMatch()
+    {
+        RequireArtifact();
+        var rules = GameRules.Resolve("cone-active-bolt2");
+        var wasm = Run(Wasm("hunter"), Wasm("wander"), seed: 17, rules: rules);
+        var inProcess = new MatchEngine().Run(new MatchConfiguration
+        {
+            Map = LoadMap("basic-01"),
+            Rules = rules,
+            Seed = 17,
+            Participants =
+            [
+                new MatchParticipantConfig
+                {
+                    Name = "bot0", RuntimeKind = "wasm",
+                    Runtime = new InProcessBotRuntime(() => BuiltInBotCatalog.Create("hunter")),
+                },
+                new MatchParticipantConfig
+                {
+                    Name = "bot1", RuntimeKind = "wasm",
+                    Runtime = new InProcessBotRuntime(() => BuiltInBotCatalog.Create("wander")),
+                },
+            ],
+        });
+
         Assert.Equal(inProcess.ReplayHash, wasm.ReplayHash);
     }
 

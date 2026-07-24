@@ -38,18 +38,26 @@ public sealed class BotContext
 
     /// <summary>Zone-control tiles, or null when these rules have no zone control.
     /// The full list from tick 0, not gated by vision; a map's zone may be split
-    /// into disconnected pads. At the end of every tick you are alive on zone tiles
-    /// you accrue 1 zone-tick — under exclusive accrual (the shipped form) only a
-    /// SOLE occupant accrues, so a contested zone pays nobody. The tick-limit
-    /// tiebreak is zone → health → damage, and holding for the domination threshold
-    /// wins outright. The zone is the objective — ignoring it forfeits ties.</summary>
+    /// into disconnected pads. Passive rules accrue zone-ticks from occupancy.
+    /// Active-control rules instead require a successful Wait on a zone tile:
+    /// moving, turning, shooting, blocked actions, and faults exert no control.
+    /// The objective breaks tick-limit ties before health and damage.</summary>
     public IReadOnlyList<Position>? ZoneTiles { get; init; }
 
-    /// <summary>Your accrued zone-ticks (null when zone control is off). Public score.</summary>
+    /// <summary>Your accrued zone-ticks under passive zone rules. Null when zone
+    /// control is off or the active shared meter replaces banked ticks.</summary>
     public int? MyZoneTicks { get; init; }
 
-    /// <summary>The enemy's accrued zone-ticks (null when zone control is off).</summary>
+    /// <summary>The enemy's accrued zone-ticks under passive zone rules.</summary>
     public int? EnemyZoneTicks { get; init; }
+
+    /// <summary>Shared signed objective pressure under active-control rules:
+    /// positive favors slot 0, negative favors slot 1. Null under passive rules.
+    /// At the tick limit its sign decides the winner before health and damage.</summary>
+    public int? ControlPressure { get; init; }
+
+    /// <summary>Absolute pressure required for domination under active-control rules.</summary>
+    public int? ControlPressureLimit { get; init; }
 
     public required ActionResult PreviousActionResult { get; init; }
 
@@ -66,8 +74,9 @@ public sealed class BotContext
     /// <summary>Bolts in flight on tiles you can see, or null when these rules have
     /// instant shots (no projectile system). When non-null, dodge them by arithmetic,
     /// not observation: a bolt's tile is lethal, <see cref="VisibleProjectile.TicksUntilAdvance"/>
-    /// says exactly when it moves, and <see cref="VisibleProjectile.RemainingTiles"/>
-    /// says how far it can still reach.</summary>
+    /// says exactly when it moves, <see cref="VisibleProjectile.TilesPerAdvance"/>
+    /// says how many ordered tiles it crosses, and
+    /// <see cref="VisibleProjectile.RemainingTiles"/> says how far it can still reach.</summary>
     public IReadOnlyList<VisibleProjectile>? VisibleProjectiles { get; init; }
 
     /// <summary>What happened LAST tick, filtered by your CURRENT vision. Under

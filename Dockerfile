@@ -15,7 +15,7 @@ RUN npm run build
 
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      curl ca-certificates clang-18 lld-18 wasi-libc \
+      curl ca-certificates clang-18 llvm-18 lld-18 wasi-libc \
       libclang-rt-18-dev-wasm32 libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \

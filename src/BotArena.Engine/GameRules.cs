@@ -72,6 +72,24 @@ public sealed record GameRules
     /// accrual makes the fight FOR the hill the game.</summary>
     public bool ZoneExclusiveAccrual { get; init; }
 
+    /// <summary>When true, legacy per-bot zone-tick accrual is replaced by a shared
+    /// signed control-pressure meter. A bot exerts control only by successfully
+    /// validating Wait while alive on a zone tile; movement, turning, shooting,
+    /// blocked actions, and faults do not hold. Positive pressure favors slot 0 and
+    /// negative pressure favors slot 1.</summary>
+    public bool ActiveZoneControl { get; init; }
+
+    /// <summary>Absolute pressure required for a domination win. 0 disables the
+    /// active-control meter even when <see cref="ActiveZoneControl"/> is true.</summary>
+    public int ControlPressureLimit { get; init; }
+
+    /// <summary>Pressure gained per tick by the sole active holder.</summary>
+    public int ControlPressureGain { get; init; } = 1;
+
+    /// <summary>When neither bot actively holds, non-zero pressure moves one point
+    /// toward zero every N ticks. 0 disables decay.</summary>
+    public int ControlPressureDecayInterval { get; init; }
+
     /// <summary>Seed-spawn constraint: never spawn a pair sharing a clear firing lane
     /// within ShotRange (gen-3 finding: tick-0 hits before the first decision).</summary>
     public bool SpawnLaneSafety { get; init; }
@@ -122,9 +140,15 @@ public sealed record GameRules
 
     /// <summary>Projectile travel (RULES-0.5-DESIGN §B): a shot spawns a bolt that
     /// occupies its tile (lethal to non-owners standing on or entering it) and advances
-    /// one tile every this-many ticks, despawning on walls or after ShotRange tiles.
-    /// 0 = instant rays (legacy). Deliberately slow values make bolts zoning tools.</summary>
+    /// every this-many ticks, taking <see cref="ProjectileTilesPerAdvance"/> ordered
+    /// tile substeps, and despawning on walls or after ShotRange tiles.
+    /// 0 = instant rays (legacy).</summary>
     public int ProjectileTicksPerTile { get; init; }
+
+    /// <summary>Ordered tile substeps resolved whenever a projectile advances.
+    /// Every intermediate tile checks walls, range, and victims, preventing tunnelling.
+    /// Defaults to 1 so the gen-7 cadence arms retain their behavior.</summary>
+    public int ProjectileTilesPerAdvance { get; init; } = 1;
 
     public static GameRules V0_1 => new() { RulesVersion = "0.1" };
 
@@ -172,7 +196,10 @@ public sealed record GameRules
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
     public static readonly IReadOnlyList<string> KnownNames =
-        ["0.4", "0.3", "0.2", "0.1", "0.5-control", "cone", "bolts", "conebolts", "conebolts1", "strafe", "hill", "hill-shared", "slate", "energy"];
+        ["0.4", "0.3", "0.2", "0.1",
+         "control", "cone-control", "cone-active", "cone-active-bolt1", "cone-active-bolt2",
+         "0.5-control", "cone", "bolts", "conebolts", "conebolts1",
+         "strafe", "hill", "hill-shared", "slate", "energy"];
 
     /// <summary>Named ruleset lookup, shared by the CLI's --rules flag and the server's
     /// BOTARENA_RULES eval knob. Experiment names carry visibly non-official version
@@ -184,6 +211,27 @@ public sealed record GameRules
         "0.3" => V0_3,
         "0.2" => V0_2,
         "0.1" => V0_1,
+        // Gen-7 redesign arms (RULES-0.5-DESIGN §J / DECISIONS #62). They share
+        // seeds and differ only in the mechanic named by the arm. `control` and
+        // `cone-control` retain passive 0.4 scoring; the active arms replace it
+        // with successful-Wait holding and a decaying signed pressure meter.
+        "control" => RedesignBase("0.5-exp-control-v4"),
+        "cone-control" => RedesignBase("0.5-exp-cone-control-v4") with
+        {
+            VisionCone = true,
+            HearingRadius = 8,
+        },
+        "cone-active" => ActiveControlBase("0.5-exp-cone-active-v4"),
+        "cone-active-bolt1" => ActiveControlBase("0.5-exp-cone-active-bolt1-v4") with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 1,
+        },
+        "cone-active-bolt2" => ActiveControlBase("0.5-exp-cone-active-bolt2-v4") with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+        },
         // The 0.5 watchability slate (RULES-0.5-DESIGN), hardened revision v3 (§H,
         // DECISIONS #58-#60): redacted hearing, both-checks bolt collision, computable
         // bolt timing on the wire, exhaustive fair spawns, and a SHARED seed profile —
@@ -246,5 +294,24 @@ public sealed record GameRules
         SeedProfile = "0.5-exp-shared",
         ExhaustiveSpawns = true,
         ReplayZoneTallies = true,
+    };
+
+    private static GameRules RedesignBase(string rulesVersion) => V0_4 with
+    {
+        RulesVersion = rulesVersion,
+        SeedProfile = "0.5-redesign-shared",
+        ExhaustiveSpawns = true,
+        ReplayZoneTallies = true,
+    };
+
+    private static GameRules ActiveControlBase(string rulesVersion) => RedesignBase(rulesVersion) with
+    {
+        VisionCone = true,
+        HearingRadius = 8,
+        ActiveZoneControl = true,
+        ZoneDominationTicks = 0,
+        ControlPressureLimit = 100,
+        ControlPressureGain = 1,
+        ControlPressureDecayInterval = 2,
     };
 }

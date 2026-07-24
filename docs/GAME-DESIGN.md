@@ -470,3 +470,20 @@ favor the diagonal mirror). The tournament did its job: it found precisely
 where the mechanics do and do not deliver, with mechanistic proof and named
 fixes, which no mechanical harness or scripted test surfaced. No crown moves
 (experiment rules; Bastille gen-5 defends the 0.4 title).
+
+## Post-gen-7 direction: change the reward loop before the weapon
+
+The selected redesign is not spread, strafe, residue, or undodgeable fire.
+It first removes free objective income while defending: only a successful
+Wait on a zone tile actively holds, and the objective becomes a shared
+decaying pressure meter rather than permanently banked per-bot ticks.
+Consequently a missed bolt has value when it forces Move/Turn/Shoot: the
+defender survives but does not score, and an abandoned lead decays.
+
+With that economic consequence in place, bolts are retested as actual fast
+projectiles at one and two ordered tiles per tick. The two-tile arm checks
+every intermediate wall, bot, and range tile and is continuously animated in
+the viewer. Cone vision and redacted hearing stay frozen. Ranked zones become
+connected 3×3/3×2 regions; the narrow causeway remains an adversarial map
+outside ranked. Exact v4 arms, timing, observation fields, scripted gates,
+and ship criteria are in RULES-0.5-DESIGN §J and DECISIONS #62.

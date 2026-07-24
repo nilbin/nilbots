@@ -4,12 +4,15 @@ public readonly record struct ObservedTile(Position Position, bool IsWall);
 
 public readonly record struct ObservedBot(int Slot, Position Position, Direction Facing, int Health);
 
-/// <summary><c>TicksUntilAdvance</c>: engine steps until this bolt moves one tile along
-/// its direction — 1 means it advances THIS tick, immediately after movement resolves.
+/// <summary><c>TilesPerAdvance</c>: ordered tile substeps resolved on each advance;
+/// intermediate walls and bots are never skipped. <c>TicksUntilAdvance</c>: engine
+/// steps until this bolt advances — 1 means it advances THIS tick, immediately after
+/// movement resolves.
 /// <c>RemainingTiles</c>: further tiles it can advance before despawning (−1 = uncapped).
 /// Dodge timing is computable, never measured (RULES-0.5-DESIGN §H item 2).</summary>
 public readonly record struct ObservedProjectile(
-    Position Position, Direction Direction, int OwnerSlot, int TicksUntilAdvance, int RemainingTiles);
+    Position Position, Direction Direction, int OwnerSlot, int TilesPerAdvance,
+    int TicksUntilAdvance, int RemainingTiles);
 
 /// <summary>A loud event beyond sight, redacted to type + coarse bearing octant
 /// (<see cref="Hearing.BearingOctant"/>) + coarse distance band
@@ -39,6 +42,10 @@ public sealed class BotObservation
     /// <summary>Zone scores (mine, theirs) — public like any scoreboard. Null when off.</summary>
     public int? MyZoneTicks { get; init; }
     public int? EnemyZoneTicks { get; init; }
+    /// <summary>Shared signed control pressure (positive = slot 0, negative = slot 1)
+    /// and its absolute domination limit. Null under passive zone rules.</summary>
+    public int? ControlPressure { get; init; }
+    public int? ControlPressureLimit { get; init; }
     public required ActionResult PreviousActionResult { get; init; }
     public required IReadOnlyList<ObservedTile> VisibleTiles { get; init; }
     public required IReadOnlyList<ObservedBot> VisibleEnemies { get; init; }

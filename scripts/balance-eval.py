@@ -12,7 +12,8 @@ shorten without collapsing strategy diversity.
 Usage:
   python3 scripts/balance-eval.py                     # all champions/, default rulesets
   python3 scripts/balance-eval.py --bots a=path/bot.wasm b=... \
-      --rulesets 0.5-control,cone,conebolts,conebolts1 --seeds 101,202,303
+      --rulesets control,cone-control,cone-active,cone-active-bolt1,cone-active-bolt2 \
+      --seeds 101,202,303
 
 Bots default to every champions/<slug>/bot.wasm (the frozen population — add
 current-gen artifacts via --bots for a stronger sample). Rulesets are whatever
@@ -52,7 +53,10 @@ def run_set(bots, a, b, rules, seeds, workdir, maps=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bots", nargs="*", default=[], help="name=path/to/bot.wasm (default: champions/)")
-    parser.add_argument("--rulesets", default="0.1,0.2,energy")
+    parser.add_argument(
+        "--rulesets",
+        default="control,cone-control,cone-active,cone-active-bolt1,cone-active-bolt2",
+    )
     parser.add_argument("--seeds", default="101,202,303")
     parser.add_argument("--maps", default=None, help="comma list; default = the set command's pool")
     parser.add_argument("--workdir", default="/tmp/balance-eval")

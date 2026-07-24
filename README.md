@@ -16,8 +16,12 @@ ties them together. See `docs/PLAN-SUMMARY.md` for the roadmap and
 
 ## Quickstart
 
+Prerequisites: Git, curl, and Node.js 22+. The setup script installs .NET 10
+when needed. Docker is additionally required for WASM compilation on macOS
+(including Apple Silicon) and Linux arm64; Linux x64 can compile natively.
+
 ```bash
-bash scripts/setup.sh        # .NET 10, wasi toolchain, web deps, all builds
+bash scripts/setup.sh        # platform-aware, idempotent bootstrap
 bash scripts/play.sh --bot hunter --opponent coward --seed 7
 # → prints the result + replay hash, writes replay.json + viewer.html under
 #   out/<bot>-vs-<opponent>-<map>-s<seed>/ (the paths are printed; --out overrides)
@@ -35,6 +39,11 @@ botarena doctor                                      # toolchain status
 
 Builds are cached deterministically (`botarena cache status|clear`); only your
 source changes trigger recompilation.
+
+The WASM compiler backend is selected automatically: native on Linux x64 with
+wasi-sdk, otherwise a focused cached `linux/amd64` Docker builder. See
+[WASM development](docs/WASM-DEVELOPMENT.md) for the architecture, Apple
+Silicon setup, fast inner loop, cache locations, and troubleshooting.
 
 Open the printed `viewer.html` in a browser: play/pause, step ticks, scrub the
 timeline, click a bot to see its field of view, decisions, and debug output.
@@ -86,8 +95,8 @@ front before exposing it publicly.
 ## Development
 
 ```bash
-bash scripts/test.sh          # all 62 tests (builds the WASM guest if needed)
-bash scripts/build-wasm-guest.sh   # recompile bots to WASM
+bash scripts/test.sh               # current guest + all test suites
+bash scripts/build-wasm-guest.sh   # input-stamped; instant when unchanged
 bash scripts/dev-viewer.sh    # hot-reload viewer against a fresh replay
 bash scripts/e2e.sh           # full pipeline check
 ```
@@ -95,4 +104,6 @@ bash scripts/e2e.sh           # full pipeline check
 The C#→WASM compiler comes from the `dotnet-experimental` NuGet feed
 (`nuget.config`). Environments that cannot reach GitHub releases get an
 equivalent of wasi-sdk assembled from Ubuntu packages via
-`scripts/setup-wasi-sdk.sh` (details in `docs/DECISIONS.md`).
+`scripts/setup-wasi-sdk.sh`. The compiler host itself is Linux x64, so macOS
+and arm64 development uses `docker/wasm-builder.Dockerfile`; the output remains
+portable WebAssembly.

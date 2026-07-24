@@ -168,4 +168,114 @@ public class ProjectileTests
             far.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
         Assert.Empty(far.State.Projectiles); // (2,1)@spawn=1 tile … 4th tile reached & expired
     }
+
+    [Fact]
+    public void SpeedTwoBolt_SpawnsAdjacent_ThenTraversesTwoOrderedTiles()
+    {
+        var session = new MatchSession(Room(), BoltRules with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+        });
+
+        var launch = session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+        Assert.Equal(new Position(4, 3), Assert.Single(session.State.Projectiles).Position);
+        Assert.Equal([new Position(4, 3)], Assert.Single(launch.ProjectileTraversals).Path);
+
+        var advance = session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+
+        Assert.Equal(new Position(6, 3), Assert.Single(session.State.Projectiles).Position);
+        Assert.Equal(
+            [new Position(5, 3), new Position(6, 3)],
+            Assert.Single(advance.ProjectileTraversals).Path);
+    }
+
+    [Fact]
+    public void SpeedTwoBolt_HitsIntermediateTarget_AndStopsBeforeSecondSubstep()
+    {
+        var map = ArenaMap.Create("test-speed-two-target", [
+            "#########",
+            "#.......#",
+            "#.......#",
+            "#.......#",
+            "#########",
+        ], [new Spawn(2, 2, Direction.East), new Spawn(4, 2, Direction.West)]);
+        var session = new MatchSession(map, BoltRules with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+        });
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+
+        var result = session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+
+        Assert.Equal(2, session.State.Bots[1].Health);
+        Assert.Empty(session.State.Projectiles);
+        Assert.Equal([new Position(4, 2)], Assert.Single(result.ProjectileTraversals).Path);
+    }
+
+    [Fact]
+    public void SpeedTwoBolt_CannotTunnelThroughIntermediateWall()
+    {
+        var map = ArenaMap.Create("test-speed-two-wall", [
+            "##########",
+            "#........#",
+            "#...#....#",
+            "#........#",
+            "##########",
+        ], [new Spawn(2, 2, Direction.East), new Spawn(8, 2, Direction.West)]);
+        var session = new MatchSession(map, BoltRules with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+        });
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+
+        var result = session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+
+        Assert.Empty(session.State.Projectiles);
+        Assert.Empty(result.ProjectileTraversals);
+        Assert.Equal(3, session.State.Bots[1].Health);
+    }
+
+    [Fact]
+    public void SpeedTwoBolt_FinalRangeTileIsLethalBeforeDespawn()
+    {
+        var map = ArenaMap.Create("test-speed-two-range", [
+            "#######",
+            "#.....#",
+            "#.....#",
+            "#.....#",
+            "#######",
+        ], [new Spawn(1, 2, Direction.East), new Spawn(3, 2, Direction.West)]);
+        var session = new MatchSession(map, BoltRules with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+            ShotRange = 2,
+        });
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+
+        session.Step([BotDecision.Of(BotAction.Wait), BotDecision.Of(BotAction.Wait)]);
+
+        Assert.Equal(2, session.State.Bots[1].Health);
+        Assert.Empty(session.State.Projectiles);
+    }
+
+    [Fact]
+    public void SpeedTwoObservation_ExposesAdvanceDistanceAndTiming()
+    {
+        var session = new MatchSession(Room(), BoltRules with
+        {
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+        });
+        session.Step([BotDecision.Of(BotAction.Shoot), BotDecision.Of(BotAction.Wait)]);
+
+        var bolt = Assert.Single(session.BuildObservation(0).VisibleProjectiles!);
+
+        Assert.Equal(2, bolt.TilesPerAdvance);
+        Assert.Equal(1, bolt.TicksUntilAdvance);
+        Assert.Equal(7, bolt.RemainingTiles);
+    }
 }

@@ -5,8 +5,9 @@ namespace BotArena.Toolchain;
 /// <summary>
 /// First pass at plan §15.3: submission compilation runs as a dedicated unprivileged
 /// user with CPU/process/file-size ulimits when the host allows it (root + setpriv +
-/// a 'botbuild' account, as provisioned by the Dockerfile). Falls back to running as
-/// the current user otherwise — acceptable for local development, not for strangers.
+/// a 'botbuild' account, as provisioned by the Dockerfile). Linux x64 without server
+/// isolation runs as the current user; non-native compiler hosts use the local Docker
+/// build boundary instead. Both fallbacks are for local development, not strangers.
 /// Full network-less container isolation remains on the roadmap.
 /// </summary>
 public static class BuildIsolation
@@ -16,6 +17,7 @@ public static class BuildIsolation
 
     public static bool Available =>
         Environment.GetEnvironmentVariable("BOTARENA_BUILD_ISOLATION") != "off"
+        && WasmBuildPlatform.NativeToolchainAvailable
         && OperatingSystem.IsLinux()
         && Environment.IsPrivilegedProcess
         && File.Exists("/usr/bin/setpriv")

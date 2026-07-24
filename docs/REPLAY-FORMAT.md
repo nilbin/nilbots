@@ -47,13 +47,15 @@ The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 | `seed` | Match seed (unsigned 64-bit) |
 | `maxTicks`, `visionRange` | Rule values the viewer needs |
 | `zoneTiles` | `[x, y]` pairs of the zone (rules with zone control); omitted otherwise — pre-zone hashes are unaffected |
+| `controlPressureLimit` | Absolute shared-pressure domination limit (active-control rules only) |
 | `participants[]` | `{ slot, name, runtimeKind, artifactHash, accent, spawnX, spawnY, spawnFacing }` |
 
 Facings are `North | East | South | West`.
 
 ## `ticks[]`
 
-One entry per simulated tick: `{ tick, bots, events, state, projectiles? }`.
+One entry per simulated tick:
+`{ tick, bots, events, state, projectiles?, projectileTraversals?, controlPressure? }`.
 
 - `bots[]` — each bot's decision that tick:
   `{ slot, chosenAction, validatedAction, result, faulted?, debug?, visibleTiles, visibleEnemies, heardSounds? }`.
@@ -77,23 +79,31 @@ One entry per simulated tick: `{ tick, bots, events, state, projectiles? }`.
 - `state[]` — post-tick truth per bot:
   `{ slot, x, y, facing, health, cooldown, status, energy?, zoneTicks? }` with
   `status` ∈ `Active | Destroyed | Disqualified`. `energy` appears only under
-  rules with an energy system. `zoneTicks` (cumulative) appears under rules
-  with per-tick zone tallies (the hardened 0.5 arms onward) — read it rather
-  than re-deriving accrual; on older zone replays derive by the accrual rule
-  or read the totals from `result`.
+  rules with an energy system. `zoneTicks` (cumulative) appears under passive
+  rules with per-tick zone tallies — read it rather than re-deriving accrual;
+  active-control rules use the shared `controlPressure` field instead.
 - `projectiles[]` — bolts in flight after this tick (projectile rules only):
-  `{ x, y, direction, ownerSlot, ticksUntilAdvance, remainingTiles }`.
-  `ticksUntilAdvance` = 1 means the bolt moves on the NEXT tick, right after
-  movement; `remainingTiles` is residual range (−1 = uncapped), lethal on its
-  final tile.
+  `{ x, y, direction, ownerSlot, ticksUntilAdvance, remainingTiles,
+  tilesPerAdvance, id }`. `ticksUntilAdvance` = 1 means the bolt advances on
+  the NEXT tick, right after movement; `tilesPerAdvance` is its ordered
+  substep count; `remainingTiles` is residual range (−1 = uncapped), lethal
+  on its final tile.
+- `projectileTraversals[]` — authoritative movement during this tick:
+  `{ id, ownerSlot, direction, fromX, fromY, path }`, where `path` is the
+  ordered list of entered `[x,y]` tiles. It includes a first- or
+  second-substep impact tile even when the projectile is absent from the
+  post-tick `projectiles` list.
+- `controlPressure` — signed shared objective pressure after this tick;
+  positive favors slot 0 and negative favors slot 1. Active-control rules
+  only.
 
 ## `result`
 
-`{ winnerSlot, reason, endTick, bots }` — `winnerSlot` is `null` on a draw
+`{ winnerSlot, reason, endTick, bots, controlPressure? }` — `winnerSlot` is `null` on a draw
 (omitted in canonical JSON), `reason` ∈ `Elimination | Disqualification |
 MaxTicks | Domination` (Domination = the zone threshold was reached), and
 `bots[]` is
 `{ slot, outcome, finalHealth, damageDealt, faults, finalStatus, zoneTicks? }`
-with `outcome` ∈ `Win | Loss | Draw`; `zoneTicks` appears only under rules
-with zone control. All optional fields follow one rule: absent under
+with `outcome` ∈ `Win | Loss | Draw`; `zoneTicks` appears only under passive
+zone rules and `controlPressure` only under active-control rules. All optional fields follow one rule: absent under
 rulesets that predate them, so historical replay hashes never change.

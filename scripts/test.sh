@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Runs every test suite. The WASM contract tests skip themselves when the guest
-# artifact is missing; build it first so they actually run.
+# Runs every test suite. The input-stamped guest build is instant when current,
+# and prevents contract tests from silently exercising a stale tracked artifact.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-[ -f artifacts/wasm/builtin-bots.wasm ] || bash scripts/build-wasm-guest.sh
+bash scripts/build-wasm-guest.sh
 dotnet test BotArena.sln -v q "$@"

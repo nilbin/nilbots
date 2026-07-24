@@ -16,10 +16,11 @@ public static class RankedEndpoints
 {
     /// <summary>The ranked map pool: each set samples 3 distinct maps, each played
     /// twice with mirrored slots. crossfire-01 joined with rules 0.3 (broken
-    /// sightlines, RULES-0.3-DESIGN §F); bastion/causeway/gallery joined for the
-    /// 0.4 era — zone placement is the map-design lever (keep, bridge, edge hill).</summary>
+    /// sightlines, RULES-0.3-DESIGN §F). causeway remains available as an
+    /// adversarial narrow-zone test map but left ranked play after the gen-7
+    /// geometry review (DECISIONS #62).</summary>
     private static readonly string[] MapPool =
-        ["basic-01", "arena-01", "crossfire-01", "bastion-01", "causeway-01", "gallery-01"];
+        ["basic-01", "arena-01", "crossfire-01", "bastion-01", "gallery-01"];
 
     public static void MapRanked(this IEndpointRouteBuilder routes)
     {

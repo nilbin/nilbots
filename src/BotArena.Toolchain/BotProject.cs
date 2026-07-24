@@ -36,9 +36,14 @@ public static class ToolchainInfo
     // 0.6.0: hardened 0.5 (§H / DECISIONS #59): HeardSounds (trailing H section) and
     // computable bolt timing — the P section grew 4→6 fields, which 0.5.0 adapters
     // cannot parse; wire protocol still 0.1 for every pre-bolt adapter.
-    public const string SdkVersion = "0.6.0";
+    // 0.7.0: active shared control pressure (trailing C section) and ordered
+    // multi-tile projectile advances (P section 6→7 fields; DECISIONS #62).
+    public const string SdkVersion = "0.7.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.6.0";
+    public const string GuestAdapterVersion = "0.7.0";
+    // Compiler invocation/container changes that affect artifact bytes without changing
+    // the SDK or guest contract. Included in every player-bot cache key.
+    public const string BuildPipelineVersion = "1";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

@@ -119,7 +119,9 @@ public static class DoctorCommand
         Console.WriteLine($"CLI version:            {ToolchainInfo.CliVersion}");
         Console.WriteLine($"SDK version:            {ToolchainInfo.SdkVersion}");
         Console.WriteLine($"Compiler:               NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
+        Console.WriteLine($"Build pipeline:         {ToolchainInfo.BuildPipelineVersion}");
         Console.WriteLine($"WASM target:            wasi-wasm (p1 core module)");
+        Console.WriteLine($"WASM build backend:     {WasmBuildPlatform.BackendDescription}");
         Console.WriteLine($"Runtime host:           Wasmtime {typeof(Wasmtime.Engine).Assembly.GetName().Version}");
         Console.WriteLine($"Runtime configuration:  {BotArenaVersions.RuntimeConfigurationVersion}");
         Console.WriteLine($"Runtime protocol:       {BotArenaVersions.RuntimeProtocolVersion}");
@@ -128,13 +130,24 @@ public static class DoctorCommand
         Console.WriteLine($"Fuel limit:             200000000 per tick (initial calibration)");
         Console.WriteLine($"Memory limit:           64 MB");
         Console.WriteLine($"Fault limit:            {rules.FaultLimit} per match");
-        Console.WriteLine($"Build isolation:        {(BuildIsolation.Available
-            ? "on — compiles run as the 'botbuild' user with ulimits"
-            : "off — compiles run as the current user (needs root + setpriv + a botbuild account; BOTARENA_BUILD_ISOLATION=off forces off)")}");
+        Console.WriteLine($"Build isolation:        {(!WasmBuildPlatform.NativeToolchainAvailable
+            ? "Docker boundary (local development)"
+            : BuildIsolation.Available
+                ? "on — compiles run as the 'botbuild' user with ulimits"
+                : "off — current user (set BOTARENA_BUILD_ISOLATION=off to force this)")}");
 
-        string wasiSdk = ToolchainInfo.ResolveWasiSdkPath();
-        Report("wasi-sdk toolchain", File.Exists(Path.Combine(wasiSdk, "bin", "clang")), wasiSdk,
-            "run scripts/setup-wasi-sdk.sh");
+        if (WasmBuildPlatform.NativeToolchainAvailable)
+        {
+            string wasiSdk = ToolchainInfo.ResolveWasiSdkPath();
+            Report("wasi-sdk toolchain", File.Exists(Path.Combine(wasiSdk, "bin", "clang")), wasiSdk,
+                "run `sudo bash scripts/setup-wasi-sdk.sh` on Ubuntu 24.04");
+        }
+        else
+        {
+            Report("Docker WASM builder", WasmBuildPlatform.DockerAvailable(),
+                "linux/amd64 image is prepared on first build",
+                "install and start Docker; use --runtime in-process meanwhile");
+        }
         string? builtin = CliSupport.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
         Report("built-in bots (WASM)", builtin is not null, builtin ?? "",
             "run scripts/build-wasm-guest.sh");

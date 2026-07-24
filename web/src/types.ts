@@ -51,6 +51,8 @@ export interface ReplayHeader {
   visionCone?: boolean;
   /** [x,y] pairs; present only when these rules have zone control (experiment arms). */
   zoneTiles?: number[][];
+  /** Absolute domination limit for the shared active-control meter. */
+  controlPressureLimit?: number;
   participants: ReplayParticipant[];
 }
 
@@ -124,6 +126,20 @@ export interface ReplayProjectile {
   ticksUntilAdvance?: number;
   /** Tiles it can still advance before despawning (−1 = uncapped). */
   remainingTiles?: number;
+  /** Ordered tile substeps taken whenever the bolt advances. */
+  tilesPerAdvance?: number;
+  /** Stable replay-local identity used for interpolation. */
+  id?: number;
+}
+
+export interface ReplayProjectileTraversal {
+  id: number;
+  ownerSlot: number;
+  direction: Direction;
+  fromX: number;
+  fromY: number;
+  /** Entered tiles in authoritative order during this tick. */
+  path: number[][];
 }
 
 export interface ReplayTick {
@@ -132,6 +148,9 @@ export interface ReplayTick {
   events: GameEvent[];
   state: ReplayBotState[];
   projectiles?: ReplayProjectile[];
+  projectileTraversals?: ReplayProjectileTraversal[];
+  /** Signed shared objective pressure after this tick. */
+  controlPressure?: number;
 }
 
 export interface BotMatchResult {
@@ -150,6 +169,8 @@ export interface MatchResult {
   reason: 'Elimination' | 'Disqualification' | 'MaxTicks' | 'Domination';
   endTick: number;
   bots: BotMatchResult[];
+  /** Final signed shared objective pressure. */
+  controlPressure?: number;
 }
 
 export interface ReplayDocument {

@@ -100,4 +100,59 @@ public class MapTests
         var ex = Assert.Throws<MapValidationException>(() => ArenaMap.FromJson(json));
         Assert.Contains(ex.Errors, e => e.Contains("does not match"));
     }
+
+    [Fact]
+    public void RankedZones_AreConnectedRegionsWithLocalMovementSpace()
+    {
+        string root = FindRepoRoot();
+        string[] ranked = ["basic-01", "arena-01", "crossfire-01", "bastion-01", "gallery-01"];
+        (int Dx, int Dy)[] offsets = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
+        foreach (string id in ranked)
+        {
+            var map = ArenaMap.FromJson(File.ReadAllText(Path.Combine(root, "maps", id + ".json")));
+            var zone = map.Zone.ToHashSet();
+            Assert.True(zone.Count >= 4, $"{id}: ranked zone needs at least four tiles.");
+            Assert.True(
+                zone.Max(p => p.X) > zone.Min(p => p.X)
+                && zone.Max(p => p.Y) > zone.Min(p => p.Y),
+                $"{id}: ranked zone must have both horizontal and vertical dodge space.");
+
+            var reached = new HashSet<Position>();
+            var queue = new Queue<Position>();
+            queue.Enqueue(zone.First());
+            reached.Add(zone.First());
+            while (queue.TryDequeue(out var tile))
+                foreach (var (dx, dy) in offsets)
+                {
+                    var next = tile.Offset(dx, dy);
+                    if (zone.Contains(next) && reached.Add(next))
+                        queue.Enqueue(next);
+                }
+            Assert.Equal(zone.Count, reached.Count);
+
+            var approaches = new HashSet<(int Dx, int Dy)>();
+            var surroundingFloor = new HashSet<Position>();
+            foreach (var tile in zone)
+                foreach (var offset in offsets)
+                {
+                    var next = tile.Offset(offset.Dx, offset.Dy);
+                    if (zone.Contains(next) || map.IsWall(next))
+                        continue;
+                    approaches.Add(offset);
+                    surroundingFloor.Add(next);
+                }
+            Assert.True(approaches.Count >= 2, $"{id}: zone needs at least two approach directions.");
+            Assert.True(surroundingFloor.Count >= 4, $"{id}: zone needs room to attack and circle.");
+        }
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "BotArena.sln")))
+            dir = dir.Parent;
+        return dir?.FullName
+            ?? throw new InvalidOperationException("BotArena.sln not found above the test directory.");
+    }
 }

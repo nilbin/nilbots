@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "id": "crossfire-01",
-  "version": 1,
+  "version": 2,
   "width": 16,
   "height": 12,
   "tiles": [
@@ -40,11 +40,19 @@
       5
     ],
     [
+      9,
+      5
+    ],
+    [
       7,
       6
     ],
     [
       8,
+      6
+    ],
+    [
+      9,
       6
     ]
   ]

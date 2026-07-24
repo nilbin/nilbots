@@ -150,7 +150,9 @@ public sealed class MatchEngine
         var snapshots = state.Bots
             .Select(b => new ReplayBotState(b.Slot, b.Position.X, b.Position.Y, b.Facing, b.Health, b.Cooldown, b.Status,
                 state.Rules.MaxEnergy > 0 ? b.Energy : null,
-                state.Rules.ReplayZoneTallies && state.Rules.ZoneControl ? b.ZoneTicks : null))
+                state.Rules.ReplayZoneTallies && state.Rules.ZoneControl && !state.Rules.ActiveZoneControl
+                    ? b.ZoneTicks
+                    : null))
             .ToArray();
         return new ReplayTick
         {
@@ -162,9 +164,19 @@ public sealed class MatchEngine
                 ? state.Projectiles
                     .Select(p => new ReplayProjectile(p.Position.X, p.Position.Y, p.Direction, p.OwnerSlot,
                         state.Rules.ProjectileTicksPerTile - p.Phase,
-                        state.Rules.ShotRange > 0 ? state.Rules.ShotRange - p.TilesTraveled : -1))
+                        state.Rules.ShotRange > 0 ? state.Rules.ShotRange - p.TilesTraveled : -1,
+                        state.Rules.ProjectileTilesPerAdvance,
+                        p.Id))
                     .ToArray()
                 : null,
+            ProjectileTraversals = state.Rules.ProjectileTicksPerTile > 0
+                ? tickResult.ProjectileTraversals
+                    .Select(p => new ReplayProjectileTraversal(
+                        p.Id, p.OwnerSlot, p.Direction, p.From.X, p.From.Y,
+                        p.Path.Select(tile => new[] { tile.X, tile.Y }).ToArray()))
+                    .ToArray()
+                : null,
+            ControlPressure = state.Rules.ActiveZoneControl ? state.ControlPressure : null,
         };
     }
 
@@ -189,6 +201,9 @@ public sealed class MatchEngine
             VisionCone = configuration.Rules.VisionCone ? true : null,
             ZoneTiles = configuration.Rules.ZoneControl
                 ? map.EffectiveZone().Select(p => new[] { p.X, p.Y }).ToArray()
+                : null,
+            ControlPressureLimit = configuration.Rules.ActiveZoneControl
+                ? configuration.Rules.ControlPressureLimit
                 : null,
             Participants = configuration.Participants
                 .Select((p, slot) => new ReplayParticipant(

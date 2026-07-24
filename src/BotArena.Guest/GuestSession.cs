@@ -41,6 +41,8 @@ internal sealed class GuestSession
             ZoneTiles = observation.ZoneTiles,
             MyZoneTicks = observation.MyZoneTicks,
             EnemyZoneTicks = observation.EnemyZoneTicks,
+            ControlPressure = observation.ControlPressure,
+            ControlPressureLimit = observation.ControlPressureLimit,
             VisibleProjectiles = observation.VisibleProjectiles,
             HeardSounds = observation.HeardSounds,
             PreviousActionResult = observation.PreviousActionResult,

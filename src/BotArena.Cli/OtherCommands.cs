@@ -43,6 +43,7 @@ public static class ReplayCommand
         // Zone-control matches (rules with ZoneControl): mark bots standing on zone
         // tiles with * in state lines and show per-bot zone-tick totals.
         var zone = (header.ZoneTiles ?? []).Select(t => (t[0], t[1])).ToHashSet();
+        bool activeControl = header.ControlPressureLimit is not null;
         // The two 0.5 state channels (gen-6 blockers 6/3): bolts and cone contents
         // must be readable here, not only in the viewer.
         bool boltMode = document.Ticks.Any(t => t.Projectiles is { Count: > 0 });
@@ -51,13 +52,17 @@ public static class ReplayCommand
         Console.WriteLine($"Map:    {header.MapId} v{header.MapVersion} ({header.MapWidth}x{header.MapHeight})  seed {header.Seed}  rules {header.GameRulesVersion}");
         if (zone.Count > 0)
             Console.WriteLine($"Zone:   {string.Join(" ", header.ZoneTiles!.Select(t => $"({t[0]},{t[1]})"))}  (* in state lines = on zone tile)");
+        if (header.ControlPressureLimit is int pressureLimit)
+            Console.WriteLine($"Control: successful Wait on-zone holds; signed slot-0 pressure, domination at ±{pressureLimit}");
         if (coneMode)
             Console.WriteLine("Vision: 90° cone toward facing + adjacent ring; `sees»`/`hears»` lines show each bot's actual contact");
         if (boltMode)
-            Console.WriteLine("Bolts:  `bolts»` lines list flight state — advN = ticks until it moves (1 = this tick), remN = tiles left");
+            Console.WriteLine("Bolts:  `bolts»` lines list flight state — xN = ordered tiles/advance, advN = ticks until advance, remN = tiles left");
         var result = document.Result;
         string verdict = result.WinnerSlot is int w ? $"{names[w]} (s{w}) wins" : "draw";
         Console.WriteLine($"Result: {verdict} — {result.Reason} at tick {result.EndTick}");
+        if (result.ControlPressure is int finalPressure)
+            Console.WriteLine($"        final control {(finalPressure > 0 ? "+" : "")}{finalPressure}");
         foreach (var bot in result.Bots.OrderBy(b => b.Slot))
         {
             int fired = document.Ticks.SelectMany(t => t.Events)
@@ -94,12 +99,14 @@ public static class ReplayCommand
                 .Where(e => e.Type is not (GameEventType.Turn or GameEventType.Move))
                 .Select(FormatEvent));
             string line = $"t{tick.Tick,4} | {state} | {actions}";
+            if (activeControl)
+                line += $" | control {(tick.ControlPressure > 0 ? "+" : "")}{tick.ControlPressure ?? 0}";
             if (events.Length > 0)
                 line += $" | {events}";
             Console.WriteLine(line);
             if (tick.Projectiles is { Count: > 0 } inFlight)
                 Console.WriteLine($"      bolts» {string.Join("  ", inFlight.Select(p =>
-                    $"s{p.OwnerSlot}@({p.X},{p.Y}){p.Direction.ToString()[0]} adv{p.TicksUntilAdvance} rem{p.RemainingTiles}"))}");
+                    $"s{p.OwnerSlot}@({p.X},{p.Y}){p.Direction.ToString()[0]} x{p.TilesPerAdvance} adv{p.TicksUntilAdvance} rem{p.RemainingTiles}"))}");
             if (coneMode)
                 foreach (var bot in tick.Bots.OrderBy(b => b.Slot))
                 {

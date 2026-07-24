@@ -26,4 +26,57 @@ public class ReplaySerializationTests
         Assert.Null(document.Result.WinnerSlot);
         Assert.Equal(run.ReplayHash, document.ReplayHash);
     }
+
+    [Fact]
+    public void ActiveControlAndSpeedTwoTraversal_RoundTripThroughReplay()
+    {
+        var map = ArenaMap.Create("test-replay-active", [
+            "#########",
+            "#.......#",
+            "#.......#",
+            "#.......#",
+            "#########",
+        ], [new Spawn(1, 2, Direction.East), new Spawn(7, 2, Direction.West)],
+            zone: [new Position(1, 2), new Position(2, 2), new Position(3, 2), new Position(4, 2)]);
+        var rules = GameRules.V0_1 with
+        {
+            RulesVersion = "test-replay-active",
+            MaxTicks = 2,
+            ShotRange = 8,
+            ZoneControl = true,
+            ActiveZoneControl = true,
+            ControlPressureLimit = 10,
+            ControlPressureGain = 1,
+            ControlPressureDecayInterval = 2,
+            ProjectileTicksPerTile = 1,
+            ProjectileTilesPerAdvance = 2,
+        };
+        var run = new MatchEngine().Run(new MatchConfiguration
+        {
+            Map = map,
+            Rules = rules,
+            Seed = 1,
+            Participants =
+            [
+                new MatchParticipantConfig
+                {
+                    Name = "a",
+                    Runtime = new ScriptedRuntime(BotAction.Shoot, BotAction.Wait),
+                },
+                new MatchParticipantConfig
+                {
+                    Name = "b",
+                    Runtime = new ScriptedRuntime(BotAction.Wait, BotAction.Wait),
+                },
+            ],
+        });
+
+        var document = ReplaySerializer.FromJson(ReplaySerializer.ToJson(run.Replay));
+
+        Assert.Equal(10, document.Header.ControlPressureLimit);
+        Assert.Equal(1, document.Result.ControlPressure);
+        Assert.Equal(2, Assert.Single(document.Ticks[1].ProjectileTraversals!).Path.Count);
+        Assert.Equal(2, Assert.Single(document.Ticks[1].Projectiles!).TilesPerAdvance);
+        Assert.Equal(run.ReplayHash, document.ReplayHash);
+    }
 }

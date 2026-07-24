@@ -3,11 +3,15 @@ namespace BotArena.Engine;
 public sealed record BotTickResolution(
     int Slot, BotAction ChosenAction, BotAction ValidatedAction, ActionResult Result, bool Faulted);
 
+public sealed record ProjectileTickTraversal(
+    int Id, int OwnerSlot, Direction Direction, Position From, IReadOnlyList<Position> Path);
+
 public sealed class TickResult
 {
     public required int Tick { get; init; }
     public required IReadOnlyList<BotTickResolution> Bots { get; init; }
     public required IReadOnlyList<GameEvent> Events { get; init; }
+    public required IReadOnlyList<ProjectileTickTraversal> ProjectileTraversals { get; init; }
     public required bool MatchCompleted { get; init; }
 }
 
@@ -115,9 +119,13 @@ public sealed class MatchSession
             MapWidth = map.Width,
             MapHeight = map.Height,
             ZoneTiles = State.Rules.ZoneControl ? ZoneTiles : null,
-            MyZoneTicks = State.Rules.ZoneControl ? bot.ZoneTicks : null,
-            EnemyZoneTicks = State.Rules.ZoneControl
+            MyZoneTicks = State.Rules.ZoneControl && !State.Rules.ActiveZoneControl ? bot.ZoneTicks : null,
+            EnemyZoneTicks = State.Rules.ZoneControl && !State.Rules.ActiveZoneControl
                 ? State.Bots.Where(b => b.Slot != slot).Select(b => b.ZoneTicks).FirstOrDefault()
+                : null,
+            ControlPressure = State.Rules.ActiveZoneControl ? State.ControlPressure : null,
+            ControlPressureLimit = State.Rules.ActiveZoneControl
+                ? State.Rules.ControlPressureLimit
                 : null,
             PreviousActionResult = bot.LastActionResult,
             VisibleTiles = tiles,
@@ -126,6 +134,7 @@ public sealed class MatchSession
                 ? State.Projectiles
                     .Where(p => visibleSet.Contains(p.Position))
                     .Select(p => new ObservedProjectile(p.Position, p.Direction, p.OwnerSlot,
+                        State.Rules.ProjectileTilesPerAdvance,
                         State.Rules.ProjectileTicksPerTile - p.Phase,
                         State.Rules.ShotRange > 0 ? State.Rules.ShotRange - p.TilesTraveled : -1))
                     .ToArray()
@@ -217,12 +226,13 @@ public sealed class MatchSession
         // (RULES-0.5-DESIGN §B) — before new shots spawn, so a fresh bolt never
         // moves on its spawn tick.
         var pendingHits = new List<(int TargetSlot, int BySlot)>();
+        var projectileTraversals = new List<ProjectileTickTraversal>();
         if (State.Rules.ProjectileTicksPerTile > 0 && State.Projectiles.Count > 0)
-            AdvanceProjectiles(pendingHits);
+            AdvanceProjectiles(pendingHits, projectileTraversals);
 
         // 6.–7. Resolve shooting from post-movement state; apply damage simultaneously
         // (bolt occupancy hits land in the same simultaneous batch).
-        var shotThisTick = ResolveShooting(validated, events, pendingHits);
+        var shotThisTick = ResolveShooting(validated, events, pendingHits, projectileTraversals);
 
         // 8. Update cooldowns and energy (shots spend first, then the regen cadence).
         for (int slot = 0; slot < n; slot++)
@@ -258,16 +268,10 @@ public sealed class MatchSession
         for (int slot = 0; slot < n; slot++)
             bots[slot].LastActionResult = results[slot];
 
-        // 9.5 Zone control: active bots standing on zone tiles accrue at end of tick
-        // (post-move, post-damage: a bot destroyed this tick earns nothing). Under
-        // exclusive accrual a contested zone pays nobody — sole occupancy is the point.
-        if (State.Rules.ZoneControl)
-        {
-            var occupants = bots.Where(b => b.IsActive && _zoneLookup.Contains(b.Position)).ToList();
-            if (!State.Rules.ZoneExclusiveAccrual || occupants.Count == 1)
-                foreach (var bot in occupants)
-                    bot.ZoneTicks++;
-        }
+        // 9.5 Zone control is evaluated after damage. Legacy rules bank per-bot
+        // occupancy ticks. Active rules instead require a successful validated Wait
+        // and update one signed, decaying tug-of-war meter.
+        UpdateZoneControl(validated, results);
 
         // 10. Determine completion.
         int executedTick = State.Tick;
@@ -288,8 +292,50 @@ public sealed class MatchSession
                 .Select(s => new BotTickResolution(s, chosen[s], validated[s], results[s], faulted[s]))
                 .ToArray(),
             Events = events,
+            ProjectileTraversals = projectileTraversals,
             MatchCompleted = IsCompleted,
         };
+    }
+
+    private void UpdateZoneControl(BotAction[] validated, ActionResult[] results)
+    {
+        if (!State.Rules.ZoneControl)
+            return;
+
+        var bots = State.Bots;
+        if (!State.Rules.ActiveZoneControl)
+        {
+            var occupants = bots.Where(b => b.IsActive && _zoneLookup.Contains(b.Position)).ToList();
+            if (!State.Rules.ZoneExclusiveAccrual || occupants.Count == 1)
+                foreach (var bot in occupants)
+                    bot.ZoneTicks++;
+            return;
+        }
+
+        var holders = bots
+            .Where(b => b.IsActive
+                        && _zoneLookup.Contains(b.Position)
+                        && validated[b.Slot] == BotAction.Wait
+                        && results[b.Slot] == ActionResult.Success)
+            .ToList();
+
+        if (holders.Count == 1)
+        {
+            int direction = holders[0].Slot == 0 ? 1 : -1;
+            int limit = Math.Max(0, State.Rules.ControlPressureLimit);
+            int gain = Math.Max(0, State.Rules.ControlPressureGain);
+            State.ControlPressure = Math.Clamp(State.ControlPressure + direction * gain, -limit, limit);
+            return;
+        }
+
+        // Two committed holders contest and freeze the meter. Decay represents
+        // abandoned control, so it applies only when nobody actively holds.
+        if (holders.Count > 1
+            || State.ControlPressure == 0
+            || State.Rules.ControlPressureDecayInterval <= 0
+            || State.Tick % State.Rules.ControlPressureDecayInterval != 0)
+            return;
+        State.ControlPressure -= Math.Sign(State.ControlPressure);
     }
 
     private void ResolveMovement(BotAction[] validated, ActionResult[] results, List<GameEvent> events)
@@ -376,11 +422,12 @@ public sealed class MatchSession
     }
 
     /// <summary>Advances bolts in flight and collects occupancy hits (RULES-0.5-DESIGN
-    /// §B). Runs after movement, before new shots. Occupancy is checked BOTH before and
-    /// after a bolt advances: without the pre-advance check, stepping onto a bolt's tile
-    /// on exactly its advance tick is safe — the phase-surfing gap (§H item 2). Bolts
-    /// despawn on walls, hits, or after ShotRange tiles.</summary>
-    private void AdvanceProjectiles(List<(int TargetSlot, int BySlot)> pendingHits)
+    /// §B/§J). Runs after movement, before new shots. Occupancy is checked before an
+    /// advance, then after EACH ordered tile substep; walls, bots, and the final range
+    /// tile therefore cannot be tunnelled through at speed two.</summary>
+    private void AdvanceProjectiles(
+        List<(int TargetSlot, int BySlot)> pendingHits,
+        List<ProjectileTickTraversal> traversals)
     {
         var alive = new List<ProjectileState>();
         foreach (var bolt in State.Projectiles)
@@ -391,28 +438,50 @@ public sealed class MatchSession
                 continue; // bolt consumed by the hit
             }
             bolt.Phase++;
-            bool despawn = false;
-            if (bolt.Phase >= State.Rules.ProjectileTicksPerTile)
+            if (bolt.Phase < State.Rules.ProjectileTicksPerTile)
             {
-                bolt.Phase = 0;
-                var (dx, dy) = bolt.Direction.Vector();
-                var next = bolt.Position.Offset(dx, dy);
-                if (State.Map.IsWall(next))
-                    despawn = true;
-                else
-                {
-                    bolt.Position = next;
-                    bolt.TilesTraveled++;
-                    if (State.Rules.ShotRange > 0 && bolt.TilesTraveled >= State.Rules.ShotRange)
-                        despawn = true; // lethal on this, its final, tile — checked below
-                }
-            }
-            if (FindBoltVictim(bolt) is { } victim)
-            {
-                pendingHits.Add((victim.Slot, bolt.OwnerSlot));
+                alive.Add(bolt);
                 continue;
             }
-            if (!despawn)
+
+            bolt.Phase = 0;
+            var from = bolt.Position;
+            var path = new List<Position>();
+            bool consumed = false;
+            bool despawn = false;
+            var (dx, dy) = bolt.Direction.Vector();
+            int substeps = Math.Max(1, State.Rules.ProjectileTilesPerAdvance);
+            for (int step = 0; step < substeps; step++)
+            {
+                var next = bolt.Position.Offset(dx, dy);
+                if (State.Map.IsWall(next))
+                {
+                    despawn = true;
+                    break;
+                }
+
+                bolt.Position = next;
+                bolt.TilesTraveled++;
+                path.Add(next);
+
+                if (FindBoltVictim(bolt) is { } victim)
+                {
+                    pendingHits.Add((victim.Slot, bolt.OwnerSlot));
+                    consumed = true;
+                    break;
+                }
+
+                if (State.Rules.ShotRange > 0 && bolt.TilesTraveled >= State.Rules.ShotRange)
+                {
+                    despawn = true; // final tile was entered and checked before despawn
+                    break;
+                }
+            }
+
+            if (path.Count > 0)
+                traversals.Add(new ProjectileTickTraversal(
+                    bolt.Id, bolt.OwnerSlot, bolt.Direction, from, path));
+            if (!consumed && !despawn)
                 alive.Add(bolt);
         }
         State.Projectiles.Clear();
@@ -423,8 +492,11 @@ public sealed class MatchSession
         State.Bots.FirstOrDefault(b =>
             b.Slot != bolt.OwnerSlot && b.IsActive && b.Position == bolt.Position);
 
-    private bool[] ResolveShooting(BotAction[] validated, List<GameEvent> events,
-        List<(int TargetSlot, int BySlot)> pendingHits)
+    private bool[] ResolveShooting(
+        BotAction[] validated,
+        List<GameEvent> events,
+        List<(int TargetSlot, int BySlot)> pendingHits,
+        List<ProjectileTickTraversal> traversals)
     {
         var bots = State.Bots;
         int n = bots.Count;
@@ -452,11 +524,15 @@ public sealed class MatchSession
                 var pointBlank = bots.FirstOrDefault(b =>
                     b.Slot != slot && b.IsActive && b.Position == spawn);
                 events.Add(GameEvent.Shot(slot, shooter.Position, spawn, pointBlank?.Slot));
+                int projectileId = State.NextProjectileId++;
+                traversals.Add(new ProjectileTickTraversal(
+                    projectileId, slot, shooter.Facing, shooter.Position, [spawn]));
                 if (pointBlank is not null)
                     pendingHits.Add((pointBlank.Slot, slot));
-                else
+                else if (State.Rules.ShotRange <= 0 || State.Rules.ShotRange > 1)
                     State.Projectiles.Add(new ProjectileState
                     {
+                        Id = projectileId,
                         Position = spawn,
                         Direction = shooter.Facing,
                         OwnerSlot = slot,
@@ -511,12 +587,24 @@ public sealed class MatchSession
         return shotThisTick;
     }
 
-    /// <summary>Domination check (RULES-0.3-DESIGN §C): the sole active bot at or above
-    /// the threshold wins; if both cross simultaneously the higher total wins and equal
-    /// totals play on (they resolve by the MaxTicks zone tiebreak at the latest).</summary>
+    /// <summary>Domination check. Active-control rules use the signed shared limit;
+    /// passive rules retain the historical per-bot zone-tick threshold.</summary>
     private int? ComputeDominator()
     {
-        if (!State.Rules.ZoneControl || State.Rules.ZoneDominationTicks <= 0)
+        if (!State.Rules.ZoneControl)
+            return null;
+        if (State.Rules.ActiveZoneControl)
+        {
+            int limit = State.Rules.ControlPressureLimit;
+            if (limit <= 0)
+                return null;
+            if (State.ControlPressure >= limit)
+                return 0;
+            if (State.ControlPressure <= -limit)
+                return 1;
+            return null;
+        }
+        if (State.Rules.ZoneDominationTicks <= 0)
             return null;
         var crossed = State.Bots
             .Where(b => b.IsActive && b.ZoneTicks >= State.Rules.ZoneDominationTicks)
@@ -559,18 +647,22 @@ public sealed class MatchSession
         else
         {
             reason = MatchEndReason.MaxTicks;
-            // §4.9: more health wins, then more damage dealt, else draw. Under zone
-            // control the zone comes FIRST — a turtled health lead loses to the bot on
-            // the hill; that ordering is the anti-entrenchment teeth (0.3-DESIGN §C).
+            // §4.9: objective, then health, then damage, else draw. Passive rules use
+            // banked per-bot ticks; active rules use the sign of the shared pressure.
             bool zone = State.Rules.ZoneControl;
+            int ObjectiveScore(BotState b) => !zone
+                ? 0
+                : State.Rules.ActiveZoneControl
+                    ? (b.Slot == 0 ? State.ControlPressure : -State.ControlPressure)
+                    : b.ZoneTicks;
             var best = active
-                .OrderByDescending(b => zone ? b.ZoneTicks : 0)
+                .OrderByDescending(ObjectiveScore)
                 .ThenByDescending(b => b.Health)
                 .ThenByDescending(b => b.DamageDealt)
                 .ThenBy(b => b.Slot)
                 .ToList();
             winnerSlot =
-                (!zone || best[0].ZoneTicks == best[1].ZoneTicks)
+                ObjectiveScore(best[0]) == ObjectiveScore(best[1])
                 && best[0].Health == best[1].Health
                 && best[0].DamageDealt == best[1].DamageDealt
                 ? null
@@ -584,7 +676,7 @@ public sealed class MatchSession
             b.DamageDealt,
             b.Faults,
             b.Status,
-            State.Rules.ZoneControl ? b.ZoneTicks : null)).ToArray();
+            State.Rules.ZoneControl && !State.Rules.ActiveZoneControl ? b.ZoneTicks : null)).ToArray();
 
         return new MatchResultInfo
         {
@@ -592,6 +684,7 @@ public sealed class MatchSession
             Reason = reason,
             EndTick = endTick,
             Bots = perBot,
+            ControlPressure = State.Rules.ActiveZoneControl ? State.ControlPressure : null,
         };
     }
 }
