@@ -88,12 +88,26 @@ no TypeScript registry edit.
   and a soft silhouette shadow make internal wall islands read as raised
   obstacles. No edge is drawn between adjacent wall cells.
 
+### Zone material
+
+- Optional opaque square PNG; the Overgrown Lab source is 512×512.
+- A visibly distinct floor treatment from the same architectural family, such
+  as powered inlays or capture hardware—not merely a recolored base floor.
+- Exact top-down view with continuous, mask-safe detail. Do not bake in an
+  outer frame, central emblem, gameplay-cell borders, or an assumed zone size.
+- The renderer fits the material once across the declared zone's bounding
+  region, clips it to the exact zone mask, and adds the theme-colored gameplay
+  tint and exterior pulse. Bots and projectiles must remain legible over it.
+
 ### Palette and registration
 
 Create `web/src/assets/themes/<theme-id>/theme.json` with:
 
 - Stable ID and player-facing label.
-- Floor and wall filenames relative to the manifest.
+- Floor and wall filenames relative to the manifest, plus an optional dedicated
+  zone-floor filename. The renderer maps that material once across the zone's
+  bounding region and clips it to the map's declared zone mask, so irregular
+  zones remain continuous without per-cell borders.
 - Canvas, floor, wall, frame, and objective-zone colors.
 - A `wall` treatment with normalized side depth plus edge, highlight, side-face,
   and silhouette-shadow colors.
@@ -163,7 +177,7 @@ Animations describe recorded events; they do not create events.
 | Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
 | Damage | `Damage` event | Short brightness flash, ring, and radial sparks |
 | Destruction | `Destroyed` event | Collapse/rotation plus expanding sparks |
-| Zone activity | Recorded zone tiles/control state | Continuous themed fill with a pulsing exterior perimeter |
+| Zone activity | Recorded zone tiles/control state | Optional theme-owned floor material, continuous tint, and pulsing exterior perimeter |
 | Fog/vision | Recorded visible tiles/enemies | Existing truthful visibility masks |
 
 Animation timing is expressed inside the current replay tick window. Do not

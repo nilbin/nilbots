@@ -127,10 +127,36 @@ export function drawArena(
     for (const [x, y] of replay.header.zoneTiles)
       zoneShape.rect(px(x), py(y), tile, tile);
 
+    if (
+      theme.zoneTexture?.complete &&
+      theme.zoneTexture.naturalWidth > 0 &&
+      replay.header.zoneTiles.length > 0
+    ) {
+      const xs = replay.header.zoneTiles.map(([x]) => x);
+      const ys = replay.header.zoneTiles.map(([, y]) => y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      ctx.save();
+      ctx.clip(zoneShape);
+      ctx.drawImage(
+        theme.zoneTexture,
+        px(minX),
+        py(minY),
+        tile * (maxX - minX + 1),
+        tile * (maxY - minY + 1),
+      );
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.shadowColor = theme.palette.zone;
     ctx.shadowBlur = Math.max(5, tile * 0.16);
-    ctx.fillStyle = hexWithAlpha(theme.palette.zone, 0.15 * pulse);
+    ctx.fillStyle = hexWithAlpha(
+      theme.palette.zone,
+      (theme.zoneTexture ? 0.07 : 0.15) * pulse,
+    );
     ctx.fill(zoneShape);
     ctx.restore();
 

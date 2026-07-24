@@ -12,6 +12,7 @@ export interface ArenaTheme {
   label: string;
   floorTexture: HTMLImageElement | null;
   wallTexture: HTMLImageElement | null;
+  zoneTexture: HTMLImageElement | null;
   wall: {
     depth: number;
     edge: string;
@@ -35,6 +36,7 @@ interface ThemeManifest {
   textures: {
     floor: string;
     wall: string;
+    zone?: string;
   };
   wall: ArenaTheme['wall'];
   palette: ArenaTheme['palette'];
@@ -120,6 +122,13 @@ function buildThemes(): Map<string, ArenaTheme> {
       `${directory}/${manifest.textures.wall}`,
       manifest.id,
     );
+    const zoneUrl = manifest.textures.zone
+      ? requireAsset(
+          themeImages,
+          `${directory}/${manifest.textures.zone}`,
+          manifest.id,
+        )
+      : undefined;
     if (result.has(manifest.id))
       throw new Error(`Duplicate arena theme ID '${manifest.id}'.`);
     result.set(manifest.id, {
@@ -127,6 +136,7 @@ function buildThemes(): Map<string, ArenaTheme> {
       label: manifest.label,
       floorTexture: loadImage(floorUrl),
       wallTexture: loadImage(wallUrl),
+      zoneTexture: zoneUrl ? loadImage(zoneUrl) : null,
       wall: manifest.wall,
       palette: manifest.palette,
     });

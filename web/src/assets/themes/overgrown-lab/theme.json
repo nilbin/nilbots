@@ -3,7 +3,8 @@
   "label": "Overgrown Lab",
   "textures": {
     "floor": "floor-ceramic-v2.png",
-    "wall": "wall-overgrown-v2.png"
+    "wall": "wall-overgrown-v2.png",
+    "zone": "zone-capture-lattice.png"
   },
   "wall": {
     "depth": 0.17,
