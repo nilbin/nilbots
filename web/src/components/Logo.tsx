@@ -7,8 +7,8 @@ export default function Logo({ size = 22 }: { size?: number }) {
         <path d="M16 7v-4M25 16h4" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
         <circle cx="16" cy="16" r="3" fill="#e2f3ff" />
       </svg>
-      <span className="font-black tracking-[0.2em] uppercase">
-        Bot<span className="text-arena-accent">Arena</span>
+      <span className="font-black tracking-[0.2em]">
+        nil<span className="text-arena-accent">bots</span>
       </span>
     </span>
   );

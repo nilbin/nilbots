@@ -9,7 +9,7 @@ public interface IBot
     BotAction Tick(BotContext context);
 }
 
-/// <summary>Deterministic randomness owned by Bot Arena (plan §6). Never use System.Random.</summary>
+/// <summary>Deterministic randomness owned by nilbots (plan §6). Never use System.Random.</summary>
 public interface IBotRandom
 {
     int NextInt(int minimumInclusive, int maximumExclusive);

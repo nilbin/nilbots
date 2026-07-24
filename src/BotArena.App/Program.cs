@@ -182,7 +182,7 @@ if (mode.RunsCompilerRunner)
     builder.Services.AddHostedService<CompilerRunnerWorker>();
 
 var app = builder.Build();
-app.Logger.LogInformation("Bot Arena starting in {Role} role", mode.Name);
+app.Logger.LogInformation("nilbots starting in {Role} role", mode.Name);
 
 if (mode.RunsMigrations)
 {

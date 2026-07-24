@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strip a Bot Arena viewer.html down to embed-ready page content.
+"""Strip a nilbots viewer.html down to embed-ready page content.
 
 Artifact hosts wrap published files in their own <head>/<body> skeleton, so a
 full HTML document nests badly. viewer.html keeps every asset (styles, scripts,

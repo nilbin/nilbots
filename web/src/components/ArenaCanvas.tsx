@@ -80,7 +80,7 @@ export default function ArenaCanvas({
       onClick={handleClick}
       className="h-full w-full cursor-pointer"
       role="img"
-      aria-label="Bot Arena match playback"
+      aria-label="nilbots match playback"
     />
   );
 }

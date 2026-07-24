@@ -1,4 +1,4 @@
-# Bot Arena images. `runtime` serves web/match/migrate/coordinator roles without
+# nilbots images. `runtime` serves web/match/migrate/coordinator roles without
 # a compiler; `compiler` adds the pinned C#→WASM toolchain and runs entirely as
 # the unprivileged botbuild account.
 

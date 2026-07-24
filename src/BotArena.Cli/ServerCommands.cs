@@ -54,7 +54,7 @@ public sealed record StoredCredentials(
         TryRun("secret-tool", $"lookup service {SecretService}", null);
 
     private static bool SecretToolStore(string secret) =>
-        TryRun("secret-tool", $"store --label \"Bot Arena CLI\" service {SecretService}", secret) is not null;
+        TryRun("secret-tool", $"store --label \"nilbots CLI\" service {SecretService}", secret) is not null;
 
     private static string? TryRun(string file, string arguments, string? stdin)
     {

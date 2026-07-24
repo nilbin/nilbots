@@ -4,7 +4,7 @@ This is the canonical shared agent guide for both Claude Code and Codex.
 Claude Code reads it directly; Codex is directed here by `AGENTS.md`. The
 workflow playbooks under `.claude/skills/` are shared in the same way.
 
-Bot Arena: a programming game — C# bots compiled to WebAssembly fight in a
+nilbots: a programming game — C# bots compiled to WebAssembly fight in a
 deterministic tile arena. `docs/PLAN-SUMMARY.md` holds the roadmap and phase
 status; `docs/DECISIONS.md` is the numbered log of every decision made where
 the plan left choices open (cite/extend it when making new ones).

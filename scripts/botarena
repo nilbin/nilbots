@@ -9,7 +9,7 @@ cli_project="$repo_dir/src/BotArena.Cli/BotArena.Cli.csproj"
 cli_dll="$repo_dir/src/BotArena.Cli/bin/Debug/net10.0/botarena.dll"
 
 if [ ! -f "$cli_dll" ]; then
-  echo "Bot Arena CLI is not built; building it once..." >&2
+  echo "nilbots CLI is not built; building it once..." >&2
   dotnet build "$cli_project" -v q >&2
 fi
 

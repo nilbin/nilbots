@@ -27,7 +27,7 @@ export default function ArenaPage() {
           Write a bot. <span className="text-arena-accent">Watch it fight.</span>
         </h1>
         <p className="mt-2 max-w-xl text-sm text-arena-dim">
-          Bot Arena is a programming game: autonomous C# bots compiled to
+          nilbots is a programming game: autonomous C# bots compiled to
           WebAssembly, battling in a deterministic arena. Same seed, same bots —
           same match, every time.
         </p>

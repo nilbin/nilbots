@@ -1,4 +1,4 @@
-# Nilbots deployment and scaling plan
+# nilbots deployment and scaling plan
 
 Status: public-beta single-VPS path implemented; external object storage and
 additional VPSs remain measured promotion steps.
@@ -7,7 +7,7 @@ Last updated: 2026-07-24.
 
 ## Goal
 
-Launch Nilbots cheaply on one Ubuntu VPS without creating a single-machine
+Launch nilbots cheaply on one Ubuntu VPS without creating a single-machine
 dead end. The system should be able to grow into several VPSs, more workers,
 and more web instances through deliberate deployment changes rather than a
 rewrite.
@@ -490,7 +490,7 @@ PostgreSQL, and object storage can each remain a single failure point.
 - A full observability platform before basic metrics and logs prove inadequate
 
 Each may become reasonable later, but none is required to reach a healthy
-multi-VPS Nilbots deployment.
+multi-VPS nilbots deployment.
 
 ## References
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure combat activity and repetition from canonical Bot Arena replays.
+"""Measure combat activity and repetition from canonical nilbots replays.
 
 Outcome tables answer who won. This script answers whether the games moved,
 changed, and created visible pressure. It is intentionally cohort-aware:

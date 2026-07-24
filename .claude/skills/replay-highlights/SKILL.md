@@ -1,6 +1,6 @@
 ---
 name: replay-highlights
-description: Build and publish selected Bot Arena viewer.html files as a phone-friendly replay gallery. Use when a user asks to share, host, publish, or open replay highlights on another device, especially when local file links show HTML source.
+description: Build and publish selected nilbots viewer.html files as a phone-friendly replay gallery. Use when a user asks to share, host, publish, or open replay highlights on another device, especially when local file links show HTML source.
 ---
 
 # Replay Highlights

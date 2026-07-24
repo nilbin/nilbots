@@ -32,7 +32,7 @@ generate_certificate() {
   local key_usage="$2"
   local output="$3"
   openssl req -x509 -newkey rsa:3072 -sha256 -days 3650 -nodes \
-    -subj "/CN=BotArena $purpose" \
+    -subj "/CN=nilbots $purpose" \
     -addext "keyUsage=critical,$key_usage" \
     -keyout "$certificate_tmp/$purpose.key" \
     -out "$certificate_tmp/$purpose.crt" >/dev/null 2>&1

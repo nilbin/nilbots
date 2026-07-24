@@ -83,12 +83,18 @@ public static class BuiltInBotSeeder
         {
             system = new User
             {
-                DisplayName = "Bot Arena",
-                Email = "system@botarena.local",
+                DisplayName = "nilbots",
+                Email = "system@nilbots.local",
                 PasswordHash = "!locked",
                 IsSystem = true,
             };
             db.Users.Add(system);
+        }
+        else
+        {
+            system.DisplayName = "nilbots";
+            if (system.Email == "system@botarena.local")
+                system.Email = "system@nilbots.local";
         }
         return system;
     }

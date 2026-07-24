@@ -1,6 +1,6 @@
 # BOTNAME
 
-A Bot Arena bot. Edit `BOTNAME.cs`, then:
+A nilbots bot. Edit `BOTNAME.cs`, then:
 
 If `botarena` is not installed globally, expose the checkout's fast wrapper
 once per shell from the repository root:

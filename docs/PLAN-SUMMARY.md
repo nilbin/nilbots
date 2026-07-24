@@ -1,4 +1,4 @@
-# Bot Arena — plan summary and status
+# nilbots — plan summary and status
 
 Condensed from the full product/implementation plan (drafted with Sol, 2026-07).
 This file exists so a fresh working session can continue without the original
@@ -105,7 +105,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   Docker Compose, commit-tagged images, provisioned certificates, a one-shot
   migration, and backup/deploy runbooks. The S3-compatible backend and
   public-submission hardening remain gates before multi-VPS/public operation.
-- `web/` — one React build, two modes: the Bot Arena site (router) and the
+- `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into.
 - `tests/` — engine, determinism, and WASM contract suites (195 tests, incl.
   DocDriftTests pinning docs/mirrors to the engine).

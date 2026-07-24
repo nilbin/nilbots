@@ -139,7 +139,7 @@ jobs:
           COMPILER_REF: ${{ steps.refs.outputs.compiler-ref }}
         run: |
           {
-            echo "## Nilbots release"
+            echo "## nilbots release"
             echo
             echo "- Git: \`${GITHUB_SHA}\`"
             echo "- Runtime: \`${RUNTIME_REF}\`"

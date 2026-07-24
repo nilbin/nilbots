@@ -9,7 +9,7 @@ public sealed record WasmArtifactValidation(
     IReadOnlyList<string> Imports);
 
 /// <summary>
-/// Rejects modules outside the narrow Nilbots ABI before they enter object
+/// Rejects modules outside the narrow nilbots ABI before they enter object
 /// storage. Wasmtime remains the execution sandbox; this validator reduces the
 /// exposed capability and compatibility surface.
 /// </summary>
@@ -75,7 +75,7 @@ public static class WasmArtifactValidator
                     postDecision = true;
                     continue;
                 }
-                throw new InvalidDataException($"Unsupported Nilbots ABI import: {import}.");
+                throw new InvalidDataException($"Unsupported nilbots ABI import: {import}.");
             }
 
             if (import.ModuleName != "wasi_snapshot_preview1" ||
@@ -86,7 +86,7 @@ public static class WasmArtifactValidator
         }
 
         if (!nextObservation || !postDecision)
-            throw new InvalidDataException("WASM artifact does not import the complete Nilbots ABI.");
+            throw new InvalidDataException("WASM artifact does not import the complete nilbots ABI.");
 
         FunctionExport? start = module.Exports
             .OfType<FunctionExport>()
@@ -114,4 +114,3 @@ public static class WasmArtifactValidator
         function.Parameters.SequenceEqual(parameters) &&
         function.Results.SequenceEqual(results);
 }
-

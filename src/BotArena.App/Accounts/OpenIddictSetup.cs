@@ -116,14 +116,24 @@ public static class OpenIddictSetup
     public static async Task SeedClientAsync(IServiceProvider services)
     {
         var manager = services.GetRequiredService<IOpenIddictApplicationManager>();
-        if (await manager.FindByClientIdAsync(CliClientId) is not null)
+        const string displayName = "nilbots CLI";
+        if (await manager.FindByClientIdAsync(CliClientId) is { } application)
+        {
+            var existing = new OpenIddictApplicationDescriptor();
+            await manager.PopulateAsync(existing, application);
+            if (existing.DisplayName?.ToString() != displayName)
+            {
+                existing.DisplayName = displayName;
+                await manager.UpdateAsync(application, existing);
+            }
             return;
+        }
         var descriptor = new OpenIddictApplicationDescriptor
         {
             ClientId = CliClientId,
             ClientType = ClientTypes.Public,
             ConsentType = ConsentTypes.Implicit,
-            DisplayName = "Bot Arena CLI",
+            DisplayName = displayName,
             Permissions =
             {
                 Permissions.Endpoints.Authorization,
@@ -177,7 +187,7 @@ public static class OpenIddictSetup
 
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(
-            $"CN=BotArena {purpose}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            $"CN=nilbots {purpose}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(
             purpose == "signing" ? X509KeyUsageFlags.DigitalSignature : X509KeyUsageFlags.KeyEncipherment,
             critical: true));

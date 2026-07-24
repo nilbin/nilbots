@@ -1,4 +1,4 @@
-# Bot Arena
+# nilbots
 
 A programming game: write an autonomous bot in C#, compile it to WebAssembly,
 and watch it fight in a deterministic top-down arena — locally first, on a

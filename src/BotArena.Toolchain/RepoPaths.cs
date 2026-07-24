@@ -28,7 +28,7 @@ public static class RepoPaths
             return root;
         string guest = FindUpward(Path.Combine("src", "BotArena.Guest", "BotArena.Guest.csproj"))
             ?? throw new InvalidOperationException(
-                "Bot Arena toolchain not found (src/BotArena.Guest missing above the current " +
+                "nilbots toolchain not found (src/BotArena.Guest missing above the current " +
                 "directory) — set BOTARENA_ROOT to the checkout root.");
         return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(guest)!, "..", ".."));
     }

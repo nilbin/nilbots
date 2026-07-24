@@ -7,7 +7,7 @@ Usage:
 The viewer directory may contain gallery.json:
 
 {
-  "title": "Nilbots Gen-8 highlights",
+  "title": "nilbots Gen-8 highlights",
   "subtitle": "Four tournament moments.",
   "replays": [
     {
@@ -34,8 +34,8 @@ from pathlib import Path
 
 
 REPLAY_MARKER = "window.__BOTARENA_REPLAY__"
-DEFAULT_TITLE = "Nilbots replay highlights"
-DEFAULT_SUBTITLE = "Self-contained Bot Arena replays. Tap one to watch."
+DEFAULT_TITLE = "nilbots replay highlights"
+DEFAULT_SUBTITLE = "Self-contained nilbots replays. Tap one to watch."
 WORKER = """export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -113,7 +113,7 @@ def load_gallery(viewer_dir: Path) -> tuple[str, str, list[ReplayCard]]:
             source=viewer,
             filename=viewer.name,
             title=display_title(viewer.name),
-            description="Self-contained Bot Arena replay.",
+            description="Self-contained nilbots replay.",
         )
         for viewer in viewers
     ]

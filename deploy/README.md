@@ -1,4 +1,4 @@
-# Nilbots production deployment
+# nilbots production deployment
 
 This directory is the public-beta, single-VPS production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):

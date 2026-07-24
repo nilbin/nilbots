@@ -3,7 +3,7 @@ using System.Text;
 namespace BotArena.Engine;
 
 /// <summary>
-/// The Bot Arena-owned PRNG (plan §6): SplitMix64. Pure 64-bit integer arithmetic, so the
+/// The nilbots-owned PRNG (plan §6): SplitMix64. Pure 64-bit integer arithmetic, so the
 /// stream is identical on every OS, architecture and .NET runtime. The algorithm is pinned
 /// by the game-rules version; changing it requires a new rules version.
 /// </summary>

@@ -50,7 +50,7 @@ catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundExcept
 static int Help(int exitCode = 1)
 {
     Console.WriteLine("""
-        Bot Arena CLI (prototype)
+        nilbots CLI (prototype)
 
         Usage:
           botarena new <Name>                     create a bot project
