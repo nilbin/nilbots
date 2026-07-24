@@ -132,7 +132,7 @@ namespace BotArena.App.Migrations
                     b.Property<string>("ArtifactHash")
                         .HasColumnType("text");
 
-                    b.Property<string>("ArtifactPath")
+                    b.Property<string>("ArtifactKey")
                         .HasColumnType("text");
 
                     b.Property<Guid>("BotId")
@@ -140,6 +140,9 @@ namespace BotArena.App.Migrations
 
                     b.Property<string>("BuildLog")
                         .HasColumnType("text");
+
+                    b.Property<string>("BuildReceiptJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<DateTime?>("BuiltAt")
                         .HasColumnType("timestamp with time zone");
@@ -182,6 +185,10 @@ namespace BotArena.App.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("SubmissionNetworkHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<int>("VersionNumber")
                         .HasColumnType("integer");
 
@@ -189,6 +196,8 @@ namespace BotArena.App.Migrations
 
                     b.HasIndex("BotId", "VersionNumber")
                         .IsUnique();
+
+                    b.HasIndex("SubmissionNetworkHash", "CreatedAt");
 
                     b.ToTable("BotVersions");
                 });
@@ -215,6 +224,10 @@ namespace BotArena.App.Migrations
 
                     b.Property<string>("LastError")
                         .HasColumnType("text");
+
+                    b.Property<string>("LockedBy")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
 
                     b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("timestamp with time zone");
@@ -283,7 +296,7 @@ namespace BotArena.App.Migrations
                     b.Property<string>("ReplayHash")
                         .HasColumnType("text");
 
-                    b.Property<string>("ReplayPath")
+                    b.Property<string>("ReplayKey")
                         .HasColumnType("text");
 
                     b.Property<string>("RuntimeConfigurationVersion")
@@ -429,6 +442,25 @@ namespace BotArena.App.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.ToTable("MatchSets");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

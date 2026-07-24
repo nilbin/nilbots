@@ -15,3 +15,8 @@ artifacts/wasm/*
 out/
 sandbox/
 var/
+deploy/.env
+deploy/release.env
+deploy/release.previous.env
+deploy/secrets/
+deploy/backups/

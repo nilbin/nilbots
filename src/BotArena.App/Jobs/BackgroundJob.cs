@@ -20,6 +20,7 @@ public class BackgroundJob
     public int Attempts { get; set; }
     public DateTime AvailableAt { get; set; } = DateTime.UtcNow;
     public DateTime? LockedUntil { get; set; }
+    public string? LockedBy { get; set; }
     public string? LastError { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }

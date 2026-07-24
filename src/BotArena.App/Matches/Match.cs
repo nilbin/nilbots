@@ -21,7 +21,7 @@ public class Match
     public int? WinnerSlot { get; set; }
     public string? EndReason { get; set; }
     public int? EndTick { get; set; }
-    public string? ReplayPath { get; set; }
+    public string? ReplayKey { get; set; }
     public string? ReplayHash { get; set; }
     public string? Error { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

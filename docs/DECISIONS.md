@@ -835,6 +835,41 @@ configuration) and changing them is a version bump, not an edit.
     while safety, deterministic verification, and replay integrity remain
     non-overridable hard gates.
 
+76. **Deployment scales by explicit modular-monolith roles, stable object keys,
+    and measured promotion gates—not by introducing distributed architecture
+    early.** `BotArena.App` now runs as `web`, `compile-worker`,
+    `match-worker`, one-shot `migrate`, or local-only `all`; all roles share
+    PostgreSQL and the same domain model. The PostgreSQL job queue remains the
+    coordinator. Artifacts and replays use stable keys through `IObjectStore`,
+    starting on a local persistent volume and requiring an S3-compatible
+    backend before workers span VPSs. Production uses Caddy, commit-tagged
+    Docker Compose images, provisioned OpenIddict certificates, PostgreSQL
+    Data Protection keys, and exactly one global match worker until ranked-set
+    finalization is transactionally safe under concurrency. Compiler workers
+    may scale first, but public untrusted submissions remain gated on vendored
+    build inputs, disabled outbound build networking, and hostile-resource
+    tests. No broker, microservices, Kubernetes, shared network filesystem, or
+    database cluster is introduced without measurements that justify it.
+
+77. **The first internet launch is a bounded public beta with manual releases
+    and a same-VPS, networkless compiler runner.** GitHub Actions runs only
+    through `workflow_dispatch`; `verify`, `publish`, and
+    `publish-and-deploy` make free-tier usage intentional. Releases produce
+    separate runtime and compiler images in GHCR, tagged by the full Git SHA,
+    deployed by digest, and accompanied by SBOM and GitHub provenance
+    attestations. The networked compile role is a database/object coordinator;
+    an unprivileged sidecar consumes a filesystem queue with no network,
+    application secrets, or Docker socket and with read-only/cgroup/tmpfs/
+    process/file limits. PostgreSQL admission locks make account, hashed
+    network, account-queue, and global-queue compiler quotas durable across web
+    replicas; network pseudonyms use a server-secret HMAC rather than a
+    reversible plain IPv4 hash. Successful output must pass a WASM
+    import/export/memory contract check before storage, after which its hash,
+    build receipt, and artifact are public while source and logs remain
+    private. Registration is public from launch; a dedicated compiler VPS and
+    external S3-compatible objects remain measured scaling/defense-in-depth
+    promotions, not prerequisites.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
