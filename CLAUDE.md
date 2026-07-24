@@ -60,7 +60,9 @@ export DOTNET_ROOT=/opt/dotnet PATH="$PATH:/root/.dotnet/tools"
 cd src/BotArena.App && dotnet ef migrations add <Name>
 ```
 
-Deployment for pilots: `docker compose up -d --build` (app + postgres).
+Deployment for local pilots: `docker compose up -d --build` (app + postgres).
+Internet-facing deployment: follow `deploy/README.md`; production uses
+explicit roles, a one-shot migration container, and Caddy.
 
 ## Architecture
 
@@ -87,9 +89,20 @@ Project boundaries that must not be violated:
   so `BuildIsolation` can run it as the unprivileged `botbuild` user.
 - **BotArena.App** is a modular monolith (feature folders: Accounts, Bots,
   Matches, Jobs). Modules talk in-process; durable work goes through the
-  `BackgroundJobs` table consumed by the single `JobWorker` (claims via
-  `FOR UPDATE SKIP LOCKED`; set finalization is race-free only because there
-  is one worker). No message broker, no microservices — plan §2 forbids them.
+  `BackgroundJobs` table claimed via `FOR UPDATE SKIP LOCKED`. Deployment
+  roles are selected with `BOTARENA_ROLE`: `web`, `compile-worker`,
+  `match-worker`, `migrate`, or local-only `all`. Production runs exactly one
+  match worker because ranked-set finalization is not yet safe for concurrent
+  match consumers; compile workers may scale independently. There is still no
+  message broker or microservice boundary.
+- Durable artifacts and replays are addressed by stable object keys through
+  `IObjectStore`; database rows must never regain machine-local paths. The
+  first-VPS backend is a local persistent volume. Add an S3-compatible backend
+  before workers span hosts.
+- Production web processes never migrate or seed. `BOTARENA_ROLE=migrate`
+  performs the one-shot deployment bootstrap. ASP.NET Data Protection keys
+  live in PostgreSQL, and production OpenIddict certificates are provisioned
+  shared secrets rather than generated independently by each process.
 
 Runtime protocol 0.1 is a line-oriented text protocol over two wasm imports
 (`botarena::next_observation` / `post_decision`). Host and guest halves live in

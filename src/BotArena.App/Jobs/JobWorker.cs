@@ -1,6 +1,8 @@
+using System.Text;
 using BotArena.App.Bots;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.App.Storage;
 using BotArena.Engine;
 using BotArena.Runtime.Wasm;
 using BotArena.Toolchain;
@@ -14,18 +16,24 @@ namespace BotArena.App.Jobs;
 /// Bot execution is already sandboxed by the WASM runtime, so no extra process
 /// isolation is needed for matches; compilation runs dotnet in a child process.
 ///
-/// Jobs run in typed lanes (DECISIONS #42): exactly ONE match lane — set
-/// finalization is race-free only because match jobs have a single consumer —
-/// plus BOTARENA_COMPILE_WORKERS compile lanes (default 1), so a 3-minute
-/// NativeAOT compile never blocks match execution and concurrent submissions
-/// compile in parallel (BotBuilder serializes same-cache-key builds across
-/// threads and processes).
+/// Jobs run in deployment-selected typed lanes (DECISIONS #42): exactly ONE
+/// global match worker until set finalization is concurrency-safe, plus
+/// independently scalable compile workers. BotBuilder serializes identical
+/// cache-key builds within a host; content-addressed object storage keeps
+/// cross-host duplicate builds correct.
 /// </summary>
-public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWorker> logger)
+public sealed class JobWorker(
+    IServiceScopeFactory scopeFactory,
+    IObjectStore objectStore,
+    ApplicationMode mode,
+    ILogger<JobWorker> logger)
     : BackgroundService
 {
+    private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan LeaseRefreshInterval = TimeSpan.FromMinutes(1);
     private static readonly int CompileWorkers =
         ReadEnv("BOTARENA_COMPILE_WORKERS", fallback: 1, min: 1, max: 8);
+    private readonly string workerId = ResolveWorkerId();
 
     /// <summary>Presentation pacing (plan §28). Production default: 5 ticks/s after a
     /// 3 s countdown. Eval/CI deployments crank BOTARENA_BROADCAST_TPS so harnesses
@@ -54,11 +62,24 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation(
-            "Job worker started: 1 match lane, {CompileWorkers} compile lane(s), broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
-            CompileWorkers, BroadcastTicksPerSecond, BroadcastDelaySeconds, MatchRules.RulesVersion);
-        var lanes = new List<Task> { RunLane(BackgroundJob.ExecuteMatchType, stoppingToken) };
-        for (int i = 0; i < CompileWorkers; i++)
-            lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
+            "Job worker {WorkerId} started in {Role} role: match={Match}, compile={CompileWorkers}, broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
+            workerId,
+            mode.Name,
+            mode.RunsMatchWorker,
+            mode.RunsCompileWorker ? CompileWorkers : 0,
+            BroadcastTicksPerSecond,
+            BroadcastDelaySeconds,
+            MatchRules.RulesVersion);
+        var lanes = new List<Task>();
+        if (mode.RunsMatchWorker)
+            lanes.Add(RunLane(BackgroundJob.ExecuteMatchType, stoppingToken));
+        if (mode.RunsCompileWorker)
+        {
+            for (int i = 0; i < CompileWorkers; i++)
+                lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
+        }
+        if (lanes.Count == 0)
+            throw new InvalidOperationException($"Role '{mode.Name}' has no background job lanes.");
         await Task.WhenAll(lanes);
     }
 
@@ -90,7 +111,10 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
 
         var jobs = await db.BackgroundJobs
             .FromSqlRaw("""
-                UPDATE "BackgroundJobs" SET "Status" = 'Running', "LockedUntil" = now() + interval '10 minutes'
+                UPDATE "BackgroundJobs"
+                SET "Status" = 'Running',
+                    "LockedUntil" = now() + interval '10 minutes',
+                    "LockedBy" = {1}
                 WHERE "Id" = (
                     SELECT "Id" FROM "BackgroundJobs"
                     WHERE "Type" = {0}
@@ -100,7 +124,7 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                     LIMIT 1
                     FOR UPDATE SKIP LOCKED)
                 RETURNING *
-                """, jobType)
+                """, jobType, workerId)
             .AsNoTracking()
             .ToListAsync(cancellationToken);   // ToList: no SQL composition over UPDATE..RETURNING
         var job = jobs.FirstOrDefault();
@@ -108,24 +132,43 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
             return false;
 
         logger.LogInformation("Running job {JobId} ({Type})", job.Id, job.Type);
+        using var workCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task leaseHeartbeat = KeepLease(job.Id, workCancellation);
         try
         {
             switch (job.Type)
             {
                 case BackgroundJob.CompileSubmissionType:
-                    await CompileSubmission(db, job.PayloadId("botVersionId"), cancellationToken);
+                    await CompileSubmission(db, job.PayloadId("botVersionId"), workCancellation.Token);
                     break;
                 case BackgroundJob.ExecuteMatchType:
-                    await ExecuteMatch(db, job.PayloadId("matchId"), cancellationToken);
+                    await ExecuteMatch(db, job.PayloadId("matchId"), workCancellation.Token);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown job type '{job.Type}'.");
             }
-            await db.BackgroundJobs
-                .Where(j => j.Id == job.Id)
+            int completed = await db.BackgroundJobs
+                .Where(j => j.Id == job.Id && j.LockedBy == workerId)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(j => j.Status, JobStatus.Completed)
-                    .SetProperty(j => j.CompletedAt, DateTime.UtcNow), cancellationToken);
+                    .SetProperty(j => j.CompletedAt, DateTime.UtcNow)
+                    .SetProperty(j => j.LockedUntil, (DateTime?)null)
+                    .SetProperty(j => j.LockedBy, (string?)null)
+                    .SetProperty(j => j.LastError, (string?)null), workCancellation.Token);
+            if (completed == 0)
+                throw new InvalidOperationException($"Job {job.Id} lease was lost before completion.");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException) when (workCancellation.IsCancellationRequested)
+        {
+            logger.LogWarning(
+                "Stopped job {JobId} ({Type}) after worker {WorkerId} lost its lease",
+                job.Id,
+                job.Type,
+                workerId);
         }
         catch (Exception ex)
         {
@@ -133,19 +176,79 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
             int attempts = job.Attempts + 1;
             bool retry = attempts < 3;
             await db.BackgroundJobs
-                .Where(j => j.Id == job.Id)
+                .Where(j => j.Id == job.Id && j.LockedBy == workerId)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(j => j.Status, retry ? JobStatus.Pending : JobStatus.Failed)
                     .SetProperty(j => j.Attempts, attempts)
                     .SetProperty(j => j.AvailableAt, DateTime.UtcNow.AddSeconds(10))
+                    .SetProperty(j => j.LockedUntil, (DateTime?)null)
+                    .SetProperty(j => j.LockedBy, (string?)null)
                     .SetProperty(j => j.LastError, ex.Message), CancellationToken.None);
         }
+        finally
+        {
+            workCancellation.Cancel();
+            await leaseHeartbeat;
+        }
         return true;
+    }
+
+    private async Task KeepLease(long jobId, CancellationTokenSource workCancellation)
+    {
+        try
+        {
+            while (!workCancellation.IsCancellationRequested)
+            {
+                await Task.Delay(LeaseRefreshInterval, workCancellation.Token);
+                try
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    int renewed = await db.BackgroundJobs
+                        .Where(j => j.Id == jobId &&
+                                    j.Status == JobStatus.Running &&
+                                    j.LockedBy == workerId)
+                        .ExecuteUpdateAsync(s => s.SetProperty(
+                            j => j.LockedUntil,
+                            DateTime.UtcNow.Add(LeaseDuration)), workCancellation.Token);
+                    if (renewed == 0)
+                    {
+                        logger.LogWarning("Worker {WorkerId} lost lease for job {JobId}", workerId, jobId);
+                        workCancellation.Cancel();
+                        return;
+                    }
+                }
+                catch (OperationCanceledException) when (workCancellation.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    // The ten-minute lease leaves several retry opportunities
+                    // before another worker can reclaim the job.
+                    logger.LogWarning(
+                        ex,
+                        "Worker {WorkerId} could not refresh lease for job {JobId}",
+                        workerId,
+                        jobId);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (workCancellation.IsCancellationRequested)
+        {
+        }
     }
 
     private async Task CompileSubmission(AppDbContext db, Guid versionId, CancellationToken cancellationToken)
     {
         var version = await db.BotVersions.SingleAsync(v => v.Id == versionId, cancellationToken);
+        if (version.Status == BuildStatus.Built &&
+            version.ArtifactKey is { } existingKey &&
+            await objectStore.ExistsAsync(existingKey, cancellationToken))
+        {
+            return;
+        }
+
         version.Status = BuildStatus.Building;
         await db.SaveChangesAsync(cancellationToken);
 
@@ -155,10 +258,10 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
             var built = BotBuilder.BuildFromSources(sources, version.EntryType, $"version {version.VersionNumber}", quiet: true);
             SmokeTest(built.WasmPath);
 
-            string stored = Path.Combine(DataPaths.Artifacts, built.ArtifactHash + ".wasm");
-            if (!File.Exists(stored))
-                File.Copy(built.WasmPath, stored);
-            version.ArtifactPath = stored;
+            string artifactKey = ObjectKeys.Artifact(built.ArtifactHash);
+            await using (var stream = File.OpenRead(built.WasmPath))
+                await objectStore.PutAsync(artifactKey, stream, built.ArtifactHash, cancellationToken);
+            version.ArtifactKey = artifactKey;
             version.ArtifactHash = built.ArtifactHash;
             version.Status = BuildStatus.Built;
             version.BuiltAt = DateTime.UtcNow;
@@ -172,6 +275,10 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
             foreach (var sibling in siblings)
                 sibling.IsActive = false;
             version.IsActive = true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (BotBuildException ex)
         {
@@ -237,10 +344,20 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                     .Select(s => s.RulesName).SingleAsync(cancellationToken) is { Length: > 0 } pinned)
                 rules = GameRules.Resolve(pinned);
 
+            var modulePaths = new List<string>();
+            foreach (var version in versions)
+            {
+                if (version.ArtifactKey is null || version.ArtifactHash is null)
+                    throw new InvalidOperationException($"Bot version {version.Id} has no built artifact.");
+                modulePaths.Add(await objectStore.MaterializeAsync(
+                    version.ArtifactKey,
+                    version.ArtifactHash,
+                    cancellationToken));
+            }
             var runtimes = versions
-                .Select(v => new WasmBotRuntime(new WasmRuntimeOptions
+                .Select((v, index) => new WasmBotRuntime(new WasmRuntimeOptions
                 {
-                    ModulePath = v.ArtifactPath!,
+                    ModulePath = modulePaths[index],
                     BotName = v.GuestBotName ?? "",
                 }))
                 .ToList();
@@ -261,10 +378,16 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                     }).ToArray(),
                 });
 
-                string replayPath = Path.Combine(DataPaths.Replays, match.Id + ".json");
-                await File.WriteAllTextAsync(replayPath, ReplaySerializer.ToJson(run.Replay), cancellationToken);
+                string replayKey = ObjectKeys.Replay(match.Id);
+                byte[] replayBytes = Encoding.UTF8.GetBytes(ReplaySerializer.ToJson(run.Replay));
+                await using (var replay = new MemoryStream(replayBytes, writable: false))
+                    await objectStore.PutAsync(
+                        replayKey,
+                        replay,
+                        expectedSha256: null,
+                        cancellationToken: cancellationToken);
 
-                match.ReplayPath = replayPath;
+                match.ReplayKey = replayKey;
                 match.ReplayHash = run.ReplayHash;
                 match.GameRulesVersion = rules.RulesVersion; // actual, not creation-time default
                 match.WinnerSlot = run.Result.WinnerSlot;
@@ -289,6 +412,10 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
                 foreach (var runtime in runtimes)
                     runtime.Dispose();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -378,4 +505,13 @@ public sealed class JobWorker(IServiceScopeFactory scopeFactory, ILogger<JobWork
 
     private static string Tail(string text, int maxChars) =>
         text.Length <= maxChars ? text : text[^maxChars..];
+
+    private static string ResolveWorkerId()
+    {
+        string configured = Environment.GetEnvironmentVariable("BOTARENA_INSTANCE_ID") ?? "";
+        string value = string.IsNullOrWhiteSpace(configured)
+            ? $"{Environment.MachineName}:{Environment.ProcessId}:{Guid.NewGuid():N}"
+            : configured.Trim();
+        return value.Length <= 160 ? value : value[..160];
+    }
 }

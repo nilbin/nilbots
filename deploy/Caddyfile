@@ -1,0 +1,20 @@
+{$BOTARENA_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		-X-Powered-By
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	reverse_proxy web:8080 {
+		health_uri /health/ready
+		health_interval 15s
+		health_timeout 3s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

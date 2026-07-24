@@ -1,0 +1,162 @@
+name: botarena
+
+x-database-environment: &database-environment
+  BOTARENA_DB: "Host=db;Database=botarena;Username=botarena;Password=${POSTGRES_PASSWORD}"
+  BOTARENA_DATA: "/data"
+  ASPNETCORE_ENVIRONMENT: "Production"
+
+x-runtime-build: &runtime-build
+  context: ..
+  target: runtime
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: botarena
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: botarena
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botarena -d botarena"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    shm_size: 256mb
+
+  migrate:
+    platform: linux/amd64
+    image: "botarena-runtime:${BOTARENA_IMAGE_TAG:-local}"
+    build: *runtime-build
+    environment:
+      <<: *database-environment
+      BOTARENA_ROLE: "migrate"
+    volumes:
+      - objectdata:/data
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    platform: linux/amd64
+    image: "botarena-runtime:${BOTARENA_IMAGE_TAG:-local}"
+    build: *runtime-build
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      BOTARENA_ROLE: "web"
+      BOTARENA_TRUST_FORWARDED_HEADERS: "true"
+      BOTARENA_OPENIDDICT_SIGNING_CERT: "/run/botarena-secrets/openiddict-signing.pfx"
+      BOTARENA_OPENIDDICT_ENCRYPTION_CERT: "/run/botarena-secrets/openiddict-encryption.pfx"
+      BOTARENA_OPENIDDICT_CERT_PASSWORD: "${BOTARENA_OPENIDDICT_CERT_PASSWORD}"
+    volumes:
+      - objectdata:/data:ro
+      - ./secrets:/run/botarena-secrets:ro
+    networks:
+      - edge
+      - backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: "${BOTARENA_WEB_MEMORY:-768m}"
+
+  match-worker:
+    platform: linux/amd64
+    image: "botarena-runtime:${BOTARENA_IMAGE_TAG:-local}"
+    build: *runtime-build
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      BOTARENA_ROLE: "match-worker"
+      BOTARENA_INSTANCE_ID: "${BOTARENA_MATCH_INSTANCE_ID:-match-1}"
+      BOTARENA_BROADCAST_TPS: "${BOTARENA_BROADCAST_TPS:-5}"
+      BOTARENA_BROADCAST_DELAY_SECONDS: "${BOTARENA_BROADCAST_DELAY_SECONDS:-3}"
+    volumes:
+      - objectdata:/data
+    networks:
+      - backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: "${BOTARENA_MATCH_MEMORY:-1g}"
+    stop_grace_period: 2m
+
+  compile-worker:
+    platform: linux/amd64
+    image: "botarena-compiler:${BOTARENA_IMAGE_TAG:-local}"
+    build:
+      context: ..
+      target: compiler
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      BOTARENA_ROLE: "compile-worker"
+      BOTARENA_INSTANCE_ID: "${BOTARENA_COMPILE_INSTANCE_ID:-compile-1}"
+      BOTARENA_COMPILE_WORKERS: "${BOTARENA_COMPILE_WORKERS:-1}"
+      WASI_SDK_PATH: "/opt/botarena/wasi-sdk-29.0"
+    volumes:
+      - objectdata:/data
+      - buildcache:/root/.botarena
+      - botbuildhome:/var/lib/botbuild
+    networks:
+      - backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    init: true
+    pids_limit: 768
+    mem_limit: "${BOTARENA_COMPILE_MEMORY:-3g}"
+    cpus: "${BOTARENA_COMPILE_CPUS:-3}"
+    stop_grace_period: 5m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      BOTARENA_DOMAIN: "${BOTARENA_DOMAIN}"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    networks:
+      - edge
+    depends_on:
+      web:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  dbdata:
+  objectdata:
+  buildcache:
+  botbuildhome:
+  caddydata:
+  caddyconfig:
+
+networks:
+  edge:
+  backend:

@@ -1,6 +1,5 @@
-# Pilot deployment: `docker compose up -d --build`, then open http://<host>:8080.
-# Put a TLS reverse proxy (Caddy/Traefik/nginx) in front before inviting friends
-# over the public internet.
+# Local/pilot deployment: `docker compose up -d --build`, then open :8080.
+# Internet-facing production uses deploy/compose.production.yml.
 services:
   db:
     image: postgres:16
@@ -17,15 +16,20 @@ services:
       retries: 10
 
   app:
-    build: .
+    platform: linux/amd64
+    build:
+      context: .
+      target: compiler
     ports:
       - "8080:8080"
     environment:
       BOTARENA_DB: "Host=db;Database=botarena;Username=botarena;Password=botarena"
+      BOTARENA_ROLE: "all"
     volumes:
       - appdata:/data
       - buildcache:/root/.botarena
       - botbuildhome:/var/lib/botbuild
+    init: true
     depends_on:
       db:
         condition: service_healthy

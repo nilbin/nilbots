@@ -81,7 +81,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
 
-## What exists in this repo (2026-07-23)
+## What exists in this repo (2026-07-24)
 
 - `src/BotArena.Engine` — pure engine: rules, maps, FOV, RNG, tick resolution,
   replay + SHA-256 hash. No web/DB/WASM dependencies.
@@ -97,9 +97,14 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 - `src/BotArena.Cli` — `new` / `build` (cached) / `play` / `watch` / `replay` /
   `verify` / `doctor` / `cache` / `bots` / `maps`.
 - `templates/botarena-bot` — the player project template.
-- `src/BotArena.App` — the monolith: cookie auth, bots/submissions/challenges,
-  DB-backed job worker (compile + match execution), PostgreSQL via EF Core,
-  serves the SPA. Dockerfile + docker-compose for deployment.
+- `src/BotArena.App` — the monolith: cookie/OpenIddict auth,
+  bots/submissions/challenges, PostgreSQL-backed compile and match jobs,
+  stable artifact/replay object keys, and the SPA. Explicit web, compile,
+  match, and migration roles share the same model without becoming services.
+- `deploy/` — the scale-ready single-VPS baseline: Caddy, role-separated
+  Docker Compose, commit-tagged images, provisioned certificates, a one-shot
+  migration, and backup/deploy runbooks. The S3-compatible backend and
+  public-submission hardening remain gates before multi-VPS/public operation.
 - `web/` — one React build, two modes: the Bot Arena site (router) and the
   standalone replay viewer the CLI embeds replays into.
 - `tests/` — engine, determinism, and WASM contract suites (195 tests, incl.
@@ -127,7 +132,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).
 6. §15.3 completion: network-less submission builds (vendor the ILC packages)
-   and cgroup memory limits for the build user.
+   plus hostile-input/resource-exhaustion verification. The first-VPS Compose
+   baseline applies container CPU/memory/PID limits, but this is not yet the
+   public-submission security boundary.
 7. Phase 6 (competitions/seasons — also the progression container per
    GAME-DESIGN) and browser editing (phase 7).
 8. Sound out artifact-hash parity local vs server once a second build

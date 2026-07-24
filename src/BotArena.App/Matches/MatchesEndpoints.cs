@@ -3,6 +3,7 @@ using BotArena.App.Accounts;
 using BotArena.App.Bots;
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
+using BotArena.App.Storage;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Matches;
@@ -149,27 +150,39 @@ public static class MatchesEndpoints
 
         // The replay never reveals events or the result ahead of the presentation
         // clock (plan §28.1): mid-broadcast requests get a truncated document.
-        group.MapGet("/{matchId:guid}/replay", async (Guid matchId, AppDbContext db) =>
+        group.MapGet("/{matchId:guid}/replay", async (
+            Guid matchId,
+            AppDbContext db,
+            IObjectStore objectStore,
+            CancellationToken cancellationToken) =>
         {
-            var match = await db.Matches.FindAsync(matchId);
-            if (match?.ReplayPath is null || !File.Exists(match.ReplayPath))
+            var match = await db.Matches.FindAsync([matchId], cancellationToken);
+            if (match?.ReplayKey is null)
                 return Results.NotFound();
+            Stream? replay = await objectStore.OpenReadAsync(match.ReplayKey, cancellationToken);
+            if (replay is null)
+                return Results.NotFound();
+
             var now = DateTime.UtcNow;
             if (match.BroadcastComplete(now))
-                return Results.File(match.ReplayPath, "application/json");
+                return Results.Stream(replay, "application/json");
 
-            int visibleTicks = Math.Max(0, match.PresentationTick(now) + 1);
-            var document = Engine.ReplaySerializer.FromJson(
-                await File.ReadAllTextAsync(match.ReplayPath));
-            var partial = new
+            await using (replay)
             {
-                document.Header,
-                Ticks = document.Ticks.Take(visibleTicks),
-                Result = (Engine.MatchResultInfo?)null,
-                ReplayHash = (string?)null,
-                Partial = true,
-            };
-            return Results.Json(partial, Engine.ReplaySerializer.Canonical);
+                int visibleTicks = Math.Max(0, match.PresentationTick(now) + 1);
+                using var reader = new StreamReader(replay);
+                var document = Engine.ReplaySerializer.FromJson(
+                    await reader.ReadToEndAsync(cancellationToken));
+                var partial = new
+                {
+                    document.Header,
+                    Ticks = document.Ticks.Take(visibleTicks),
+                    Result = (Engine.MatchResultInfo?)null,
+                    ReplayHash = (string?)null,
+                    Partial = true,
+                };
+                return Results.Json(partial, Engine.ReplaySerializer.Canonical);
+            }
         });
     }
 

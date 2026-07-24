@@ -1,5 +1,6 @@
 using BotArena.App.Accounts;
 using BotArena.App.Shared;
+using BotArena.App.Storage;
 using BotArena.Bots.BuiltIn;
 using BotArena.Toolchain;
 using Microsoft.EntityFrameworkCore;
@@ -13,23 +14,26 @@ namespace BotArena.App.Bots;
 /// </summary>
 public static class BuiltInBotSeeder
 {
-    public static async Task SeedAsync(AppDbContext db)
+    public static async Task SeedAsync(
+        AppDbContext db,
+        IObjectStore objectStore,
+        CancellationToken cancellationToken = default)
     {
         string? artifact = RepoPaths.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
         if (artifact is null)
             return; // Nothing to seed against; doctor/scripts surface this.
 
-        var system = await GetOrCreateSystemUser(db);
+        var system = await GetOrCreateSystemUser(db, cancellationToken);
 
         string artifactHash = BotBuilder.Sha256File(artifact);
-        string stored = Path.Combine(DataPaths.Artifacts, artifactHash + ".wasm");
-        if (!File.Exists(stored))
-            File.Copy(artifact, stored);
+        string artifactKey = ObjectKeys.Artifact(artifactHash);
+        await using (var stream = File.OpenRead(artifact))
+            await objectStore.PutAsync(artifactKey, stream, artifactHash, cancellationToken);
 
         foreach (string name in BuiltInBotCatalog.Names)
         {
             var bot = await db.Bots.Include(b => b.Versions)
-                .SingleOrDefaultAsync(b => b.Slug == name);
+                .SingleOrDefaultAsync(b => b.Slug == name, cancellationToken);
             if (bot is null)
             {
                 bot = new Bot
@@ -54,7 +58,7 @@ public static class BuiltInBotSeeder
                     SourcesJson = "[]",
                     SourceHash = "",
                     Status = BuildStatus.Built,
-                    ArtifactPath = stored,
+                    ArtifactKey = artifactKey,
                     ArtifactHash = artifactHash,
                     GuestBotName = name,
                     BuiltAt = DateTime.UtcNow,
@@ -67,12 +71,14 @@ public static class BuiltInBotSeeder
                 db.BotVersions.Add(version);
             }
         }
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
     }
 
-    internal static async Task<User> GetOrCreateSystemUser(AppDbContext db)
+    internal static async Task<User> GetOrCreateSystemUser(
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
     {
-        var system = await db.Users.SingleOrDefaultAsync(u => u.IsSystem);
+        var system = await db.Users.SingleOrDefaultAsync(u => u.IsSystem, cancellationToken);
         if (system is null)
         {
             system = new User

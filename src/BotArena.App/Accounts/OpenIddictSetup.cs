@@ -23,10 +23,28 @@ public static class OpenIddictSetup
     /// <summary>Loopback callback ports the CLI may bind (registered redirect URIs).</summary>
     public static readonly int[] CliPorts = [43117, 43118, 43119, 43120];
 
-    public static void AddBotArenaOpenIddict(this IServiceCollection services)
+    public static X509Certificate2 LoadEncryptionCertificate(
+        IConfiguration configuration,
+        bool allowGeneratedCertificates) =>
+        LoadCertificate("encryption", configuration, allowGeneratedCertificates);
+
+    public static void AddBotArenaOpenIddict(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool includeServer,
+        bool allowGeneratedCertificates,
+        bool disableTransportSecurityRequirement)
     {
-        services.AddOpenIddict()
-            .AddCore(options => options.UseEntityFrameworkCore().UseDbContext<AppDbContext>())
+        var builder = services.AddOpenIddict();
+        builder.AddCore(options => options.UseEntityFrameworkCore().UseDbContext<AppDbContext>());
+        if (!includeServer)
+            return;
+
+        X509Certificate2 encryption =
+            LoadEncryptionCertificate(configuration, allowGeneratedCertificates);
+        X509Certificate2 signing = LoadCertificate(
+            "signing", configuration, allowGeneratedCertificates);
+        builder
             .AddServer(options =>
             {
                 options.SetAuthorizationEndpointUris("connect/authorize")
@@ -37,14 +55,14 @@ public static class OpenIddictSetup
                 options.SetAccessTokenLifetime(TimeSpan.FromHours(1));
                 options.SetRefreshTokenLifetime(TimeSpan.FromDays(30));
 
-                // Keys persist under BOTARENA_DATA so tokens survive restarts/redeploys.
-                options.AddEncryptionCertificate(LoadOrCreateCertificate("encryption"));
-                options.AddSigningCertificate(LoadOrCreateCertificate("signing"));
+                options.AddEncryptionCertificate(encryption);
+                options.AddSigningCertificate(signing);
 
-                options.UseAspNetCore()
+                var aspNetCore = options.UseAspNetCore()
                     .EnableAuthorizationEndpointPassthrough()
-                    .EnableTokenEndpointPassthrough()
-                    .DisableTransportSecurityRequirement(); // TLS terminates at the reverse proxy.
+                    .EnableTokenEndpointPassthrough();
+                if (disableTransportSecurityRequirement)
+                    aspNetCore.DisableTransportSecurityRequirement();
             })
             .AddValidation(options =>
             {
@@ -122,7 +140,34 @@ public static class OpenIddictSetup
         await manager.CreateAsync(descriptor);
     }
 
-    private static X509Certificate2 LoadOrCreateCertificate(string purpose)
+    private static X509Certificate2 LoadCertificate(
+        string purpose,
+        IConfiguration configuration,
+        bool allowGeneratedCertificates)
+    {
+        string setting = $"BOTARENA_OPENIDDICT_{purpose.ToUpperInvariant()}_CERT";
+        if (configuration[setting] is { Length: > 0 } configuredPath)
+        {
+            string path = Path.GetFullPath(configuredPath);
+            if (!File.Exists(path))
+                throw new InvalidOperationException($"{setting} points to missing file '{path}'.");
+            string? password = configuration["BOTARENA_OPENIDDICT_CERT_PASSWORD"];
+            return X509CertificateLoader.LoadPkcs12FromFile(
+                path,
+                password,
+                X509KeyStorageFlags.EphemeralKeySet);
+        }
+
+        if (!allowGeneratedCertificates)
+        {
+            throw new InvalidOperationException(
+                $"{setting} is required for the production web role. Provision one " +
+                "shared certificate pair for every web replica.");
+        }
+        return LoadOrCreateDevelopmentCertificate(purpose);
+    }
+
+    private static X509Certificate2 LoadOrCreateDevelopmentCertificate(string purpose)
     {
         string dir = Path.Combine(DataPaths.Root, "keys");
         Directory.CreateDirectory(dir);

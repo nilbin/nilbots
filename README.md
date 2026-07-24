@@ -90,9 +90,15 @@ Or natively: run PostgreSQL, then
 ASPNETCORE_URLS=http://0.0.0.0:8080 dotnet run --project src/BotArena.App
 ```
 
-Configuration: `BOTARENA_DB` (connection string), `BOTARENA_DATA` (artifact and
-replay volume), `BOTARENA_ROOT` (toolchain checkout root). Put a TLS proxy in
-front before exposing it publicly.
+Configuration: `BOTARENA_DB` (connection string), `BOTARENA_DATA` (durable
+object volume), `BOTARENA_ROOT` (toolchain checkout root), and
+`BOTARENA_ROLE` (`all`, `web`, `compile-worker`, `match-worker`, or
+`migrate`). Put a TLS proxy in front before exposing it publicly.
+
+For an internet-facing single-VPS installation, see the
+[production deployment runbook](deploy/README.md). For the path from one
+hobby VPS to multiple hosts, including security gates and promotion triggers,
+see the [deployment and scaling plan](docs/DEPLOYMENT-SCALING-PLAN.md).
 
 ## Development
 

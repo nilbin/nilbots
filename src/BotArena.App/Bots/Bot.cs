@@ -50,7 +50,7 @@ public class BotVersion
     public required string SourceHash { get; set; }
     public BuildStatus Status { get; set; } = BuildStatus.Pending;
     public string? BuildLog { get; set; }
-    public string? ArtifactPath { get; set; }
+    public string? ArtifactKey { get; set; }
     public string? ArtifactHash { get; set; }
     /// <summary>For built-in bots hosted in the shared catalog artifact: the guest-side bot name.</summary>
     public string? GuestBotName { get; set; }

@@ -2,11 +2,13 @@ using BotArena.App.Accounts;
 using BotArena.App.Bots;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Shared;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options)
+    : DbContext(options), IDataProtectionKeyContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Bot> Bots => Set<Bot>();
@@ -16,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,26 +77,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.Property(j => j.PayloadJson).HasColumnType("jsonb");
             entity.Property(j => j.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(j => j.LockedBy).HasMaxLength(160);
             entity.HasIndex(j => new { j.Status, j.AvailableAt });
         });
-    }
-}
-
-/// <summary>Filesystem layout for artifacts and replays (plan §38: local volume now,
-/// IArtifactStore abstraction when a second backend appears).</summary>
-public static class DataPaths
-{
-    public static string Root =>
-        Environment.GetEnvironmentVariable("BOTARENA_DATA") is { Length: > 0 } data
-            ? data
-            : Path.Combine(Directory.GetCurrentDirectory(), "var");
-
-    public static string Artifacts => Ensure(Path.Combine(Root, "artifacts"));
-    public static string Replays => Ensure(Path.Combine(Root, "replays"));
-
-    private static string Ensure(string path)
-    {
-        Directory.CreateDirectory(path);
-        return path;
     }
 }

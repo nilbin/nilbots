@@ -3,12 +3,22 @@ using BotArena.App.Bots;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.App.Storage;
 using BotArena.Engine;
 using BotArena.Toolchain;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var mode = ApplicationMode.Parse(builder.Configuration["BOTARENA_ROLE"]);
+bool trustForwardedHeaders =
+    builder.Configuration.GetValue<bool>("BOTARENA_TRUST_FORWARDED_HEADERS");
+
+builder.Services.AddSingleton(mode);
+builder.Services.AddSingleton<IObjectStore, LocalObjectStore>();
 
 string connectionString = builder.Configuration.GetConnectionString("BotArena")
     ?? Environment.GetEnvironmentVariable("BOTARENA_DB")
@@ -23,125 +33,198 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
-builder.Services.AddBotArenaOpenIddict();
-builder.Services
-    .AddAuthentication("CookieOrBearer")
-    .AddPolicyScheme("CookieOrBearer", "Cookie or access token", options =>
-    {
-        options.ForwardDefaultSelector = context =>
-            context.Request.Headers.Authorization.ToString().StartsWith("Bearer ")
-                ? OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme
-                : CookieAuthenticationDefaults.AuthenticationScheme;
-    })
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "botarena.auth";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        // An API returns status codes, not login-page redirects.
-        options.Events.OnRedirectToLogin = context =>
+if (mode.RunsWeb)
+{
+    bool developmentAuth = builder.Environment.IsDevelopment() || mode.IsAll;
+    builder.Services.AddDataProtection()
+        .SetApplicationName("BotArena")
+        .PersistKeysToDbContext<AppDbContext>()
+        .ProtectKeysWithCertificate(OpenIddictSetup.LoadEncryptionCertificate(
+            builder.Configuration,
+            developmentAuth));
+    builder.Services.AddBotArenaOpenIddict(
+        builder.Configuration,
+        includeServer: true,
+        allowGeneratedCertificates: developmentAuth,
+        disableTransportSecurityRequirement: developmentAuth);
+    builder.Services
+        .AddAuthentication("CookieOrBearer")
+        .AddPolicyScheme("CookieOrBearer", "Cookie or access token", options =>
         {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        };
-        options.Events.OnRedirectToAccessDenied = context =>
+            options.ForwardDefaultSelector = context =>
+                context.Request.Headers.Authorization.ToString().StartsWith("Bearer ")
+                    ? OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme
+                    : CookieAuthenticationDefaults.AuthenticationScheme;
+        })
+        .AddCookie(options =>
         {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        };
+            options.Cookie.Name = "botarena.auth";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = developmentAuth
+                ? CookieSecurePolicy.SameAsRequest
+                : CookieSecurePolicy.Always;
+            // An API returns status codes, not login-page redirects.
+            options.Events.OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            };
+        });
+    builder.Services.AddAuthorization();
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.GlobalLimiter =
+            System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 600,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+        // Credential endpoints: slow brute force.
+        options.AddPolicy("auth", context =>
+            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                }));
+        // Compilation is expensive: a handful of submissions per user per ten minutes.
+        options.AddPolicy("submission", context =>
+            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                context.User.Identity?.Name ??
+                context.Connection.RemoteIpAddress?.ToString() ??
+                "unknown",
+                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 6,
+                    Window = TimeSpan.FromMinutes(10),
+                }));
+        options.AddPolicy("challenge", context =>
+            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                context.User.Identity?.Name ??
+                context.Connection.RemoteIpAddress?.ToString() ??
+                "unknown",
+                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(1),
+                }));
     });
-builder.Services.AddAuthorization();
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 600,
-                Window = TimeSpan.FromMinutes(1),
-            }));
-    // Credential endpoints: slow brute force.
-    options.AddPolicy("auth", context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1),
-            }));
-    // Compilation is expensive: a handful of submissions per user per ten minutes.
-    options.AddPolicy("submission", context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 6,
-                Window = TimeSpan.FromMinutes(10),
-            }));
-    options.AddPolicy("challenge", context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 20,
-                Window = TimeSpan.FromMinutes(1),
-            }));
-});
-builder.Services.AddHostedService<JobWorker>();
 
-var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
+    if (trustForwardedHeaders)
+    {
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = 1;
+            options.RequireHeaderSymmetry = true;
+            // Safe only because the production web port is not published;
+            // Caddy is the sole route into the container network.
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
+    }
+}
+else if (mode.RunsMigrations)
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    await BuiltInBotSeeder.SeedAsync(db);
-    await ChampionSeeder.SeedAsync(db);
-    await OpenIddictSetup.SeedClientAsync(scope.ServiceProvider);
+    // Migrations seed the OpenIddict client but do not need server certificates.
+    builder.Services.AddBotArenaOpenIddict(
+        builder.Configuration,
+        includeServer: false,
+        allowGeneratedCertificates: false,
+        disableTransportSecurityRequirement: false);
 }
 
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseRateLimiter();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("postgres", tags: ["ready"])
+    .AddCheck<ObjectStoreHealthCheck>("object-store", tags: ["ready"]);
 
-app.MapAccounts();
-app.MapConnect();
-app.MapBots();
-app.MapMatches();
-app.MapRanked();
+if (mode.RunsAnyWorker)
+    builder.Services.AddHostedService<JobWorker>();
 
-app.MapGet("/api/meta", () =>
+var app = builder.Build();
+app.Logger.LogInformation("Bot Arena starting in {Role} role", mode.Name);
+
+if (mode.RunsMigrations)
 {
-    var maps = new List<object>();
-    if (RepoPaths.FindUpward("maps") is { } mapsDir)
-    {
-        foreach (var file in Directory.EnumerateFiles(mapsDir, "*.json").Order())
-        {
-            var map = ArenaMap.FromJson(File.ReadAllText(file));
-            maps.Add(new { map.Id, map.Width, map.Height });
-        }
-    }
-    return Results.Ok(new
-    {
-        EngineVersion = BotArenaVersions.EngineVersion,
-        GameRulesVersion = BotArenaVersions.GameRulesVersion,
-        RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
-        SdkVersion = ToolchainInfo.SdkVersion,
-        Maps = maps,
-    });
+    await DatabaseBootstrapper.RunAsync(app.Services);
+    app.Logger.LogInformation("Database migration and seed completed");
+    return;
+}
+
+// `all` is the convenient local/pilot mode. Explicit production roles never
+// mutate schema during normal startup.
+if (mode.IsAll)
+    await DatabaseBootstrapper.RunAsync(app.Services);
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
 });
 
-// The SPA: a single self-contained index.html built from web/ (`npm run build`).
-// Served straight from web/dist so dev and Docker need no copy step.
-string? spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));
-if (spaDir is not null && File.Exists(Path.Combine(spaDir, "index.html")))
+if (mode.RunsWeb)
 {
-    var spaFiles = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaDir);
-    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = spaFiles });
-    app.UseStaticFiles(new StaticFileOptions { FileProvider = spaFiles });
-    app.MapFallbackToFile("index.html", new StaticFileOptions { FileProvider = spaFiles });
+    if (trustForwardedHeaders)
+        app.UseForwardedHeaders();
+    if (!app.Environment.IsDevelopment())
+        app.UseHsts();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.UseRateLimiter();
+
+    app.MapAccounts();
+    app.MapConnect();
+    app.MapBots();
+    app.MapMatches();
+    app.MapRanked();
+
+    app.MapGet("/api/meta", () =>
+    {
+        var maps = new List<object>();
+        if (RepoPaths.FindUpward("maps") is { } mapsDir)
+        {
+            foreach (var file in Directory.EnumerateFiles(mapsDir, "*.json").Order())
+            {
+                var map = ArenaMap.FromJson(File.ReadAllText(file));
+                maps.Add(new { map.Id, map.Width, map.Height });
+            }
+        }
+        return Results.Ok(new
+        {
+            EngineVersion = BotArenaVersions.EngineVersion,
+            GameRulesVersion = BotArenaVersions.GameRulesVersion,
+            RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
+            SdkVersion = ToolchainInfo.SdkVersion,
+            Maps = maps,
+        });
+    });
+
+    // The SPA: a single self-contained index.html built from web/ (`npm run build`).
+    // Served straight from web/dist so dev and Docker need no copy step.
+    string? spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));
+    if (spaDir is not null && File.Exists(Path.Combine(spaDir, "index.html")))
+    {
+        var spaFiles = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaDir);
+        app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = spaFiles });
+        app.UseStaticFiles(new StaticFileOptions { FileProvider = spaFiles });
+        app.MapFallbackToFile("index.html", new StaticFileOptions { FileProvider = spaFiles });
+    }
 }
 
 app.Run();

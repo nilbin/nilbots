@@ -835,6 +835,22 @@ configuration) and changing them is a version bump, not an edit.
     while safety, deterministic verification, and replay integrity remain
     non-overridable hard gates.
 
+76. **Deployment scales by explicit modular-monolith roles, stable object keys,
+    and measured promotion gates—not by introducing distributed architecture
+    early.** `BotArena.App` now runs as `web`, `compile-worker`,
+    `match-worker`, one-shot `migrate`, or local-only `all`; all roles share
+    PostgreSQL and the same domain model. The PostgreSQL job queue remains the
+    coordinator. Artifacts and replays use stable keys through `IObjectStore`,
+    starting on a local persistent volume and requiring an S3-compatible
+    backend before workers span VPSs. Production uses Caddy, commit-tagged
+    Docker Compose images, provisioned OpenIddict certificates, PostgreSQL
+    Data Protection keys, and exactly one global match worker until ranked-set
+    finalization is transactionally safe under concurrency. Compiler workers
+    may scale first, but public untrusted submissions remain gated on vendored
+    build inputs, disabled outbound build networking, and hostile-resource
+    tests. No broker, microservices, Kubernetes, shared network filesystem, or
+    database cluster is introduced without measurements that justify it.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
