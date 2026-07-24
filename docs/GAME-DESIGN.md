@@ -401,3 +401,72 @@ no more, no less).
 
 
 Gen-6 verdict: see DECISIONS #57 and DX-FINDINGS-GEN6 (gameplay passes; docs+tooling pass required before 0.5 ships).
+
+## Gen-7 verdict: conebolts is watchable, but bolts do not solve the camper (HOLD)
+
+Two 0.5-aware challengers written FROM THE DOCS (Bloodhound, a sound-hunter;
+Bulwark, an armed door-warden), under the hardened conebolts-v3 arm, one
+improvement iteration each with the anti-camper counter spelled out
+explicitly. Full detail in DECISIONS #61. The finding is nuanced and
+decision-relevant:
+
+**What 0.5's information game delivered (validated).** Aware bots crushed the
+0.5-BLIND champions Warden and Rampart 6-0 every time — directional vision +
+bolts + hearing are a large, real edge over bots that cannot perceive them.
+Aware-vs-aware games are FAST and DECISIVE (Bloodhound beat Bulwark with a
+t17 point-blank elimination, not a stalemate). Hearing behaved exactly as
+designed: Bloodhound navigates by `HeardSounds` bearings, NEVER fires from
+sound alone (always converts a sound to a sighting first), and diagonal
+bearings stay genuinely ambiguous because it can only face cardinals — search
+behavior, not position-tracking. The redaction works.
+
+**What bolts did NOT deliver (the hold reason).** The whole thesis of 0.5 was
+that giving missed shots value (bolts as zoning) would break the camper that
+0.4 could not. It did not. The reigning 0.4 champion Bastille gen-5 — 0.5-BLIND,
+with no idea cones or bolts exist — finished #1 over BOTH purpose-built aware
+bots, even after each was handed the Double-Lane Squeeze counter explicitly.
+Both agents independently found the same reason: **on a 2x2 zone Bastille plays
+a reactive diagonal-mirror** — it sits on the tile diagonal to the attacker
+(never alignable, no shot) and slips to the new diagonal on the exact tick the
+attacker fires. A single gun (cooldown 2, a bolt occupies a tile one tick)
+CANNOT keep two lanes hot at once, so the "double lane" is physically
+impossible; the bolt always lands on the tile the mirror just left; and with
+no strafe the attacker cannot herd it onto a refuge tile or force a trade
+(it eats the first point-blank hit to the perception delay + turn cost). The
+2x2 mirror is mathematically unbreakable by one gun under no-strafe. The
+effective counter that DID emerge was not offense at all but **zone-turtle**:
+a contested zone pays nobody (exclusive accrual, a 0.4 mechanic), so once
+ahead you have already won on the clock — hold a diagonal standoff and let it
+run. This dragged Bastille from a 0.5-5.5 blowout to a spawn-decided ~coin
+flip (2W-3L-1D on the 2x2 map, every decisive game a MaxTicks zone-race, not
+a kill). So the anti-camp work is being done by 0.4 zone control, NOT by the
+new 0.5 bolts.
+
+**The bolt promise fails on geometry too.** arena-01's split zone is two
+vertical 1x2 pads: a pad has NO in-pad dodge tile, so an off-pad column-camper
+kills even a 28-0 zone-tick leader. That is an indefensible-map problem the
+new mechanics cannot fix.
+
+**Ten pre-registered ship criteria (RULES-0.5-DESIGN §H) scorecard:**
+PASS — #4 shot count holds, #5 ranged hits land, #7 duration improves (fast
+decisive games), #9 hearing = uncertainty not tracking (strong). PARTIAL —
+#1 conebolts beats control on the BLIND population but not vs the strong
+camper; #3 aware bots fire, but firing is not the camper answer; #6 two
+doctrines viable vs the field yet both converged on turtle and both lose to
+Bastille. FAIL — #2 the Radar Statue was NOT broken in a ranked replay (the
+decisive one), #8 the fortress/2x2-mirror is NOT breakable, #10 BOLTS do not
+individually justify their complexity (cone + hearing do). Three fails, all
+on the anti-camp promise that motivated bolts.
+
+**Verdict: HOLD conebolts — do not promote to official 0.5 as-is.** Cone
+vision + hearing are validated and could ship on their own; bolts as an
+anti-camp tool are not proven and, on a 2x2 under no-strafe, are provably
+insufficient. The forward levers both agents named: (a) ship cone+hearing
+WITHOUT bolts; (b) redesign bolts to threaten the mirror (a second
+simultaneous lane / spread, longer occupancy, or a limited strafe so a
+shooter can pin — but strafe risks reopening the dodge-everything problem
+0.5 removed); (c) fix zone geometry (kill the 1x2 pads; 2x2 zones structurally
+favor the diagonal mirror). The tournament did its job: it found precisely
+where the mechanics do and do not deliver, with mechanistic proof and named
+fixes, which no mechanical harness or scripted test surfaced. No crown moves
+(experiment rules; Bastille gen-5 defends the 0.4 title).

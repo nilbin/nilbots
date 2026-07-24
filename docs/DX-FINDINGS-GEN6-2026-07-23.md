@@ -65,3 +65,31 @@ Decisive aware-vs-aware kills, a three-way rock-paper-scissors, and every
 executable play from the design catalog observed unprompted in ranked
 replays. The mechanics are right; only their documentation and tooling
 surface lag — which is the whole reason a docs-only tournament exists.
+
+## Gen-7 addendum (aware tournament, 2026-07-24)
+
+Both aware challengers independently reported the same top items — credible by
+convergence:
+
+- **[med] Strafe silently no-ops with no way to query enabled actions.** Under
+  conebolts `Actions.StrafeLeft/Right` validate to Wait/Blocked (no strafe is
+  a load-bearing 0.5 mechanic — the 2-tick dodge), but a bot only discovers
+  this by burning a tick. The doc-comment says "experiment arms only" without
+  naming which, and there's no `context`-queryable capability set. A defender
+  built to sidestep silently eats every hit. Fix candidates: a capability flag
+  in the observation, or a validated-action echo the first tick.
+- **[expected, not a bug] Player docs describe v0.4 (instant ray, omni
+  vision), false for conebolts.** By design — conebolts is an experiment arm,
+  not shipped; the SDK type doc-comments hedge correctly (the inert pattern).
+  Converts to a real task ONLY if 0.5 ships official (the player rules card
+  rewrite already tracked here).
+- **[investigate] Artifact-hash parity is bot-specific, not systemic.**
+  Bulwark's local build hash != server hash across BOTH its versions;
+  Bloodhound's MATCHED (local == server) on both. Same framework, same SDK
+  0.6.0 — so the mismatch is something in Bulwark's sources/build, not a
+  framework reproducibility break. Behavior stays deterministic (faults 0,
+  identical gameplay). Worth a root-cause pass: what in one bot's build embeds
+  environment state (path? file order in the submitted sources map?).
+- **[kept] `replay --summary` cone/bolt/hearing lines carried the whole
+  iteration loop** — both agents cited `sees»`/`hears»`/`bolts»` as essential.
+  The gen-6 tooling pass paid off.

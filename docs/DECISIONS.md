@@ -534,6 +534,40 @@ configuration) and changing them is a version bump, not an edit.
     muzzle. Omnidirectional rules keep the any-reference rule
     bit-identically. Legacy versions 0.1-0.4 untouched throughout.
 
+61. **Gen-7 aware verdict: HOLD conebolts — cone+hearing validated, bolts do
+    NOT solve the camper (RULES-0.5-DESIGN §H criteria; GAME-DESIGN gen-7).**
+    Two docs-built 0.5-aware challengers (Bloodhound sound-hunter, Bulwark
+    armed door-warden) on the hardened conebolts-v3 arm, one improvement
+    iteration each with the anti-camper Double-Lane Squeeze spelled out.
+    Final ladder: Bastille gen-5 (0.5-BLIND 0.4 champ) 1241 #1 over Bloodhound
+    1236 and Bulwark 1235, both far above the blind controls Warden/Rampart
+    1144. Aware bots swept the blind champions 6-0 (cone/bolts/hearing are a
+    large real edge over bots that can't perceive them) and produced fast
+    decisive aware-vs-aware kills (t17), and hearing behaved as designed
+    (Bloodhound never fires from sound alone, converts to a sighting, diagonal
+    bearings ambiguous — search not tracking). BUT the 0.5-blind champion beat
+    BOTH aware bots even after the counter was handed to them, because on a
+    2x2 zone Bastille plays a reactive diagonal-mirror that a single gun under
+    no-strafe cannot pin (double-lane physically impossible at cooldown 2; the
+    bolt always lands on the tile it just left; no way to force a trade). The
+    effective counter was zone-turtle (a 0.4 mechanic — contested pays nobody),
+    not the new bolts; it pulled Bastille to a spawn-decided coin-flip
+    (2W-3L-1D), every decisive 2x2 game a MaxTicks zone-race not a kill. Split
+    1x2 pads (arena-01) are indefensible geometry the mechanics can't fix.
+    Scorecard: PASS #4/#5/#7/#9, PARTIAL #1/#3/#6, FAIL #2 (Radar Statue not
+    broken in the decisive ranked replay), #8 (fortress/mirror unbreakable),
+    #10 (bolts don't individually justify complexity; cone+hearing do). The
+    three fails are all the anti-camp promise that motivated bolts. DECISION:
+    do not promote conebolts to official 0.5 as-is; hold experimental. Forward
+    levers (agent-identified): ship cone+hearing without bolts; or redesign
+    bolts to threaten the mirror (second simultaneous lane, longer occupancy,
+    or limited strafe — strafe risks the dodge-everything regression 0.5
+    removed); or fix zone geometry. No crown (experiment; Bastille defends).
+    Direction pending owner call. Tooling note: this tournament survived TWO
+    mid-run environment recycles (agents resumed from transcript, work intact),
+    validating the babysit protocol; a tournament-drive state.json key
+    tolerance fix rode along.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
