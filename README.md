@@ -30,14 +30,15 @@ bash scripts/play.sh --bot hunter --opponent coward --seed 7
 Write your own bot:
 
 ```bash
-export PATH="$PWD/scripts:$PATH"       # source-checkout `botarena` command
-botarena new MyBot && cd MyBot     # scaffolded project: MyBot.cs + botarena.json
-botarena play --bot . --opponent hunter --seed 42   # compiles YOUR bot to WASM
-botarena watch . --opponent hunter --seed 42        # rebuild + replay on save
-botarena doctor                                      # toolchain status
+dotnet tool install --global Nilbots
+nilbots register
+nilbots new MyBot && cd MyBot     # scaffolded project: MyBot.cs + botarena.json
+nilbots play --bot . --opponent hunter --seed 42   # compiles YOUR bot to WASM
+nilbots watch . --opponent hunter --seed 42        # rebuild + replay on save
+nilbots submit .                                    # creates + publishes your bot
 ```
 
-Builds are cached deterministically (`botarena cache status|clear`); only your
+Builds are cached deterministically (`nilbots cache status|clear`); only your
 source changes trigger recompilation. The CLI and local server safely share
 that cache: simultaneous identical requests perform one compile and reuse its
 artifact.
@@ -67,7 +68,7 @@ dotnet run --project src/BotArena.Cli -- verify <printed replay.json path>
 | `src/BotArena.Runtime` | In-process runtime (diagnostics/tests only) |
 | `src/BotArena.Runtime.Wasm` | Canonical WASM runtime (Wasmtime, fuel, limits) |
 | `src/BotArena.WasmGuest` | Guest program compiled to `artifacts/wasm/builtin-bots.wasm` |
-| `src/BotArena.Cli` | `botarena play / replay / verify / bots / maps` |
+| `src/BotArena.Cli` | `nilbots play / replay / verify / bots / maps` |
 | `web/` | React + Tailwind replay viewer (single-file build) |
 | `maps/` | Versioned arena maps (JSON) |
 | `tests/` | Engine, determinism, and WASM contract tests |

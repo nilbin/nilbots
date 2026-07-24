@@ -1,24 +1,18 @@
 # BOTNAME
 
-A nilbots bot. Edit `BOTNAME.cs`, then:
-
-If `botarena` is not installed globally, expose the checkout's fast wrapper
-once per shell from the repository root:
+A nilbots bot. Edit `BOTNAME.cs`, then use the
+[Nilbots global tool](https://www.nuget.org/packages/Nilbots):
 
 ```bash
-export PATH="$PWD/scripts:$PATH"
-```
-
-```bash
-botarena play --runtime in-process --bot . --opponent hunter --seed 42   # fastest loop
-botarena play --bot . --opponent hunter --seeds 7,42,1337   # batch a seed matrix
-botarena set --bot . --opponent hunter                      # the ranked 6-game format
-botarena replay out/<match>/replay.json --summary           # compact loss forensics
+nilbots play --runtime in-process --bot . --opponent hunter --seed 42   # fastest loop
+nilbots play --bot . --opponent hunter --seeds 7,42,1337   # batch a seed matrix
+nilbots set --bot . --opponent hunter                      # the ranked 6-game format
+nilbots replay out/<match>/replay.json --summary           # compact loss forensics
 #   quiet stretches are sampled every ~25 ticks — add --full when exact
 #   tick-by-tick movement matters (short loops can look like teleports)
-botarena build .            # compile to WASM (cached; artifact also at out/bot.wasm)
-botarena play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
-botarena watch . --opponent hunter --seed 42 --runtime in-process   # replay on every save
+nilbots build .            # compile to WASM (cached; artifact also at out/bot.wasm)
+nilbots play --bot . --opponent hunter --seed 42   # official WASM sandbox (exact)
+nilbots watch . --opponent hunter --seed 42 --runtime in-process   # replay on every save
 ```
 
 **Iterate in-process, verify in WASM.** `--runtime in-process` builds your bot
@@ -69,7 +63,7 @@ predicate once you maintain terrain memory. `InitialAimOffset` and
 `BendDirection` use 45-degree octants (`-1` left, `+1` right). Diagonal paths
 obey strict corners.
 
-`botarena play` prints where it wrote `replay.json` and `viewer.html`
+`nilbots play` prints where it wrote `replay.json` and `viewer.html`
 (default: `out/<bot>-vs-<opponent>-<map>-s<seed>/`, so parallel runs never
 overwrite each other; `--out <dir>` pins a directory). Open the viewer in a
 browser, click your bot, and inspect what it saw and why it acted.
