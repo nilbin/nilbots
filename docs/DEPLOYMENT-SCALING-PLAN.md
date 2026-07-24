@@ -30,9 +30,9 @@ would otherwise be painful.
 4. **Keep PostgreSQL as the source of truth and job coordinator.** The existing
    database-backed queue is enough for this growth path.
 5. **Treat durable blobs as objects, not host files.** Code talks through an
-   object-store abstraction and PostgreSQL stores stable object keys. A local
-   filesystem backend is acceptable on the first VPS; an S3-compatible backend
-   is required before workers span multiple VPSs.
+   object-store abstraction and PostgreSQL stores stable object keys.
+   Production uses a private S3-compatible Garage cluster; development may use
+   the local filesystem backend.
 6. **Build and deploy immutable images tagged with the Git commit SHA.** Do not
    build an untracked production state by editing the VPS.
 7. **Use one global match worker initially.** Compilation workers may scale
@@ -111,8 +111,8 @@ existing database and object store.
 | Jobs | PostgreSQL queue with claims, worker IDs, and renewable leases | Ranked-set finalization still limits match processing to one global consumer |
 | Compilation | Networkless unprivileged runner, baked inputs, durable admission limits, deterministic cache keys, cgroup/tmpfs limits | Move the runner to a dedicated VPS if measured load or abuse warrants it |
 | Matches | Deterministic WASM execution with fuel and memory limits | Forced-death retry and concurrent-finalization tests remain |
-| Artifacts | Immutable, content-hashed objects behind `IObjectStore` | Local backend must become S3-compatible before workers move hosts |
-| Replays | Stable object keys and authorization-gated streaming | Local backend remains a single-host dependency |
+| Artifacts | Immutable, content-hashed objects behind `IObjectStore` and private Garage S3 | Move Garage replicas to distinct physical zones before claiming storage HA |
+| Replays | Stable object keys and authorization-gated streaming through Garage | Rehearse Garage plus PostgreSQL restoration |
 | Authentication | Shared provisioned OpenIddict certificates; Data Protection keys in PostgreSQL | Operational certificate rotation still needs rehearsal |
 | Database | One-shot migration role and expansion-safe key migration | Backup restore rehearsal and monitoring remain |
 | Edge | Caddy, trusted forwarded headers, secure cookies, live/ready health | External uptime alerting remains |
@@ -136,12 +136,11 @@ Exists(key)
 Prefer a generic name such as `IObjectStore`; artifacts and replays differ in
 authorization and lifecycle policy, not in storage mechanics.
 
-Initial implementations:
+Implementations:
 
-- `LocalObjectStore`, rooted under `BOTARENA_DATA`, for development and the
-  first VPS.
-- `S3ObjectStore`, for any S3-compatible external provider before a second VPS
-  is introduced.
+- `LocalObjectStore`, rooted under `BOTARENA_DATA`, for development.
+- `S3ObjectStore`, using a configurable endpoint, bucket, region, and
+  credentials. Production points it at the private Garage gateway.
 
 PostgreSQL should store keys rather than paths:
 
@@ -235,12 +234,13 @@ The production Compose definition should contain:
 - `compile-worker` coordinator with one replica
 - `compiler-runner` with one replica and no network
 - `postgres`
-- persistent Caddy/PostgreSQL/object volumes
+- three Garage storage nodes plus one Garage gateway
+- persistent Caddy/PostgreSQL/Garage volumes
 
-Only Caddy publishes host ports. PostgreSQL, web port 8080, and worker
-processes stay on an internal Docker network. Persistent named volumes hold
-PostgreSQL data, Caddy state, and the local object store while that backend is
-in use.
+Only Caddy publishes host ports. PostgreSQL, Garage S3/RPC/admin ports, web
+port 8080, and worker processes stay on an internal Docker network. Persistent
+named volumes hold PostgreSQL data, Caddy state, and Garage metadata/data. The
+old local object volume remains temporarily as a migration and rollback source.
 
 Example edge configuration:
 
@@ -375,8 +375,11 @@ becomes materially difficult.
 ### Stage 1: one VPS, public beta
 
 Everything runs in one Compose project. Registration is public, compiler
-admission is bounded, and the compiler runner is offline. Use local object
-storage with off-site backups. Keep one compile and one match worker.
+admission is bounded, and the compiler runner is offline. Garage starts with
+three logical storage nodes at replication factor 3 plus a gateway, all
+co-located on the first host. This enables an in-place cluster layout change
+later but is not physical HA. Keep off-site backups and one compile and one
+match worker.
 
 Promote only after real usage shows a reason: register, submit, play, watch,
 monitor queue pressure, and survive a restore test—not merely when the
@@ -387,9 +390,12 @@ homepage loads.
 The likely first bottleneck is compilation. Move the compilation coordinator
 and its networkless runner together to a second x86-64 VPS connected over a
 provider-private network or WireGuard/Tailscale. Keep their filesystem queue
-local to that host. Switch artifacts and replays to the private S3-compatible
-store first. PostgreSQL may remain on the original machine, reachable only
-over the private network and firewall-restricted to known hosts.
+local to that host. Artifacts and replays already use the private
+S3-compatible store. Add Garage nodes over the private network, assign their
+real zones, apply the new layout, verify rebalancing, and only then retire
+co-located bootstrap nodes. PostgreSQL may remain on the original machine,
+reachable only over the private network and firewall-restricted to known
+hosts.
 
 Add a compile worker when any of these persist under normal use:
 
@@ -469,7 +475,7 @@ PostgreSQL, and object storage can each remain a single failure point.
 
 ### Milestone D — second-VPS readiness
 
-- [ ] Add and test the S3-compatible object-store backend.
+- [x] Add and test the S3-compatible object-store backend.
 - [ ] Move a compiler runner/coordinator across a private VPS network if
       measurements justify it.
 - [x] Add worker IDs and lease renewal.

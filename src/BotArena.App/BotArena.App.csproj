@@ -3,6 +3,7 @@
        database, feature folders (Accounts/Bots/Matches/Jobs), direct in-process
        module communication, DB-backed background jobs. No microservices. -->
   <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.101.4" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="OpenIddict.AspNetCore" Version="7.6.0" />
