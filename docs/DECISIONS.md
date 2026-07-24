@@ -672,6 +672,22 @@ configuration) and changing them is a version bump, not an edit.
     resolvable only as the causal reference. Do not promote official 0.5:
     median duration and elimination share still miss matched control.
 
+67. **Privately programmed arcs pass the pre-implementation theory gate;
+    select one immediate launch tile.** A reusable finite combat lab modeled
+    219 arc parameter combinations (125 distinct open paths), all defender
+    Wait/Turn/Move policies, gradual path-prefix revelation, strict diagonal
+    corners, range eight, and speed two. Complete-path knowledge makes every
+    individual shot dodgeable in all 84 open distance-two-to-four states, but
+    private immutable intent removes a universal defence in 53/84: the desired
+    prediction game exists without random accuracy or homing. A two-tile
+    immediate launch creates 12/84 forced known-path attacks, so use one tile
+    instead (zero forced open attacks). The full 10,240-state ranked-zone sweep
+    finds 3,552 prediction contests, only 201 forced attacks (2.0%, caused by
+    constrained geometry), and valid around-wall paths on every map. PASS the
+    theory gate and authorize an in-process engine experiment. Do not promote
+    rules or pay the SDK/WASM migration until engine-scripted tests preserve
+    these properties and establish a usable player action contract.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -572,3 +572,24 @@ split. Average duration is 102.2 instead of 102.0; preserving decay costs
 only 45 aggregate ticks across 180 games. The explicit abandonment test also
 passes. v6 therefore supersedes v5 as the experimental flagship without
 changing the official HOLD verdict.
+
+### Programmed-arc theory gate
+
+Curved projectiles do not solve perfect defence when their complete future
+path is exposed before movement. Before changing the SDK or WASM guest, the
+shot theory lab exhaustively modeled privately committed, immutable arcs:
+three initial headings, selectable bend start/cadence, at most 135 degrees of
+total sweep, strict diagonal corners, range eight, and speed two.
+
+One immediate launch tile is the retained timing. Across 84 open-floor
+distance-two-to-four states, 53 are genuine prediction contests and zero
+contain a shot that is unavoidable when its path is known. Two immediate
+tiles raise prediction states to 64 but also create 12 forced-attack states,
+so that faster launch is rejected.
+
+Across all 10,240 ranked-zone local states, the one-tile design produces 3,552
+prediction contests, 3,003 universal defences, 201 geometry-created forced
+attacks, and 3,484 irrelevant/out-of-envelope states. Every ranked map supports
+both prediction play and a legal around-wall path. The theory passes; an
+engine experiment is justified, while official 0.5 remains on HOLD. Exact
+semantics and tables are in RULES-0.5-DESIGN §M.

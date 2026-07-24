@@ -43,6 +43,12 @@ preserving decay. Overtime fixes the diagnosed long tail (MaxTicks 24→5, avera
 134.9→102.2) but the unchanged population still misses the median duration
 and elimination-share ship gates (DECISIONS #64–#66).
 
+The next projectile direction has passed only its pre-implementation theory
+gate (DECISIONS #67): privately programmed immutable arcs create prediction
+contests without random accuracy, homing, or unavoidable open-floor shots.
+The reusable `scripts/shot-theory-lab.py` checks the finite path/policy space.
+An in-process engine experiment comes before any SDK/protocol/WASM migration.
+
 ## Game rules 0.1 (initial)
 
 24×18 (prod) or 12×8 (slice) tile arena, 2 bots, 4 facings, 5 actions

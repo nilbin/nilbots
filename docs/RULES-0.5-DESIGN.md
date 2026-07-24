@@ -585,3 +585,114 @@ Supersede v5 with `cone-active-bolt2-overtime-gain` as the experimental
 flagship. Keep v5 resolvable as the causal reference. Official 0.5 remains
 HOLD for the same median-duration and elimination-share failures; v6 fixes
 the structural overtime flaw, not those remaining promotion gates.
+
+## M. Pre-implementation projectile theory lab
+
+Pre-register this analysis before changing the engine, SDK, guest adapter, or
+tracked WASM artifact. The design question is more fundamental than numeric
+balance: a deterministic projectile whose complete future path is revealed
+before a defender receives a guaranteed movement action is normally
+dodgeable forever on open floor. Curvature alone does not change that.
+
+The candidate interaction uses privately programmed but immutable arcs.
+Shooter and defender choose from the same pre-tick state. The shot's initial
+travel resolves after bot movement on that firing tick. The defender observes
+only path segments that have physically occurred; the complete future plan is
+available to the shooter and authoritative replay, not to the opposing bot.
+There is no random accuracy, target lock, pathfinding, or mid-flight retarget.
+
+Before implementation, model a finite arc family with the existing range-eight
+budget and speed-two ordered traversal:
+
+- initial heading is forward-left, forward, or forward-right;
+- the shooter chooses when curvature begins;
+- curvature turns the heading by one 45-degree octant at a chosen cadence;
+- total programmed sweep is capped at 135 degrees;
+- every entered tile spends range and checks walls and bots;
+- diagonal steps use strict corner collision and cannot cut past either
+  orthogonally adjacent wall;
+- hitting a wall truncates the path; the engine never routes around it;
+- the launch traverses its first two ordered tiles immediately, then surviving
+  projectiles traverse two tiles after movement on following ticks.
+
+Integer heading schedules are the authoritative simulation. A viewer may
+interpolate their tile centers as a smooth arc, but visual smoothing never
+changes collision.
+
+The combat lab must enumerate distinct paths, defender actions, and bounded
+defender policies over the full projectile lifetime. Classify each local state:
+
+- **universal defence**: one defender policy survives every hidden arc;
+- **prediction contest**: every individual arc is dodgeable when known, but no
+  single policy survives all hidden arcs;
+- **forced attack**: at least one individual arc is unavoidable even when its
+  complete path is known;
+- **irrelevant**: no legal arc can threaten the defender.
+
+The theory candidate passes only if:
+
+1. Prediction-contest states exist on open floor and around ranked-zone
+   geometry; hidden intent must change the reachable outcome.
+2. Neither universal defence nor forced attacks consume the entire practical
+   distance-two-to-four interaction envelope.
+3. Correct facing and early movement preserve counterplay against every
+   individually known arc in representative open states.
+4. At least one manually programmed path can clear a corner and reach a tile
+   behind cover on the ranked maps; no path may enter or cut through a wall.
+5. The deduplicated path catalogue is small enough for bots to enumerate with
+   an SDK preview helper.
+6. Revealing each completed segment lets the defender narrow its belief and
+   react; uncertainty comes only from the opponent's still-hidden committed
+   choice.
+
+Report distributions rather than selecting numeric curve parameters from one
+anecdote. If the structural gate fails, revise or reject the trajectory family
+without paying the SDK migration and NativeAOT rebuild. Passing this lab only
+authorizes an engine experiment; it does not satisfy the balance-harness ship
+gate.
+
+### Theory-lab result
+
+The finite model enumerates 219 parameter combinations, which collapse to 125
+distinct open-floor paths after deduplication. It gives the defender full
+knowledge of every completed path segment and searches all Wait, TurnLeft,
+TurnRight, and MoveForward policies through the projectile's range-eight
+lifetime. This is conservative for the attacker: real cone vision and wall
+occlusion can reveal less.
+
+The pre-registered two-tile launch passes the structural gate but is too
+punishing at close range. A one-tile immediate launch sensitivity arm keeps
+the hidden-intent result while preserving known-path counterplay:
+
+| open floor, distance 2–4 | prediction contest | universal defence | forced attack |
+| --- | ---: | ---: | ---: |
+| immediate launch 1 | 53/84 (63.1%) | 31/84 (36.9%) | 0/84 |
+| immediate launch 2 | 64/84 (76.2%) | 8/84 (9.5%) | 12/84 (14.3%) |
+
+With launch one, every individual arc is dodgeable when its full path is
+known in all 84 open states. In 53 states no single policy survives every
+hidden committed arc. Hidden intent therefore changes the reachable outcome
+without requiring an intrinsically unavoidable shot.
+
+The complete ranked-zone sweep covers all 10,240 distance-two-to-four states:
+
+| map | states | prediction contest | universal defence | forced attack | irrelevant |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| arena | 2,092 | 588 (28.1%) | 581 (27.8%) | 55 (2.6%) | 868 (41.5%) |
+| basic | 1,628 | 807 (49.6%) | 549 (33.7%) | 28 (1.7%) | 244 (15.0%) |
+| bastion | 1,752 | 747 (42.6%) | 245 (14.0%) | 8 (0.5%) | 752 (42.9%) |
+| causeway | 736 | 188 (25.5%) | 216 (29.3%) | 44 (6.0%) | 288 (39.1%) |
+| crossfire | 1,424 | 170 (11.9%) | 298 (20.9%) | 36 (2.5%) | 920 (64.6%) |
+| gallery | 2,608 | 1,052 (40.3%) | 1,114 (42.7%) | 30 (1.2%) | 412 (15.8%) |
+| **total** | **10,240** | **3,552 (34.7%)** | **3,003 (29.3%)** | **201 (2.0%)** | **3,484 (34.0%)** |
+
+Every ranked map contains prediction-contest states and at least one
+strict-corner-valid programmed path whose endpoint is behind cover from its
+origin. Forced known-path attacks are geometry-created rather than universal:
+2.0% overall, highest on the narrow Causeway at 6.0%.
+
+The theory gate passes. Select one immediate launch tile, then speed-two
+travel, as the engine-experiment timing. Keep the 125-path arc family and
+private immutable plan. This result authorizes an in-process engine prototype;
+it does not authorize an official rules promotion or prove that strategy bots
+can use the action space effectively.
