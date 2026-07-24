@@ -809,3 +809,121 @@ experimental flagship and v6 as its causal straight-bolt reference. Official
 0.5 remains on HOLD: this isolation run establishes that programmed skill
 shots are usable and improve v6, not that the complete 0.5 package has passed
 every comparison against shipped 0.4 or its map-geometry gate.
+
+## O. Pre-registered final promotion comparison: shipped 0.4 versus v7
+
+Freeze the complete v7 package. Do not tune control, cones, hearing, overtime,
+projectiles, arc limits, maps, cooldown, damage, or health during this run.
+
+The all-WASM population contains six frozen doctrines:
+
+| bot | role | artifact SHA-256 |
+| --- | --- | --- |
+| ActiveHolder | active objective holder | `7b493d77a8374e441d450f2fd32c807e2c9acca1fdc19ec61c3e806b785e80d3` |
+| Suppressor | projectile suppression | `ff0a3a337ab7aefb8e7bb905050520e5a12e01b1f350bd71162082691a1499c4` |
+| SoundHunter | redacted-sound search | `0b5f61c38177723def2154320d08dae13cc8124885e44c6262a27566cfed82cf` |
+| MobileFlanker | mobile pressure | `2eda06f20e94902a84d5c3f6bb4b4121bb6adbf5c658f5e27b932b78ba7cdf1b` |
+| Bastille gen-5 | unchanged historical benchmark | `712490f2e8425674d40bb7ae0328820fb31767df513b4509ce6b473c1cb0748a` |
+| Helix | independent docs-only arc holder | `d4483a859c7c2e6ae992a3aedec5d995304075ffd54cbf3c8b988790751eb987` |
+
+Run three arms:
+
+1. `control`: 0.4 passive scoring with v7's shared seed profile, exhaustive
+   fair spawns, current ranked maps, and replay tallies. This is the exact
+   per-game causal baseline for v7.
+2. `cone-active-bolt2-arcs`: the frozen v7 candidate.
+3. `0.4`: the actually shipped rules. Its aggregate is the product baseline.
+   It does not share v7's seed profile, so fixed seed numbers do not imply the
+   same spawn/RNG rows; do not describe individual 0.4→v7 transitions as
+   causal. Use `control` for paired transitions.
+
+Every arm uses the same ordering and three six-game-set blocks:
+
+- maps `basic-01,arena-01,crossfire-01`, seeds `101,202,303`;
+- maps `bastion-01,gallery-01,basic-01`, seeds `404,505,606`;
+- maps `arena-01,crossfire-01,bastion-01`, seeds `707,808,909`.
+
+With six bots this is 90 games per block, 270 games per arm, 810 total. All
+games use the canonical WASM runtime. Preserve every replay under a separate
+arm/block directory.
+
+Apply the standard balance gate without redefining it: relative to shipped
+0.4, v7 must lower draw rate, lower median end tick, raise elimination share,
+and retain strategic diversity. Report Domination and MaxTicks separately;
+objective endings do not silently count as eliminations. The exact paired
+`control`→v7 comparison must move in the same direction, with no net
+draw creation. At least three non-historical doctrines must win games,
+unchanged Bastille must not remain self-sufficient, Helix must not fault, and
+no result may depend on an in-process-only artifact.
+
+One standard criterion failing means no ship. Record the data and keep v7
+experimental; do not tune a failed number inside this frozen run.
+
+### Final promotion result: strict gate says HOLD
+
+All 810 canonical WASM games completed with the frozen artifacts and zero bot
+faults. The aggregate product comparison is:
+
+| arm | draws | eliminations | Domination | MaxTicks | median | average | p90 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| shipped 0.4 | 31/270 (11.5%) | 175/270 (64.8%) | 58 | 37 | 31.5 | 120.1 | 499 |
+| shared-seed control | 14/270 (5.2%) | 146/270 (54.1%) | 86 | 38 | 50 | 135.6 | 499 |
+| programmed-arcs v7 | 17/270 (6.3%) | 151/270 (55.9%) | 105 | 14 | 64.5 | 99.0 | 200 |
+
+Against shipped 0.4, v7 passes draw rate and diversity but fails the frozen
+median-duration and elimination-share criteria. Its average and long tail are
+substantially better, but those were supporting results rather than permission
+to replace a failed gate. Against the exact shared-seed control, v7 adds five
+eliminations and cuts average duration by 36.6 ticks, but median rises 50→64.5
+and draws rise 14→17. The 270 paired rows contain 11 draw→decisive transitions,
+14 decisive→draw transitions, 63 winner flips, a zero median tick delta, and a
+−36.6 mean tick delta.
+
+The strategic correction itself survives the larger field. Bastille is
+85-0-5 under passive shared-seed control and 82-0-8 under shipped 0.4, but
+falls to 49-29-12 under v7. Helix leads v7 at 67-21-2, followed by
+ActiveHolder 53-29-8; every one of the six doctrines wins, and leader share
+falls from 34.3% of decided 0.4 games to 26.5%. Unchanged Bastille is no
+longer self-sufficient and the field does not collapse around the arc-aware
+bot.
+
+Nor is the outcome-label shift evidence that combat disappeared. Damage lands
+in 189/270 v7 games (70.0%), versus 183/270 under shipped 0.4 (67.8%).
+Programmed-shot replay evidence contains 1,563 launches, 1,380 curved launches,
+1,349 manifested curves, 250 curved hits, 192 hits after a bend, and 224
+ranged curved hits across 95 games. Thirty-six curved misses cross a zone tile
+an active holder just vacated, across 26 games. The projectile thesis is
+visible at population scale.
+
+Candidate draws concentrate on Bastion (8/60) and Basic (5/60); Gallery has
+none. Candidate per-map median ticks are 74 Arena, 25.5 Basic, 112 Bastion,
+53.5 Crossfire, and 45 Gallery. This is not the old universal tick-499
+failure: v7 cuts MaxTicks endings from 37 to 14 and p90 from 499 to 200 versus
+shipped 0.4.
+
+The pre-registered verdict is therefore **HOLD official 0.5**. Retain
+`cone-active-bolt2-arcs` as the experimental flagship; do not adjust health,
+damage, trajectory limits, control values, or the result labels inside this
+completed comparison.
+
+### What the result makes the next question
+
+The next decision is now a product criterion, not an untested combat mechanic:
+must a watchable objective game beat instant-ray 0.4 specifically on
+elimination share and median ticks, or should decisive Domination, combat
+incidence, average/p90 viewing time, and replay quality form an explicit
+watchability gate?
+
+Do not answer that by silently re-scoring these 270 games. If the product gate
+is deliberately revised, pre-register absolute viewing-time and engagement
+limits, publish a deterministic non-highlight replay sample, and validate them
+on fresh holdout seeds. Continue reporting the original balance criteria next
+to any new gate.
+
+A frozen-policy durability diagnostic argues against reflexively changing
+health first. Ending the recorded v7 timelines on the second hit would produce
+at most 169/270 eliminations (62.6%), median 40, and average 83.1: still below
+0.4's elimination share and above its median. Ending on the first hit would
+cross the numeric thresholds, but 16 games have mutual first-hit ticks and it
+would turn a prediction contest into one-contact lethality. Neither diagnostic
+authorizes an implementation.

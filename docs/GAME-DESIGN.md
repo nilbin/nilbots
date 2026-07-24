@@ -631,3 +631,41 @@ five ranked maps.
 Do not crown Helix or ship 0.5 from this bounded trial. The remaining promotion
 step is the matched v7-versus-shipped-0.4 tournament with an aware population.
 That comparison—not another combat mechanic—is next.
+
+## Gen-9 full promotion verdict: better replays, strict gate still HOLD
+
+The final comparison froze six all-WASM doctrines, including unchanged
+Bastille and docs-only Helix, across 810 games. Programmed-arcs v7 improves the
+parts of the viewing experience that motivated 0.5: versus shipped 0.4 it
+cuts draws 11.5%→6.3%, average ticks 120.1→99.0, p90 499→200, and MaxTicks
+37→14. Damage occurs in slightly more games (70.0% vs 67.8%), 224 ranged
+curved hits land, and 36 misses visibly force an active holder off a crossed
+zone tile.
+
+The defensive equilibrium is broken without collapsing the meta. Bastille
+moves from 82-0-8 under 0.4 to 49-29-12 under v7; Helix leads at 67 wins,
+ActiveHolder follows at 53, all six doctrines win, and top share of decided
+games falls 34.3%→26.5%.
+
+The frozen balance gate nevertheless says HOLD. Median duration is 64.5
+instead of 31.5 and elimination share is 55.9% instead of 64.8%. V7 produces
+105 Domination endings, and the methodology does not permit relabeling those
+as eliminations after seeing the result. The exact passive-control pairing is
+also mixed: eliminations rise 146→151 and mean duration falls 135.6→99.0,
+but draws rise 14→17 and median rises 50→64.5.
+
+This exposes a clean product decision. Instant rays create many fast
+elimination labels; active control and legible projectiles create fewer draws,
+a much shorter tail, broader winners, and objective climaxes. If the latter is
+the intended spectator experience, define that gate explicitly before the
+next data: absolute viewing time at the viewer's five ticks/second, damage/
+pressure engagement, decisive objective endings, replay review, and strategic
+diversity. Publish a deterministic non-highlight sample and test the frozen
+candidate on fresh holdout seeds. Keep the old table visible.
+
+Do not change health on this evidence alone. A frozen-policy second-hit
+diagnostic still misses both failed 0.4 thresholds (62.6% eliminations,
+median 40); first-hit lethality would meet the numbers but creates at least
+16 observed mutual-first-hit situations and overweights one hidden prediction.
+The next move is to decide what “good to watch” means, then validate it without
+post-hoc scoring.

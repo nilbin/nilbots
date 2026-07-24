@@ -43,17 +43,16 @@ preserving decay. Overtime fixes the diagnosed long tail (MaxTicks 24→5, avera
 134.9→102.2) but the unchanged population still misses the median duration
 and elimination-share ship gates (DECISIONS #64–#66).
 
-The programmed-arc direction has now passed both its theory gate and the v7
-engine/SDK/WASM usability gate (DECISIONS #67–#68). Private immutable arcs
-create prediction contests without random accuracy or homing; across 180
-paired games they improve v6 draws, eliminations, median, and average duration,
-with 111 ranged curved hits. `scripts/shot-theory-lab.py` checks the finite
-path/policy space and `scripts/arc-replay-eval.py` measures real replay use.
-The gen-9 docs-only Helix trial then passed the player learnability and ranked
-map gates: 13–5 across the three historical champions, a 3–3 all-elimination
-self mirror, local/server artifact parity, and all five constrained ranked
-maps covered. Official 0.5 remains on HOLD pending the full matched 0.4
-comparison (DECISIONS #69).
+The programmed-arc direction has passed its theory, engine/SDK/WASM, and
+docs-only learnability gates (DECISIONS #67–#69). The final 810-game all-WASM
+promotion comparison then kept official 0.5 on HOLD (DECISIONS #71). Versus
+shipped 0.4, v7 improves draws 31→17, average ticks 120.1→99.0, p90 499→200,
+combat incidence 67.8%→70.0%, winner diversity, and the Bastille equilibrium;
+it fails the frozen median (31.5→64.5) and elimination-share
+(64.8%→55.9%) criteria. V7 remains the experimental flagship. The next
+decision is whether to retain the instant-ray-centric gate or explicitly
+pre-register an objective/watchability gate and validate it on fresh holdout
+seeds; do not silently re-score the completed tournament.
 
 ## Game rules 0.1 (initial)
 
@@ -118,10 +117,12 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    version bump. Cross-process cache-key locks and named Docker timeout cleanup
    now prevent CLI/server builds from corrupting one workspace (#70).
 2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
-   control; DECISIONS #49/#53). The held 0.5 program now has a clean remaining
-   choice after v7: run the full matched v7-versus-0.4 promotion comparison.
-   The ranked geometry and player-learnability gates are complete (#69);
-   energy/strafe stay behind failed experiment arms.
+   control; DECISIONS #49/#53). The full v7-versus-0.4 promotion comparison is
+   now complete (#71): v7 makes the long-tail/replay/diversity shape better but
+   misses the frozen median and elimination-share gate. Next make the product
+   choice explicit: keep those instant-ray-relative criteria, or pre-register
+   an objective/watchability gate plus deterministic non-highlight review and
+   run fresh holdout seeds. Do not add health/damage tuning first.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime

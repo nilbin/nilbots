@@ -741,6 +741,25 @@ configuration) and changing them is a version bump, not an edit.
     identical builds produced one 14.1s compile plus one cache hit with matching
     hashes and no remaining compiler container.
 
+71. **The 810-game all-WASM promotion run keeps official 0.5 on HOLD; the
+    next choice is the product gate, not another mechanic.** Six frozen
+    doctrines played 270 games each under shipped 0.4, a shared-seed passive
+    control, and programmed-arcs v7, with zero faults. Versus 0.4, v7 cuts
+    draws 31→17, average ticks 120.1→99.0, p90 499→200, and leader share
+    34.3%→26.5%; damage occurs in more games (70.0% vs 67.8%), all six
+    doctrines win, Helix leads 67-21-2, and unchanged Bastille falls from an
+    undefeated 82-0-8 to 49-29-12. The skill-shot layer is material: 1,380
+    curved launches, 224 ranged curved hits across 95 games, and 36 vacated
+    active-holder crossings. But the pre-registered standard gate is binding:
+    median rises 31.5→64.5 and elimination share falls 64.8%→55.9%. The exact
+    control→v7 rows also create three net draws (14→17), despite five more
+    eliminations and a 36.6-tick lower mean. Therefore 0.4 remains official
+    and v7 remains the experimental flagship. Do not tune this frozen result.
+    If decisive Domination and viewing-time tails are to replace elimination
+    label and instant-ray median as promotion criteria, pre-register that as
+    an explicit product gate and use fresh holdout seeds while continuing to
+    report the original balance table.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
