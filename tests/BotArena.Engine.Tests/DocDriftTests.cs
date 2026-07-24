@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace BotArena.Engine.Tests;
 
@@ -80,5 +82,20 @@ public class DocDriftTests
     {
         foreach (string name in GameRules.KnownNames)
             _ = GameRules.Resolve(name); // must not throw; KnownNames and Resolve move together
+    }
+
+    [Fact]
+    public void SdkProjectVersion_MatchesToolchainVersion()
+    {
+        string toolchain = ReadRepoFile("src", "BotArena.Toolchain", "BotProject.cs");
+        var versionMatch = Regex.Match(
+            toolchain,
+            """public const string SdkVersion = "([^"]+)";""");
+        Assert.True(versionMatch.Success, "Could not find ToolchainInfo.SdkVersion.");
+
+        var project = XDocument.Parse(
+            ReadRepoFile("src", "BotArena.Sdk", "BotArena.Sdk.csproj"));
+        string? projectVersion = project.Descendants("Version").SingleOrDefault()?.Value;
+        Assert.Equal(versionMatch.Groups[1].Value, projectVersion);
     }
 }

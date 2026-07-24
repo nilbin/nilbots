@@ -55,9 +55,12 @@ Official 0.5 remains on HOLD. The evaluation policy is now explicitly
 generation-aware (DECISIONS #73): old bots are compatibility/causal sentinels,
 not a veto over a substantial redesign; primary evidence comes from bots built
 for their rules, replay-dynamics metrics, and an outcome-blind viewer sample.
-The next formal holdout needs at least four independently authored/adapted
-territorial doctrines under the frozen guardrails in
-`docs/EVALUATION-METHODOLOGY.md`.
+The four-doctrine territorial holdout is complete (DECISIONS #74): all dynamics
+and blind-viewer gates passed, but Pincer owned 42.5% of decided wins against a
+frozen 35% ceiling. Keep v8 on HOLD. The next step is a fresh-seed,
+equal-budget counterplay iteration against frozen Pincer—not a rules tune or a
+post-hoc gate change. The consolidated player brief is
+`docs/EXPERIMENTAL-TERRITORIAL-V8.md`.
 
 ## Game rules 0.1 (initial)
 
@@ -106,10 +109,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   serves the SPA. Dockerfile + docker-compose for deployment.
 - `web/` — one React build, two modes: the Bot Arena site (router) and the
   standalone replay viewer the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (180 tests, incl.
+- `tests/` — engine, determinism, and WASM contract suites (193 tests, incl.
   DocDriftTests pinning docs/mirrors to the engine).
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
-  build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh.
+  build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
+  balance/dynamics/control/arc/replay-review evaluation tools.
 
 ## Next session pointers
 
@@ -122,11 +126,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    version bump. Cross-process cache-key locks and named Docker timeout cleanup
    now prevent CLI/server builds from corrupting one workspace (#70).
 2. ~~Game design: anti-draw program~~ **SHIPPED through rules 0.4** (zone
-   control; DECISIONS #49/#53). The v7-versus-0.4 comparison is complete (#71)
-   and territorial v8 has passed its action-economy test while exposing a
-   physical-contest loop (#72). Next run a fresh four-doctrine territorial
-   generation using the native-cohort dynamics and outcome-blind replay policy
-   (#73); do not hide loops with a post-hoc tick cap or add health tuning first.
+   control; DECISIONS #49/#53). Territorial v8 passed its native dynamics and
+   viewer gates but failed strategy diversity because Pincer led 42.5% (#74).
+   Freeze v8 and Pincer; next run an equal-budget counterplay adaptation on
+   fresh seeds under RULES-0.5-DESIGN §R. Do not change the 35% gate or tune
+   rules first.
 3. Sprites/appearances (§33); logotype (§31).
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime

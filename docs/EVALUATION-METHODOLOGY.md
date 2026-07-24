@@ -109,10 +109,12 @@ a tense 80-tick game merely because an older instant-ray game ended in 40.
 Long repetitive tails should fail through loop/stall evidence and replay
 review, not through a blanket “new median must be lower” rule.
 
-## Starting holdout guardrails
+## Baseline holdout guardrails
 
-These thresholds are frozen for the **next fresh substantial-rules holdout**;
-they do not retroactively promote an already observed arm:
+These thresholds governed the first prospective territorial-v8 holdout and
+remain the starting defaults for substantial-rules evaluations. Each future
+holdout must copy, extend, and freeze its exact gates before final data; these
+defaults never retroactively promote an already observed arm:
 
 - zero WASM faults and deterministic verification;
 - draw rate at or below 10%;
@@ -130,6 +132,28 @@ they do not retroactively promote an already observed arm:
 These are guardrails, not a weighted score. A candidate that barely passes
 numbers but looks confusing or repetitive on replay remains a hold. A future
 change to the thresholds must be documented and frozen before its holdout.
+
+## After a holdout
+
+Apply every frozen gate literally. One failure is a HOLD even when every other
+dimension is excellent; do not average gates into a composite score or weaken
+one after opening the results.
+
+Diagnose the narrowest next experiment:
+
+- a safety, determinism, or mechanic failure returns to implementation;
+- a dull or confusing representative sample returns to mechanics or viewer
+  presentation, depending on the recorded cause;
+- a repetition/degenerate-play failure returns to rules or counterplay only
+  after inspecting the exact loops;
+- an isolated strategy-diversity failure with healthy dynamics freezes the
+  rules and leading artifact first, then gives counter-doctrines an equal,
+  bounded adaptation on fresh seeds.
+
+That adaptation is a new pre-registered holdout, not permission to reuse the
+opened seeds or erase the original result. Reopen rule tuning only if
+candidate-aware counterplay cannot meet the frozen diversity target without
+destroying the previously passed dynamics.
 
 ## Outcome-blind replay study
 

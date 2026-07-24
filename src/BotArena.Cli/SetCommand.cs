@@ -20,12 +20,13 @@ public static class SetCommand
     {
         var options = CliSupport.ParseOptions(args);
         CliSupport.RejectUnknownOptions(
-            options, "bot", "opponent", "runtime", "maps", "seeds", "rules", "max-ticks");
+            options, "bot", "opponent", "runtime", "maps", "seeds", "rules", "max-ticks", "out");
         string botSpec = options.GetValueOrDefault("bot", ".");
         string opponentSpec = options.TryGetValue("opponent", out string? opp)
             ? opp
             : throw new InvalidOperationException("botarena set requires --opponent <spec>.");
         string runtimeKind = options.GetValueOrDefault("runtime", "wasm");
+        string? setOutDir = options.GetValueOrDefault("out");
 
         string[] maps = options.TryGetValue("maps", out string? mapList)
             ? mapList.Split(',').Select(m => m.Trim()).ToArray()
@@ -58,10 +59,15 @@ public static class SetCommand
             {
                 game++;
                 var (first, second) = mirrored ? (opponentSpec, botSpec) : (botSpec, opponentSpec);
-                var (run, name0, name1, written, _) = PlayCommand.RunSingle(
-                    first, second, map, seed, runtimeKind, rules, outDirOverride: null, quiet: true,
-                    mirrored: mirrored);
                 int mySlot = mirrored ? 1 : 0;
+                string? gameOutDir = setOutDir is null
+                    ? null
+                    : Path.Combine(
+                        setOutDir,
+                        $"g{game:00}-{OutputSlug(mapId)}-s{seed.ToString(CultureInfo.InvariantCulture)}-slot{mySlot}");
+                var (run, name0, name1, written, _) = PlayCommand.RunSingle(
+                    first, second, map, seed, runtimeKind, rules, outDirOverride: gameOutDir, quiet: true,
+                    mirrored: mirrored);
                 (myName, oppName) = mirrored ? (name1, name0) : (name0, name1);
                 // Mirror sets: both copies share a name, so "LOSS (Talon wins)" reads as a
                 // contradiction (gen-4 finding) — disambiguate with the slot.
@@ -90,5 +96,14 @@ public static class SetCommand
                           (myScore > game / 2.0 ? $"  →  {myName} takes the set"
                            : myScore < game / 2.0 ? $"  →  {oppName} takes the set" : "  →  set drawn"));
         return 0;
+    }
+
+    private static string OutputSlug(string value)
+    {
+        string slug = new string(value.ToLowerInvariant()
+            .Select(character => char.IsAsciiLetterOrDigit(character) ? character : '-')
+            .ToArray())
+            .Trim('-');
+        return slug.Length == 0 ? "map" : slug;
     }
 }

@@ -1,10 +1,17 @@
 using BotArena.Cli;
 using BotArena.Toolchain;
 
-// A help request anywhere wins over command dispatch — otherwise `build --help`
-// tries to build a project directory literally named "--help".
-if (args.Length == 0 || args is ["help", ..] || args.Any(a => a is "--help" or "-h"))
-    return Help(exitCode: args.Length == 0 ? 1 : 0);
+// A help request wins over command dispatch — otherwise `build --help` tries
+// to build a project directory literally named "--help". Keep the named
+// command so authors get its options and examples instead of only global help.
+if (args.Length == 0)
+    return Help(exitCode: 1);
+if (args[0] is "--help" or "-h" || args is ["help"])
+    return Help(exitCode: 0);
+if (args is ["help", var helpCommand, ..])
+    return CommandHelp(helpCommand);
+if (args.Skip(1).Any(a => a is "--help" or "-h"))
+    return CommandHelp(args[0]);
 
 try
 {
@@ -63,7 +70,8 @@ static int Help(int exitCode = 1)
                                  bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy]
                         [--max-ticks <n>] [--out <dir>]
           botarena set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
-                        [--runtime ...]           the ranked 6-game mirrored set, locally
+                        [--runtime ...] [--out <dir>]
+                                                  ranked mirrored set; preserves each game
           botarena watch [dir] [play options]     rebuild + replay on every change
           botarena replay <replay.json> [--summary [--no-debug] [--full]] [--out]
                                                   compact match digest, or the visual viewer
@@ -88,4 +96,77 @@ static int Help(int exitCode = 1)
         and use `set` + `replay --summary` for ranked-shape testing and loss forensics.
         """);
     return exitCode;
+}
+
+static int CommandHelp(string command)
+{
+    string? help = command.ToLowerInvariant() switch
+    {
+        "new" => """
+            Usage: botarena new <Name>
+            Creates <Name>/ with Bot.cs, botarena.json, and a portable SDK reference.
+            """,
+        "build" => """
+            Usage: botarena build [dir] [--no-cache]
+            Compiles a bot to canonical WASM and copies it to <dir>/out/bot.wasm.
+            Use --no-cache only to force a verification rebuild.
+            """,
+        "play" => """
+            Usage: botarena play [--bot <spec>] [--opponent <spec>] [--map <id>]
+                   [--seed <n> | --seeds a,b,c] [--swap]
+                   [--runtime wasm|in-process] [--rules <name>]
+                   [--max-ticks <n>] [--out <dir>]
+            Example: botarena play --bot . --opponent hunter --runtime in-process \
+                     --seeds 7,42,1337
+            """,
+        "set" => """
+            Usage: botarena set --bot <spec> --opponent <spec>
+                   [--maps a,b,c] [--seeds x,y,z] [--runtime wasm|in-process]
+                   [--rules <name>] [--max-ticks <n>] [--out <dir>]
+            Runs every map/seed from both slots. --out preserves each game in a
+            gNN-<map>-s<seed>-slot<N>/ subdirectory.
+            """,
+        "watch" => """
+            Usage: botarena watch [dir] [play options]
+            Rebuilds and opens a new replay whenever bot source changes.
+            """,
+        "replay" => """
+            Usage: botarena replay <replay.json> [--summary [--no-debug] [--full]]
+                   [--out <dir>]
+            Without --summary, writes a self-contained viewer.html.
+            """,
+        "verify" => """
+            Usage: botarena verify <replay.json>
+            Recomputes and checks the canonical replay hash.
+            """,
+        "doctor" => """
+            Usage: botarena doctor
+            Reports SDK/toolchain versions, build backend, Docker/wasi-sdk, and cache.
+            """,
+        "cache" => """
+            Usage: botarena cache [status|clear]
+            Shows or clears the content-addressed player-WASM build cache.
+            """,
+        "submit" => """
+            Usage: botarena submit [dir] [--server <url>]
+            Builds locally, submits source for the canonical server rebuild, and
+            reports artifact parity. Sign in first with `botarena login`.
+            """,
+        "login" => """
+            Usage: botarena login [--server <url>]
+            Signs in through the browser with OAuth + PKCE.
+            """,
+        "logout" => "Usage: botarena logout",
+        "whoami" => "Usage: botarena whoami",
+        "bots" => "Usage: botarena bots",
+        "maps" => "Usage: botarena maps",
+        _ => null,
+    };
+    if (help is null)
+    {
+        Console.Error.WriteLine($"Unknown command '{command}'.");
+        return Help();
+    }
+    Console.WriteLine(help);
+    return 0;
 }

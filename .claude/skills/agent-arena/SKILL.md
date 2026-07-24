@@ -86,10 +86,14 @@ to silently dropped flags). Since DECISIONS #54 a ranked request can also
 pin rules per set (`{"rules":"<arm>"}` on POST /api/matches/ranked) and
 each ruleset rates on its own ladder — experiment tournaments no longer
 pollute official elo either way; the env knob just keeps a whole run on
-one arm without trusting every request. Player-facing docs only describe SHIPPED rules,
-so append the experiment spec to every agent brief. (Zone control needs no
-brief anymore — it shipped as official 0.4 after the gen-4 bracket,
-DECISIONS #53, and the site docs + template README now cover it.)
+one arm without trusting every request. Player-facing docs only describe
+SHIPPED rules, so give every author the same experiment spec. For
+`cone-occupancy-bolt2-arcs`, use
+`docs/EXPERIMENTAL-TERRITORIAL-V8.md` as the single player-facing brief; do
+not make agents reconstruct v8 from SDK comments or design history. For other
+arms, append only the matching paragraphs below. (Zone control needs no brief
+anymore — it shipped as official 0.4 after the gen-4 bracket, DECISIONS #53,
+and the site docs + template README now cover it.)
 
 For substantial changes, follow `docs/EVALUATION-METHODOLOGY.md`: give every
 native-cohort author the same iteration budget, freeze final artifact hashes,
@@ -187,8 +191,8 @@ briefs above plus:
 > `Direction` as a guaranteed future lane. A miss that makes a holder Move or
 > Turn denies its control tick.
 
-For `cone-occupancy-bolt2-arcs` (v8), use the fast-bolt and programmed-shot
-briefs above, but REPLACE the active-control paragraph with:
+For `cone-occupancy-bolt2-arcs` (v8), prefer the consolidated
+`docs/EXPERIMENTAL-TERRITORIAL-V8.md`. The canonical territorial summary is:
 
 > EXPERIMENTAL TERRITORIAL CONTROL. Any action may score. After movement,
 > projectile collision, damage, and faults, exactly one active bot occupying
@@ -200,6 +204,13 @@ briefs above, but REPLACE the active-control paragraph with:
 > position, straight shots, and private programmed curves are all tools—then
 > keep fighting while the sole occupant scores. A lead cannot remain banked
 > through an unresolved contest.
+
+After a native holdout, apply every pre-registered gate literally. If one bot
+alone exceeds the strategy-share ceiling while the candidate passes safety,
+dynamics, objective, and blind-viewer gates, keep both the rules and leader
+frozen. A follow-up arena run may give the losing doctrines one equal,
+bounded, docs/SDK/CLI-only counterplay iteration on fresh seeds. Do not waive
+the ceiling, tune rules, or expose the leading bot's source.
 
 ## 2. Launch the challenger(s)
 

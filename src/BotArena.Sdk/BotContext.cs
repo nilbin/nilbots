@@ -39,8 +39,9 @@ public sealed class BotContext
     /// <summary>Zone-control tiles, or null when these rules have no zone control.
     /// The full list from tick 0, not gated by vision; a map's zone may be split
     /// into disconnected pads. Passive rules accrue zone-ticks from occupancy.
-    /// Active-control rules instead require a successful Wait on a zone tile:
-    /// moving, turning, shooting, blocked actions, and faults exert no control.
+    /// Shared-meter variants define commitment through their advertised rules:
+    /// some require a successful Wait, while territorial variants reward any
+    /// action by the sole active occupant and decay pressure while contested.
     /// The objective breaks tick-limit ties before health and damage.</summary>
     public IReadOnlyList<Position>? ZoneTiles { get; init; }
 

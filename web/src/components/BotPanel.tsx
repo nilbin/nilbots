@@ -69,12 +69,24 @@ export default function BotPanel({
       (state) => state.status === 'Active' && zone.onZone.has(`${state.x},${state.y}`),
     );
     if (replay.header.controlBySoleOccupancy) {
+      const previousTick = replay.ticks[Math.max(0, Math.min(tick - 1, replay.ticks.length - 1))];
+      const previousOccupants =
+        tick > 0
+          ? previousTick.state.filter(
+              (state) =>
+                state.status === 'Active' && zone.onZone.has(`${state.x},${state.y}`),
+            )
+          : [];
+      const soleName =
+        activeOccupants.length === 1
+          ? (replay.header.participants[activeOccupants[0].slot]?.name ??
+            `slot ${activeOccupants[0].slot}`)
+          : null;
       controlPhase =
         activeOccupants.length === 1
-          ? `SOLE OCCUPANT · ${
-              replay.header.participants[activeOccupants[0].slot]?.name ??
-              `slot ${activeOccupants[0].slot}`
-            } GAINS`
+          ? previousOccupants.length > 1
+            ? `CONTEST BROKEN · ${soleName} GAINS`
+            : `SOLE OCCUPANT · ${soleName} GAINS`
           : activeOccupants.length > 1
             ? 'CONTESTED · PRESSURE DECAYS'
             : 'EMPTY · PRESSURE DECAYS';

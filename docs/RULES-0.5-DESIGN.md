@@ -1165,3 +1165,81 @@ One numeric failure or a confusing/dull blind sample keeps official 0.5 on
 HOLD and records the exact residue. Passing makes territorial v8 the preferred
 0.5 candidate; official pinning still requires completion of the replay review,
 not just the outcome table.
+
+### Holdout result: dynamics pass, diversity fails
+
+The 108-game native-v8 holdout completed exactly as pre-registered. All games
+used the four frozen WASM artifacts, recorded zero faults, and reproduced
+108/108 replay hashes on an independent rerun.
+
+| gate | threshold | result |
+| --- | ---: | ---: |
+| draws | ≤10% | 2/108 (1.9%) |
+| winning doctrines | all 4 | all 4 |
+| leading share of decided wins | ≤35% | **Pincer 45/106 (42.5%) — FAIL** |
+| damage games | ≥75% | 108/108 (100%) |
+| reciprocal damage | ≥40% | 85/108 (78.7%) |
+| multiple damage ticks | ≥60% | 108/108 (100%) |
+| active-world ticks | ≥75% | 100% |
+| stalled / looped games | ≤5% / ≤10% | 0 / 0 |
+| median action entropy | ≥0.60 | 0.728 |
+| non-Wait sole-score ticks | ≥50% | 1,006/1,030 (97.7%) |
+| contest-to-sole / damage evictions | ≥36 / ≥24 | 87 / 51 |
+| median end tick | ≤100 | 23 |
+
+Records were Pincer 45-9-0, Echo 26-27-1, Comet 18-35-1, and Augur
+17-35-2. Every match ended with an Elimination reason, including two mutual
+elimination draws. Average end tick was 24.7 and p90 was 41. Curved shots were
+not ornamental: 615/856 programs curved, 307 curved shots hit, 259 were ranged
+curved hits, and 96/108 games contained at least one ranged curved hit.
+
+The outcome-blind 12-replay sample also passed. Mean ratings were 4.17
+legibility, 3.92 tension, 4.33 visible action/counter-action, 3.75 freedom from
+repetition, and 4.75 earned ending. All 12 scored at least 3 for
+action/counter-action; only one scored 2 or below for repetition. Reviewers
+understood sole scoring and contest decay. The remaining presentation weakness
+is delayed-projectile causality: some impacts require the event feed to connect
+them to the originating shot.
+
+Therefore official 0.5 remains on **HOLD**. The failure is deliberately narrow:
+Pincer exceeded the frozen diversity ceiling. Do not waive the 35% gate or
+tune rules after seeing it. Freeze v8 and Pincer, then give counter-doctrines a
+bounded equal adaptation pass on fresh seeds. The next test asks whether bot
+strategy can restore diversity without sacrificing the dynamics and viewer
+results. Full artifacts, sentinel rows, and DX findings are in
+`DX-FINDINGS-TERRITORIAL-V8-2026-07-24.md`.
+
+## R. Pre-registered frozen-Pincer counterplay trial
+
+This follow-up isolates strategic adaptation. The v8 rules, ranked maps,
+viewer, Pincer WASM
+`0c0271655d25e6b91d520b2f0d55acdefaabd3e205646fff6b98a82b4c1e5abd`,
+and all gates from §Q remain frozen. No health, damage, projectile, curve,
+control, overtime, geometry, or threshold change may enter the trial.
+
+Give Comet, Augur, and Echo one equal docs/SDK/CLI-only improvement iteration.
+Each may inspect `replay --summary` output and the self-contained viewers from
+its own §Q losses, but not raw replay JSON, engine/design internals, Pincer
+source, or another bot's source. The author may change doctrine as much as
+needed within that one iteration. Freeze and record the three resulting WASM
+hashes before final play.
+
+The new holdout is the four-bot round-robin—frozen Pincer plus the three
+adapted counter-doctrines—on these unopened blocks:
+
+- maps `basic-01,arena-01,gallery-01`, seeds `12011,13007,14009`;
+- maps `crossfire-01,bastion-01,basic-01`, seeds `15013,16001,17011`;
+- maps `arena-01,gallery-01,crossfire-01`, seeds `18013,19001,20011`.
+
+That is again 108 mirrored games. Final evidence is all-WASM, zero-fault, and
+must reproduce deterministically. Reapply every §Q numeric gate, especially
+all four doctrines winning and no leader above 35% of decided wins. Also
+report Pincer's exact record/share change from §Q; it is diagnostic context,
+not a replacement threshold.
+
+Before opening aggregate results, select a new 12-replay header-only sample
+with selection seed `20260725` and apply the same viewer gates. Preserve the
+§Q results alongside the follow-up. A pass means candidate-aware strategy can
+counter Pincer without rules tuning and territorial v8 may return to the
+official-pinning decision. Any failure remains a HOLD and names the failed
+dimension before rules work reopens.

@@ -796,6 +796,24 @@ configuration) and changing them is a version bump, not an edit.
     `replay-review-sample.py` encode the policy. Completed historical gates are
     not retroactively rescored; the thresholds apply to fresh holdouts.
 
+74. **Territorial v8 passes its dynamics and blind-viewer gates but remains on
+    HOLD because Pincer violates the frozen diversity ceiling.** The
+    pre-registered native cohort ran 108 all-WASM games with zero faults and
+    reproduced every replay hash. Draws were 1.9%; damage appeared in 100%,
+    reciprocal damage in 78.7%, multiple damage ticks in 100%, active-world
+    ticks in 100%, and no game stalled or looped. Median action entropy was
+    0.728; 1,006/1,030 sole-score ticks used non-Wait actions; 87 contests
+    broke to a sole occupant and 51 coincided with damage. The 12-replay blind
+    sample passed, averaging 4.33/5 for visible action/counter-action with all
+    12 at least 3, and only one repetition score at 2. However, Pincer finished
+    45-9-0 and owned 45/106 (42.5%) decided wins, above the pre-registered 35%
+    maximum. Do not relax that gate or tune the rules post hoc. Keep v8 and
+    Pincer frozen; the next experiment is an equal-budget, fresh-seed
+    counterplay adaptation trial pre-registered in RULES-0.5-DESIGN §R.
+    `docs/EXPERIMENTAL-TERRITORIAL-V8.md` becomes the one player-facing
+    experiment brief, and the shared skills preserve this native-cohort →
+    blind review → strict verdict workflow.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

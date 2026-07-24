@@ -141,6 +141,11 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   rules), CLI help, `web/src/types.ts` (replay mirror), `replay --summary`.
   `DocDriftTests` pins the mechanical ones (enum/property mirror, version
   stamps, rules-name lists); prose accuracy is on the author.
+- Keep each active substantial experiment's player contract in one concise
+  `docs/EXPERIMENTAL-*.md` brief. Agent-arena authors receive that brief plus
+  shipped docs/SDK/CLI; they should not have to reconstruct timing or scoring
+  from design history, and official site/template docs must not imply an
+  unshipped arm has shipped.
 
 ## Footguns
 

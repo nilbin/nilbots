@@ -101,6 +101,12 @@ or dull replays remains a hold.
 Never redefine a completed gate after seeing the table. A revised product gate
 is a new, documented holdout.
 
+If exactly one diversity gate fails while safety, mechanics, dynamics, and
+blind viewing pass, freeze the candidate rules and leading artifact. The next
+experiment is equal-budget counterplay adaptation on fresh seeds, not a
+post-hoc threshold waiver or immediate rules tune. Preserve the failed table
+in DECISIONS before pre-registering that follow-up.
+
 ## 6. Pinning a version
 
 Winner: add `GameRules.V0_X`, point `GameRules.Current` + 

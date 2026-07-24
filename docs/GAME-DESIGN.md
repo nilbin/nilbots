@@ -705,3 +705,32 @@ gate. Only two doctrines in the adapted field were newly commissioned for
 sole-occupancy control, so the next formal holdout needs at least four
 independently authored/adapted territorial doctrines plus the frozen
 outcome-blind viewer study.
+
+## Territorial-native holdout: watchability proven, counterplay next
+
+The prospective four-doctrine holdout removed the old-population ambiguity.
+Pincer, Comet, Augur, and Echo played 108 canonical-WASM v8 games with zero
+faults and exact replay-hash parity on rerun:
+
+| native field | damage games | reciprocal | active ticks | loops | entropy | median / p90 | leader share |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| previous v7 cohort under v7 | 57.4% | 38.9% | 90.9% | 1.9% | 0.560 | 112 / 200 | 41.7% |
+| new v8 cohort under v8 | 100% | 78.7% | 100% | 0% | 0.728 | 23 / 41 | **42.5%** |
+
+This is a product-generation comparison, not a causal A/B. It says the new
+product is dramatically more active and combative. It also exposes a genuine
+meta problem: Pincer went 45-9-0 and exceeded the frozen 35% leader-share gate.
+The other three doctrines all won, but not often enough.
+
+The blind viewer sample confirms the games are generally legible and earned:
+4.33/5 mean visible action/counter-action, all 12 samples at least 3, and only
+one low repetition score. Curved attacks landed beyond point blank in 96/108
+games. Territorial scoring did what it was meant to do—97.7% of scoring ticks
+used actions other than Wait, and 87 physical contests broke to a sole scorer.
+
+Official 0.5 therefore stays on HOLD for diversity, not for inactivity,
+duration, or a failed anti-camping thesis. Freeze the rules and Pincer. The
+next design question belongs to bot strategy: can equal-budget counterplay
+bring Pincer's share below 35% on fresh seeds while retaining the combat,
+objective, non-repetition, and viewer results? Only a failed adaptation trial
+should reopen rules tuning.

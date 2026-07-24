@@ -340,6 +340,7 @@ def print_group(label, paths):
         f"games={games} draws={totals['draws']}({ratio(totals['draws'], games):.1f}%) "
         f"eliminations={totals['eliminations']}({ratio(totals['eliminations'], games):.1f}%) "
         f"maxTicks={totals['max_ticks']} medianEndTick={statistics.median(ticks) if ticks else 0:g} "
+        f"averageEndTick={statistics.mean(ticks) if ticks else 0:.1f} "
         f"p90EndTick={percentile(ticks, 0.9)} faults={totals['faults']} "
         f"nonWasmGames={totals['non_wasm_games']}"
     )
