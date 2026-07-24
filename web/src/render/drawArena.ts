@@ -122,20 +122,6 @@ export function drawArena(
         else if (detail % 31 === 0) drawFloorVent(x, y);
       }
     }
-    ctx.strokeStyle = theme.palette.grid;
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= mapWidth; x++) {
-      ctx.beginPath();
-      ctx.moveTo(px(x) + 0.5, py(0));
-      ctx.lineTo(px(x) + 0.5, py(mapHeight));
-      ctx.stroke();
-    }
-    for (let y = 0; y <= mapHeight; y++) {
-      ctx.beginPath();
-      ctx.moveTo(px(0), py(y) + 0.5);
-      ctx.lineTo(px(mapWidth), py(y) + 0.5);
-      ctx.stroke();
-    }
   }
 
   function fallbackFloor(x: number, y: number): void {
@@ -219,66 +205,11 @@ export function drawArena(
         }
         ctx.fillStyle = theme.palette.wallTint;
         ctx.fillRect(px(x), py(y), tile, tile);
-        drawWallEdges(x, y);
 
         if (cellHash(replay.header.mapId, x, y, 131) % 23 === 0)
           drawWallLight(x, y);
       }
     }
-  }
-
-  function drawWallEdges(x: number, y: number): void {
-    const edge = Math.max(2, tile * 0.12);
-    const openNorth = !wallAt(x, y - 1);
-    const openEast = !wallAt(x + 1, y);
-    const openSouth = !wallAt(x, y + 1);
-    const openWest = !wallAt(x - 1, y);
-
-    if (openNorth) drawEdgeGradient(x, y, 'north', edge);
-    if (openEast) drawEdgeGradient(x, y, 'east', edge);
-    if (openSouth) drawEdgeGradient(x, y, 'south', edge);
-    if (openWest) drawEdgeGradient(x, y, 'west', edge);
-
-    ctx.strokeStyle = 'rgba(3, 7, 12, 0.72)';
-    ctx.lineWidth = Math.max(1, tile * 0.025);
-    ctx.strokeRect(px(x) + 0.5, py(y) + 0.5, tile - 1, tile - 1);
-  }
-
-  function drawEdgeGradient(
-    x: number,
-    y: number,
-    side: 'north' | 'east' | 'south' | 'west',
-    edge: number,
-  ): void {
-    const left = px(x);
-    const top = py(y);
-    const vertical = side === 'north' || side === 'south';
-    const startX = side === 'east' ? left + tile : left;
-    const startY = side === 'south' ? top + tile : top;
-    const endX =
-      side === 'west'
-        ? left + edge
-        : side === 'east'
-          ? left + tile - edge
-          : startX;
-    const endY =
-      side === 'north'
-        ? top + edge
-        : side === 'south'
-          ? top + tile - edge
-          : startY;
-    const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
-    gradient.addColorStop(0, side === 'north' || side === 'west'
-      ? 'rgba(124, 151, 180, 0.58)'
-      : 'rgba(2, 5, 9, 0.82)');
-    gradient.addColorStop(1, 'rgba(18, 28, 39, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(
-      vertical ? left : side === 'west' ? left : left + tile - edge,
-      vertical ? side === 'north' ? top : top + tile - edge : top,
-      vertical ? tile : edge,
-      vertical ? edge : tile,
-    );
   }
 
   function drawWallLight(x: number, y: number): void {
@@ -292,16 +223,6 @@ export function drawArena(
     ctx.fillStyle = hexWithAlpha(theme.palette.serviceLight, 0.9);
     ctx.fillRect(left, top, width, height);
     ctx.restore();
-  }
-
-  function wallAt(x: number, y: number): boolean {
-    return (
-      x < 0 ||
-      y < 0 ||
-      x >= mapWidth ||
-      y >= mapHeight ||
-      mapTiles[y][x] === '#'
-    );
   }
 
   function drawTextureCell(

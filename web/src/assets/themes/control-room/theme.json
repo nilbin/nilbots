@@ -10,7 +10,6 @@
     "arena": "#09101a",
     "floorTint": "rgba(5, 12, 20, 0.24)",
     "wallTint": "rgba(4, 8, 13, 0.20)",
-    "grid": "rgba(91, 135, 175, 0.17)",
     "zone": "#fbbf24",
     "frame": "#26384b",
     "serviceLight": "#38bdf8"

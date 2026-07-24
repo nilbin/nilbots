@@ -17,7 +17,6 @@ export interface ArenaTheme {
     arena: string;
     floorTint: string;
     wallTint: string;
-    grid: string;
     zone: string;
     frame: string;
     serviceLight: string;

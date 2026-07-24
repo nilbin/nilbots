@@ -73,7 +73,8 @@ no TypeScript registry edit.
 - The renderer maps the full image continuously across the arena. Adjacent
   gameplay cells sample adjacent UV rectangles, so seams and channels cannot
   become a shuffled collage.
-- Grid lines and sparse coordinate-stable service details are layered on top.
+- Sparse coordinate-stable service details are layered on top. The renderer
+  does not draw gameplay-cell borders; the material owns its visible seams.
 
 ### Wall material
 
@@ -82,9 +83,9 @@ no TypeScript registry edit.
 - No surrounding floor or outer ornamental frame.
 - Must read coherently as a continuous material field. Only regions selected by
   `#` cells are visible, but neighboring wall cells share adjacent UVs.
-- The renderer computes open edges from neighbouring `#` cells and adds the
-  directional bevel, shadow, outline, and occasional service light. The source
-  image does not encode collision shape.
+- The renderer uses the ASCII wall mask only to reveal the corresponding
+  material regions and add occasional service lights. It does not outline or
+  bevel individual wall cells; the source material owns seams and depth cues.
 
 ### Palette and registration
 
@@ -92,7 +93,7 @@ Create `web/src/assets/themes/<theme-id>/theme.json` with:
 
 - Stable ID and player-facing label.
 - Floor and wall filenames relative to the manifest.
-- Canvas, floor, wall, grid, frame, and objective-zone colors.
+- Canvas, floor, wall, frame, and objective-zone colors.
 - A service-light color.
 
 Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
