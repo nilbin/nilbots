@@ -1206,6 +1206,21 @@ still cite the old numbers.*
     removes the coupling, and it trades an offline-capable tool for a networked
     one. Not worth it while releases are cheap.
 
+92. **Production receives a verified deployment bundle over SSH; it does not
+    fetch the source repository.** The manual release workflow archives only
+    tracked `deploy/` control files from the exact Git revision that produced
+    the immutable GHCR images, hashes the archive, and transfers it with those
+    image digests. The VPS verifies the hash and safe archive paths, links the
+    candidate to persistent `.env`, certificate, and backup state, deploys it,
+    and advances `current` only after health checks pass. `previous` retains
+    the prior bundle and image digests for rollback. PostgreSQL, Garage, and
+    Caddy continue to live in named Docker volumes. This removes repository
+    credentials from the host, keeps private-repository deployment viable, and
+    prevents an operator from accidentally deploying an unreviewed `main`
+    checkout. Rejected: continuing to `git fetch` an exact SHA on the VPS. It
+    was deterministic but coupled production to repository access and made
+    tracked configuration rollback less explicit.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

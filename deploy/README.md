@@ -34,6 +34,10 @@ keys, enables security updates and the firewall, and applies conservative SSH
 and Docker log settings. Run it once as root, verify a separate operator SSH
 session, and only then disable root SSH.
 
+Production does not need a Git checkout or GitHub repository credential. The
+manual release workflow sends a small, SHA-256-verified deployment bundle over
+SSH. Application code is delivered only through immutable GHCR image digests.
+
 ## First deployment
 
 From the repository root:
@@ -86,6 +90,23 @@ Check that DNS is live, then perform a local-image deployment:
 bash deploy/deploy.sh --build-local
 ```
 
+For the normal bundle-based release path, provision persistent configuration
+once under the deployment root configured by the GitHub
+`NILBOTS_DEPLOY_PATH` variable:
+
+```bash
+deploy_root=/srv/nilbots/deployment
+install -d -m 700 "$deploy_root/shared/secrets" "$deploy_root/shared/backups"
+install -m 600 deploy/.env "$deploy_root/shared/.env"
+install -m 600 deploy/secrets/*.pfx "$deploy_root/shared/secrets/"
+```
+
+The workflow creates `releases/<git-sha>`, links its `.env`, certificates and
+backup directory to `shared/`, and atomically advances `current` only after
+the candidate release is healthy. `previous` remains available for rollback.
+Docker named volumes retain PostgreSQL, Garage and Caddy state independently
+of those release directories.
+
 The normal production release path is the repository's **Manual release**
 workflow:
 
@@ -107,17 +128,19 @@ its version is not yet on NuGet, publishes, and tags the commit `cli-v<version>`
 deployed (`scripts/assert-cli-release.sh`). A toolchain change is therefore a
 two-run release on the same commit: `publish-cli`, then `publish-and-deploy`.
 
-The deploy script validates immutable GHCR digests, starts PostgreSQL, takes
-and validates a local pre-release database dump, drains workers, runs the
-one-shot migration/seeding role, waits for the compiler runner, web, and
-workers, and then starts Caddy. Verify:
+The bundle installer validates the bundle hash and immutable GHCR digests.
+The deploy script then starts PostgreSQL, takes and validates a local
+pre-release database dump, drains workers, runs the one-shot migration/seeding
+role, waits for the compiler runner, web, and workers, and then starts Caddy.
+Verify on the VPS:
 
 ```bash
-docker compose --env-file deploy/.env -f deploy/compose.production.yml ps
-curl --fail "https://$(awk -F= '/^BOTARENA_DOMAIN=/{print $2}' deploy/.env)/health/ready"
-docker compose --env-file deploy/.env -f deploy/compose.production.yml \
+release=/srv/nilbots/deployment/current/deploy
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" ps
+curl --fail "https://$(awk -F= '/^BOTARENA_DOMAIN=/{print $2}' "$release/.env")/health/ready"
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" \
   exec garage-gateway /garage status
-docker compose --env-file deploy/.env -f deploy/compose.production.yml \
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" \
   exec garage-gateway /garage layout show
 ```
 
@@ -131,11 +154,12 @@ docker compose --env-file deploy/.env -f deploy/compose.production.yml \
 5. Test registration/login, `/api/meta`, a submission, its public build
    receipt and WASM artifact, one match, and replay playback.
 
-The deploy script retains the previous digest pair. To roll back application
-images:
+The release manager retains the previous deployment bundle and digest pair.
+To roll back:
 
 ```bash
-bash deploy/deploy.sh --rollback
+bash /srv/nilbots/deployment/bin/release \
+  rollback /srv/nilbots/deployment
 ```
 
 The migration uses an expand-first schema change where rollback compatibility
@@ -165,13 +189,14 @@ backfill the local store or roll forward to an S3-capable release.
 ## Operational checks
 
 ```bash
-docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 web
-docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 match-worker
-docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 compile-worker
-docker compose --env-file deploy/.env -f deploy/compose.production.yml logs --tail=200 garage-gateway
-docker compose --env-file deploy/.env -f deploy/compose.production.yml exec garage-gateway \
+release=/srv/nilbots/deployment/current/deploy
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 web
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 match-worker
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 compile-worker
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 garage-gateway
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" exec garage-gateway \
   /garage bucket info nilbots
-docker compose --env-file deploy/.env -f deploy/compose.production.yml exec db \
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" exec db \
   psql -U botarena -d botarena -c \
   'select "Type", "Status", count(*) from "BackgroundJobs" group by 1,2 order by 1,2;'
 ```
