@@ -1,12 +1,18 @@
-import { DarkTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
-import AppTabs from '@/components/app-tabs';
 import { Arena } from '@/theme/arena';
 
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * Anchor deep links to the tabs. Opening nilbots://bots/<slug> cold would otherwise make
+ * the detail screen the root of the stack — no back button, and no way to reach anything
+ * else. With this the tab bar is always beneath it.
+ */
+export const unstable_settings = { initialRouteName: '(tabs)' };
 
 /**
  * The arena is a dark surface on the web and reads badly inverted, so the app stays dark
@@ -47,7 +53,28 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={Theme}>
-        <AppTabs />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: Arena.bg },
+            headerTintColor: Arena.accent,
+            headerTitleStyle: { color: Arena.text },
+            contentStyle: { backgroundColor: Arena.bg },
+            headerShadowVisible: false,
+            // Without this the back button falls back to the previous *route name*, which
+            // for a file-based router reads "(tabs)". It stays generic on purpose: these
+            // screens push from the ladder, from the roster and from each other, so
+            // naming one origin would be wrong from the others.
+            headerBackTitle: 'Back',
+          }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* Detail screens live above the tab bar, not inside a tab's own stack. A bot
+              opens from the ladder and from the roster; a match opens from a bot and
+              from a set. Nested in one tab, every one of those pushes would silently
+              switch tabs and then "back" would return somewhere you had never been. */}
+          <Stack.Screen name="bots/[key]" options={{ title: '' }} />
+          <Stack.Screen name="matches/[id]" options={{ title: 'Match' }} />
+          <Stack.Screen name="sets/[id]" options={{ title: 'Ranked set' }} />
+        </Stack>
       </ThemeProvider>
     </QueryClientProvider>
   );

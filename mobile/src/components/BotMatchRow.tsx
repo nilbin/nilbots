@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BotSprite } from '@/components/BotSprite';
+import { OutcomeText } from '@/components/OutcomeText';
 import { Card } from '@/components/ui/Card';
 import type { components } from '@/api/schema';
 import { Arena, Mono, Space } from '@/theme/arena';
@@ -34,15 +35,12 @@ export function BotMatchRow({ row, onPress }: { row: MatchRow; onPress?: () => v
         row.setGame ? `, game ${row.setGame} of a ranked set` : ''
       }`}>
       <View style={styles.row}>
-        <Text
-          style={[
-            styles.outcome,
-            live && styles.live,
-            row.outcome === 'Win' && styles.win,
-            row.outcome === 'Loss' && styles.loss,
-          ]}>
-          {label}
-        </Text>
+        <OutcomeText
+          outcome={row.outcome}
+          broadcasting={row.broadcasting}
+          status={row.status}
+          style={styles.outcome}
+        />
         <Text style={styles.vs}>vs</Text>
         <BotSprite
           lookId={row.opponent?.lookIdSnapshot}
@@ -66,10 +64,7 @@ const styles = StyleSheet.create({
   // Draw, LIVE — are all three or four monospace characters, so a floor is enough to
   // keep the sprites in a column. A fixed width has to cover the rare "running", which
   // then strands ~16px of dead space beside every real result.
-  outcome: { ...Mono, color: Arena.dim, fontSize: 11, minWidth: 30 },
-  live: { color: Arena.live, fontWeight: '700' },
-  win: { color: Arena.ok, fontWeight: '700' },
-  loss: { color: Arena.live },
+  outcome: { minWidth: 30 },
   vs: { color: Arena.dim, fontSize: 12 },
   opponent: { color: Arena.text, fontSize: 14, flex: 1 },
   // The opponent's name gives way first; a truncated map id is a smaller loss than a

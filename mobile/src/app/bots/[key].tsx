@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { BotHeaderCard } from '@/components/BotHeaderCard';
@@ -46,10 +46,17 @@ export default function BotDetailScreen() {
               </Card>
             ) : (
               history.matches.map((row) => (
-                // Not tappable yet: a ranked row should open its set and an unranked one
-                // its match, and neither route exists. Typed routes catch that at build
-                // time, which is why these are inert rather than dead links.
-                <BotMatchRow key={row.id} row={row} />
+                // A ranked row opens its set, not its game: the set is the unit that
+                // scores and moves rating, and its page lists the games anyway.
+                <BotMatchRow
+                  key={row.id}
+                  row={row}
+                  onPress={() =>
+                    router.push(
+                      row.matchSetId ? `/sets/${row.matchSetId}` : `/matches/${row.id}`,
+                    )
+                  }
+                />
               ))
             )}
           </>
