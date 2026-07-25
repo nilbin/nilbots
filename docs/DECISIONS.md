@@ -1375,6 +1375,37 @@ before picking a number.*
     a `take` count and nothing else, so it cannot be filtered by bot, map or
     ranked-ness, and there is no pagination anywhere.
 
+99. **Every list the site shows can be narrowed, and the match feed filters
+    server-side.** Closes the gap #98 left open. The filters are: the match feed by
+    bot, by map and by ranked/unranked, with Load more; /bots by bot or owner name
+    with a ranked-only toggle; the ladder by bot or owner.
+    The match feed had to move to the SERVER. A browser-side filter can only narrow
+    the page it already fetched, so "every match Bastille played" would quietly mean
+    "the ones among the latest thirty" — an answer that looks complete and is not.
+    `GET /api/matches` therefore takes `bot` (slug or id), `map`, `ranked` and `skip`
+    beside `take`. An unknown bot filters to nothing rather than falling back to
+    everything, because a filter that silently ignores itself is worse than an empty
+    list. /bots and the ladder stay client-side: both fetch their whole collection
+    already, so a round trip would buy nothing.
+    Feed filters live in the URL (`/?bot=mmbot&ranked=true`), which makes a filtered
+    view linkable and reloadable, and gives the bot page somewhere to point — its
+    match history is capped, so it now carries an "every match →" link into the
+    filtered feed. The ladder keeps each bot's true rank while filtered: #7 is #7
+    whatever else is on screen.
+    Paging is `skip`/`take` offset, not a cursor. Offset paging can repeat or drop a
+    row if the feed changes underneath you, which for a browse feed of finished
+    matches is a cosmetic risk, and a (CreatedAt, Id) cursor across Postgres uuid
+    ordering is real complexity for that. Revisit if the arena gets busy enough to
+    notice.
+    Measured with Playwright: 30 rows unfiltered, `bot=warden` narrows to Warden's
+    matches, adding `map=arena-01` cuts it to 20, adding `ranked=false` empties it
+    with the right message, clear restores 30, a deep link restores both selects, and
+    Load more goes 30 -> 54. `scripts/ui-audit.mjs` now checks that filtering works
+    and that the URL carries it, and every check it makes passes.
+    Its own email regex is fixed too: requiring a letter on both sides of the `@`
+    stops it reporting the rating badge `1216@0.5` as a leaked address, which is the
+    false positive #98 recorded. A tracked test that cries wolf is worse than no test.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

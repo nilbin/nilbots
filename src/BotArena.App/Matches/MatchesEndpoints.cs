@@ -58,12 +58,38 @@ public static class MatchesEndpoints
             return Results.Ok(new { match.Id });
         }).RequireAuthorization().RequireRateLimiting("challenge");
 
-        group.MapGet("/", async (AppDbContext db, int take) =>
+        // Filters are server-side on purpose: a browser-side filter can only narrow the
+        // page it already has, so "every match Bastille played" would silently mean
+        // "the ones in the latest 30" (UI audit, DECISIONS #99).
+        //   bot    slug or id — matches where that bot played, either slot
+        //   map    map id
+        //   ranked true = part of a ranked set, false = unranked only
+        //   skip   offset, for the feed's Load more
+        group.MapGet("/", async (
+            AppDbContext db, int take, string? bot, string? map, bool? ranked, int? skip) =>
         {
             take = take is > 0 and <= 100 ? take : 25;
+            int offset = skip is > 0 ? skip.Value : 0;
             var now = DateTime.UtcNow;
-            var matches = await db.Matches.Include(m => m.Participants)
+
+            var query = db.Matches.Include(m => m.Participants).AsQueryable();
+            if (bot is { Length: > 0 } botKey)
+            {
+                Guid? botId = Guid.TryParse(botKey, out var parsed)
+                    ? parsed
+                    : await db.Bots.Where(b => b.Slug == botKey)
+                        .Select(b => (Guid?)b.Id).SingleOrDefaultAsync();
+                // An unknown bot filters to nothing rather than quietly showing everything.
+                query = query.Where(m => m.Participants.Any(p => p.BotId == botId));
+            }
+            if (map is { Length: > 0 } mapId)
+                query = query.Where(m => m.MapId == mapId);
+            if (ranked is bool wantRanked)
+                query = query.Where(m => wantRanked ? m.MatchSetId != null : m.MatchSetId == null);
+
+            var matches = await query
                 .OrderByDescending(m => m.CreatedAt)
+                .Skip(offset)
                 .Take(take)
                 .ToListAsync();
             // Outcomes stay hidden until the broadcast catches up (plan §28).

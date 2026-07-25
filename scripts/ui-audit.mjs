@@ -41,11 +41,22 @@ const go = async (path, name) => {
 await go('/', '01-home');
 const navLinks = await page.locator('header a, nav a').allInnerTexts();
 note('/', 'info', `nav: ${navLinks.join(' | ')}`);
+await page.waitForTimeout(1200);
 const matchRows = await page.locator('a[href^="/matches/"]').count();
 note('/', matchRows > 0 ? 'ok' : 'gap', `${matchRows} match rows on the landing feed`);
-// Is there any way to filter/search this feed?
-const homeInputs = await page.locator('input, select').count();
-note('/', homeInputs === 0 ? 'gap' : 'info', `${homeInputs} filter controls on the match feed`);
+
+// Filters must narrow the feed server-side, not just the page already loaded.
+const homeSelects = await page.locator('select').count();
+note('/', homeSelects >= 3 ? 'ok' : 'gap', `${homeSelects} filter controls on the match feed`);
+if (homeSelects >= 3) {
+  const firstBotSlug = await page.locator('select').first().locator('option').nth(1).getAttribute('value');
+  await page.locator('select').first().selectOption(firstBotSlug ?? '');
+  await page.waitForTimeout(900);
+  const narrowed = await page.locator('a[href^="/matches/"]').count();
+  const inUrl = page.url().includes(`bot=${firstBotSlug}`);
+  note('/', inUrl ? 'ok' : 'gap', `filtering by ${firstBotSlug}: ${narrowed} rows, url carries the filter: ${inUrl}`);
+  await page.goto(BASE + '/', { waitUntil: 'networkidle' });
+}
 
 // ---------- 2. Leaderboard ----------
 await go('/leaderboard', '02-leaderboard');
@@ -79,7 +90,10 @@ note('/bots', 'info', `${botCards} bots listed`);
 const botsControls = await page.locator('input, select, [role="group"] button').count();
 note('/bots', botsControls === 0 ? 'gap' : 'ok', `${botsControls} filter/sort/search controls`);
 const bodyText = await page.locator('body').innerText();
-note('/bots', /@[\w.-]+\.\w+/.test(bodyText) ? 'FAIL' : 'ok', 'no email addresses rendered');
+// Both sides must contain a letter: an earlier version of this regex reported the
+// rating badge "1216@0.5" as a leaked email address (DECISIONS #98).
+const EMAIL = /[\w.+-]*[a-zA-Z][\w.+-]*@[\w-]*[a-zA-Z][\w-]*\.[a-zA-Z]{2,}/;
+note('/bots', EMAIL.test(bodyText) ? 'FAIL' : 'ok', 'no email addresses rendered');
 
 // ---------- 4. Bot detail (someone else's bot, signed out) ----------
 if (firstBotHref) {

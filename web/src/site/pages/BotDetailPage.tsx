@@ -148,7 +148,7 @@ export default function BotDetailPage() {
         </ul>
       </section>
 
-      <MatchHistory botId={bot.id} />
+      <MatchHistory botId={bot.id} botSlug={bot.slug} />
 
       {bot.isOwner && <SubmitPanel bot={bot} onSubmitted={load} />}
     </div>
@@ -166,7 +166,7 @@ interface BotMatchRow {
   opponent: { botId: string; nameSnapshot: string; accentSnapshot: string } | null;
 }
 
-function MatchHistory({ botId }: { botId: string }) {
+function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
   const [data, setData] = useState<{
     wins: number;
     losses: number;
@@ -187,6 +187,9 @@ function MatchHistory({ botId }: { botId: string }) {
         <span className="text-emerald-400">{data.wins}W</span>{' '}
         <span className="text-red-400">{data.losses}L</span>{' '}
         <span className="text-arena-text">{data.draws}D</span>
+        <Link to={`/?bot=${botSlug}`} className="ml-2 font-normal text-arena-accent hover:underline">
+          every match →
+        </Link>
       </h2>
       <ul className="flex flex-col gap-1.5">
         {data.matches.map((match) => (

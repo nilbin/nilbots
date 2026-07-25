@@ -1,24 +1,75 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api, type MatchSummary } from '../api';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { api, type BotSummary, type MatchSummary, type Meta } from '../api';
 import { useAuth } from '../auth';
+
+const PAGE = 30;
 
 /// Landing + public match browser: recent matches, refreshed while any are running.
 export default function ArenaPage() {
   const [matches, setMatches] = useState<MatchSummary[] | null>(null);
+  const [bots, setBots] = useState<BotSummary[]>([]);
+  const [meta, setMeta] = useState<Meta | null>(null);
+  const [exhausted, setExhausted] = useState(false);
   const { user } = useAuth();
+
+  // Filters live in the URL so a filtered feed can be linked and reloaded.
+  const [params, setParams] = useSearchParams();
+  const bot = params.get('bot') ?? '';
+  const map = params.get('map') ?? '';
+  const ranked = params.get('ranked') ?? '';
+  const filtered = bot !== '' || map !== '' || ranked !== '';
+
+  const setFilter = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (value === '') next.delete(key);
+    else next.set(key, value);
+    setParams(next, { replace: true });
+  };
+
+  const query = useCallback(
+    (take: number, skip: number) => {
+      const q = new URLSearchParams({ take: String(take) });
+      if (skip > 0) q.set('skip', String(skip));
+      if (bot !== '') q.set('bot', bot);
+      if (map !== '') q.set('map', map);
+      if (ranked !== '') q.set('ranked', ranked);
+      return `/api/matches?${q}`;
+    },
+    [bot, map, ranked],
+  );
+
+  useEffect(() => {
+    void api.get<BotSummary[]>('/api/bots').then(setBots).catch(() => setBots([]));
+    void api.get<Meta>('/api/meta').then(setMeta).catch(() => setMeta(null));
+  }, []);
 
   useEffect(() => {
     let timer: number | undefined;
+    let stopped = false;
+    setMatches(null);
+    setExhausted(false);
     const load = async () => {
-      const data = await api.get<MatchSummary[]>('/api/matches?take=30');
+      const data = await api.get<MatchSummary[]>(query(PAGE, 0));
+      if (stopped) return;
       setMatches(data);
+      setExhausted(data.length < PAGE);
+      // Only follow a feed that has something moving in it.
       if (data.some((m) => m.status === 'Pending' || m.status === 'Running'))
         timer = window.setTimeout(load, 2500);
     };
     void load();
-    return () => window.clearTimeout(timer);
-  }, []);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  const loadMore = async () => {
+    const more = await api.get<MatchSummary[]>(query(PAGE, matches?.length ?? 0));
+    setMatches([...(matches ?? []), ...more]);
+    if (more.length < PAGE) setExhausted(true);
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -48,19 +99,79 @@ export default function ArenaPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">RECENT MATCHES</h2>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="font-mono text-xs tracking-widest text-arena-dim">
+            {filtered ? 'MATCHES' : 'RECENT MATCHES'}
+          </h2>
+          <select
+            value={bot}
+            onChange={(e) => setFilter('bot', e.target.value)}
+            aria-label="Filter by bot"
+            className="rounded-md border border-arena-edge bg-arena-bg px-2 py-1 text-xs text-arena-text"
+          >
+            <option value="">any bot</option>
+            {bots.map((b) => (
+              <option key={b.id} value={b.slug}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={map}
+            onChange={(e) => setFilter('map', e.target.value)}
+            aria-label="Filter by map"
+            className="rounded-md border border-arena-edge bg-arena-bg px-2 py-1 text-xs text-arena-text"
+          >
+            <option value="">any map</option>
+            {(meta?.maps ?? []).map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id}
+              </option>
+            ))}
+          </select>
+          <select
+            value={ranked}
+            onChange={(e) => setFilter('ranked', e.target.value)}
+            aria-label="Filter by ranked or unranked"
+            className="rounded-md border border-arena-edge bg-arena-bg px-2 py-1 text-xs text-arena-text"
+          >
+            <option value="">ranked + unranked</option>
+            <option value="true">ranked only</option>
+            <option value="false">unranked only</option>
+          </select>
+          {filtered && (
+            <button
+              onClick={() => setParams(new URLSearchParams(), { replace: true })}
+              className="rounded-md border border-arena-edge px-2 py-1 text-xs text-arena-dim hover:text-arena-text"
+            >
+              clear
+            </button>
+          )}
+        </div>
         {matches === null ? (
           <p className="text-sm text-arena-dim">Loading…</p>
         ) : matches.length === 0 ? (
           <p className="text-sm text-arena-dim">
-            No matches yet — be the first to throw down a challenge.
+            {filtered
+              ? 'No match fits those filters.'
+              : 'No matches yet — be the first to throw down a challenge.'}
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {matches.map((match) => (
-              <MatchRow key={match.id} match={match} />
-            ))}
-          </ul>
+          <>
+            <ul className="flex flex-col gap-2">
+              {matches.map((match) => (
+                <MatchRow key={match.id} match={match} />
+              ))}
+            </ul>
+            {!exhausted && (
+              <button
+                onClick={() => void loadMore()}
+                className="mt-3 rounded-md border border-arena-edge px-4 py-2 text-sm text-arena-dim hover:border-arena-dim hover:text-arena-text"
+              >
+                Load more
+              </button>
+            )}
+          </>
         )}
       </section>
     </div>

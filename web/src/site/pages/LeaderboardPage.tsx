@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { api, type Leaderboard } from '../api';
@@ -6,6 +6,18 @@ import { api, type Leaderboard } from '../api';
 export default function LeaderboardPage() {
   const [board, setBoard] = useState<Leaderboard | null>(null);
   const [rules, setRules] = useState<string | null>(null); // null = server default
+  const [query, setQuery] = useState('');
+
+  // Keep each bot's real rank while filtering: #7 is #7 whatever else is on screen.
+  const shown = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return (board?.entries ?? [])
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) =>
+        needle === '' ||
+        entry.name.toLowerCase().includes(needle) ||
+        entry.owner.toLowerCase().includes(needle));
+  }, [board, query]);
 
   useEffect(() => {
     const query = rules === null ? '' : `?rules=${encodeURIComponent(rules)}`;
@@ -45,6 +57,16 @@ export default function LeaderboardPage() {
           ))}
         </div>
       )}
+      {board !== null && board.entries.length > 0 && (
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter by bot or owner…"
+          aria-label="Filter the ladder by bot or owner"
+          className="mb-3 w-full rounded-md border border-arena-edge bg-arena-bg px-3 py-1.5 text-sm text-arena-text placeholder:text-arena-dim"
+        />
+      )}
       {board === null ? (
         <p className="text-sm text-arena-dim">Loading…</p>
       ) : board.entries.length === 0 ? (
@@ -54,7 +76,10 @@ export default function LeaderboardPage() {
         </p>
       ) : (
         <ol className="flex flex-col gap-2">
-          {board.entries.map((entry, index) => (
+          {shown.length === 0 && (
+            <li className="text-sm text-arena-dim">No bot on this ladder matches “{query}”.</li>
+          )}
+          {shown.map(({ entry, index }) => (
             <li key={entry.id}>
               <Link
                 to={`/bots/${entry.slug}`}
