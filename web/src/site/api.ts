@@ -148,6 +148,7 @@ export interface MatchSetDetail {
 
 export interface LeaderboardEntry {
   id: string;
+  slug: string;
   name: string;
   accent: string;
   owner: string;

@@ -80,9 +80,14 @@ public static class BotsEndpoints
             return Results.Ok(new { bot.Id, bot.Name, bot.Slug, bot.Accent, bot.LookId });
         }).RequireAuthorization();
 
-        group.MapGet("/{botId:guid}", async (Guid botId, ClaimsPrincipal principal, AppDbContext db) =>
+        // Keyed by slug OR id. Every bot has a unique, immutable slug, so the public
+        // URL of a bot can read `/bots/murder-roomba` instead of a raw GUID; the id form
+        // keeps working for anything already holding one.
+        group.MapGet("/{key}", async (string key, ClaimsPrincipal principal, AppDbContext db) =>
         {
-            var bot = await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Id == botId);
+            var bot = Guid.TryParse(key, out var botId)
+                ? await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Id == botId)
+                : await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Slug == key);
             if (bot is null)
                 return Results.NotFound();
             bool isOwner = principal.UserId() == bot.OwnerUserId;

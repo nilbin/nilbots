@@ -20,7 +20,7 @@ export default function Site() {
             <Route index element={<ArenaPage />} />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/bots" element={<BotsPage />} />
-            <Route path="/bots/:botId" element={<BotDetailPage />} />
+            <Route path="/bots/:botKey" element={<BotDetailPage />} />
             <Route path="/garage" element={<GaragePage />} />
             <Route path="/matches/:matchId" element={<MatchPage />} />
             <Route path="/sets/:setId" element={<MatchSetPage />} />

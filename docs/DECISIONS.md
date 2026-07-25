@@ -1285,6 +1285,30 @@ before picking a number.*
     redirect to unranked, and `spar` queued matches with and without an explicit
     map and seed.
 
+96. **Public surfaces identify people by display name and bots by name or slug; a
+    bot's URL is its slug, not its GUID.** Owner asked for an audit after
+    remembering an "id" in a listing. Audited every public payload against a live
+    server: `/api/bots`, `/api/leaderboard`, `/api/matches`, `/api/matchsets/{id}`
+    and the CLI's `leaderboard`/`bots` all show bot names and owner display names,
+    and no email appears in any of them. Emails are returned only by
+    `/api/accounts/register`, `/login` and `/me`, each answering the caller with
+    their own record. The seeded system account displays as "nilbots", not as
+    `system@nilbots.local`. Nothing had to be fixed there, and
+    `PublicPayloadPrivacyTests` now pins it: every response type in the app is
+    reflected over, and only the three self-scoped ones may name an email. The test
+    asserts it actually scanned a meaningful number of types, so it cannot pass by
+    scanning nothing.
+    What the audit DID find is that ids were reaching people through URLs. Bots have
+    carried a unique, immutable slug since the first schema (there is no rename
+    endpoint, so a slug cannot go stale), yet every link was a raw GUID —
+    `nilbots submit` closed with `Fight: <server>/bots/0c3fafa5-...`. `/api/bots/{key}`
+    now resolves a slug or an id, so `/bots/murder-roomba` works and every GUID link
+    ever handed out keeps working; the site links by slug from the leaderboard, bots
+    and garage pages; and `submit` prints the named URL. The leaderboard payload
+    gained `slug` to make that possible.
+    Also fixed in passing: the empty-ladder hint still read `nilbots rank <bot>
+    <opponent>`, which #95 had made wrong.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

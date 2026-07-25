@@ -353,7 +353,8 @@ public static class ServerCommands
                           "against the server's /api/meta for a version gap.");
                     Console.WriteLine("                  The SERVER artifact is the one that plays, so test against it.");
                 }
-                Console.WriteLine($"Version {versionNumber} is now the active version. Fight: {server}/bots/{botId}");
+                // Slug, not id: the link a player is handed should read like their bot's name.
+                Console.WriteLine($"Version {versionNumber} is now the active version. Fight: {server}/bots/{slug}");
                 return 0;
             }
             Console.WriteLine($"  ...{status.ToLowerInvariant()}");
@@ -560,7 +561,7 @@ public static class ServerCommands
         Console.WriteLine($"Ladder for rules {version} ({server})");
         if (entries.Count == 0)
         {
-            Console.WriteLine("  (nobody has played a ranked set yet — be the first: nilbots rank <bot> <opponent>)");
+            Console.WriteLine("  (nobody has played a ranked set yet — be the first: nilbots rank <bot>)");
             return 0;
         }
         Console.WriteLine($"  {"#",-4}{"bot",-22}{"owner",-18}{"elo",6}  sets");

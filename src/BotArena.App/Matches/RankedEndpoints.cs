@@ -203,6 +203,7 @@ public static class RankedEndpoints
                 .Join(db.Bots, r => r.BotId, b => b.Id, (r, b) => new
                 {
                     b.Id,
+                    b.Slug,
                     b.Name,
                     b.Accent,
                     Owner = db.Users.Where(u => u.Id == b.OwnerUserId).Select(u => u.DisplayName).First(),

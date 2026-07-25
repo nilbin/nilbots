@@ -73,7 +73,7 @@ export default function GaragePage() {
               return (
                 <li key={bot.id}>
                   <Link
-                    to={`/bots/${bot.id}`}
+                    to={`/bots/${bot.slug}`}
                     className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
                   >
                     <img src={look.imageUrl} alt="" className="size-9 object-contain" />

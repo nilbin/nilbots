@@ -50,7 +50,7 @@ export default function LeaderboardPage() {
           {board.entries.map((entry, index) => (
             <li key={entry.id}>
               <Link
-                to={`/bots/${entry.id}`}
+                to={`/bots/${entry.slug}`}
                 className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 px-4 py-3 transition-colors hover:border-arena-dim"
               >
                 <span

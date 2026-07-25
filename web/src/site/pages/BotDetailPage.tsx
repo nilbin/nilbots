@@ -28,15 +28,16 @@ public sealed class MyBot : IBot
 `;
 
 export default function BotDetailPage() {
-  const { botId } = useParams<{ botId: string }>();
+  // Slug or id — the API resolves either, so old GUID links keep working.
+  const { botKey } = useParams<{ botKey: string }>();
   const [bot, setBot] = useState<BotDetail | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const data = await api.get<BotDetail>(`/api/bots/${botId}`);
+    const data = await api.get<BotDetail>(`/api/bots/${botKey}`);
     setBot(data);
     return data;
-  }, [botId]);
+  }, [botKey]);
 
   useEffect(() => {
     let timer: number | undefined;
