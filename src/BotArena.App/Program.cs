@@ -18,7 +18,15 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = CompilerSubmissionLimits.MaxRequestBodyBytes);
-var mode = ApplicationMode.Parse(builder.Configuration["BOTARENA_ROLE"]);
+// Microsoft.Extensions.ApiDescription.Server loads this entry point inside its
+// GetDocument.Insider host. That process must describe the web surface without
+// running the local `all` role, migrations, or infrastructure-backed listeners.
+bool generatingOpenApiDocument = string.Equals(
+    System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name,
+    "GetDocument.Insider",
+    StringComparison.Ordinal);
+var mode = ApplicationMode.Parse(
+    generatingOpenApiDocument ? "web" : builder.Configuration["BOTARENA_ROLE"]);
 bool trustForwardedHeaders =
     builder.Configuration.GetValue<bool>("BOTARENA_TRUST_FORWARDED_HEADERS");
 
@@ -59,13 +67,18 @@ builder.Services.AddScoped<RankedMatchSetFinalizer>();
 
 if (mode.RunsWeb)
 {
-    bool developmentAuth = builder.Environment.IsDevelopment() || mode.IsAll;
-    builder.Services.AddDataProtection()
-        .SetApplicationName("BotArena")
-        .PersistKeysToDbContext<AppDbContext>()
-        .ProtectKeysWithCertificate(OpenIddictSetup.LoadEncryptionCertificate(
-            builder.Configuration,
-            developmentAuth));
+    bool developmentAuth =
+        builder.Environment.IsDevelopment() || mode.IsAll || generatingOpenApiDocument;
+    var dataProtection = builder.Services.AddDataProtection()
+        .SetApplicationName("BotArena");
+    if (!generatingOpenApiDocument)
+    {
+        dataProtection
+            .PersistKeysToDbContext<AppDbContext>()
+            .ProtectKeysWithCertificate(OpenIddictSetup.LoadEncryptionCertificate(
+                builder.Configuration,
+                developmentAuth));
+    }
     builder.Services.AddBotArenaOpenIddict(
         builder.Configuration,
         includeServer: true,
@@ -108,7 +121,8 @@ if (mode.RunsWeb)
         options.AddSchemaTransformer<NumericSchemaTransformer>());
     builder.Services.AddSignalR();
     builder.Services.AddSingleton(new PostgresNotificationOptions(connectionString));
-    builder.Services.AddHostedService<PostgresNotificationListener>();
+    if (!generatingOpenApiDocument)
+        builder.Services.AddHostedService<PostgresNotificationListener>();
     builder.Services.AddSingleton(CompilerSubmissionLimits.FromConfiguration(builder.Configuration));
     string networkHashKey = builder.Configuration["BOTARENA_NETWORK_HASH_KEY"]
         ?? (developmentAuth
