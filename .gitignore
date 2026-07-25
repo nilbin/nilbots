@@ -20,3 +20,9 @@ deploy/release.env
 deploy/release.previous.env
 deploy/secrets/
 deploy/backups/
+
+# mobile (Expo)
+mobile/.expo/
+mobile/dist/
+mobile/ios/
+mobile/android/

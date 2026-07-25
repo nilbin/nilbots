@@ -1,0 +1,15 @@
+# EAS archives from the git root; exclude everything that isn't the mobile app.
+/art
+/artifacts
+/out
+/sandbox
+/var
+/src
+/tests
+/docs
+/deploy
+/docker
+/champions
+/maps
+/templates
+/web
