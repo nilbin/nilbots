@@ -244,14 +244,16 @@ presentation constant.
 
 ## Bot-look contract
 
-- Transparent 512×512 PNG or genuine SVG with `viewBox="0 0 512 512"`.
-- SVG is preferred for deliberately graphic mechanical forms whose silhouette,
-  panel lines, and emissive shapes can be authored as paths. It must not embed
-  a PNG/JPEG or a `data:image` payload; wrapping a bitmap in SVG gives no
-  scaling benefit.
-- Raster remains appropriate for painterly, organic, corroded, or
-  texture-heavy looks. Keep a higher-resolution master outside the runtime
-  package and derive the 512×512 PNG from it.
+- Genuine SVG with `viewBox="0 0 512 512"` is the recommended default. It keeps
+  silhouettes, panel lines, and emissive shapes sharp through arena scaling,
+  rotation, high-DPI playback, and telemetry thumbnails while usually reducing
+  the self-contained viewer size.
+- SVG must not embed a PNG/JPEG or a `data:image` payload; wrapping or
+  automatically tracing a bitmap gives no meaningful scaling benefit.
+- Transparent 512×512 PNG is the exception for a look whose painterly,
+  organic, corroded, or texture-heavy art demonstrably becomes worse when
+  authored as vector. Keep a higher-resolution master outside the runtime
+  package and derive the runtime PNG from it.
 - Exactly orthographic/top-down and facing East/right. The renderer rotates
   from that canonical orientation.
 - One chassis only, centered with generous padding and a crisp silhouette.
@@ -286,12 +288,13 @@ compatibility fallback for old replays that predate `lookId`.
 
 To create another look:
 
-1. Choose vector only when the design can actually be expressed cleanly as
-   shapes. Otherwise generate or draw a high-resolution raster master.
-2. For vector, use a transparent 512 viewBox and inspect for embedded images,
-   filter clipping, and hairline seams. For raster, remove the background,
-   downscale to 512×512 RGBA, and inspect for colored fringes and transparent
-   corners.
+1. Start with genuine SVG. Design the silhouette and major internal shapes for
+   gameplay scale before adding detail.
+2. Use a transparent 512 viewBox and inspect for embedded images, filter
+   clipping, and hairline seams. Fall back to raster only after gameplay-scale
+   comparison shows that intentional surface art is materially worse in
+   vector; then preserve the master, remove its background, and derive a clean
+   512×512 RGBA PNG.
 3. Add its `look.json`; no TypeScript edit is required.
 4. Test East, South, West, and North facings; movement, recoil, damage,
    destruction, fogging, and the telemetry thumbnail.

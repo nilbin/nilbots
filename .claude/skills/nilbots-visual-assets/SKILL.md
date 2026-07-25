@@ -39,8 +39,10 @@ encoding, and the theme-wide runtime size check. Do not hand-edit its outputs.
 
 ## Bot-look workflow
 
-1. Choose SVG for clean mechanical shapes; choose PNG for painterly, organic,
-   or texture-heavy art. Never auto-trace a raster merely to claim vector.
+1. Start with genuine SVG. Treat PNG as an exception that requires
+   gameplay-scale evidence that intentional painterly, organic, or
+   texture-heavy art is materially worse in vector. Never auto-trace a raster
+   merely to claim vector.
 2. Use the canonical transparent 512×512 canvas or SVG viewBox, facing East.
    A genuine SVG must not contain `<image>` or `data:image` raster payloads.
 3. Keep high-resolution raster masters and exact generation prompts outside

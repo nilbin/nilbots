@@ -929,14 +929,15 @@ configuration) and changing them is a version bump, not an edit.
     build fails if it is exceeded. Resolution may not silently turn every
     self-contained replay into a substantially larger download.
 
-82. **Bot looks accept genuine vector sources, but vector is not a blanket
-    replacement for texture.** A look manifest may name PNG or SVG. SVG is for
-    mechanical designs whose silhouette and surface language are honestly
-    represented by paths; it must use the canonical transparent 512 viewBox
-    and may not embed raster payloads. Painterly or organic looks stay raster
-    and retain a high-resolution source master. Lancer is the first vector
-    proof. Automatic tracing and SVG-wrapped PNGs are rejected because they
-    add complexity without improving scaling.
+82. **Genuine SVG is the recommended default for bot looks, with PNG retained
+    as an evidence-based exception.** SVG stays sharp through arena scaling,
+    rotation, high-DPI playback, and small telemetry thumbnails while reducing
+    bundled bytes. It must use the canonical transparent 512 viewBox and may
+    not embed raster payloads. A painterly or organic look may remain PNG only
+    when gameplay-scale comparison shows that honest vector authoring
+    materially harms its intended surface art; retain a high-resolution master
+    in that case. Automatic tracing and SVG-wrapped PNGs are rejected because
+    they add complexity without improving scaling.
 
 83. **Map packages are capped at 32×32, but map dimensions are not used as a
     proxy for wall sharpness.** Larger maps produce smaller screen tiles, so
@@ -952,8 +953,8 @@ configuration) and changing them is a version bump, not an edit.
     language and remain distinct at 64 px. The four replaced 512 px PNGs move
     to unbundled `art/bot-looks` references so their art direction is not lost
     and their bytes do not remain in every self-contained viewer. This does not
-    ban future PNG looks: painterly and organic designs still use raster when
-    vector would be dishonest or visually poorer.
+    ban future PNG looks, but raster is now the documented exception and needs
+    gameplay-scale evidence that vector would be dishonest or visually poorer.
 
 ## Deferred decisions
 
