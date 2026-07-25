@@ -239,11 +239,30 @@ public static class ServerCommands
     /// canonical server build, then report local/server artifact parity (plan §11.3, §46).</summary>
     public static int Submit(IReadOnlyList<string> args)
     {
-        var (directory, _) = BuildCommand.TakeDirectory(args);
+        var (directory, rest) = BuildCommand.TakeDirectory(args);
+        bool allowSkew = rest.Any(a => a is "--allow-toolchain-skew");
         using var client = CreateClient();
         if (client is null)
             return NotSignedIn();
         string server = StoredCredentials.Load()!.Server;
+
+        // Refuse BEFORE compiling. A skewed CLI cannot produce the bytes this server
+        // will, so its parity line is guaranteed to fail and its local testing is
+        // against a different binary than the one that ranks you (DECISIONS #85).
+        var toolchain = TryGetServerToolchain(client);
+        if (toolchain is not null && !toolchain.MatchesThisCli && !allowSkew)
+        {
+            Console.Error.WriteLine($"error: your CLI and {server} build differently — {toolchain.Describe()}.");
+            Console.Error.WriteLine(toolchain.CliVersion is { Length: > 0 } required && required != ToolchainInfo.CliVersion
+                ? $"  This server ships with Nilbots {required}; you have {ToolchainInfo.CliVersion}."
+                : $"  You have Nilbots {ToolchainInfo.CliVersion}.");
+            Console.Error.WriteLine("  Fix:      dotnet tool update -g Nilbots");
+            Console.Error.WriteLine("  Anyway:   nilbots submit <dir> --allow-toolchain-skew");
+            Console.Error.WriteLine("            (the SERVER build still decides the match; you just lose the");
+            Console.Error.WriteLine("             guarantee that what you tested locally is what ranks you)");
+            Console.Error.Flush();
+            return 1;
+        }
 
         var project = BotProject.Load(directory);
         Console.WriteLine($"Building {project.Manifest.Name} locally...");
@@ -510,12 +529,12 @@ public static class ServerCommands
         {
             using var http = new HttpClient { BaseAddress = new Uri(credentials.Server), Timeout = TimeSpan.FromSeconds(10) };
             var meta = http.GetFromJsonAsync<JsonElement>("/api/meta").GetAwaiter().GetResult();
-            string? serverSdk = meta.TryGetProperty("sdkVersion", out var sdk) ? sdk.GetString() : null;
-            string? serverRules = meta.TryGetProperty("gameRulesVersion", out var r) ? r.GetString() : null;
-            Console.WriteLine($"{"Server compatibility:",-24}" + (serverSdk == ToolchainInfo.SdkVersion
-                ? $"OK  server SDK {serverSdk}, rules {serverRules}"
-                : $"SKEW — server builds with SDK {serverSdk}, this CLI bundles {ToolchainInfo.SdkVersion}. " +
-                  $"Artifacts will differ; upgrade with: dotnet tool update -g Nilbots"));
+            string? Read(string name) => meta.TryGetProperty(name, out var value) ? value.GetString() : null;
+            var toolchain = new ServerToolchain(Read("sdkVersion"), Read("buildPipelineVersion"), Read("cliVersion"));
+            Console.WriteLine($"{"Server compatibility:",-24}" + (toolchain.MatchesThisCli
+                ? $"OK  server SDK {toolchain.SdkVersion}, rules {Read("gameRulesVersion")}"
+                : $"SKEW — {toolchain.Describe()}. `submit` will refuse; " +
+                  "upgrade with: dotnet tool update -g Nilbots"));
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -609,17 +628,38 @@ public static class ServerCommands
 
     /// <summary>The server's build SDK, from its public /api/meta. Best-effort: a
     /// parity report must never fail because the probe did.</summary>
-    private static string? TryGetServerSdkVersion(HttpClient client)
+    private static string? TryGetServerSdkVersion(HttpClient client) =>
+        TryGetServerToolchain(client)?.SdkVersion;
+
+    /// <summary>What the server compiles with. Null when /api/meta is unreachable or
+    /// too old to answer — an unknown server is never treated as a mismatched one.</summary>
+    private static ServerToolchain? TryGetServerToolchain(HttpClient client)
     {
         try
         {
             var meta = client.GetFromJsonAsync<JsonElement>("/api/meta").GetAwaiter().GetResult();
-            return meta.TryGetProperty("sdkVersion", out var sdk) ? sdk.GetString() : null;
+            string? Read(string name) =>
+                meta.TryGetProperty(name, out var value) ? value.GetString() : null;
+            return new ServerToolchain(Read("sdkVersion"), Read("buildPipelineVersion"), Read("cliVersion"));
         }
         catch
         {
             return null;
         }
+    }
+
+    private sealed record ServerToolchain(string? SdkVersion, string? BuildPipelineVersion, string? CliVersion)
+    {
+        /// <summary>The axes that decide artifact bytes. The CLI version itself is NOT
+        /// one of them — a CLI-only bugfix release must not force everyone to update —
+        /// so it is reported, not gated on.</summary>
+        public bool MatchesThisCli =>
+            (SdkVersion is null || SdkVersion == ToolchainInfo.SdkVersion) &&
+            (BuildPipelineVersion is null || BuildPipelineVersion == ToolchainInfo.BuildPipelineVersion);
+
+        public string Describe() =>
+            $"server SDK {SdkVersion ?? "?"} / pipeline {BuildPipelineVersion ?? "?"}; " +
+            $"this CLI bundles SDK {ToolchainInfo.SdkVersion} / pipeline {ToolchainInfo.BuildPipelineVersion}";
     }
 
     private static string Truncate(string value, int max) =>

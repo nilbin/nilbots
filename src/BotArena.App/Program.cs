@@ -239,6 +239,12 @@ if (mode.RunsWeb)
             GameRulesVersion = BotArenaVersions.GameRulesVersion,
             RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
             SdkVersion = ToolchainInfo.SdkVersion,
+            // The axes a CLI must match to compile the same bytes this server will
+            // (DECISIONS #85). SdkVersion + BuildPipelineVersion are what `submit`
+            // gates on; CliVersion names the tool released alongside this server, so
+            // the upgrade advice can be exact instead of "try updating".
+            BuildPipelineVersion = ToolchainInfo.BuildPipelineVersion,
+            CliVersion = ToolchainInfo.CliVersion,
             Maps = maps,
         });
     });

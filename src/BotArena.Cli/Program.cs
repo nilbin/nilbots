@@ -192,10 +192,17 @@ static int CommandHelp(string command)
             Shows or clears the content-addressed player-WASM build cache.
             """,
         "submit" => """
-            Usage: nilbots submit [dir]
+            Usage: nilbots submit [dir] [--allow-toolchain-skew]
             Builds locally, submits source for the canonical server rebuild, and
             reports artifact parity. Creates the remote bot when needed.
             Sign in first with `nilbots register` or `nilbots login`.
+
+            Your CLI and the server must build with the same SDK and build pipeline,
+            or the artifact you tested is not the one that ranks you. When they differ
+            submit stops before compiling and tells you to run:
+              dotnet tool update -g Nilbots
+            --allow-toolchain-skew submits anyway; the server build still decides the
+            match, you simply give up the local/server parity guarantee.
             """,
         "register" => """
             Usage: nilbots register [--server <url>]

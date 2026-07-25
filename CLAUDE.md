@@ -136,6 +136,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   before `Match.BroadcastComplete(now)` — new endpoints must follow this.
 - Version axes (SDK / runtime protocol / runtime config / game rules) are in
   `BotArenaVersions` + `ToolchainInfo`; all of them feed the build-cache key.
+- **A server may not ship ahead of its CLI.** `/api/meta` advertises
+  `sdkVersion` + `buildPipelineVersion`, and `nilbots submit` refuses to build
+  against a server it cannot byte-match (DECISIONS #85). So changing
+  `SdkVersion` or `BuildPipelineVersion` also means bumping `CliVersion` and
+  running the release workflow's `publish-cli` BEFORE `publish-and-deploy` —
+  enforced by `scripts/assert-cli-published.sh`.
 
 ## Conventions
 

@@ -92,8 +92,18 @@ workflow:
 - `verify` runs the end-to-end test pipeline only;
 - `publish` also publishes both SHA-tagged images, SBOMs, and GitHub build
   provenance to GHCR;
+- `publish-cli` packs and publishes the `Nilbots` global tool to NuGet.org;
 - `publish-and-deploy` additionally deploys those exact image digests to the
   production environment.
+
+**Publish the CLI before deploying a revision that changes the toolchain.**
+`nilbots submit` refuses to build against a server whose SDK or build-pipeline
+version it cannot match (DECISIONS #85), and the fix it prints —
+`dotnet tool update -g Nilbots` — only works if that CLI version exists.
+`publish-and-deploy` enforces this with `scripts/assert-cli-published.sh`, which
+fails the run unless `Nilbots <ToolchainInfo.CliVersion>` is already on
+NuGet.org. So a toolchain change is a two-run release: `publish-cli` first, then
+`publish-and-deploy` on the same commit.
 
 The deploy script validates immutable GHCR digests, starts PostgreSQL, takes
 and validates a local pre-release database dump, drains workers, runs the
@@ -112,9 +122,11 @@ docker compose --env-file deploy/.env -f deploy/compose.production.yml \
 ## Updating
 
 1. Select the exact reviewed commit in GitHub Actions.
-2. Run **Manual release** with `publish-and-deploy`.
-3. Confirm every service is healthy.
-4. Test registration/login, `/api/meta`, a submission, its public build
+2. If the revision changes `SdkVersion`, `BuildPipelineVersion`, or
+   `CliVersion`, run **Manual release** with `publish-cli` on that commit first.
+3. Run **Manual release** with `publish-and-deploy`.
+4. Confirm every service is healthy.
+5. Test registration/login, `/api/meta`, a submission, its public build
    receipt and WASM artifact, one match, and replay playback.
 
 The deploy script retains the previous digest pair. To roll back application

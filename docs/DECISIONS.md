@@ -1159,6 +1159,40 @@ still cite the old numbers.*
     ban future PNG looks, but raster is now the documented exception and needs
     gameplay-scale evidence that vector would be dishonest or visually poorer.
 
+85. **Toolchain skew is a hard stop in `submit`, and a server may not be deployed
+    ahead of its CLI.** Owner question after #84: force the CLI to match the
+    server so we avoid version hell? Yes — but forcing the client alone would
+    have made it worse, because the hell does not come from players failing to
+    update. `release.yml` offers `publish-cli` as a SEPARATE manual operation
+    from `publish-and-deploy`, so a server can be deployed advertising an SDK
+    that no published CLI bundles. That is production's state today (server
+    SDK 0.8.1, newest published tool 0.4.0): telling players to run
+    `dotnet tool update -g Nilbots` would be advice they cannot act on.
+    So both halves ship together.
+    CLIENT: `/api/meta` now advertises `buildPipelineVersion` and `cliVersion`
+    alongside `sdkVersion`, and `submit` refuses BEFORE compiling when the SDK or
+    the build-pipeline version differs — the two axes that decide artifact bytes.
+    It names both sides, prints the upgrade command and the server's own CLI
+    version, and offers `--allow-toolchain-skew` for players who accept losing
+    the parity guarantee (the server build still decides the match, so this is a
+    guarantee, not a gate on participation). The CLI version is deliberately NOT
+    gated on: a CLI-only bugfix release must not force the world to update. A
+    server too old to answer, or unreachable, is never treated as mismatched.
+    RELEASE: `scripts/assert-cli-published.sh` fails a `publish-and-deploy` run
+    unless `Nilbots <CliVersion>` for that revision is already on NuGet.org. The
+    ordering is now enforced rather than remembered: publish the CLI, then
+    deploy.
+    Rejected: a server-side rejection of skewed submissions. The server rebuilds
+    from source and its artifact is canonical, so a submission that compiles is
+    valid regardless of which CLI sent it; blocking it would deny participation
+    to fix an assurance property. Also considered and deferred: having the CLI
+    fetch the Sdk/Guest assemblies from the server it submits to, which would
+    decouple the CLI version from the SDK version entirely. It only partly
+    works — `BuildPipelineVersion` encodes how `BotBuilder` generates the project,
+    which is CLI code and cannot be downloaded — so it reduces rather than
+    removes the coupling, and it trades an offline-capable tool for a networked
+    one. Not worth it while releases are cheap.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
