@@ -7,7 +7,7 @@ replication_factor = 3
 compression_level = 2
 
 rpc_bind_addr = "[::]:3901"
-rpc_public_addr = "garage-b:3901"
+rpc_public_addr = "172.30.0.3:3901"
 
 [s3_api]
 s3_region = "garage"

@@ -21,18 +21,30 @@ manual-only: no push or pull-request event consumes Actions minutes.
 - Ubuntu Server 26.04 LTS on x86-64/AMD64
 - Docker Engine and the Compose plugin from Docker's official Ubuntu repository
 - a domain whose A/AAAA record points at the VPS
-- inbound TCP 22, 80, and 443 plus UDP 443; no published PostgreSQL/app ports
+- inbound TCP 22, 80, and 443 plus UDP 443; no publicly published
+  PostgreSQL/application ports
 - SSH-key access through a non-root operator account
 
 Docker-published ports can bypass uncomplicated host firewall rules. This
-Compose file publishes only Caddy, but still verify the effective
-`iptables`/`DOCKER-USER` policy on the VPS.
+Compose file publishes Caddy publicly and PostgreSQL on
+`BOTARENA_POSTGRES_BIND_ADDRESS` plus Garage's S3 API on
+`BOTARENA_GARAGE_BIND_ADDRESS`; both default to loopback. Never set either
+value to `0.0.0.0`, `::`, or a public interface. Verify the effective listeners
+and `iptables`/`DOCKER-USER` policy on the VPS.
 
 On a fresh matching VPS, `deploy/provision-host.sh` installs Docker from its
 official repository, creates the `nilbots` operator from root's authorized
 keys, enables security updates and the firewall, and applies conservative SSH
 and Docker log settings. Run it once as root, verify a separate operator SSH
 session, and only then disable root SSH.
+
+The default provisions a public ingress host and opens TCP 80/443 plus UDP
+443. Provision a worker, database, or other private-only node without those
+rules by setting:
+
+```bash
+BOTARENA_PUBLIC_INGRESS=0 bash deploy/provision-host.sh
+```
 
 Production does not need a Git checkout or GitHub repository credential. The
 manual release workflow sends a small, SHA-256-verified deployment bundle over
@@ -61,6 +73,16 @@ printf 'GK%s\n' "$(openssl rand -hex 16)" # BOTARENA_S3_ACCESS_KEY
 openssl rand -hex 32 # BOTARENA_S3_SECRET_KEY
 ```
 
+For a multi-host deployment, set `BOTARENA_POSTGRES_BIND_ADDRESS` to the
+database host's private-interface address and set
+`BOTARENA_GARAGE_BIND_ADDRESS` to that host's private address for remote S3
+clients. Permit TCP 5432 and 3900 only from the exact private addresses of
+application nodes and verify that the public address refuses both connections.
+Remote roles use the same database name, database credentials, and S3
+credentials with those stable private endpoints; never route them over the
+public interface. Garage's admin and RPC interfaces stay unpublished until a
+deliberate cross-host storage expansion needs them.
+
 On an existing deployment, generate and append only the missing Garage/S3
 settings without replacing any configured values:
 
@@ -73,6 +95,11 @@ Compose network and all in the same real zone. Replication factor 3 is fixed
 from the beginning so physical nodes can replace the co-located bootstrap
 nodes later without changing the replication factor. It is not host-level
 high availability while all three storage containers share this VPS.
+Garage RPC uses the dedicated internal `garage-rpc` network and fixed
+`172.30.0.2`–`172.30.0.5` addresses. Its persisted peer records therefore
+remain valid across Docker and host restarts instead of depending on dynamic
+container-address reuse. The initializer still reconnects and verifies all
+four IDs as a recovery check.
 
 Generate the OpenIddict signing/encryption certificate pair. All future web
 replicas must use this same pair:

@@ -29,7 +29,7 @@ x-garage-common: &garage-common
     GARAGE_ADMIN_TOKEN: "${GARAGE_ADMIN_TOKEN}"
     GARAGE_METRICS_TOKEN: "${GARAGE_METRICS_TOKEN}"
   networks:
-    - backend
+    - garage-rpc
   read_only: true
   tmpfs:
     - /tmp:size=32m,mode=1777
@@ -53,6 +53,8 @@ services:
       POSTGRES_USER: botarena
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: botarena
+    ports:
+      - "${BOTARENA_POSTGRES_BIND_ADDRESS:-127.0.0.1}:5432:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
@@ -66,24 +68,39 @@ services:
 
   garage-a:
     <<: *garage-common
+    networks:
+      garage-rpc:
+        ipv4_address: 172.30.0.2
     volumes:
       - ./garage/garage-a.toml:/etc/garage.toml:ro
       - garage-a-data:/var/lib/garage
 
   garage-b:
     <<: *garage-common
+    networks:
+      garage-rpc:
+        ipv4_address: 172.30.0.3
     volumes:
       - ./garage/garage-b.toml:/etc/garage.toml:ro
       - garage-b-data:/var/lib/garage
 
   garage-c:
     <<: *garage-common
+    networks:
+      garage-rpc:
+        ipv4_address: 172.30.0.4
     volumes:
       - ./garage/garage-c.toml:/etc/garage.toml:ro
       - garage-c-data:/var/lib/garage
 
   garage-gateway:
     <<: *garage-common
+    ports:
+      - "${BOTARENA_GARAGE_BIND_ADDRESS:-127.0.0.1}:3900:3900"
+    networks:
+      backend:
+      garage-rpc:
+        ipv4_address: 172.30.0.5
     volumes:
       - ./garage/garage-gateway.toml:/etc/garage.toml:ro
       - garage-gateway-data:/var/lib/garage
@@ -287,3 +304,8 @@ volumes:
 networks:
   edge:
   backend:
+  garage-rpc:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/28
