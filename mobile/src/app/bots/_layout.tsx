@@ -11,8 +11,13 @@ export default function BotsLayout() {
         headerTintColor: Arena.accent,
         headerTitleStyle: { color: Arena.text },
         contentStyle: { backgroundColor: Arena.bg },
+        // Without this the back button falls back to the previous *route name* — which
+        // for a file-based router means it literally reads "index".
+        headerBackTitle: 'Bots',
+        // A hairline instead of the default heavy divider, matching the site's panels.
+        headerShadowVisible: false,
       }}>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="index" options={{ headerShown: false, title: 'Bots' }} />
       <Stack.Screen name="[key]" options={{ title: '' }} />
     </Stack>
   );
