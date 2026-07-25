@@ -139,9 +139,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 - **A server may not ship ahead of its CLI.** `/api/meta` advertises
   `sdkVersion` + `buildPipelineVersion`, and `nilbots submit` refuses to build
   against a server it cannot byte-match (DECISIONS #85). So changing
-  `SdkVersion` or `BuildPipelineVersion` also means bumping `CliVersion` and
-  running the release workflow's `publish-cli` BEFORE `publish-and-deploy` —
-  enforced by `scripts/assert-cli-published.sh`.
+  `SdkVersion` or `BuildPipelineVersion` also means bumping `CliVersion` (and
+  the CLI csproj `<Version>`) and running the release workflow's `publish-cli`
+  BEFORE `publish-and-deploy`, on the same commit. Enforced by
+  `scripts/assert-cli-release.sh`: `publish-cli` tags the commit
+  `cli-v<version>`, and the deploy refuses unless that tag names the revision
+  being deployed.
 
 ## Conventions
 

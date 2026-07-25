@@ -6,7 +6,8 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>nilbots</ToolCommandName>
     <PackageId>Nilbots</PackageId>
-    <Version>0.4.0</Version>
+    <!-- Lockstep with ToolchainInfo.CliVersion (PackagedCliVersionTests). -->
+    <Version>0.5.0</Version>
     <Authors>nilbin</Authors>
     <Description>Build, test, replay, and submit C# bots for the nilbots programming game.</Description>
     <PackageProjectUrl>https://nilbots.com</PackageProjectUrl>

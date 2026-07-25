@@ -99,11 +99,13 @@ workflow:
 **Publish the CLI before deploying a revision that changes the toolchain.**
 `nilbots submit` refuses to build against a server whose SDK or build-pipeline
 version it cannot match (DECISIONS #85), and the fix it prints —
-`dotnet tool update -g Nilbots` — only works if that CLI version exists.
-`publish-and-deploy` enforces this with `scripts/assert-cli-published.sh`, which
-fails the run unless `Nilbots <ToolchainInfo.CliVersion>` is already on
-NuGet.org. So a toolchain change is a two-run release: `publish-cli` first, then
-`publish-and-deploy` on the same commit.
+`dotnet tool update -g Nilbots` — only works if that CLI version exists. These
+stay two separate runs on purpose: a NuGet publish cannot be undone, so it must
+not happen as a side effect of a deploy that might fail. `publish-cli` asserts
+its version is not yet on NuGet, publishes, and tags the commit `cli-v<version>`;
+`publish-and-deploy` then requires that tag to point at the revision being
+deployed (`scripts/assert-cli-release.sh`). A toolchain change is therefore a
+two-run release on the same commit: `publish-cli`, then `publish-and-deploy`.
 
 The deploy script validates immutable GHCR digests, starts PostgreSQL, takes
 and validates a local pre-release database dump, drains workers, runs the

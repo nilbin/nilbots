@@ -60,7 +60,13 @@ jobs:
       # update to. Publish the CLI for this revision BEFORE deploying it.
       - name: Require a published CLI for this revision
         if: inputs.operation == 'publish-and-deploy'
-        run: bash scripts/assert-cli-published.sh
+        run: bash scripts/assert-cli-release.sh published "$GITHUB_SHA"
+
+      # Every release gets its own version, so the cli-v<version> tag below can say
+      # which commit the published tool came from.
+      - name: Require an unpublished CLI version
+        if: inputs.operation == 'publish-cli'
+        run: bash scripts/assert-cli-release.sh unpublished
 
       - name: Preserve generated CLI assets
         if: inputs.operation == 'publish-cli'
@@ -172,7 +178,7 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Check out selected revision
@@ -204,8 +210,18 @@ jobs:
         run: |
           dotnet nuget push "artifacts/nuget/Nilbots.*.nupkg" \
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+            --source https://api.nuget.org/v3/index.json
+
+      # The record that ties a published tool to the commit that produced it. The
+      # deploy guard refuses unless this tag names the revision being deployed —
+      # "the version exists on NuGet" alone is satisfied by any older release.
+      - name: Tag the published CLI revision
+        run: |
+          version=$(sed -n 's/.*CliVersion = "\([^"]*\)".*/\1/p' \
+            src/BotArena.Toolchain/BotProject.cs | head -1)
+          git -c user.email=actions@github.com -c user.name="GitHub Actions" \
+            tag -a "cli-v$version" -m "Nilbots $version published from $GITHUB_SHA"
+          git push origin "cli-v$version"
 
   deploy:
     name: Deploy production

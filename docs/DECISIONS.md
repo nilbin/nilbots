@@ -1178,10 +1178,23 @@ still cite the old numbers.*
     guarantee, not a gate on participation). The CLI version is deliberately NOT
     gated on: a CLI-only bugfix release must not force the world to update. A
     server too old to answer, or unreachable, is never treated as mismatched.
-    RELEASE: `scripts/assert-cli-published.sh` fails a `publish-and-deploy` run
-    unless `Nilbots <CliVersion>` for that revision is already on NuGet.org. The
-    ordering is now enforced rather than remembered: publish the CLI, then
-    deploy.
+    RELEASE: the two operations stay separate manual runs — coupling them would
+    publish an irreversible NuGet version as a side effect of a deploy, and a
+    deploy that then failed would leave players upgrading INTO skew, which the
+    new gate turns into a hard refusal. Instead the ordering is enforced.
+    `scripts/assert-cli-release.sh` runs in `verify`: `unpublished` before
+    `publish-cli` (so every release takes a fresh version and `--skip-duplicate`
+    can no longer silently no-op), `published <sha>` before `publish-and-deploy`.
+    CORRECTION to the first version of this entry: that guard only checked that
+    `Nilbots <CliVersion>` exists on NuGet, which is vacuous — an untouched
+    `CliVersion` is always published, by an older commit carrying a different
+    SDK. With CliVersion at 0.4.0 and the server on SDK 0.8.1 it would have
+    passed while shipping exactly the breakage it was written to prevent. The
+    `publish-cli` job now tags the published commit `cli-v<version>`, and the
+    deploy guard requires that tag to resolve to the revision being deployed —
+    NuGet says the version exists, the tag says which commit made it.
+    `CliVersion` 0.4.0 -> 0.5.0 accordingly (SDK 0.8.1 + pipeline 3), pinned to
+    the csproj `<Version>` by `PackagedCliVersionTests`.
     Rejected: a server-side rejection of skewed submissions. The server rebuilds
     from source and its artifact is canonical, so a submission that compiles is
     valid regardless of which CLI sent it; blocking it would deny participation
