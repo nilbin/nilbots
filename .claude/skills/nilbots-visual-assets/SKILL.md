@@ -13,12 +13,18 @@ owning map JSON, theme manifest, or bot-look manifest.
 
 1. Generate distinct opaque material fields, never a whole map, isolated wall,
    or atlas. Keep the exact accepted prompt in `art/themes/SOURCE-PROMPTS.md`.
+   When the floor is generated, keep its accepted source at
+   `art/themes/<theme>/floor/source.png` and declare the optimized runtime
+   filename, size, and WebP quality in `art.json`.
 2. Put accepted wall sources under
    `art/themes/<theme>/walls/<family>/source.png`. Keep perimeter and interior
    cover as separate semantic families.
 3. Update `art/themes/<theme>/art.json` and the runtime
    `web/src/assets/themes/<theme>/theme.json`. Keep their atlas dimensions in
-   agreement. Do not raise `assetBudgetBytes` just to make a build pass.
+   agreement. A deliberately staged theme instead sets
+   `runtime.packagePath` to `art/themes/<theme>/runtime`; its complete package
+   stays outside Vite discovery until a map intentionally ships it. Do not
+   raise `assetBudgetBytes` just to make a build pass.
 4. Rebuild in the disposable environment:
 
    ```sh
@@ -27,15 +33,16 @@ owning map JSON, theme manifest, or bot-look manifest.
    sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/<theme>/art.json
    ```
 
-5. Assign the theme and wall families in map presentation data. Never infer a
-   theme from map ID or add a viewer skin switch. Keep map packages within the
-   engine's 32×32 envelope.
+5. For a shipping theme, assign the theme and wall families in map
+   presentation data. Never infer a theme from map ID or add a viewer skin
+   switch. Keep map packages within the engine's 32×32 envelope.
 6. Review small and large maps at device pixel ratios 1 and 2. Inspect outer
    perimeter, isolated cover, corners, junctions, zone contrast, bots, health,
    projectiles, and fog.
 
-The build owns seamless normalization, PBR helpers, 256 topology variants,
-encoding, and the theme-wide runtime size check. Do not hand-edit its outputs.
+The build owns floor resizing/encoding, seamless wall normalization, PBR
+helpers, 256 topology variants, and the theme-wide runtime size check. Do not
+hand-edit its outputs.
 
 ## Bot-look workflow
 

@@ -1,0 +1,68 @@
+{
+  "formatVersion": 2,
+  "themeId": "drowned-vault",
+  "floor": {
+    "source": "floor/source.png",
+    "runtime": "floor-vault.webp",
+    "size": 1024,
+    "quality": 90
+  },
+  "runtime": {
+    "atlasScale": 2,
+    "edgeQuality": 95,
+    "assetBudgetBytes": 5000000,
+    "packagePath": "art/themes/drowned-vault/runtime"
+  },
+  "wallFamilies": {
+    "perimeter": {
+      "source": "walls/perimeter/source.png",
+      "material": {
+        "size": 1024,
+        "normalStrength": 10.0,
+        "roughnessBase": 196
+      },
+      "geometry": {
+        "contentPixels": 96,
+        "gutterPixels": 16,
+        "insetPixels": 8,
+        "outsetPixels": 5,
+        "bevelPixels": 5,
+        "light": [-0.55, -0.83],
+        "edgeColour": "#7a7560",
+        "sideColour": "#102a29",
+        "highlightColour": "#ad9b72",
+        "hardwareColour": "#9a7542",
+        "hardwareRadius": 2,
+        "shadowColour": "#061313",
+        "shadowOpacity": 0.53,
+        "shadowBlur": 9,
+        "shadowOffset": [5, 8]
+      }
+    },
+    "cover": {
+      "source": "walls/cover/source.png",
+      "material": {
+        "size": 1024,
+        "normalStrength": 9.0,
+        "roughnessBase": 204
+      },
+      "geometry": {
+        "contentPixels": 96,
+        "gutterPixels": 16,
+        "insetPixels": 13,
+        "outsetPixels": 4,
+        "bevelPixels": 4,
+        "light": [-0.55, -0.83],
+        "edgeColour": "#6c8e87",
+        "sideColour": "#183b39",
+        "highlightColour": "#a2b7ab",
+        "hardwareColour": "#8b7047",
+        "hardwareRadius": 1,
+        "shadowColour": "#061313",
+        "shadowOpacity": 0.39,
+        "shadowBlur": 7,
+        "shadowOffset": [4, 6]
+      }
+    }
+  }
+}

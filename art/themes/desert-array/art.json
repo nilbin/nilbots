@@ -1,0 +1,68 @@
+{
+  "formatVersion": 2,
+  "themeId": "desert-array",
+  "floor": {
+    "source": "floor/source.png",
+    "runtime": "floor-array.webp",
+    "size": 1024,
+    "quality": 90
+  },
+  "runtime": {
+    "atlasScale": 2,
+    "edgeQuality": 95,
+    "assetBudgetBytes": 5000000,
+    "packagePath": "art/themes/desert-array/runtime"
+  },
+  "wallFamilies": {
+    "perimeter": {
+      "source": "walls/perimeter/source.png",
+      "material": {
+        "size": 1024,
+        "normalStrength": 8.5,
+        "roughnessBase": 202
+      },
+      "geometry": {
+        "contentPixels": 96,
+        "gutterPixels": 16,
+        "insetPixels": 9,
+        "outsetPixels": 5,
+        "bevelPixels": 5,
+        "light": [-0.55, -0.83],
+        "edgeColour": "#c7a56d",
+        "sideColour": "#5b452b",
+        "highlightColour": "#edcf94",
+        "hardwareColour": "#61553f",
+        "hardwareRadius": 2,
+        "shadowColour": "#271b10",
+        "shadowOpacity": 0.45,
+        "shadowBlur": 9,
+        "shadowOffset": [5, 8]
+      }
+    },
+    "cover": {
+      "source": "walls/cover/source.png",
+      "material": {
+        "size": 1024,
+        "normalStrength": 7.5,
+        "roughnessBase": 194
+      },
+      "geometry": {
+        "contentPixels": 96,
+        "gutterPixels": 16,
+        "insetPixels": 12,
+        "outsetPixels": 3,
+        "bevelPixels": 4,
+        "light": [-0.55, -0.83],
+        "edgeColour": "#77849a",
+        "sideColour": "#3b4656",
+        "highlightColour": "#aeb6c0",
+        "hardwareColour": "#9a794d",
+        "hardwareRadius": 1,
+        "shadowColour": "#271b10",
+        "shadowOpacity": 0.36,
+        "shadowBlur": 7,
+        "shadowOffset": [4, 6]
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "drowned-vault",
+  "label": "Drowned Vault",
+  "textures": {
+    "floor": "floor-vault.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Pressure vault",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Vault plinths",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#041211",
+    "arena": "#0d2827",
+    "floorTint": "rgba(5, 34, 32, 0.18)",
+    "wallTint": "rgba(2, 17, 16, 0.16)",
+    "zone": "#ff8b5c",
+    "frame": "#546f68"
+  }
+}

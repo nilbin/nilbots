@@ -1,0 +1,40 @@
+{
+  "id": "frost-relay",
+  "label": "Frost Relay",
+  "textures": {
+    "floor": "floor-relay.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Containment shell",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Relay equipment",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#0b1320",
+    "arena": "#d5e0e7",
+    "floorTint": "rgba(24, 57, 82, 0.10)",
+    "wallTint": "rgba(16, 37, 60, 0.10)",
+    "zone": "#d6296f",
+    "frame": "#607b91"
+  }
+}

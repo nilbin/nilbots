@@ -282,10 +282,65 @@ def bake_atlases(
     return edges, shadows
 
 
-def write_bundle(
-    repo_root: Path,
+def validate_floor_config(
     spec_path: Path,
+    floor: Dict[str, Any],
+) -> None:
+    source_path = (spec_path.parent / floor["source"]).resolve()
+    if not source_path.is_file():
+        raise SystemExit(f"Floor source does not exist: {source_path}")
+    runtime_name = str(floor["runtime"])
+    if Path(runtime_name).name != runtime_name or not runtime_name.endswith(".webp"):
+        raise SystemExit("floor.runtime must be one WebP filename.")
+    if int(floor["size"]) < 1:
+        raise SystemExit("floor.size must be positive.")
+    if not 1 <= int(floor["quality"]) <= 100:
+        raise SystemExit("floor.quality must be between 1 and 100.")
+
+
+def runtime_package_root(
+    repo_root: Path,
     theme_id: str,
+    runtime: Dict[str, Any],
+) -> Path:
+    configured = runtime.get("packagePath")
+    if configured is None:
+        return repo_root / "web" / "src" / "assets" / "themes" / theme_id
+    relative = Path(str(configured))
+    if relative.is_absolute() or ".." in relative.parts:
+        raise SystemExit("runtime.packagePath must stay inside the repository.")
+    package_root = (repo_root / relative).resolve()
+    if package_root == repo_root or repo_root not in package_root.parents:
+        raise SystemExit(
+            "runtime.packagePath must be a directory inside the repository.",
+        )
+    return package_root
+
+
+def write_floor(
+    runtime_root: Path,
+    spec_path: Path,
+    floor: Dict[str, Any],
+) -> None:
+    source_path = (spec_path.parent / floor["source"]).resolve()
+    size = int(floor["size"])
+    image = ImageOps.fit(
+        Image.open(source_path).convert("RGB"),
+        (size, size),
+        method=Image.Resampling.LANCZOS,
+    )
+    runtime_root.mkdir(parents=True, exist_ok=True)
+    image.save(
+        runtime_root / floor["runtime"],
+        "WEBP",
+        quality=int(floor["quality"]),
+        method=6,
+    )
+
+
+def write_bundle(
+    runtime_root: Path,
+    spec_path: Path,
     family_id: str,
     family: Dict[str, Any],
     atlas_scale: int,
@@ -293,7 +348,6 @@ def write_bundle(
 ) -> None:
     family_root = (spec_path.parent / family["source"]).resolve().parent
     source_path = (spec_path.parent / family["source"]).resolve()
-    runtime_root = repo_root / "web" / "src" / "assets" / "themes" / theme_id
     runtime_root.mkdir(parents=True, exist_ok=True)
 
     material_config = family["material"]
@@ -332,8 +386,8 @@ def write_bundle(
 
 
 def validate_runtime_manifest(
-    repo_root: Path,
-    theme_id: str,
+    runtime_root: Path,
+    floor: Dict[str, Any] | None,
     families: Dict[str, Any],
     atlas_scale: int,
 ) -> None:
@@ -347,16 +401,12 @@ def validate_runtime_manifest(
     if len(dimensions) != 1:
         raise SystemExit("Every wall family must use the same atlas dimensions.")
     content_pixels, gutter_pixels = dimensions.pop()
-    manifest_path = (
-        repo_root
-        / "web"
-        / "src"
-        / "assets"
-        / "themes"
-        / theme_id
-        / "theme.json"
-    )
+    manifest_path = runtime_root / "theme.json"
     manifest = json.loads(manifest_path.read_text())
+    if floor is not None and manifest["textures"]["floor"] != floor["runtime"]:
+        raise SystemExit(
+            f"{manifest_path} textures.floor must be '{floor['runtime']}'.",
+        )
     atlas = manifest["walls"]["atlas"]
     expected = {
         "columns": ATLAS_COLUMNS,
@@ -369,12 +419,26 @@ def validate_runtime_manifest(
         )
 
 
+def validate_floor_output(
+    runtime_root: Path,
+    floor: Dict[str, Any],
+) -> None:
+    runtime_path = runtime_root / floor["runtime"]
+    if not runtime_path.is_file():
+        raise SystemExit(f"Built floor does not exist: {runtime_path}")
+    with Image.open(runtime_path) as image:
+        expected_size = (int(floor["size"]), int(floor["size"]))
+        if image.size != expected_size:
+            raise SystemExit(
+                f"{runtime_path} must be {expected_size}, got {image.size}.",
+            )
+
+
 def validate_runtime_budget(
-    repo_root: Path,
+    runtime_root: Path,
     theme_id: str,
     budget_bytes: int,
 ) -> None:
-    runtime_root = repo_root / "web" / "src" / "assets" / "themes" / theme_id
     total_bytes = sum(
         path.stat().st_size
         for path in runtime_root.iterdir()
@@ -402,27 +466,37 @@ def main() -> None:
     atlas_scale = int(runtime["atlasScale"])
     edge_quality = int(runtime["edgeQuality"])
     budget_bytes = int(runtime["assetBudgetBytes"])
+    package_root = runtime_package_root(repo_root, theme_id, runtime)
     if atlas_scale < 1:
         raise SystemExit("runtime.atlasScale must be at least 1.")
     if not 1 <= edge_quality <= 100:
         raise SystemExit("runtime.edgeQuality must be between 1 and 100.")
+    floor = spec.get("floor")
+    if floor is not None:
+        validate_floor_config(spec_path, floor)
     families = spec["wallFamilies"]
-    validate_runtime_manifest(repo_root, theme_id, families, atlas_scale)
+    validate_runtime_manifest(package_root, floor, families, atlas_scale)
     if args.check:
-        validate_runtime_budget(repo_root, theme_id, budget_bytes)
+        if floor is not None:
+            validate_floor_output(package_root, floor)
+        validate_runtime_budget(package_root, theme_id, budget_bytes)
         return
+    if floor is not None:
+        print(f"Baking {theme_id}/floor")
+        write_floor(package_root, spec_path, floor)
     for family_id, family in families.items():
         print(f"Baking {theme_id}/{family_id}")
         write_bundle(
-            repo_root,
+            package_root,
             spec_path,
-            theme_id,
             family_id,
             family,
             atlas_scale,
             edge_quality,
         )
-    validate_runtime_budget(repo_root, theme_id, budget_bytes)
+    if floor is not None:
+        validate_floor_output(package_root, floor)
+    validate_runtime_budget(package_root, theme_id, budget_bytes)
 
 
 if __name__ == "__main__":

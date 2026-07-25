@@ -1,0 +1,40 @@
+{
+  "id": "desert-array",
+  "label": "Desert Array",
+  "textures": {
+    "floor": "floor-array.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Array perimeter",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Solar service banks",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#21170e",
+    "arena": "#d4b77e",
+    "floorTint": "rgba(120, 78, 28, 0.08)",
+    "wallTint": "rgba(70, 42, 15, 0.10)",
+    "zone": "#7c3aed",
+    "frame": "#80684a"
+  }
+}

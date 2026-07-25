@@ -129,11 +129,13 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    0.5** (DECISIONS #49/#53/#75). Pincer gen-10 is the launch champion. Next
    improve delayed-projectile visual causality without changing simulation,
    then let future challengers test the 45% diversity policy on the 0.5 ladder.
-3. ~~Sprites/appearances (§33)~~ **DONE** — map-owned themes, five SVG bot
-   chassis, four SVG projectile looks, mutable bot appearance with immutable
-   match snapshots, plus the account-owned cosmetic catalog/grant ledger and
-   first build/challenge unlocks. Expand progression only from observed product
-   use; payments stay separate and later. Logotype (§31) remains.
+3. ~~Sprites/appearances (§33)~~ **DONE** — four active map-owned themes plus
+   three complete staged theme kits, eleven SVG bot chassis, ten SVG projectile
+   looks, mutable bot appearance with immutable match snapshots, plus the
+   account-owned cosmetic catalog/grant ledger and starter, achievement,
+   challenge, and reserved future unlock states. Expand progression only from
+   observed product use; payments stay separate and later. Logotype (§31)
+   remains.
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).

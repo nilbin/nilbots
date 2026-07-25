@@ -1,0 +1,40 @@
+{
+  "id": "ember-forge",
+  "label": "Ember Forge",
+  "textures": {
+    "floor": "floor-forge.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Forge perimeter",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Refractory cover",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#090504",
+    "arena": "#15100d",
+    "floorTint": "rgba(24, 10, 4, 0.18)",
+    "wallTint": "rgba(12, 5, 2, 0.14)",
+    "zone": "#38d9c5",
+    "frame": "#684229"
+  }
+}

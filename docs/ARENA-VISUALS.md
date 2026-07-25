@@ -48,8 +48,9 @@ fall back to the Control Room defaults.
 ## File layout
 
 ```text
-art/themes/control-room/
+art/themes/<theme-id>/
   art.json
+  floor/source.png              # generated floors
   walls/perimeter/
     source.png
     albedo.png
@@ -76,6 +77,16 @@ web/src/assets/themes/overgrown-lab/
   floor-ceramic-v2.png
   wall-*.webp
 
+web/src/assets/themes/<theme-id>/
+  theme.json
+  floor-*.png | floor-*.webp
+  wall-*.webp
+
+art/themes/<staged-theme-id>/runtime/
+  theme.json
+  floor-*.webp
+  wall-*.webp
+
 web/src/assets/bot-looks/<look-id>/
   look.json
   sprite.png | sprite.svg
@@ -100,7 +111,7 @@ requires no TypeScript registry edit.
 
 ### Floor material
 
-- Opaque square PNG, currently 1024×1024.
+- Opaque square generated source, with a 1024×1024 runtime PNG or WebP.
 - Exactly orthographic/top-down; no horizon or perspective.
 - Even upper-left illumination without a central spotlight.
 - Medium-scale readable material detail; avoid high-frequency noise that
@@ -109,6 +120,13 @@ requires no TypeScript registry edit.
   features such as rivers and long conduits.
 - The renderer maps the image once across the whole arena below the wall mask.
   It does not slice, shuffle, outline, or decorate individual gameplay cells.
+- New generated floors are retained at
+  `art/themes/<theme>/floor/source.png`. Their `art.json` floor block declares
+  runtime filename, dimensions, and WebP quality so
+  `scripts/build-theme-art.py` reproduces the optimized viewer asset. Quality
+  90 WebP is the current default for generated floors; it preserves
+  gameplay-scale detail while avoiding multi-megabyte lossless PNGs in every
+  self-contained viewer.
 
 ### Wall families and topology atlases
 
@@ -216,8 +234,14 @@ sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/control-
 sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/overgrown-lab/art.json
 ```
 
-`art.json` is the reproducible art-direction and geometry recipe. Its `runtime`
-block owns atlas scale, edge WebP quality, and the theme-wide asset budget.
+`art.json` is the reproducible art-direction and geometry recipe. Its optional
+`floor` block owns source, runtime filename, dimensions, and encoding quality;
+its `runtime` block owns atlas scale, edge WebP quality, and the theme-wide
+asset budget. `runtime.packagePath` may point a deliberately staged theme at
+`art/themes/<theme>/runtime`; this retains a complete reviewable package
+without making Vite eagerly embed it in every site and replay viewer. Remove
+that override and move the package under `web/src/assets/themes` only when a
+map intentionally ships the theme.
 Do not raise that budget merely to make a build pass: inspect the output and
 compare the self-contained viewer size first. Keep the generated source prompt
 with the change/PR. If a future 2.5D renderer is adopted, feed the checked-in
@@ -271,6 +295,9 @@ presentation constant.
 - A look may declare `defaultProjectile` as a recommended companion. The
   appearance UI selects that projectile with the chassis when both are owned,
   but projectile choice remains independently editable.
+- Bot looks and projectile looks are independent catalogs, not one-to-one
+  pairs. Do not add a default projectile merely because a chassis and
+  projectile were authored in the same release.
 - A look belongs to the bot. Player projects set it in `botarena.json`:
 
   ```json
@@ -288,16 +315,19 @@ presentation constant.
   replay participants. Historical playback therefore does not consult the
   bot's current account record.
 
-Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, and Aureate
-Warden. All six are genuine path-based SVGs. The earlier generated PNGs remain under
+Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, Aureate Warden,
+Rift Runner, Mossback, Helio Kite, Scrap Jackal, and Glass Manta. All eleven
+are genuine path-based SVGs. The earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
-Vanguard, Bulwark, Needle, and Orbiter are starter-accessible; Lancer is the
-first successful-build achievement unlock on the official service. Aureate
-Warden and its recommended Regent Lance projectile unlock together after an
-account completes 100 ranked matches. One ranked match is the complete
-six-game mirrored set.
+Vanguard, Bulwark, Needle, Orbiter, Rift Runner, and Mossback are
+starter-accessible; Lancer is the first successful-build achievement unlock on
+the official service. Aureate Warden and its recommended Regent Lance
+projectile unlock together after an account completes 100 ranked matches. One
+ranked match is the complete six-game mirrored set. Helio Kite, Scrap Jackal,
+and Glass Manta are manifest-discovered but entitlement-locked for future
+achievement, challenge, and competition sources respectively.
 
 To create another look:
 
@@ -336,11 +366,14 @@ To create another look:
 - Legacy, missing, or unknown IDs fall back to Pulse Bolt. Cosmetic
   entitlements are checked when equipping, never when rendering a replay.
 
-Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark, and
-Regent Lance. All five are genuine SVG masks. Pulse Bolt, Ion Orb, and Razor Shard are
-starter-accessible; Arc Spark unlocks after the account completes its first
-unranked challenge match on the official service. Regent Lance unlocks with
-Aureate Warden after 100 completed ranked matches.
+Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark,
+Regent Lance, Phase Needle, Cinder Disc, Helix Dart, Gravity Knot, and Prism
+Fan. All ten are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard, Phase
+Needle, and Cinder Disc are starter-accessible; Arc Spark unlocks after the
+account completes its first unranked challenge match on the official service.
+Regent Lance unlocks with Aureate Warden after 100 completed ranked matches.
+Helix Dart, Gravity Knot, and Prism Fan are independently entitlement-locked
+for future achievement, challenge, and competition sources.
 
 To create another projectile look:
 
@@ -395,9 +428,21 @@ production candidates, then normalized locally:
   generated concept references. Eclipse Bloom + Null Seed and Redshift Crucible
   + Crucible Splitter are retained under `art/` as reserved, unavailable
   concepts; they have no runtime manifest or catalog entry.
+- Rift Runner, Mossback, Helio Kite, Scrap Jackal, Glass Manta, and the five
+  new projectile masks were authored directly as genuine SVG. Their catalogs
+  are independent; none of those chassis declares a default projectile.
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
+- Ember Forge, Frost Relay, Drowned Vault, Desert Array, and Void Sanctum use
+  fifteen separately generated material fields—one floor, one fortified
+  perimeter, and one interior-cover source per theme. Their exact accepted
+  prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking owns
+  seamless normalization and topology. Ember Forge and Frost Relay ship on
+  Arena and Gallery respectively. Drowned Vault, Desert Array, and Void
+  Sanctum remain complete staged packages under `art/`; keeping them outside
+  Vite avoids adding every large theme to every self-contained viewer before
+  per-replay asset packaging exists.
 - Wall sources are generated as opaque material fields, never whole slabs or
   maps. The deterministic build makes them edge-safe, derives PBR helper maps,
   and bakes all topology variants. Do not ask an image model for a 16-, 47-, or

@@ -1,0 +1,40 @@
+{
+  "id": "void-sanctum",
+  "label": "Void Sanctum",
+  "textures": {
+    "floor": "floor-sanctum.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Sanctum monolith",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Relay fragments",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#050407",
+    "arena": "#15111b",
+    "floorTint": "rgba(17, 9, 27, 0.16)",
+    "wallTint": "rgba(5, 3, 8, 0.16)",
+    "zone": "#5eead4",
+    "frame": "#4c4056"
+  }
+}

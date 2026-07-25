@@ -1,10 +1,10 @@
 {
   "formatVersion": 1,
   "id": "gallery-01",
-  "version": 5,
+  "version": 6,
   "width": 20,
   "height": 12,
-  "theme": "overgrown-lab",
+  "theme": "frost-relay",
   "presentation": {
     "boundaryWall": "perimeter",
     "interiorWall": "cover",
