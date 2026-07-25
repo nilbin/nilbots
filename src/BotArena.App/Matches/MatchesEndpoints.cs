@@ -214,6 +214,8 @@ public static class MatchesEndpoints
             return Results.Ok(new
             {
                 Status = match.Status.ToString(),
+                match.MatchSetId,
+                match.SetGame,
                 match.PresentationTicksPerSecond,
                 PresentationTick = presentationTick,
                 TotalTicks = match.EndTick + 1,

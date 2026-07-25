@@ -6,6 +6,8 @@ import { ApiError, api } from '../api';
 
 interface LiveState {
   status: string;
+  matchSetId: string | null;
+  setGame: number | null;
   presentationTicksPerSecond: number;
   presentationTick: number;
   totalTicks: number | null;
@@ -80,9 +82,12 @@ export default function MatchPage() {
 
   if (error)
     return (
-      <div className="rounded-xl border border-red-900 bg-arena-panel p-6">
-        <p className="font-semibold text-red-400">Match failed to execute.</p>
-        <pre className="mt-2 font-mono text-xs whitespace-pre-wrap text-arena-dim">{error}</pre>
+      <div className="flex flex-col gap-3">
+        <RankedSetNavigation live={live} />
+        <div className="rounded-xl border border-red-900 bg-arena-panel p-6">
+          <p className="font-semibold text-red-400">Match failed to execute.</p>
+          <pre className="mt-2 font-mono text-xs whitespace-pre-wrap text-arena-dim">{error}</pre>
+        </div>
       </div>
     );
 
@@ -90,30 +95,59 @@ export default function MatchPage() {
 
   if (live.status !== 'Completed')
     return (
-      <Waiting
-        label={live.status === 'Pending' ? 'Match queued…' : 'Bots are fighting…'}
-      />
+      <div className="flex flex-col gap-3">
+        <RankedSetNavigation live={live} />
+        <Waiting
+          label={live.status === 'Pending' ? 'Match queued…' : 'Bots are fighting…'}
+        />
+      </div>
     );
 
   if (!finished && (live.countdownMs > 0 || !replay || replay.ticks.length === 0))
-    return <Waiting label="Broadcast starting…" countdown />;
+    return (
+      <div className="flex flex-col gap-3">
+        <RankedSetNavigation live={live} />
+        <Waiting label="Broadcast starting…" countdown />
+      </div>
+    );
 
-  if (!replay) return <Waiting label="Loading replay…" />;
+  if (!replay)
+    return (
+      <div className="flex flex-col gap-3">
+        <RankedSetNavigation live={live} />
+        <Waiting label="Loading replay…" />
+      </div>
+    );
 
   return (
-    <div className="h-[calc(100dvh-140px)] min-h-[560px]">
-      <Viewer
-        replay={replay}
-        live={
-          finished
-            ? undefined
-            : {
-                tick: live.presentationTick,
-                ticksPerSecond: live.presentationTicksPerSecond,
-              }
-        }
-      />
+    <div className="flex h-[calc(100dvh-140px)] min-h-[560px] flex-col gap-2">
+      <RankedSetNavigation live={live} />
+      <div className="min-h-0 flex-1">
+        <Viewer
+          replay={replay}
+          live={
+            finished
+              ? undefined
+              : {
+                  tick: live.presentationTick,
+                  ticksPerSecond: live.presentationTicksPerSecond,
+                }
+          }
+        />
+      </div>
     </div>
+  );
+}
+
+function RankedSetNavigation({ live }: { live: LiveState | null }) {
+  if (!live?.matchSetId) return null;
+  return (
+    <Link
+      to={`/sets/${live.matchSetId}`}
+      className="w-fit rounded-md border border-arena-edge bg-arena-panel/60 px-3 py-1.5 font-mono text-xs text-arena-accent transition-colors hover:border-arena-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-arena-accent/40"
+    >
+      ← Ranked set{live.setGame ? ` · game ${live.setGame} of 6` : ''}
+    </Link>
   );
 }
 

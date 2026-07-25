@@ -81,11 +81,21 @@ export default function MatchSetPage() {
         )}
       </header>
 
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {set.games.map((game) => (
-          <GameCard key={game.id} game={game} set={set} />
-        ))}
-      </ul>
+      <section>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-mono text-xs tracking-widest text-arena-dim">
+            GAMES
+          </h2>
+          <p className="text-xs text-arena-dim">
+            Open any game to watch its live broadcast or replay.
+          </p>
+        </div>
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {set.games.map((game) => (
+            <GameCard key={game.id} game={game} set={set} />
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -98,12 +108,21 @@ function GameCard({ game, set }: { game: SetGame; set: MatchSetDetail }) {
         ? set.botB.name
         : null;
   const [first, second] = game.participants;
+  const action =
+    game.status === 'Failed'
+      ? 'View details'
+      : game.broadcasting
+        ? 'Watch live'
+        : game.status === 'Completed'
+          ? 'Watch replay'
+          : 'Open game';
 
   return (
     <li>
       <Link
         to={`/matches/${game.id}`}
-        className="flex flex-col gap-2 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
+        aria-label={`${action}: game ${game.game} on ${game.mapId}`}
+        className="group flex h-full flex-col gap-2 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-accent/70 hover:bg-arena-panel focus-visible:border-arena-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-arena-accent/40"
       >
         <div className="flex items-center gap-2 font-mono text-[11px] text-arena-dim">
           GAME {game.game} · {game.mapId}
@@ -127,14 +146,25 @@ function GameCard({ game, set }: { game: SetGame; set: MatchSetDetail }) {
             {second?.nameSnapshot}
           </span>
         </div>
-        <div className="font-mono text-xs">
-          {winnerName ? (
-            <span className="text-arena-text">{winnerName} wins</span>
-          ) : game.draw ? (
-            <span className="text-arena-dim">draw</span>
-          ) : (
-            <span className="text-arena-accent">▶ watch</span>
-          )}
+        <div className="mt-auto flex items-center justify-between gap-3 font-mono text-xs">
+          <span className={winnerName ? 'text-arena-text' : 'text-arena-dim'}>
+            {winnerName
+              ? `${winnerName} wins`
+              : game.draw
+                ? 'draw'
+                : game.broadcasting
+                  ? 'result pending'
+                  : game.status.toLowerCase()}
+          </span>
+          <span className="whitespace-nowrap text-arena-accent">
+            {action}{' '}
+            <span
+              aria-hidden
+              className="inline-block transition-transform group-hover:translate-x-0.5"
+            >
+              →
+            </span>
+          </span>
         </div>
       </Link>
     </li>
