@@ -995,6 +995,36 @@ configuration) and changing them is a version bump, not an edit.
     (`nilbots rank`/`leaderboard`), `doctor` ignoring the signed-in session, and
     the undocumented enemy-cooldown reconstruction.
 
+74. **Cross-platform builds normalised: macOS/arm64 and Linux now agree on one
+    virtual source root (corrects #72).** Investigating whether supporting both
+    macOS and Linux worsens the artifact divergence turned up a real defect AND
+    two errors in #72 that are corrected here.
+    THE DEFECT: three build paths reach the generated project — Docker (macOS
+    and Linux/arm64, via run-wasm-publish.sh), the isolated setpriv publish, and
+    a plain local publish — and only the Docker one passed
+    `-p:PathMap=/workspace=/src` and `-p:ContinuousIntegrationBuild=true`. The
+    other two got the project's own `PathMap` to `/nilbots/bot` and no CI flag.
+    So a Mac build and a Linux build of identical source embedded DIFFERENT
+    virtual roots and could never produce equal bytes. Fixed by setting
+    `PathMap=$(MSBuildProjectDirectory)=/src` plus `ContinuousIntegrationBuild`
+    in the generated project, matching the value the Docker command line already
+    uses, so all three paths agree however they are invoked.
+    CORRECTION 1 to #72: the csproj `PathMap` added there is OVERRIDDEN on the
+    Docker path (command-line `-p:` wins), so it never applied where that entry
+    implied it did. CORRECTION 2: #72 credited that change with making builds
+    reproducible across build directories, but the "before" state was never
+    measured. It is now: with `DebugType=none` removed the build is still
+    reproducible, and under isolation the workspace path derives from the cache
+    KEY rather than from BOTARENA_HOME, so the two-cache-root check never varied
+    the compile path at all. The e2e assertion is relabelled to say what it
+    actually proves (determinism), and the honest end-to-end check is a
+    submission's local-vs-server comparison. What #72 genuinely delivered stands:
+    `DebugType=none` stopped absolute repo paths leaking into every player
+    artifact and cut them 2.54 MB -> 998 KB.
+    Local<->server divergence remains open and is NOT explained by this: both
+    sides here take the isolated path. Behavioural equivalence is measured and
+    holds (DX-FINDINGS-NUGET-PLAYER).
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

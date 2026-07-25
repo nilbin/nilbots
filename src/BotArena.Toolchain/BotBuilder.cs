@@ -101,14 +101,19 @@ public static class BotBuilder
                 <ImplicitUsings>enable</ImplicitUsings>
                 <AssemblyName>bot</AssemblyName>
                 <InvariantGlobalization>true</InvariantGlobalization>
-                <!-- Reproducibility (DECISIONS #72). The workspace lives at a different
-                     absolute path on every build host — the caller's cache dir locally,
-                     BuildIsolation.WorkRoot/<key> on the server — and those bytes were
-                     landing inside the artifact, so "local and server produce identical
-                     WASM" was false by construction. Map the workspace to a fixed
-                     virtual root so the compiler never sees where it actually ran. -->
-                <PathMap>$(MSBuildProjectDirectory)=/nilbots/bot</PathMap>
+                <!-- Reproducibility (DECISIONS #72/#74). Three build paths reach this
+                     project: Docker (macOS and arm64, via run-wasm-publish.sh), the
+                     isolated setpriv build, and a plain local publish. Only the Docker
+                     one passed -p:PathMap and -p:ContinuousIntegrationBuild, so a Mac
+                     build and a Linux build of the same source embedded DIFFERENT roots
+                     and could never match. Setting both here makes every path agree on
+                     /src — the value the Docker command line already uses, so it stays
+                     consistent whether the command line overrides this or not. -->
+                <PathMap>$(MSBuildProjectDirectory)=/src</PathMap>
+                <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
                 <Deterministic>true</Deterministic>
+                <!-- Debug info carried absolute repo paths into every player artifact
+                     and dominated its size (2.54 MB -> 998 KB without it). -->
                 <DebugType>none</DebugType>
               </PropertyGroup>
               <ItemGroup>

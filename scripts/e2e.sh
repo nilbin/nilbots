@@ -20,10 +20,13 @@ dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot
 dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot | grep -q "Cache:            hit" \
   || { echo "expected a build cache hit on the second build" >&2; exit 1; }
 
-# Reproducibility (DECISIONS #72): identical sources must produce identical bytes no
-# matter WHERE they are compiled. Two different cache roots mean two different
-# workspace paths — the exact difference that made local and server artifacts diverge
-# and broke the bit-identical-parity promise. Compare hashes from a cold build in each.
+# Reproducibility (DECISIONS #72/#74): identical sources must produce identical bytes.
+# NOTE on what this does and does not prove. Under build isolation the workspace path is
+# derived from the cache KEY, not from BOTARENA_HOME, so varying the cache root does not
+# vary the compile path — this then checks determinism (same inputs, same bytes) rather
+# than path-independence. Path-independence across the Docker/isolated/native paths is
+# enforced by the shared PathMap in the generated project, and the honest end-to-end
+# check is a submission's local-vs-server hash comparison.
 hash_from() {  # $1 = cache root
   BOTARENA_HOME="$1" dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot \
     | sed -n 's/^Artifact hash: *//p' | tr -d '[:space:]'
