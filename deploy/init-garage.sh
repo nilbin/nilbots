@@ -127,7 +127,27 @@ for tag in garage-a garage-b garage-c gateway; do
 done
 
 if ! garage bucket info "$BOTARENA_S3_BUCKET" >/dev/null 2>&1; then
-  garage bucket create "$BOTARENA_S3_BUCKET" >/dev/null
+  if create_error="$(garage bucket create "$BOTARENA_S3_BUCKET" 2>&1)"; then
+    :
+  elif [[ "$create_error" == *"BucketAlreadyExists"* ||
+          "$create_error" == *"BucketAlreadyOwnedByYou"* ]]; then
+    # A restarted gateway can pass its node healthcheck just before bucket
+    # metadata has converged. The create then correctly reports the existing
+    # bucket; wait until this node can read it instead of failing a redeploy.
+    for attempt in {1..30}; do
+      if garage bucket info "$BOTARENA_S3_BUCKET" >/dev/null 2>&1; then
+        break
+      fi
+      if [[ "$attempt" == 30 ]]; then
+        echo "Garage bucket metadata did not converge within 30 seconds" >&2
+        exit 1
+      fi
+      sleep 1
+    done
+  else
+    echo "$create_error" >&2
+    exit 1
+  fi
 fi
 
 if garage key info "$BOTARENA_S3_ACCESS_KEY" >/dev/null 2>&1; then
