@@ -35,7 +35,9 @@ hash_from() {  # $1 = cache root
   BOTARENA_HOME="$1" dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot \
     | sed -n 's/^Artifact hash: *//p' | tr -d '[:space:]'
 }
-REPRO_ROOT="$(mktemp -d)"
+# Keep Docker bind sources under the checkout: Docker Desktop/Colima share
+# /Users by default on macOS, while BSD mktemp uses an unshared /var/folders path.
+REPRO_ROOT="$(mktemp -d "$PWD/sandbox/e2e-repro.XXXXXX")"
 REPRO_A="$(hash_from "$REPRO_ROOT/a")"
 REPRO_B="$(hash_from "$REPRO_ROOT/b")"
 rm -rf "$REPRO_ROOT"
