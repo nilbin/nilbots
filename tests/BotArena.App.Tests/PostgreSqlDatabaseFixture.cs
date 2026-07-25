@@ -6,9 +6,12 @@ using Npgsql;
 namespace BotArena.App.Tests;
 
 /// <summary>
-/// Creates one empty PostgreSQL database per integration test. Local developers may
-/// omit BOTARENA_TEST_DB and skip this opt-in suite; CI sets
-/// BOTARENA_POSTGRES_REQUIRED=true, so a missing or unreachable server is a failure.
+/// Creates one empty PostgreSQL database per integration test, which needs a role with
+/// CREATEDB. Omitting BOTARENA_TEST_DB skips the suite — the local opt-out. SETTING it
+/// commits to running: from there an unreachable server or an under-privileged role
+/// fails rather than skips, so nobody gets a green run that tested nothing.
+/// BOTARENA_POSTGRES_REQUIRED=true additionally makes a MISSING variable an error, which
+/// is how CI catches its own misconfiguration.
 /// </summary>
 public sealed class PostgreSqlDatabaseFixture : IAsyncDisposable
 {
@@ -71,11 +74,18 @@ public sealed class PostgreSqlDatabaseFixture : IAsyncDisposable
                 $"CREATE DATABASE {QuoteIdentifier(databaseName)} TEMPLATE template0";
             await command.ExecuteNonQueryAsync();
         }
-        catch (Exception exception) when (!required)
+        catch (Exception exception)
         {
-            Skip.If(
-                true,
-                $"PostgreSQL is unavailable: {exception.GetType().Name}: {exception.Message}");
+            // Setting BOTARENA_TEST_DB IS the opt-in, so a server that cannot be reached
+            // or a role that cannot CREATE DATABASE is a failure, not a skip. Swallowing
+            // it meant a developer who asked for these tests got a green run that
+            // exercised nothing, and the reason was only visible by also setting
+            // BOTARENA_POSTGRES_REQUIRED (DECISIONS #101).
+            throw new InvalidOperationException(
+                $"BOTARENA_TEST_DB is set, but the PostgreSQL integration database could " +
+                $"not be created: {exception.GetType().Name}: {exception.Message}. " +
+                "The role needs CREATEDB — `ALTER ROLE <user> CREATEDB;` as a superuser.",
+                exception);
         }
 
         testBuilder.Database = databaseName;

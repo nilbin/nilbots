@@ -21,7 +21,20 @@ service postgresql start       # required by BotArena.App only
 ```
 
 If the `botarena` DB role is missing (first boot):
-`su postgres -c "psql -c \"CREATE ROLE botarena LOGIN PASSWORD 'botarena';\"" && su postgres -c "createdb -O botarena botarena"`.
+`su postgres -c "psql -c \"CREATE ROLE botarena LOGIN PASSWORD 'botarena' CREATEDB;\"" && su postgres -c "createdb -O botarena botarena"`.
+CREATEDB is what lets the opt-in PostgreSQL suite build a throwaway database per
+test; without it those tests fail loudly telling you so.
+
+The App tests' PostgreSQL half is opt-in and skipped unless you ask for it:
+
+```bash
+BOTARENA_TEST_DB="Host=127.0.0.1;Database=botarena_test;Username=botarena;Password=botarena" \
+  dotnet test tests/BotArena.App.Tests
+```
+
+Setting that variable commits to running them — an unreachable server or a role
+without CREATEDB then fails rather than skips (DECISIONS #101). CI additionally
+sets `BOTARENA_POSTGRES_REQUIRED=true`, which makes a MISSING variable an error.
 
 The C#→WASM toolchain is NativeAOT-LLVM from the `dotnet-experimental` NuGet
 feed (`nuget.config`), pinned in `ToolchainInfo`. Its compiler host package is

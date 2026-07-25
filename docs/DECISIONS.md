@@ -1653,6 +1653,30 @@ before picking a number.*
      GitHub job rather than push/PR triggers, preserving the project's
      manual-only Actions budget.
 
+101. **Opting into the PostgreSQL suite means running it: a database that cannot be
+     created now fails instead of skipping.** Found while verifying the
+     client-generation refactor. `dotnet test` reported green with 23 of 100 App tests
+     skipped, which is the intended local opt-out — but setting `BOTARENA_TEST_DB` to
+     opt IN did not change that. The tests still skipped, silently, and the reason was
+     only visible by also setting `BOTARENA_POSTGRES_REQUIRED=true`, which turned the
+     skip into a throw: `42501: permission denied to create database`. The fixture
+     builds a throwaway database per test and the documented `botarena` role is created
+     without CREATEDB, so anyone following the bootstrap and then opting in got a green
+     run that exercised nothing — the worst possible answer, because it looks like
+     coverage.
+     The catch swallowed every exception whenever `BOTARENA_POSTGRES_REQUIRED` was
+     unset. It now distinguishes the two intentions: an ABSENT `BOTARENA_TEST_DB` skips
+     (the opt-out), a SET one commits, so an unreachable server or an under-privileged
+     role throws with the fix in the message. `BOTARENA_POSTGRES_REQUIRED` keeps its
+     remaining job — making a missing variable an error, which is how CI catches its
+     own misconfiguration. The bootstrap in CLAUDE.md now grants CREATEDB and documents
+     the opt-in command.
+     CI never saw this because it connects as the `postgres` superuser; only local runs
+     were affected, which is precisely where a silent skip does the most damage.
+     Verified all three paths: no variable still skips, a variable with a CREATEDB role
+     runs 98 of 100, and a variable with a role lacking CREATEDB fails with
+     "The role needs CREATEDB — `ALTER ROLE <user> CREATEDB;` as a superuser."
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
