@@ -1511,6 +1511,26 @@ before picking a number.*
      lowercase kebab case and six-digit accent colors normalize to lowercase;
      the API exposes typed stable error codes through one ProblemDetails mapper.
 
+106. **Bot and projectile catalogs expand independently, while large map themes
+     are activated per map instead of entering every viewer at once.** Rift
+     Runner and Mossback plus Phase Needle and Cinder Disc are new starter
+     choices. Helio Kite, Scrap Jackal, Glass Manta, Helix Dart, Gravity Knot,
+     and Prism Fan are independently cataloged entitlement items reserved for
+     future achievement, challenge, and competition sources. None of these bot
+     manifests recommends a projectile: chassis and projectile releases are not
+     one-to-one. The existing Aureate Warden recommendation remains the explicit
+     exception described in #103.
+     Five generated theme kits retain separate floor, fortified-perimeter, and
+     interior-cover sources plus deterministic runtime packages. Ember Forge
+     ships on Arena and Frost Relay on Gallery. Drowned Vault, Desert Array, and
+     Void Sanctum stay fully baked under `art/themes/*/runtime` until a map
+     intentionally activates them. This is availability and packaging, not a
+     viewer theme switch: the map JSON remains authoritative. Shipping all five
+     immediately raised the self-contained viewer from the 6.7 MB gzip baseline
+     to 16.3 MB; shipping two and staging three keeps it to 10.4 MB. The asset
+     test pins the active/staged split so a directory copy cannot silently add
+     every future theme to every replay.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
