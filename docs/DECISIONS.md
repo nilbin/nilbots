@@ -1653,7 +1653,19 @@ before picking a number.*
      GitHub job rather than push/PR triggers, preserving the project's
      manual-only Actions budget.
 
-101. **Opting into the PostgreSQL suite means running it: a database that cannot be
+114. **Production image publication and deployment require the complete manual
+     CI workflow, not only release E2E.** The release verifier covers the
+     managed/WASM pipeline, packaged gameplay assets, Garage recovery, and
+     release installer, but intentionally has no PostgreSQL service and does
+     not regenerate every API client. The standalone CI workflow is therefore
+     also callable as a reusable workflow. `publish` and `publish-and-deploy`
+     wait for its contract-drift and mandatory PostgreSQL jobs after release
+     E2E succeeds; a failure prevents both image publication and deployment.
+     Direct pushes and pull requests still trigger nothing, and an operator can
+     still run CI by itself with `workflow_dispatch`, preserving the
+     manual-only Actions budget.
+
+115. **Opting into the PostgreSQL suite means running it: a database that cannot be
      created now fails instead of skipping.** Found while verifying the
      client-generation refactor. `dotnet test` reported green with 23 of 100 App tests
      skipped, which is the intended local opt-out — but setting `BOTARENA_TEST_DB` to

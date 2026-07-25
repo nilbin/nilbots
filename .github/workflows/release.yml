@@ -79,10 +79,20 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  quality:
+    name: Require contract and PostgreSQL CI
+    if: inputs.operation == 'publish' || inputs.operation == 'publish-and-deploy'
+    needs: verify
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   publish:
     name: Publish immutable images
     if: inputs.operation == 'publish' || inputs.operation == 'publish-and-deploy'
-    needs: verify
+    needs:
+      - verify
+      - quality
     runs-on: ubuntu-latest
     permissions:
       contents: read
