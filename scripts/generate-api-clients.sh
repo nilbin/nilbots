@@ -3,7 +3,8 @@
 #
 # The document is a BUILD artifact (Microsoft.Extensions.ApiDescription.Server writes
 # contracts/BotArena.App.json during `dotnet build`), so this needs no running server
-# and no database — which is what lets CI run it on every push.
+# and no database — which keeps the manually triggered contract-drift job cheap
+# and deterministic without changing the repository's manual-only CI policy.
 #
 # Consumers, all generated, none hand-maintained:
 #   web/src/api/schema.d.ts        TypeScript  (site)

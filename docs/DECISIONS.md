@@ -1642,6 +1642,17 @@ before picking a number.*
      adding a scheduler, service discovery system, or repository checkout on
      a VPS.
 
+113. **Generated HTTP contracts are a CLI release surface, while their drift
+     check remains manual-only.** Server response records produce the canonical
+     OpenAPI document; web, mobile, and CLI DTOs are generated from it. The CLI
+     server-command migration changes packaged tool bytes even though SDK 0.8.1
+     and build pipeline 3 remain stable, so `CliVersion` and the NuGet package
+     advance from 0.5.4 to 0.5.5 before the combined server release. The
+     compatibility guard correctly rejects deploying the generated CLI changes
+     behind the older tag. Contract drift has its own `workflow_dispatch`
+     GitHub job rather than push/PR triggers, preserving the project's
+     manual-only Actions budget.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
