@@ -1220,6 +1220,16 @@
           "versionCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "currentStanding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LadderStanding"
+              }
+            ]
           }
         }
       },

@@ -59,6 +59,20 @@ Query keys are arrays namespaced by resource: `['bots']`, `['bot', key]`,
 design (there is no socket), so its hook sets `refetchInterval` and stops polling once
 the match completes. Do not scatter `setInterval` through components.
 
+## Control bars are one line
+
+A search/filter bar never takes a second row. `components/ui/FilterBar` is that line:
+a search field plus one button. Anything else — toggles, sorts, ranges — goes behind
+that button into a `components/ui/BottomSheet`.
+
+Two reasons this is a rule rather than a preference. A stacked bar eats the top of a
+short screen, and on a phone the list rows *are* the content. And a filter that is on
+but scrolled out of view silently explains a short list, so `FilterBar` badges its
+button with the active count — an active filter must be visible without opening
+anything.
+
+Apply the same shape to any screen that grows controls, not just Bots.
+
 ## Every screen handles four states
 
 Loading, error, empty, and content — always all four. `components/ui/StateView`

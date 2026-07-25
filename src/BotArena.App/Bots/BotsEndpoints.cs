@@ -32,7 +32,7 @@ public static class BotsEndpoints
     {
         var group = routes.MapGroup("/api/bots");
 
-        group.MapGet("/", async (AppDbContext db) =>
+        group.MapGet("/", async (AppDbContext db, MatchExecutionSettings matchSettings) =>
         {
             // Order before projecting: EF sees through an anonymous type's members but
             // not a record constructor's, so ordering on the projection no longer
@@ -61,7 +61,16 @@ public static class BotsEndpoints
                         .FirstOrDefault(),
                     b.Versions.Count(v => v.Status == BuildStatus.Built)))
                 .ToListAsync();
-            return Results.Ok(bots);
+
+            // Rank depends on the whole ladder, so it is resolved once here rather than
+            // left to each client to join against /api/leaderboard — which would also cap
+            // rank at whatever slice that endpoint returns.
+            var standings = await db.BotRatings.ForRulesAsync(matchSettings.MatchRules.RulesVersion);
+            return Results.Ok(bots
+                .Select(bot => standings.TryGetValue(bot.Id, out LadderStanding? standing)
+                    ? bot with { CurrentStanding = standing }
+                    : bot)
+                .ToList());
         }).Produces<IReadOnlyList<BotSummaryResponse>>();
 
         group.MapPost("/", async (
