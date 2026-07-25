@@ -5,6 +5,9 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+// Response contracts generated from the server's OpenAPI document — never hand-edited.
+// See CLAUDE.md → "API contract surfaces".
+using BotArena.Cli.Generated;
 using BotArena.Toolchain;
 
 namespace BotArena.Cli;
@@ -198,9 +201,9 @@ public static class ServerCommands
         SaveTokens(server, tokens.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult());
 
         using var client = CreateClient()!;
-        var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
+        var me = client.GetFromJsonAsync<UserResponse>("/api/accounts/me").GetAwaiter().GetResult();
         Console.WriteLine($"{(register ? "Account created; signed" : "Signed")} in to {server} " +
-            $"as {me.GetProperty("displayName").GetString()}.");
+            $"as {me?.DisplayName}.");
         return 0;
     }
 
@@ -219,9 +222,8 @@ public static class ServerCommands
         string server = StoredCredentials.Load()!.Server;
         try
         {
-            var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
-            Console.WriteLine($"{me.GetProperty("displayName").GetString()} " +
-                $"({me.GetProperty("email").GetString()}) on {server}");
+            var me = client.GetFromJsonAsync<UserResponse>("/api/accounts/me").GetAwaiter().GetResult();
+            Console.WriteLine($"{me?.DisplayName} ({me?.Email}) on {server}");
             return 0;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -270,10 +272,11 @@ public static class ServerCommands
         Console.WriteLine($"Local artifact:   {local.ArtifactHash} ({(local.FromCache ? "cache" : "compiled")})");
 
         string slug = BotsEndpointSlug(project.Manifest.Name);
-        var bots = client.GetFromJsonAsync<JsonElement>("/api/bots").GetAwaiter().GetResult();
-        string? botId = bots.EnumerateArray()
-            .Where(b => b.GetProperty("slug").GetString() == slug)
-            .Select(b => b.GetProperty("id").GetString())
+        var bots = client.GetFromJsonAsync<IReadOnlyList<BotSummaryResponse>>("/api/bots")
+            .GetAwaiter().GetResult() ?? [];
+        string? botId = bots
+            .Where(b => b.Slug == slug)
+            .Select(b => b.Id.ToString())
             .FirstOrDefault();
         if (botId is null)
         {
@@ -290,8 +293,8 @@ public static class ServerCommands
                 Console.Error.WriteLine($"Could not create bot: {created.Content.ReadAsStringAsync().Result}");
                 return 1;
             }
-            botId = created.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult()
-                .GetProperty("id").GetString();
+            botId = created.Content.ReadFromJsonAsync<CreatedBot>()
+                .GetAwaiter().GetResult()?.Id.ToString();
             Console.WriteLine($"Registered new bot '{project.Manifest.Name}'.");
         }
 
@@ -313,26 +316,26 @@ public static class ServerCommands
             Console.Error.WriteLine($"Submission rejected: {submitted.Content.ReadAsStringAsync().Result}");
             return 1;
         }
-        int versionNumber = submitted.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult()
-            .GetProperty("versionNumber").GetInt32();
+        int versionNumber = submitted.Content.ReadFromJsonAsync<SubmittedBotVersion>()
+            .GetAwaiter().GetResult()!.VersionNumber;
         Console.WriteLine($"Submitted as version {versionNumber}; server build running...");
 
         while (true)
         {
             Thread.Sleep(2500);
-            var bot = client.GetFromJsonAsync<JsonElement>($"/api/bots/{botId}").GetAwaiter().GetResult();
-            var version = bot.GetProperty("versions").EnumerateArray()
-                .Single(v => v.GetProperty("versionNumber").GetInt32() == versionNumber);
-            string status = version.GetProperty("status").GetString()!;
+            var bot = client.GetFromJsonAsync<BotDetailResponse>($"/api/bots/{botId}")
+                .GetAwaiter().GetResult();
+            var version = bot!.Versions.Single(v => v.VersionNumber == versionNumber);
+            string status = version.Status;
             if (status == "Failed")
             {
                 Console.Error.WriteLine("Server build FAILED. Build log:");
-                Console.Error.WriteLine(version.GetProperty("buildLog").GetString());
+                Console.Error.WriteLine(version.BuildLog);
                 return 1;
             }
             if (status == "Built")
             {
-                string serverHash = version.GetProperty("artifactHash").GetString()!;
+                string serverHash = version.ArtifactHash!;
                 Console.WriteLine($"Server artifact:  {serverHash}");
                 // Builds are reproducible across build directories since
                 // BuildPipelineVersion 2 (DECISIONS #81), so a mismatch is no longer the
@@ -531,11 +534,11 @@ public static class ServerCommands
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(credentials.Server), Timeout = TimeSpan.FromSeconds(10) };
-            var meta = http.GetFromJsonAsync<JsonElement>("/api/meta").GetAwaiter().GetResult();
-            string? Read(string name) => meta.TryGetProperty(name, out var value) ? value.GetString() : null;
-            var toolchain = new ServerToolchain(Read("sdkVersion"), Read("buildPipelineVersion"), Read("cliVersion"));
+            var meta = http.GetFromJsonAsync<MetaResponse>("/api/meta").GetAwaiter().GetResult();
+            var toolchain = new ServerToolchain(
+                meta?.SdkVersion, meta?.BuildPipelineVersion, meta?.CliVersion);
             Console.WriteLine($"{"Server compatibility:",-24}" + (toolchain.MatchesThisCli
-                ? $"OK  server SDK {toolchain.SdkVersion}, rules {Read("gameRulesVersion")}"
+                ? $"OK  server SDK {toolchain.SdkVersion}, rules {meta?.GameRulesVersion}"
                 : $"SKEW — {toolchain.Describe()}. `submit` will refuse; " +
                   "upgrade with: dotnet tool update -g Nilbots"));
         }
@@ -556,11 +559,12 @@ public static class ServerCommands
             StoredCredentials.Load()?.Server ?? DefaultServer).TrimEnd('/');
         string query = options.TryGetValue("rules", out string? rules) ? $"?rules={Uri.EscapeDataString(rules)}" : "";
         using var http = new HttpClient { BaseAddress = new Uri(server) };
-        var board = http.GetFromJsonAsync<JsonElement>($"/api/leaderboard{query}").GetAwaiter().GetResult();
+        var board = http.GetFromJsonAsync<LeaderboardResponse>($"/api/leaderboard{query}")
+            .GetAwaiter().GetResult();
 
-        string version = board.GetProperty("rulesVersion").GetString() ?? "?";
-        string? active = board.TryGetProperty("activeRulesVersion", out var a) ? a.GetString() : null;
-        var entries = board.GetProperty("entries").EnumerateArray().ToList();
+        string version = board?.RulesVersion ?? "?";
+        string? active = board?.ActiveRulesVersion;
+        var entries = board?.Entries ?? [];
         // A closed ladder still shows its standings; saying so beats letting someone
         // wonder why `rank --rules 0.4` was refused.
         Console.WriteLine($"Ladder for rules {version} ({server})" +
@@ -573,11 +577,10 @@ public static class ServerCommands
         Console.WriteLine($"  {"#",-4}{"bot",-22}{"owner",-18}{"elo",6}  sets");
         int rank = 0;
         foreach (var entry in entries)
-            Console.WriteLine($"  {++rank,-4}{entry.GetProperty("name").GetString(),-22}" +
-                $"{entry.GetProperty("owner").GetString(),-18}" +
-                $"{entry.GetProperty("rating").GetDouble(),6:0}  {entry.GetProperty("rankedSets").GetInt32()}");
-        var ladders = board.GetProperty("ladders").EnumerateArray()
-            .Select(l => l.GetString()).Where(l => l != version).ToList();
+            Console.WriteLine($"  {++rank,-4}{entry.Name,-22}" +
+                $"{entry.Owner,-18}" +
+                $"{entry.Rating,6:0}  {entry.RankedSets}");
+        var ladders = (board?.Ladders ?? []).Where(l => l != version).ToList();
         if (ladders.Count > 0)
             Console.WriteLine($"  other ladders: {string.Join(", ", ladders)}  (see them with --rules <version>)");
         return 0;
@@ -595,11 +598,11 @@ public static class ServerCommands
             return NotSignedIn();
         string server = StoredCredentials.Load()!.Server;
 
-        var bots = client.GetFromJsonAsync<JsonElement>("/api/bots").GetAwaiter().GetResult()
-            .EnumerateArray().ToList();
+        var bots = client.GetFromJsonAsync<IReadOnlyList<BotSummaryResponse>>("/api/bots")
+            .GetAwaiter().GetResult() ?? [];
         string? Find(string name) => bots
-            .Where(b => string.Equals(b.GetProperty("name").GetString(), name, StringComparison.OrdinalIgnoreCase))
-            .Select(b => b.GetProperty("id").GetString())
+            .Where(b => string.Equals(b.Name, name, StringComparison.OrdinalIgnoreCase))
+            .Select(b => b.Id.ToString())
             .FirstOrDefault();
 
         if (positional.Count != 1)
@@ -607,7 +610,7 @@ public static class ServerCommands
             Console.Error.WriteLine("Usage: nilbots rank <your-bot> [--rules <name>]");
             Console.Error.WriteLine("  The server matchmakes your opponent by rating — you do not pick.");
             Console.Error.WriteLine("  To choose who you fight, play an unranked match: nilbots spar <your-bot> <opponent>");
-            Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.GetProperty("name").GetString()))}");
+            Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.Name))}");
             return 1;
         }
         string? mine = Find(positional[0]);
@@ -629,8 +632,9 @@ public static class ServerCommands
                 $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
             return 1;
         }
-        var set = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
-        string setId = set.GetProperty("id").GetString()!;
+        var set = response.Content.ReadFromJsonAsync<CreatedMatchSetResponse>()
+            .GetAwaiter().GetResult();
+        string setId = set!.Id.ToString();
         Console.WriteLine($"Ranked set queued for {positional[0]} — opponent matchmade by rating.");
         Console.WriteLine($"  Watch: {server}/sets/{setId}");
         Console.WriteLine($"  Results are withheld until every game has broadcast — then: nilbots leaderboard");
@@ -651,18 +655,18 @@ public static class ServerCommands
             return NotSignedIn();
         string server = StoredCredentials.Load()!.Server;
 
-        var bots = client.GetFromJsonAsync<JsonElement>("/api/bots").GetAwaiter().GetResult()
-            .EnumerateArray().ToList();
+        var bots = client.GetFromJsonAsync<IReadOnlyList<BotSummaryResponse>>("/api/bots")
+            .GetAwaiter().GetResult() ?? [];
         string? Find(string name) => bots
-            .Where(b => string.Equals(b.GetProperty("name").GetString(), name, StringComparison.OrdinalIgnoreCase))
-            .Select(b => b.GetProperty("id").GetString())
+            .Where(b => string.Equals(b.Name, name, StringComparison.OrdinalIgnoreCase))
+            .Select(b => b.Id.ToString())
             .FirstOrDefault();
 
         if (positional.Count != 2)
         {
             Console.Error.WriteLine("Usage: nilbots spar <your-bot> <opponent> [--map <id>] [--seed <n>]");
             Console.Error.WriteLine("  One unranked match. Nothing it does touches the ladder.");
-            Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.GetProperty("name").GetString()))}");
+            Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.Name))}");
             return 1;
         }
         string? mine = Find(positional[0]), theirs = Find(positional[1]);
@@ -687,9 +691,10 @@ public static class ServerCommands
                 $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
             return 1;
         }
-        var match = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
+        var match = response.Content.ReadFromJsonAsync<CreatedMatchResponse>()
+            .GetAwaiter().GetResult();
         Console.WriteLine($"Unranked match queued: {positional[0]} vs {positional[1]} (no rating change)");
-        Console.WriteLine($"  Watch: {server}/matches/{match.GetProperty("id").GetString()}");
+        Console.WriteLine($"  Watch: {server}/matches/{match!.Id}");
         return 0;
     }
 
@@ -704,10 +709,9 @@ public static class ServerCommands
     {
         try
         {
-            var meta = client.GetFromJsonAsync<JsonElement>("/api/meta").GetAwaiter().GetResult();
-            string? Read(string name) =>
-                meta.TryGetProperty(name, out var value) ? value.GetString() : null;
-            return new ServerToolchain(Read("sdkVersion"), Read("buildPipelineVersion"), Read("cliVersion"));
+            var meta = client.GetFromJsonAsync<MetaResponse>("/api/meta").GetAwaiter().GetResult();
+            return new ServerToolchain(
+                meta?.SdkVersion, meta?.BuildPipelineVersion, meta?.CliVersion);
         }
         catch
         {
