@@ -76,7 +76,10 @@ bash "$deploy_root/bin/release" rollback "$deploy_root"
 
 worker_root="$test_root/worker"
 worker_log="$test_root/worker-activations"
-mkdir -p "$worker_root/shared"
+mkdir -p "$worker_root/shared/secrets"
+touch \
+  "$worker_root/shared/secrets/openiddict-signing.pfx" \
+  "$worker_root/shared/secrets/openiddict-encryption.pfx"
 printf '%s\n' \
   'POSTGRES_PASSWORD=test' \
   'BOTARENA_DB_HOST=10.0.0.10' \

@@ -179,8 +179,9 @@ if (mode.RunsWeb)
                 ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
             options.ForwardLimit = 1;
             options.RequireHeaderSymmetry = true;
-            // Safe only because the production web port is not published;
-            // Caddy is the sole route into the container network.
+            // Safe only while production Kestrel binds to loopback or an exact
+            // firewall-restricted private interface. Caddy is the sole public
+            // route to every web replica.
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
         });

@@ -1210,8 +1210,16 @@ before picking a number.*
     SDK. With CliVersion at 0.4.0 and the server on SDK 0.8.1 it would have
     passed while shipping exactly the breakage it was written to prevent. The
     `publish-cli` job now tags the published commit `cli-v<version>`, and the
-    deploy guard requires that tag to resolve to the revision being deployed —
-    NuGet says the version exists, the tag says which commit made it.
+    deploy guard originally required that tag to resolve to the exact revision
+    being deployed — NuGet says the version exists, the tag says which commit
+    made it. FOLLOW-UP: exact-commit coupling forced irreversible no-op NuGet
+    releases for auth, migrations, deployment, and site-only changes. The guard
+    now accepts a later server revision when its enumerated CLI compatibility
+    surface is byte-identical to the tagged release: CLI code, SDK/Guest,
+    engine/runtime, controlled compiler inputs, maps, packaged bots/templates,
+    player guide, and replay-viewer sources. Any change in that surface still
+    fails closed and requires a version bump plus `publish-cli`; server/auth and
+    site-only changes can use the existing compatible tool.
     `CliVersion` 0.4.0 -> 0.5.0 accordingly (SDK 0.8.1 + pipeline 3), pinned to
     the csproj `<Version>` by `PackagedCliVersionTests`.
     Rejected: a server-side rejection of skewed submissions. The server rebuilds
@@ -1598,6 +1606,23 @@ before picking a number.*
      low-cardinality job kind/outcome tags. One match lane remains the default;
      `BOTARENA_MATCH_WORKERS` may raise it only when measured throughput
      warrants more local concurrency.
+
+111. **The second VPS is a web-and-compile node; ingress and the only match
+     consumer remain on the primary.** The worker role activates `web` and
+     `compile` Compose profiles and refuses stateful, ingress, and match
+     services. Kestrel publishes only on the worker's exact provider-private
+     address. Primary Caddy balances its local web process and private remote
+     web endpoints with active readiness checks and cookie affinity, which
+     preserves SignalR connection affinity without introducing Redis.
+     PostgreSQL-backed Data Protection, shared OpenIddict certificates, shared
+     object storage, durable compiler admission, and PostgreSQL `NOTIFY`
+     delivery make the web role safe to repeat. The second process adds
+     application capacity and process-level resilience, not primary-host high
+     availability: Caddy, PostgreSQL, and Garage remain primary-owned. Older
+     worker deployments' match container is explicitly retired. Ranked
+     finalization is concurrency-safe under #110, but one match container with
+     one lane remains the production default until measured throughput
+     justifies increasing `BOTARENA_MATCH_WORKERS` or adding another consumer.
 
 ## Deferred decisions
 

@@ -132,11 +132,13 @@ services:
     restart: "no"
 
   web:
-    profiles: ["edge"]
+    profiles: ["web"]
     platform: linux/amd64
     image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
     restart: unless-stopped
+    ports:
+      - "${BOTARENA_WEB_BIND_ADDRESS:-127.0.0.1}:${BOTARENA_WEB_PORT:-8080}:8080"
     environment:
       <<: *application-environment
       BOTARENA_ROLE: "web"
@@ -269,11 +271,12 @@ services:
     stop_grace_period: 6m
 
   caddy:
-    profiles: ["edge"]
+    profiles: ["ingress"]
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
-      BOTARENA_DOMAIN: "${BOTARENA_DOMAIN}"
+      BOTARENA_DOMAIN: "${BOTARENA_DOMAIN:-nilbots.invalid}"
+      BOTARENA_WEB_UPSTREAMS: "${BOTARENA_WEB_UPSTREAMS:-web:8080}"
     ports:
       - "80:80"
       - "443:443"

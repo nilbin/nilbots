@@ -95,7 +95,8 @@ fi
 compose+=(
   -f "$deploy_dir/compose.production.yml"
   --profile stateful
-  --profile edge
+  --profile web
+  --profile ingress
   --profile match
   --profile compile
 )

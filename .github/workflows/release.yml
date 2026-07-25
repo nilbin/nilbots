@@ -212,9 +212,9 @@ jobs:
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json
 
-      # The record that ties a published tool to the commit that produced it. The
-      # deploy guard refuses unless this tag names the revision being deployed —
-      # "the version exists on NuGet" alone is satisfied by any older release.
+      # The record that ties a published tool to the commit that produced it.
+      # Deploy accepts this exact revision or a later server-only revision whose
+      # enumerated CLI compatibility inputs are byte-identical to this tag.
       - name: Tag the published CLI revision
         run: |
           version=$(sed -n 's/.*CliVersion = "\([^"]*\)".*/\1/p' \
