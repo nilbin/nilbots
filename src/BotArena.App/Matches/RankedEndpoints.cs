@@ -9,8 +9,12 @@ namespace BotArena.App.Matches;
 
 /// <summary>Rules is an optional GameRules.Resolve name ("0.5", "0.4", "hill"…) —
 /// omitted means the server's default ruleset. Every ruleset has its own elo ladder
-/// (DECISIONS #54), so challenging on an old ruleset never touches current standings.</summary>
-public sealed record RankedChallengeRequest(Guid BotId, Guid OpponentBotId, string? Rules = null);
+/// (DECISIONS #54), so challenging on an old ruleset never touches current standings.
+///
+/// OpponentBotId is NOT how ranked play works (DECISIONS #95): the server matchmakes by
+/// rating. It survives only for evaluation harnesses running scripted pairings, and only
+/// on servers that opt in — production refuses it.</summary>
+public sealed record RankedChallengeRequest(Guid BotId, Guid? OpponentBotId = null, string? Rules = null);
 
 public static class RankedEndpoints
 {
@@ -25,23 +29,20 @@ public static class RankedEndpoints
     public static void MapRanked(this IEndpointRouteBuilder routes)
     {
         routes.MapPost("/api/matches/ranked",
-            async (RankedChallengeRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+            async (RankedChallengeRequest request, ClaimsPrincipal principal, AppDbContext db,
+                   ApplicationMode mode, IConfiguration configuration) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
-            if (request.BotId == request.OpponentBotId)
-                return Results.Problem("A bot cannot play a ranked set against itself.", statusCode: 400);
             var botA = await db.Bots.SingleOrDefaultAsync(b => b.Id == request.BotId);
-            var botB = await db.Bots.SingleOrDefaultAsync(b => b.Id == request.OpponentBotId);
-            if (botA is null || botB is null)
+            if (botA is null)
                 return Results.Problem("Bot not found.", statusCode: 404);
             if (botA.OwnerUserId != userId)
                 return Results.Problem("You can only start ranked sets with your own bot.", statusCode: 403);
 
             var versionA = await ActiveVersion(db, botA.Id);
-            var versionB = await ActiveVersion(db, botB.Id);
-            if (versionA is null || versionB is null)
-                return Results.Problem("Both bots need a successfully built active version.", statusCode: 409);
+            if (versionA is null)
+                return Results.Problem("Your bot needs a successfully built active version.", statusCode: 409);
 
             Engine.GameRules setRules;
             try
@@ -54,6 +55,34 @@ public static class RankedEndpoints
             {
                 return Results.Problem(ex.Message, statusCode: 400);
             }
+
+            Bot? botB;
+            if (request.OpponentBotId is Guid pinned)
+            {
+                if (!AllowsPinnedOpponents(mode, configuration))
+                    return Results.Problem(
+                        "Ranked opponents are matchmade by rating; omit opponentBotId. " +
+                        "To choose who you play, use an unranked match (POST /api/matches/challenge).",
+                        statusCode: 400);
+                if (pinned == request.BotId)
+                    return Results.Problem("A bot cannot play a ranked set against itself.", statusCode: 400);
+                botB = await db.Bots.SingleOrDefaultAsync(b => b.Id == pinned);
+                if (botB is null)
+                    return Results.Problem("Bot not found.", statusCode: 404);
+            }
+            else
+            {
+                var opponentId = await MatchmakeAsync(db, botA, userId, setRules.RulesVersion);
+                if (opponentId is null)
+                    return Results.Problem(
+                        "No opponent is available on this ladder yet — every ranked set needs " +
+                        "another bot with a successfully built version.", statusCode: 409);
+                botB = await db.Bots.SingleAsync(b => b.Id == opponentId);
+            }
+
+            var versionB = await ActiveVersion(db, botB.Id);
+            if (versionB is null)
+                return Results.Problem("Both bots need a successfully built active version.", statusCode: 409);
 
             var set = new MatchSet
             {
@@ -185,11 +214,37 @@ public static class RankedEndpoints
         });
     }
 
+    /// <summary>Scripted pairings are an evaluation-harness need (agent-arena runs a
+    /// round robin and crowns champions), not a player-facing one. Local `all` servers
+    /// allow them by default so the harness keeps working; every other role refuses.
+    /// Explicit configuration wins either way — which is also the only way to exercise
+    /// the refusal on a machine running the single-process role.</summary>
+    private static bool AllowsPinnedOpponents(ApplicationMode mode, IConfiguration configuration) =>
+        configuration.GetValue<bool?>("BOTARENA_ALLOW_PINNED_RANKED") ?? mode.IsAll;
+
+    /// <summary>Everyone with a playable bot, reduced to what the selection rule needs,
+    /// then handed to <see cref="RankedMatchmaking"/>.</summary>
+    private static async Task<Guid?> MatchmakeAsync(
+        AppDbContext db, Bot challenger, Guid userId, string rulesVersion)
+    {
+        var candidates = await db.Bots
+            .Where(b => b.Id != challenger.Id)
+            .Where(b => b.Versions.Any(v => v.IsActive && v.Status == BuildStatus.Built))
+            .Select(b => new MatchmakingCandidate(
+                b.Id,
+                b.Ratings.Where(r => r.RulesVersion == rulesVersion)
+                    .Select(r => (double?)r.Rating).FirstOrDefault() ?? BotRating.DefaultRating,
+                b.OwnerUserId == userId))
+            .ToListAsync();
+        double mine = await LadderRating(db, challenger.Id, rulesVersion);
+        return RankedMatchmaking.Choose(candidates, mine, Random.Shared.Next);
+    }
+
     private static async Task<double> LadderRating(AppDbContext db, Guid botId, string rulesVersion) =>
         await db.BotRatings
             .Where(r => r.BotId == botId && r.RulesVersion == rulesVersion)
             .Select(r => (double?)r.Rating)
-            .SingleOrDefaultAsync() ?? 1200;
+            .SingleOrDefaultAsync() ?? BotRating.DefaultRating;
 
     private static MatchParticipant Snapshot(Guid matchId, int slot, Bot bot, BotVersion version) => new()
     {

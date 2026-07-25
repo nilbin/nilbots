@@ -579,7 +579,65 @@ public static class ServerCommands
     /// <summary>Queue a ranked set against another bot on the ladder, by name.</summary>
     public static int Rank(IReadOnlyList<string> args)
     {
-        var positional = args.Where(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
+        // TakeWhile, not Where: `--map bastion-01` puts a bare value in the list, and a
+        // Where filter counted that option's value as a bot name.
+        var positional = args.TakeWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
+        var options = CliSupport.ParseOptions(args.SkipWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList());
+        using var client = CreateClient();
+        if (client is null)
+            return NotSignedIn();
+        string server = StoredCredentials.Load()!.Server;
+
+        var bots = client.GetFromJsonAsync<JsonElement>("/api/bots").GetAwaiter().GetResult()
+            .EnumerateArray().ToList();
+        string? Find(string name) => bots
+            .Where(b => string.Equals(b.GetProperty("name").GetString(), name, StringComparison.OrdinalIgnoreCase))
+            .Select(b => b.GetProperty("id").GetString())
+            .FirstOrDefault();
+
+        if (positional.Count != 1)
+        {
+            Console.Error.WriteLine("Usage: nilbots rank <your-bot> [--rules <name>]");
+            Console.Error.WriteLine("  The server matchmakes your opponent by rating — you do not pick.");
+            Console.Error.WriteLine("  To choose who you fight, play an unranked match: nilbots spar <your-bot> <opponent>");
+            Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.GetProperty("name").GetString()))}");
+            return 1;
+        }
+        string? mine = Find(positional[0]);
+        if (mine is null)
+        {
+            Console.Error.WriteLine($"error: no bot named '{positional[0]}' on {server}.");
+            Console.Error.WriteLine("Run `nilbots leaderboard` to see who is playing.");
+            return 1;
+        }
+
+        object body = options.TryGetValue("rules", out string? rules)
+            ? new { botId = mine, rules }
+            : (object)new { botId = mine };
+        var response = client.PostAsJsonAsync("/api/matches/ranked", body).GetAwaiter().GetResult();
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine(
+                $"error: ranked challenge refused ({(int)response.StatusCode}): " +
+                $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
+            return 1;
+        }
+        var set = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
+        string setId = set.GetProperty("id").GetString()!;
+        Console.WriteLine($"Ranked set queued for {positional[0]} — opponent matchmade by rating.");
+        Console.WriteLine($"  Watch: {server}/sets/{setId}");
+        Console.WriteLine($"  Results are withheld until every game has broadcast — then: nilbots leaderboard");
+        return 0;
+    }
+
+    /// <summary>Unranked practice against a bot you name. Ranked play matchmakes
+    /// (DECISIONS #95), so this is the only way to say "I want to fight THAT bot" — and
+    /// it was previously reachable only from the website, which agents cannot use.</summary>
+    public static int Spar(IReadOnlyList<string> args)
+    {
+        // TakeWhile, not Where: `--map bastion-01` puts a bare value in the list, and a
+        // Where filter counted that option's value as a bot name.
+        var positional = args.TakeWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
         var options = CliSupport.ParseOptions(args.SkipWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList());
         using var client = CreateClient();
         if (client is null)
@@ -595,7 +653,8 @@ public static class ServerCommands
 
         if (positional.Count != 2)
         {
-            Console.Error.WriteLine("Usage: nilbots rank <your-bot> <opponent>   (names as shown by `nilbots leaderboard`)");
+            Console.Error.WriteLine("Usage: nilbots spar <your-bot> <opponent> [--map <id>] [--seed <n>]");
+            Console.Error.WriteLine("  One unranked match. Nothing it does touches the ladder.");
             Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.GetProperty("name").GetString()))}");
             return 1;
         }
@@ -607,22 +666,23 @@ public static class ServerCommands
             return 1;
         }
 
-        object body = options.TryGetValue("rules", out string? rules)
-            ? new { botId = mine, opponentBotId = theirs, rules }
-            : (object)new { botId = mine, opponentBotId = theirs };
-        var response = client.PostAsJsonAsync("/api/matches/ranked", body).GetAwaiter().GetResult();
+        var body = new Dictionary<string, object> { ["botId"] = mine, ["opponentBotId"] = theirs };
+        if (options.TryGetValue("map", out string? mapId))
+            body["mapId"] = mapId;
+        if (options.TryGetValue("seed", out string? seedText) && long.TryParse(seedText, out long seed))
+            body["seed"] = seed;
+
+        var response = client.PostAsJsonAsync("/api/matches/challenge", body).GetAwaiter().GetResult();
         if (!response.IsSuccessStatusCode)
         {
             Console.Error.WriteLine(
-                $"error: ranked challenge refused ({(int)response.StatusCode}): " +
+                $"error: match refused ({(int)response.StatusCode}): " +
                 $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
             return 1;
         }
-        var set = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
-        string setId = set.GetProperty("id").GetString()!;
-        Console.WriteLine($"Ranked set queued: {positional[0]} vs {positional[1]}");
-        Console.WriteLine($"  Watch: {server}/sets/{setId}");
-        Console.WriteLine($"  Results are withheld until every game has broadcast — then: nilbots leaderboard");
+        var match = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
+        Console.WriteLine($"Unranked match queued: {positional[0]} vs {positional[1]} (no rating change)");
+        Console.WriteLine($"  Watch: {server}/matches/{match.GetProperty("id").GetString()}");
         return 0;
     }
 

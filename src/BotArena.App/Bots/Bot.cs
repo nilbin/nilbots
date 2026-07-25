@@ -26,7 +26,10 @@ public class BotRating
     /// "0.4-exp-hill3"…) — experiments get their own ladders instead of polluting
     /// official elo.</summary>
     public required string RulesVersion { get; set; }
-    public double Rating { get; set; } = 1200;
+    /// <summary>Where an unrated bot enters a ladder. Named because matchmaking has to
+    /// assume it for bots that have never played (DECISIONS #95).</summary>
+    public const double DefaultRating = 1200;
+    public double Rating { get; set; } = DefaultRating;
     public int RankedSets { get; set; }
 }
 

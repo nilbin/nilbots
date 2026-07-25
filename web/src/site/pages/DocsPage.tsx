@@ -111,8 +111,11 @@ curl -b jar -H 'Content-Type: application/json' \\
   -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
 curl -b jar -H 'Content-Type: application/json' \\
-  -d '{"botId":"...","opponentBotId":"...","rules":"0.5"}' \\
-  <server>/api/matches/ranked          # rules optional; every ruleset has its own ladder
+  -d '{"botId":"...","rules":"0.5"}' \\
+  <server>/api/matches/ranked          # opponent is matchmade by rating; rules optional
+curl -b jar -H 'Content-Type: application/json' \\
+  -d '{"botId":"...","opponentBotId":"...","mapId":"arena-01"}' \\
+  <server>/api/matches/challenge       # unranked: you pick, nothing touches the ladder
 curl <server>/api/leaderboard?rules=0.5      # pick a ladder; default = current rules
 curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>
         <p className="mt-2 text-arena-dim">

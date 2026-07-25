@@ -82,7 +82,15 @@ Add `BOTARENA_RULES=<arm>` to the app env in step 1 (the worker log line
 confirms the ruleset) and tell agents to set `"rules": "<arm>"` in their
 project's botarena.json — every play/set they run then defaults to the
 experiment arm (an explicit `--rules` still wins; gen-3 lost practice games
-to silently dropped flags). Since DECISIONS #54 a ranked request can also
+to silently dropped flags).
+
+Ranked play matchmakes opponents by rating for players (DECISIONS #95), but a
+tournament needs scripted pairings, so `opponentBotId` still works on a local
+`all` server — the role the arena runs on. If you ever point the harness at a
+non-local server, set `BOTARENA_ALLOW_PINNED_RANKED=true` there or every set
+comes back 400.
+
+Since DECISIONS #54 a ranked request can also
 pin rules per set (`{"rules":"<arm>"}` on POST /api/matches/ranked) and
 each ruleset rates on its own ladder — experiment tournaments no longer
 pollute official elo either way; the env knob just keeps a whole run on

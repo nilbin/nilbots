@@ -319,9 +319,9 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
     setError(null);
     try {
       if (ranked) {
+        // No opponent: the server matchmakes by rating (DECISIONS #95).
         const set = await api.post<{ id: string }>('/api/matches/ranked', {
           botId: challenger,
-          opponentBotId: opponent,
         });
         navigate(`/sets/${set.id}`);
       } else {
@@ -340,11 +340,12 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
   return (
     <section className="flex flex-wrap items-end gap-3 rounded-xl border border-arena-edge bg-arena-panel p-5">
       <div className="flex flex-col gap-1 text-xs text-arena-dim">
-        {isMine ? 'Opponent' : 'Challenge with'}
+        {isMine ? (ranked ? 'Opponent (matchmade)' : 'Opponent') : 'Challenge with'}
         <select
           value={isMine ? opponentId : challengerId}
+          disabled={isMine && ranked}
           onChange={(e) => (isMine ? setOpponentId(e.target.value) : setChallengerId(e.target.value))}
-          className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text"
+          className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text disabled:opacity-40"
         >
           <option value="">Choose a bot…</option>
           {selectable.map((b) => (
@@ -368,18 +369,20 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
           ))}
         </select>
       </div>
-      <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-arena-dim select-none">
-        <input
-          type="checkbox"
-          checked={ranked}
-          onChange={(e) => setRanked(e.target.checked)}
-          className="accent-(--color-arena-accent)"
-        />
-        Ranked set (6 games, mirrored starts, moves elo)
-      </label>
+      {isMine && (
+        <label className="flex cursor-pointer items-center gap-2 pb-2 text-xs text-arena-dim select-none">
+          <input
+            type="checkbox"
+            checked={ranked}
+            onChange={(e) => setRanked(e.target.checked)}
+            className="accent-(--color-arena-accent)"
+          />
+          Ranked set (6 games, mirrored starts, moves elo — opponent matchmade)
+        </label>
+      )}
       <button
         onClick={() => void fight()}
-        disabled={!challenger || !opponent}
+        disabled={!challenger || (!ranked && !opponent)}
         className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
       >
         {ranked ? 'FIGHT FOR RATING' : 'FIGHT'}

@@ -33,6 +33,7 @@ try
         ["whoami"] => ServerCommands.WhoAmI(),
         ["submit", .. var rest] => ServerCommands.Submit(rest),
         ["rank", .. var rest] => ServerCommands.Rank(rest),
+        ["spar", .. var rest] => ServerCommands.Spar(rest),
         ["leaderboard", .. var rest] => ServerCommands.Leaderboard(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
@@ -95,7 +96,10 @@ static int Help(int exitCode = 1)
                         [--email <a@b.c> --password <pw>]   ...or headless
           nilbots submit [dir]                    build locally + submit for the canonical
                                                   server build; reports artifact parity
-          nilbots rank <your-bot> <opponent>      play a RANKED set on the ladder
+          nilbots rank <your-bot>                 play a RANKED set; the server
+                                                  matchmakes your opponent by rating
+          nilbots spar <your-bot> <opponent>      one UNRANKED match against a bot you
+                                                  name; never touches the ladder
           nilbots leaderboard [--rules <version>] the ladder (no account needed to look)
           nilbots whoami | nilbots logout
           nilbots build [dir] [--no-cache]        compile a bot project to WASM (cached;
@@ -226,15 +230,29 @@ static int CommandHelp(string command)
             to complete the same grant without opening anything.
             """,
         "rank" => """
-            Usage: nilbots rank <your-bot> <opponent> [--rules <name>]
+            Usage: nilbots rank <your-bot> [--rules <name>]
 
-            Queues a RANKED set (6 mirrored games) against another bot on the ladder,
-            by name — see `nilbots leaderboard` for who is playing. This is the real
-            thing: it moves elo. `nilbots set` by contrast is a LOCAL simulation that
-            changes nothing on the server.
+            Queues a RANKED set (6 mirrored games) and moves elo. You do NOT pick the
+            opponent: the server matchmakes one of the bots nearest your rating, because
+            a ladder where you choose your fights measures who you avoided rather than
+            how good your bot is.
+
+            To fight a specific bot, play unranked: `nilbots spar <your-bot> <opponent>`.
+            `nilbots set` is different again — a LOCAL simulation that changes nothing on
+            the server.
 
             Results are withheld until every game has broadcast, so nothing spoils the
             watch; then `nilbots leaderboard` shows the new standings.
+            """,
+        "spar" => """
+            Usage: nilbots spar <your-bot> <opponent> [--map <id>] [--seed <n>]
+
+            One UNRANKED match against a bot you name — yours or anyone's. No elo, no
+            ladder, no consequences: this is where you test a matchup as often as you
+            like. Both bots need a successfully built active version on the server.
+
+            Omit --map and --seed and the server picks; pass them to reproduce a
+            specific fight.
             """,
         "leaderboard" => """
             Usage: nilbots leaderboard [--rules <version>] [--server <url>]

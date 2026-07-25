@@ -1251,6 +1251,40 @@ before picking a number.*
     practice that must not touch the ladder at all — a single match, caller-chosen
     map and seed, no `MatchSetId`, so `TryFinalizeSet` never runs on it.
 
+95. **Ranked opponents are matchmade by rating; you cannot pick your fights.** Owner
+    call after #94 established that the one lever an author has over their rating is
+    opponent choice. A ladder where you choose who you play measures who you avoided,
+    not how good your bot is — so ranked stops accepting an opponent at all.
+    `POST /api/matches/ranked` now takes `{BotId, Rules?}`, and the server draws
+    uniformly from the five bots nearest the challenger's rating on that ladder.
+    Five rather than one: the single nearest would be deterministic, the same two
+    bots would play forever, and a rating would say more about who happened to sit
+    adjacent than about strength. Bots owned by the challenger are excluded whenever
+    anyone else is available — legitimate practice, but the shape of every farming
+    scheme — and are the fallback only on a ladder where nobody else has a built bot.
+    Unrated bots enter at `BotRating.DefaultRating` so a first set is still sensible.
+    Selection is a pure function (`RankedMatchmaking.Choose`) so the rule is testable
+    without a database, bots or a match.
+    Choosing your opponent remains available where it belongs: unranked matches
+    (`POST /api/matches/challenge`), which were previously reachable only from the
+    website. `nilbots spar <mine> <theirs> [--map] [--seed]` puts them in the CLI, so
+    an agent can practise a matchup, and `nilbots rank <mine>` no longer takes an
+    opponent argument. Both surfaced a positional-parsing bug shared with the old
+    `rank`: option VALUES were counted as bot names, so `--rules 0.4` had always
+    turned into a usage error. `TakeWhile` instead of `Where` fixes it.
+    Scripted pairings survive for the evaluation harness, which runs a round robin
+    and crowns champions on real ladders. `opponentBotId` is honoured when
+    `BOTARENA_ALLOW_PINNED_RANKED` says so, defaulting to true only for the local-only
+    `all` role — the role agent-arena runs on. Production refuses it with a message
+    pointing at unranked play. Explicit configuration wins over the default in both
+    directions, which is also the only way to exercise the refusal on a single-process
+    machine.
+    Verified against a live server: three `nilbots rank MmBot` runs drew Rampart and
+    coward (an unrated bot sits at 1200, and those are the neighbours), a pinned
+    opponent under `BOTARENA_ALLOW_PINNED_RANKED=false` returned 400 with the
+    redirect to unranked, and `spar` queued matches with and without an explicit
+    map and seed.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
