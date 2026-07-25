@@ -42,7 +42,7 @@ The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 | --- | --- |
 | `replayVersion` | Format version (this document: 1) |
 | `engineVersion`, `gameRulesVersion`, `runtimeProtocolVersion`, `runtimeConfigurationVersion` | The version axes that pin gameplay |
-| `mapId`, `mapVersion`, `themeId`, `mapWidth`, `mapHeight` | Which arena and its map-owned presentation theme (`themeId` is omitted only for legacy/synthetic maps) |
+| `mapId`, `mapVersion`, `themeId`, `presentation`, `mapWidth`, `mapHeight` | Which arena, its map-owned theme, and wall-family placement (`themeId` / `presentation` are omitted only for legacy/synthetic maps) |
 | `mapTiles` | Array of row strings, `#` = wall, `.` = floor — the viewer is self-contained |
 | `seed` | Match seed (unsigned 64-bit) |
 | `maxTicks`, `visionRange` | Rule values the viewer needs |

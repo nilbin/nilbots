@@ -12,6 +12,13 @@ public class MapTests
           "width": 12,
           "height": 8,
           "theme": "control-room",
+          "presentation": {
+            "boundaryWall": "perimeter",
+            "interiorWall": "cover",
+            "wallGroups": [
+              { "family": "damaged-cover", "tiles": [[3,2]] }
+            ]
+          },
           "tiles": [
             "############",
             "#..........#",
@@ -34,9 +41,42 @@ public class MapTests
         Assert.Equal(12, map.Width);
         Assert.Equal(8, map.Height);
         Assert.Equal("control-room", map.ThemeId);
+        Assert.Equal("perimeter", map.Presentation!.BoundaryWall);
+        Assert.Equal("cover", map.Presentation.InteriorWall);
+        Assert.Equal(new Position(3, 2), Assert.Single(map.Presentation.WallGroups).Tiles[0]);
         Assert.True(map.IsWall(3, 2));
         Assert.False(map.IsWall(1, 1));
         Assert.Equal(2, map.Spawns.Count);
+    }
+
+    [Fact]
+    public void PresentationAssignedToFloor_Throws()
+    {
+        const string json = """
+        {
+          "formatVersion": 1,
+          "id": "bad-presentation",
+          "width": 5,
+          "height": 3,
+          "theme": "control-room",
+          "presentation": {
+            "boundaryWall": "perimeter",
+            "interiorWall": "cover",
+            "wallGroups": [
+              { "family": "damaged-cover", "tiles": [[2,1]] }
+            ]
+          },
+          "tiles": ["#####", "#...#", "#####"],
+          "spawns": [
+            { "x": 1, "y": 1, "facing": "East" },
+            { "x": 3, "y": 1, "facing": "West" }
+          ]
+        }
+        """;
+
+        var ex = Assert.Throws<MapValidationException>(() => ArenaMap.FromJson(json));
+
+        Assert.Contains(ex.Errors, error => error.Contains("is not a wall"));
     }
 
     [Fact]
@@ -169,6 +209,41 @@ public class MapTests
                 }
             Assert.True(approaches.Count >= 2, $"{id}: zone needs at least two approach directions.");
             Assert.True(surroundingFloor.Count >= 4, $"{id}: zone needs room to attack and circle.");
+        }
+    }
+
+    [Fact]
+    public void ShippedMapWallFamilies_ExistInOwningTheme()
+    {
+        string root = FindRepoRoot();
+        foreach (string mapFile in Directory.GetFiles(Path.Combine(root, "maps"), "*.json"))
+        {
+            var map = ArenaMap.FromJson(File.ReadAllText(mapFile));
+            Assert.NotNull(map.ThemeId);
+            Assert.NotNull(map.Presentation);
+            string themeFile = Path.Combine(
+                root,
+                "web",
+                "src",
+                "assets",
+                "themes",
+                map.ThemeId!,
+                "theme.json");
+            Assert.True(File.Exists(themeFile), $"{map.Id}: missing theme '{map.ThemeId}'.");
+            using var theme = System.Text.Json.JsonDocument.Parse(File.ReadAllText(themeFile));
+            var families = theme.RootElement
+                .GetProperty("walls")
+                .GetProperty("families");
+            var used = new[]
+                {
+                    map.Presentation!.BoundaryWall,
+                    map.Presentation.InteriorWall,
+                }
+                .Concat(map.Presentation.WallGroups.Select(group => group.Family));
+            foreach (string family in used)
+                Assert.True(
+                    families.TryGetProperty(family, out _),
+                    $"{map.Id}: theme '{map.ThemeId}' has no wall family '{family}'.");
         }
     }
 

@@ -28,6 +28,8 @@ public sealed record ReplayHeader
     /// <summary>Map-owned visual theme. Null only for legacy/synthetic maps; viewers
     /// fall back to the default theme without changing simulation semantics.</summary>
     public string? ThemeId { get; init; }
+    /// <summary>Map-owned wall-family assignments. Null only for legacy/synthetic maps.</summary>
+    public MapPresentation? Presentation { get; init; }
     public required int MapWidth { get; init; }
     public required int MapHeight { get; init; }
     /// <summary>Included so the viewer is self-contained; small for MVP-sized maps.</summary>

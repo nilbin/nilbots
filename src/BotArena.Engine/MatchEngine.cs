@@ -203,6 +203,7 @@ public sealed class MatchEngine
             MapId = map.Id,
             MapVersion = map.Version,
             ThemeId = map.ThemeId,
+            Presentation = map.Presentation,
             MapWidth = map.Width,
             MapHeight = map.Height,
             MapTiles = map.TileRows,

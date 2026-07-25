@@ -2,16 +2,32 @@
   "id": "control-room",
   "label": "Control Room",
   "textures": {
-    "floor": "floor-metal.png",
-    "wall": "wall-bulkhead-v2.png",
-    "wallTrim": "wall-trim-kit.png",
-    "wallShadow": "wall-shadow-kit.png"
+    "floor": "floor-metal.png"
   },
-  "wall": {
-    "sourceInner": 0.27,
-    "sourceCorner": 0.3,
-    "inset": 0.13,
-    "outset": 0.07
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 96,
+      "gutterPixels": 16
+    },
+    "families": {
+      "perimeter": {
+        "label": "Fortified perimeter",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Equipment cover",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
   },
   "palette": {
     "canvas": "#05080d",

@@ -1,10 +1,15 @@
 {
   "formatVersion": 1,
   "id": "crossfire-01",
-  "version": 3,
+  "version": 4,
   "width": 16,
   "height": 12,
   "theme": "overgrown-lab",
+  "presentation": {
+    "boundaryWall": "perimeter",
+    "interiorWall": "cover",
+    "wallGroups": []
+  },
   "tiles": [
     "################",
     "#....#....#....#",

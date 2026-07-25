@@ -7,20 +7,31 @@ export interface BotLook {
   scale: number;
 }
 
+export interface WallFamily {
+  id: string;
+  label: string;
+  materialTexture: HTMLImageElement | null;
+  edgeAtlasTexture: HTMLImageElement | null;
+  shadowAtlasTexture: HTMLImageElement | null;
+}
+
 export interface ArenaTheme {
   id: string;
   label: string;
   floorTexture: HTMLImageElement | null;
-  wallTexture: HTMLImageElement | null;
-  wallTrimTexture: HTMLImageElement | null;
-  wallShadowTexture: HTMLImageElement | null;
   zoneTexture: HTMLImageElement | null;
   zoneTextureScale: number;
-  wall: {
-    sourceInner: number;
-    sourceCorner: number;
-    inset: number;
-    outset: number;
+  walls: {
+    defaults: {
+      boundary: string;
+      interior: string;
+    };
+    atlas: {
+      columns: number;
+      contentPixels: number;
+      gutterPixels: number;
+    };
+    families: ReadonlyMap<string, WallFamily>;
   };
   palette: {
     canvas: string;
@@ -37,15 +48,24 @@ interface ThemeManifest {
   label: string;
   textures: {
     floor: string;
-    wall: string;
-    wallTrim: string;
-    wallShadow: string;
     zone?: {
       file: string;
       scaleTiles: number;
     };
   };
-  wall: ArenaTheme['wall'];
+  walls: {
+    defaults: ArenaTheme['walls']['defaults'];
+    atlas: ArenaTheme['walls']['atlas'];
+    families: Record<
+      string,
+      {
+        label: string;
+        material: string;
+        edgeAtlas: string;
+        shadowAtlas: string;
+      }
+    >;
+  };
   palette: ArenaTheme['palette'];
 }
 
@@ -62,7 +82,7 @@ const themeManifests = import.meta.glob<ThemeManifest>(
   { eager: true, import: 'default' },
 );
 const themeImages = import.meta.glob<string>(
-  '../assets/themes/*/*.png',
+  ['../assets/themes/*/*.png', '../assets/themes/*/*.webp'],
   { eager: true, import: 'default', query: '?url' },
 );
 const lookManifests = import.meta.glob<BotLookManifest>(
@@ -124,21 +144,30 @@ function buildThemes(): Map<string, ArenaTheme> {
       `${directory}/${manifest.textures.floor}`,
       manifest.id,
     );
-    const wallUrl = requireAsset(
-      themeImages,
-      `${directory}/${manifest.textures.wall}`,
-      manifest.id,
-    );
-    const wallTrimUrl = requireAsset(
-      themeImages,
-      `${directory}/${manifest.textures.wallTrim}`,
-      manifest.id,
-    );
-    const wallShadowUrl = requireAsset(
-      themeImages,
-      `${directory}/${manifest.textures.wallShadow}`,
-      manifest.id,
-    );
+    const wallFamilies = new Map<string, WallFamily>();
+    for (const [familyId, family] of Object.entries(manifest.walls.families)) {
+      wallFamilies.set(familyId, {
+        id: familyId,
+        label: family.label,
+        materialTexture: loadImage(
+          requireAsset(themeImages, `${directory}/${family.material}`, manifest.id),
+        ),
+        edgeAtlasTexture: loadImage(
+          requireAsset(themeImages, `${directory}/${family.edgeAtlas}`, manifest.id),
+        ),
+        shadowAtlasTexture: loadImage(
+          requireAsset(themeImages, `${directory}/${family.shadowAtlas}`, manifest.id),
+        ),
+      });
+    }
+    for (const defaultFamily of [
+      manifest.walls.defaults.boundary,
+      manifest.walls.defaults.interior,
+    ])
+      if (!wallFamilies.has(defaultFamily))
+        throw new Error(
+          `Theme '${manifest.id}' references missing wall family '${defaultFamily}'.`,
+        );
     const zoneUrl = manifest.textures.zone
       ? requireAsset(
           themeImages,
@@ -152,15 +181,16 @@ function buildThemes(): Map<string, ArenaTheme> {
       id: manifest.id,
       label: manifest.label,
       floorTexture: loadImage(floorUrl),
-      wallTexture: loadImage(wallUrl),
-      wallTrimTexture: loadImage(wallTrimUrl),
-      wallShadowTexture: loadImage(wallShadowUrl),
       zoneTexture: zoneUrl ? loadImage(zoneUrl) : null,
       zoneTextureScale: Math.max(
         0.5,
         manifest.textures.zone?.scaleTiles ?? 4,
       ),
-      wall: manifest.wall,
+      walls: {
+        defaults: manifest.walls.defaults,
+        atlas: manifest.walls.atlas,
+        families: wallFamilies,
+      },
       palette: manifest.palette,
     });
   }

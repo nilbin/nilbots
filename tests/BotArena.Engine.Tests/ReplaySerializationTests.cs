@@ -38,7 +38,11 @@ public class ReplaySerializationTests
             "#########",
         ], [new Spawn(1, 2, Direction.East), new Spawn(7, 2, Direction.West)],
             zone: [new Position(1, 2), new Position(2, 2), new Position(3, 2), new Position(4, 2)],
-            themeId: "overgrown-lab");
+            themeId: "overgrown-lab",
+            presentation: new MapPresentation(
+                "perimeter",
+                "cover",
+                [new MapWallGroup("collapsed-cover", [new Position(0, 2)])]));
         var rules = GameRules.V0_1 with
         {
             RulesVersion = "test-replay-active",
@@ -82,6 +86,8 @@ public class ReplaySerializationTests
         var document = ReplaySerializer.FromJson(ReplaySerializer.ToJson(run.Replay));
 
         Assert.Equal("overgrown-lab", document.Header.ThemeId);
+        Assert.Equal("perimeter", document.Header.Presentation!.BoundaryWall);
+        Assert.Equal("collapsed-cover", Assert.Single(document.Header.Presentation.WallGroups).Family);
         Assert.Equal("needle", document.Header.Participants[0].LookId);
         Assert.Equal("orbiter", document.Header.Participants[1].LookId);
         Assert.Equal(10, document.Header.ControlPressureLimit);

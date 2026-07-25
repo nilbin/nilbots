@@ -885,10 +885,26 @@ configuration) and changing them is a version bump, not an edit.
     states/events. Base materials must be homogeneous and mask-safe; rivers,
     trenches, cable runs, and other map-scale visual features require explicit
     map presentation data rather than being baked into a reusable theme.
-    Wall boundaries use theme-owned nine-slice trim and baked-shadow donors
-    selected from ASCII adjacency; the renderer must not invent bevel, corner,
-    or shadow styling. Mutable viewer/account preferences must never rewrite
-    historical playback.
+    The first wall implementation used theme-owned trim and shadow donors
+    selected from ASCII adjacency; decision #79 supersedes that production
+    detail. Mutable viewer/account preferences must never rewrite historical
+    playback.
+
+79. **Arena walls use map-authored families and deterministic topology
+    atlases built from generated material sources.** One repeated wall donor
+    cannot make perimeter fortifications and interior cover read as different
+    structures. Maps now name `boundaryWall`, `interiorWall`, and optional
+    exact-cell family overrides in immutable presentation data, which the
+    engine snapshots into replays. A theme supplies art for those semantic
+    families. Image generation produces only opaque material sources;
+    `build-theme-art.py` makes them periodic, derives albedo/normal/height/
+    roughness/AO maps, and bakes matching 256-entry eight-neighbour edge and
+    shadow atlases. The viewer only chooses the recorded family, computes its
+    adjacency mask, and places the baked sprite. It does not synthesize
+    outlines, rounding, bevels, or shadows. This preserves ASCII collision,
+    permits handcrafted per-map art direction, keeps playback deterministic,
+    and leaves the material bundle ready for a later orthographic 2.5D DCC
+    bake without changing map semantics.
 
 ## Deferred decisions
 

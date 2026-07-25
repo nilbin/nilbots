@@ -5,6 +5,18 @@ namespace BotArena.Engine;
 
 public readonly record struct Spawn(int X, int Y, Direction Facing);
 
+/// <summary>A map-authored wall-family override. Presentation never affects collision.</summary>
+public sealed record MapWallGroup(string Family, IReadOnlyList<Position> Tiles);
+
+/// <summary>
+/// Immutable visual roles owned by the map. The theme supplies art for the named
+/// families; the map decides where those families are used.
+/// </summary>
+public sealed record MapPresentation(
+    string BoundaryWall,
+    string InteriorWall,
+    IReadOnlyList<MapWallGroup> WallGroups);
+
 public sealed class MapValidationException(IReadOnlyList<string> errors)
     : Exception("Invalid map: " + string.Join("; ", errors))
 {
@@ -21,6 +33,8 @@ public sealed class ArenaMap
     /// <summary>Presentation theme selected by the map package. It never affects
     /// collision or simulation and is copied into the replay for immutable playback.</summary>
     public string? ThemeId { get; }
+    /// <summary>Map-authored wall-family placement, copied into replays.</summary>
+    public MapPresentation? Presentation { get; }
     public IReadOnlyList<string> TileRows { get; }
     public IReadOnlyList<Spawn> Spawns { get; }
     /// <summary>Declared zone-control tiles (RULES-0.3-DESIGN §C); empty when the map
@@ -35,11 +49,13 @@ public sealed class ArenaMap
         string[] tileRows,
         Spawn[] spawns,
         Position[]? zone = null,
-        string? themeId = null)
+        string? themeId = null,
+        MapPresentation? presentation = null)
     {
         Id = id;
         Version = version;
         ThemeId = themeId;
+        Presentation = presentation;
         TileRows = tileRows;
         Spawns = spawns;
         Zone = zone ?? [];
@@ -63,9 +79,10 @@ public sealed class ArenaMap
         Spawn[] spawns,
         int version = 1,
         Position[]? zone = null,
-        string? themeId = null)
+        string? themeId = null,
+        MapPresentation? presentation = null)
     {
-        var map = new ArenaMap(id, version, tileRows, spawns, zone, themeId);
+        var map = new ArenaMap(id, version, tileRows, spawns, zone, themeId, presentation);
         map.Validate();
         return map;
     }
@@ -119,8 +136,36 @@ public sealed class ArenaMap
         if (errors.Count > 0)
             throw new MapValidationException(errors);
 
-        var zone = dto.Zone?.Select(pair => new Position(pair[0], pair[1])).ToArray();
-        var map = new ArenaMap(dto.Id!, dto.Version, dto.Tiles, spawns.ToArray(), zone, dto.Theme);
+        var zone = ReadPositions(dto.Zone, "zone", errors);
+        MapPresentation? presentation = null;
+        if (dto.Presentation is not null)
+        {
+            var boundary = dto.Presentation.BoundaryWall;
+            var interior = dto.Presentation.InteriorWall;
+            if (string.IsNullOrWhiteSpace(boundary) || !IsPresentationId(boundary))
+                errors.Add($"Invalid boundary wall family '{boundary}'.");
+            if (string.IsNullOrWhiteSpace(interior) || !IsPresentationId(interior))
+                errors.Add($"Invalid interior wall family '{interior}'.");
+            var groups = new List<MapWallGroup>();
+            foreach (var group in dto.Presentation.WallGroups ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(group.Family) || !IsPresentationId(group.Family))
+                {
+                    errors.Add($"Invalid wall group family '{group.Family}'.");
+                    continue;
+                }
+                groups.Add(new MapWallGroup(
+                    group.Family,
+                    ReadPositions(group.Tiles, $"wall group '{group.Family}'", errors)));
+            }
+            if (boundary is not null && interior is not null
+                && IsPresentationId(boundary) && IsPresentationId(interior))
+                presentation = new MapPresentation(boundary, interior, groups);
+        }
+        if (errors.Count > 0)
+            throw new MapValidationException(errors);
+        var map = new ArenaMap(
+            dto.Id!, dto.Version, dto.Tiles, spawns.ToArray(), zone, dto.Theme, presentation);
         map.Validate();
         return map;
     }
@@ -155,6 +200,26 @@ public sealed class ArenaMap
         foreach (var tile in Zone)
             if (IsWall(tile))
                 errors.Add($"Zone tile ({tile.X},{tile.Y}) is on a wall or outside the map.");
+        if (Presentation is not null)
+        {
+            if (!IsPresentationId(Presentation.BoundaryWall))
+                errors.Add($"Invalid boundary wall family '{Presentation.BoundaryWall}'.");
+            if (!IsPresentationId(Presentation.InteriorWall))
+                errors.Add($"Invalid interior wall family '{Presentation.InteriorWall}'.");
+            var styledTiles = new HashSet<Position>();
+            foreach (var group in Presentation.WallGroups)
+            {
+                if (!IsPresentationId(group.Family))
+                    errors.Add($"Invalid wall group family '{group.Family}'.");
+                foreach (var tile in group.Tiles)
+                {
+                    if (!IsWall(tile))
+                        errors.Add($"Wall-family tile ({tile.X},{tile.Y}) is not a wall.");
+                    if (!styledTiles.Add(tile))
+                        errors.Add($"Wall-family tile ({tile.X},{tile.Y}) is assigned more than once.");
+                }
+            }
+        }
         if (errors.Count == 0 && Zone.Count > 0 && Spawns.Count == 2
             && !AreConnected(new Position(Spawns[0].X, Spawns[0].Y), Zone[0]))
             errors.Add("Zone is not reachable from the spawns.");
@@ -202,9 +267,23 @@ public sealed class ArenaMap
         [JsonPropertyName("width")] public int Width { get; set; }
         [JsonPropertyName("height")] public int Height { get; set; }
         [JsonPropertyName("theme")] public string? Theme { get; set; }
+        [JsonPropertyName("presentation")] public MapPresentationDto? Presentation { get; set; }
         [JsonPropertyName("tiles")] public string[]? Tiles { get; set; }
         [JsonPropertyName("spawns")] public SpawnDto[]? Spawns { get; set; }
         [JsonPropertyName("zone")] public int[][]? Zone { get; set; }
+    }
+
+    private sealed class MapPresentationDto
+    {
+        [JsonPropertyName("boundaryWall")] public string? BoundaryWall { get; set; }
+        [JsonPropertyName("interiorWall")] public string? InteriorWall { get; set; }
+        [JsonPropertyName("wallGroups")] public MapWallGroupDto[]? WallGroups { get; set; }
+    }
+
+    private sealed class MapWallGroupDto
+    {
+        [JsonPropertyName("family")] public string? Family { get; set; }
+        [JsonPropertyName("tiles")] public int[][]? Tiles { get; set; }
     }
 
     private sealed class SpawnDto
@@ -219,4 +298,24 @@ public sealed class ArenaMap
         value[0] is >= 'a' and <= 'z' &&
         value[^1] != '-' &&
         value.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-');
+
+    private static Position[] ReadPositions(
+        int[][]? values,
+        string owner,
+        List<string> errors)
+    {
+        if (values is null)
+            return [];
+        var positions = new List<Position>();
+        foreach (var pair in values)
+        {
+            if (pair.Length != 2)
+            {
+                errors.Add($"Invalid {owner} coordinate; expected [x,y].");
+                continue;
+            }
+            positions.Add(new Position(pair[0], pair[1]));
+        }
+        return positions.ToArray();
+    }
 }

@@ -41,6 +41,17 @@ export interface ReplayParticipant {
   spawnFacing: Direction;
 }
 
+export interface MapWallGroup {
+  family: string;
+  tiles: { x: number; y: number }[];
+}
+
+export interface MapPresentation {
+  boundaryWall: string;
+  interiorWall: string;
+  wallGroups: MapWallGroup[];
+}
+
 export interface ShotProgramLimits {
   maxInitialAimOctants: number;
   maxBendAfterTiles: number;
@@ -61,6 +72,8 @@ export interface ReplayHeader {
   mapVersion: number;
   /** Theme copied from the map JSON. Absent only in legacy/synthetic replays. */
   themeId?: string;
+  /** Wall-family roles and overrides copied from the map JSON. */
+  presentation?: MapPresentation;
   mapWidth: number;
   mapHeight: number;
   mapTiles: string[];

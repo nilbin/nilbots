@@ -3,19 +3,35 @@
   "label": "Overgrown Lab",
   "textures": {
     "floor": "floor-ceramic-v2.png",
-    "wall": "wall-overgrown-v2.png",
-    "wallTrim": "wall-trim-kit.png",
-    "wallShadow": "wall-shadow-kit.png",
     "zone": {
       "file": "zone-capture-lattice.png",
       "scaleTiles": 4
     }
   },
-  "wall": {
-    "sourceInner": 0.29,
-    "sourceCorner": 0.32,
-    "inset": 0.14,
-    "outset": 0.07
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 96,
+      "gutterPixels": 16
+    },
+    "families": {
+      "perimeter": {
+        "label": "Containment perimeter",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp"
+      },
+      "cover": {
+        "label": "Reclaimed service cover",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp"
+      }
+    }
   },
   "palette": {
     "canvas": "#07100f",

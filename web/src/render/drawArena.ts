@@ -13,6 +13,17 @@ const directionStep: Record<Direction, [number, number]> = {
   West: [-1, 0],
 };
 
+const wallNeighbourStep: readonly [number, number][] = [
+  [0, -1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+  [0, 1],
+  [-1, 1],
+  [-1, 0],
+  [-1, -1],
+];
+
 const directionAngle: Record<Direction, number> = {
   North: -Math.PI / 2,
   East: 0,
@@ -65,6 +76,20 @@ export function drawArena(
   const currentTick = replay.ticks[tick];
   const poses = posesAt(replay, time);
   const theme = arenaTheme(replay.header.themeId);
+  const boundaryWall = validWallFamily(
+    replay.header.presentation?.boundaryWall,
+    theme.walls.defaults.boundary,
+  );
+  const interiorWall = validWallFamily(
+    replay.header.presentation?.interiorWall,
+    theme.walls.defaults.interior,
+  );
+  const wallOverrides = new Map<string, string>();
+  for (const group of replay.header.presentation?.wallGroups ?? []) {
+    const family = validWallFamily(group.family, interiorWall);
+    for (const position of group.tiles)
+      wallOverrides.set(`${position.x},${position.y}`, family);
+  }
   const lookFor = (slot: number) =>
     botLook(participants[slot]?.lookId, slot);
   const accentFor = (slot: number): string => {
@@ -202,172 +227,98 @@ export function drawArena(
   }
 
   function drawWalls(): void {
-    const wallShape = new Path2D();
+    const usedFamilies = new Set<string>();
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++)
-        if (mapTiles[y][x] === '#')
-          wallShape.rect(px(x), py(y), tile, tile);
+        if (mapTiles[y][x] === '#') usedFamilies.add(wallFamilyAt(x, y)!);
     }
 
-    if (theme.wallShadowTexture)
-      drawWallTrimLayer(theme.wallShadowTexture);
+    for (const familyId of usedFamilies) {
+      const family = theme.walls.families.get(familyId);
+      if (family?.shadowAtlasTexture)
+        drawWallAtlasLayer(familyId, family.shadowAtlasTexture);
+    }
 
-    ctx.save();
-    ctx.clip(wallShape);
-    if (!drawTextureField(theme.wallTexture)) {
-      ctx.fillStyle = '#2e3d55';
+    for (const familyId of usedFamilies) {
+      const wallShape = wallFamilyShape(familyId);
+      const family = theme.walls.families.get(familyId);
+      ctx.save();
+      ctx.clip(wallShape);
+      if (!drawTextureField(family?.materialTexture ?? null)) {
+        ctx.fillStyle = '#2e3d55';
+        ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
+      }
+      ctx.fillStyle = theme.palette.wallTint;
       ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
+      ctx.restore();
     }
-    ctx.fillStyle = theme.palette.wallTint;
-    ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
-    ctx.restore();
 
-    if (theme.wallTrimTexture)
-      drawWallTrimLayer(theme.wallTrimTexture);
+    for (const familyId of usedFamilies) {
+      const family = theme.walls.families.get(familyId);
+      if (family?.edgeAtlasTexture)
+        drawWallAtlasLayer(familyId, family.edgeAtlasTexture);
+    }
   }
 
-  function drawWallTrimLayer(image: HTMLImageElement): void {
+  function drawWallAtlasLayer(
+    familyId: string,
+    image: HTMLImageElement,
+  ): void {
     if (!image.complete || image.naturalWidth === 0) return;
-    const sourceWidth = image.naturalWidth;
-    const sourceHeight = image.naturalHeight;
-    const sourceInnerX = sourceWidth * theme.wall.sourceInner;
-    const sourceInnerY = sourceHeight * theme.wall.sourceInner;
-    const sourceCornerX = sourceWidth * theme.wall.sourceCorner;
-    const sourceCornerY = sourceHeight * theme.wall.sourceCorner;
-    const inset = tile * theme.wall.inset;
-    const outset = tile * theme.wall.outset;
-    const edgeSpan = inset + outset;
+    const { columns, contentPixels, gutterPixels } = theme.walls.atlas;
+    const sourceTile = image.naturalWidth / columns;
+    const scale = tile / contentPixels;
+    const destinationTile = sourceTile * scale;
+    const destinationGutter = gutterPixels * scale;
 
-    const draw = (
-      sourceX: number,
-      sourceY: number,
-      sourceW: number,
-      sourceH: number,
-      destinationX: number,
-      destinationY: number,
-      destinationW: number,
-      destinationH: number,
-    ) =>
-      ctx.drawImage(
-        image,
-        sourceX,
-        sourceY,
-        sourceW,
-        sourceH,
-        destinationX,
-        destinationY,
-        destinationW,
-        destinationH,
-      );
-
-    // The renderer contributes topology only. Every visible edge, corner,
-    // side face, fastener, and shadow pixel comes from the theme's donor art.
+    // The mask selects a fully baked topology sprite. The canvas contributes
+    // placement only; edges, corners, hardware, relief, and shadow live in art.
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
-        if (!wallAt(x, y)) continue;
-        const north = !wallAt(x, y - 1);
-        const east = !wallAt(x + 1, y);
-        const south = !wallAt(x, y + 1);
-        const west = !wallAt(x - 1, y);
-        const left = px(x);
-        const top = py(y);
-
-        if (north)
-          draw(
-            sourceCornerX,
-            0,
-            sourceWidth - sourceCornerX * 2,
-            sourceInnerY,
-            left,
-            top - outset,
-            tile,
-            edgeSpan,
-          );
-        if (east)
-          draw(
-            sourceWidth - sourceInnerX,
-            sourceCornerY,
-            sourceInnerX,
-            sourceHeight - sourceCornerY * 2,
-            left + tile - inset,
-            top,
-            edgeSpan,
-            tile,
-          );
-        if (south)
-          draw(
-            sourceCornerX,
-            sourceHeight - sourceInnerY,
-            sourceWidth - sourceCornerX * 2,
-            sourceInnerY,
-            left,
-            top + tile - inset,
-            tile,
-            edgeSpan,
-          );
-        if (west)
-          draw(
-            0,
-            sourceCornerY,
-            sourceInnerX,
-            sourceHeight - sourceCornerY * 2,
-            left - outset,
-            top,
-            edgeSpan,
-            tile,
-          );
-
-        if (north && west)
-          draw(
-            0,
-            0,
-            sourceCornerX,
-            sourceCornerY,
-            left - outset,
-            top - outset,
-            edgeSpan,
-            edgeSpan,
-          );
-        if (north && east)
-          draw(
-            sourceWidth - sourceCornerX,
-            0,
-            sourceCornerX,
-            sourceCornerY,
-            left + tile - inset,
-            top - outset,
-            edgeSpan,
-            edgeSpan,
-          );
-        if (south && east)
-          draw(
-            sourceWidth - sourceCornerX,
-            sourceHeight - sourceCornerY,
-            sourceCornerX,
-            sourceCornerY,
-            left + tile - inset,
-            top + tile - inset,
-            edgeSpan,
-            edgeSpan,
-          );
-        if (south && west)
-          draw(
-            0,
-            sourceHeight - sourceCornerY,
-            sourceCornerX,
-            sourceCornerY,
-            left - outset,
-            top + tile - inset,
-            edgeSpan,
-            edgeSpan,
-          );
+        if (wallFamilyAt(x, y) !== familyId) continue;
+        let mask = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const [dx, dy] = wallNeighbourStep[bit];
+          if (wallFamilyAt(x + dx, y + dy) === familyId)
+            mask |= 1 << bit;
+        }
+        ctx.drawImage(
+          image,
+          (mask % columns) * sourceTile,
+          Math.floor(mask / columns) * sourceTile,
+          sourceTile,
+          sourceTile,
+          px(x) - destinationGutter,
+          py(y) - destinationGutter,
+          destinationTile,
+          destinationTile,
+        );
       }
     }
   }
 
-  function wallAt(x: number, y: number): boolean {
-    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) return true;
-    return mapTiles[y][x] === '#';
+  function wallFamilyShape(familyId: string): Path2D {
+    const shape = new Path2D();
+    for (let y = 0; y < mapHeight; y++)
+      for (let x = 0; x < mapWidth; x++)
+        if (wallFamilyAt(x, y) === familyId)
+          shape.rect(px(x), py(y), tile, tile);
+    return shape;
+  }
+
+  function wallFamilyAt(x: number, y: number): string | null {
+    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight)
+      return boundaryWall;
+    if (mapTiles[y][x] !== '#') return null;
+    const override = wallOverrides.get(`${x},${y}`);
+    if (override) return override;
+    return x === 0 || y === 0 || x === mapWidth - 1 || y === mapHeight - 1
+      ? boundaryWall
+      : interiorWall;
+  }
+
+  function validWallFamily(candidate: string | undefined, fallback: string): string {
+    return candidate && theme.walls.families.has(candidate) ? candidate : fallback;
   }
 
   function drawTextureField(image: HTMLImageElement | null): boolean {

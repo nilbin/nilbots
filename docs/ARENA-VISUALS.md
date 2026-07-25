@@ -25,27 +25,49 @@ Each `maps/*.json` document names its standalone presentation package:
 ```json
 {
   "id": "basic-01",
-  "version": 4,
-  "theme": "control-room"
+  "version": 5,
+  "theme": "control-room",
+  "presentation": {
+    "boundaryWall": "perimeter",
+    "interiorWall": "cover",
+    "wallGroups": []
+  }
 }
 ```
 
-The engine copies that value to replay header `themeId`. The viewer resolves
-that ID against theme manifests; it never switches on `mapId`. Legacy maps and
-replays without the optional field fall back to `control-room`.
+The engine copies the theme and presentation object to replay header `themeId`
+and `presentation`. The viewer resolves those IDs against theme manifests; it
+never switches on `mapId`. Legacy maps and replays without the optional fields
+fall back to the Control Room defaults.
 
 ## File layout
 
 ```text
+art/themes/control-room/
+  art.json
+  walls/perimeter/
+    source.png
+    albedo.png
+    normal.png
+    height.png
+    roughness.png
+    ao.png
+
 web/src/assets/themes/control-room/
   theme.json
   floor-metal.png
-  wall-bulkhead-v2.png
+  wall-perimeter-albedo.webp
+  wall-perimeter-edges.webp
+  wall-perimeter-shadows.webp
+  wall-cover-albedo.webp
+  wall-cover-edges.webp
+  wall-cover-shadows.webp
 
 web/src/assets/themes/overgrown-lab/
   theme.json
   floor-ceramic-v2.png
-  wall-overgrown-v2.png
+  zone-capture-lattice.png
+  wall-*.webp
 
 web/src/assets/bot-looks/<look-id>/
   look.json
@@ -57,9 +79,11 @@ web/src/render/
   interpolate.ts     authoritative state interpolation
 ```
 
-Vite discovers both manifest families with `import.meta.glob` and inlines their
-assets into the self-contained replay viewer. Adding a valid package requires
-no TypeScript registry edit.
+`art/themes` holds production sources and derived PBR maps; it is not bundled
+into the viewer. `web/src/assets` holds optimized runtime output. Vite
+discovers the runtime manifests with `import.meta.glob` and inlines their
+referenced assets into the self-contained replay viewer. Adding a valid package
+requires no TypeScript registry edit.
 
 ## Theme asset contract
 
@@ -75,27 +99,41 @@ no TypeScript registry edit.
 - The renderer maps the image once across the whole arena below the wall mask.
   It does not slice, shuffle, outline, or decorate individual gameplay cells.
 
-### Wall material
+### Wall families and topology atlases
 
-- Opaque square PNG, currently 1024×1024.
-- Top-down armored material, visually heavier than the floor.
-- No surrounding floor or outer ornamental frame.
-- Must be homogeneous and mask-safe: no large frames, rails, conduits, or
-  motifs that look broken when the wall silhouette clips them.
-- Each theme also provides a transparent 512×512 wall-trim donor and baked
-  shadow donor. Generate the trim as one isolated square slab with a broad
-  center, four detailed edges, four corners, and uniform transparent padding.
-- The renderer constructs one connected shape from all `#` cells and clips the
-  base material through it. It then uses ASCII adjacency only to crop and place
-  the trim donor's north/east/south/west strips and convex corners. All bevels,
-  lips, side faces, fasteners, grime, ambient occlusion, and cast-shadow pixels
-  come from the theme assets; canvas code does not synthesize them.
-- `sourceInner` and `sourceCorner` locate reusable regions in the donor.
-  `inset` and `outset` control their world-space placement without changing the
-  artwork. No trim is drawn between adjacent wall cells.
-- Bake the shadow donor from the extracted trim with
-  `scripts/build-wall-shadow.py`. It is composited before the connected wall
-  top, while the trim donor is composited afterward.
+A theme is a kit, not one wall texture. At minimum it supplies a fortified
+`perimeter` family and a lower `cover` family. More families such as
+`damaged-cover`, `reactor`, or `ruin` can be added and assigned to specific wall
+cells by the map.
+
+Each family starts with an opaque square source material under
+`art/themes/<theme>/walls/<family>/source.png`:
+
+- Strict top-down material field; no surrounding floor, isolated wall object,
+  outer frame, perspective, text, or map-scale feature.
+- Medium and large material detail is welcome: panels, aggregate, cracks,
+  hardware, moss, paint wear, and shallow seams.
+- Generate each material separately. Do not ask an image model for an exact
+  atlas: topology alignment is a deterministic build concern.
+
+`scripts/build-theme-art.py` then produces:
+
+- Edge-safe albedo plus height, tangent normal, roughness, and ambient-occlusion
+  maps beside the source. These maps are DCC-ready even though the current
+  viewer is 2D.
+- An optimized world-space albedo for the viewer.
+- A complete 256-entry, eight-neighbour edge atlas and matching shadow atlas.
+  Every open side, convex corner, concave corner, junction, side face,
+  fastener, and shadow is baked before runtime.
+
+The renderer computes only the eight-neighbour mask and places the exact
+pre-baked sprite. It does not draw borders, round rectangles, gradients,
+bevels, or shadows. Materials are mapped continuously over each connected
+family instead of restarting per ASCII cell.
+
+The atlas contract is currently 16 columns, a 96 px gameplay-cell core, and a
+16 px gutter on each side (128 px atlas entries). Shadow and edge sprites use
+the same mask index, so their registration cannot drift.
 
 ### Zone material
 
@@ -115,17 +153,55 @@ no TypeScript registry edit.
 Create `web/src/assets/themes/<theme-id>/theme.json` with:
 
 - Stable ID and player-facing label.
-- Floor and wall filenames relative to the manifest, plus an optional dedicated
+- Floor filename relative to the manifest, plus an optional dedicated
   zone-floor filename and its `scaleTiles` world scale. The renderer clips the
   fixed-scale material to the map's declared zone mask, so irregular zones
   remain continuous without per-cell borders or size-dependent distortion.
-- Wall-trim and baked-shadow filenames, plus the donor's normalized
-  `sourceInner`, `sourceCorner`, `inset`, and `outset` measurements.
+- `walls.defaults` for legacy maps, `walls.atlas` dimensions, and one
+  `walls.families` entry per available family. Each family names its material,
+  edge atlas, and shadow atlas.
 - Canvas, floor, wall, frame, and objective-zone colors.
 
-Then set `"theme": "<theme-id>"` in the owning map JSON and bump that map's
-version. The loader discovers the package automatically. Do not add a viewer
-preference switch.
+Then set `"theme": "<theme-id>"` and a `presentation` object in the owning map
+JSON and bump that map's version. `boundaryWall` and `interiorWall` are
+required when presentation exists. Optional `wallGroups` override exact wall
+tiles:
+
+```json
+{
+  "presentation": {
+    "boundaryWall": "perimeter",
+    "interiorWall": "cover",
+    "wallGroups": [
+      {
+        "family": "damaged-cover",
+        "tiles": [[3, 2], [4, 2]]
+      }
+    ]
+  }
+}
+```
+
+The engine rejects malformed family IDs, floor-cell assignments, and duplicate
+overrides. The theme must contain every family named by the map. The loader
+discovers packages automatically. Do not add a viewer preference switch.
+
+### Rebuilding theme art
+
+Use a disposable environment so the application itself gains no image-library
+runtime dependency:
+
+```sh
+python3 -m venv sandbox/theme-art-venv
+sandbox/theme-art-venv/bin/pip install -r scripts/requirements-theme-art.txt
+sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/control-room/art.json
+sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/overgrown-lab/art.json
+```
+
+`art.json` is the reproducible art-direction and geometry recipe. Keep the
+generated source prompt with the change/PR. If a future 2.5D renderer is
+adopted, feed the checked-in albedo/normal/height/roughness/AO maps to the DCC;
+do not regenerate the material merely to change camera or lighting.
 
 Check the theme on the smallest and largest shipped maps. Dense wall maps must
 still distinguish open floor, blocked cells, zone tiles, bots, and projectile
@@ -209,11 +285,10 @@ production candidates, then normalized locally:
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
-- Wall trims are generated as isolated square donor slabs on removable
-  magenta, extracted to alpha, and reduced to 512×512. Do not ask an image
-  model for a 16- or 47-cell atlas: exact atlas alignment drifts. One coherent
-  donor gives the renderer repeatable edge and corner crops, while the baked
-  shadow retains consistent softness.
+- Wall sources are generated as opaque material fields, never whole slabs or
+  maps. The deterministic build makes them edge-safe, derives PBR helper maps,
+  and bakes all topology variants. Do not ask an image model for a 16-, 47-, or
+  256-cell atlas: exact registration drifts.
 
 Generate distinct assets separately rather than asking for one large atlas.
 Large generated atlases tend to drift in perspective and create mismatched
@@ -227,6 +302,6 @@ gameplay scale.
    destruction, fog, and zone visuals.
 3. The viewer remains readable at desktop and phone widths.
 4. Replay theme/look IDs round-trip and are included in replay hashes for new
-   matches; legacy null fields remain omitted.
+   matches; map presentation round-trips; legacy null fields remain omitted.
 5. Generate local review viewers first. Publish through the private
    replay-highlights workflow only when the visual iteration is approved.
