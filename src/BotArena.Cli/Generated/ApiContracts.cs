@@ -411,6 +411,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("versionCount")]
         public int VersionCount { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("currentStanding")]
+        public LadderStanding? CurrentStanding { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

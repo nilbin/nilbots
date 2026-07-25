@@ -1219,6 +1219,7 @@ export interface components {
             activeVersion: null | components["schemas"]["BotActiveVersionResponse"];
             /** Format: int32 */
             versionCount: number;
+            currentStanding?: null | components["schemas"]["LadderStanding"];
         };
         BotVersionResponse: {
             /** Format: uuid */
