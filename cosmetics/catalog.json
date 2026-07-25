@@ -30,6 +30,13 @@
       "availability": "starter"
     },
     {
+      "key": "bot-look:mantis",
+      "kind": "bot-look",
+      "id": "mantis",
+      "label": "Mantis",
+      "availability": "starter"
+    },
+    {
       "key": "bot-look:lancer",
       "kind": "bot-look",
       "id": "lancer",
@@ -72,6 +79,13 @@
       "kind": "projectile-look",
       "id": "razor-shard",
       "label": "Razor Shard",
+      "availability": "starter"
+    },
+    {
+      "key": "projectile-look:talon",
+      "kind": "projectile-look",
+      "id": "talon",
+      "label": "Talon",
       "availability": "starter"
     },
     {

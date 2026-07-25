@@ -31,6 +31,6 @@ test('projectile looks are genuine East-facing SVG packages', () => {
   }
   assert.deepEqual(
     ids.sort(),
-    ['arc-spark', 'ion-orb', 'pulse-bolt', 'razor-shard', 'regent-lance'],
+    ['arc-spark', 'ion-orb', 'pulse-bolt', 'razor-shard', 'regent-lance', 'talon'],
   );
 });

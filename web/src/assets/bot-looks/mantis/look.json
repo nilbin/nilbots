@@ -3,5 +3,6 @@
   "label": "Mantis",
   "sprite": "sprite.svg",
   "suggestedAccent": "#4ade80",
+  "defaultProjectile": "talon",
   "scale": 1.22
 }

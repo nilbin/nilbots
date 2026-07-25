@@ -288,15 +288,15 @@ presentation constant.
   replay participants. Historical playback therefore does not consult the
   bot's current account record.
 
-Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, and Aureate
-Warden. All six are genuine path-based SVGs. The earlier generated PNGs remain under
+Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, Aureate Warden,
+and Mantis. All seven are genuine path-based SVGs. The earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
-Vanguard, Bulwark, Needle, and Orbiter are starter-accessible; Lancer is the
-first successful-build achievement unlock on the official service. Aureate
-Warden and its recommended Regent Lance projectile unlock together after an
-account completes 100 ranked matches. One ranked match is the complete
+Vanguard, Bulwark, Needle, Orbiter, and Mantis are starter-accessible; Lancer
+is the first successful-build achievement unlock on the official service.
+Aureate Warden and its recommended Regent Lance projectile unlock together
+after an account completes 100 ranked matches. One ranked match is the complete
 six-game mirrored set.
 
 To create another look:
@@ -336,11 +336,11 @@ To create another look:
 - Legacy, missing, or unknown IDs fall back to Pulse Bolt. Cosmetic
   entitlements are checked when equipping, never when rendering a replay.
 
-Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark, and
-Regent Lance. All five are genuine SVG masks. Pulse Bolt, Ion Orb, and Razor Shard are
-starter-accessible; Arc Spark unlocks after the account completes its first
-unranked challenge match on the official service. Regent Lance unlocks with
-Aureate Warden after 100 completed ranked matches.
+Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark,
+Regent Lance, and Talon. All six are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard,
+and Talon are starter-accessible; Arc Spark unlocks after the account completes
+its first unranked challenge match on the official service. Regent Lance
+unlocks with Aureate Warden after 100 completed ranked matches.
 
 To create another projectile look:
 
@@ -391,6 +391,11 @@ production candidates, then normalized locally:
   raster. The earlier generated PNGs for Vanguard, Bulwark, Needle, and Orbiter
   are retained only as unbundled art-direction references; their exact
   generation prompts predate the reproducible prompt log.
+- Mantis and its recommended Talon projectile were authored directly as
+  path-based SVG with no generated reference, so `art/bot-looks` holds no
+  raster master for them. The chassis is deliberately near-square where the
+  other looks are longer along their facing, and Talon repeats its recurved
+  claw in the projectile mask.
 - Aureate Warden and Regent Lance were authored as genuine SVG from separate
   generated concept references. Eclipse Bloom + Null Seed and Redshift Crucible
   + Crucible Splitter are retained under `art/` as reserved, unavailable
