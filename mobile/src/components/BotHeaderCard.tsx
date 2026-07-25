@@ -43,7 +43,7 @@ export function BotHeaderCard({
     ...(record
       ? [
           {
-            label: 'w/l/d',
+            label: 'w-l-d',
             value: (
               <BotRecord wins={record.wins} losses={record.losses} draws={record.draws} size="lg" />
             ),
