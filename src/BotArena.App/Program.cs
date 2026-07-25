@@ -43,6 +43,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
 builder.Services.AddScoped<CosmeticEntitlementService>();
+builder.Services.AddScoped<CosmeticAchievementService>();
 
 if (mode.RunsWeb)
 {

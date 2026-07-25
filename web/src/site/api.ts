@@ -54,6 +54,11 @@ export interface CosmeticCatalogItem {
   availability: 'starter' | 'entitlement';
   unlock: CosmeticUnlock | null;
   owned: boolean;
+  progress: {
+    current: number;
+    target: number;
+    unit: 'ranked-matches';
+  } | null;
 }
 
 export interface CosmeticCatalog {

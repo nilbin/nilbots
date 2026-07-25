@@ -2,6 +2,7 @@ export interface BotLook {
   id: string;
   label: string;
   suggestedAccent: string;
+  defaultProjectileLookId?: string;
   image: HTMLImageElement | null;
   imageUrl: string;
   scale: number;
@@ -82,6 +83,7 @@ interface BotLookManifest {
   label: string;
   sprite: string;
   suggestedAccent: string;
+  defaultProjectile?: string;
   scale: number;
 }
 
@@ -120,6 +122,7 @@ const projectileLookImages = import.meta.glob<string>(
 const themes = buildThemes();
 const looks = buildLooks();
 const projectileLooks = buildProjectileLooks();
+validateDefaultProjectiles();
 const defaultThemeId = 'control-room';
 const defaultLookId = 'vanguard';
 const defaultProjectileLookId = 'pulse-bolt';
@@ -250,12 +253,26 @@ function buildLooks(): Map<string, BotLook> {
       id: manifest.id,
       label: manifest.label,
       suggestedAccent: manifest.suggestedAccent,
+      defaultProjectileLookId: manifest.defaultProjectile,
       image: loadImage(imageUrl),
       imageUrl,
       scale: manifest.scale,
     });
   }
   return result;
+}
+
+function validateDefaultProjectiles(): void {
+  for (const look of looks.values()) {
+    if (
+      look.defaultProjectileLookId &&
+      !projectileLooks.has(look.defaultProjectileLookId)
+    )
+      throw new Error(
+        `Bot look '${look.id}' references missing default projectile ` +
+          `'${look.defaultProjectileLookId}'.`,
+      );
+  }
 }
 
 function buildProjectileLooks(): Map<string, ProjectileLook> {

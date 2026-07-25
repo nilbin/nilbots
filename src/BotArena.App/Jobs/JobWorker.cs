@@ -114,6 +114,8 @@ public sealed class JobWorker(
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var entitlements =
             scope.ServiceProvider.GetRequiredService<CosmeticEntitlementService>();
+        var cosmeticAchievements =
+            scope.ServiceProvider.GetRequiredService<CosmeticAchievementService>();
 
         var jobs = await db.BackgroundJobs
             .FromSqlRaw("""
@@ -155,6 +157,7 @@ public sealed class JobWorker(
                     await ExecuteMatch(
                         db,
                         entitlements,
+                        cosmeticAchievements,
                         job.PayloadId("matchId"),
                         workCancellation.Token);
                     break;
@@ -396,6 +399,7 @@ public sealed class JobWorker(
     private async Task ExecuteMatch(
         AppDbContext db,
         CosmeticEntitlementService entitlements,
+        CosmeticAchievementService cosmeticAchievements,
         Guid matchId,
         CancellationToken cancellationToken)
     {
@@ -512,7 +516,12 @@ public sealed class JobWorker(
                 cancellationToken);
         }
         if (match.MatchSetId is Guid setId)
+        {
             await TryFinalizeSet(db, setId, cancellationToken);
+            await cosmeticAchievements.AwardForCompletedRankedSetAsync(
+                setId,
+                cancellationToken);
+        }
     }
 
     /// <summary>Applies Elo once all six games of a ranked set have executed (plan §36).

@@ -51,6 +51,9 @@ encoding, and the theme-wide runtime size check. Do not hand-edit its outputs.
    `art/bot-looks/<id>/raster-reference.png`, not beside runtime assets.
 4. Add `web/src/assets/bot-looks/<id>/look.json` plus `sprite.png` or
    `sprite.svg`. Discovery is manifest-driven; do not add a TypeScript registry.
+   A look may name an owned `defaultProjectile` companion; selecting that
+   chassis recommends the projectile but never prevents the owner from
+   choosing another.
 5. Inspect the look at gameplay size facing all four directions and during
    movement, recoil, damage, destruction, fogging, and panel rendering.
 
@@ -85,6 +88,8 @@ change replay rendering or gameplay.
 When adding a shippable bot or projectile look, also add the same stable ID and
 label to `cosmetics/catalog.json`. Keep availability and unlock policy there,
 never in the rendering manifest. Run the catalog/manifest alignment tests.
+Unshipped concepts belong only under `art/`; do not add a runtime manifest or
+catalog entry until their availability and unlock are intentionally chosen.
 
 ## Validation
 

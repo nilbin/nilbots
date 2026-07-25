@@ -15,7 +15,8 @@ public sealed record CosmeticCatalogEntry(
     string Label,
     string Availability,
     CosmeticUnlock? Unlock,
-    bool Owned);
+    bool Owned,
+    CosmeticProgress? Progress = null);
 
 public sealed class CosmeticEntitlementService(
     AppDbContext db,

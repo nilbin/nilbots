@@ -41,6 +41,7 @@ The first gated items prove both non-payment paths:
 
 - Lancer: achievement `first-successful-build`.
 - Arc Spark: challenge `first-unranked-match`.
+- Aureate Warden + Regent Lance: achievement `ranked-matches-100`.
 
 All other current bot and projectile looks are starter-accessible. Local play
 may preview the whole bundled catalog; the official server controls equipping.
@@ -89,6 +90,17 @@ The garage lists locked items with their unlock hint and progress state.
 Locked select options stay visible but disabled. The server, not the browser
 or CLI, remains authoritative.
 
+The 100-ranked-matches milestone counts completed ranked sets across all bots
+and rulesets owned by an account. One user-facing ranked match is the complete
+six-game mirrored set. A set between two bots owned by the same account counts
+once. The award evaluates after set finalization, grants both companion
+cosmetics on match 100, and backfills accounts that crossed the threshold
+before the catalog items shipped.
+
+Bot-look manifests may recommend an owned `defaultProjectile`. Selecting the
+look applies that companion in the garage/editor, after which projectile choice
+remains independent.
+
 Matches snapshot accent, bot-look ID, and projectile-look ID. Viewing a replay
 never rechecks entitlement. Revocation affects future equips and matches; it
 does not rewrite historical replays. If the last grant for an equipped item is
@@ -120,6 +132,6 @@ theme and participant cosmetics referenced by that replay.
 
 1. Starter projectile looks and bot appearance editing — done.
 2. Canonical catalog, entitlement service, grant ledger, and locked UI — done.
-3. One achievement unlock and one challenge unlock — done.
-4. Expand achievements/challenges based on product use — later.
+3. Build, challenge, and 100-ranked-match achievement unlocks — done.
+4. Expand achievements/challenges based on observed product use — later.
 5. Payment-provider integration — later, as a separate commerce project.

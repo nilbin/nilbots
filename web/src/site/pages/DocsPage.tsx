@@ -126,8 +126,10 @@ curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals
           not <code className="font-mono">.status</code>. The CLI's
           <code className="font-mono"> nilbots submit</code> wraps this flow plus artifact-parity checking.
           Lancer unlocks on the first successful build; Arc Spark unlocks after
-          the first completed unranked challenge. Payments are not part of the
-          current entitlement system.
+          the first completed unranked challenge; Aureate Warden and its Regent
+          Lance projectile unlock together after 100 completed ranked matches
+          (each ranked match is a full six-game mirrored set). Payments are not
+          part of the current entitlement system.
         </p>
       </Doc>
 

@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Aureate Warden bot chassis facing east">
+  <defs>
+    <linearGradient id="aw-ivory-upper" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fffaf0"/>
+      <stop offset=".38" stop-color="#eadfc8"/>
+      <stop offset=".72" stop-color="#c9b996"/>
+      <stop offset="1" stop-color="#887858"/>
+    </linearGradient>
+    <linearGradient id="aw-ivory-lower" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d9ceb7"/>
+      <stop offset=".42" stop-color="#b9aa8b"/>
+      <stop offset="1" stop-color="#74664c"/>
+    </linearGradient>
+    <linearGradient id="aw-graphite" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#515761"/>
+      <stop offset=".38" stop-color="#292f38"/>
+      <stop offset="1" stop-color="#0d1219"/>
+    </linearGradient>
+    <linearGradient id="aw-spine" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#151b23"/>
+      <stop offset=".48" stop-color="#3d444d"/>
+      <stop offset="1" stop-color="#11161d"/>
+    </linearGradient>
+    <linearGradient id="aw-gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff0ae"/>
+      <stop offset=".26" stop-color="#e0b75f"/>
+      <stop offset=".62" stop-color="#a9782a"/>
+      <stop offset="1" stop-color="#5a3510"/>
+    </linearGradient>
+    <linearGradient id="aw-energy" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#8c5316"/>
+      <stop offset=".42" stop-color="#f1bd55"/>
+      <stop offset=".76" stop-color="#fff0ae"/>
+      <stop offset="1" stop-color="#fffdf1"/>
+    </linearGradient>
+    <radialGradient id="aw-core">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".24" stop-color="#fff4bd"/>
+      <stop offset=".52" stop-color="#e2b653"/>
+      <stop offset=".8" stop-color="#8c5316"/>
+      <stop offset="1" stop-color="#23190e"/>
+    </radialGradient>
+    <filter id="aw-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <path
+    d="M56 176 100 109 165 70 231 76 291 119 342 175 424 199 483 232 501 256 483 280 424 313 342 337 291 393 231 436 165 442 100 403 56 336 82 295 66 256 82 217Z"
+    fill="#070b11" stroke="#05080c" stroke-width="13" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <path
+      d="m72 180 39-59 58-35 57 4 55 40 48 57-46 42-78-17-59-35-58 20Z"
+      fill="url(#aw-graphite)" stroke="#626872" stroke-width="5"/>
+    <path
+      d="m72 332 39 59 58 35 57-4 55-40 48-57-46-42-78 17-59 35-58-20Z"
+      fill="#1a2028" stroke="#444b54" stroke-width="5"/>
+
+    <path
+      d="m69 184 42-65 57-35 50 7 57 42 35 43-52 31-48-11-55-37-60 33Z"
+      fill="url(#aw-ivory-upper)" stroke="#8f7541" stroke-width="5"/>
+    <path
+      d="m69 328 42 65 57 35 50-7 57-42 35-43-52-31-48 11-55 37-60-33Z"
+      fill="url(#aw-ivory-lower)" stroke="#755c31" stroke-width="5"/>
+
+    <path
+      d="m74 180 30-49 47-29 35 5-42 31-23 43-29 31Z"
+      fill="#f7edda" stroke="#9d824b" stroke-width="4"/>
+    <path
+      d="m74 332 30 49 47 29 35-5-42-31-23-43-29-31Z"
+      fill="#c6b899" stroke="#70582f" stroke-width="4"/>
+
+    <path
+      d="m112 196 46-28 58 39-34 32-71-8-28-17Z"
+      fill="#1b2129" stroke="#666d75" stroke-width="4"/>
+    <path
+      d="m112 316 46 28 58-39-34-32-71 8-28 17Z"
+      fill="#121820" stroke="#414850" stroke-width="4"/>
+
+    <path
+      d="m91 218 91 15 74 23-74 23-91 15-17-38Z"
+      fill="url(#aw-graphite)" stroke="#626a73" stroke-width="5"/>
+    <path
+      d="m117 232 66 10 43 14-43 14-66 10-15-24Z"
+      fill="#111720" stroke="#7a6847" stroke-width="3"/>
+
+    <path
+      d="m185 194 83 18 71 44-71 44-83 18-56-62Z"
+      fill="url(#aw-graphite)" stroke="#706f6a" stroke-width="6"/>
+    <path
+      d="m217 215 58 12 46 29-46 29-58 12-42-41Z"
+      fill="#111720" stroke="#88682f" stroke-width="5"/>
+
+    <path
+      d="m274 204 73-20 81 25 55 31-77 4-62 21-70 4-30-13Z"
+      fill="url(#aw-spine)" stroke="#626871" stroke-width="5"/>
+    <path
+      d="m274 308 73 20 81-25 55-31-77-4-62-21-70-4-30 13Z"
+      fill="#171d25" stroke="#404750" stroke-width="5"/>
+
+    <path
+      d="m318 195 34-7 77 25 42 23-64-2-61 15-61-5Z"
+      fill="url(#aw-ivory-upper)" stroke="#8d7440" stroke-width="4"/>
+    <path
+      d="m318 317 34 7 77-25 42-23-64 2-61-15-61 5Z"
+      fill="url(#aw-ivory-lower)" stroke="#6f582f" stroke-width="4"/>
+
+    <path
+      d="m287 229 63 7 58 14 61 2 17 4-17 4-61 2-58 14-63 7-35-27Z"
+      fill="#141a21" stroke="#8b7549" stroke-width="4"/>
+    <path
+      d="m315 241 42 5 51 10-51 10-42 5-26-15Z"
+      fill="url(#aw-spine)" stroke="#0a0f15" stroke-width="3"/>
+
+    <path
+      d="m393 246 72 4 25 6-25 6-72 4-26-10Z"
+      fill="url(#aw-gold)" stroke="#5f3b13" stroke-width="3"/>
+    <path
+      d="m447 244 40 5 17 7-17 7-40 5 13-12Z"
+      fill="#dca84b" stroke="#6d4214" stroke-width="3"/>
+
+    <g fill="url(#aw-gold)" stroke="#5e3b16" stroke-width="3">
+      <path d="m126 133 37-23 35 4-12 14-29-3-27 18Z"/>
+      <path d="m126 379 37 23 35-4-12-14-29 3-27-18Z"/>
+      <path d="m179 177 31 18 49 11-50-2-38-17Z"/>
+      <path d="m179 335 31-18 49-11-50 2-38 17Z"/>
+      <path d="m292 192 47-12 43 10-43 2-41 11Z"/>
+      <path d="m292 320 47 12 43-10-43-2-41-11Z"/>
+      <path d="m96 211 25-12 27 3-23 11-21 9Z"/>
+      <path d="m96 301 25 12 27-3-23-11-21-9Z"/>
+    </g>
+
+    <circle cx="229" cy="256" r="69" fill="#0b1016" stroke="#80642f" stroke-width="7"/>
+    <circle cx="229" cy="256" r="55" fill="#2b3037" stroke="#d0ab5b" stroke-width="5"/>
+    <circle cx="229" cy="256" r="41" fill="#11161d" stroke="#6b5127" stroke-width="8"/>
+    <g fill="url(#aw-gold)" stroke="#4e3215" stroke-width="2">
+      <path d="M220 190h18l6 24-15 9-15-9Z"/>
+      <path d="M220 322h18l6-24-15-9-15 9Z"/>
+      <path d="M163 247v18l24 6 9-15-9-15Z"/>
+      <path d="M295 247v18l-24 6-9-15 9-15Z"/>
+    </g>
+    <circle cx="229" cy="256" r="28" fill="#19170f" stroke="#a7782e" stroke-width="5"/>
+    <circle cx="229" cy="256" r="18" fill="url(#aw-core)" stroke="#fff0ae" stroke-width="3"/>
+    <circle cx="225" cy="252" r="7" fill="#fffef4"/>
+
+    <path d="m246 248 143 4 24 4-24 4-143 4Z"
+      fill="url(#aw-energy)" stroke="#6e4516" stroke-width="2"/>
+  </g>
+
+  <g fill="#efbd55" opacity=".42" filter="url(#aw-glow)">
+    <circle cx="229" cy="256" r="24"/>
+    <path d="m247 249 167 7-167 7Z"/>
+  </g>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M146 122 205 96M152 145l51 34M145 390l60 26M152 367l51-34"
+      stroke="#fff9e9" stroke-width="4" opacity=".68"/>
+    <path d="m326 208 40-9M326 304l40 9M120 246h34M120 266h34"
+      stroke="#a79c87" stroke-width="3" opacity=".72"/>
+    <path d="m111 176 37-22 45 29M111 336l37 22 45-29"
+      stroke="#9a7b41" stroke-width="3" opacity=".7"/>
+  </g>
+
+  <g fill="#fff5d9">
+    <circle cx="159" cy="122" r="3"/>
+    <circle cx="159" cy="390" r="3"/>
+    <circle cx="325" cy="203" r="3"/>
+    <circle cx="325" cy="309" r="3"/>
+  </g>
+</svg>

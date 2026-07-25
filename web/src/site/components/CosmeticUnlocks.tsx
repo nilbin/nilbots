@@ -62,6 +62,26 @@ export default function CosmeticUnlocks({
               <span className="mt-1 block text-[11px] leading-relaxed text-arena-dim">
                 {item.unlock?.hint}
               </span>
+              {item.progress && (
+                <span className="mt-2 block">
+                  <span className="mb-1 flex justify-between font-mono text-[9px] text-arena-dim">
+                    <span>RANKED MATCHES</span>
+                    <span>
+                      {item.progress.current}/{item.progress.target}
+                    </span>
+                  </span>
+                  <span className="block h-1 overflow-hidden rounded-full bg-slate-700">
+                    <span
+                      className="block h-full rounded-full bg-arena-accent"
+                      style={{
+                        width: `${
+                          (item.progress.current / item.progress.target) * 100
+                        }%`,
+                      }}
+                    />
+                  </span>
+                </span>
+              )}
             </span>
           </li>
         ))}

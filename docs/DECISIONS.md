@@ -1463,6 +1463,22 @@ before picking a number.*
     replay rendering never does. The garage exposes locked items and hints.
     Payments, prices, checkout, and provider identifiers remain out of scope.
 
+103. **The first ranked-play prestige reward is a paired, account-wide
+    100-match achievement, where one ranked match is one complete mirrored
+    set.** Aureate Warden and Regent Lance share the durable
+    `achievement/ranked-matches-100` source and are granted together after an
+    account completes 100 ranked sets across all owned bots and rulesets. The
+    six internal simulations are fairness arms of one user-facing match, not
+    six progression events. Evaluation runs after set finalization.
+    Same-owner sets count once per account; the grant ledger makes retries
+    idempotent; a data migration backfills existing qualifiers. The bot
+    manifest recommends Regent Lance as its default companion in the
+    appearance UI without coupling or restricting later projectile choice.
+    Eclipse Bloom + Null Seed and Redshift Crucible + Crucible Splitter remain
+    source-only concepts under `art/`: without runtime manifests or catalog
+    entries they are intentionally unavailable until a later unlock is
+    designed.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

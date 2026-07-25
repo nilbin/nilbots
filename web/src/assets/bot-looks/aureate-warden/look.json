@@ -1,0 +1,8 @@
+{
+  "id": "aureate-warden",
+  "label": "Aureate Warden",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#d9aa57",
+  "defaultProjectile": "regent-lance",
+  "scale": 1.24
+}

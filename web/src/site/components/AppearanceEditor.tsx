@@ -60,6 +60,20 @@ export default function AppearanceEditor({
     lookId !== bot.lookId ||
     projectileLookId !== bot.projectileLookId;
 
+  const selectLook = (nextLookId: string) => {
+    setLookId(nextLookId);
+    const defaultProjectile = botLook(nextLookId).defaultProjectileLookId;
+    if (
+      defaultProjectile &&
+      cosmeticItem(
+        catalog,
+        PROJECTILE_LOOK_KIND,
+        defaultProjectile,
+      )?.owned === true
+    )
+      setProjectileLookId(defaultProjectile);
+  };
+
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -121,7 +135,7 @@ export default function AppearanceEditor({
             Chassis
             <select
               value={lookId}
-              onChange={(event) => setLookId(event.target.value)}
+              onChange={(event) => selectLook(event.target.value)}
               className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
             >
               {botLooks.map((look) => (

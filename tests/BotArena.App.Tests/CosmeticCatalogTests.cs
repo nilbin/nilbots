@@ -30,7 +30,7 @@ public class CosmeticCatalogTests
     }
 
     [Fact]
-    public void DefaultCatalog_PinsTheFirstNonPaymentUnlocks()
+    public void DefaultCatalog_PinsTheNonPaymentUnlocks()
     {
         CosmeticCatalog catalog = CosmeticCatalog.LoadDefault();
 
@@ -48,8 +48,24 @@ public class CosmeticCatalogTests
         Assert.Equal(CosmeticUnlockEvents.Challenge, arcSpark.Unlock!.SourceKind);
         Assert.Equal(CosmeticUnlockEvents.FirstUnrankedMatch, arcSpark.Unlock.SourceId);
 
+        CosmeticCatalogItem aureateWarden =
+            Assert.IsType<CosmeticCatalogItem>(
+                catalog.Find(CosmeticCatalog.BotLookKind, "aureate-warden"));
+        CosmeticCatalogItem regentLance =
+            Assert.IsType<CosmeticCatalogItem>(
+                catalog.Find(CosmeticCatalog.ProjectileLookKind, "regent-lance"));
         Assert.Equal(
-            2,
+            CosmeticUnlockEvents.RankedMatches100,
+            aureateWarden.Unlock!.SourceId);
+        Assert.Equal(
+            CosmeticUnlockEvents.RankedMatches100,
+            regentLance.Unlock!.SourceId);
+        Assert.Equal(
+            aureateWarden.Unlock,
+            regentLance.Unlock);
+
+        Assert.Equal(
+            4,
             catalog.Items.Count(item =>
                 item.Availability == CosmeticCatalog.EntitlementAvailability));
     }

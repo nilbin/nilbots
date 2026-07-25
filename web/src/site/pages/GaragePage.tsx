@@ -77,6 +77,19 @@ export default function GaragePage() {
   const selectedProjectileOwned =
     cosmeticItem(catalog, PROJECTILE_LOOK_KIND, projectileLookId)?.owned ===
     true;
+  const selectLook = (nextLookId: string) => {
+    setLookId(nextLookId);
+    const defaultProjectile = botLook(nextLookId).defaultProjectileLookId;
+    if (
+      defaultProjectile &&
+      cosmeticItem(
+        catalog,
+        PROJECTILE_LOOK_KIND,
+        defaultProjectile,
+      )?.owned === true
+    )
+      setProjectileLookId(defaultProjectile);
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -157,7 +170,7 @@ export default function GaragePage() {
             Chassis
             <select
               value={lookId}
-              onChange={(event) => setLookId(event.target.value)}
+              onChange={(event) => selectLook(event.target.value)}
               className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
             >
               {looks.map((look) => (

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "items": [
     {
       "key": "bot-look:vanguard",
@@ -42,6 +42,18 @@
       }
     },
     {
+      "key": "bot-look:aureate-warden",
+      "kind": "bot-look",
+      "id": "aureate-warden",
+      "label": "Aureate Warden",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "ranked-matches-100",
+        "hint": "Complete 100 ranked matches."
+      }
+    },
+    {
       "key": "projectile-look:pulse-bolt",
       "kind": "projectile-look",
       "id": "pulse-bolt",
@@ -72,6 +84,18 @@
         "sourceKind": "challenge",
         "sourceId": "first-unranked-match",
         "hint": "Complete your first unranked challenge match."
+      }
+    },
+    {
+      "key": "projectile-look:regent-lance",
+      "kind": "projectile-look",
+      "id": "regent-lance",
+      "label": "Regent Lance",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "ranked-matches-100",
+        "hint": "Complete 100 ranked matches."
       }
     }
   ]

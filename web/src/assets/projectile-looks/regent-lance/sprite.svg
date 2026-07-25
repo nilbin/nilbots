@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <path fill="#fff" fill-opacity=".28"
+    d="m32 119 31-50 43-18 45 27-21 27-35-15-25 30z"/>
+  <path fill="#fff" fill-opacity=".28"
+    d="m32 137 31 50 43 18 45-27-21-27-35 15-25-30z"/>
+  <path fill="#fff" fill-opacity=".5"
+    d="m38 128 34-23 44 9 24 14-24 14-44 9z"/>
+  <path fill="#fff" fill-opacity=".72" fill-rule="evenodd"
+    d="M112 85a43 43 0 1 1 0 86 43 43 0 0 1 0-86Zm0 22a21 21 0 1 0 0 42 21 21 0 0 0 0-42Z"/>
+  <path fill="#fff"
+    d="m104 119 45-20 34 16 47 13-47 13-34 16-45-20 19-9z"/>
+  <path fill="#fff" fill-opacity=".62"
+    d="m146 106 40 10-15 12 15 12-40 10 18-22z"/>
+  <path fill="#fff" d="m197 115 35 13-35 13 11-13z"/>
+</svg>

@@ -268,6 +268,9 @@ presentation constant.
   weapon direction must remain readable around 48 px.
 - Record a stable ID, label, suggested accent, sprite filename, and render scale
   in the look's standalone `look.json`.
+- A look may declare `defaultProjectile` as a recommended companion. The
+  appearance UI selects that projectile with the chassis when both are owned,
+  but projectile choice remains independently editable.
 - A look belongs to the bot. Player projects set it in `botarena.json`:
 
   ```json
@@ -285,13 +288,16 @@ presentation constant.
   replay participants. Historical playback therefore does not consult the
   bot's current account record.
 
-Current looks are Vanguard, Bulwark, Needle, Orbiter, and Lancer. All five are
-genuine path-based SVGs. The four earlier generated PNGs remain under
+Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, and Aureate
+Warden. All six are genuine path-based SVGs. The earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
 Vanguard, Bulwark, Needle, and Orbiter are starter-accessible; Lancer is the
-first successful-build achievement unlock on the official service.
+first successful-build achievement unlock on the official service. Aureate
+Warden and its recommended Regent Lance projectile unlock together after an
+account completes 100 ranked matches. One ranked match is the complete
+six-game mirrored set.
 
 To create another look:
 
@@ -330,10 +336,11 @@ To create another look:
 - Legacy, missing, or unknown IDs fall back to Pulse Bolt. Cosmetic
   entitlements are checked when equipping, never when rendering a replay.
 
-Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, and Arc Spark.
-All four are genuine SVG masks. Pulse Bolt, Ion Orb, and Razor Shard are
+Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark, and
+Regent Lance. All five are genuine SVG masks. Pulse Bolt, Ion Orb, and Razor Shard are
 starter-accessible; Arc Spark unlocks after the account completes its first
-unranked challenge match on the official service.
+unranked challenge match on the official service. Regent Lance unlocks with
+Aureate Warden after 100 completed ranked matches.
 
 To create another projectile look:
 
@@ -379,11 +386,15 @@ production candidates, then normalized locally:
 - No text, branding, people, horizon, perspective, or scene-level spotlight.
 - Bot sources used a flat magenta removal background, no shadows, and one
   centered East-facing chassis.
-- The current five looks were authored directly as path-based SVG. Each
+- The original five looks were authored directly as path-based SVG. Each
   checked-in runtime SVG is its editable source and contains no embedded
   raster. The earlier generated PNGs for Vanguard, Bulwark, Needle, and Orbiter
   are retained only as unbundled art-direction references; their exact
   generation prompts predate the reproducible prompt log.
+- Aureate Warden and Regent Lance were authored as genuine SVG from separate
+  generated concept references. Eclipse Bloom + Null Seed and Redshift Crucible
+  + Crucible Splitter are retained under `art/` as reserved, unavailable
+  concepts; they have no runtime manifest or catalog entry.
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
