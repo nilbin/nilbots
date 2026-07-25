@@ -1,0 +1,115 @@
+# CLAUDE.md — mobile
+
+Scoped guide for `mobile/`. The repository root `CLAUDE.md` is canonical and still
+applies (contract regeneration, rules-change surfaces, commit conventions); this file
+only covers what is specific to the Expo app. Where the two overlap, root wins.
+
+The app is the nilbots site's companion: watch matches, follow the ladder, check your
+garage. It is a **spectator client**, not an authoring one — writing C# on a phone is
+the CLI's job.
+
+## Stack
+
+Expo SDK 57 · React Native 0.86 · expo-router (file routing) · TanStack Query ·
+TypeScript. Deliberately no state-management library, no component kit, no styling
+framework — see *Dependencies* below before adding one.
+
+## Folders
+
+```
+src/
+  api/         Generated schema + the typed fetch client. NOTHING else talks HTTP.
+  app/         Routes only. File path = URL path (expo-router).
+  components/  Reusable, presentational, route-agnostic.
+    ui/        Primitives with no domain knowledge (Screen, Card, StateView…).
+  hooks/       Data access — one hook per resource, wrapping TanStack Query.
+  theme/       Design tokens. No components.
+```
+
+Rules that keep this honest:
+
+- **Routes are thin.** A file in `app/` resolves params, calls a hook, and renders
+  components. No `fetch`, no `useQuery`, no business logic, no `StyleSheet` blocks
+  longer than the JSX. If a route file passes ~120 lines, extract a component.
+- **`api/client.ts` is the only module that calls `fetch`.** Screens and components
+  never construct URLs.
+- **`components/ui/` may not import from `api/` or `hooks/`.** Primitives take props.
+  A primitive that knows what a bot is belongs in `components/`, not `components/ui/`.
+- **One component per file**, named for the file, matching the root convention.
+
+## Types
+
+Response types come from `src/api/schema.d.ts`, generated from the server. Never
+hand-write a response shape; run `bash scripts/generate-api-clients.sh` from the repo
+root and commit the result. CI's `contract-drift` job fails on a stale client.
+
+Alias generated types in `api/client.ts` (`export type BotSummary = Schemas[…]`) so
+screens import a short domain name rather than indexing `components['schemas']`
+everywhere.
+
+## Data access
+
+One hook per resource in `hooks/`, wrapping `useQuery`, owning its own query key and
+cadence. Screens never pass a `queryKey` — the hook decides.
+
+Query keys are arrays namespaced by resource: `['bots']`, `['bot', key]`,
+`['match', id, 'live']`.
+
+**Polling belongs in the hook.** `/api/matches/{id}/live` is a polling endpoint by
+design (there is no socket), so its hook sets `refetchInterval` and stops polling once
+the match completes. Do not scatter `setInterval` through components.
+
+## Every screen handles four states
+
+Loading, error, empty, and content — always all four. `components/ui/StateView`
+exists so this is one component rather than four ad-hoc branches per screen, and so
+"no ranked sets yet" reads like intent rather than a bug.
+
+The API returns real nulls (a deleted bot yields a null name and accent on a match
+set). The generated types tell you where. Never `!` past one — render a fallback.
+
+## Styling
+
+`StyleSheet.create` plus tokens from `theme/arena.ts`. Those tokens mirror
+`web/src/index.css`; keep them in sync by hand — they are design tokens, not a
+contract, and are too small to justify a build step.
+
+No inline colour literals outside `theme/`. If you need a colour that is not a token,
+add the token.
+
+Bot accents are **server data, not tokens** — `bot.accent` is a per-bot hex string and
+is used directly.
+
+## Dependencies
+
+The current set is small on purpose. Before adding one, note that:
+
+- state management is not needed — TanStack Query owns server state, `useState`
+  covers the rest;
+- a component kit (Paper, Tamagui, gluestack) will fight the arena aesthetic;
+- NativeWind was considered and rejected — its Tailwind-v4 support is unsettled and it
+  adds a Babel/Metro layer to debug.
+
+Use `npx expo install`, never bare `npm install`, so versions stay SDK-compatible.
+
+## The arena viewer
+
+Match playback renders in a **WebView** running the site's existing single-file
+`viewer.html`, not a reimplemented renderer. `web/src/render/drawArena.ts` is ~550
+lines of Canvas2D over ~5.7MB of WebP wall atlases and SVG sprites; porting it to Skia
+is a real project and the renderer is still moving.
+
+The cost that matters is the texture decode and sprite bake, which is **per WebView
+instance, not per match**. So: mount one WebView, keep it alive, and push replays in
+over `postMessage`. Never remount it per match — that pays the whole bake every time
+and is exactly the stutter this design avoids.
+
+## Verifying
+
+`npx tsc --noEmit` must be clean before committing. Run the app on the iOS Simulator
+(`npx expo run:ios`, or `npx expo start` then `i`) rather than trusting the web target
+— react-native-web silently tolerates things a device does not, and WebView behaviour
+differs entirely.
+
+For local development the API defaults to the Metro host on port 8080; override with
+`EXPO_PUBLIC_NILBOTS_API`. See `src/api/config.ts`.
