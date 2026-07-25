@@ -25,9 +25,9 @@ public static class ApplicationTelemetry
             { "outcome", outcome },
         };
         if (accountId is Guid account)
-            tags.Add("account.id", account);
+            Activity.Current?.SetTag("account.id", account);
         if (botId is Guid bot)
-            tags.Add("bot.id", bot);
+            Activity.Current?.SetTag("bot.id", bot);
         Operations.Add(1, tags);
         Activity.Current?.SetTag("application.outcome", outcome);
     }
