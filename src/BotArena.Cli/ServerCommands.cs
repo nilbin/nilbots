@@ -283,6 +283,7 @@ public static class ServerCommands
                     name = project.Manifest.Name,
                     accent = project.Accent,
                     lookId = project.LookId,
+                    projectileLookId = project.ProjectileLookId,
                 }).GetAwaiter().GetResult();
             if (!created.IsSuccessStatusCode)
             {
@@ -305,6 +306,7 @@ public static class ServerCommands
                 entryType = project.Manifest.EntryType,
                 files,
                 lookId = project.LookId,
+                projectileLookId = project.ProjectileLookId,
             }).GetAwaiter().GetResult();
         if (!submitted.IsSuccessStatusCode)
         {

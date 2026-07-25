@@ -43,12 +43,14 @@ public static class BuiltInBotSeeder
                     Slug = name,
                     Accent = BuiltInBotCatalog.Accent(name),
                     LookId = BuiltInBotCatalog.Look(name),
+                    ProjectileLookId = BuiltInBotCatalog.ProjectileLook(name),
                 };
                 db.Bots.Add(bot);
             }
             else
             {
                 bot.LookId = BuiltInBotCatalog.Look(name);
+                bot.ProjectileLookId = BuiltInBotCatalog.ProjectileLook(name);
             }
             // One active version per catalog artifact hash: reseeded when the artifact changes.
             if (!bot.Versions.Any(v => v.ArtifactHash == artifactHash))

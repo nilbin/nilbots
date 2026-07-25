@@ -80,6 +80,10 @@ web/src/assets/bot-looks/<look-id>/
   look.json
   sprite.png | sprite.svg
 
+web/src/assets/projectile-looks/<look-id>/
+  look.json
+  sprite.svg
+
 web/src/render/
   arenaThemes.ts     data loader and legacy fallbacks
   drawArena.ts       layered replay-driven rendering and effects
@@ -270,7 +274,8 @@ presentation constant.
   {
     "appearance": {
       "accent": "#22d3ee",
-      "look": "needle"
+      "look": "needle",
+      "projectile": "razor-shard"
     }
   }
   ```
@@ -301,6 +306,43 @@ To create another look:
 5. Verify the sprite never obscures neighbouring cells or appears smaller than
    health and projectile indicators. Inspect at actual gameplay size and at
    device pixel ratios 1 and 2; a large standalone preview is insufficient.
+
+## Projectile-look contract
+
+- Genuine SVG with `viewBox="0 0 256 256"`, transparent and facing East/right.
+- The sprite is a white alpha mask for one compact projectile head. Opacity may
+  create internal energy layers, but it must not contain fixed colors, embedded
+  rasters, text, a floor, cast shadow, trail, glow, impact, or scenery.
+- The silhouette must remain identifiable around 16–28 gameplay pixels and at
+  cardinal and diagonal headings. It must not visually claim a wider hitbox,
+  longer path, different speed, range, collision, or damage.
+- Record a stable ID, label, sprite filename, and gameplay-tile scale in
+  `web/src/assets/projectile-looks/<id>/look.json`. Scale stays within 0.3–0.7.
+- The renderer tints the alpha mask with the bot's locally contrast-adjusted
+  accent. It owns the shared trail, glow, muzzle treatment, fog visibility,
+  impact effects, and interpolation over authoritative traversal paths.
+- Projectile appearance belongs to the bot beside accent and chassis. The CLI
+  reads `appearance.projectile`; the server stores it on the bot and snapshots
+  it into match participants and replays. Historical playback never consults
+  the current bot or account.
+- Legacy, missing, or unknown IDs fall back to Pulse Bolt. Cosmetic
+  entitlements are checked when equipping, never when rendering a replay.
+
+Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, and Arc Spark.
+All four are genuine SVG masks and starter-accessible.
+
+To create another projectile look:
+
+1. Design the gameplay-scale silhouette first on the canonical 256 viewBox.
+2. Add opacity layers only where they survive tinting and downscaling. Do not
+   auto-trace or embed a raster.
+3. Add its manifest and sprite; no TypeScript registry edit is required.
+4. Test launch, stationary and imminent states, speed-one and speed-two
+   movement, bends, impact, light/dark themes, fog, DPR 1/2, and the bot
+   appearance editor.
+5. Compare the self-contained viewer size before and after. A growing catalog
+   eventually requires per-replay asset packaging rather than bundling every
+   cosmetic into every viewer.
 
 ## Animation contract
 
@@ -357,7 +399,8 @@ gameplay scale.
 2. Real replays exercise movement, turns, every changed bot look, projectiles,
    hits, destruction, fog, and zone visuals.
 3. The viewer remains readable at desktop and phone widths.
-4. Replay theme/look IDs round-trip and are included in replay hashes for new
-   matches; map presentation round-trips; legacy null fields remain omitted.
+4. Replay theme, bot-look, and projectile-look IDs round-trip and are included
+   in replay hashes for new matches; map presentation round-trips; legacy null
+   fields remain omitted.
 5. Generate local review viewers first. Publish through the private
    replay-highlights workflow only when the visual iteration is approved.

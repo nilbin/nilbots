@@ -20,6 +20,7 @@ public sealed record BotAppearance
 {
     [JsonPropertyName("accent")] public string? Accent { get; init; }
     [JsonPropertyName("look")] public string? Look { get; init; }
+    [JsonPropertyName("projectile")] public string? Projectile { get; init; }
 }
 
 /// <summary>Pinned toolchain identity. Every value participates in the build-cache key —
@@ -105,6 +106,17 @@ public sealed class BotProject
             if (!IsPresentationId(value))
                 throw new InvalidOperationException(
                     $"Invalid appearance.look '{value}' in botarena.json; use a lowercase kebab-case ID.");
+            return value;
+        }
+    }
+    public string ProjectileLookId
+    {
+        get
+        {
+            string value = Manifest.Appearance?.Projectile ?? "pulse-bolt";
+            if (!IsPresentationId(value))
+                throw new InvalidOperationException(
+                    $"Invalid appearance.projectile '{value}' in botarena.json; use a lowercase kebab-case ID.");
             return value;
         }
     }

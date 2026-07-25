@@ -401,6 +401,7 @@ public sealed class JobWorker(
                         ArtifactHash = p.ArtifactHashSnapshot,
                         Accent = p.AccentSnapshot,
                         LookId = p.LookIdSnapshot,
+                        ProjectileLookId = p.ProjectileLookIdSnapshot,
                     }).ToArray(),
                 });
 

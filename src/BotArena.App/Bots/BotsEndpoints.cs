@@ -10,11 +10,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Bots;
 
-public sealed record CreateBotRequest(string Name, string? Accent, string? LookId = null);
+public sealed record CreateBotRequest(
+    string Name,
+    string? Accent,
+    string? LookId = null,
+    string? ProjectileLookId = null);
 public sealed record SubmitVersionRequest(
     string EntryType,
     List<SourceFileDto> Files,
-    string? LookId = null);
+    string? LookId = null,
+    string? ProjectileLookId = null);
+public sealed record UpdateBotAppearanceRequest(
+    string Accent,
+    string LookId,
+    string ProjectileLookId);
 public sealed record SourceFileDto(string Name, string Content);
 
 public static class BotsEndpoints
@@ -33,6 +42,7 @@ public static class BotsEndpoints
                     b.Slug,
                     b.Accent,
                     b.LookId,
+                    b.ProjectileLookId,
                     b.CreatedAt,
                     // One rating per rules-version ladder (DECISIONS #54), newest first.
                     Ratings = b.Ratings
@@ -67,6 +77,13 @@ public static class BotsEndpoints
             string lookId = (request.LookId ?? "vanguard").Trim().ToLowerInvariant();
             if (!IsPresentationId(lookId))
                 return Results.Problem("Bot look must be a lowercase kebab-case ID.", statusCode: 400);
+            string projectileLookId = (request.ProjectileLookId ?? "pulse-bolt")
+                .Trim()
+                .ToLowerInvariant();
+            if (!IsPresentationId(projectileLookId))
+                return Results.Problem(
+                    "Projectile look must be a lowercase kebab-case ID.",
+                    statusCode: 400);
             var bot = new Bot
             {
                 OwnerUserId = userId,
@@ -74,10 +91,19 @@ public static class BotsEndpoints
                 Slug = slug,
                 Accent = accent,
                 LookId = lookId,
+                ProjectileLookId = projectileLookId,
             };
             db.Bots.Add(bot);
             await db.SaveChangesAsync();
-            return Results.Ok(new { bot.Id, bot.Name, bot.Slug, bot.Accent, bot.LookId });
+            return Results.Ok(new
+            {
+                bot.Id,
+                bot.Name,
+                bot.Slug,
+                bot.Accent,
+                bot.LookId,
+                bot.ProjectileLookId,
+            });
         }).RequireAuthorization();
 
         // Keyed by slug OR id. Every bot has a unique, immutable slug, so the public
@@ -100,6 +126,7 @@ public static class BotsEndpoints
                 bot.Slug,
                 bot.Accent,
                 bot.LookId,
+                bot.ProjectileLookId,
                 bot.CreatedAt,
                 Owner = owner,
                 IsOwner = isOwner,
@@ -123,6 +150,54 @@ public static class BotsEndpoints
                     }),
             });
         });
+
+        // Appearance is mutable independently of source versions. This endpoint is
+        // also the future entitlement-enforcement boundary: ownership is checked when
+        // equipping, while historical match snapshots remain immutable.
+        group.MapPut(
+            "/{botId:guid}/appearance",
+            async (
+                Guid botId,
+                UpdateBotAppearanceRequest request,
+                ClaimsPrincipal principal,
+                AppDbContext db) =>
+            {
+                var bot = await db.Bots.SingleOrDefaultAsync(b => b.Id == botId);
+                if (bot is null)
+                    return Results.NotFound();
+                if (principal.UserId() is not Guid userId || userId != bot.OwnerUserId)
+                    return Results.Forbid();
+
+                string accent = request.Accent?.Trim() ?? "";
+                if (!System.Text.RegularExpressions.Regex.IsMatch(accent, "^#[0-9a-fA-F]{6}$"))
+                    return Results.Problem(
+                        "Accent must be a six-digit hexadecimal color.",
+                        statusCode: 400);
+                string lookId = request.LookId?.Trim().ToLowerInvariant() ?? "";
+                if (!IsPresentationId(lookId))
+                    return Results.Problem(
+                        "Bot look must be a lowercase kebab-case ID.",
+                        statusCode: 400);
+                string projectileLookId =
+                    request.ProjectileLookId?.Trim().ToLowerInvariant() ?? "";
+                if (!IsPresentationId(projectileLookId))
+                    return Results.Problem(
+                        "Projectile look must be a lowercase kebab-case ID.",
+                        statusCode: 400);
+
+                bot.Accent = accent;
+                bot.LookId = lookId;
+                bot.ProjectileLookId = projectileLookId;
+                await db.SaveChangesAsync();
+                return Results.Ok(new
+                {
+                    bot.Id,
+                    bot.Accent,
+                    bot.LookId,
+                    bot.ProjectileLookId,
+                });
+            })
+            .RequireAuthorization();
 
         // Slim polling view (gen-2 finding #8): build-status pollers shouldn't re-download
         // every version's sources and log on each poll.
@@ -213,6 +288,12 @@ public static class BotsEndpoints
             string? lookId = request.LookId?.Trim().ToLowerInvariant();
             if (lookId is not null && !IsPresentationId(lookId))
                 return Results.Problem("Bot look must be a lowercase kebab-case ID.", statusCode: 400);
+            string? projectileLookId =
+                request.ProjectileLookId?.Trim().ToLowerInvariant();
+            if (projectileLookId is not null && !IsPresentationId(projectileLookId))
+                return Results.Problem(
+                    "Projectile look must be a lowercase kebab-case ID.",
+                    statusCode: 400);
             try
             {
                 // Fail fast on obviously invalid submissions; the job re-validates.
@@ -229,6 +310,8 @@ public static class BotsEndpoints
 
             if (lookId is not null)
                 bot.LookId = lookId;
+            if (projectileLookId is not null)
+                bot.ProjectileLookId = projectileLookId;
             CompilerSubmissionDecision decision = await submissions.EnqueueAsync(
                 bot.Id,
                 userId,
@@ -299,6 +382,7 @@ public static class BotsEndpoints
                     b.Slug,
                     b.Accent,
                     b.LookId,
+                    b.ProjectileLookId,
                     LatestVersion = b.Versions.OrderByDescending(v => v.VersionNumber)
                         .Select(v => new { v.VersionNumber, Status = v.Status.ToString(), v.IsActive })
                         .FirstOrDefault(),

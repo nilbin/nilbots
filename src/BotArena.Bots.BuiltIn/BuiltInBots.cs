@@ -143,6 +143,15 @@ public static class BuiltInBotCatalog
         _ => "vanguard",
     };
 
+    public static string ProjectileLook(string name) => name.ToLowerInvariant() switch
+    {
+        "idle" => "ion-orb",
+        "wander" => "arc-spark",
+        "hunter" => "pulse-bolt",
+        "coward" => "razor-shard",
+        _ => "pulse-bolt",
+    };
+
     /// <summary>One line per opponent, so a newcomer can pick a training target
     /// instead of reverse-engineering behaviour from replays (player-test finding).
     /// Describe what each DOES, including the weakness worth exploiting — these are

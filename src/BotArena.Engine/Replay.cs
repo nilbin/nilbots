@@ -14,7 +14,8 @@ public sealed record ReplayParticipant(
     int SpawnX,
     int SpawnY,
     Direction SpawnFacing,
-    string? LookId = null);
+    string? LookId = null,
+    string? ProjectileLookId = null);
 
 public sealed record ReplayHeader
 {

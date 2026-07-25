@@ -194,6 +194,7 @@ public static class RankedEndpoints
                                 p.NameSnapshot,
                                 p.AccentSnapshot,
                                 p.LookIdSnapshot,
+                                p.ProjectileLookIdSnapshot,
                             }),
                     };
                 }),
@@ -290,6 +291,7 @@ public static class RankedEndpoints
         NameSnapshot = bot.Name,
         AccentSnapshot = bot.Accent,
         LookIdSnapshot = bot.LookId,
+        ProjectileLookIdSnapshot = bot.ProjectileLookId,
         ArtifactHashSnapshot = version.ArtifactHash ?? "",
     };
 

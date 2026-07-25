@@ -28,8 +28,11 @@ of a replay's identity, so in-process and WASM hashes differ by design.
 — so North is (0,−1) and South is (0,+1).
 
 Choose the bot's replay chassis with `appearance.look` in `botarena.json`
-(`vanguard`, `bulwark`, `needle`, or `orbiter`). The look belongs to the bot
-and is snapshotted into each match, so historical replays do not change later.
+(`vanguard`, `bulwark`, `needle`, `orbiter`, or `lancer`) and its projectile
+with `appearance.projectile` (`pulse-bolt`, `ion-orb`, `razor-shard`, or
+`arc-spark`). Appearance belongs to the bot and is snapshotted into each match,
+so historical replays do not change later. You can also change accent, chassis,
+and projectile from the bot page without submitting a new code version.
 
 Practicing for a rules experiment? Add `"rules": "<name>"` to `botarena.json`
 and every `play`/`set` defaults to that ruleset (an explicit `--rules` flag

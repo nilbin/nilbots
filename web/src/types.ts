@@ -36,6 +36,8 @@ export interface ReplayParticipant {
   accent: string;
   /** Bot-owned immutable chassis identity. Absent only in legacy replays. */
   lookId?: string;
+  /** Bot-owned projectile silhouette. Absent only in legacy replays. */
+  projectileLookId?: string;
   spawnX: number;
   spawnY: number;
   spawnFacing: Direction;

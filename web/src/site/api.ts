@@ -31,6 +31,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 export const api = {
   get: <T>(url: string) => request<T>('GET', url),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, body),
+  put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body),
 };
 
 export interface Me {
@@ -51,6 +52,7 @@ export interface BotSummary {
   slug: string;
   accent: string;
   lookId: string;
+  projectileLookId: string;
   owner: string;
   /** One entry per rules-version ladder the bot has fought on, newest first. */
   ratings: LadderRating[];
@@ -64,6 +66,7 @@ export interface MyBot {
   slug: string;
   accent: string;
   lookId: string;
+  projectileLookId: string;
   latestVersion: { versionNumber: number; status: string; isActive: boolean } | null;
 }
 
@@ -73,6 +76,7 @@ export interface BotDetail {
   slug: string;
   accent: string;
   lookId: string;
+  projectileLookId: string;
   owner: string;
   isOwner: boolean;
   versions: {

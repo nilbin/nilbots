@@ -43,6 +43,7 @@ public static class MatchesEndpoints
                 MatchId = match.Id, Slot = 0, BotId = bot.Id, BotVersionId = version.Id,
                 NameSnapshot = bot.Name, AccentSnapshot = bot.Accent,
                 LookIdSnapshot = bot.LookId,
+                ProjectileLookIdSnapshot = bot.ProjectileLookId,
                 ArtifactHashSnapshot = version.ArtifactHash ?? "",
             });
             match.Participants.Add(new MatchParticipant
@@ -50,6 +51,7 @@ public static class MatchesEndpoints
                 MatchId = match.Id, Slot = 1, BotId = opponent.Id, BotVersionId = opponentVersion.Id,
                 NameSnapshot = opponent.Name, AccentSnapshot = opponent.Accent,
                 LookIdSnapshot = opponent.LookId,
+                ProjectileLookIdSnapshot = opponent.ProjectileLookId,
                 ArtifactHashSnapshot = opponentVersion.ArtifactHash ?? "",
             });
             db.Matches.Add(match);
@@ -115,6 +117,7 @@ public static class MatchesEndpoints
                         p.NameSnapshot,
                         p.AccentSnapshot,
                         p.LookIdSnapshot,
+                        p.ProjectileLookIdSnapshot,
                         Outcome = visible ? p.Outcome : null,
                         FinalHealth = visible ? p.FinalHealth : null,
                     }),
@@ -147,6 +150,7 @@ public static class MatchesEndpoints
                 Participants = match.Participants.OrderBy(p => p.Slot).Select(p => new
                 {
                     p.Slot, p.BotId, p.NameSnapshot, p.AccentSnapshot, p.LookIdSnapshot,
+                    p.ProjectileLookIdSnapshot,
                     p.ArtifactHashSnapshot,
                     Outcome = visible ? p.Outcome : null,
                     FinalHealth = visible ? p.FinalHealth : null,

@@ -7,6 +7,14 @@ export interface BotLook {
   scale: number;
 }
 
+export interface ProjectileLook {
+  id: string;
+  label: string;
+  image: HTMLImageElement | null;
+  imageUrl: string;
+  scale: number;
+}
+
 export interface WallFamily {
   id: string;
   label: string;
@@ -77,6 +85,13 @@ interface BotLookManifest {
   scale: number;
 }
 
+interface ProjectileLookManifest {
+  id: string;
+  label: string;
+  sprite: string;
+  scale: number;
+}
+
 const themeManifests = import.meta.glob<ThemeManifest>(
   '../assets/themes/*/theme.json',
   { eager: true, import: 'default' },
@@ -93,11 +108,21 @@ const lookImages = import.meta.glob<string>(
   ['../assets/bot-looks/*/*.png', '../assets/bot-looks/*/*.svg'],
   { eager: true, import: 'default', query: '?url' },
 );
+const projectileLookManifests = import.meta.glob<ProjectileLookManifest>(
+  '../assets/projectile-looks/*/look.json',
+  { eager: true, import: 'default' },
+);
+const projectileLookImages = import.meta.glob<string>(
+  '../assets/projectile-looks/*/*.svg',
+  { eager: true, import: 'default', query: '?url' },
+);
 
 const themes = buildThemes();
 const looks = buildLooks();
+const projectileLooks = buildProjectileLooks();
 const defaultThemeId = 'control-room';
 const defaultLookId = 'vanguard';
+const defaultProjectileLookId = 'pulse-bolt';
 const legacySlotLooks = ['vanguard', 'bulwark'] as const;
 
 /**
@@ -126,6 +151,19 @@ export function botLook(lookId?: string, legacySlot = 0): BotLook {
 
 export function botLookOptions(): readonly BotLook[] {
   return [...looks.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export function projectileLook(lookId?: string): ProjectileLook {
+  return (
+    (lookId ? projectileLooks.get(lookId) : undefined) ??
+    requireEntry(projectileLooks, defaultProjectileLookId, 'projectile look')
+  );
+}
+
+export function projectileLookOptions(): readonly ProjectileLook[] {
+  return [...projectileLooks.values()].sort((a, b) =>
+    a.label.localeCompare(b.label),
+  );
 }
 
 export function presentationAccent(
@@ -212,6 +250,28 @@ function buildLooks(): Map<string, BotLook> {
       id: manifest.id,
       label: manifest.label,
       suggestedAccent: manifest.suggestedAccent,
+      image: loadImage(imageUrl),
+      imageUrl,
+      scale: manifest.scale,
+    });
+  }
+  return result;
+}
+
+function buildProjectileLooks(): Map<string, ProjectileLook> {
+  const result = new Map<string, ProjectileLook>();
+  for (const [manifestPath, manifest] of Object.entries(projectileLookManifests)) {
+    const directory = manifestPath.slice(0, manifestPath.lastIndexOf('/'));
+    const imageUrl = requireAsset(
+      projectileLookImages,
+      `${directory}/${manifest.sprite}`,
+      manifest.id,
+    );
+    if (result.has(manifest.id))
+      throw new Error(`Duplicate projectile look ID '${manifest.id}'.`);
+    result.set(manifest.id, {
+      id: manifest.id,
+      label: manifest.label,
       image: loadImage(imageUrl),
       imageUrl,
       scale: manifest.scale,

@@ -8,6 +8,7 @@ public class Bot
     public required string Slug { get; set; }
     public string Accent { get; set; } = "#22d3ee";
     public string LookId { get; set; } = "vanguard";
+    public string ProjectileLookId { get; set; } = "pulse-bolt";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<BotVersion> Versions { get; set; } = [];
     public List<BotRating> Ratings { get; set; } = [];

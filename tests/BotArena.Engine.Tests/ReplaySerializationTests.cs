@@ -25,7 +25,9 @@ public class ReplaySerializationTests
         var document = ReplaySerializer.FromJson(ReplaySerializer.ToJson(run.Replay));
         Assert.Null(document.Result.WinnerSlot);
         Assert.Null(document.Header.MaxHealth);
+        Assert.Null(document.Header.Participants[0].ProjectileLookId);
         Assert.DoesNotContain("\"maxHealth\"", ReplaySerializer.ToCanonicalJson(run.Replay));
+        Assert.DoesNotContain("\"projectileLookId\"", ReplaySerializer.ToCanonicalJson(run.Replay));
         Assert.Equal(run.ReplayHash, document.ReplayHash);
     }
 
@@ -76,12 +78,14 @@ public class ReplaySerializationTests
                     Name = "a",
                     Runtime = new ScriptedRuntime(BotAction.Shoot, BotAction.Wait),
                     LookId = "needle",
+                    ProjectileLookId = "razor-shard",
                 },
                 new MatchParticipantConfig
                 {
                     Name = "b",
                     Runtime = new ScriptedRuntime(BotAction.Wait, BotAction.Wait),
                     LookId = "orbiter",
+                    ProjectileLookId = "ion-orb",
                 },
             ],
         });
@@ -93,6 +97,8 @@ public class ReplaySerializationTests
         Assert.Equal("collapsed-cover", Assert.Single(document.Header.Presentation.WallGroups).Family);
         Assert.Equal("needle", document.Header.Participants[0].LookId);
         Assert.Equal("orbiter", document.Header.Participants[1].LookId);
+        Assert.Equal("razor-shard", document.Header.Participants[0].ProjectileLookId);
+        Assert.Equal("ion-orb", document.Header.Participants[1].ProjectileLookId);
         Assert.Equal(5, document.Header.MaxHealth);
         Assert.Equal(10, document.Header.ControlPressureLimit);
         Assert.True(document.Header.ControlBySoleOccupancy);

@@ -1431,6 +1431,23 @@ before picking a number.*
      backfill and a write-path invariant, and at 665 matches — or at a plausible
      year-one 30k, where the same case costs about 20 ms — it buys nothing. Revisit
      when the arena is large enough for that to be felt.
+101. **Projectile looks are bot-owned SVG masks; cosmetic entitlement is
+    account-owned and enforced when equipping, not when replaying.** Four
+    starter looks—Pulse Bolt, Ion Orb, Razor Shard, and Arc Spark—are discovered
+    from standalone manifests. Their 256-viewBox East-facing SVGs define only
+    the projectile-head silhouette; the renderer tints them with the locally
+    contrast-adjusted bot accent and retains one truthful implementation of
+    trails, glow, fog, traversal timing, and impact. `appearance.projectile`
+    flows through local play and submit, the bot record, match-participant
+    snapshot, and optional replay-participant field; missing/legacy IDs fall
+    back to Pulse Bolt. A dedicated authenticated appearance endpoint and bot
+    UI update accent, chassis, and projectile without a code submission, while
+    old matches remain immutable. Future gated cosmetics use a catalog plus
+    account grant ledger with achievement/challenge/promotion sources; no
+    cosmetic may affect gameplay. Payments are explicitly deferred to a later
+    commerce project. Viewing never rechecks ownership, and client-visible art
+    is not DRM. A larger catalog must stop embedding every cosmetic into every
+    self-contained replay.
 
 ## Deferred decisions
 

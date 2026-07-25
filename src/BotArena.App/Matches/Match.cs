@@ -65,6 +65,7 @@ public class MatchParticipant
     public required string NameSnapshot { get; set; }
     public required string AccentSnapshot { get; set; }
     public string LookIdSnapshot { get; set; } = "vanguard";
+    public string ProjectileLookIdSnapshot { get; set; } = "pulse-bolt";
     public string ArtifactHashSnapshot { get; set; } = "";
     public string? Outcome { get; set; }
     public int? FinalHealth { get; set; }

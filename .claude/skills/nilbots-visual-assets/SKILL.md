@@ -1,6 +1,6 @@
 ---
 name: nilbots-visual-assets
-description: Create, revise, bake, and validate nilbots arena themes and bot looks. Use when work involves generated material sources, floor or wall textures, topology atlases, theme manifests, map presentation families, bot chassis PNG/SVG assets, visual bundle size, or gameplay-scale art review.
+description: Create, revise, bake, and validate nilbots arena themes, bot looks, and projectile looks. Use when work involves generated material sources, floor or wall textures, topology atlases, theme manifests, map presentation families, bot chassis or projectile PNG/SVG assets, visual bundle size, or gameplay-scale art review.
 ---
 
 # Nilbots Visual Assets
@@ -56,6 +56,31 @@ encoding, and the theme-wide runtime size check. Do not hand-edit its outputs.
 
 Bot appearance belongs to the bot and is snapshotted into matches and replays.
 Do not introduce slot-owned selection except the existing legacy fallback.
+
+## Projectile-look workflow
+
+1. Start with genuine SVG on a transparent `viewBox="0 0 256 256"`, authored
+   facing East. Current projectile sprites are white alpha masks: opacity may
+   shape internal energy layers, but fixed colors, embedded rasters, floors,
+   shadows, trails, and glows do not belong in the sprite.
+2. Keep one compact projectile head centered with generous transparent
+   padding. It must remain distinct around 16–28 gameplay pixels without
+   appearing wider than its authoritative tile or implying a different
+   hitbox, path, speed, range, or damage.
+3. Add `web/src/assets/projectile-looks/<id>/look.json` plus `sprite.svg`.
+   Discovery is manifest-driven; do not add a TypeScript registry. Keep scale
+   within the tested 0.3–0.7 gameplay-tile range.
+4. The renderer tints the mask with the bot accent and owns the common trail,
+   glow, local contrast adaptation, fog truthfulness, and interpolation across
+   authoritative replay traversals. Do not bake those effects into one look.
+5. Test all cardinal and diagonal headings, launch, speed-one and speed-two
+   traversal, bends, impact, light and dark themes, fog, DPR 1/2, and the
+   appearance-editor preview.
+
+Projectile appearance belongs to the bot beside its chassis and accent. The
+bot record snapshots it into each match and replay. Legacy or missing IDs use
+the default Pulse Bolt. Entitlements authorize equipping a look; they never
+change replay rendering or gameplay.
 
 ## Validation
 

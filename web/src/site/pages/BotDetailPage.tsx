@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { botLook } from '../../render/arenaThemes';
+import ProjectilePreview from '../../components/ProjectilePreview';
+import { botLook, projectileLook } from '../../render/arenaThemes';
+import AppearanceEditor from '../components/AppearanceEditor';
 import { api, type BotDetail, type BotSummary, type Meta } from '../api';
 
 const STARTER_SOURCE = `using BotArena.Sdk;
@@ -72,10 +74,11 @@ export default function BotDetailPage() {
     );
   if (!bot) return <p className="text-sm text-arena-dim">Loading…</p>;
   const look = botLook(bot.lookId);
+  const projectile = projectileLook(bot.projectileLookId);
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex items-center gap-3">
+      <header className="flex flex-wrap items-center gap-3">
         <span
           className="flex size-12 items-center justify-center rounded-lg border border-arena-edge bg-arena-panel"
           style={{ boxShadow: `inset 0 -2px 0 ${bot.accent}55` }}
@@ -84,9 +87,16 @@ export default function BotDetailPage() {
         </span>
         <h1 className="text-2xl font-black tracking-wide">{bot.name}</h1>
         <span className="text-sm text-arena-dim">
-          {look.label} · by {bot.owner}
+          {look.label} · {projectile.label} · by {bot.owner}
         </span>
+        <ProjectilePreview
+          look={projectile}
+          accent={bot.accent}
+          className="h-7 w-14"
+        />
       </header>
+
+      {bot.isOwner && <AppearanceEditor bot={bot} onSaved={load} />}
 
       <ChallengePanel bot={bot} />
 

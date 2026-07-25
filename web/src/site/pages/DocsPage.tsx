@@ -106,7 +106,7 @@ public sealed class MyBot : IBot
         <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`curl -c jar -H 'Content-Type: application/json' \\
   -d '{"displayName":"Me","email":"me@x","password":"..."}' <server>/api/accounts/register
 curl -b jar -H 'Content-Type: application/json' \\
-  -d '{"name":"MyBot","accent":"#22d3ee","lookId":"vanguard"}' <server>/api/bots
+  -d '{"name":"MyBot","accent":"#22d3ee","lookId":"vanguard","projectileLookId":"pulse-bolt"}' <server>/api/bots
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status

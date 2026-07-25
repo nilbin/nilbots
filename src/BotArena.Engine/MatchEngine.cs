@@ -12,6 +12,9 @@ public sealed class MatchParticipantConfig
     /// <summary>Immutable presentation identity copied into the replay. It has no
     /// simulation effect and belongs to the bot, not its match slot or map theme.</summary>
     public string? LookId { get; init; }
+    /// <summary>Immutable projectile presentation identity copied into the replay.
+    /// It changes no trajectory, timing, collision, or damage.</summary>
+    public string? ProjectileLookId { get; init; }
 }
 
 public sealed class MatchConfiguration
@@ -238,7 +241,8 @@ public sealed class MatchEngine
             Participants = configuration.Participants
                 .Select((p, slot) => new ReplayParticipant(
                     slot, p.Name, p.RuntimeKind, p.ArtifactHash, p.Accent,
-                    spawns[slot].X, spawns[slot].Y, spawns[slot].Facing, p.LookId))
+                    spawns[slot].X, spawns[slot].Y, spawns[slot].Facing,
+                    p.LookId, p.ProjectileLookId))
                 .ToArray(),
         };
     }

@@ -3,6 +3,8 @@ import {
   arenaTheme,
   botLook,
   presentationAccent,
+  projectileLook,
+  type ProjectileLook,
 } from './arenaThemes';
 import {
   adjustAccentForLuminance,
@@ -51,6 +53,45 @@ const projectileAngle: Record<ProjectileHeading, number> = {
   SouthWest: (3 * Math.PI) / 4,
   NorthWest: (-3 * Math.PI) / 4,
 };
+
+const tintedProjectileSprites = new Map<string, HTMLCanvasElement>();
+const maxTintedProjectileSprites = 32;
+
+function tintedProjectileSprite(
+  look: ProjectileLook,
+  accent: string,
+): HTMLCanvasElement | null {
+  if (
+    typeof document === 'undefined' ||
+    !look.image?.complete ||
+    look.image.naturalWidth <= 0
+  )
+    return null;
+  const key = `${look.id}:${accent}`;
+  const cached = tintedProjectileSprites.get(key);
+  if (cached) {
+    // Refresh insertion order so the bounded cache behaves as a tiny LRU.
+    tintedProjectileSprites.delete(key);
+    tintedProjectileSprites.set(key, cached);
+    return cached;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const sprite = canvas.getContext('2d');
+  if (!sprite) return null;
+  sprite.drawImage(look.image, 0, 0, canvas.width, canvas.height);
+  sprite.globalCompositeOperation = 'source-in';
+  sprite.fillStyle = accent;
+  sprite.fillRect(0, 0, canvas.width, canvas.height);
+  tintedProjectileSprites.set(key, canvas);
+  if (tintedProjectileSprites.size > maxTintedProjectileSprites) {
+    const oldest = tintedProjectileSprites.keys().next().value;
+    if (oldest !== undefined) tintedProjectileSprites.delete(oldest);
+  }
+  return canvas;
+}
 
 export interface DrawOptions {
   time: number;
@@ -505,14 +546,8 @@ export function drawArena(
       ctx.moveTo(-tile * 0.48, 0);
       ctx.lineTo(tile * 0.08, 0);
       ctx.stroke();
-      ctx.fillStyle = `rgba(238, 249, 255, ${0.95 * pulse})`;
-      ctx.beginPath();
-      ctx.moveTo(tile * 0.28, 0);
-      ctx.lineTo(-tile * 0.03, -tile * 0.11);
-      ctx.lineTo(-tile * 0.03, tile * 0.11);
-      ctx.closePath();
-      ctx.fill();
       ctx.restore();
+      drawProjectileHead(cx, cy, angle, ownerSlot, accent, 0.95 * pulse);
     }
 
     function headingBetween(
@@ -532,6 +567,37 @@ export function drawArena(
       if (dx < 0 && dy === 0) return 'West';
       return 'NorthWest';
     }
+  }
+
+  function drawProjectileHead(
+    cx: number,
+    cy: number,
+    angle: number,
+    ownerSlot: number,
+    accent: string,
+    alpha: number,
+  ): void {
+    const look = projectileLook(participants[ownerSlot]?.projectileLookId);
+    const sprite = tintedProjectileSprite(look, accent);
+    const size = tile * look.scale;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = Math.max(4, tile * 0.18);
+    if (sprite) {
+      ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+    } else {
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.44, 0);
+      ctx.lineTo(-size * 0.2, -size * 0.22);
+      ctx.lineTo(-size * 0.2, size * 0.22);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawHeardSounds(): void {
@@ -779,6 +845,14 @@ export function drawArena(
       ctx.arc(from.x, from.y, tile * 0.3, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+      drawProjectileHead(
+        tipX,
+        tipY,
+        Math.atan2(to.y - from.y, to.x - from.x),
+        event.slot ?? 0,
+        accentAt(authoredAccent, tipX, tipY),
+        alpha,
+      );
     }
   }
 

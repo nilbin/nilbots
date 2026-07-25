@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { botLook, botLookOptions } from '../../render/arenaThemes';
+import ProjectilePreview from '../../components/ProjectilePreview';
+import {
+  botLook,
+  botLookOptions,
+  projectileLook,
+  projectileLookOptions,
+} from '../../render/arenaThemes';
 import { api, type MyBot } from '../api';
 import { useAuth } from '../auth';
 
@@ -21,6 +27,7 @@ function CliAccess() {
 }
 
 const looks = botLookOptions();
+const projectileLooks = projectileLookOptions();
 
 export default function GaragePage() {
   const { user, loading } = useAuth();
@@ -28,6 +35,7 @@ export default function GaragePage() {
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('vanguard');
+  const [projectileLookId, setProjectileLookId] = useState('pulse-bolt');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -49,6 +57,7 @@ export default function GaragePage() {
         name,
         accent,
         lookId,
+        projectileLookId,
       });
       navigate(`/bots/${bot.id}`);
     } catch (e) {
@@ -70,6 +79,7 @@ export default function GaragePage() {
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {bots.map((bot) => {
               const look = botLook(bot.lookId);
+              const projectile = projectileLook(bot.projectileLookId);
               return (
                 <li key={bot.id}>
                   <Link
@@ -77,10 +87,15 @@ export default function GaragePage() {
                     className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
                   >
                     <img src={look.imageUrl} alt="" className="size-9 object-contain" />
+                    <ProjectilePreview
+                      look={projectile}
+                      accent={bot.accent}
+                      className="h-6 w-10"
+                    />
                     <span>
                       <span className="block font-semibold">{bot.name}</span>
                       <span className="block font-mono text-[10px] text-arena-dim">
-                        {look.label}
+                        {look.label} · {projectile.label}
                       </span>
                     </span>
                     <span className="ml-auto font-mono text-[11px] text-arena-dim">
@@ -137,6 +152,28 @@ export default function GaragePage() {
               ))}
             </select>
           </label>
+          <label className="flex flex-col gap-1 text-xs text-arena-dim">
+            Projectile
+            <select
+              value={projectileLookId}
+              onChange={(event) => setProjectileLookId(event.target.value)}
+              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
+            >
+              {projectileLooks.map((look) => (
+                <option key={look.id} value={look.id}>
+                  {look.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex items-center gap-3 rounded-md border border-arena-edge bg-arena-bg/60 px-3 py-2 text-xs text-arena-dim">
+            <ProjectilePreview
+              look={projectileLook(projectileLookId)}
+              accent={accent}
+              className="h-7 w-16"
+            />
+            {projectileLook(projectileLookId).label}
+          </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"

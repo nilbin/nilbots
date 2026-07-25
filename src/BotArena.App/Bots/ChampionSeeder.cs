@@ -19,7 +19,8 @@ public static class ChampionSeeder
         string Name,
         string EntryType,
         string? Accent,
-        string? LookId);
+        string? LookId,
+        string? ProjectileLookId);
 
     private static readonly JsonSerializerOptions ManifestJson = new(JsonSerializerDefaults.Web);
 
@@ -59,12 +60,14 @@ public static class ChampionSeeder
                     Slug = slug,
                     Accent = manifest.Accent ?? "#f59e0b",
                     LookId = manifest.LookId ?? "vanguard",
+                    ProjectileLookId = manifest.ProjectileLookId ?? "pulse-bolt",
                 };
                 db.Bots.Add(bot);
             }
             else
             {
                 bot.LookId = manifest.LookId ?? "vanguard";
+                bot.ProjectileLookId = manifest.ProjectileLookId ?? "pulse-bolt";
             }
             if (!bot.Versions.Any(v => v.ArtifactHash == artifactHash))
             {
