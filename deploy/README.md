@@ -119,7 +119,7 @@ workflow:
 
 **Publish the CLI before deploying a revision that changes the toolchain.**
 `nilbots submit` refuses to build against a server whose SDK or build-pipeline
-version it cannot match (DECISIONS #85), and the fix it prints —
+version it cannot match (DECISIONS #93), and the fix it prints —
 `dotnet tool update -g Nilbots` — only works if that CLI version exists. These
 stay two separate runs on purpose: a NuGet publish cannot be undone, so it must
 not happen as a side effect of a deploy that might fail. `publish-cli` asserts

@@ -887,9 +887,12 @@ configuration) and changing them is a version bump, not an edit.
     backup or physical redundancy.
 
 *Numbering note: entries 79-84 were originally appended as 70-75, colliding with
-the already-numbered 70-78 above. They are renumbered here and every citation of
-them in the repo was updated with them; commit messages predating this note may
-still cite the old numbers.*
+the already-numbered 70-78 above; 93 and 94 were likewise first written as 85 and
+86, which Codex's visual-asset entries had already taken. Both sets are
+renumbered here and every citation of them in the repo was updated with them;
+commit messages predating this note may still cite the old numbers. Two agents
+appending to one numbered log will keep doing this — check the tail of the file
+before picking a number.*
 
 79. **Inert player API is hidden, not deleted (DX-FINDINGS-NUGET-PLAYER).**
     The first evaluation against the PUBLISHED product — an agent with only
@@ -1159,7 +1162,22 @@ still cite the old numbers.*
     ban future PNG looks, but raster is now the documented exception and needs
     gameplay-scale evidence that vector would be dishonest or visually poorer.
 
-85. **Toolchain skew is a hard stop in `submit`, and a server may not be deployed
+92. **Production receives a verified deployment bundle over SSH; it does not
+    fetch the source repository.** The manual release workflow archives only
+    tracked `deploy/` control files from the exact Git revision that produced
+    the immutable GHCR images, hashes the archive, and transfers it with those
+    image digests. The VPS verifies the hash and safe archive paths, links the
+    candidate to persistent `.env`, certificate, and backup state, deploys it,
+    and advances `current` only after health checks pass. `previous` retains
+    the prior bundle and image digests for rollback. PostgreSQL, Garage, and
+    Caddy continue to live in named Docker volumes. This removes repository
+    credentials from the host, keeps private-repository deployment viable, and
+    prevents an operator from accidentally deploying an unreviewed `main`
+    checkout. Rejected: continuing to `git fetch` an exact SHA on the VPS. It
+    was deterministic but coupled production to repository access and made
+    tracked configuration rollback less explicit.
+
+93. **Toolchain skew is a hard stop in `submit`, and a server may not be deployed
     ahead of its CLI.** Owner question after #84: force the CLI to match the
     server so we avoid version hell? Yes — but forcing the client alone would
     have made it worse, because the hell does not come from players failing to
@@ -1206,20 +1224,32 @@ still cite the old numbers.*
     removes the coupling, and it trades an offline-capable tool for a networked
     one. Not worth it while releases are cheap.
 
-92. **Production receives a verified deployment bundle over SSH; it does not
-    fetch the source repository.** The manual release workflow archives only
-    tracked `deploy/` control files from the exact Git revision that produced
-    the immutable GHCR images, hashes the archive, and transfers it with those
-    image digests. The VPS verifies the hash and safe archive paths, links the
-    candidate to persistent `.env`, certificate, and backup state, deploys it,
-    and advances `current` only after health checks pass. `previous` retains
-    the prior bundle and image digests for rollback. PostgreSQL, Garage, and
-    Caddy continue to live in named Docker volumes. This removes repository
-    credentials from the host, keeps private-repository deployment viable, and
-    prevents an operator from accidentally deploying an unreviewed `main`
-    checkout. Rejected: continuing to `git fetch` an exact SHA on the VPS. It
-    was deterministic but coupled production to repository access and made
-    tracked configuration rollback less explicit.
+94. **Ratings have a floor of 100, enforced on the pair rather than per bot.** Owner
+    call while reviewing how pushed bots are rated. Nothing about a rating is
+    client-supplied — `POST /api/matches/ranked` carries only `{BotId,
+    OpponentBotId, Rules?}`, and the server picks the three maps, the seeds, both
+    slot orders, runs all six games from the stored artifacts, and computes elo in
+    `JobWorker.TryFinalizeSet`. The one lever an author has is WHICH opponent to
+    challenge, including a second bot they own, so a sacrificial bot could in
+    principle be drained to inflate a real one.
+    Measured before changing anything: the expectation term already kills that.
+    Sweeping a sacrifice pays ~7.5 rating on the tenth set, 0.9 on the hundredth,
+    0.18 on the five-hundredth, 0.0004 after 200k — a logarithmic decay no one can
+    outrun. So the floor is not the anti-farming mechanism; it is the hard bound
+    that keeps ratings out of absurd or negative territory and makes a bot at the
+    bottom worth exactly nothing to beat.
+    The subtlety is that a naive floor makes farming WORSE. Clamping only the
+    loser lets the winner take points the loser never lost, minting rating and
+    turning a floored bot into an infinite supply. `EloAdjustment.ForBotA` therefore
+    caps the transfer at what the loser can afford, so every set stays zero-sum and
+    neither side can cross the floor. Extracted as a pure function to be testable
+    without a database; `EloAdjustmentTests` pins the decay, the conservation, and
+    the floor from both directions.
+    NOT added: a provisional period, or a ban on both bots sharing an owner.
+    Same-owner sets are how you test a new version against your own champion, and
+    unranked trial fights (`POST /api/matches/challenge`) already exist for
+    practice that must not touch the ladder at all — a single match, caller-chosen
+    map and seed, no `MatchSetId`, so `TryFinalizeSet` never runs on it.
 
 ## Deferred decisions
 

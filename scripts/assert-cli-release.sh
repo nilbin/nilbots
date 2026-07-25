@@ -2,7 +2,7 @@
 # Guards the ordering between publishing the CLI and deploying a server.
 #
 # `nilbots submit` refuses to build against a server whose SDK or build-pipeline
-# version it cannot match (DECISIONS #85), and it tells the player to run
+# version it cannot match (DECISIONS #93), and it tells the player to run
 # `dotnet tool update -g Nilbots`. That advice only works if the published tool
 # for THIS revision exists — so:
 #

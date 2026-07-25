@@ -493,8 +493,8 @@ public sealed class JobWorker(
         var ratingB = await GetOrCreateRating(db, set.BotBId, ladder, cancellationToken);
         set.RatingABefore = ratingA.Rating;
         set.RatingBBefore = ratingB.Rating;
-        double expectedA = 1.0 / (1.0 + Math.Pow(10, (ratingB.Rating - ratingA.Rating) / 400.0));
-        double change = MatchSet.EloK * (scoreA / MatchSet.Games - expectedA);
+        double change = EloAdjustment.ForBotA(
+            ratingA.Rating, ratingB.Rating, scoreA, MatchSet.Games, MatchSet.EloK);
         set.RatingChangeA = change;
         set.RatingChangeB = -change;
         ratingA.Rating += change;

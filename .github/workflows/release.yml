@@ -55,7 +55,7 @@ jobs:
         run: bash scripts/e2e.sh
 
       # Deploying a server whose toolchain no published CLI bundles is how you get
-      # version hell: `submit` refuses (DECISIONS #85) and the fix it prints —
+      # version hell: `submit` refuses (DECISIONS #93) and the fix it prints —
       # `dotnet tool update -g Nilbots` — cannot work, because there is nothing to
       # update to. Publish the CLI for this revision BEFORE deploying it.
       - name: Require a published CLI for this revision

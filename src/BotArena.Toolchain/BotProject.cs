@@ -29,7 +29,7 @@ public static class ToolchainInfo
     /// <summary>The published `Nilbots` tool version. MUST be bumped whenever
     /// SdkVersion or BuildPipelineVersion changes: those decide artifact bytes, and
     /// `submit` refuses against a server the installed tool cannot match, so a player
-    /// needs a NEW tool version to upgrade to (DECISIONS #85). 0.5.0 carries SDK 0.8.1
+    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.5.0 carries SDK 0.8.1
     /// and build pipeline 3; published 0.4.0 predates both. Keep in lockstep with
     /// BotArena.Cli.csproj's Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.5.0";

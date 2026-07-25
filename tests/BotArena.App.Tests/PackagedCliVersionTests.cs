@@ -4,7 +4,7 @@ using BotArena.Toolchain;
 namespace BotArena.App.Tests;
 
 /// <summary>
-/// The CLI version is load-bearing for the release ordering (DECISIONS #85): the server
+/// The CLI version is load-bearing for the release ordering (DECISIONS #93): the server
 /// advertises it, `submit` prints it when it refuses, and the deploy guard resolves a
 /// `cli-v&lt;version&gt;` tag from it. Two ways it could lie, both pinned here.
 /// </summary>

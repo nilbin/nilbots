@@ -248,7 +248,7 @@ public static class ServerCommands
 
         // Refuse BEFORE compiling. A skewed CLI cannot produce the bytes this server
         // will, so its parity line is guaranteed to fail and its local testing is
-        // against a different binary than the one that ranks you (DECISIONS #85).
+        // against a different binary than the one that ranks you (DECISIONS #93).
         var toolchain = TryGetServerToolchain(client);
         if (toolchain is not null && !toolchain.MatchesThisCli && !allowSkew)
         {
