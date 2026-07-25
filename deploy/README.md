@@ -1,11 +1,35 @@
 # nilbots production deployment
 
-This directory is the public-beta, single-VPS production shape from
+This directory is the public-beta production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):
 Caddy, one web role, one match worker, a compilation coordinator, a
 networkless compiler runner, PostgreSQL, and a private S3-compatible Garage
 cluster.
 The application roles remain separate processes of the same modular monolith.
+
+Production currently has one **primary** node and may have any number of
+**worker** nodes:
+
+- the primary is the sole owner of PostgreSQL, Garage, migrations, web ingress,
+  and the initial workers;
+- a worker runs only a match worker plus the compilation coordinator and its
+  co-located, networkless compiler runner;
+- workers reach PostgreSQL and the S3 gateway on the primary's private HostUp
+  network. They never create their own database or object-store volumes.
+
+Garage is intentionally not coupled to every compute worker. A later
+high-availability phase will introduce a distinct storage-node role and place
+one Garage storage node in each of at least three failure domains. Adding a
+Garage container to the present second VPS would not by itself make storage,
+PostgreSQL, or ingress survive loss of the primary.
+
+Every service has an explicit Compose profile (`stateful`, `edge`, `match`, or
+`compile`). Running Compose without profiles starts nothing. `deploy.sh`
+selects every profile for the primary; `deploy-worker.sh` selects only
+`match` and `compile` and refuses to continue if any stateful or edge service
+appears in its effective configuration. The release installer records
+`primary` or `worker` under `shared/role` and rejects later role changes,
+including during rollback.
 
 Production uses two custom images:
 
@@ -21,18 +45,30 @@ manual-only: no push or pull-request event consumes Actions minutes.
 - Ubuntu Server 26.04 LTS on x86-64/AMD64
 - Docker Engine and the Compose plugin from Docker's official Ubuntu repository
 - a domain whose A/AAAA record points at the VPS
-- inbound TCP 22, 80, and 443 plus UDP 443; no published PostgreSQL/app ports
+- inbound TCP 22, 80, and 443 plus UDP 443; no publicly published
+  PostgreSQL/application ports
 - SSH-key access through a non-root operator account
 
 Docker-published ports can bypass uncomplicated host firewall rules. This
-Compose file publishes only Caddy, but still verify the effective
-`iptables`/`DOCKER-USER` policy on the VPS.
+Compose file publishes Caddy publicly and PostgreSQL on
+`BOTARENA_POSTGRES_BIND_ADDRESS` plus Garage's S3 API on
+`BOTARENA_GARAGE_BIND_ADDRESS`; both default to loopback. Never set either
+value to `0.0.0.0`, `::`, or a public interface. Verify the effective listeners
+and `iptables`/`DOCKER-USER` policy on the VPS.
 
 On a fresh matching VPS, `deploy/provision-host.sh` installs Docker from its
 official repository, creates the `nilbots` operator from root's authorized
 keys, enables security updates and the firewall, and applies conservative SSH
 and Docker log settings. Run it once as root, verify a separate operator SSH
 session, and only then disable root SSH.
+
+The default provisions a public ingress host and opens TCP 80/443 plus UDP
+443. Provision a worker, database, or other private-only node without those
+rules by setting:
+
+```bash
+BOTARENA_PUBLIC_INGRESS=0 bash deploy/provision-host.sh
+```
 
 Production does not need a Git checkout or GitHub repository credential. The
 manual release workflow sends a small, SHA-256-verified deployment bundle over
@@ -61,6 +97,30 @@ printf 'GK%s\n' "$(openssl rand -hex 16)" # BOTARENA_S3_ACCESS_KEY
 openssl rand -hex 32 # BOTARENA_S3_SECRET_KEY
 ```
 
+For a multi-host deployment, set `BOTARENA_POSTGRES_BIND_ADDRESS` to the
+database host's private-interface address and set
+`BOTARENA_GARAGE_BIND_ADDRESS` to that host's private address for remote S3
+clients. Permit TCP 5432 and 3900 only from the exact private addresses of
+application nodes and verify that the public address refuses both connections.
+Remote roles use the same database name, database credentials, and S3
+credentials with those stable private endpoints; never route them over the
+public interface. Garage's admin and RPC interfaces stay unpublished until a
+deliberate cross-host storage expansion needs them.
+
+On each worker, use a minimal `shared/.env` containing the shared database and
+S3 credentials plus:
+
+```dotenv
+BOTARENA_DB_HOST=10.201.128.10
+BOTARENA_S3_ENDPOINT=http://10.201.128.10:3900
+BOTARENA_MATCH_INSTANCE_ID=match-2
+BOTARENA_COMPILE_INSTANCE_ID=compile-2
+```
+
+Use the real primary private address and unique instance IDs for every node.
+Do not copy the OpenIddict private keys or Garage administration secrets to a
+worker.
+
 On an existing deployment, generate and append only the missing Garage/S3
 settings without replacing any configured values:
 
@@ -73,6 +133,11 @@ Compose network and all in the same real zone. Replication factor 3 is fixed
 from the beginning so physical nodes can replace the co-located bootstrap
 nodes later without changing the replication factor. It is not host-level
 high availability while all three storage containers share this VPS.
+Garage RPC uses the dedicated internal `garage-rpc` network and fixed
+`172.30.0.2`–`172.30.0.5` addresses. Its persisted peer records therefore
+remain valid across Docker and host restarts instead of depending on dynamic
+container-address reuse. The initializer still reconnects and verifies all
+four IDs as a recovery check.
 
 Generate the OpenIddict signing/encryption certificate pair. All future web
 replicas must use this same pair:
@@ -105,9 +170,11 @@ sudo install -m 660 -o 1654 -g "$operator_gid" \
   deploy/secrets/*.pfx "$deploy_root/shared/secrets/"
 ```
 
-The workflow creates `releases/<git-sha>`, links its `.env`, certificates and
-backup directory to `shared/`, and atomically advances `current` only after
-the candidate release is healthy. `previous` remains available for rollback.
+The workflow creates `releases/<git-sha>`, links persistent configuration to
+`shared/`, and atomically advances `current` only after the candidate release
+is healthy. `previous` remains available for rollback. Primary releases use
+`install-primary`; configured worker hosts use `install-worker`. A primary
+deployment completes migrations before workers receive the new images.
 UID 1654 is the unprivileged runtime account baked into the image; the
 operator's private group retains certificate-management access without making
 the private keys world-readable.

@@ -37,6 +37,7 @@ required=(
   deploy/Caddyfile
   deploy/compose.production.yml
   deploy/deploy.sh
+  deploy/deploy-worker.sh
   deploy/init-garage.sh
   deploy/install-release.sh
 )

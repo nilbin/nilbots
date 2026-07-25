@@ -12,6 +12,12 @@ if [[ ! "$operator" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
   exit 2
 fi
 
+public_ingress="${BOTARENA_PUBLIC_INGRESS:-1}"
+if [[ "$public_ingress" != "0" && "$public_ingress" != "1" ]]; then
+  echo "BOTARENA_PUBLIC_INGRESS must be 0 or 1" >&2
+  exit 2
+fi
+
 . /etc/os-release
 if [[ "${ID:-}" != "ubuntu" || "${VERSION_ID:-}" != "26.04" ]]; then
   echo "expected Ubuntu 26.04; found ${PRETTY_NAME:-unknown}" >&2
@@ -94,13 +100,15 @@ systemctl reload ssh
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow OpenSSH
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 443/udp
+if [[ "$public_ingress" == "1" ]]; then
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw allow 443/udp
+fi
 ufw --force enable
 
 timedatectl set-timezone UTC
 timedatectl set-ntp true
 install -d -m 750 -o "$operator" -g "$operator" /srv/nilbots
 
-echo "host provisioned; verify SSH as $operator before disabling root SSH"
+echo "host provisioned (public ingress: $public_ingress); verify SSH as $operator before disabling root SSH"

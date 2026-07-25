@@ -1,7 +1,7 @@
 name: botarena
 
 x-database-environment: &database-environment
-  BOTARENA_DB: "Host=db;Database=botarena;Username=botarena;Password=${POSTGRES_PASSWORD}"
+  BOTARENA_DB: "Host=${BOTARENA_DB_HOST:-db};Database=botarena;Username=botarena;Password=${POSTGRES_PASSWORD}"
   BOTARENA_DATA: "/data"
   ASPNETCORE_ENVIRONMENT: "Production"
 
@@ -29,7 +29,7 @@ x-garage-common: &garage-common
     GARAGE_ADMIN_TOKEN: "${GARAGE_ADMIN_TOKEN}"
     GARAGE_METRICS_TOKEN: "${GARAGE_METRICS_TOKEN}"
   networks:
-    - backend
+    - garage-rpc
   read_only: true
   tmpfs:
     - /tmp:size=32m,mode=1777
@@ -47,12 +47,15 @@ x-garage-common: &garage-common
 
 services:
   db:
+    profiles: ["stateful"]
     image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: botarena
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: botarena
+    ports:
+      - "${BOTARENA_POSTGRES_BIND_ADDRESS:-127.0.0.1}:5432:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
@@ -65,30 +68,50 @@ services:
     shm_size: 256mb
 
   garage-a:
+    profiles: ["stateful"]
     <<: *garage-common
+    networks:
+      garage-rpc:
+        ipv4_address: 172.30.0.2
     volumes:
       - ./garage/garage-a.toml:/etc/garage.toml:ro
       - garage-a-data:/var/lib/garage
 
   garage-b:
+    profiles: ["stateful"]
     <<: *garage-common
+    networks:
+      garage-rpc:
+        ipv4_address: 172.30.0.3
     volumes:
       - ./garage/garage-b.toml:/etc/garage.toml:ro
       - garage-b-data:/var/lib/garage
 
   garage-c:
+    profiles: ["stateful"]
     <<: *garage-common
+    networks:
+      garage-rpc:
+        ipv4_address: 172.30.0.4
     volumes:
       - ./garage/garage-c.toml:/etc/garage.toml:ro
       - garage-c-data:/var/lib/garage
 
   garage-gateway:
+    profiles: ["stateful"]
     <<: *garage-common
+    ports:
+      - "${BOTARENA_GARAGE_BIND_ADDRESS:-127.0.0.1}:3900:3900"
+    networks:
+      backend:
+      garage-rpc:
+        ipv4_address: 172.30.0.5
     volumes:
       - ./garage/garage-gateway.toml:/etc/garage.toml:ro
       - garage-gateway-data:/var/lib/garage
 
   migrate:
+    profiles: ["stateful"]
     platform: linux/amd64
     image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
@@ -109,6 +132,7 @@ services:
     restart: "no"
 
   web:
+    profiles: ["edge"]
     platform: linux/amd64
     image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
@@ -134,9 +158,6 @@ services:
     networks:
       - edge
       - backend
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -146,6 +167,7 @@ services:
     mem_limit: "${BOTARENA_WEB_MEMORY:-768m}"
 
   match-worker:
+    profiles: ["match"]
     platform: linux/amd64
     image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
@@ -161,9 +183,6 @@ services:
       - matchcache:/cache
     networks:
       - backend
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     read_only: true
     tmpfs:
       - /tmp:size=128m,mode=1777
@@ -174,6 +193,7 @@ services:
     stop_grace_period: 2m
 
   compile-worker:
+    profiles: ["compile"]
     platform: linux/amd64
     image: "${BOTARENA_RUNTIME_IMAGE:-botarena-runtime:${BOTARENA_IMAGE_TAG:-local}}"
     build: *runtime-build
@@ -193,8 +213,6 @@ services:
     networks:
       - backend
     depends_on:
-      migrate:
-        condition: service_completed_successfully
       compiler-runner:
         condition: service_healthy
     read_only: true
@@ -210,6 +228,7 @@ services:
     stop_grace_period: 5m
 
   compiler-runner:
+    profiles: ["compile"]
     platform: linux/amd64
     image: "${BOTARENA_COMPILER_IMAGE:-botarena-compiler:${BOTARENA_IMAGE_TAG:-local}}"
     build:
@@ -249,6 +268,7 @@ services:
     stop_grace_period: 6m
 
   caddy:
+    profiles: ["edge"]
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
@@ -287,3 +307,8 @@ volumes:
 networks:
   edge:
   backend:
+  garage-rpc:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/28
