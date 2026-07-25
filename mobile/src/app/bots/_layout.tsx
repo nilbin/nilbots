@@ -2,6 +2,13 @@ import { Stack } from 'expo-router';
 
 import { Arena } from '@/theme/arena';
 
+/**
+ * Anchor deep links to the list. Opening nilbots://bots/<slug> cold would otherwise make
+ * the detail screen the root of the stack — no back button, and no way to reach the
+ * roster except the tab bar. With this, the list is always beneath it.
+ */
+export const unstable_settings = { initialRouteName: 'index' };
+
 /** The Bots tab is a stack so a bot row can push its detail screen. */
 export default function BotsLayout() {
   return (

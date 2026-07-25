@@ -1709,6 +1709,22 @@ before picking a number.*
      and current-IP discovery rather than treating address retention as an
      identity guarantee.
 
+117. **Roster and ladder filtering stays client-side until the roster outgrows one
+     response.** `GET /api/bots` and `GET /api/leaderboard` take no query parameters and
+     return everything; the site, the mobile app, and any future client each filter in
+     memory. That is deliberate at eight bots — the site's own note puts the threshold
+     past thirty — and it keeps one code path rather than three.
+     It is a cliff, not a plateau, and mobile reaches it first: a phone on cellular pays
+     to download the whole roster to render ten rows, with no pagination to fall back on.
+     When it bites, the fix is `?q=`, `?ranked=`, and cursor pagination on the endpoint,
+     after which every client filters server-side and the mobile lists become
+     infinite-scroll. Doing it now would add pagination to three clients to solve a
+     problem no user has.
+     Rank is the counter-example and already went the other way: it is a property of the
+     whole ladder, so `/api/bots` serves `currentStanding` rather than letting clients
+     join `/api/leaderboard` — a client-side join would cap rank at that endpoint's slice
+     and get ties wrong.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

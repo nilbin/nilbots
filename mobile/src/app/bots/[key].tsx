@@ -16,11 +16,21 @@ export default function BotDetailScreen() {
   const { data: bot, isPending, error, refetch } = useBot(key);
   const { data: history } = useBotMatches(bot?.id);
 
-  if (isPending) return <Screen><LoadingState /></Screen>;
-  if (error) return <Screen><ErrorState error={error} onRetry={refetch} /></Screen>;
+  if (isPending)
+    return (
+      <Screen hasHeader>
+        <LoadingState />
+      </Screen>
+    );
+  if (error)
+    return (
+      <Screen hasHeader>
+        <ErrorState error={error} onRetry={refetch} />
+      </Screen>
+    );
 
   return (
-    <Screen>
+    <Screen hasHeader>
       <Stack.Screen options={{ title: bot.name }} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Card>
@@ -85,7 +95,7 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 const styles = StyleSheet.create({
-  body: { gap: Space.md, paddingBottom: Space.xl, paddingTop: Space.sm },
+  body: { gap: Space.md, paddingBottom: Space.xxl, paddingTop: Space.md },
   owner: { color: Arena.dim, fontSize: 13, marginTop: Space.xs },
   standing: { flexDirection: 'row', gap: Space.xl, marginTop: Space.lg },
   stat: { alignItems: 'flex-start' },
