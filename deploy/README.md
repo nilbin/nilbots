@@ -111,9 +111,32 @@ deliberate cross-host storage expansion needs them.
 
 ## Adding a worker VPS
 
-Create an Ubuntu 26.04 amd64 VPS with the operator's public key and attach it
-to the primary's provider-private network. Do not open public application
-ports. From an authenticated repository checkout, run:
+For HostUp, create an Ubuntu 26.04 amd64 VPS with the operator's public key.
+The end-to-end wrapper discovers the VPS and `nilbots-production` network,
+allocates and attaches a private address, waits through HostUp's network
+restart, performs the complete bootstrap, installs the primary's current
+immutable release, and refreshes Caddy:
+
+```bash
+read -rs HOSTUP_API_KEY
+export HOSTUP_API_KEY
+bash deploy/bootstrap-hostup-worker.sh \
+  --primary nilbots@PRIMARY_PUBLIC_HOST \
+  --primary-private-ip PRIMARY_PRIVATE_IP \
+  --worker NEW_WORKER_PUBLIC_IP_OR_VPS_ID \
+  --network nilbots-production \
+  --name worker-3 \
+  --private-ip auto \
+  --size standard
+unset HOSTUP_API_KEY
+```
+
+The key is never accepted as a command-line argument or stored on either VPS.
+It needs HostUp's VPS/service read, VM/network write, and—only for power
+commands—`power:vm` scopes.
+
+For another provider, attach the VPS to the provider-private network first,
+then run the provider-neutral bootstrap:
 
 ```bash
 bash deploy/bootstrap-worker.sh \
@@ -139,6 +162,8 @@ The bootstrap performs the full host and fleet setup:
 - binds Kestrel only to the new worker's private address and permits port 8080
   only from the primary private address;
 - proves PostgreSQL and Garage connectivity over the private network;
+- installs one exact `/32` SCRAM PostgreSQL rule for the worker and validates
+  PostgreSQL's parsed rule view after reloading it;
 - disables root SSH only after operator access works; and
 - records the verified SSH host key, deployment target, and private endpoint in
   the primary's non-secret `shared/workers.tsv`.
@@ -151,15 +176,16 @@ known-host secret.
 
 `--adopt` performs the configuration, hardening, and registration steps on an
 already-provisioned passwordless-sudo operator without reinstalling the OS
-packages. `--no-register` prepares and verifies a disposable node without
-placing it behind Caddy or in future releases.
+packages. The HostUp wrapper uses it when resuming a drained node.
+`--no-register` prepares and verifies a disposable node without granting
+PostgreSQL access or placing it behind Caddy or future releases.
 
 The `xs-smoke` size profile is for cheaply rehearsing provisioning, networking,
 web startup, release installation, and removal. It is not evidence that a
 memory-constrained XS node can complete hostile NativeAOT builds reliably.
 Use `standard` for real compiler capacity.
 
-To remove a disposable or retired node from future releases and Caddy:
+To drain a disposable, pausable, or retired node:
 
 ```bash
 bash deploy/unregister-worker.sh \
@@ -167,8 +193,45 @@ bash deploy/unregister-worker.sh \
   worker-3
 ```
 
-This deliberately leaves the VPS and its containers intact for inspection.
-Stop them and delete the VPS separately only after verifying the exact target.
+This removes the node from the inventory, immediately recreates Caddy without
+its upstream, gracefully stops its web/compiler containers, and revokes its
+exact PostgreSQL rule. The VPS, Docker volumes, cached images, release files,
+private-network interface, and disk remain intact.
+
+For a HostUp PAYG worker, power it off only after that drain:
+
+```bash
+read -rs HOSTUP_API_KEY
+export HOSTUP_API_KEY
+bash deploy/hostup-vps.sh shutdown VPS_ID_OR_PUBLIC_IP
+unset HOSTUP_API_KEY
+```
+
+Resume it with the stable HostUp VPS ID and the same end-to-end wrapper:
+
+```bash
+read -rs HOSTUP_API_KEY
+export HOSTUP_API_KEY
+bash deploy/hostup-vps.sh start VPS_ID
+bash deploy/bootstrap-hostup-worker.sh \
+  --primary nilbots@PRIMARY_PUBLIC_HOST \
+  --primary-private-ip PRIMARY_PRIVATE_IP \
+  --worker VPS_ID \
+  --network nilbots-production \
+  --name worker-3 \
+  --private-ip auto \
+  --size standard \
+  --adopt
+unset HOSTUP_API_KEY
+```
+
+The adopted path revalidates SSH, networking, secrets, and firewalls, restores
+the exact PostgreSQL grant and inventory entry, starts the already-cached
+current release, waits for health, and only then refreshes Caddy. If a provider
+ever changes the public address, the stable VPS ID resolves its current public
+IP and the inventory upsert records the replacement SSH target and host key.
+Permanent VPS deletion remains a separate provider action after a successful
+drain and exact-target verification.
 
 Caddy uses a sticky load-balancer cookie for WebSocket/SignalR affinity and
 actively checks `/health/ready`. The remote Kestrel listener must bind only to

@@ -272,6 +272,21 @@ if ssh "${ssh_options[@]}" "root@$worker_host" true 2>/dev/null; then
 fi
 
 if [[ "$register" == "1" ]]; then
+  echo "Granting exact-address PostgreSQL access on the primary..."
+  primary_access_added=0
+  cleanup_primary_access() {
+    if [[ "$primary_access_added" == "1" ]]; then
+      ssh "${ssh_options[@]}" "$primary_target" \
+        "$(remote_command sudo bash -s -- remove "$worker_private_ip")" \
+        <"$deploy_dir/configure-primary-worker-access.sh" || true
+    fi
+  }
+  trap cleanup_primary_access EXIT
+  ssh "${ssh_options[@]}" "$primary_target" \
+    "$(remote_command sudo bash -s -- add "$worker_private_ip")" \
+    <"$deploy_dir/configure-primary-worker-access.sh"
+  primary_access_added=1
+
   echo "Registering the verified worker in the primary's non-secret fleet inventory..."
   read -r host_key_type host_key_base64 _ < <(
     ssh "${new_host_ssh_options[@]}" "$worker_target" \
@@ -293,6 +308,8 @@ if [[ "$register" == "1" ]]; then
       "$host_key_type" \
       "$host_key_base64")" \
     <"$deploy_dir/worker-inventory.sh"
+  primary_access_added=0
+  trap - EXIT
   echo "Worker '$worker_name' registered; the next manual release will deploy it."
 else
   echo "Worker verified but not registered (--no-register)."

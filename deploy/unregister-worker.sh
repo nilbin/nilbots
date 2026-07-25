@@ -33,10 +33,90 @@ if [[ -n "$identity" ]]; then
   ssh_options+=(-i "$identity" -o IdentitiesOnly=yes)
 fi
 
+remote_command() {
+  local command=""
+  printf -v command '%q ' "$@"
+  printf '%s\n' "${command% }"
+}
+
 inventory="$deploy_root/shared/workers.tsv"
+worker_record="$(
+  ssh "${ssh_options[@]}" "$primary_target" \
+    "$(remote_command bash -s -- record "$inventory" "$worker_name")" \
+    <"$deploy_dir/worker-inventory.sh"
+)"
+[[ -n "$worker_record" ]] ||
+  { echo "worker '$worker_name' is not registered" >&2; exit 1; }
+IFS=$'\t' read -r \
+  record_name worker_host worker_user worker_path worker_private_ip \
+  host_key_type host_key_base64 extra <<<"$worker_record"
+[[ "$record_name" == "$worker_name" && -z "$extra" ]] ||
+  { echo "primary returned an invalid worker record" >&2; exit 1; }
+
+echo "Removing '$worker_name' from the fleet inventory..."
 ssh "${ssh_options[@]}" "$primary_target" \
-  "bash -s -- remove '$inventory' '$worker_name'" \
+  "$(remote_command bash -s -- remove "$inventory" "$worker_name")" \
   <"$deploy_dir/worker-inventory.sh"
 
-echo "Worker '$worker_name' removed from future releases and Caddy upstreams."
-echo "Its existing containers and VPS were not stopped or deleted."
+inventory_removed=1
+rollback_inventory() {
+  if [[ "$inventory_removed" != "1" ]]; then
+    return
+  fi
+  echo "Caddy refresh failed; restoring '$worker_name' to the inventory..." >&2
+  ssh "${ssh_options[@]}" "$primary_target" \
+    "$(remote_command \
+      bash -s -- \
+      upsert \
+      "$inventory" \
+      "$worker_name" \
+      "$worker_host" \
+      "$worker_user" \
+      "$worker_path" \
+      "$worker_private_ip" \
+      "$host_key_type" \
+      "$host_key_base64")" \
+    <"$deploy_dir/worker-inventory.sh" || true
+  ssh "${ssh_options[@]}" "$primary_target" \
+    "$(remote_command bash -s -- "$deploy_root")" \
+    <"$deploy_dir/refresh-primary-upstreams.sh" || true
+}
+trap rollback_inventory EXIT
+
+echo "Refreshing Caddy before stopping the worker..."
+ssh "${ssh_options[@]}" "$primary_target" \
+  "$(remote_command bash -s -- "$deploy_root")" \
+  <"$deploy_dir/refresh-primary-upstreams.sh"
+inventory_removed=0
+trap - EXIT
+
+echo "Stopping worker application containers gracefully..."
+worker_target="$worker_user@$worker_host"
+worker_ssh_options=("${ssh_options[@]}")
+temporary_known_hosts="$(mktemp)"
+cleanup() {
+  if [[ -f "$temporary_known_hosts" ]]; then
+    rm -- "$temporary_known_hosts"
+  fi
+}
+trap cleanup EXIT
+printf '%s %s %s\n' \
+  "$worker_host" "$host_key_type" "$host_key_base64" >"$temporary_known_hosts"
+chmod 600 "$temporary_known_hosts"
+worker_ssh_options+=(
+  -o UserKnownHostsFile="$temporary_known_hosts"
+  -o StrictHostKeyChecking=yes
+)
+if ! ssh "${worker_ssh_options[@]}" "$worker_target" \
+  "$(remote_command bash -s -- "$worker_path")" \
+  <"$deploy_dir/stop-worker.sh"; then
+  echo "warning: worker was unreachable; continuing primary-side removal" >&2
+fi
+
+echo "Revoking the worker's exact PostgreSQL rule..."
+ssh "${ssh_options[@]}" "$primary_target" \
+  "$(remote_command sudo bash -s -- remove "$worker_private_ip")" \
+  <"$deploy_dir/configure-primary-worker-access.sh"
+
+echo "Worker '$worker_name' drained, stopped, and removed from future releases."
+echo "The VPS and its data were preserved; provider shutdown or deletion is separate."
