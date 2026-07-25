@@ -886,6 +886,27 @@ configuration) and changing them is a version bump, not an edit.
     independent restore rehearsal remain required because co-location is not
     backup or physical redundancy.
 
+70. **Inert player API is hidden, not deleted (DX-FINDINGS-NUGET-PLAYER).**
+    The first evaluation against the PUBLISHED product — an agent with only
+    `dotnet tool install --global Nilbots`, nilbots.com/docs, and no repo access
+    — built a bot that goes 97W-6L-17D vs `hunter`, and confirmed the shipped
+    rules and the public docs agree (no drift; the gen-6 failure is fixed).
+    Its sharpest finding reproduced gen-7's independently: `Actions.Strafe*`
+    and `BotContext.Energy` are public, undocumented, and inert, degrading to
+    Wait/`Blocked` — which players misread as a blocked move. Decision: mark
+    them `[Obsolete]` + `[EditorBrowsable(Never)]` with honest doc comments
+    rather than delete them. Deleting was considered and rejected because
+    strafe is a live design lever (DECISIONS #61 names it as a candidate answer
+    to the 2x2 diagonal-mirror camper), the enum values are wire values present
+    in historical replays and champion artifacts, and the research arms must
+    stay runnable. Also fixed: authenticated commands crashed with CI build
+    paths in the trace whenever their server was unreachable (root cause was
+    the pre-command token refresh, so it hit `submit` too, not just `whoami`);
+    `--version` printed help; the SDK shipped no XML docs, leaving the entire
+    player API blank in IntelliSense. SDK 0.8.0 -> 0.8.1 (compile-surface
+    change, no wire change). Local<->server artifact parity remains UNVERIFIED
+    — registration against production was blocked by tooling boundaries.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

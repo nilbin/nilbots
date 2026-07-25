@@ -8,6 +8,15 @@ if (args.Length == 0)
     return Help(exitCode: 1);
 if (args[0] is "--help" or "-h" || args is ["help"])
     return Help(exitCode: 0);
+// `--version` must answer with a version, not the help text — a bug report needs
+// the exact CLI/SDK/rules triple, and `doctor` was the only place it existed.
+if (args[0] is "--version" or "-v" or "version")
+{
+    Console.WriteLine($"nilbots {ToolchainInfo.CliVersion} " +
+        $"(SDK {ToolchainInfo.SdkVersion}, game rules {BotArena.Engine.BotArenaVersions.GameRulesVersion}, " +
+        $"runtime protocol {BotArena.Engine.BotArenaVersions.RuntimeProtocolVersion})");
+    return 0;
+}
 if (args is ["help", var helpCommand, ..])
     return CommandHelp(helpCommand);
 if (args.Skip(1).Any(a => a is "--help" or "-h"))
@@ -42,11 +51,33 @@ catch (BotBuildException ex)
     Console.Error.WriteLine($"error: {ex.Message}");
     return 1;
 }
-catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
+catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException
+    or ArgumentException or DirectoryNotFoundException or IOException
+    or System.Net.Http.HttpRequestException or TaskCanceledException)
 {
-    Console.Error.WriteLine($"error: {ex.Message}");
+    // Expected user-facing failures (bad argument, unreachable server, missing file):
+    // one clean line, never a stack trace — those leaked CI build paths to players.
+    Console.Error.WriteLine($"error: {Describe(ex)}");
     return 1;
 }
+catch (Exception ex)
+{
+    // Last resort: an unexpected fault is still a bug, but a player should get a
+    // readable line and a way to produce the full trace for a report.
+    Console.Error.WriteLine($"error: {Describe(ex)}");
+    Console.Error.WriteLine("This looks like a bug. Set NILBOTS_DEBUG=1 and re-run for the full trace.");
+    if (Environment.GetEnvironmentVariable("NILBOTS_DEBUG") is "1" or "true")
+        Console.Error.WriteLine(ex);
+    return 1;
+}
+
+static string Describe(Exception ex) => ex switch
+{
+    System.Net.Http.HttpRequestException or TaskCanceledException =>
+        $"could not reach the server: {ex.Message.TrimEnd('.')}. " +
+        "Check the URL (--server) and your connection; `nilbots doctor` shows the configured server.",
+    _ => ex.Message,
+};
 
 static int Help(int exitCode = 1)
 {

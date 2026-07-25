@@ -200,10 +200,23 @@ public static class ServerCommands
         using var client = CreateClient();
         if (client is null)
             return NotSignedIn();
-        var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
-        Console.WriteLine($"{me.GetProperty("displayName").GetString()} " +
-            $"({me.GetProperty("email").GetString()}) on {StoredCredentials.Load()!.Server}");
-        return 0;
+        string server = StoredCredentials.Load()!.Server;
+        try
+        {
+            var me = client.GetFromJsonAsync<JsonElement>("/api/accounts/me").GetAwaiter().GetResult();
+            Console.WriteLine($"{me.GetProperty("displayName").GetString()} " +
+                $"({me.GetProperty("email").GetString()}) on {server}");
+            return 0;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // Stored credentials outlive the server they were issued by (a local
+            // dev server, a moved host). Report the identity we DO know and what to
+            // do about it — never abort with a stack trace.
+            Console.Error.WriteLine($"error: signed in against {server}, but it is unreachable ({ex.Message.TrimEnd('.')}).");
+            Console.Error.WriteLine($"Run `nilbots login --server <url>` to sign in elsewhere, or `nilbots logout` to clear this.");
+            return 1;
+        }
     }
 
     /// <summary>Submit the bot project: local build first, then upload source for the
@@ -294,13 +307,30 @@ public static class ServerCommands
         if (credentials.ExpiresAt <= DateTimeOffset.UtcNow.AddMinutes(1))
         {
             using var http = new HttpClient();
-            var refreshed = http.PostAsync($"{credentials.Server}/connect/token",
-                new FormUrlEncodedContent(new Dictionary<string, string>
-                {
-                    ["grant_type"] = "refresh_token",
-                    ["client_id"] = "botarena-cli",
-                    ["refresh_token"] = credentials.RefreshToken,
-                })).GetAwaiter().GetResult();
+            HttpResponseMessage refreshed;
+            try
+            {
+                refreshed = http.PostAsync($"{credentials.Server}/connect/token",
+                    new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["grant_type"] = "refresh_token",
+                        ["client_id"] = "botarena-cli",
+                        ["refresh_token"] = credentials.RefreshToken,
+                    })).GetAwaiter().GetResult();
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                // Credentials outlive the server that issued them (a local dev server,
+                // a moved host). This refresh runs before any command's own error
+                // handling, so without this EVERY authenticated command — whoami,
+                // submit — aborted here with a stack trace.
+                Console.Error.WriteLine(
+                    $"error: cannot reach {credentials.Server} to refresh your session " +
+                    $"({ex.Message.TrimEnd('.')}).");
+                Console.Error.WriteLine(
+                    "Run `nilbots login --server <url>` to sign in elsewhere, or `nilbots logout` to clear it.");
+                return null;
+            }
             if (!refreshed.IsSuccessStatusCode)
             {
                 Console.Error.WriteLine("Session expired — run: nilbots login");
@@ -329,9 +359,14 @@ public static class ServerCommands
             DateTimeOffset.UtcNow.AddSeconds(response.GetProperty("expires_in").GetInt32())).Save();
     }
 
+    /// <summary>Exit path when <see cref="CreateClient"/> yields no client. Stored
+    /// credentials that failed to refresh have ALREADY explained themselves (expired,
+    /// or server unreachable); telling that user "not signed in" is both wrong and
+    /// contradictory, so only a genuinely empty credential store prints it.</summary>
     private static int NotSignedIn()
     {
-        Console.Error.WriteLine("Not signed in — run: nilbots register or nilbots login");
+        if (StoredCredentials.Load() is null)
+            Console.Error.WriteLine("Not signed in — run: nilbots register or nilbots login");
         return 1;
     }
 

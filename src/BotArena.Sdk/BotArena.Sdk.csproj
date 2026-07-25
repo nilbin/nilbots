@@ -2,6 +2,11 @@
   <!-- Developer-facing SDK. Must not reference the engine (plan section 8). -->
   <PropertyGroup>
     <PackageId>BotArena.Sdk</PackageId>
-    <Version>0.8.0</Version>
+    <Version>0.8.1</Version>
+    <!-- Ship XML docs beside the DLL: the SDK is the whole player API, and without
+         this file every member is undocumented in IntelliSense (player-test finding).
+         CS1591 stays off — the doc-comment coverage rule is review, not the compiler. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 </Project>

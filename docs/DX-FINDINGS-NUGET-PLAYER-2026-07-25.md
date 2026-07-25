@@ -1,0 +1,121 @@
+# DX findings — the NuGet-only player test, 2026-07-25
+
+The first evaluation run against the **published product** rather than the repo.
+An agent was given a clean directory, no access to this source tree, and exactly
+what a stranger gets: `dotnet tool install --global Nilbots` (0.4.0 from
+nuget.org), https://nilbots.com/docs, `--help`, and whatever the tool scaffolds.
+
+**Verdict: yes.** It built a genuinely strong bot — **97W–6L–17D (80.8%)** vs
+built-in `hunter` across 120 canonical-WASM games (12 seeds × both spawn slots ×
+the 5 ranked-pool maps), 9/9 ranked `set` runs won, 6–0 over `wander`, `coward`
+and `idle`. In-process and WASM tallies agreed exactly on a 12-seed sweep.
+
+**No rules drift.** The CLI plays rules 0.5, and nilbots.com/docs plus the
+scaffolded README both document 0.5. This is the failure that sank gen-6
+(DECISIONS #57) and it is fixed: the README written by `nilbots new` carries a
+complete, accurate v0.5 spec (control pressure, overtime, projectile speed,
+cone vision, sound redaction, resolution order, tiebreaks), and the agent
+designed its whole strategy from it.
+
+**Kept, loudly:** `replay --summary` was called "the best debugging tool I have
+seen in a game like this" and found all three of the bot's real bugs. `doctor`
+is the other star — it is where the version triple and the toolchain state live.
+
+## Fixed in this batch
+
+1. **Unhandled crashes leaked CI build paths.** `whoami` aborted with a raw
+   `HttpRequestException` + SIGABRT showing
+   `/home/runner/work/nilbots/nilbots/src/...`; `--rules 9.9` did the same with
+   an otherwise-good message. Root cause was narrower and worse than reported:
+   `CreateClient()` refreshes an expired token *before* any command's own error
+   handling, so **every** authenticated command (`whoami`, `submit`) aborted
+   when its server was unreachable. Now: the refresh handles network failure
+   with an actionable message, the top-level handler covers `ArgumentException`
+   / `HttpRequestException` / IO faults with one clean line, and a genuine
+   unexpected fault prints a readable line plus `NILBOTS_DEBUG=1` for the trace.
+   `NotSignedIn` no longer contradicts a real session ("cannot reach X" was
+   followed by "not signed in").
+2. **`--version` didn't report a version** (printed help, exit 1). Now prints
+   the CLI/SDK/rules/protocol quadruple — a bug report needs it.
+3. **No XML docs shipped**, so every member of the one assembly that *is* the
+   player API was blank in IntelliSense; the agent resorted to reflecting over
+   the DLL. `GenerateDocumentationFile` is on, and `nilbots new` copies
+   `BotArena.Sdk.xml` next to the dll it already copies. (Enabling it
+   immediately caught a partially-documented `ShotPaths.Preview`, now written.)
+4. **Strafe and Energy read as playable API but are inert.** See below.
+5. **Template csproj referenced `botarena build`** — a command that no longer
+   exists, in the first file a player opens.
+
+## Strafe / Energy: hidden, not deleted
+
+`Actions.StrafeLeft/StrafeRight` and `BotContext.Energy` are live in the API,
+absent from every public doc, and inert under all shipped rules — strafe
+degrades to `Wait` reporting `ActionResult.Blocked`, which the docs teach you to
+read as *"a move was blocked"*, so players debug the wrong thing. Two
+independent runs found this: gen-7's tournament bots and now an outside player.
+
+They are now `[Obsolete]` + `[EditorBrowsable(Never)]`, with doc comments that
+state plainly what happens. Deliberately **not** deleted:
+
+- **Strafe is a live design lever, not dead weight.** The gen-7 verdict
+  (DECISIONS #61) names it explicitly as one of the few candidate answers to the
+  2×2 diagonal-mirror camper — "any mechanic that lets me relocate without
+  spending a turn". Deleting it would throw away an option we identified days ago.
+- The enum values are **wire values** carried in historical replays and existing
+  champion artifacts; removing them is a compat break for zero player benefit.
+- The `strafe` and `energy` research arms stay runnable for the balance harness.
+
+The harm was never that the mechanics exist — it was that they *looked shipped*.
+Hiding them fixes exactly that. Engine support is untouched; the two adapters
+that must still carry them suppress the warning locally, which is the correct
+place for framework plumbing to do so.
+
+## Open findings (not fixed here)
+
+- **[med] No headless auth path in the CLI.** `nilbots register` degrades well
+  — with no browser it prints the full auth URL to paste elsewhere — but there
+  is no `--no-browser`/device-code flag, and the headless route (cookie auth via
+  `POST /api/accounts/register`, then poll `/build-status`, which returns an
+  **array**, newest-first) is documented **only on the website**. A CI or
+  VPS player reading `--help` concludes they are stuck.
+- **[med] `--rules` help lists 24 unexplained ruleset names**, mixing shipped
+  versions with internal experiment arms, with nothing marking which is which.
+  A newcomer sees 24 equally-valid games.
+- **[med] Enemy cooldown is not observable, and the workaround is undocumented.**
+  `VisibleEnemy` exposes slot/position/facing/health. Whether the enemy can fire
+  *this tick* is the game's most important tactical fact; it is reconstructible
+  from `VisibleEvents`/`HeardSounds` of kind `Shot` plus the documented 2-tick
+  cooldown, but that synthesis appears nowhere. The winning bot's core loop
+  depends on it. Either document the reconstruction or expose the field.
+- **[low] `nilbots bots` lists names with no descriptions.** Whether `hunter`
+  dodges had to be reverse-engineered from replays (it does not — that is the
+  exploit the winning bot is built on). One line each would orient newcomers.
+- **[low] `--swap` flips the scoreboard's point of view**; the parenthetical
+  `W = hunter wins` is the only clue, and the agent nearly recorded a strong
+  result as a bad one.
+- **[low] NuGet README understates WASM prerequisites** — implies x64 Linux
+  needs nothing extra, when it needs a wasi-sdk *or* Docker. `doctor`'s failure
+  message is excellent; the README should match it.
+- **[info] The site renders only via JavaScript**, so scripted/no-JS access gets
+  the single word "nilbots". Irrelevant to humans with browsers.
+
+## Unverified: local↔server artifact parity
+
+The headline determinism claim — bit-identical local and server WASM — was
+**not** measured. Register/submit against the live site was blocked by the
+agent's permission system and then by the operator's own tooling boundary
+(driving a headless browser through account registration on production). Local
+artifact was `c024306a…`; no server hash exists to compare. Gen-7 showed parity
+can fail per-bot (one bot matched, one did not, same framework), so this remains
+worth closing with a real submission.
+
+## Methodology note for future doc tests
+
+The agent disclosed that its context was **pre-loaded by the harness with this
+repo's `CLAUDE.md`** — it never read the repo from disk and deliberately did not
+use it for mechanics or API questions, but it did use it to recognise that the
+wasi-sdk at `/opt/botarena/wasi-sdk-29.0` was pre-provisioned by this container
+rather than installed by the tool. So the WASM section is better-informed than a
+real player's would be, and the "fresh machine" claim is untested. Future
+docs-only tests must run with project instructions stripped from the agent's
+context, or the isolation is nominal.

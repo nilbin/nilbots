@@ -48,6 +48,12 @@ public static class NewCommand
             string botLib = Path.Combine(targetDir, "lib");
             Directory.CreateDirectory(botLib);
             File.Copy(packagedSdk, Path.Combine(botLib, "BotArena.Sdk.dll"), overwrite: true);
+            // The XML docs must travel WITH the dll or every SDK member is blank in
+            // IntelliSense — the whole player API is this one assembly (player-test
+            // finding). Missing docs must never fail `new`, so this is best-effort.
+            string packagedDocs = Path.ChangeExtension(packagedSdk, ".xml");
+            if (File.Exists(packagedDocs))
+                File.Copy(packagedDocs, Path.Combine(botLib, "BotArena.Sdk.xml"), overwrite: true);
             sdkReference =
                 "<Reference Include=\"BotArena.Sdk\"><HintPath>lib/BotArena.Sdk.dll</HintPath></Reference>";
         }

@@ -83,10 +83,19 @@ public sealed record ShotProgramLimits(
 /// <summary>Deterministic local preview of the path the engine will use.</summary>
 public static class ShotPaths
 {
+    /// <summary>Replays the engine's own path rule locally, so you can check where a
+    /// programmed shot would travel before committing to it.</summary>
+    /// <param name="origin">Tile the bolt launches from — normally your own position.</param>
+    /// <param name="facing">Direction the shot starts in, before any programmed bend.</param>
+    /// <param name="program">The committed arc to simulate.</param>
+    /// <param name="maxPathTiles">
+    /// Stop after this many tiles (see <c>BotContext.ShotPrograms</c> for the live limit).
+    /// </param>
     /// <param name="isWall">
     /// Wall-memory predicate. Null treats every tile as open. Diagonal movement uses
     /// strict corners: either orthogonally adjacent wall blocks that step.
     /// </param>
+    /// <returns>The tiles the bolt would enter, in order.</returns>
     public static IReadOnlyList<Position> Preview(
         Position origin,
         Direction facing,

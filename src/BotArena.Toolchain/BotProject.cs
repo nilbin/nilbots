@@ -41,7 +41,11 @@ public static class ToolchainInfo
     // 0.8.0: private programmed-shot actions (trailing SP action payload),
     // public limits (trailing SP observation), and exact currently revealed
     // eight-way projectile headings (trailing PH observation).
-    public const string SdkVersion = "0.8.0";
+    // 0.8.1: no wire change — XML documentation now ships beside the SDK dll, and the
+    // members that are inert outside the research arms (strafe actions, Energy) are
+    // marked [Obsolete] + [EditorBrowsable(Never)] so they no longer read as playable
+    // API. Compile-surface change for player projects, hence a version bump.
+    public const string SdkVersion = "0.8.1";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.8.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
