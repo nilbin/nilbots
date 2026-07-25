@@ -96,14 +96,21 @@ once under the deployment root configured by the GitHub
 
 ```bash
 deploy_root=/srv/nilbots/deployment
-install -d -m 700 "$deploy_root/shared/secrets" "$deploy_root/shared/backups"
+operator_gid="$(id -g)"
+install -d -m 700 "$deploy_root/shared/backups"
 install -m 600 deploy/.env "$deploy_root/shared/.env"
-install -m 600 deploy/secrets/*.pfx "$deploy_root/shared/secrets/"
+sudo install -d -m 770 -o 1654 -g "$operator_gid" \
+  "$deploy_root/shared/secrets"
+sudo install -m 660 -o 1654 -g "$operator_gid" \
+  deploy/secrets/*.pfx "$deploy_root/shared/secrets/"
 ```
 
 The workflow creates `releases/<git-sha>`, links its `.env`, certificates and
 backup directory to `shared/`, and atomically advances `current` only after
 the candidate release is healthy. `previous` remains available for rollback.
+UID 1654 is the unprivileged runtime account baked into the image; the
+operator's private group retains certificate-management access without making
+the private keys world-readable.
 Docker named volumes retain PostgreSQL, Garage and Caddy state independently
 of those release directories.
 
