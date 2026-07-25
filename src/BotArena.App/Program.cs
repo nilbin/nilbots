@@ -24,6 +24,7 @@ bool trustForwardedHeaders =
 
 builder.Services.AddSingleton(mode);
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(MatchExecutionSettings.FromEnvironment());
 builder.Services.AddObjectStore(builder.Configuration);
 builder.Services.AddSingleton(BuildProvenance.FromConfiguration(builder.Configuration));
 if (mode.RunsCompileWorker && !mode.IsAll)
@@ -49,6 +50,12 @@ builder.Services.AddScoped<CosmeticAchievementService>();
 builder.Services.AddScoped<BotAppearancePolicy>();
 builder.Services.AddScoped<MatchAdmissionService>();
 builder.Services.AddSingleton<MatchParticipantSnapshotFactory>();
+builder.Services.AddScoped<BackgroundJobLeaseStore>();
+builder.Services.AddScoped<BackgroundJobDispatcher>();
+builder.Services.AddScoped<CompileSubmissionJobHandler>();
+builder.Services.AddScoped<MatchExecutionJobHandler>();
+builder.Services.AddScoped<MatchReplayWriter>();
+builder.Services.AddScoped<RankedMatchSetFinalizer>();
 
 if (mode.RunsWeb)
 {

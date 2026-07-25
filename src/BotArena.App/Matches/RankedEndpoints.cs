@@ -33,6 +33,7 @@ public static class RankedEndpoints
                    ApplicationMode mode, IConfiguration configuration,
                    MatchAdmissionService admission,
                    MatchParticipantSnapshotFactory snapshots,
+                   MatchExecutionSettings matchSettings,
                    HttpContext http,
                    CancellationToken cancellationToken) =>
         {
@@ -58,17 +59,17 @@ public static class RankedEndpoints
                     // Resolve first so an unknown name gets its own error rather than
                     // being reported as a closed ladder.
                     setRules = Engine.GameRules.Resolve(rulesName);
-                    if (setRules.RulesVersion != JobWorker.MatchRules.RulesVersion &&
+                    if (setRules.RulesVersion != matchSettings.MatchRules.RulesVersion &&
                         !AllowsPinnedOpponents(mode, configuration))
                         return Results.Problem(
                             $"The {setRules.RulesVersion} ladder is closed to new sets — this " +
-                            $"server plays {JobWorker.MatchRules.RulesVersion}. Past results and " +
+                            $"server plays {matchSettings.MatchRules.RulesVersion}. Past results and " +
                             "ratings stay visible at /api/leaderboard?rules=" + setRules.RulesVersion + ".",
                             statusCode: 400);
                 }
                 else
                 {
-                    setRules = JobWorker.MatchRules;
+                    setRules = matchSettings.MatchRules;
                 }
             }
             catch (ArgumentException ex)
@@ -193,9 +194,13 @@ public static class RankedEndpoints
         // One ladder per rules version (DECISIONS #54). ?rules=<version string> picks
         // the ladder; default = the server's current ruleset. `ladders` lists every
         // ladder that has results, newest-looking first.
-        routes.MapGet("/api/leaderboard", async (string? rules, AppDbContext db) =>
+        routes.MapGet("/api/leaderboard", async (
+            string? rules,
+            AppDbContext db,
+            MatchExecutionSettings matchSettings) =>
         {
-            string version = rules is { Length: > 0 } ? rules : JobWorker.MatchRules.RulesVersion;
+            string activeRulesVersion = matchSettings.MatchRules.RulesVersion;
+            string version = rules is { Length: > 0 } ? rules : activeRulesVersion;
             var allLadders = await db.BotRatings
                 .Where(r => r.RankedSets > 0)
                 .Select(r => r.RulesVersion)
@@ -209,7 +214,7 @@ public static class RankedEndpoints
             // balance harness; they are just not offered as somewhere to go.
             var ladders = allLadders
                 .Where(v => v == version ||
-                            v == JobWorker.MatchRules.RulesVersion ||
+                            v == activeRulesVersion ||
                             Engine.GameRules.ShippedNames.Contains(v))
                 .ToList();
             var ratedBots = await db.BotRatings
@@ -249,7 +254,7 @@ public static class RankedEndpoints
             return Results.Ok(new
             {
                 RulesVersion = version,
-                ActiveRulesVersion = JobWorker.MatchRules.RulesVersion,
+                ActiveRulesVersion = activeRulesVersion,
                 Ladders = ladders,
                 Entries = entries,
             });

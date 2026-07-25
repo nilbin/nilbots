@@ -95,9 +95,10 @@ Project boundaries that must not be violated:
   Production's networked `compile-worker` coordinates database jobs with a
   filesystem queue; the `compiler-runner` compiles one request at a time with
   no container network or application secrets. Production runs exactly one
-  match worker because ranked-set finalization is not yet safe for concurrent
-  match consumers; compilation capacity may scale independently. There is
-  still no message broker or microservice boundary.
+  match worker by default; ranked-set and shared-bot row locks now make
+  concurrent match consumers safe, and `BOTARENA_MATCH_WORKERS` may raise the
+  in-process lane count when measurements justify it. Compilation capacity may
+  scale independently. There is still no message broker or microservice boundary.
   Incremental application-layer maintenance follows
   `docs/BACKEND-MAINTAINABILITY-PLAN.md`: endpoints and workers delegate
   repeated business invariants to explicit use cases, while direct EF Core

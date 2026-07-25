@@ -87,7 +87,11 @@ public static class BotsEndpoints
         // Keyed by slug OR id. Every bot has a unique, immutable slug, so the public
         // URL of a bot can read `/bots/murder-roomba` instead of a raw GUID; the id form
         // keeps working for anything already holding one.
-        group.MapGet("/{key}", async (string key, ClaimsPrincipal principal, AppDbContext db) =>
+        group.MapGet("/{key}", async (
+            string key,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            MatchExecutionSettings matchSettings) =>
         {
             var bot = Guid.TryParse(key, out var botId)
                 ? await db.Bots.Include(b => b.Versions).SingleOrDefaultAsync(b => b.Id == botId)
@@ -97,7 +101,7 @@ public static class BotsEndpoints
             bool isOwner = principal.UserId() == bot.OwnerUserId;
             string owner = await db.Users.Where(u => u.Id == bot.OwnerUserId)
                 .Select(u => u.DisplayName).FirstAsync();
-            string currentRulesVersion = JobWorker.MatchRules.RulesVersion;
+            string currentRulesVersion = matchSettings.MatchRules.RulesVersion;
             var currentStanding = await db.BotRatings
                 .ForBotAsync(currentRulesVersion, bot.Id);
             return Results.Ok(new

@@ -1,216 +1,184 @@
-using System.Text;
-using BotArena.App.Bots;
-using BotArena.App.Cosmetics;
+using System.Diagnostics;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
-using BotArena.App.Storage;
-using BotArena.Engine;
-using BotArena.Runtime.Wasm;
-using BotArena.Toolchain;
-using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Jobs;
 
 /// <summary>
-/// The background worker (plan §22): claims jobs from the database with
-/// FOR UPDATE SKIP LOCKED and runs compilation and match execution in-process.
-/// Bot execution is already sandboxed by the WASM runtime, so no extra process
-/// isolation is needed for matches; compilation runs dotnet in a child process.
-///
-/// Jobs run in deployment-selected typed lanes (DECISIONS #42): exactly ONE
-/// global match worker until set finalization is concurrency-safe, plus
-/// independently scalable compile workers. BotBuilder serializes identical
-/// cache-key builds within a host; content-addressed object storage keeps
-/// cross-host duplicate builds correct.
+/// Runs typed durable-job lanes. Queue ownership and lease transitions live in
+/// <see cref="BackgroundJobLeaseStore"/>; domain work is delegated through
+/// <see cref="BackgroundJobDispatcher"/>.
 /// </summary>
 public sealed class JobWorker(
     IServiceScopeFactory scopeFactory,
-    IObjectStore objectStore,
-    ISubmissionCompiler submissionCompiler,
-    BuildProvenance buildProvenance,
     ApplicationMode mode,
+    MatchExecutionSettings matchSettings,
     ILogger<JobWorker> logger)
     : BackgroundService
 {
-    private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan LeaseRefreshInterval = TimeSpan.FromMinutes(1);
     private static readonly int CompileWorkers =
         ReadEnv("BOTARENA_COMPILE_WORKERS", fallback: 1, min: 1, max: 8);
+    private static readonly int MatchWorkers =
+        ReadEnv("BOTARENA_MATCH_WORKERS", fallback: 1, min: 1, max: 8);
     private readonly string workerId = ResolveWorkerId();
-
-    /// <summary>Presentation pacing (plan §28). Production default: 5 ticks/s after a
-    /// 3 s countdown. Eval/CI deployments crank BOTARENA_BROADCAST_TPS so harnesses
-    /// aren't rate-limited by the spectator clock (DECISIONS #41); the no-spoiler
-    /// invariant is untouched — this configures the clock, never bypasses it.</summary>
-    private static readonly int BroadcastTicksPerSecond =
-        ReadEnv("BOTARENA_BROADCAST_TPS", fallback: 5, min: 1, max: 1000);
-    private static readonly int BroadcastDelaySeconds =
-        ReadEnv("BOTARENA_BROADCAST_DELAY_SECONDS", fallback: 3, min: 0, max: 300);
-
-    /// <summary>The DEFAULT ruleset for matches on this server (BOTARENA_RULES, default
-    /// GameRules.Current). This is the ONE ladder open to new ranked sets: every other
-    /// rules version keeps its elo and history (DECISIONS #54) but is frozen, because a
-    /// matchmade opponent never chose to play a retired ruleset (DECISIONS #97). Eval
-    /// deployments set "energy" etc. to run whole tournaments under a rules
-    /// experiment — there, that arm is the live ladder.</summary>
-    internal static readonly GameRules MatchRules =
-        Environment.GetEnvironmentVariable("BOTARENA_RULES") is { Length: > 0 } name
-            ? GameRules.Resolve(name)
-            : GameRules.Current;
-
-    private static int ReadEnv(string name, int fallback, int min, int max) =>
-        int.TryParse(Environment.GetEnvironmentVariable(name), out int value)
-            ? Math.Clamp(value, min, max)
-            : fallback;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        int matchWorkers = mode.RunsMatchWorker ? MatchWorkers : 0;
+        int compileWorkers = mode.RunsCompileWorker ? CompileWorkers : 0;
         logger.LogInformation(
-            "Job worker {WorkerId} started in {Role} role: match={Match}, compile={CompileWorkers}, broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
+            "Job worker {WorkerId} started in {Role} role: match={MatchWorkers}, compile={CompileWorkers}, broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
             workerId,
             mode.Name,
-            mode.RunsMatchWorker,
-            mode.RunsCompileWorker ? CompileWorkers : 0,
-            BroadcastTicksPerSecond,
-            BroadcastDelaySeconds,
-            MatchRules.RulesVersion);
-        var lanes = new List<Task>();
-        if (mode.RunsMatchWorker)
+            matchWorkers,
+            compileWorkers,
+            matchSettings.BroadcastTicksPerSecond,
+            matchSettings.BroadcastDelaySeconds,
+            matchSettings.MatchRules.RulesVersion);
+
+        List<Task> lanes = [];
+        for (int index = 0; index < matchWorkers; index++)
             lanes.Add(RunLane(BackgroundJob.ExecuteMatchType, stoppingToken));
-        if (mode.RunsCompileWorker)
-        {
-            for (int i = 0; i < CompileWorkers; i++)
-                lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
-        }
+        for (int index = 0; index < compileWorkers; index++)
+            lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
         if (lanes.Count == 0)
             throw new InvalidOperationException($"Role '{mode.Name}' has no background job lanes.");
         await Task.WhenAll(lanes);
     }
 
-    private async Task RunLane(string jobType, CancellationToken stoppingToken)
+    private async Task RunLane(
+        string jobType,
+        CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             bool didWork = false;
             try
             {
-                didWork = await RunOneJob(jobType, stoppingToken);
+                didWork = await RunOneJobAsync(jobType, stoppingToken);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
+                return;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                logger.LogError(ex, "Job lane ({Type}) iteration failed", jobType);
+                logger.LogError(
+                    exception,
+                    "Job lane ({Type}) iteration failed",
+                    jobType);
             }
+
             if (!didWork)
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken).ContinueWith(_ => { });
+            {
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
         }
     }
 
-    private async Task<bool> RunOneJob(string jobType, CancellationToken cancellationToken)
+    private async Task<bool> RunOneJobAsync(
+        string jobType,
+        CancellationToken cancellationToken)
     {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var entitlements =
-            scope.ServiceProvider.GetRequiredService<CosmeticEntitlementService>();
-        var cosmeticAchievements =
-            scope.ServiceProvider.GetRequiredService<CosmeticAchievementService>();
-
-        var jobs = await db.BackgroundJobs
-            .FromSqlRaw("""
-                UPDATE "BackgroundJobs"
-                SET "Status" = 'Running',
-                    "LockedUntil" = now() + interval '10 minutes',
-                    "LockedBy" = {1}
-                WHERE "Id" = (
-                    SELECT "Id" FROM "BackgroundJobs"
-                    WHERE "Type" = {0}
-                      AND (("Status" = 'Pending' AND "AvailableAt" <= now())
-                       OR ("Status" = 'Running' AND "LockedUntil" < now()))
-                    ORDER BY "Id"
-                    LIMIT 1
-                    FOR UPDATE SKIP LOCKED)
-                RETURNING *
-                """, jobType, workerId)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);   // ToList: no SQL composition over UPDATE..RETURNING
-        var job = jobs.FirstOrDefault();
+        using IServiceScope scope = scopeFactory.CreateScope();
+        BackgroundJobLeaseStore leases =
+            scope.ServiceProvider.GetRequiredService<BackgroundJobLeaseStore>();
+        BackgroundJob? job = await leases.ClaimAsync(
+            jobType,
+            workerId,
+            cancellationToken);
         if (job is null)
             return false;
 
+        JobTelemetry.RecordClaim(job.Type);
         logger.LogInformation("Running job {JobId} ({Type})", job.Id, job.Type);
-        using var workCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        Task leaseHeartbeat = KeepLease(job.Id, workCancellation);
+        using Activity? activity =
+            ApplicationTelemetry.ActivitySource.StartActivity("jobs.execute");
+        activity?.SetTag("job.id", job.Id);
+        activity?.SetTag("job.type", job.Type);
+        var stopwatch = Stopwatch.StartNew();
+        using var workCancellation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task leaseHeartbeat = KeepLeaseAsync(job.Id, workCancellation);
+        string outcome = "exception";
         try
         {
-            switch (job.Type)
+            BackgroundJobDispatcher dispatcher =
+                scope.ServiceProvider.GetRequiredService<BackgroundJobDispatcher>();
+            JobExecutionResult result = await dispatcher.DispatchAsync(
+                job,
+                workCancellation.Token);
+            outcome = result.Outcome;
+            bool completed = await leases.CompleteAsync(
+                job.Id,
+                workerId,
+                workCancellation.Token);
+            if (!completed)
             {
-                case BackgroundJob.CompileSubmissionType:
-                    await CompileSubmission(
-                        db,
-                        entitlements,
-                        job.PayloadId("botVersionId"),
-                        workCancellation.Token);
-                    break;
-                case BackgroundJob.ExecuteMatchType:
-                    await ExecuteMatch(
-                        db,
-                        entitlements,
-                        cosmeticAchievements,
-                        job.PayloadId("matchId"),
-                        workCancellation.Token);
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unknown job type '{job.Type}'.");
+                throw new InvalidOperationException(
+                    $"Job {job.Id} lease was lost before completion.");
             }
-            int completed = await db.BackgroundJobs
-                .Where(j => j.Id == job.Id && j.LockedBy == workerId)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(j => j.Status, JobStatus.Completed)
-                    .SetProperty(j => j.CompletedAt, DateTime.UtcNow)
-                    .SetProperty(j => j.LockedUntil, (DateTime?)null)
-                    .SetProperty(j => j.LockedBy, (string?)null)
-                    .SetProperty(j => j.LastError, (string?)null), workCancellation.Token);
-            if (completed == 0)
-                throw new InvalidOperationException($"Job {job.Id} lease was lost before completion.");
+            logger.LogInformation(
+                "Completed job {JobId} ({Type}) with outcome {Outcome}",
+                job.Id,
+                job.Type,
+                outcome);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            outcome = "worker_stopping";
             throw;
         }
         catch (OperationCanceledException) when (workCancellation.IsCancellationRequested)
         {
+            outcome = "lease_lost";
             logger.LogWarning(
                 "Stopped job {JobId} ({Type}) after worker {WorkerId} lost its lease",
                 job.Id,
                 job.Type,
                 workerId);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            logger.LogError(ex, "Job {JobId} ({Type}) failed", job.Id, job.Type);
-            int attempts = job.Attempts + 1;
-            bool retry = attempts < 3;
-            await db.BackgroundJobs
-                .Where(j => j.Id == job.Id && j.LockedBy == workerId)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(j => j.Status, retry ? JobStatus.Pending : JobStatus.Failed)
-                    .SetProperty(j => j.Attempts, attempts)
-                    .SetProperty(j => j.AvailableAt, DateTime.UtcNow.AddSeconds(10))
-                    .SetProperty(j => j.LockedUntil, (DateTime?)null)
-                    .SetProperty(j => j.LockedBy, (string?)null)
-                    .SetProperty(j => j.LastError, ex.Message), CancellationToken.None);
+            logger.LogError(
+                exception,
+                "Job {JobId} ({Type}) failed",
+                job.Id,
+                job.Type);
+            JobFailureOutcome failure = await leases.FailAsync(
+                job,
+                workerId,
+                exception,
+                CancellationToken.None);
+            outcome = failure switch
+            {
+                JobFailureOutcome.RetryScheduled => "retry_scheduled",
+                JobFailureOutcome.TerminalFailure => "terminal_failure",
+                _ => "lease_lost",
+            };
         }
         finally
         {
             workCancellation.Cancel();
             await leaseHeartbeat;
+            stopwatch.Stop();
+            JobTelemetry.RecordJob(job.Type, outcome, stopwatch.Elapsed);
+            activity?.SetTag("application.outcome", outcome);
         }
         return true;
     }
 
-    private async Task KeepLease(long jobId, CancellationTokenSource workCancellation)
+    private async Task KeepLeaseAsync(
+        long jobId,
+        CancellationTokenSource workCancellation)
     {
         try
         {
@@ -219,32 +187,32 @@ public sealed class JobWorker(
                 await Task.Delay(LeaseRefreshInterval, workCancellation.Token);
                 try
                 {
-                    using var scope = scopeFactory.CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    int renewed = await db.BackgroundJobs
-                        .Where(j => j.Id == jobId &&
-                                    j.Status == JobStatus.Running &&
-                                    j.LockedBy == workerId)
-                        .ExecuteUpdateAsync(s => s.SetProperty(
-                            j => j.LockedUntil,
-                            DateTime.UtcNow.Add(LeaseDuration)), workCancellation.Token);
-                    if (renewed == 0)
+                    using IServiceScope scope = scopeFactory.CreateScope();
+                    BackgroundJobLeaseStore leases =
+                        scope.ServiceProvider.GetRequiredService<BackgroundJobLeaseStore>();
+                    bool renewed = await leases.RenewAsync(
+                        jobId,
+                        workerId,
+                        workCancellation.Token);
+                    if (!renewed)
                     {
-                        logger.LogWarning("Worker {WorkerId} lost lease for job {JobId}", workerId, jobId);
+                        logger.LogWarning(
+                            "Worker {WorkerId} lost lease for job {JobId}",
+                            workerId,
+                            jobId);
                         workCancellation.Cancel();
                         return;
                     }
                 }
-                catch (OperationCanceledException) when (workCancellation.IsCancellationRequested)
+                catch (OperationCanceledException) when (
+                    workCancellation.IsCancellationRequested)
                 {
                     return;
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    // The ten-minute lease leaves several retry opportunities
-                    // before another worker can reclaim the job.
                     logger.LogWarning(
-                        ex,
+                        exception,
                         "Worker {WorkerId} could not refresh lease for job {JobId}",
                         workerId,
                         jobId);
@@ -256,356 +224,15 @@ public sealed class JobWorker(
         }
     }
 
-    private async Task CompileSubmission(
-        AppDbContext db,
-        CosmeticEntitlementService entitlements,
-        Guid versionId,
-        CancellationToken cancellationToken)
-    {
-        var version = await db.BotVersions.SingleAsync(v => v.Id == versionId, cancellationToken);
-        if (version.Status == BuildStatus.Built &&
-            version.ArtifactKey is { } existingKey &&
-            await objectStore.ExistsAsync(existingKey, cancellationToken))
-        {
-            await AwardSuccessfulBuild(
-                db,
-                entitlements,
-                version,
-                cancellationToken);
-            return;
-        }
-
-        version.Status = BuildStatus.Building;
-        await db.SaveChangesAsync(cancellationToken);
-
-        var sources = System.Text.Json.JsonSerializer.Deserialize<List<SourceFile>>(version.SourcesJson)!;
-        try
-        {
-            CompiledSubmission built = await submissionCompiler.CompileAsync(
-                version.Id,
-                sources,
-                version.EntryType,
-                $"version {version.VersionNumber}",
-                cancellationToken);
-            _ = WasmArtifactValidator.Validate(built.WasmPath);
-            SmokeTest(built.WasmPath);
-
-            string artifactKey = ObjectKeys.Artifact(built.ArtifactHash);
-            await using (var stream = File.OpenRead(built.WasmPath))
-                await objectStore.PutAsync(artifactKey, stream, built.ArtifactHash, cancellationToken);
-            version.ArtifactKey = artifactKey;
-            version.ArtifactHash = built.ArtifactHash;
-            version.Status = BuildStatus.Built;
-            DateTime builtAt = DateTime.UtcNow;
-            version.BuiltAt = builtAt;
-            version.BuildReceiptJson = System.Text.Json.JsonSerializer.Serialize(new BuildReceipt(
-                version.Id,
-                version.SourceHash,
-                built.ArtifactHash,
-                new FileInfo(built.WasmPath).Length,
-                ToolchainInfo.SdkVersion,
-                ToolchainInfo.GuestAdapterVersion,
-                ToolchainInfo.IlcLlvmVersion,
-                ToolchainInfo.BuildPipelineVersion,
-                version.GameRulesVersion,
-                version.RuntimeProtocolVersion,
-                version.RuntimeConfigurationVersion,
-                buildProvenance.CompilerImageReference,
-                buildProvenance.GitCommit,
-                builtAt));
-            version.BuildLog = Tail(built.BuildLog, 8000);
-
-            // Pilot behavior: the newest successful build becomes the active version.
-            var siblings = await db.BotVersions
-                .Where(v => v.BotId == version.BotId && v.Id != version.Id)
-                .ToListAsync(cancellationToken);
-            foreach (var sibling in siblings)
-                sibling.IsActive = false;
-            version.IsActive = true;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (BotBuildException ex)
-        {
-            version.Status = BuildStatus.Failed;
-            version.BuildLog = Tail(ex.BuildLog.Length > 0 ? ex.BuildLog : ex.Message, 8000);
-        }
-        catch (Exception ex)
-        {
-            version.Status = BuildStatus.Failed;
-            version.BuildLog = Tail($"Artifact validation failed: {ex.Message}", 8000);
-        }
-        await db.SaveChangesAsync(cancellationToken);
-        if (version.Status == BuildStatus.Built)
-        {
-            await AwardSuccessfulBuild(
-                db,
-                entitlements,
-                version,
-                cancellationToken);
-        }
-        await submissionCompiler.CleanupAsync(version.Id);
-    }
-
-    private static async Task AwardSuccessfulBuild(
-        AppDbContext db,
-        CosmeticEntitlementService entitlements,
-        BotVersion version,
-        CancellationToken cancellationToken)
-    {
-        Guid userId = await db.Bots
-            .Where(bot => bot.Id == version.BotId)
-            .Select(bot => bot.OwnerUserId)
-            .SingleAsync(cancellationToken);
-        await entitlements.GrantForEventAsync(
-            userId,
-            CosmeticUnlockEvents.Achievement,
-            CosmeticUnlockEvents.FirstSuccessfulBuild,
-            new { botVersionId = version.Id },
-            cancellationToken);
-    }
-
-    /// <summary>Minimal §15.4 artifact validation: the artifact must load, handshake and
-    /// survive a short match against the built-in idle bot without crashing the host.</summary>
-    private static void SmokeTest(string wasmPath)
-    {
-        string? builtin = RepoPaths.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
-        var map = LoadMap("basic-01");
-        var rules = MatchRules with { MaxTicks = 5 };
-        using var candidate = new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = wasmPath });
-        using var idle = builtin is null
-            ? (IBotRuntime)new Runtime.InProcessBotRuntime(() => new BotArena.Bots.BuiltIn.IdleBot())
-            : new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = builtin, BotName = "idle" });
-        var run = new MatchEngine().Run(new MatchConfiguration
-        {
-            Map = map,
-            Rules = rules,
-            Seed = 1,
-            Participants =
-            [
-                new MatchParticipantConfig { Name = "candidate", Runtime = candidate },
-                new MatchParticipantConfig { Name = "idle", Runtime = idle },
-            ],
-        });
-        var candidateResult = run.Result.Bots[0];
-        if (candidateResult.Faults >= rules.FaultLimit)
-            throw new InvalidOperationException(
-                "the bot faulted on every tick of the validation match " +
-                "(it may crash at startup or return no action).");
-    }
-
-    private async Task ExecuteMatch(
-        AppDbContext db,
-        CosmeticEntitlementService entitlements,
-        CosmeticAchievementService cosmeticAchievements,
-        Guid matchId,
-        CancellationToken cancellationToken)
-    {
-        var match = await db.Matches.Include(m => m.Participants)
-            .SingleAsync(m => m.Id == matchId, cancellationToken);
-        match.Status = MatchStatus.Running;
-        await db.SaveChangesAsync(cancellationToken);
-
-        try
-        {
-            var participants = match.Participants.OrderBy(p => p.Slot).ToList();
-            var versions = new List<BotVersion>();
-            foreach (var participant in participants)
-                versions.Add(await db.BotVersions.SingleAsync(v => v.Id == participant.BotVersionId, cancellationToken));
-
-            // A set may pin its own ruleset (DECISIONS #54); unpinned sets and
-            // setless matches play the server default.
-            GameRules rules = MatchRules;
-            if (match.MatchSetId is Guid rulesSetId &&
-                await db.MatchSets.Where(s => s.Id == rulesSetId)
-                    .Select(s => s.RulesName).SingleAsync(cancellationToken) is { Length: > 0 } pinned)
-                rules = GameRules.Resolve(pinned);
-
-            var modulePaths = new List<string>();
-            foreach (var version in versions)
-            {
-                if (version.ArtifactKey is null || version.ArtifactHash is null)
-                    throw new InvalidOperationException($"Bot version {version.Id} has no built artifact.");
-                modulePaths.Add(await objectStore.MaterializeAsync(
-                    version.ArtifactKey,
-                    version.ArtifactHash,
-                    cancellationToken));
-            }
-            var runtimes = versions
-                .Select((v, index) => new WasmBotRuntime(new WasmRuntimeOptions
-                {
-                    ModulePath = modulePaths[index],
-                    BotName = v.GuestBotName ?? "",
-                }))
-                .ToList();
-            try
-            {
-                var run = new MatchEngine().Run(new MatchConfiguration
-                {
-                    Map = LoadMap(match.MapId),
-                    Rules = rules,
-                    Seed = unchecked((ulong)match.Seed),
-                    Participants = participants.Select((p, slot) => new MatchParticipantConfig
-                    {
-                        Name = p.NameSnapshot,
-                        Runtime = runtimes[slot],
-                        RuntimeKind = "wasm",
-                        ArtifactHash = p.ArtifactHashSnapshot,
-                        Accent = p.AccentSnapshot,
-                        LookId = p.LookIdSnapshot,
-                        ProjectileLookId = p.ProjectileLookIdSnapshot,
-                    }).ToArray(),
-                });
-
-                string replayKey = ObjectKeys.Replay(match.Id);
-                byte[] replayBytes = Encoding.UTF8.GetBytes(ReplaySerializer.ToJson(run.Replay));
-                await using (var replay = new MemoryStream(replayBytes, writable: false))
-                    await objectStore.PutAsync(
-                        replayKey,
-                        replay,
-                        expectedSha256: null,
-                        cancellationToken: cancellationToken);
-
-                match.ReplayKey = replayKey;
-                match.ReplayHash = run.ReplayHash;
-                match.GameRulesVersion = rules.RulesVersion; // actual, not creation-time default
-                match.WinnerSlot = run.Result.WinnerSlot;
-                match.EndReason = run.Result.Reason.ToString();
-                match.EndTick = run.Result.EndTick;
-                match.Status = MatchStatus.Completed;
-                match.CompletedAt = DateTime.UtcNow;
-                // Presentation timeline (plan §28): computed instantly, watched at human speed.
-                match.BroadcastStartedAt = DateTime.UtcNow.AddSeconds(BroadcastDelaySeconds);
-                match.PresentationTicksPerSecond = BroadcastTicksPerSecond;
-                foreach (var participant in participants)
-                {
-                    var botResult = run.Result.Bots.Single(b => b.Slot == participant.Slot);
-                    participant.Outcome = botResult.Outcome.ToString();
-                    participant.FinalHealth = botResult.FinalHealth;
-                    participant.DamageDealt = botResult.DamageDealt;
-                    participant.Faults = botResult.Faults;
-                }
-            }
-            finally
-            {
-                foreach (var runtime in runtimes)
-                    runtime.Dispose();
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            match.Status = MatchStatus.Failed;
-            match.Error = ex.Message;
-        }
-        await db.SaveChangesAsync(cancellationToken);
-        if (match.Status == MatchStatus.Completed &&
-            match.MatchSetId is null &&
-            match.InitiatedByUserId is Guid challengerId)
-        {
-            await entitlements.GrantForEventAsync(
-                challengerId,
-                CosmeticUnlockEvents.Challenge,
-                CosmeticUnlockEvents.FirstUnrankedMatch,
-                new { matchId = match.Id },
-                cancellationToken);
-        }
-        if (match.MatchSetId is Guid setId)
-        {
-            await TryFinalizeSet(db, setId, cancellationToken);
-            await cosmeticAchievements.AwardForCompletedRankedSetAsync(
-                setId,
-                cancellationToken);
-        }
-    }
-
-    /// <summary>Applies Elo once all six games of a ranked set have executed (plan §36).
-    /// The single-consumer worker makes this race-free.</summary>
-    private static async Task TryFinalizeSet(AppDbContext db, Guid setId, CancellationToken cancellationToken)
-    {
-        var set = await db.MatchSets.SingleAsync(s => s.Id == setId, cancellationToken);
-        if (set.Status != MatchSetStatus.Running)
-            return;
-        var games = await db.Matches.Include(m => m.Participants)
-            .Where(m => m.MatchSetId == setId)
-            .ToListAsync(cancellationToken);
-        if (games.Count < MatchSet.Games ||
-            games.Any(m => m.Status is MatchStatus.Pending or MatchStatus.Running))
-            return;
-
-        if (games.Any(m => m.Status == MatchStatus.Failed))
-        {
-            set.Status = MatchSetStatus.Failed;
-            set.CompletedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(cancellationToken);
-            return;
-        }
-
-        double scoreA = 0;
-        foreach (var game in games)
-        {
-            if (game.WinnerSlot is int winner)
-                scoreA += game.Participants.Single(p => p.Slot == winner).BotId == set.BotAId ? 1 : 0;
-            else
-                scoreA += 0.5;
-        }
-        set.ScoreA = scoreA;
-        set.ScoreB = MatchSet.Games - scoreA;
-
-        // Elo moves on the ladder of the rules the games were ACTUALLY played under
-        // (DECISIONS #54): every rules version has its own ladder, created lazily.
-        string ladder = games[0].GameRulesVersion;
-        set.GameRulesVersion = ladder;
-        var ratingA = await GetOrCreateRating(db, set.BotAId, ladder, cancellationToken);
-        var ratingB = await GetOrCreateRating(db, set.BotBId, ladder, cancellationToken);
-        set.RatingABefore = ratingA.Rating;
-        set.RatingBBefore = ratingB.Rating;
-        double change = EloAdjustment.ForBotA(
-            ratingA.Rating, ratingB.Rating, scoreA, MatchSet.Games, MatchSet.EloK);
-        set.RatingChangeA = change;
-        set.RatingChangeB = -change;
-        ratingA.Rating += change;
-        ratingB.Rating -= change;
-        ratingA.RankedSets++;
-        ratingB.RankedSets++;
-        set.WinnerBotId = scoreA > set.ScoreB ? set.BotAId : scoreA < set.ScoreB ? set.BotBId : null;
-        set.Status = MatchSetStatus.Completed;
-        set.CompletedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-    }
-
-    private static async Task<BotRating> GetOrCreateRating(
-        AppDbContext db, Guid botId, string rulesVersion, CancellationToken cancellationToken)
-    {
-        var rating = await db.BotRatings
-            .SingleOrDefaultAsync(r => r.BotId == botId && r.RulesVersion == rulesVersion, cancellationToken);
-        if (rating is null)
-        {
-            rating = new BotRating { BotId = botId, RulesVersion = rulesVersion };
-            db.BotRatings.Add(rating); // explicit Add: pre-set Guid keys read as Modified otherwise
-        }
-        return rating;
-    }
-
-    private static ArenaMap LoadMap(string mapId)
-    {
-        string? path = RepoPaths.FindUpward(Path.Combine("maps", mapId + ".json"));
-        if (path is null)
-            throw new InvalidOperationException($"Map '{mapId}' not found.");
-        return ArenaMap.FromJson(File.ReadAllText(path));
-    }
-
-    private static string Tail(string text, int maxChars) =>
-        text.Length <= maxChars ? text : text[^maxChars..];
+    private static int ReadEnv(string name, int fallback, int min, int max) =>
+        int.TryParse(Environment.GetEnvironmentVariable(name), out int value)
+            ? Math.Clamp(value, min, max)
+            : fallback;
 
     private static string ResolveWorkerId()
     {
-        string configured = Environment.GetEnvironmentVariable("BOTARENA_INSTANCE_ID") ?? "";
+        string configured =
+            Environment.GetEnvironmentVariable("BOTARENA_INSTANCE_ID") ?? "";
         string value = string.IsNullOrWhiteSpace(configured)
             ? $"{Environment.MachineName}:{Environment.ProcessId}:{Guid.NewGuid():N}"
             : configured.Trim();

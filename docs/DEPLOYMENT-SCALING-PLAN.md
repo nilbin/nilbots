@@ -108,9 +108,9 @@ existing database and object store.
 | Area | Current strength | Gap before multiple VPSs |
 | --- | --- | --- |
 | Application | Explicit web, compile, match, migrate, and local `all` roles | Keep role compatibility across rolling upgrades |
-| Jobs | PostgreSQL queue with claims, worker IDs, and renewable leases | Ranked-set finalization still limits match processing to one global consumer |
+| Jobs | PostgreSQL queue with claims, worker IDs, renewable leases, typed handlers, and outcome metrics | Tune lane counts from measured queue latency and terminal failures |
 | Compilation | Networkless unprivileged runner, baked inputs, durable admission limits, deterministic cache keys, cgroup/tmpfs limits | Move the runner to a dedicated VPS if measured load or abuse warrants it |
-| Matches | Deterministic WASM execution with fuel and memory limits | Forced-death retry and concurrent-finalization tests remain |
+| Matches | Deterministic WASM execution plus transactionally exact-once ranked finalization under concurrent workers | Rehearse whole-process forced termination around replay persistence |
 | Artifacts | Immutable, content-hashed objects behind `IObjectStore` and private Garage S3 | Move Garage replicas to distinct physical zones before claiming storage HA |
 | Replays | Stable object keys and authorization-gated streaming through Garage | Rehearse Garage plus PostgreSQL restoration |
 | Authentication | Shared provisioned OpenIddict certificates; Data Protection keys in PostgreSQL | Operational certificate rotation still needs rehearsal |
@@ -483,7 +483,7 @@ PostgreSQL, and object storage can each remain a single failure point.
       measurements justify it.
 - [x] Add worker IDs and lease renewal.
 - [ ] Prove compile job retry/idempotency through forced worker termination.
-- [ ] Make ranked-set finalization transactionally exactly-once before adding
+- [x] Make ranked-set finalization transactionally exactly-once before adding
       a second match worker.
 - [ ] Exercise a mixed-version/drained-worker deployment.
 

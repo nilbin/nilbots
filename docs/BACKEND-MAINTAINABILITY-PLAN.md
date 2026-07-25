@@ -47,8 +47,10 @@ The goal is a pragmatic modular monolith in which:
    Closed in Phase 4.
 4. Broadcast secrecy relied on each response projection remembering which
    fields were safe. Closed for public match/statistics reads in Phase 4.
-5. Ranked-set finalization and progression are safe partly by deployment
-   convention: only one match worker runs.
+5. Ranked-set finalization and progression previously depended partly on the
+   one-match-worker deployment convention. Closed in Phase 5 with set and bot
+   row locks plus one transaction for ratings, completion, grants, and
+   notification.
 6. PostgreSQL-dependent tests could be skipped, hiding constraint, migration,
    transaction, and concurrency failures. Closed in Phase 1.
 7. Direct `DateTime.UtcNow` calls remain in older operations; extracted
@@ -298,6 +300,17 @@ secret value is absent, not that the JSON property is structurally omitted.
 - Add job/finalization metrics and structured outcomes.
 - Increase match-worker concurrency only after those tests prove exact-once
   behavior.
+
+Completed: queue claiming and leases, typed dispatch, compilation, match
+execution, replay persistence, and ranked finalization now have separate
+services. Ranked finalization locks the set row and both bot rows in stable
+order, then commits score/rating changes, set status, milestone grants,
+notification, and PostgreSQL wake-up atomically. Real PostgreSQL tests run two
+finalizers against the same set and against distinct sets sharing bots, and
+inject failures after the rating flush and immediately before commit. Job
+claims/outcomes/duration and typed finalization outcomes are emitted through
+the application meter. Match lanes remain one by default and can be raised
+with `BOTARENA_MATCH_WORKERS` after operational measurement.
 
 ### Phase 6 — progression, competitions, and future commerce
 

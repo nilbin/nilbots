@@ -204,7 +204,8 @@ configuration) and changing them is a version bump, not an edit.
     flag would be a spoiler hole. Also fixed: `PresentationTick` now clamps
     instead of overflowing int after weeks (which would have un-revealed old
     matches, sooner at high TPS).
-42. **Typed job lanes: one match lane + N compile lanes**
+42. **Typed job lanes: one match lane + N compile lanes** (the match-lane
+    limit is superseded by the transactionally safe configuration in #110)
     (`BOTARENA_COMPILE_WORKERS`, default 1). Set finalization stays race-free
     because match jobs keep a single consumer (#26 still holds); compiles are
     embarrassingly parallel and were the tournament's other bottleneck — a
@@ -1579,6 +1580,24 @@ before picking a number.*
      concealment and revelation across every view. The transport remains
      polling for now; this privacy boundary is designed to be reused by the
      later SignalR match stream.
+
+110. **Ranked-set finalization is a locked transactional use case; worker
+     concurrency is configuration, not a correctness convention.** Durable-job
+     claiming/lease ownership is separate from typed compile and match
+     dispatch, and replay persistence is an explicit idempotent stable-key
+     handler. Finalization locks the `MatchSet` row first, then both affected
+     `Bot` rows in stable ID order. The set lock makes simultaneous last-game
+     workers observe one terminal transition; the bot locks serialize
+     different sets that touch the same ladder ratings and prevent lost
+     updates or duplicate first-rating rows. Score, rating movement, ranked-set
+     counters, terminal set status, achievement grants, durable notification,
+     and commit-delivered PostgreSQL wake-up share one transaction. Real
+     PostgreSQL tests run two finalizers against the same set and against
+     separate sets sharing bots, and inject failures after the rating flush and
+     immediately before commit. Job and finalization outcome metrics use
+     low-cardinality job kind/outcome tags. One match lane remains the default;
+     `BOTARENA_MATCH_WORKERS` may raise it only when measured throughput
+     warrants more local concurrency.
 
 ## Deferred decisions
 

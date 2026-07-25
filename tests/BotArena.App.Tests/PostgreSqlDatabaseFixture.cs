@@ -1,5 +1,6 @@
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 
 namespace BotArena.App.Tests;
@@ -85,13 +86,14 @@ public sealed class PostgreSqlDatabaseFixture : IAsyncDisposable
             adminBuilder.ConnectionString);
     }
 
-    public AppDbContext CreateContext()
+    public AppDbContext CreateContext(params IInterceptor[] interceptors)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+        var builder = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(ConnectionString)
-            .UseOpenIddict()
-            .Options;
-        return new AppDbContext(options);
+            .UseOpenIddict();
+        if (interceptors.Length > 0)
+            builder.AddInterceptors(interceptors);
+        return new AppDbContext(builder.Options);
     }
 
     public async Task<AppDbContext> CreateMigratedContextAsync()

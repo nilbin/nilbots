@@ -151,8 +151,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    spectator vs developer mode split (plan §32.3/32.4).
 10. Backend maintainability follows
     [`BACKEND-MAINTAINABILITY-PLAN.md`](BACKEND-MAINTAINABILITY-PLAN.md):
-    phases 1–4 are done—PostgreSQL integration tests are mandatory in CI, the
+    phases 1–5 are done—PostgreSQL integration tests are mandatory in CI, the
     shared application primitives exist, bot appearance is the pilot, and
     shared match admission/snapshots plus broadcast-safe projections are in
-    place. Next is worker decomposition and concurrency-safe ranked
-    finalization. This is an incremental modular-monolith plan, not a rewrite.
+    place. Durable jobs now dispatch to typed handlers and ranked finalization
+    is transactionally safe under concurrent workers. Next is source-owned
+    progression/competition work as product needs appear. This is an
+    incremental modular-monolith plan, not a rewrite.

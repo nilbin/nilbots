@@ -95,7 +95,8 @@ Configuration: `BOTARENA_DB` (connection string), `BOTARENA_DATA` (durable
 object volume), `BOTARENA_ROOT` (toolchain checkout root), and
 `BOTARENA_ROLE` (`all`, `web`, `compile-worker`, `compiler-runner`,
 `match-worker`, or `migrate`). Put a TLS proxy in front before exposing it
-publicly.
+publicly. Worker lane counts default to one and can be tuned with
+`BOTARENA_COMPILE_WORKERS` and `BOTARENA_MATCH_WORKERS`.
 
 For an internet-facing single-VPS installation, see the
 [production deployment runbook](deploy/README.md). For the path from one
