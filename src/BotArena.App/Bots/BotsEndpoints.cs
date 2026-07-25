@@ -292,6 +292,21 @@ public static class BotsEndpoints
             return Results.Ok(new { Wins = wins, Losses = losses, Draws = draws, Matches = rows });
         });
 
+        group.MapGet(
+            "/{botId:guid}/stats",
+            async (
+                Guid botId,
+                BotStatisticsQuery query,
+                CancellationToken cancellationToken) =>
+            {
+                BotStatistics? statistics = await query.ExecuteAsync(
+                    botId,
+                    cancellationToken);
+                return statistics is null
+                    ? Results.NotFound()
+                    : Results.Ok(statistics);
+            });
+
         group.MapGet("/mine", async (ClaimsPrincipal principal, AppDbContext db) =>
         {
             if (principal.UserId() is not Guid userId)

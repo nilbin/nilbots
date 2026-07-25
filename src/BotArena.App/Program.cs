@@ -101,6 +101,7 @@ if (mode.RunsWeb)
     builder.Services.AddScoped<ApplicationActorFactory>();
     builder.Services.AddScoped<CreateBotUseCase>();
     builder.Services.AddScoped<UpdateBotAppearanceUseCase>();
+    builder.Services.AddScoped<BotStatisticsQuery>();
     builder.Services.AddScoped<CompilerSubmissionService>();
     builder.Services.AddScoped<SubmitBotVersionUseCase>();
     builder.Services.AddRateLimiter(options =>

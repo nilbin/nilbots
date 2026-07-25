@@ -1531,6 +1531,21 @@ before picking a number.*
      test pins the active/staged split so a directory copy cannot silently add
      every future theme to every replay.
 
+107. **Public statistics are bot-level and computed from history; account
+     statistics and stored aggregates wait for evidence.** Ranked and unranked
+     records remain separate. One completed six-game ranked set is one ranked
+     match; one authenticated setless challenge is one unranked match. Overall
+     W/L/D adds those two user-facing records without treating a ranked set as
+     six wins or losses. Combat totals deliberately retain the underlying
+     arena-game granularity, currently games played, damage dealt, and faults,
+     so useful detail is not discarded. A result contributes only after its
+     complete broadcast is public; a ranked set waits for all six games, so
+     statistics cannot reveal a delayed outcome. The bot page's latest 50 games
+     remain navigation history and no longer masquerade as an all-time record.
+     Queries aggregate the authoritative match, set, and participant rows on
+     demand. Do not add counters, summary tables, or account-wide statistics
+     until product use or measurements show they are interesting and necessary.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

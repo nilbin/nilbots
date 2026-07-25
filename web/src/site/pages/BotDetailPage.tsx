@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
 import AppearanceEditor from '../components/AppearanceEditor';
+import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import { api, type BotDetail, type BotSummary, type Meta } from '../api';
 
 const STARTER_SOURCE = `using BotArena.Sdk;
@@ -96,6 +97,8 @@ export default function BotDetailPage() {
         />
       </header>
 
+      <BotStatisticsPanel botId={bot.id} />
+
       {bot.isOwner && (
         <AppearanceEditor
           bot={bot}
@@ -186,9 +189,6 @@ interface BotMatchRow {
 
 function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
   const [data, setData] = useState<{
-    wins: number;
-    losses: number;
-    draws: number;
     matches: BotMatchRow[];
   } | null>(null);
 
@@ -201,10 +201,7 @@ function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
   return (
     <section>
       <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
-        MATCH HISTORY ·{' '}
-        <span className="text-emerald-400">{data.wins}W</span>{' '}
-        <span className="text-red-400">{data.losses}L</span>{' '}
-        <span className="text-arena-text">{data.draws}D</span>
+        LATEST GAMES
         <Link to={`/?bot=${botSlug}`} className="ml-2 font-normal text-arena-accent hover:underline">
           every match →
         </Link>

@@ -118,6 +118,24 @@ export interface BotDetail {
   }[];
 }
 
+export interface BotRecord {
+  played: number;
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export interface BotStatistics {
+  overall: BotRecord;
+  ranked: BotRecord;
+  unranked: BotRecord;
+  combat: {
+    games: number;
+    damageDealt: number;
+    faults: number;
+  };
+}
+
 export interface MatchSummary {
   id: string;
   mapId: string;
