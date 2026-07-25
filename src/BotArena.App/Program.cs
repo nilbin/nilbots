@@ -4,6 +4,7 @@ using BotArena.App.Bots;
 using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
+using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
 using BotArena.Engine;
@@ -91,6 +92,9 @@ if (mode.RunsWeb)
             };
         });
     builder.Services.AddAuthorization();
+    builder.Services.AddSignalR();
+    builder.Services.AddSingleton(new PostgresNotificationOptions(connectionString));
+    builder.Services.AddHostedService<PostgresNotificationListener>();
     builder.Services.AddSingleton(CompilerSubmissionLimits.FromConfiguration(builder.Configuration));
     string networkHashKey = builder.Configuration["BOTARENA_NETWORK_HASH_KEY"]
         ?? (developmentAuth
@@ -233,6 +237,9 @@ if (mode.RunsWeb)
     app.MapCosmetics();
     app.MapMatches();
     app.MapRanked();
+    app.MapUserNotifications();
+    app.MapHub<UserNotificationsHub>("/hubs/notifications")
+        .RequireAuthorization();
 
     app.MapGet("/api/meta", () =>
     {

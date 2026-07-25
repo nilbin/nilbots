@@ -2,6 +2,7 @@ using BotArena.App.Accounts;
 using BotArena.App.Bots;
 using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
+using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -61,6 +62,56 @@ public class CosmeticEntitlementServiceIntegrationTests
                 grant.UserId == user.Id &&
                 grant.EntitlementKey == "bot-look:lancer")
             .ToListAsync());
+        UserNotification notification =
+            Assert.Single(await db.UserNotifications.ToListAsync());
+        Assert.Equal(UserNotificationKinds.EntitlementEarned, notification.Kind);
+        UserNotificationResponse response =
+            UserNotificationContracts.ToResponse(notification);
+        Assert.Equal(
+            "lancer",
+            response.Payload.GetProperty("items")[0].GetProperty("id").GetString());
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task AdditionalGrantSource_DoesNotAnnounceAnAlreadyOwnedItem()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using var db = await database.CreateMigratedContextAsync();
+
+        var user = new User
+        {
+            DisplayName = "existing-cosmetic-test",
+            Email = $"existing-cosmetic-{Guid.NewGuid():N}@example.test",
+            PasswordHash = "not-used",
+        };
+        db.Users.Add(user);
+        db.EntitlementGrants.Add(new EntitlementGrant
+        {
+            UserId = user.Id,
+            EntitlementKey = "bot-look:lancer",
+            SourceKind = "promotion",
+            SourceId = "existing-owner",
+        });
+        await db.SaveChangesAsync();
+
+        var service = new CosmeticEntitlementService(
+            db,
+            CosmeticCatalog.LoadDefault());
+        Assert.Equal(
+            1,
+            await service.GrantForEventAsync(
+                user.Id,
+                CosmeticUnlockEvents.Achievement,
+                CosmeticUnlockEvents.FirstSuccessfulBuild));
+
+        Assert.Equal(
+            2,
+            await db.EntitlementGrants.CountAsync(
+                grant =>
+                    grant.UserId == user.Id &&
+                    grant.EntitlementKey == "bot-look:lancer"));
+        Assert.Empty(await db.UserNotifications.ToListAsync());
     }
 
     [SkippableFact]
@@ -138,5 +189,12 @@ public class CosmeticEntitlementServiceIntegrationTests
             user.Id,
             CosmeticCatalog.ProjectileLookKind,
             "regent-lance")).Owned);
+        UserNotification notification =
+            Assert.Single(await db.UserNotifications.ToListAsync());
+        UserNotificationResponse response =
+            UserNotificationContracts.ToResponse(notification);
+        Assert.Equal(
+            2,
+            response.Payload.GetProperty("items").GetArrayLength());
     }
 }

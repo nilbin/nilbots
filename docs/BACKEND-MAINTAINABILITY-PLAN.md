@@ -108,6 +108,7 @@ boundaries.
 | A ranked set finalizes exactly once | `FinalizeRankedMatchSet` use case | Transactional row lock or compare-and-set plus concurrency tests |
 | One completed ranked set advances progression once | Ranked progression handler | Durable source ID and unique grant constraint |
 | Cosmetic grants/revocations are idempotent and auditable | Entitlement ledger service | Unique keys, source provenance, integration tests |
+| Earned notifications survive offline clients and remain account-private | Durable user notification inbox plus channel bridges | Atomic grant/notification transaction, scoped API/hub tests |
 | Public payloads never expose email or internal identifiers accidentally | Named public DTOs | Reflection privacy test and endpoint contract tests |
 | Stored artifacts/replays match their addressed hash | `IObjectStore` callers and verification service | Hash-on-write/read verification and backend conformance tests |
 | Only the migration role mutates production schema | Startup/role policy | Configuration validation and deployment smoke tests |

@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from './auth';
 import Logo from '../components/Logo';
+import NotificationCenter from './components/NotificationCenter';
 
 export default function Shell() {
   const { user, logout } = useAuth();
@@ -9,6 +10,7 @@ export default function Shell() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 md:px-6">
+      <NotificationCenter />
       <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-arena-edge py-4">
         <Link to="/" className="text-xl">
           <Logo size={26} />

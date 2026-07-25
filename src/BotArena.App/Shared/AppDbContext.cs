@@ -3,6 +3,7 @@ using BotArena.App.Bots;
 using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
+using BotArena.App.Notifications;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BotRating> BotRatings => Set<BotRating>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
@@ -85,6 +87,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(grant => grant.SourceId).HasMaxLength(80);
             entity.Property(grant => grant.MetadataJson).HasColumnType("jsonb");
             entity.HasOne<User>().WithMany().HasForeignKey(grant => grant.UserId);
+        });
+
+        modelBuilder.Entity<UserNotification>(entity =>
+        {
+            entity.HasIndex(notification => new
+            {
+                notification.UserId,
+                notification.DedupeKey,
+            }).IsUnique();
+            entity.HasIndex(notification => new
+            {
+                notification.UserId,
+                notification.ReadAt,
+                notification.CreatedAt,
+            });
+            entity.Property(notification => notification.Kind).HasMaxLength(50);
+            entity.Property(notification => notification.DedupeKey).HasMaxLength(200);
+            entity.Property(notification => notification.PayloadJson).HasColumnType("jsonb");
+            entity.HasOne<User>().WithMany().HasForeignKey(notification => notification.UserId);
         });
 
         modelBuilder.Entity<Match>(entity =>

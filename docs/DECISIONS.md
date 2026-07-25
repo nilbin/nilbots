@@ -1546,6 +1546,23 @@ before picking a number.*
      demand. Do not add counters, summary tables, or account-wide statistics
      until product use or measurements show they are interesting and necessary.
 
+108. **User notifications are durable product records; SignalR is a realtime
+     delivery channel, not the inbox.** A newly owned entitlement creates one
+     account-scoped `UserNotification` in the same PostgreSQL transaction as
+     its append-only grants. One source event groups paired rewards into one
+     payload, redundant grant sources do not announce an already-owned item,
+     and natural dedupe keys make worker retries silent. PostgreSQL `NOTIFY`
+     wakes every web process only after commit; each web process forwards the
+     named payload to its locally connected authenticated SignalR clients.
+     The web app also loads unread records on startup and polls as a recovery
+     path, then acknowledges a toast explicitly or after visible presentation.
+     Thus an offline user, reconnect, process restart, or missed transient
+     event cannot lose the accomplishment. Stable catalog IDs—not image URLs—
+     let each client render the reward. Future mobile push and email consume
+     the same durable notification through channel-specific delivery records
+     and preferences rather than being invoked by achievement code. Match
+     viewing's separate SignalR transport remains deferred.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

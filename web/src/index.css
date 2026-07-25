@@ -27,6 +27,62 @@ body {
   }
 }
 
+@keyframes unlock-toast-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(1.25rem, -0.5rem, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes unlock-toast-sheen {
+  0%,
+  35% {
+    transform: translateX(-135%) skewX(-18deg);
+  }
+  70%,
+  100% {
+    transform: translateX(165%) skewX(-18deg);
+  }
+}
+
+@keyframes unlock-toast-halo {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+.unlock-toast {
+  animation: unlock-toast-enter 360ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+}
+
+.unlock-toast__sheen::after {
+  position: absolute;
+  inset: -30% auto -30% -25%;
+  width: 22%;
+  content: '';
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(254 240 138 / 0.1),
+    transparent
+  );
+  animation: unlock-toast-sheen 2.8s ease-out 280ms 1 both;
+}
+
+.unlock-toast__halo {
+  animation: unlock-toast-halo 2.8s ease-in-out infinite;
+}
+
 /* Rendered markdown (the canonical player guide) in the site's visual language.
    Scoped to .markdown-body so it styles only imported documents, never the
    hand-built pages around them. */

@@ -1,6 +1,10 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BotArena.App.Cosmetics;
 
@@ -18,10 +22,22 @@ public sealed record CosmeticCatalogEntry(
     bool Owned,
     CosmeticProgress? Progress = null);
 
-public sealed class CosmeticEntitlementService(
-    AppDbContext db,
-    CosmeticCatalog catalog)
+public sealed class CosmeticEntitlementService
 {
+    private readonly AppDbContext db;
+    private readonly CosmeticCatalog catalog;
+    private readonly TimeProvider timeProvider;
+
+    public CosmeticEntitlementService(
+        AppDbContext db,
+        CosmeticCatalog catalog,
+        TimeProvider? timeProvider = null)
+    {
+        this.db = db;
+        this.catalog = catalog;
+        this.timeProvider = timeProvider ?? TimeProvider.System;
+    }
+
     public async Task<CosmeticAccess> CheckAccessAsync(
         Guid userId,
         string kind,
@@ -93,20 +109,121 @@ public sealed class CosmeticEntitlementService(
         IReadOnlyList<CosmeticCatalogItem> items =
             catalog.EntitlementsFor(sourceKind, sourceId);
         string? metadataJson = metadata is null ? null : JsonSerializer.Serialize(metadata);
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
         int inserted = 0;
-        foreach (CosmeticCatalogItem item in items)
+        var newlyOwned = new List<CosmeticCatalogItem>();
+        IDbContextTransaction? ownTransaction = null;
+        try
         {
-            inserted += await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO "EntitlementGrants"
-                    ("Id", "UserId", "EntitlementKey", "SourceKind", "SourceId",
-                     "GrantedAt", "RevokedAt", "MetadataJson")
-                VALUES
-                    ({Guid.NewGuid()}, {userId}, {item.Key}, {sourceKind}, {sourceId},
-                     {DateTime.UtcNow}, NULL, CAST({metadataJson} AS jsonb))
-                ON CONFLICT ("UserId", "EntitlementKey", "SourceKind", "SourceId")
-                DO NOTHING
+            if (db.Database.CurrentTransaction is null)
+                ownTransaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+            // Serialize entitlement transitions for one account. This distinguishes a
+            // genuinely new entitlement from another source granting something the
+            // account already owns, even when workers finish concurrently.
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                SELECT 1
+                FROM "Users"
+                WHERE "Id" = {userId}
+                FOR UPDATE
                 """, cancellationToken);
+
+            foreach (CosmeticCatalogItem item in items)
+            {
+                bool ownedBefore = await db.EntitlementGrants.AnyAsync(
+                    grant =>
+                        grant.UserId == userId &&
+                        grant.EntitlementKey == item.Key &&
+                        grant.RevokedAt == null,
+                    cancellationToken);
+                int grantInserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO "EntitlementGrants"
+                        ("Id", "UserId", "EntitlementKey", "SourceKind", "SourceId",
+                         "GrantedAt", "RevokedAt", "MetadataJson")
+                    VALUES
+                        ({Guid.NewGuid()}, {userId}, {item.Key}, {sourceKind}, {sourceId},
+                         {now}, NULL, CAST({metadataJson} AS jsonb))
+                    ON CONFLICT ("UserId", "EntitlementKey", "SourceKind", "SourceId")
+                    DO NOTHING
+                    """, cancellationToken);
+                inserted += grantInserted;
+                if (grantInserted == 1 && !ownedBefore)
+                    newlyOwned.Add(item);
+            }
+
+            if (newlyOwned.Count > 0)
+                await CreateNotificationAsync(
+                    userId,
+                    sourceKind,
+                    sourceId,
+                    newlyOwned,
+                    now,
+                    cancellationToken);
+
+            if (ownTransaction is not null)
+                await ownTransaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            if (ownTransaction is not null)
+                await ownTransaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+        finally
+        {
+            if (ownTransaction is not null)
+                await ownTransaction.DisposeAsync();
         }
         return inserted;
+    }
+
+    private async Task CreateNotificationAsync(
+        Guid userId,
+        string sourceKind,
+        string sourceId,
+        IReadOnlyList<CosmeticCatalogItem> items,
+        DateTime createdAt,
+        CancellationToken cancellationToken)
+    {
+        Guid notificationId = Guid.NewGuid();
+        string fingerprint = Convert.ToHexString(SHA256.HashData(
+                Encoding.UTF8.GetBytes(string.Join(
+                    "|",
+                    items.Select(item => item.Key).Order(StringComparer.Ordinal)))))
+            .ToLowerInvariant()[..16];
+        string dedupeKey =
+            $"{UserNotificationKinds.EntitlementEarned}:{sourceKind}:{sourceId}:{fingerprint}";
+        var payload = new EntitlementEarnedPayload(
+            sourceKind,
+            sourceId,
+            CosmeticUnlockEvents.NotificationReason(sourceKind, sourceId),
+            items.Select(item => new EntitlementNotificationItem(
+                    item.Key,
+                    item.Kind,
+                    item.Id,
+                    item.Label))
+                .ToArray());
+        string payloadJson = UserNotificationContracts.Serialize(payload);
+
+        int notificationInserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "UserNotifications"
+                ("Id", "UserId", "Kind", "DedupeKey", "PayloadJson",
+                 "CreatedAt", "ReadAt")
+            VALUES
+                ({notificationId}, {userId}, {UserNotificationKinds.EntitlementEarned},
+                 {dedupeKey}, CAST({payloadJson} AS jsonb), {createdAt}, NULL)
+            ON CONFLICT ("UserId", "DedupeKey")
+            DO NOTHING
+            """, cancellationToken);
+        if (notificationInserted == 1)
+        {
+            // PostgreSQL emits this only when the surrounding transaction commits.
+            // Every web process LISTENs and forwards it to its local SignalR clients.
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                SELECT pg_notify(
+                    {PostgresNotificationListener.Channel},
+                    {notificationId.ToString()})
+                """, cancellationToken);
+        }
     }
 }

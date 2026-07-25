@@ -40,6 +40,28 @@ export interface Me {
   email: string;
 }
 
+export interface EntitlementNotificationItem {
+  key: string;
+  kind: 'bot-look' | 'projectile-look';
+  id: string;
+  label: string;
+}
+
+export interface EntitlementEarnedPayload {
+  sourceKind: string;
+  sourceId: string;
+  reason: string | null;
+  items: EntitlementNotificationItem[];
+}
+
+export interface UserNotification {
+  id: string;
+  kind: 'entitlement-earned';
+  createdAt: string;
+  readAt: string | null;
+  payload: EntitlementEarnedPayload;
+}
+
 export interface CosmeticUnlock {
   sourceKind: string;
   sourceId: string;
