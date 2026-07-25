@@ -252,5 +252,17 @@ export interface ReplayDocument {
 declare global {
   interface Window {
     __BOTARENA_REPLAY__?: ReplayDocument;
+    /**
+     * Load a replay into an already-running viewer, by URL or inline document.
+     *
+     * Present only in standalone viewer mode, and only once the viewer has mounted — an
+     * embedding host must wait for the `ready` message before calling it. Exists so a
+     * host can show many matches through one viewer instance: the expensive part of this
+     * page is decoding the wall atlases and baking sprites, which is paid per page load,
+     * not per replay.
+     */
+    __BOTARENA_LOAD__?: (source: { url: string } | { replay: ReplayDocument }) => void;
+    /** Injected by react-native-webview when the page is embedded in the mobile app. */
+    ReactNativeWebView?: { postMessage: (message: string) => void };
   }
 }

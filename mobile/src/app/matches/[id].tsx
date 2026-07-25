@@ -1,6 +1,7 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useArenaViewer } from '@/components/ArenaViewer';
 import { MatchParticipant } from '@/components/MatchParticipant';
 import { Card } from '@/components/ui/Card';
 import { DetailRow } from '@/components/ui/DetailRow';
@@ -12,6 +13,7 @@ import { Arena, SectionLabelText, Space } from '@/theme/arena';
 export default function MatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: match, isPending, error, refetch } = useMatch(id);
+  const { watch } = useArenaViewer();
 
   if (isPending)
     return (
@@ -41,6 +43,17 @@ export default function MatchScreen() {
             ))}
           </View>
         </Card>
+
+        {/* A replay only exists once the match has run. A broadcasting match has one, but
+            truncated to the ticks the server has released — watching it is the point. */}
+        {match.status === 'Completed' ? (
+          <Card
+            onPress={() =>
+              watch(match.id, `${match.participants.map((p) => p.nameSnapshot).join(' vs ')}`)
+            }>
+            <Text style={styles.watch}>▶ Watch the replay</Text>
+          </Card>
+        ) : null}
 
         {match.broadcasting ? (
           <Text style={styles.live}>
@@ -80,6 +93,7 @@ const styles = StyleSheet.create({
   body: { gap: Space.md, paddingBottom: Space.xxl, paddingTop: Space.md },
   fight: { gap: Space.lg },
   live: { color: Arena.dim, fontSize: 12, lineHeight: 17 },
+  watch: { color: Arena.accent, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   sectionTitle: { ...SectionLabelText, marginTop: Space.md },
   link: { color: Arena.accent, fontSize: 14 },
 });
