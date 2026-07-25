@@ -85,6 +85,27 @@ case "$deploy_mode" in
 esac
 
 cd "$repo_root"
+
+# The primary's authenticated, persistent inventory is the source of truth for
+# private web replicas. It is deliberately outside release bundles and contains
+# no secrets. A local/single-node deployment without an inventory stays local.
+shared_env="$deploy_dir/.env"
+shared_dir="$deploy_dir"
+if [[ -L "$shared_env" ]]; then
+  shared_env_target="$(readlink "$shared_env")"
+  if [[ "$shared_env_target" != /* ]]; then
+    shared_env_target="$deploy_dir/$shared_env_target"
+  fi
+  shared_dir="$(cd "$(dirname "$shared_env_target")" && pwd -P)"
+fi
+worker_inventory="$shared_dir/workers.tsv"
+if [[ -f "$worker_inventory" ]]; then
+  export BOTARENA_WEB_UPSTREAMS
+  BOTARENA_WEB_UPSTREAMS="$(
+    bash "$deploy_dir/worker-inventory.sh" upstreams "$worker_inventory"
+  )"
+fi
+
 compose=(
   docker compose
   --env-file "$deploy_dir/.env"
@@ -103,8 +124,8 @@ compose+=(
 
 "${compose[@]}" config --quiet
 if [[ -f "$release_env" ]]; then
-  # shellcheck disable=SC1090
   set -a
+  # shellcheck disable=SC1090
   source "$release_env"
   set +a
   "${compose[@]}" pull \

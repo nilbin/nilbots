@@ -235,7 +235,8 @@ install_release() {
       deploy/deploy.sh \
       deploy/deploy-worker.sh \
       deploy/init-garage.sh \
-      deploy/install-release.sh; do
+      deploy/install-release.sh \
+      deploy/worker-inventory.sh; do
       if [[ ! -f "$staging_dir/$required" ]]; then
         echo "release bundle is missing $required" >&2
         exit 1
