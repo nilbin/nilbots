@@ -1345,6 +1345,36 @@ before picking a number.*
     the history still lives. An unknown rules name still gets `Resolve`'s own error
     rather than being described as a closed ladder.
 
+98. **A Playwright walk-through of the site is a tracked script, and its first run's
+    findings are fixed.** Owner asked whether the UI covers the use cases and has
+    filters. It covers them: browse the match feed (30 rows), open a match and watch
+    the replay with a tick scrubber, speed control, per-bot state, event feed and a
+    field-of-view toggle; read the ladder and switch ruleset; browse bots, open one,
+    see its versions and match history; read the full player guide at /docs; sign in;
+    and none of it overflows a 390px viewport. Filters it did NOT have.
+    Four defects, all fixed here. (a) An unknown bot slug or match id left the page
+    on "Loading…" forever — the bot page never caught a rejected fetch, and the match
+    page retried a 404 every three seconds indefinitely. Both now say what is wrong
+    and link somewhere useful; the match page still retries everything that is not a
+    404, since those are transient. (b) /bots listed 34 cards with no way to narrow
+    them, which is where a grid stops being browsable; it now filters by bot or owner
+    name with a ranked-only toggle and a match count. (c) Every bot card showed a
+    truncated artifact hash — an id in a listing, the thing #96 was about. It is a
+    verification aid, so it moved to the bot's own page and the card shows the
+    version count instead. (d) The leaderboard's ruleset switcher offered research
+    arms as equal choices, which is exactly the mistake `GameRules.ShippedNames`
+    exists to prevent; the API now offers shipped ladders plus whatever is live, and
+    bot cards hide arm ratings the same way. Arms stay queryable by `?rules=` for the
+    balance harness.
+    Two findings in the first run were the TEST's fault, not the site's, and are
+    recorded so nobody re-reports them: an email-shaped regex matched rating badges
+    like `1216@0.5`, and the landing feed read as empty because `networkidle` plus an
+    immediate navigation aborted its request. Both are false positives; the site was
+    fine.
+    Not done, and worth its own decision if the arena gets busy: the match feed takes
+    a `take` count and nothing else, so it cannot be filtered by bot, map or
+    ranked-ness, and there is no pagination anywhere.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

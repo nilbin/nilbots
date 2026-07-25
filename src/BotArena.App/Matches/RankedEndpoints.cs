@@ -206,12 +206,22 @@ public static class RankedEndpoints
         routes.MapGet("/api/leaderboard", async (string? rules, AppDbContext db) =>
         {
             string version = rules is { Length: > 0 } ? rules : JobWorker.MatchRules.RulesVersion;
-            var ladders = await db.BotRatings
+            var allLadders = await db.BotRatings
                 .Where(r => r.RankedSets > 0)
                 .Select(r => r.RulesVersion)
                 .Distinct()
                 .OrderByDescending(v => v)
                 .ToListAsync();
+            // Offer the game's own ladders, not the research arms. GameRules.ShippedNames
+            // exists because listing every arm as an equal choice reads as two dozen valid
+            // games to a newcomer, and the leaderboard was making exactly that mistake in
+            // its ruleset switcher (UI audit). Arms stay queryable by ?rules= for the
+            // balance harness; they are just not offered as somewhere to go.
+            var ladders = allLadders
+                .Where(v => v == version ||
+                            v == JobWorker.MatchRules.RulesVersion ||
+                            Engine.GameRules.ShippedNames.Contains(v))
+                .ToList();
             var entries = await db.BotRatings
                 .Where(r => r.RulesVersion == version && r.RankedSets > 0)
                 .OrderByDescending(r => r.Rating)

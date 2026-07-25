@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import type { ReplayDocument } from '../../types';
 import Viewer from '../../components/Viewer';
-import { api } from '../api';
+import { ApiError, api } from '../api';
 
 interface LiveState {
   status: string;
@@ -19,6 +19,7 @@ export default function MatchPage() {
   const [replay, setReplay] = useState<ReplayDocument | null>(null);
   const [finished, setFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     let stopped = false;
@@ -47,8 +48,13 @@ export default function MatchPage() {
         // Mid-broadcast: pick up the ticks revealed so far and keep following.
         setReplay(await api.get<ReplayDocument>(`/api/matches/${matchId}/replay`));
         timer = window.setTimeout(poll, 1500);
-      } catch {
-        if (!stopped) timer = window.setTimeout(poll, 3000);
+      } catch (e) {
+        if (stopped) return;
+        // A 404 is an answer, not a hiccup: retrying it forever left the page on
+        // "Loading…" for any mistyped match id (UI audit). Everything else is
+        // transient — a restarting server, a dropped connection — so keep polling.
+        if (e instanceof ApiError && e.status === 404) setMissing(true);
+        else timer = window.setTimeout(poll, 3000);
       }
     };
     void poll();
@@ -57,6 +63,20 @@ export default function MatchPage() {
       window.clearTimeout(timer);
     };
   }, [matchId]);
+
+  if (missing)
+    return (
+      <div className="rounded-xl border border-arena-edge bg-arena-panel p-6">
+        <p className="font-semibold">No such match.</p>
+        <p className="mt-1 text-sm text-arena-dim">
+          This match id does not exist.{' '}
+          <Link to="/" className="text-arena-accent hover:underline">
+            Back to the arena
+          </Link>
+          .
+        </p>
+      </div>
+    );
 
   if (error)
     return (

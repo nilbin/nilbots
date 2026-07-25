@@ -31,6 +31,7 @@ export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
   const { botKey } = useParams<{ botKey: string }>();
   const [bot, setBot] = useState<BotDetail | null>(null);
+  const [missing, setMissing] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -42,14 +43,33 @@ export default function BotDetailPage() {
   useEffect(() => {
     let timer: number | undefined;
     const poll = async () => {
-      const data = await load();
-      if (data.versions.some((v) => v.status === 'Pending' || v.status === 'Building'))
-        timer = window.setTimeout(poll, 2500);
+      // A rejected fetch used to leave the page on "Loading…" forever, so a mistyped
+      // or deleted bot looked like a hung site (UI audit).
+      try {
+        const data = await load();
+        if (data.versions.some((v) => v.status === 'Pending' || v.status === 'Building'))
+          timer = window.setTimeout(poll, 2500);
+      } catch {
+        setMissing(true);
+      }
     };
     void poll();
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  if (missing)
+    return (
+      <div className="rounded-xl border border-arena-edge bg-arena-panel p-6">
+        <p className="font-semibold">No bot called “{botKey}”.</p>
+        <p className="mt-1 text-sm text-arena-dim">
+          It may have been renamed or never existed.{' '}
+          <Link to="/bots" className="text-arena-accent hover:underline">
+            Browse every bot
+          </Link>
+          .
+        </p>
+      </div>
+    );
   if (!bot) return <p className="text-sm text-arena-dim">Loading…</p>;
   const look = botLook(bot.lookId);
 
