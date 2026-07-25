@@ -629,7 +629,7 @@ public static class ServerCommands
         {
             Console.Error.WriteLine(
                 $"error: ranked challenge refused ({(int)response.StatusCode}): " +
-                $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
+                $"{DescribeFailure(response)}");
             return 1;
         }
         var set = response.Content.ReadFromJsonAsync<CreatedMatchSetResponse>()
@@ -688,7 +688,7 @@ public static class ServerCommands
         {
             Console.Error.WriteLine(
                 $"error: match refused ({(int)response.StatusCode}): " +
-                $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
+                $"{DescribeFailure(response)}");
             return 1;
         }
         var match = response.Content.ReadFromJsonAsync<CreatedMatchResponse>()
@@ -731,6 +731,28 @@ public static class ServerCommands
         public string Describe() =>
             $"server SDK {SdkVersion ?? "?"} / pipeline {BuildPipelineVersion ?? "?"}; " +
             $"this CLI bundles SDK {ToolchainInfo.SdkVersion} / pipeline {ToolchainInfo.BuildPipelineVersion}";
+    }
+
+    /// <summary>The server answers failures with RFC 9110 problem details, whose useful
+    /// sentence is `detail`. Printing the raw body put a JSON blob in front of players at
+    /// exactly the moment something went wrong; fall back to it only when the response is
+    /// not problem details at all.</summary>
+    private static string DescribeFailure(HttpResponseMessage response)
+    {
+        string body = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        try
+        {
+            var problem = JsonSerializer.Deserialize<JsonElement>(body);
+            if (problem.ValueKind == JsonValueKind.Object &&
+                problem.TryGetProperty("detail", out var detail) &&
+                detail.GetString() is { Length: > 0 } message)
+                return message;
+        }
+        catch (JsonException)
+        {
+            // Not JSON — a proxy error page, a plain string. Show what arrived.
+        }
+        return Truncate(body, 300);
     }
 
     private static string Truncate(string value, int max) =>
