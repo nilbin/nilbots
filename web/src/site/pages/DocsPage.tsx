@@ -122,12 +122,12 @@ public sealed class MyBot : IBot
             disqualified—exceptions, infinite loops and out-of-memory all count.</li>
           <li>Ranked sets are 6 games across 3 map/seed pairs — 3 maps sampled per
             set from the pool (basic-01, arena-01, crossfire-01, bastion-01,
-            gallery-01; see <code className="font-mono">botarena maps</code>) — each
+            gallery-01; see <code className="font-mono">nilbots maps</code>) — each
             played from both starting positions; elo
             moves once per set, on the <b>ladder of the rules the set was played
             under</b> — every rules version has its own ladder, and a challenge may
             pin an older ruleset. Rehearse the exact format
-            locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
+            locally: <code className="font-mono">nilbots set --bot . --opponent hunter</code>.</li>
           <li><code className="font-mono">VisibleEvents</code> describe last tick.
             Under cone vision, full detail requires the event&apos;s primary tile to
             be visible: the shooter/mover, or the damaged/destroyed bot. An unseen

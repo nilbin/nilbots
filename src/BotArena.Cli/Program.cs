@@ -98,12 +98,15 @@ static int Help(int exitCode = 1)
                                                   also copies the artifact to <dir>/out/bot.wasm)
           nilbots play [--bot <spec>] [--opponent <spec>] [--map <id>]
                         [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
-                        [--rules 0.5|0.4|0.3|0.2|0.1|control|cone-control|cone-active|
+                        [--rules <name>]  the game: 0.5 (current, the default) — or an
+                                 older shipped version 0.4|0.3|0.2|0.1 to replay history.
+                                 Everything else is a RESEARCH ARM used to evaluate
+                                 candidate mechanics; they are not the game and may
+                                 change or vanish: control|cone-control|cone-active|
                                  cone-active-bolt1|cone-active-bolt2|cone-active-bolt2-overtime|
                                  cone-active-bolt2-overtime-gain|cone-active-bolt2-arcs|
-                                 cone-occupancy-bolt2-arcs|
-                                 0.5-control|cone|
-                                 bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy]
+                                 cone-occupancy-bolt2-arcs|0.5-control|cone|
+                                 bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy
                         [--max-ticks <n>] [--out <dir>]
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]

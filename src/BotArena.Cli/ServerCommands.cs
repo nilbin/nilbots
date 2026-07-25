@@ -142,10 +142,19 @@ public static class ServerCommands
             ? $"{server}/login?mode=register&returnUrl={Uri.EscapeDataString(authorizePath)}"
             : server + authorizePath;
 
-        Console.WriteLine(register
+        // stderr, and flushed: piping is the DEFAULT for agents and CI, and buffered
+        // stdout meant this guidance never arrived — the command simply printed nothing
+        // and blocked for five minutes (player-test S1-1, the worst moment in onboarding).
+        Console.Error.WriteLine(register
             ? "Opening your browser to create an account. If nothing opens, visit:"
             : "Opening your browser to sign in. If nothing opens, visit:");
-        Console.WriteLine($"  {url}");
+        Console.Error.WriteLine($"  {url}");
+        Console.Error.WriteLine(
+            "No browser at all? Cancel this and sign in without one:" +
+            (register
+                ? $"\n  nilbots register --email <you@example.com> --password <pw> [--name <display>] --server {server}"
+                : $"\n  nilbots login --email <you@example.com> --password <pw> --server {server}"));
+        Console.Error.Flush();
         TryOpenBrowser(url);
 
         var contextTask = listener.GetContextAsync();
@@ -294,10 +303,27 @@ public static class ServerCommands
             {
                 string serverHash = version.GetProperty("artifactHash").GetString()!;
                 Console.WriteLine($"Server artifact:  {serverHash}");
-                Console.WriteLine(serverHash == local.ArtifactHash
-                    ? "Parity:           IDENTICAL — local and server toolchains agree."
-                    : "Parity:           DIFFERENT — likely toolchain/sysroot drift; the server " +
-                      "artifact is canonical (see docs/DECISIONS.md #5).");
+                // Builds are reproducible across build directories since
+                // BuildPipelineVersion 2 (DECISIONS #72), so a mismatch is no longer the
+                // expected outcome and must not be hand-waved as "drift" — it means the
+                // two sides genuinely differ (different CLI/SDK version, or a real
+                // toolchain difference). Say so, and say which one counts.
+                if (serverHash == local.ArtifactHash)
+                    Console.WriteLine("Parity:           IDENTICAL — same sources, same bytes.");
+                else
+                {
+                    // Never cite repo-only files at players, and never guess "drift":
+                    // the usual cause is a version gap, which we can actually check for
+                    // them (player-test S1-3).
+                    Console.WriteLine("Parity:           DIFFERENT — your CLI and this server built different bytes.");
+                    string? serverSdk = TryGetServerSdkVersion(client);
+                    Console.WriteLine(serverSdk is not null && serverSdk != ToolchainInfo.SdkVersion
+                        ? $"                  Your CLI bundles SDK {ToolchainInfo.SdkVersion}; this server builds with SDK {serverSdk}. " +
+                          "Upgrade with: dotnet tool update -g Nilbots"
+                        : $"                  Your CLI bundles SDK {ToolchainInfo.SdkVersion}. Check `nilbots --version` " +
+                          "against the server's /api/meta for a version gap.");
+                    Console.WriteLine("                  The SERVER artifact is the one that plays, so test against it.");
+                }
                 Console.WriteLine($"Version {versionNumber} is now the active version. Fight: {server}/bots/{botId}");
                 return 0;
             }
@@ -453,6 +479,21 @@ public static class ServerCommands
         SaveTokens(server, tokens.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult());
         Console.WriteLine($"Signed in to {server} — no browser needed. Next: nilbots new <Name>, then nilbots submit .");
         return 0;
+    }
+
+    /// <summary>The server's build SDK, from its public /api/meta. Best-effort: a
+    /// parity report must never fail because the probe did.</summary>
+    private static string? TryGetServerSdkVersion(HttpClient client)
+    {
+        try
+        {
+            var meta = client.GetFromJsonAsync<JsonElement>("/api/meta").GetAwaiter().GetResult();
+            return meta.TryGetProperty("sdkVersion", out var sdk) ? sdk.GetString() : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string Truncate(string value, int max) =>

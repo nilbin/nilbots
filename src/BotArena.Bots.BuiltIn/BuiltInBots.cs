@@ -133,4 +133,17 @@ public static class BuiltInBotCatalog
         "coward" => "#a78bfa",
         _ => "#38bdf8",
     };
+
+    /// <summary>One line per opponent, so a newcomer can pick a training target
+    /// instead of reverse-engineering behaviour from replays (player-test finding).
+    /// Describe what each DOES, including the weakness worth exploiting — these are
+    /// sparring partners, not opponents to be surprised by.</summary>
+    public static string Describe(string name) => name.ToLowerInvariant() switch
+    {
+        "idle" => "never moves or shoots — a fixed target for checking your aim and pathing",
+        "wander" => "walks randomly, shoots when something is in front of it; no tactics",
+        "hunter" => "closes on you and fires when lined up, but never dodges — the standard bar",
+        "coward" => "keeps its distance and flees when hurt; punishes slow, telegraphed approaches",
+        _ => "",
+    };
 }

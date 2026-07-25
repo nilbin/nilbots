@@ -304,6 +304,13 @@ public sealed record GameRules
 
     /// <summary>Every name <see cref="Resolve"/> accepts — the single source for the
     /// error message, the CLI help (pinned by DocDriftTests), and future listings.</summary>
+    /// <summary>The names that are the GAME: the current version and the older shipped
+    /// versions kept constructible for replay verification. Everything else in
+    /// <see cref="KnownNames"/> is a research arm — listing all of them as equal
+    /// choices reads as two dozen valid games to a newcomer (player-test finding).</summary>
+    public static readonly IReadOnlyList<string> ShippedNames =
+        ["0.5", "0.4", "0.3", "0.2", "0.1"];
+
     public static readonly IReadOnlyList<string> KnownNames =
         ["0.5", "0.4", "0.3", "0.2", "0.1",
          "control", "cone-control", "cone-active", "cone-active-bolt1", "cone-active-bolt2",
@@ -442,7 +449,13 @@ public sealed record GameRules
             ShotEnergyCost = 2,
             EnergyRegenTicks = 3,
         },
-        _ => throw new ArgumentException($"Unknown rules '{name}' (use {string.Join(", ", KnownNames)})."),
+        // Lead with the versions that are actually the game. The long tail is research
+        // arms, and listing all 24 as equal choices reads as 24 valid games to a
+        // newcomer (player-test finding).
+        _ => throw new ArgumentException(
+            $"Unknown rules '{name}'. The game is: {string.Join(", ", ShippedNames)} " +
+            $"(default {BotArenaVersions.GameRulesVersion}). Research arms: " +
+            $"{string.Join(", ", KnownNames.Where(n => !ShippedNames.Contains(n)))}."),
     };
 
     /// <summary>The shared foundation of every hardened 0.5 arm — one place for the

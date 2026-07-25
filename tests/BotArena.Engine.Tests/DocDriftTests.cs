@@ -68,6 +68,22 @@ public class DocDriftTests
         Assert.Contains(expected, ReadRepoFile("templates", "botarena-bot", "README.md"));
     }
 
+    /// <summary>The app serves web/dist/index.html directly, so a stale bundle silently
+    /// shows players the PREVIOUS ruleset's docs while the source reads correctly — a
+    /// friend's-agent test was taught "150 zone-ticks wins" (a pre-0.5 mechanic) from a
+    /// two-day-old bundle. dist is gitignored, so only assert when it exists.</summary>
+    [Fact]
+    public void BuiltWebBundle_IfPresent_IsNotStaleAgainstTheDocsSource()
+    {
+        string dist = Path.Combine(Root, "web", "dist", "index.html");
+        string source = Path.Combine(Root, "web", "src", "site", "pages", "DocsPage.tsx");
+        if (!File.Exists(dist))
+            return; // nothing built here (fresh clone / CI before the web build)
+        Assert.True(File.GetLastWriteTimeUtc(dist) >= File.GetLastWriteTimeUtc(source),
+            "web/dist is older than the docs source, so the site would serve stale rules " +
+            "to players. Rebuild it: (cd web && npm run build).");
+    }
+
     [Fact]
     public void CliHelp_ListsEveryResolvableRulesName()
     {

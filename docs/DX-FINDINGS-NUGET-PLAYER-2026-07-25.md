@@ -174,3 +174,78 @@ rather than installed by the tool. So the WASM section is better-informed than a
 real player's would be, and the "fresh machine" claim is untested. Future
 docs-only tests must run with project instructions stripped from the agent's
 context, or the isolation is nominal.
+
+# Round 2 — the friend's-agent test (full flow, including registration)
+
+Second run: an agent told it was "a friend who was sent the CLI", against a
+private server, doing the whole journey *including account creation*, which the
+first run could not reach. It got there — **rank #2 of 8 on the ladder**, a bot
+scoring 184/192 (95.8%) against the built-ins on seeds never used for tuning —
+but its verdict was **"partly"**, because it only finished by regex-mining the
+docs prose out of the server's minified JS bundle and writing a reflection
+dumper to recover the SDK API.
+
+**A flaw in the harness, stated plainly:** the agent's `dotnet tool install`
+returned *"Tool 'nilbots' is already installed"* — it silently reused the
+**published 0.4.0** left by round 1 rather than the patched build from the local
+feed. So its findings on missing headless auth, missing XML docs, broken
+`--version` and the parity wording are all against the OLD binary and were
+already fixed. A future run must `dotnet tool uninstall -g Nilbots` first, or
+install to a private tool path. The findings below are the ones that survive
+that correction — all reproduced against current source.
+
+## Fixed in this batch
+
+1. **[S1, worst moment] `register`/`login` printed NOTHING when piped, then hung
+   for five minutes.** The fallback URL went to buffered stdout; piping is the
+   default for agents and CI, so the guidance never arrived and the command
+   looked dead. Now written to **stderr and flushed**, and it also prints the
+   headless one-liner as an alternative. This alone would have stalled a less
+   stubborn agent at step one.
+2. **Parity message blamed the wrong thing and cited a file players cannot
+   read** (`docs/DECISIONS.md`, repo-only). It now names the real usual cause and
+   checks it for them: the CLI compares its bundled SDK against the server's
+   `/api/meta` and, on a gap, says exactly that with the upgrade command. (The
+   agent diagnosed this itself — CLI SDK 0.8.0 vs server 0.8.1 — which is
+   precisely what the tool should have told it.)
+3. **The served site was two days stale.** `web/dist` is what the app serves, and
+   it still taught *"150 zone-ticks wins immediately"* — a pre-0.5 mechanic —
+   while `DocsPage.tsx` had been corrected to the ControlPressure model. The
+   agent trusted the served docs, as anyone would. Bundle rebuilt, and
+   `DocDriftTests` now fails if `web/dist` is older than the docs source.
+4. **Site docs still said `botarena new` / `botarena set`** — copy-paste gives
+   "command not found" since the rename.
+5. **`nilbots bots` listed names only**, so newcomers reverse-engineered
+   behaviour from replays. Each built-in now has a one-line description
+   including the weakness worth exploiting.
+6. **`--rules` presented 24 names as equal choices.** The game and the research
+   arms are now separated in `--help` and in the error message.
+
+## Still open (ranked)
+
+- **[high] No text mirror of the docs.** `curl /docs` returns an SPA shell; the
+  public site renders the single word "nilbots" to anything without JavaScript.
+  For a product whose players are largely agents, ship `/llms.txt` or a
+  markdown mirror. This is the root cause of the mining the agent had to do.
+- **[high] Ranked play is invisible to the CLI.** `nilbots set` is a LOCAL
+  simulation; actually entering the ladder needs hand-written curl to
+  `/api/matches/ranked` and `/api/leaderboard`, documented only in that buried
+  block. The headline activity of the product deserves `nilbots rank` and
+  `nilbots leaderboard`.
+- **[med] `doctor` ignores the signed-in session** — prints "not signed in (no
+  server yet)" moments after `whoami` succeeds, and silently swallows
+  `--server`. The server-compatibility check that would have caught the SDK
+  skew therefore never ran.
+- **[med] Enemy cooldown is unobservable and the reconstruction is
+  undocumented** (carried over from round 1; both agents independently built it
+  from `VisibleEvents` + the 2-tick rule, and both called it decisive).
+- **[low] Unknown API routes return 200 + SPA HTML**, so probing cannot use
+  status codes.
+
+## What the second agent praised
+
+`doctor`, the scaffolded README ("the best documentation in the product"), the
+`play --seeds` / `set` / `replay --summary` loop, in-process↔WASM agreement over
+48 games, and the server surfacing its build log — which caught a real latent
+nullable bug in its bot. The ladder data itself (per-set scores, rating deltas,
+mirrored starts) it called great; only the path to it is hidden.

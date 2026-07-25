@@ -956,6 +956,34 @@ configuration) and changing them is a version bump, not an edit.
     `scripts/e2e.sh` assertion that builds the same bot under two cache roots and
     fails if the hashes differ, so this cannot silently regress.
 
+73. **Friend's-agent onboarding reaches the ladder, but only past three
+    self-inflicted obstacles (DX-FINDINGS-NUGET-PLAYER round 2).** An agent given
+    only the CLI and told "a friend sent you this" registered, built a bot
+    scoring 184/192 vs the built-ins on unseen seeds, submitted, and reached
+    **#2 of 8 on the ranked ladder** — so the path works end to end. Verdict was
+    "partly" because it got there by regex-mining docs prose out of the served
+    JS bundle and writing a reflection dumper for the SDK API. Fixed here:
+    (a) `register`/`login` printed NOTHING when stdout was piped and then blocked
+    for five minutes — the fallback URL sat in a buffer, and piping is what
+    agents and CI do by default; it now goes to stderr, flushed, alongside the
+    headless one-liner. (b) The parity message blamed "toolchain/sysroot drift"
+    and cited `docs/DECISIONS.md`, a repo-only file no player can read; it now
+    compares the CLI's bundled SDK against the server's `/api/meta` and names the
+    version gap with the upgrade command. (c) `web/dist` — what the app actually
+    serves — was two days stale and still taught "150 zone-ticks wins", a
+    pre-0.5 mechanic, while DocsPage.tsx was correct; rebuilt, and DocDriftTests
+    now fails when the bundle is older than the docs source. (d) Site docs still
+    said `botarena new`/`botarena set` after the rename. (e) `nilbots bots` now
+    describes each opponent; `--rules` separates the game from research arms.
+    Harness lesson recorded: the run's `dotnet tool install` silently reused the
+    already-installed published 0.4.0 instead of the patched local build, so its
+    findings about headless auth, XML docs and `--version` were against stale
+    bits — future runs must uninstall first or use a private tool path. Still
+    open and ranked in the findings doc: no text/`llms.txt` mirror of the docs
+    (the root cause of the bundle-mining), ranked play absent from the CLI
+    (`nilbots rank`/`leaderboard`), `doctor` ignoring the signed-in session, and
+    the undocumented enemy-cooldown reconstruction.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
