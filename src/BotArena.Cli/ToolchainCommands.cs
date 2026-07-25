@@ -194,8 +194,11 @@ public static class DoctorCommand
             "run `npm run build` in web/");
         string? maps = CliSupport.FindUpward("maps");
         Report("maps", maps is not null, maps ?? "", "missing maps/ directory");
-        Console.WriteLine($"Authentication:         not signed in (no server yet)");
-        Console.WriteLine($"Server compatibility:   n/a (no server yet)");
+        // Report the session we actually have, and check the server's build SDK against
+        // ours. doctor previously hard-coded "not signed in" even seconds after whoami
+        // succeeded, so the version-skew check that explains a parity mismatch never ran
+        // (player-test round 2, S2-4).
+        ServerCommands.ReportSessionHealth();
         return 0;
 
         static void Report(string label, bool ok, string detail, string fix) =>

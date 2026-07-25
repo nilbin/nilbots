@@ -243,6 +243,55 @@ if (mode.RunsWeb)
         });
     });
 
+    // Text mirrors for readers without a browser. The site is a JavaScript SPA, so
+    // `curl /docs` yields a shell and scripted clients get nothing — and most of this
+    // game's players are agents. Both routes stream the SAME markdown the repo ships,
+    // so there is no second copy to drift (player-test round 2, top open finding).
+    app.MapGet("/llms.txt", () =>
+    {
+        string origin = "https://nilbots.com";
+        return Results.Text($"""
+            # nilbots
+
+            A programming game: you write a C# bot, it compiles to WebAssembly, and it
+            fights other bots in a deterministic tile arena. Same engine locally and on
+            the server; every match produces a verifiable replay.
+
+            ## Start here (no browser required)
+            dotnet tool install --global Nilbots
+            nilbots register --email <you@example.com> --password <pw> --name <display>
+            nilbots new MyBot
+            cd MyBot
+            nilbots play --bot . --opponent hunter --seeds 7,42,1337
+            nilbots submit .
+            nilbots leaderboard
+
+            ## Full rules and API
+            {origin}/llms-full.txt   the complete player guide for the current ruleset
+
+            ## Reference
+            nilbots --help        every command
+            nilbots doctor        versions, toolchain, limits, sign-in state
+            nilbots bots          training opponents and what each one does
+            nilbots replay <file> --summary   per-tick state, vision, bolts, your debug lines
+
+            ## What a bot may know
+            Your own position, facing, health, cooldown; the tiles you can currently see;
+            enemies inside that vision as (slot, position, facing, health); events you saw,
+            and — under rules with hearing — coarse bearings for sounds you did not see.
+            You do NOT learn who your opponent is, its cooldown, or anything outside your
+            vision. Hidden information is the game: play the board, not the player.
+            """, "text/plain; charset=utf-8");
+    }).AllowAnonymous();
+
+    app.MapGet("/llms-full.txt", () =>
+    {
+        string? guide = RepoPaths.FindUpward(Path.Combine("docs", "RULES-0.5-PLAYER-GUIDE.md"));
+        return guide is null
+            ? Results.NotFound("Player guide not found on this deployment.")
+            : Results.Text(File.ReadAllText(guide), "text/plain; charset=utf-8");
+    }).AllowAnonymous();
+
     // The SPA: a single self-contained index.html built from web/ (`npm run build`).
     // Served straight from web/dist so dev and Docker need no copy step.
     string? spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));

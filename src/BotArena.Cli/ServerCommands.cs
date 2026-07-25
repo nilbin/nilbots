@@ -481,6 +481,122 @@ public static class ServerCommands
         return 0;
     }
 
+    /// <summary>Two lines for `doctor`: who we are signed in as, and whether the server
+    /// builds with the same SDK this CLI bundles. A version gap is the usual reason a
+    /// submission's artifact parity differs, so surfacing it here means the player is
+    /// told BEFORE they submit rather than left guessing after.</summary>
+    public static void ReportSessionHealth()
+    {
+        var credentials = StoredCredentials.Load();
+        if (credentials is null)
+        {
+            Console.WriteLine($"{"Authentication:",-24}not signed in — run: nilbots register (or login)");
+            Console.WriteLine($"{"Server compatibility:",-24}n/a (sign in first)");
+            return;
+        }
+        Console.WriteLine($"{"Authentication:",-24}signed in to {credentials.Server}" +
+            (credentials.ExpiresAt <= DateTimeOffset.UtcNow ? " (token expired — refreshes on next use)" : ""));
+        try
+        {
+            using var http = new HttpClient { BaseAddress = new Uri(credentials.Server), Timeout = TimeSpan.FromSeconds(10) };
+            var meta = http.GetFromJsonAsync<JsonElement>("/api/meta").GetAwaiter().GetResult();
+            string? serverSdk = meta.TryGetProperty("sdkVersion", out var sdk) ? sdk.GetString() : null;
+            string? serverRules = meta.TryGetProperty("gameRulesVersion", out var r) ? r.GetString() : null;
+            Console.WriteLine($"{"Server compatibility:",-24}" + (serverSdk == ToolchainInfo.SdkVersion
+                ? $"OK  server SDK {serverSdk}, rules {serverRules}"
+                : $"SKEW — server builds with SDK {serverSdk}, this CLI bundles {ToolchainInfo.SdkVersion}. " +
+                  $"Artifacts will differ; upgrade with: dotnet tool update -g Nilbots"));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            Console.WriteLine($"{"Server compatibility:",-24}unknown — {credentials.Server} unreachable");
+        }
+    }
+
+    /// <summary>The ladder, in the terminal. Ranked play is the headline activity and
+    /// was reachable only by hand-written curl against /api/leaderboard, which no CLI
+    /// help mentioned (player-test round 2). Anonymous: reading the ladder needs no
+    /// account, so newcomers can look before they commit.</summary>
+    public static int Leaderboard(IReadOnlyList<string> args)
+    {
+        var options = CliSupport.ParseOptions(args);
+        string server = options.GetValueOrDefault("server",
+            StoredCredentials.Load()?.Server ?? DefaultServer).TrimEnd('/');
+        string query = options.TryGetValue("rules", out string? rules) ? $"?rules={Uri.EscapeDataString(rules)}" : "";
+        using var http = new HttpClient { BaseAddress = new Uri(server) };
+        var board = http.GetFromJsonAsync<JsonElement>($"/api/leaderboard{query}").GetAwaiter().GetResult();
+
+        string version = board.GetProperty("rulesVersion").GetString() ?? "?";
+        var entries = board.GetProperty("entries").EnumerateArray().ToList();
+        Console.WriteLine($"Ladder for rules {version} ({server})");
+        if (entries.Count == 0)
+        {
+            Console.WriteLine("  (nobody has played a ranked set yet — be the first: nilbots rank <bot> <opponent>)");
+            return 0;
+        }
+        Console.WriteLine($"  {"#",-4}{"bot",-22}{"owner",-18}{"elo",6}  sets");
+        int rank = 0;
+        foreach (var entry in entries)
+            Console.WriteLine($"  {++rank,-4}{entry.GetProperty("name").GetString(),-22}" +
+                $"{entry.GetProperty("owner").GetString(),-18}" +
+                $"{entry.GetProperty("rating").GetDouble(),6:0}  {entry.GetProperty("rankedSets").GetInt32()}");
+        var ladders = board.GetProperty("ladders").EnumerateArray()
+            .Select(l => l.GetString()).Where(l => l != version).ToList();
+        if (ladders.Count > 0)
+            Console.WriteLine($"  other ladders: {string.Join(", ", ladders)}  (see them with --rules <version>)");
+        return 0;
+    }
+
+    /// <summary>Queue a ranked set against another bot on the ladder, by name.</summary>
+    public static int Rank(IReadOnlyList<string> args)
+    {
+        var positional = args.Where(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList();
+        var options = CliSupport.ParseOptions(args.SkipWhile(a => !a.StartsWith("--", StringComparison.Ordinal)).ToList());
+        using var client = CreateClient();
+        if (client is null)
+            return NotSignedIn();
+        string server = StoredCredentials.Load()!.Server;
+
+        var bots = client.GetFromJsonAsync<JsonElement>("/api/bots").GetAwaiter().GetResult()
+            .EnumerateArray().ToList();
+        string? Find(string name) => bots
+            .Where(b => string.Equals(b.GetProperty("name").GetString(), name, StringComparison.OrdinalIgnoreCase))
+            .Select(b => b.GetProperty("id").GetString())
+            .FirstOrDefault();
+
+        if (positional.Count != 2)
+        {
+            Console.Error.WriteLine("Usage: nilbots rank <your-bot> <opponent>   (names as shown by `nilbots leaderboard`)");
+            Console.Error.WriteLine($"Bots on {server}: {string.Join(", ", bots.Select(b => b.GetProperty("name").GetString()))}");
+            return 1;
+        }
+        string? mine = Find(positional[0]), theirs = Find(positional[1]);
+        if (mine is null || theirs is null)
+        {
+            Console.Error.WriteLine($"error: no bot named '{(mine is null ? positional[0] : positional[1])}' on {server}.");
+            Console.Error.WriteLine("Run `nilbots leaderboard` to see who is playing.");
+            return 1;
+        }
+
+        object body = options.TryGetValue("rules", out string? rules)
+            ? new { botId = mine, opponentBotId = theirs, rules }
+            : (object)new { botId = mine, opponentBotId = theirs };
+        var response = client.PostAsJsonAsync("/api/matches/ranked", body).GetAwaiter().GetResult();
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine(
+                $"error: ranked challenge refused ({(int)response.StatusCode}): " +
+                $"{Truncate(response.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
+            return 1;
+        }
+        var set = response.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult();
+        string setId = set.GetProperty("id").GetString()!;
+        Console.WriteLine($"Ranked set queued: {positional[0]} vs {positional[1]}");
+        Console.WriteLine($"  Watch: {server}/sets/{setId}");
+        Console.WriteLine($"  Results are withheld until every game has broadcast — then: nilbots leaderboard");
+        return 0;
+    }
+
     /// <summary>The server's build SDK, from its public /api/meta. Best-effort: a
     /// parity report must never fail because the probe did.</summary>
     private static string? TryGetServerSdkVersion(HttpClient client)

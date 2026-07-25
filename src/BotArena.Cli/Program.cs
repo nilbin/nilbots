@@ -32,6 +32,8 @@ try
         ["logout"] => ServerCommands.Logout(),
         ["whoami"] => ServerCommands.WhoAmI(),
         ["submit", .. var rest] => ServerCommands.Submit(rest),
+        ["rank", .. var rest] => ServerCommands.Rank(rest),
+        ["leaderboard", .. var rest] => ServerCommands.Leaderboard(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
@@ -93,6 +95,8 @@ static int Help(int exitCode = 1)
                         [--email <a@b.c> --password <pw>]   ...or headless
           nilbots submit [dir]                    build locally + submit for the canonical
                                                   server build; reports artifact parity
+          nilbots rank <your-bot> <opponent>      play a RANKED set on the ladder
+          nilbots leaderboard [--rules <version>] the ladder (no account needed to look)
           nilbots whoami | nilbots logout
           nilbots build [dir] [--no-cache]        compile a bot project to WASM (cached;
                                                   also copies the artifact to <dir>/out/bot.wasm)
@@ -213,6 +217,24 @@ static int CommandHelp(string command)
 
             HEADLESS (no browser — CI, containers, agents): pass --email and --password
             to complete the same grant without opening anything.
+            """,
+        "rank" => """
+            Usage: nilbots rank <your-bot> <opponent> [--rules <name>]
+
+            Queues a RANKED set (6 mirrored games) against another bot on the ladder,
+            by name — see `nilbots leaderboard` for who is playing. This is the real
+            thing: it moves elo. `nilbots set` by contrast is a LOCAL simulation that
+            changes nothing on the server.
+
+            Results are withheld until every game has broadcast, so nothing spoils the
+            watch; then `nilbots leaderboard` shows the new standings.
+            """,
+        "leaderboard" => """
+            Usage: nilbots leaderboard [--rules <version>] [--server <url>]
+
+            Prints the ranked ladder. No account required — you can look before you play.
+            Each ruleset has its OWN ladder, so an older bot is never invalidated by a
+            new ruleset; --rules picks which one to show.
             """,
         "logout" => "Usage: nilbots logout",
         "whoami" => "Usage: nilbots whoami",

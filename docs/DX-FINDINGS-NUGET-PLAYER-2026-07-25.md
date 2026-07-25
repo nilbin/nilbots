@@ -147,6 +147,39 @@ intended blast radius. Committed champion artifacts are frozen binaries and keep
 working untouched. `scripts/e2e.sh` now builds the same bot under two cache roots
 and fails if the hashes differ, so this cannot silently regress.
 
+### …but parity STILL fails: a second cause remains
+
+Re-measured with **both sides on the fixed toolchain**, identical Sdk/Guest DLLs,
+and the same single source file:
+
+```
+Local artifact:   f4733dfeb0c6d3f9657d3b7538644f30a65d21d57358c54c10d378f18b3553c8
+Server artifact:  c70b232e8539ffb311ecfd29cdf9e5e7801dd7a45d552a84624d26b892b32250
+Parity:           DIFFERENT
+```
+
+And the artifacts differ in **size** (997,924 vs 998,445 bytes) with ~92% of
+bytes differing — that is structurally different code generation, not paths or
+timestamps. So the workspace path was one cause, not the only one.
+
+Ruled out by direct measurement:
+- **Source set** — `BotProject` already excludes `bin/` and `obj/`, so both sides
+  compile the same single file.
+- **Toolchain assemblies** — the `BotArena.Sdk.dll` shipped by the CLI and by the
+  server are byte-identical (`24ac6e7e…`).
+- **Workspace path** — now mapped to `/nilbots/bot` on both sides, and proven
+  reproducible across roots.
+
+Remaining suspect, untested: the isolated build runs as the `botbuild` user with
+a different HOME and therefore a different NuGet package cache and MSBuild
+environment, while a local build runs as the caller. Next step would be to
+capture both generated `bot.csproj` files and both `dotnet publish` binlogs from
+the same submission and diff them — the workspaces are deleted after each build,
+so this needs a keep-workspace debug switch. Until that is closed, the honest
+statement is: **builds are reproducible for a given build environment, but the
+local and server environments are not yet equivalent** — and the NuGet README
+should not promise bit-identical artifacts.
+
 ## Fixed: headless onboarding (the friend's-agent path)
 
 `nilbots register` / `login` now accept `--email` / `--password` (plus optional

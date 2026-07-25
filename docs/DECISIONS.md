@@ -933,8 +933,19 @@ configuration) and changing them is a version bump, not an edit.
     not a drive-by. Until then `submit` should not guess "toolchain/sysroot
     drift" and the NuGet README should not promise bit-identical artifacts.
 
-72. **Player builds are reproducible: the workspace path no longer reaches the
-    artifact (fixes the local<->server parity promise, DECISIONS #71).** The
+72. **Player builds are reproducible across build directories — one of the two
+    causes of the local<->server parity failure (DECISIONS #71).** CORRECTION:
+    an earlier revision of this entry claimed this fixed the parity promise
+    outright. It does not. Measured after the fix, with BOTH sides on the new
+    toolchain and identical Sdk/Guest DLLs: local `f4733dfe...` vs server
+    `c70b232e...`, still DIFFERENT — and the artifacts differ in SIZE (997,924
+    vs 998,445 bytes) with ~92% of bytes differing, which is structurally
+    different codegen, not path or timestamp noise. Ruled out so far: the
+    source set (bin/obj are correctly excluded, both compile the one file), the
+    toolchain assemblies (byte-identical), and the workspace path (now mapped).
+    A second cause remains unidentified — likely something differing between
+    the isolated `botbuild` build environment and the caller's. Tracked as open
+    in DX-FINDINGS-NUGET-PLAYER. What IS proven below stands on its own. The
     controlled build project now sets `PathMap` from `$(MSBuildProjectDirectory)`
     to the fixed virtual root `/nilbots/bot`, plus `Deterministic` and
     `DebugType=none`. Cause being fixed: the workspace lives at a different
