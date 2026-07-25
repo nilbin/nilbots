@@ -7,9 +7,10 @@ import { BotVersionRow } from '@/components/BotVersionRow';
 import { Card } from '@/components/ui/Card';
 import { ErrorState, LoadingState } from '@/components/ui/StateView';
 import { Screen } from '@/components/ui/Screen';
+import { StatRow } from '@/components/ui/StatRow';
 import { useBot } from '@/hooks/useBots';
 import { useBotMatches } from '@/hooks/useBotMatches';
-import { Arena, Mono, Space } from '@/theme/arena';
+import { Arena, SectionLabelText, Space } from '@/theme/arena';
 
 export default function BotDetailScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
@@ -38,9 +39,13 @@ export default function BotDetailScreen() {
           <Text style={styles.owner}>by {bot.owner}</Text>
           {bot.currentStanding ? (
             <View style={styles.standing}>
-              <Stat label="rating" value={Math.round(bot.currentStanding.rating)} />
-              <Stat label="rank" value={bot.currentStanding.rank} />
-              <Stat label="sets" value={bot.currentStanding.rankedSets} />
+              <StatRow
+                stats={[
+                  { label: 'rating', value: Math.round(bot.currentStanding.rating) },
+                  { label: 'rank', value: `#${bot.currentStanding.rank}` },
+                  { label: 'sets', value: bot.currentStanding.rankedSets },
+                ]}
+              />
             </View>
           ) : (
             <Text style={styles.unranked}>Unranked — no ranked sets on the current ladder.</Text>
@@ -51,11 +56,13 @@ export default function BotDetailScreen() {
           <>
             <Text style={styles.sectionTitle}>RECORD</Text>
             <Card>
-              <View style={styles.record}>
-                <Stat label="wins" value={history.wins} />
-                <Stat label="losses" value={history.losses} />
-                <Stat label="draws" value={history.draws} />
-              </View>
+              <StatRow
+                stats={[
+                  { label: 'wins', value: history.wins },
+                  { label: 'losses', value: history.losses },
+                  { label: 'draws', value: history.draws },
+                ]}
+              />
             </Card>
 
             <Text style={styles.sectionTitle}>LATEST GAMES</Text>
@@ -85,30 +92,11 @@ export default function BotDetailScreen() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   body: { gap: Space.md, paddingBottom: Space.xxl, paddingTop: Space.md },
   owner: { color: Arena.dim, fontSize: 13, marginTop: Space.xs },
-  standing: { flexDirection: 'row', gap: Space.xl, marginTop: Space.lg },
-  stat: { alignItems: 'flex-start' },
-  statValue: { ...Mono, color: Arena.text, fontSize: 20, fontWeight: '800' },
-  statLabel: { color: Arena.dim, fontSize: 11, textTransform: 'uppercase' },
+  standing: { marginTop: Space.lg },
   unranked: { color: Arena.dim, fontSize: 13, marginTop: Space.md },
-  record: { flexDirection: 'row', gap: Space.xl },
   none: { color: Arena.dim, fontSize: 13, lineHeight: 18 },
-  sectionTitle: {
-    ...Mono,
-    color: Arena.dim,
-    fontSize: 11,
-    letterSpacing: 2,
-    marginTop: Space.md,
-  },
+  sectionTitle: { ...SectionLabelText, marginTop: Space.md },
 });
