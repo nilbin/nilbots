@@ -1431,9 +1431,10 @@ before picking a number.*
      backfill and a write-path invariant, and at 665 matches — or at a plausible
      year-one 30k, where the same case costs about 20 ms — it buys nothing. Revisit
      when the arena is large enough for that to be felt.
+
 101. **Projectile looks are bot-owned SVG masks; cosmetic entitlement is
     account-owned and enforced when equipping, not when replaying.** Four
-    starter looks—Pulse Bolt, Ion Orb, Razor Shard, and Arc Spark—are discovered
+    initial looks—Pulse Bolt, Ion Orb, Razor Shard, and Arc Spark—are discovered
     from standalone manifests. Their 256-viewBox East-facing SVGs define only
     the projectile-head silhouette; the renderer tints them with the locally
     contrast-adjusted bot accent and retains one truthful implementation of
@@ -1448,6 +1449,19 @@ before picking a number.*
     commerce project. Viewing never rechecks ownership, and client-visible art
     is not DRM. A larger catalog must stop embedding every cosmetic into every
     self-contained replay.
+
+102. **The first entitlement slice uses durable product events, not a generic
+    achievement engine.** `cosmetics/catalog.json` is embedded into every App
+    role and is the authority for stable bot/projectile keys, starter status,
+    and unlock hints; tests require it to match the manifest-discovered web
+    assets. `EntitlementGrant` is append-oriented and idempotent on account,
+    key, source kind, and source ID. A successful first bot build grants Lancer;
+    completing a setless authenticated challenge grants Arc Spark. Existing
+    accomplishments and pre-entitlement equips are backfilled. System accounts
+    may equip the full catalog. Bot creation, appearance updates, and
+    submission-synchronized appearance all enforce access server-side, while
+    replay rendering never does. The garage exposes locked items and hints.
+    Payments, prices, checkout, and provider identifiers remain out of scope.
 
 ## Deferred decisions
 

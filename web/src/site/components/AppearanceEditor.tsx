@@ -7,6 +7,12 @@ import {
   projectileLookOptions,
 } from '../../render/arenaThemes';
 import { api, type BotDetail } from '../api';
+import {
+  BOT_LOOK_KIND,
+  cosmeticItem,
+  PROJECTILE_LOOK_KIND,
+  useCosmeticCatalog,
+} from '../cosmetics';
 
 const botLooks = botLookOptions();
 const projectileLooks = projectileLookOptions();
@@ -14,11 +20,13 @@ const projectileLooks = projectileLookOptions();
 interface AppearanceEditorProps {
   bot: Pick<BotDetail, 'id' | 'accent' | 'lookId' | 'projectileLookId'>;
   onSaved: () => Promise<unknown> | void;
+  entitlementRevision?: number;
 }
 
 export default function AppearanceEditor({
   bot,
   onSaved,
+  entitlementRevision = 0,
 }: AppearanceEditorProps) {
   const [accent, setAccent] = useState(bot.accent);
   const [lookId, setLookId] = useState(bot.lookId);
@@ -28,6 +36,8 @@ export default function AppearanceEditor({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { catalog, error: catalogError } =
+    useCosmeticCatalog(entitlementRevision);
 
   useEffect(() => {
     setAccent(bot.accent);
@@ -37,6 +47,14 @@ export default function AppearanceEditor({
 
   const chassis = botLook(lookId);
   const projectile = projectileLook(projectileLookId);
+  const selectedLook = cosmeticItem(catalog, BOT_LOOK_KIND, lookId);
+  const selectedProjectile = cosmeticItem(
+    catalog,
+    PROJECTILE_LOOK_KIND,
+    projectileLookId,
+  );
+  const selectionOwned =
+    selectedLook?.owned === true && selectedProjectile?.owned === true;
   const dirty =
     accent !== bot.accent ||
     lookId !== bot.lookId ||
@@ -107,8 +125,20 @@ export default function AppearanceEditor({
               className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
             >
               {botLooks.map((look) => (
-                <option key={look.id} value={look.id}>
+                <option
+                  key={look.id}
+                  value={look.id}
+                  disabled={
+                    cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned !== true
+                  }
+                >
                   {look.label}
+                  {cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned
+                    ? ''
+                    : ` — locked: ${
+                        cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.unlock
+                          ?.hint ?? 'Unlock required'
+                      }`}
                 </option>
               ))}
             </select>
@@ -121,8 +151,27 @@ export default function AppearanceEditor({
               className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
             >
               {projectileLooks.map((look) => (
-                <option key={look.id} value={look.id}>
+                <option
+                  key={look.id}
+                  value={look.id}
+                  disabled={
+                    cosmeticItem(
+                      catalog,
+                      PROJECTILE_LOOK_KIND,
+                      look.id,
+                    )?.owned !== true
+                  }
+                >
                   {look.label}
+                  {cosmeticItem(catalog, PROJECTILE_LOOK_KIND, look.id)?.owned
+                    ? ''
+                    : ` — locked: ${
+                        cosmeticItem(
+                          catalog,
+                          PROJECTILE_LOOK_KIND,
+                          look.id,
+                        )?.unlock?.hint ?? 'Unlock required'
+                      }`}
                 </option>
               ))}
             </select>
@@ -132,10 +181,11 @@ export default function AppearanceEditor({
             snapshotted appearance.
           </p>
           {error && <p className="text-sm text-red-400">{error}</p>}
+          {catalogError && <p className="text-sm text-red-400">{catalogError}</p>}
           {message && <p className="text-sm text-emerald-400">{message}</p>}
           <button
             type="submit"
-            disabled={!dirty || saving}
+            disabled={!dirty || saving || !catalog || !selectionOwned}
             className="self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {saving ? 'Saving…' : 'Save appearance'}

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
@@ -40,6 +41,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
+builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
+builder.Services.AddScoped<CosmeticEntitlementService>();
 
 if (mode.RunsWeb)
 {
@@ -219,6 +222,7 @@ if (mode.RunsWeb)
     app.MapAccounts();
     app.MapConnect();
     app.MapBots();
+    app.MapCosmetics();
     app.MapMatches();
     app.MapRanked();
 

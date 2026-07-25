@@ -96,7 +96,15 @@ export default function BotDetailPage() {
         />
       </header>
 
-      {bot.isOwner && <AppearanceEditor bot={bot} onSaved={load} />}
+      {bot.isOwner && (
+        <AppearanceEditor
+          bot={bot}
+          onSaved={load}
+          entitlementRevision={
+            bot.versions.filter((version) => version.status === 'Built').length
+          }
+        />
+      )}
 
       <ChallengePanel bot={bot} />
 

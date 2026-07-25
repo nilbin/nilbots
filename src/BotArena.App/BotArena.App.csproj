@@ -13,6 +13,10 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../../cosmetics/catalog.json"
+                      LogicalName="BotArena.Cosmetics.catalog.json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../BotArena.Runtime.Wasm/BotArena.Runtime.Wasm.csproj" />
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />

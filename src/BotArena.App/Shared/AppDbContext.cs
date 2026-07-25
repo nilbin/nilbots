@@ -1,5 +1,6 @@
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
@@ -14,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Bot> Bots => Set<Bot>();
     public DbSet<BotRating> BotRatings => Set<BotRating>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
+    public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
@@ -63,6 +65,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(v => v.SubmissionNetworkHash).HasMaxLength(64);
         });
 
+        modelBuilder.Entity<EntitlementGrant>(entity =>
+        {
+            entity.HasIndex(grant => new
+            {
+                grant.UserId,
+                grant.EntitlementKey,
+                grant.SourceKind,
+                grant.SourceId,
+            }).IsUnique();
+            entity.HasIndex(grant => new
+            {
+                grant.UserId,
+                grant.EntitlementKey,
+                grant.RevokedAt,
+            });
+            entity.Property(grant => grant.EntitlementKey).HasMaxLength(128);
+            entity.Property(grant => grant.SourceKind).HasMaxLength(40);
+            entity.Property(grant => grant.SourceId).HasMaxLength(80);
+            entity.Property(grant => grant.MetadataJson).HasColumnType("jsonb");
+            entity.HasOne<User>().WithMany().HasForeignKey(grant => grant.UserId);
+        });
+
         modelBuilder.Entity<Match>(entity =>
         {
             entity.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
@@ -72,6 +96,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Feed filtered by map, newest first. Without the CreatedAt column here,
             // filtering to an uncommon map scanned the whole table (DECISIONS #100).
             entity.HasIndex(m => new { m.MapId, m.CreatedAt }).IsDescending(false, true);
+            entity.HasIndex(m => m.InitiatedByUserId);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(m => m.InitiatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<MatchSet>(entity =>

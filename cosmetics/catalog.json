@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "key": "bot-look:vanguard",
+      "kind": "bot-look",
+      "id": "vanguard",
+      "label": "Vanguard",
+      "availability": "starter"
+    },
+    {
+      "key": "bot-look:bulwark",
+      "kind": "bot-look",
+      "id": "bulwark",
+      "label": "Bulwark",
+      "availability": "starter"
+    },
+    {
+      "key": "bot-look:needle",
+      "kind": "bot-look",
+      "id": "needle",
+      "label": "Needle",
+      "availability": "starter"
+    },
+    {
+      "key": "bot-look:orbiter",
+      "kind": "bot-look",
+      "id": "orbiter",
+      "label": "Orbiter",
+      "availability": "starter"
+    },
+    {
+      "key": "bot-look:lancer",
+      "kind": "bot-look",
+      "id": "lancer",
+      "label": "Lancer",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "first-successful-build",
+        "hint": "Successfully build your first bot version."
+      }
+    },
+    {
+      "key": "projectile-look:pulse-bolt",
+      "kind": "projectile-look",
+      "id": "pulse-bolt",
+      "label": "Pulse Bolt",
+      "availability": "starter"
+    },
+    {
+      "key": "projectile-look:ion-orb",
+      "kind": "projectile-look",
+      "id": "ion-orb",
+      "label": "Ion Orb",
+      "availability": "starter"
+    },
+    {
+      "key": "projectile-look:razor-shard",
+      "kind": "projectile-look",
+      "id": "razor-shard",
+      "label": "Razor Shard",
+      "availability": "starter"
+    },
+    {
+      "key": "projectile-look:arc-spark",
+      "kind": "projectile-look",
+      "id": "arc-spark",
+      "label": "Arc Spark",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "challenge",
+        "sourceId": "first-unranked-match",
+        "hint": "Complete your first unranked challenge match."
+      }
+    }
+  ]
+}

@@ -33,6 +33,9 @@ with `appearance.projectile` (`pulse-bolt`, `ion-orb`, `razor-shard`, or
 `arc-spark`). Appearance belongs to the bot and is snapshotted into each match,
 so historical replays do not change later. You can also change accent, chassis,
 and projectile from the bot page without submitting a new code version.
+Local play can preview every bundled look. On the official service, Lancer
+unlocks after your first successful bot build and Arc Spark after your first
+completed unranked challenge; other current choices are available immediately.
 
 Practicing for a rules experiment? Add `"rules": "<name>"` to `botarena.json`
 and every `play`/`set` defaults to that ruleset (an explicit `--rules` flag

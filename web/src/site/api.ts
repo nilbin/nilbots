@@ -40,6 +40,27 @@ export interface Me {
   email: string;
 }
 
+export interface CosmeticUnlock {
+  sourceKind: string;
+  sourceId: string;
+  hint: string;
+}
+
+export interface CosmeticCatalogItem {
+  key: string;
+  kind: 'bot-look' | 'projectile-look';
+  id: string;
+  label: string;
+  availability: 'starter' | 'entitlement';
+  unlock: CosmeticUnlock | null;
+  owned: boolean;
+}
+
+export interface CosmeticCatalog {
+  version: number;
+  items: CosmeticCatalogItem[];
+}
+
 export interface LadderRating {
   rulesVersion: string;
   rating: number;

@@ -9,6 +9,13 @@ import {
 } from '../../render/arenaThemes';
 import { api, type MyBot } from '../api';
 import { useAuth } from '../auth';
+import {
+  BOT_LOOK_KIND,
+  cosmeticItem,
+  PROJECTILE_LOOK_KIND,
+  useCosmeticCatalog,
+} from '../cosmetics';
+import CosmeticUnlocks from '../components/CosmeticUnlocks';
 
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
@@ -37,6 +44,7 @@ export default function GaragePage() {
   const [lookId, setLookId] = useState('vanguard');
   const [projectileLookId, setProjectileLookId] = useState('pulse-bolt');
   const [error, setError] = useState<string | null>(null);
+  const { catalog, error: catalogError } = useCosmeticCatalog();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +72,11 @@ export default function GaragePage() {
       setError(e instanceof Error ? e.message : 'Failed to create bot.');
     }
   };
+  const selectedLookOwned =
+    cosmeticItem(catalog, BOT_LOOK_KIND, lookId)?.owned === true;
+  const selectedProjectileOwned =
+    cosmeticItem(catalog, PROJECTILE_LOOK_KIND, projectileLookId)?.owned ===
+    true;
 
   return (
     <div className="flex flex-col gap-8">
@@ -111,6 +124,8 @@ export default function GaragePage() {
         )}
       </section>
 
+      <CosmeticUnlocks catalog={catalog} accent={accent} error={catalogError} />
+
       <CliAccess />
 
       <section className="max-w-md rounded-xl border border-arena-edge bg-arena-panel p-5">
@@ -146,8 +161,20 @@ export default function GaragePage() {
               className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
             >
               {looks.map((look) => (
-                <option key={look.id} value={look.id}>
+                <option
+                  key={look.id}
+                  value={look.id}
+                  disabled={
+                    cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned !== true
+                  }
+                >
                   {look.label}
+                  {cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned
+                    ? ''
+                    : ` — locked: ${
+                        cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.unlock
+                          ?.hint ?? 'Unlock required'
+                      }`}
                 </option>
               ))}
             </select>
@@ -160,8 +187,27 @@ export default function GaragePage() {
               className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
             >
               {projectileLooks.map((look) => (
-                <option key={look.id} value={look.id}>
+                <option
+                  key={look.id}
+                  value={look.id}
+                  disabled={
+                    cosmeticItem(
+                      catalog,
+                      PROJECTILE_LOOK_KIND,
+                      look.id,
+                    )?.owned !== true
+                  }
+                >
                   {look.label}
+                  {cosmeticItem(catalog, PROJECTILE_LOOK_KIND, look.id)?.owned
+                    ? ''
+                    : ` — locked: ${
+                        cosmeticItem(
+                          catalog,
+                          PROJECTILE_LOOK_KIND,
+                          look.id,
+                        )?.unlock?.hint ?? 'Unlock required'
+                      }`}
                 </option>
               ))}
             </select>
@@ -175,9 +221,13 @@ export default function GaragePage() {
             {projectileLook(projectileLookId).label}
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
+          {catalogError && <p className="text-sm text-red-400">{catalogError}</p>}
           <button
             type="submit"
-            className="mt-1 self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950"
+            disabled={
+              !catalog || !selectedLookOwned || !selectedProjectileOwned
+            }
+            className="mt-1 self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Create bot
           </button>

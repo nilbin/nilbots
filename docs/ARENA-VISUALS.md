@@ -290,6 +290,8 @@ genuine path-based SVGs. The four earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
+Vanguard, Bulwark, Needle, and Orbiter are starter-accessible; Lancer is the
+first successful-build achievement unlock on the official service.
 
 To create another look:
 
@@ -329,7 +331,9 @@ To create another look:
   entitlements are checked when equipping, never when rendering a replay.
 
 Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, and Arc Spark.
-All four are genuine SVG masks and starter-accessible.
+All four are genuine SVG masks. Pulse Bolt, Ion Orb, and Razor Shard are
+starter-accessible; Arc Spark unlocks after the account completes its first
+unranked challenge match on the official service.
 
 To create another projectile look:
 

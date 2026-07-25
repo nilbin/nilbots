@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using BotArena.App.Accounts;
+using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
@@ -60,7 +61,12 @@ public static class BotsEndpoints
             return Results.Ok(bots);
         });
 
-        group.MapPost("/", async (CreateBotRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        group.MapPost("/", async (
+            CreateBotRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CosmeticEntitlementService entitlements,
+            CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
@@ -84,6 +90,24 @@ public static class BotsEndpoints
                 return Results.Problem(
                     "Projectile look must be a lowercase kebab-case ID.",
                     statusCode: 400);
+            if (await CosmeticAccessProblem(
+                    entitlements,
+                    userId,
+                    CosmeticCatalog.BotLookKind,
+                    lookId,
+                    cancellationToken) is { } lookProblem)
+            {
+                return lookProblem;
+            }
+            if (await CosmeticAccessProblem(
+                    entitlements,
+                    userId,
+                    CosmeticCatalog.ProjectileLookKind,
+                    projectileLookId,
+                    cancellationToken) is { } projectileProblem)
+            {
+                return projectileProblem;
+            }
             var bot = new Bot
             {
                 OwnerUserId = userId,
@@ -160,7 +184,9 @@ public static class BotsEndpoints
                 Guid botId,
                 UpdateBotAppearanceRequest request,
                 ClaimsPrincipal principal,
-                AppDbContext db) =>
+                AppDbContext db,
+                CosmeticEntitlementService entitlements,
+                CancellationToken cancellationToken) =>
             {
                 var bot = await db.Bots.SingleOrDefaultAsync(b => b.Id == botId);
                 if (bot is null)
@@ -184,6 +210,24 @@ public static class BotsEndpoints
                     return Results.Problem(
                         "Projectile look must be a lowercase kebab-case ID.",
                         statusCode: 400);
+                if (await CosmeticAccessProblem(
+                        entitlements,
+                        userId,
+                        CosmeticCatalog.BotLookKind,
+                        lookId,
+                        cancellationToken) is { } lookProblem)
+                {
+                    return lookProblem;
+                }
+                if (await CosmeticAccessProblem(
+                        entitlements,
+                        userId,
+                        CosmeticCatalog.ProjectileLookKind,
+                        projectileLookId,
+                        cancellationToken) is { } projectileProblem)
+                {
+                    return projectileProblem;
+                }
 
                 bot.Accent = accent;
                 bot.LookId = lookId;
@@ -268,6 +312,7 @@ public static class BotsEndpoints
                 SubmitVersionRequest request,
                 ClaimsPrincipal principal,
                 AppDbContext db,
+                CosmeticEntitlementService entitlements,
                 CompilerSubmissionService submissions,
                 HttpContext http,
                 CancellationToken cancellationToken) =>
@@ -294,6 +339,26 @@ public static class BotsEndpoints
                 return Results.Problem(
                     "Projectile look must be a lowercase kebab-case ID.",
                     statusCode: 400);
+            if (lookId is not null &&
+                await CosmeticAccessProblem(
+                    entitlements,
+                    userId,
+                    CosmeticCatalog.BotLookKind,
+                    lookId,
+                    cancellationToken) is { } lookProblem)
+            {
+                return lookProblem;
+            }
+            if (projectileLookId is not null &&
+                await CosmeticAccessProblem(
+                    entitlements,
+                    userId,
+                    CosmeticCatalog.ProjectileLookKind,
+                    projectileLookId,
+                    cancellationToken) is { } projectileProblem)
+            {
+                return projectileProblem;
+            }
             try
             {
                 // Fail fast on obviously invalid submissions; the job re-validates.
@@ -408,6 +473,39 @@ public static class BotsEndpoints
 
     private static BuildReceipt? DeserializeReceipt(string? json) =>
         json is null ? null : JsonSerializer.Deserialize<BuildReceipt>(json);
+
+    private static async Task<IResult?> CosmeticAccessProblem(
+        CosmeticEntitlementService entitlements,
+        Guid userId,
+        string kind,
+        string id,
+        CancellationToken cancellationToken)
+    {
+        CosmeticAccess access = await entitlements.CheckAccessAsync(
+            userId,
+            kind,
+            id,
+            cancellationToken);
+        if (access.Item is null)
+        {
+            string label = kind == CosmeticCatalog.BotLookKind
+                ? "bot look"
+                : "projectile look";
+            return Results.Problem(
+                $"Unknown {label} '{id}'.",
+                statusCode: StatusCodes.Status400BadRequest);
+        }
+        if (!access.Owned)
+        {
+            string hint = access.Item.Unlock?.Hint is { Length: > 0 } value
+                ? $" {value}"
+                : "";
+            return Results.Problem(
+                $"{access.Item.Label} is locked.{hint}",
+                statusCode: StatusCodes.Status403Forbidden);
+        }
+        return null;
+    }
 
     private static bool IsPresentationId(string value) =>
         value.Length is > 0 and <= 64 &&

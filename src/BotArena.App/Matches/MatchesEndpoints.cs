@@ -37,7 +37,12 @@ public static class MatchesEndpoints
             string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
             long seed = request.Seed ?? Random.Shared.NextInt64();
 
-            var match = new Match { MapId = mapId, Seed = seed };
+            var match = new Match
+            {
+                MapId = mapId,
+                Seed = seed,
+                InitiatedByUserId = userId,
+            };
             match.Participants.Add(new MatchParticipant
             {
                 MatchId = match.Id, Slot = 0, BotId = bot.Id, BotVersionId = version.Id,

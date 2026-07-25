@@ -1,8 +1,8 @@
 # Cosmetic catalog and entitlements
 
-Status: product/architecture design. Bot and projectile selection exist; every
-shipped option is currently starter-accessible. Achievement, challenge, and
-payment grant systems are not implemented yet.
+Status: implemented for starter, achievement, and challenge grants. The
+canonical catalog, append-oriented grant ledger, equip enforcement, and locked
+UI ship together. Payment grants remain deliberately unimplemented.
 
 ## Ownership model
 
@@ -23,8 +23,8 @@ account ownership.
 
 ## Catalog
 
-Before the first gated item ships, add one server-readable, version-controlled
-catalog as the authority for stable keys:
+`cosmetics/catalog.json` is the server-readable, version-controlled authority
+for stable keys:
 
 - `bot-look:<id>`
 - `projectile-look:<id>`
@@ -32,16 +32,25 @@ catalog as the authority for stable keys:
   `entrance-effect:<id>`
 
 Each catalog item records kind, stable ID, player-facing label, availability
-(`starter` or `entitlement`), preview metadata, and an optional unlock hint.
-Rendering details remain in their visual manifests. IDs are immutable and
-never reused for different art; replacements receive a new ID.
+(`starter` or `entitlement`), and an optional durable unlock source and hint.
+Rendering details remain in their visual manifests. Automated tests require
+every catalog ID and label to match exactly one runtime manifest. IDs are
+immutable and never reused for different art; replacements receive a new ID.
+
+The first gated items prove both non-payment paths:
+
+- Lancer: achievement `first-successful-build`.
+- Arc Spark: challenge `first-unranked-match`.
+
+All other current bot and projectile looks are starter-accessible. Local play
+may preview the whole bundled catalog; the official server controls equipping.
 
 Do not put prices, payment-provider product IDs, achievement evaluation logic,
 or gameplay modifiers in visual manifests.
 
 ## Grant ledger
 
-The future database model is an append-oriented `EntitlementGrant`:
+The database model is an append-oriented `EntitlementGrant`:
 
 - `Id`
 - `UserId`
@@ -62,8 +71,8 @@ Source domains own their own truth:
 - Achievement completion records progress and emits an idempotent grant.
 - Time-limited or authored challenges record their result and emit a grant.
 - Promotions/admin tools emit auditable grants.
-- A later commerce module records orders and signed webhook events, then emits
-  or revokes grants. Payment integration is explicitly deferred; no provider,
+- A later commerce module may record orders and signed webhook events, then emit
+  or revoke grants. Payment integration is explicitly deferred; no provider,
   checkout, price, or payment schema is part of the current projectile work.
 
 Do not build a generic rules engine for achievements initially. Award from
@@ -71,16 +80,14 @@ explicit durable product events through one entitlement service.
 
 ## Equip and replay rules
 
-`PUT /api/bots/{botId}/appearance` is the authorization boundary. It verifies
-bot ownership, catalog validity, and—once gating ships—account entitlement in
-one transaction. Code submission may synchronize local manifest appearance
-through the same service, but compiling a bot is not required to change its
-appearance.
+Bot creation, `PUT /api/bots/{botId}/appearance`, and appearance fields on
+version submission all verify catalog validity and active account entitlement.
+`PUT` remains the normal authorization boundary for independent appearance
+changes; compiling a bot is not required.
 
-The UI should list starter and owned items normally. Locked items may remain
-visible with an unlock hint, but cannot be submitted as equipped. The server,
-not the browser or CLI, is authoritative. Offline local play may preview every
-bundled cosmetic; official server use requires entitlement.
+The garage lists locked items with their unlock hint and progress state.
+Locked select options stay visible but disabled. The server, not the browser
+or CLI, remains authoritative.
 
 Matches snapshot accent, bot-look ID, and projectile-look ID. Viewing a replay
 never rechecks entitlement. Revocation affects future equips and matches; it
@@ -109,11 +116,10 @@ Before the catalog grows materially, online playback should use immutable
 content-addressed assets and exported standalone viewers should embed only the
 theme and participant cosmetics referenced by that replay.
 
-## Delivery order
+## Delivery status
 
-1. Ship starter projectile looks and bot appearance editing.
-2. Add the canonical catalog, entitlement service, grant ledger, and locked UI
-   state.
-3. Prove the system with one achievement unlock and one challenge unlock.
-4. Expand achievements/challenges based on product use.
-5. Consider payment-provider integration later as a separate commerce project.
+1. Starter projectile looks and bot appearance editing — done.
+2. Canonical catalog, entitlement service, grant ledger, and locked UI — done.
+3. One achievement unlock and one challenge unlock — done.
+4. Expand achievements/challenges based on product use — later.
+5. Payment-provider integration — later, as a separate commerce project.

@@ -107,6 +107,7 @@ public sealed class MyBot : IBot
   -d '{"displayName":"Me","email":"me@x","password":"..."}' <server>/api/accounts/register
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"name":"MyBot","accent":"#22d3ee","lookId":"vanguard","projectileLookId":"pulse-bolt"}' <server>/api/bots
+curl -b jar <server>/api/cosmetics              # starter/owned/locked appearance catalog
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
@@ -124,6 +125,9 @@ curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals
           <b> array</b> of versions, newest first, so poll <code className="font-mono">[0].status</code>,
           not <code className="font-mono">.status</code>. The CLI's
           <code className="font-mono"> nilbots submit</code> wraps this flow plus artifact-parity checking.
+          Lancer unlocks on the first successful build; Arc Spark unlocks after
+          the first completed unranked challenge. Payments are not part of the
+          current entitlement system.
         </p>
       </Doc>
 

@@ -1,5 +1,6 @@
 using System.Text;
 using BotArena.App.Bots;
+using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
@@ -111,6 +112,8 @@ public sealed class JobWorker(
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var entitlements =
+            scope.ServiceProvider.GetRequiredService<CosmeticEntitlementService>();
 
         var jobs = await db.BackgroundJobs
             .FromSqlRaw("""
@@ -142,10 +145,18 @@ public sealed class JobWorker(
             switch (job.Type)
             {
                 case BackgroundJob.CompileSubmissionType:
-                    await CompileSubmission(db, job.PayloadId("botVersionId"), workCancellation.Token);
+                    await CompileSubmission(
+                        db,
+                        entitlements,
+                        job.PayloadId("botVersionId"),
+                        workCancellation.Token);
                     break;
                 case BackgroundJob.ExecuteMatchType:
-                    await ExecuteMatch(db, job.PayloadId("matchId"), workCancellation.Token);
+                    await ExecuteMatch(
+                        db,
+                        entitlements,
+                        job.PayloadId("matchId"),
+                        workCancellation.Token);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown job type '{job.Type}'.");
@@ -242,13 +253,22 @@ public sealed class JobWorker(
         }
     }
 
-    private async Task CompileSubmission(AppDbContext db, Guid versionId, CancellationToken cancellationToken)
+    private async Task CompileSubmission(
+        AppDbContext db,
+        CosmeticEntitlementService entitlements,
+        Guid versionId,
+        CancellationToken cancellationToken)
     {
         var version = await db.BotVersions.SingleAsync(v => v.Id == versionId, cancellationToken);
         if (version.Status == BuildStatus.Built &&
             version.ArtifactKey is { } existingKey &&
             await objectStore.ExistsAsync(existingKey, cancellationToken))
         {
+            await AwardSuccessfulBuild(
+                db,
+                entitlements,
+                version,
+                cancellationToken);
             return;
         }
 
@@ -315,7 +335,33 @@ public sealed class JobWorker(
             version.BuildLog = Tail($"Artifact validation failed: {ex.Message}", 8000);
         }
         await db.SaveChangesAsync(cancellationToken);
+        if (version.Status == BuildStatus.Built)
+        {
+            await AwardSuccessfulBuild(
+                db,
+                entitlements,
+                version,
+                cancellationToken);
+        }
         await submissionCompiler.CleanupAsync(version.Id);
+    }
+
+    private static async Task AwardSuccessfulBuild(
+        AppDbContext db,
+        CosmeticEntitlementService entitlements,
+        BotVersion version,
+        CancellationToken cancellationToken)
+    {
+        Guid userId = await db.Bots
+            .Where(bot => bot.Id == version.BotId)
+            .Select(bot => bot.OwnerUserId)
+            .SingleAsync(cancellationToken);
+        await entitlements.GrantForEventAsync(
+            userId,
+            CosmeticUnlockEvents.Achievement,
+            CosmeticUnlockEvents.FirstSuccessfulBuild,
+            new { botVersionId = version.Id },
+            cancellationToken);
     }
 
     /// <summary>Minimal §15.4 artifact validation: the artifact must load, handshake and
@@ -347,7 +393,11 @@ public sealed class JobWorker(
                 "(it may crash at startup or return no action).");
     }
 
-    private async Task ExecuteMatch(AppDbContext db, Guid matchId, CancellationToken cancellationToken)
+    private async Task ExecuteMatch(
+        AppDbContext db,
+        CosmeticEntitlementService entitlements,
+        Guid matchId,
+        CancellationToken cancellationToken)
     {
         var match = await db.Matches.Include(m => m.Participants)
             .SingleAsync(m => m.Id == matchId, cancellationToken);
@@ -450,6 +500,17 @@ public sealed class JobWorker(
             match.Error = ex.Message;
         }
         await db.SaveChangesAsync(cancellationToken);
+        if (match.Status == MatchStatus.Completed &&
+            match.MatchSetId is null &&
+            match.InitiatedByUserId is Guid challengerId)
+        {
+            await entitlements.GrantForEventAsync(
+                challengerId,
+                CosmeticUnlockEvents.Challenge,
+                CosmeticUnlockEvents.FirstUnrankedMatch,
+                new { matchId = match.Id },
+                cancellationToken);
+        }
         if (match.MatchSetId is Guid setId)
             await TryFinalizeSet(db, setId, cancellationToken);
     }

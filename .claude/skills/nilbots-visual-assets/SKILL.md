@@ -82,6 +82,10 @@ bot record snapshots it into each match and replay. Legacy or missing IDs use
 the default Pulse Bolt. Entitlements authorize equipping a look; they never
 change replay rendering or gameplay.
 
+When adding a shippable bot or projectile look, also add the same stable ID and
+label to `cosmetics/catalog.json`. Keep availability and unlock policy there,
+never in the rendering manifest. Run the catalog/manifest alignment tests.
+
 ## Validation
 
 Run:
