@@ -20,6 +20,13 @@ export default function LeaderboardPage() {
         each played from both starting positions. Every rules version has its own
         ladder — a new era never erases old standings.
       </p>
+      {board !== null && board.rulesVersion !== board.activeRulesVersion && (
+        <p className="mb-3 text-sm text-arena-dim">
+          This ladder is <b>closed</b>: rules {board.rulesVersion} no longer accepts new
+          sets, so these standings are final. Ranked play happens on rules{' '}
+          {board.activeRulesVersion}.
+        </p>
+      )}
       {board !== null && board.ladders.length > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Ruleset ladder">
           {board.ladders.map((ladder) => (

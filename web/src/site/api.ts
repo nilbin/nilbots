@@ -159,6 +159,8 @@ export interface LeaderboardEntry {
 /** One elo ladder per rules version; `ladders` lists every version with results. */
 export interface Leaderboard {
   rulesVersion: string;
+  /** The one ladder still accepting ranked sets; the rest are historical. */
+  activeRulesVersion: string;
   ladders: string[];
   entries: LeaderboardEntry[];
 }

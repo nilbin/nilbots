@@ -557,8 +557,12 @@ public static class ServerCommands
         var board = http.GetFromJsonAsync<JsonElement>($"/api/leaderboard{query}").GetAwaiter().GetResult();
 
         string version = board.GetProperty("rulesVersion").GetString() ?? "?";
+        string? active = board.TryGetProperty("activeRulesVersion", out var a) ? a.GetString() : null;
         var entries = board.GetProperty("entries").EnumerateArray().ToList();
-        Console.WriteLine($"Ladder for rules {version} ({server})");
+        // A closed ladder still shows its standings; saying so beats letting someone
+        // wonder why `rank --rules 0.4` was refused.
+        Console.WriteLine($"Ladder for rules {version} ({server})" +
+            (active is not null && active != version ? $"  [closed — {active} is live]" : ""));
         if (entries.Count == 0)
         {
             Console.WriteLine("  (nobody has played a ranked set yet — be the first: nilbots rank <bot>)");

@@ -49,22 +49,18 @@ public static class RankedEndpoints
             {
                 if (request.Rules is { Length: > 0 } rulesName)
                 {
-                    // GameRules.Resolve accepts every research arm as well as the shipped
-                    // versions, and this endpoint used to hand it whatever arrived
-                    // (DECISIONS #97). A player could therefore rate on `energy` or
-                    // `strafe`: mechanics no player-facing doc describes, on a ladder the
-                    // balance harness reads as experiment data, dragging a matchmade
-                    // opponent into a game its author never targeted.
-                    if (!Engine.GameRules.ShippedNames.Contains(rulesName) &&
+                    // One live ladder: the ruleset this server runs. Every other ladder is
+                    // frozen history (DECISIONS #97) — still readable, closed to new sets.
+                    // Resolve first so an unknown name gets its own error rather than
+                    // being reported as a closed ladder.
+                    setRules = Engine.GameRules.Resolve(rulesName);
+                    if (setRules.RulesVersion != JobWorker.MatchRules.RulesVersion &&
                         !AllowsPinnedOpponents(mode, configuration))
                         return Results.Problem(
-                            (Engine.GameRules.KnownNames.Contains(rulesName)
-                                ? $"'{rulesName}' is a research arm, not the game."
-                                : $"Unknown rules '{rulesName}'.") +
-                            $" Ranked sets play the shipped rules: " +
-                            $"{string.Join(", ", Engine.GameRules.ShippedNames)}.",
+                            $"The {setRules.RulesVersion} ladder is closed to new sets — this " +
+                            $"server plays {JobWorker.MatchRules.RulesVersion}. Past results and " +
+                            "ratings stay visible at /api/leaderboard?rules=" + setRules.RulesVersion + ".",
                             statusCode: 400);
-                    setRules = Engine.GameRules.Resolve(rulesName);
                 }
                 else
                 {
@@ -231,7 +227,15 @@ public static class RankedEndpoints
                     r.RankedSets,
                 })
                 .ToListAsync();
-            return Results.Ok(new { RulesVersion = version, Ladders = ladders, Entries = entries });
+            // ActiveRulesVersion tells a reader which ladder still accepts sets; every
+            // other one is a historical record (DECISIONS #97).
+            return Results.Ok(new
+            {
+                RulesVersion = version,
+                ActiveRulesVersion = JobWorker.MatchRules.RulesVersion,
+                Ladders = ladders,
+                Entries = entries,
+            });
         });
     }
 

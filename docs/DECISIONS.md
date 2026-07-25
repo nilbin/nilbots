@@ -1328,11 +1328,22 @@ before picking a number.*
     pairings, since both are evaluation-harness needs rather than player-facing
     ones. The refusal distinguishes a known arm from an unknown name, because
     telling someone who typed `wibble` that it is "a research arm" is a lie.
-    Left as-is deliberately: players may still rank on OLDER shipped versions
-    (0.1-0.4). Those rules shipped and are documented, so a bot built for them can
-    still compete. Open question if the ladders ever get busy: whether a retired
-    official ruleset should freeze into a historical record rather than stay
-    playable, since a matchmade opponent on the 0.3 ladder never chose 0.3 either.
+    SUPERSEDED WITHIN THE SAME SESSION by the owner answering that open question:
+    freeze them. A ranked set is now only accepted on the ruleset the server is
+    actually running (`JobWorker.MatchRules`), which subsumes the arm restriction —
+    an arm is playable only where the server itself runs it, which is exactly how an
+    eval deployment is configured. Every other ladder keeps its ratings, its history
+    and its leaderboard, and takes no new sets. The reasoning that closed retired
+    OFFICIAL versions is the same one that closed arms: matchmaking picks the
+    opponent, and nobody on the 0.3 ladder chose to play 0.3. Keeping them open would
+    also mean N live ladders to balance, moderate and reason about forever, for a
+    ruleset nobody is developing against.
+    A freeze has to be legible or it is just a confusing 400, so: `/api/leaderboard`
+    now returns `activeRulesVersion` beside the ladder being viewed, the CLI prints
+    `[closed — 0.5 is live]` in the header, the site says the standings are final and
+    names the live ladder, and the refusal itself points at the leaderboard URL where
+    the history still lives. An unknown rules name still gets `Resolve`'s own error
+    rather than being described as a closed ladder.
 
 ## Deferred decisions
 

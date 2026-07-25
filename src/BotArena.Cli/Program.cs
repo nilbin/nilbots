@@ -241,10 +241,11 @@ static int CommandHelp(string command)
             `nilbots set` is different again — a LOCAL simulation that changes nothing on
             the server.
 
-            --rules picks WHICH ladder, and only the shipped rules are on offer: every
-            rules version keeps its own elo, so an old bot is never invalidated by a new
-            version. Research arms are not playable ranked — they are experiments, and
-            your opponent never signed up for them.
+            --rules exists to be explicit, not to choose: only the ruleset the server is
+            currently running accepts new sets. Older versions keep their ladders and
+            every result on them — `nilbots leaderboard --rules 0.4` still reads — but
+            they are closed, because a matchmade opponent never agreed to play a retired
+            ruleset.
 
             Results are withheld until every game has broadcast, so nothing spoils the
             watch; then `nilbots leaderboard` shows the new standings.

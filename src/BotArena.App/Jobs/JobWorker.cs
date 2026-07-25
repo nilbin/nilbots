@@ -47,10 +47,11 @@ public sealed class JobWorker(
         ReadEnv("BOTARENA_BROADCAST_DELAY_SECONDS", fallback: 3, min: 0, max: 300);
 
     /// <summary>The DEFAULT ruleset for matches on this server (BOTARENA_RULES, default
-    /// GameRules.Current). A ranked set may pin a different ruleset per request
-    /// (DECISIONS #54 — every ruleset has its own elo ladder, so legacy queues stay
-    /// playable); sets without a pin follow this default. Eval deployments set
-    /// "energy" etc. to run whole tournaments under a rules experiment.</summary>
+    /// GameRules.Current). This is the ONE ladder open to new ranked sets: every other
+    /// rules version keeps its elo and history (DECISIONS #54) but is frozen, because a
+    /// matchmade opponent never chose to play a retired ruleset (DECISIONS #97). Eval
+    /// deployments set "energy" etc. to run whole tournaments under a rules
+    /// experiment — there, that arm is the live ladder.</summary>
     internal static readonly GameRules MatchRules =
         Environment.GetEnvironmentVariable("BOTARENA_RULES") is { Length: > 0 } name
             ? GameRules.Resolve(name)
