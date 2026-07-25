@@ -1,3 +1,13 @@
+import type { components } from '../api/schema';
+
+/**
+ * Every response type here is an alias onto the server's generated OpenAPI schema
+ * (`src/api/schema.d.ts`), so the site cannot drift from the API. Regenerate with
+ * `bash scripts/generate-api-clients.sh` — CI fails if the checked-in output is stale.
+ * Do not hand-write response shapes in this file; change the endpoint instead.
+ */
+type Schemas = components['schemas'];
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -34,234 +44,37 @@ export const api = {
   put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body),
 };
 
-export interface Me {
-  id: string;
-  displayName: string;
-  email: string;
-}
+export type Me = Schemas['UserResponse'];
 
-export interface EntitlementNotificationItem {
-  key: string;
-  kind: 'bot-look' | 'projectile-look';
-  id: string;
-  label: string;
-}
+export type EntitlementNotificationItem = Schemas['EntitlementNotificationItem'];
+export type EntitlementEarnedPayload = Schemas['EntitlementEarnedPayload'];
+export type UserNotification = Schemas['UserNotificationResponse'];
 
-export interface EntitlementEarnedPayload {
-  sourceKind: string;
-  sourceId: string;
-  reason: string | null;
-  items: EntitlementNotificationItem[];
-}
+export type CosmeticUnlock = Schemas['CosmeticUnlock'];
+export type CosmeticCatalogItem = Schemas['CosmeticCatalogEntry'];
+export type CosmeticCatalog = Schemas['CosmeticCatalogResponse'];
 
-export interface UserNotification {
-  id: string;
-  kind: 'entitlement-earned';
-  createdAt: string;
-  readAt: string | null;
-  payload: EntitlementEarnedPayload;
-}
+export type LadderRating = Schemas['BotLadderRatingResponse'];
+export type BotSummary = Schemas['BotSummaryResponse'];
+export type MyBot = Schemas['MyBotResponse'];
+export type BotDetail = Schemas['BotDetailResponse'];
+export type BotVersion = Schemas['BotVersionResponse'];
+export type LadderStanding = Schemas['LadderStanding'];
 
-export interface CosmeticUnlock {
-  sourceKind: string;
-  sourceId: string;
-  hint: string;
-}
+export type BotRecord = Schemas['BotRecord'];
+export type BotStatistics = Schemas['BotStatistics'];
 
-export interface CosmeticCatalogItem {
-  key: string;
-  kind: 'bot-look' | 'projectile-look';
-  id: string;
-  label: string;
-  availability: 'starter' | 'entitlement';
-  unlock: CosmeticUnlock | null;
-  owned: boolean;
-  progress: {
-    current: number;
-    target: number;
-    unit: 'ranked-matches';
-  } | null;
-}
+export type MatchSummaryParticipant = Schemas['MatchSummaryParticipantResponse'];
+export type MatchSummary = Schemas['MatchSummaryResponse'];
+export type MatchDetailParticipant = Schemas['MatchDetailParticipantResponse'];
+export type MatchDetail = Schemas['MatchDetailResponse'];
+export type MatchLive = Schemas['MatchLiveResponse'];
 
-export interface CosmeticCatalog {
-  version: number;
-  items: CosmeticCatalogItem[];
-}
+export type Meta = Schemas['MetaResponse'];
+export type MetaMap = Schemas['MetaMapResponse'];
 
-export interface LadderRating {
-  rulesVersion: string;
-  rating: number;
-  rankedSets: number;
-}
+export type SetGame = Schemas['MatchSetGameResponse'];
+export type MatchSetDetail = Schemas['MatchSetResponse'];
 
-export interface BotSummary {
-  id: string;
-  name: string;
-  slug: string;
-  accent: string;
-  lookId: string;
-  projectileLookId: string;
-  owner: string;
-  /** One entry per rules-version ladder the bot has fought on, newest first. */
-  ratings: LadderRating[];
-  activeVersion: { id: string; versionNumber: number; artifactHash: string } | null;
-  versionCount: number;
-}
-
-export interface MyBot {
-  id: string;
-  name: string;
-  slug: string;
-  accent: string;
-  lookId: string;
-  projectileLookId: string;
-  latestVersion: { versionNumber: number; status: string; isActive: boolean } | null;
-}
-
-export interface BotDetail {
-  id: string;
-  name: string;
-  slug: string;
-  accent: string;
-  lookId: string;
-  projectileLookId: string;
-  owner: string;
-  isOwner: boolean;
-  currentStanding: {
-    rulesVersion: string;
-    rating: number;
-    rankedSets: number;
-    rank: number;
-  } | null;
-  versions: {
-    id: string;
-    versionNumber: number;
-    status: string;
-    artifactHash: string | null;
-    isActive: boolean;
-    createdAt: string;
-    buildLog: string | null;
-    entryType: string | null;
-    sources: { relativePath: string; content: string }[] | null;
-  }[];
-}
-
-export interface BotRecord {
-  played: number;
-  wins: number;
-  losses: number;
-  draws: number;
-}
-
-export interface BotStatistics {
-  overall: BotRecord;
-  ranked: BotRecord;
-  unranked: BotRecord;
-  combat: {
-    games: number;
-    damageDealt: number;
-    faults: number;
-  };
-}
-
-export interface MatchSummaryParticipant {
-  slot: number;
-  nameSnapshot: string;
-  ownerDisplayNameSnapshot: string;
-  accentSnapshot: string;
-  lookIdSnapshot: string;
-  projectileLookIdSnapshot: string;
-  outcome: string | null;
-  finalHealth: number | null;
-}
-
-export interface MatchSummary {
-  id: string;
-  mapId: string;
-  status: string;
-  broadcasting: boolean;
-  matchSetId: string | null;
-  setGame: number | null;
-  winnerSlot: number | null;
-  endReason: string | null;
-  endTick: number | null;
-  createdAt: string;
-  completedAt: string | null;
-  participants: MatchSummaryParticipant[];
-}
-
-export interface MatchDetailParticipant extends MatchSummaryParticipant {
-  botId: string;
-  artifactHashSnapshot: string;
-  damageDealt: number | null;
-  faults: number | null;
-}
-
-export interface MatchDetail extends Omit<MatchSummary, 'participants'> {
-  seed: number;
-  replayHash: string | null;
-  error: string | null;
-  participants: MatchDetailParticipant[];
-}
-
-export interface Meta {
-  engineVersion: string;
-  gameRulesVersion: string;
-  maps: { id: string; width: number; height: number; themeId?: string }[];
-}
-
-export interface SetGame {
-  id: string;
-  game: number;
-  mapId: string;
-  status: string;
-  broadcasting: boolean;
-  winnerBotId: string | null;
-  draw: boolean;
-  participants: {
-    slot: number;
-    botId: string;
-    nameSnapshot: string;
-    ownerDisplayNameSnapshot: string;
-    accentSnapshot: string;
-    lookIdSnapshot: string;
-    projectileLookIdSnapshot: string;
-  }[];
-}
-
-export interface MatchSetDetail {
-  id: string;
-  status: string;
-  rulesVersion: string;
-  botA: { id: string; name: string; accent: string; lookId: string };
-  botB: { id: string; name: string; accent: string; lookId: string };
-  createdAt: string;
-  revealed: boolean;
-  scoreA: number | null;
-  scoreB: number | null;
-  ratingChangeA: number | null;
-  ratingChangeB: number | null;
-  winnerBotId: string | null;
-  games: SetGame[];
-}
-
-export interface LeaderboardEntry {
-  id: string;
-  slug: string;
-  name: string;
-  accent: string;
-  lookId: string;
-  owner: string;
-  rating: number;
-  rankedSets: number;
-  rank: number;
-}
-
-/** One elo ladder per rules version; `ladders` lists every version with results. */
-export interface Leaderboard {
-  rulesVersion: string;
-  /** The one ladder still accepting ranked sets; the rest are historical. */
-  activeRulesVersion: string;
-  ladders: string[];
-  entries: LeaderboardEntry[];
-}
+export type LeaderboardEntry = Schemas['LeaderboardEntryResponse'];
+export type Leaderboard = Schemas['LeaderboardResponse'];

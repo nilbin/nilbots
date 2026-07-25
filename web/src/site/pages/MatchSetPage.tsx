@@ -60,8 +60,10 @@ export default function MatchSetPage() {
           <p className="mt-3 text-sm">
             {winner ? (
               <>
-                <span style={{ color: winner.accent }} className="font-bold">
-                  {winner.name}
+                {/* Name and accent are null when a bot has been deleted and the set
+                    carries no participant snapshot for it (MatchPublicProjection.ToSetBot). */}
+                <span style={{ color: winner.accent ?? '#38bdf8' }} className="font-bold">
+                  {winner.name ?? 'A removed bot'}
                 </span>{' '}
                 takes the set.
               </>
