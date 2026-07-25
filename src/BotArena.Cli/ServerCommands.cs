@@ -304,7 +304,7 @@ public static class ServerCommands
                 string serverHash = version.GetProperty("artifactHash").GetString()!;
                 Console.WriteLine($"Server artifact:  {serverHash}");
                 // Builds are reproducible across build directories since
-                // BuildPipelineVersion 2 (DECISIONS #72), so a mismatch is no longer the
+                // BuildPipelineVersion 2 (DECISIONS #81), so a mismatch is no longer the
                 // expected outcome and must not be hand-waved as "drift" — it means the
                 // two sides genuinely differ (different CLI/SDK version, or a real
                 // toolchain difference). Say so, and say which one counts.

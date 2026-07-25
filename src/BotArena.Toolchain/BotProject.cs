@@ -50,11 +50,17 @@ public static class ToolchainInfo
     public const string GuestAdapterVersion = "0.8.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
-    // 2: reproducible builds (DECISIONS #72) — the workspace path is mapped to a fixed
+    // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed
     //    virtual root and debug info is dropped, so the same sources produce the same
     //    bytes no matter which directory (or host) compiled them. Every pre-existing
     //    cache entry is invalid because artifact bytes change.
-    public const string BuildPipelineVersion = "2";
+    // 3: the staged assembly closure stopped depending on WHICH host compiled
+    //    (DECISIONS #84). Three things changed together: the workspace stages exactly
+    //    BotArena.Sdk/Guest instead of every dll beside the invoking host (the CLI
+    //    staged 9, the server 74); Sdk/Guest compile identically in any configuration
+    //    from any directory; and their fallback build cache is keyed by source content
+    //    rather than by GuestAdapterVersion. Artifact bytes change.
+    public const string BuildPipelineVersion = "3";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

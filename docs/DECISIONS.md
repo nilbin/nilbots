@@ -886,7 +886,12 @@ configuration) and changing them is a version bump, not an edit.
     independent restore rehearsal remain required because co-location is not
     backup or physical redundancy.
 
-70. **Inert player API is hidden, not deleted (DX-FINDINGS-NUGET-PLAYER).**
+*Numbering note: entries 79-84 were originally appended as 70-75, colliding with
+the already-numbered 70-78 above. They are renumbered here and every citation of
+them in the repo was updated with them; commit messages predating this note may
+still cite the old numbers.*
+
+79. **Inert player API is hidden, not deleted (DX-FINDINGS-NUGET-PLAYER).**
     The first evaluation against the PUBLISHED product — an agent with only
     `dotnet tool install --global Nilbots`, nilbots.com/docs, and no repo access
     — built a bot that goes 97W-6L-17D vs `hunter`, and confirmed the shipped
@@ -907,7 +912,7 @@ configuration) and changing them is a version bump, not an edit.
     change, no wire change). Local<->server artifact parity remains UNVERIFIED
     — registration against production was blocked by tooling boundaries.
 
-71. **Headless onboarding ships; local<->server artifact parity is BROKEN and the
+80. **Headless onboarding ships; local<->server artifact parity is BROKEN and the
     cause is embedded build paths (DX-FINDINGS-NUGET-PLAYER).** Goal: point a
     friend's agent at the game and have it participate unaided. The blocker was
     that `register`/`login` required a browser, which no container or CI has.
@@ -933,8 +938,8 @@ configuration) and changing them is a version bump, not an edit.
     not a drive-by. Until then `submit` should not guess "toolchain/sysroot
     drift" and the NuGet README should not promise bit-identical artifacts.
 
-72. **Player builds are reproducible across build directories — one of the two
-    causes of the local<->server parity failure (DECISIONS #71).** CORRECTION:
+81. **Player builds are reproducible across build directories — one of the two
+    causes of the local<->server parity failure (DECISIONS #80).** CORRECTION:
     an earlier revision of this entry claimed this fixed the parity promise
     outright. It does not. Measured after the fix, with BOTH sides on the new
     toolchain and identical Sdk/Guest DLLs: local `f4733dfe...` vs server
@@ -967,7 +972,7 @@ configuration) and changing them is a version bump, not an edit.
     `scripts/e2e.sh` assertion that builds the same bot under two cache roots and
     fails if the hashes differ, so this cannot silently regress.
 
-73. **Friend's-agent onboarding reaches the ladder, but only past three
+82. **Friend's-agent onboarding reaches the ladder, but only past three
     self-inflicted obstacles (DX-FINDINGS-NUGET-PLAYER round 2).** An agent given
     only the CLI and told "a friend sent you this" registered, built a bot
     scoring 184/192 vs the built-ins on unseen seeds, submitted, and reached
@@ -995,10 +1000,10 @@ configuration) and changing them is a version bump, not an edit.
     (`nilbots rank`/`leaderboard`), `doctor` ignoring the signed-in session, and
     the undocumented enemy-cooldown reconstruction.
 
-74. **Cross-platform builds normalised: macOS/arm64 and Linux now agree on one
-    virtual source root (corrects #72).** Investigating whether supporting both
+83. **Cross-platform builds normalised: macOS/arm64 and Linux now agree on one
+    virtual source root (corrects #81).** Investigating whether supporting both
     macOS and Linux worsens the artifact divergence turned up a real defect AND
-    two errors in #72 that are corrected here.
+    two errors in #81 that are corrected here.
     THE DEFECT: three build paths reach the generated project — Docker (macOS
     and Linux/arm64, via run-wasm-publish.sh), the isolated setpriv publish, and
     a plain local publish — and only the Docker one passed
@@ -1009,21 +1014,64 @@ configuration) and changing them is a version bump, not an edit.
     `PathMap=$(MSBuildProjectDirectory)=/src` plus `ContinuousIntegrationBuild`
     in the generated project, matching the value the Docker command line already
     uses, so all three paths agree however they are invoked.
-    CORRECTION 1 to #72: the csproj `PathMap` added there is OVERRIDDEN on the
+    CORRECTION 1 to #81: the csproj `PathMap` added there is OVERRIDDEN on the
     Docker path (command-line `-p:` wins), so it never applied where that entry
-    implied it did. CORRECTION 2: #72 credited that change with making builds
+    implied it did. CORRECTION 2: #81 credited that change with making builds
     reproducible across build directories, but the "before" state was never
     measured. It is now: with `DebugType=none` removed the build is still
     reproducible, and under isolation the workspace path derives from the cache
     KEY rather than from BOTARENA_HOME, so the two-cache-root check never varied
     the compile path at all. The e2e assertion is relabelled to say what it
     actually proves (determinism), and the honest end-to-end check is a
-    submission's local-vs-server comparison. What #72 genuinely delivered stands:
+    submission's local-vs-server comparison. What #81 genuinely delivered stands:
     `DebugType=none` stopped absolute repo paths leaking into every player
     artifact and cut them 2.54 MB -> 998 KB.
     Local<->server divergence remains open and is NOT explained by this: both
     sides here take the isolated path. Behavioural equivalence is measured and
     holds (DX-FINDINGS-NUGET-PLAYER).
+
+84. **Local<->server artifact divergence closed: the staged assembly closure no
+    longer depends on which host compiled (closes the item left open by #81/#83).**
+    A submission now reports `Parity: IDENTICAL` for the first time. The cause
+    was never the compiler or the source paths — it was WHICH assemblies got
+    staged into the controlled workspace, and three independent mechanisms made
+    that host-dependent:
+    (a) `BuildLocked` copied EVERY `*.dll` next to the invoking host into
+    `workspace/libs`. From the CLI that is 9 assemblies; from the server it is
+    74 — AWSSDK.S3, BotArena.App itself, EF Core, OpenIddict, Humanizer. So
+    identical sources compiled against different assembly closures, and the
+    server's whole dependency graph was handed to a sandboxed player build for
+    no reason. It now stages exactly `BotArena.Sdk.dll` + `BotArena.Guest.dll`
+    (Guest -> Sdk is the entire closure; Sdk is a leaf) and throws if either is
+    missing rather than silently building something else.
+    (b) `EnsureToolchainAssemblies` returns the copies beside the host when BOTH
+    are present. BotArena.App referenced Sdk transitively but never Guest, so
+    only Sdk.dll sat beside the server — it fell through to building its own
+    pair from the repo, in a different configuration and directory than the CLI
+    shipped. The App now takes a ProjectReference on BotArena.Guest purely so
+    both hosts stage what they shipped with.
+    (c) That repo-built fallback cached into `cache/toolchain-<GuestAdapterVersion>`.
+    The 0.8.0 -> 0.8.1 SDK change (`[Obsolete]` members, XML docs) did not touch
+    GuestAdapterVersion, so the server kept staging a stale Sdk.dll. The
+    directory is now keyed by a SHA-256 of the Sdk/Guest sources, so any
+    framework edit invalidates it with no version bookkeeping.
+    Two hardening changes come with it. `src/ToolchainAssembly.props`, imported
+    by Sdk and Guest only, removes every axis along which those two assemblies'
+    bytes could vary — `Optimize`, `DefineConstants`, `DebugType`, `PathMap`,
+    `Deterministic`, `ContinuousIntegrationBuild`, `AssemblyConfiguration` — so a
+    Debug repo build and a Release container build produce the same DLL. The
+    cost is no PDBs for those two projects (no line numbers in SDK stack traces).
+    And the build-cache key now includes the SHA-256 of each staged assembly.
+    That retires the standing footgun that the cache hashed player sources only:
+    a framework change now rebuilds by itself, and two hosts holding different
+    Sdk builds get DIFFERENT cache keys instead of agreeing on a key while
+    producing different bytes.
+    MEASURED: a fresh `nilbots submit` against a local server produced
+    `ca01ccf5...` on both sides — and the two builds did not even take the same
+    path (the CLI ran the isolated setpriv publish under `/var/lib/botbuild/work`,
+    the server ran unisolated under its cache dir), so this also demonstrates the
+    path independence #83 aimed at. `BuildPipelineVersion` 2 -> 3; every
+    pre-existing cache entry is invalid because artifact bytes change.
 
 ## Deferred decisions
 

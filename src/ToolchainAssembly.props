@@ -1,0 +1,29 @@
+<Project>
+  <!-- Imported by BotArena.Sdk and BotArena.Guest ONLY.
+
+       These two assemblies are staged into every controlled player build
+       (BotBuilder.ToolchainAssemblyFileNames) and compiled into every player
+       artifact, so their bytes are part of a bot's identity. If they differ
+       between the CLI host and the server host, identical sources cannot
+       produce identical artifacts — which is exactly what happened
+       (DECISIONS #84): the CLI staged its Debug output while the server
+       staged a Release build from a different directory.
+
+       Everything below removes an axis along which those bytes could vary:
+       optimization and DEBUG-conditional code (configuration), the debug
+       directory and its PDB path (configuration + directory), the embedded
+       source paths (directory), the compiler's timestamp/GUID entropy
+       (build instance), and the AssemblyConfiguration attribute (configuration).
+       The cost is that these two projects no longer produce PDBs, so stack
+       traces through the SDK have no line numbers. That is a fair trade for
+       an artifact hash that means something. -->
+  <PropertyGroup>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <PathMap>$(MSBuildProjectDirectory)=/src/$(MSBuildProjectName)</PathMap>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+  </PropertyGroup>
+</Project>

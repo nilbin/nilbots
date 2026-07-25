@@ -29,6 +29,12 @@ public static class BotBuilder
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> BuildLocks = new();
     private static readonly object ToolchainAssembliesLock = new();
 
+    /// <summary>The complete assembly closure the generated bot project compiles
+    /// against: BotArena.Guest references BotArena.Sdk, and Sdk is a leaf. Staging
+    /// anything else makes the build depend on WHICH host started it.</summary>
+    private static readonly string[] ToolchainAssemblyFileNames =
+        ["BotArena.Sdk.dll", "BotArena.Guest.dll"];
+
     public static BuiltBot EnsureBuilt(BotProject project, bool noCache = false, bool quiet = false)
     {
         var sources = project.SourceFiles
@@ -73,9 +79,24 @@ public static class BotBuilder
         if (Directory.Exists(workspace))
             Directory.Delete(workspace, recursive: true);
         Directory.CreateDirectory(workspace);
-        Directory.CreateDirectory(Path.Combine(workspace, "libs"));
-        foreach (var lib in Directory.EnumerateFiles(toolchainLibs, "*.dll"))
-            File.Copy(lib, Path.Combine(workspace, "libs", Path.GetFileName(lib)));
+        // Stage EXACTLY the assemblies the generated project references, never "every dll
+        // next to whoever invoked us" (DECISIONS #84). That copied the host's whole output
+        // directory in: 9 assemblies from the CLI but 74 from the server — AWS SDK, EF
+        // Core, OpenIddict, BotArena.App itself — so a local build and a server build of
+        // identical sources compiled against different assembly closures and could not
+        // produce equal bytes. It also put the server's dependency closure inside a
+        // sandboxed player build for no reason. BotArena.Guest -> BotArena.Sdk is the
+        // entire closure; Sdk is a leaf.
+        string libsTarget = Path.Combine(workspace, "libs");
+        Directory.CreateDirectory(libsTarget);
+        foreach (string assembly in ToolchainAssemblyFileNames)
+        {
+            string source = Path.Combine(toolchainLibs, assembly);
+            if (!File.Exists(source))
+                throw new InvalidOperationException(
+                    $"Toolchain assembly missing: {source}. Reinstall the Nilbots tool.");
+            File.Copy(source, Path.Combine(libsTarget, assembly));
+        }
 
         // Only .cs sources cross into the controlled project (plan §15.1).
         foreach (var source in sources)
@@ -101,7 +122,7 @@ public static class BotBuilder
                 <ImplicitUsings>enable</ImplicitUsings>
                 <AssemblyName>bot</AssemblyName>
                 <InvariantGlobalization>true</InvariantGlobalization>
-                <!-- Reproducibility (DECISIONS #72/#74). Three build paths reach this
+                <!-- Reproducibility (DECISIONS #81/#83). Three build paths reach this
                      project: Docker (macOS and arm64, via run-wasm-publish.sh), the
                      isolated setpriv build, and a plain local publish. Only the Docker
                      one passed -p:PathMap and -p:ContinuousIntegrationBuild, so a Mac
@@ -276,8 +297,12 @@ public static class BotBuilder
         if (File.Exists(packagedSdk) && File.Exists(packagedGuest))
             return AppContext.BaseDirectory;
 
+        // Keyed by the SOURCES, not by a hand-maintained version. Keying it by
+        // GuestAdapterVersion alone meant an SDK-only change (0.8.0 -> 0.8.1) left a
+        // stale Sdk.dll here, which this host then staged into player builds while a
+        // freshly built host staged the new one (DECISIONS #84).
         string libsDir = Path.Combine(ToolchainInfo.CacheRoot,
-            "toolchain-" + ToolchainInfo.GuestAdapterVersion);
+            "toolchain-" + ToolchainAssemblySourceHash(repoRoot)[..16]);
         string sdkDll = Path.Combine(libsDir, "BotArena.Sdk.dll");
         string guestDll = Path.Combine(libsDir, "BotArena.Guest.dll");
         if (File.Exists(sdkDll) && File.Exists(guestDll))
@@ -288,6 +313,62 @@ public static class BotBuilder
                 return libsDir;
             return BuildToolchainAssemblies(repoRoot, libsDir, sdkDll, guestDll);
         }
+    }
+
+    private static string? _stagedAssemblyIdentity;
+
+    /// <summary>SHA-256 of each assembly this host would stage, in declaration order.
+    /// Resolved once per process; a redeployed host is a new process.</summary>
+    public static string StagedAssemblyIdentity()
+    {
+        if (_stagedAssemblyIdentity is not null)
+            return _stagedAssemblyIdentity;
+        lock (ToolchainAssembliesLock)
+        {
+            // Only reach for the repo (which may build them, and may not exist) when the
+            // assemblies are not already sitting somewhere this host can see.
+            string libs = ToolchainAssembliesIn(
+                    Environment.GetEnvironmentVariable("BOTARENA_TOOLCHAIN_LIBS"))
+                ?? ToolchainAssembliesIn(AppContext.BaseDirectory)
+                ?? EnsureToolchainAssemblies(RepoPaths.ToolchainRoot());
+            return _stagedAssemblyIdentity = string.Join('|', ToolchainAssemblyFileNames
+                .Select(a => Sha256File(Path.Combine(libs, a))));
+        }
+    }
+
+    private static string? ToolchainAssembliesIn(string? directory) =>
+        directory is { Length: > 0 } &&
+        ToolchainAssemblyFileNames.All(a => File.Exists(Path.Combine(directory, a)))
+            ? directory
+            : null;
+
+    /// <summary>Content identity of the two staged assemblies' inputs: every .cs file
+    /// and .csproj under BotArena.Sdk and BotArena.Guest, plus the shared props that
+    /// pins how they compile.</summary>
+    private static string ToolchainAssemblySourceHash(string repoRoot)
+    {
+        var inputs = new List<string>();
+        foreach (string project in new[] { "BotArena.Sdk", "BotArena.Guest" })
+        {
+            string dir = Path.Combine(repoRoot, "src", project);
+            foreach (string pattern in new[] { "*.cs", "*.csproj" })
+                inputs.AddRange(Directory.EnumerateFiles(dir, pattern, SearchOption.AllDirectories)
+                    .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&
+                                !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")));
+        }
+        string shared = Path.Combine(repoRoot, "src", "ToolchainAssembly.props");
+        if (File.Exists(shared))
+            inputs.Add(shared);
+        using var sha = SHA256.Create();
+        foreach (string file in inputs.OrderBy(f => f, StringComparer.Ordinal))
+        {
+            var header = Encoding.UTF8.GetBytes($"\n--{Path.GetRelativePath(repoRoot, file)}--\n");
+            sha.TransformBlock(header, 0, header.Length, null, 0);
+            byte[] content = File.ReadAllBytes(file);
+            sha.TransformBlock(content, 0, content.Length, null, 0);
+        }
+        sha.TransformFinalBlock([], 0, 0);
+        return Convert.ToHexStringLower(sha.Hash!);
     }
 
     private static string BuildToolchainAssemblies(
@@ -313,8 +394,11 @@ public static class BotBuilder
     }
 
     /// <summary>First line of submission hardening (plan §15.2); the full limits list
-    /// lands with the public submission pipeline.</summary>
-    private static void ValidateSubmission(IReadOnlyList<SourceFile> sources, string entryType)
+    /// lands with the public submission pipeline. Public because callers that only want
+    /// to reject a bad submission should not go through ComputeCacheKey — that also
+    /// resolves the staged assemblies, and a toolchain problem there is the server's
+    /// fault, not the player's.</summary>
+    public static void ValidateSubmission(IReadOnlyList<SourceFile> sources, string entryType)
     {
         if (sources.Count == 0)
             throw new BotBuildException("No source files.", "");
@@ -373,6 +457,14 @@ public static class BotBuilder
             ToolchainInfo.BuildPipelineVersion,
             BotArenaVersions.RuntimeProtocolVersion,
             BotArenaVersions.RuntimeConfigurationVersion)));
+        // The two staged assemblies are compiled into the artifact, so they belong in
+        // its identity. Version strings alone were a promise the code did not keep: an
+        // Sdk edit without a GuestAdapterVersion bump kept serving the old artifact, and
+        // two hosts holding different Sdk builds agreed on a cache key while producing
+        // different bytes (DECISIONS #84). Hashing the DLLs makes a framework change
+        // rebuild by itself, and makes a host mismatch show up as a different key
+        // instead of a different artifact under the same key.
+        Add("assemblies", Encoding.UTF8.GetBytes(StagedAssemblyIdentity()));
         Add("entry", Encoding.UTF8.GetBytes(entryType));
         foreach (var source in sources.OrderBy(s => s.RelativePath, StringComparer.Ordinal))
             Add(source.RelativePath, Encoding.UTF8.GetBytes(source.Content));

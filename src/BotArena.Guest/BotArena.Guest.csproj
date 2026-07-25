@@ -2,6 +2,7 @@
   <!-- The framework-owned WASM entry-point plumbing (plan §8, §11.1): tick loop,
        runtime protocol, deterministic SDK random. Player projects never touch this;
        the controlled build project wires their bot into GuestHost.Run(...). -->
+  <Import Project="../ToolchainAssembly.props" />
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>

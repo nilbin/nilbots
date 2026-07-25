@@ -18,5 +18,11 @@
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />
     <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
+    <!-- Not used by any App code: it puts BotArena.Guest.dll beside the server the way
+         it already sits beside the CLI, so both hosts stage the assemblies they shipped
+         with. Without it the server had only Sdk.dll here and silently fell back to
+         building its own copies from the repo — a different build of a different
+         configuration than the CLI staged (DECISIONS #84). -->
+    <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
   </ItemGroup>
 </Project>

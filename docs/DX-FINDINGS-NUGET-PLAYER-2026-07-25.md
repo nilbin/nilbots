@@ -122,7 +122,7 @@ matched and another did not: parity is an accident of where each was built.
 This matters because bit-identical local↔server is advertised on the NuGet page
 and in `submit`'s own output, and "determinism is the product" (CLAUDE.md).
 
-**FIXED** (owner-approved, DECISIONS #72). The controlled build project now sets
+**FIXED** (owner-approved, DECISIONS #81). The controlled build project now sets
 `PathMap` from `$(MSBuildProjectDirectory)` to the fixed virtual root
 `/nilbots/bot`, plus `Deterministic` and `DebugType=none`, so the compiler never
 sees where it actually ran.
@@ -196,6 +196,45 @@ so this needs a keep-workspace debug switch. Until that is closed, the honest
 statement is: **builds are reproducible for a given build environment, but the
 local and server environments are not yet equivalent** — and the NuGet README
 should not promise bit-identical artifacts.
+
+### CLOSED: it was the staged assembly closure (DECISIONS #84)
+
+The suspect above was wrong, and so was one of the "ruled out by direct
+measurement" bullets. `BotArena.Sdk.dll` shipped by the CLI and by the server
+were *not* the same file — the comparison above compared the CLI's copy against
+the repo's, not against the one the server actually staged. Three mechanisms
+made the staged closure depend on which host compiled:
+
+1. The workspace was filled with **every `*.dll` beside the invoking host** — 9
+   assemblies from the CLI, **74** from the server (AWSSDK.S3, BotArena.App, EF
+   Core, OpenIddict, Humanizer). Different assembly closure, different codegen;
+   that is the ~92%-of-bytes, different-*size* difference measured above.
+2. The server had no `BotArena.Guest.dll` beside it, so it silently built its own
+   Sdk/Guest pair from the repo instead of staging shipped ones.
+3. That fallback was cached under `toolchain-<GuestAdapterVersion>`, which the
+   0.8.0 → 0.8.1 SDK change did not invalidate — so the server staged a **stale**
+   Sdk.dll for the whole measurement window above.
+
+Measured after the fix, fresh sources, same machine:
+
+```
+Local artifact:   ca01ccf54ba000c9da9bbade107a938cf32e184de53e13f8413edd19c84f4a58 (compiled)
+Server artifact:  ca01ccf54ba000c9da9bbade107a938cf32e184de53e13f8413edd19c84f4a58
+Parity:           IDENTICAL — same sources, same bytes.
+```
+
+The two sides did not even take the same build path: the CLI ran the isolated
+`setpriv` publish under `/var/lib/botbuild/work`, the server ran unisolated under
+its own cache directory. So this closes the path-independence question from #83
+at the same time, and it retires the "different HOME / different NuGet cache"
+suspect — that difference was present in this very run and changed nothing.
+
+The integrity gap named above is closed with it: a player can now rebuild their
+own source and confirm the server compiled the same thing, and "the bytes
+changed" is a usable signal again. Guarded by
+`StagedToolchainAssemblyTests` (every compiling host ships the whole closure, the
+staged DLLs are byte-identical across hosts, and their hashes are in the cache
+key) and by `submit`'s own parity line.
 
 ## Fixed: headless onboarding (the friend's-agent path)
 
