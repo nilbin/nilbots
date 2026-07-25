@@ -2,11 +2,7 @@
   "id": "overgrown-lab",
   "label": "Overgrown Lab",
   "textures": {
-    "floor": "floor-ceramic-v2.png",
-    "zone": {
-      "file": "zone-capture-lattice.png",
-      "scaleTiles": 4
-    }
+    "floor": "floor-ceramic-v2.png"
   },
   "walls": {
     "defaults": {
@@ -38,7 +34,7 @@
     "arena": "#d4d6ca",
     "floorTint": "rgba(116, 139, 111, 0.08)",
     "wallTint": "rgba(43, 52, 41, 0.24)",
-    "zone": "#f59e0b",
+    "zone": "#087f8c",
     "frame": "#53645d"
   }
 }

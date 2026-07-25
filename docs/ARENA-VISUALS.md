@@ -66,7 +66,6 @@ web/src/assets/themes/control-room/
 web/src/assets/themes/overgrown-lab/
   theme.json
   floor-ceramic-v2.png
-  zone-capture-lattice.png
   wall-*.webp
 
 web/src/assets/bot-looks/<look-id>/
@@ -135,9 +134,12 @@ The atlas contract is currently 16 columns, a 96 px gameplay-cell core, and a
 16 px gutter on each side (128 px atlas entries). Shadow and edge sprites use
 the same mask index, so their registration cannot drift.
 
-### Zone material
+### Zone treatment
 
-- Optional opaque square PNG; the Overgrown Lab source is 512×512.
+- A theme may use palette-only tint and perimeter treatment; Overgrown Lab
+  deliberately does so to preserve contrast against its detailed pale floor.
+- An optional opaque square PNG can supply a dedicated material when it remains
+  legible, as in a darker or quieter arena.
 - A visibly distinct floor treatment from the same architectural family, such
   as powered inlays or capture hardware—not merely a recolored base floor.
 - Exact top-down view with continuous, mask-safe detail. Do not bake in an
