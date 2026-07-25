@@ -17,6 +17,28 @@ public sealed class CosmeticAchievementService(
 {
     public const int RankedMatchesTarget = 100;
     public const string RankedMatchesUnit = "ranked-matches";
+    public const int PeakRatingTarget = 1300;
+    public const string PeakRatingUnit = "rating";
+
+    /// <summary>
+    /// The highest rating any of the account's bots holds on an official ladder.
+    /// Experiment arms carry a visibly non-official rules version (DECISIONS #54
+    /// keeps past eras alive), and an experiment ladder must not mint cosmetics —
+    /// but a peak on a closed official era still counts, because the account did
+    /// reach the rating.
+    /// </summary>
+    public async Task<double> BestOfficialRatingAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return await db.BotRatings
+            .Where(rating => !rating.RulesVersion.Contains("-exp-"))
+            .Where(rating => db.Bots.Any(bot =>
+                bot.Id == rating.BotId &&
+                bot.OwnerUserId == userId))
+            .Select(rating => (double?)rating.Rating)
+            .MaxAsync(cancellationToken) ?? 0;
+    }
 
     public async Task<int> CountRankedMatchesAsync(
         Guid userId,
@@ -60,15 +82,25 @@ public sealed class CosmeticAchievementService(
         {
             int rankedMatches =
                 await CountRankedMatchesAsync(userId, cancellationToken);
-            if (rankedMatches < RankedMatchesTarget)
-                continue;
+            if (rankedMatches >= RankedMatchesTarget)
+                inserted += await entitlements.GrantForEventAsync(
+                    userId,
+                    CosmeticUnlockEvents.Achievement,
+                    CosmeticUnlockEvents.RankedMatches100,
+                    new { rankedMatches, matchSetId },
+                    cancellationToken);
 
-            inserted += await entitlements.GrantForEventAsync(
-                userId,
-                CosmeticUnlockEvents.Achievement,
-                CosmeticUnlockEvents.RankedMatches100,
-                new { rankedMatches, matchSetId },
-                cancellationToken);
+            // Evaluated after the set has been rated, so the rating read here is the
+            // one this match produced. Crossing the line at any point is permanent.
+            double bestRating =
+                await BestOfficialRatingAsync(userId, cancellationToken);
+            if (bestRating >= PeakRatingTarget)
+                inserted += await entitlements.GrantForEventAsync(
+                    userId,
+                    CosmeticUnlockEvents.Achievement,
+                    CosmeticUnlockEvents.Rating1300,
+                    new { bestRating, matchSetId },
+                    cancellationToken);
         }
         return inserted;
     }
@@ -82,5 +114,39 @@ public sealed class CosmeticAchievementService(
             Math.Min(current, RankedMatchesTarget),
             RankedMatchesTarget,
             RankedMatchesUnit);
+    }
+
+    public async Task<CosmeticProgress> PeakRatingProgressAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        double current = await BestOfficialRatingAsync(userId, cancellationToken);
+        return new CosmeticProgress(
+            Math.Min((int)Math.Floor(current), PeakRatingTarget),
+            PeakRatingTarget,
+            PeakRatingUnit);
+    }
+
+    /// <summary>
+    /// Progress for a milestone the account has not yet earned, or null when the
+    /// unlock has no measurable progress. Keeps the endpoint from growing a branch
+    /// per achievement.
+    /// </summary>
+    public Task<CosmeticProgress>? ProgressForAsync(
+        string sourceKind,
+        string sourceId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (sourceKind != CosmeticUnlockEvents.Achievement)
+            return null;
+        return sourceId switch
+        {
+            CosmeticUnlockEvents.RankedMatches100 =>
+                RankedMatchesProgressAsync(userId, cancellationToken),
+            CosmeticUnlockEvents.Rating1300 =>
+                PeakRatingProgressAsync(userId, cancellationToken),
+            _ => null,
+        };
     }
 }

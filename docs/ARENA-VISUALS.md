@@ -293,11 +293,16 @@ and Mantis. All seven are genuine path-based SVGs. The earlier generated PNGs re
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
-Vanguard, Bulwark, Needle, Orbiter, and Mantis are starter-accessible; Lancer
-is the first successful-build achievement unlock on the official service.
-Aureate Warden and its recommended Regent Lance projectile unlock together
-after an account completes 100 ranked matches. One ranked match is the complete
-six-game mirrored set.
+Vanguard, Bulwark, Needle, and Orbiter are starter-accessible; Lancer is the
+first successful-build achievement unlock on the official service. Aureate
+Warden and its recommended Regent Lance projectile unlock together after an
+account completes 100 ranked matches. One ranked match is the complete
+six-game mirrored set. Mantis and its recommended Talon projectile unlock
+together the first time any of the account's bots reaches 1300 rating on an
+official ladder. Reaching it once is enough: the grant is permanent, so
+sliding back down the ladder never costs an account the look it earned.
+Experiment ladders carry a visibly non-official rules version and never mint
+cosmetics, while a peak on a closed official era still counts.
 
 To create another look:
 
@@ -337,10 +342,11 @@ To create another look:
   entitlements are checked when equipping, never when rendering a replay.
 
 Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark,
-Regent Lance, and Talon. All six are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard,
-and Talon are starter-accessible; Arc Spark unlocks after the account completes
-its first unranked challenge match on the official service. Regent Lance
-unlocks with Aureate Warden after 100 completed ranked matches.
+Regent Lance, and Talon. All six are genuine SVG masks. Pulse Bolt, Ion Orb, and
+Razor Shard are starter-accessible; Arc Spark unlocks after the account
+completes its first unranked challenge match on the official service. Regent
+Lance unlocks with Aureate Warden after 100 completed ranked matches, and Talon
+unlocks with Mantis at 1300 rating.
 
 To create another projectile look:
 
