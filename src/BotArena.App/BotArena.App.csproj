@@ -5,6 +5,12 @@
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.101.4" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="OpenIddict.AspNetCore" Version="7.6.0" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.6.0" />
@@ -13,8 +19,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="../../cosmetics/catalog.json"
-                      LogicalName="BotArena.Cosmetics.catalog.json" />
+    <EmbeddedResource Include="../../cosmetics/catalog.json" LogicalName="BotArena.Cosmetics.catalog.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
@@ -29,4 +34,13 @@
          configuration than the CLI staged (DECISIONS #84). -->
     <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
   </ItemGroup>
+
+  <!-- The OpenAPI document is a build artifact, not a running-server artifact: it is
+       emitted here so client generation and the CI drift check never need a live app
+       or a database. Regenerate clients with scripts/generate-api-clients.sh. -->
+  <PropertyGroup>
+    <OpenApiDocumentsDirectory>$(MSBuildThisFileDirectory)../../contracts</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+  </PropertyGroup>
+
 </Project>

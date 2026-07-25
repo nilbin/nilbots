@@ -56,7 +56,7 @@ public static class MatchesEndpoints
             db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
             await db.SaveChangesAsync(cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
-        }).RequireAuthorization().RequireRateLimiting("challenge");
+        }).Produces<CreatedMatchResponse>().RequireAuthorization().RequireRateLimiting("challenge");
 
         // Filters are server-side on purpose: a browser-side filter can only narrow the
         // page it already has, so "every match Bastille played" would silently mean
@@ -101,7 +101,7 @@ public static class MatchesEndpoints
             // Outcomes stay hidden until the broadcast catches up (plan §28).
             return Results.Ok(matches.Select(
                 match => MatchPublicProjection.ToSummary(match, now)));
-        });
+        }).Produces<IReadOnlyList<MatchSummaryResponse>>();
 
         group.MapGet("/{matchId:guid}", async (
             Guid matchId,
@@ -114,7 +114,7 @@ public static class MatchesEndpoints
                 return Results.NotFound();
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             return Results.Ok(MatchPublicProjection.ToDetail(match, now));
-        });
+        }).Produces<MatchDetailResponse>();
 
         // Shared presentation clock (plan §28.3): all viewers derive the same tick.
         group.MapGet("/{matchId:guid}/live", async (
@@ -127,7 +127,7 @@ public static class MatchesEndpoints
                 return Results.NotFound();
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             return Results.Ok(MatchPublicProjection.ToLive(match, now));
-        });
+        }).Produces<MatchLiveResponse>();
 
         // The replay never reveals events or the result ahead of the presentation
         // clock (plan §28.1): mid-broadcast requests get a truncated document.

@@ -34,9 +34,12 @@ public static class BotsEndpoints
 
         group.MapGet("/", async (AppDbContext db) =>
         {
+            // Order before projecting: EF sees through an anonymous type's members but
+            // not a record constructor's, so ordering on the projection no longer
+            // translates to SQL.
             var bots = await db.Bots
-                .Select(b => new
-                {
+                .OrderBy(b => b.CreatedAt)
+                .Select(b => new BotSummaryResponse(
                     b.Id,
                     b.Name,
                     b.Slug,
@@ -45,20 +48,21 @@ public static class BotsEndpoints
                     b.ProjectileLookId,
                     b.CreatedAt,
                     // One rating per rules-version ladder (DECISIONS #54), newest first.
-                    Ratings = b.Ratings
+                    b.Ratings
                         .OrderByDescending(r => r.RulesVersion)
-                        .Select(r => new { r.RulesVersion, Rating = Math.Round(r.Rating), r.RankedSets }),
-                    Owner = db.Users.Where(u => u.Id == b.OwnerUserId).Select(u => u.DisplayName).First(),
-                    ActiveVersion = b.Versions
+                        .Select(r => new BotLadderRatingResponse(
+                            r.RulesVersion, Math.Round(r.Rating), r.RankedSets))
+                        .ToList(),
+                    db.Users.Where(u => u.Id == b.OwnerUserId).Select(u => u.DisplayName).First(),
+                    b.Versions
                         .Where(v => v.IsActive && v.Status == BuildStatus.Built)
-                        .Select(v => new { v.Id, v.VersionNumber, v.ArtifactHash })
+                        .Select(v => new BotActiveVersionResponse(
+                            v.Id, v.VersionNumber, v.ArtifactHash))
                         .FirstOrDefault(),
-                    VersionCount = b.Versions.Count(v => v.Status == BuildStatus.Built),
-                })
-                .OrderBy(b => b.CreatedAt)
+                    b.Versions.Count(v => v.Status == BuildStatus.Built)))
                 .ToListAsync();
             return Results.Ok(bots);
-        });
+        }).Produces<IReadOnlyList<BotSummaryResponse>>();
 
         group.MapPost("/", async (
             CreateBotRequest request,
@@ -82,7 +86,7 @@ public static class BotsEndpoints
             return result.Succeeded
                 ? Results.Ok(result.Value)
                 : result.Error!.ToProblemDetails(http);
-        }).RequireAuthorization();
+        }).Produces<CreatedBot>().RequireAuthorization();
 
         // Keyed by slug OR id. Every bot has a unique, immutable slug, so the public
         // URL of a bot can read `/bots/murder-roomba` instead of a raw GUID; the id form
@@ -104,8 +108,7 @@ public static class BotsEndpoints
             string currentRulesVersion = matchSettings.MatchRules.RulesVersion;
             var currentStanding = await db.BotRatings
                 .ForBotAsync(currentRulesVersion, bot.Id);
-            return Results.Ok(new
-            {
+            return Results.Ok(new BotDetailResponse(
                 bot.Id,
                 bot.Name,
                 bot.Slug,
@@ -113,29 +116,27 @@ public static class BotsEndpoints
                 bot.LookId,
                 bot.ProjectileLookId,
                 bot.CreatedAt,
-                Owner = owner,
-                IsOwner = isOwner,
-                CurrentStanding = currentStanding,
-                Versions = bot.Versions
+                owner,
+                isOwner,
+                currentStanding,
+                bot.Versions
                     .OrderByDescending(v => v.VersionNumber)
-                    .Select(v => new
-                    {
+                    .Select(v => new BotVersionResponse(
                         v.Id,
                         v.VersionNumber,
-                        Status = v.Status.ToString(),
+                        v.Status.ToString(),
                         v.ArtifactHash,
                         v.IsActive,
                         v.CreatedAt,
-                        BuildReceipt = DeserializeReceipt(v.BuildReceiptJson),
+                        DeserializeReceipt(v.BuildReceiptJson),
                         // Build logs and sources are owner-only (plan §13.3, §14).
-                        BuildLog = isOwner ? v.BuildLog : null,
-                        EntryType = isOwner ? v.EntryType : null,
-                        Sources = isOwner
+                        isOwner ? v.BuildLog : null,
+                        isOwner ? v.EntryType : null,
+                        isOwner
                             ? JsonSerializer.Deserialize<List<SourceFile>>(v.SourcesJson)
-                            : null,
-                    }),
-            });
-        });
+                            : null))
+                    .ToList()));
+        }).Produces<BotDetailResponse>();
 
         // Appearance is mutable independently of source versions. This endpoint is
         // also the future entitlement-enforcement boundary: ownership is checked when
@@ -165,7 +166,7 @@ public static class BotsEndpoints
                 return result.Succeeded
                     ? Results.Ok(result.Value)
                     : result.Error!.ToProblemDetails(http);
-            })
+            }).Produces<UpdatedBotAppearance>()
             .RequireAuthorization();
 
         // Slim polling view (gen-2 finding #8): build-status pollers shouldn't re-download
@@ -175,16 +176,14 @@ public static class BotsEndpoints
             var versions = await db.BotVersions
                 .Where(v => v.BotId == botId)
                 .OrderByDescending(v => v.VersionNumber)
-                .Select(v => new
-                {
-                    v.Id, v.VersionNumber, Status = v.Status.ToString(), v.ArtifactHash,
-                    v.IsActive, v.CreatedAt, v.BuiltAt,
-                })
+                .Select(v => new BotBuildStatusResponse(
+                    v.Id, v.VersionNumber, v.Status.ToString(), v.ArtifactHash,
+                    v.IsActive, v.CreatedAt, v.BuiltAt))
                 .ToListAsync();
             return versions.Count == 0 && !await db.Bots.AnyAsync(b => b.Id == botId)
                 ? Results.NotFound()
                 : Results.Ok(versions);
-        });
+        }).Produces<IReadOnlyList<BotBuildStatusResponse>>();
 
         group.MapGet(
             "/{botId:guid}/versions/{versionId:guid}/artifact",
@@ -261,7 +260,7 @@ public static class BotsEndpoints
             return result.Succeeded
                 ? Results.Ok(result.Value)
                 : result.Error!.ToProblemDetails(http);
-        }).RequireAuthorization().RequireRateLimiting("submission");
+        }).Produces<SubmittedBotVersion>().RequireAuthorization().RequireRateLimiting("submission");
 
         group.MapGet("/{botId:guid}/matches", async (
             Guid botId,
@@ -286,7 +285,7 @@ public static class BotsEndpoints
                 rows.Count(row => row.Outcome == "Loss"),
                 rows.Count(row => row.Outcome == "Draw"),
                 rows));
-        });
+        }).Produces<BotMatchHistoryResponse>();
 
         group.MapGet(
             "/{botId:guid}/stats",
@@ -301,7 +300,7 @@ public static class BotsEndpoints
                 return statistics is null
                     ? Results.NotFound()
                     : Results.Ok(statistics);
-            });
+            }).Produces<BotStatistics>();
 
         group.MapGet("/mine", async (ClaimsPrincipal principal, AppDbContext db) =>
         {
@@ -309,22 +308,21 @@ public static class BotsEndpoints
                 return Results.Unauthorized();
             var bots = await db.Bots
                 .Where(b => b.OwnerUserId == userId)
-                .Select(b => new
-                {
+                .OrderBy(b => b.Name)
+                .Select(b => new MyBotResponse(
                     b.Id,
                     b.Name,
                     b.Slug,
                     b.Accent,
                     b.LookId,
                     b.ProjectileLookId,
-                    LatestVersion = b.Versions.OrderByDescending(v => v.VersionNumber)
-                        .Select(v => new { v.VersionNumber, Status = v.Status.ToString(), v.IsActive })
-                        .FirstOrDefault(),
-                })
-                .OrderBy(b => b.Name)
+                    b.Versions.OrderByDescending(v => v.VersionNumber)
+                        .Select(v => new MyBotVersionResponse(
+                            v.VersionNumber, v.Status.ToString(), v.IsActive))
+                        .FirstOrDefault()))
                 .ToListAsync();
             return Results.Ok(bots);
-        }).RequireAuthorization();
+        }).Produces<IReadOnlyList<MyBotResponse>>().RequireAuthorization();
     }
 
     private static BuildReceipt? DeserializeReceipt(string? json) =>

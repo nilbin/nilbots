@@ -35,7 +35,7 @@ public static class UserNotificationsEndpoints
             notifications.Reverse();
             return Results.Ok(notifications.Select(
                 UserNotificationContracts.ToResponse));
-        });
+        }).Produces<IReadOnlyList<UserNotificationResponse>>();
 
         group.MapPost("/{notificationId:guid}/read", async (
             Guid notificationId,

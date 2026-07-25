@@ -52,7 +52,7 @@ public static class CosmeticsEndpoints
                                     : item)
                             .ToArray();
                 }
-                return Results.Ok(new { catalog.Version, Items = items });
-            });
+                return Results.Ok(new CosmeticCatalogResponse(catalog.Version, items));
+            }).Produces<CosmeticCatalogResponse>();
     }
 }

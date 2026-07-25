@@ -41,6 +41,7 @@ bash scripts/test.sh                       # all test suites (builds WASM guest 
 dotnet test tests/BotArena.Engine.Tests --filter "FullyQualifiedName~MovementTests"
 bash scripts/build-wasm-guest.sh           # cross-platform, input-stamped guest build
 (cd web && npm run build)                  # SPA → web/dist/index.html (single file)
+bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI clients
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
@@ -177,6 +178,20 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   rules), CLI help, `web/src/types.ts` (replay mirror), `replay --summary`.
   `DocDriftTests` pins the mechanical ones (enum/property mirror, version
   stamps, rules-name lists); prose accuracy is on the author.
+- **API contract surfaces.** The HTTP contract has one source of truth: the
+  response types in `BotArena.App`. `dotnet build` emits
+  `contracts/BotArena.App.json` from them, and every client is generated from
+  that document — `web/src/api/schema.d.ts`, `mobile/src/api/schema.d.ts`, and
+  `src/BotArena.Cli/Generated/ApiContracts.cs`. **Never hand-edit a generated
+  file or the document**; change the endpoint and run
+  `bash scripts/generate-api-clients.sh`, committing the regenerated output with
+  your change. CI's `contract-drift` job regenerates and fails on any diff, so a
+  forgotten regeneration is a red build rather than a client that silently
+  disagrees with the server. Two consequences worth knowing: a handler returning
+  an anonymous type produces no response schema (return a named record), and
+  `Results.Ok(...)` is untyped to ASP.NET, so each endpoint needs
+  `.Produces<T>()` for its shape to reach the document. Note `web/src/types.ts`
+  is a different contract — the replay mirror — and stays hand-maintained.
 - Keep each active substantial experiment's player contract in one concise
   `docs/EXPERIMENTAL-*.md` brief. Agent-arena authors receive that brief plus
   shipped docs/SDK/CLI; they should not have to reconstruct timing or scoring

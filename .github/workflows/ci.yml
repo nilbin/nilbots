@@ -4,6 +4,41 @@ on:
   workflow_dispatch:
 
 jobs:
+  contract-drift:
+    name: API contract and generated clients are current
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Needs no server and no database: the OpenAPI document falls out of the build.
+      - name: Regenerate the OpenAPI document and every client
+        run: bash scripts/generate-api-clients.sh
+
+      # The point of this job. Changing an endpoint without regenerating is a red build
+      # rather than a client that silently disagrees with the server.
+      - name: Fail if anything is out of date
+        run: |
+          if ! git diff --exit-code --stat; then
+            echo
+            echo "::error::The API contract or a generated client is out of date."
+            echo "Run: bash scripts/generate-api-clients.sh — then commit the result."
+            git diff
+            exit 1
+          fi
+
   application-postgresql:
     name: Application integration (PostgreSQL)
     runs-on: ubuntu-latest

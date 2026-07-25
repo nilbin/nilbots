@@ -1,0 +1,2687 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "BotArena.App | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/connect/authorize": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/connect/token": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/cosmetics": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CosmeticCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/ranked": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RankedChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMatchSetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matchsets/{setId}": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "setId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchSetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/leaderboard": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "rules",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaderboardResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/llms-full.txt": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/accounts/register": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/login": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/logout": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/accounts/me": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BotSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBotRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedBot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/{key}": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/{botId}/appearance": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBotAppearanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatedBotAppearance"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/{botId}/build-status": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BotBuildStatusResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/{botId}/versions/{versionId}/artifact": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/bots/{botId}/versions": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmittedBotVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/{botId}/matches": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotMatchHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/{botId}/stats": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bots/mine": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyBotResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/challenge": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMatchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "take",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "bot",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "map",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ranked",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MatchSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/{matchId}": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "matchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/{matchId}/live": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "matchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchLiveResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/matches/{matchId}/replay": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "matchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserNotificationResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/{notificationId}/read": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BotActiveVersionResponse": {
+        "required": [
+          "id",
+          "versionNumber",
+          "artifactHash"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "artifactHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "BotBuildStatusResponse": {
+        "required": [
+          "id",
+          "versionNumber",
+          "status",
+          "artifactHash",
+          "isActive",
+          "createdAt",
+          "builtAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "artifactHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "builtAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "BotCombatTotals": {
+        "required": [
+          "games",
+          "damageDealt",
+          "faults"
+        ],
+        "type": "object",
+        "properties": {
+          "games": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "damageDealt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "faults": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BotDetailResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "accent",
+          "lookId",
+          "projectileLookId",
+          "createdAt",
+          "owner",
+          "isOwner",
+          "currentStanding",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "projectileLookId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "isOwner": {
+            "type": "boolean"
+          },
+          "currentStanding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LadderStanding"
+              }
+            ]
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BotVersionResponse"
+            }
+          }
+        }
+      },
+      "BotLadderRatingResponse": {
+        "required": [
+          "rulesVersion",
+          "rating",
+          "rankedSets"
+        ],
+        "type": "object",
+        "properties": {
+          "rulesVersion": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number",
+            "format": "double"
+          },
+          "rankedSets": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BotMatchHistoryResponse": {
+        "required": [
+          "wins",
+          "losses",
+          "draws",
+          "matches"
+        ],
+        "type": "object",
+        "properties": {
+          "wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "losses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draws": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BotMatchHistoryRowResponse"
+            }
+          }
+        }
+      },
+      "BotMatchHistoryRowResponse": {
+        "required": [
+          "id",
+          "mapId",
+          "status",
+          "broadcasting",
+          "matchSetId",
+          "setGame",
+          "createdAt",
+          "outcome",
+          "opponent"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "broadcasting": {
+            "type": "boolean"
+          },
+          "matchSetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "setGame": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "opponent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BotMatchOpponentResponse"
+              }
+            ]
+          }
+        }
+      },
+      "BotMatchOpponentResponse": {
+        "required": [
+          "botId",
+          "nameSnapshot",
+          "ownerDisplayNameSnapshot",
+          "accentSnapshot",
+          "lookIdSnapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameSnapshot": {
+            "type": "string"
+          },
+          "ownerDisplayNameSnapshot": {
+            "type": "string"
+          },
+          "accentSnapshot": {
+            "type": "string"
+          },
+          "lookIdSnapshot": {
+            "type": "string"
+          }
+        }
+      },
+      "BotRecord": {
+        "required": [
+          "played",
+          "wins",
+          "losses",
+          "draws"
+        ],
+        "type": "object",
+        "properties": {
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "wins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "losses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draws": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BotStatistics": {
+        "required": [
+          "overall",
+          "ranked",
+          "unranked",
+          "combat"
+        ],
+        "type": "object",
+        "properties": {
+          "overall": {
+            "$ref": "#/components/schemas/BotRecord"
+          },
+          "ranked": {
+            "$ref": "#/components/schemas/BotRecord"
+          },
+          "unranked": {
+            "$ref": "#/components/schemas/BotRecord"
+          },
+          "combat": {
+            "$ref": "#/components/schemas/BotCombatTotals"
+          }
+        }
+      },
+      "BotSummaryResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "accent",
+          "lookId",
+          "projectileLookId",
+          "createdAt",
+          "ratings",
+          "owner",
+          "activeVersion",
+          "versionCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "projectileLookId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BotLadderRatingResponse"
+            }
+          },
+          "owner": {
+            "type": "string"
+          },
+          "activeVersion": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BotActiveVersionResponse"
+              }
+            ]
+          },
+          "versionCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BotVersionResponse": {
+        "required": [
+          "id",
+          "versionNumber",
+          "status",
+          "artifactHash",
+          "isActive",
+          "createdAt",
+          "buildReceipt",
+          "buildLog",
+          "entryType",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "artifactHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "buildReceipt": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BuildReceipt"
+              }
+            ]
+          },
+          "buildLog": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entryType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sources": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SourceFile"
+            }
+          }
+        }
+      },
+      "BuildReceipt": {
+        "required": [
+          "botVersionId",
+          "sourceSha256",
+          "artifactSha256",
+          "artifactSizeBytes",
+          "sdkVersion",
+          "guestAdapterVersion",
+          "ilcLlvmVersion",
+          "buildPipelineVersion",
+          "gameRulesVersion",
+          "runtimeProtocolVersion",
+          "runtimeConfigurationVersion",
+          "compilerImageReference",
+          "gitCommit",
+          "builtAt"
+        ],
+        "type": "object",
+        "properties": {
+          "botVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceSha256": {
+            "type": "string"
+          },
+          "artifactSha256": {
+            "type": "string"
+          },
+          "artifactSizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sdkVersion": {
+            "type": "string"
+          },
+          "guestAdapterVersion": {
+            "type": "string"
+          },
+          "ilcLlvmVersion": {
+            "type": "string"
+          },
+          "buildPipelineVersion": {
+            "type": "string"
+          },
+          "gameRulesVersion": {
+            "type": "string"
+          },
+          "runtimeProtocolVersion": {
+            "type": "string"
+          },
+          "runtimeConfigurationVersion": {
+            "type": "string"
+          },
+          "compilerImageReference": {
+            "type": "string"
+          },
+          "gitCommit": {
+            "type": "string"
+          },
+          "builtAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ChallengeRequest": {
+        "required": [
+          "botId",
+          "opponentBotId",
+          "mapId",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "opponentBotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seed": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "CosmeticCatalogEntry": {
+        "required": [
+          "key",
+          "kind",
+          "id",
+          "label",
+          "availability",
+          "unlock",
+          "owned"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "availability": {
+            "type": "string"
+          },
+          "unlock": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CosmeticUnlock"
+              }
+            ]
+          },
+          "owned": {
+            "type": "boolean"
+          },
+          "progress": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CosmeticProgress"
+              }
+            ]
+          }
+        }
+      },
+      "CosmeticCatalogResponse": {
+        "required": [
+          "version",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CosmeticCatalogEntry"
+            }
+          }
+        }
+      },
+      "CosmeticProgress": {
+        "required": [
+          "current",
+          "target",
+          "unit"
+        ],
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "target": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "CosmeticUnlock": {
+        "required": [
+          "sourceKind",
+          "sourceId",
+          "hint"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceKind": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateBotRequest": {
+        "required": [
+          "name",
+          "accent"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "accent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lookId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "projectileLookId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreatedBot": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "accent",
+          "lookId",
+          "projectileLookId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "projectileLookId": {
+            "type": "string"
+          }
+        }
+      },
+      "CreatedMatchResponse": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CreatedMatchSetResponse": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "EntitlementEarnedPayload": {
+        "required": [
+          "sourceKind",
+          "sourceId",
+          "reason",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceKind": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitlementNotificationItem"
+            }
+          }
+        }
+      },
+      "EntitlementNotificationItem": {
+        "required": [
+          "key",
+          "kind",
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "LadderStanding": {
+        "required": [
+          "botId",
+          "rulesVersion",
+          "rating",
+          "rankedSets",
+          "rank"
+        ],
+        "type": "object",
+        "properties": {
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rulesVersion": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number",
+            "format": "double"
+          },
+          "rankedSets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LeaderboardEntryResponse": {
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "accent",
+          "lookId",
+          "owner",
+          "rating",
+          "rankedSets",
+          "rank"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number",
+            "format": "double"
+          },
+          "rankedSets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "LeaderboardResponse": {
+        "required": [
+          "rulesVersion",
+          "activeRulesVersion",
+          "ladders",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "rulesVersion": {
+            "type": "string"
+          },
+          "activeRulesVersion": {
+            "type": "string"
+          },
+          "ladders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntryResponse"
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "MatchDetailParticipantResponse": {
+        "required": [
+          "slot",
+          "botId",
+          "nameSnapshot",
+          "ownerDisplayNameSnapshot",
+          "accentSnapshot",
+          "lookIdSnapshot",
+          "projectileLookIdSnapshot",
+          "artifactHashSnapshot",
+          "outcome",
+          "finalHealth",
+          "damageDealt",
+          "faults"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameSnapshot": {
+            "type": "string"
+          },
+          "ownerDisplayNameSnapshot": {
+            "type": "string"
+          },
+          "accentSnapshot": {
+            "type": "string"
+          },
+          "lookIdSnapshot": {
+            "type": "string"
+          },
+          "projectileLookIdSnapshot": {
+            "type": "string"
+          },
+          "artifactHashSnapshot": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "finalHealth": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "damageDealt": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "faults": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MatchDetailResponse": {
+        "required": [
+          "id",
+          "mapId",
+          "seed",
+          "status",
+          "broadcasting",
+          "matchSetId",
+          "setGame",
+          "winnerSlot",
+          "endReason",
+          "endTick",
+          "replayHash",
+          "error",
+          "createdAt",
+          "completedAt",
+          "participants"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string"
+          },
+          "broadcasting": {
+            "type": "boolean"
+          },
+          "matchSetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "setGame": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "winnerSlot": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "endReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endTick": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "replayHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchDetailParticipantResponse"
+            }
+          }
+        }
+      },
+      "MatchLiveResponse": {
+        "required": [
+          "status",
+          "matchSetId",
+          "setGame",
+          "presentationTicksPerSecond",
+          "presentationTick",
+          "totalTicks",
+          "broadcastComplete",
+          "countdownMs"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "matchSetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "setGame": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "presentationTicksPerSecond": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "presentationTick": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalTicks": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "broadcastComplete": {
+            "type": "boolean"
+          },
+          "countdownMs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MatchSetBotResponse": {
+        "required": [
+          "id",
+          "name",
+          "accent",
+          "lookId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accent": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lookId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MatchSetGameResponse": {
+        "required": [
+          "id",
+          "game",
+          "mapId",
+          "status",
+          "broadcasting",
+          "winnerBotId",
+          "draw",
+          "participants"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "game": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "broadcasting": {
+            "type": "boolean"
+          },
+          "winnerBotId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "draw": {
+            "type": "boolean"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchSetParticipantResponse"
+            }
+          }
+        }
+      },
+      "MatchSetParticipantResponse": {
+        "required": [
+          "slot",
+          "botId",
+          "nameSnapshot",
+          "ownerDisplayNameSnapshot",
+          "accentSnapshot",
+          "lookIdSnapshot",
+          "projectileLookIdSnapshot"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nameSnapshot": {
+            "type": "string"
+          },
+          "ownerDisplayNameSnapshot": {
+            "type": "string"
+          },
+          "accentSnapshot": {
+            "type": "string"
+          },
+          "lookIdSnapshot": {
+            "type": "string"
+          },
+          "projectileLookIdSnapshot": {
+            "type": "string"
+          }
+        }
+      },
+      "MatchSetResponse": {
+        "required": [
+          "id",
+          "status",
+          "rulesVersion",
+          "botA",
+          "botB",
+          "createdAt",
+          "revealed",
+          "scoreA",
+          "scoreB",
+          "ratingChangeA",
+          "ratingChangeB",
+          "winnerBotId",
+          "games"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "rulesVersion": {
+            "type": "string"
+          },
+          "botA": {
+            "$ref": "#/components/schemas/MatchSetBotResponse"
+          },
+          "botB": {
+            "$ref": "#/components/schemas/MatchSetBotResponse"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revealed": {
+            "type": "boolean"
+          },
+          "scoreA": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "scoreB": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ratingChangeA": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ratingChangeB": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "winnerBotId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchSetGameResponse"
+            }
+          }
+        }
+      },
+      "MatchSummaryParticipantResponse": {
+        "required": [
+          "slot",
+          "nameSnapshot",
+          "ownerDisplayNameSnapshot",
+          "accentSnapshot",
+          "lookIdSnapshot",
+          "projectileLookIdSnapshot",
+          "outcome",
+          "finalHealth"
+        ],
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nameSnapshot": {
+            "type": "string"
+          },
+          "ownerDisplayNameSnapshot": {
+            "type": "string"
+          },
+          "accentSnapshot": {
+            "type": "string"
+          },
+          "lookIdSnapshot": {
+            "type": "string"
+          },
+          "projectileLookIdSnapshot": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "finalHealth": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "MatchSummaryResponse": {
+        "required": [
+          "id",
+          "mapId",
+          "status",
+          "broadcasting",
+          "matchSetId",
+          "setGame",
+          "winnerSlot",
+          "endReason",
+          "endTick",
+          "createdAt",
+          "completedAt",
+          "participants"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "broadcasting": {
+            "type": "boolean"
+          },
+          "matchSetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "setGame": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "winnerSlot": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "endReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "endTick": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchSummaryParticipantResponse"
+            }
+          }
+        }
+      },
+      "MetaMapResponse": {
+        "required": [
+          "id",
+          "width",
+          "height",
+          "themeId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "themeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MetaResponse": {
+        "required": [
+          "engineVersion",
+          "gameRulesVersion",
+          "runtimeProtocolVersion",
+          "sdkVersion",
+          "buildPipelineVersion",
+          "cliVersion",
+          "maps"
+        ],
+        "type": "object",
+        "properties": {
+          "engineVersion": {
+            "type": "string"
+          },
+          "gameRulesVersion": {
+            "type": "string"
+          },
+          "runtimeProtocolVersion": {
+            "type": "string"
+          },
+          "sdkVersion": {
+            "type": "string"
+          },
+          "buildPipelineVersion": {
+            "type": "string"
+          },
+          "cliVersion": {
+            "type": "string"
+          },
+          "maps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetaMapResponse"
+            }
+          }
+        }
+      },
+      "MyBotResponse": {
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "accent",
+          "lookId",
+          "projectileLookId",
+          "latestVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "projectileLookId": {
+            "type": "string"
+          },
+          "latestVersion": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MyBotVersionResponse"
+              }
+            ]
+          }
+        }
+      },
+      "MyBotVersionResponse": {
+        "required": [
+          "versionNumber",
+          "status",
+          "isActive"
+        ],
+        "type": "object",
+        "properties": {
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RankedChallengeRequest": {
+        "required": [
+          "botId"
+        ],
+        "type": "object",
+        "properties": {
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "opponentBotId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "rules": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RegisterRequest": {
+        "required": [
+          "displayName",
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "SourceFile": {
+        "required": [
+          "relativePath",
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "relativePath": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "SourceFileDto": {
+        "required": [
+          "name",
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "SubmitVersionRequest": {
+        "required": [
+          "entryType",
+          "files"
+        ],
+        "type": "object",
+        "properties": {
+          "entryType": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceFileDto"
+            }
+          },
+          "lookId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "projectileLookId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SubmittedBotVersion": {
+        "required": [
+          "id",
+          "versionNumber",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateBotAppearanceRequest": {
+        "required": [
+          "accent",
+          "lookId",
+          "projectileLookId"
+        ],
+        "type": "object",
+        "properties": {
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "projectileLookId": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatedBotAppearance": {
+        "required": [
+          "id",
+          "accent",
+          "lookId",
+          "projectileLookId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "lookId": {
+            "type": "string"
+          },
+          "projectileLookId": {
+            "type": "string"
+          }
+        }
+      },
+      "UserNotificationResponse": {
+        "required": [
+          "id",
+          "kind",
+          "createdAt",
+          "readAt",
+          "payload"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/EntitlementEarnedPayload"
+          }
+        }
+      },
+      "UserResponse": {
+        "required": [
+          "id",
+          "displayName",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "BotArena.App"
+    }
+  ]
+}

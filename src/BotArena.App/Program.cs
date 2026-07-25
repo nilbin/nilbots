@@ -101,6 +101,11 @@ if (mode.RunsWeb)
             };
         });
     builder.Services.AddAuthorization();
+    // Published so typed clients are generated from the server rather than hand-mirrored.
+    // The document describes only the public HTTP surface, which the repo and
+    // /llms-full.txt already document in prose — it exposes nothing new.
+    builder.Services.AddOpenApi(options =>
+        options.AddSchemaTransformer<NumericSchemaTransformer>());
     builder.Services.AddSignalR();
     builder.Services.AddSingleton(new PostgresNotificationOptions(connectionString));
     builder.Services.AddHostedService<PostgresNotificationListener>();
@@ -241,6 +246,7 @@ if (mode.RunsWeb)
     app.UseAuthorization();
     app.UseRateLimiter();
 
+    app.MapOpenApi();
     app.MapAccounts();
     app.MapConnect();
     app.MapBots();
@@ -253,30 +259,28 @@ if (mode.RunsWeb)
 
     app.MapGet("/api/meta", () =>
     {
-        var maps = new List<object>();
+        var maps = new List<MetaMapResponse>();
         if (RepoPaths.FindUpward("maps") is { } mapsDir)
         {
             foreach (var file in Directory.EnumerateFiles(mapsDir, "*.json").Order())
             {
                 var map = ArenaMap.FromJson(File.ReadAllText(file));
-                maps.Add(new { map.Id, map.Width, map.Height, map.ThemeId });
+                maps.Add(new MetaMapResponse(map.Id, map.Width, map.Height, map.ThemeId));
             }
         }
-        return Results.Ok(new
-        {
-            EngineVersion = BotArenaVersions.EngineVersion,
-            GameRulesVersion = BotArenaVersions.GameRulesVersion,
-            RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
-            SdkVersion = ToolchainInfo.SdkVersion,
+        return Results.Ok(new MetaResponse(
+            BotArenaVersions.EngineVersion,
+            BotArenaVersions.GameRulesVersion,
+            BotArenaVersions.RuntimeProtocolVersion,
+            ToolchainInfo.SdkVersion,
             // The axes a CLI must match to compile the same bytes this server will
             // (DECISIONS #93). SdkVersion + BuildPipelineVersion are what `submit`
             // gates on; CliVersion names the tool released alongside this server, so
             // the upgrade advice can be exact instead of "try updating".
-            BuildPipelineVersion = ToolchainInfo.BuildPipelineVersion,
-            CliVersion = ToolchainInfo.CliVersion,
-            Maps = maps,
-        });
-    });
+            ToolchainInfo.BuildPipelineVersion,
+            ToolchainInfo.CliVersion,
+            maps));
+    }).Produces<MetaResponse>();
 
     // Text mirrors for readers without a browser. The site is a JavaScript SPA, so
     // `curl /docs` yields a shell and scripted clients get nothing — and most of this

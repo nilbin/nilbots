@@ -67,9 +67,7 @@ public class CosmeticEntitlementServiceIntegrationTests
         Assert.Equal(UserNotificationKinds.EntitlementEarned, notification.Kind);
         UserNotificationResponse response =
             UserNotificationContracts.ToResponse(notification);
-        Assert.Equal(
-            "lancer",
-            response.Payload.GetProperty("items")[0].GetProperty("id").GetString());
+        Assert.Equal("lancer", response.Payload.Items[0].Id);
     }
 
     [SkippableFact]
@@ -193,8 +191,6 @@ public class CosmeticEntitlementServiceIntegrationTests
             Assert.Single(await db.UserNotifications.ToListAsync());
         UserNotificationResponse response =
             UserNotificationContracts.ToResponse(notification);
-        Assert.Equal(
-            2,
-            response.Payload.GetProperty("items").GetArrayLength());
+        Assert.Equal(2, response.Payload.Items.Count);
     }
 }

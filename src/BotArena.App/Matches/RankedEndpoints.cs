@@ -165,7 +165,7 @@ public static class RankedEndpoints
             }
             await db.SaveChangesAsync(cancellationToken);
             return Results.Ok(new CreatedMatchSetResponse(set.Id));
-        }).RequireAuthorization().RequireRateLimiting("challenge");
+        }).Produces<CreatedMatchSetResponse>().RequireAuthorization().RequireRateLimiting("challenge");
 
         routes.MapGet("/api/matchsets/{setId:guid}", async (
             Guid setId,
@@ -189,7 +189,7 @@ public static class RankedEndpoints
                 botB,
                 matches,
                 now));
-        });
+        }).Produces<MatchSetResponse>();
 
         // One ladder per rules version (DECISIONS #54). ?rules=<version string> picks
         // the ladder; default = the server's current ruleset. `ladders` lists every
@@ -237,28 +237,24 @@ public static class RankedEndpoints
                 .ThenBy(entry => entry.Id)
                 .ToListAsync();
             double[] ladderRatings = ratedBots.Select(entry => entry.Rating).ToArray();
-            var entries = ratedBots.Select(entry => new
-            {
+            var entries = ratedBots.Select(entry => new LeaderboardEntryResponse(
                 entry.Id,
                 entry.Slug,
                 entry.Name,
                 entry.Accent,
                 entry.LookId,
                 entry.Owner,
-                Rating = Math.Round(entry.Rating),
+                Math.Round(entry.Rating),
                 entry.RankedSets,
-                Rank = LadderStandings.CompetitionRank(ladderRatings, entry.Rating),
-            });
+                LadderStandings.CompetitionRank(ladderRatings, entry.Rating))).ToList();
             // ActiveRulesVersion tells a reader which ladder still accepts sets; every
             // other one is a historical record (DECISIONS #97).
-            return Results.Ok(new
-            {
-                RulesVersion = version,
-                ActiveRulesVersion = activeRulesVersion,
-                Ladders = ladders,
-                Entries = entries,
-            });
-        });
+            return Results.Ok(new LeaderboardResponse(
+                version,
+                activeRulesVersion,
+                ladders,
+                entries));
+        }).Produces<LeaderboardResponse>();
     }
 
     /// <summary>Scripted pairings are an evaluation-harness need (agent-arena runs a
