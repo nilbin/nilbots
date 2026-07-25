@@ -13,6 +13,11 @@ visibility, projectiles, or outcomes.
 - ASCII map tiles remain the gameplay contract: `#` is blocked and `.` is
   walkable. Textures, bevels, decals, props, lighting, and particles do not
   change collision or rules.
+- Map packages are limited to 32×32 tiles. This bounds simulation/replay cost
+  and prevents reusable floor materials from losing all per-tile visual
+  density on unbounded arenas. It is not the wall-resolution control: larger
+  maps make screen tiles smaller, while atlas scale and DPR review protect
+  high-DPI wall sharpness.
 - Props must tell the truth. Solid-looking machinery belongs on blocked tiles;
   walkable tiles may contain only flat details such as seams, stains, lights,
   cables, or grates.
@@ -52,6 +57,9 @@ art/themes/control-room/
     height.png
     roughness.png
     ao.png
+
+art/bot-looks/<look-id>/
+  raster-reference.png
 
 web/src/assets/themes/control-room/
   theme.json
@@ -212,7 +220,8 @@ with the change/PR. If a future 2.5D renderer is adopted, feed the checked-in
 albedo/normal/height/roughness/AO maps to the DCC; do not regenerate the
 material merely to change camera or lighting.
 
-Check the theme on the smallest and largest shipped maps. Dense wall maps must
+Check the theme on the smallest and largest shipped maps, plus a synthetic
+32×32 map when changing world-scale floor treatment. Dense wall maps must
 still distinguish open floor, blocked cells, zone tiles, bots, and projectile
 paths at a glance.
 
@@ -269,8 +278,10 @@ presentation constant.
   replay participants. Historical playback therefore does not consult the
   bot's current account record.
 
-Current looks are Vanguard, Bulwark, Needle, Orbiter, and the genuine-vector
-Lancer proof. Slot-based Vanguard / Bulwark selection exists only as a
+Current looks are Vanguard, Bulwark, Needle, Orbiter, and Lancer. All five are
+genuine path-based SVGs. The four earlier generated PNGs remain under
+`art/bot-looks` as unbundled visual references; they are not disguised as
+vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
 
 To create another look:
@@ -319,9 +330,11 @@ production candidates, then normalized locally:
 - No text, branding, people, horizon, perspective, or scene-level spotlight.
 - Bot sources used a flat magenta removal background, no shadows, and one
   centered East-facing chassis.
-- Lancer was authored directly as path-based SVG; the checked-in runtime file
-  is its editable source, contains no embedded raster, and needs no generated
-  image prompt.
+- The current five looks were authored directly as path-based SVG. Each
+  checked-in runtime SVG is its editable source and contains no embedded
+  raster. The earlier generated PNGs for Vanguard, Bulwark, Needle, and Orbiter
+  are retained only as unbundled art-direction references; their exact
+  generation prompts predate the reproducible prompt log.
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
@@ -338,8 +351,8 @@ gameplay scale.
 ## Release checklist
 
 1. `npm run build` produces one self-contained viewer.
-2. A real replay exercises movement, turns, both bot looks, projectiles, hits,
-   destruction, fog, and zone visuals.
+2. Real replays exercise movement, turns, every changed bot look, projectiles,
+   hits, destruction, fog, and zone visuals.
 3. The viewer remains readable at desktop and phone widths.
 4. Replay theme/look IDs round-trip and are included in replay hashes for new
    matches; map presentation round-trips; legacy null fields remain omitted.

@@ -26,6 +26,9 @@ public sealed class MapValidationException(IReadOnlyList<string> errors)
 /// <summary>Versioned tile-grid map (plan §25). '#' is a wall, '.' is floor.</summary>
 public sealed class ArenaMap
 {
+    public const int MaxWidth = 32;
+    public const int MaxHeight = 32;
+
     public string Id { get; }
     public int Version { get; }
     public int Width { get; }
@@ -123,6 +126,8 @@ public sealed class ArenaMap
         if (dto.Width != dto.Tiles![0].Length || dto.Height != dto.Tiles.Length)
             errors.Add($"Declared size {dto.Width}x{dto.Height} does not match tile data " +
                        $"{dto.Tiles[0].Length}x{dto.Tiles.Length}.");
+        if (dto.Width > MaxWidth || dto.Height > MaxHeight)
+            errors.Add($"Map must be at most {MaxWidth}x{MaxHeight}.");
         var spawns = new List<Spawn>();
         foreach (var s in dto.Spawns!)
         {
@@ -175,6 +180,8 @@ public sealed class ArenaMap
         var errors = new List<string>();
         if (Width < 3 || Height < 3)
             errors.Add("Map must be at least 3x3.");
+        if (Width > MaxWidth || Height > MaxHeight)
+            errors.Add($"Map must be at most {MaxWidth}x{MaxHeight}.");
         for (int y = 0; y < Height; y++)
         {
             if (TileRows[y].Length != Width)

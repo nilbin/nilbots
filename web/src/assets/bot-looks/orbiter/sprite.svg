@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Orbiter bot chassis facing east">
+  <defs>
+    <linearGradient id="ob-hull" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#586a91"/>
+      <stop offset=".42" stop-color="#273651"/>
+      <stop offset="1" stop-color="#121a2a"/>
+    </linearGradient>
+    <linearGradient id="ob-ring" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#405176"/>
+      <stop offset=".5" stop-color="#1d2941"/>
+      <stop offset="1" stop-color="#0e1524"/>
+    </linearGradient>
+    <linearGradient id="ob-violet" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#47238b"/>
+      <stop offset=".5" stop-color="#9b6cff"/>
+      <stop offset="1" stop-color="#eee7ff"/>
+    </linearGradient>
+    <radialGradient id="ob-core">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".22" stop-color="#d9c8ff"/>
+      <stop offset=".48" stop-color="#8e63e8"/>
+      <stop offset=".78" stop-color="#352074"/>
+      <stop offset="1" stop-color="#10152b"/>
+    </radialGradient>
+    <filter id="ob-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <g stroke="#080d17" stroke-linejoin="round">
+    <g transform="translate(0 -2)">
+      <path d="m135 141-47-47 4-31 28-28 31-4 47 47-11 45-20 20Z"
+        fill="#09101d" stroke-width="12"/>
+      <path d="m377 141 47-47-4-31-28-28-31-4-47 47 11 45 20 20Z"
+        fill="#09101d" stroke-width="12"/>
+      <path d="m135 375-47 47 4 31 28 28 31 4 47-47-11-45-20-20Z"
+        fill="#09101d" stroke-width="12"/>
+      <path d="m377 375 47 47-4 31-28 28-31 4-47-47 11-45 20-20Z"
+        fill="#09101d" stroke-width="12"/>
+    </g>
+
+    <g fill="url(#ob-hull)" stroke="#647394" stroke-width="4">
+      <path d="m137 143-39-39 3-34 25-25 34-3 39 39-17 38-21 21Z"/>
+      <path d="m375 143 39-39-3-34-25-25-34-3-39 39 17 38 21 21Z"/>
+      <path d="m137 369-39 39 3 34 25 25 34 3 39-39-17-38-21-21Z"/>
+      <path d="m375 369 39 39-3 34-25 25-34 3-39-39 17-38 21-21Z"/>
+    </g>
+
+    <g fill="#1a2640" stroke="#0d1422" stroke-width="4">
+      <path d="m113 83 21-21 24 4 24 24-11 26-25 11-29-20Z"/>
+      <path d="m399 83-21-21-24 4-24 24 11 26 25 11 29-20Z"/>
+      <path d="m113 429 21 21 24-4 24-24-11-26-25-11-29 20Z"/>
+      <path d="m399 429-21 21-24-4-24-24 11-26 25-11 29 20Z"/>
+    </g>
+
+    <g fill="url(#ob-violet)" stroke="#291451" stroke-width="3">
+      <rect x="125" y="74" width="17" height="26" rx="4" transform="rotate(-45 133.5 87)"/>
+      <rect x="370" y="74" width="17" height="26" rx="4" transform="rotate(45 378.5 87)"/>
+      <rect x="125" y="412" width="17" height="26" rx="4" transform="rotate(45 133.5 425)"/>
+      <rect x="370" y="412" width="17" height="26" rx="4" transform="rotate(-45 378.5 425)"/>
+    </g>
+
+    <g fill="#252f42" stroke="#596783" stroke-width="4">
+      <path d="m169 115 34 28-21 46-37-26Z"/>
+      <path d="m343 115-34 28 21 46 37-26Z"/>
+      <path d="m169 397 34-28-21-46-37 26Z"/>
+      <path d="m343 397-34-28 21-46 37 26Z"/>
+    </g>
+
+    <path d="m195 102 61-12 61 12 52 34 34 52 12 68-12 68-34 52-52 34-61 12-61-12-52-34-34-52-12-68 12-68 34-52Z"
+      fill="url(#ob-hull)" stroke="#6c7892" stroke-width="6"/>
+    <circle cx="256" cy="256" r="146" fill="#111a2b" stroke="#111827" stroke-width="12"/>
+    <circle cx="256" cy="256" r="127" fill="url(#ob-ring)" stroke="#576685" stroke-width="6"/>
+    <circle cx="256" cy="256" r="101" fill="#121b2d" stroke="#0b111d" stroke-width="13"/>
+    <circle cx="256" cy="256" r="78" fill="#26334d" stroke="#607093" stroke-width="5"/>
+    <circle cx="256" cy="256" r="60" fill="#111928" stroke="#303d59" stroke-width="10"/>
+
+    <g fill="#273550" stroke="#0b111d" stroke-width="4">
+      <path d="M237 108h38l14 38-33 17-33-17Z"/>
+      <path d="M237 404h38l14-38-33-17-33 17Z"/>
+      <path d="M108 237v38l38 14 17-33-17-33Z"/>
+      <path d="M404 237v38l-38 14-17-33 17-33Z"/>
+      <path d="m151 151 27-27 37 18-13 36-36 13Z"/>
+      <path d="m361 151-27-27-37 18 13 36 36 13Z"/>
+      <path d="m151 361 27 27 37-18-13-36-36-13Z"/>
+      <path d="m361 361-27 27-37-18 13-36 36-13Z"/>
+    </g>
+
+    <g fill="url(#ob-violet)" stroke="#241443" stroke-width="2">
+      <rect x="246" y="111" width="20" height="28" rx="4"/>
+      <rect x="246" y="373" width="20" height="28" rx="4"/>
+      <rect x="111" y="246" width="28" height="20" rx="4"/>
+      <rect x="373" y="246" width="28" height="20" rx="4"/>
+      <path d="m170 153 18-9 12 18-18 12Z"/>
+      <path d="m342 153-18-9-12 18 18 12Z"/>
+      <path d="m170 359 18 9 12-18-18-12Z"/>
+      <path d="m342 359-18 9-12-18 18-12Z"/>
+    </g>
+
+    <circle cx="256" cy="256" r="40" fill="#202b40" stroke="#6c7790" stroke-width="5"/>
+    <circle cx="256" cy="256" r="27" fill="url(#ob-core)" stroke="#b8a1ff" stroke-width="3"/>
+    <circle cx="256" cy="256" r="9" fill="#f8f5ff"/>
+
+    <path d="m375 224 66 4 18 14 36 3v22l-36 3-18 14-66 4-16-32Z"
+      fill="#1d283c" stroke="#64708a" stroke-width="5"/>
+    <path d="m398 239 44 3 15 9 29 1v8l-29 1-15 9-44 3-15-17Z"
+      fill="#34415a" stroke="#0a101b" stroke-width="3"/>
+    <rect x="426" y="248" width="39" height="16" rx="4" fill="url(#ob-violet)" stroke="#251548" stroke-width="2"/>
+  </g>
+
+  <g fill="#9467ed" opacity=".48" filter="url(#ob-glow)">
+    <circle cx="256" cy="256" r="31"/>
+    <rect x="427" y="249" width="36" height="14" rx="4"/>
+  </g>
+
+  <g fill="#d7dce5">
+    <circle cx="181" cy="181" r="3"/>
+    <circle cx="331" cy="181" r="3"/>
+    <circle cx="181" cy="331" r="3"/>
+    <circle cx="331" cy="331" r="3"/>
+  </g>
+</svg>

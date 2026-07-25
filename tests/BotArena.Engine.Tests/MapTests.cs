@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace BotArena.Engine.Tests;
 
 public class MapTests
@@ -122,6 +124,63 @@ public class MapTests
             "#####",
         ], [new Spawn(1, 1, Direction.East), new Spawn(3, 1, Direction.West)]));
         Assert.Contains(ex.Errors, e => e.Contains("Invalid tile symbol"));
+    }
+
+    [Theory]
+    [InlineData(ArenaMap.MaxWidth + 1, 3)]
+    [InlineData(3, ArenaMap.MaxHeight + 1)]
+    public void MapLargerThanSupportedEnvelope_Throws(int width, int height)
+    {
+        string[] rows = Enumerable.Repeat(new string('.', width), height).ToArray();
+
+        var ex = Assert.Throws<MapValidationException>(() => ArenaMap.Create(
+            "oversized",
+            rows,
+            [new Spawn(0, 0, Direction.East), new Spawn(1, 1, Direction.West)]));
+
+        Assert.Contains(ex.Errors, e => e.Contains(
+            $"at most {ArenaMap.MaxWidth}x{ArenaMap.MaxHeight}"));
+    }
+
+    [Fact]
+    public void MaximumSupportedMapSize_Loads()
+    {
+        string[] rows = Enumerable.Repeat(
+            new string('.', ArenaMap.MaxWidth),
+            ArenaMap.MaxHeight).ToArray();
+
+        var map = ArenaMap.Create(
+            "maximum",
+            rows,
+            [new Spawn(0, 0, Direction.East), new Spawn(1, 1, Direction.West)]);
+
+        Assert.Equal(ArenaMap.MaxWidth, map.Width);
+        Assert.Equal(ArenaMap.MaxHeight, map.Height);
+    }
+
+    [Fact]
+    public void OversizedJsonMap_IsRejectedBeforeConstruction()
+    {
+        const int width = ArenaMap.MaxWidth + 1;
+        string[] rows = Enumerable.Repeat(new string('.', width), 3).ToArray();
+        string json = JsonSerializer.Serialize(new
+        {
+            formatVersion = 1,
+            id = "oversized",
+            width,
+            height = rows.Length,
+            tiles = rows,
+            spawns = new[]
+            {
+                new { x = 0, y = 0, facing = "East" },
+                new { x = 1, y = 1, facing = "West" },
+            },
+        });
+
+        var ex = Assert.Throws<MapValidationException>(() => ArenaMap.FromJson(json));
+
+        Assert.Contains(ex.Errors, e => e.Contains(
+            $"at most {ArenaMap.MaxWidth}x{ArenaMap.MaxHeight}"));
     }
 
     [Fact]

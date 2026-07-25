@@ -938,6 +938,23 @@ configuration) and changing them is a version bump, not an edit.
     proof. Automatic tracing and SVG-wrapped PNGs are rejected because they
     add complexity without improving scaling.
 
+83. **Map packages are capped at 32×32, but map dimensions are not used as a
+    proxy for wall sharpness.** Larger maps produce smaller screen tiles, so
+    they do not cause topology-atlas upscaling. The cap instead bounds
+    simulation arrays, replay/render work, traversal scale, and the loss of
+    per-tile detail caused by mapping one reusable floor material across an
+    arena. High-DPI wall sharpness remains owned by the 2× atlas and DPR review.
+    The shipped maximum is 24×18, leaving deliberate room for new layouts
+    without admitting effectively unbounded maps.
+
+84. **The five shipped mechanical bot looks use genuine SVG redraws.** Lancer,
+    Vanguard, Bulwark, Needle, and Orbiter now share a crisp path-based visual
+    language and remain distinct at 64 px. The four replaced 512 px PNGs move
+    to unbundled `art/bot-looks` references so their art direction is not lost
+    and their bytes do not remain in every self-contained viewer. This does not
+    ban future PNG looks: painterly and organic designs still use raster when
+    vector would be dishonest or visually poorer.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

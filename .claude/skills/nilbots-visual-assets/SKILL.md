@@ -28,7 +28,8 @@ owning map JSON, theme manifest, or bot-look manifest.
    ```
 
 5. Assign the theme and wall families in map presentation data. Never infer a
-   theme from map ID or add a viewer skin switch.
+   theme from map ID or add a viewer skin switch. Keep map packages within the
+   engine's 32×32 envelope.
 6. Review small and large maps at device pixel ratios 1 and 2. Inspect outer
    perimeter, isolated cover, corners, junctions, zone contrast, bots, health,
    projectiles, and fog.
@@ -44,6 +45,8 @@ encoding, and the theme-wide runtime size check. Do not hand-edit its outputs.
    A genuine SVG must not contain `<image>` or `data:image` raster payloads.
 3. Keep high-resolution raster masters and exact generation prompts outside
    the runtime package. Remove backgrounds before deriving the 512×512 PNG.
+   When replacing a shipped raster with SVG, retain the old image under
+   `art/bot-looks/<id>/raster-reference.png`, not beside runtime assets.
 4. Add `web/src/assets/bot-looks/<id>/look.json` plus `sprite.png` or
    `sprite.svg`. Discovery is manifest-driven; do not add a TypeScript registry.
 5. Inspect the look at gameplay size facing all four directions and during

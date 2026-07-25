@@ -25,9 +25,31 @@ test('every bot-look manifest references a supported local sprite', () => {
   }
 });
 
-test('the vector proof look contains no embedded raster image', () => {
-  const source = readFileSync(join(looksRoot, 'lancer', 'sprite.svg'), 'utf8');
-  assert.match(source, /viewBox="0 0 512 512"/);
-  assert.doesNotMatch(source, /<image\b/i);
-  assert.doesNotMatch(source, /data:image\//i);
+test('shipped vector looks contain no embedded raster image', () => {
+  for (const id of ['bulwark', 'lancer', 'needle', 'orbiter', 'vanguard']) {
+    const manifest = JSON.parse(
+      readFileSync(join(looksRoot, id, 'look.json'), 'utf8'),
+    ) as { sprite: string };
+    assert.equal(manifest.sprite, 'sprite.svg');
+    const source = readFileSync(join(looksRoot, id, manifest.sprite), 'utf8');
+    assert.match(source, /viewBox="0 0 512 512"/);
+    assert.doesNotMatch(source, /<image\b/i);
+    assert.doesNotMatch(source, /data:image\//i);
+  }
+});
+
+test('replaced raster looks retain references outside the runtime bundle', () => {
+  const referencesRoot = join(
+    looksRoot,
+    '..',
+    '..',
+    '..',
+    '..',
+    'art',
+    'bot-looks',
+  );
+  for (const id of ['bulwark', 'needle', 'orbiter', 'vanguard'])
+    assert.doesNotThrow(() =>
+      readFileSync(join(referencesRoot, id, 'raster-reference.png')),
+    );
 });

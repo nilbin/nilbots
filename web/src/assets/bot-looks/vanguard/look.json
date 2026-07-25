@@ -1,7 +1,7 @@
 {
   "id": "vanguard",
   "label": "Vanguard",
-  "sprite": "sprite.png",
+  "sprite": "sprite.svg",
   "suggestedAccent": "#38bdf8",
   "scale": 1.34
 }

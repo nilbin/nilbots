@@ -1,7 +1,7 @@
 {
   "id": "bulwark",
   "label": "Bulwark",
-  "sprite": "sprite.png",
+  "sprite": "sprite.svg",
   "suggestedAccent": "#fb645b",
   "scale": 1.28
 }
