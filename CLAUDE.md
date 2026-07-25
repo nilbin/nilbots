@@ -126,9 +126,11 @@ Project boundaries that must not be violated:
   performs the one-shot deployment bootstrap. ASP.NET Data Protection keys
   live in PostgreSQL, and production OpenIddict certificates are provisioned
   shared secrets rather than generated independently by each process.
-- Production releases are manual-only GitHub Actions runs. They publish the
-  runtime and compiler images to GHCR with immutable SHA tags, digest-pinned
-  deployment references, SBOMs, and provenance attestations.
+- Production releases are manual-only GitHub Actions runs. Image publication
+  and deployment require both the release E2E verifier and the reusable CI
+  workflow's contract-drift and mandatory PostgreSQL jobs. Successful runs
+  publish the runtime and compiler images to GHCR with immutable SHA tags,
+  digest-pinned deployment references, SBOMs, and provenance attestations.
 - The primary's persistent `shared/workers.tsv` is the non-secret worker fleet
   authority. `deploy/bootstrap-worker.sh` is the only normal path for adding a
   node: it provisions and verifies private binding, filtered secrets, shared
