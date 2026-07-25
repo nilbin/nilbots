@@ -42,6 +42,7 @@ test('projectile looks are genuine East-facing SVG packages', () => {
       'pulse-bolt',
       'razor-shard',
       'regent-lance',
+      'talon',
     ],
   );
 });

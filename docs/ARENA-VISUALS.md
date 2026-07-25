@@ -316,8 +316,8 @@ presentation constant.
   bot's current account record.
 
 Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, Aureate Warden,
-Rift Runner, Mossback, Helio Kite, Scrap Jackal, and Glass Manta. All eleven
-are genuine path-based SVGs. The earlier generated PNGs remain under
+Rift Runner, Mossback, Helio Kite, Scrap Jackal, Glass Manta, and Mantis. All
+twelve are genuine path-based SVGs. The earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
@@ -327,7 +327,9 @@ the official service. Aureate Warden and its recommended Regent Lance
 projectile unlock together after an account completes 100 ranked matches. One
 ranked match is the complete six-game mirrored set. Helio Kite, Scrap Jackal,
 and Glass Manta are manifest-discovered but entitlement-locked for future
-achievement, challenge, and competition sources respectively.
+achievement, challenge, and competition sources respectively. Mantis unlocks
+the first time any of the account's bots reaches 1300 rating on an official
+ladder.
 
 To create another look:
 
@@ -367,13 +369,16 @@ To create another look:
   entitlements are checked when equipping, never when rendering a replay.
 
 Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark,
-Regent Lance, Phase Needle, Cinder Disc, Helix Dart, Gravity Knot, and Prism
-Fan. All ten are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard, Phase
-Needle, and Cinder Disc are starter-accessible; Arc Spark unlocks after the
-account completes its first unranked challenge match on the official service.
-Regent Lance unlocks with Aureate Warden after 100 completed ranked matches.
-Helix Dart, Gravity Knot, and Prism Fan are independently entitlement-locked
-for future achievement, challenge, and competition sources.
+Regent Lance, Phase Needle, Cinder Disc, Helix Dart, Gravity Knot, Prism Fan,
+and Talon. All eleven are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard,
+Phase Needle, and Cinder Disc are starter-accessible; Arc Spark unlocks after
+the account completes its first unranked challenge match on the official
+service. Regent Lance unlocks with Aureate Warden after 100 completed ranked
+matches. Helix Dart, Gravity Knot, and Prism Fan are independently
+entitlement-locked for future achievement, challenge, and competition sources.
+Talon unlocks with Mantis at 1300 rating; the two share an unlock source
+without the chassis manifest recommending the projectile, which per
+DECISIONS #106 stays an Aureate Warden exception.
 
 To create another projectile look:
 
@@ -424,6 +429,13 @@ production candidates, then normalized locally:
   raster. The earlier generated PNGs for Vanguard, Bulwark, Needle, and Orbiter
   are retained only as unbundled art-direction references; their exact
   generation prompts predate the reproducible prompt log.
+- Mantis and Talon were authored directly as path-based SVG with no generated
+  reference, so `art/bot-looks` holds no raster master for them. The chassis is
+  deliberately near-square where the other looks are longer along their facing,
+  and Talon repeats its recurved claw in the projectile mask. They share the
+  1300-rating unlock, but the chassis manifest does not name Talon as a
+  companion: per DECISIONS #106 that recommendation stays unique to Aureate
+  Warden.
 - Aureate Warden and Regent Lance were authored as genuine SVG from separate
   generated concept references. Eclipse Bloom + Null Seed and Redshift Crucible
   + Crucible Splitter are retained under `art/` as reserved, unavailable

@@ -30,6 +30,18 @@
       "availability": "starter"
     },
     {
+      "key": "bot-look:mantis",
+      "kind": "bot-look",
+      "id": "mantis",
+      "label": "Mantis",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "rating-1300",
+        "hint": "Reach 1300 rating on an official ladder."
+      }
+    },
+    {
       "key": "bot-look:lancer",
       "kind": "bot-look",
       "id": "lancer",
@@ -123,6 +135,18 @@
       "id": "razor-shard",
       "label": "Razor Shard",
       "availability": "starter"
+    },
+    {
+      "key": "projectile-look:talon",
+      "kind": "projectile-look",
+      "id": "talon",
+      "label": "Talon",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "rating-1300",
+        "hint": "Reach 1300 rating on an official ladder."
+      }
     },
     {
       "key": "projectile-look:arc-spark",

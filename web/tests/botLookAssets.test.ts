@@ -32,6 +32,7 @@ test('shipped vector looks contain no embedded raster image', () => {
     'glass-manta',
     'helio-kite',
     'lancer',
+    'mantis',
     'mossback',
     'needle',
     'orbiter',
@@ -50,20 +51,26 @@ test('shipped vector looks contain no embedded raster image', () => {
   }
 });
 
-test('a bot look may recommend an existing projectile companion', () => {
-  const manifest = JSON.parse(
-    readFileSync(join(looksRoot, 'aureate-warden', 'look.json'), 'utf8'),
-  ) as { defaultProjectile: string };
-  const projectileRoot = join(
-    looksRoot,
-    '..',
-    'projectile-looks',
-    manifest.defaultProjectile,
-  );
-  assert.equal(manifest.defaultProjectile, 'regent-lance');
-  assert.doesNotThrow(() =>
-    readFileSync(join(projectileRoot, 'look.json')),
-  );
+test('every recommended projectile companion resolves to a real package', () => {
+  const companions = new Map<string, string>();
+  for (const directory of readdirSync(looksRoot, { withFileTypes: true })) {
+    if (!directory.isDirectory()) continue;
+    const manifest = JSON.parse(
+      readFileSync(join(looksRoot, directory.name, 'look.json'), 'utf8'),
+    ) as { defaultProjectile?: string };
+    if (manifest.defaultProjectile === undefined) continue;
+    companions.set(directory.name, manifest.defaultProjectile);
+    assert.doesNotThrow(() =>
+      readFileSync(
+        join(looksRoot, '..', 'projectile-looks', manifest.defaultProjectile!, 'look.json'),
+      ),
+    );
+  }
+  // DECISIONS #106: chassis and projectile releases are not one-to-one, and
+  // Aureate Warden is the single explicit exception from #103. Pinning the whole
+  // set rather than just checking that declared companions resolve is what stops
+  // a new look from quietly becoming a second exception.
+  assert.deepEqual([...companions].sort(), [['aureate-warden', 'regent-lance']]);
 });
 
 test('replaced raster looks retain references outside the runtime bundle', () => {

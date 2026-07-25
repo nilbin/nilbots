@@ -64,8 +64,18 @@ public class CosmeticCatalogTests
             aureateWarden.Unlock,
             regentLance.Unlock);
 
+        CosmeticCatalogItem mantis =
+            Assert.IsType<CosmeticCatalogItem>(
+                catalog.Find(CosmeticCatalog.BotLookKind, "mantis"));
+        CosmeticCatalogItem talon =
+            Assert.IsType<CosmeticCatalogItem>(
+                catalog.Find(CosmeticCatalog.ProjectileLookKind, "talon"));
+        Assert.Equal(CosmeticUnlockEvents.Rating1300, mantis.Unlock!.SourceId);
+        Assert.Equal(CosmeticUnlockEvents.Achievement, mantis.Unlock.SourceKind);
+        Assert.Equal(mantis.Unlock, talon.Unlock);
+
         Assert.Equal(
-            10,
+            12,
             catalog.Items.Count(item =>
                 item.Availability == CosmeticCatalog.EntitlementAvailability));
     }

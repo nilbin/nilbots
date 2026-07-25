@@ -21,23 +21,36 @@ public static class CosmeticsEndpoints
                     await entitlements.CatalogForAsync(
                         userId,
                         cancellationToken);
-                if (userId is Guid accountId &&
-                    items.Any(item =>
-                        !item.Owned &&
-                        item.Unlock?.SourceKind == CosmeticUnlockEvents.Achievement &&
-                        item.Unlock.SourceId == CosmeticUnlockEvents.RankedMatches100))
+                if (userId is Guid accountId)
                 {
-                    CosmeticProgress progress =
-                        await achievements.RankedMatchesProgressAsync(
+                    // One measurement per distinct milestone, shared by every item that
+                    // milestone unlocks, so a paired look and projectile cost one query.
+                    var measured = new Dictionary<(string, string), CosmeticProgress>();
+                    foreach (CosmeticCatalogEntry item in items)
+                    {
+                        if (item.Owned || item.Unlock is null)
+                            continue;
+                        var milestone = (item.Unlock.SourceKind, item.Unlock.SourceId);
+                        if (measured.ContainsKey(milestone))
+                            continue;
+                        Task<CosmeticProgress>? pending = achievements.ProgressForAsync(
+                            item.Unlock.SourceKind,
+                            item.Unlock.SourceId,
                             accountId,
                             cancellationToken);
-                    items = items.Select(item =>
-                            !item.Owned &&
-                            item.Unlock?.SourceKind == CosmeticUnlockEvents.Achievement &&
-                            item.Unlock.SourceId == CosmeticUnlockEvents.RankedMatches100
-                                ? item with { Progress = progress }
-                                : item)
-                        .ToArray();
+                        if (pending is not null)
+                            measured[milestone] = await pending;
+                    }
+                    if (measured.Count > 0)
+                        items = items.Select(item =>
+                                !item.Owned &&
+                                item.Unlock is not null &&
+                                measured.TryGetValue(
+                                    (item.Unlock.SourceKind, item.Unlock.SourceId),
+                                    out CosmeticProgress? progress)
+                                    ? item with { Progress = progress }
+                                    : item)
+                            .ToArray();
                 }
                 return Results.Ok(new { catalog.Version, Items = items });
             });
