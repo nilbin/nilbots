@@ -90,7 +90,7 @@ const lookManifests = import.meta.glob<BotLookManifest>(
   { eager: true, import: 'default' },
 );
 const lookImages = import.meta.glob<string>(
-  '../assets/bot-looks/*/*.png',
+  ['../assets/bot-looks/*/*.png', '../assets/bot-looks/*/*.svg'],
   { eager: true, import: 'default', query: '?url' },
 );
 

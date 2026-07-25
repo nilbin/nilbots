@@ -919,6 +919,25 @@ configuration) and changing them is a version bump, not an edit.
     bytes for historical three-health replays; initial state and both health
     displays use that dynamic value rather than a fixed count.
 
+81. **Theme topology atlases bake at 2× while runtime size remains
+    budgeted.** High-DPI canvases can require more than the former 96 source
+    pixels for one wall core, so each logical 96 px core / 16 px gutter is now
+    baked as 192 / 32 into a 4096×4096 atlas. Edge atlases use quality-95 alpha
+    WebP instead of lossless WebP; at gameplay scale this retains the authored
+    detail while making the 2× files smaller than the former 1× files. Each
+    theme recipe declares a total runtime asset budget and the deterministic
+    build fails if it is exceeded. Resolution may not silently turn every
+    self-contained replay into a substantially larger download.
+
+82. **Bot looks accept genuine vector sources, but vector is not a blanket
+    replacement for texture.** A look manifest may name PNG or SVG. SVG is for
+    mechanical designs whose silhouette and surface language are honestly
+    represented by paths; it must use the canonical transparent 512 viewBox
+    and may not embed raster payloads. Painterly or organic looks stay raster
+    and retain a high-resolution source master. Lancer is the first vector
+    proof. Automatic tracing and SVG-wrapped PNGs are rejected because they
+    add complexity without improving scaling.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

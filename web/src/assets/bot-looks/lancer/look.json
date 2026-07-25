@@ -1,0 +1,7 @@
+{
+  "id": "lancer",
+  "label": "Lancer",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#22d3ee",
+  "scale": 1.26
+}

@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageOps
 
 
+ATLAS_COLUMNS = 16
 CARDINAL_BITS = {
     "north": 0,
     "east": 2,
@@ -39,6 +40,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("spec", type=Path, help="Theme art JSON specification.")
     parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate the manifest and current runtime budget without rebuilding.",
+    )
+    parser.add_argument(
         "--repo-root",
         type=Path,
         default=Path(__file__).resolve().parents[1],
@@ -52,6 +58,26 @@ def colour(value: str) -> np.ndarray:
 
 def odd_filter_size(radius: int) -> int:
     return max(3, radius * 2 + 1)
+
+
+def scaled_geometry(geometry: Dict[str, Any], scale: int) -> Dict[str, Any]:
+    scaled = dict(geometry)
+    for key in (
+        "contentPixels",
+        "gutterPixels",
+        "insetPixels",
+        "outsetPixels",
+        "bevelPixels",
+        "hardwareRadius",
+    ):
+        if key in scaled:
+            scaled[key] = max(1, int(round(float(scaled[key]) * scale)))
+    scaled["shadowBlur"] = float(scaled["shadowBlur"]) * scale
+    scaled["shadowOffset"] = [
+        int(round(float(offset) * scale))
+        for offset in scaled["shadowOffset"]
+    ]
+    return scaled
 
 
 def edge_safe_material(source: Image.Image, size: int) -> Image.Image:
@@ -241,14 +267,16 @@ def bake_atlases(
     material: Image.Image,
     geometry: Dict[str, Any],
 ) -> Tuple[Image.Image, Image.Image]:
-    columns = 16
     tile_pixels = int(geometry["contentPixels"]) + int(geometry["gutterPixels"]) * 2
-    atlas_size = columns * tile_pixels
+    atlas_size = ATLAS_COLUMNS * tile_pixels
     edges = Image.new("RGBA", (atlas_size, atlas_size), (0, 0, 0, 0))
     shadows = Image.new("RGBA", (atlas_size, atlas_size), (0, 0, 0, 0))
     for mask in range(256):
         edge, shadow = bake_variant(mask, material, geometry)
-        position = ((mask % columns) * tile_pixels, (mask // columns) * tile_pixels)
+        position = (
+            (mask % ATLAS_COLUMNS) * tile_pixels,
+            (mask // ATLAS_COLUMNS) * tile_pixels,
+        )
         edges.paste(edge, position, edge)
         shadows.paste(shadow, position, shadow)
     return edges, shadows
@@ -260,6 +288,8 @@ def write_bundle(
     theme_id: str,
     family_id: str,
     family: Dict[str, Any],
+    atlas_scale: int,
+    edge_quality: int,
 ) -> None:
     family_root = (spec_path.parent / family["source"]).resolve().parent
     source_path = (spec_path.parent / family["source"]).resolve()
@@ -282,12 +312,16 @@ def write_bundle(
 
     runtime_albedo = runtime_root / f"wall-{family_id}-albedo.webp"
     albedo.save(runtime_albedo, "WEBP", quality=90, method=6)
-    edges, shadows = bake_atlases(albedo, family["geometry"])
+    edges, shadows = bake_atlases(
+        albedo,
+        scaled_geometry(family["geometry"], atlas_scale),
+    )
     edges.save(
         runtime_root / f"wall-{family_id}-edges.webp",
         "WEBP",
-        lossless=True,
+        quality=edge_quality,
         method=6,
+        exact=True,
     )
     shadows.save(
         runtime_root / f"wall-{family_id}-shadows.webp",
@@ -297,17 +331,98 @@ def write_bundle(
     )
 
 
+def validate_runtime_manifest(
+    repo_root: Path,
+    theme_id: str,
+    families: Dict[str, Any],
+    atlas_scale: int,
+) -> None:
+    dimensions = {
+        (
+            int(family["geometry"]["contentPixels"]) * atlas_scale,
+            int(family["geometry"]["gutterPixels"]) * atlas_scale,
+        )
+        for family in families.values()
+    }
+    if len(dimensions) != 1:
+        raise SystemExit("Every wall family must use the same atlas dimensions.")
+    content_pixels, gutter_pixels = dimensions.pop()
+    manifest_path = (
+        repo_root
+        / "web"
+        / "src"
+        / "assets"
+        / "themes"
+        / theme_id
+        / "theme.json"
+    )
+    manifest = json.loads(manifest_path.read_text())
+    atlas = manifest["walls"]["atlas"]
+    expected = {
+        "columns": ATLAS_COLUMNS,
+        "contentPixels": content_pixels,
+        "gutterPixels": gutter_pixels,
+    }
+    if atlas != expected:
+        raise SystemExit(
+            f"{manifest_path} walls.atlas must be {expected}, got {atlas}.",
+        )
+
+
+def validate_runtime_budget(
+    repo_root: Path,
+    theme_id: str,
+    budget_bytes: int,
+) -> None:
+    runtime_root = repo_root / "web" / "src" / "assets" / "themes" / theme_id
+    total_bytes = sum(
+        path.stat().st_size
+        for path in runtime_root.iterdir()
+        if path.is_file()
+    )
+    if total_bytes > budget_bytes:
+        raise SystemExit(
+            f"{theme_id} runtime assets use {total_bytes:,} bytes, "
+            f"over the {budget_bytes:,}-byte budget.",
+        )
+    print(
+        f"{theme_id} runtime assets: {total_bytes:,} / {budget_bytes:,} bytes",
+    )
+
+
 def main() -> None:
     args = parse_args()
     repo_root = args.repo_root.resolve()
     spec_path = args.spec.resolve()
     spec = json.loads(spec_path.read_text())
-    if spec.get("formatVersion") != 1:
+    if spec.get("formatVersion") != 2:
         raise SystemExit("Unsupported theme art formatVersion.")
     theme_id = spec["themeId"]
-    for family_id, family in spec["wallFamilies"].items():
+    runtime = spec["runtime"]
+    atlas_scale = int(runtime["atlasScale"])
+    edge_quality = int(runtime["edgeQuality"])
+    budget_bytes = int(runtime["assetBudgetBytes"])
+    if atlas_scale < 1:
+        raise SystemExit("runtime.atlasScale must be at least 1.")
+    if not 1 <= edge_quality <= 100:
+        raise SystemExit("runtime.edgeQuality must be between 1 and 100.")
+    families = spec["wallFamilies"]
+    validate_runtime_manifest(repo_root, theme_id, families, atlas_scale)
+    if args.check:
+        validate_runtime_budget(repo_root, theme_id, budget_bytes)
+        return
+    for family_id, family in families.items():
         print(f"Baking {theme_id}/{family_id}")
-        write_bundle(repo_root, spec_path, theme_id, family_id, family)
+        write_bundle(
+            repo_root,
+            spec_path,
+            theme_id,
+            family_id,
+            family,
+            atlas_scale,
+            edge_quality,
+        )
+    validate_runtime_budget(repo_root, theme_id, budget_bytes)
 
 
 if __name__ == "__main__":

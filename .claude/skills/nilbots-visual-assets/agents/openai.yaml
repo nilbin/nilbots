@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nilbots Visual Assets"
+  short_description: "Build and validate nilbots themes and bot looks"
+  default_prompt: "Use $nilbots-visual-assets to create or revise a nilbots arena theme or bot look."

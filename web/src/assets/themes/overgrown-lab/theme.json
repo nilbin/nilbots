@@ -11,8 +11,8 @@
     },
     "atlas": {
       "columns": 16,
-      "contentPixels": 96,
-      "gutterPixels": 16
+      "contentPixels": 192,
+      "gutterPixels": 32
     },
     "families": {
       "perimeter": {

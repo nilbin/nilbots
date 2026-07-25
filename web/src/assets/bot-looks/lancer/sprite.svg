@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lancer bot chassis facing east">
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#536071"/>
+      <stop offset=".42" stop-color="#2c3645"/>
+      <stop offset="1" stop-color="#141c28"/>
+    </linearGradient>
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#1b2532"/>
+      <stop offset=".5" stop-color="#3d4959"/>
+      <stop offset="1" stop-color="#202a38"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#8592a1"/>
+      <stop offset=".5" stop-color="#344151"/>
+      <stop offset="1" stop-color="#111925"/>
+    </linearGradient>
+    <linearGradient id="energy" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#087d9d"/>
+      <stop offset=".45" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#b7f7ff"/>
+    </linearGradient>
+    <radialGradient id="reactor">
+      <stop offset="0" stop-color="#e7fdff"/>
+      <stop offset=".35" stop-color="#42e5f4"/>
+      <stop offset="1" stop-color="#08738d"/>
+    </radialGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <g stroke="#0a1019" stroke-linejoin="round">
+    <path d="M92 145 139 103 223 107 286 150 365 174 456 256 365 338 286 362 223 405 139 409 92 367 110 314 94 256 110 198Z"
+      fill="#0b121c" stroke-width="13"/>
+
+    <path d="m99 151 44-38 76 4 80 59-67 32-123-12Z" fill="url(#hull)" stroke="url(#edge)" stroke-width="5"/>
+    <path d="m99 361 44 38 76-4 80-59-67-32-123 12Z" fill="url(#hull)" stroke="url(#edge)" stroke-width="5"/>
+    <path d="m111 199 120 12 82 45-82 45-120 12-15-57Z" fill="url(#plate)" stroke="#566475" stroke-width="5"/>
+    <path d="m231 211 75-48 62 18 88 75-88 75-62 18-75-48 73-45Z" fill="url(#hull)" stroke="#59687a" stroke-width="5"/>
+
+    <path d="m306 164 60 18 77 65-112-23-57-22Z" fill="#273241" stroke="#111a25" stroke-width="4"/>
+    <path d="m306 348 60-18 77-65-112 23-57 22Z" fill="#1d2735" stroke="#111a25" stroke-width="4"/>
+    <path d="m335 224 108 23 13 9-13 9-108 23-42-32Z" fill="#111b28" stroke="#657587" stroke-width="4"/>
+    <path d="m356 239 87 12 7 5-7 5-87 12-29-17Z" fill="#2d3948" stroke="#0b111a" stroke-width="3"/>
+
+    <path d="m131 154 25-20 51 3 42 31-38 17-90-9Z" fill="#202a37" stroke="#718092" stroke-width="3"/>
+    <path d="m131 358 25 20 51-3 42-31-38-17-90 9Z" fill="#18222e" stroke="#4d5b6b" stroke-width="3"/>
+    <path d="m120 212 89 10 47 34-47 34-89 10-10-44Z" fill="#303c4b" stroke="#121a24" stroke-width="4"/>
+    <path d="m139 229 62 7 28 20-28 20-62 7-6-27Z" fill="#111a25" stroke="#566474" stroke-width="3"/>
+
+    <g fill="#111923" stroke="#5d6b79" stroke-width="3">
+      <path d="m87 157 30-25 25 11-10 47-34 4Z"/>
+      <path d="m87 355 30 25 25-11-10-47-34-4Z"/>
+    </g>
+    <g fill="#273544" stroke="#0a111a" stroke-width="4">
+      <path d="m79 146 25-9 17 9-6 30-27 7-13-12Z"/>
+      <path d="m79 366 25 9 17-9-6-30-27-7-13 12Z"/>
+    </g>
+
+    <circle cx="258" cy="256" r="42" fill="#101925" stroke="#687687" stroke-width="6"/>
+    <circle cx="258" cy="256" r="27" fill="#07141d" stroke="#0a8da8" stroke-width="5"/>
+    <circle cx="258" cy="256" r="15" fill="url(#reactor)" stroke="#b9f8ff" stroke-width="2"/>
+
+    <path d="m293 196 57 13 50 31-68-12-55-24Z" fill="url(#energy)" stroke="#063e50" stroke-width="3"/>
+    <path d="m293 316 57-13 50-31-68 12-55 24Z" fill="url(#energy)" stroke="#063e50" stroke-width="3"/>
+    <path d="m151 205 68 8 32 18-84-10Z" fill="#24cce6" stroke="#063e50" stroke-width="3"/>
+    <path d="m151 307 68-8 32-18-84 10Z" fill="#24cce6" stroke="#063e50" stroke-width="3"/>
+
+    <g fill="url(#energy)" stroke="#052f3b" stroke-width="2">
+      <rect x="83" y="149" width="18" height="27" rx="5"/>
+      <rect x="83" y="336" width="18" height="27" rx="5"/>
+      <path d="m393 247 34 9-34 9Z"/>
+    </g>
+  </g>
+
+  <g fill="#33dff3" opacity=".58" filter="url(#glow)">
+    <path d="m293 196 107 44-68-12-55-24Z"/>
+    <path d="m293 316 107-44-68 12-55 24Z"/>
+    <circle cx="258" cy="256" r="22"/>
+  </g>
+
+  <g fill="none" stroke="#8a97a5" stroke-linecap="round" opacity=".7">
+    <path d="M163 165h35M173 347h31M337 202l27 8M337 310l27-8" stroke-width="3"/>
+    <path d="M127 244h34M127 268h34" stroke-width="2"/>
+  </g>
+  <g fill="#96a3b0">
+    <circle cx="147" cy="155" r="3"/>
+    <circle cx="147" cy="357" r="3"/>
+    <circle cx="301" cy="186" r="3"/>
+    <circle cx="301" cy="326" r="3"/>
+  </g>
+</svg>

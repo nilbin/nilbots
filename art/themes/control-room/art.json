@@ -1,6 +1,11 @@
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "themeId": "control-room",
+  "runtime": {
+    "atlasScale": 2,
+    "edgeQuality": 95,
+    "assetBudgetBytes": 3500000
+  },
   "wallFamilies": {
     "perimeter": {
       "source": "walls/perimeter/source.png",

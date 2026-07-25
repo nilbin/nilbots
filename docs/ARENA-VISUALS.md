@@ -70,7 +70,7 @@ web/src/assets/themes/overgrown-lab/
 
 web/src/assets/bot-looks/<look-id>/
   look.json
-  sprite.png
+  sprite.png | sprite.svg
 
 web/src/render/
   arenaThemes.ts     data loader and legacy fallbacks
@@ -130,9 +130,13 @@ pre-baked sprite. It does not draw borders, round rectangles, gradients,
 bevels, or shadows. Materials are mapped continuously over each connected
 family instead of restarting per ASCII cell.
 
-The atlas contract is currently 16 columns, a 96 px gameplay-cell core, and a
-16 px gutter on each side (128 px atlas entries). Shadow and edge sprites use
-the same mask index, so their registration cannot drift.
+The logical atlas contract is 16 columns, a 96 px gameplay-cell core, and a
+16 px gutter on each side. Production currently bakes that geometry at 2×:
+192 px cores, 32 px gutters, 256 px entries, and 4096×4096 atlases. Shadow and
+edge sprites use the same mask index, so their registration cannot drift.
+High-quality alpha WebP keeps those high-DPI atlases smaller than the former
+1× lossless files. Every `art.json` also declares a hard runtime asset budget;
+the build fails rather than silently making every replay download much larger.
 
 ### Zone treatment
 
@@ -200,10 +204,13 @@ sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/control-
 sandbox/theme-art-venv/bin/python scripts/build-theme-art.py art/themes/overgrown-lab/art.json
 ```
 
-`art.json` is the reproducible art-direction and geometry recipe. Keep the
-generated source prompt with the change/PR. If a future 2.5D renderer is
-adopted, feed the checked-in albedo/normal/height/roughness/AO maps to the DCC;
-do not regenerate the material merely to change camera or lighting.
+`art.json` is the reproducible art-direction and geometry recipe. Its `runtime`
+block owns atlas scale, edge WebP quality, and the theme-wide asset budget.
+Do not raise that budget merely to make a build pass: inspect the output and
+compare the self-contained viewer size first. Keep the generated source prompt
+with the change/PR. If a future 2.5D renderer is adopted, feed the checked-in
+albedo/normal/height/roughness/AO maps to the DCC; do not regenerate the
+material merely to change camera or lighting.
 
 Check the theme on the smallest and largest shipped maps. Dense wall maps must
 still distinguish open floor, blocked cells, zone tiles, bots, and projectile
@@ -228,7 +235,14 @@ presentation constant.
 
 ## Bot-look contract
 
-- Transparent 512×512 PNG.
+- Transparent 512×512 PNG or genuine SVG with `viewBox="0 0 512 512"`.
+- SVG is preferred for deliberately graphic mechanical forms whose silhouette,
+  panel lines, and emissive shapes can be authored as paths. It must not embed
+  a PNG/JPEG or a `data:image` payload; wrapping a bitmap in SVG gives no
+  scaling benefit.
+- Raster remains appropriate for painterly, organic, corroded, or
+  texture-heavy looks. Keep a higher-resolution master outside the runtime
+  package and derive the 512×512 PNG from it.
 - Exactly orthographic/top-down and facing East/right. The renderer rotates
   from that canonical orientation.
 - One chassis only, centered with generous padding and a crisp silhouette.
@@ -255,20 +269,24 @@ presentation constant.
   replay participants. Historical playback therefore does not consult the
   bot's current account record.
 
-Current looks are Vanguard, Bulwark, Needle, and Orbiter. Slot-based Vanguard /
-Bulwark selection exists only as a compatibility fallback for old replays that
-predate `lookId`.
+Current looks are Vanguard, Bulwark, Needle, Orbiter, and the genuine-vector
+Lancer proof. Slot-based Vanguard / Bulwark selection exists only as a
+compatibility fallback for old replays that predate `lookId`.
 
 To create another look:
 
-1. Generate or draw the East-facing source against a removable flat background.
-2. Remove the background, downscale to 512×512 RGBA, and inspect for colored
-   fringes and transparent corners.
+1. Choose vector only when the design can actually be expressed cleanly as
+   shapes. Otherwise generate or draw a high-resolution raster master.
+2. For vector, use a transparent 512 viewBox and inspect for embedded images,
+   filter clipping, and hairline seams. For raster, remove the background,
+   downscale to 512×512 RGBA, and inspect for colored fringes and transparent
+   corners.
 3. Add its `look.json`; no TypeScript edit is required.
 4. Test East, South, West, and North facings; movement, recoil, damage,
    destruction, fogging, and the telemetry thumbnail.
 5. Verify the sprite never obscures neighbouring cells or appears smaller than
-   health and projectile indicators.
+   health and projectile indicators. Inspect at actual gameplay size and at
+   device pixel ratios 1 and 2; a large standalone preview is insufficient.
 
 ## Animation contract
 
@@ -301,6 +319,9 @@ production candidates, then normalized locally:
 - No text, branding, people, horizon, perspective, or scene-level spotlight.
 - Bot sources used a flat magenta removal background, no shadows, and one
   centered East-facing chassis.
+- Lancer was authored directly as path-based SVG; the checked-in runtime file
+  is its editable source, contains no embedded raster, and needs no generated
+  image prompt.
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
