@@ -40,6 +40,7 @@ required=(
   deploy/deploy-worker.sh
   deploy/init-garage.sh
   deploy/install-release.sh
+  deploy/worker-inventory.sh
 )
 contents="$(tar -tzf "$temporary")"
 for path in "${required[@]}"; do

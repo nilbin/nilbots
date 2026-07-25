@@ -252,9 +252,6 @@ jobs:
           DEPLOY_HOST: ${{ vars.NILBOTS_DEPLOY_HOST }}
           DEPLOY_USER: ${{ vars.NILBOTS_DEPLOY_USER }}
           DEPLOY_PATH: ${{ vars.NILBOTS_DEPLOY_PATH }}
-          WORKER_HOST: ${{ vars.NILBOTS_WORKER_DEPLOY_HOST }}
-          WORKER_USER: ${{ vars.NILBOTS_WORKER_DEPLOY_USER }}
-          WORKER_PATH: ${{ vars.NILBOTS_WORKER_DEPLOY_PATH }}
           RUNTIME_REF: ${{ needs.publish.outputs.runtime-ref }}
           COMPILER_REF: ${{ needs.publish.outputs.compiler-ref }}
         run: |
@@ -291,8 +288,24 @@ jobs:
           bundle_sha="$(sha256sum "$bundle" | awk '{ print $1 }')"
           deploy_node install-primary "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_PATH"
 
-          if [[ -n "$WORKER_HOST" ]]; then
-            test -n "$WORKER_USER"
-            test -n "$WORKER_PATH"
-            deploy_node install-worker "$WORKER_HOST" "$WORKER_USER" "$WORKER_PATH"
-          fi
+          inventory="$RUNNER_TEMP/nilbots-workers.tsv"
+          ssh -i "$HOME/.ssh/nilbots-deploy" \
+            -o BatchMode=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "if [[ -f '$DEPLOY_PATH/shared/workers.tsv' ]]; then
+               cat '$DEPLOY_PATH/shared/workers.tsv'
+             fi" >"$inventory"
+          bash deploy/worker-inventory.sh validate "$inventory"
+          bash deploy/worker-inventory.sh known-hosts "$inventory" \
+            >>"$HOME/.ssh/known_hosts"
+
+          while IFS=$'\t' read -r \
+            worker_name worker_host worker_user worker_path; do
+            test "$worker_host" != "$DEPLOY_HOST"
+            echo "Deploying worker $worker_name ($worker_host)"
+            deploy_node \
+              install-worker \
+              "$worker_host" \
+              "$worker_user" \
+              "$worker_path"
+          done < <(bash deploy/worker-inventory.sh targets "$inventory")

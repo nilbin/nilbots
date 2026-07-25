@@ -8,3 +8,4 @@ dotnet build BotArena.sln -v q
 dotnet test BotArena.sln --no-build -v q "$@"
 bash scripts/test-init-garage.sh
 bash scripts/test-release-installer.sh
+bash scripts/test-worker-bootstrap.sh

@@ -1624,6 +1624,24 @@ before picking a number.*
      one lane remains the production default until measured throughput
      justifies increasing `BOTARENA_MATCH_WORKERS` or adding another consumer.
 
+112. **The primary's persistent non-secret worker inventory is the fleet trust
+     root and deployment source of truth.** Each tab-separated record contains
+     a stable node name, public SSH target, deployment path, provider-private
+     application address, and the worker's verified Ed25519 SSH host key.
+     Bootstrap streams the primary's minimal shared application settings and
+     OpenIddict certificates directly to a hardened worker, never through a
+     workstation file, while excluding Garage administration credentials. It
+     verifies private PostgreSQL/S3 connectivity, installs a persistent
+     `DOCKER-USER` rule that admits Kestrel only from primary ingress, and
+     disables root SSH only after operator access succeeds. Caddy derives web
+     upstreams from this inventory. The manual release runner trusts the
+     already-pinned primary, retrieves and strictly validates the inventory,
+     extends known hosts from its recorded keys, and deploys every worker
+     sequentially. This replaces per-worker GitHub variables and makes fleet
+     growth an authenticated bootstrap plus one inventory entry, without
+     adding a scheduler, service discovery system, or repository checkout on
+     a VPS.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

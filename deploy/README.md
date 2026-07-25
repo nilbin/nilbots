@@ -59,9 +59,10 @@ and `iptables`/`DOCKER-USER` policy on the VPS.
 
 On a fresh matching VPS, `deploy/provision-host.sh` installs Docker from its
 official repository, creates the `nilbots` operator from root's authorized
-keys, enables security updates and the firewall, and applies conservative SSH
-and Docker log settings. Run it once as root, verify a separate operator SSH
-session, and only then disable root SSH.
+keys, enables unattended security updates and ufw, and applies conservative
+SSH and Docker log settings. `bootstrap-worker.sh` orchestrates this script,
+verifies operator access, installs a persistent `DOCKER-USER` policy, and only
+then disables root SSH.
 
 The default provisions a public ingress host and opens TCP 80/443 plus UDP
 443. Provision a worker, database, or other private-only node without those
@@ -108,30 +109,66 @@ credentials with those stable private endpoints; never route them over the
 public interface. Garage's admin and RPC interfaces stay unpublished until a
 deliberate cross-host storage expansion needs them.
 
-On each worker, use a minimal `shared/.env` containing the shared database,
-S3, OpenIddict certificate password, network hash key, and compiler-admission
-settings plus:
+## Adding a worker VPS
 
-```dotenv
-BOTARENA_DOMAIN=nilbots.com
-BOTARENA_DB_HOST=10.201.128.10
-BOTARENA_S3_ENDPOINT=http://10.201.128.10:3900
-BOTARENA_WEB_BIND_ADDRESS=10.201.128.11
-BOTARENA_WEB_PORT=8080
-BOTARENA_COMPILE_INSTANCE_ID=compile-2
+Create an Ubuntu 26.04 amd64 VPS with the operator's public key and attach it
+to the primary's provider-private network. Do not open public application
+ports. From an authenticated repository checkout, run:
+
+```bash
+bash deploy/bootstrap-worker.sh \
+  --primary nilbots@PRIMARY_PUBLIC_HOST \
+  --primary-private-ip PRIMARY_PRIVATE_IP \
+  --worker-admin root@NEW_WORKER_PUBLIC_HOST \
+  --worker-private-ip NEW_WORKER_PRIVATE_IP \
+  --name worker-3 \
+  --size standard
 ```
 
-Use the real private addresses and unique compiler instance IDs for every
-node. Copy the same OpenIddict signing/encryption certificates to every web
-node, preserving their restrictive ownership and modes. Do not copy Garage
-administration or RPC secrets to a worker.
+The bootstrap performs the full host and fleet setup:
 
-On the ingress node, list the local and private worker endpoints as
-space-separated Caddy upstreams:
+- verifies Ubuntu 26.04 amd64 and the assigned private address;
+- creates non-root `nilbots` access and synchronizes the primary's operator and
+  GitHub deployment public keys;
+- installs Docker, bounded logs, unattended upgrades, SSH hardening, ufw, and
+  a reboot-persistent `DOCKER-USER` policy;
+- renders a minimal worker environment from the primary without ever copying
+  Garage RPC/admin/metrics credentials;
+- streams and SHA-256-verifies the shared OpenIddict certificates without
+  writing them to the invoking workstation;
+- binds Kestrel only to the new worker's private address and permits port 8080
+  only from the primary private address;
+- proves PostgreSQL and Garage connectivity over the private network;
+- disables root SSH only after operator access works; and
+- records the verified SSH host key, deployment target, and private endpoint in
+  the primary's non-secret `shared/workers.tsv`.
 
-```dotenv
-BOTARENA_WEB_UPSTREAMS="web:8080 10.201.128.11:8080"
+That inventory is the production fleet source of truth. Caddy derives its
+private upstreams from it, and the manual GitHub workflow retrieves it through
+the authenticated primary before deploying every registered worker. GitHub
+therefore needs no per-worker variables or separately maintained worker
+known-host secret.
+
+`--adopt` performs the configuration, hardening, and registration steps on an
+already-provisioned passwordless-sudo operator without reinstalling the OS
+packages. `--no-register` prepares and verifies a disposable node without
+placing it behind Caddy or in future releases.
+
+The `xs-smoke` size profile is for cheaply rehearsing provisioning, networking,
+web startup, release installation, and removal. It is not evidence that a
+memory-constrained XS node can complete hostile NativeAOT builds reliably.
+Use `standard` for real compiler capacity.
+
+To remove a disposable or retired node from future releases and Caddy:
+
+```bash
+bash deploy/unregister-worker.sh \
+  nilbots@PRIMARY_PUBLIC_HOST \
+  worker-3
 ```
+
+This deliberately leaves the VPS and its containers intact for inspection.
+Stop them and delete the VPS separately only after verifying the exact target.
 
 Caddy uses a sticky load-balancer cookie for WebSocket/SignalR affinity and
 actively checks `/health/ready`. The remote Kestrel listener must bind only to
@@ -183,17 +220,19 @@ deploy_root=/srv/nilbots/deployment
 operator_gid="$(id -g)"
 install -d -m 700 "$deploy_root/shared/backups"
 install -m 600 deploy/.env "$deploy_root/shared/.env"
-sudo install -d -m 770 -o 1654 -g "$operator_gid" \
+sudo install -d -m 770 -o "$(id -un)" -g "$operator_gid" \
   "$deploy_root/shared/secrets"
-sudo install -m 660 -o 1654 -g "$operator_gid" \
+sudo install -m 660 -o "$(id -un)" -g "$operator_gid" \
   deploy/secrets/*.pfx "$deploy_root/shared/secrets/"
+sudo chown -R "1654:$operator_gid" "$deploy_root/shared/secrets"
 ```
 
 The workflow creates `releases/<git-sha>`, links persistent configuration to
 `shared/`, and atomically advances `current` only after the candidate release
 is healthy. `previous` remains available for rollback. Primary releases use
-`install-primary`; configured worker hosts use `install-worker`. A primary
-deployment completes migrations before workers receive the new images.
+`install-primary`; every host in the primary's strictly validated worker
+inventory uses `install-worker`. A primary deployment completes migrations
+before workers receive the new images.
 UID 1654 is the unprivileged runtime account baked into the image; the
 operator's private group retains certificate-management access without making
 the private keys world-readable.

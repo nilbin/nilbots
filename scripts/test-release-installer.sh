@@ -16,7 +16,8 @@ cp deploy/install-release.sh "$source_root/deploy/install-release.sh"
 touch \
   "$source_root/deploy/Caddyfile" \
   "$source_root/deploy/compose.production.yml" \
-  "$source_root/deploy/init-garage.sh"
+  "$source_root/deploy/init-garage.sh" \
+  "$source_root/deploy/worker-inventory.sh"
 test_log="$test_root/activations"
 export TEST_RELEASE_ACTIVATION_LOG="$test_log"
 

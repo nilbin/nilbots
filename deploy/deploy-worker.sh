@@ -111,8 +111,8 @@ for forbidden in db garage-a garage-b garage-c garage-gateway migrate caddy matc
 done
 
 if [[ -f "$release_env" ]]; then
-  # shellcheck disable=SC1090
   set -a
+  # shellcheck disable=SC1090
   source "$release_env"
   set +a
   "${compose[@]}" pull web compile-worker compiler-runner

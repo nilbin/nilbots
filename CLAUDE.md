@@ -116,6 +116,12 @@ Project boundaries that must not be violated:
 - Production releases are manual-only GitHub Actions runs. They publish the
   runtime and compiler images to GHCR with immutable SHA tags, digest-pinned
   deployment references, SBOMs, and provenance attestations.
+- The primary's persistent `shared/workers.tsv` is the non-secret worker fleet
+  authority. `deploy/bootstrap-worker.sh` is the only normal path for adding a
+  node: it provisions and verifies private binding, filtered secrets, shared
+  OpenIddict certificates, SSH host identity, and firewall policy. Caddy and
+  the manual release workflow both derive workers from that validated
+  inventory; do not reintroduce per-worker GitHub variables.
 
 Runtime protocol 0.1 is a line-oriented text protocol over two wasm imports
 (`botarena::next_observation` / `post_decision`). Host and guest halves live in

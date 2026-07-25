@@ -485,6 +485,8 @@ PostgreSQL, and object storage can each remain a single failure point.
       network.
 - [x] Run a second web replica behind Caddy with private binding, active health
       checks, and sticky SignalR affinity.
+- [x] Bootstrap hardened workers and deploy an arbitrary registered fleet from
+      one authenticated, non-secret primary inventory.
 - [x] Add worker IDs and lease renewal.
 - [ ] Prove compile job retry/idempotency through forced worker termination.
 - [x] Make ranked-set finalization transactionally exactly-once before adding
