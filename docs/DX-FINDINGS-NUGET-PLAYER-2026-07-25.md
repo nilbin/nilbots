@@ -122,17 +122,30 @@ matched and another did not: parity is an accident of where each was built.
 This matters because bit-identical local↔server is advertised on the NuGet page
 and in `submit`'s own output, and "determinism is the product" (CLAUDE.md).
 
-**Recommended fix (NOT applied — needs supervision):** deterministic source
-paths in the controlled build — MSBuild `PathMap` normalising the SDK/Guest/bot
-source roots to stable virtual prefixes, plus `DeterministicSourcePaths`. This
-changes the bytes of **every** artifact: it invalidates the whole build cache,
-changes every champion artifact hash, and is a version-bump-class event by this
-project's own discipline (`Toolchain.GuestAdapterVersion`). It should ship as a
-deliberate batch with the goldens re-pinned, not as a drive-by.
+**FIXED** (owner-approved, DECISIONS #72). The controlled build project now sets
+`PathMap` from `$(MSBuildProjectDirectory)` to the fixed virtual root
+`/nilbots/bot`, plus `Deterministic` and `DebugType=none`, so the compiler never
+sees where it actually ran.
 
-Interim honesty option if the fix is deferred: `submit` should stop guessing
-"likely toolchain/sysroot drift" and state the real cause, and the NuGet README
-should not promise bit-identical artifacts until it is true.
+Measured after the fix — two cold builds of identical sources under two
+different cache roots (i.e. two different workspace paths):
+
+```
+build A (BOTARENA_HOME=…/repro-a): 78da86bc9ce7320989bf053abe5a0d78e3bfd48fab48b2e89c896631564001ea
+build B (BOTARENA_HOME=…/repro-b): 78da86bc9ce7320989bf053abe5a0d78e3bfd48fab48b2e89c896631564001ea
+```
+
+`strings` now finds **no** `/home`, `/tmp` or `/root` path anywhere in the
+artifact. Two bonuses fell out: artifacts shrank **2.54 MB → 998 KB (61%)**
+because debug info dominated them, and player artifacts stop leaking our build
+directories to anyone who downloads one. Fault reporting is unchanged — the
+guest reports exception type + message, not line numbers (verified end to end:
+`Fault s0: InvalidOperationException: deliberate fault for diagnostics`).
+
+`BuildPipelineVersion` 1 → 2 invalidates every cached artifact, which is the
+intended blast radius. Committed champion artifacts are frozen binaries and keep
+working untouched. `scripts/e2e.sh` now builds the same bot under two cache roots
+and fails if the hashes differ, so this cannot silently regress.
 
 ## Fixed: headless onboarding (the friend's-agent path)
 

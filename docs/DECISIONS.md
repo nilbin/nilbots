@@ -933,6 +933,29 @@ configuration) and changing them is a version bump, not an edit.
     not a drive-by. Until then `submit` should not guess "toolchain/sysroot
     drift" and the NuGet README should not promise bit-identical artifacts.
 
+72. **Player builds are reproducible: the workspace path no longer reaches the
+    artifact (fixes the local<->server parity promise, DECISIONS #71).** The
+    controlled build project now sets `PathMap` from `$(MSBuildProjectDirectory)`
+    to the fixed virtual root `/nilbots/bot`, plus `Deterministic` and
+    `DebugType=none`. Cause being fixed: the workspace lives at a different
+    absolute path per host — the caller's cache dir locally,
+    `BuildIsolation.WorkRoot/<key>` under server isolation — and those bytes were
+    compiled into the artifact, so "local and server produce identical WASM" was
+    false by construction rather than by drift. Measured before: local
+    `6fb40191...` vs server `0178dcf8...`. Measured after: two cold builds from
+    two different cache roots produce the SAME hash
+    (`78da86bc9ce7320989bf053abe5a0d78e3bfd48fab48b2e89c896631564001ea`), and
+    `strings` finds no `/home`, `/tmp` or `/root` path in the artifact at all.
+    Two bonuses: artifacts shrank 2.54 MB -> 998 KB (61%) because debug info was
+    dominating them, and player artifacts stop leaking our build directories.
+    Fault reporting is unaffected — the guest reports exception type + message,
+    not line numbers (verified: `Fault s0: InvalidOperationException: deliberate
+    fault for diagnostics`). `BuildPipelineVersion` 1 -> 2 invalidates every
+    cached artifact, which is the intended blast radius; committed champion
+    artifacts are frozen binaries and keep working unchanged. Guarded by a new
+    `scripts/e2e.sh` assertion that builds the same bot under two cache roots and
+    fails if the hashes differ, so this cannot silently regress.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

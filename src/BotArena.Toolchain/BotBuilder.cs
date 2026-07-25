@@ -101,6 +101,15 @@ public static class BotBuilder
                 <ImplicitUsings>enable</ImplicitUsings>
                 <AssemblyName>bot</AssemblyName>
                 <InvariantGlobalization>true</InvariantGlobalization>
+                <!-- Reproducibility (DECISIONS #72). The workspace lives at a different
+                     absolute path on every build host — the caller's cache dir locally,
+                     BuildIsolation.WorkRoot/<key> on the server — and those bytes were
+                     landing inside the artifact, so "local and server produce identical
+                     WASM" was false by construction. Map the workspace to a fixed
+                     virtual root so the compiler never sees where it actually ran. -->
+                <PathMap>$(MSBuildProjectDirectory)=/nilbots/bot</PathMap>
+                <Deterministic>true</Deterministic>
+                <DebugType>none</DebugType>
               </PropertyGroup>
               <ItemGroup>
                 <DirectPInvoke Include="botarena" />

@@ -19,6 +19,25 @@ mkdir -p sandbox && (cd sandbox && dotnet run --project ../src/BotArena.Cli -- n
 dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot
 dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot | grep -q "Cache:            hit" \
   || { echo "expected a build cache hit on the second build" >&2; exit 1; }
+
+# Reproducibility (DECISIONS #72): identical sources must produce identical bytes no
+# matter WHERE they are compiled. Two different cache roots mean two different
+# workspace paths — the exact difference that made local and server artifacts diverge
+# and broke the bit-identical-parity promise. Compare hashes from a cold build in each.
+hash_from() {  # $1 = cache root
+  BOTARENA_HOME="$1" dotnet run --project src/BotArena.Cli -- build sandbox/E2EBot \
+    | sed -n 's/^Artifact hash: *//p' | tr -d '[:space:]'
+}
+REPRO_ROOT="$(mktemp -d)"
+REPRO_A="$(hash_from "$REPRO_ROOT/a")"
+REPRO_B="$(hash_from "$REPRO_ROOT/b")"
+rm -rf "$REPRO_ROOT"
+[ -n "$REPRO_A" ] && [ "$REPRO_A" = "$REPRO_B" ] || {
+  echo "build is NOT reproducible across workspace paths: '$REPRO_A' != '$REPRO_B'" >&2
+  echo "(this is what makes local and server artifacts differ — see DECISIONS #72)" >&2
+  exit 1
+}
+echo "Reproducible across build roots: $REPRO_A"
 dotnet run --project src/BotArena.Cli -- play --bot sandbox/E2EBot --opponent hunter --seed 42 --out "$OUT"
 dotnet run --project src/BotArena.Cli -- doctor
 echo
