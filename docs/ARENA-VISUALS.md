@@ -209,25 +209,22 @@ Check the theme on the smallest and largest shipped maps. Dense wall maps must
 still distinguish open floor, blocked cells, zone tiles, bots, and projectile
 paths at a glance.
 
-### Combat-legibility invariant
+### Adaptive combat contrast
 
-Themes own atmosphere, bots own their accent, and the renderer owns combat
-readability. Health and ordnance must not depend on a theme texture or
-player-selected accent having favorable contrast.
+Health and ordnance retain their original accent-colored pips, glow, trails,
+and projectile silhouettes. The renderer samples the already-painted pixels
+beneath each indicator. If the authored bot accent falls below 3:1 graphical
+contrast there, it makes the smallest one-percent blend toward black or white
+that reaches the threshold. Otherwise it uses the authored color unchanged.
 
-- Health uses a proportional status line: a thin capacity hairline and a
-  thicker remaining-health segment, each with a small dark offset shadow.
-  Exact `current/max` health remains in telemetry; `maxHealth` comes from the
-  replay's rules snapshot rather than a presentation constant.
-- Projectile paths, warning marks, energy lances, and firing beams pair a
-  displaced dark motion shadow with a light face beneath their accent and glow.
-- Additive blending is decorative only. It must never be the sole silhouette
-  of a gameplay-critical indicator.
-- The renderer's dark/light pair must retain at least 4.5:1 worst-case contrast
-  against any opaque background luminance. Empty health states use both tones
-  rather than inheriting the map surface.
-- New themes and bot accents require no contrast metadata and may not override
-  these neutral layers.
+This adjustment is local presentation only: it does not mutate the bot-owned
+accent or replay data, add a plaque/outline, or constrain theme materials.
+Projectile glow remains additive, while its slim accent core uses normal
+compositing so a locally darkened accent can actually read on a pale floor.
+Canvas sampling failure also falls back to the authored accent rather than
+breaking playback. Health pip count comes from the replay's rules-owned
+`maxHealth` snapshot (with the historical three-health fallback), never a
+presentation constant.
 
 ## Bot-look contract
 

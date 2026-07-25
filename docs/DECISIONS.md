@@ -906,17 +906,18 @@ configuration) and changing them is a version bump, not an edit.
     and leaves the material bundle ready for a later orthographic 2.5D DCC
     bake without changing map semantics.
 
-80. **Combat readability is renderer-owned and independent of theme art or
-    player accent.** Themes remain free to use light, dark, and locally varied
-    materials. Health and ordnance therefore pair a displaced dark mark with a
-    light face whose worst-case contrast floor exceeds 4.5:1 over any opaque
-    background luminance; accent and additive glow communicate identity but
-    never carry the only silhouette. Health is a proportional status line
-    rather than a fixed pip count. Non-default rules snapshot `maxHealth` into
-    the replay header, while omission preserves canonical bytes for historical
-    three-health replays; the viewer uses that snapshot for initial state,
-    arena rendering, and exact telemetry. Theme manifests cannot override
-    these neutral information layers.
+80. **Combat contrast minimally adapts the bot accent to the painted local
+    background; it does not add universal plaques or outlines.** Themes remain
+    free to use light, dark, and locally varied materials. Health and ordnance
+    keep their original pips, glow, trails, and projectile silhouettes. The
+    renderer samples beneath each indicator and preserves its authored accent
+    whenever that color already reaches 3:1 graphical contrast; otherwise it
+    makes the smallest one-percent blend toward black or white that does.
+    Sampling failure falls back to the authored accent. This is presentation
+    only and never mutates bot or replay identity. Non-default rules snapshot
+    `maxHealth` into the replay header, while omission preserves canonical
+    bytes for historical three-health replays; initial state and both health
+    displays use that dynamic value rather than a fixed count.
 
 ## Deferred decisions
 

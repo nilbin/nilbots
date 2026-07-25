@@ -1,7 +1,11 @@
 import clsx from 'clsx';
 import { useMemo } from 'react';
 import type { ReplayDocument } from '../types';
-import { botLook } from '../render/arenaThemes';
+import {
+  botLook,
+  presentationAccent,
+} from '../render/arenaThemes';
+import { adjustAccentForBackground } from '../render/adaptiveAccent';
 import { stateBefore } from '../render/interpolate';
 import { replayMaxHealth } from '../replayMetadata';
 
@@ -150,6 +154,10 @@ export default function BotPanel({
         const botTick = tickData.bots.find((b) => b.slot === participant.slot);
         const selected = selectedSlot === participant.slot;
         const look = botLook(participant.lookId, participant.slot);
+        const accent = adjustAccentForBackground(
+          presentationAccent(look, participant.accent),
+          '#111823',
+        );
         return (
           <button
             key={participant.slot}
@@ -190,14 +198,16 @@ export default function BotPanel({
             </div>
 
             <div className="mt-2 flex items-center gap-3 font-mono text-xs">
-              <span
-                className="text-arena-dim"
-                aria-label={`Health ${state.health} of ${maxHealth}`}
-              >
-                HP{' '}
-                <span className="text-arena-text">
-                  {state.health}/{maxHealth}
-                </span>
+              <span aria-label={`Health ${state.health} of ${maxHealth}`}>
+                {Array.from({ length: maxHealth }, (_, i) => (
+                  <span
+                    key={i}
+                    style={{ color: i < state.health ? accent : undefined }}
+                    className={i < state.health ? '' : 'text-arena-edge'}
+                  >
+                    ♥
+                  </span>
+                ))}
               </span>
               <span className="text-arena-dim">
                 CD <span className="text-arena-text">{state.cooldown}</span>
