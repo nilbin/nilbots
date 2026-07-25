@@ -86,9 +86,11 @@ to silently dropped flags).
 
 Ranked play matchmakes opponents by rating for players (DECISIONS #95), but a
 tournament needs scripted pairings, so `opponentBotId` still works on a local
-`all` server — the role the arena runs on. If you ever point the harness at a
-non-local server, set `BOTARENA_ALLOW_PINNED_RANKED=true` there or every set
-comes back 400.
+`all` server — the role the arena runs on. The same flag governs ARM rulesets:
+players may only rank on shipped versions (DECISIONS #97), so a `{"rules":"cone"}`
+set is refused anywhere the flag is off. If you ever point the harness at a
+non-local server, set `BOTARENA_ALLOW_PINNED_RANKED=true` there or every
+experiment set comes back 400.
 
 Since DECISIONS #54 a ranked request can also
 pin rules per set (`{"rules":"<arm>"}` on POST /api/matches/ranked) and

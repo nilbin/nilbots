@@ -47,9 +47,29 @@ public static class RankedEndpoints
             Engine.GameRules setRules;
             try
             {
-                setRules = request.Rules is { Length: > 0 } rulesName
-                    ? Engine.GameRules.Resolve(rulesName)
-                    : JobWorker.MatchRules;
+                if (request.Rules is { Length: > 0 } rulesName)
+                {
+                    // GameRules.Resolve accepts every research arm as well as the shipped
+                    // versions, and this endpoint used to hand it whatever arrived
+                    // (DECISIONS #97). A player could therefore rate on `energy` or
+                    // `strafe`: mechanics no player-facing doc describes, on a ladder the
+                    // balance harness reads as experiment data, dragging a matchmade
+                    // opponent into a game its author never targeted.
+                    if (!Engine.GameRules.ShippedNames.Contains(rulesName) &&
+                        !AllowsPinnedOpponents(mode, configuration))
+                        return Results.Problem(
+                            (Engine.GameRules.KnownNames.Contains(rulesName)
+                                ? $"'{rulesName}' is a research arm, not the game."
+                                : $"Unknown rules '{rulesName}'.") +
+                            $" Ranked sets play the shipped rules: " +
+                            $"{string.Join(", ", Engine.GameRules.ShippedNames)}.",
+                            statusCode: 400);
+                    setRules = Engine.GameRules.Resolve(rulesName);
+                }
+                else
+                {
+                    setRules = JobWorker.MatchRules;
+                }
             }
             catch (ArgumentException ex)
             {

@@ -1309,6 +1309,31 @@ before picking a number.*
     Also fixed in passing: the empty-ladder hint still read `nilbots rank <bot>
     <opponent>`, which #95 had made wrong.
 
+97. **Ranked play accepts shipped rules versions only; research arms need the same
+    opt-in as pinned opponents.** Owner asked whether the `rules` field on a ranked
+    challenge makes sense. Partly. Per-ruleset ladders (#54) are right — every rules
+    version keeps its own elo, so an old bot is never invalidated — but the endpoint
+    handed whatever arrived straight to `GameRules.Resolve`, which accepts 25 names:
+    5 shipped versions and ~20 research arms. Verified live before fixing:
+    `{"rules":"energy"}` from an ordinary player account queued a rated set.
+    Three things wrong with that, in increasing order of seriousness. Arms are
+    mechanics no player-facing doc describes, so a rating exists on a ladder nobody
+    can read the rules for. Choosing the ruleset is the same "pick your venue" lever
+    that #95 removed for opponents — you could fish for the arm your bot happens to
+    suit. And worst, arm ladders are EXPERIMENT DATA: the balance harness reads them
+    to make ship/no-ship calls, and player traffic would quietly contaminate a
+    measurement the whole rules methodology depends on.
+    Ranked now refuses any name outside `GameRules.ShippedNames` unless
+    `BOTARENA_ALLOW_PINNED_RANKED` is on — the same gate that admits scripted
+    pairings, since both are evaluation-harness needs rather than player-facing
+    ones. The refusal distinguishes a known arm from an unknown name, because
+    telling someone who typed `wibble` that it is "a research arm" is a lie.
+    Left as-is deliberately: players may still rank on OLDER shipped versions
+    (0.1-0.4). Those rules shipped and are documented, so a bot built for them can
+    still compete. Open question if the ladders ever get busy: whether a retired
+    official ruleset should freeze into a historical record rather than stay
+    playable, since a matchmade opponent on the 0.3 ladder never chose 0.3 either.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

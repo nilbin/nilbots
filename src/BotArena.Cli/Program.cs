@@ -241,6 +241,11 @@ static int CommandHelp(string command)
             `nilbots set` is different again — a LOCAL simulation that changes nothing on
             the server.
 
+            --rules picks WHICH ladder, and only the shipped rules are on offer: every
+            rules version keeps its own elo, so an old bot is never invalidated by a new
+            version. Research arms are not playable ranked — they are experiments, and
+            your opponent never signed up for them.
+
             Results are withheld until every game has broadcast, so nothing spoils the
             watch; then `nilbots leaderboard` shows the new standings.
             """,

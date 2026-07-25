@@ -113,6 +113,7 @@ curl -b jar -H 'Content-Type: application/json' \\
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"botId":"...","rules":"0.5"}' \\
   <server>/api/matches/ranked          # opponent is matchmade by rating; rules optional
+                                       # (shipped versions only — each has its own ladder)
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"botId":"...","opponentBotId":"...","mapId":"arena-01"}' \\
   <server>/api/matches/challenge       # unranked: you pick, nothing touches the ladder
