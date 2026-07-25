@@ -286,7 +286,7 @@ if (mode.RunsWeb)
 
     app.MapGet("/llms-full.txt", () =>
     {
-        string? guide = RepoPaths.FindUpward(Path.Combine("docs", "RULES-0.5-PLAYER-GUIDE.md"));
+        string? guide = RepoPaths.FindUpward(Path.Combine("docs", "PLAYER-GUIDE.md"));
         return guide is null
             ? Results.NotFound("Player guide not found on this deployment.")
             : Results.Text(File.ReadAllText(guide), "text/plain; charset=utf-8");

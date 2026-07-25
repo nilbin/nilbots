@@ -63,13 +63,14 @@ public class DocDriftTests
     [Fact]
     public void PlayerDocs_DescribeTheCurrentRulesVersion()
     {
-        // The template README is now a FRAGMENT — its rules section is spliced in from
-        // the canonical card at `nilbots new` time — so the version stamp is asserted
-        // where players actually read it: the site, and the card itself.
-        string expected = "v" + BotArenaVersions.GameRulesVersion;
-        Assert.Contains(expected, ReadRepoFile("web", "src", "site", "pages", "DocsPage.tsx"));
+        // Both player-facing docs are now assembled rather than hand-written: the site
+        // renders the canonical card and stamps the version from a constant, and the
+        // template README splices the card in at `nilbots new` time. So assert the
+        // version reaches each surface, not that a literal "v0.5" is typed there.
+        Assert.Contains($"RULES_VERSION = '{BotArenaVersions.GameRulesVersion}'",
+            ReadRepoFile("web", "src", "site", "pages", "DocsPage.tsx"));
         Assert.Contains(BotArenaVersions.GameRulesVersion,
-            ReadRepoFile("docs", "RULES-0.5-PLAYER-GUIDE.md"));
+            ReadRepoFile("docs", "PLAYER-GUIDE.md"));
     }
 
     /// <summary>The app serves web/dist/index.html directly, so a stale bundle silently
@@ -96,7 +97,7 @@ public class DocDriftTests
     [Fact]
     public void CanonicalRulesCard_AgreesWithTheEngineNumbers()
     {
-        string card = ReadRepoFile("docs", "RULES-0.5-PLAYER-GUIDE.md");
+        string card = ReadRepoFile("docs", "PLAYER-GUIDE.md");
         var rules = GameRules.Current;
         (string Label, string Value)[] mustAppear =
         [

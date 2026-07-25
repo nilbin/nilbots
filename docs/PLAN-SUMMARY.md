@@ -53,7 +53,7 @@ That exceeded the original pre-registered 35% ceiling, so decision #74 remains
 a recorded failure. The product owner then accepted 42.5% as a healthy
 champion share, set 45% as the future ceiling, promoted the unchanged rules,
 and crowned Pincer gen-10 (decision #75). Detailed player rules:
-`docs/RULES-0.5-PLAYER-GUIDE.md`.
+`docs/PLAYER-GUIDE.md`.
 
 ## Game rules 0.1 (initial)
 

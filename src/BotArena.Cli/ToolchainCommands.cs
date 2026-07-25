@@ -94,7 +94,7 @@ public static class NewCommand
     /// a missing doc must never block creating a bot.</summary>
     private static string ReadCanonicalRulesCard()
     {
-        const string guideName = "RULES-0.5-PLAYER-GUIDE.md";
+        const string guideName = "PLAYER-GUIDE.md";
         string packaged = Path.Combine(AppContext.BaseDirectory, "docs", guideName);
         string? path = File.Exists(packaged)
             ? packaged

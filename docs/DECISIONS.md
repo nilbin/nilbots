@@ -810,7 +810,7 @@ configuration) and changing them is a version bump, not an edit.
     maximum. Do not relax that gate or tune the rules post hoc. Keep v8 and
     Pincer frozen; the next experiment is an equal-budget, fresh-seed
     counterplay adaptation trial pre-registered in RULES-0.5-DESIGN §R.
-    `docs/RULES-0.5-PLAYER-GUIDE.md` becomes the one player-facing
+    `docs/PLAYER-GUIDE.md` becomes the one player-facing
     experiment brief, and the shared skills preserve this native-cohort →
     blind review → strict verdict workflow.
 
