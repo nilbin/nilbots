@@ -6,4 +6,5 @@ cd "$(dirname "$0")/.."
 bash scripts/build-wasm-guest.sh
 dotnet build BotArena.sln -v q
 dotnet test BotArena.sln --no-build -v q "$@"
+bash scripts/test-init-garage.sh
 bash scripts/test-release-installer.sh
