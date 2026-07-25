@@ -92,7 +92,13 @@ compose=(
 if [[ -f "$release_env" ]]; then
   compose+=(--env-file "$release_env")
 fi
-compose+=(-f "$deploy_dir/compose.production.yml")
+compose+=(
+  -f "$deploy_dir/compose.production.yml"
+  --profile stateful
+  --profile edge
+  --profile match
+  --profile compile
+)
 
 "${compose[@]}" config --quiet
 if [[ -f "$release_env" ]]; then

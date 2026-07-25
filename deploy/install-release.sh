@@ -20,8 +20,11 @@ trap cleanup EXIT
 usage() {
   cat >&2 <<'EOF'
 usage:
-  install-release.sh install DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE BUNDLE BUNDLE_SHA256
+  install-release.sh install-primary DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE BUNDLE BUNDLE_SHA256
+  install-release.sh install-worker DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE BUNDLE BUNDLE_SHA256
   install-release.sh rollback DEPLOY_ROOT
+
+`install` remains an alias for `install-primary` for existing deployments.
 EOF
   exit 2
 }
@@ -69,18 +72,70 @@ acquire_lock() {
   fi
 }
 
+read_deployment_role() {
+  local role_file="$deploy_root/shared/role"
+  local role="primary"
+  if [[ -f "$role_file" ]]; then
+    role="$(<"$role_file")"
+  fi
+  case "$role" in
+    primary|worker)
+      printf '%s\n' "$role"
+      ;;
+    *)
+      echo "invalid deployment role '$role' in $role_file" >&2
+      exit 1
+      ;;
+  esac
+}
+
+validate_role_transition() {
+  local requested="$1"
+  local role_file="$deploy_root/shared/role"
+  if [[ -f "$role_file" && "$(<"$role_file")" != "$requested" ]]; then
+    echo "deployment is already locked to role '$(<"$role_file")'; refusing '$requested'" >&2
+    exit 1
+  fi
+  if [[ ! -f "$role_file" &&
+        -L "$deploy_root/current" &&
+        "$requested" != "primary" ]]; then
+    echo "existing unmarked deployments are treated as primary; refusing '$requested'" >&2
+    exit 1
+  fi
+}
+
+write_deployment_role() {
+  local role="$1"
+  local role_file="$deploy_root/shared/role"
+  local temporary="${role_file}.tmp"
+  printf '%s\n' "$role" >"$temporary"
+  chmod 600 "$temporary"
+  mv "$temporary" "$role_file"
+}
+
 validate_shared_state() {
+  local role="$1"
   local shared="$deploy_root/shared"
   if [[ ! -f "$shared/.env" ]]; then
     echo "missing $shared/.env" >&2
     exit 1
   fi
-  if [[ ! -f "$shared/secrets/openiddict-signing.pfx" ||
-        ! -f "$shared/secrets/openiddict-encryption.pfx" ]]; then
+  if [[ "$role" == "primary" &&
+        (! -f "$shared/secrets/openiddict-signing.pfx" ||
+         ! -f "$shared/secrets/openiddict-encryption.pfx") ]]; then
     echo "missing shared OpenIddict certificates under $shared/secrets" >&2
     exit 1
   fi
-  mkdir -p "$shared/backups"
+  mkdir -p "$shared/backups" "$shared/secrets"
+}
+
+deployment_script() {
+  local role="$1"
+  case "$role" in
+    primary) printf 'deploy.sh\n' ;;
+    worker) printf 'deploy-worker.sh\n' ;;
+    *) return 1 ;;
+  esac
 }
 
 write_release_environment() {
@@ -118,12 +173,16 @@ activate_release() {
 }
 
 install_release() {
-  [[ $# -eq 5 ]] || usage
-  local release_sha="$1"
-  local runtime_image="$2"
-  local compiler_image="$3"
-  local bundle="$4"
-  local expected_bundle_sha="$5"
+  [[ $# -eq 6 ]] || usage
+  local role="$1"
+  local release_sha="$2"
+  local runtime_image="$3"
+  local compiler_image="$4"
+  local bundle="$5"
+  local expected_bundle_sha="$6"
+  local deploy_script
+  deploy_script="$(deployment_script "$role")"
+  validate_role_transition "$role"
 
   if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ||
         ! "$runtime_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
@@ -175,6 +234,7 @@ install_release() {
       deploy/Caddyfile \
       deploy/compose.production.yml \
       deploy/deploy.sh \
+      deploy/deploy-worker.sh \
       deploy/init-garage.sh \
       deploy/install-release.sh; do
       if [[ ! -f "$staging_dir/$required" ]]; then
@@ -197,13 +257,17 @@ install_release() {
     "$release_sha"
   install -m 755 "$release_dir/deploy/install-release.sh" "$deploy_root/bin/release"
 
-  bash "$release_dir/deploy/deploy.sh"
+  bash "$release_dir/deploy/$deploy_script"
+  write_deployment_role "$role"
   activate_release "releases/$release_sha"
-  echo "activated release $release_sha from a verified deployment bundle"
+  echo "activated $role release $release_sha from a verified deployment bundle"
 }
 
 rollback_release() {
-  [[ $# -eq 0 ]] || usage
+  [[ $# -eq 1 ]] || usage
+  local role="$1"
+  local deploy_script
+  deploy_script="$(deployment_script "$role")"
   if [[ ! -L "$deploy_root/current" || ! -L "$deploy_root/previous" ]]; then
     echo "both current and previous release links are required for rollback" >&2
     exit 1
@@ -220,7 +284,7 @@ rollback_release() {
     exit 1
   fi
 
-  bash "$deploy_root/$previous_target/deploy/deploy.sh"
+  bash "$deploy_root/$previous_target/deploy/$deploy_script"
   atomic_link "$current_target" "$deploy_root/previous"
   atomic_link "$previous_target" "$deploy_root/current"
   echo "rolled back to ${previous_target#releases/}"
@@ -234,14 +298,20 @@ validate_root "$deploy_root"
 mkdir -p "$deploy_root"/{bin,incoming,releases,shared}
 deploy_root="$(cd "$deploy_root" && pwd -P)"
 acquire_lock
-validate_shared_state
 
 case "$operation" in
-  install)
-    install_release "$@"
+  install|install-primary)
+    validate_shared_state primary
+    install_release primary "$@"
+    ;;
+  install-worker)
+    validate_shared_state worker
+    install_release worker "$@"
     ;;
   rollback)
-    rollback_release "$@"
+    role="$(read_deployment_role)"
+    validate_shared_state "$role"
+    rollback_release "$role" "$@"
     ;;
   *)
     usage

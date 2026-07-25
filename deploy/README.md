@@ -1,11 +1,35 @@
 # nilbots production deployment
 
-This directory is the public-beta, single-VPS production shape from
+This directory is the public-beta production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):
 Caddy, one web role, one match worker, a compilation coordinator, a
 networkless compiler runner, PostgreSQL, and a private S3-compatible Garage
 cluster.
 The application roles remain separate processes of the same modular monolith.
+
+Production currently has one **primary** node and may have any number of
+**worker** nodes:
+
+- the primary is the sole owner of PostgreSQL, Garage, migrations, web ingress,
+  and the initial workers;
+- a worker runs only a match worker plus the compilation coordinator and its
+  co-located, networkless compiler runner;
+- workers reach PostgreSQL and the S3 gateway on the primary's private HostUp
+  network. They never create their own database or object-store volumes.
+
+Garage is intentionally not coupled to every compute worker. A later
+high-availability phase will introduce a distinct storage-node role and place
+one Garage storage node in each of at least three failure domains. Adding a
+Garage container to the present second VPS would not by itself make storage,
+PostgreSQL, or ingress survive loss of the primary.
+
+Every service has an explicit Compose profile (`stateful`, `edge`, `match`, or
+`compile`). Running Compose without profiles starts nothing. `deploy.sh`
+selects every profile for the primary; `deploy-worker.sh` selects only
+`match` and `compile` and refuses to continue if any stateful or edge service
+appears in its effective configuration. The release installer records
+`primary` or `worker` under `shared/role` and rejects later role changes,
+including during rollback.
 
 Production uses two custom images:
 
@@ -83,6 +107,20 @@ credentials with those stable private endpoints; never route them over the
 public interface. Garage's admin and RPC interfaces stay unpublished until a
 deliberate cross-host storage expansion needs them.
 
+On each worker, use a minimal `shared/.env` containing the shared database and
+S3 credentials plus:
+
+```dotenv
+BOTARENA_DB_HOST=10.201.128.10
+BOTARENA_S3_ENDPOINT=http://10.201.128.10:3900
+BOTARENA_MATCH_INSTANCE_ID=match-2
+BOTARENA_COMPILE_INSTANCE_ID=compile-2
+```
+
+Use the real primary private address and unique instance IDs for every node.
+Do not copy the OpenIddict private keys or Garage administration secrets to a
+worker.
+
 On an existing deployment, generate and append only the missing Garage/S3
 settings without replacing any configured values:
 
@@ -132,9 +170,11 @@ sudo install -m 660 -o 1654 -g "$operator_gid" \
   deploy/secrets/*.pfx "$deploy_root/shared/secrets/"
 ```
 
-The workflow creates `releases/<git-sha>`, links its `.env`, certificates and
-backup directory to `shared/`, and atomically advances `current` only after
-the candidate release is healthy. `previous` remains available for rollback.
+The workflow creates `releases/<git-sha>`, links persistent configuration to
+`shared/`, and atomically advances `current` only after the candidate release
+is healthy. `previous` remains available for rollback. Primary releases use
+`install-primary`; configured worker hosts use `install-worker`. A primary
+deployment completes migrations before workers receive the new images.
 UID 1654 is the unprivileged runtime account baked into the image; the
 operator's private group retains certificate-management access without making
 the private keys world-readable.
