@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mantis bot chassis facing east">
+  <defs>
+    <linearGradient id="mn-hull" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#4a5a63"/>
+      <stop offset=".45" stop-color="#28353c"/>
+      <stop offset="1" stop-color="#111b20"/>
+    </linearGradient>
+    <linearGradient id="mn-limb" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#33424a"/>
+      <stop offset=".55" stop-color="#1b262d"/>
+      <stop offset="1" stop-color="#0e161b"/>
+    </linearGradient>
+    <linearGradient id="mn-energy" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#116b3c"/>
+      <stop offset=".5" stop-color="#3fd97a"/>
+      <stop offset="1" stop-color="#d6ffe6"/>
+    </linearGradient>
+    <radialGradient id="mn-eye">
+      <stop stop-color="#f0fff5"/>
+      <stop offset=".3" stop-color="#5cf09a"/>
+      <stop offset=".68" stop-color="#0f9b52"/>
+      <stop offset="1" stop-color="#0d2c1e"/>
+    </radialGradient>
+    <filter id="mn-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+
+    <!-- Silhouette only: no fill or stroke here so the backing <use> can set both
+         and every limb picks up one consistent outline weight at gameplay size. -->
+    <g id="mn-shape">
+      <path d="M135 205 255 180 295 256 255 332 135 307 108 256Z"/>
+      <path d="M288 218 404 248 404 264 288 294Z"/>
+      <path d="M228 196 288 128 352 104 392 116 428 124 440 160 432 194 412 186 430 154 408 134 330 156 276 214Z"/>
+      <path d="M228 316 288 384 352 408 392 396 428 388 440 352 432 318 412 326 430 358 408 378 330 356 276 298Z"/>
+      <path d="M138 210 84 168 66 190 122 234Z"/>
+      <path d="M138 302 84 344 66 322 122 278Z"/>
+      <path d="M126 236 74 246 74 266 126 276Z"/>
+    </g>
+  </defs>
+
+  <use href="#mn-shape" fill="#080e13" stroke="#070b0f" stroke-width="15" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <!-- rear legs and tail spar -->
+    <g fill="url(#mn-limb)" stroke="#4d5c65" stroke-width="4">
+      <path d="M138 210 84 168 66 190 122 234Z"/>
+      <path d="M138 302 84 344 66 322 122 278Z"/>
+      <path d="M126 236 74 246 74 266 126 276Z"/>
+    </g>
+
+    <!-- raptorial arms, each ending in one bold inward hook -->
+    <g fill="url(#mn-limb)" stroke="#5c6b74" stroke-width="5">
+      <path d="M228 196 288 128 352 104 392 116 428 124 440 160 432 194 412 186 430 154 408 134 330 156 276 214Z"/>
+      <path d="M228 316 288 384 352 408 392 396 428 388 440 352 432 318 412 326 430 358 408 378 330 356 276 298Z"/>
+    </g>
+    <g fill="#26333a" stroke="#7c8b94" stroke-width="4">
+      <path d="M394 124 424 132 434 160 426 184 414 178 432 154 406 138Z"/>
+      <path d="M394 388 424 380 434 352 426 328 414 334 432 358 406 374Z"/>
+    </g>
+
+    <!-- prow -->
+    <path d="M288 218 404 248 404 264 288 294Z" fill="url(#mn-limb)" stroke="#6e7d86" stroke-width="5"/>
+    <path d="M300 234 372 251 372 261 300 278Z" fill="#0f181d" stroke="#39474f" stroke-width="3"/>
+
+    <!-- carapace -->
+    <path d="M135 205 255 180 295 256 255 332 135 307 108 256Z"
+      fill="url(#mn-hull)" stroke="#77868f" stroke-width="5"/>
+    <path d="M152 216 246 196 274 256 246 316 152 296 132 256Z"
+      fill="#1d282e" stroke="#43525a" stroke-width="4"/>
+    <path d="M168 228 232 214 252 256 232 298 168 284 154 256Z"
+      fill="#2b3941" stroke="#101a1f" stroke-width="3"/>
+  </g>
+
+  <!-- emissive: eye, thoracic vents, limb strips, prow tip -->
+  <g fill="url(#mn-energy)" stroke="#08402a" stroke-width="3">
+    <path d="M264 190 322 154 316 172 262 202Z"/>
+    <path d="M264 322 322 358 316 340 262 310Z"/>
+    <path d="M396 254 424 256 396 258Z"/>
+    <rect x="84" y="250" width="30" height="12" rx="5"/>
+  </g>
+  <path d="M245 256 230 282 200 282 185 256 200 230 230 230Z"
+    fill="#0b1a14" stroke="#0f8a4d" stroke-width="5"/>
+  <path d="M238 256 227 275 205 275 194 256 205 237 227 237Z"
+    fill="url(#mn-eye)" stroke="#b9ffd6" stroke-width="3"/>
+
+  <g fill="#3fd97a" opacity=".44" filter="url(#mn-glow)">
+    <path d="M245 256 230 282 200 282 185 256 200 230 230 230Z"/>
+    <path d="M264 190 322 154 316 172 262 202Z"/>
+    <path d="M264 322 322 358 316 340 262 310Z"/>
+    <circle cx="410" cy="256" r="9"/>
+  </g>
+
+  <!-- surface detail: kept sparse so it dissolves cleanly rather than muddying at 48px -->
+  <g fill="none" stroke="#8a99a2" stroke-linecap="round" opacity=".7">
+    <path d="M296 140 344 122M296 372 344 390" stroke-width="3"/>
+    <path d="M170 236 150 256 170 276" stroke-width="2"/>
+  </g>
+  <g fill="#94a3ac">
+    <circle cx="262" cy="204" r="3"/>
+    <circle cx="262" cy="308" r="3"/>
+    <circle cx="286" cy="256" r="3"/>
+    <circle cx="128" cy="220" r="3"/>
+    <circle cx="128" cy="292" r="3"/>
+  </g>
+</svg>
