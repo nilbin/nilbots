@@ -180,6 +180,12 @@ public static class RankedEndpoints
                 .Where(m => m.MatchSetId == setId)
                 .OrderBy(m => m.SetGame)
                 .ToListAsync();
+            MatchParticipant? botASnapshot = matches
+                .SelectMany(match => match.Participants)
+                .FirstOrDefault(participant => participant.BotId == set.BotAId);
+            MatchParticipant? botBSnapshot = matches
+                .SelectMany(match => match.Participants)
+                .FirstOrDefault(participant => participant.BotId == set.BotBId);
 
             var now = DateTime.UtcNow;
             // The aggregate (scores, rating changes) necessarily spoils the games; withhold
@@ -192,8 +198,20 @@ public static class RankedEndpoints
                 set.Id,
                 Status = set.Status.ToString(),
                 RulesVersion = set.GameRulesVersion,
-                BotA = new { Id = set.BotAId, botA?.Name, botA?.Accent },
-                BotB = new { Id = set.BotBId, botB?.Name, botB?.Accent },
+                BotA = new
+                {
+                    Id = set.BotAId,
+                    Name = botASnapshot?.NameSnapshot ?? botA?.Name,
+                    Accent = botASnapshot?.AccentSnapshot ?? botA?.Accent,
+                    LookId = botASnapshot?.LookIdSnapshot ?? botA?.LookId,
+                },
+                BotB = new
+                {
+                    Id = set.BotBId,
+                    Name = botBSnapshot?.NameSnapshot ?? botB?.Name,
+                    Accent = botBSnapshot?.AccentSnapshot ?? botB?.Accent,
+                    LookId = botBSnapshot?.LookIdSnapshot ?? botB?.LookId,
+                },
                 set.CreatedAt,
                 Revealed = allWatched && set.Status != MatchSetStatus.Running,
                 ScoreA = allWatched && set.Status == MatchSetStatus.Completed ? set.ScoreA : (double?)null,
@@ -252,21 +270,38 @@ public static class RankedEndpoints
                             v == JobWorker.MatchRules.RulesVersion ||
                             Engine.GameRules.ShippedNames.Contains(v))
                 .ToList();
-            var entries = await db.BotRatings
-                .Where(r => r.RulesVersion == version && r.RankedSets > 0)
-                .OrderByDescending(r => r.Rating)
+            var ratedBots = await db.BotRatings
+                .RankedForRules(version)
+                .OrderByDescending(rating => rating.Rating)
+                .ThenBy(rating => rating.BotId)
                 .Take(100)
-                .Join(db.Bots, r => r.BotId, b => b.Id, (r, b) => new
+                .Join(db.Bots, rating => rating.BotId, b => b.Id, (rating, b) => new
                 {
                     b.Id,
                     b.Slug,
                     b.Name,
                     b.Accent,
+                    b.LookId,
                     Owner = db.Users.Where(u => u.Id == b.OwnerUserId).Select(u => u.DisplayName).First(),
-                    Rating = Math.Round(r.Rating),
-                    r.RankedSets,
+                    rating.Rating,
+                    rating.RankedSets,
                 })
+                .OrderByDescending(entry => entry.Rating)
+                .ThenBy(entry => entry.Id)
                 .ToListAsync();
+            double[] ladderRatings = ratedBots.Select(entry => entry.Rating).ToArray();
+            var entries = ratedBots.Select(entry => new
+            {
+                entry.Id,
+                entry.Slug,
+                entry.Name,
+                entry.Accent,
+                entry.LookId,
+                entry.Owner,
+                Rating = Math.Round(entry.Rating),
+                entry.RankedSets,
+                Rank = LadderStandings.CompetitionRank(ladderRatings, entry.Rating),
+            });
             // ActiveRulesVersion tells a reader which ladder still accepts sets; every
             // other one is a historical record (DECISIONS #97).
             return Results.Ok(new

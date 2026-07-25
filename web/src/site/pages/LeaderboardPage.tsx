@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
+import BotIdentity from '../components/BotIdentity';
 import { api, type Leaderboard } from '../api';
 
 export default function LeaderboardPage() {
@@ -11,12 +12,12 @@ export default function LeaderboardPage() {
   // Keep each bot's real rank while filtering: #7 is #7 whatever else is on screen.
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return (board?.entries ?? [])
-      .map((entry, index) => ({ entry, index }))
-      .filter(({ entry }) =>
+    return (board?.entries ?? []).filter(
+      (entry) =>
         needle === '' ||
         entry.name.toLowerCase().includes(needle) ||
-        entry.owner.toLowerCase().includes(needle));
+        entry.owner.toLowerCase().includes(needle),
+    );
   }, [board, query]);
 
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function LeaderboardPage() {
           {shown.length === 0 && (
             <li className="text-sm text-arena-dim">No bot on this ladder matches “{query}”.</li>
           )}
-          {shown.map(({ entry, index }) => (
+          {shown.map((entry) => (
             <li key={entry.id}>
               <Link
                 to={`/bots/${entry.slug}`}
@@ -88,17 +89,22 @@ export default function LeaderboardPage() {
                 <span
                   className={
                     'w-8 text-center font-mono text-sm ' +
-                    (index === 0
+                    (entry.rank === 1
                       ? 'text-amber-300'
-                      : index < 3
+                      : entry.rank <= 3
                         ? 'text-arena-accent'
                         : 'text-arena-dim')
                   }
                 >
-                  #{index + 1}
+                  #{entry.rank}
                 </span>
-                <span className="inline-block size-3 rounded-full" style={{ background: entry.accent }} />
-                <span className="font-semibold">{entry.name}</span>
+                <BotIdentity
+                  name={entry.name}
+                  accent={entry.accent}
+                  lookId={entry.lookId}
+                  size="sm"
+                  emphasized
+                />
                 <span className="text-xs text-arena-dim">by {entry.owner}</span>
                 <span className="ml-auto font-mono text-sm text-arena-text">{entry.rating}</span>
                 <span className="font-mono text-[11px] text-arena-dim">

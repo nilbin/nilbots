@@ -105,6 +105,12 @@ export interface BotDetail {
   projectileLookId: string;
   owner: string;
   isOwner: boolean;
+  currentStanding: {
+    rulesVersion: string;
+    rating: number;
+    rankedSets: number;
+    rank: number;
+  } | null;
   versions: {
     id: string;
     versionNumber: number;
@@ -151,6 +157,7 @@ export interface MatchSummary {
     slot: number;
     nameSnapshot: string;
     accentSnapshot: string;
+    lookIdSnapshot: string;
     outcome: string | null;
     finalHealth: number | null;
   }[];
@@ -176,15 +183,21 @@ export interface SetGame {
   broadcasting: boolean;
   winnerBotId: string | null;
   draw: boolean;
-  participants: { slot: number; botId: string; nameSnapshot: string; accentSnapshot: string }[];
+  participants: {
+    slot: number;
+    botId: string;
+    nameSnapshot: string;
+    accentSnapshot: string;
+    lookIdSnapshot: string;
+  }[];
 }
 
 export interface MatchSetDetail {
   id: string;
   status: string;
   rulesVersion: string;
-  botA: { id: string; name: string; accent: string };
-  botB: { id: string; name: string; accent: string };
+  botA: { id: string; name: string; accent: string; lookId: string };
+  botB: { id: string; name: string; accent: string; lookId: string };
   revealed: boolean;
   scoreA: number | null;
   scoreB: number | null;
@@ -199,9 +212,11 @@ export interface LeaderboardEntry {
   slug: string;
   name: string;
   accent: string;
+  lookId: string;
   owner: string;
   rating: number;
   rankedSets: number;
+  rank: number;
 }
 
 /** One elo ladder per rules version; `ladders` lists every version with results. */

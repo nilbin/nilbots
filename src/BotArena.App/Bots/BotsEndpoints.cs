@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using BotArena.App.Accounts;
 using BotArena.App.Jobs;
+using BotArena.App.Matches;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
 using BotArena.Toolchain;
@@ -96,6 +97,9 @@ public static class BotsEndpoints
             bool isOwner = principal.UserId() == bot.OwnerUserId;
             string owner = await db.Users.Where(u => u.Id == bot.OwnerUserId)
                 .Select(u => u.DisplayName).FirstAsync();
+            string currentRulesVersion = JobWorker.MatchRules.RulesVersion;
+            var currentStanding = await db.BotRatings
+                .ForBotAsync(currentRulesVersion, bot.Id);
             return Results.Ok(new
             {
                 bot.Id,
@@ -107,6 +111,7 @@ public static class BotsEndpoints
                 bot.CreatedAt,
                 Owner = owner,
                 IsOwner = isOwner,
+                CurrentStanding = currentStanding,
                 Versions = bot.Versions
                     .OrderByDescending(v => v.VersionNumber)
                     .Select(v => new
@@ -285,7 +290,13 @@ public static class BotsEndpoints
                     m.CreatedAt,
                     Outcome = visible ? (m.WinnerSlot == self.Slot ? "Win" : m.WinnerSlot is null ? "Draw" : "Loss") : null,
                     Opponent = m.Participants.Where(p => p.BotId != botId)
-                        .Select(p => new { p.BotId, p.NameSnapshot, p.AccentSnapshot })
+                        .Select(p => new
+                        {
+                            p.BotId,
+                            p.NameSnapshot,
+                            p.AccentSnapshot,
+                            p.LookIdSnapshot,
+                        })
                         .FirstOrDefault(),
                 };
             }).ToList();

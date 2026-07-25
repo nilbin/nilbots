@@ -7,6 +7,7 @@ import {
   projectileLook,
   projectileLookOptions,
 } from '../../render/arenaThemes';
+import BotIdentity from '../components/BotIdentity';
 import { api, type MyBot } from '../api';
 import { useAuth } from '../auth';
 import {
@@ -112,17 +113,20 @@ export default function GaragePage() {
                     to={`/bots/${bot.slug}`}
                     className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
                   >
-                    <img src={look.imageUrl} alt="" className="size-9 object-contain" />
+                    <BotIdentity
+                      name={bot.name}
+                      accent={bot.accent}
+                      lookId={bot.lookId}
+                      size="md"
+                      emphasized
+                    />
                     <ProjectilePreview
                       look={projectile}
                       accent={bot.accent}
                       className="h-6 w-10"
                     />
-                    <span>
-                      <span className="block font-semibold">{bot.name}</span>
-                      <span className="block font-mono text-[10px] text-arena-dim">
-                        {look.label} · {projectile.label}
-                      </span>
+                    <span className="font-mono text-[10px] text-arena-dim">
+                      {look.label} · {projectile.label}
                     </span>
                     <span className="ml-auto font-mono text-[11px] text-arena-dim">
                       {bot.latestVersion

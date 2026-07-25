@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import clsx from 'clsx';
+import BotIdentity from '../components/BotIdentity';
 import { api, type MatchSetDetail, type SetGame } from '../api';
 
 /// A ranked set: six games, three map/seed pairs with mirrored starts. Outcomes and
@@ -38,17 +38,23 @@ export default function MatchSetPage() {
           RANKED MATCH SET · 6 GAMES · MIRRORED STARTS
         </p>
         <div className="flex flex-wrap items-center gap-4 text-2xl font-black">
-          <span className="flex items-center gap-2">
-            <span className="inline-block size-4 rounded-full" style={{ background: set.botA.accent }} />
-            {set.botA.name}
-          </span>
+          <BotIdentity
+            name={set.botA.name}
+            accent={set.botA.accent}
+            lookId={set.botA.lookId}
+            size="lg"
+            nameClassName="font-black"
+          />
           <span className="font-mono text-lg text-arena-dim">
             {set.scoreA !== null ? `${set.scoreA} : ${set.scoreB}` : 'vs'}
           </span>
-          <span className="flex items-center gap-2">
-            <span className="inline-block size-4 rounded-full" style={{ background: set.botB.accent }} />
-            {set.botB.name}
-          </span>
+          <BotIdentity
+            name={set.botB.name}
+            accent={set.botB.accent}
+            lookId={set.botB.lookId}
+            size="lg"
+            nameClassName="font-black"
+          />
         </div>
         {set.revealed && set.status === 'Completed' && (
           <p className="mt-3 text-sm">
@@ -137,14 +143,22 @@ function GameCard({ game, set }: { game: SetGame; set: MatchSetDetail }) {
             ) : null}
           </span>
         </div>
-        <div className="text-sm">
-          <span className={clsx(winnerName === first?.nameSnapshot && 'font-bold')}>
-            {first?.nameSnapshot}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <BotIdentity
+            name={first?.nameSnapshot}
+            accent={first?.accentSnapshot}
+            lookId={first?.lookIdSnapshot}
+            size="xs"
+            emphasized={winnerName === first?.nameSnapshot}
+          />
           <span className="font-mono text-xs text-arena-dim"> vs </span>
-          <span className={clsx(winnerName === second?.nameSnapshot && 'font-bold')}>
-            {second?.nameSnapshot}
-          </span>
+          <BotIdentity
+            name={second?.nameSnapshot}
+            accent={second?.accentSnapshot}
+            lookId={second?.lookIdSnapshot}
+            size="xs"
+            emphasized={winnerName === second?.nameSnapshot}
+          />
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 font-mono text-xs">
           <span className={winnerName ? 'text-arena-text' : 'text-arena-dim'}>

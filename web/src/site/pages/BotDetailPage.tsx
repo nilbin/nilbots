@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
 import AppearanceEditor from '../components/AppearanceEditor';
+import BotIdentity from '../components/BotIdentity';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import { api, type BotDetail, type BotSummary, type Meta } from '../api';
 
@@ -80,22 +81,26 @@ export default function BotDetailPage() {
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-center gap-3">
-        <span
-          className="flex size-12 items-center justify-center rounded-lg border border-arena-edge bg-arena-panel"
-          style={{ boxShadow: `inset 0 -2px 0 ${bot.accent}55` }}
-        >
-          <img src={look.imageUrl} alt="" className="size-11 object-contain" />
-        </span>
-        <h1 className="text-2xl font-black tracking-wide">{bot.name}</h1>
-        <span className="text-sm text-arena-dim">
-          {look.label} · {projectile.label} · by {bot.owner}
-        </span>
-        <ProjectilePreview
-          look={projectile}
+        <BotIdentity
+          name={bot.name}
           accent={bot.accent}
-          className="h-7 w-14"
+          lookId={bot.lookId}
+          size="lg"
+          nameClassName="font-black tracking-wide"
         />
+        <span className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-arena-dim">
+            {look.label} · {projectile.label} · by {bot.owner}
+          </span>
+          <ProjectilePreview
+            look={projectile}
+            accent={bot.accent}
+            className="h-7 w-14"
+          />
+        </span>
       </header>
+
+      <CurrentLadderStanding standing={bot.currentStanding} />
 
       <BotStatisticsPanel botId={bot.id} />
 
@@ -184,7 +189,12 @@ interface BotMatchRow {
   setGame: number | null;
   createdAt: string;
   outcome: string | null;
-  opponent: { botId: string; nameSnapshot: string; accentSnapshot: string } | null;
+  opponent: {
+    botId: string;
+    nameSnapshot: string;
+    accentSnapshot: string;
+    lookIdSnapshot: string;
+  } | null;
 }
 
 function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
@@ -226,12 +236,13 @@ function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
                 {match.broadcasting ? 'LIVE' : (match.outcome ?? match.status.toLowerCase())}
               </span>
               <span className="flex items-center gap-2">
-                vs
-                <span
-                  className="inline-block size-2.5 rounded-full"
-                  style={{ background: match.opponent?.accentSnapshot }}
+                <span className="text-arena-dim">vs</span>
+                <BotIdentity
+                  name={match.opponent?.nameSnapshot}
+                  accent={match.opponent?.accentSnapshot}
+                  lookId={match.opponent?.lookIdSnapshot}
+                  size="xs"
                 />
-                {match.opponent?.nameSnapshot ?? '?'}
               </span>
               <span className="ml-auto font-mono text-[11px] text-arena-dim">
                 {match.setGame ? `ranked g${match.setGame} · ` : ''}
@@ -241,6 +252,47 @@ function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function CurrentLadderStanding({
+  standing,
+}: {
+  standing: BotDetail['currentStanding'];
+}) {
+  return (
+    <section
+      className={
+        'flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border px-4 py-3 ' +
+        (standing
+          ? 'border-arena-accent/50 bg-arena-accent/5'
+          : 'border-arena-edge bg-arena-panel/40')
+      }
+    >
+      <span className="font-mono text-[11px] tracking-wider text-arena-dim">
+        CURRENT LADDER
+      </span>
+      {standing ? (
+        <>
+          <strong className="text-xl text-arena-accent">#{standing.rank}</strong>
+          <span className="font-mono text-sm">
+            {standing.rating.toLocaleString()} rating
+          </span>
+          <span className="text-xs text-arena-dim">
+            {standing.rankedSets.toLocaleString()} ranked{' '}
+            {standing.rankedSets === 1 ? 'set' : 'sets'} · rules{' '}
+            {standing.rulesVersion}
+          </span>
+        </>
+      ) : (
+        <>
+          <strong className="text-sm">Unranked</strong>
+          <span className="text-xs text-arena-dim">
+            No completed ranked set on the current rules ladder yet.
+          </span>
+        </>
+      )}
     </section>
   );
 }

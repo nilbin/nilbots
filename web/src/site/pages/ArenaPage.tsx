@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import BotIdentity from '../components/BotIdentity';
 import { api, type BotSummary, type MatchSummary, type Meta } from '../api';
 import { useAuth } from '../auth';
 
@@ -187,9 +188,21 @@ export function MatchRow({ match }: { match: MatchSummary }) {
         to={`/matches/${match.id}`}
         className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-arena-edge bg-arena-panel/60 px-4 py-3 transition-colors hover:border-arena-dim"
       >
-        <Fighter name={a?.nameSnapshot} accent={a?.accentSnapshot} bold={winner === 0} />
+        <BotIdentity
+          name={a?.nameSnapshot}
+          accent={a?.accentSnapshot}
+          lookId={a?.lookIdSnapshot}
+          size="xs"
+          emphasized={winner === 0}
+        />
         <span className="font-mono text-xs text-arena-dim">vs</span>
-        <Fighter name={b?.nameSnapshot} accent={b?.accentSnapshot} bold={winner === 1} />
+        <BotIdentity
+          name={b?.nameSnapshot}
+          accent={b?.accentSnapshot}
+          lookId={b?.lookIdSnapshot}
+          size="xs"
+          emphasized={winner === 1}
+        />
         <span className="ml-auto flex items-center gap-2 font-mono text-[11px] text-arena-dim">
           {match.setGame && <span className="rounded bg-arena-edge px-1.5 py-0.5">ranked g{match.setGame}</span>}
           {match.mapId} ·{' '}
@@ -210,14 +223,5 @@ export function MatchRow({ match }: { match: MatchSummary }) {
         </span>
       </Link>
     </li>
-  );
-}
-
-function Fighter({ name, accent, bold }: { name?: string; accent?: string; bold: boolean }) {
-  return (
-    <span className={'flex items-center gap-2 ' + (bold ? 'font-bold' : '')}>
-      <span className="inline-block size-2.5 rounded-full" style={{ background: accent }} />
-      {name ?? '?'}
-    </span>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { botLook } from '../../render/arenaThemes';
+import BotIdentity from '../components/BotIdentity';
 import { api, type BotSummary, type Meta } from '../api';
 
 export default function BotsPage() {
@@ -79,10 +80,13 @@ export default function BotsPage() {
                   to={`/bots/${bot.slug}`}
                   className="flex flex-col gap-1 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
                 >
-                  <span className="flex items-center gap-2 font-semibold">
-                    <img src={look.imageUrl} alt="" className="size-8 object-contain" />
-                    {bot.name}
-                  </span>
+                  <BotIdentity
+                    name={bot.name}
+                    accent={bot.accent}
+                    lookId={bot.lookId}
+                    size="sm"
+                    emphasized
+                  />
                   <span className="text-xs text-arena-dim">
                     {look.label} · by {bot.owner}
                     {ladders.map((ladder) => (
