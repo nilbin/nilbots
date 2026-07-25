@@ -43,27 +43,63 @@ case "$s3_endpoint" in
 esac
 
 cd "$repo_root"
-compose=(
+compose_base=(
   docker compose
   --env-file "$deploy_dir/.env"
 )
 if [[ -f "$release_env" ]]; then
-  compose+=(--env-file "$release_env")
+  compose_base+=(--env-file "$release_env")
 fi
-compose+=(
+compose_base+=(
   -f "$deploy_dir/compose.production.yml"
-  --profile match
+)
+compose=(
+  "${compose_base[@]}"
+  --profile web
   --profile compile
 )
 
+# Compose interpolates the whole file even when stateful profiles are inactive.
+# Workers intentionally do not receive Garage administration credentials.
+export GARAGE_RPC_SECRET="${GARAGE_RPC_SECRET:-unused-on-worker}"
+export GARAGE_ADMIN_TOKEN="${GARAGE_ADMIN_TOKEN:-unused-on-worker}"
+export GARAGE_METRICS_TOKEN="${GARAGE_METRICS_TOKEN:-unused-on-worker}"
+
 "${compose[@]}" config --quiet
 active_services="$("${compose[@]}" config --services)"
+for required in web compile-worker compiler-runner; do
+  if ! grep -qx "$required" <<<"$active_services"; then
+    echo "worker deployment is missing required service '$required'" >&2
+    exit 1
+  fi
+done
+while IFS= read -r service; do
+  case "$service" in
+    web|compile-worker|compiler-runner) ;;
+    *)
+      echo "refusing unexpected worker service '$service'" >&2
+      exit 1
+      ;;
+  esac
+done <<<"$active_services"
+
+# Older worker releases also ran a match worker. The primary deliberately owns
+# the current single match consumer; finalization can scale safely, but adding
+# lanes or containers should follow measured demand rather than node count.
+# Reconcile that obsolete worker container before activating this release.
+reconcile=(
+  "${compose_base[@]}"
+  --profile match
+)
+"${reconcile[@]}" stop match-worker >/dev/null 2>&1 || true
+"${reconcile[@]}" rm -f match-worker >/dev/null 2>&1 || true
+
 running_services="$(
   docker ps \
     --filter label=com.docker.compose.project=botarena \
     --format '{{.Label "com.docker.compose.service"}}'
 )"
-for forbidden in db garage-a garage-b garage-c garage-gateway migrate web caddy; do
+for forbidden in db garage-a garage-b garage-c garage-gateway migrate caddy match-worker; do
   if grep -qx "$forbidden" <<<"$active_services"; then
     echo "refusing worker deployment because '$forbidden' is active" >&2
     exit 1
@@ -79,14 +115,14 @@ if [[ -f "$release_env" ]]; then
   set -a
   source "$release_env"
   set +a
-  "${compose[@]}" pull match-worker compile-worker compiler-runner
+  "${compose[@]}" pull web compile-worker compiler-runner
 else
   export BOTARENA_IMAGE_TAG
   BOTARENA_IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
-  "${compose[@]}" build match-worker compile-worker compiler-runner
+  "${compose[@]}" build web compile-worker compiler-runner
 fi
 
-"${compose[@]}" up -d --wait compiler-runner match-worker compile-worker
+"${compose[@]}" up -d --wait compiler-runner web compile-worker
 "${compose[@]}" ps
 
 if [[ -f "$release_env" ]]; then

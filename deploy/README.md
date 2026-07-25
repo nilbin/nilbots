@@ -2,17 +2,17 @@
 
 This directory is the public-beta production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):
-Caddy, one web role, one match worker, a compilation coordinator, a
-networkless compiler runner, PostgreSQL, and a private S3-compatible Garage
-cluster.
+Caddy, horizontally repeatable web roles, one match worker, compilation
+coordinators, co-located networkless compiler runners, PostgreSQL, and a
+private S3-compatible Garage cluster.
 The application roles remain separate processes of the same modular monolith.
 
 Production currently has one **primary** node and may have any number of
 **worker** nodes:
 
 - the primary is the sole owner of PostgreSQL, Garage, migrations, web ingress,
-  and the initial workers;
-- a worker runs only a match worker plus the compilation coordinator and its
+  the sole match worker, one web replica, and initial compiler capacity;
+- a worker runs one web replica plus the compilation coordinator and its
   co-located, networkless compiler runner;
 - workers reach PostgreSQL and the S3 gateway on the primary's private HostUp
   network. They never create their own database or object-store volumes.
@@ -23,11 +23,12 @@ one Garage storage node in each of at least three failure domains. Adding a
 Garage container to the present second VPS would not by itself make storage,
 PostgreSQL, or ingress survive loss of the primary.
 
-Every service has an explicit Compose profile (`stateful`, `edge`, `match`, or
-`compile`). Running Compose without profiles starts nothing. `deploy.sh`
-selects every profile for the primary; `deploy-worker.sh` selects only
-`match` and `compile` and refuses to continue if any stateful or edge service
-appears in its effective configuration. The release installer records
+Every service has an explicit Compose profile (`stateful`, `web`, `ingress`,
+`match`, or `compile`). Running Compose without profiles starts nothing.
+`deploy.sh` selects every profile for the primary; `deploy-worker.sh` selects
+only `web` and `compile`, explicitly retires match containers left by older
+worker releases, and refuses any stateful, ingress, or match service. The
+release installer records
 `primary` or `worker` under `shared/role` and rejects later role changes,
 including during rollback.
 
@@ -107,19 +108,37 @@ credentials with those stable private endpoints; never route them over the
 public interface. Garage's admin and RPC interfaces stay unpublished until a
 deliberate cross-host storage expansion needs them.
 
-On each worker, use a minimal `shared/.env` containing the shared database and
-S3 credentials plus:
+On each worker, use a minimal `shared/.env` containing the shared database,
+S3, OpenIddict certificate password, network hash key, and compiler-admission
+settings plus:
 
 ```dotenv
+BOTARENA_DOMAIN=nilbots.com
 BOTARENA_DB_HOST=10.201.128.10
 BOTARENA_S3_ENDPOINT=http://10.201.128.10:3900
-BOTARENA_MATCH_INSTANCE_ID=match-2
+BOTARENA_WEB_BIND_ADDRESS=10.201.128.11
+BOTARENA_WEB_PORT=8080
 BOTARENA_COMPILE_INSTANCE_ID=compile-2
 ```
 
-Use the real primary private address and unique instance IDs for every node.
-Do not copy the OpenIddict private keys or Garage administration secrets to a
-worker.
+Use the real private addresses and unique compiler instance IDs for every
+node. Copy the same OpenIddict signing/encryption certificates to every web
+node, preserving their restrictive ownership and modes. Do not copy Garage
+administration or RPC secrets to a worker.
+
+On the ingress node, list the local and private worker endpoints as
+space-separated Caddy upstreams:
+
+```dotenv
+BOTARENA_WEB_UPSTREAMS="web:8080 10.201.128.11:8080"
+```
+
+Caddy uses a sticky load-balancer cookie for WebSocket/SignalR affinity and
+actively checks `/health/ready`. The remote Kestrel listener must bind only to
+the worker's exact private address. The second web replica increases
+application capacity and lets Caddy route around a failed web process; because
+Caddy, PostgreSQL, and Garage still live on the primary, this is not primary
+host high availability.
 
 On an existing deployment, generate and append only the missing Garage/S3
 settings without replacing any configured values:
@@ -199,13 +218,21 @@ stay two separate runs on purpose: a NuGet publish cannot be undone, so it must
 not happen as a side effect of a deploy that might fail. `publish-cli` asserts
 its version is not yet on NuGet, publishes, and tags the commit `cli-v<version>`;
 `publish-and-deploy` then requires that tag to point at the revision being
-deployed (`scripts/assert-cli-release.sh`). A toolchain change is therefore a
-two-run release on the same commit: `publish-cli`, then `publish-and-deploy`.
+deployed or verifies that the enumerated CLI compatibility surface has not
+changed since the tagged release (`scripts/assert-cli-release.sh`). A CLI,
+toolchain, engine/runtime, compiler-input, map, packaged-bot, or replay-viewer
+change is therefore a two-run release on the same commit: `publish-cli`, then
+`publish-and-deploy`. Server/auth/deployment and site-only changes can reuse
+the already-published compatible CLI.
 
 The bundle installer validates the bundle hash and immutable GHCR digests.
-The deploy script then starts PostgreSQL, takes and validates a local
-pre-release database dump, drains workers, runs the one-shot migration/seeding
-role, waits for the compiler runner, web, and workers, and then starts Caddy.
+The primary deploy script then starts PostgreSQL, takes and validates a local
+pre-release database dump, drains its workers, runs the one-shot
+migration/seeding role, waits for the compiler runner, web, and workers, and
+then starts Caddy. Worker deployments activate the web replica and compiler
+roles while preserving the deliberate single match-worker production default.
+Ranked finalization is now concurrency-safe, so match lanes or consumers can be
+raised later when measured queue pressure warrants it.
 Verify on the VPS:
 
 ```bash
@@ -221,8 +248,9 @@ docker compose --env-file "$release/.env" -f "$release/compose.production.yml" \
 ## Updating
 
 1. Select the exact reviewed commit in GitHub Actions.
-2. If the revision changes `SdkVersion`, `BuildPipelineVersion`, or
-   `CliVersion`, run **Manual release** with `publish-cli` on that commit first.
+2. Run `bash scripts/assert-cli-release.sh published <revision>`. If it reports
+   a CLI compatibility-surface change, run **Manual release** with
+   `publish-cli` on that commit first.
 3. Run **Manual release** with `publish-and-deploy`.
 4. Confirm every service is healthy.
 5. Test registration/login, `/api/meta`, a submission, its public build

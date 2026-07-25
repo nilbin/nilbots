@@ -35,9 +35,10 @@ would otherwise be painful.
    the local filesystem backend.
 6. **Build and deploy immutable images tagged with the Git commit SHA.** Do not
    build an untracked production state by editing the VPS.
-7. **Use one global match worker initially.** Compilation workers may scale
-   horizontally first. Match workers scale only after rating/set finalization
-   is transactionally idempotent.
+7. **Use one global match worker by default.** Ranked finalization is now
+   transactionally concurrency-safe, but match lanes or consumers should grow
+   only when measured queue pressure justifies them. Compilation workers remain
+   the first routine horizontal scale unit.
 8. **Use Linux x86-64 for build workers.** The pinned NativeAOT-LLVM compiler
    host is Linux x64, so an ARM VPS would add emulation and operational
    complexity for no useful gain.
@@ -196,11 +197,12 @@ Before scaling workers:
 3. Make completion safe to retry. A worker may die after saving domain state
    but before marking its job complete.
 4. Make artifact uploads idempotent by object key and content hash.
-5. Keep one global match worker until ranked-set finalization uses a database
-   transaction plus a row/advisory lock or compare-and-set marker that proves a
-   rating update was applied once.
-6. Once finalization is idempotent, allow several match consumers to claim
-   different matches. Preserve deterministic input snapshots and version axes.
+5. Ranked-set finalization must use a database transaction plus stable row
+   locks that prove each rating update was applied once; the current finalizer
+   satisfies this with set and bot locks plus PostgreSQL concurrency tests.
+6. Several match consumers may now claim different matches, but add them only
+   for measured demand. Preserve deterministic input snapshots and version
+   axes.
 
 Compile workers are the first safe horizontal scale unit. Separate workers may
 compile the same content concurrently after a failure or lease expiry; the
@@ -479,8 +481,10 @@ PostgreSQL, and object storage can each remain a single failure point.
 ### Milestone D — second-VPS readiness
 
 - [x] Add and test the S3-compatible object-store backend.
-- [ ] Move a compiler runner/coordinator across a private VPS network if
-      measurements justify it.
+- [x] Move a compiler runner/coordinator across the provider-private VPS
+      network.
+- [x] Run a second web replica behind Caddy with private binding, active health
+      checks, and sticky SignalR affinity.
 - [x] Add worker IDs and lease renewal.
 - [ ] Prove compile job retry/idempotency through forced worker termination.
 - [x] Make ranked-set finalization transactionally exactly-once before adding

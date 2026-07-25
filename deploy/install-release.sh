@@ -120,9 +120,8 @@ validate_shared_state() {
     echo "missing $shared/.env" >&2
     exit 1
   fi
-  if [[ "$role" == "primary" &&
-        (! -f "$shared/secrets/openiddict-signing.pfx" ||
-         ! -f "$shared/secrets/openiddict-encryption.pfx") ]]; then
+  if [[ ! -f "$shared/secrets/openiddict-signing.pfx" ||
+        ! -f "$shared/secrets/openiddict-encryption.pfx" ]]; then
     echo "missing shared OpenIddict certificates under $shared/secrets" >&2
     exit 1
   fi

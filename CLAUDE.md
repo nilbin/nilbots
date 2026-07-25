@@ -142,15 +142,17 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   before `Match.BroadcastComplete(now)` — new endpoints must follow this.
 - Version axes (SDK / runtime protocol / runtime config / game rules) are in
   `BotArenaVersions` + `ToolchainInfo`; all of them feed the build-cache key.
-- **A server may not ship ahead of its CLI.** `/api/meta` advertises
+- **A server may not ship ahead of its CLI compatibility surface.** `/api/meta` advertises
   `sdkVersion` + `buildPipelineVersion`, and `nilbots submit` refuses to build
   against a server it cannot byte-match (DECISIONS #93). So changing
-  `SdkVersion` or `BuildPipelineVersion` also means bumping `CliVersion` (and
-  the CLI csproj `<Version>`) and running the release workflow's `publish-cli`
-  BEFORE `publish-and-deploy`, on the same commit. Enforced by
-  `scripts/assert-cli-release.sh`: `publish-cli` tags the commit
-  `cli-v<version>`, and the deploy refuses unless that tag names the revision
-  being deployed.
+  the CLI, SDK, engine/runtime, controlled compiler inputs, maps, packaged bot
+  inputs, or replay viewer also means bumping `CliVersion` (and the CLI csproj
+  `<Version>`) and running the release workflow's `publish-cli` BEFORE
+  `publish-and-deploy`. Enforced by `scripts/assert-cli-release.sh`:
+  `publish-cli` tags the commit `cli-v<version>`, and the deploy refuses unless
+  that tag names the revision being deployed or the enumerated compatibility
+  surface is byte-identical. Server/auth/site-only revisions may reuse the
+  already-published compatible CLI.
 
 ## Conventions
 
