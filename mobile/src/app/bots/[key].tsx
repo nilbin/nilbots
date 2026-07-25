@@ -1,8 +1,8 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BotIdentity } from '@/components/BotIdentity';
 import { BotMatchRow } from '@/components/BotMatchRow';
+import { BotSprite } from '@/components/BotSprite';
 import { BotVersionRow } from '@/components/BotVersionRow';
 import { Card } from '@/components/ui/Card';
 import { ErrorState, LoadingState } from '@/components/ui/StateView';
@@ -35,18 +35,35 @@ export default function BotDetailScreen() {
       <Stack.Screen options={{ title: bot.name }} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Card>
-          <BotIdentity name={bot.name} accent={bot.accent} lookId={bot.lookId} size="lg" />
-          <Text style={styles.owner}>by {bot.owner}</Text>
+          {/* Sprite beside a name-over-owner column, not above a left-edge owner line:
+              hanging "by …" under the sprite breaks the text block in two and leaves the
+              name orphaned out to the right. Same shape as a roster row, one size up. */}
+          <View style={styles.identity}>
+            <BotSprite lookId={bot.lookId} accent={bot.accent} size="lg" />
+            <View style={styles.identityText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {bot.name}
+              </Text>
+              <Text style={styles.owner} numberOfLines={1}>
+                by {bot.owner}
+              </Text>
+            </View>
+          </View>
+
           {bot.currentStanding ? (
-            <View style={styles.standing}>
+            <>
+              {/* The standing is a separate band, so say so. Without the rule it reads as
+                  a third line of the identity block that failed to line up with it. */}
+              <View style={styles.divider} />
               <StatRow
+                layout="spread"
                 stats={[
                   { label: 'rating', value: Math.round(bot.currentStanding.rating) },
                   { label: 'rank', value: `#${bot.currentStanding.rank}` },
                   { label: 'sets', value: bot.currentStanding.rankedSets },
                 ]}
               />
-            </View>
+            </>
           ) : (
             <Text style={styles.unranked}>Unranked — no ranked sets on the current ladder.</Text>
           )}
@@ -94,8 +111,11 @@ export default function BotDetailScreen() {
 
 const styles = StyleSheet.create({
   body: { gap: Space.md, paddingBottom: Space.xxl, paddingTop: Space.md },
-  owner: { color: Arena.dim, fontSize: 13, marginTop: Space.xs },
-  standing: { marginTop: Space.lg },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: Space.md },
+  identityText: { flex: 1, minWidth: 0, gap: 1 },
+  name: { color: Arena.text, fontSize: 24, fontWeight: '700' },
+  owner: { color: Arena.dim, fontSize: 13 },
+  divider: { height: 1, backgroundColor: Arena.edge, marginVertical: Space.lg },
   unranked: { color: Arena.dim, fontSize: 13, marginTop: Space.md },
   none: { color: Arena.dim, fontSize: 13, lineHeight: 18 },
   sectionTitle: { ...SectionLabelText, marginTop: Space.md },
