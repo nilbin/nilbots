@@ -25,9 +25,17 @@ nilbots submit .
 
 `nilbots register` opens the secure registration page in your browser, completes
 OAuth Authorization Code + PKCE, and returns you to the terminal signed in.
-`nilbots submit` creates the bot on nilbots.com when necessary, submits its
-source for the canonical server build, and reports whether the local and server
-WASM artifacts are identical.
+(No browser — CI, a container, an agent? Pass `--email` and `--password` and the
+same sign-in completes without one.) `nilbots submit` creates the bot on
+nilbots.com when necessary, submits its source for the canonical server build,
+and compares the local and server WASM artifacts.
+
+The **server** build is the one that plays. Its bytes may differ from your local
+build — the two compile in different environments — while the bot behaves
+identically: matches are a pure function of the artifact, the map, the rules and
+the seed, so a replay always reproduces exactly. Byte-for-byte reproducibility
+between your machine and the server is a goal we have not reached yet; treat the
+server hash as canonical.
 
 Already have an account? Run `nilbots login`. Both commands use
 `https://nilbots.com` by default; `--server <url>` is available for local or

@@ -170,6 +170,23 @@ Ruled out by direct measurement:
 - **Workspace path** — now mapped to `/nilbots/bot` on both sides, and proven
   reproducible across roots.
 
+**How much does it matter? Measured, not guessed.** The same bot was played from
+the local artifact and from the server artifact — same opponent, map and seed —
+and the gameplay is **identical**: every tick's chosen/validated action, every
+bot state, every event, and the result (Domination, winner 0, 122 ticks) match
+exactly. (Their *replay hashes* differ, but only because the replay header
+records the artifact hash; the gameplay signature excluding the header is the
+same.) So the divergence is layout/metadata, not semantics — matches stay fair
+and deterministic, and the binary you tested behaves like the one that ranks you.
+
+That downgrades this from a correctness bug to an integrity gap, which still
+wants closing for three reasons: the NuGet README promised bit-identical
+artifacts (now corrected to say the server build is canonical); a player cannot
+independently rebuild their source and confirm the server compiled it honestly,
+which is a real trust property for a competitive ladder; and while bytes *always*
+differ, "the bytes changed" can never serve as a signal that something genuinely
+changed — the alarm is stuck on.
+
 Remaining suspect, untested: the isolated build runs as the `botbuild` user with
 a different HOME and therefore a different NuGet package cache and MSBuild
 environment, while a local build runs as the caller. Next step would be to
