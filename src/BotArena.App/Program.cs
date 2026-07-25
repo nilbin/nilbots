@@ -47,6 +47,8 @@ builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
 builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
 builder.Services.AddScoped<BotAppearancePolicy>();
+builder.Services.AddScoped<MatchAdmissionService>();
+builder.Services.AddSingleton<MatchParticipantSnapshotFactory>();
 
 if (mode.RunsWeb)
 {

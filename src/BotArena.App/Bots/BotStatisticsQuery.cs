@@ -46,12 +46,16 @@ public sealed class BotStatisticsQuery(
                 (match.MatchSetId != null || match.InitiatedByUserId != null) &&
                 match.Participants.Any(participant => participant.BotId == botId))
             .ToListAsync(cancellationToken);
+        Dictionary<Guid, MatchBroadcastResult> broadcasts =
+            completedGames.ToDictionary(
+                match => match.Id,
+                match => MatchPublicProjection.BroadcastSafe(match, now));
 
         List<Match> visibleUnrankedGames = completedGames
             .Where(match =>
                 match.MatchSetId is null &&
                 match.InitiatedByUserId is not null &&
-                match.BroadcastComplete(now))
+                broadcasts[match.Id].Revealed)
             .ToList();
 
         Guid[] rankedSetIds = completedGames
@@ -67,20 +71,37 @@ public sealed class BotStatisticsQuery(
                 (set.BotAId == botId || set.BotBId == botId))
             .ToDictionaryAsync(set => set.Id, cancellationToken);
 
-        List<(MatchSet Set, List<Match> Games)> visibleRankedSets = completedGames
+        List<(MatchSet Set, List<Match> Games, MatchSetBroadcastResult Broadcast)>
+            visibleRankedSets = completedGames
             .Where(match => match.MatchSetId is not null)
             .GroupBy(match => match.MatchSetId!.Value)
             .Where(group =>
                 completedSets.ContainsKey(group.Key) &&
-                group.Count() == MatchSet.Games &&
-                group.All(match => match.BroadcastComplete(now)))
-            .Select(group => (completedSets[group.Key], group.ToList()))
+                group.Count() == MatchSet.Games)
+            .Select(group =>
+            {
+                MatchSet set = completedSets[group.Key];
+                List<Match> games = group.ToList();
+                return (
+                    Set: set,
+                    Games: games,
+                    Broadcast: MatchPublicProjection.BroadcastSafe(
+                        set,
+                        games,
+                        now));
+            })
+            .Where(entry => entry.Broadcast.Revealed)
             .ToList();
 
         BotRecord ranked = Record(
-            visibleRankedSets.Select(entry => Outcome(entry.Set.WinnerBotId, botId)));
+            visibleRankedSets.Select(entry => Outcome(
+                entry.Broadcast.WinnerBotId,
+                botId)));
         BotRecord unranked = Record(
-            visibleUnrankedGames.Select(match => Outcome(match, botId)));
+            visibleUnrankedGames.Select(match => Outcome(
+                match,
+                broadcasts[match.Id],
+                botId)));
         var overall = new BotRecord(
             ranked.Played + unranked.Played,
             ranked.Wins + unranked.Wins,
@@ -96,9 +117,11 @@ public sealed class BotStatisticsQuery(
         {
             MatchParticipant participant =
                 match.Participants.Single(player => player.BotId == botId);
+            MatchBroadcastParticipantResult result =
+                broadcasts[match.Id].Participants[participant.Slot];
             games++;
-            damageDealt += participant.DamageDealt ?? 0;
-            faults += participant.Faults ?? 0;
+            damageDealt += result.DamageDealt ?? 0;
+            faults += result.Faults ?? 0;
         }
 
         return new BotStatistics(
@@ -125,9 +148,12 @@ public sealed class BotStatisticsQuery(
                 ? BotOutcome.Win
                 : BotOutcome.Loss;
 
-    private static BotOutcome Outcome(Match match, Guid botId)
+    private static BotOutcome Outcome(
+        Match match,
+        MatchBroadcastResult broadcast,
+        Guid botId)
     {
-        if (match.WinnerSlot is not int winnerSlot)
+        if (broadcast.WinnerSlot is not int winnerSlot)
             return BotOutcome.Draw;
         int botSlot = match.Participants.Single(
             participant => participant.BotId == botId).Slot;

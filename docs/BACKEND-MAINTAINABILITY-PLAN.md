@@ -1,7 +1,7 @@
 # Backend maintainability and invariant ownership
 
-Status: incremental. Phases 1–3 were implemented as the first vertical slice
-in July 2026; phases 4–7 remain planned. This is a modular-monolith maintenance
+Status: incremental. Phases 1–4 were implemented in July 2026; phases 5–7
+remain planned. This is a modular-monolith maintenance
 plan, not a rewrite or a new product phase.
 
 ## Why this exists
@@ -38,21 +38,23 @@ The goal is a pragmatic modular monolith in which:
   checks, and explicit application roles remain appropriate for the first-VPS
   architecture.
 
-## Current pressure points
+## Original pressure points and status
 
 1. `BotsEndpoints` and `JobWorker` coordinate too many unrelated rules.
-2. Appearance validation is required by create, update, submit, and match
-   admission, making drift easy.
-3. Ranked and unranked match creation repeat eligibility and snapshot logic.
-4. Broadcast secrecy relies on each response projection remembering which
-   fields are safe.
+2. Appearance validation was repeated across create, update, submit, and match
+   admission. Closed in Phase 3.
+3. Ranked and unranked match creation repeated eligibility and snapshot logic.
+   Closed in Phase 4.
+4. Broadcast secrecy relied on each response projection remembering which
+   fields were safe. Closed for public match/statistics reads in Phase 4.
 5. Ranked-set finalization and progression are safe partly by deployment
    convention: only one match worker runs.
-6. PostgreSQL-dependent tests can be skipped, so CI can miss constraint,
-   migration, transaction, and concurrency failures.
-7. Direct `DateTime.UtcNow` calls make time-sensitive behavior harder to test
-   consistently.
-8. Anonymous response shapes make API and CLI contracts harder to pin.
+6. PostgreSQL-dependent tests could be skipped, hiding constraint, migration,
+   transaction, and concurrency failures. Closed in Phase 1.
+7. Direct `DateTime.UtcNow` calls remain in older operations; extracted
+   application and public-read boundaries now use `TimeProvider`.
+8. Anonymous response shapes remain outside the high-value bot lifecycle and
+   match contracts converted in Phases 2–4.
 
 ## Target shape
 
@@ -262,6 +264,12 @@ easy to verify without touching simulation.
 
 ### Phase 4 — match admission, snapshots, and broadcast reads
 
+Implementation status: complete. `MatchAdmissionService` owns shared
+participant eligibility; `MatchParticipantSnapshotFactory` is the only
+ranked/unranked snapshot creation path; and `MatchPublicProjection` is the
+named outcome-redaction boundary for match feeds, details, sets, bot history,
+and bot statistics.
+
 - Extract common bot/version eligibility from ranked and unranked creation.
 - Create one participant snapshot factory for bot identity, version, artifact,
   appearance, owner display data, and rules axes.
@@ -271,6 +279,12 @@ easy to verify without touching simulation.
   projections.
 - Add contract tests proving every outcome-bearing field remains absent until
   `BroadcastComplete(now)`.
+
+The owner display name is now snapshotted and historical participants are
+backfilled. Ranked games capture their resolved rules version at creation
+rather than waiting for worker execution. Existing APIs retain null
+outcome fields while concealed for compatibility; “absent” above means the
+secret value is absent, not that the JSON property is structurally omitted.
 
 ### Phase 5 — worker decomposition and safe finalization
 

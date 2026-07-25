@@ -136,6 +136,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // "Every match this bot played" — the feed's bot filter and the bot page's
             // history. MatchId trails BotId so the lookup is index-only.
             entity.HasIndex(p => new { p.BotId, p.MatchId });
+            entity.Property(p => p.OwnerDisplayNameSnapshot).HasMaxLength(60);
             entity.Property(p => p.LookIdSnapshot).HasMaxLength(64);
             entity.Property(p => p.ProjectileLookIdSnapshot).HasMaxLength(64);
         });

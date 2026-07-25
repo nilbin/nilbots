@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
-using BotArena.App.Bots;
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
@@ -20,56 +19,27 @@ public static class MatchesEndpoints
             ChallengeRequest request,
             ClaimsPrincipal principal,
             AppDbContext db,
-            BotAppearancePolicy appearancePolicy,
+            MatchAdmissionService admission,
+            MatchParticipantSnapshotFactory snapshots,
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
-            var bot = await db.Bots.SingleOrDefaultAsync(
-                b => b.Id == request.BotId,
-                cancellationToken);
-            var opponent = await db.Bots.SingleOrDefaultAsync(
-                b => b.Id == request.OpponentBotId,
-                cancellationToken);
-            if (bot is null || opponent is null)
-                return Results.Problem("Bot not found.", statusCode: 404);
-            if (bot.OwnerUserId != userId)
-                return Results.Problem("You can only challenge with your own bot.", statusCode: 403);
-
-            ApplicationResult<BotAppearance> botAppearance =
-                await appearancePolicy.ValidateForMatchAdmissionAsync(
-                    bot,
-                    cancellationToken);
-            if (!botAppearance.Succeeded)
-            {
-                ApplicationTelemetry.Record(
-                    "matches.admit_appearance",
-                    botAppearance.Error!.Code,
+            ApplicationResult<AdmittedMatchBot> challenger =
+                await admission.AdmitAsync(
+                    request.BotId,
                     userId,
-                    bot.Id);
-                return botAppearance.Error.ToProblemDetails(http);
-            }
-            ApplicationResult<BotAppearance> opponentAppearance =
-                await appearancePolicy.ValidateForMatchAdmissionAsync(
-                    opponent,
                     cancellationToken);
-            if (!opponentAppearance.Succeeded)
-            {
-                ApplicationTelemetry.Record(
-                    "matches.admit_appearance",
-                    opponentAppearance.Error!.Code,
-                    userId,
-                    opponent.Id);
-                return opponentAppearance.Error.ToProblemDetails(http);
-            }
-
-            var version = await ActiveVersion(db, bot.Id, cancellationToken);
-            var opponentVersion = await ActiveVersion(db, opponent.Id, cancellationToken);
-            if (version is null)
-                return Results.Problem($"{bot.Name} has no successfully built version yet.", statusCode: 409);
-            if (opponentVersion is null)
-                return Results.Problem($"{opponent.Name} has no successfully built version yet.", statusCode: 409);
+            if (!challenger.Succeeded)
+                return challenger.Error!.ToProblemDetails(http);
+            ApplicationResult<AdmittedMatchBot> opponent =
+                await admission.AdmitAsync(
+                    request.OpponentBotId,
+                    requiredOwnerUserId: null,
+                    cancellationToken);
+            if (!opponent.Succeeded)
+                return opponent.Error!.ToProblemDetails(http);
 
             string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
             long seed = request.Seed ?? Random.Shared.NextInt64();
@@ -80,26 +50,12 @@ public static class MatchesEndpoints
                 Seed = seed,
                 InitiatedByUserId = userId,
             };
-            match.Participants.Add(new MatchParticipant
-            {
-                MatchId = match.Id, Slot = 0, BotId = bot.Id, BotVersionId = version.Id,
-                NameSnapshot = bot.Name, AccentSnapshot = bot.Accent,
-                LookIdSnapshot = bot.LookId,
-                ProjectileLookIdSnapshot = bot.ProjectileLookId,
-                ArtifactHashSnapshot = version.ArtifactHash ?? "",
-            });
-            match.Participants.Add(new MatchParticipant
-            {
-                MatchId = match.Id, Slot = 1, BotId = opponent.Id, BotVersionId = opponentVersion.Id,
-                NameSnapshot = opponent.Name, AccentSnapshot = opponent.Accent,
-                LookIdSnapshot = opponent.LookId,
-                ProjectileLookIdSnapshot = opponent.ProjectileLookId,
-                ArtifactHashSnapshot = opponentVersion.ArtifactHash ?? "",
-            });
+            match.Participants.Add(snapshots.Create(match.Id, 0, challenger.Value!));
+            match.Participants.Add(snapshots.Create(match.Id, 1, opponent.Value!));
             db.Matches.Add(match);
             db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
             await db.SaveChangesAsync(cancellationToken);
-            return Results.Ok(new { match.Id });
+            return Results.Ok(new CreatedMatchResponse(match.Id));
         }).RequireAuthorization().RequireRateLimiting("challenge");
 
         // Filters are server-side on purpose: a browser-side filter can only narrow the
@@ -110,11 +66,17 @@ public static class MatchesEndpoints
         //   ranked true = part of a ranked set, false = unranked only
         //   skip   offset, for the feed's Load more
         group.MapGet("/", async (
-            AppDbContext db, int take, string? bot, string? map, bool? ranked, int? skip) =>
+            AppDbContext db,
+            TimeProvider timeProvider,
+            int take,
+            string? bot,
+            string? map,
+            bool? ranked,
+            int? skip) =>
         {
             take = take is > 0 and <= 100 ? take : 25;
             int offset = skip is > 0 ? skip.Value : 0;
-            var now = DateTime.UtcNow;
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
 
             var query = db.Matches.Include(m => m.Participants).AsQueryable();
             if (bot is { Length: > 0 } botKey)
@@ -137,93 +99,34 @@ public static class MatchesEndpoints
                 .Take(take)
                 .ToListAsync();
             // Outcomes stay hidden until the broadcast catches up (plan §28).
-            return Results.Ok(matches.Select(m =>
-            {
-                bool visible = m.BroadcastComplete(now);
-                return new
-                {
-                    m.Id,
-                    m.MapId,
-                    Status = m.Status.ToString(),
-                    Broadcasting = m.Status == MatchStatus.Completed && !visible,
-                    m.MatchSetId,
-                    m.SetGame,
-                    WinnerSlot = visible ? m.WinnerSlot : null,
-                    EndReason = visible ? m.EndReason : null,
-                    EndTick = visible ? m.EndTick : null,
-                    m.CreatedAt,
-                    m.CompletedAt,
-                    Participants = m.Participants.OrderBy(p => p.Slot).Select(p => new
-                    {
-                        p.Slot,
-                        p.NameSnapshot,
-                        p.AccentSnapshot,
-                        p.LookIdSnapshot,
-                        p.ProjectileLookIdSnapshot,
-                        Outcome = visible ? p.Outcome : null,
-                        FinalHealth = visible ? p.FinalHealth : null,
-                    }),
-                };
-            }));
+            return Results.Ok(matches.Select(
+                match => MatchPublicProjection.ToSummary(match, now)));
         });
 
-        group.MapGet("/{matchId:guid}", async (Guid matchId, AppDbContext db) =>
+        group.MapGet("/{matchId:guid}", async (
+            Guid matchId,
+            AppDbContext db,
+            TimeProvider timeProvider) =>
         {
             var match = await db.Matches.Include(m => m.Participants)
                 .SingleOrDefaultAsync(m => m.Id == matchId);
             if (match is null)
                 return Results.NotFound();
-            bool visible = match.BroadcastComplete(DateTime.UtcNow);
-            return Results.Ok(new
-            {
-                match.Id,
-                match.MapId,
-                match.Seed,
-                Status = match.Status.ToString(),
-                match.MatchSetId,
-                match.SetGame,
-                WinnerSlot = visible ? match.WinnerSlot : null,
-                EndReason = visible ? match.EndReason : null,
-                EndTick = visible ? match.EndTick : null,
-                ReplayHash = visible ? match.ReplayHash : null,
-                match.Error,
-                match.CreatedAt,
-                match.CompletedAt,
-                Participants = match.Participants.OrderBy(p => p.Slot).Select(p => new
-                {
-                    p.Slot, p.BotId, p.NameSnapshot, p.AccentSnapshot, p.LookIdSnapshot,
-                    p.ProjectileLookIdSnapshot,
-                    p.ArtifactHashSnapshot,
-                    Outcome = visible ? p.Outcome : null,
-                    FinalHealth = visible ? p.FinalHealth : null,
-                    DamageDealt = visible ? p.DamageDealt : null,
-                    Faults = visible ? p.Faults : null,
-                }),
-            });
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            return Results.Ok(MatchPublicProjection.ToDetail(match, now));
         });
 
         // Shared presentation clock (plan §28.3): all viewers derive the same tick.
-        group.MapGet("/{matchId:guid}/live", async (Guid matchId, AppDbContext db) =>
+        group.MapGet("/{matchId:guid}/live", async (
+            Guid matchId,
+            AppDbContext db,
+            TimeProvider timeProvider) =>
         {
             var match = await db.Matches.FindAsync(matchId);
             if (match is null)
                 return Results.NotFound();
-            var now = DateTime.UtcNow;
-            int presentationTick = Math.Clamp(
-                match.PresentationTick(now), -1, match.EndTick.GetValueOrDefault(int.MaxValue - 1) + 1);
-            return Results.Ok(new
-            {
-                Status = match.Status.ToString(),
-                match.MatchSetId,
-                match.SetGame,
-                match.PresentationTicksPerSecond,
-                PresentationTick = presentationTick,
-                TotalTicks = match.EndTick + 1,
-                BroadcastComplete = match.BroadcastComplete(now),
-                CountdownMs = match.BroadcastStartedAt is DateTime start && start > now
-                    ? (int)(start - now).TotalMilliseconds
-                    : 0,
-            });
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            return Results.Ok(MatchPublicProjection.ToLive(match, now));
         });
 
         // The replay never reveals events or the result ahead of the presentation
@@ -232,6 +135,7 @@ public static class MatchesEndpoints
             Guid matchId,
             AppDbContext db,
             IObjectStore objectStore,
+            TimeProvider timeProvider,
             CancellationToken cancellationToken) =>
         {
             var match = await db.Matches.FindAsync([matchId], cancellationToken);
@@ -241,7 +145,7 @@ public static class MatchesEndpoints
             if (replay is null)
                 return Results.NotFound();
 
-            var now = DateTime.UtcNow;
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             if (match.BroadcastComplete(now))
                 return Results.Stream(replay, "application/json");
 
@@ -263,12 +167,4 @@ public static class MatchesEndpoints
             }
         });
     }
-
-    private static Task<BotVersion?> ActiveVersion(
-        AppDbContext db,
-        Guid botId,
-        CancellationToken cancellationToken) =>
-        db.BotVersions
-            .Where(v => v.BotId == botId && v.IsActive && v.Status == BuildStatus.Built)
-            .SingleOrDefaultAsync(cancellationToken);
 }

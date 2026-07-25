@@ -1563,6 +1563,23 @@ before picking a number.*
      and preferences rather than being invoked by achievement code. Match
      viewing's separate SignalR transport remains deferred.
 
+109. **Ranked and unranked creation share participant admission and immutable
+     snapshot ownership; all public match outcomes pass through one
+     broadcast-safe projection.** `MatchAdmissionService` owns bot existence,
+     optional challenger ownership, current appearance entitlement, and the
+     active successfully built version. `MatchParticipantSnapshotFactory`
+     copies bot/version identity, artifact hash, appearance, and the owner's
+     display name for both workflows; a migration backfills historical owner
+     names. Ranked games also record the resolved rules version when created.
+     `MatchPublicProjection` is the only public result-column reader for match
+     feeds, details, ranked sets, bot history, and computed bot statistics.
+     Until `BroadcastComplete(now)`, winner, end reason/tick, replay hash,
+     participant outcome/health/damage/faults, set score/rating movement, and
+     derived history records remain null or neutral. HTTP contract tests pin
+     concealment and revelation across every view. The transport remains
+     polling for now; this privacy boundary is designed to be reused by the
+     later SignalR match stream.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

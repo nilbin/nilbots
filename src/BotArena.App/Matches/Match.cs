@@ -67,6 +67,7 @@ public class MatchParticipant
     public Guid BotId { get; set; }
     public Guid BotVersionId { get; set; }
     public required string NameSnapshot { get; set; }
+    public string OwnerDisplayNameSnapshot { get; set; } = "";
     public required string AccentSnapshot { get; set; }
     public string LookIdSnapshot { get; set; } = "vanguard";
     public string ProjectileLookIdSnapshot { get; set; } = "pulse-bolt";

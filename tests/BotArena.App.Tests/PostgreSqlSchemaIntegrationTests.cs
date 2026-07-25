@@ -1,5 +1,6 @@
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Matches;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -111,5 +112,66 @@ public class PostgreSqlSchemaIntegrationTests
                 grant.EntitlementKey == "bot-look:lancer" &&
                 grant.SourceKind == "legacy" &&
                 grant.SourceId == "equipped-before-entitlements");
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task ParticipantOwnerSnapshotMigration_BackfillsHistoricalOwnerName()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using var db = database.CreateContext();
+        IMigrator migrator = db.GetService<IMigrator>();
+        await migrator.MigrateAsync("20260725200541_UserNotifications");
+
+        Guid userId = Guid.NewGuid();
+        Guid botId = Guid.NewGuid();
+        Guid matchId = Guid.NewGuid();
+        Guid participantId = Guid.NewGuid();
+        DateTime now = DateTime.UtcNow;
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Users"
+                ("Id", "DisplayName", "Email", "PasswordHash", "CreatedAt", "IsSystem")
+            VALUES
+                ({userId}, {"Historical Owner"}, {"historical-owner@example.test"},
+                 {"not-used"}, {now}, {false})
+            """);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Bots"
+                ("Id", "OwnerUserId", "Name", "Slug", "Accent", "LookId",
+                 "ProjectileLookId", "CreatedAt")
+            VALUES
+                ({botId}, {userId}, {"Historical Bot"}, {"historical-bot"},
+                 {"#22d3ee"}, {"vanguard"}, {"pulse-bolt"}, {now})
+            """);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Matches"
+                ("Id", "MapId", "MapVersion", "GameRulesVersion",
+                 "RuntimeConfigurationVersion", "Seed", "Status", "CreatedAt",
+                 "PresentationTicksPerSecond")
+            VALUES
+                ({matchId}, {"arena-01"}, {1},
+                 {Engine.BotArenaVersions.GameRulesVersion},
+                 {Engine.BotArenaVersions.RuntimeConfigurationVersion},
+                 {1L}, {"Pending"}, {now}, {5})
+            """);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "MatchParticipants"
+                ("Id", "MatchId", "Slot", "BotId", "BotVersionId",
+                 "NameSnapshot", "AccentSnapshot", "LookIdSnapshot",
+                 "ProjectileLookIdSnapshot", "ArtifactHashSnapshot")
+            VALUES
+                ({participantId}, {matchId}, {0}, {botId}, {Guid.NewGuid()},
+                 {"Historical Bot"}, {"#22d3ee"}, {"vanguard"},
+                 {"pulse-bolt"}, {"historical-artifact"})
+            """);
+
+        await migrator.MigrateAsync();
+
+        MatchParticipant participant =
+            await db.MatchParticipants.SingleAsync(
+                candidate => candidate.Id == participantId);
+        Assert.Equal(
+            "Historical Owner",
+            participant.OwnerDisplayNameSnapshot);
     }
 }

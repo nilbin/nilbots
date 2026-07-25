@@ -31,34 +31,22 @@ public static class RankedEndpoints
         routes.MapPost("/api/matches/ranked",
             async (RankedChallengeRequest request, ClaimsPrincipal principal, AppDbContext db,
                    ApplicationMode mode, IConfiguration configuration,
-                   BotAppearancePolicy appearancePolicy, HttpContext http,
+                   MatchAdmissionService admission,
+                   MatchParticipantSnapshotFactory snapshots,
+                   HttpContext http,
                    CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
-            var botA = await db.Bots.SingleOrDefaultAsync(b => b.Id == request.BotId);
-            if (botA is null)
-                return Results.Problem("Bot not found.", statusCode: 404);
-            if (botA.OwnerUserId != userId)
-                return Results.Problem("You can only start ranked sets with your own bot.", statusCode: 403);
-
-            ApplicationResult<BotAppearance> appearanceA =
-                await appearancePolicy.ValidateForMatchAdmissionAsync(
-                    botA,
-                    cancellationToken);
-            if (!appearanceA.Succeeded)
-            {
-                ApplicationTelemetry.Record(
-                    "matches.admit_appearance",
-                    appearanceA.Error!.Code,
+            ApplicationResult<AdmittedMatchBot> admittedA =
+                await admission.AdmitAsync(
+                    request.BotId,
                     userId,
-                    botA.Id);
-                return appearanceA.Error.ToProblemDetails(http);
-            }
-
-            var versionA = await ActiveVersion(db, botA.Id);
-            if (versionA is null)
-                return Results.Problem("Your bot needs a successfully built active version.", statusCode: 409);
+                    cancellationToken);
+            if (!admittedA.Succeeded)
+                return admittedA.Error!.ToProblemDetails(http);
+            AdmittedMatchBot participantA = admittedA.Value!;
+            Bot botA = participantA.Bot;
 
             Engine.GameRules setRules;
             try
@@ -88,7 +76,7 @@ public static class RankedEndpoints
                 return Results.Problem(ex.Message, statusCode: 400);
             }
 
-            Bot? botB;
+            Guid botBId;
             if (request.OpponentBotId is Guid pinned)
             {
                 if (!AllowsPinnedOpponents(mode, configuration))
@@ -98,47 +86,51 @@ public static class RankedEndpoints
                         statusCode: 400);
                 if (pinned == request.BotId)
                     return Results.Problem("A bot cannot play a ranked set against itself.", statusCode: 400);
-                botB = await db.Bots.SingleOrDefaultAsync(b => b.Id == pinned);
-                if (botB is null)
-                    return Results.Problem("Bot not found.", statusCode: 404);
+                botBId = pinned;
             }
             else
             {
-                var opponentId = await MatchmakeAsync(db, botA, userId, setRules.RulesVersion);
+                Guid? opponentId = await MatchmakeAsync(
+                    db,
+                    botA,
+                    userId,
+                    setRules.RulesVersion,
+                    cancellationToken);
                 if (opponentId is null)
                     return Results.Problem(
                         "No opponent is available on this ladder yet — every ranked set needs " +
                         "another bot with a successfully built version.", statusCode: 409);
-                botB = await db.Bots.SingleAsync(b => b.Id == opponentId);
+                botBId = opponentId.Value;
             }
 
-            var versionB = await ActiveVersion(db, botB.Id);
-            if (versionB is null)
-                return Results.Problem("Both bots need a successfully built active version.", statusCode: 409);
-            ApplicationResult<BotAppearance> appearanceB =
-                await appearancePolicy.ValidateForMatchAdmissionAsync(
-                    botB,
+            ApplicationResult<AdmittedMatchBot> admittedB =
+                await admission.AdmitAsync(
+                    botBId,
+                    requiredOwnerUserId: null,
                     cancellationToken);
-            if (!appearanceB.Succeeded)
-            {
-                ApplicationTelemetry.Record(
-                    "matches.admit_appearance",
-                    appearanceB.Error!.Code,
-                    userId,
-                    botB.Id);
-                return appearanceB.Error.ToProblemDetails(http);
-            }
+            if (!admittedB.Succeeded)
+                return admittedB.Error!.ToProblemDetails(http);
+            AdmittedMatchBot participantB = admittedB.Value!;
+            Bot botB = participantB.Bot;
 
             var set = new MatchSet
             {
                 BotAId = botA.Id,
                 BotBId = botB.Id,
-                BotAVersionId = versionA.Id,
-                BotBVersionId = versionB.Id,
+                BotAVersionId = participantA.Version.Id,
+                BotBVersionId = participantB.Version.Id,
                 RulesName = request.Rules is { Length: > 0 } ? request.Rules : null,
                 GameRulesVersion = setRules.RulesVersion,
-                RatingABefore = await LadderRating(db, botA.Id, setRules.RulesVersion),
-                RatingBBefore = await LadderRating(db, botB.Id, setRules.RulesVersion),
+                RatingABefore = await LadderRating(
+                    db,
+                    botA.Id,
+                    setRules.RulesVersion,
+                    cancellationToken),
+                RatingBBefore = await LadderRating(
+                    db,
+                    botB.Id,
+                    setRules.RulesVersion,
+                    cancellationToken),
             };
             db.MatchSets.Add(set);
 
@@ -156,96 +148,46 @@ public static class RankedEndpoints
                         Seed = seed,
                         MatchSetId = set.Id,
                         SetGame = game,
+                        GameRulesVersion = setRules.RulesVersion,
+                        RuntimeConfigurationVersion =
+                            set.RuntimeConfigurationVersion,
                     };
-                    var (first, firstVersion) = mirrored ? (botB, versionB) : (botA, versionA);
-                    var (second, secondVersion) = mirrored ? (botA, versionA) : (botB, versionB);
-                    match.Participants.Add(Snapshot(match.Id, 0, first, firstVersion));
-                    match.Participants.Add(Snapshot(match.Id, 1, second, secondVersion));
+                    AdmittedMatchBot first =
+                        mirrored ? participantB : participantA;
+                    AdmittedMatchBot second =
+                        mirrored ? participantA : participantB;
+                    match.Participants.Add(snapshots.Create(match.Id, 0, first));
+                    match.Participants.Add(snapshots.Create(match.Id, 1, second));
                     db.Matches.Add(match);
                     db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
                 }
             }
-            await db.SaveChangesAsync();
-            return Results.Ok(new { set.Id });
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.Ok(new CreatedMatchSetResponse(set.Id));
         }).RequireAuthorization().RequireRateLimiting("challenge");
 
-        routes.MapGet("/api/matchsets/{setId:guid}", async (Guid setId, AppDbContext db) =>
+        routes.MapGet("/api/matchsets/{setId:guid}", async (
+            Guid setId,
+            AppDbContext db,
+            TimeProvider timeProvider,
+            CancellationToken cancellationToken) =>
         {
-            var set = await db.MatchSets.FindAsync(setId);
+            var set = await db.MatchSets.FindAsync([setId], cancellationToken);
             if (set is null)
                 return Results.NotFound();
-            var botA = await db.Bots.FindAsync(set.BotAId);
-            var botB = await db.Bots.FindAsync(set.BotBId);
+            var botA = await db.Bots.FindAsync([set.BotAId], cancellationToken);
+            var botB = await db.Bots.FindAsync([set.BotBId], cancellationToken);
             var matches = await db.Matches.Include(m => m.Participants)
                 .Where(m => m.MatchSetId == setId)
                 .OrderBy(m => m.SetGame)
-                .ToListAsync();
-            MatchParticipant? botASnapshot = matches
-                .SelectMany(match => match.Participants)
-                .FirstOrDefault(participant => participant.BotId == set.BotAId);
-            MatchParticipant? botBSnapshot = matches
-                .SelectMany(match => match.Participants)
-                .FirstOrDefault(participant => participant.BotId == set.BotBId);
-
-            var now = DateTime.UtcNow;
-            // The aggregate (scores, rating changes) necessarily spoils the games; withhold
-            // it until every game's broadcast has finished (plan §28: no early results).
-            bool allWatched = matches.Count > 0 && matches.All(m =>
-                m.Status == MatchStatus.Failed || m.BroadcastComplete(now));
-
-            return Results.Ok(new
-            {
-                set.Id,
-                Status = set.Status.ToString(),
-                RulesVersion = set.GameRulesVersion,
-                BotA = new
-                {
-                    Id = set.BotAId,
-                    Name = botASnapshot?.NameSnapshot ?? botA?.Name,
-                    Accent = botASnapshot?.AccentSnapshot ?? botA?.Accent,
-                    LookId = botASnapshot?.LookIdSnapshot ?? botA?.LookId,
-                },
-                BotB = new
-                {
-                    Id = set.BotBId,
-                    Name = botBSnapshot?.NameSnapshot ?? botB?.Name,
-                    Accent = botBSnapshot?.AccentSnapshot ?? botB?.Accent,
-                    LookId = botBSnapshot?.LookIdSnapshot ?? botB?.LookId,
-                },
-                set.CreatedAt,
-                Revealed = allWatched && set.Status != MatchSetStatus.Running,
-                ScoreA = allWatched && set.Status == MatchSetStatus.Completed ? set.ScoreA : (double?)null,
-                ScoreB = allWatched && set.Status == MatchSetStatus.Completed ? set.ScoreB : (double?)null,
-                RatingChangeA = allWatched && set.Status == MatchSetStatus.Completed ? set.RatingChangeA : (double?)null,
-                RatingChangeB = allWatched && set.Status == MatchSetStatus.Completed ? set.RatingChangeB : (double?)null,
-                WinnerBotId = allWatched ? set.WinnerBotId : null,
-                Games = matches.Select(m =>
-                {
-                    bool visible = m.BroadcastComplete(now);
-                    return new
-                    {
-                        m.Id,
-                        Game = m.SetGame,
-                        m.MapId,
-                        Status = m.Status.ToString(),
-                        Broadcasting = m.Status == MatchStatus.Completed && !visible,
-                        WinnerBotId = visible && m.WinnerSlot is int winner
-                            ? m.Participants.Single(p => p.Slot == winner).BotId
-                            : (Guid?)null,
-                        Draw = visible && m.Status == MatchStatus.Completed && m.WinnerSlot is null,
-                        Participants = m.Participants.OrderBy(p => p.Slot)
-                            .Select(p => new
-                            {
-                                p.Slot,
-                                p.BotId,
-                                p.NameSnapshot,
-                                p.AccentSnapshot,
-                                p.LookIdSnapshot,
-                                p.ProjectileLookIdSnapshot,
-                            }),
-                    };
-                }),
-            });
+                .ToListAsync(cancellationToken);
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            return Results.Ok(MatchPublicProjection.ToMatchSet(
+                set,
+                botA,
+                botB,
+                matches,
+                now));
         });
 
         // One ladder per rules version (DECISIONS #54). ?rules=<version string> picks
@@ -325,7 +267,11 @@ public static class RankedEndpoints
     /// <summary>Everyone with a playable bot, reduced to what the selection rule needs,
     /// then handed to <see cref="RankedMatchmaking"/>.</summary>
     private static async Task<Guid?> MatchmakeAsync(
-        AppDbContext db, Bot challenger, Guid userId, string rulesVersion)
+        AppDbContext db,
+        Bot challenger,
+        Guid userId,
+        string rulesVersion,
+        CancellationToken cancellationToken)
     {
         var candidates = await db.Bots
             .Where(b => b.Id != challenger.Id)
@@ -335,32 +281,22 @@ public static class RankedEndpoints
                 b.Ratings.Where(r => r.RulesVersion == rulesVersion)
                     .Select(r => (double?)r.Rating).FirstOrDefault() ?? BotRating.DefaultRating,
                 b.OwnerUserId == userId))
-            .ToListAsync();
-        double mine = await LadderRating(db, challenger.Id, rulesVersion);
+            .ToListAsync(cancellationToken);
+        double mine = await LadderRating(
+            db,
+            challenger.Id,
+            rulesVersion,
+            cancellationToken);
         return RankedMatchmaking.Choose(candidates, mine, Random.Shared.Next);
     }
 
-    private static async Task<double> LadderRating(AppDbContext db, Guid botId, string rulesVersion) =>
+    private static async Task<double> LadderRating(
+        AppDbContext db,
+        Guid botId,
+        string rulesVersion,
+        CancellationToken cancellationToken = default) =>
         await db.BotRatings
             .Where(r => r.BotId == botId && r.RulesVersion == rulesVersion)
             .Select(r => (double?)r.Rating)
-            .SingleOrDefaultAsync() ?? BotRating.DefaultRating;
-
-    private static MatchParticipant Snapshot(Guid matchId, int slot, Bot bot, BotVersion version) => new()
-    {
-        MatchId = matchId,
-        Slot = slot,
-        BotId = bot.Id,
-        BotVersionId = version.Id,
-        NameSnapshot = bot.Name,
-        AccentSnapshot = bot.Accent,
-        LookIdSnapshot = bot.LookId,
-        ProjectileLookIdSnapshot = bot.ProjectileLookId,
-        ArtifactHashSnapshot = version.ArtifactHash ?? "",
-    };
-
-    private static Task<BotVersion?> ActiveVersion(AppDbContext db, Guid botId) =>
-        db.BotVersions
-            .Where(v => v.BotId == botId && v.IsActive && v.Status == BuildStatus.Built)
-            .SingleOrDefaultAsync();
+            .SingleOrDefaultAsync(cancellationToken) ?? BotRating.DefaultRating;
 }

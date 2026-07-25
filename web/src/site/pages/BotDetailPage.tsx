@@ -186,12 +186,14 @@ interface BotMatchRow {
   mapId: string;
   status: string;
   broadcasting: boolean;
+  matchSetId: string | null;
   setGame: number | null;
   createdAt: string;
   outcome: string | null;
   opponent: {
     botId: string;
     nameSnapshot: string;
+    ownerDisplayNameSnapshot: string;
     accentSnapshot: string;
     lookIdSnapshot: string;
   } | null;

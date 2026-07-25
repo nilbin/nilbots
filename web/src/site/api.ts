@@ -164,6 +164,17 @@ export interface BotStatistics {
   };
 }
 
+export interface MatchSummaryParticipant {
+  slot: number;
+  nameSnapshot: string;
+  ownerDisplayNameSnapshot: string;
+  accentSnapshot: string;
+  lookIdSnapshot: string;
+  projectileLookIdSnapshot: string;
+  outcome: string | null;
+  finalHealth: number | null;
+}
+
 export interface MatchSummary {
   id: string;
   mapId: string;
@@ -175,20 +186,22 @@ export interface MatchSummary {
   endReason: string | null;
   endTick: number | null;
   createdAt: string;
-  participants: {
-    slot: number;
-    nameSnapshot: string;
-    accentSnapshot: string;
-    lookIdSnapshot: string;
-    outcome: string | null;
-    finalHealth: number | null;
-  }[];
+  completedAt: string | null;
+  participants: MatchSummaryParticipant[];
 }
 
-export interface MatchDetail extends MatchSummary {
+export interface MatchDetailParticipant extends MatchSummaryParticipant {
+  botId: string;
+  artifactHashSnapshot: string;
+  damageDealt: number | null;
+  faults: number | null;
+}
+
+export interface MatchDetail extends Omit<MatchSummary, 'participants'> {
   seed: number;
   replayHash: string | null;
   error: string | null;
+  participants: MatchDetailParticipant[];
 }
 
 export interface Meta {
@@ -209,8 +222,10 @@ export interface SetGame {
     slot: number;
     botId: string;
     nameSnapshot: string;
+    ownerDisplayNameSnapshot: string;
     accentSnapshot: string;
     lookIdSnapshot: string;
+    projectileLookIdSnapshot: string;
   }[];
 }
 
@@ -220,6 +235,7 @@ export interface MatchSetDetail {
   rulesVersion: string;
   botA: { id: string; name: string; accent: string; lookId: string };
   botB: { id: string; name: string; accent: string; lookId: string };
+  createdAt: string;
   revealed: boolean;
   scoreA: number | null;
   scoreB: number | null;
