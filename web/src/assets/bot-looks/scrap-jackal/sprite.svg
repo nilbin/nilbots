@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Scrap Jackal bot chassis facing east">
+  <defs>
+    <linearGradient id="sj-rust" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f28b52"/>
+      <stop offset=".35" stop-color="#a84328"/>
+      <stop offset=".72" stop-color="#5a261e"/>
+      <stop offset="1" stop-color="#271719"/>
+    </linearGradient>
+    <linearGradient id="sj-steel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#8b9195"/>
+      <stop offset=".45" stop-color="#3d464d"/>
+      <stop offset="1" stop-color="#151b21"/>
+    </linearGradient>
+    <linearGradient id="sj-copper" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#ffd19a"/>
+      <stop offset=".42" stop-color="#d97543"/>
+      <stop offset="1" stop-color="#6f2f22"/>
+    </linearGradient>
+    <radialGradient id="sj-core">
+      <stop stop-color="#fff7ed"/>
+      <stop offset=".25" stop-color="#fdba74"/>
+      <stop offset=".62" stop-color="#e11d48"/>
+      <stop offset="1" stop-color="#3b0d18"/>
+    </radialGradient>
+  </defs>
+  <path d="M43 171 112 82l103 24 54 57 91 4 124 54 17 35-17 35-124 54-91 4-54 57-103 24-69-89 38-85Z"
+    fill="#120d0f" stroke="#080507" stroke-width="15" stroke-linejoin="round"/>
+  <g stroke-linejoin="round">
+    <path d="m58 173 60-73 88 19 52 58-53 59-75-24-43 20Z"
+      fill="url(#sj-rust)" stroke="#bf6548" stroke-width="6"/>
+    <path d="m58 339 60 73 88-19 52-58-53-59-75 24-43-20Z"
+      fill="#5b2422" stroke="#7d3731" stroke-width="6"/>
+    <path d="m88 180 42-52 49 10-27 20-18 47-31 14Z"
+      fill="#df7047" stroke="#74302a" stroke-width="4"/>
+    <path d="m88 332 42 52 49-10-27-20-18-47-31-14Z"
+      fill="#7c2e29" stroke="#4c2022" stroke-width="4"/>
+    <path d="m82 224 82-21 78 53-78 53-82-21-21-32Z"
+      fill="url(#sj-steel)" stroke="#747d81" stroke-width="5"/>
+    <path d="m180 167 79-38 73 49 24 78-24 78-73 49-79-38-36-89Z"
+      fill="#272d32" stroke="#697176" stroke-width="7"/>
+    <path d="m271 180 73-19 82 31 54 31-56 13-49 20-101 5-36-5Z"
+      fill="url(#sj-rust)" stroke="#8f4032" stroke-width="5"/>
+    <path d="m271 332 73 19 82-31 54-31-56-13-49-20-101-5-36 5Z"
+      fill="#4f2224" stroke="#6f3030" stroke-width="5"/>
+    <path d="m348 198 70 16 67 31-51 11-78-6-38-25Z"
+      fill="url(#sj-steel)" stroke="#4e5960" stroke-width="4"/>
+    <path d="m348 314 70-16 67-31-51-11-78 6-38 25Z"
+      fill="#1b2229" stroke="#39434a" stroke-width="4"/>
+    <path d="m394 236 84 9 23 11-23 11-84 9-31-20Z"
+      fill="url(#sj-copper)" stroke="#6e3023" stroke-width="3"/>
+    <circle cx="244" cy="256" r="76" fill="#161c20" stroke="#8a4b39" stroke-width="9"/>
+    <circle cx="244" cy="256" r="57" fill="url(#sj-steel)" stroke="#c06c4d" stroke-width="5"/>
+    <path d="M244 197 283 217 303 256 283 295 244 315 205 295 185 256 205 217Z"
+      fill="#20252a" stroke="#9c7d68" stroke-width="5"/>
+    <circle cx="244" cy="256" r="30" fill="url(#sj-core)" stroke="#fed7aa" stroke-width="4"/>
+    <g fill="url(#sj-copper)" stroke="#582821" stroke-width="3">
+      <path d="m119 121 40-12 31 20-40 1-27 18Z"/><path d="m119 391 40 12 31-20-40-1-27-18Z"/>
+      <path d="m292 171 36-9 36 15-38 4Z"/><path d="m292 341 36 9 36-15-38-4Z"/>
+    </g>
+    <g fill="#d5d8d8" stroke="#353b3e" stroke-width="2">
+      <circle cx="125" cy="167" r="5"/><circle cx="125" cy="345" r="5"/>
+      <circle cx="322" cy="199" r="5"/><circle cx="322" cy="313" r="5"/>
+    </g>
+  </g>
+  <path d="m103 244 63 7M103 268l63-7M305 212l52-7M305 300l52 7"
+    fill="none" stroke="#ffd0ae" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+</svg>

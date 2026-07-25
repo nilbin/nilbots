@@ -65,7 +65,7 @@ public class CosmeticCatalogTests
             regentLance.Unlock);
 
         Assert.Equal(
-            4,
+            10,
             catalog.Items.Count(item =>
                 item.Availability == CosmeticCatalog.EntitlementAvailability));
     }

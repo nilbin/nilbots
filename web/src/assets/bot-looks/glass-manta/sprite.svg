@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Glass Manta bot chassis facing east">
+  <defs>
+    <linearGradient id="gm-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d9fbff"/>
+      <stop offset=".22" stop-color="#75d8ed"/>
+      <stop offset=".56" stop-color="#3975aa"/>
+      <stop offset="1" stop-color="#1b2852"/>
+    </linearGradient>
+    <linearGradient id="gm-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#43557f"/>
+      <stop offset=".45" stop-color="#1e2a4f"/>
+      <stop offset="1" stop-color="#0a1026"/>
+    </linearGradient>
+    <linearGradient id="gm-light" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#67e8f9"/>
+      <stop offset=".55" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <radialGradient id="gm-core">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".28" stop-color="#a5f3fc"/>
+      <stop offset=".62" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#172554"/>
+    </radialGradient>
+  </defs>
+  <path d="M37 256 116 92l126 53 66 51 115 8 72 52-72 52-115 8-66 51-126 53Z"
+    fill="#070c1d" stroke="#030611" stroke-width="15" stroke-linejoin="round"/>
+  <g stroke-linejoin="round">
+    <path d="M53 256 124 109l108 47 67 55-65 45Z"
+      fill="url(#gm-glass)" stroke="#83dce7" stroke-width="6"/>
+    <path d="m53 256 71 147 108-47 67-55-65-45Z"
+      fill="#284f82" stroke="#356c9a" stroke-width="6"/>
+    <path d="m94 243 55-101 70 30 54 51-59 33Z"
+      fill="#b5f0f5" fill-opacity=".55" stroke="#d8fbff" stroke-width="4"/>
+    <path d="m94 269 55 101 70-30 54-51-59-33Z"
+      fill="#477da5" fill-opacity=".7" stroke="#5b95b5" stroke-width="4"/>
+    <path d="m221 170 80-15 98 38 77 46-121 5-79 29-55-17Z"
+      fill="url(#gm-deep)" stroke="#5a78a4" stroke-width="5"/>
+    <path d="m221 342 80 15 98-38 77-46-121-5-79-29-55 17Z"
+      fill="#172447" stroke="#344f7c" stroke-width="5"/>
+    <path d="m308 203 89 9 81 44-81 44-89 9 42-53Z"
+      fill="url(#gm-glass)" fill-opacity=".72" stroke="#74bed6" stroke-width="5"/>
+    <path d="m379 235 88 10 29 11-29 11-88 10 24-21Z"
+      fill="url(#gm-deep)" stroke="#74c8dd" stroke-width="3"/>
+    <path d="m419 247 62 4 21 5-21 5-62 4 13-9Z"
+      fill="url(#gm-light)" stroke="#dffcff" stroke-width="2"/>
+    <circle cx="245" cy="256" r="75" fill="#0b142c" stroke="#5f87b4" stroke-width="8"/>
+    <path d="M245 181 298 203 320 256 298 309 245 331 192 309 170 256 192 203Z"
+      fill="url(#gm-deep)" stroke="#67b8cb" stroke-width="6"/>
+    <circle cx="245" cy="256" r="49" fill="#101b3a" stroke="#9ce9f2" stroke-width="7"/>
+    <circle cx="245" cy="256" r="27" fill="url(#gm-core)" stroke="#e6fdff" stroke-width="4"/>
+    <path d="m117 256 244-5 44 5-44 5Z" fill="url(#gm-light)" opacity=".72"/>
+    <g fill="#b9f4f7" fill-opacity=".8" stroke="#315c88" stroke-width="3">
+      <path d="m130 133 35 10 34 29-46-13-32 18Z"/><path d="m130 379 35-10 34-29-46 13-32-18Z"/>
+      <path d="m282 177 42-8 38 18-44-1Z"/><path d="m282 335 42 8 38-18-44 1Z"/>
+    </g>
+  </g>
+  <g fill="none" stroke="#effdff" stroke-width="4" stroke-linecap="round" opacity=".58">
+    <path d="m111 211 50-67 64 37M111 301l50 67 64-37"/>
+    <path d="m301 194 56 9M301 318l56-9"/>
+  </g>
+</svg>

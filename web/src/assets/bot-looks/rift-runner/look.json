@@ -1,0 +1,7 @@
+{
+  "id": "rift-runner",
+  "label": "Rift Runner",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#2dd4bf",
+  "scale": 1.28
+}

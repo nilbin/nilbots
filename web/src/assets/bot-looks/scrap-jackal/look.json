@@ -1,0 +1,7 @@
+{
+  "id": "scrap-jackal",
+  "label": "Scrap Jackal",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#fb7185",
+  "scale": 1.25
+}

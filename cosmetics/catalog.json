@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "items": [
     {
       "key": "bot-look:vanguard",
@@ -54,6 +54,56 @@
       }
     },
     {
+      "key": "bot-look:rift-runner",
+      "kind": "bot-look",
+      "id": "rift-runner",
+      "label": "Rift Runner",
+      "availability": "starter"
+    },
+    {
+      "key": "bot-look:mossback",
+      "kind": "bot-look",
+      "id": "mossback",
+      "label": "Mossback",
+      "availability": "starter"
+    },
+    {
+      "key": "bot-look:helio-kite",
+      "kind": "bot-look",
+      "id": "helio-kite",
+      "label": "Helio Kite",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "reserved-helio-kite",
+        "hint": "Reserved for a future achievement."
+      }
+    },
+    {
+      "key": "bot-look:scrap-jackal",
+      "kind": "bot-look",
+      "id": "scrap-jackal",
+      "label": "Scrap Jackal",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "challenge",
+        "sourceId": "reserved-scrap-jackal",
+        "hint": "Reserved for a future challenge."
+      }
+    },
+    {
+      "key": "bot-look:glass-manta",
+      "kind": "bot-look",
+      "id": "glass-manta",
+      "label": "Glass Manta",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "competition",
+        "sourceId": "reserved-glass-manta",
+        "hint": "Reserved for a future competition reward."
+      }
+    },
+    {
       "key": "projectile-look:pulse-bolt",
       "kind": "projectile-look",
       "id": "pulse-bolt",
@@ -96,6 +146,56 @@
         "sourceKind": "achievement",
         "sourceId": "ranked-matches-100",
         "hint": "Complete 100 ranked matches."
+      }
+    },
+    {
+      "key": "projectile-look:phase-needle",
+      "kind": "projectile-look",
+      "id": "phase-needle",
+      "label": "Phase Needle",
+      "availability": "starter"
+    },
+    {
+      "key": "projectile-look:cinder-disc",
+      "kind": "projectile-look",
+      "id": "cinder-disc",
+      "label": "Cinder Disc",
+      "availability": "starter"
+    },
+    {
+      "key": "projectile-look:helix-dart",
+      "kind": "projectile-look",
+      "id": "helix-dart",
+      "label": "Helix Dart",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "achievement",
+        "sourceId": "reserved-helix-dart",
+        "hint": "Reserved for a future achievement."
+      }
+    },
+    {
+      "key": "projectile-look:gravity-knot",
+      "kind": "projectile-look",
+      "id": "gravity-knot",
+      "label": "Gravity Knot",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "challenge",
+        "sourceId": "reserved-gravity-knot",
+        "hint": "Reserved for a future challenge."
+      }
+    },
+    {
+      "key": "projectile-look:prism-fan",
+      "kind": "projectile-look",
+      "id": "prism-fan",
+      "label": "Prism Fan",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "competition",
+        "sourceId": "reserved-prism-fan",
+        "hint": "Reserved for a future competition reward."
       }
     }
   ]

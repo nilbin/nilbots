@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <path fill="#fff" fill-opacity=".22" d="M27 128 66 83l54-18 46 29-31 24-54-12z"/>
+  <path fill="#fff" fill-opacity=".22" d="m27 128 39 45 54 18 46-29-31-24-54 12z"/>
+  <circle cx="117" cy="128" r="55" fill="#fff" fill-opacity=".45"/>
+  <circle cx="117" cy="128" r="35" fill="#fff" fill-opacity=".25"/>
+  <path fill="#fff" fill-rule="evenodd"
+    d="M117 68a60 60 0 1 1 0 120 60 60 0 0 1 0-120Zm0 26a34 34 0 1 0 0 68 34 34 0 0 0 0-68Z"/>
+  <g fill="#fff" fill-opacity=".75">
+    <path d="m104 67 26 1-5 28-17 1z"/>
+    <path d="m104 189 26-1-5-28-17-1z"/>
+    <path d="m58 115 1 26 28-5 1-17z"/>
+  </g>
+  <path fill="#fff" d="m121 113 48-18 33 20 35 13-35 13-33 20-48-18 20-15z"/>
+</svg>

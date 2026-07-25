@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mossback bot chassis facing east">
+  <defs>
+    <linearGradient id="mb-moss" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d1d5a5"/>
+      <stop offset=".25" stop-color="#829660"/>
+      <stop offset=".7" stop-color="#43583a"/>
+      <stop offset="1" stop-color="#233226"/>
+    </linearGradient>
+    <linearGradient id="mb-stone" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#778078"/>
+      <stop offset=".48" stop-color="#414a46"/>
+      <stop offset="1" stop-color="#202723"/>
+    </linearGradient>
+    <linearGradient id="mb-bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d5a76b"/>
+      <stop offset=".45" stop-color="#8b623a"/>
+      <stop offset="1" stop-color="#3d2c20"/>
+    </linearGradient>
+    <radialGradient id="mb-core">
+      <stop stop-color="#f7fee7"/>
+      <stop offset=".28" stop-color="#bef264"/>
+      <stop offset=".66" stop-color="#4d7c0f"/>
+      <stop offset="1" stop-color="#17210d"/>
+    </radialGradient>
+  </defs>
+  <path d="M47 156 99 93l87-28 77 41 53 58 104 38 72 54-72 54-104 38-53 58-77 41-87-28-52-63 32-70-20-30 20-30Z"
+    fill="#111712" stroke="#080c09" stroke-width="15" stroke-linejoin="round"/>
+  <g stroke-linejoin="round">
+    <path d="m58 159 48-53 73-25 67 36 55 61-51 53-79-20-69-37Z"
+      fill="url(#mb-moss)" stroke="#6e8055" stroke-width="6"/>
+    <path d="m58 353 48 53 73 25 67-36 55-61-51-53-79 20-69 37Z"
+      fill="#354b35" stroke="#475c42" stroke-width="6"/>
+    <path d="m83 181 42-44 48-16 34 19-49 17-38 38Z"
+      fill="#b9c78d" stroke="#697d53" stroke-width="4"/>
+    <path d="m83 331 42 44 48 16 34-19-49-17-38-38Z"
+      fill="#50694a" stroke="#344b34" stroke-width="4"/>
+    <path d="m77 220 80-25 86 36-17 25 17 25-86 36-80-25-17-36Z"
+      fill="url(#mb-stone)" stroke="#708079" stroke-width="5"/>
+    <path d="m184 167 80-38 67 52 25 75-25 75-67 52-80-38-37-89Z"
+      fill="#303a34" stroke="#657269" stroke-width="7"/>
+    <path d="m261 177 76-18 74 37 63 48-101 8-67 31-64-27Z"
+      fill="url(#mb-stone)" stroke="#58655f" stroke-width="5"/>
+    <path d="m261 335 76 18 74-37 63-48-101-8-67-31-64 27Z"
+      fill="#28332e" stroke="#3f4e46" stroke-width="5"/>
+    <path d="m340 209 67 18 65 29-65 29-67 18 35-47Z"
+      fill="#1f2926" stroke="#68766d" stroke-width="5"/>
+    <path d="m406 241 64 7 23 8-23 8-64 7 17-15Z"
+      fill="url(#mb-bronze)" stroke="#4a3525" stroke-width="3"/>
+    <circle cx="245" cy="256" r="76" fill="#202822" stroke="#826843" stroke-width="8"/>
+    <path d="M245 180 299 202 321 256 299 310 245 332 191 310 169 256 191 202Z"
+      fill="url(#mb-stone)" stroke="#69776c" stroke-width="5"/>
+    <circle cx="245" cy="256" r="48" fill="#1b221c" stroke="url(#mb-bronze)" stroke-width="9"/>
+    <circle cx="245" cy="256" r="25" fill="url(#mb-core)" stroke="#d9f99d" stroke-width="4"/>
+    <g fill="url(#mb-bronze)" stroke="#3c2d21" stroke-width="3">
+      <path d="m133 125 35-12 35 18-29 10-34 19-24-10Z"/>
+      <path d="m133 387 35 12 35-18-29-10-34-19-24 10Z"/>
+      <path d="m289 171 43-7 31 19-42-1Z"/>
+      <path d="m289 341 43 7 31-19-42 1Z"/>
+    </g>
+    <g fill="#8fbf55">
+      <circle cx="114" cy="173" r="8"/><circle cx="137" cy="161" r="6"/><circle cx="151" cy="183" r="5"/>
+      <circle cx="114" cy="339" r="8"/><circle cx="137" cy="351" r="6"/><circle cx="151" cy="329" r="5"/>
+      <path d="m178 103 14 9-5 18-16-7Z"/><path d="m178 409 14-9-5-18-16 7Z"/>
+    </g>
+  </g>
+  <path d="m117 210 52 13M117 302l52-13M314 204l48 9M314 308l48-9"
+    fill="none" stroke="#c7d6aa" stroke-width="4" stroke-linecap="round" opacity=".55"/>
+</svg>

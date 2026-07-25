@@ -29,9 +29,14 @@ test('shipped vector looks contain no embedded raster image', () => {
   for (const id of [
     'aureate-warden',
     'bulwark',
+    'glass-manta',
+    'helio-kite',
     'lancer',
+    'mossback',
     'needle',
     'orbiter',
+    'rift-runner',
+    'scrap-jackal',
     'vanguard',
   ]) {
     const manifest = JSON.parse(
