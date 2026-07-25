@@ -44,6 +44,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<BotRating>(entity =>
         {
             entity.HasIndex(r => new { r.BotId, r.RulesVersion }).IsUnique();
+            // The leaderboard reads one ladder ordered by rating; the unique index above
+            // leads with BotId and cannot serve that, so it was a seq scan over every
+            // ladder plus a sort (DECISIONS #100).
+            entity.HasIndex(r => new { r.RulesVersion, r.Rating }).IsDescending(false, true);
             entity.Property(r => r.RulesVersion).HasMaxLength(40);
             entity.Property(r => r.Rating).HasDefaultValue(1200.0);
         });
@@ -64,6 +68,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasIndex(m => m.CreatedAt);
             entity.HasIndex(m => m.MatchSetId);
+            // Feed filtered by map, newest first. Without the CreatedAt column here,
+            // filtering to an uncommon map scanned the whole table (DECISIONS #100).
+            entity.HasIndex(m => new { m.MapId, m.CreatedAt }).IsDescending(false, true);
         });
 
         modelBuilder.Entity<MatchSet>(entity =>
@@ -75,6 +82,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<MatchParticipant>(entity =>
         {
             entity.HasIndex(p => new { p.MatchId, p.Slot }).IsUnique();
+            // "Every match this bot played" — the feed's bot filter and the bot page's
+            // history. MatchId trails BotId so the lookup is index-only.
+            entity.HasIndex(p => new { p.BotId, p.MatchId });
             entity.Property(p => p.LookIdSnapshot).HasMaxLength(64);
         });
 

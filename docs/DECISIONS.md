@@ -1406,6 +1406,32 @@ before picking a number.*
     stops it reporting the rating badge `1216@0.5` as a leaked address, which is the
     false positive #98 recorded. A tracked test that cries wolf is worse than no test.
 
+100. **The #99 filters got the three indexes they were missing, measured at 300k
+     matches rather than at the 665 we have.** Owner asked whether the indexes are on
+     point. At current size every plan is instant and every plan is a lie about what
+     happens later, so the queries were re-measured on a throwaway database holding
+     300k matches, 600k participants and 4k ratings, shaped like the real ones.
+     Before: filtering the feed by an uncommon MAP was a parallel sequential scan
+     discarding 149,980 rows per worker (12.5 ms); the LEADERBOARD was a sequential
+     scan over every ladder plus a sort, because the only BotRatings index leads with
+     BotId and cannot serve `WHERE RulesVersion = ? ORDER BY Rating DESC`; and the BOT
+     filter had no index on `MatchParticipants.BotId` at all (35 ms).
+     Added, via the FilterIndexes migration: `Matches(MapId, CreatedAt DESC)`,
+     `BotRatings(RulesVersion, Rating DESC)`, `MatchParticipants(BotId, MatchId)` —
+     MatchId trailing so the probe is index-only. After: the rare-map filter is a
+     bitmap index scan at 0.065 ms (190x), the leaderboard 0.10 ms, the bot filter
+     10.7 ms (3.3x).
+     KNOWN RESIDUAL, measured not guessed: filtering by a bot whose matches are all
+     OLD costs 203 ms at 300k matches. Postgres walks the CreatedAt index backwards
+     probing each match, because the LIMIT makes early exit look cheap; it is a
+     costing choice, not a syntax one — rewriting the EXISTS as an IN produces the
+     identical plan (226 ms), so no query-shape change helps. The durable fix is to
+     denormalise the match timestamp onto MatchParticipants so `(BotId, CreatedAt DESC)`
+     answers it in 30 index rows flat. Not done: it is a schema addition with a
+     backfill and a write-path invariant, and at 665 matches — or at a plausible
+     year-one 30k, where the same case costs about 20 ms — it buys nothing. Revisit
+     when the arena is large enough for that to be felt.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
