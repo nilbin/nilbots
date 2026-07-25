@@ -11,6 +11,7 @@ WORKDIR /src/web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
+COPY docs/PLAYER-GUIDE.md /src/docs/PLAYER-GUIDE.md
 RUN npm run build
 
 FROM ubuntu:24.04 AS toolchain
