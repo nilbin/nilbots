@@ -1479,6 +1479,25 @@ before picking a number.*
     entries they are intentionally unavailable until a later unlock is
     designed.
 
+104. **Backend maintenance uses explicit application use cases and invariant
+     ownership, not a full DDD rewrite.** The modular monolith remains the
+     deployment and codebase shape. Endpoints and workers translate their
+     inputs, application use cases own authorization, workflow, and
+     transaction boundaries, and small policies or validated values own
+     business rules that are repeated or protect ranking, authorization,
+     privacy, immutable history, determinism, money, or data integrity. Those
+     use cases may use EF Core directly; there will be no generic repository,
+     mandatory mediator, global event bus, or speculative microservice split.
+     Cross-cutting foundations are an injected `TimeProvider`, explicit actor
+     context, typed outcomes and public contracts, documented
+     transaction/idempotency behavior, correlated observability, typed
+     startup-validated configuration, and mandatory PostgreSQL integration
+     tests in CI. Delivery is incremental: establish the database safety net
+     and shared primitives, prove the pattern on bot appearance, then extract
+     match admission/snapshots, broadcast-safe projections, concurrent ranked
+     finalization, and source-owned progression. The phases and invariant
+     register live in `docs/BACKEND-MAINTAINABILITY-PLAN.md`.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

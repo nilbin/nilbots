@@ -98,6 +98,11 @@ Project boundaries that must not be violated:
   match worker because ranked-set finalization is not yet safe for concurrent
   match consumers; compilation capacity may scale independently. There is
   still no message broker or microservice boundary.
+  Incremental application-layer maintenance follows
+  `docs/BACKEND-MAINTAINABILITY-PLAN.md`: endpoints and workers delegate
+  repeated business invariants to explicit use cases, while direct EF Core
+  inside those use cases remains preferred over generic repositories, a
+  mediator, or an event bus.
 - Durable artifacts and replays are addressed by stable object keys through
   `IObjectStore`; database rows must never regain machine-local paths. The
   first-VPS backend is a local persistent volume. Add an S3-compatible backend

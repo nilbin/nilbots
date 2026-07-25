@@ -147,3 +147,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    environment exists (§40.5); record reasons where bytes differ.
 9. Phase 0B polish: logotype assets, match-start countdown, destruction pause,
    spectator vs developer mode split (plan §32.3/32.4).
+10. Backend maintainability follows
+    [`BACKEND-MAINTAINABILITY-PLAN.md`](BACKEND-MAINTAINABILITY-PLAN.md):
+    first make PostgreSQL integration tests mandatory in CI, then establish
+    small application primitives and prove them on bot appearance before
+    extracting match admission, broadcast projections, and ranked
+    finalization. This is an incremental modular-monolith plan, not a rewrite.
