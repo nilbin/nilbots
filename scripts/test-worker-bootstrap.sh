@@ -39,6 +39,12 @@ bash deploy/worker-inventory.sh validate "$inventory"
   bash deploy/worker-inventory.sh known-hosts "$inventory"
 )" == "206.168.215.230 ssh-ed25519 $key_one
 worker-3.example.test ssh-ed25519 $key_two" ]]
+[[ "$(
+  bash deploy/worker-inventory.sh record "$inventory" worker-3
+)" == $'worker-3\tworker-3.example.test\tnilbots\t/srv/nilbots/deployment\t10.201.128.12\tssh-ed25519\t'"$key_two" ]]
+[[ -z "$(
+  bash deploy/worker-inventory.sh record "$inventory" worker-missing
+)" ]]
 
 # Re-registering one stable name updates that node without duplicating it.
 bash deploy/worker-inventory.sh upsert \
@@ -134,5 +140,16 @@ if bash deploy/render-worker-env.sh \
   echo "public primary application address unexpectedly passed validation" >&2
   exit 1
 fi
+
+for script in \
+  deploy/bootstrap-hostup-worker.sh \
+  deploy/configure-primary-worker-access.sh \
+  deploy/deploy-current-worker.sh \
+  deploy/hostup-vps.sh \
+  deploy/refresh-primary-upstreams.sh \
+  deploy/stop-worker.sh \
+  deploy/unregister-worker.sh; do
+  bash -n "$script"
+done
 
 echo "Worker inventory, deployment targets, secret filtering, and size profiles passed"

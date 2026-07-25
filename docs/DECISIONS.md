@@ -1689,6 +1689,26 @@ before picking a number.*
      runs 98 of 100, and a variable with a role lacking CREATEDB fails with
      "The role needs CREATEDB — `ALTER ROLE <user> CREATEDB;` as a superuser."
 
+116. **Worker lifecycle is provider-assisted but fleet-safe, reversible, and
+     exact-address scoped.** A HostUp wrapper now resolves the stable public VPS
+     ID, attaches an unassigned address from the existing private `/24`, waits
+     for the provider operation, runs the provider-neutral host bootstrap,
+     installs the primary's already-published immutable release, and refreshes
+     Caddy. Bootstrap adds exactly one worker `/32` to PostgreSQL
+     `pg_hba.conf`, reloads it, and validates PostgreSQL's parsed rules before
+     registering the node; raw TCP reachability alone was insufficient and
+     allowed a new web container to start unhealthy. Removal reverses the
+     dependency order: inventory and Caddy first, worker containers second,
+     PostgreSQL access last. It preserves the VPS and application state so a
+     PAYG node can be gracefully powered off and later adopted without
+     reinstalling the OS or rebuilding images. Resume restores access, starts
+     the current release, waits for health, then restores edge traffic. The
+     acceptance cycle stopped and restarted a real HostUp Cloud VPS and
+     confirmed both its public and private interface assignments remained
+     attached. The stable provider VPS ID is still used for power operations
+     and current-IP discovery rather than treating address retention as an
+     identity guarantee.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -8,6 +8,7 @@ usage:
   worker-inventory.sh upstreams FILE
   worker-inventory.sh targets FILE
   worker-inventory.sh known-hosts FILE
+  worker-inventory.sh record FILE NAME
   worker-inventory.sh upsert FILE NAME SSH_HOST SSH_USER DEPLOY_PATH PRIVATE_IP KEY_TYPE KEY_BASE64
   worker-inventory.sh remove FILE NAME
 
@@ -130,6 +131,12 @@ print_known_host() {
   printf '%s %s %s\n' "$2" "$6" "$7"
 }
 
+record_name=""
+print_matching_record() {
+  [[ "$1" == "$record_name" ]] || return 0
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@"
+}
+
 write_header() {
   printf '# nilbots worker inventory v1\n'
   printf '# name\tssh_host\tssh_user\tdeploy_path\tprivate_ip\tkey_type\tkey_base64\n'
@@ -177,6 +184,14 @@ case "$operation" in
     [[ $# -eq 0 ]] || usage
     validate_inventory "$file"
     read_inventory "$file" print_known_host
+    ;;
+  record)
+    [[ $# -eq 1 ]] || usage
+    record_name="$1"
+    [[ "$record_name" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]] ||
+      { echo "invalid worker name '$record_name'" >&2; exit 2; }
+    validate_inventory "$file"
+    read_inventory "$file" print_matching_record
     ;;
   upsert)
     [[ $# -eq 7 ]] || usage
