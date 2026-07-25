@@ -16,19 +16,56 @@ public static class MatchesEndpoints
     {
         var group = routes.MapGroup("/api/matches");
 
-        group.MapPost("/challenge", async (ChallengeRequest request, ClaimsPrincipal principal, AppDbContext db) =>
+        group.MapPost("/challenge", async (
+            ChallengeRequest request,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            BotAppearancePolicy appearancePolicy,
+            HttpContext http,
+            CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
-            var bot = await db.Bots.SingleOrDefaultAsync(b => b.Id == request.BotId);
-            var opponent = await db.Bots.SingleOrDefaultAsync(b => b.Id == request.OpponentBotId);
+            var bot = await db.Bots.SingleOrDefaultAsync(
+                b => b.Id == request.BotId,
+                cancellationToken);
+            var opponent = await db.Bots.SingleOrDefaultAsync(
+                b => b.Id == request.OpponentBotId,
+                cancellationToken);
             if (bot is null || opponent is null)
                 return Results.Problem("Bot not found.", statusCode: 404);
             if (bot.OwnerUserId != userId)
                 return Results.Problem("You can only challenge with your own bot.", statusCode: 403);
 
-            var version = await ActiveVersion(db, bot.Id);
-            var opponentVersion = await ActiveVersion(db, opponent.Id);
+            ApplicationResult<BotAppearance> botAppearance =
+                await appearancePolicy.ValidateForMatchAdmissionAsync(
+                    bot,
+                    cancellationToken);
+            if (!botAppearance.Succeeded)
+            {
+                ApplicationTelemetry.Record(
+                    "matches.admit_appearance",
+                    botAppearance.Error!.Code,
+                    userId,
+                    bot.Id);
+                return botAppearance.Error.ToProblemDetails(http);
+            }
+            ApplicationResult<BotAppearance> opponentAppearance =
+                await appearancePolicy.ValidateForMatchAdmissionAsync(
+                    opponent,
+                    cancellationToken);
+            if (!opponentAppearance.Succeeded)
+            {
+                ApplicationTelemetry.Record(
+                    "matches.admit_appearance",
+                    opponentAppearance.Error!.Code,
+                    userId,
+                    opponent.Id);
+                return opponentAppearance.Error.ToProblemDetails(http);
+            }
+
+            var version = await ActiveVersion(db, bot.Id, cancellationToken);
+            var opponentVersion = await ActiveVersion(db, opponent.Id, cancellationToken);
             if (version is null)
                 return Results.Problem($"{bot.Name} has no successfully built version yet.", statusCode: 409);
             if (opponentVersion is null)
@@ -61,7 +98,7 @@ public static class MatchesEndpoints
             });
             db.Matches.Add(match);
             db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(cancellationToken);
             return Results.Ok(new { match.Id });
         }).RequireAuthorization().RequireRateLimiting("challenge");
 
@@ -225,8 +262,11 @@ public static class MatchesEndpoints
         });
     }
 
-    private static Task<BotVersion?> ActiveVersion(AppDbContext db, Guid botId) =>
+    private static Task<BotVersion?> ActiveVersion(
+        AppDbContext db,
+        Guid botId,
+        CancellationToken cancellationToken) =>
         db.BotVersions
             .Where(v => v.BotId == botId && v.IsActive && v.Status == BuildStatus.Built)
-            .SingleOrDefaultAsync();
+            .SingleOrDefaultAsync(cancellationToken);
 }

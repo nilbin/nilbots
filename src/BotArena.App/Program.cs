@@ -22,6 +22,7 @@ bool trustForwardedHeaders =
     builder.Configuration.GetValue<bool>("BOTARENA_TRUST_FORWARDED_HEADERS");
 
 builder.Services.AddSingleton(mode);
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddObjectStore(builder.Configuration);
 builder.Services.AddSingleton(BuildProvenance.FromConfiguration(builder.Configuration));
 if (mode.RunsCompileWorker && !mode.IsAll)
@@ -44,6 +45,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
 builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
+builder.Services.AddScoped<BotAppearancePolicy>();
 
 if (mode.RunsWeb)
 {
@@ -96,7 +98,11 @@ if (mode.RunsWeb)
             : throw new InvalidOperationException(
                 "BOTARENA_NETWORK_HASH_KEY is required and must be a long random secret."));
     builder.Services.AddSingleton(new SubmissionNetwork(networkHashKey));
+    builder.Services.AddScoped<ApplicationActorFactory>();
+    builder.Services.AddScoped<CreateBotUseCase>();
+    builder.Services.AddScoped<UpdateBotAppearanceUseCase>();
     builder.Services.AddScoped<CompilerSubmissionService>();
+    builder.Services.AddScoped<SubmitBotVersionUseCase>();
     builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -316,3 +322,5 @@ if (mode.RunsWeb)
 }
 
 app.Run();
+
+public partial class Program;

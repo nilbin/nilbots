@@ -64,7 +64,8 @@ public class CompilerSubmissionServiceIntegrationTests
             var service = new CompilerSubmissionService(
                 connection,
                 limits,
-                new SubmissionNetwork("test-only-network-hmac-key-32-characters"));
+                new SubmissionNetwork("test-only-network-hmac-key-32-characters"),
+                TimeProvider.System);
             return await service.EnqueueAsync(
                 botId,
                 user.Id,

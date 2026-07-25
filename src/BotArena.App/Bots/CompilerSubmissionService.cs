@@ -20,7 +20,8 @@ public sealed record CompilerSubmissionDecision(
 public sealed class CompilerSubmissionService(
     AppDbContext db,
     CompilerSubmissionLimits limits,
-    SubmissionNetwork submissionNetwork)
+    SubmissionNetwork submissionNetwork,
+    TimeProvider timeProvider)
 {
     // Serializes the very short global queue-count check across web replicas.
     private const long GlobalAdmissionLock = 0x4e494c424f545301;
@@ -33,7 +34,7 @@ public sealed class CompilerSubmissionService(
         IPAddress? remoteAddress,
         CancellationToken cancellationToken)
     {
-        DateTime now = DateTime.UtcNow;
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
         string networkHash = submissionNetwork.Hash(remoteAddress);
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 

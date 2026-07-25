@@ -30,7 +30,9 @@ public static class RankedEndpoints
     {
         routes.MapPost("/api/matches/ranked",
             async (RankedChallengeRequest request, ClaimsPrincipal principal, AppDbContext db,
-                   ApplicationMode mode, IConfiguration configuration) =>
+                   ApplicationMode mode, IConfiguration configuration,
+                   BotAppearancePolicy appearancePolicy, HttpContext http,
+                   CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
@@ -39,6 +41,20 @@ public static class RankedEndpoints
                 return Results.Problem("Bot not found.", statusCode: 404);
             if (botA.OwnerUserId != userId)
                 return Results.Problem("You can only start ranked sets with your own bot.", statusCode: 403);
+
+            ApplicationResult<BotAppearance> appearanceA =
+                await appearancePolicy.ValidateForMatchAdmissionAsync(
+                    botA,
+                    cancellationToken);
+            if (!appearanceA.Succeeded)
+            {
+                ApplicationTelemetry.Record(
+                    "matches.admit_appearance",
+                    appearanceA.Error!.Code,
+                    userId,
+                    botA.Id);
+                return appearanceA.Error.ToProblemDetails(http);
+            }
 
             var versionA = await ActiveVersion(db, botA.Id);
             if (versionA is null)
@@ -99,6 +115,19 @@ public static class RankedEndpoints
             var versionB = await ActiveVersion(db, botB.Id);
             if (versionB is null)
                 return Results.Problem("Both bots need a successfully built active version.", statusCode: 409);
+            ApplicationResult<BotAppearance> appearanceB =
+                await appearancePolicy.ValidateForMatchAdmissionAsync(
+                    botB,
+                    cancellationToken);
+            if (!appearanceB.Succeeded)
+            {
+                ApplicationTelemetry.Record(
+                    "matches.admit_appearance",
+                    appearanceB.Error!.Code,
+                    userId,
+                    botB.Id);
+                return appearanceB.Error.ToProblemDetails(http);
+            }
 
             var set = new MatchSet
             {

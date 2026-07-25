@@ -1,8 +1,6 @@
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
 using BotArena.App.Accounts;
-using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
@@ -64,70 +62,25 @@ public static class BotsEndpoints
         group.MapPost("/", async (
             CreateBotRequest request,
             ClaimsPrincipal principal,
-            AppDbContext db,
-            CosmeticEntitlementService entitlements,
+            ApplicationActorFactory actorFactory,
+            CreateBotUseCase useCase,
+            HttpContext http,
             CancellationToken cancellationToken) =>
         {
-            if (principal.UserId() is not Guid userId)
-                return Results.Unauthorized();
-            string name = request.Name.Trim();
-            if (name.Length is < 2 or > 40)
-                return Results.Problem("Bot name must be 2-40 characters.", statusCode: 400);
-            string slug = Slugify(name);
-            if (await db.Bots.AnyAsync(b => b.Slug == slug))
-                return Results.Problem($"A bot named '{name}' already exists.", statusCode: 409);
-            string accent = request.Accent is { Length: > 0 } a &&
-                            System.Text.RegularExpressions.Regex.IsMatch(a, "^#[0-9a-fA-F]{6}$")
-                ? a
-                : "#22d3ee";
-            string lookId = (request.LookId ?? "vanguard").Trim().ToLowerInvariant();
-            if (!IsPresentationId(lookId))
-                return Results.Problem("Bot look must be a lowercase kebab-case ID.", statusCode: 400);
-            string projectileLookId = (request.ProjectileLookId ?? "pulse-bolt")
-                .Trim()
-                .ToLowerInvariant();
-            if (!IsPresentationId(projectileLookId))
-                return Results.Problem(
-                    "Projectile look must be a lowercase kebab-case ID.",
-                    statusCode: 400);
-            if (await CosmeticAccessProblem(
-                    entitlements,
-                    userId,
-                    CosmeticCatalog.BotLookKind,
-                    lookId,
-                    cancellationToken) is { } lookProblem)
-            {
-                return lookProblem;
-            }
-            if (await CosmeticAccessProblem(
-                    entitlements,
-                    userId,
-                    CosmeticCatalog.ProjectileLookKind,
-                    projectileLookId,
-                    cancellationToken) is { } projectileProblem)
-            {
-                return projectileProblem;
-            }
-            var bot = new Bot
-            {
-                OwnerUserId = userId,
-                Name = name,
-                Slug = slug,
-                Accent = accent,
-                LookId = lookId,
-                ProjectileLookId = projectileLookId,
-            };
-            db.Bots.Add(bot);
-            await db.SaveChangesAsync();
-            return Results.Ok(new
-            {
-                bot.Id,
-                bot.Name,
-                bot.Slug,
-                bot.Accent,
-                bot.LookId,
-                bot.ProjectileLookId,
-            });
+            ApplicationActor actor = await actorFactory.ResolveAsync(
+                principal,
+                cancellationToken);
+            ApplicationResult<CreatedBot> result = await useCase.ExecuteAsync(
+                actor,
+                new CreateBotCommand(
+                    request.Name,
+                    request.Accent,
+                    request.LookId,
+                    request.ProjectileLookId),
+                cancellationToken);
+            return result.Succeeded
+                ? Results.Ok(result.Value)
+                : result.Error!.ToProblemDetails(http);
         }).RequireAuthorization();
 
         // Keyed by slug OR id. Every bot has a unique, immutable slug, so the public
@@ -184,62 +137,25 @@ public static class BotsEndpoints
                 Guid botId,
                 UpdateBotAppearanceRequest request,
                 ClaimsPrincipal principal,
-                AppDbContext db,
-                CosmeticEntitlementService entitlements,
+                ApplicationActorFactory actorFactory,
+                UpdateBotAppearanceUseCase useCase,
+                HttpContext http,
                 CancellationToken cancellationToken) =>
             {
-                var bot = await db.Bots.SingleOrDefaultAsync(b => b.Id == botId);
-                if (bot is null)
-                    return Results.NotFound();
-                if (principal.UserId() is not Guid userId || userId != bot.OwnerUserId)
-                    return Results.Forbid();
-
-                string accent = request.Accent?.Trim() ?? "";
-                if (!System.Text.RegularExpressions.Regex.IsMatch(accent, "^#[0-9a-fA-F]{6}$"))
-                    return Results.Problem(
-                        "Accent must be a six-digit hexadecimal color.",
-                        statusCode: 400);
-                string lookId = request.LookId?.Trim().ToLowerInvariant() ?? "";
-                if (!IsPresentationId(lookId))
-                    return Results.Problem(
-                        "Bot look must be a lowercase kebab-case ID.",
-                        statusCode: 400);
-                string projectileLookId =
-                    request.ProjectileLookId?.Trim().ToLowerInvariant() ?? "";
-                if (!IsPresentationId(projectileLookId))
-                    return Results.Problem(
-                        "Projectile look must be a lowercase kebab-case ID.",
-                        statusCode: 400);
-                if (await CosmeticAccessProblem(
-                        entitlements,
-                        userId,
-                        CosmeticCatalog.BotLookKind,
-                        lookId,
-                        cancellationToken) is { } lookProblem)
-                {
-                    return lookProblem;
-                }
-                if (await CosmeticAccessProblem(
-                        entitlements,
-                        userId,
-                        CosmeticCatalog.ProjectileLookKind,
-                        projectileLookId,
-                        cancellationToken) is { } projectileProblem)
-                {
-                    return projectileProblem;
-                }
-
-                bot.Accent = accent;
-                bot.LookId = lookId;
-                bot.ProjectileLookId = projectileLookId;
-                await db.SaveChangesAsync();
-                return Results.Ok(new
-                {
-                    bot.Id,
-                    bot.Accent,
-                    bot.LookId,
-                    bot.ProjectileLookId,
-                });
+                ApplicationActor actor = await actorFactory.ResolveAsync(
+                    principal,
+                    cancellationToken);
+                ApplicationResult<UpdatedBotAppearance> result = await useCase.ExecuteAsync(
+                    actor,
+                    new UpdateBotAppearanceCommand(
+                        botId,
+                        request.Accent,
+                        request.LookId,
+                        request.ProjectileLookId),
+                    cancellationToken);
+                return result.Succeeded
+                    ? Results.Ok(result.Value)
+                    : result.Error!.ToProblemDetails(http);
             })
             .RequireAuthorization();
 
@@ -311,89 +227,31 @@ public static class BotsEndpoints
                 Guid botId,
                 SubmitVersionRequest request,
                 ClaimsPrincipal principal,
-                AppDbContext db,
-                CosmeticEntitlementService entitlements,
-                CompilerSubmissionService submissions,
+                ApplicationActorFactory actorFactory,
+                SubmitBotVersionUseCase useCase,
                 HttpContext http,
                 CancellationToken cancellationToken) =>
         {
-            var bot = await db.Bots.SingleOrDefaultAsync(
-                b => b.Id == botId,
-                cancellationToken);
-            if (bot is null)
-                return Results.NotFound();
-            if (principal.UserId() is not Guid userId || userId != bot.OwnerUserId)
-                return Results.Forbid();
-
             // Null-tolerant: absent name/content must 400 via validation below, not 500 here.
             var sources = (request.Files ?? [])
                 .Select(f => new SourceFile((f.Name ?? "").Trim(), f.Content ?? ""))
                 .ToArray();
-            string entryType = request.EntryType?.Trim() ?? "";
-            string? lookId = request.LookId?.Trim().ToLowerInvariant();
-            if (lookId is not null && !IsPresentationId(lookId))
-                return Results.Problem("Bot look must be a lowercase kebab-case ID.", statusCode: 400);
-            string? projectileLookId =
-                request.ProjectileLookId?.Trim().ToLowerInvariant();
-            if (projectileLookId is not null && !IsPresentationId(projectileLookId))
-                return Results.Problem(
-                    "Projectile look must be a lowercase kebab-case ID.",
-                    statusCode: 400);
-            if (lookId is not null &&
-                await CosmeticAccessProblem(
-                    entitlements,
-                    userId,
-                    CosmeticCatalog.BotLookKind,
-                    lookId,
-                    cancellationToken) is { } lookProblem)
-            {
-                return lookProblem;
-            }
-            if (projectileLookId is not null &&
-                await CosmeticAccessProblem(
-                    entitlements,
-                    userId,
-                    CosmeticCatalog.ProjectileLookKind,
-                    projectileLookId,
-                    cancellationToken) is { } projectileProblem)
-            {
-                return projectileProblem;
-            }
-            try
-            {
-                // Fail fast on obviously invalid submissions; the job re-validates.
-                BotBuilder.ValidateSubmission(sources, entryType);
-                if (sources.Length == 0)
-                    return Results.Problem("At least one source file is required.", statusCode: 400);
-                if (sources.Any(s => !s.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)))
-                    return Results.Problem("Only .cs files are accepted.", statusCode: 400);
-            }
-            catch (Exception ex)
-            {
-                return Results.Problem(ex.Message, statusCode: 400);
-            }
-
-            if (lookId is not null)
-                bot.LookId = lookId;
-            if (projectileLookId is not null)
-                bot.ProjectileLookId = projectileLookId;
-            CompilerSubmissionDecision decision = await submissions.EnqueueAsync(
-                bot.Id,
-                userId,
-                entryType,
-                sources,
-                http.Connection.RemoteIpAddress,
+            ApplicationActor actor = await actorFactory.ResolveAsync(
+                principal,
                 cancellationToken);
-            if (!decision.Accepted)
-            {
-                CompilerSubmissionDenial denial = decision.Denial!;
-                http.Response.Headers.RetryAfter =
-                    Math.Max(1, (int)Math.Ceiling(denial.RetryAfter.TotalSeconds)).ToString();
-                return Results.Problem(denial.Message, statusCode: StatusCodes.Status429TooManyRequests);
-            }
-
-            BotVersion version = decision.Version!;
-            return Results.Ok(new { version.Id, version.VersionNumber, Status = version.Status.ToString() });
+            ApplicationResult<SubmittedBotVersion> result = await useCase.ExecuteAsync(
+                actor,
+                new SubmitBotVersionCommand(
+                    botId,
+                    request.EntryType,
+                    sources,
+                    request.LookId,
+                    request.ProjectileLookId,
+                    http.Connection.RemoteIpAddress),
+                cancellationToken);
+            return result.Succeeded
+                ? Results.Ok(result.Value)
+                : result.Error!.ToProblemDetails(http);
         }).RequireAuthorization().RequireRateLimiting("submission");
 
         group.MapGet("/{botId:guid}/matches", async (Guid botId, AppDbContext db) =>
@@ -458,58 +316,6 @@ public static class BotsEndpoints
         }).RequireAuthorization();
     }
 
-    public static string Slugify(string name)
-    {
-        var builder = new StringBuilder();
-        foreach (char c in name.ToLowerInvariant())
-        {
-            if (char.IsAsciiLetterOrDigit(c))
-                builder.Append(c);
-            else if (builder.Length > 0 && builder[^1] != '-')
-                builder.Append('-');
-        }
-        return builder.ToString().Trim('-');
-    }
-
     private static BuildReceipt? DeserializeReceipt(string? json) =>
         json is null ? null : JsonSerializer.Deserialize<BuildReceipt>(json);
-
-    private static async Task<IResult?> CosmeticAccessProblem(
-        CosmeticEntitlementService entitlements,
-        Guid userId,
-        string kind,
-        string id,
-        CancellationToken cancellationToken)
-    {
-        CosmeticAccess access = await entitlements.CheckAccessAsync(
-            userId,
-            kind,
-            id,
-            cancellationToken);
-        if (access.Item is null)
-        {
-            string label = kind == CosmeticCatalog.BotLookKind
-                ? "bot look"
-                : "projectile look";
-            return Results.Problem(
-                $"Unknown {label} '{id}'.",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
-        if (!access.Owned)
-        {
-            string hint = access.Item.Unlock?.Hint is { Length: > 0 } value
-                ? $" {value}"
-                : "";
-            return Results.Problem(
-                $"{access.Item.Label} is locked.{hint}",
-                statusCode: StatusCodes.Status403Forbidden);
-        }
-        return null;
-    }
-
-    private static bool IsPresentationId(string value) =>
-        value.Length is > 0 and <= 64 &&
-        value[0] is >= 'a' and <= 'z' &&
-        value[^1] != '-' &&
-        value.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-');
 }
