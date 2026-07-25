@@ -1,8 +1,17 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Arena, Mono, Space } from '@/theme/arena';
 
-export type Stat = { label: string; value: string | number };
+export type Stat = {
+  label: string;
+  /**
+   * A string or number gets the standard headline treatment. Anything else renders as
+   * given — a value that needs its own colours or spans supplies its own typography, so
+   * this stays a layout component rather than growing a style prop per case.
+   */
+  value: ReactNode;
+};
 
 /** How the cells divide the row's width. */
 export type StatRowLayout =
@@ -35,9 +44,13 @@ export function StatRow({
     <View style={[styles.row, layout === 'packed' && styles.packed]}>
       {stats.map((stat) => (
         <View key={stat.label} style={layout === 'spread' && styles.spreadCell}>
-          <Text style={styles.value} numberOfLines={1}>
-            {stat.value}
-          </Text>
+          {typeof stat.value === 'string' || typeof stat.value === 'number' ? (
+            <Text style={styles.value} numberOfLines={1}>
+              {stat.value}
+            </Text>
+          ) : (
+            stat.value
+          )}
           <Text style={styles.label} numberOfLines={1}>
             {stat.label}
           </Text>

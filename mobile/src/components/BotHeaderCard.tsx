@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { BotRecord } from '@/components/BotRecord';
 import { BotSprite } from '@/components/BotSprite';
 import { Card } from '@/components/ui/Card';
 import { StatRow, type Stat } from '@/components/ui/StatRow';
@@ -16,7 +17,7 @@ import { Arena, Space } from '@/theme/arena';
  * Every number the bot has lives in one band under a rule. The record used to be its own
  * card below, which spent a section heading and most of a phone screen on three small
  * integers before you reached the games. As a fourth column it costs nothing, so long as
- * it collapses to a `2-6-1` triple — three more labelled columns would not fit.
+ * it collapses to a `BotRecord` triple — three more labelled columns would not fit.
  *
  * `record` is optional because its history is a second request: the band renders with
  * whatever has arrived. It is also a wider scope than the rest — a record counts
@@ -39,7 +40,16 @@ export function BotHeaderCard({
           { label: 'sets', value: standing.rankedSets },
         ]
       : []),
-    ...(record ? [{ label: 'w-l-d', value: `${record.wins}-${record.losses}-${record.draws}` }] : []),
+    ...(record
+      ? [
+          {
+            label: 'w/l/d',
+            value: (
+              <BotRecord wins={record.wins} losses={record.losses} draws={record.draws} size="lg" />
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
