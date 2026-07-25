@@ -46,6 +46,17 @@ if [[ ! "$GARAGE_NODE_CAPACITY" =~ ^[1-9][0-9]*(MB|GB|TB)$ ]]; then
   exit 1
 fi
 
+GARAGE_INIT_ATTEMPTS="${GARAGE_INIT_ATTEMPTS:-30}"
+GARAGE_INIT_RETRY_DELAY_SECONDS="${GARAGE_INIT_RETRY_DELAY_SECONDS:-1}"
+if [[ ! "$GARAGE_INIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "GARAGE_INIT_ATTEMPTS must be a positive integer" >&2
+  exit 1
+fi
+if [[ ! "$GARAGE_INIT_RETRY_DELAY_SECONDS" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  echo "GARAGE_INIT_RETRY_DELAY_SECONDS must be a non-negative number" >&2
+  exit 1
+fi
+
 compose=(
   docker compose
   --env-file "$deploy_dir/.env"
@@ -60,42 +71,130 @@ node_peer() {
   "${compose[@]}" exec -T -e RUST_LOG=garage=warn "$1" /garage node id --quiet
 }
 
-gateway_status="$(garage status)"
-for service in garage-a garage-b garage-c; do
-  peer="$(node_peer "$service")"
-  node_id="${peer%%@*}"
-  if [[ "$gateway_status" != *"${node_id:0:16}"* ]]; then
-    garage node connect "$peer" >/dev/null
-    gateway_status="$(garage status)"
-  fi
-done
+is_transient_garage_error() {
+  local output="$1"
+  [[ "$output" == *"ServiceUnavailable (503)"* ||
+     "$output" == *"Could not reach quorum"* ||
+     "$output" == *"Network error: Not connected"* ||
+     "$output" == *"Connection refused"* ||
+     "$output" == *"unexpected end of file"* ||
+     "$output" == *"timed out"* ]]
+}
 
+retry_delay() {
+  local attempt="$1"
+  if (( attempt < GARAGE_INIT_ATTEMPTS )); then
+    sleep "$GARAGE_INIT_RETRY_DELAY_SECONDS"
+  fi
+}
+
+healthy_nodes() {
+  awk '
+    /^==== HEALTHY NODES ====$/ {
+      inside_healthy = 1
+      next
+    }
+    /^==== / {
+      if (inside_healthy) {
+        exit
+      }
+    }
+    inside_healthy {
+      print
+    }
+  '
+}
+
+garage_capture_retry() {
+  local description="$1"
+  shift
+  local attempt output=""
+  for ((attempt = 1; attempt <= GARAGE_INIT_ATTEMPTS; attempt++)); do
+    if output="$(garage "$@" 2>&1)"; then
+      printf '%s\n' "$output"
+      return 0
+    fi
+    if ! is_transient_garage_error "$output"; then
+      echo "$output" >&2
+      return 1
+    fi
+    retry_delay "$attempt"
+  done
+  echo "$description did not become available after $GARAGE_INIT_ATTEMPTS attempts" >&2
+  echo "$output" >&2
+  return 1
+}
+
+garage_mutation_retry() {
+  local description="$1"
+  shift
+  local attempt output=""
+  for ((attempt = 1; attempt <= GARAGE_INIT_ATTEMPTS; attempt++)); do
+    if output="$(garage "$@" 2>&1)"; then
+      return 0
+    fi
+    if ! is_transient_garage_error "$output"; then
+      echo "$output" >&2
+      return 1
+    fi
+    retry_delay "$attempt"
+  done
+  echo "$description did not complete after $GARAGE_INIT_ATTEMPTS attempts" >&2
+  echo "$output" >&2
+  return 1
+}
+
+storage_services=(garage-a garage-b garage-c)
+storage_peers=()
+storage_ids=()
+for service in "${storage_services[@]}"; do
+  peer="$(node_peer "$service")"
+  storage_peers+=("$peer")
+  storage_ids+=("${peer%%@*}")
+done
 gateway_peer="$(node_peer garage-gateway)"
 gateway_id="${gateway_peer%%@*}"
-for attempt in {1..30}; do
-  gateway_status="$(garage status)"
-  all_connected=true
-  for service in garage-a garage-b garage-c; do
-    peer="$(node_peer "$service")"
-    node_id="${peer%%@*}"
-    if [[ "$gateway_status" != *"${node_id:0:16}"* ]]; then
-      all_connected=false
+
+# A repository-free release changes the bind-mount source paths and can
+# recreate all Garage containers together. Docker may then reuse the old
+# addresses for different containers. Garage persists those resolved
+# addresses, so a failed node can still appear in `garage status` under the
+# correct ID while its stale address now reaches the wrong peer. Reconnect
+# every current ID@service address and count only the HEALTHY section.
+gateway_status=""
+connect_error=""
+for ((attempt = 1; attempt <= GARAGE_INIT_ATTEMPTS; attempt++)); do
+  for peer in "${storage_peers[@]}"; do
+    if ! connect_output="$(garage node connect "$peer" 2>&1)"; then
+      connect_error="$connect_output"
     fi
   done
-  if [[ "$gateway_status" != *"${gateway_id:0:16}"* ]]; then
-    all_connected=false
+
+  if gateway_status="$(garage status 2>&1)"; then
+    healthy_status="$(healthy_nodes <<<"$gateway_status")"
+    all_connected=true
+    for node_id in "${storage_ids[@]}" "$gateway_id"; do
+      if [[ "$healthy_status" != *"${node_id:0:16}"* ]]; then
+        all_connected=false
+      fi
+    done
+    if [[ "$all_connected" == true ]]; then
+      break
+    fi
   fi
-  if [[ "$all_connected" == true ]]; then
-    break
-  fi
-  if [[ "$attempt" == 30 ]]; then
-    echo "Garage nodes did not converge within 30 seconds" >&2
+
+  if (( attempt == GARAGE_INIT_ATTEMPTS )); then
+    echo "Garage nodes did not become healthy after $GARAGE_INIT_ATTEMPTS attempts" >&2
+    if [[ -n "$connect_error" ]]; then
+      echo "$connect_error" >&2
+    fi
+    echo "$gateway_status" >&2
     exit 1
   fi
-  sleep 1
+  retry_delay "$attempt"
 done
 
-layout="$(garage layout show)"
+layout="$(garage_capture_retry "Garage layout metadata" layout show)"
 layout_version="$(awk '/Current cluster layout version:/ { print $NF; exit }' <<<"$layout")"
 if [[ -z "$layout_version" ]]; then
   echo "could not determine Garage cluster layout version" >&2
@@ -116,7 +215,7 @@ if [[ "$layout_version" == 0 ]]; then
     --zone "$GARAGE_ZONE" \
     --tag gateway >/dev/null
   garage layout apply --version 1 >/dev/null
-  layout="$(garage layout show)"
+  layout="$(garage_capture_retry "Garage layout metadata" layout show)"
 fi
 
 for tag in garage-a garage-b garage-c gateway; do
@@ -126,50 +225,91 @@ for tag in garage-a garage-b garage-c gateway; do
   fi
 done
 
-if ! garage bucket info "$BOTARENA_S3_BUCKET" >/dev/null 2>&1; then
-  if create_error="$(garage bucket create "$BOTARENA_S3_BUCKET" 2>&1)"; then
-    :
-  elif [[ "$create_error" == *"BucketAlreadyExists"* ||
-          "$create_error" == *"BucketAlreadyOwnedByYou"* ]]; then
-    # A restarted gateway can pass its node healthcheck just before bucket
-    # metadata has converged. The create then correctly reports the existing
-    # bucket; wait until this node can read it instead of failing a redeploy.
-    for attempt in {1..30}; do
-      if garage bucket info "$BOTARENA_S3_BUCKET" >/dev/null 2>&1; then
-        break
-      fi
-      if [[ "$attempt" == 30 ]]; then
-        echo "Garage bucket metadata did not converge within 30 seconds" >&2
-        exit 1
-      fi
-      sleep 1
-    done
-  else
-    echo "$create_error" >&2
-    exit 1
-  fi
-fi
+ensure_bucket() {
+  local attempt bucket_output="" create_output="" last_output=""
+  for ((attempt = 1; attempt <= GARAGE_INIT_ATTEMPTS; attempt++)); do
+    if bucket_output="$(garage bucket info "$BOTARENA_S3_BUCKET" 2>&1)"; then
+      return 0
+    fi
+    last_output="$bucket_output"
 
-if garage key info "$BOTARENA_S3_ACCESS_KEY" >/dev/null 2>&1; then
-  current_secret="$(
-    garage key info --show-secret "$BOTARENA_S3_ACCESS_KEY" |
-      awk '/Secret key:/ { print $NF; exit }'
-  )"
-  if [[ "$current_secret" != "$BOTARENA_S3_SECRET_KEY" ]]; then
-    echo "Garage access key exists with a different secret" >&2
-    exit 1
-  fi
-else
-  garage key import --yes \
-    -n nilbots-app \
-    "$BOTARENA_S3_ACCESS_KEY" \
-    "$BOTARENA_S3_SECRET_KEY" >/dev/null
-fi
+    if [[ "$bucket_output" == *"NoSuchBucket (404)"* ]]; then
+      if create_output="$(garage bucket create "$BOTARENA_S3_BUCKET" 2>&1)"; then
+        last_output="$create_output"
+      elif [[ "$create_output" == *"BucketAlreadyExists"* ||
+              "$create_output" == *"BucketAlreadyOwnedByYou"* ]] ||
+           is_transient_garage_error "$create_output"; then
+        last_output="$create_output"
+      else
+        echo "$create_output" >&2
+        return 1
+      fi
+    elif ! is_transient_garage_error "$bucket_output"; then
+      echo "$bucket_output" >&2
+      return 1
+    fi
 
-garage bucket allow \
+    retry_delay "$attempt"
+  done
+  echo "Garage bucket metadata did not converge after $GARAGE_INIT_ATTEMPTS attempts" >&2
+  echo "$last_output" >&2
+  return 1
+}
+
+ensure_key() {
+  local attempt key_output="" import_output="" current_secret="" last_output=""
+  for ((attempt = 1; attempt <= GARAGE_INIT_ATTEMPTS; attempt++)); do
+    if key_output="$(garage key info --show-secret "$BOTARENA_S3_ACCESS_KEY" 2>&1)"; then
+      current_secret="$(awk '/Secret key:/ { print $NF; exit }' <<<"$key_output")"
+      if [[ -z "$current_secret" ]]; then
+        echo "Garage key metadata omitted the secret key" >&2
+        return 1
+      fi
+      if [[ "$current_secret" != "$BOTARENA_S3_SECRET_KEY" ]]; then
+        echo "Garage access key exists with a different secret" >&2
+        return 1
+      fi
+      return 0
+    fi
+    last_output="$key_output"
+
+    if [[ "$key_output" == *"NoSuchAccessKey (404)"* ]]; then
+      if import_output="$(
+        garage key import --yes \
+          -n nilbots-app \
+          "$BOTARENA_S3_ACCESS_KEY" \
+          "$BOTARENA_S3_SECRET_KEY" 2>&1
+      )"; then
+        last_output="$import_output"
+      elif [[ "$import_output" == *"Already"* ||
+              "$import_output" == *"already"* ]] ||
+           is_transient_garage_error "$import_output"; then
+        last_output="$import_output"
+      else
+        echo "$import_output" >&2
+        return 1
+      fi
+    elif ! is_transient_garage_error "$key_output"; then
+      echo "$key_output" >&2
+      return 1
+    fi
+
+    retry_delay "$attempt"
+  done
+  echo "Garage key metadata did not converge after $GARAGE_INIT_ATTEMPTS attempts" >&2
+  echo "$last_output" >&2
+  return 1
+}
+
+ensure_bucket
+ensure_key
+
+garage_mutation_retry \
+  "Garage bucket permission grant" \
+  bucket allow \
   --read \
   --write \
   --key "$BOTARENA_S3_ACCESS_KEY" \
-  "$BOTARENA_S3_BUCKET" >/dev/null
+  "$BOTARENA_S3_BUCKET"
 
 echo "Garage cluster, bucket, and application key are ready"
