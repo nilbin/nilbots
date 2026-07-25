@@ -104,8 +104,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 - `deploy/` — the scale-ready single-VPS baseline: Caddy, role-separated
   Docker Compose, commit-tagged images, provisioned certificates, a one-shot
   migration, private Garage S3 storage at replication factor 3, and
-  backup/deploy runbooks. Garage replicas remain co-located until additional
-  VPS nodes justify a private multi-zone layout.
+  repository-free versioned deployment bundles plus backup/deploy runbooks.
+  Garage replicas remain co-located until additional VPS nodes justify a
+  private multi-zone layout.
 - `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into.
 - `tests/` — engine, determinism, and WASM contract suites (195 tests, incl.

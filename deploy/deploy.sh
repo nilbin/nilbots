@@ -115,8 +115,8 @@ bash "$deploy_dir/backup-postgres.sh" "$deploy_dir/backups"
 "${compose[@]}" run --rm migrate
 "${compose[@]}" up -d --no-deps --wait compiler-runner
 "${compose[@]}" up -d --no-deps --wait web match-worker compile-worker
-# Git checkouts replace tracked files by inode. Recreate Caddy so its bind
-# mount cannot remain pinned to the previous release's Caddyfile.
+# Release activation replaces tracked files by inode. Recreate Caddy so its
+# bind mount cannot remain pinned to the previous release's Caddyfile.
 "${compose[@]}" up -d --no-deps --force-recreate caddy
 "${compose[@]}" ps
 

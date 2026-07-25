@@ -258,8 +258,24 @@ jobs:
           test -n "$DEPLOY_HOST"
           test -n "$DEPLOY_USER"
           test -n "$DEPLOY_PATH"
+          [[ "$DEPLOY_HOST" =~ ^[A-Za-z0-9.:-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$DEPLOY_PATH" =~ ^/[A-Za-z0-9._/-]+$ ]]
+          bundle="$RUNNER_TEMP/nilbots-deploy-$GITHUB_SHA.tar.gz"
+          bash deploy/build-release-bundle.sh "$GITHUB_SHA" "$bundle"
+          bundle_sha="$(sha256sum "$bundle" | awk '{ print $1 }')"
+          incoming="$DEPLOY_PATH/incoming/$GITHUB_SHA"
+          ssh -i "$HOME/.ssh/nilbots-deploy" \
+            -o BatchMode=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" "install -d -m 700 '$incoming'"
+          scp -i "$HOME/.ssh/nilbots-deploy" \
+            -o BatchMode=yes \
+            "$bundle" \
+            deploy/install-release.sh \
+            "$DEPLOY_USER@$DEPLOY_HOST:$incoming/"
           ssh -i "$HOME/.ssh/nilbots-deploy" \
             -o BatchMode=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "bash -s -- '$GITHUB_SHA' '$RUNTIME_REF' '$COMPILER_REF' '$DEPLOY_PATH'" \
-            < deploy/remote-release.sh
+            "bash '$incoming/install-release.sh' install \
+              '$DEPLOY_PATH' '$GITHUB_SHA' '$RUNTIME_REF' '$COMPILER_REF' \
+              '$incoming/$(basename "$bundle")' '$bundle_sha'"

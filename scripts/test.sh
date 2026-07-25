@@ -4,4 +4,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 bash scripts/build-wasm-guest.sh
-dotnet test BotArena.sln -v q "$@"
+dotnet build BotArena.sln -v q
+dotnet test BotArena.sln --no-build -v q "$@"
+bash scripts/test-release-installer.sh

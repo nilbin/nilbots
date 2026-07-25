@@ -6,7 +6,9 @@ cd "$(dirname "$0")/.."
 
 bash scripts/build-wasm-guest.sh
 (cd web && npm run build --silent)
-dotnet test BotArena.sln -v q
+dotnet build BotArena.sln -v q
+dotnet test BotArena.sln --no-build -v q
+bash scripts/test-release-installer.sh
 
 OUT=$(mktemp -d)
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent wander --seed 42 --out "$OUT"

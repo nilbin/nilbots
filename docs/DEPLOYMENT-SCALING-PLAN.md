@@ -307,13 +307,16 @@ Use a deliberately boring release flow:
 2. For a publish operation, build separate runtime and compiler images tagged
    with the full Git commit SHA and push them to GHCR with SBOM and provenance.
 3. Take or verify a recent database backup.
-4. Pass the resulting immutable image digests to the VPS.
+4. Send the resulting immutable image digests and a SHA-256-verified deployment
+   bundle to the VPS over SSH. The VPS does not clone or authenticate to the
+   source repository.
 5. Stop/drain workers.
 6. Run the one-shot migration command exactly once.
 7. Start web and workers with the new image.
 8. Wait for readiness, then run a login/API check and one deterministic smoke
    match.
-9. Retain the previous image tag for rollback.
+9. Atomically activate the candidate bundle and retain the previous bundle
+   plus image digests for rollback.
 
 Database changes should use expand/contract migrations whenever a rollback may
 cross a schema change. A rollback must never silently reinterpret rules,
