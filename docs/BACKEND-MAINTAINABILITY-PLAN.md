@@ -1,7 +1,8 @@
 # Backend maintainability and invariant ownership
 
-Status: planned, incremental. This is a modular-monolith maintenance plan, not
-a rewrite or a new product phase.
+Status: incremental. Phases 1–3 were implemented as the first vertical slice
+in July 2026; phases 4–7 remain planned. This is a modular-monolith maintenance
+plan, not a rewrite or a new product phase.
 
 ## Why this exists
 
@@ -209,6 +210,10 @@ must fail—not skip—when PostgreSQL is unavailable.
 
 ### Phase 1 — make PostgreSQL integration tests mandatory in CI
 
+Implementation status: complete. The application suite uses an isolated
+database per test and CI sets `BOTARENA_POSTGRES_REQUIRED=true`, making a
+missing PostgreSQL service a failure rather than a skip.
+
 - Add a reusable application test host and isolated database fixture.
 - Run the latest migrations against an empty PostgreSQL database.
 - Make the CI PostgreSQL suite fail if its database is missing.
@@ -222,6 +227,9 @@ semantics carrying the invariants.
 
 ### Phase 2 — add the shared application primitives
 
+Implementation status: complete for the bot-lifecycle pilot. Expansion to
+other operations remains incremental by design.
+
 - Register `TimeProvider.System`; migrate one operation at a time.
 - Introduce the explicit actor context.
 - Add typed application error codes and one `ProblemDetails` mapper.
@@ -234,6 +242,9 @@ Do not mass-convert every endpoint. Introduce each primitive through the pilot
 slice and expand only when it removes real duplication.
 
 ### Phase 3 — bot lifecycle and appearance pilot
+
+Implementation status: complete. `BotAppearancePolicy` is the named invariant
+owner for create, update, submit, and defense-in-depth match admission.
 
 - Extract bot creation and appearance updates into application use cases.
 - Make create, update, and submit share one appearance policy.

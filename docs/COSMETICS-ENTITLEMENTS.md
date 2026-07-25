@@ -104,9 +104,11 @@ remains independent.
 Matches snapshot accent, bot-look ID, and projectile-look ID. Viewing a replay
 never rechecks entitlement. Revocation affects future equips and matches; it
 does not rewrite historical replays. If the last grant for an equipped item is
-revoked, return affected bots to a starter item transactionally or require an
-appearance change before their next official match—choose that policy when the
-first revocable source ships.
+revoked, the stored choice is not silently reset: bot submission and future
+official match admission fail with the stable locked-appearance error until
+the owner equips an owned item. This preserves the owner's explicit selection
+and the audit trail while preventing newly admitted snapshots from using an
+unowned item.
 
 Cosmetics never alter collision, observations, actions, projectile paths,
 timing, damage, matchmaking, ratings, or any other gameplay value.

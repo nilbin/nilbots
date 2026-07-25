@@ -38,8 +38,12 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Run mandatory PostgreSQL application suite
+      - name: Build managed solution
+        run: dotnet build BotArena.sln --configuration Release
+
+      - name: Run application suite with mandatory PostgreSQL coverage
         run: >-
           dotnet test tests/BotArena.App.Tests/BotArena.App.Tests.csproj
-          --filter Category=PostgreSql
+          --configuration Release
+          --no-build
           --logger "console;verbosity=normal"

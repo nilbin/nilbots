@@ -1498,6 +1498,19 @@ before picking a number.*
      finalization, and source-owned progression. The phases and invariant
      register live in `docs/BACKEND-MAINTAINABILITY-PLAN.md`.
 
+105. **A revoked equipped cosmetic blocks future submission and match
+     admission; it is not silently reset, and historical replay reads never
+     reauthorize it.** `BotAppearancePolicy` is the single application owner
+     for catalog validation and active entitlement across bot creation,
+     appearance updates, version submission, and defense-in-depth match
+     admission. A bot whose last active grant disappears keeps its stored
+     choice so the owner's intent and the audit record remain truthful, but it
+     must equip an owned item before another version or official match is
+     accepted. Existing match snapshots and replay rendering remain immutable
+     historical truth and do not call the policy. Appearance IDs normalize to
+     lowercase kebab case and six-digit accent colors normalize to lowercase;
+     the API exposes typed stable error codes through one ProblemDetails mapper.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
