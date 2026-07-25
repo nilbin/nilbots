@@ -104,6 +104,13 @@ public static class ServerCommands
         string challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
         string state = Base64Url(RandomNumberGenerator.GetBytes(16));
 
+        // Headless: no browser anywhere (CI, a container, an autonomous agent).
+        // Same Authorization Code + PKCE grant, driven over HTTP by the CLI itself —
+        // the API's cookie session satisfies /connect/authorize, which then hands back
+        // the code on its redirect. No new grant type, no weaker flow.
+        if (options.ContainsKey("email") || options.ContainsKey("password"))
+            return AuthenticateHeadless(options, server, register, verifier, challenge, state);
+
         using var listener = new HttpListener();
         int port = 0;
         foreach (int candidate in CallbackPorts)
@@ -363,6 +370,94 @@ public static class ServerCommands
     /// credentials that failed to refresh have ALREADY explained themselves (expired,
     /// or server unreachable); telling that user "not signed in" is both wrong and
     /// contradictory, so only a genuinely empty credential store prints it.</summary>
+    /// <summary>Browser-free Authorization Code + PKCE. The API's cookie session is
+    /// what /connect/authorize checks, so once we hold that cookie the authorize
+    /// endpoint answers with a redirect carrying the code — we read it off the
+    /// Location header instead of listening on loopback. Identical grant, identical
+    /// tokens; the only thing removed is the browser.</summary>
+    private static int AuthenticateHeadless(
+        Dictionary<string, string> options, string server, bool register,
+        string verifier, string challenge, string state)
+    {
+        if (!options.TryGetValue("email", out string? email)
+            || !options.TryGetValue("password", out string? password))
+        {
+            Console.Error.WriteLine("error: --email and --password are both required for headless sign-in.");
+            Console.Error.WriteLine(register
+                ? "Usage: nilbots register --email <a@b.c> --password <pw> [--name <display>] [--server <url>]"
+                : "Usage: nilbots login --email <a@b.c> --password <pw> [--server <url>]");
+            return 1;
+        }
+        string displayName = options.GetValueOrDefault("name", email.Split('@')[0]);
+
+        using var handler = new HttpClientHandler
+        {
+            CookieContainer = new CookieContainer(),
+            UseCookies = true,
+            AllowAutoRedirect = false, // we need to READ the redirect, not follow it
+        };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri(server) };
+
+        string path = register ? "/api/accounts/register" : "/api/accounts/login";
+        object payload = register
+            ? new { displayName, email, password }
+            : (object)new { email, password };
+        var account = http.PostAsJsonAsync(path, payload).GetAwaiter().GetResult();
+        if (!account.IsSuccessStatusCode)
+        {
+            string body = account.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            Console.Error.WriteLine(
+                $"error: {(register ? "registration" : "sign-in")} failed ({(int)account.StatusCode}): {Truncate(body, 300)}");
+            if (register && account.StatusCode == HttpStatusCode.Conflict)
+                Console.Error.WriteLine("That email already exists — use `nilbots login --email ... --password ...`.");
+            return 1;
+        }
+        Console.WriteLine(register ? $"Account created for {email}." : $"Signed in as {email}.");
+
+        string redirect = $"http://127.0.0.1:{CallbackPorts[0]}/callback/";
+        string authorize = "/connect/authorize" +
+            "?client_id=botarena-cli&response_type=code&scope=offline_access" +
+            $"&redirect_uri={Uri.EscapeDataString(redirect)}" +
+            $"&state={state}&code_challenge={challenge}&code_challenge_method=S256";
+        var authorized = http.GetAsync(authorize).GetAwaiter().GetResult();
+        if (authorized.Headers.Location is null)
+        {
+            Console.Error.WriteLine(
+                $"error: the authorization endpoint did not return a redirect ({(int)authorized.StatusCode}). " +
+                "The session cookie may have been rejected.");
+            return 1;
+        }
+        var query = System.Web.HttpUtility.ParseQueryString(authorized.Headers.Location.Query);
+        string? code = query["code"];
+        if (code is null || query["state"] != state)
+        {
+            Console.Error.WriteLine(
+                $"error: authorization did not yield a code (state mismatch or denial): {authorized.Headers.Location}");
+            return 1;
+        }
+
+        var tokens = http.PostAsync("/connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "authorization_code",
+            ["client_id"] = "botarena-cli",
+            ["code"] = code,
+            ["redirect_uri"] = redirect,
+            ["code_verifier"] = verifier,
+        })).GetAwaiter().GetResult();
+        if (!tokens.IsSuccessStatusCode)
+        {
+            Console.Error.WriteLine(
+                $"error: token exchange failed: {Truncate(tokens.Content.ReadAsStringAsync().GetAwaiter().GetResult(), 300)}");
+            return 1;
+        }
+        SaveTokens(server, tokens.Content.ReadFromJsonAsync<JsonElement>().GetAwaiter().GetResult());
+        Console.WriteLine($"Signed in to {server} — no browser needed. Next: nilbots new <Name>, then nilbots submit .");
+        return 0;
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..max] + "…";
+
     private static int NotSignedIn()
     {
         if (StoredCredentials.Load() is null)

@@ -907,6 +907,32 @@ configuration) and changing them is a version bump, not an edit.
     change, no wire change). Local<->server artifact parity remains UNVERIFIED
     — registration against production was blocked by tooling boundaries.
 
+71. **Headless onboarding ships; local<->server artifact parity is BROKEN and the
+    cause is embedded build paths (DX-FINDINGS-NUGET-PLAYER).** Goal: point a
+    friend's agent at the game and have it participate unaided. The blocker was
+    that `register`/`login` required a browser, which no container or CI has.
+    Fix: both commands accept `--email`/`--password` (+ optional `--name`) and
+    complete the SAME Authorization Code + PKCE grant over HTTP — the CLI signs
+    in to the JSON API, and `/connect/authorize` (satisfied by that cookie
+    session) answers with the redirect carrying the code, read off the Location
+    header and exchanged normally. No new grant type, no weakened flow, no
+    server change; documented in `--help` and `help register`/`help login`.
+    Verified end to end: register -> whoami -> build -> submit -> server build.
+    That verification finally MEASURED the headline determinism claim, and it
+    fails: local `6fb40191...` vs server `0178dcf8...` on the same machine with
+    the same wasi-sdk. Root cause is not toolchain drift (the CLI's guess) but
+    absolute build paths embedded in the artifact — `strings` shows
+    `/home/user/nilbots/src/BotArena.{Guest,Sdk}`; local builds run from the
+    caller's cache dir, server builds isolated as `botbuild` elsewhere, so the
+    bytes differ by construction. This also explains gen-7's split result (one
+    bot matched, one did not): parity was an accident of build location. Fix is
+    deterministic source paths (MSBuild PathMap + DeterministicSourcePaths) in
+    the controlled build — deliberately NOT applied here because it changes
+    every artifact hash, invalidates the build cache, and rewrites every
+    champion artifact: a supervised version-bump batch with goldens re-pinned,
+    not a drive-by. Until then `submit` should not guess "toolchain/sysroot
+    drift" and the NuGet README should not promise bit-identical artifacts.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -99,15 +99,57 @@ place for framework plumbing to do so.
 - **[info] The site renders only via JavaScript**, so scripted/no-JS access gets
   the single word "nilbots". Irrelevant to humans with browsers.
 
-## Unverified: local↔server artifact parity
+## MEASURED: local↔server artifact parity FAILS, and here is why
 
-The headline determinism claim — bit-identical local and server WASM — was
-**not** measured. Register/submit against the live site was blocked by the
-agent's permission system and then by the operator's own tooling boundary
-(driving a headless browser through account registration on production). Local
-artifact was `c024306a…`; no server hash exists to compare. Gen-7 showed parity
-can fail per-bot (one bot matched, one did not, same framework), so this remains
-worth closing with a real submission.
+Originally unverifiable (registration needed a browser). Once the headless auth
+path below existed, a real submission was made and the answer is unambiguous:
+
+```
+Local artifact:   6fb40191276b2f435404452cd688da76f0201e54d9052e8dbe6ca3c474076371 (compiled)
+Server artifact:  0178dcf82549043b0bbc7257622dda15083d62d8692b6b2e06658734adaff7b7
+Parity:           DIFFERENT
+```
+
+Same machine, same wasi-sdk, same sources — so this is not "toolchain/sysroot
+drift" as the CLI's message guesses. **Root cause: the emitted artifact embeds
+absolute build paths.** `strings` on the local artifact yields
+`/home/user/nilbots/src/BotArena.Guest` and `/home/user/nilbots/src/BotArena.Sdk`.
+Local builds run from the caller's cache directory; server builds run isolated
+as the `botbuild` user from a different directory — different path bytes,
+different hash, every time. This also explains the gen-7 result where one bot
+matched and another did not: parity is an accident of where each was built.
+
+This matters because bit-identical local↔server is advertised on the NuGet page
+and in `submit`'s own output, and "determinism is the product" (CLAUDE.md).
+
+**Recommended fix (NOT applied — needs supervision):** deterministic source
+paths in the controlled build — MSBuild `PathMap` normalising the SDK/Guest/bot
+source roots to stable virtual prefixes, plus `DeterministicSourcePaths`. This
+changes the bytes of **every** artifact: it invalidates the whole build cache,
+changes every champion artifact hash, and is a version-bump-class event by this
+project's own discipline (`Toolchain.GuestAdapterVersion`). It should ship as a
+deliberate batch with the goldens re-pinned, not as a drive-by.
+
+Interim honesty option if the fix is deferred: `submit` should stop guessing
+"likely toolchain/sysroot drift" and state the real cause, and the NuGet README
+should not promise bit-identical artifacts until it is true.
+
+## Fixed: headless onboarding (the friend's-agent path)
+
+`nilbots register` / `login` now accept `--email` / `--password` (plus optional
+`--name`) and complete the **same** Authorization Code + PKCE grant with no
+browser: the CLI authenticates against the JSON API, and because
+`/connect/authorize` is satisfied by that cookie session it answers with the
+redirect carrying the code, which the CLI reads off the `Location` header and
+exchanges as usual. No new grant type, no weaker flow, no server change — the
+browser is the only thing removed. Both are documented in `--help` and in
+`nilbots help register` / `help login`.
+
+This closes the blocker that made the whole "point a friend's agent at it"
+scenario impossible: an autonomous agent in a container can now go from
+`dotnet tool install` to a bot on the ladder without a human at a browser.
+Verified end to end against a live server: register → `whoami` → build →
+submit → server build → active version.
 
 ## Methodology note for future doc tests
 

@@ -87,7 +87,10 @@ static int Help(int exitCode = 1)
         Usage:
           nilbots new <Name>                      create a bot project
           nilbots register [--server url]         create an account + sign in via the browser
+                        [--email <a@b.c> --password <pw> [--name <display>]]
+                                                  ...or headless, with no browser at all
           nilbots login [--server url]            sign in via the browser (OAuth + PKCE)
+                        [--email <a@b.c> --password <pw>]   ...or headless
           nilbots submit [dir]                    build locally + submit for the canonical
                                                   server build; reports artifact parity
           nilbots whoami | nilbots logout
@@ -189,13 +192,24 @@ static int CommandHelp(string command)
             """,
         "register" => """
             Usage: nilbots register [--server <url>]
-            Opens secure browser registration, then signs the CLI in with OAuth + PKCE.
-            Defaults to https://nilbots.com.
+                   nilbots register --email <a@b.c> --password <pw> [--name <display>] [--server <url>]
+
+            With no arguments, opens secure browser registration and signs the CLI in
+            with OAuth + PKCE. Defaults to https://nilbots.com.
+
+            HEADLESS (no browser — CI, containers, agents): pass --email and --password
+            and the CLI completes the same OAuth + PKCE grant over HTTP itself.
+            --name sets the display name (defaults to the local part of the email).
             """,
         "login" => """
             Usage: nilbots login [--server <url>]
-            Signs in through the browser with OAuth + PKCE.
+                   nilbots login --email <a@b.c> --password <pw> [--server <url>]
+
+            With no arguments, signs in through the browser with OAuth + PKCE.
             Defaults to https://nilbots.com.
+
+            HEADLESS (no browser — CI, containers, agents): pass --email and --password
+            to complete the same grant without opening anything.
             """,
         "logout" => "Usage: nilbots logout",
         "whoami" => "Usage: nilbots whoami",
