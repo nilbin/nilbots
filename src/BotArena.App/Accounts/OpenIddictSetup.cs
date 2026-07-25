@@ -13,8 +13,9 @@ namespace BotArena.App.Accounts;
 
 /// <summary>
 /// OpenIddict embedded in the monolith (plan §13): same database, no identity service.
-/// The CLI is a public client using Authorization Code + PKCE with loopback redirects
-/// (§13.2) and refresh tokens; API requests carry the resulting access tokens.
+/// The CLI and the mobile app are public clients using Authorization Code + PKCE
+/// (§13.2) and refresh tokens; API requests carry the resulting access tokens. The
+/// CLI redirects to loopback, the mobile app to its own registered URL scheme.
 /// </summary>
 public static class OpenIddictSetup
 {
@@ -22,6 +23,18 @@ public static class OpenIddictSetup
 
     /// <summary>Loopback callback ports the CLI may bind (registered redirect URIs).</summary>
     public static readonly int[] CliPorts = [43117, 43118, 43119, 43120];
+
+    public const string MobileClientId = "nilbots-mobile";
+
+    /// <summary>
+    /// Callback the mobile app receives the authorization code on. The scheme must match
+    /// the Expo app's <c>scheme</c> in app.json. OpenIddict compares redirect URIs exactly
+    /// and <see cref="Uri"/> appends a trailing slash to an empty path, so this deliberately
+    /// carries two path segments — "nilbots://callback" would be stored as
+    /// "nilbots://callback/" and never match what the client sends. Pinned by
+    /// <c>OpenIddictClientSeedTests</c>; read that test before editing this string.
+    /// </summary>
+    public const string MobileRedirectUri = "nilbots://auth/callback";
 
     public static X509Certificate2 LoadEncryptionCertificate(
         IConfiguration configuration,
@@ -112,25 +125,61 @@ public static class OpenIddictSetup
         });
     }
 
-    /// <summary>Registers the first-party CLI client (public, PKCE-required, implicit consent).</summary>
+    /// <summary>
+    /// Registers the first-party public clients (PKCE-required, implicit consent): the CLI
+    /// on loopback redirects and the mobile app on its custom scheme.
+    /// </summary>
     public static async Task SeedClientAsync(IServiceProvider services)
     {
         var manager = services.GetRequiredService<IOpenIddictApplicationManager>();
-        const string displayName = "nilbots CLI";
-        if (await manager.FindByClientIdAsync(CliClientId) is { } application)
+        await SeedPublicClientAsync(
+            manager,
+            CliClientId,
+            "nilbots CLI",
+            [.. CliPorts.Select(port => new Uri($"http://127.0.0.1:{port}/callback/"))]);
+        await SeedPublicClientAsync(
+            manager,
+            MobileClientId,
+            "nilbots mobile",
+            [new Uri(MobileRedirectUri)]);
+    }
+
+    /// <summary>
+    /// Creates the client if absent, otherwise reconciles its display name and redirect URIs.
+    /// Reconciling matters because a redirect URI is only ever fixed by a deployment: the
+    /// migrate role is the sole caller (production web processes never seed).
+    /// </summary>
+    private static async Task SeedPublicClientAsync(
+        IOpenIddictApplicationManager manager,
+        string clientId,
+        string displayName,
+        IReadOnlyList<Uri> redirectUris)
+    {
+        if (await manager.FindByClientIdAsync(clientId) is { } application)
         {
             var existing = new OpenIddictApplicationDescriptor();
             await manager.PopulateAsync(existing, application);
+            bool changed = false;
             if (existing.DisplayName?.ToString() != displayName)
             {
                 existing.DisplayName = displayName;
-                await manager.UpdateAsync(application, existing);
+                changed = true;
             }
+            if (!existing.RedirectUris.SetEquals(redirectUris))
+            {
+                existing.RedirectUris.Clear();
+                foreach (var uri in redirectUris)
+                    existing.RedirectUris.Add(uri);
+                changed = true;
+            }
+            if (changed)
+                await manager.UpdateAsync(application, existing);
             return;
         }
+
         var descriptor = new OpenIddictApplicationDescriptor
         {
-            ClientId = CliClientId,
+            ClientId = clientId,
             ClientType = ClientTypes.Public,
             ConsentType = ConsentTypes.Implicit,
             DisplayName = displayName,
@@ -145,8 +194,8 @@ public static class OpenIddictSetup
             },
             Requirements = { Requirements.Features.ProofKeyForCodeExchange },
         };
-        foreach (int port in CliPorts)
-            descriptor.RedirectUris.Add(new Uri($"http://127.0.0.1:{port}/callback/"));
+        foreach (var uri in redirectUris)
+            descriptor.RedirectUris.Add(uri);
         await manager.CreateAsync(descriptor);
     }
 
