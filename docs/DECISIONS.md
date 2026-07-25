@@ -810,7 +810,7 @@ configuration) and changing them is a version bump, not an edit.
     maximum. Do not relax that gate or tune the rules post hoc. Keep v8 and
     Pincer frozen; the next experiment is an equal-budget, fresh-seed
     counterplay adaptation trial pre-registered in RULES-0.5-DESIGN §R.
-    `docs/RULES-0.5-PLAYER-GUIDE.md` becomes the one player-facing
+    `docs/PLAYER-GUIDE.md` becomes the one player-facing
     experiment brief, and the shared skills preserve this native-cohort →
     blind review → strict verdict workflow.
 
@@ -870,7 +870,210 @@ configuration) and changing them is a version bump, not an edit.
     external S3-compatible objects remain measured scaling/defense-in-depth
     promotions, not prerequisites.
 
-78. **Maps own immutable presentation themes; the default world is the
+78. **Production object storage is a private Garage cluster behind the generic
+    S3 contract, bootstrapped at replication factor 3 in Compose.** The first
+    VPS runs three storage containers plus one gateway, all in the same real
+    HostUp zone. This deliberately does not claim host-level availability; the
+    co-located copies preserve Garage's replication factor so future nodes can
+    join over a private overlay network and rebalance without the dangerous,
+    unsupported replication-factor change from 1 to 3. The application uses
+    `AWSSDK.S3` only and remains replaceable across compatible servers.
+    Garage is pinned to the v2.3.0 multi-architecture image digest, its S3/RPC/
+    admin ports are not published, and bucket-scoped credentials remain in the
+    host environment. The old local volume stays mounted during the first
+    release as a migration source and immediate rollback aid; verified S3
+    materialization, Garage metadata snapshots, HostUp backups, and an
+    independent restore rehearsal remain required because co-location is not
+    backup or physical redundancy.
+
+*Numbering note: entries 79-84 were originally appended as 70-75, colliding with
+the already-numbered 70-78 above. They are renumbered here and every citation of
+them in the repo was updated with them; commit messages predating this note may
+still cite the old numbers.*
+
+79. **Inert player API is hidden, not deleted (DX-FINDINGS-NUGET-PLAYER).**
+    The first evaluation against the PUBLISHED product — an agent with only
+    `dotnet tool install --global Nilbots`, nilbots.com/docs, and no repo access
+    — built a bot that goes 97W-6L-17D vs `hunter`, and confirmed the shipped
+    rules and the public docs agree (no drift; the gen-6 failure is fixed).
+    Its sharpest finding reproduced gen-7's independently: `Actions.Strafe*`
+    and `BotContext.Energy` are public, undocumented, and inert, degrading to
+    Wait/`Blocked` — which players misread as a blocked move. Decision: mark
+    them `[Obsolete]` + `[EditorBrowsable(Never)]` with honest doc comments
+    rather than delete them. Deleting was considered and rejected because
+    strafe is a live design lever (DECISIONS #61 names it as a candidate answer
+    to the 2x2 diagonal-mirror camper), the enum values are wire values present
+    in historical replays and champion artifacts, and the research arms must
+    stay runnable. Also fixed: authenticated commands crashed with CI build
+    paths in the trace whenever their server was unreachable (root cause was
+    the pre-command token refresh, so it hit `submit` too, not just `whoami`);
+    `--version` printed help; the SDK shipped no XML docs, leaving the entire
+    player API blank in IntelliSense. SDK 0.8.0 -> 0.8.1 (compile-surface
+    change, no wire change). Local<->server artifact parity remains UNVERIFIED
+    — registration against production was blocked by tooling boundaries.
+
+80. **Headless onboarding ships; local<->server artifact parity is BROKEN and the
+    cause is embedded build paths (DX-FINDINGS-NUGET-PLAYER).** Goal: point a
+    friend's agent at the game and have it participate unaided. The blocker was
+    that `register`/`login` required a browser, which no container or CI has.
+    Fix: both commands accept `--email`/`--password` (+ optional `--name`) and
+    complete the SAME Authorization Code + PKCE grant over HTTP — the CLI signs
+    in to the JSON API, and `/connect/authorize` (satisfied by that cookie
+    session) answers with the redirect carrying the code, read off the Location
+    header and exchanged normally. No new grant type, no weakened flow, no
+    server change; documented in `--help` and `help register`/`help login`.
+    Verified end to end: register -> whoami -> build -> submit -> server build.
+    That verification finally MEASURED the headline determinism claim, and it
+    fails: local `6fb40191...` vs server `0178dcf8...` on the same machine with
+    the same wasi-sdk. Root cause is not toolchain drift (the CLI's guess) but
+    absolute build paths embedded in the artifact — `strings` shows
+    `/home/user/nilbots/src/BotArena.{Guest,Sdk}`; local builds run from the
+    caller's cache dir, server builds isolated as `botbuild` elsewhere, so the
+    bytes differ by construction. This also explains gen-7's split result (one
+    bot matched, one did not): parity was an accident of build location. Fix is
+    deterministic source paths (MSBuild PathMap + DeterministicSourcePaths) in
+    the controlled build — deliberately NOT applied here because it changes
+    every artifact hash, invalidates the build cache, and rewrites every
+    champion artifact: a supervised version-bump batch with goldens re-pinned,
+    not a drive-by. Until then `submit` should not guess "toolchain/sysroot
+    drift" and the NuGet README should not promise bit-identical artifacts.
+
+81. **Player builds are reproducible across build directories — one of the two
+    causes of the local<->server parity failure (DECISIONS #80).** CORRECTION:
+    an earlier revision of this entry claimed this fixed the parity promise
+    outright. It does not. Measured after the fix, with BOTH sides on the new
+    toolchain and identical Sdk/Guest DLLs: local `f4733dfe...` vs server
+    `c70b232e...`, still DIFFERENT — and the artifacts differ in SIZE (997,924
+    vs 998,445 bytes) with ~92% of bytes differing, which is structurally
+    different codegen, not path or timestamp noise. Ruled out so far: the
+    source set (bin/obj are correctly excluded, both compile the one file), the
+    toolchain assemblies (byte-identical), and the workspace path (now mapped).
+    A second cause remains unidentified — likely something differing between
+    the isolated `botbuild` build environment and the caller's. Tracked as open
+    in DX-FINDINGS-NUGET-PLAYER. What IS proven below stands on its own. The
+    controlled build project now sets `PathMap` from `$(MSBuildProjectDirectory)`
+    to the fixed virtual root `/nilbots/bot`, plus `Deterministic` and
+    `DebugType=none`. Cause being fixed: the workspace lives at a different
+    absolute path per host — the caller's cache dir locally,
+    `BuildIsolation.WorkRoot/<key>` under server isolation — and those bytes were
+    compiled into the artifact, so "local and server produce identical WASM" was
+    false by construction rather than by drift. Measured before: local
+    `6fb40191...` vs server `0178dcf8...`. Measured after: two cold builds from
+    two different cache roots produce the SAME hash
+    (`78da86bc9ce7320989bf053abe5a0d78e3bfd48fab48b2e89c896631564001ea`), and
+    `strings` finds no `/home`, `/tmp` or `/root` path in the artifact at all.
+    Two bonuses: artifacts shrank 2.54 MB -> 998 KB (61%) because debug info was
+    dominating them, and player artifacts stop leaking our build directories.
+    Fault reporting is unaffected — the guest reports exception type + message,
+    not line numbers (verified: `Fault s0: InvalidOperationException: deliberate
+    fault for diagnostics`). `BuildPipelineVersion` 1 -> 2 invalidates every
+    cached artifact, which is the intended blast radius; committed champion
+    artifacts are frozen binaries and keep working unchanged. Guarded by a new
+    `scripts/e2e.sh` assertion that builds the same bot under two cache roots and
+    fails if the hashes differ, so this cannot silently regress.
+
+82. **Friend's-agent onboarding reaches the ladder, but only past three
+    self-inflicted obstacles (DX-FINDINGS-NUGET-PLAYER round 2).** An agent given
+    only the CLI and told "a friend sent you this" registered, built a bot
+    scoring 184/192 vs the built-ins on unseen seeds, submitted, and reached
+    **#2 of 8 on the ranked ladder** — so the path works end to end. Verdict was
+    "partly" because it got there by regex-mining docs prose out of the served
+    JS bundle and writing a reflection dumper for the SDK API. Fixed here:
+    (a) `register`/`login` printed NOTHING when stdout was piped and then blocked
+    for five minutes — the fallback URL sat in a buffer, and piping is what
+    agents and CI do by default; it now goes to stderr, flushed, alongside the
+    headless one-liner. (b) The parity message blamed "toolchain/sysroot drift"
+    and cited `docs/DECISIONS.md`, a repo-only file no player can read; it now
+    compares the CLI's bundled SDK against the server's `/api/meta` and names the
+    version gap with the upgrade command. (c) `web/dist` — what the app actually
+    serves — was two days stale and still taught "150 zone-ticks wins", a
+    pre-0.5 mechanic, while DocsPage.tsx was correct; rebuilt, and DocDriftTests
+    now fails when the bundle is older than the docs source. (d) Site docs still
+    said `botarena new`/`botarena set` after the rename. (e) `nilbots bots` now
+    describes each opponent; `--rules` separates the game from research arms.
+    Harness lesson recorded: the run's `dotnet tool install` silently reused the
+    already-installed published 0.4.0 instead of the patched local build, so its
+    findings about headless auth, XML docs and `--version` were against stale
+    bits — future runs must uninstall first or use a private tool path. Still
+    open and ranked in the findings doc: no text/`llms.txt` mirror of the docs
+    (the root cause of the bundle-mining), ranked play absent from the CLI
+    (`nilbots rank`/`leaderboard`), `doctor` ignoring the signed-in session, and
+    the undocumented enemy-cooldown reconstruction.
+
+83. **Cross-platform builds normalised: macOS/arm64 and Linux now agree on one
+    virtual source root (corrects #81).** Investigating whether supporting both
+    macOS and Linux worsens the artifact divergence turned up a real defect AND
+    two errors in #81 that are corrected here.
+    THE DEFECT: three build paths reach the generated project — Docker (macOS
+    and Linux/arm64, via run-wasm-publish.sh), the isolated setpriv publish, and
+    a plain local publish — and only the Docker one passed
+    `-p:PathMap=/workspace=/src` and `-p:ContinuousIntegrationBuild=true`. The
+    other two got the project's own `PathMap` to `/nilbots/bot` and no CI flag.
+    So a Mac build and a Linux build of identical source embedded DIFFERENT
+    virtual roots and could never produce equal bytes. Fixed by setting
+    `PathMap=$(MSBuildProjectDirectory)=/src` plus `ContinuousIntegrationBuild`
+    in the generated project, matching the value the Docker command line already
+    uses, so all three paths agree however they are invoked.
+    CORRECTION 1 to #81: the csproj `PathMap` added there is OVERRIDDEN on the
+    Docker path (command-line `-p:` wins), so it never applied where that entry
+    implied it did. CORRECTION 2: #81 credited that change with making builds
+    reproducible across build directories, but the "before" state was never
+    measured. It is now: with `DebugType=none` removed the build is still
+    reproducible, and under isolation the workspace path derives from the cache
+    KEY rather than from BOTARENA_HOME, so the two-cache-root check never varied
+    the compile path at all. The e2e assertion is relabelled to say what it
+    actually proves (determinism), and the honest end-to-end check is a
+    submission's local-vs-server comparison. What #81 genuinely delivered stands:
+    `DebugType=none` stopped absolute repo paths leaking into every player
+    artifact and cut them 2.54 MB -> 998 KB.
+    Local<->server divergence remains open and is NOT explained by this: both
+    sides here take the isolated path. Behavioural equivalence is measured and
+    holds (DX-FINDINGS-NUGET-PLAYER).
+
+84. **Local<->server artifact divergence closed: the staged assembly closure no
+    longer depends on which host compiled (closes the item left open by #81/#83).**
+    A submission now reports `Parity: IDENTICAL` for the first time. The cause
+    was never the compiler or the source paths — it was WHICH assemblies got
+    staged into the controlled workspace, and three independent mechanisms made
+    that host-dependent:
+    (a) `BuildLocked` copied EVERY `*.dll` next to the invoking host into
+    `workspace/libs`. From the CLI that is 9 assemblies; from the server it is
+    74 — AWSSDK.S3, BotArena.App itself, EF Core, OpenIddict, Humanizer. So
+    identical sources compiled against different assembly closures, and the
+    server's whole dependency graph was handed to a sandboxed player build for
+    no reason. It now stages exactly `BotArena.Sdk.dll` + `BotArena.Guest.dll`
+    (Guest -> Sdk is the entire closure; Sdk is a leaf) and throws if either is
+    missing rather than silently building something else.
+    (b) `EnsureToolchainAssemblies` returns the copies beside the host when BOTH
+    are present. BotArena.App referenced Sdk transitively but never Guest, so
+    only Sdk.dll sat beside the server — it fell through to building its own
+    pair from the repo, in a different configuration and directory than the CLI
+    shipped. The App now takes a ProjectReference on BotArena.Guest purely so
+    both hosts stage what they shipped with.
+    (c) That repo-built fallback cached into `cache/toolchain-<GuestAdapterVersion>`.
+    The 0.8.0 -> 0.8.1 SDK change (`[Obsolete]` members, XML docs) did not touch
+    GuestAdapterVersion, so the server kept staging a stale Sdk.dll. The
+    directory is now keyed by a SHA-256 of the Sdk/Guest sources, so any
+    framework edit invalidates it with no version bookkeeping.
+    Two hardening changes come with it. `src/ToolchainAssembly.props`, imported
+    by Sdk and Guest only, removes every axis along which those two assemblies'
+    bytes could vary — `Optimize`, `DefineConstants`, `DebugType`, `PathMap`,
+    `Deterministic`, `ContinuousIntegrationBuild`, `AssemblyConfiguration` — so a
+    Debug repo build and a Release container build produce the same DLL. The
+    cost is no PDBs for those two projects (no line numbers in SDK stack traces).
+    And the build-cache key now includes the SHA-256 of each staged assembly.
+    That retires the standing footgun that the cache hashed player sources only:
+    a framework change now rebuilds by itself, and two hosts holding different
+    Sdk builds get DIFFERENT cache keys instead of agreeing on a key while
+    producing different bytes.
+    MEASURED: a fresh `nilbots submit` against a local server produced
+    `ca01ccf5...` on both sides — and the two builds did not even take the same
+    path (the CLI ran the isolated setpriv publish under `/var/lib/botbuild/work`,
+    the server ran unisolated under its cache dir), so this also demonstrates the
+    path independence #83 aimed at. `BuildPipelineVersion` 2 -> 3; every
+     pre-existing cache entry is invalid because artifact bytes change.
+
+85. **Maps own immutable presentation themes; the default world is the
     industrial Control Room, and replay viewers do not override it.** ASCII
     `#`/`.` rows remain the authoritative collision layer. A renderer-owned
     standalone JSON theme package supplies floor and wall materials, palette,
@@ -886,11 +1089,11 @@ configuration) and changing them is a version bump, not an edit.
     trenches, cable runs, and other map-scale visual features require explicit
     map presentation data rather than being baked into a reusable theme.
     The first wall implementation used theme-owned trim and shadow donors
-    selected from ASCII adjacency; decision #79 supersedes that production
+    selected from ASCII adjacency; decision #86 supersedes that production
     detail. Mutable viewer/account preferences must never rewrite historical
     playback.
 
-79. **Arena walls use map-authored families and deterministic topology
+86. **Arena walls use map-authored families and deterministic topology
     atlases built from generated material sources.** One repeated wall donor
     cannot make perimeter fortifications and interior cover read as different
     structures. Maps now name `boundaryWall`, `interiorWall`, and optional
@@ -906,7 +1109,7 @@ configuration) and changing them is a version bump, not an edit.
     and leaves the material bundle ready for a later orthographic 2.5D DCC
     bake without changing map semantics.
 
-80. **Combat contrast minimally adapts the bot accent to the painted local
+87. **Combat contrast minimally adapts the bot accent to the painted local
     background; it does not add universal plaques or outlines.** Themes remain
     free to use light, dark, and locally varied materials. Health and ordnance
     keep their original pips, glow, trails, and projectile silhouettes. The
@@ -919,7 +1122,7 @@ configuration) and changing them is a version bump, not an edit.
     bytes for historical three-health replays; initial state and both health
     displays use that dynamic value rather than a fixed count.
 
-81. **Theme topology atlases bake at 2× while runtime size remains
+88. **Theme topology atlases bake at 2× while runtime size remains
     budgeted.** High-DPI canvases can require more than the former 96 source
     pixels for one wall core, so each logical 96 px core / 16 px gutter is now
     baked as 192 / 32 into a 4096×4096 atlas. Edge atlases use quality-95 alpha
@@ -929,7 +1132,7 @@ configuration) and changing them is a version bump, not an edit.
     build fails if it is exceeded. Resolution may not silently turn every
     self-contained replay into a substantially larger download.
 
-82. **Genuine SVG is the recommended default for bot looks, with PNG retained
+89. **Genuine SVG is the recommended default for bot looks, with PNG retained
     as an evidence-based exception.** SVG stays sharp through arena scaling,
     rotation, high-DPI playback, and small telemetry thumbnails while reducing
     bundled bytes. It must use the canonical transparent 512 viewBox and may
@@ -939,7 +1142,7 @@ configuration) and changing them is a version bump, not an edit.
     in that case. Automatic tracing and SVG-wrapped PNGs are rejected because
     they add complexity without improving scaling.
 
-83. **Map packages are capped at 32×32, but map dimensions are not used as a
+90. **Map packages are capped at 32×32, but map dimensions are not used as a
     proxy for wall sharpness.** Larger maps produce smaller screen tiles, so
     they do not cause topology-atlas upscaling. The cap instead bounds
     simulation arrays, replay/render work, traversal scale, and the loss of
@@ -948,7 +1151,7 @@ configuration) and changing them is a version bump, not an edit.
     The shipped maximum is 24×18, leaving deliberate room for new layouts
     without admitting effectively unbounded maps.
 
-84. **The five shipped mechanical bot looks use genuine SVG redraws.** Lancer,
+91. **The five shipped mechanical bot looks use genuine SVG redraws.** Lancer,
     Vanguard, Bulwark, Needle, and Orbiter now share a crisp path-based visual
     language and remain distinct at 64 px. The four replaced 512 px PNGs move
     to unbundled `art/bot-looks` references so their art direction is not lost

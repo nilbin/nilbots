@@ -45,6 +45,13 @@
     <None Include="../../scripts/setup-wasi-sdk.sh"
           Pack="true"
           PackagePath="tools/net10.0/any/scripts/" />
+    <!-- The canonical player rules card. `nilbots new` splices it into the scaffolded
+         README so the rules have exactly ONE source: this file also backs
+         /llms-full.txt on the server. Ship it with the tool or `new` cannot inline it. -->
+    <None Include="../../docs/PLAYER-GUIDE.md"
+          CopyToOutputDirectory="PreserveNewest"
+          Pack="true"
+          PackagePath="tools/net10.0/any/docs/" />
     <None Include="../../templates/botarena-bot/*"
           Pack="true"
           PackagePath="tools/net10.0/any/templates/botarena-bot/" />

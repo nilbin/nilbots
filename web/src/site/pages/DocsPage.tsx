@@ -1,3 +1,14 @@
+import Markdown from '../components/Markdown';
+// The one source of rules prose. Imported raw at build time, so the site, the text
+// mirror at /llms-full.txt and the README written by `nilbots new` are the same words
+// by construction rather than by discipline.
+import playerGuide from '../../../../docs/PLAYER-GUIDE.md?raw';
+
+/// The version stamp lives here (and is pinned by DocDriftTests) rather than in the
+/// guide's filename — a versioned filename meant renaming the file and chasing nine
+/// references on every ruleset bump.
+const RULES_VERSION = '0.5';
+
 /// On-site documentation (plan §29.6): enough for a player to go from zero to a
 /// submitted bot without reading the repository.
 export default function DocsPage() {
@@ -59,83 +70,12 @@ public sealed class MyBot : IBot
         </ul>
       </Doc>
 
-      <Doc title="Rules of the arena (v0.5)">
-        <ul className="list-disc space-y-1 pl-5">
-          <li>Tile grid, four facings, both bots decide simultaneously from the
-            pre-tick state. 3 HP each, max 500 ticks.</li>
-          <li><b>The zone is territory.</b> Every map exposes
-            <code className="font-mono"> context.ZoneTiles</code> from tick 0.
-            After movement, projectiles and damage, the sole active zone occupant
-            gains 1 signed <code className="font-mono">ControlPressure</code> with
-            <b> any action</b>. If both bots occupy the zone—or neither does—existing
-            pressure decays 1 toward zero every 2 ticks. Positive favors slot 0;
-            negative favors slot 1. Reaching <b>±100 wins immediately</b> by
-            Domination. From tick 200 the limit becomes ±10 and sole gain becomes 2,
-            while decay remains. Evict, don&apos;t merely arrive.</li>
-          <li>Spawn positions and facings vary by match seed (deterministically —
-            replays are still exact), <b>never share a clear firing lane</b>, and
-            are <b>zone-distance-fair</b> (within 2 walking steps of each other to
-            the nearest zone tile) — the opening race is winnable from either
-            side. Don't hardcode an opening; read your surroundings. Ranked sets
-            mirror both spawns, so asymmetric starts stay fair across a set.</li>
-          <li>Shoot launches a range-8 projectile onto the first adjacent path tile
-            that tick. On every later tick it crosses <b>two ordered tiles</b> after
-            bot movement. Every intermediate tile checks walls, strict diagonal
-            corners, final range, and the first bot encountered—speed two never
-            tunnels. A projectile tile is lethal to non-owners; a hit deals 1 damage;
-            cooldown is 2 ticks.</li>
-          <li><code className="font-mono">VisibleProjectiles</code> exposes current
-            position and eight-way <code className="font-mono">Heading</code>;
-            <code className="font-mono"> TicksUntilAdvance == 1</code> means it moves
-            this tick after your movement, and
-            <code className="font-mono"> TilesPerAdvance / RemainingTiles</code>
-            make the threat computable.</li>
-          <li><b>Programmed skill shots.</b>
-            <code className="font-mono"> context.ShotPrograms</code> is the exact
-            legal envelope: initial aim −1/0/+1 45° octants, first bend after 1–4
-            tiles, later bends every 1–3 tiles, and 1–3 bends in one direction.
-            Validate with <code className="font-mono">limits.IsValid</code>, preview
-            with <code className="font-mono">ShotPaths.Preview</code>, and return
-            <code className="font-mono"> Actions.Shoot(program)</code>. The future
-            path is private and immutable; opponents see only each manifested
-            heading. Plain <code className="font-mono">Actions.Shoot()</code> stays
-            straight.</li>
-          <li>Vision is a <b>90° cone toward your facing</b>, plus the eight
-            adjacent tiles, Chebyshev range 6, and corner-strict. Turning is
-            scanning, aiming, and changing movement direction together; your back
-            is genuinely blind. Even a diagonally adjacent wall can be hidden by a
-            clipped corner, so remember observed terrain.</li>
-          <li>Loud unseen Shot/Damage/Destroyed events within range 8 arrive one
-            tick later in <code className="font-mono">HeardSounds</code> as event
-            kind + eight-way bearing + near/medium/far—never exact coordinates or
-            slots. An event appears in full-detail
-            <code className="font-mono"> VisibleEvents</code> or as sound, never both.</li>
-          <li>Movement: two bots can't share a tile; moving into the same tile or
-            swapping fails for both; blocked moves become Wait.</li>
-          <li>Resolution order: observe → turn → bot movement → existing projectile
-            substeps/collisions → new-shot launch → simultaneous damage →
-            territorial pressure → victory. Both bots destroyed on the same tick
-            is a draw.</li>
-          <li>Win by Domination, elimination, or at tick 500 by pressure sign, then
-            health, then damage dealt; all equal is a draw. A lead decays while the
-            zone remains empty or contested. A bot that crashes 3 times is
-            disqualified—exceptions, infinite loops and out-of-memory all count.</li>
-          <li>Ranked sets are 6 games across 3 map/seed pairs — 3 maps sampled per
-            set from the pool (basic-01, arena-01, crossfire-01, bastion-01,
-            gallery-01; see <code className="font-mono">botarena maps</code>) — each
-            played from both starting positions; elo
-            moves once per set, on the <b>ladder of the rules the set was played
-            under</b> — every rules version has its own ladder, and a challenge may
-            pin an older ruleset. Rehearse the exact format
-            locally: <code className="font-mono">botarena set --bot . --opponent hunter</code>.</li>
-          <li><code className="font-mono">VisibleEvents</code> describe last tick.
-            Under cone vision, full detail requires the event&apos;s primary tile to
-            be visible: the shooter/mover, or the damaged/destroyed bot. An unseen
-            loud event arrives only as a redacted sound. An event&apos;s
-            <code className="font-mono"> Slot</code> is the acting bot (for Damage:
-            the dealer, not the victim); compare with
-            <code className="font-mono"> context.Slot</code>.</li>
-        </ul>
+      {/* The rules are NOT restated here. This renders the canonical player guide
+          (docs/PLAYER-GUIDE.md) that also backs /llms-full.txt and every scaffolded
+          README, so the site cannot drift from the game — which it did once, teaching
+          a retired zone-tick win condition for two days. */}
+      <Doc title={`Rules of the arena (v${RULES_VERSION})`}>
+        <Markdown source={playerGuide} />
       </Doc>
 
       <Doc title="Determinism (why replays are trustworthy)">

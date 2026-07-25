@@ -67,6 +67,9 @@ case "$deploy_mode" in
       echo "usage: $0 --build-local" >&2
       exit 2
     fi
+    if [[ -f "$release_env" ]]; then
+      cp -p "$release_env" "$previous_release_env"
+    fi
     rm -f "$release_env"
     ;;
   existing)
@@ -97,13 +100,16 @@ if [[ -f "$release_env" ]]; then
   set -a
   source "$release_env"
   set +a
-  "${compose[@]}" pull migrate web match-worker compile-worker compiler-runner
+  "${compose[@]}" pull \
+    garage-a garage-b garage-c garage-gateway \
+    migrate web match-worker compile-worker compiler-runner
 else
   export BOTARENA_IMAGE_TAG
   BOTARENA_IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
   "${compose[@]}" build
 fi
-"${compose[@]}" up -d --wait db
+"${compose[@]}" up -d --wait db garage-a garage-b garage-c garage-gateway
+bash "$deploy_dir/init-garage.sh"
 bash "$deploy_dir/backup-postgres.sh" "$deploy_dir/backups"
 "${compose[@]}" stop compile-worker compiler-runner match-worker >/dev/null 2>&1 || true
 "${compose[@]}" run --rm migrate

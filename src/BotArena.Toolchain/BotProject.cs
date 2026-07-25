@@ -42,12 +42,26 @@ public static class ToolchainInfo
     // 0.8.0: private programmed-shot actions (trailing SP action payload),
     // public limits (trailing SP observation), and exact currently revealed
     // eight-way projectile headings (trailing PH observation).
-    public const string SdkVersion = "0.8.0";
+    // 0.8.1: no wire change — XML documentation now ships beside the SDK dll, and the
+    // members that are inert outside the research arms (strafe actions, Energy) are
+    // marked [Obsolete] + [EditorBrowsable(Never)] so they no longer read as playable
+    // API. Compile-surface change for player projects, hence a version bump.
+    public const string SdkVersion = "0.8.1";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     public const string GuestAdapterVersion = "0.8.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
-    public const string BuildPipelineVersion = "1";
+    // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed
+    //    virtual root and debug info is dropped, so the same sources produce the same
+    //    bytes no matter which directory (or host) compiled them. Every pre-existing
+    //    cache entry is invalid because artifact bytes change.
+    // 3: the staged assembly closure stopped depending on WHICH host compiled
+    //    (DECISIONS #84). Three things changed together: the workspace stages exactly
+    //    BotArena.Sdk/Guest instead of every dll beside the invoking host (the CLI
+    //    staged 9, the server 74); Sdk/Guest compile identically in any configuration
+    //    from any directory; and their fallback build cache is keyed by source content
+    //    rather than by GuestAdapterVersion. Artifact bytes change.
+    public const string BuildPipelineVersion = "3";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

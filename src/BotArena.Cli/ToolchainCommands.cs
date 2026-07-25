@@ -48,14 +48,25 @@ public static class NewCommand
             string botLib = Path.Combine(targetDir, "lib");
             Directory.CreateDirectory(botLib);
             File.Copy(packagedSdk, Path.Combine(botLib, "BotArena.Sdk.dll"), overwrite: true);
+            // The XML docs must travel WITH the dll or every SDK member is blank in
+            // IntelliSense — the whole player API is this one assembly (player-test
+            // finding). Missing docs must never fail `new`, so this is best-effort.
+            string packagedDocs = Path.ChangeExtension(packagedSdk, ".xml");
+            if (File.Exists(packagedDocs))
+                File.Copy(packagedDocs, Path.Combine(botLib, "BotArena.Sdk.xml"), overwrite: true);
             sdkReference =
                 "<Reference Include=\"BotArena.Sdk\"><HintPath>lib/BotArena.Sdk.dll</HintPath></Reference>";
         }
+        // The scaffolded README stays self-contained — an offline player-test called it
+        // "the best documentation in the product" — but its rules section is SPLICED IN
+        // from the canonical guide rather than restated, so the rules have one source.
+        string rulesCard = ReadCanonicalRulesCard();
         foreach (var file in Directory.EnumerateFiles(templateDir))
         {
             string content = File.ReadAllText(file)
                 .Replace("BOTNAME", entryType)
                 .Replace("SDKVERSION", ToolchainInfo.SdkVersion)
+                .Replace("<!--BOTARENA_RULES-->", rulesCard)
                 .Replace("<!--BOTARENA_SDK_REFERENCE-->", sdkReference);
             File.WriteAllText(
                 Path.Combine(targetDir, Path.GetFileName(file).Replace("BOTNAME", entryType)),
@@ -74,6 +85,34 @@ public static class NewCommand
             Console.WriteLine($"  {wrapper} play --bot . --opponent hunter --seed 42");
         }
         return 0;
+    }
+
+    /// <summary>The one copy of the player rules card: shipped beside the tool and, on a
+    /// source checkout, read from docs/. The same file backs the server's
+    /// /llms-full.txt, so the scaffolded README, the text docs and the repo cannot
+    /// disagree. If it is somehow missing, scaffolding still succeeds with a pointer —
+    /// a missing doc must never block creating a bot.</summary>
+    private static string ReadCanonicalRulesCard()
+    {
+        const string guideName = "PLAYER-GUIDE.md";
+        string packaged = Path.Combine(AppContext.BaseDirectory, "docs", guideName);
+        string? path = File.Exists(packaged)
+            ? packaged
+            : CliSupport.FindUpward(Path.Combine("docs", guideName));
+        if (path is null)
+            return "## Rules\n\nSee https://nilbots.com/llms-full.txt for the current rules.\n";
+
+        // Drop the guide's own title and its repo-facing tail; keep the rules body.
+        var lines = File.ReadAllLines(path).ToList();
+        int start = lines.FindIndex(l => l.StartsWith("## ", StringComparison.Ordinal));
+        int end = lines.FindIndex(l => l.StartsWith("## Promotion evidence", StringComparison.Ordinal));
+        if (start < 0)
+            return string.Join('\n', lines);
+        var body = lines.GetRange(start, (end > start ? end : lines.Count) - start);
+        return "# Rules that decide matches\n\n" +
+               "<!-- Spliced from the official rules card at `nilbots new` time; the same\n" +
+               "     text is served at https://nilbots.com/llms-full.txt -->\n\n" +
+               string.Join('\n', body).TrimEnd() + "\n";
     }
 }
 
@@ -188,8 +227,11 @@ public static class DoctorCommand
             "run `npm run build` in web/");
         string? maps = CliSupport.FindUpward("maps");
         Report("maps", maps is not null, maps ?? "", "missing maps/ directory");
-        Console.WriteLine($"Authentication:         not signed in (no server yet)");
-        Console.WriteLine($"Server compatibility:   n/a (no server yet)");
+        // Report the session we actually have, and check the server's build SDK against
+        // ours. doctor previously hard-coded "not signed in" even seconds after whoami
+        // succeeded, so the version-skew check that explains a parity mismatch never ran
+        // (player-test round 2, S2-4).
+        ServerCommands.ReportSessionHealth();
         return 0;
 
         static void Report(string label, bool ok, string detail, string fix) =>

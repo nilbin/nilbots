@@ -8,6 +8,15 @@ if (args.Length == 0)
     return Help(exitCode: 1);
 if (args[0] is "--help" or "-h" || args is ["help"])
     return Help(exitCode: 0);
+// `--version` must answer with a version, not the help text — a bug report needs
+// the exact CLI/SDK/rules triple, and `doctor` was the only place it existed.
+if (args[0] is "--version" or "-v" or "version")
+{
+    Console.WriteLine($"nilbots {ToolchainInfo.CliVersion} " +
+        $"(SDK {ToolchainInfo.SdkVersion}, game rules {BotArena.Engine.BotArenaVersions.GameRulesVersion}, " +
+        $"runtime protocol {BotArena.Engine.BotArenaVersions.RuntimeProtocolVersion})");
+    return 0;
+}
 if (args is ["help", var helpCommand, ..])
     return CommandHelp(helpCommand);
 if (args.Skip(1).Any(a => a is "--help" or "-h"))
@@ -23,6 +32,8 @@ try
         ["logout"] => ServerCommands.Logout(),
         ["whoami"] => ServerCommands.WhoAmI(),
         ["submit", .. var rest] => ServerCommands.Submit(rest),
+        ["rank", .. var rest] => ServerCommands.Rank(rest),
+        ["leaderboard", .. var rest] => ServerCommands.Leaderboard(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
@@ -42,11 +53,33 @@ catch (BotBuildException ex)
     Console.Error.WriteLine($"error: {ex.Message}");
     return 1;
 }
-catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException)
+catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException
+    or ArgumentException or DirectoryNotFoundException or IOException
+    or System.Net.Http.HttpRequestException or TaskCanceledException)
 {
-    Console.Error.WriteLine($"error: {ex.Message}");
+    // Expected user-facing failures (bad argument, unreachable server, missing file):
+    // one clean line, never a stack trace — those leaked CI build paths to players.
+    Console.Error.WriteLine($"error: {Describe(ex)}");
     return 1;
 }
+catch (Exception ex)
+{
+    // Last resort: an unexpected fault is still a bug, but a player should get a
+    // readable line and a way to produce the full trace for a report.
+    Console.Error.WriteLine($"error: {Describe(ex)}");
+    Console.Error.WriteLine("This looks like a bug. Set NILBOTS_DEBUG=1 and re-run for the full trace.");
+    if (Environment.GetEnvironmentVariable("NILBOTS_DEBUG") is "1" or "true")
+        Console.Error.WriteLine(ex);
+    return 1;
+}
+
+static string Describe(Exception ex) => ex switch
+{
+    System.Net.Http.HttpRequestException or TaskCanceledException =>
+        $"could not reach the server: {ex.Message.TrimEnd('.')}. " +
+        "Check the URL (--server) and your connection; `nilbots doctor` shows the configured server.",
+    _ => ex.Message,
+};
 
 static int Help(int exitCode = 1)
 {
@@ -56,20 +89,28 @@ static int Help(int exitCode = 1)
         Usage:
           nilbots new <Name>                      create a bot project
           nilbots register [--server url]         create an account + sign in via the browser
+                        [--email <a@b.c> --password <pw> [--name <display>]]
+                                                  ...or headless, with no browser at all
           nilbots login [--server url]            sign in via the browser (OAuth + PKCE)
+                        [--email <a@b.c> --password <pw>]   ...or headless
           nilbots submit [dir]                    build locally + submit for the canonical
                                                   server build; reports artifact parity
+          nilbots rank <your-bot> <opponent>      play a RANKED set on the ladder
+          nilbots leaderboard [--rules <version>] the ladder (no account needed to look)
           nilbots whoami | nilbots logout
           nilbots build [dir] [--no-cache]        compile a bot project to WASM (cached;
                                                   also copies the artifact to <dir>/out/bot.wasm)
           nilbots play [--bot <spec>] [--opponent <spec>] [--map <id>]
                         [--seed <n> | --seeds a,b,c] [--swap] [--runtime wasm|in-process]
-                        [--rules 0.5|0.4|0.3|0.2|0.1|control|cone-control|cone-active|
+                        [--rules <name>]  the game: 0.5 (current, the default) — or an
+                                 older shipped version 0.4|0.3|0.2|0.1 to replay history.
+                                 Everything else is a RESEARCH ARM used to evaluate
+                                 candidate mechanics; they are not the game and may
+                                 change or vanish: control|cone-control|cone-active|
                                  cone-active-bolt1|cone-active-bolt2|cone-active-bolt2-overtime|
                                  cone-active-bolt2-overtime-gain|cone-active-bolt2-arcs|
-                                 cone-occupancy-bolt2-arcs|
-                                 0.5-control|cone|
-                                 bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy]
+                                 cone-occupancy-bolt2-arcs|0.5-control|cone|
+                                 bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy
                         [--max-ticks <n>] [--out <dir>]
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]
@@ -158,13 +199,42 @@ static int CommandHelp(string command)
             """,
         "register" => """
             Usage: nilbots register [--server <url>]
-            Opens secure browser registration, then signs the CLI in with OAuth + PKCE.
-            Defaults to https://nilbots.com.
+                   nilbots register --email <a@b.c> --password <pw> [--name <display>] [--server <url>]
+
+            With no arguments, opens secure browser registration and signs the CLI in
+            with OAuth + PKCE. Defaults to https://nilbots.com.
+
+            HEADLESS (no browser — CI, containers, agents): pass --email and --password
+            and the CLI completes the same OAuth + PKCE grant over HTTP itself.
+            --name sets the display name (defaults to the local part of the email).
             """,
         "login" => """
             Usage: nilbots login [--server <url>]
-            Signs in through the browser with OAuth + PKCE.
+                   nilbots login --email <a@b.c> --password <pw> [--server <url>]
+
+            With no arguments, signs in through the browser with OAuth + PKCE.
             Defaults to https://nilbots.com.
+
+            HEADLESS (no browser — CI, containers, agents): pass --email and --password
+            to complete the same grant without opening anything.
+            """,
+        "rank" => """
+            Usage: nilbots rank <your-bot> <opponent> [--rules <name>]
+
+            Queues a RANKED set (6 mirrored games) against another bot on the ladder,
+            by name — see `nilbots leaderboard` for who is playing. This is the real
+            thing: it moves elo. `nilbots set` by contrast is a LOCAL simulation that
+            changes nothing on the server.
+
+            Results are withheld until every game has broadcast, so nothing spoils the
+            watch; then `nilbots leaderboard` shows the new standings.
+            """,
+        "leaderboard" => """
+            Usage: nilbots leaderboard [--rules <version>] [--server <url>]
+
+            Prints the ranked ladder. No account required — you can look before you play.
+            Each ruleset has its OWN ladder, so an older bot is never invalidated by a
+            new ruleset; --rules picks which one to show.
             """,
         "logout" => "Usage: nilbots logout",
         "whoami" => "Usage: nilbots whoami",

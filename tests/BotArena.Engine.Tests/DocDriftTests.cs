@@ -63,9 +63,57 @@ public class DocDriftTests
     [Fact]
     public void PlayerDocs_DescribeTheCurrentRulesVersion()
     {
-        string expected = "v" + BotArenaVersions.GameRulesVersion;
-        Assert.Contains(expected, ReadRepoFile("web", "src", "site", "pages", "DocsPage.tsx"));
-        Assert.Contains(expected, ReadRepoFile("templates", "botarena-bot", "README.md"));
+        // Both player-facing docs are now assembled rather than hand-written: the site
+        // renders the canonical card and stamps the version from a constant, and the
+        // template README splices the card in at `nilbots new` time. So assert the
+        // version reaches each surface, not that a literal "v0.5" is typed there.
+        Assert.Contains($"RULES_VERSION = '{BotArenaVersions.GameRulesVersion}'",
+            ReadRepoFile("web", "src", "site", "pages", "DocsPage.tsx"));
+        Assert.Contains(BotArenaVersions.GameRulesVersion,
+            ReadRepoFile("docs", "PLAYER-GUIDE.md"));
+    }
+
+    /// <summary>The app serves web/dist/index.html directly, so a stale bundle silently
+    /// shows players the PREVIOUS ruleset's docs while the source reads correctly — a
+    /// friend's-agent test was taught "150 zone-ticks wins" (a pre-0.5 mechanic) from a
+    /// two-day-old bundle. dist is gitignored, so only assert when it exists.</summary>
+    [Fact]
+    public void BuiltWebBundle_IfPresent_IsNotStaleAgainstTheDocsSource()
+    {
+        string dist = Path.Combine(Root, "web", "dist", "index.html");
+        string source = Path.Combine(Root, "web", "src", "site", "pages", "DocsPage.tsx");
+        if (!File.Exists(dist))
+            return; // nothing built here (fresh clone / CI before the web build)
+        Assert.True(File.GetLastWriteTimeUtc(dist) >= File.GetLastWriteTimeUtc(source),
+            "web/dist is older than the docs source, so the site would serve stale rules " +
+            "to players. Rebuild it: (cd web && npm run build).");
+    }
+
+    /// <summary>The canonical player rules card is now the ONE source of rules prose:
+    /// the server serves it at /llms-full.txt and `nilbots new` splices it into every
+    /// scaffolded README. So its numbers must match the engine — a stale number here
+    /// now reaches every player at once, which is exactly how "150 zone-ticks wins"
+    /// outlived the mechanic it described.</summary>
+    [Fact]
+    public void CanonicalRulesCard_AgreesWithTheEngineNumbers()
+    {
+        string card = ReadRepoFile("docs", "PLAYER-GUIDE.md");
+        var rules = GameRules.Current;
+        (string Label, string Value)[] mustAppear =
+        [
+            ("vision range", rules.VisionRange.ToString()),
+            ("shoot cooldown", rules.ShootCooldownTicks.ToString()),
+            ("max health", rules.MaxHealth.ToString()),
+            ("max ticks", rules.MaxTicks.ToString()),
+        ];
+        foreach (var (label, value) in mustAppear)
+            Assert.True(card.Contains(value, StringComparison.Ordinal),
+                $"The player rules card never mentions the engine's {label} ({value}). " +
+                "Either the card is stale or the value moved — players read this verbatim.");
+
+        // The retired pre-0.5 win condition must not survive anywhere in it.
+        Assert.False(card.Contains("zone-ticks wins", StringComparison.OrdinalIgnoreCase),
+            "The rules card still describes the pre-0.5 zone-tick win condition.");
     }
 
     [Fact]

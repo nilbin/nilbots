@@ -198,9 +198,9 @@ public static class ListCommand
 {
     public static int Bots()
     {
-        Console.WriteLine("Built-in bots:");
+        Console.WriteLine("Built-in bots (training opponents — `--opponent <name>`):");
         foreach (var name in BuiltInBotCatalog.Names)
-            Console.WriteLine($"  {name}");
+            Console.WriteLine($"  {name,-8} {BuiltInBotCatalog.Describe(name)}");
         return 0;
     }
 

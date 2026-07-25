@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace BotArena.Sdk;
 
 public readonly record struct Position(int X, int Y)
@@ -50,7 +52,14 @@ public enum BotActionKind
     TurnLeft = 2,
     TurnRight = 3,
     Shoot = 4,
+    /// <summary>Research-arm only (see <see cref="Actions.StrafeLeft"/>); inert under
+    /// every shipped ruleset. The value is pinned: it travels on the wire and appears
+    /// in historical replays.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     StrafeLeft = 5,
+    /// <summary>Research-arm only (see <see cref="Actions.StrafeRight"/>); inert under
+    /// every shipped ruleset.</summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     StrafeRight = 6,
 }
 
@@ -68,14 +77,22 @@ public static class Actions
     /// <see cref="BotContext.ShotPrograms"/> is null, the host safely blocks it.</summary>
     public static BotAction Shoot(ShotProgram program) => new(BotActionKind.Shoot, program);
 
-    /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (left of the
-    /// facing vector). Only available when the active rules enable strafing (no shipped
-    /// ruleset does yet — experiment arms only); under all other rules this becomes Wait
-    /// with a Blocked result. Movement conflicts resolve exactly like MoveForward.</summary>
+    /// <summary>NOT AVAILABLE in the shipped game. Move one tile perpendicular to your
+    /// facing without rotating — implemented only for the held `strafe` research arm.
+    /// Under every shipped ruleset the engine converts this to Wait and reports
+    /// <see cref="ActionResult.Blocked"/> on the following tick, which is
+    /// indistinguishable from a move into a wall: bots that call it lose the tick and
+    /// misdiagnose why. Facing is your only movement axis — a sidestep costs a turn
+    /// then a move.</summary>
+    [Obsolete("Strafing is not enabled by any shipped ruleset: this becomes Wait with a Blocked result. " +
+        "Turn, then move. (Research arm `--rules strafe` only.)")]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static BotAction StrafeLeft() => new(BotActionKind.StrafeLeft);
 
-    /// <summary>Move one tile perpendicular to your facing WITHOUT rotating (right of
-    /// the facing vector). See <see cref="StrafeLeft"/>.</summary>
+    /// <summary>NOT AVAILABLE in the shipped game. See <see cref="StrafeLeft"/>.</summary>
+    [Obsolete("Strafing is not enabled by any shipped ruleset: this becomes Wait with a Blocked result. " +
+        "Turn, then move. (Research arm `--rules strafe` only.)")]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static BotAction StrafeRight() => new(BotActionKind.StrafeRight);
 }
 

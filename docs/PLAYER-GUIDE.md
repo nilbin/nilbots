@@ -48,8 +48,10 @@ into a scoring tick for the survivor. Read `context.ControlPressure` and
 `context.ControlPressureLimit` when non-null; the sign is always slot-based,
 not “mine/enemy.”
 
-At the tick limit, pressure sign decides first, then health, then damage.
-Elimination can end the match before domination.
+A match runs at most **500 ticks**. At that limit, pressure sign decides first,
+then health, then damage — so a match you have not won outright is still scored,
+and being ahead on pressure when the clock runs out is a win. Elimination or
+domination can end it sooner.
 
 ## Sight and sound
 

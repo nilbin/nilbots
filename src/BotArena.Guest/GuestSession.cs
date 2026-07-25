@@ -35,7 +35,11 @@ internal sealed class GuestSession
             Facing = observation.Facing,
             Health = observation.Health,
             Cooldown = observation.Cooldown,
+            // Obsolete for PLAYERS (inert outside the research arms); the guest adapter
+            // must still carry it so those arms keep working.
+#pragma warning disable CS0618
             Energy = observation.Energy,
+#pragma warning restore CS0618
             MapWidth = observation.MapWidth,
             MapHeight = observation.MapHeight,
             ZoneTiles = observation.ZoneTiles,

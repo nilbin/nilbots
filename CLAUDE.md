@@ -175,8 +175,13 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 - The NativeAOT compiler executable is Linux x64 only. On macOS/arm64, let
   `run-wasm-publish.sh` use Docker. The portable part is the emitted WASI
   module, not the compiler process.
-- The build cache hashes **player sources only**; framework changes need a
-  `Toolchain.GuestAdapterVersion` bump (or `--no-cache` while iterating).
+- The build cache key covers player sources, the pinned versions, **and the
+  SHA-256 of the staged `BotArena.Sdk`/`BotArena.Guest` DLLs** (DECISIONS #84),
+  so a framework edit invalidates it without a version bump. Those two
+  assemblies are compiled into every player artifact: they import
+  `src/ToolchainAssembly.props` so their bytes are configuration- and
+  directory-independent, and every host that compiles bots must ship both
+  beside itself. Change either project and expect a full rebuild.
 - `BOTARENA_BUILD_ISOLATION=off` forces submission builds to run as the
   current user (isolation needs root + setpriv + a `botbuild` account);
   `botarena doctor` shows which mode is active.

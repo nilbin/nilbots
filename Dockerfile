@@ -87,8 +87,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     && rm /tmp/dotnet-install.sh \
     && useradd --system --uid 1654 --create-home --home-dir /home/botarena \
        --shell /usr/sbin/nologin botarena \
-    && mkdir -p /app /data \
-    && chown botarena:botarena /data
+    && mkdir -p /app /data /cache \
+    && chown botarena:botarena /data /cache
 WORKDIR /app
 COPY --from=toolchain /app/publish /app/publish
 COPY --from=toolchain /app/maps /app/maps
@@ -101,7 +101,7 @@ ENV BOTARENA_ROOT=/app \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
     DOTNET_EnableDiagnostics=0
-VOLUME /data
+VOLUME /data /cache
 EXPOSE 8080
 USER botarena
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=5 \

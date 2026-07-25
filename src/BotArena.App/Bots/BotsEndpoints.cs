@@ -211,7 +211,7 @@ public static class BotsEndpoints
             try
             {
                 // Fail fast on obviously invalid submissions; the job re-validates.
-                _ = BotBuilder.ComputeCacheKey(sources, entryType);
+                BotBuilder.ValidateSubmission(sources, entryType);
                 if (sources.Length == 0)
                     return Results.Problem("At least one source file is required.", statusCode: 400);
                 if (sources.Any(s => !s.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)))

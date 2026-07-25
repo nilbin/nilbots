@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace BotArena.Sdk;
 
 /// <summary>Everything a bot can observe and use on one tick (plan §4.5, §7).</summary>
@@ -23,10 +25,12 @@ public sealed class BotContext
     /// shot, so with a 2-tick cooldown you can fire every 3rd tick. See <see cref="CanShoot"/>.</summary>
     public required int Cooldown { get; init; }
 
-    /// <summary>Your current energy, or null when these rules have no energy system.
-    /// With energy on, each shot costs energy and regeneration is slow — a Shoot without
-    /// enough energy becomes Wait with an OnCooldown result. Enemy energy is not
-    /// observable; count their shots to estimate it.</summary>
+    /// <summary>ALWAYS null in the shipped game — an energy system exists only in the
+    /// held `energy` research arm, which no shipped ruleset enables. Do not branch on
+    /// it; your shot rate is governed by <see cref="Cooldown"/> alone.</summary>
+    [Obsolete("No shipped ruleset has an energy system, so this is always null. " +
+        "Shot rate is governed by Cooldown. (Research arm `--rules energy` only.)")]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public int? Energy { get; init; }
 
     /// <summary>Arena width in tiles (0 on servers older than SDK 0.4). Static per match —

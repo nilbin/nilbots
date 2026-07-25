@@ -165,13 +165,7 @@ public sealed class LocalObjectStore : IObjectStore
 
     private string Resolve(string key)
     {
-        if (string.IsNullOrWhiteSpace(key) ||
-            Path.IsPathRooted(key) ||
-            key.Contains('\\') ||
-            key.Split('/').Any(part => part is "" or "." or ".."))
-        {
-            throw new ArgumentException($"Invalid object key '{key}'.", nameof(key));
-        }
+        ObjectKeys.Validate(key);
 
         string path = Path.GetFullPath(Path.Combine(root, key.Replace('/', Path.DirectorySeparatorChar)));
         if (!path.StartsWith(rootPrefix, StringComparison.Ordinal))

@@ -90,7 +90,7 @@ one arm without trusting every request. Player-facing docs only describe
 SHIPPED rules, so give every author the same experiment spec for unshipped
 arms. Territorial control and programmed skill-shots shipped in official 0.5
 (DECISIONS #75); use the site/template plus
-`docs/RULES-0.5-PLAYER-GUIDE.md` for those mechanics. For historical or other
+`docs/PLAYER-GUIDE.md` for those mechanics. For historical or other
 unshipped arms, append only the matching paragraphs below.
 
 For substantial changes, follow `docs/EVALUATION-METHODOLOGY.md`: give every
@@ -190,7 +190,7 @@ briefs above plus:
 > Turn denies its control tick.
 
 For the historical `cone-occupancy-bolt2-arcs` v8 alias, the mechanics are now
-official 0.5 and documented in `docs/RULES-0.5-PLAYER-GUIDE.md`. The canonical
+official 0.5 and documented in `docs/PLAYER-GUIDE.md`. The canonical
 territorial summary is:
 
 > EXPERIMENTAL TERRITORIAL CONTROL. Any action may score. After movement,
