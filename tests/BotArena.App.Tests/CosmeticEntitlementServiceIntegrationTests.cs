@@ -10,19 +10,11 @@ namespace BotArena.App.Tests;
 public class CosmeticEntitlementServiceIntegrationTests
 {
     [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
     public async Task PostgreSqlGrant_IsIdempotentAndAuthorizesTheMappedItem()
     {
-        string? connection = Environment.GetEnvironmentVariable("BOTARENA_TEST_DB");
-        Skip.If(
-            string.IsNullOrWhiteSpace(connection),
-            "Set BOTARENA_TEST_DB to a disposable PostgreSQL database.");
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(connection)
-            .UseOpenIddict()
-            .Options;
-        await using var db = new AppDbContext(options);
-        await db.Database.MigrateAsync();
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using var db = await database.CreateMigratedContextAsync();
 
         var user = new User
         {
@@ -72,19 +64,11 @@ public class CosmeticEntitlementServiceIntegrationTests
     }
 
     [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
     public async Task HundredCompletedRankedMatches_GrantThePrestigePairExactlyOnce()
     {
-        string? connection = Environment.GetEnvironmentVariable("BOTARENA_TEST_DB");
-        Skip.If(
-            string.IsNullOrWhiteSpace(connection),
-            "Set BOTARENA_TEST_DB to a disposable PostgreSQL database.");
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(connection)
-            .UseOpenIddict()
-            .Options;
-        await using var db = new AppDbContext(options);
-        await db.Database.MigrateAsync();
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using var db = await database.CreateMigratedContextAsync();
 
         string suffix = Guid.NewGuid().ToString("N");
         var user = new User

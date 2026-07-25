@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  application-postgresql:
+    name: Application integration (PostgreSQL)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: botarena_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d botarena_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BOTARENA_TEST_DB: Host=127.0.0.1;Port=5432;Database=botarena_test;Username=postgres;Password=postgres
+      BOTARENA_POSTGRES_REQUIRED: "true"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run mandatory PostgreSQL application suite
+        run: >-
+          dotnet test tests/BotArena.App.Tests/BotArena.App.Tests.csproj
+          --filter Category=PostgreSql
+          --logger "console;verbosity=normal"

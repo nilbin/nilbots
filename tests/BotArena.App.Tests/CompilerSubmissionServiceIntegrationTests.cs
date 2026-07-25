@@ -10,26 +10,18 @@ namespace BotArena.App.Tests;
 public class CompilerSubmissionServiceIntegrationTests
 {
     [SkippableFact]
-    public async Task PostgreSqlAdmission_IsAtomicAcrossBotsForOneAccount()
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task PostgreSqlAdmission_IsAtomicAcrossTwoConnectionsForOneAccount()
     {
-        string? connection = Environment.GetEnvironmentVariable("BOTARENA_TEST_DB");
-        Skip.If(string.IsNullOrWhiteSpace(connection),
-            "Set BOTARENA_TEST_DB to a disposable PostgreSQL database.");
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(connection)
-            .UseOpenIddict()
-            .Options;
-        await using var db = new AppDbContext(options);
-        await db.Database.MigrateAsync();
-
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using var db = await database.CreateMigratedContextAsync();
         var user = new User
         {
             DisplayName = "quota-test",
             Email = "quota@example.test",
             PasswordHash = "not-used",
         };
-        var bots = Enumerable.Range(1, 3)
+        var bots = Enumerable.Range(1, 2)
             .Select(index => new Bot
             {
                 OwnerUserId = user.Id,
@@ -41,11 +33,7 @@ public class CompilerSubmissionServiceIntegrationTests
         db.Bots.AddRange(bots);
         await db.SaveChangesAsync();
 
-        var limits = new CompilerSubmissionLimits(6, 30, 12, 60, 2, 20);
-        var service = new CompilerSubmissionService(
-            db,
-            limits,
-            new SubmissionNetwork("test-only-network-hmac-key-32-characters"));
+        var limits = new CompilerSubmissionLimits(6, 30, 12, 60, 1, 20);
         SourceFile[] source =
         [
             new(
@@ -54,32 +42,36 @@ public class CompilerSubmissionServiceIntegrationTests
                 "{ public BotAction Tick(BotContext c) => Actions.Wait(); }"),
         ];
 
-        CompilerSubmissionDecision first = await service.EnqueueAsync(
-            bots[0].Id,
-            user.Id,
-            "Bot",
-            source,
-            IPAddress.Parse("203.0.113.10"),
-            CancellationToken.None);
-        CompilerSubmissionDecision second = await service.EnqueueAsync(
-            bots[1].Id,
-            user.Id,
-            "Bot",
-            source,
-            IPAddress.Parse("203.0.113.11"),
-            CancellationToken.None);
-        CompilerSubmissionDecision denied = await service.EnqueueAsync(
-            bots[2].Id,
-            user.Id,
-            "Bot",
-            source,
-            IPAddress.Parse("203.0.113.12"),
-            CancellationToken.None);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<CompilerSubmissionDecision>[] attempts = bots.Select((bot, index) =>
+            SubmitFromIndependentConnection(bot.Id, index)).ToArray();
+        gate.SetResult();
+        CompilerSubmissionDecision[] decisions = await Task.WhenAll(attempts);
 
-        Assert.True(first.Accepted);
-        Assert.True(second.Accepted);
-        Assert.False(denied.Accepted);
+        Assert.Single(decisions, decision => decision.Accepted);
+        CompilerSubmissionDecision denied = Assert.Single(
+            decisions,
+            decision => !decision.Accepted);
         Assert.Contains("queued", denied.Denial!.Message);
-        Assert.Equal(2, await db.BackgroundJobs.CountAsync());
+        Assert.Equal(1, await db.BackgroundJobs.CountAsync());
+
+        async Task<CompilerSubmissionDecision> SubmitFromIndependentConnection(
+            Guid botId,
+            int index)
+        {
+            await gate.Task;
+            await using AppDbContext connection = database.CreateContext();
+            var service = new CompilerSubmissionService(
+                connection,
+                limits,
+                new SubmissionNetwork("test-only-network-hmac-key-32-characters"));
+            return await service.EnqueueAsync(
+                botId,
+                user.Id,
+                "Bot",
+                source,
+                IPAddress.Parse($"203.0.113.{index + 10}"),
+                CancellationToken.None);
+        }
     }
 }
