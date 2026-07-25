@@ -4,6 +4,12 @@ import {
   botLook,
   presentationAccent,
 } from './arenaThemes';
+import {
+  combatLegibility,
+  healthIndicatorMetrics,
+  projectileStrokeWidths,
+} from './combatLegibility';
+import { replayMaxHealth } from '../replayMetadata';
 import { posesAt, type BotPose } from './interpolate';
 
 const directionStep: Record<Direction, [number, number]> = {
@@ -75,6 +81,7 @@ export function drawArena(
   const fraction = Math.max(0, Math.min(time - tick, 1));
   const currentTick = replay.ticks[tick];
   const poses = posesAt(replay, time);
+  const maxHealth = replayMaxHealth(replay);
   const theme = arenaTheme(replay.header.themeId);
   const boundaryWall = validWallFamily(
     replay.header.presentation?.boundaryWall,
@@ -402,18 +409,28 @@ export function drawArena(
     for (const plan of programmed.values()) {
       if (fogSource !== undefined && selectedSlot !== plan.ownerSlot) continue;
       const accent = accentFor(plan.ownerSlot);
-      ctx.strokeStyle = hexWithAlpha(accent, 0.22);
-      ctx.lineWidth = Math.max(1, tile * 0.045);
+      ctx.save();
+      ctx.lineCap = 'round';
       ctx.setLineDash([Math.max(2, tile * 0.12), Math.max(2, tile * 0.1)]);
-      ctx.beginPath();
-      plan.path.forEach(([x, y], index) => {
-        const cx = px(x) + tile / 2;
-        const cy = py(y) + tile / 2;
-        if (index === 0) ctx.moveTo(cx, cy);
-        else ctx.lineTo(cx, cy);
-      });
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.translate(Math.max(1, tile * 0.025), Math.max(1, tile * 0.025));
+      strokeProgrammedPath(combatLegibility.dark, Math.max(3, tile * 0.065));
+      ctx.translate(-Math.max(1, tile * 0.025), -Math.max(1, tile * 0.025));
+      strokeProgrammedPath(accent, Math.max(2, tile * 0.04));
+      strokeProgrammedPath(combatLegibility.light, Math.max(1, tile * 0.014));
+      ctx.restore();
+
+      function strokeProgrammedPath(color: string, width: number): void {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        plan.path.forEach(([x, y], index) => {
+          const cx = px(x) + tile / 2;
+          const cy = py(y) + tile / 2;
+          if (index === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        });
+        ctx.stroke();
+      }
     }
 
     for (const move of traversals) {
@@ -458,40 +475,102 @@ export function drawArena(
       const cy = py(y) + tile / 2;
       const angle = projectileAngle[direction];
       const pulse = 0.75 + 0.25 * Math.sin(fraction * Math.PI);
+      const widths = projectileStrokeWidths(tile);
       if (imminent) {
         const [dx, dy] = projectileStep[direction];
         for (let step = 1; step <= tilesPerAdvance; step++) {
           ctx.fillStyle = hexWithAlpha(accent, step === 1 ? 0.18 : 0.1);
           ctx.fillRect(px(x + dx * step), py(y + dy * step), tile, tile);
+          drawThreatMarker(
+            px(x + dx * step) + tile / 2,
+            py(y + dy * step) + tile / 2,
+            angle,
+            accent,
+          );
         }
       }
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(angle);
+
+      // Glow communicates ownership, but never carries the silhouette.
       ctx.globalCompositeOperation = 'lighter';
       ctx.shadowColor = accent;
       ctx.shadowBlur = Math.max(5, tile * 0.22);
       ctx.lineCap = 'round';
       ctx.strokeStyle = hexWithAlpha(accent, (imminent ? 0.34 : 0.22) * pulse);
-      ctx.lineWidth = Math.max(5, tile * 0.22);
+      ctx.lineWidth = widths.glow;
       ctx.beginPath();
       ctx.moveTo(-tile * 0.58, 0);
       ctx.lineTo(tile * 0.03, 0);
       ctx.stroke();
-      ctx.strokeStyle = hexWithAlpha(accent, 0.85 * pulse);
-      ctx.lineWidth = Math.max(2, tile * 0.08);
-      ctx.beginPath();
-      ctx.moveTo(-tile * 0.48, 0);
-      ctx.lineTo(tile * 0.08, 0);
-      ctx.stroke();
-      ctx.fillStyle = `rgba(238, 249, 255, ${0.95 * pulse})`;
-      ctx.beginPath();
-      ctx.moveTo(tile * 0.28, 0);
-      ctx.lineTo(-tile * 0.03, -tile * 0.11);
-      ctx.lineTo(-tile * 0.03, tile * 0.11);
-      ctx.closePath();
-      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowBlur = 0;
+
+      // A displaced dark motion shadow and a bright energy face stay adjacent
+      // without turning the projectile into a heavy outlined sticker.
+      ctx.translate(0, Math.max(1, tile * 0.035));
+      strokeBoltTail(combatLegibility.dark, widths.shadow, -0.48, 0.12);
+      fillBoltTip(combatLegibility.dark, 0.15, 0.085);
+      ctx.translate(0, -Math.max(1, tile * 0.035));
+      strokeBoltTail(combatLegibility.light, widths.energy, -0.44, 0.13);
+      strokeBoltTail(accent, widths.core, -0.40, 0.14);
+      fillBoltTip(combatLegibility.light, 0.15, 0.06);
+      fillBoltTip(accent, 0.15, 0.027);
       ctx.restore();
+
+      function strokeBoltTail(
+        color: string,
+        width: number,
+        start: number,
+        end: number,
+      ): void {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(tile * start, 0);
+        ctx.lineTo(tile * end, 0);
+        ctx.stroke();
+      }
+
+      function fillBoltTip(
+        color: string,
+        x: number,
+        radius: number,
+      ): void {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(tile * x, 0, tile * radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawThreatMarker(
+      cx: number,
+      cy: number,
+      angle: number,
+      accent: string,
+    ): void {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.lineCap = 'round';
+      const offset = Math.max(1, tile * 0.025);
+      ctx.translate(0, offset);
+      strokeMarker(combatLegibility.dark, Math.max(4, tile * 0.08));
+      ctx.translate(0, -offset);
+      strokeMarker(combatLegibility.light, Math.max(2, tile * 0.045));
+      strokeMarker(accent, Math.max(1, tile * 0.02));
+      ctx.restore();
+
+      function strokeMarker(color: string, width: number): void {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(-tile * 0.13, 0);
+        ctx.lineTo(tile * 0.13, 0);
+        ctx.stroke();
+      }
     }
 
     function headingBetween(
@@ -638,7 +717,8 @@ export function drawArena(
 
     ctx.restore();
 
-    if (!destroyed && !ghosted) drawHealthPips(pose, cx, cy - radius - tile * 0.22, accent);
+    if (!destroyed && !ghosted)
+      drawHealthBar(pose, cx, cy - radius - tile * 0.22, accent);
   }
 
   function drawFallbackChassis(
@@ -680,16 +760,51 @@ export function drawArena(
     ctx.fill();
   }
 
-  function drawHealthPips(pose: BotPose, cx: number, cy: number, accent: string): void {
-    const pip = Math.max(3, tile * 0.10);
-    const gap = pip * 1.6;
-    const total = 3;
-    const startX = cx - ((total - 1) * gap) / 2;
-    for (let i = 0; i < total; i++) {
-      ctx.fillStyle = i < pose.health ? accent : 'rgba(100,116,139,0.35)';
+  function drawHealthBar(pose: BotPose, cx: number, cy: number, accent: string): void {
+    const metrics = healthIndicatorMetrics(tile);
+    const {
+      width,
+      shadowOffset,
+      trackShadow,
+      track,
+      fillShadow,
+      fill,
+    } = metrics;
+    const left = cx - width / 2;
+    const right = cx + width / 2;
+    const healthRight =
+      left + width * Math.max(0, Math.min(1, pose.health / maxHealth));
+    ctx.save();
+    ctx.lineCap = 'round';
+
+    ctx.strokeStyle = combatLegibility.dark;
+    ctx.lineWidth = trackShadow;
+    drawHealthLine(left, right, cy + shadowOffset);
+    ctx.strokeStyle = hexWithAlpha(combatLegibility.light, 0.78);
+    ctx.lineWidth = track;
+    drawHealthLine(left, right, cy);
+
+    if (healthRight > left) {
+      ctx.strokeStyle = combatLegibility.dark;
+      ctx.lineWidth = fillShadow;
+      drawHealthLine(left, healthRight, cy + shadowOffset);
+      ctx.strokeStyle = combatLegibility.light;
+      ctx.lineWidth = fill;
+      drawHealthLine(left, healthRight, cy);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(3, tile * 0.08);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.28);
+      ctx.lineWidth = fill;
+      drawHealthLine(left, healthRight, cy);
+    }
+    ctx.restore();
+
+    function drawHealthLine(fromX: number, toX: number, y: number): void {
       ctx.beginPath();
-      ctx.arc(startX + i * gap, cy, pip / 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(fromX, y);
+      ctx.lineTo(toX, y);
+      ctx.stroke();
     }
   }
 
@@ -710,19 +825,35 @@ export function drawArena(
       const alpha = progress < 0.7 ? 0.95 : 0.95 * (1 - (progress - 0.7) / 0.3);
       const tipX = from.x + (to.x - from.x) * Math.min(progress / 0.7, 1);
       const tipY = from.y + (to.y - from.y) * Math.min(progress / 0.7, 1);
+      const widths = projectileStrokeWidths(tile);
       ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = alpha;
       ctx.lineCap = 'round';
+      ctx.translate(
+        Math.max(1, tile * 0.025),
+        Math.max(1, tile * 0.025),
+      );
+      ctx.strokeStyle = combatLegibility.dark;
+      ctx.lineWidth = widths.shadow;
+      drawBeam(from.x, from.y, tipX, tipY);
+      ctx.translate(
+        -Math.max(1, tile * 0.025),
+        -Math.max(1, tile * 0.025),
+      );
+      ctx.strokeStyle = combatLegibility.light;
+      ctx.lineWidth = widths.energy;
+      drawBeam(from.x, from.y, tipX, tipY);
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = widths.core;
+      drawBeam(from.x, from.y, tipX, tipY);
+
+      // Additive light is an effect layered over the already-legible beam.
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'lighter';
       ctx.shadowColor = accent;
       ctx.shadowBlur = Math.max(5, tile * 0.28);
       ctx.strokeStyle = hexWithAlpha(accent, alpha * 0.24);
-      ctx.lineWidth = Math.max(7, tile * 0.25);
-      drawBeam(from.x, from.y, tipX, tipY);
-      ctx.strokeStyle = hexWithAlpha(accent, alpha * 0.9);
-      ctx.lineWidth = Math.max(3, tile * 0.09);
-      drawBeam(from.x, from.y, tipX, tipY);
-      ctx.strokeStyle = `rgba(239, 250, 255, ${alpha})`;
-      ctx.lineWidth = Math.max(1, tile * 0.025);
+      ctx.lineWidth = widths.glow;
       drawBeam(from.x, from.y, tipX, tipY);
       // Muzzle glow.
       const muzzle = ctx.createRadialGradient(

@@ -209,6 +209,9 @@ public sealed class MatchEngine
             MapTiles = map.TileRows,
             Seed = configuration.Seed,
             MaxTicks = rules.MaxTicks,
+            MaxHealth = rules.MaxHealth == GameRules.V0_1.MaxHealth
+                ? null
+                : rules.MaxHealth,
             VisionRange = rules.VisionRange,
             VisionCone = rules.VisionCone ? true : null,
             ZoneTiles = rules.ZoneControl

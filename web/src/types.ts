@@ -79,6 +79,8 @@ export interface ReplayHeader {
   mapTiles: string[];
   seed: number;
   maxTicks: number;
+  /** Rules-owned starting health; absent on historical three-health replays. */
+  maxHealth?: number;
   visionRange: number;
   /** True when sight is the directional facing cone rather than omnidirectional. */
   visionCone?: boolean;

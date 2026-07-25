@@ -1,11 +1,9 @@
 import clsx from 'clsx';
 import { useMemo } from 'react';
 import type { ReplayDocument } from '../types';
-import {
-  botLook,
-  presentationAccent,
-} from '../render/arenaThemes';
+import { botLook } from '../render/arenaThemes';
 import { stateBefore } from '../render/interpolate';
+import { replayMaxHealth } from '../replayMetadata';
 
 interface BotPanelProps {
   replay: ReplayDocument;
@@ -26,6 +24,7 @@ export default function BotPanel({
 }: BotPanelProps) {
   const tickData = replay.ticks[Math.min(tick, replay.ticks.length - 1)];
   const states = stateBefore(replay, tick + 1);
+  const maxHealth = replayMaxHealth(replay);
   const controlOvertime =
     replay.header.controlOvertimeStartTick !== undefined &&
     tickData.tick >= replay.header.controlOvertimeStartTick;
@@ -151,7 +150,6 @@ export default function BotPanel({
         const botTick = tickData.bots.find((b) => b.slot === participant.slot);
         const selected = selectedSlot === participant.slot;
         const look = botLook(participant.lookId, participant.slot);
-        const accent = presentationAccent(look, participant.accent);
         return (
           <button
             key={participant.slot}
@@ -192,16 +190,14 @@ export default function BotPanel({
             </div>
 
             <div className="mt-2 flex items-center gap-3 font-mono text-xs">
-              <span aria-label={`Health ${state.health} of 3`}>
-                {Array.from({ length: 3 }, (_, i) => (
-                  <span
-                    key={i}
-                    style={{ color: i < state.health ? accent : undefined }}
-                    className={i < state.health ? '' : 'text-arena-edge'}
-                  >
-                    ♥
-                  </span>
-                ))}
+              <span
+                className="text-arena-dim"
+                aria-label={`Health ${state.health} of ${maxHealth}`}
+              >
+                HP{' '}
+                <span className="text-arena-text">
+                  {state.health}/{maxHealth}
+                </span>
               </span>
               <span className="text-arena-dim">
                 CD <span className="text-arena-text">{state.cooldown}</span>

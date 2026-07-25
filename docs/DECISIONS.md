@@ -906,6 +906,18 @@ configuration) and changing them is a version bump, not an edit.
     and leaves the material bundle ready for a later orthographic 2.5D DCC
     bake without changing map semantics.
 
+80. **Combat readability is renderer-owned and independent of theme art or
+    player accent.** Themes remain free to use light, dark, and locally varied
+    materials. Health and ordnance therefore pair a displaced dark mark with a
+    light face whose worst-case contrast floor exceeds 4.5:1 over any opaque
+    background luminance; accent and additive glow communicate identity but
+    never carry the only silhouette. Health is a proportional status line
+    rather than a fixed pip count. Non-default rules snapshot `maxHealth` into
+    the replay header, while omission preserves canonical bytes for historical
+    three-health replays; the viewer uses that snapshot for initial state,
+    arena rendering, and exact telemetry. Theme manifests cannot override
+    these neutral information layers.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

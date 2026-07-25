@@ -1,4 +1,5 @@
 import type { Direction, ReplayBotState, ReplayDocument } from '../types';
+import { replayMaxHealth } from '../replayMetadata';
 
 export interface BotPose {
   slot: number;
@@ -29,7 +30,7 @@ export function stateBefore(replay: ReplayDocument, tick: number): ReplayBotStat
       x: participant.spawnX,
       y: participant.spawnY,
       facing: participant.spawnFacing,
-      health: 3,
+      health: replayMaxHealth(replay),
       cooldown: 0,
       status: 'Active' as const,
     }));

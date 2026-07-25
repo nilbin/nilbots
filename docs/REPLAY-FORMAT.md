@@ -45,7 +45,7 @@ The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 | `mapId`, `mapVersion`, `themeId`, `presentation`, `mapWidth`, `mapHeight` | Which arena, its map-owned theme, and wall-family placement (`themeId` / `presentation` are omitted only for legacy/synthetic maps) |
 | `mapTiles` | Array of row strings, `#` = wall, `.` = floor — the viewer is self-contained |
 | `seed` | Match seed (unsigned 64-bit) |
-| `maxTicks`, `visionRange` | Rule values the viewer needs |
+| `maxTicks`, `maxHealth`, `visionRange` | Rule values the viewer needs; `maxHealth` is omitted only for historical/default three-health replays |
 | `zoneTiles` | `[x, y]` pairs of the zone (rules with zone control); omitted otherwise — pre-zone hashes are unaffected |
 | `controlPressureLimit` | Absolute shared-pressure domination limit (active-control rules only) |
 | `controlBySoleOccupancy` | `true` when one physical occupant gains and a contested/empty zone decays; omitted for successful-Wait control and historical hashes |

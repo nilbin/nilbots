@@ -36,6 +36,9 @@ public sealed record ReplayHeader
     public required IReadOnlyList<string> MapTiles { get; init; }
     public required ulong Seed { get; init; }
     public required int MaxTicks { get; init; }
+    /// <summary>Rules-owned starting health. Null only for historical replays using
+    /// the original three-health default, preserving their canonical bytes.</summary>
+    public int? MaxHealth { get; init; }
     public required int VisionRange { get; init; }
     /// <summary>True (else null, omitted) when sight is the directional cone rather than
     /// omnidirectional — lets the viewer draw each bot's facing wedge. Null under
