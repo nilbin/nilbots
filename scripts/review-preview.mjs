@@ -70,19 +70,67 @@ async function ensureReplay() {
 
   const api = process.env.BOTARENA_API ?? 'http://127.0.0.1:8080';
   try {
-    const matches = await fetch(`${api}/api/matches?take=20`).then((r) => r.json());
-    // A decisive, finished match exercises every cue — shots, damage, and a destruction.
-    const match =
-      matches.find((m) => m.status === 'Completed' && !m.broadcasting && m.winnerSlot !== null) ??
-      matches.find((m) => m.status === 'Completed' && !m.broadcasting);
-    if (!match) throw new Error('no completed match available');
-    const replay = await fetch(`${api}/api/matches/${match.id}/replay`).then((r) => r.text());
-    writeFileSync(target, replay);
-    console.log(`  replay.json  ← ${match.id} (${match.mapId})`);
+    const summaries = await fetch(`${api}/api/matches?take=40`).then((r) => r.json());
+    const settled = summaries.filter((m) => m.status === 'Completed' && !m.broadcasting);
+    if (settled.length === 0) throw new Error('no completed match available');
+
+    const scored = [];
+    for (const summary of settled.slice(0, 25)) {
+      const replay = await fetch(`${api}/api/matches/${summary.id}/replay`).then((r) => r.json());
+      scored.push({ id: summary.id, replay, score: reviewScore(replay) });
+    }
+    scored.sort((left, right) => right.score - left.score);
+    const best = scored[0];
+
+    writeFileSync(target, JSON.stringify(best.replay));
+    const header = best.replay.header;
+    console.log(
+      `  replay.json  ← ${header.mapId}, ${best.replay.ticks.length} ticks, ` +
+        `${header.participants.map((p) => p.name).join(' v ')}`,
+    );
   } catch (cause) {
     console.log(`  replay.json  MISSING — ${cause.message}`);
     console.log(`               start the API, or copy a replay to dist-review/replay.json`);
   }
+}
+
+/**
+ * How useful a replay is for reviewing the arena.
+ *
+ * Cue variety dominates: a match with no impacts never plays the impact sound and never
+ * casts an impact light, so a reviewer cannot judge either however long it runs. A
+ * 121-tick match with 37 shots and no hits looks busy and tests one third of the work.
+ *
+ * Length is a mild bonus, not a driver, and this is why the strongest bots are the wrong
+ * choice — they end matches in ten ticks. What reads as a better bot makes a worse replay.
+ */
+function reviewScore(replay) {
+  let shots = 0;
+  let damage = 0;
+  let destroyed = 0;
+  const shooters = new Set();
+  for (const tick of replay.ticks) {
+    for (const event of tick.events ?? []) {
+      if (event.type === 'Shot') {
+        shots += 1;
+        shooters.add(event.slot);
+      } else if (event.type === 'Damage') damage += 1;
+      else if (event.type === 'Destroyed') destroyed += 1;
+    }
+  }
+
+  const variety = [shots, damage, destroyed].filter((count) => count > 0).length;
+  if (variety < 3) return variety * 5;
+
+  // Both sides must actually fight. A match against a bot that never fires runs the full
+  // length and exercises every cue, but reads as target practice — and picking one is how
+  // a reviewer ends up judging the arena on a replay nobody would watch.
+  const contested = shooters.size >= 2;
+  if (!contested) return 20;
+
+  const ticks = replay.ticks.length;
+  const watchable = ticks >= 60 && ticks <= 140 ? 15 : 0;
+  return 40 + Math.min(shots, 25) + Math.min(damage, 12) * 2 + watchable;
 }
 
 function startTunnel() {

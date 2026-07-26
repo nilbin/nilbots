@@ -18,13 +18,18 @@ body {
   color: var(--color-arena-text);
 }
 
-/* The viewer sizes itself with h-full, which resolves to `auto` unless every ancestor
-   has a height — so in standalone mode the arena was content-sized rather than filling
-   the window. The site scrolls normally; only the chain needs to be complete. */
-html,
-body,
-#root {
-  height: 100%;
+/* The viewer sizes itself with h-full, which resolves to `auto` unless every ancestor has
+   a height — so in standalone mode the arena was content-sized rather than filling the
+   window.
+
+   Scoped to the viewer, and min-height rather than height. Applying it globally changed
+   layout on every site page, and a hard 100% pins the container to the viewport so any
+   content taller than it — the controls under a stacked arena and panel on a narrow
+   screen — overflows instead of flowing. min-height fills a tall window and still grows. */
+html[data-arena-mode='viewer'],
+html[data-arena-mode='viewer'] body,
+html[data-arena-mode='viewer'] #root {
+  min-height: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
