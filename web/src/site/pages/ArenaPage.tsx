@@ -1,21 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
-import { api, type MatchSummary } from '../api';
+import { type MatchSummary } from '../api';
 import { ErrorState, LoadingState } from '../components/StateView';
-import { useBots, useMeta } from '../queries';
+import { useBots, useMatches, useMeta } from '../queries';
 import { useAuth } from '../auth';
-
-const PAGE = 30;
 
 /// Landing + public match browser: recent matches, refreshed while any are running.
 export default function ArenaPage() {
-  const [matches, setMatches] = useState<MatchSummary[] | null>(null);
   const { data: bots = [] } = useBots();
   const { data: meta = null } = useMeta();
-  const [exhausted, setExhausted] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const [reloads, setReloads] = useState(0);
   const { user } = useAuth();
 
   // Filters live in the URL so a filtered feed can be linked and reloaded.
@@ -32,56 +25,10 @@ export default function ArenaPage() {
     setParams(next, { replace: true });
   };
 
-  const query = useCallback(
-    (take: number, skip: number) => {
-      const q = new URLSearchParams({ take: String(take) });
-      if (skip > 0) q.set('skip', String(skip));
-      if (bot !== '') q.set('bot', bot);
-      if (map !== '') q.set('map', map);
-      if (ranked !== '') q.set('ranked', ranked);
-      return `/api/matches?${q}`;
-    },
-    [bot, map, ranked],
-  );
-
-  useEffect(() => {
-    let timer: number | undefined;
-    let stopped = false;
-    setMatches(null);
-    setExhausted(false);
-    setError(null);
-    const load = async () => {
-      try {
-        const data = await api.get<MatchSummary[]>(query(PAGE, 0));
-        if (stopped) return;
-        setMatches(data);
-        setExhausted(data.length < PAGE);
-        // Only follow a feed that has something moving in it.
-        if (data.some((m) => m.status === 'Pending' || m.status === 'Running'))
-          timer = window.setTimeout(load, 2500);
-      } catch (cause) {
-        // Rejecting inside the polling loop killed the loop and left the feed on
-        // "Loading…" with no way back.
-        if (!stopped) setError(cause);
-      }
-    };
-    void load();
-    return () => {
-      stopped = true;
-      window.clearTimeout(timer);
-    };
-  }, [query, reloads]);
-
-  const loadMore = async () => {
-    try {
-      const more = await api.get<MatchSummary[]>(query(PAGE, matches?.length ?? 0));
-      setMatches([...(matches ?? []), ...more]);
-      if (more.length < PAGE) setExhausted(true);
-    } catch (cause) {
-      // A failed page must not discard the ones already shown.
-      setError(cause);
-    }
-  };
+  // The filters are part of the key, so changing one is a different query rather than a
+  // refetch — no manual reset of pages, and switching back finds the old feed cached.
+  const feed = useMatches({ bot, map, ranked });
+  const matches = feed.data?.pages.flat();
 
   return (
     <div className="flex flex-col gap-8">
@@ -160,9 +107,9 @@ export default function ArenaPage() {
             </button>
           )}
         </div>
-        {error !== null ? (
-          <ErrorState error={error} onRetry={() => setReloads((n) => n + 1)} />
-        ) : matches === null ? (
+        {feed.isError ? (
+          <ErrorState error={feed.error} onRetry={() => void feed.refetch()} />
+        ) : feed.isPending || matches === undefined ? (
           <LoadingState label="Loading the arena…" />
         ) : matches.length === 0 ? (
           <p className="text-sm text-arena-dim">
@@ -177,12 +124,13 @@ export default function ArenaPage() {
                 <MatchRow key={match.id} match={match} />
               ))}
             </ul>
-            {!exhausted && (
+            {feed.hasNextPage && (
               <button
-                onClick={() => void loadMore()}
-                className="mt-3 rounded-md border border-arena-edge px-4 py-2 text-sm text-arena-dim hover:border-arena-dim hover:text-arena-text"
+                onClick={() => void feed.fetchNextPage()}
+                disabled={feed.isFetchingNextPage}
+                className="mt-3 rounded-md border border-arena-edge px-4 py-2 text-sm text-arena-dim transition-colors hover:border-arena-dim hover:text-arena-text disabled:opacity-50"
               >
-                Load more
+                {feed.isFetchingNextPage ? 'Loading…' : 'Load more'}
               </button>
             )}
           </>

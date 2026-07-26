@@ -56,10 +56,13 @@ public sealed class AnnounceSetResultJobHandler(
             double score = isA ? set.ScoreA : set.ScoreB;
             double opponentScore = isA ? set.ScoreB : set.ScoreA;
 
+            // A set has no challenge to supersede — its opponent is matchmade, so nobody
+            // was told it was coming — but it takes the same subject-keyed form so both
+            // paths dedupe the same way.
             await notifications.WriteAsync(
                 bot.OwnerUserId,
                 UserNotificationKinds.SetSettled,
-                $"{UserNotificationKinds.SetSettled}:{set.Id}:{bot.Id}",
+                UserNotificationKeys.SetSubject(set.Id, bot.Id),
                 new SetSettledPayload(
                     set.Id,
                     bot.Id,

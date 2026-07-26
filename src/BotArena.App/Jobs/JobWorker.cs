@@ -51,6 +51,11 @@ public sealed class JobWorker(
         {
             lanes.Add(RunLane(BackgroundJob.AnnounceMatchResultType, stoppingToken));
             lanes.Add(RunLane(BackgroundJob.AnnounceSetResultType, stoppingToken));
+            // Push rides here too. It is enqueued by anything that writes a notification —
+            // including the web role's challenge endpoint — but delivery is outbound work
+            // with a retry budget, which belongs with the other scheduled tails rather
+            // than in the request that triggered it.
+            lanes.Add(RunLane(BackgroundJob.DeliverPushType, stoppingToken));
         }
         if (lanes.Count == 0)
             throw new InvalidOperationException($"Role '{mode.Name}' has no background job lanes.");

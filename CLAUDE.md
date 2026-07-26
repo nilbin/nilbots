@@ -4,6 +4,21 @@ This is the canonical shared agent guide for both Claude Code and Codex.
 Claude Code reads it directly; Codex is directed here by `AGENTS.md`. The
 workflow playbooks under `.claude/skills/` are shared in the same way.
 
+**Two directories have their own scoped guide**, and working in either without
+reading it means re-deciding things that are already settled:
+
+- [`web/CLAUDE.md`](web/CLAUDE.md) — the Vite/React build: which of the three
+  outputs a change lands in, the viewer/site folder boundary that
+  `structure.test.ts` enforces, TanStack Query for every read *and* write, and
+  why full screen is an orientation rather than a button.
+- [`mobile/CLAUDE.md`](mobile/CLAUDE.md) — the Expo app: routes stay thin, data
+  access goes through `hooks/`, the single long-lived arena WebView, push
+  registration following the session, and the `app.json` orientation footgun.
+
+This file wins wherever the two overlap. Claude Code loads a scoped guide
+automatically when it reads a file in that directory; **Codex does not**, so it
+has to open them deliberately — which is why `AGENTS.md` names them too.
+
 nilbots: a programming game — C# bots compiled to WebAssembly fight in a
 deterministic tile arena. `docs/PLAN-SUMMARY.md` holds the roadmap and phase
 status; `docs/DECISIONS.md` is the numbered log of every decision made where

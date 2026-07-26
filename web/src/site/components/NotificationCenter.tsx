@@ -12,11 +12,11 @@ import {
   projectileLook,
   type BotLook,
 } from '../../render/arenaThemes';
-import { api, type UserNotification, type EntitlementEarnedPayload } from '../api';
+import { type UserNotification, type EntitlementEarnedPayload } from '../api';
 import { useAuth } from '../auth';
+import { useNotifications, useReadNotification } from '../queries';
 import ResultToast from './ResultToast';
 
-const POLL_MS = 60_000;
 const VISIBLE_MS = 14_000;
 
 type UnlockNotification = UserNotification & { payload: EntitlementEarnedPayload };
@@ -36,13 +36,20 @@ function isShowable(notification: UserNotification): boolean {
   const payload = notification.payload;
   if (!payload) return false;
   if (payload.kind === 'entitlement-earned') return payload.items.length > 0;
-  return payload.kind === 'match-settled' || payload.kind === 'set-settled';
+  return (
+    payload.kind === 'match-challenged' ||
+    payload.kind === 'match-settled' ||
+    payload.kind === 'set-settled'
+  );
 }
 
 export default function NotificationCenter() {
   const { user } = useAuth();
   const [pending, setPending] = useState<UserNotification[]>([]);
   const seen = useRef(new Set<string>());
+  const acknowledge = useReadNotification();
+  const acknowledgeRef = useRef(acknowledge.mutate);
+  acknowledgeRef.current = acknowledge.mutate;
 
   const receive = useCallback((notification: UserNotification) => {
     // Narrowed on the payload's own discriminator, not the outer `kind`: they carry the
@@ -50,11 +57,18 @@ export default function NotificationCenter() {
     if (seen.current.has(notification.id)) return;
     seen.current.add(notification.id);
     if (!isShowable(notification)) {
-      void api.post(`/api/notifications/${notification.id}/read`, {}).catch(() => undefined);
+      acknowledgeRef.current(notification.id);
       return;
     }
     setPending((current) => [...current, notification]);
   }, []);
+
+  // Delivery is the hub; the query is the catch-up for whatever arrived while the socket
+  // was down or the tab asleep. Both funnel through `receive`, which dedupes by id.
+  const { data: unread } = useNotifications(Boolean(user));
+  useEffect(() => {
+    unread?.forEach(receive);
+  }, [unread, receive]);
 
   useEffect(() => {
     seen.current.clear();
@@ -63,16 +77,6 @@ export default function NotificationCenter() {
 
     let disposed = false;
     let restartTimer: number | undefined;
-    const loadUnread = async () => {
-      try {
-        const notifications = await api.get<UserNotification[]>(
-          '/api/notifications?take=20',
-        );
-        if (!disposed) notifications.forEach(receive);
-      } catch {
-        // Realtime and the next poll are independent recovery paths.
-      }
-    };
 
     const connection = new HubConnectionBuilder()
       .withUrl('/hubs/notifications')
@@ -91,26 +95,24 @@ export default function NotificationCenter() {
       }
     };
 
-    void loadUnread();
     void start();
-    const poll = window.setInterval(() => void loadUnread(), POLL_MS);
     return () => {
       disposed = true;
-      window.clearInterval(poll);
       window.clearTimeout(restartTimer);
       connection.off('notification', receive);
       void stop(connection);
     };
   }, [receive, user]);
 
-  const dismiss = useCallback((notificationId: string) => {
-    setPending((current) =>
-      current.filter((notification) => notification.id !== notificationId),
-    );
-    void api
-      .post(`/api/notifications/${notificationId}/read`)
-      .catch(() => undefined);
-  }, []);
+  const dismiss = useCallback(
+    (notificationId: string) => {
+      setPending((current) =>
+        current.filter((notification) => notification.id !== notificationId),
+      );
+      acknowledgeRef.current(notificationId);
+    },
+    [],
+  );
 
   const active = pending[0];
   useEffect(() => {
@@ -141,7 +143,11 @@ export default function NotificationCenter() {
         onDismiss={() => dismiss(active.id)}
       />
     );
-  if (active.payload.kind === 'match-settled' || active.payload.kind === 'set-settled')
+  if (
+    active.payload.kind === 'match-challenged' ||
+    active.payload.kind === 'match-settled' ||
+    active.payload.kind === 'set-settled'
+  )
     return (
       <ResultToast
         key={active.id}

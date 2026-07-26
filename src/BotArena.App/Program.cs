@@ -65,6 +65,23 @@ builder.Services.AddScoped<MatchExecutionJobHandler>();
 builder.Services.AddScoped<AnnounceMatchResultJobHandler>();
 builder.Services.AddScoped<AnnounceSetResultJobHandler>();
 builder.Services.AddScoped<UserNotificationWriter>();
+builder.Services.AddScoped<MatchChallengeAnnouncer>();
+builder.Services.AddScoped<DeliverPushJobHandler>();
+// Expo's push service, behind IPushTransport so swapping to APNs/FCM directly later is a
+// change of implementation rather than of design (DECISIONS #118). A deployment with no
+// configured push service gets the no-op, so local development and tests never reach out.
+if (builder.Configuration.GetValue<bool>("BOTARENA_PUSH_ENABLED"))
+{
+    builder.Services.AddHttpClient<IPushTransport, ExpoPushTransport>(client =>
+    {
+        client.BaseAddress = new Uri("https://exp.host");
+        client.Timeout = TimeSpan.FromSeconds(20);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IPushTransport, DisabledPushTransport>();
+}
 builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
 
@@ -274,6 +291,8 @@ if (mode.RunsWeb)
     app.MapMatches();
     app.MapRanked();
     app.MapUserNotifications();
+    app.MapDevices();
+    app.MapNotificationPreferences();
     app.MapHub<UserNotificationsHub>("/hubs/notifications")
         .RequireAuthorization();
 
@@ -351,8 +370,11 @@ if (mode.RunsWeb)
             : Results.Text(File.ReadAllText(guide), "text/plain; charset=utf-8");
     }).AllowAnonymous();
 
-    // The SPA: a single self-contained index.html built from web/ (`npm run build`).
-    // Served straight from web/dist so dev and Docker need no copy step.
+    // The SPA, built from web/ (`npm run build`) and served straight from web/dist so dev
+    // and Docker need no copy step. Hashed assets, not one inline document: the CLI's
+    // self-contained artifact is a separate build (web/dist-cli) and only `nilbots play`
+    // needs it. Serving that one here made every visitor — and every cold WebView on a
+    // phone — parse ~15 MB before anything rendered.
     string? spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));
     if (spaDir is not null && File.Exists(Path.Combine(spaDir, "index.html")))
     {

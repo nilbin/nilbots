@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Jobs;
+using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ public static class MatchesEndpoints
             AppDbContext db,
             MatchAdmissionService admission,
             MatchParticipantSnapshotFactory snapshots,
+            MatchChallengeAnnouncer challenges,
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
@@ -55,6 +57,12 @@ public static class MatchesEndpoints
             db.Matches.Add(match);
             db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
             await db.SaveChangesAsync(cancellationToken);
+            // Announced *after* the match is saved, not with it. The writer's INSERT and
+            // pg_notify run immediately rather than at SaveChanges, so announcing first
+            // would tell someone to go and watch a match that a failed save then left
+            // nonexistent. This way the worse failure is a missing challenge notification,
+            // and the result announcement still arrives.
+            await challenges.AnnounceAsync(match, cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
         }).Produces<CreatedMatchResponse>().RequireAuthorization().RequireRateLimiting("challenge");
 

@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type BotDetail } from '../api';
-import { useBots, useMeta, useMyBots } from '../queries';
+import { type BotDetail } from '../api';
+import {
+  useBots,
+  useChallenge,
+  useMeta,
+  useMyBots,
+  useRankedChallenge,
+} from '../queries';
+import { errorMessage } from '../errorMessage';
 
 export default function ChallengePanel({ bot }: { bot: BotDetail }) {
   // The roster was fetched twice here — once for everyone, once to intersect with mine.
@@ -21,8 +28,11 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
   const [challengerId, setChallengerId] = useState('');
   const [mapId, setMapId] = useState('arena-01');
   const [ranked, setRanked] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const challenge = useChallenge();
+  const rankedChallenge = useRankedChallenge();
+  const failure = challenge.error ?? rankedChallenge.error;
+  const busy = challenge.isPending || rankedChallenge.isPending;
 
   const isMine = bot.isOwner && bot.versions.some((v) => v.status === 'Built');
   // On my own bot page: challenge others with this bot. On another bot's page:
@@ -36,24 +46,20 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
   if (selectable.length === 0 || (!isMine && myBots.length === 0)) return null;
 
   const fight = async () => {
-    setError(null);
-    try {
-      if (ranked) {
-        // No opponent: the server matchmakes by rating (DECISIONS #95).
-        const set = await api.post<{ id: string }>('/api/matches/ranked', {
-          botId: challenger,
-        });
-        navigate(`/sets/${set.id}`);
-      } else {
-        const match = await api.post<{ id: string }>('/api/matches/challenge', {
-          botId: challenger,
-          opponentBotId: opponent,
-          mapId,
-        });
-        navigate(`/matches/${match.id}`);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Challenge failed.');
+    if (ranked) {
+      // No opponent: the server matchmakes by rating (DECISIONS #95).
+      const set = await rankedChallenge.mutateAsync({ botId: challenger });
+      navigate(`/sets/${set.id}`);
+    } else {
+      const match = await challenge.mutateAsync({
+        botId: challenger,
+        opponentBotId: opponent,
+        mapId,
+        // Explicitly unspecified, so the server picks. The untyped post omitted this
+        // field entirely and nothing noticed — same result, no way to know it was meant.
+        seed: null,
+      });
+      navigate(`/matches/${match.id}`);
     }
   };
 
@@ -102,12 +108,16 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
       )}
       <button
         onClick={() => void fight()}
-        disabled={!challenger || (!ranked && !opponent)}
+        disabled={busy || !challenger || (!ranked && !opponent)}
         className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
       >
-        {ranked ? 'FIGHT FOR RATING' : 'FIGHT'}
+        {busy ? 'SENDING…' : ranked ? 'FIGHT FOR RATING' : 'FIGHT'}
       </button>
-      {error && <p className="w-full text-sm text-red-400">{error}</p>}
+      {failure && (
+        <p className="w-full text-sm text-red-400">
+          {errorMessage(failure, 'Challenge failed.')}
+        </p>
+      )}
     </section>
   );
 }

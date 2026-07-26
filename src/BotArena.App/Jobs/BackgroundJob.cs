@@ -29,6 +29,7 @@ public class BackgroundJob
     public const string ExecuteMatchType = "ExecuteMatch";
     public const string AnnounceMatchResultType = "AnnounceMatchResult";
     public const string AnnounceSetResultType = "AnnounceSetResult";
+    public const string DeliverPushType = "DeliverPush";
 
     /// <summary>
     /// Announce a finished match, due when its broadcast ends.
@@ -57,6 +58,21 @@ public class BackgroundJob
     {
         Type = AnnounceSetResultType,
         PayloadJson = JsonSerializer.Serialize(new { matchSetId }),
+        AvailableAt = availableAt,
+    };
+
+    /// <summary>
+    /// Push one notification to an account's devices, shortly after it was written.
+    /// <para>
+    /// The delay is the suppression window. Someone with the app open receives the same
+    /// notification over SignalR immediately; if they read it before this runs, the push
+    /// is dropped rather than buzzing about something already on screen.
+    /// </para>
+    /// </summary>
+    public static BackgroundJob DeliverPush(Guid notificationId, DateTime availableAt) => new()
+    {
+        Type = DeliverPushType,
+        PayloadJson = JsonSerializer.Serialize(new { notificationId }),
         AvailableAt = availableAt,
     };
 

@@ -5,6 +5,7 @@ obj/
 .idea/
 node_modules/
 web/dist/
+web/dist-cli/
 web/dist-review/
 out/
 *.binlog

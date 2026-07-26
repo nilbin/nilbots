@@ -124,6 +124,28 @@ export function drawArena(
   const px = (x: number) => originX + x * tile;
   const py = (y: number) => originY + y * tile;
 
+  /**
+   * How far a wall's top is displaced per tile of distance from the arena centre.
+   *
+   * The whole of the 2.5D wall effect, and it is deliberately tiny: at 0.012 a wall in the
+   * far corner of a 24x18 map moves about a sixth of a tile. Enough to read as height,
+   * small enough that the grid still looks like a grid — and the tile a bot occupies must
+   * remain unambiguous, because players reason about cover in tile coordinates.
+   */
+  const WALL_LIFT = 0.012;
+
+  /**
+   * Where a wall tile's *top* is drawn, given where its base sits.
+   *
+   * Outward from the centre, not toward it. A camera above the middle of the arena sees
+   * the top of a wall as nearer than its base, so it projects further from the centre of
+   * frame — which also means the centre of the map has no displacement at all, and that is
+   * correct rather than a special case.
+   */
+  const liftX = (x: number) => (x + 0.5 - mapWidth / 2) * tile * WALL_LIFT;
+  const liftY = (y: number) => (y + 0.5 - mapHeight / 2) * tile * WALL_LIFT;
+
+
   ctx.clearRect(0, 0, width, height);
 
   const tickCount = replay.ticks.length;
@@ -175,6 +197,19 @@ export function drawArena(
     slot !== selectedSlot &&
     !fogSource.visibleEnemies.some((e) => e.slot === slot);
 
+  // A knock on impact, decaying across the tick it happened in.
+  //
+  // Derived from the tick rather than accumulated in a variable: this renderer is called
+  // fresh every frame with a time, and any state kept between calls would make the same
+  // moment of the same replay render differently depending on how it was reached —
+  // scrubbing backwards, or a golden-frame test drawing one tick in isolation.
+  //
+  // Destruction shakes harder than a hit, and nothing else shakes at all. A camera that
+  // moves on every shot stops meaning anything.
+  const shake = shakeOffset();
+  ctx.save();
+  if (shake) ctx.translate(shake.x, shake.y);
+
   drawFloor();
   drawZone();
   if (replay.header.visionCone) drawVisionCones();
@@ -186,6 +221,30 @@ export function drawArena(
   drawShadowsAndBots();
   drawShots();
   drawImpacts();
+
+  ctx.restore();
+
+  function shakeOffset(): { x: number; y: number } | null {
+    let strength = 0;
+    for (const event of currentTick.events) {
+      if (event.type === 'Destroyed') strength = Math.max(strength, 1);
+      else if (event.type === 'Damage') strength = Math.max(strength, 0.45);
+    }
+    if (strength === 0) return null;
+
+    // Impacts land late in the tick — the same 0.6 the flash uses — so the shake starts
+    // when the hit is seen rather than when the tick begins.
+    const since = (fraction - 0.6) / 0.4;
+    if (since < 0 || since > 1) return null;
+
+    const decay = (1 - since) ** 2;
+    const amplitude = tile * 0.05 * strength * decay;
+    // Two incommensurate frequencies so it reads as a knock rather than a wobble.
+    return {
+      x: Math.sin(since * Math.PI * 7.3) * amplitude,
+      y: Math.cos(since * Math.PI * 5.1) * amplitude * 0.7,
+    };
+  }
 
   function drawFloor(): void {
     ctx.fillStyle = theme.palette.canvas;
@@ -349,17 +408,30 @@ export function drawArena(
         if (mapTiles[y][x] === '#') usedFamilies.add(wallFamilyAt(x, y)!);
     }
 
+    // The cast shadow stays on the floor while everything above it lifts. That gap is
+    // what the eye reads as height; moving the shadow with the wall would just slide the
+    // whole thing sideways and read as a misalignment.
     for (const familyId of usedFamilies) {
       const family = theme.walls.families.get(familyId);
       if (family?.shadowAtlasTexture)
-        drawWallAtlasLayer(familyId, family.shadowAtlasTexture);
+        drawWallAtlasLayer(familyId, family.shadowAtlasTexture, false);
+    }
+
+    // The face: the side of the wall the lift exposes. Drawn at the base position in near
+    // black, so whatever sliver the displaced top does not cover reads as a wall side in
+    // shadow rather than as a hole in the floor.
+    for (const familyId of usedFamilies) {
+      ctx.save();
+      ctx.clip(wallFamilyShape(familyId));
+      ctx.fillStyle = 'rgba(3, 6, 10, 0.92)';
+      ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
+      ctx.restore();
     }
 
     for (const familyId of usedFamilies) {
-      const wallShape = wallFamilyShape(familyId);
       const family = theme.walls.families.get(familyId);
       ctx.save();
-      ctx.clip(wallShape);
+      ctx.clip(wallFamilyShape(familyId, true));
       if (!drawTextureField(family?.materialTexture ?? null)) {
         ctx.fillStyle = '#2e3d55';
         ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
@@ -372,13 +444,15 @@ export function drawArena(
     for (const familyId of usedFamilies) {
       const family = theme.walls.families.get(familyId);
       if (family?.edgeAtlasTexture)
-        drawWallAtlasLayer(familyId, family.edgeAtlasTexture);
+        drawWallAtlasLayer(familyId, family.edgeAtlasTexture, true);
     }
   }
 
   function drawWallAtlasLayer(
     familyId: string,
     image: HTMLImageElement,
+    /** Whether this layer is part of the wall's top, which is displaced, or its base. */
+    lifted: boolean,
   ): void {
     if (!image.complete || image.naturalWidth === 0) return;
     const { columns, contentPixels, gutterPixels } = theme.walls.atlas;
@@ -406,8 +480,8 @@ export function drawArena(
           Math.floor(mask / columns) * sourceTile,
           sourceTile,
           sourceTile,
-          px(x) - destinationGutter,
-          py(y) - destinationGutter,
+          px(x) - destinationGutter + (lifted ? liftX(x) : 0),
+          py(y) - destinationGutter + (lifted ? liftY(y) : 0),
           destinationTile,
           destinationTile,
         );
@@ -415,12 +489,17 @@ export function drawArena(
     }
   }
 
-  function wallFamilyShape(familyId: string): Path2D {
+  function wallFamilyShape(familyId: string, lifted = false): Path2D {
     const shape = new Path2D();
     for (let y = 0; y < mapHeight; y++)
       for (let x = 0; x < mapWidth; x++)
         if (wallFamilyAt(x, y) === familyId)
-          shape.rect(px(x), py(y), tile, tile);
+          shape.rect(
+            px(x) + (lifted ? liftX(x) : 0),
+            py(y) + (lifted ? liftY(y) : 0),
+            tile,
+            tile,
+          );
     return shape;
   }
 
@@ -645,6 +724,19 @@ export function drawArena(
     const look = projectileLook(participants[ownerSlot]?.projectileLookId);
     const sprite = tintedProjectileSprite(look, accent);
     const size = tile * look.scale;
+
+    // A contact shadow on the floor beneath the bolt. Small, soft and offset the same way
+    // a bot's is, so a projectile reads as travelling *over* the arena rather than being
+    // painted onto it — the bots already had this and the thing they shoot did not, which
+    // is what made bolts look like decals.
+    ctx.save();
+    ctx.filter = `blur(${Math.max(1, tile * 0.03)}px)`;
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.34 * alpha})`;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + tile * 0.18, size * 0.3, size * 0.14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);

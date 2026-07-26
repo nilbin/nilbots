@@ -169,8 +169,24 @@ result toasts for the match on screen and let the viewer's own ending deliver it
    `set-settled` schedules from the *last* game's boundary — which the finalizer knows and
    an individual match worker does not.
 3. Mobile SignalR + in-app toasts (needs the garage's auth session).
-4. `match-challenged` and supersession.
-5. Device registration, preferences, delivery records, and push from a durable job.
+4. ~~`match-challenged` and supersession.~~ **DONE.** The subject key
+   (`UserNotificationKeys.MatchSubject`) is what makes it work: challenge and result
+   address one row, and `UserNotificationWriter.SupersedeAsync` rewrites it with
+   `ON CONFLICT DO UPDATE`, clearing `ReadAt`. The guarded `WHERE` is load-bearing — without
+   it a replayed job would resurrect a notification the player had dismissed. Pinned by
+   `UserNotificationSupersessionTests` against real PostgreSQL, because the behaviour *is*
+   the SQL.
+5. ~~Device registration, preferences, delivery records, and push from a durable job.~~
+   **DONE.** Registration is per (account, device) and refreshed on every launch, because
+   Expo rotates tokens and a stale one looks live until a send fails; a token that turns up
+   registered to another account moves, since whoever holds it last owns it. Preferences
+   are stored as *exceptions* — absent means on — so a new kind reaches everyone without a
+   backfill. `DeliverPushJobHandler` sends 45 s after the write, which is what lets the
+   in-app channel suppress a redundant buzz, and `NotificationDelivery` rows make a retry
+   idempotent per device rather than re-notifying everything that already succeeded. Expo's
+   `DeviceNotRegistered` drops the registration. Push is **off unless
+   `BOTARENA_PUSH_ENABLED`** — a misconfigured deployment should not discover its push
+   setup by sending real notifications to real phones.
 
 ## Who gets told what
 

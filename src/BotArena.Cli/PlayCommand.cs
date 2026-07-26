@@ -57,7 +57,7 @@ public static class PlayCommand
                 Console.WriteLine($"Replay:  {written.ReplayPath}");
                 Console.WriteLine(written.ViewerPath is not null
                     ? $"Viewer:  {written.ViewerPath}"
-                    : "Viewer:  (web/dist not found — run `npm run build` in web/ for the visual viewer)");
+                    : "Viewer:  (web/dist-cli not found — run `npm run build` in web/ for the visual viewer)");
             }
             else
             {

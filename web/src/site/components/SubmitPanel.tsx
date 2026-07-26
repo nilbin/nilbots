@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { api, type BotDetail } from '../api';
+import { type BotDetail } from '../api';
+import { useSubmitVersion } from '../queries';
+import { errorMessage } from '../errorMessage';
 
 const STARTER_SOURCE = `using BotArena.Sdk;
 
@@ -25,29 +27,18 @@ public sealed class MyBot : IBot
 }
 `;
 
-export default function SubmitPanel({ bot, onSubmitted }: { bot: BotDetail; onSubmitted: () => Promise<unknown> }) {
+// No `onSubmitted` callback: the mutation invalidates the bot query itself, which both
+// refreshes this page and starts `useBot`'s build polling. Threading a refetch down from
+// the page was the caller having to remember what the write invalidated.
+export default function SubmitPanel({ bot, botKey }: { bot: BotDetail; botKey: string }) {
   const latest = bot.versions[0];
   const [entryType, setEntryType] = useState(latest?.entryType ?? 'MyBot');
   const [source, setSource] = useState(latest?.sources?.[0]?.content ?? STARTER_SOURCE);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const building = bot.versions.some((v) => v.status === 'Pending' || v.status === 'Building');
+  const submission = useSubmitVersion(botKey, bot.id);
 
-  const submit = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.post(`/api/bots/${bot.id}/versions`, {
-        entryType,
-        files: [{ name: 'Bot.cs', content: source }],
-      });
-      await onSubmitted();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Submission failed.');
-    } finally {
-      setBusy(false);
-    }
-  };
+  const submit = () =>
+    submission.mutate({ entryType, files: [{ name: 'Bot.cs', content: source }] });
 
   return (
     <section className="rounded-xl border border-arena-edge bg-arena-panel p-5">
@@ -76,13 +67,21 @@ export default function SubmitPanel({ bot, onSubmitted }: { bot: BotDetail; onSu
         rows={18}
         className="w-full rounded-md border border-arena-edge bg-arena-bg p-3 font-mono text-xs text-arena-text outline-none focus:border-arena-accent"
       />
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {submission.isError && (
+        <p className="mt-2 text-sm text-red-400">
+          {errorMessage(submission.error, 'Submission failed.')}
+        </p>
+      )}
       <button
-        onClick={() => void submit()}
-        disabled={busy || building}
+        onClick={submit}
+        disabled={submission.isPending || building}
         className="mt-3 rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
       >
-        {building ? 'Build in progress…' : busy ? 'Submitting…' : 'Submit & build'}
+        {building
+          ? 'Build in progress…'
+          : submission.isPending
+            ? 'Submitting…'
+            : 'Submit & build'}
       </button>
     </section>
   );

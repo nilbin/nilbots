@@ -122,9 +122,23 @@ compositing on projectiles and impacts, accent bloom on bots via `shadowBlur`, a
 relief and shadow baked into the atlases. **Light spill is done** — flashes now cast onto
 the arena rather than only glowing on themselves.
 
-Remaining, in order: contact shadows under bots and projectiles, wall height (offset cover
-tops toward the camera centre and darken their faces), and camera easing with a small
-shake on impact.
+**All of it is now done.** Contact shadows: bots already had one, projectiles did not,
+which is what made bolts read as decals painted on the floor rather than something
+travelling over it.
+
+Wall height: the *top* of a wall is displaced, its cast shadow stays on the floor, and the
+sliver between them is filled near-black as the exposed face. That gap is the whole effect
+— moving the shadow with the wall would just slide the tile sideways and read as a
+misalignment. The displacement is **outward** from the arena centre, not toward it as this
+plan originally said: a camera above the middle sees a wall's top as nearer than its base,
+so it projects further from the centre of frame. It is deliberately tiny (0.012 tile per
+tile of distance, about a sixth of a tile in the far corner of a 24x18 map) because players
+reason about cover in tile coordinates and the grid has to stay unambiguous.
+
+Camera shake is derived from the tick, never accumulated between frames — this renderer is
+called fresh with a time, so state would make the same moment render differently depending
+on whether it was reached by playing or by scrubbing backwards. Only damage and destruction
+shake; a camera that moves on every shot stops meaning anything.
 
 Canvas2D throughout — no WebGL, no three.js. The scene is two bots on a tile grid;
 rasterisation is not the bottleneck, payload is, and normal maps would double atlas weight
@@ -138,15 +152,28 @@ to fix a problem that does not exist. In rough order of feel per unit of effort:
 
 ## 6. Audio depth
 
-- pan cues by tile x (`StereoPannerNode`) — cheap, and it makes the arena feel wide;
-- one `ConvolverNode` with a short impulse response to give the arena a room;
-- duck music under impacts;
-- adaptive music layered on health, control pressure and overtime. Replays are
-  deterministic, so the music state is reproducible tick-for-tick — two people reviewing
-  the same replay hear the same mix.
+- ~~pan cues by tile x (`StereoPannerNode`)~~ **DONE**;
+- ~~one `ConvolverNode` with a short impulse response to give the arena a room~~ **DONE.**
+  The response is *synthesized*, not shipped — a recorded IR is another asset in a payload
+  this project has spent real effort shrinking, and a plausible metal room is noise and an
+  envelope. Deterministic noise, so two people reviewing the same fight hear the same tail.
+  Cues send post-pan, so reflections inherit the cue's position instead of collapsing to
+  the centre.
 
-**Keep music out of the CLI artifact.** Cues are efficient (584 KB for 16), but loops are
-where audio payload explodes, and every `nilbots play` would carry a soundtrack.
+**Blocked on assets that do not exist:**
+
+- duck music under impacts;
+- adaptive music layered on health, control pressure and overtime.
+
+There is no music in the repository. Audio candidates carry four cues each — `projectile`,
+`impact`, `destroyed`, `unlock` — and nothing else, so both of these describe mixing a
+signal that has never been authored. They are not code-blocked; they are waiting on a
+soundtrack. Building the ducking bus before there is anything to duck would be scaffolding
+for a decision nobody has made yet.
+
+**Keep music out of the CLI artifact** when it does arrive. Cues are efficient (584 KB for
+16), but loops are where audio payload explodes, and every `nilbots play` would carry a
+soundtrack.
 
 ## Verifying
 

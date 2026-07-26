@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api';
 import { useAuth } from '../auth';
+import { errorMessage } from '../errorMessage';
+import { useLogin, useRegister } from '../queries';
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>(() =>
@@ -10,28 +11,20 @@ export default function AuthPage() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const { refresh } = useAuth();
   const navigate = useNavigate();
+  const register = useRegister();
+  const login = useLogin();
+  const active = mode === 'register' ? register : login;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      if (mode === 'register')
-        await api.post('/api/accounts/register', { displayName, email, password });
-      else await api.post('/api/accounts/login', { email, password });
-      await refresh();
-      const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-      if (returnUrl && returnUrl.startsWith('/')) window.location.assign(returnUrl);
-      else navigate('/garage');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
-    } finally {
-      setBusy(false);
-    }
+    if (mode === 'register') await register.mutateAsync({ displayName, email, password });
+    else await login.mutateAsync({ email, password });
+    await refresh();
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+    if (returnUrl && returnUrl.startsWith('/')) window.location.assign(returnUrl);
+    else navigate('/garage');
   };
 
   return (
@@ -83,10 +76,14 @@ export default function AuthPage() {
               className={inputClass}
             />
           </Field>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {active.isError && (
+            <p className="text-sm text-red-400">
+              {errorMessage(active.error, 'Something went wrong.')}
+            </p>
+          )}
           <button
             type="submit"
-            disabled={busy}
+            disabled={active.isPending}
             className="mt-2 rounded-md bg-arena-accent py-2 font-semibold text-slate-950 transition-opacity disabled:opacity-50"
           >
             {mode === 'login' ? 'Sign in' : 'Create account'}

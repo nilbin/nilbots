@@ -134,7 +134,16 @@ const themes = buildThemes();
 const looks = buildLooks();
 const projectileLooks = buildProjectileLooks();
 validateDefaultProjectiles();
-const defaultThemeId = 'control-room';
+/**
+ * Which theme stands in when a replay names one this build does not have.
+ *
+ * Normally `control-room`. The CLI builds one artifact per theme (see
+ * `vite.cli.config.ts`), and in those there is no `control-room` to fall back *to* — so
+ * the build substitutes the theme it was scoped to, and this stays the only place that
+ * decides.
+ */
+const defaultThemeId =
+  typeof __BOTARENA_DEFAULT_THEME__ === 'string' ? __BOTARENA_DEFAULT_THEME__ : 'control-room';
 const defaultLookId = 'vanguard';
 const defaultProjectileLookId = 'pulse-bolt';
 const legacySlotLooks = ['vanguard', 'bulwark'] as const;

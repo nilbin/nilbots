@@ -159,12 +159,19 @@ that still resolves — nothing throws, nothing logs, the screen just stays upri
 
 ## Notifications
 
-Not built yet; design in [`../docs/NOTIFICATIONS-PLAN.md`](../docs/NOTIFICATIONS-PLAN.md)
-(DECISIONS #108/#118). Two things to know before touching it here.
+Design in [`../docs/NOTIFICATIONS-PLAN.md`](../docs/NOTIFICATIONS-PLAN.md) (DECISIONS
+#108/#118). Three things to know before touching it here.
 
 The app is a **delivery channel, not a second inbox**. Notifications are durable records
 on the server, reaching the app over the same SignalR hub the site uses, with unread
 reloaded on resume. Do not invent app-local notification state.
+
+**Push registration follows the session, not the app.** `usePushRegistration` registers on
+sign-in and deletes on sign-out, because two people sharing a phone must not inherit each
+other's results. It re-registers on every launch: Expo rotates push tokens and a stale one
+is indistinguishable from a live one until a send fails. Failures are swallowed on purpose
+— push is an enhancement, and an error banner about notification plumbing at launch is
+noise when the inbox and the hub still work.
 
 In-app toasts are not system banners. A push can be plain; an in-app reward is the moment
 the game pays the player back, and it should feel like it. Result toasts reuse

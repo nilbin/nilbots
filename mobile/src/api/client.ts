@@ -9,6 +9,10 @@ import { API_BASE_URL } from './config';
 type Schemas = components['schemas'];
 
 export type Meta = Schemas['MetaResponse'];
+export type RegisterDeviceRequest = Schemas['RegisterDeviceRequest'];
+export type NotificationPreference = Schemas['NotificationPreferenceResponse'];
+export type UpdateNotificationPreferenceRequest =
+  Schemas['UpdateNotificationPreferenceRequest'];
 export type BotSummary = Schemas['BotSummaryResponse'];
 export type BotDetail = Schemas['BotDetailResponse'];
 export type BotVersion = Schemas['BotVersionResponse'];
@@ -108,6 +112,28 @@ export const api = {
   notifications: () => request<UserNotification[]>('/api/notifications'),
   readNotification: (id: string) =>
     request<void>(`/api/notifications/${id}/read`, { method: 'POST' }),
+
+  /**
+   * Register or refresh this device for push. Called on every launch while signed in,
+   * because Expo rotates tokens and a stale one looks live until a send fails.
+   */
+  registerDevice: (body: RegisterDeviceRequest) =>
+    request<void>('/api/devices', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  /** Sign-out. The registration belongs to the (account, device) pair, not the hardware. */
+  unregisterDevice: (deviceId: string) =>
+    request<void>(`/api/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' }),
+  notificationPreferences: () =>
+    request<NotificationPreference[]>('/api/notifications/preferences'),
+  updateNotificationPreference: (body: UpdateNotificationPreferenceRequest) =>
+    request<void>('/api/notifications/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   /**
    * The current access token, for the one consumer that cannot go through `request`:
    * SignalR opens its own connection and needs to authenticate it itself.

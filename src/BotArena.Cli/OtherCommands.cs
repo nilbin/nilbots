@@ -20,7 +20,7 @@ public static class ReplayCommand
         string outDir = options.GetValueOrDefault("out", Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".");
         Console.WriteLine($"Replay:  {document.Header.MapId} seed {document.Header.Seed} " +
                           $"({document.Ticks.Count} ticks, rules {document.Header.GameRulesVersion})");
-        string? viewer = ReplayOutput.WriteViewer(json, outDir);
+        string? viewer = ReplayOutput.WriteViewer(json, outDir, document.Header.ThemeId);
         if (viewer is null)
         {
             Console.Error.WriteLine("Viewer template not found — build it with `npm run build` in web/.");

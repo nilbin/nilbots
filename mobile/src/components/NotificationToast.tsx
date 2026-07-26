@@ -1,3 +1,4 @@
+import { router, type Href } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -50,7 +51,13 @@ export function NotificationToast({
     <SafeAreaView style={styles.host} edges={['top']} pointerEvents="box-none">
       <Animated.View style={[styles.animated, { transform: [{ translateY: slide }] }]}>
         <Pressable
-          onPress={onDismiss}
+          // Tapping goes to the thing it is about — a challenge is only worth interrupting
+          // for because it can be watched, and a toast that merely vanished would make the
+          // player hunt for the match it just told them about.
+          onPress={() => {
+            if (content.href) router.push(content.href);
+            onDismiss();
+          }}
           accessibilityRole="button"
           accessibilityLabel={`${content.title}. ${content.detail}`}
           style={({ pressed }) => [styles.toast, pressed && styles.pressed]}>
@@ -87,6 +94,14 @@ type Content = {
   headlineColor?: string;
   lookId?: string;
   accent?: string;
+  /**
+   * Where tapping goes. Absent for a notification with nothing to open.
+   *
+   * The object form rather than a template string: expo-router's typed routes check the
+   * pathname against the files in `app/`, so a renamed route fails here at compile time
+   * instead of dead-ending a tap.
+   */
+  href?: Href;
 };
 
 /**
@@ -116,16 +131,30 @@ function describe(notification: UserNotification): Content | null {
       return {
         title: `${payload.botName} ${outcomeVerb(payload.outcome)}`,
         detail: `${payload.score}–${payload.opponentScore} against ${payload.opponentName}`,
+        href: { pathname: '/sets/[id]', params: { id: payload.matchSetId } },
         headline: `${gain ? '+' : ''}${Math.round(payload.ratingChange)}`,
         headlineColor: gain ? Arena.ok : Arena.live,
         lookId: payload.botLookId,
         accent: payload.botAccent,
       };
     }
+    case 'match-challenged':
+      return {
+        title: `${payload.botName} was challenged`,
+        detail: `by ${payload.challengerName} on ${payload.mapId}`,
+        href: { pathname: '/matches/[id]', params: { id: payload.matchId } },
+        lookId: payload.botLookId,
+        accent: payload.botAccent,
+        // The arena accent, not a result colour: this row will become its own result, and
+        // green or red here would state an outcome the match has not produced yet.
+        headline: '⚔',
+        headlineColor: Arena.accent,
+      };
     case 'match-settled':
       return {
         title: `${payload.botName} ${outcomeVerb(payload.outcome)}`,
         detail: `against ${payload.opponentName} on ${payload.mapId}`,
+        href: { pathname: '/matches/[id]', params: { id: payload.matchId } },
         lookId: payload.botLookId,
         accent: payload.botAccent,
         headline: payload.outcome === 'Win' ? 'W' : payload.outcome === 'Loss' ? 'L' : 'D',

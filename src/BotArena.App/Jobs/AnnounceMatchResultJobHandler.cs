@@ -74,12 +74,14 @@ public sealed class AnnounceMatchResultJobHandler(
             MatchParticipant? opponent = match.Participants
                 .FirstOrDefault(other => other.Slot != participant.Slot);
 
-            await notifications.WriteAsync(
+            // Supersede, not write: this bot may already have a "challenged — watch" row
+            // for the same match, and by now that invitation is a lie. The subject key
+            // makes it the same row, so the outcome replaces the invitation in place and
+            // an identical retry still changes nothing (DECISIONS #118).
+            await notifications.SupersedeAsync(
                 ownerId,
                 UserNotificationKinds.MatchSettled,
-                // One announcement per player per match, so a retried or replayed job is
-                // silent rather than telling them twice.
-                $"{UserNotificationKinds.MatchSettled}:{match.Id}:{participant.BotId}",
+                UserNotificationKeys.MatchSubject(match.Id, participant.BotId),
                 new MatchSettledPayload(
                     match.Id,
                     match.MapId,

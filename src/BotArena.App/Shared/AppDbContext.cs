@@ -18,6 +18,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<DeviceRegistration> DeviceRegistrations => Set<DeviceRegistration>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
@@ -106,6 +109,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(notification => notification.DedupeKey).HasMaxLength(200);
             entity.Property(notification => notification.PayloadJson).HasColumnType("jsonb");
             entity.HasOne<User>().WithMany().HasForeignKey(notification => notification.UserId);
+        });
+
+        modelBuilder.Entity<DeviceRegistration>(entity =>
+        {
+            // The token is what the transport addresses, so uniqueness holds there — and
+            // globally, not per account: a phone that signs into a second account must
+            // move its token rather than receive both accounts' notifications.
+            entity.HasIndex(device => device.PushToken).IsUnique();
+            entity.HasIndex(device => new { device.UserId, device.DeviceId }).IsUnique();
+            entity.Property(device => device.PushToken).HasMaxLength(300);
+            entity.Property(device => device.DeviceId).HasMaxLength(200);
+            entity.Property(device => device.Platform).HasMaxLength(20);
+            entity.HasOne<User>().WithMany().HasForeignKey(device => device.UserId);
+        });
+
+        modelBuilder.Entity<NotificationPreference>(entity =>
+        {
+            entity.HasIndex(preference => new { preference.UserId, preference.Kind }).IsUnique();
+            entity.Property(preference => preference.Kind).HasMaxLength(50);
+            entity.HasOne<User>().WithMany().HasForeignKey(preference => preference.UserId);
+        });
+
+        modelBuilder.Entity<NotificationDelivery>(entity =>
+        {
+            entity.HasIndex(delivery => new { delivery.NotificationId, delivery.Channel });
+            entity.Property(delivery => delivery.Channel).HasMaxLength(20);
+            entity.Property(delivery => delivery.State).HasMaxLength(20);
+            entity.Property(delivery => delivery.Detail).HasMaxLength(500);
+            // Cascade: a delivery record describes a notification and has no meaning once
+            // that row is gone.
+            entity.HasOne<UserNotification>()
+                .WithMany()
+                .HasForeignKey(delivery => delivery.NotificationId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Match>(entity =>
