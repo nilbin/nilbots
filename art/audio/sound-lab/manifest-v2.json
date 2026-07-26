@@ -181,5 +181,27 @@
         }
       ]
     }
+  ],
+  "experiments": [
+    {
+      "id": "nilbots-signature-unlock",
+      "number": "D",
+      "label": "Nilbots Signature",
+      "kicker": "AEGIS CLARITY · OBSIDIAN WEIGHT · AURORA LIFT",
+      "accent": "#7edcff",
+      "description": "A cohesive reward signature: precise confirmation, a physical earned-it moment, and a luminous reveal that opens into stereo.",
+      "cue": {
+        "id": "entitlement-unlock",
+        "label": "Reward Unlocked",
+        "category": "REWARD",
+        "description": "The production-value test: anticipation, reveal, bloom, and a clean tail.",
+        "file": "./v2/experiments/nilbots-signature-unlock/entitlement-unlock.wav",
+        "durationSeconds": 3.36,
+        "peak": 0.84,
+        "rms": 0.2309,
+        "stereoDifferenceRms": 0.1356,
+        "dcOffset": 0.000161
+      }
+    }
   ]
 }

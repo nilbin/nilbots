@@ -21,6 +21,7 @@ validated.push(
     channels: 1,
     cueCount: 10,
     fileCount: 30,
+    experimentCount: 0,
     minStereoDifference: 0,
   }),
 );
@@ -33,6 +34,7 @@ validated.push(
     channels: 2,
     cueCount: 4,
     fileCount: 12,
+    experimentCount: 1,
     minStereoDifference: 0.015,
   }),
 );
@@ -96,75 +98,98 @@ async function validateCandidateSet(specification) {
     );
 
     for (const cue of pack.cues) {
-      const relative = cue.file.replace(/^\.\//, "");
-      assert(!relative.includes(".."), `${cue.file}: unsafe path`);
-      const absolute = path.resolve(labRoot, relative);
-      assert(
-        absolute.startsWith(`${labRoot}${path.sep}`),
-        `${cue.file}: escapes sound lab`,
-      );
-      await access(absolute);
-      assert(!files.has(absolute), `${cue.file}: duplicate audio file`);
-      files.add(absolute);
+      await validateCueFile(cue, manifest, specification);
       setFileCount++;
-
-      const bytes = await readFile(absolute);
-      const wav = parseWav(bytes, cue.file);
-      assert(
-        wav.sampleRate === manifest.sampleRate,
-        `${cue.file}: wrong sample rate`,
-      );
-      assert(
-        wav.channels === manifest.channels,
-        `${cue.file}: wrong channel count`,
-      );
-      assert(
-        wav.bitsPerSample === 16,
-        `${cue.file}: must be signed 16-bit PCM`,
-      );
-      assert(
-        Math.abs(wav.durationSeconds - cue.durationSeconds) < 0.002,
-        `${cue.file}: manifest duration differs from WAV`,
-      );
-      assert(
-        wav.peak >= 0.7 && wav.peak <= 0.9,
-        `${cue.file}: peak ${wav.peak} is out of range`,
-      );
-      assert(
-        wav.rms >= 0.018,
-        `${cue.file}: cue is effectively silent`,
-      );
-      assert(
-        wav.rms <= 0.42,
-        `${cue.file}: cue is excessively dense`,
-      );
-      assert(
-        wav.clippedSamples === 0,
-        `${cue.file}: contains clipped samples`,
-      );
-      assert(
-        wav.dcOffset <= 0.003,
-        `${cue.file}: DC offset ${wav.dcOffset} is excessive`,
-      );
-      assert(
-        wav.stereoDifferenceRms >= specification.minStereoDifference,
-        `${cue.file}: stereo field is effectively mono`,
-      );
-      if (cue.stereoDifferenceRms !== undefined) {
-        assert(
-          Math.abs(wav.stereoDifferenceRms - cue.stereoDifferenceRms) < 0.003,
-          `${cue.file}: rendered stereo measurement differs from manifest`,
-        );
-      }
     }
   }
 
+  const experiments = manifest.experiments ?? [];
   assert(
-    setFileCount === specification.fileCount,
-    `${specification.label}: expected ${specification.fileCount} unique WAV files, ` +
+    experiments.length === specification.experimentCount,
+    `${specification.label}: expected ${specification.experimentCount} experiments, ` +
+      `found ${experiments.length}`,
+  );
+  for (const experiment of experiments) {
+    assert(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(experiment.id),
+      `${experiment.id}: invalid experiment ID`,
+    );
+    assert(
+      /^#[0-9a-f]{6}$/i.test(experiment.accent),
+      `${experiment.id}: invalid experiment accent`,
+    );
+    assert(
+      experiment.cue?.id === "entitlement-unlock",
+      `${experiment.id}: current fusion candidate must be an unlock cue`,
+    );
+    await validateCueFile(experiment.cue, manifest, specification);
+    setFileCount++;
+  }
+
+  const expectedFileCount =
+    specification.fileCount + specification.experimentCount;
+  assert(
+    setFileCount === expectedFileCount,
+    `${specification.label}: expected ${expectedFileCount} unique WAV files, ` +
       `found ${setFileCount}`,
   );
   return { label: specification.label, fileCount: setFileCount };
+}
+
+async function validateCueFile(cue, manifest, specification) {
+  const relative = cue.file.replace(/^\.\//, "");
+  assert(!relative.includes(".."), `${cue.file}: unsafe path`);
+  const absolute = path.resolve(labRoot, relative);
+  assert(
+    absolute.startsWith(`${labRoot}${path.sep}`),
+    `${cue.file}: escapes sound lab`,
+  );
+  await access(absolute);
+  assert(!files.has(absolute), `${cue.file}: duplicate audio file`);
+  files.add(absolute);
+
+  const bytes = await readFile(absolute);
+  const wav = parseWav(bytes, cue.file);
+  assert(
+    wav.sampleRate === manifest.sampleRate,
+    `${cue.file}: wrong sample rate`,
+  );
+  assert(
+    wav.channels === manifest.channels,
+    `${cue.file}: wrong channel count`,
+  );
+  assert(
+    wav.bitsPerSample === 16,
+    `${cue.file}: must be signed 16-bit PCM`,
+  );
+  assert(
+    Math.abs(wav.durationSeconds - cue.durationSeconds) < 0.002,
+    `${cue.file}: manifest duration differs from WAV`,
+  );
+  assert(
+    wav.peak >= 0.7 && wav.peak <= 0.9,
+    `${cue.file}: peak ${wav.peak} is out of range`,
+  );
+  assert(wav.rms >= 0.018, `${cue.file}: cue is effectively silent`);
+  assert(wav.rms <= 0.42, `${cue.file}: cue is excessively dense`);
+  assert(
+    wav.clippedSamples === 0,
+    `${cue.file}: contains clipped samples`,
+  );
+  assert(
+    wav.dcOffset <= 0.003,
+    `${cue.file}: DC offset ${wav.dcOffset} is excessive`,
+  );
+  assert(
+    wav.stereoDifferenceRms >= specification.minStereoDifference,
+    `${cue.file}: stereo field is effectively mono`,
+  );
+  if (cue.stereoDifferenceRms !== undefined) {
+    assert(
+      Math.abs(wav.stereoDifferenceRms - cue.stereoDifferenceRms) < 0.003,
+      `${cue.file}: rendered stereo measurement differs from manifest`,
+    );
+  }
 }
 
 function parseWav(bytes, filename) {

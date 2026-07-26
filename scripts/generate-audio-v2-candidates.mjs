@@ -82,6 +82,16 @@ const packs = [
   },
 ];
 
+const fusion = {
+  id: "nilbots-signature-unlock",
+  number: "D",
+  label: "Nilbots Signature",
+  kicker: "AEGIS CLARITY · OBSIDIAN WEIGHT · AURORA LIFT",
+  accent: "#7edcff",
+  description:
+    "A cohesive reward signature: precise confirmation, a physical earned-it moment, and a luminous reveal that opens into stereo.",
+};
+
 function createStereo(duration) {
   const length = Math.ceil(duration * RENDER_RATE);
   return {
@@ -1152,6 +1162,100 @@ function renderAurora(cue, output, random) {
   }
 }
 
+function renderSignatureUnlock(output, random) {
+  // Aegis: a clean milled-alloy confirmation that reads immediately.
+  addTransient(output, random, 0, "alloy", 0.38);
+  addTone(output, {
+    start: 0.008,
+    duration: 0.48,
+    from: 1_180,
+    to: 590,
+    amplitude: 0.17,
+    attack: 0.001,
+    release: 0.24,
+    decay: 0.11,
+    pan: -0.1,
+    panTo: 0.1,
+    partials: [
+      [1, 1],
+      [2.01, 0.14],
+    ],
+  });
+
+  // Obsidian: the tangible latch and low mechanical weight of an earned item.
+  addTransient(output, random, 0.105, "heavy", 0.42);
+  addModes(output, {
+    start: 0.108,
+    frequencies: [92, 149, 241, 389, 631],
+    amplitude: 0.23,
+    decay: 0.28,
+    spread: 0.52,
+    detune: 0.004,
+  });
+  addTone(output, {
+    start: 0.08,
+    duration: 0.92,
+    from: 82,
+    to: 164,
+    amplitude: 0.31,
+    attack: 0.035,
+    release: 0.43,
+    decay: 0.4,
+    partials: [
+      [1, 1],
+      [1.5, 0.2],
+      [2.01, 0.1],
+    ],
+  });
+
+  // Aurora: the upward reveal, harmonic bloom, and confident stereo opening.
+  addTransient(output, random, 0.31, "glass", 0.2);
+  const notes = [293.66, 369.99, 440, 587.33, 739.99, 880];
+  notes.forEach((note, index) =>
+    addChime(output, {
+      start: 0.25 + index * 0.135,
+      frequency: note,
+      duration: 2.52 - index * 0.07,
+      amplitude: 0.245 + index * 0.006,
+      pan: -0.76 + index * 0.304,
+    }),
+  );
+  addPad(output, [146.83, 220, 293.66, 369.99], 0.46, 2.62, 0.32, {
+    shimmer: true,
+  });
+  addTone(output, {
+    start: 0.76,
+    duration: 1.9,
+    from: 1_174.66,
+    to: 1_185,
+    amplitude: 0.085,
+    attack: 0.05,
+    release: 1.18,
+    decay: 0.96,
+    pan: -0.76,
+    panTo: 0.76,
+    partials: [
+      [1, 1],
+      [2.003, 0.16],
+    ],
+  });
+  addDebris(output, random, {
+    start: 0.48,
+    duration: 1.46,
+    count: 24,
+    low: 4_800,
+    high: 16_500,
+    amplitude: 0.021,
+  });
+  addPingPong(output, 0.157, 0.34, 0.145);
+  addReverb(output, {
+    mix: 0.285,
+    decay: 1.5,
+    predelay: 0.028,
+    width: 0.92,
+  });
+}
+
 function prepareForDownsampling(output, drive) {
   for (const channel of [output.left, output.right]) {
     biquad(channel, "highpass", 27, 0.707);
@@ -1305,6 +1409,7 @@ async function main() {
     channels: 2,
     format: "pcm-s16le-wav",
     packs: [],
+    experiments: [],
   };
 
   for (const pack of packs) {
@@ -1348,6 +1453,43 @@ async function main() {
     });
   }
 
+  const fusionCue = cues.find((cue) => cue.id === "entitlement-unlock");
+  const fusionDirectory = path.join(ROOT, "v2", "experiments", fusion.id);
+  await mkdir(fusionDirectory, { recursive: true });
+  const fusionOutput = createStereo(fusionCue.duration);
+  renderSignatureUnlock(
+    fusionOutput,
+    seeded(`${fusion.id}/${fusionCue.id}/v2`),
+  );
+  const fusionAudio = finalize(fusionOutput, 0.84);
+  const fusionFilename = `${fusionCue.id}.wav`;
+  await writeFile(
+    path.join(fusionDirectory, fusionFilename),
+    encodeWav(
+      fusionAudio,
+      seeded(`${fusion.id}/${fusionCue.id}/dither/v2`),
+    ),
+  );
+  manifest.experiments.push({
+    ...fusion,
+    cue: {
+      id: fusionCue.id,
+      label: fusionCue.label,
+      category: fusionCue.category,
+      description: fusionCue.description,
+      file: `./v2/experiments/${fusion.id}/${fusionFilename}`,
+      durationSeconds: Number(
+        (fusionAudio.left.length / SAMPLE_RATE).toFixed(3),
+      ),
+      peak: Number(fusionAudio.peak.toFixed(4)),
+      rms: Number(fusionAudio.rms.toFixed(4)),
+      stereoDifferenceRms: Number(
+        fusionAudio.stereoDifferenceRms.toFixed(4),
+      ),
+      dcOffset: Number(fusionAudio.dcOffset.toFixed(6)),
+    },
+  });
+
   const json = `${JSON.stringify(manifest, null, 2)}\n`;
   await writeFile(path.join(ROOT, "manifest-v2.json"), json);
   await writeFile(
@@ -1362,11 +1504,19 @@ async function main() {
           packTotal +
           Math.round(cue.durationSeconds * SAMPLE_RATE * 2 * 2 + 44),
         0,
+    ),
+    0,
+  ) + manifest.experiments.reduce(
+    (total, experiment) =>
+      total +
+      Math.round(
+        experiment.cue.durationSeconds * SAMPLE_RATE * 2 * 2 + 44,
       ),
     0,
   );
   console.log(
-    `Generated ${manifest.packs.length * cues.length} V2 cues ` +
+    `Generated ${manifest.packs.length * cues.length} V2 cues and ` +
+      `${manifest.experiments.length} fusion candidate ` +
       `(${(bytes / 1_048_576).toFixed(2)} MiB) in ${ROOT}`,
   );
 }

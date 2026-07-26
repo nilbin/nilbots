@@ -49,6 +49,12 @@ transient, body, material resonance, debris, and spatial tail. Stereo
 diffusion, DC filtering, linked dynamics, peak normalization, endpoint fades,
 and deterministic TPDF dither are part of the shared mastering path.
 
+The `Nilbots Signature` unlock is stored as an experiment rather than a fourth
+general-purpose pack. It intentionally takes Aegis's clean confirmation,
+Obsidian's physical latch and low mechanical mass, and Aurora's upward harmonic
+bloom and stereo opening. Keeping it under `manifest.experiments` preserves
+equal A/B/C cue coverage while allowing focused hybrid candidates.
+
 Regenerate and validate:
 
 ```bash
