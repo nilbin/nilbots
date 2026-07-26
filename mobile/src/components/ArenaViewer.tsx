@@ -229,7 +229,14 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
    */
   useEffect(() => {
     if (!visible) return;
-    void ScreenOrientation.unlockAsync().catch(() => undefined);
+    // LANDSCAPE, not unlock: unlocking merely permits landscape, so a phone held upright
+    // stays upright and the arena is letterboxed to about 40% of the screen. The arena is
+    // the one screen in this app that is wider than it is tall, so it asks for the
+    // rotation rather than hoping for it. Both landscape orientations, so it does not
+    // fight which way the phone is already turned.
+    void ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.LANDSCAPE,
+    ).catch(() => undefined);
     return () => {
       void ScreenOrientation.lockAsync(
         ScreenOrientation.OrientationLock.PORTRAIT_UP,
