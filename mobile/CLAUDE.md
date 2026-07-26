@@ -140,6 +140,14 @@ instance, not per match**. So: mount one WebView, keep it alive, and push replay
 over `postMessage`. Never remount it per match — that pays the whole bake every time
 and is exactly the stutter this design avoids.
 
+**The arena is landscape; the rest of the app is portrait.** An arena is wide and a
+phone held upright wastes most of it, so opening the viewer locks landscape and closing
+it restores portrait. That lock lives in JS, and `app.json` declares `"orientation":
+"default"` on purpose: it is the *native* orientation list, and **iOS silently refuses
+to rotate to an orientation the app never declared**. Narrowing it back to `"portrait"`
+turns the arena's `lockAsync` into a no-op that still resolves — nothing throws, nothing
+logs, the screen just stays upright.
+
 ## Notifications
 
 Not built yet; design in [`../docs/NOTIFICATIONS-PLAN.md`](../docs/NOTIFICATIONS-PLAN.md)
