@@ -187,18 +187,27 @@ function buildThemes(): Map<string, ArenaTheme> {
     );
     const wallFamilies = new Map<string, WallFamily>();
     for (const [familyId, family] of Object.entries(manifest.walls.families)) {
+      const materialTexture = lazyImage(
+        requireAsset(themeImages, `${directory}/${family.material}`, manifest.id),
+      );
+      const edgeAtlasTexture = lazyImage(
+        requireAsset(themeImages, `${directory}/${family.edgeAtlas}`, manifest.id),
+      );
+      const shadowAtlasTexture = lazyImage(
+        requireAsset(themeImages, `${directory}/${family.shadowAtlas}`, manifest.id),
+      );
       wallFamilies.set(familyId, {
         id: familyId,
         label: family.label,
-        materialTexture: loadImage(
-          requireAsset(themeImages, `${directory}/${family.material}`, manifest.id),
-        ),
-        edgeAtlasTexture: loadImage(
-          requireAsset(themeImages, `${directory}/${family.edgeAtlas}`, manifest.id),
-        ),
-        shadowAtlasTexture: loadImage(
-          requireAsset(themeImages, `${directory}/${family.shadowAtlas}`, manifest.id),
-        ),
+        get materialTexture() {
+          return materialTexture();
+        },
+        get edgeAtlasTexture() {
+          return edgeAtlasTexture();
+        },
+        get shadowAtlasTexture() {
+          return shadowAtlasTexture();
+        },
       });
     }
     for (const defaultFamily of [
@@ -216,13 +225,19 @@ function buildThemes(): Map<string, ArenaTheme> {
           manifest.id,
         )
       : undefined;
+    const floorTexture = lazyImage(floorUrl);
+    const zoneTexture = zoneUrl ? lazyImage(zoneUrl) : () => null;
     if (result.has(manifest.id))
       throw new Error(`Duplicate arena theme ID '${manifest.id}'.`);
     result.set(manifest.id, {
       id: manifest.id,
       label: manifest.label,
-      floorTexture: loadImage(floorUrl),
-      zoneTexture: zoneUrl ? loadImage(zoneUrl) : null,
+      get floorTexture() {
+        return floorTexture();
+      },
+      get zoneTexture() {
+        return zoneTexture();
+      },
       zoneTextureScale: Math.max(
         0.5,
         manifest.textures.zone?.scaleTiles ?? 4,
@@ -320,4 +335,21 @@ function loadImage(source: string): HTMLImageElement | null {
   image.decoding = 'async';
   image.src = source;
   return image;
+}
+
+/**
+ * Atlas URLs are cheap; decoded 4096×4096 images are not. Keep every theme
+ * discoverable, but only allocate its images when that theme is actually
+ * rendered. A mobile replay should never decode the other maps' atlases.
+ */
+function lazyImage(source: string): () => HTMLImageElement | null {
+  let initialized = false;
+  let image: HTMLImageElement | null = null;
+  return () => {
+    if (!initialized) {
+      initialized = true;
+      image = loadImage(source);
+    }
+    return image;
+  };
 }

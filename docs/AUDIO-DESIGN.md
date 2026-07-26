@@ -92,6 +92,11 @@ persist locally. Browser autoplay rules require `ENABLE AUDIO`.
 Enabling audio and changing packs restart a completed replay automatically so
 every direction is heard against the same timeline from tick zero.
 
+The CLI continues to receive the normal self-contained `npm run build`
+artifact. Hosted review deployments use `npm run build:review`, which emits
+separate hashed atlases, JavaScript, and audio files. This avoids making mobile
+browsers parse the complete viewer payload as one large inline HTML document.
+
 This review UI is intentionally absent from the native hosted viewer. It
 should not cross the mobile bridge until a product direction and native
 controls have been selected.
