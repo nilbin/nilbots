@@ -1,6 +1,7 @@
 (() => {
-  const manifest = window.SOUND_LAB_MANIFEST;
-  if (!manifest) throw new Error('Sound lab manifest did not load.');
+  const manifest = window.SOUND_LAB_V2_MANIFEST;
+  const legacyManifest = window.SOUND_LAB_MANIFEST;
+  if (!manifest) throw new Error('V2 sound lab manifest did not load.');
 
   const packTemplate = document.querySelector('#pack-template');
   const cueTemplate = document.querySelector('#cue-template');
@@ -10,11 +11,12 @@
   const status = document.querySelector('[data-audio-status]');
   const volumeInput = document.querySelector('[data-volume]');
   const volumeLabel = document.querySelector('[data-volume-label]');
+  const legacyArchive = document.querySelector('[data-v1-archive]');
   const activeAudio = new Set();
   const timers = new Set();
   let volume = Number(volumeInput.value);
-  let selectedCue = 'pulse-bolt';
-  let favorite = window.localStorage.getItem('nilbots.audio.favorite') ?? '';
+  let selectedCue = 'projectile-showcase';
+  let favorite = window.localStorage.getItem('nilbots.audio.v2.favorite') ?? '';
 
   const cueById = (pack, cueId) =>
     pack.cues.find((candidate) => candidate.id === cueId);
@@ -71,16 +73,10 @@
   }
 
   const demoTimeline = [
-    [0, 'pulse-bolt'],
-    [430, 'phase-needle'],
-    [820, 'cinder-disc'],
-    [1_470, 'bot-hit'],
-    [1_850, 'wall-hit'],
-    [2_380, 'bot-destroyed'],
-    [3_650, 'zone-shift'],
-    [5_040, 'countdown-start'],
-    [7_020, 'match-win'],
-    [8_930, 'entitlement-unlock'],
+    [0, 'projectile-showcase'],
+    [900, 'armor-impact'],
+    [1_950, 'bot-destroyed'],
+    [4_050, 'entitlement-unlock'],
   ];
 
   function playDemo(pack) {
@@ -147,8 +143,8 @@
       pickButton.addEventListener('click', () => {
         favorite = favorite === pack.id ? '' : pack.id;
         if (favorite)
-          window.localStorage.setItem('nilbots.audio.favorite', favorite);
-        else window.localStorage.removeItem('nilbots.audio.favorite');
+          window.localStorage.setItem('nilbots.audio.v2.favorite', favorite);
+        else window.localStorage.removeItem('nilbots.audio.v2.favorite');
         renderPacks();
         setStatus(
           favorite
@@ -178,6 +174,43 @@
       }
       packsContainer.append(article);
     }
+  }
+
+  function renderLegacyArchive() {
+    if (!legacyManifest || !legacyArchive) return;
+    const label = document.createElement('label');
+    label.className = 'archive__select';
+    label.innerHTML = '<span>V1 CUE</span>';
+    const select = document.createElement('select');
+    const referencePack = legacyManifest.packs[0];
+    for (const cue of referencePack.cues) {
+      const option = document.createElement('option');
+      option.value = cue.id;
+      option.textContent = cue.label;
+      select.append(option);
+    }
+    label.append(select);
+
+    const players = document.createElement('div');
+    players.className = 'archive__players';
+    const renderPlayers = () => {
+      players.replaceChildren();
+      for (const pack of legacyManifest.packs) {
+        const cue = cueById(pack, select.value);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.style.setProperty('--pack-accent', pack.accent);
+        button.dataset.audioKey = `${pack.id}/${cue.id}`;
+        button.innerHTML =
+          `<span>${pack.number}</span><strong>${pack.label}</strong>` +
+          '<small>Play V1</small>';
+        button.addEventListener('click', () => play(pack, cue));
+        players.append(button);
+      }
+    };
+    select.addEventListener('change', renderPlayers);
+    legacyArchive.append(label, players);
+    renderPlayers();
   }
 
   volumeInput.addEventListener('input', () => {
@@ -210,4 +243,5 @@
 
   renderComparison();
   renderPacks();
+  renderLegacyArchive();
 })();

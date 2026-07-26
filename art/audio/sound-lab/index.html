@@ -26,7 +26,7 @@
         <span>nilbots</span>
       </a>
       <div class="topbar__label">
-        AUDIO R&amp;D <span>·</span> CANDIDATE REVIEW 01
+        AUDIO R&amp;D <span>·</span> HIGH-FIDELITY REVIEW 02
       </div>
       <button class="quiet-button" type="button" data-action="stop">
         <span class="stop-icon" aria-hidden="true"></span>
@@ -38,26 +38,26 @@
       <section class="hero">
         <div class="eyebrow">
           <span class="live-dot"></span>
-          HEADPHONES RECOMMENDED
+          V2 VERTICAL SLICE · HEADPHONES RECOMMENDED
         </div>
         <h1>How should the<br /><em>arena sound?</em></h1>
         <p>
-          Three coherent directions. Ten identical gameplay moments.
-          Everything here is original, deterministic, and synthesized from
-          source—no stock library hiding underneath.
+          Three production-grade directions. Four identical showcase moments.
+          Layered stereo synthesis, physical resonance, spatial diffusion, and
+          disciplined mastering—still original and reproducible from source.
         </p>
         <div class="hero__meta">
           <div>
-            <strong>30</strong>
-            <span>candidate cues</span>
+            <strong>12</strong>
+            <span>V2 showcase cues</span>
           </div>
           <div>
-            <strong>44.1</strong>
-            <span>kHz mono PCM</span>
+            <strong>48</strong>
+            <span>kHz stereo PCM</span>
           </div>
           <div>
-            <strong>0</strong>
-            <span>runtime bytes yet</span>
+            <strong>2×</strong>
+            <span>oversampled render</span>
           </div>
         </div>
       </section>
@@ -99,12 +99,31 @@
             <h2 id="packs-title">Listen for character, not loudness</h2>
           </div>
           <p>
-            Each pack uses the same functional hierarchy: projectiles stay
-            short, impacts communicate material, match cues stay restrained,
-            and the unlock moment gets the richest treatment.
+            This pass deliberately goes deep on four moments before expanding
+            the library. Compare transient quality, physical material, stereo
+            depth, and whether the reward reveal earns its screen time.
           </p>
         </div>
         <div class="pack-list" data-packs></div>
+      </section>
+
+      <section class="archive-section">
+        <details>
+          <summary>
+            <span>
+              <small>REFERENCE ONLY</small>
+              Open the procedural V1 archive
+            </span>
+            <i aria-hidden="true"></i>
+          </summary>
+          <div class="archive__body">
+            <p>
+              The original mono candidates remain here for honest comparison.
+              They are not part of the V2 vote.
+            </p>
+            <div class="archive__controls" data-v1-archive></div>
+          </div>
+        </details>
       </section>
 
       <section class="notes">
@@ -135,7 +154,7 @@
     </main>
 
     <footer>
-      <span>nilbots audio lab / generated candidate set v1</span>
+      <span>nilbots audio lab / high-fidelity vertical slice v2</span>
       <span data-audio-status>Ready. Select a cue.</span>
     </footer>
 
@@ -151,7 +170,7 @@
           <div class="pack__actions">
             <button class="demo-button" type="button" data-pack-demo>
               <span class="play-triangle" aria-hidden="true"></span>
-              Play 11s demo
+              Play 7s demo
             </button>
             <button class="pick-button" type="button" data-pick>
               Mark as favorite
@@ -181,6 +200,7 @@
     </template>
 
     <script src="./manifest.js"></script>
+    <script src="./manifest-v2.js"></script>
     <script src="./soundboard.js" defer></script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 # Audio design and asset workflow
 
-Status: candidate review. No sounds are active in matches or replay playback.
+Status: high-fidelity vertical-slice review. No sounds are active in matches
+or replay playback.
 
 ## Product principles
 
@@ -17,7 +18,7 @@ Status: candidate review. No sounds are active in matches or replay playback.
 5. Candidate assets stay under `art/audio`. Only selected and compressed
    runtime assets enter the self-contained viewer.
 
-## Candidate set
+## Candidate sets
 
 `scripts/generate-audio-candidates.mjs` synthesizes three directions with the
 same ten review cues:
@@ -30,10 +31,29 @@ The source is deterministic and uses no sampled or third-party material.
 Outputs are signed 16-bit, 44.1 kHz mono WAV masters. These are review masters,
 not the eventual delivery format.
 
+The initial set established feature coverage but sounded too narrow, dry, and
+oscillator-forward. It remains available as the V1 reference archive.
+
+`scripts/generate-audio-v2-candidates.mjs` goes deeper on four representative
+moments before the full set is expanded:
+
+- signature projectile;
+- armor impact;
+- bot destruction;
+- entitlement unlock.
+
+Its three directions are Aegis Systems, Obsidian Foundry, and Aurora Core. V2
+renders deterministically at 96 kHz, uses a windowed low-pass stage while
+downsampling, and exports 48 kHz stereo PCM review masters. Each cue separates
+transient, body, material resonance, debris, and spatial tail. Stereo
+diffusion, DC filtering, linked dynamics, peak normalization, endpoint fades,
+and deterministic TPDF dither are part of the shared mastering path.
+
 Regenerate and validate:
 
 ```bash
 node scripts/generate-audio-candidates.mjs
+node scripts/generate-audio-v2-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
 ```
@@ -98,8 +118,10 @@ runs ahead of received ticks.
 
 ## Creating another direction or cue
 
-Add the cue metadata once in `generate-audio-candidates.mjs`, implement the
-same cue ID in every candidate renderer, regenerate, and run the validator.
+For V2, add cue metadata once in `generate-audio-v2-candidates.mjs`, implement
+the same cue ID in every candidate renderer, regenerate, and run the validator.
 Every direction must retain identical cue coverage and order for honest A/B/C
-review. New synthesis primitives should be deterministic and must receive the
-cue-scoped seeded generator instead of using `Math.random()`.
+review. New synthesis primitives must receive the cue-scoped seeded generator
+instead of using `Math.random()`. Repeated combat cues should keep their dry
+signal prominent; richer tails belong primarily to destruction, match, and
+reward events.
