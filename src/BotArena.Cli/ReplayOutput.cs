@@ -25,7 +25,7 @@ public static class ReplayOutput
     public static string? WriteViewer(string replayJson, string outDir)
     {
         string? template = Environment.GetEnvironmentVariable("BOTARENA_VIEWER")
-            ?? CliSupport.FindUpward(Path.Combine("web", "dist", "index.html"));
+            ?? CliSupport.FindUpward(Path.Combine("web", "dist-cli", "index.html"));
         if (template is null || !File.Exists(template))
             return null;
         string html = File.ReadAllText(template);

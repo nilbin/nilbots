@@ -166,6 +166,27 @@ runtime for CLI users), and anything but `site/api.ts` importing the generated s
 (spreads a regeneration's breakage across a dozen files instead of one). Prose alone was
 not holding them; if you change a boundary here, change that test in the same commit.
 
-The build emits a **single 14 MB `dist/index.html`**, inlined on purpose so the CLI can
-ship one file. The App serves it directly, so a viewer change is not live until
-`npm run build` has run — including for the mobile app, which loads it from the server.
+## Two builds, one source
+
+`npm run build` produces both, and they exist for different consumers:
+
+| output | config | shape | consumer |
+|---|---|---|---|
+| `dist/` | `vite.config.ts` | 847 B entry + hashed assets | the site, and the app's WebView |
+| `dist-cli/` | `vite.cli.config.ts` | one 15 MB self-contained file | `nilbots play` |
+| `dist-review/` | `vite.review.config.ts` | hashed, `base: './'` | `npm run review` on a phone |
+
+**`viteSingleFile` belongs to `dist-cli` alone.** `nilbots play` writes a `viewer.html` the
+player can copy anywhere and open from disk, and a `file:` URL cannot fetch sibling modules
+— so that one has to inline everything. It used to be the *only* build: the App served it,
+so every visitor and every cold WebView parsed ~15 MB inline before anything rendered,
+paying for a constraint neither of them has.
+
+Two consequences worth remembering. `dist` now carries the 1024/2048 atlas variants, so
+`preferredAtlasWidth()` can pick per device instead of everyone getting the 4096 master —
+`build:cli` runs `atlas:clean` first precisely so those variants are *not* inlined into the
+artifact. And the CLI packs `web/dist-cli/index.html`, so moving that path means updating
+`BotArena.Cli.csproj`, `ReplayOutput.cs` and `assert-cli-release.sh` together.
+
+The App serves `dist` directly, so a viewer change is not live until `npm run build` has
+run — including for the mobile app, which loads it from the server.

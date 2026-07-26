@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "npm run atlas:variants && vite",
-    "build": "npm run atlas:clean && tsc -b && vite build",
+    "build": "npm run build:cli && npm run atlas:variants && tsc -b && vite build",
     "build:review": "npm run atlas:variants && tsc -b && vite build --config vite.review.config.ts",
     "preview": "vite preview",
     "test": "npm run harness && node --import ./tests/support/register.mjs --test tests/*.test.ts",
     "review": "node ../scripts/review-preview.mjs",
     "atlas:variants": "node ../scripts/generate-atlas-variants.mjs",
     "atlas:clean": "node ../scripts/generate-atlas-variants.mjs --clean",
-    "harness": "vite build --ssr tests/support/harness.entry.ts --outDir tests/.harness --logLevel error"
+    "harness": "vite build --ssr tests/support/harness.entry.ts --outDir tests/.harness --logLevel error",
+    "build:cli": "npm run atlas:clean && tsc -b && vite build --config vite.cli.config.ts"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",

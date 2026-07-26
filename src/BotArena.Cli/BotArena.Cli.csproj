@@ -56,8 +56,8 @@
     <None Include="../../templates/botarena-bot/*"
           Pack="true"
           PackagePath="tools/net10.0/any/templates/botarena-bot/" />
-    <None Include="../../web/dist/index.html"
+    <None Include="../../web/dist-cli/index.html"
           Pack="true"
-          PackagePath="tools/net10.0/any/web/dist/" />
+          PackagePath="tools/net10.0/any/web/dist-cli/" />
   </ItemGroup>
 </Project>

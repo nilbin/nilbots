@@ -351,8 +351,11 @@ if (mode.RunsWeb)
             : Results.Text(File.ReadAllText(guide), "text/plain; charset=utf-8");
     }).AllowAnonymous();
 
-    // The SPA: a single self-contained index.html built from web/ (`npm run build`).
-    // Served straight from web/dist so dev and Docker need no copy step.
+    // The SPA, built from web/ (`npm run build`) and served straight from web/dist so dev
+    // and Docker need no copy step. Hashed assets, not one inline document: the CLI's
+    // self-contained artifact is a separate build (web/dist-cli) and only `nilbots play`
+    // needs it. Serving that one here made every visitor — and every cold WebView on a
+    // phone — parse ~15 MB before anything rendered.
     string? spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));
     if (spaDir is not null && File.Exists(Path.Combine(spaDir, "index.html")))
     {

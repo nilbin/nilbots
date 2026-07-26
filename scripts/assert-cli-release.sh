@@ -109,6 +109,7 @@ EOF
       web/package.json
       web/package-lock.json
       web/vite.config.ts
+      web/vite.cli.config.ts
       web/src/App.tsx
       web/src/components
       web/src/assets
