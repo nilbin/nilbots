@@ -13,7 +13,7 @@
     "atlas:variants": "node ../scripts/generate-atlas-variants.mjs",
     "atlas:clean": "node ../scripts/generate-atlas-variants.mjs --clean",
     "harness": "vite build --ssr tests/support/harness.entry.ts --outDir tests/.harness --logLevel error",
-    "build:cli": "npm run atlas:clean && tsc -b && vite build --config vite.cli.config.ts"
+    "build:cli": "npm run atlas:clean && tsc -b && node ../scripts/build-cli-viewers.mjs"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",

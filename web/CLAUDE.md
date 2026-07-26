@@ -173,7 +173,7 @@ not holding them; if you change a boundary here, change that test in the same co
 | output | config | shape | consumer |
 |---|---|---|---|
 | `dist/` | `vite.config.ts` | 847 B entry + hashed assets | the site, and the app's WebView |
-| `dist-cli/` | `vite.cli.config.ts` | one 15 MB self-contained file | `nilbots play` |
+| `dist-cli/<theme>/` | `vite.cli.config.ts` | one self-contained file per map theme, 3.6–6.7 MB | `nilbots play` |
 | `dist-review/` | `vite.review.config.ts` | hashed, `base: './'` | `npm run review` on a phone |
 
 **`viteSingleFile` belongs to `dist-cli` alone.** `nilbots play` writes a `viewer.html` the
@@ -182,10 +182,23 @@ player can copy anywhere and open from disk, and a `file:` URL cannot fetch sibl
 so every visitor and every cold WebView parsed ~15 MB inline before anything rendered,
 paying for a constraint neither of them has.
 
-Two consequences worth remembering. `dist` now carries the 1024/2048 atlas variants, so
+**And it is built once per theme, because a replay draws exactly one.** Themes are
+effectively the entire artifact — 14 MB against 236 KB for every chassis, projectile look
+and audio cue combined — so an unscoped viewer paid for four and grew with the library.
+`ReplayOutput` picks by the replay's `ThemeId`, falling back rather than failing when an
+install does not ship the theme a replay names.
+
+The scoping happens in a build-time transform (`scopeToTheme`), not at runtime, and that is
+not a stylistic choice: `import.meta.glob` takes a literal pattern and Rollup follows every
+match, so filtering the resulting map would inline all four atlases and simply never read
+three of them. That transform **throws if the pattern it rewrites has moved**, because the
+failure mode it guards is silent — the build would keep succeeding and ship every theme
+again.
+
+Two more consequences. `dist` now carries the 1024/2048 atlas variants, so
 `preferredAtlasWidth()` can pick per device instead of everyone getting the 4096 master —
-`build:cli` runs `atlas:clean` first precisely so those variants are *not* inlined into the
-artifact. And the CLI packs `web/dist-cli/index.html`, so moving that path means updating
+`build:cli` runs `atlas:clean` first precisely so those variants are *not* inlined. And the
+CLI packs `web/dist-cli/<theme>/index.html`, so moving that path means updating
 `BotArena.Cli.csproj`, `ReplayOutput.cs` and `assert-cli-release.sh` together.
 
 The App serves `dist` directly, so a viewer change is not live until `npm run build` has

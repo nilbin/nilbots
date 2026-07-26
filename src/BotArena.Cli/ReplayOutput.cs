@@ -12,20 +12,22 @@ public static class ReplayOutput
 {
     public const string InjectionMarker = "<!--BOTARENA_REPLAY-->";
 
+    /// <summary>Stands in when a replay names no theme, or one this install does not ship.</summary>
+    private const string FallbackTheme = "control-room";
+
     public static WrittenReplay Write(Replay replay, string outDir)
     {
         Directory.CreateDirectory(outDir);
         string json = ReplaySerializer.ToJson(replay);
         string replayPath = Path.GetFullPath(Path.Combine(outDir, "replay.json"));
         File.WriteAllText(replayPath, json);
-        string? viewerPath = WriteViewer(json, outDir);
+        string? viewerPath = WriteViewer(json, outDir, replay.Header.ThemeId);
         return new WrittenReplay(replayPath, viewerPath);
     }
 
-    public static string? WriteViewer(string replayJson, string outDir)
+    public static string? WriteViewer(string replayJson, string outDir, string? themeId = null)
     {
-        string? template = Environment.GetEnvironmentVariable("BOTARENA_VIEWER")
-            ?? CliSupport.FindUpward(Path.Combine("web", "dist-cli", "index.html"));
+        string? template = FindTemplate(themeId);
         if (template is null || !File.Exists(template))
             return null;
         string html = File.ReadAllText(template);
@@ -38,5 +40,45 @@ public static class ReplayOutput
         string viewerPath = Path.GetFullPath(Path.Combine(outDir, "viewer.html"));
         File.WriteAllText(viewerPath, html);
         return viewerPath;
+    }
+
+    /// <summary>
+    /// The viewer built for this replay's theme.
+    /// </summary>
+    /// <remarks>
+    /// There is one artifact per map theme, because a viewer.html has to work from disk
+    /// and therefore inlines its assets — and themes are effectively all of that weight
+    /// (14 MB against 236 KB for every chassis, projectile look and audio cue combined).
+    /// Shipping all four in every viewer cost 15 MB per file and grew with the content
+    /// library; scoped, the same replay is 3.6–6.7 MB.
+    /// <para>
+    /// An unknown theme falls back rather than failing: a replay recorded against a theme
+    /// this install does not ship should still be watchable — in the wrong colours — rather
+    /// than not at all.
+    /// </para>
+    /// </remarks>
+    private static string? FindTemplate(string? themeId)
+    {
+        string? explicitPath = Environment.GetEnvironmentVariable("BOTARENA_VIEWER");
+        if (!string.IsNullOrWhiteSpace(explicitPath))
+            return explicitPath;
+
+        foreach (string candidate in Candidates(themeId))
+        {
+            string? found = CliSupport.FindUpward(candidate);
+            if (found is not null && File.Exists(found))
+                return found;
+        }
+        return null;
+    }
+
+    private static IEnumerable<string> Candidates(string? themeId)
+    {
+        if (!string.IsNullOrWhiteSpace(themeId))
+            yield return Path.Combine("web", "dist-cli", themeId, "index.html");
+        yield return Path.Combine("web", "dist-cli", FallbackTheme, "index.html");
+        // An unscoped build, which is what `vite build --config vite.cli.config.ts` emits
+        // without BOTARENA_CLI_THEME. Convenient locally; never what the package ships.
+        yield return Path.Combine("web", "dist-cli", "index.html");
     }
 }

@@ -6,3 +6,9 @@ declare module '*.md?raw' {
   const content: string;
   export default content;
 }
+
+/**
+ * Substituted by `vite.cli.config.ts` when it scopes an artifact to a single theme.
+ * Declared rather than defined, so builds that do not set it leave the fallback alone.
+ */
+declare const __BOTARENA_DEFAULT_THEME__: string | undefined;
