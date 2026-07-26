@@ -29,12 +29,18 @@ public static class AccountsEndpoints
                 return Results.Problem("Password must be at least 8 characters.", statusCode: 400);
             if (await db.Users.AnyAsync(u => u.Email == email))
                 return Results.Problem("An account with this email already exists.", statusCode: 409);
+            // Rejected rather than silently altered. A name typed into a form is a choice,
+            // and quietly handing back "Pincer2" is how someone ends up on the ladder under
+            // a name they did not pick. The external-provider path suffixes instead,
+            // because there is no form and no one to ask (DECISIONS #121).
+            if (await DisplayNames.IsTakenAsync(db, displayName, default))
+                return Results.Problem("That display name is taken.", statusCode: 409);
 
-            var user = new User { DisplayName = displayName, Email = email, PasswordHash = "" };
+            var user = new User { DisplayName = displayName, Email = email };
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
             db.Users.Add(user);
             await db.SaveChangesAsync();
-            await SignIn(http, user);
+            await SignInAsync(http, user);
             return Results.Ok(ToResponse(user));
         }).Produces<UserResponse>().RequireRateLimiting("auth");
 
@@ -42,11 +48,16 @@ public static class AccountsEndpoints
         {
             string email = request.Email.Trim().ToLowerInvariant();
             var user = await db.Users.SingleOrDefaultAsync(u => u.Email == email);
-            if (user is null ||
-                new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password)
+            // A passwordless account — one that has only ever signed in through Google —
+            // is refused before the verifier sees it. The message stays deliberately
+            // identical to a wrong password: telling an anonymous caller "that address
+            // exists but uses Google" is an account-enumeration oracle, and the person it
+            // would help most is the one guessing.
+            if (user?.PasswordHash is not { Length: > 0 } hash ||
+                new PasswordHasher<User>().VerifyHashedPassword(user, hash, request.Password)
                     == PasswordVerificationResult.Failed)
                 return Results.Problem("Invalid email or password.", statusCode: 401);
-            await SignIn(http, user);
+            await SignInAsync(http, user);
             return Results.Ok(ToResponse(user));
         }).Produces<UserResponse>().RequireRateLimiting("auth");
 
@@ -63,7 +74,12 @@ public static class AccountsEndpoints
         }).Produces<UserResponse>();
     }
 
-    private static async Task SignIn(HttpContext http, User user)
+    /// <summary>
+    /// Issue the session cookie. Shared rather than private, because an external provider
+    /// must produce exactly the same session a password login does — anything else would
+    /// make "signed in" mean two different things to everything downstream.
+    /// </summary>
+    public static async Task SignInAsync(HttpContext http, User user)
     {
         var identity = new ClaimsIdentity(
             [

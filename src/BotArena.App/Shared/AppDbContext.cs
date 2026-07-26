@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BotRating> BotRatings => Set<BotRating>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<DeviceRegistration> DeviceRegistrations => Set<DeviceRegistration>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
@@ -32,6 +33,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(u => u.Email).IsUnique();
+            // Display names are unique, case-insensitively — the index is a functional one
+            // on lower("DisplayName"), created in the AccountDisplayNames migration because
+            // EF cannot express an expression index. Case-insensitive on purpose: "Pincer"
+            // and "pincer" in the same ladder are indistinguishable at a glance, which is
+            // the whole of an impersonation.
             entity.Property(u => u.DisplayName).HasMaxLength(60);
             entity.Property(u => u.Email).HasMaxLength(200);
         });
@@ -109,6 +115,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(notification => notification.DedupeKey).HasMaxLength(200);
             entity.Property(notification => notification.PayloadJson).HasColumnType("jsonb");
             entity.HasOne<User>().WithMany().HasForeignKey(notification => notification.UserId);
+        });
+
+        modelBuilder.Entity<ExternalLogin>(entity =>
+        {
+            // One local account per provider identity. Unique on (provider, subject) rather
+            // than including the user, so a second account cannot claim an identity that is
+            // already linked — which is what would let someone attach their Google login to
+            // a victim's account and then sign in as them.
+            entity.HasIndex(login => new { login.Provider, login.Subject }).IsUnique();
+            entity.Property(login => login.Provider).HasMaxLength(30);
+            entity.Property(login => login.Subject).HasMaxLength(200);
+            entity.Property(login => login.Email).HasMaxLength(200);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(login => login.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<DeviceRegistration>(entity =>

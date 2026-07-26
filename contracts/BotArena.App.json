@@ -145,6 +145,68 @@
         }
       }
     },
+    "/api/accounts/providers": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthProvidersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/external/google": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "returnUrl",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/callback/login/google": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/meta": {
       "get": {
         "tags": [
@@ -900,6 +962,17 @@
   },
   "components": {
     "schemas": {
+      "AuthProvidersResponse": {
+        "required": [
+          "google"
+        ],
+        "type": "object",
+        "properties": {
+          "google": {
+            "type": "boolean"
+          }
+        }
+      },
       "BotActiveVersionResponse": {
         "required": [
           "id",

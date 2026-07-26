@@ -154,6 +154,7 @@ if (mode.RunsWeb)
                 "BOTARENA_NETWORK_HASH_KEY is required and must be a long random secret."));
     builder.Services.AddSingleton(new SubmissionNetwork(networkHashKey));
     builder.Services.AddScoped<ApplicationActorFactory>();
+    builder.Services.AddScoped<ExternalSignInService>();
     builder.Services.AddScoped<CreateBotUseCase>();
     builder.Services.AddScoped<UpdateBotAppearanceUseCase>();
     builder.Services.AddScoped<BotStatisticsQuery>();
@@ -291,6 +292,7 @@ if (mode.RunsWeb)
     app.MapMatches();
     app.MapRanked();
     app.MapUserNotifications();
+    app.MapExternalAuth();
     app.MapDevices();
     app.MapNotificationPreferences();
     app.MapHub<UserNotificationsHub>("/hubs/notifications")

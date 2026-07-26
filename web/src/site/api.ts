@@ -50,6 +50,7 @@ export const api = {
 };
 
 export type Me = Schemas['UserResponse'];
+export type AuthProviders = Schemas['AuthProvidersResponse'];
 
 export type EntitlementNotificationItem = Schemas['EntitlementNotificationItem'];
 /**
@@ -130,6 +131,8 @@ export const endpoints = {
     }
   },
   logout: () => api.post<unknown>('/api/accounts/logout'),
+  /** Which external sign-ins this deployment can offer. Unconfigured ones must not render. */
+  authProviders: () => api.get<AuthProviders>('/api/accounts/providers'),
   bots: () => api.get<BotSummary[]>('/api/bots'),
   bot: (key: string) => api.get<BotDetail>(`/api/bots/${key}`),
   botMatches: (botId: string) => api.get<BotMatchHistory>(`/api/bots/${botId}/matches`),
