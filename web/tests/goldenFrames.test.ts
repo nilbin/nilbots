@@ -38,6 +38,10 @@ const goldenPath = join(here, 'fixtures', 'golden-frames.json');
 const FRAMES = [
   { name: 'tick 0', time: 0, selectedSlot: null, showVisibility: false },
   { name: 'tick 40', time: 40, selectedSlot: null, showVisibility: false },
+  // Ticks 95 and 96 are the only ones carrying light-emitting events in this replay —
+  // 95 has a shot and an impact, 96 adds the destruction. Without both, the light pass
+  // would be covered by a single frame.
+  { name: 'tick 95', time: 95, selectedSlot: null, showVisibility: false },
   { name: 'tick 96', time: 96, selectedSlot: null, showVisibility: false },
   // Fog is compositing rather than plain drawing, so it gets its own frames.
   { name: 'fog slot 0 @ 20', time: 20, selectedSlot: 0, showVisibility: true },

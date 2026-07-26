@@ -14,6 +14,7 @@ import { replayMaxHealth } from '../replayMetadata';
 import { posesAt, type BotPose } from './interpolate';
 import { wallAtlasDestination } from './wallAtlasGeometry';
 import { drawFogMask } from './fogMask';
+import { drawLightSpill, type LightKind, type LightSource } from './lightSpill';
 
 const directionStep: Record<Direction, [number, number]> = {
   North: [0, -1],
@@ -171,6 +172,7 @@ export function drawArena(
   drawZone();
   if (replay.header.visionCone) drawVisionCones();
   drawWalls();
+  drawSpill();
   if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
   drawProjectiles();
   drawHeardSounds();
@@ -266,6 +268,46 @@ export function drawArena(
         strokeEdge(left, top, left, top + tile);
     }
     ctx.restore();
+  }
+
+  /**
+   * Light thrown onto the arena by this tick's flashes, and the tail of the previous
+   * tick's — a muzzle flash that vanished on the tick boundary would strobe.
+   */
+  function drawSpill(): void {
+    const sources: LightSource[] = [];
+    const accentFor = (slot: number | undefined) =>
+      participants.find((p) => p.slot === slot)?.accent ?? '#ffffff';
+
+    const collect = (index: number, age: number) => {
+      const at = replay.ticks[index];
+      if (!at) return;
+      for (const event of at.events) {
+        const kind: LightKind | null =
+          event.type === 'Shot'
+            ? 'shot'
+            : event.type === 'Damage'
+              ? 'impact'
+              : event.type === 'Destroyed'
+                ? 'destroyed'
+                : null;
+        if (!kind) continue;
+        const source = event as unknown as { fromX?: number; fromY?: number; slot?: number };
+        if (typeof source.fromX !== 'number' || typeof source.fromY !== 'number') continue;
+        sources.push({
+          kind,
+          x: source.fromX,
+          y: source.fromY,
+          age,
+          color: accentFor(source.slot),
+        });
+      }
+    };
+
+    collect(tick, fraction);
+    collect(tick - 1, 1 + fraction);
+
+    drawLightSpill(ctx, sources, { px, py, tile });
   }
 
   function drawFog(slot: number): void {
