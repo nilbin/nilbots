@@ -3,5 +3,6 @@
   "label": "Helio Kite",
   "sprite": "sprite.svg",
   "suggestedAccent": "#f59e0b",
-  "scale": 1.3
+  "scale": 1.3,
+  "defaultProjectileLookId": "helix-dart"
 }

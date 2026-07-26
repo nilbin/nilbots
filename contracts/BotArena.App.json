@@ -207,6 +207,25 @@
         }
       }
     },
+    "/api/store": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meta": {
       "get": {
         "tags": [
@@ -2701,6 +2720,77 @@
           },
           "content": {
             "type": "string"
+          }
+        }
+      },
+      "StorePackItemResponse": {
+        "required": [
+          "key",
+          "kind",
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "StorePackResponse": {
+        "required": [
+          "id",
+          "label",
+          "description",
+          "items",
+          "owned"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorePackItemResponse"
+            }
+          },
+          "owned": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StoreResponse": {
+        "required": [
+          "open",
+          "packs"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "packs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorePackResponse"
+            }
           }
         }
       },

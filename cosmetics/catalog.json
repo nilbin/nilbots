@@ -86,9 +86,9 @@
       "label": "Helio Kite",
       "availability": "entitlement",
       "unlock": {
-        "sourceKind": "achievement",
-        "sourceId": "reserved-helio-kite",
-        "hint": "Reserved for a future achievement."
+        "sourceKind": "purchase",
+        "sourceId": "helio-kite",
+        "hint": "Available in the store."
       }
     },
     {
@@ -98,9 +98,9 @@
       "label": "Scrap Jackal",
       "availability": "entitlement",
       "unlock": {
-        "sourceKind": "challenge",
-        "sourceId": "reserved-scrap-jackal",
-        "hint": "Reserved for a future challenge."
+        "sourceKind": "purchase",
+        "sourceId": "scrap-jackal",
+        "hint": "Available in the store."
       }
     },
     {
@@ -110,9 +110,9 @@
       "label": "Glass Manta",
       "availability": "entitlement",
       "unlock": {
-        "sourceKind": "competition",
-        "sourceId": "reserved-glass-manta",
-        "hint": "Reserved for a future competition reward."
+        "sourceKind": "purchase",
+        "sourceId": "glass-manta",
+        "hint": "Available in the store."
       }
     },
     {
@@ -193,9 +193,9 @@
       "label": "Helix Dart",
       "availability": "entitlement",
       "unlock": {
-        "sourceKind": "achievement",
-        "sourceId": "reserved-helix-dart",
-        "hint": "Reserved for a future achievement."
+        "sourceKind": "purchase",
+        "sourceId": "helio-kite",
+        "hint": "Available in the store."
       }
     },
     {
@@ -205,9 +205,9 @@
       "label": "Gravity Knot",
       "availability": "entitlement",
       "unlock": {
-        "sourceKind": "challenge",
-        "sourceId": "reserved-gravity-knot",
-        "hint": "Reserved for a future challenge."
+        "sourceKind": "purchase",
+        "sourceId": "scrap-jackal",
+        "hint": "Available in the store."
       }
     },
     {
@@ -217,10 +217,39 @@
       "label": "Prism Fan",
       "availability": "entitlement",
       "unlock": {
-        "sourceKind": "competition",
-        "sourceId": "reserved-prism-fan",
-        "hint": "Reserved for a future competition reward."
+        "sourceKind": "purchase",
+        "sourceId": "glass-manta",
+        "hint": "Available in the store."
       }
+    }
+  ],
+  "packs": [
+    {
+      "id": "helio-kite",
+      "label": "Helio Kite",
+      "description": "A sunlit racer and the darts it throws.",
+      "items": [
+        "bot-look:helio-kite",
+        "projectile-look:helix-dart"
+      ]
+    },
+    {
+      "id": "scrap-jackal",
+      "label": "Scrap Jackal",
+      "description": "Salvaged plating, and a shot that drags what it hits.",
+      "items": [
+        "bot-look:scrap-jackal",
+        "projectile-look:gravity-knot"
+      ]
+    },
+    {
+      "id": "glass-manta",
+      "label": "Glass Manta",
+      "description": "Refracting hull, refracting fire.",
+      "items": [
+        "bot-look:glass-manta",
+        "projectile-look:prism-fan"
+      ]
     }
   ]
 }

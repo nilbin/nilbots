@@ -107,11 +107,31 @@ something you are not party to.
 The realistic first step is therefore: sell, declare the income, register nothing, and
 revisit F-skatt and VAT when the numbers say to.
 
+## Provider: Paddle
+
+Chosen, and the deciding fact is narrower than the general MoR case:
+[Paddle's acceptable use policy explicitly permits in-game items such as skins](https://www.paddle.com/help/start/intro-to-paddle/what-am-i-not-allowed-to-sell-on-paddle),
+provided you own and operate the game — which is exactly this. Most MoRs are written for
+SaaS, and "is a game cosmetic even allowed" is a question worth answering before building
+against one.
+
+Alongside that: no legal entity required, 100+ tax jurisdictions covered, and an
+established track record with software and games rather than a young platform.
+
+Two things to expect. **Domain review** — they verify you own and operate nilbots.com, so
+the site needs to be live and describe the product before applying. And their prohibition on
+*exchanges and trading platforms* for virtual currency is worth reading if a marketplace or
+bot trading is ever considered; selling cosmetics direct is fine, letting players trade them
+is a different policy question.
+
+Lemon Squeezy was the obvious alternative and is now owned by Stripe, which makes its
+independent future the thing you would be betting on. Polar is cheaper and newer; worth a
+look if Paddle's review goes badly.
+
 ## What I would do
 
-1. **Web-only sales, through a merchant of record.** Paddle or Lemon Squeezy; both take
-   individuals. Note Lemon Squeezy was acquired by Stripe, so check where it is heading
-   before committing.
+1. **Web-only sales through Paddle**, with the provider behind `IStorePaymentProvider` so
+   the App Store's own flow can be a second implementation rather than a rewrite.
 2. **Grant on webhook**, into the entitlement system that already exists — a `purchase`
    source kind, the payment reference as the source id, and the existing dedupe making a
    replayed webhook silent the same way a retried job already is.

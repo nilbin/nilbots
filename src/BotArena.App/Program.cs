@@ -7,6 +7,7 @@ using BotArena.App.Matches;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
+using BotArena.App.Store;
 using BotArena.Engine;
 using BotArena.Toolchain;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -155,6 +156,11 @@ if (mode.RunsWeb)
     builder.Services.AddSingleton(new SubmissionNetwork(networkHashKey));
     builder.Services.AddScoped<ApplicationActorFactory>();
     builder.Services.AddScoped<ExternalSignInService>();
+    builder.Services.AddScoped<StorePurchaseService>();
+    // No provider is configured yet: the store reports itself closed and renders nothing.
+    // Adding Paddle is registering a different IStorePaymentProvider here — see
+    // docs/MONETIZATION-OPTIONS.md for why it must be a merchant of record.
+    builder.Services.AddSingleton<IStorePaymentProvider, ClosedStore>();
     builder.Services.AddScoped<CreateBotUseCase>();
     builder.Services.AddScoped<UpdateBotAppearanceUseCase>();
     builder.Services.AddScoped<BotStatisticsQuery>();
@@ -293,6 +299,7 @@ if (mode.RunsWeb)
     app.MapRanked();
     app.MapUserNotifications();
     app.MapExternalAuth();
+    app.MapStore();
     app.MapDevices();
     app.MapNotificationPreferences();
     app.MapHub<UserNotificationsHub>("/hubs/notifications")
