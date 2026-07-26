@@ -68,7 +68,21 @@ are ready, show progress. The mobile app renders only the canvas, so readiness m
 cross the bridge as a message — a loader built into `Viewer`'s chrome reaches the site,
 the CLI and review, and never reaches the app.
 
-## 3. Split `drawArena` into passes
+## 3. Split `drawArena` into passes — DEFERRED, and why
+
+**Golden-frame tests are done** (`tests/goldenFrames.test.ts`), which was the precondition.
+The extraction itself is deferred on inspection: the call sequence in `drawArena` is
+*already* an explicit ordered pipeline — floor, zone, cones, walls, spill, fog,
+projectiles, sounds, bots, shots, impacts — and inserting a pass is adding a function to
+that list, which is exactly how the light pass was added.
+
+So extraction buys **maintainability, not capability**. The inner functions close over
+some twenty shared values (`ctx`, `tile`, `px`, `py`, `theme`, `currentTick`, `poses`…),
+so hoisting them means threading a context object through 835 lines — a large diff whose
+only guard covers geometry rather than textures, since atlases do not load under Node.
+Worth doing when the file next needs real work, not as an end in itself.
+
+### Original rationale
 
 It is **one ~835-line function**; the file has four top-level functions. That is the
 maintainability problem, and it is exactly where every item below lands.
@@ -101,7 +115,16 @@ DECISIONS #11), deliberately chosen and pinned by tests. Widening it changes wha
 perceive: a `GameRules` bump, a new ladder, invalidated replay hashes and a balance
 evaluation. It is a rules project and must not ride along with viewer work.
 
-## 5. 2.5D depth cues
+## 5. 2.5D depth cues — PARTLY DONE, and narrower than written
+
+The renderer already had more depth than this plan assumed: additive `lighter`
+compositing on projectiles and impacts, accent bloom on bots via `shadowBlur`, and wall
+relief and shadow baked into the atlases. **Light spill is done** — flashes now cast onto
+the arena rather than only glowing on themselves.
+
+Remaining, in order: contact shadows under bots and projectiles, wall height (offset cover
+tops toward the camera centre and darken their faces), and camera easing with a small
+shake on impact.
 
 Canvas2D throughout — no WebGL, no three.js. The scene is two bots on a tile grid;
 rasterisation is not the bottleneck, payload is, and normal maps would double atlas weight
