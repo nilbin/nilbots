@@ -51,12 +51,15 @@ const FRAMES = [
 const WIDTH = 640;
 const HEIGHT = 480;
 
-function frameHash(frame: (typeof FRAMES)[number]): string {
+function frameHash(
+  frame: (typeof FRAMES)[number],
+  source: ReplayDocument = replay,
+): string {
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
   drawArena(
     ctx as unknown as CanvasRenderingContext2D,
-    replay,
+    source,
     { time: frame.time, selectedSlot: frame.selectedSlot, showVisibility: frame.showVisibility },
     WIDTH,
     HEIGHT,
@@ -96,5 +99,18 @@ test('every frame renders something', () => {
     .slice(0, 16);
   for (const frame of FRAMES) {
     assert.notEqual(actual[frame.name], blank, `Frame "${frame.name}" is empty.`);
+  }
+});
+
+test('participant serialization order does not change rendered identity', () => {
+  const reordered = structuredClone(replay);
+  reordered.header.participants.reverse();
+
+  for (const frame of FRAMES) {
+    assert.equal(
+      frameHash(frame, reordered),
+      actual[frame.name],
+      `Frame "${frame.name}" tied participant identity to array order.`,
+    );
   }
 });

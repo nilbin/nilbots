@@ -1,8 +1,9 @@
-import type { ReplayDocument } from './types';
+import type { ReplayDocument, ReplayParticipant } from './types';
 import { botLook, presentationAccent } from './render/arenaThemes';
 import { adjustAccentForBackground } from './render/adaptiveAccent';
 import { stateBefore } from './render/interpolate';
 import { replayMaxHealth } from './replayMetadata';
+import { participantsBySlot } from './replayParticipants';
 
 /**
  * Everything a panel needs to describe one tick of a replay, derived once here rather
@@ -69,6 +70,7 @@ export function createPresenter(replay: ReplayDocument): ReplayPresenter {
   const maxHealth = replayMaxHealth(replay);
   const tickCount = replay.ticks.length;
   const zone = deriveZone(replay);
+  const participantLookup = participantsBySlot(replay.header.participants);
 
   const at = (rawTick: number): TickPresentation => {
     // A broadcast still in its countdown has released no ticks, so a replay fetched at
@@ -108,7 +110,7 @@ export function createPresenter(replay: ReplayDocument): ReplayPresenter {
 
     return {
       tick,
-      control: deriveControl(replay, tick, zone),
+      control: deriveControl(replay, tick, zone, participantLookup),
       bots: replay.header.participants.map((participant) => {
         const state = states.find((candidate) => candidate.slot === participant.slot)!;
         const botTick = tickData.bots.find((candidate) => candidate.slot === participant.slot);
@@ -211,6 +213,7 @@ function deriveControl(
   replay: ReplayDocument,
   tick: number,
   zone: Zone | null,
+  participantLookup: ReadonlyMap<number, ReplayParticipant>,
 ): ControlPresentation | null {
   const limit = controlLimitAt(replay, tick);
   if (limit === undefined || !zone) return null;
@@ -219,7 +222,7 @@ function deriveControl(
   const overtime =
     replay.header.controlOvertimeStartTick !== undefined &&
     tickData.tick >= replay.header.controlOvertimeStartTick;
-  const name = (slot: number) => replay.header.participants[slot]?.name ?? `slot ${slot}`;
+  const name = (slot: number) => participantLookup.get(slot)?.name ?? `slot ${slot}`;
 
   const activeOccupants = tickData.state.filter(
     (state) => state.status === 'Active' && zone.onZone.has(`${state.x},${state.y}`),

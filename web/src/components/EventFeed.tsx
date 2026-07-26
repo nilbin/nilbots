@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import clsx from 'clsx';
 import type { GameEvent, ReplayDocument } from '../types';
+import { participantsBySlot } from '../replayParticipants';
 
 export default function EventFeed({
   replay,
@@ -10,6 +11,10 @@ export default function EventFeed({
   tick: number;
 }) {
   const feedRef = useRef<HTMLOListElement>(null);
+  const participantLookup = useMemo(
+    () => participantsBySlot(replay.header.participants),
+    [replay.header.participants],
+  );
 
   const entries = useMemo(() => {
     const list: { tick: number; event: GameEvent }[] = [];
@@ -32,7 +37,7 @@ export default function EventFeed({
   }, [entries.length]);
 
   const name = (slot: number | undefined) =>
-    slot === undefined ? '?' : (replay.header.participants[slot]?.name ?? `slot ${slot}`);
+    slot === undefined ? '?' : (participantLookup.get(slot)?.name ?? `slot ${slot}`);
 
   const describe = ({ event }: { event: GameEvent }): string => {
     switch (event.type) {

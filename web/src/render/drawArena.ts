@@ -11,6 +11,7 @@ import {
   sampleCanvasLuminance,
 } from './adaptiveAccent';
 import { replayMaxHealth } from '../replayMetadata';
+import { participantsBySlot } from '../replayParticipants';
 import { posesAt, type BotPose } from './interpolate';
 import { wallAtlasDestination } from './wallAtlasGeometry';
 import { drawFogMask } from './fogMask';
@@ -111,6 +112,7 @@ export function drawArena(
   height: number,
 ): void {
   const { mapWidth, mapHeight, mapTiles, participants } = replay.header;
+  const participantLookup = participantsBySlot(participants);
   // A margin so edge walls are not flush with the canvas. Fractional rather than a whole
   // tile: at 24x18 a full tile is 4% of width and 5.5% of height given away to black, and
   // on a letterboxed phone every pixel of arena is already scarce. Must match
@@ -170,9 +172,9 @@ export function drawArena(
       wallOverrides.set(`${position.x},${position.y}`, family);
   }
   const lookFor = (slot: number) =>
-    botLook(participants[slot]?.lookId, slot);
+    botLook(participantLookup.get(slot)?.lookId, slot);
   const accentFor = (slot: number): string => {
-    const participant = participants[slot];
+    const participant = participantLookup.get(slot);
     return presentationAccent(
       lookFor(slot),
       participant?.accent ?? '#38bdf8',
@@ -343,7 +345,7 @@ export function drawArena(
   function drawSpill(): void {
     const sources: LightSource[] = [];
     const accentFor = (slot: number | undefined) =>
-      participants.find((p) => p.slot === slot)?.accent ?? '#ffffff';
+      (slot === undefined ? undefined : participantLookup.get(slot)?.accent) ?? '#ffffff';
 
     const collect = (index: number, age: number) => {
       const at = replay.ticks[index];
@@ -721,7 +723,7 @@ export function drawArena(
     accent: string,
     alpha: number,
   ): void {
-    const look = projectileLook(participants[ownerSlot]?.projectileLookId);
+    const look = projectileLook(participantLookup.get(ownerSlot)?.projectileLookId);
     const sprite = tintedProjectileSprite(look, accent);
     const size = tile * look.scale;
 
@@ -816,7 +818,7 @@ export function drawArena(
   }
 
   function drawBot(pose: BotPose): void {
-    const participant = participants[pose.slot];
+    const participant = participantLookup.get(pose.slot);
     const accent = accentFor(pose.slot);
     const look = botLook(participant?.lookId, pose.slot);
     const cx = px(pose.x) + tile / 2;

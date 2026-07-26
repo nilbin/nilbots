@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import type { ReplayDocument } from '../types';
+import { participantsBySlot } from '../replayParticipants';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplayAudio } from '../audio/useReplayAudio';
 import { useAssetReadiness } from '../render/useAssetReadiness';
@@ -28,6 +29,10 @@ export default function Viewer({
   const liveTime = useLiveFollower(replay, live);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+  const participantLookup = useMemo(
+    () => participantsBySlot(replay.header.participants),
+    [replay.header.participants],
+  );
 
   const isLive = live !== undefined;
   const audioReviewEnabled =
@@ -78,7 +83,7 @@ export default function Viewer({
 
   const { header, result } = replay;
   const winner =
-    result && result.winnerSlot !== null ? header.participants[result.winnerSlot] : null;
+    result && result.winnerSlot !== null ? participantLookup.get(result.winnerSlot) : null;
 
   return (
     <div
@@ -203,7 +208,7 @@ export default function Viewer({
                     zone{' '}
                     {[...result.bots]
                       .sort((a, b) => a.slot - b.slot)
-                      .map((b) => `${header.participants[b.slot]?.name ?? `s${b.slot}`} ${b.zoneTicks ?? 0}`)
+                      .map((b) => `${participantLookup.get(b.slot)?.name ?? `s${b.slot}`} ${b.zoneTicks ?? 0}`)
                       .join(' · ')}
                   </p>
                 )}

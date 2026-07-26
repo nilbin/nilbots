@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import type { ReplayDocument } from '../types';
 import { botLook } from '../render/arenaThemes';
 import { createPresenter } from '../replayPresentation';
+import { participantsBySlot } from '../replayParticipants';
 
 interface BotPanelProps {
   replay: ReplayDocument;
@@ -28,6 +29,10 @@ export default function BotPanel({
   onToggleVisibility,
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
+  const participantLookup = useMemo(
+    () => participantsBySlot(replay.header.participants),
+    [replay.header.participants],
+  );
   const { control, bots } = presenter.at(tick);
 
   return (
@@ -64,7 +69,7 @@ export default function BotPanel({
 
       {bots.map((bot) => {
         const selected = selectedSlot === bot.slot;
-        const look = botLook(replay.header.participants[bot.slot]?.lookId, bot.slot);
+        const look = botLook(participantLookup.get(bot.slot)?.lookId, bot.slot);
         return (
           <button
             key={bot.slot}

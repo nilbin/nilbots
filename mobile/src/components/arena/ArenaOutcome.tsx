@@ -20,10 +20,14 @@ export function ArenaOutcome({
   /** Draw it as a card over the arena, rather than inline above the panels. */
   framed?: boolean;
 }) {
+  const winnerParticipant =
+    result.winnerSlot === null
+      ? undefined
+      : header?.participants.find((participant) => participant.slot === result.winnerSlot);
   const winner =
     result.winnerSlot === null
       ? 'DRAW'
-      : `${header?.participants[result.winnerSlot]?.name ?? 'winner'} WINS`;
+      : `${winnerParticipant?.name ?? 'winner'} WINS`;
 
   return (
     <View style={framed ? styles.card : styles.inline}>
