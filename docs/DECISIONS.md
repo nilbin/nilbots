@@ -1771,6 +1771,35 @@ before picking a number.*
      entitlements-only, because both surfaces read the same durable records and
      giving them different news would be a bug in every reading.
 
+120. **Frontline is the active successor experiment; rules 0.5 remains the
+     shipped game.** The experiment keeps the deterministic tile-combat core
+     and tests one moving five-position frontline, respawns, timed replication,
+     and one stationary turret transformation. It is deliberately not a broad
+     MOBA economy or free-for-all rules bundle. Early, middle, and late phases
+     should emerge from escalation while an outplaying team can still breach
+     early. None of the current capture, timing, health, map-size, or turret
+     values is a balance verdict: they are isolated-arm starting hypotheses.
+     Frontline cannot become the default or a ranked ruleset until its
+     deterministic session exists, independently authored Frontline-native
+     policies have played the frozen arms, and outcome-blind replay review
+     shows that the games are both legible and worth watching.
+
+121. **A submission, a scoring team, and a body are separate identities.**
+     Frontline begins with one submitted policy per team, instantiated as
+     independent same-artifact runtime lives in the Prime and unlocked unit
+     slots. The exact match contract therefore identifies scoring teams,
+     submitted participants, stable team-local unit slots, and initial lives;
+     it reports actual team, participant, and unit counts explicitly rather
+     than asking a bot or model to infer them from currently visible allies.
+     Variable allies, enemies, projectiles, objectives, and future player
+     counts remain ordered collections with presence/legality masks, so a
+     model is not architecturally fixed to three bodies. A form transition
+     keeps one runtime's memory; destruction and rebuild create a fresh life.
+     Exact team-perception sharing, runtime-budget scope, and later action/form
+     eligibility remain separate decisions. The replay-native ML plan stays
+     because it supplies the shared canonical-observation, replay-v2, dataset,
+     and model-asset path; Frontline must not create a second ML stack.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

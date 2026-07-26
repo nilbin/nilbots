@@ -1,8 +1,16 @@
 # Replay-native ML support: engine-rewrite integration plan
 
-Status: proposal for the concurrent engine rewrite, 2026-07-26. This document
-records investigation conclusions and an implementation plan; it does not yet
-pin product decisions in `DECISIONS.md`.
+Status: shared proposal for the concurrent engine rewrite, 2026-07-26;
+reconciled with the Frontline public-contract foundation on 2026-07-27. This
+document is the authoritative generic ML/data plan. It records investigation
+conclusions and an implementation plan; it does not yet pin replay-v2, corpus,
+or model-asset product decisions in `DECISIONS.md`.
+
+Frontline does not create a second ML stack. Where older examples below say
+`slot`, that is the legacy-duel actor identity. The common v2 design must also
+represent a Frontline runtime life as `teamId + unitId + lifeId`, carry the
+exact public match manifest/fingerprint, and encode variable entity
+collections plus masks rather than assuming two bodies.
 
 ## Executive conclusion
 
@@ -26,7 +34,7 @@ and model packaging are.
 
 The engine rewrite should include the durable seam now:
 
-1. construct one canonical, public-only observation per bot and tick;
+1. construct one canonical, public-only observation per active actor and tick;
 2. pass that same observation to the runtime and snapshot it directly into the
    replay before the tick resolves;
 3. make replay v2 observation-complete without requiring historical engine
@@ -41,13 +49,13 @@ them.
 
 The intended product invariant is:
 
-> Every state- or rules-derived gameplay input supplied to a bot is represented
-> in the public replay for that bot, slot, and tick.
+> Every state- or rules-derived gameplay input supplied to a runtime actor is
+> represented in the public replay for that exact actor identity and tick.
 
 The surrounding fairness rules are:
 
 - actor inputs in official training examples come only from the recorded
-  per-bot observation;
+  per-actor observation and the referenced immutable public match contract;
 - decisions, outcomes, and omniscient post-match state may be used as
   labels/rewards because they are public replay facts;
 - every broadcast-complete ranked replay and submitted WASM artifact is
@@ -137,10 +145,10 @@ The preferred control flow is:
 
 ```text
 authoritative pre-tick state
-    -> build public BotObservation once per slot
+    -> build one public actor observation per active actor identity
         -> snapshot ReplayBotObservation
-        -> execute the bot runtime with the same BotObservation
-    -> collect BotDecision once per slot
+        -> execute that runtime with the same observation instance/projection
+    -> collect one decision per active actor identity
     -> resolve the tick
     -> snapshot resolution, events, and post-tick state
 ```
@@ -150,16 +158,17 @@ If the rewrite introduces a tick-frame object, its conceptual shape should be:
 ```text
 TickFrame
   Tick
-  PreTickObservations[slot]
-  Decisions[slot]
-  Resolutions[slot]
+  PreTickObservations[actorIdentity]
+  Decisions[actorIdentity]
+  Resolutions[actorIdentity]
   Events
   PostTickState
 ```
 
 Replay assembly must not recompute visibility, hearing, projectile exposure,
 event exposure, or previous state. It serializes the observations already sent
-to runtimes.
+to runtimes. Actor collections use explicit identities and deterministic
+ordering; array position is never identity.
 
 ## Canonical public observation
 
@@ -184,7 +193,7 @@ The same rule applies to projectiles. An observed projectile contains:
 
 - current position;
 - public launch direction;
-- owner slot;
+- owner actor identity (legacy slot or Frontline team/unit/life as applicable);
 - tiles per advance;
 - ticks until advance;
 - remaining tiles;
@@ -208,9 +217,21 @@ rules/version axes, chosen action, and public debug output.
 
 ## Replay v2 schema
 
-Replay v2 adds an explicit `observation` under each bot tick. The replay DTO is
-separate from the internal `BotObservation` so replay stability does not freeze
+Replay v2 adds an explicit `observation` under each actor tick. The replay DTO
+is separate from the internal observation so replay stability does not freeze
 all engine implementation types.
+
+The actor identity is discriminated:
+
+- legacy duel: submitted-participant/body `slot`;
+- Frontline: `teamId + unitId + lifeId`, with the stable unit slot preserving
+  fabrication lineage across lives.
+
+The schema must not encode one fixed body count. Allies, enemies, projectiles,
+objectives, forms, and future action targets are ordered collections with
+presence/legality masks. Counts such as teams, submitted participants, and
+stable unit slots come from the exact public match contract, not from the
+currently visible ally collection.
 
 Suggested dynamic shape:
 
@@ -228,16 +249,16 @@ ReplayBotObservation
   controlPressureLimit?
   previousActionResult
   visibleTiles[]          { x, y, isWall }
-  visibleEnemies[]        { slot, x, y, facing, health }
+  visibleEnemies[]        { actorIdentity, x, y, facing, health, form? }
   visibleProjectiles[]?   exact public projectile fields
-  visibleEvents[]         { type, slot?, x, y }
+  visibleEvents[]         { type, actorIdentity?, x, y }
   heardSounds[]?          { type, bearing, distance }
 ```
 
-`ReplayBotTick` becomes:
+`ReplayActorTick` becomes:
 
 ```text
-slot
+actorIdentity
 observation
 chosenAction
 shotProgram?
@@ -250,27 +271,30 @@ debug?
 Static observation inputs remain in the header and are joined by the dataset
 exporter without invoking rules logic:
 
+- exact public rules/map/match-contract manifests and fingerprints;
+- exact scoring-team, submitted-participant, stable-unit-slot, and initial-life
+  topology;
 - map width, height, and tile rows;
-- zone geometry;
-- programmed-shot limits;
+- objective geometry;
+- action/form catalogs, programmed-shot limits, and other public rule inputs;
 
 The header also carries non-observation provenance needed to interpret and
 group episodes:
 
 - rules and protocol versions;
-- participant slot and spawn/provenance data.
+- participant/artifact and spawn/provenance data.
 
 If the rewrite introduces new static per-match bot inputs, place them in the
 header and include them in the parity test.
 
 ### Timing semantics
 
-For replay tick `t`:
+For replay tick `t` and actor `a`:
 
-- `bots[].observation` is the complete pre-tick observation used to choose the
-  action on tick `t`;
-- `bots[].chosenAction` is the runtime reply to that observation;
-- `bots[].validatedAction` and `result` describe validation/resolution on
+- `actors[a].observation` is the complete pre-tick observation used to choose
+  the action on tick `t`;
+- `actors[a].chosenAction` is the runtime reply to that observation;
+- `actors[a].validatedAction` and `result` describe validation/resolution on
   tick `t`;
 - `state`, `events`, `projectiles`, `projectileTraversals`, and shared control
   values at tick level remain post-tick truth.
@@ -280,7 +304,7 @@ tick `t` actor input.
 
 ### No-leakage rules
 
-The per-bot observation must never include:
+The per-actor observation must never include:
 
 - the opponent's pending action or private bot memory;
 - unseen opponent position, facing, health, or exact event location;
@@ -361,7 +385,8 @@ This is the engine-rewrite package.
 ### Exit criteria
 
 - the runtime input is a lossless projection of the replay observation plus
-  static header inputs, with tick and slot supplied by their replay parents;
+  static header inputs, with tick and explicit actor identity supplied by their
+  replay parents;
 - in-process and WASM behavior parity remains;
 - same inputs still produce byte-identical v2 replays;
 - v1 fixture verification remains byte-identical;
@@ -378,7 +403,7 @@ Add:
 ```bash
 nilbots dataset inspect <replay-or-directory>
 nilbots dataset export <replay-or-directory> --out trajectories.jsonl
-nilbots dataset export <path> --perspective slot0|slot1|both
+nilbots dataset export <path> --perspective <actor|team|all>
 ```
 
 Dataset format 1 should be raw, model-neutral JSONL. Each row contains:
@@ -390,7 +415,7 @@ rulesVersion
 mapId
 seed
 tick
-slot
+actorIdentity
 observation
 chosenAction and shotProgram
 validatedAction
@@ -405,8 +430,8 @@ Rules:
 - never instantiate `MatchSession` or recompute visibility/rules;
 - produce deterministic row order and byte-identical output for identical
   ordered inputs;
-- preserve episode identity as `(replayHash, slot)` and sequence order by
-  tick;
+- preserve episode identity as `(replayHash, actorIdentity)` and sequence
+  order by tick;
 - export raw game values, not normalized tensors.
 
 The implementation belongs in a new focused CLI file rather than a
@@ -589,7 +614,8 @@ side-channel.
 - replay hash required and verified;
 - v1 rejected or explicitly marked partial;
 - deterministic JSONL bytes;
-- both perspectives preserve independent sequences;
+- every selected actor preserves an independent life sequence, and team views
+  preserve stable unit/life lineage;
 - clean-directory export uses no engine simulation;
 - new observation fields fail a drift test until the exporter handles them.
 
@@ -641,11 +667,11 @@ This gate proves accessibility and integrity, not championship strength.
 | Replay DTO freezes engine internals | Use an explicit projection DTO rather than serializing internal state types |
 | Adapter/replay drift | Build one public-only engine observation and add reflection/field parity tests |
 | Historical replay breakage | Version-dispatched v1 reader/verifier plus permanent golden fixtures |
-| Hidden information leaks into training input | Separate per-bot observation from omniscient replay truth and test forbidden fields |
+| Hidden information leaks into training input | Separate per-actor observation from omniscient replay truth and test forbidden fields |
 | Old artifacts ignore newer optional wire sections | Replay records the canonical host observation; participant/toolchain provenance identifies older adapters, and current official tooling can filter by compatibility |
 | Model assets weaken build isolation | Treat bytes as bounded inert resources, validate before workspace creation, and preserve the controlled build/import validator |
 | Official example becomes the only viable strategy | Keep raw replay/data contracts framework-neutral and inference helpers optional |
-| Players overfit deterministic seeds | Starter uses disjoint seed blocks, mirrored slots, all ranked maps, and historical opponent/checkpoint pools |
+| Players overfit deterministic seeds | Starter uses disjoint seed blocks, mirrored sides, all ranked maps, and historical opponent/checkpoint pools |
 | Public corpus creates pre-broadcast leakage | Index only `BroadcastComplete` matches through the existing broadcast-safe projection boundary |
 
 ## Proposed delivery order

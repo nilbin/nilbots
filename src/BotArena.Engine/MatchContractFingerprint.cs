@@ -130,6 +130,12 @@ public static class MatchContractFingerprint
         HashSet<string> formIds = manifest.Rules.Forms
             .Select(form => form.Id)
             .ToHashSet(StringComparer.Ordinal);
+        if (manifest.Rules.Frontline is { } frontline)
+        {
+            formIds.Add(frontline.Forms.Prime.FormId);
+            formIds.Add(frontline.Forms.Child.FormId);
+            formIds.Add(frontline.Forms.Turret.FormId);
+        }
         foreach (PublicInitialLife life in topology.InitialLives)
         {
             var unitKey = (life.TeamId, life.UnitId);
@@ -147,7 +153,13 @@ public static class MatchContractFingerprint
 
         foreach (int teamId in teamIds)
         {
+            int teamUnitSlotCount = topology.UnitSlots.Count(slot => slot.TeamId == teamId);
             int initialLives = topology.InitialLives.Count(life => life.TeamId == teamId);
+            if (teamUnitSlotCount > manifest.Rules.Limits.MaxUnitsPerTeam)
+            {
+                throw InvalidTopology(
+                    "Unit slots per team cannot exceed the public rules maximum.");
+            }
             if (initialLives != manifest.Rules.Limits.InitialUnitsPerTeam
                 || initialLives > manifest.Rules.Limits.MaxUnitsPerTeam)
             {

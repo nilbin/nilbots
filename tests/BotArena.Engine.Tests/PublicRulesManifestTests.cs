@@ -133,6 +133,7 @@ public class PublicRulesManifestTests
         PublicRulesManifest manifest = PublicRulesManifestFactory.CreateRules(GameRules.V0_1);
 
         Assert.Equal(PublicObjectiveMode.None, manifest.Objective.Mode);
+        Assert.Null(manifest.Frontline);
         Assert.False(manifest.Energy.Enabled);
         Assert.Equal(PublicProjectileMode.InstantRay, manifest.Projectiles.Mode);
         Assert.False(manifest.ShotPrograms.Enabled);

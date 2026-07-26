@@ -5,6 +5,9 @@ public class RulesFingerprintTests
     public static IEnumerable<object[]> PublicGameplayMutations()
     {
         yield return Case(nameof(GameRules.MaxTicks), rules => rules with { MaxTicks = 501 });
+        yield return Case(
+            nameof(GameRules.Frontline),
+            rules => rules with { Frontline = new FrontlineRules() });
         yield return Case(nameof(GameRules.MaxHealth), rules => rules with { MaxHealth = 4 });
         yield return Case(nameof(GameRules.VisionRange), rules => rules with { VisionRange = 7 });
         yield return Case(nameof(GameRules.ShootCooldownTicks), rules => rules with { ShootCooldownTicks = 3 });

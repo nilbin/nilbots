@@ -139,6 +139,12 @@ public static class RulesManifestSerializer
         writer.WriteEndArray();
         writer.WriteEndObject();
 
+        if (manifest.Frontline is { } frontline)
+        {
+            writer.WritePropertyName("frontlineDefinition");
+            WriteFrontlineDefinition(writer, frontline);
+        }
+
         writer.WritePropertyName("energy");
         writer.WriteStartObject();
         writer.WriteBoolean("enabled", manifest.Energy.Enabled);
@@ -381,14 +387,174 @@ public static class RulesManifestSerializer
         writer.WritePropertyName("objectiveTiles");
         writer.WriteStartArray();
         foreach (Position tile in manifest.ObjectiveTiles)
+            WritePosition(writer, tile);
+        writer.WriteEndArray();
+        if (manifest.Frontline is { } frontline)
         {
-            writer.WriteStartArray();
-            writer.WriteNumberValue(tile.X);
-            writer.WriteNumberValue(tile.Y);
-            writer.WriteEndArray();
+            writer.WritePropertyName("frontline");
+            WriteFrontlineMapDefinition(writer, frontline);
         }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineDefinition(
+        Utf8JsonWriter writer,
+        PublicFrontlineDefinition frontline)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamCount", frontline.TeamCount);
+        writer.WriteNumber("participantsPerTeam", frontline.ParticipantsPerTeam);
+        writer.WriteNumber("frontlinePositionCount", frontline.FrontlinePositionCount);
+        writer.WriteNumber("initialUnitsPerTeam", frontline.InitialUnitsPerTeam);
+        writer.WriteNumber("maxUnitsPerTeam", frontline.MaxUnitsPerTeam);
+
+        writer.WritePropertyName("capture");
+        writer.WriteStartObject();
+        writer.WriteNumber("threshold", frontline.Capture.Threshold);
+        writer.WriteNumber(
+            "gainPerSoleTeamTick",
+            frontline.Capture.GainPerSoleTeamTick);
+        writer.WriteNumber("decayAmount", frontline.Capture.DecayAmount);
+        writer.WriteNumber(
+            "decayIntervalTicks",
+            frontline.Capture.DecayIntervalTicks);
+        writer.WriteNumber(
+            "redeployPauseTicks",
+            frontline.Capture.RedeployPauseTicks);
+        writer.WriteNumber("pushesToBreach", frontline.Capture.PushesToBreach);
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("lifecycle");
+        writer.WriteStartObject();
+        writer.WriteNumber(
+            "primeRespawnTicks",
+            frontline.Lifecycle.PrimeRespawnTicks);
+        writer.WriteNumber(
+            "childRebuildTicks",
+            frontline.Lifecycle.ChildRebuildTicks);
+        writer.WritePropertyName("fabricationUnlockTicks");
+        writer.WriteStartArray();
+        foreach (int tick in frontline.Lifecycle.FabricationUnlockTicks)
+            writer.WriteNumberValue(tick);
         writer.WriteEndArray();
         writer.WriteEndObject();
+
+        writer.WritePropertyName("forms");
+        writer.WriteStartObject();
+        writer.WritePropertyName("prime");
+        WriteFrontlineUnitForm(writer, frontline.Forms.Prime);
+        writer.WritePropertyName("child");
+        WriteFrontlineUnitForm(writer, frontline.Forms.Child);
+        writer.WritePropertyName("turret");
+        WriteFrontlineUnitForm(writer, frontline.Forms.Turret);
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("anchor");
+        writer.WriteStartObject();
+        writer.WriteNumber("windupTicks", frontline.Anchor.WindupTicks);
+        writer.WriteNumber("healthGain", frontline.Anchor.HealthGain);
+        writer.WriteBoolean(
+            "irreversibleForLife",
+            frontline.Anchor.IrreversibleForLife);
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("alliedCombat");
+        writer.WriteStartObject();
+        writer.WriteBoolean(
+            "friendlyFireEnabled",
+            frontline.AlliedCombat.FriendlyFireEnabled);
+        writer.WriteBoolean(
+            "alliedProjectilesBlock",
+            frontline.AlliedCombat.AlliedProjectilesBlock);
+        writer.WriteEndObject();
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineUnitForm(
+        Utf8JsonWriter writer,
+        PublicFrontlineUnitFormDefinition form)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("formId", form.FormId);
+        writer.WriteNumber("maxHealth", form.MaxHealth);
+        writer.WriteNumber("visionRange", form.VisionRange);
+        writer.WriteNumber("shootCooldownTicks", form.ShootCooldownTicks);
+        writer.WriteBoolean(
+            "omnidirectionalVision",
+            form.OmnidirectionalVision);
+        writer.WriteBoolean(
+            "omnidirectionalShooting",
+            form.OmnidirectionalShooting);
+        writer.WriteNumber("objectiveWeight", form.ObjectiveWeight);
+        writer.WriteBoolean("canMove", form.CanMove);
+        writer.WriteBoolean("canShoot", form.CanShoot);
+        writer.WriteBoolean(
+            "allowsProgrammedShots",
+            form.AllowsProgrammedShots);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineMapDefinition(
+        Utf8JsonWriter writer,
+        PublicFrontlineMapDefinition frontline)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("positions");
+        writer.WriteStartArray();
+        foreach (PublicFrontlinePosition position in frontline.Positions)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("positionIndex", position.PositionIndex);
+            writer.WritePropertyName("tiles");
+            WriteCanonicalTileSet(writer, position.Tiles);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WritePropertyName("teamHomes");
+        writer.WriteStartArray();
+        foreach (PublicFrontlineTeamHome home in frontline.TeamHomes
+                     .OrderBy(home => home.TeamId))
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("teamId", home.TeamId);
+            writer.WritePropertyName("primeSpawn");
+            writer.WriteStartObject();
+            writer.WriteNumber("x", home.PrimeSpawnPosition.X);
+            writer.WriteNumber("y", home.PrimeSpawnPosition.Y);
+            writer.WriteString("facing", DirectionId(home.PrimeSpawnFacing));
+            writer.WriteEndObject();
+            writer.WritePropertyName("protectedSpawnPad");
+            WriteCanonicalTileSet(writer, home.ProtectedSpawnPad);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WritePropertyName("anchorForbiddenTiles");
+        WriteCanonicalTileSet(writer, frontline.AnchorForbiddenTiles);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteCanonicalTileSet(
+        Utf8JsonWriter writer,
+        IEnumerable<Position> tiles)
+    {
+        writer.WriteStartArray();
+        foreach (Position tile in tiles
+                     .OrderBy(tile => tile.Y)
+                     .ThenBy(tile => tile.X))
+        {
+            WritePosition(writer, tile);
+        }
+        writer.WriteEndArray();
+    }
+
+    private static void WritePosition(Utf8JsonWriter writer, Position tile)
+    {
+        writer.WriteStartArray();
+        writer.WriteNumberValue(tile.X);
+        writer.WriteNumberValue(tile.Y);
+        writer.WriteEndArray();
     }
 
     private static void WriteTopology(
@@ -475,6 +641,7 @@ public static class RulesManifestSerializer
         PublicObjectiveMode.None => "none",
         PublicObjectiveMode.ZoneTicks => "zone-ticks",
         PublicObjectiveMode.SharedPressure => "shared-pressure",
+        PublicObjectiveMode.Frontline => "frontline",
         _ => throw new ArgumentOutOfRangeException(nameof(mode)),
     };
 

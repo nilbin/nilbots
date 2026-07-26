@@ -107,6 +107,20 @@ Project boundaries that must not be violated:
 
 - **BotArena.Engine** is a pure simulation library: no ASP.NET/EF/WASM/SDK
   references. It defines `IBotRuntime`; runtimes plug in from outside.
+- The Engine also owns the immutable public match contract:
+  `PublicRulesManifestFactory` projects `GameRules`, `ArenaMap`, and exact
+  scoring-team/submitted-participant/stable-unit-slot/initial-life topology
+  into explicitly ordered canonical rules, map, and aggregate fingerprints.
+  This contract is engine-only today; protocol 0.1 and replay v1 do not yet
+  deliver or embed it.
+- Frontline is an unshipped, definition-only experiment. Official rules
+  0.1–0.5 leave `GameRules.Frontline` null and continue through legacy
+  `MatchSession` and map format 1. Experimental map format 2, the
+  rules/map/topology resolver, and `FrontlineControlSystem` exist, but there is
+  not yet a playable Frontline session, runtime protocol, replay, CLI ruleset,
+  or server ladder. Format-v2 assets live under `maps/experimental/`; current
+  App and CLI catalogs/package inputs enumerate only top-level format-v1 maps,
+  and the legacy `MatchEngine` rejects a Frontline definition defensively.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated types, mapped by adapters in
   BotArena.Runtime (in-process, diagnostic only) and BotArena.Guest (the
@@ -175,6 +189,14 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   rules version; the PRNG (SplitMix64) and seed derivation are pinned by
   golden-value tests — if `RandomTests.GoldenValues_PinTheAlgorithm` fails you
   changed the game, which is a version bump, not a test update.
+- Public contract collections never use array position as identity. Scoring
+  team, submitted participant, stable team-local unit slot, and runtime life
+  are distinct; consumers resolve them by their explicit IDs. Canonical
+  collection order is a serialization/fingerprint rule, not an identity rule.
+- Rules/map aliases and presentation are outside component content hashes;
+  ordered gameplay sequences stay ordered, true sets are canonicalized, and
+  the aggregate match fingerprint includes the exact topology and public
+  provenance. Historical official rules/map/match goldens must remain exact.
 - Broadcast secrecy: API endpoints must never reveal winners/outcomes/ratings
   before `Match.BroadcastComplete(now)` — new endpoints must follow this.
 - Version axes (SDK / runtime protocol / runtime config / game rules) are in

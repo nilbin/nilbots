@@ -6,6 +6,28 @@ deep enough?", "what do we add next?", and "how do progression and monetization
 fit without poisoning the premise?". Rule changes decided here still get a
 DECISIONS entry when implemented.
 
+## Current direction: Frontline experiment (2026-07-27)
+
+The active successor experiment is intentionally smaller than an FFA or MOBA:
+keep the deterministic tile-combat language, replace one lethal duel with a
+moving five-position frontline, let destroyed Primes return, unlock two
+additional instances of the same submitted policy at fixed times, and test a
+child-to-stationary-turret transformation for its current life.
+
+This creates phase change without a shop, XP tree, resource economy, unit
+catalogue, or forced three-act match. An undefended team can breach before the
+first unlock; a close game naturally reaches replication and then turret
+strategy. Captures change geography but do not increase damage, health, or
+unlock speed, so early success matters without directly compounding combat
+power.
+
+The code and evidence sequence is tracked in
+[`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md), while
+[`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) holds the design
+envelope. All current numeric values are experiment arms, not conclusions.
+Rules 0.5 remains the shipped design until Frontline passes deterministic,
+native-policy, dynamics, and blind-viewer gates.
+
 ## Where the game stands (evidence: agent-arena tournament, 2026-07-22)
 
 Real emergent depth showed up with zero prompting:

@@ -19,6 +19,8 @@ public class PublicMapManifestTests
 
         Assert.Equal("ordered", manifest.MapId);
         Assert.Equal(7, manifest.MapVersion);
+        Assert.Equal(1, manifest.FormatVersion);
+        Assert.Null(manifest.Frontline);
         Assert.Equal([0, 1], manifest.Spawns.Select(spawn => spawn.TeamId));
         Assert.Equal(new Position(3, 1), manifest.Spawns[0].Position);
         Assert.Equal(new Position(1, 1), manifest.Spawns[1].Position);

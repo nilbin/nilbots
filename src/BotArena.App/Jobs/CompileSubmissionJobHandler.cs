@@ -150,8 +150,8 @@ public sealed class CompileSubmissionJobHandler(
     {
         string? builtin = RepoPaths.FindUpward(
             Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
-        ArenaMap map = ArenaMapLoader.Load("basic-01");
         GameRules rules = matchSettings.MatchRules with { MaxTicks = 5 };
+        ArenaMap map = ArenaMapLoader.Load("basic-01", rules);
         using var candidate =
             new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = wasmPath });
         using IBotRuntime idle = builtin is null

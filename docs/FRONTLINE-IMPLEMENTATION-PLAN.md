@@ -1,15 +1,18 @@
 # Frontline rewrite — implementation workload
 
-Status: **draft / implementation in progress**, 2026-07-26. This document turns
-[`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) into an implementation
-sequence. It does not mean Frontline has shipped, been pre-registered, or
-replaced rules 0.5.
+Status: **active experiment / implementation in progress**, 2026-07-27. This
+document turns
+[`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) into an
+implementation sequence. It does not mean Frontline has shipped, been
+pre-registered, or replaced rules 0.5.
 
-The frontend is being refactored separately. Until that work is integrated,
-every `web/` and `mobile/` change in this plan is design-only.
+The frontend refactor is integrated. A replay-v1 identity-normalization slice
+may proceed now; Frontline-specific `web/` and `mobile/` work still waits for
+the replay-v2 contract it will consume.
 
-Current implementation scope: Packages 0–1 are present in the accompanying
-foundation change. Later packages remain planned.
+Current implementation scope: Packages 0–2 are present in the accompanying
+foundation change. Package 3 is the next active slice; later packages remain
+planned.
 
 ## 1. Recommendation
 
@@ -150,7 +153,10 @@ Freeze these before the package that consumes them, not all at once.
 
 ### Before Anchor
 
-- Eight-way directional fire and whether a turret may use programmed curves.
+- The initial definition exposes eight-way directional fire and keeps
+  programmed curves off for turrets. Freeze that arm or explicitly test a
+  curve-enabled alternative before implementing Anchor; enabling it changes
+  map safety validation and legal Anchor geometry.
 - Health transition on Anchor; recommended first arm is `+2`, clamped to the
   turret maximum, rather than an implicit full heal.
 - Irreversible for one life versus explicit self-destruction.
@@ -250,13 +256,19 @@ Likely additions:
 - `src/BotArena.Engine/MatchDefinitionResolver.cs`
 - `src/BotArena.Engine/FrontlineControlState.cs`
 - `src/BotArena.Engine/FrontlineControlSystem.cs`
-- `maps/frontline-01.json`
+- `maps/experimental/frontline-01.json`
 - focused map, resolution, fingerprint, and control-system tests
 
 Narrow existing-file changes:
 
-- optional disabled Frontline subtree and named experiment in `GameRules`;
+- optional disabled Frontline subtree in `GameRules`; no named/CLI experiment
+  is exposed before a playable session exists;
 - a map-format-2 parser branch in `ArenaMap`; format 1 remains unchanged.
+- keep format-v2 assets under `maps/experimental/`, outside the current
+  App/CLI top-level map catalog and CLI package wildcard;
+- resolve map/rules compatibility before queueing and again before legacy
+  execution; `MatchEngine` must reject a Frontline definition until its
+  dedicated session exists.
 
 Acceptance:
 
@@ -267,6 +279,8 @@ Acceptance:
 - reversible partial pressure;
 - deterministic three-push base breach from the centre;
 - stable map/rules/match fingerprints.
+- eight-way turret launch headings and every enabled programmed path are
+  included in the Anchor-to-Prime-spawn safety proof.
 
 ### Package 3 — Prime-only headless Frontline
 
@@ -307,7 +321,8 @@ destruction, and max-tick fixtures are deterministic.
 
 Goal: implement the engine/replay seam of replay-native ML Work Package A
 once, while the engine contracts are already being rewritten. Its viewer
-consumer work completes in Package 8 after the frontend boundary opens.
+consumer work completes against the now-open frontend boundary in Package 8,
+after replay v2 supplies the data.
 
 Requirements from `REPLAY-NATIVE-ML-PLAN.md`:
 
@@ -461,7 +476,7 @@ Backend/CLI first:
 - rules/map/match fingerprints in diagnostics;
 - clean experimental rules selection.
 
-Frontend only after the active refactor integrates:
+Frontend after replay v2 is available:
 
 - one replay-version normalization layer;
 - team/unit/life presentation through `replayPresentation.ts`;
@@ -543,9 +558,14 @@ After SDK, CLI, replay, and the experimental brief are usable:
 - keep historical 0.5 champions as compatibility sentinels;
 - run outcome-blind review before opening aggregate outcomes.
 
-## 7. Frontend plan-only boundary
+## 7. Frontend boundary and staged implementation
 
-Do not edit these areas until the active frontend refactor is integrated:
+The refactor is integrated. The first safe slice is to eliminate replay-v1
+assumptions that participant array position equals stable slot identity, with
+reordered and sparse-slot tests. It must not invent replay-v2 fields or change
+the hosted-viewer bridge.
+
+The remaining Frontline work will touch:
 
 - `web/src/types.ts` — hand-maintained replay mirror;
 - `web/src/replayPresentation.ts` — shared per-tick presentation derivation;
@@ -566,8 +586,10 @@ native controls/cards outside it. Later work must:
 - extend `HostedViewer` and the native bridge in lockstep;
 - retain phone/desktop golden-frame and outcome-blind review coverage.
 
-The frontend owner should rebase the plan onto the completed refactor before
-editing. No backend agent should reserve or casually patch these files.
+Implement the Frontline-specific portion only after replay v2 supplies stable
+team/unit/life, lifecycle, form, fabrication, and objective fields. Coordinate
+any hosted-viewer bridge change with the native mobile arena components in the
+same integration slice.
 
 ## 8. Documentation migration
 
@@ -578,19 +600,22 @@ Do not rewrite historical documents as though Frontline has already shipped.
 - Keep `PLAYER-GUIDE.md`, template docs, site docs, CLI help, and README on
   shipped rules 0.5.
 - Keep `REPLAY-NATIVE-ML-PLAN.md` as the generic proposal and both Frontline
-  plans explicitly exploratory.
+  plans explicitly experimental rather than shipped.
 - Do not add numeric hypotheses to `DECISIONS.md`.
-- Do not mark Frontline active in `PLAN-SUMMARY.md`.
+- Keep `PLAN-SUMMARY.md` explicit that Frontline is active experimentally
+  while rules 0.5 remains current.
 
-### When the experiment is commissioned
+### Commissioned on 2026-07-27
 
-- Create concise `docs/EXPERIMENTAL-FRONTLINE.md` with no unresolved arms.
-- Add a documentation status index categorizing current, experimental,
-  historical design/evidence, and versioned formats.
-- Add a dated Frontline direction section to `GAME-DESIGN.md`.
-- Add the active experiment to `PLAN-SUMMARY.md` while retaining 0.5 as
-  current.
-- Record only actually frozen decisions in `DECISIONS.md`.
+- `GAME-DESIGN.md`, `PLAN-SUMMARY.md`, and `DECISIONS.md` identify Frontline
+  as the active experiment while retaining rules 0.5 as current.
+- Create concise `docs/EXPERIMENTAL-FRONTLINE.md` only after its remaining
+  player-facing arms are frozen; an unresolved design plan is not a bot
+  contract.
+- Maintain `DOCUMENTATION.md` as the status index; split replay/protocol guides
+  by version when v2 creates simultaneously supported formats.
+- Continue recording only actually frozen decisions, never numeric
+  hypotheses, in `DECISIONS.md`.
 
 ### During implementation
 
@@ -629,8 +654,8 @@ Every package must pass:
 - full `dotnet build BotArena.sln`;
 - `bash scripts/test.sh` before integration when SDK/Guest/WASM is touched.
 
-Packages touching web/mobile wait for the frontend boundary to open, then also
-run the scoped builds/tests from `web/CLAUDE.md` and `mobile/CLAUDE.md`.
+Packages touching web/mobile run the scoped builds/tests from `web/CLAUDE.md`
+and `mobile/CLAUDE.md`. Replay-v2 fields still gate the actual Frontline UI.
 
 Before an experimental server deployment:
 
@@ -646,19 +671,29 @@ Before any ship decision, apply `EVALUATION-METHODOLOGY.md` literally:
 regression sentinels, same-cohort causal arms, candidate-native doctrines,
 dynamics metrics, and locked outcome-blind viewer notes.
 
-## 10. Immediate first wave
+## 10. Immediate implementation wave
 
-The safe first wave is Packages 0–1:
+Packages 0–2 now establish the historical shield, exact public contract,
+format-v2 map, rules/map/topology resolver, and pure objective kernel. Official
+rules 0.1–0.5, protocol 0.1, replay v1, and their canonical hashes remain
+unchanged. The experimental map is deliberately absent from current App/CLI
+catalogs and packages, and legacy execution rejects it rather than silently
+running duel mechanics. The web and mobile changes are limited to stable replay-v1
+participant lookup; they add no speculative Frontline payload or visuals.
 
-1. pin representative historical replay/parity fixtures;
-2. introduce disclosure classification;
-3. derive the current public manifest without delivering it to bots;
-4. add canonical rules/map/match fingerprints;
-5. prove every public rule mutation and every excluded internal value behaves
-   as classified;
-6. run the full historical suite.
+The active dependent slice is Package 3:
 
-It deliberately makes no gameplay, protocol, replay-shape, App, CLI, web, or
-mobile change. Package 4 then absorbs the existing replay-native
-observation seam when the engine rewrite reaches observations, avoiding both
-a throwaway Frontline-only data path and a second ML implementation.
+1. add a separate Prime-only `FrontlineMatchSession` without changing legacy
+   `MatchSession`;
+2. introduce stable team/unit/life identity and a keyed joint-decision API;
+3. resolve current movement/projectile combat, Prime destruction and respawn,
+   binary objective presence, breach, and max-tick completion;
+4. freeze only the spawn/lifecycle semantics this headless slice needs and
+   leave fabrication, Anchor, shared perception, runtimes, protocol, and replay
+   shapes deferred;
+5. prove early breach, contest, repeated respawn, simultaneous destruction,
+   symmetry, and deterministic reruns.
+
+Package 4 then absorbs the existing replay-native observation seam when the
+engine rewrite reaches observations, avoiding both a throwaway
+Frontline-only data path and a second ML implementation.

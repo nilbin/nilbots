@@ -3,6 +3,8 @@
 Condensed from the full product/implementation plan (drafted with Sol, 2026-07).
 This file exists so a fresh working session can continue without the original
 document. `docs/DECISIONS.md` records where open choices were pinned.
+[`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
+plans, and historical evidence.
 
 ## Product
 
@@ -115,6 +117,29 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
   balance/dynamics/control/arc/replay-review evaluation tools.
 
+## Active experimental program (2026-07-27)
+
+Frontline is now the active successor experiment; official rules 0.5 remains
+the current game and ladder. The deliberately small game hypothesis is a
+moving five-position frontline, Prime respawns, two fixed-time fabrication
+unlocks, and one child-to-turret transformation. The target architecture runs
+each submitted policy as independent same-artifact instances, with exact
+team/participant/unit/life topology and the complete effective rules exposed
+as deterministic public inputs. This keeps future player counts, maps,
+seasons, and forms representable without fixing bots or ML models to today's
+body count.
+
+Packages 0–2 of
+[`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) are
+implemented: the historical shield and public fingerprints, explicit
+team/participant/unit/life topology, disabled rules and map-format-2
+definition, pre-tick resolver, and pure objective kernel. Package 3's
+Prime-only headless session is next. The integrated frontend refactor has
+opened that lane, beginning with completed replay-v1 participant-identity
+normalization; actual Frontline presentation still waits for replay v2 rather
+than inventing a temporary payload. The shared ML/data path remains
+[`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md).
+
 ## Next session pointers
 
 1. ~~Fast inner loop~~ **DONE** (DECISIONS #44): `--runtime in-process` runs
@@ -126,9 +151,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    version bump. Cross-process cache-key locks and named Docker timeout cleanup
    now prevent CLI/server builds from corrupting one workspace (#70).
 2. ~~Game design: anti-draw + skill-shot program~~ **SHIPPED through rules
-   0.5** (DECISIONS #49/#53/#75). Pincer gen-10 is the launch champion. Next
-   improve delayed-projectile visual causality without changing simulation,
-   then let future challengers test the 45% diversity policy on the 0.5 ladder.
+   0.5** (DECISIONS #49/#53/#75). Pincer gen-10 is the launch champion.
+   Separate 0.5 follow-up work may improve delayed-projectile visual causality
+   without changing simulation and let future challengers test the 45%
+   diversity policy on that ladder.
 3. ~~Sprites/appearances (§33)~~ **DONE** — four active map-owned themes plus
    three complete staged theme kits, eleven SVG bot chassis, ten SVG projectile
    looks, mutable bot appearance with immutable match snapshots, plus the

@@ -14,6 +14,12 @@ public sealed record PublicRulesManifest
     public required string RulesFingerprint { get; init; }
     public required PublicMatchLimits Limits { get; init; }
     public required PublicObjectiveRules Objective { get; init; }
+    /// <summary>
+    /// Experimental Frontline definition data. This subtree exposes rules that
+    /// are not yet represented by runnable action-schema entries; in particular,
+    /// its lifecycle timings do not imply that Fabricate or Anchor actions exist.
+    /// </summary>
+    public required PublicFrontlineDefinition? Frontline { get; init; }
     public required PublicEnergyRules Energy { get; init; }
     public required ImmutableArray<PublicFormDefinition> Forms { get; init; }
     public required ImmutableArray<PublicActionDefinition> Actions { get; init; }
@@ -40,6 +46,7 @@ public enum PublicObjectiveMode
     None,
     ZoneTicks,
     SharedPressure,
+    Frontline,
 }
 
 public enum PublicScoreMetric
@@ -67,6 +74,67 @@ public sealed record PublicObjectiveOvertimeRules(
     int PressureLimit,
     int PressureGain,
     bool StopsDecay);
+
+/// <summary>
+/// Typed definition-only contract for the experimental Frontline mode. It is
+/// intentionally separate from <see cref="PublicFormDefinition"/> and
+/// <see cref="PublicActionDefinition"/> until those forms and lifecycle actions
+/// are actually delivered by a session and runtime protocol.
+/// </summary>
+public sealed record PublicFrontlineDefinition(
+    int TeamCount,
+    int ParticipantsPerTeam,
+    int FrontlinePositionCount,
+    int InitialUnitsPerTeam,
+    int MaxUnitsPerTeam,
+    PublicFrontlineCaptureDefinition Capture,
+    PublicFrontlineLifecycleDefinition Lifecycle,
+    PublicFrontlineFormsDefinition Forms,
+    PublicFrontlineAnchorDefinition Anchor,
+    PublicFrontlineAlliedCombatDefinition AlliedCombat);
+
+public sealed record PublicFrontlineCaptureDefinition(
+    int Threshold,
+    int GainPerSoleTeamTick,
+    int DecayAmount,
+    int DecayIntervalTicks,
+    int RedeployPauseTicks,
+    int PushesToBreach);
+
+/// <summary>
+/// Lifecycle configuration only. Fabrication unlocks and rebuild timing are
+/// public rules inputs, not claims that a Fabricate action is currently runnable.
+/// </summary>
+public sealed record PublicFrontlineLifecycleDefinition(
+    int PrimeRespawnTicks,
+    int ChildRebuildTicks,
+    ImmutableArray<int> FabricationUnlockTicks);
+
+public sealed record PublicFrontlineFormsDefinition(
+    PublicFrontlineUnitFormDefinition Prime,
+    PublicFrontlineUnitFormDefinition Child,
+    PublicFrontlineUnitFormDefinition Turret);
+
+public sealed record PublicFrontlineUnitFormDefinition(
+    string FormId,
+    int MaxHealth,
+    int VisionRange,
+    int ShootCooldownTicks,
+    bool OmnidirectionalVision,
+    bool OmnidirectionalShooting,
+    int ObjectiveWeight,
+    bool CanMove,
+    bool CanShoot,
+    bool AllowsProgrammedShots);
+
+public sealed record PublicFrontlineAnchorDefinition(
+    int WindupTicks,
+    int HealthGain,
+    bool IrreversibleForLife);
+
+public sealed record PublicFrontlineAlliedCombatDefinition(
+    bool FriendlyFireEnabled,
+    bool AlliedProjectilesBlock);
 
 public sealed record PublicEnergyRules(
     bool Enabled,

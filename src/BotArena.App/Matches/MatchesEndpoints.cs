@@ -4,6 +4,7 @@ using BotArena.App.Jobs;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
+using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Matches;
@@ -23,11 +24,28 @@ public static class MatchesEndpoints
             MatchAdmissionService admission,
             MatchParticipantSnapshotFactory snapshots,
             MatchChallengeAnnouncer challenges,
+            MatchExecutionSettings matchSettings,
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
+            string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
+            try
+            {
+                _ = ArenaMapLoader.Load(mapId, matchSettings.MatchRules);
+            }
+            catch (Exception exception) when (
+                exception is InvalidOperationException
+                    or MatchDefinitionValidationException
+                    or NotSupportedException)
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Map is not available for the current rules.",
+                    detail: $"Map '{mapId}' cannot be selected.");
+            }
+
             ApplicationResult<AdmittedMatchBot> challenger =
                 await admission.AdmitAsync(
                     request.BotId,
@@ -43,7 +61,6 @@ public static class MatchesEndpoints
             if (!opponent.Succeeded)
                 return opponent.Error!.ToProblemDetails(http);
 
-            string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
             long seed = request.Seed ?? Random.Shared.NextInt64();
 
             var match = new Match

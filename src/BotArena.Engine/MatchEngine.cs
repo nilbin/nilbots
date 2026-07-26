@@ -43,6 +43,14 @@ public sealed class MatchEngine
         var map = configuration.Map;
         var rules = configuration.Rules;
         var participants = configuration.Participants;
+        ResolvedMatchDefinition definition =
+            MatchDefinitionResolver.Resolve(rules, map);
+        if (definition.IsFrontline)
+        {
+            throw new NotSupportedException(
+                "Frontline is definition-only; MatchEngine cannot run it before " +
+                "the dedicated Frontline session is implemented.");
+        }
         if (participants.Count != map.Spawns.Count)
             throw new ArgumentException(
                 $"Map '{map.Id}' has {map.Spawns.Count} spawns but {participants.Count} participants were supplied.");

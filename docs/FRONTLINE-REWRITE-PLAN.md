@@ -1,8 +1,9 @@
 # Frontline rewrite — exploratory product and architecture plan
 
-Status: **brainstorm / exploratory**, 2026-07-26. Nothing in this document is
-shipped, pre-registered, or a decision-log entry. Numeric values are starting
-hypotheses for experiments, not balance conclusions.
+Status: **active experiment / exploratory mechanics**, 2026-07-27. Frontline
+is commissioned by DECISIONS #120–121, but nothing in this document is
+shipped or pre-registered. Numeric values are starting hypotheses for
+experiments, not balance conclusions.
 
 This is a possible major successor to the current duel rules. It preserves
 nilbots' deterministic tile combat while changing the match from one body
@@ -72,17 +73,19 @@ during the match:
 
 Every body is an independent runtime instance of the exact same artifact and
 policy. Each has its own identity, action, runtime state, and recurrent
-memory. All allied instances receive the engine-merged team perception for
-that tick.
+memory. The recommended first perception arm gives every allied instance the
+same engine-merged, frozen team perception for that tick. Exact sight/hearing
+membership and provenance remain to be frozen before observation work.
 
 This is not an RTS controller returning a joint action. It is one submitted
 intelligence instantiated in several bodies.
 
 ### 1.3 Anchoring
 
-A child may irreversibly Anchor for its current life and become a turret.
-Anchoring changes the child's form; it does not replace the submitted policy
-with host AI.
+In the initial arm, a child may irreversibly Anchor for its current life and
+become a turret. Reversibility remains an isolated alternative, not a settled
+rule. Anchoring changes the child's form; it does not replace the submitted
+policy with host AI.
 
 The anchored instance continues to execute the same artifact, but with a
 different legal-action set and body:
@@ -142,7 +145,9 @@ For a turret, 360-degree firing means one chosen shot direction per tick, not
 simultaneous radial fire. Anchoring consumes the whole tick, is visibly
 telegraphed, resolves at tick end, and permits no shot on that tick. The
 strong-turret arm adds two structural HP on successful conversion and has no
-passive repair.
+passive repair. The initial definition gives mobile forms the global
+programmed-shot capability but keeps it off for turrets; a curve-enabled
+turret is a separate later arm because its reach changes legal Anchor geometry.
 
 Do not initially add splash damage, armor formulas, ammunition, turret
 subclasses, or a separate build catalogue.
@@ -217,6 +222,13 @@ PublicMatchContractManifest
   MatchContractFingerprint
   Rules: PublicRulesManifest
   Map: PublicMapManifest
+  Topology: PublicMatchTopology
+
+PublicMatchTopology
+  Teams[]
+  Participants[]
+  UnitSlots[]
+  InitialLives[]
 
 PublicRulesManifest
   RulesetId
@@ -242,7 +254,9 @@ PublicMapManifest
 
 It should describe at least:
 
-- maximum ticks and team/unit limits;
+- maximum ticks and team, participant, and unit limits;
+- exact scoring-team, submitted-participant, stable-unit-slot, controller, and
+  initial-life relationships for this match;
 - objective positions, capture threshold, decay, redeploy, and pushes to win;
 - Prime and fabrication timings;
 - respawn and rebuild semantics;
@@ -264,6 +278,13 @@ terrain. Each engine value should be classified as:
 - observation-gated state;
 - spectator/replay-only truth;
 - internal/runtime-only mechanics.
+
+The actual number of players is never inferred from the currently visible
+ally collection. Static limits describe what the rules permit; the topology
+describes the exact submitted participants and reserved unit slots in this
+match; each tick's presence mask describes which lives currently exist. That
+separation supports two-team Frontline now, later four- or five-participant
+maps, and dense ML adapters without changing the semantic contract.
 
 ### 4.1 Rulesets, maps, seasons, and fingerprints
 
@@ -362,9 +383,9 @@ new ID even if the UI label is similar.
 
 ## 7. Runtime model
 
-Every body runs one independent instance of the same artifact.
-
-Each pre-tick observation contains:
+Every body runs one independent instance of the same artifact. Under the
+recommended immediate-union perception arm, each pre-tick observation
+contains:
 
 - a match-local handle to the immutable public rules manifest;
 - stable `teamId`, `unitId`, `lifeId`, fabrication slot, and form;
@@ -549,8 +570,11 @@ Blind replay review must specifically score:
 - the spatial value and counterplay of turrets;
 - whether replication phases feel like escalation rather than clutter.
 
-Frontend implementation remains deferred while the active frontend refactor
-is in flight; these are contract and presentation requirements only.
+The frontend refactor has landed. Replay-v1 presentation now resolves
+participants by stable slot rather than array position, which is the safe
+first normalization step. Frontline-specific fields and visuals remain
+deferred until replay v2 supplies the real team/unit/life and objective data;
+the list above is still a presentation contract, not implemented UI.
 
 ## 12. Experiment sequence
 
@@ -601,11 +625,15 @@ redesigned product.
 
 ## 14. Open decisions
 
-- Is team perception an immediate union of sight and hearing, or does some
-  information require an explicit signal?
+- Which sight, hearing, event, and provenance facts enter the recommended
+  immediate team union, and does any other information require an explicit
+  next-tick signal?
 - Does a new child begin with empty private memory, an explicit spawn message,
   or a bounded team-state snapshot?
 - Does fabrication occur adjacent to the Prime or at the home pad?
+- Beyond Anchor-forbidden geometry, do protected home pads forbid enemy
+  occupancy, grant temporary respawn immunity, or both, and exactly what ends
+  that protection?
 - Is Anchor irreversible for a life, or may a turret self-destruct to begin
   its rebuild timer?
 - Are mobile child and Prime HP initially identical?

@@ -86,7 +86,7 @@ public sealed class MatchExecutionJobHandler(
             {
                 MatchRunResult run = new MatchEngine().Run(new MatchConfiguration
                 {
-                    Map = ArenaMapLoader.Load(match.MapId),
+                    Map = ArenaMapLoader.Load(match.MapId, rules),
                     Rules = rules,
                     Seed = unchecked((ulong)match.Seed),
                     Participants = participants

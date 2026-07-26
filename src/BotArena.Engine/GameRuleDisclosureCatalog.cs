@@ -14,6 +14,7 @@ public static class GameRuleDisclosureCatalog
         {
             [nameof(GameRules.RulesVersion)] = GameRuleDisclosure.InternalSeedMechanics,
             [nameof(GameRules.MaxTicks)] = GameRuleDisclosure.PublicGameplay,
+            [nameof(GameRules.Frontline)] = GameRuleDisclosure.PublicGameplay,
             [nameof(GameRules.MaxHealth)] = GameRuleDisclosure.PublicGameplay,
             [nameof(GameRules.VisionRange)] = GameRuleDisclosure.PublicGameplay,
             [nameof(GameRules.ShootCooldownTicks)] = GameRuleDisclosure.PublicGameplay,

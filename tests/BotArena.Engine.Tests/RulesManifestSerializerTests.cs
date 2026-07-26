@@ -106,4 +106,76 @@ public class RulesManifestSerializerTests
             PublicRulesManifestFactory.CreateMap(firstMap).MapFingerprint,
             PublicRulesManifestFactory.CreateMap(secondMap).MapFingerprint);
     }
+
+    [Fact]
+    public void FrontlineSerialization_AddsTypedDefinitionAndMapGeometryOnlyWhenPresent()
+    {
+        GameRules rules = GameRules.V0_1 with
+        {
+            RulesVersion = "frontline-serializer-test",
+            Frontline = new FrontlineRules(),
+        };
+        ArenaMap map = ArenaMap.FromJson(File.ReadAllText(
+            Path.Combine(
+                FindRepoRoot(),
+                "maps",
+                "experimental",
+                "frontline-01.json")));
+
+        using JsonDocument rulesDocument = JsonDocument.Parse(
+            RulesManifestSerializer.ToCanonicalJson(
+                PublicRulesManifestFactory.CreateRules(rules)));
+        using JsonDocument mapDocument = JsonDocument.Parse(
+            RulesManifestSerializer.ToCanonicalJson(
+                PublicRulesManifestFactory.CreateMap(map)));
+        JsonElement rulesRoot = rulesDocument.RootElement;
+        JsonElement mapRoot = mapDocument.RootElement;
+
+        Assert.Equal(
+            [
+                "schemaVersion", "rulesetId", "rulesFingerprint", "limits", "objective",
+                "frontlineDefinition", "energy", "forms", "actions", "projectiles",
+                "shotPrograms", "vision", "collisions", "tickResolution",
+            ],
+            rulesRoot.EnumerateObject().Select(property => property.Name));
+        Assert.Equal(
+            [
+                "teamCount", "participantsPerTeam", "frontlinePositionCount",
+                "initialUnitsPerTeam", "maxUnitsPerTeam", "capture", "lifecycle",
+                "forms", "anchor", "alliedCombat",
+            ],
+            rulesRoot.GetProperty("frontlineDefinition")
+                .EnumerateObject()
+                .Select(property => property.Name));
+        Assert.Empty(rulesRoot.GetProperty("forms").EnumerateArray());
+        Assert.DoesNotContain(
+            rulesRoot.GetProperty("actions").EnumerateArray(),
+            action => action.GetProperty("id").GetString() is "fabricate" or "anchor");
+
+        Assert.Equal(
+            [
+                "schemaVersion", "mapId", "mapVersion", "mapFingerprint", "formatVersion",
+                "width", "height", "tileRows", "spawns", "objectiveTiles", "frontline",
+            ],
+            mapRoot.EnumerateObject().Select(property => property.Name));
+        Assert.Equal(
+            ["positions", "teamHomes", "anchorForbiddenTiles"],
+            mapRoot.GetProperty("frontline")
+                .EnumerateObject()
+                .Select(property => property.Name));
+        Assert.Empty(mapRoot.GetProperty("objectiveTiles").EnumerateArray());
+    }
+
+    private static string FindRepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null
+               && !File.Exists(Path.Combine(directory.FullName, "BotArena.sln")))
+        {
+            directory = directory.Parent;
+        }
+        return directory?.FullName
+            ?? throw new InvalidOperationException(
+                "BotArena.sln not found above the test directory.");
+    }
 }

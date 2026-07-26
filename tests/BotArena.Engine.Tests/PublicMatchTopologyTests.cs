@@ -53,6 +53,7 @@ public class PublicMatchTopologyTests
                 {
                     ParticipantCount = 3,
                     UnitSlotCount = 4,
+                    MaxUnitsPerTeam = 2,
                 },
             },
             Topology = topology,
@@ -88,6 +89,33 @@ public class PublicMatchTopologyTests
         Assert.Throws<ArgumentException>(() =>
             MatchContractFingerprint.ComputeMatch(
                 baseline with { Topology = crossTeamController }));
+    }
+
+    [Fact]
+    public void Topology_RejectsMoreStableUnitSlotsThanThePerTeamMaximum()
+    {
+        PublicMatchContractManifest baseline =
+            PublicRulesManifestFactory.CreateMatchContract(GameRules.Current, CreateMap());
+        PublicMatchTopology extraSlot = baseline.Topology with
+        {
+            UnitSlots =
+            [
+                new(0, 0, 0),
+                new(0, 1, 0),
+                new(1, 0, 1),
+            ],
+        };
+        PublicMatchContractManifest inconsistent = baseline with
+        {
+            Rules = baseline.Rules with
+            {
+                Limits = baseline.Rules.Limits with { UnitSlotCount = 3 },
+            },
+            Topology = extraSlot,
+        };
+
+        Assert.Throws<ArgumentException>(() =>
+            MatchContractFingerprint.ComputeMatch(inconsistent));
     }
 
     [Fact]

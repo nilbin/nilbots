@@ -11,6 +11,7 @@ public static class PublicRulesManifestFactory
     {
         ArgumentNullException.ThrowIfNull(rules);
 
+        FrontlineRules? frontline = rules.Frontline;
         bool shotProgramsEnabled =
             rules.AllowProgrammedShots && rules.ProjectileTicksPerTile > 0;
         ImmutableArray<PublicActionDefinition> actions =
@@ -49,19 +50,25 @@ public static class PublicRulesManifestFactory
             Limits = new PublicMatchLimits(
                 rules.MaxTicks,
                 rules.FaultLimit,
-                TeamCount: 2,
-                ParticipantCount: 2,
-                UnitSlotCount: 2,
-                InitialUnitsPerTeam: 1,
-                MaxUnitsPerTeam: 1,
-                DestructionEndsMatch: true,
-                RespawnsEnabled: false),
+                TeamCount: frontline?.TeamCount ?? 2,
+                ParticipantCount: frontline is null
+                    ? 2
+                    : frontline.TeamCount * frontline.ParticipantsPerTeam,
+                UnitSlotCount: frontline is null
+                    ? 2
+                    : frontline.TeamCount * frontline.MaxUnitsPerTeam,
+                InitialUnitsPerTeam: frontline?.InitialUnitsPerTeam ?? 1,
+                MaxUnitsPerTeam: frontline?.MaxUnitsPerTeam ?? 1,
+                DestructionEndsMatch: frontline is null,
+                RespawnsEnabled: frontline is not null),
             Objective = new PublicObjectiveRules(
-                rules.ZoneControl
-                    ? rules.ActiveZoneControl
-                        ? PublicObjectiveMode.SharedPressure
-                        : PublicObjectiveMode.ZoneTicks
-                    : PublicObjectiveMode.None,
+                frontline is not null
+                    ? PublicObjectiveMode.Frontline
+                    : rules.ZoneControl
+                        ? rules.ActiveZoneControl
+                            ? PublicObjectiveMode.SharedPressure
+                            : PublicObjectiveMode.ZoneTicks
+                        : PublicObjectiveMode.None,
                 rules.ZoneControl,
                 rules.ZoneDominationTicks,
                 rules.ZoneExclusiveAccrual,
@@ -75,24 +82,28 @@ public static class PublicRulesManifestFactory
                     rules.ControlOvertimePressureLimit,
                     rules.ControlOvertimePressureGain,
                     rules.ControlOvertimeStopsDecay),
-                rules.ZoneControl
-                    ? [PublicScoreMetric.Objective, PublicScoreMetric.Health, PublicScoreMetric.DamageDealt]
-                    : [PublicScoreMetric.Health, PublicScoreMetric.DamageDealt]),
+                frontline is not null
+                    ? []
+                    : rules.ZoneControl
+                        ? [PublicScoreMetric.Objective, PublicScoreMetric.Health, PublicScoreMetric.DamageDealt]
+                        : [PublicScoreMetric.Health, PublicScoreMetric.DamageDealt]),
+            Frontline = CreateFrontlineDefinition(frontline),
             Energy = new PublicEnergyRules(
                 rules.MaxEnergy > 0,
                 rules.MaxEnergy,
                 rules.ShotEnergyCost,
                 rules.EnergyRegenTicks,
                 RegenerationAmount: 1),
-            Forms =
-            [
-                new PublicFormDefinition(
-                    MobileFormId,
-                    rules.MaxHealth,
-                    PublicMovementLayer.Ground,
-                    ObjectiveWeight: 1,
-                    allowedActionIds),
-            ],
+            Forms = frontline is null
+                ? [
+                    new PublicFormDefinition(
+                        MobileFormId,
+                        rules.MaxHealth,
+                        PublicMovementLayer.Ground,
+                        ObjectiveWeight: 1,
+                        allowedActionIds),
+                  ]
+                : [],
             Actions = actions,
             Projectiles = new PublicProjectileRules(
                 rules.ProjectileTicksPerTile > 0
@@ -189,24 +200,38 @@ public static class PublicRulesManifestFactory
     {
         ArgumentNullException.ThrowIfNull(map);
 
+        PublicFrontlineMapDefinition? frontline = CreateFrontlineMapDefinition(map);
+        ImmutableArray<PublicMapSpawn> spawns = frontline is null
+            ? map.Spawns
+                .Select((spawn, teamId) => new PublicMapSpawn(
+                    teamId,
+                    new Position(spawn.X, spawn.Y),
+                    spawn.Facing))
+                .OrderBy(spawn => spawn.TeamId)
+                .ToImmutableArray()
+            : frontline.TeamHomes
+                .Select(home => new PublicMapSpawn(
+                    home.TeamId,
+                    home.PrimeSpawnPosition,
+                    home.PrimeSpawnFacing))
+                .OrderBy(spawn => spawn.TeamId)
+                .ToImmutableArray();
+
         var manifest = new PublicMapManifest
         {
             SchemaVersion = BotArenaVersions.PublicManifestSchemaVersion,
             MapId = map.Id,
             MapVersion = map.Version,
             MapFingerprint = "",
-            FormatVersion = 1,
+            FormatVersion = map.FormatVersion,
             Width = map.Width,
             Height = map.Height,
             TileRows = map.TileRows.ToImmutableArray(),
-            Spawns = map.Spawns
-                .Select((spawn, teamId) => new PublicMapSpawn(
-                    teamId,
-                    new Position(spawn.X, spawn.Y),
-                    spawn.Facing))
-                .OrderBy(spawn => spawn.TeamId)
-                .ToImmutableArray(),
-            ObjectiveTiles = map.EffectiveZone().ToImmutableArray(),
+            Spawns = spawns,
+            ObjectiveTiles = frontline is null
+                ? map.EffectiveZone().ToImmutableArray()
+                : [],
+            Frontline = frontline,
         };
 
         return manifest with
@@ -217,10 +242,10 @@ public static class PublicRulesManifestFactory
 
     public static PublicMatchContractManifest CreateMatchContract(GameRules rules, ArenaMap map)
     {
+        ResolvedMatchDefinition definition = MatchDefinitionResolver.Resolve(rules, map);
         PublicRulesManifest rulesManifest = CreateRules(rules);
         PublicMapManifest mapManifest = CreateMap(map);
-        PublicMatchTopology topology = CreateCurrentDuelTopology(rulesManifest);
-        return CreateMatchContract(rulesManifest, mapManifest, topology);
+        return CreateMatchContract(rulesManifest, mapManifest, definition.Topology);
     }
 
     public static PublicMatchContractManifest CreateMatchContract(
@@ -229,7 +254,12 @@ public static class PublicRulesManifestFactory
         PublicMatchTopology topology)
     {
         ArgumentNullException.ThrowIfNull(topology);
-        return CreateMatchContract(CreateRules(rules), CreateMap(map), topology);
+        ResolvedMatchDefinition definition =
+            MatchDefinitionResolver.Resolve(rules, map, topology);
+        return CreateMatchContract(
+            CreateRules(rules),
+            CreateMap(map),
+            definition.Topology);
     }
 
     private static PublicMatchContractManifest CreateMatchContract(
@@ -251,32 +281,101 @@ public static class PublicRulesManifestFactory
         };
     }
 
-    private static PublicMatchTopology CreateCurrentDuelTopology(PublicRulesManifest rules)
+    private static PublicFrontlineDefinition? CreateFrontlineDefinition(
+        FrontlineRules? rules)
     {
-        ImmutableArray<PublicScoringTeam> teams = Enumerable
-            .Range(0, rules.Limits.TeamCount)
-            .Select(teamId => new PublicScoringTeam(teamId))
-            .ToImmutableArray();
-
-        return new PublicMatchTopology
+        if (rules is null)
+            return null;
+        if (rules.PrimeForm is null
+            || rules.ChildForm is null
+            || rules.TurretForm is null)
         {
-            Teams = teams,
-            Participants = teams
-                .Select(team => new PublicParticipant(team.TeamId, team.TeamId))
-                .ToImmutableArray(),
-            UnitSlots = teams
-                .Select(team => new PublicUnitSlot(
-                    team.TeamId,
-                    UnitId: 0,
-                    ControllerParticipantId: team.TeamId))
-                .ToImmutableArray(),
-            InitialLives = teams
-                .Select(team => new PublicInitialLife(
-                    team.TeamId,
-                    UnitId: 0,
-                    LifeId: 0,
-                    MobileFormId))
-                .ToImmutableArray(),
-        };
+            throw new ArgumentException(
+                "Frontline Prime, child, and turret form definitions are required.",
+                nameof(rules));
+        }
+        if (rules.FabricationUnlockTicks.IsDefault)
+        {
+            throw new ArgumentException(
+                "Frontline fabrication unlock ticks must be initialized.",
+                nameof(rules));
+        }
+
+        return new PublicFrontlineDefinition(
+            rules.TeamCount,
+            rules.ParticipantsPerTeam,
+            rules.FrontlinePositionCount,
+            rules.InitialUnitsPerTeam,
+            rules.MaxUnitsPerTeam,
+            new PublicFrontlineCaptureDefinition(
+                rules.CaptureThreshold,
+                rules.CaptureGainPerSoleTeamTick,
+                rules.CaptureDecayAmount,
+                rules.CaptureDecayIntervalTicks,
+                rules.RedeployPauseTicks,
+                rules.PushesToBreach),
+            new PublicFrontlineLifecycleDefinition(
+                rules.PrimeRespawnTicks,
+                rules.ChildRebuildTicks,
+                rules.FabricationUnlockTicks),
+            new PublicFrontlineFormsDefinition(
+                CreateFrontlineUnitFormDefinition(rules.PrimeForm),
+                CreateFrontlineUnitFormDefinition(rules.ChildForm),
+                CreateFrontlineUnitFormDefinition(rules.TurretForm)),
+            new PublicFrontlineAnchorDefinition(
+                rules.AnchorWindupTicks,
+                rules.AnchorHealthGain,
+                rules.AnchorIrreversibleForLife),
+            new PublicFrontlineAlliedCombatDefinition(
+                rules.FriendlyFireEnabled,
+                rules.AlliedProjectilesBlock));
     }
+
+    private static PublicFrontlineUnitFormDefinition CreateFrontlineUnitFormDefinition(
+        UnitFormRules form) =>
+        new(
+            form.FormId,
+            form.MaxHealth,
+            form.VisionRange,
+            form.ShootCooldownTicks,
+            form.OmnidirectionalVision,
+            form.OmnidirectionalShooting,
+            form.ObjectiveWeight,
+            form.CanMove,
+            form.CanShoot,
+            form.AllowsProgrammedShots);
+
+    private static PublicFrontlineMapDefinition? CreateFrontlineMapDefinition(
+        ArenaMap map)
+    {
+        if (map.FormatVersion == 1)
+            return null;
+        FrontlineMapProfile profile = map.Frontline
+            ?? throw new ArgumentException(
+                "A format-v2 map must include a Frontline profile.",
+                nameof(map));
+
+        return new PublicFrontlineMapDefinition(
+            profile.Positions
+                .Select(position => new PublicFrontlinePosition(
+                    position.PositionIndex,
+                    CanonicalizeTiles(position.Tiles)))
+                .ToImmutableArray(),
+            profile.TeamHomes
+                .Select(home => new PublicFrontlineTeamHome(
+                    home.TeamId,
+                    new Position(home.PrimeSpawn.X, home.PrimeSpawn.Y),
+                    home.PrimeSpawn.Facing,
+                    CanonicalizeTiles(home.ProtectedSpawnPad)))
+                .OrderBy(home => home.TeamId)
+                .ToImmutableArray(),
+            CanonicalizeTiles(profile.AnchorForbiddenTiles));
+    }
+
+    private static ImmutableArray<Position> CanonicalizeTiles(
+        IEnumerable<Position> tiles) =>
+        tiles
+            .OrderBy(tile => tile.Y)
+            .ThenBy(tile => tile.X)
+            .ToImmutableArray();
 }
