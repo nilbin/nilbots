@@ -2,18 +2,25 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { botLook } from '../../render/arenaThemes';
 import BotIdentity from '../components/BotIdentity';
+import { EmptyState, ErrorState, LoadingState } from '../components/StateView';
 import { api, type BotSummary, type Meta } from '../api';
 
 export default function BotsPage() {
   const [bots, setBots] = useState<BotSummary[] | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const [reloads, setReloads] = useState(0);
   const [query, setQuery] = useState('');
   const [ratedOnly, setRatedOnly] = useState(false);
 
   useEffect(() => {
-    void api.get<BotSummary[]>('/api/bots').then(setBots);
-    void api.get<Meta>('/api/meta').then(setMeta);
-  }, []);
+    setError(null);
+    // A rejection has to land somewhere: without this, `bots` stays null and the page
+    // reads "Loading…" indefinitely with nothing to act on.
+    void api.get<BotSummary[]>('/api/bots').then(setBots).catch(setError);
+    // Meta is decoration here — a failure to load it should not take the roster down.
+    void api.get<Meta>('/api/meta').then(setMeta).catch(() => undefined);
+  }, [reloads]);
 
   // The roster passed thirty bots without anything to narrow it by, which is the point
   // where a grid stops being browsable (UI audit). Name and owner are what people
@@ -57,10 +64,15 @@ export default function BotsPage() {
           </span>
         )}
       </div>
-      {shown === null ? (
-        <p className="text-sm text-arena-dim">Loading…</p>
+      {error !== null ? (
+        <ErrorState error={error} onRetry={() => setReloads((n) => n + 1)} />
+      ) : shown === null ? (
+        <LoadingState />
       ) : shown.length === 0 ? (
-        <p className="text-sm text-arena-dim">No bot matches “{query}”.</p>
+        <EmptyState
+          title={query ? `No bot matches “${query}”.` : 'No bots yet'}
+          detail={query ? undefined : 'Bots appear here once they are submitted.'}
+        />
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((bot) => {

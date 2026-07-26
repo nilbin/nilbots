@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import BotIdentity from '../components/BotIdentity';
 import { api, type Leaderboard } from '../api';
+import { EmptyState, ErrorState, LoadingState } from '../components/StateView';
 
 export default function LeaderboardPage() {
   const [board, setBoard] = useState<Leaderboard | null>(null);
   const [rules, setRules] = useState<string | null>(null); // null = server default
+  const [error, setError] = useState<unknown>(null);
+  const [reloads, setReloads] = useState(0);
   const [query, setQuery] = useState('');
 
   // Keep each bot's real rank while filtering: #7 is #7 whatever else is on screen.
@@ -21,9 +24,10 @@ export default function LeaderboardPage() {
   }, [board, query]);
 
   useEffect(() => {
+    setError(null);
     const query = rules === null ? '' : `?rules=${encodeURIComponent(rules)}`;
-    void api.get<Leaderboard>(`/api/leaderboard${query}`).then(setBoard);
-  }, [rules]);
+    void api.get<Leaderboard>(`/api/leaderboard${query}`).then(setBoard).catch(setError);
+  }, [rules, reloads]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -57,6 +61,16 @@ export default function LeaderboardPage() {
             </button>
           ))}
         </div>
+      )}
+      {error !== null && (
+        <ErrorState error={error} onRetry={() => setReloads((n) => n + 1)} />
+      )}
+      {error === null && board === null && <LoadingState label="Loading the ladder…" />}
+      {board !== null && board.entries.length === 0 && (
+        <EmptyState
+          title="No ranked sets yet"
+          detail="Standings appear once bots have played a ranked set."
+        />
       )}
       {board !== null && board.entries.length > 0 && (
         <input
