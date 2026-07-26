@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 import { ArenaBotCard } from '@/components/arena/ArenaBotCard';
 import { ArenaControlBar } from '@/components/arena/ArenaControlBar';
@@ -216,6 +217,25 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
       ticksPerSecond: clock.presentationTicksPerSecond,
     });
   }, [visible, watching, clock, load]);
+
+  /**
+   * Landscape while the arena is up, portrait again on close.
+   *
+   * The app is locked to portrait in app.json because every other screen is a list. The
+   * arena is the one thing that is wider than it is tall — a 24x18 map in portrait wastes
+   * most of the screen on letterboxing — so the lock is lifted for exactly as long as it
+   * is showing, and restored on the way out rather than left for the next screen to
+   * inherit.
+   */
+  useEffect(() => {
+    if (!visible) return;
+    void ScreenOrientation.unlockAsync().catch(() => undefined);
+    return () => {
+      void ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP,
+      ).catch(() => undefined);
+    };
+  }, [visible]);
 
   const api = useMemo<ArenaViewerApi>(() => ({ watch }), [watch]);
   const lookFor = (slot: number) =>
