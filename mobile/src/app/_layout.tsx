@@ -1,4 +1,5 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -51,6 +52,16 @@ export default function RootLayout() {
   // for it — a splash that lingers on a slow network looks like a hang.
   useEffect(() => {
     void SplashScreen.hideAsync();
+  }, []);
+
+  // Portrait is the app's resting state — every screen but the arena is a list. The
+  // native config now declares all orientations, because iOS will not rotate to one it
+  // has never heard of, so the lock has to come from here instead of app.json. The arena
+  // overrides it while it is open and restores this on the way out.
+  useEffect(() => {
+    void ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.PORTRAIT_UP,
+    ).catch(() => undefined);
   }, []);
 
   return (
