@@ -180,28 +180,64 @@
           "dcOffset": 0.000212
         }
       ]
-    }
-  ],
-  "experiments": [
+    },
     {
-      "id": "nilbots-signature-unlock",
+      "id": "nilbots-signature",
       "number": "D",
       "label": "Nilbots Signature",
-      "kicker": "AEGIS CLARITY · OBSIDIAN WEIGHT · AURORA LIFT",
+      "kicker": "CLARITY · WEIGHT · LIFT",
       "accent": "#7edcff",
-      "description": "A cohesive reward signature: precise confirmation, a physical earned-it moment, and a luminous reveal that opens into stereo.",
-      "cue": {
-        "id": "entitlement-unlock",
-        "label": "Reward Unlocked",
-        "category": "REWARD",
-        "description": "The production-value test: anticipation, reveal, bloom, and a clean tail.",
-        "file": "./v2/experiments/nilbots-signature-unlock/entitlement-unlock.wav",
-        "durationSeconds": 3.36,
-        "peak": 0.84,
-        "rms": 0.2309,
-        "stereoDifferenceRms": 0.1356,
-        "dcOffset": 0.000161
-      }
+      "description": "The combined direction: immediate tactical clarity, convincing physical mass, and modern energy that opens confidently into stereo.",
+      "cues": [
+        {
+          "id": "projectile-showcase",
+          "label": "Signature Projectile",
+          "category": "PROJECTILE",
+          "description": "Launch transient, powered body, and spatial tail—the identity test.",
+          "file": "./v2/packs/nilbots-signature/projectile-showcase.wav",
+          "durationSeconds": 0.64,
+          "peak": 0.88,
+          "rms": 0.1128,
+          "stereoDifferenceRms": 0.0383,
+          "dcOffset": 0.000067
+        },
+        {
+          "id": "armor-impact",
+          "label": "Armor Impact",
+          "category": "COMBAT",
+          "description": "Readable damage with physical material, depth, and controlled debris.",
+          "file": "./v2/packs/nilbots-signature/armor-impact.wav",
+          "durationSeconds": 0.82,
+          "peak": 0.88,
+          "rms": 0.1285,
+          "stereoDifferenceRms": 0.0709,
+          "dcOffset": 0.00052
+        },
+        {
+          "id": "bot-destroyed",
+          "label": "Bot Destroyed",
+          "category": "COMBAT",
+          "description": "A layered systems failure and mechanical collapse, not one synth drop.",
+          "file": "./v2/packs/nilbots-signature/bot-destroyed.wav",
+          "durationSeconds": 1.78,
+          "peak": 0.88,
+          "rms": 0.1521,
+          "stereoDifferenceRms": 0.0813,
+          "dcOffset": 0.000091
+        },
+        {
+          "id": "entitlement-unlock",
+          "label": "Reward Unlocked",
+          "category": "REWARD",
+          "description": "The production-value test: anticipation, reveal, bloom, and a clean tail.",
+          "file": "./v2/packs/nilbots-signature/entitlement-unlock.wav",
+          "durationSeconds": 3.36,
+          "peak": 0.84,
+          "rms": 0.2309,
+          "stereoDifferenceRms": 0.1356,
+          "dcOffset": 0.000158
+        }
+      ]
     }
   ]
 }

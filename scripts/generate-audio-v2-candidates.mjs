@@ -82,15 +82,18 @@ const packs = [
   },
 ];
 
-const fusion = {
-  id: "nilbots-signature-unlock",
+const signaturePack = {
+  id: "nilbots-signature",
   number: "D",
   label: "Nilbots Signature",
-  kicker: "AEGIS CLARITY · OBSIDIAN WEIGHT · AURORA LIFT",
+  kicker: "CLARITY · WEIGHT · LIFT",
   accent: "#7edcff",
   description:
-    "A cohesive reward signature: precise confirmation, a physical earned-it moment, and a luminous reveal that opens into stereo.",
+    "The combined direction: immediate tactical clarity, convincing physical mass, and modern energy that opens confidently into stereo.",
+  render: renderSignature,
 };
+
+packs.push(signaturePack);
 
 function createStereo(duration) {
   const length = Math.ceil(duration * RENDER_RATE);
@@ -1162,6 +1165,168 @@ function renderAurora(cue, output, random) {
   }
 }
 
+function renderSignature(cue, output, random) {
+  switch (cue.id) {
+    case "projectile-showcase":
+      addTransient(output, random, 0, "alloy", 0.6);
+      addTransient(output, random, 0.009, "heavy", 0.34);
+      addTone(output, {
+        duration: 0.43,
+        from: 1_950,
+        to: 112,
+        amplitude: 0.52,
+        release: 0.2,
+        decay: 0.12,
+        pan: -0.28,
+        panTo: 0.5,
+        partials: [
+          [1, 1],
+          [1.51, 0.2],
+          [2.01, 0.12],
+        ],
+        fmRatio: 0.51,
+        fmIndex: 1.25,
+        fmDecay: 0.095,
+      });
+      addTone(output, {
+        start: 0.006,
+        duration: 0.33,
+        from: 148,
+        to: 52,
+        amplitude: 0.43,
+        release: 0.22,
+        decay: 0.085,
+      });
+      addNoise(output, random, {
+        start: 0.018,
+        duration: 0.45,
+        amplitude: 0.13,
+        attack: 0.004,
+        release: 0.24,
+        decay: 0.13,
+        lowpass: 17_000,
+        highpass: 3_300,
+        pan: 0.58,
+        panTo: -0.66,
+        stereo: 0.82,
+      });
+      addPingPong(output, 0.059, 0.2, 0.12);
+      addReverb(output, {
+        mix: 0.12,
+        decay: 0.54,
+        predelay: 0.007,
+        width: 0.88,
+      });
+      break;
+    case "armor-impact":
+      addTransient(output, random, 0, "heavy", 0.74);
+      addTransient(output, random, 0.004, "alloy", 0.61);
+      addModes(output, {
+        start: 0.003,
+        frequencies: [132, 218, 357, 587, 967, 1_583, 2_591],
+        amplitude: 0.5,
+        decay: 0.22,
+        spread: 0.78,
+        detune: 0.004,
+      });
+      addTone(output, {
+        start: 0.006,
+        duration: 0.47,
+        from: 980,
+        to: 188,
+        amplitude: 0.24,
+        release: 0.27,
+        decay: 0.13,
+        pan: -0.25,
+        panTo: 0.3,
+        fmRatio: 1.61,
+        fmIndex: 1.15,
+        fmDecay: 0.12,
+      });
+      addDebris(output, random, {
+        start: 0.04,
+        duration: 0.4,
+        count: 17,
+        low: 720,
+        high: 10_500,
+        amplitude: 0.062,
+      });
+      addReverb(output, {
+        mix: 0.17,
+        decay: 0.72,
+        predelay: 0.012,
+        width: 0.88,
+      });
+      break;
+    case "bot-destroyed":
+      addTransient(output, random, 0, "heavy", 0.82);
+      addTransient(output, random, 0.012, "alloy", 0.55);
+      addTone(output, {
+        duration: 1.26,
+        from: 330,
+        to: 35,
+        amplitude: 0.54,
+        release: 0.42,
+        decay: 0.31,
+        pan: -0.12,
+        panTo: 0.2,
+        partials: [
+          [1, 1],
+          [1.49, 0.24],
+          [2.03, 0.1],
+        ],
+        fmRatio: 0.62,
+        fmIndex: 2.7,
+        fmDecay: 0.27,
+      });
+      for (const [start, character, strength] of [
+        [0.12, "alloy", 0.5],
+        [0.29, "heavy", 0.47],
+        [0.48, "glass", 0.34],
+        [0.69, "alloy", 0.25],
+      ]) {
+        addTransient(output, random, start, character, strength);
+      }
+      addModes(output, {
+        start: 0.09,
+        frequencies: [105, 174, 287, 471, 773, 1_271],
+        amplitude: 0.41,
+        decay: 0.45,
+        spread: 0.82,
+      });
+      addNoise(output, random, {
+        start: 0.14,
+        duration: 1.04,
+        amplitude: 0.15,
+        release: 0.44,
+        decay: 0.3,
+        lowpass: 9_800,
+        highpass: 260,
+        stereo: 0.76,
+        roughness: 2.1,
+      });
+      addDebris(output, random, {
+        start: 0.08,
+        duration: 1.13,
+        count: 36,
+        low: 310,
+        high: 11_800,
+        amplitude: 0.068,
+      });
+      addPingPong(output, 0.073, 0.22, 0.09);
+      addReverb(output, {
+        mix: 0.22,
+        decay: 1.02,
+        predelay: 0.017,
+        width: 0.91,
+      });
+      break;
+    case "entitlement-unlock":
+      renderSignatureUnlock(output, random);
+      break;
+  }
+}
+
 function renderSignatureUnlock(output, random) {
   // Aegis: a clean milled-alloy confirmation that reads immediately.
   addTransient(output, random, 0, "alloy", 0.38);
@@ -1409,7 +1574,6 @@ async function main() {
     channels: 2,
     format: "pcm-s16le-wav",
     packs: [],
-    experiments: [],
   };
 
   for (const pack of packs) {
@@ -1453,43 +1617,6 @@ async function main() {
     });
   }
 
-  const fusionCue = cues.find((cue) => cue.id === "entitlement-unlock");
-  const fusionDirectory = path.join(ROOT, "v2", "experiments", fusion.id);
-  await mkdir(fusionDirectory, { recursive: true });
-  const fusionOutput = createStereo(fusionCue.duration);
-  renderSignatureUnlock(
-    fusionOutput,
-    seeded(`${fusion.id}/${fusionCue.id}/v2`),
-  );
-  const fusionAudio = finalize(fusionOutput, 0.84);
-  const fusionFilename = `${fusionCue.id}.wav`;
-  await writeFile(
-    path.join(fusionDirectory, fusionFilename),
-    encodeWav(
-      fusionAudio,
-      seeded(`${fusion.id}/${fusionCue.id}/dither/v2`),
-    ),
-  );
-  manifest.experiments.push({
-    ...fusion,
-    cue: {
-      id: fusionCue.id,
-      label: fusionCue.label,
-      category: fusionCue.category,
-      description: fusionCue.description,
-      file: `./v2/experiments/${fusion.id}/${fusionFilename}`,
-      durationSeconds: Number(
-        (fusionAudio.left.length / SAMPLE_RATE).toFixed(3),
-      ),
-      peak: Number(fusionAudio.peak.toFixed(4)),
-      rms: Number(fusionAudio.rms.toFixed(4)),
-      stereoDifferenceRms: Number(
-        fusionAudio.stereoDifferenceRms.toFixed(4),
-      ),
-      dcOffset: Number(fusionAudio.dcOffset.toFixed(6)),
-    },
-  });
-
   const json = `${JSON.stringify(manifest, null, 2)}\n`;
   await writeFile(path.join(ROOT, "manifest-v2.json"), json);
   await writeFile(
@@ -1504,19 +1631,11 @@ async function main() {
           packTotal +
           Math.round(cue.durationSeconds * SAMPLE_RATE * 2 * 2 + 44),
         0,
-    ),
-    0,
-  ) + manifest.experiments.reduce(
-    (total, experiment) =>
-      total +
-      Math.round(
-        experiment.cue.durationSeconds * SAMPLE_RATE * 2 * 2 + 44,
       ),
     0,
   );
   console.log(
-    `Generated ${manifest.packs.length * cues.length} V2 cues and ` +
-      `${manifest.experiments.length} fusion candidate ` +
+    `Generated ${manifest.packs.length * cues.length} V2 cues ` +
       `(${(bytes / 1_048_576).toFixed(2)} MiB) in ${ROOT}`,
   );
 }

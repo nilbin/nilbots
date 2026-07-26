@@ -25,18 +25,20 @@ V1 contains three ten-cue procedural directions:
 - **Foundry Signal** — mechanical, weighted, and industrial.
 - **Neon Circuit** — synthetic, musical, and expressive.
 
-V2 is a higher-fidelity vertical slice with four matched showcase moments:
+V2 is a higher-fidelity vertical slice with four matched showcase moments and
+four directions:
 
 - **Aegis Systems** — precise, premium, and tactical.
 - **Obsidian Foundry** — physical, dense, and cinematic.
 - **Aurora Core** — luminous, energetic, and modern.
+- **Nilbots Signature** — Aegis clarity, Obsidian weight, and Aurora lift.
 
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,
 debris, stereo movement, feedback-delay diffusion, and dynamics processing.
-The focused **Nilbots Signature** unlock experiment combines Aegis clarity,
-Obsidian physical weight, and Aurora's harmonic lift without replacing any
-base candidate. V1 remains in the sound lab as a collapsed reference archive.
+**Nilbots Signature** applies that combined language to the complete
+projectile, impact, destruction, and unlock sample set. V1 remains in the
+sound lab as a collapsed reference archive.
 
 All candidates stay under `art/` until a direction is selected. This prevents
 review sounds from entering the self-contained replay viewer. The

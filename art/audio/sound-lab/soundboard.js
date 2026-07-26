@@ -12,7 +12,6 @@
   const volumeInput = document.querySelector('[data-volume]');
   const volumeLabel = document.querySelector('[data-volume-label]');
   const legacyArchive = document.querySelector('[data-v1-archive]');
-  const fusionPanel = document.querySelector('[data-fusion]');
   const activeAudio = new Set();
   const timers = new Set();
   let volume = Number(volumeInput.value);
@@ -214,20 +213,6 @@
     renderPlayers();
   }
 
-  function renderFusion() {
-    const experiment = manifest.experiments?.[0];
-    if (!experiment || !fusionPanel) return;
-    const cue = experiment.cue;
-    const playButton = fusionPanel.querySelector('[data-fusion-play]');
-    playButton.dataset.audioKey = `${experiment.id}/${cue.id}`;
-    playButton.addEventListener('click', () => play(experiment, cue));
-    fusionPanel.querySelector('[data-fusion-duration]').textContent =
-      `${cue.durationSeconds.toFixed(2)}s`;
-    fusionPanel.querySelector('[data-fusion-description]').textContent =
-      experiment.description;
-    fusionPanel.hidden = false;
-  }
-
   volumeInput.addEventListener('input', () => {
     volume = Number(volumeInput.value);
     volumeLabel.textContent = `${Math.round(volume * 100)}%`;
@@ -257,7 +242,6 @@
   });
 
   renderComparison();
-  renderFusion();
   renderPacks();
   renderLegacyArchive();
 })();

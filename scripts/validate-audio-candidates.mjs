@@ -19,9 +19,9 @@ validated.push(
     version: 1,
     sampleRate: 44_100,
     channels: 1,
+    packCount: 3,
     cueCount: 10,
     fileCount: 30,
-    experimentCount: 0,
     minStereoDifference: 0,
   }),
 );
@@ -32,9 +32,9 @@ validated.push(
     version: 2,
     sampleRate: 48_000,
     channels: 2,
+    packCount: 4,
     cueCount: 4,
-    fileCount: 12,
-    experimentCount: 1,
+    fileCount: 16,
     minStereoDifference: 0.015,
   }),
 );
@@ -70,8 +70,10 @@ async function validateCandidateSet(specification) {
     `${specification.label}: channel count must be ${specification.channels}`,
   );
   assert(
-    Array.isArray(manifest.packs) && manifest.packs.length === 3,
-    `${specification.label}: must contain exactly three directions`,
+    Array.isArray(manifest.packs) &&
+      manifest.packs.length === specification.packCount,
+    `${specification.label}: must contain exactly ` +
+      `${specification.packCount} directions`,
   );
 
   const referenceIds = manifest.packs[0].cues.map((cue) => cue.id);
@@ -103,34 +105,9 @@ async function validateCandidateSet(specification) {
     }
   }
 
-  const experiments = manifest.experiments ?? [];
   assert(
-    experiments.length === specification.experimentCount,
-    `${specification.label}: expected ${specification.experimentCount} experiments, ` +
-      `found ${experiments.length}`,
-  );
-  for (const experiment of experiments) {
-    assert(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(experiment.id),
-      `${experiment.id}: invalid experiment ID`,
-    );
-    assert(
-      /^#[0-9a-f]{6}$/i.test(experiment.accent),
-      `${experiment.id}: invalid experiment accent`,
-    );
-    assert(
-      experiment.cue?.id === "entitlement-unlock",
-      `${experiment.id}: current fusion candidate must be an unlock cue`,
-    );
-    await validateCueFile(experiment.cue, manifest, specification);
-    setFileCount++;
-  }
-
-  const expectedFileCount =
-    specification.fileCount + specification.experimentCount;
-  assert(
-    setFileCount === expectedFileCount,
-    `${specification.label}: expected ${expectedFileCount} unique WAV files, ` +
+    setFileCount === specification.fileCount,
+    `${specification.label}: expected ${specification.fileCount} unique WAV files, ` +
       `found ${setFileCount}`,
   );
   return { label: specification.label, fileCount: setFileCount };

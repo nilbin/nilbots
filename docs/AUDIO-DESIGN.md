@@ -42,18 +42,17 @@ moments before the full set is expanded:
 - bot destruction;
 - entitlement unlock.
 
-Its three directions are Aegis Systems, Obsidian Foundry, and Aurora Core. V2
-renders deterministically at 96 kHz, uses a windowed low-pass stage while
+Its four directions are Aegis Systems, Obsidian Foundry, Aurora Core, and
+Nilbots Signature. The fourth is a complete combined direction, not a
+one-cue experiment: every showcase moment uses Aegis's clean confirmation,
+Obsidian's physical mass, and Aurora's energy and stereo opening in different
+proportions.
+
+V2 renders deterministically at 96 kHz, uses a windowed low-pass stage while
 downsampling, and exports 48 kHz stereo PCM review masters. Each cue separates
 transient, body, material resonance, debris, and spatial tail. Stereo
 diffusion, DC filtering, linked dynamics, peak normalization, endpoint fades,
 and deterministic TPDF dither are part of the shared mastering path.
-
-The `Nilbots Signature` unlock is stored as an experiment rather than a fourth
-general-purpose pack. It intentionally takes Aegis's clean confirmation,
-Obsidian's physical latch and low mechanical mass, and Aurora's upward harmonic
-bloom and stereo opening. Keeping it under `manifest.experiments` preserves
-equal A/B/C cue coverage while allowing focused hybrid candidates.
 
 Regenerate and validate:
 
