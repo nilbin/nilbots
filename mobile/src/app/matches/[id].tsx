@@ -44,14 +44,21 @@ export default function MatchScreen() {
           </View>
         </Card>
 
-        {/* A replay only exists once the match has run. A broadcasting match has one, but
-            truncated to the ticks the server has released — watching it is the point. */}
+        {/* A broadcasting match is watched live, not replayed. Its replay exists but is
+            truncated to the ticks released so far, so opening it as a replay would play
+            to that edge, stop, and sit a few seconds behind everyone else. Following
+            anchors to the server's clock instead and picks up ticks as they land. */}
         {match.status === 'Completed' ? (
           <Card
             onPress={() =>
-              watch(match.id, `${match.participants.map((p) => p.nameSnapshot).join(' vs ')}`)
+              watch(match.id, {
+                title: match.participants.map((p) => p.nameSnapshot).join(' vs '),
+                live: match.broadcasting,
+              })
             }>
-            <Text style={styles.watch}>▶ Watch the replay</Text>
+            <Text style={styles.watch}>
+              {match.broadcasting ? '● Watch live' : '▶ Watch the replay'}
+            </Text>
           </Card>
         ) : null}
 

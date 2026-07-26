@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReplayDocument } from '../types';
-import { usePlayback } from '../playback';
+import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { createPresenter } from '../replayPresentation';
 import ArenaCanvas from './ArenaCanvas';
 
@@ -17,11 +17,28 @@ import ArenaCanvas from './ArenaCanvas';
  * a state message per tick; it does not drive `time` frame by frame, which would be a
  * bridge crossing per animation frame for something rAF already does locally.
  */
-export default function HostedViewer({ replay }: { replay: ReplayDocument }) {
+export default function HostedViewer({
+  replay,
+  live,
+}: {
+  replay: ReplayDocument;
+  live?: LiveFollow;
+}) {
   const playback = usePlayback(replay);
+  const liveTime = useLiveFollower(replay, live);
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+
+  // A live broadcast is not played, it is followed: the server's presentation clock says
+  // which tick every viewer is seeing, and the local clock only smooths between polls.
+  // Seeking would desynchronise this viewer from everyone else, which is the one thing
+  // broadcasting exists to prevent — so the host is told there is no transport.
+  const following = live !== undefined;
+  const time = following ? liveTime : playback.time;
+  // Clamped to 0 when nothing has been released yet, so a countdown-phase replay
+  // reports tick 0 rather than -1.
+  const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
 
   const post = useRef((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
@@ -79,28 +96,31 @@ export default function HostedViewer({ replay }: { replay: ReplayDocument }) {
   // boundaries, and at 5 ticks/second even 8x playback is a modest message rate.
   const lastSent = useRef<number | null>(null);
   useEffect(() => {
-    if (lastSent.current === playback.tick) return;
-    lastSent.current = playback.tick;
-    post({ type: 'tick', ...presenter.at(playback.tick) });
-  }, [playback.tick, presenter, post]);
+    if (lastSent.current === tick) return;
+    lastSent.current = tick;
+    post({ type: 'tick', ...presenter.at(tick) });
+  }, [tick, presenter, post]);
 
   // Transport state changes on its own schedule, so it rides separately.
   useEffect(() => {
     post({
       type: 'transport',
-      playing: playback.playing,
+      playing: following || playback.playing,
       speed: playback.speed,
-      tick: playback.tick,
+      tick,
       tickCount: playback.tickCount,
-      atEnd: playback.atEnd,
+      atEnd: !following && playback.atEnd,
+      // The host hides its transport on this: a follower must not be able to seek away
+      // from the moment every other viewer is on.
+      following,
     });
-  }, [playback.playing, playback.speed, playback.atEnd, playback.tick, playback.tickCount, post]);
+  }, [following, playback.playing, playback.speed, playback.atEnd, tick, playback.tickCount, post]);
 
   return (
     <div className="h-screen w-screen bg-arena-bg">
       <ArenaCanvas
         replay={replay}
-        time={playback.time}
+        time={time}
         selectedSlot={selectedSlot}
         showVisibility={showVisibility}
         onSelectSlot={(slot) => {

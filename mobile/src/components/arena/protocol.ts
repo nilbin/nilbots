@@ -77,6 +77,12 @@ export type ArenaTransport = {
   tick: number;
   tickCount: number;
   atEnd: boolean;
+  /**
+   * The page is following a live broadcast rather than playing a replay. The transport
+   * is hidden entirely while true — every viewer is on the same tick by design, and
+   * seeking would desynchronise this one from all of them.
+   */
+  following: boolean;
 };
 
 /** Messages the page sends out. */

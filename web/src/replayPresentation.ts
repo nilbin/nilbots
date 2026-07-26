@@ -71,6 +71,37 @@ export function createPresenter(replay: ReplayDocument): ReplayPresenter {
   const zone = deriveZone(replay);
 
   const at = (rawTick: number): TickPresentation => {
+    // A broadcast still in its countdown has released no ticks, so a replay fetched at
+    // that moment is a header with an empty tick list. Indexing it throws, which takes
+    // the whole viewer down — blank canvas, and no further messages to the host, so its
+    // transport freezes on stale values. Answer with the pre-match state instead.
+    if (tickCount === 0) {
+      return {
+        tick: 0,
+        control: null,
+        bots: replay.header.participants.map((participant) => {
+          const look = botLook(participant.lookId, participant.slot);
+          return {
+            slot: participant.slot,
+            name: participant.name,
+            accent: adjustAccentForBackground(
+              presentationAccent(look, participant.accent),
+              '#111823',
+            ),
+            lookLabel: look.label,
+            runtimeKind: participant.runtimeKind,
+            status: 'Active',
+            health: maxHealth,
+            maxHealth,
+            cooldown: 0,
+            zoneTicks: null,
+            holdingZone: false,
+            visibleTiles: 0,
+            visibleEnemies: [],
+          };
+        }),
+      };
+    }
     const tick = Math.max(0, Math.min(rawTick, tickCount - 1));
     const tickData = replay.ticks[tick];
     const states = stateBefore(replay, tick + 1);

@@ -91,3 +91,32 @@ export function usePlayback(replay: ReplayDocument): PlaybackState {
     setSpeed,
   };
 }
+
+export interface LiveFollow {
+  /** The shared presentation tick from the server clock. */
+  tick: number;
+  ticksPerSecond: number;
+}
+
+/// Follows the server's presentation clock: re-anchors on every update from the
+/// server and advances smoothly between polls, never running past received ticks.
+export function useLiveFollower(replay: ReplayDocument, live?: LiveFollow): number {
+  const [time, setTime] = useState(0);
+  const anchor = useRef<{ tick: number; at: number } | null>(null);
+
+  useEffect(() => {
+    if (!live) return;
+    anchor.current = { tick: Math.max(0, live.tick), at: performance.now() };
+    let frame = 0;
+    const advance = () => {
+      const a = anchor.current!;
+      const elapsed = (performance.now() - a.at) / 1000;
+      setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, replay.ticks.length));
+      frame = requestAnimationFrame(advance);
+    };
+    frame = requestAnimationFrame(advance);
+    return () => cancelAnimationFrame(frame);
+  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length]);
+
+  return time;
+}

@@ -261,7 +261,12 @@ declare global {
      * page is decoding the wall atlases and baking sprites, which is paid per page load,
      * not per replay.
      */
-    __BOTARENA_LOAD__?: (source: { url: string } | { replay: ReplayDocument }) => void;
+    __BOTARENA_LOAD__?: (
+      source: ({ url: string } | { replay: ReplayDocument }) & {
+        /** Follow a broadcast instead of playing: the server's clock drives the tick. */
+        live?: { tick: number; ticksPerSecond: number };
+      },
+    ) => void;
     /**
      * Playback commands for an embedding host, present only while a hosted replay is
      * mounted. The host draws its own transport; the clock stays on this side, so these

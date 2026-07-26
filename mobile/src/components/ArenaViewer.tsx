@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +22,7 @@ import type {
   ArenaTick,
   ArenaTransport,
 } from '@/components/arena/protocol';
+import { useMatchLive } from '@/hooks/useMatch';
 import { API_BASE_URL } from '@/api/config';
 import { Arena, Mono, Space } from '@/theme/arena';
 
@@ -43,8 +52,15 @@ import { Arena, Mono, Space } from '@/theme/arena';
  */
 
 type ArenaViewerApi = {
-  /** Show the arena and play a match's replay. Safe to call before the page is ready. */
-  watch: (matchId: string, title?: string) => void;
+  /**
+   * Show the arena and play a match's replay. Safe to call before the page is ready.
+   *
+   * A broadcasting match is *followed*, not played: pass `live` and the viewer anchors to
+   * the server's presentation clock, re-reading the replay as more ticks are released,
+   * with no transport. Playing one as a replay instead would show whichever ticks
+   * happened to be public at open, stop at that edge, and drift from every other viewer.
+   */
+  watch: (matchId: string, options?: { title?: string; live?: boolean }) => void;
 };
 
 const ArenaViewerContext = createContext<ArenaViewerApi | null>(null);
@@ -60,6 +76,7 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false);
   const [title, setTitle] = useState<string | undefined>();
   const [failed, setFailed] = useState(false);
+  const [watching, setWatching] = useState<{ matchId: string; live: boolean } | null>(null);
 
   const [header, setHeader] = useState<ArenaHeader | null>(null);
   const [result, setResult] = useState<ArenaResult>(null);
@@ -86,16 +103,22 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
   );
 
   const load = useCallback(
-    (matchId: string) => {
-      const url = `${API_BASE_URL}/api/matches/${matchId}/replay`;
-      call(`window.__BOTARENA_LOAD__ && window.__BOTARENA_LOAD__({ url: ${JSON.stringify(url)} })`);
+    (matchId: string, anchor?: { tick: number; ticksPerSecond: number }) => {
+      const source = {
+        url: `${API_BASE_URL}/api/matches/${matchId}/replay`,
+        ...(anchor ? { live: anchor } : {}),
+      };
+      call(
+        `window.__BOTARENA_LOAD__ && window.__BOTARENA_LOAD__(${JSON.stringify(source)})`,
+      );
     },
     [call],
   );
 
   const watch = useCallback(
-    (matchId: string, watchTitle?: string) => {
-      setTitle(watchTitle);
+    (matchId: string, options?: { title?: string; live?: boolean }) => {
+      setTitle(options?.title);
+      setWatching({ matchId, live: options?.live ?? false });
       setFailed(false);
       // Cleared rather than kept: leaving the previous match's readouts up while the next
       // one loads shows numbers that belong to a different fight.
@@ -105,6 +128,9 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
       setTransport(null);
       setSelectedSlot(null);
       setVisible(true);
+      // A live match waits for its first clock poll rather than loading now: without an
+      // anchor the page would play the released ticks as an ordinary replay.
+      if (options?.live) return;
       if (ready.current) load(matchId);
       else pending.current = matchId;
     },
@@ -141,6 +167,7 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
             tick: message.tick,
             tickCount: message.tickCount,
             atEnd: message.atEnd,
+            following: message.following,
           });
           break;
         case 'selected':
@@ -162,6 +189,33 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
     },
     [control, selectedSlot],
   );
+
+  // Follow the server's presentation clock while a broadcast is on screen. Each poll
+  // re-anchors the page *and* re-reads the replay, because a broadcast's replay grows as
+  // ticks are released — the same shape the site's match page uses.
+  const { data: clock } = useMatchLive(
+    visible && watching?.live ? watching.matchId : undefined,
+  );
+
+  useEffect(() => {
+    if (!visible || !watching?.live || !clock || !ready.current) return;
+    // Before a broadcast starts the server reports presentationTick as int.MaxValue —
+    // "fully visible", which is right for a legacy match and catastrophic as an anchor:
+    // it would pin the follower past the last tick. A match that has not completed has
+    // no clock to follow yet, so wait for one.
+    if (clock.status !== 'Completed') return;
+    if (clock.broadcastComplete) {
+      // Broadcast over: reload without an anchor so the local transport takes over and
+      // the full replay — outcome included — becomes seekable.
+      setWatching({ matchId: watching.matchId, live: false });
+      load(watching.matchId);
+      return;
+    }
+    load(watching.matchId, {
+      tick: clock.presentationTick,
+      ticksPerSecond: clock.presentationTicksPerSecond,
+    });
+  }, [visible, watching, clock, load]);
 
   const api = useMemo<ArenaViewerApi>(() => ({ watch }), [watch]);
   const lookFor = (slot: number) =>
@@ -218,14 +272,25 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
           />
         </View>
 
-        <ArenaTransportBar
-          transport={transport}
+        {/* Absent while following: seeking a broadcast would put this viewer on a
+            different tick from everyone else watching the same fight. */}
+        {transport?.following ? (
+          <View style={styles.broadcasting}>
+            <Text style={styles.broadcastingText}>
+              Broadcasting · tick {String(transport.tick).padStart(3, '0')} — every viewer sees
+              this moment.
+            </Text>
+          </View>
+        ) : (
+          <ArenaTransportBar
+            transport={transport}
           onToggle={() => control('toggle')}
           onStep={(delta) => control('step', delta)}
           onRestart={() => control('restart')}
           onSpeed={(speed) => control('setSpeed', speed)}
-          onSeek={(tick) => control('seek', tick)}
-        />
+            onSeek={(tick) => control('seek', tick)}
+          />
+        )}
 
         <ScrollView style={styles.panels} contentContainerStyle={styles.panelsBody}>
           {failed ? (
@@ -313,4 +378,12 @@ const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, paddingTop: Space.xs },
   toggleLabel: { color: Arena.dim, fontSize: 12, flexShrink: 1 },
   provenance: { ...Mono, color: Arena.dim, fontSize: 10, paddingTop: Space.xs },
+  broadcasting: {
+    borderTopWidth: 1,
+    borderTopColor: Arena.edge,
+    backgroundColor: Arena.panel,
+    paddingHorizontal: Space.lg,
+    paddingVertical: Space.md,
+  },
+  broadcastingText: { ...Mono, color: Arena.live, fontSize: 11 },
 });

@@ -1,17 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReplayDocument } from '../types';
-import { usePlayback } from '../playback';
+import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import ArenaCanvas from './ArenaCanvas';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
 import Logo from './Logo';
-
-export interface LiveFollow {
-  /** The shared presentation tick from the server clock. */
-  tick: number;
-  ticksPerSecond: number;
-}
 
 export default function Viewer({
   replay,
@@ -159,27 +153,4 @@ export default function Viewer({
       )}
     </div>
   );
-}
-
-/// Follows the server's presentation clock: re-anchors on every update from the
-/// server and advances smoothly between polls, never running past received ticks.
-function useLiveFollower(replay: ReplayDocument, live?: LiveFollow): number {
-  const [time, setTime] = useState(0);
-  const anchor = useRef<{ tick: number; at: number } | null>(null);
-
-  useEffect(() => {
-    if (!live) return;
-    anchor.current = { tick: Math.max(0, live.tick), at: performance.now() };
-    let frame = 0;
-    const advance = () => {
-      const a = anchor.current!;
-      const elapsed = (performance.now() - a.at) / 1000;
-      setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, replay.ticks.length));
-      frame = requestAnimationFrame(advance);
-    };
-    frame = requestAnimationFrame(advance);
-    return () => cancelAnimationFrame(frame);
-  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length]);
-
-  return time;
 }

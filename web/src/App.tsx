@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReplayDocument } from './types';
 import HostedViewer from './components/HostedViewer';
+import type { LiveFollow } from './playback';
 import Viewer from './components/Viewer';
 
 /// Standalone viewer mode: replay embedded by the CLI, served as replay.json, or pushed
@@ -16,6 +17,13 @@ export default function App() {
   // with an error. Detected up front rather than on first __BOTARENA_LOAD__ call, so the
   // fallback never starts.
   const hosted = typeof window !== 'undefined' && Boolean(window.ReactNativeWebView);
+  // Present only while the host is following a broadcast; cleared when it stops, which
+  // is what hands control back to the local transport once the broadcast completes.
+  const [live, setLive] = useState<LiveFollow | undefined>(undefined);
+  // The URL currently shown, so a re-load of the *same* replay refreshes it in place. A
+  // broadcast grows tick by tick and the host re-requests it as it does; blanking the
+  // canvas on each of those would strobe the arena several times a second.
+  const loaded = useRef<string | null>(null);
 
   const notifyHost = useCallback((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
@@ -24,6 +32,7 @@ export default function App() {
   useEffect(() => {
     window.__BOTARENA_LOAD__ = (source) => {
       setLoadError(null);
+      setLive(source.live ?? undefined);
       if ('replay' in source) {
         setReplay(source.replay);
         notifyHost({ type: 'loaded' });
@@ -32,7 +41,10 @@ export default function App() {
       // Fetched here rather than handed over as JSON: the host and this page are the
       // same origin, and pushing a whole replay document across the native bridge as a
       // string is both slower and bounded in size.
-      setReplay(null);
+      if (loaded.current !== source.url) {
+        setReplay(null);
+        loaded.current = source.url;
+      }
       fetch(source.url)
         .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
         .then((data: ReplayDocument) => {
@@ -80,5 +92,5 @@ export default function App() {
   }
   // A host supplies its own header, transport and readouts, so it gets the canvas alone;
   // rendering the full viewer inside it would duplicate all three.
-  return hosted ? <HostedViewer replay={replay} /> : <Viewer replay={replay} />;
+  return hosted ? <HostedViewer replay={replay} live={live} /> : <Viewer replay={replay} />;
 }
