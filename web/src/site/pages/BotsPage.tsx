@@ -1,26 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { botLook } from '../../render/arenaThemes';
 import BotIdentity from '../components/BotIdentity';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView';
-import { api, type BotSummary, type Meta } from '../api';
+import { useBots, useMeta } from '../queries';
 
 export default function BotsPage() {
-  const [bots, setBots] = useState<BotSummary[] | null>(null);
-  const [meta, setMeta] = useState<Meta | null>(null);
-  const [error, setError] = useState<unknown>(null);
-  const [reloads, setReloads] = useState(0);
+  const { data: bots = null, error, refetch } = useBots();
+  const { data: meta = null } = useMeta();
   const [query, setQuery] = useState('');
   const [ratedOnly, setRatedOnly] = useState(false);
-
-  useEffect(() => {
-    setError(null);
-    // A rejection has to land somewhere: without this, `bots` stays null and the page
-    // reads "Loading…" indefinitely with nothing to act on.
-    void api.get<BotSummary[]>('/api/bots').then(setBots).catch(setError);
-    // Meta is decoration here — a failure to load it should not take the roster down.
-    void api.get<Meta>('/api/meta').then(setMeta).catch(() => undefined);
-  }, [reloads]);
 
   // The roster passed thirty bots without anything to narrow it by, which is the point
   // where a grid stops being browsable (UI audit). Name and owner are what people
@@ -65,7 +54,7 @@ export default function BotsPage() {
         )}
       </div>
       {error !== null ? (
-        <ErrorState error={error} onRetry={() => setReloads((n) => n + 1)} />
+        <ErrorState error={error} onRetry={() => void refetch()} />
       ) : shown === null ? (
         <LoadingState />
       ) : shown.length === 0 ? (

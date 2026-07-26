@@ -1,3 +1,4 @@
+import type { ReplayDocument } from '../types';
 import type { components } from '../api/schema';
 
 /**
@@ -38,6 +39,10 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return (await response.json()) as T;
 }
 
+/**
+ * The raw verbs, for one-off calls that do not warrant a named endpoint (mutations, the
+ * odd admin action). Prefer `endpoints` below for anything a page reads.
+ */
 export const api = {
   get: <T>(url: string) => request<T>('GET', url),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, body),
@@ -72,6 +77,7 @@ export type LadderStanding = Schemas['LadderStanding'];
 
 export type BotRecord = Schemas['BotRecord'];
 export type BotStatistics = Schemas['BotStatistics'];
+export type BotMatchHistory = Schemas['BotMatchHistoryResponse'];
 
 export type MatchSummaryParticipant = Schemas['MatchSummaryParticipantResponse'];
 export type MatchSummary = Schemas['MatchSummaryResponse'];
@@ -87,3 +93,31 @@ export type MatchSetDetail = Schemas['MatchSetResponse'];
 
 export type LeaderboardEntry = Schemas['LeaderboardEntryResponse'];
 export type Leaderboard = Schemas['LeaderboardResponse'];
+
+/**
+ * Every endpoint the site reads, with its path and response type bound together in one
+ * place.
+ *
+ * `api.get<BotSummary[]>('/api/bots')` states the two separately at each call site, so
+ * nothing stops them disagreeing — a path typo or a changed response shape type-checks
+ * perfectly and fails at runtime. Naming the endpoint once means the compiler carries the
+ * pairing to all of them, which is what the mobile client already does.
+ */
+export const endpoints = {
+  meta: () => api.get<Meta>('/api/meta'),
+  bots: () => api.get<BotSummary[]>('/api/bots'),
+  bot: (key: string) => api.get<BotDetail>(`/api/bots/${key}`),
+  botMatches: (botId: string) => api.get<BotMatchHistory>(`/api/bots/${botId}/matches`),
+  botStats: (botId: string) => api.get<BotStatistics>(`/api/bots/${botId}/stats`),
+  leaderboard: (rules?: string | null) =>
+    api.get<Leaderboard>(
+      `/api/leaderboard${rules ? `?rules=${encodeURIComponent(rules)}` : ''}`,
+    ),
+  matches: (query: string) => api.get<MatchSummary[]>(query),
+  match: (matchId: string) => api.get<MatchDetail>(`/api/matches/${matchId}`),
+  matchLive: (matchId: string) => api.get<MatchLive>(`/api/matches/${matchId}/live`),
+  matchReplay: (matchId: string) => api.get<ReplayDocument>(`/api/matches/${matchId}/replay`),
+  matchSet: (setId: string) => api.get<MatchSetDetail>(`/api/matchsets/${setId}`),
+  myBots: () => api.get<MyBot[]>('/api/bots/mine'),
+  notifications: () => api.get<UserNotification[]>('/api/notifications?take=20'),
+};

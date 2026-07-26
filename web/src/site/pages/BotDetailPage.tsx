@@ -5,7 +5,8 @@ import { botLook, projectileLook } from '../../render/arenaThemes';
 import AppearanceEditor from '../components/AppearanceEditor';
 import BotIdentity from '../components/BotIdentity';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
-import { api, type BotDetail, type BotSummary, type Meta } from '../api';
+import { api, ApiError, type BotDetail, type BotSummary } from '../api';
+import { useBot, useBotMatches, useMeta } from '../queries';
 
 const STARTER_SOURCE = `using BotArena.Sdk;
 
@@ -34,32 +35,12 @@ public sealed class MyBot : IBot
 export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
   const { botKey } = useParams<{ botKey: string }>();
-  const [bot, setBot] = useState<BotDetail | null>(null);
-  const [missing, setMissing] = useState(false);
+  // Polls only while a version is still building — the one thing on this page that
+  // changes without the reader doing anything.
+  const { data: bot, error, refetch } = useBot(botKey);
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    const data = await api.get<BotDetail>(`/api/bots/${botKey}`);
-    setBot(data);
-    return data;
-  }, [botKey]);
-
-  useEffect(() => {
-    let timer: number | undefined;
-    const poll = async () => {
-      // A rejected fetch used to leave the page on "Loading…" forever, so a mistyped
-      // or deleted bot looked like a hung site (UI audit).
-      try {
-        const data = await load();
-        if (data.versions.some((v) => v.status === 'Pending' || v.status === 'Building'))
-          timer = window.setTimeout(poll, 2500);
-      } catch {
-        setMissing(true);
-      }
-    };
-    void poll();
-    return () => window.clearTimeout(timer);
-  }, [load]);
+  const load = useCallback(async () => (await refetch()).data!, [refetch]);
+  const missing = error instanceof ApiError && error.status === 404;
 
   if (missing)
     return (
@@ -181,32 +162,8 @@ export default function BotDetailPage() {
   );
 }
 
-interface BotMatchRow {
-  id: string;
-  mapId: string;
-  status: string;
-  broadcasting: boolean;
-  matchSetId: string | null;
-  setGame: number | null;
-  createdAt: string;
-  outcome: string | null;
-  opponent: {
-    botId: string;
-    nameSnapshot: string;
-    ownerDisplayNameSnapshot: string;
-    accentSnapshot: string;
-    lookIdSnapshot: string;
-  } | null;
-}
-
 function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
-  const [data, setData] = useState<{
-    matches: BotMatchRow[];
-  } | null>(null);
-
-  useEffect(() => {
-    void api.get<NonNullable<typeof data>>(`/api/bots/${botId}/matches`).then(setData);
-  }, [botId]);
+  const { data } = useBotMatches(botId);
 
   if (!data || data.matches.length === 0) return null;
 
@@ -375,7 +332,7 @@ function SubmitPanel({ bot, onSubmitted }: { bot: BotDetail; onSubmitted: () => 
 function ChallengePanel({ bot }: { bot: BotDetail }) {
   const [allBots, setAllBots] = useState<BotSummary[]>([]);
   const [myBots, setMyBots] = useState<BotSummary[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
+  const { data: meta = null } = useMeta();
   const [opponentId, setOpponentId] = useState('');
   const [challengerId, setChallengerId] = useState('');
   const [mapId, setMapId] = useState('arena-01');
@@ -394,7 +351,7 @@ function ChallengePanel({ bot }: { bot: BotDetail }) {
         setMyBots(all.filter((b) => mine.some((m) => m.id === b.id) && b.activeVersion));
       })
       .catch(() => setMyBots([]));
-    void api.get<Meta>('/api/meta').then(setMeta);
+
   }, []);
 
   const isMine = bot.isOwner && bot.versions.some((v) => v.status === 'Built');

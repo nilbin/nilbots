@@ -68,25 +68,29 @@ never the notification's — they carry the same string, but TypeScript cannot n
 sibling property. The server marks the discriminator required
 (`DiscriminatorRequiredTransformer`) precisely so that narrowing works in both branches.
 
-## Data fetching — the known weak spot
+## Data access
 
-Pages fetch with hand-rolled `useEffect` + `useState`, one implementation per page. Prefer
-following the existing shape in a page you are already editing over half-migrating the
-app, but know what it costs, because the failure is silent:
+**TanStack Query, one hook per resource, in `site/queries.ts`.** Pages never call the API
+directly and never own a fetch: they call a hook and render its four states.
 
-- `null` doubles as "loading", so a rejected request leaves the page on "Loading…"
-  **forever**. Several pages have no error branch at all.
-- No caching, no dedupe, no retry, no refetch-on-focus. Navigating away and back refetches
-  everything; two components wanting the same resource fetch it twice.
+- **Endpoints are named in `site/api.ts`.** `endpoints.bot(key)` binds the path and its
+  response type together once, so they cannot drift; `api.get<T>(url)` states them
+  separately at every call site and a typo type-checks perfectly. The raw verbs remain for
+  mutations.
+- **Polling belongs in the hook**, never a component, and each one stops on its own
+  condition: a match when it is finished *and* done broadcasting (status alone stops too
+  early — the result is still withheld), a set when it is revealed, a replay when its
+  broadcast ends.
+- **Query keys are arrays namespaced by resource** — `['bot', key]`, `['match', id, 'live']`.
+- **A 4xx is an answer, not a hiccup.** The client-level retry policy does not retry them,
+  so a mistyped id says "no such match" instead of spinning.
 
-`StateView` (`site/components/StateView.tsx`) exists so loading, error and empty are not
-re-invented per page. Use it. **Every page that fetches must handle all four states** —
-loading, error, empty, content — which is the same rule the mobile app follows, for the
-same reason: "no ranked sets yet" should read as intent, not as a bug.
-
-The mobile app uses TanStack Query and gets caching, retries and the four states for
-free. Migrating the site to it is the obvious fix and is not done; do it as a deliberate
-piece of work rather than page-by-page drive-bys, which would leave two idioms.
+`StateView` gives loading, error and empty one implementation. **Every page that fetches
+handles all four states** — loading, error, empty, content — for the same reason the
+mobile app does: "no ranked sets yet" should read as intent, not as a bug. This used to be
+the app's weak spot; nine hand-rolled `useEffect` fetches each treated `null` as "loading",
+so a rejected request left the page on "Loading…" forever and four polling loops died on
+their first failure with no retry.
 
 ## Styling
 

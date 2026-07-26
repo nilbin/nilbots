@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import BotIdentity from '../components/BotIdentity';
-import { api, type Leaderboard } from '../api';
+import { useLeaderboard } from '../queries';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView';
 
 export default function LeaderboardPage() {
-  const [board, setBoard] = useState<Leaderboard | null>(null);
+
   const [rules, setRules] = useState<string | null>(null); // null = server default
-  const [error, setError] = useState<unknown>(null);
-  const [reloads, setReloads] = useState(0);
+  const { data: board = null, error, refetch } = useLeaderboard(rules);
+
   const [query, setQuery] = useState('');
 
   // Keep each bot's real rank while filtering: #7 is #7 whatever else is on screen.
@@ -22,12 +22,6 @@ export default function LeaderboardPage() {
         entry.owner.toLowerCase().includes(needle),
     );
   }, [board, query]);
-
-  useEffect(() => {
-    setError(null);
-    const query = rules === null ? '' : `?rules=${encodeURIComponent(rules)}`;
-    void api.get<Leaderboard>(`/api/leaderboard${query}`).then(setBoard).catch(setError);
-  }, [rules, reloads]);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -63,7 +57,7 @@ export default function LeaderboardPage() {
         </div>
       )}
       {error !== null && (
-        <ErrorState error={error} onRetry={() => setReloads((n) => n + 1)} />
+        <ErrorState error={error} onRetry={() => void refetch()} />
       )}
       {error === null && board === null && <LoadingState label="Loading the ladder…" />}
       {board !== null && board.entries.length === 0 && (

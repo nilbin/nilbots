@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
-import { api, type BotSummary, type MatchSummary, type Meta } from '../api';
+import { api, type MatchSummary } from '../api';
 import { ErrorState, LoadingState } from '../components/StateView';
+import { useBots, useMeta } from '../queries';
 import { useAuth } from '../auth';
 
 const PAGE = 30;
@@ -10,8 +11,8 @@ const PAGE = 30;
 /// Landing + public match browser: recent matches, refreshed while any are running.
 export default function ArenaPage() {
   const [matches, setMatches] = useState<MatchSummary[] | null>(null);
-  const [bots, setBots] = useState<BotSummary[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
+  const { data: bots = [] } = useBots();
+  const { data: meta = null } = useMeta();
   const [exhausted, setExhausted] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [reloads, setReloads] = useState(0);
@@ -42,11 +43,6 @@ export default function ArenaPage() {
     },
     [bot, map, ranked],
   );
-
-  useEffect(() => {
-    void api.get<BotSummary[]>('/api/bots').then(setBots).catch(() => setBots([]));
-    void api.get<Meta>('/api/meta').then(setMeta).catch(() => setMeta(null));
-  }, []);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -196,7 +192,7 @@ export default function ArenaPage() {
   );
 }
 
-export function MatchRow({ match }: { match: MatchSummary }) {
+function MatchRow({ match }: { match: MatchSummary }) {
   const [a, b] = match.participants;
   const winner = match.winnerSlot;
   return (
