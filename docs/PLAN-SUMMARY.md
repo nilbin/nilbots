@@ -137,6 +137,13 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    observed product use; payments stay separate and later. Logotype (§31)
    remains.
 4. SignalR as the live transport (timeline model already in place, DECISIONS #33).
+   Related but separate: notifications beyond entitlements —
+   challenge/result kinds, mobile in-app toasts and push — follow
+   [`NOTIFICATIONS-PLAN.md`](NOTIFICATIONS-PLAN.md) (DECISIONS #108/#118).
+   The durable record, `NOTIFY` fan-out and recovery poll already exist and
+   already scale; the blocker is that the notification payload types exactly
+   one kind, and `ToResponse` throws on a second until it becomes a
+   discriminated union.
 5. Roslyn analyzers for prohibited APIs (§6.1) — DX only; the runtime
    already neutralizes clock/entropy (DECISIONS #20).
 6. §15.3 completion: network-less submission builds (vendor the ILC packages)

@@ -62,6 +62,9 @@ builder.Services.AddScoped<BackgroundJobLeaseStore>();
 builder.Services.AddScoped<BackgroundJobDispatcher>();
 builder.Services.AddScoped<CompileSubmissionJobHandler>();
 builder.Services.AddScoped<MatchExecutionJobHandler>();
+builder.Services.AddScoped<AnnounceMatchResultJobHandler>();
+builder.Services.AddScoped<AnnounceSetResultJobHandler>();
+builder.Services.AddScoped<UserNotificationWriter>();
 builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
 
@@ -118,7 +121,10 @@ if (mode.RunsWeb)
     // The document describes only the public HTTP surface, which the repo and
     // /llms-full.txt already document in prose — it exposes nothing new.
     builder.Services.AddOpenApi(options =>
-        options.AddSchemaTransformer<NumericSchemaTransformer>());
+    {
+        options.AddSchemaTransformer<NumericSchemaTransformer>();
+        options.AddSchemaTransformer<DiscriminatorRequiredTransformer>();
+    });
     builder.Services.AddSignalR();
     builder.Services.AddSingleton(new PostgresNotificationOptions(connectionString));
     if (!generatingOpenApiDocument)

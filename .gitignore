@@ -26,3 +26,6 @@ mobile/.expo/
 mobile/dist/
 mobile/ios/
 mobile/android/
+
+# TypeScript incremental build cache — a local artifact, not source.
+web/tsconfig.tsbuildinfo

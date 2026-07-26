@@ -1220,6 +1220,16 @@
           "versionCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "currentStanding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LadderStanding"
+              }
+            ]
           }
         }
       },
@@ -1587,35 +1597,6 @@
           "id": {
             "type": "string",
             "format": "uuid"
-          }
-        }
-      },
-      "EntitlementEarnedPayload": {
-        "required": [
-          "sourceKind",
-          "sourceId",
-          "reason",
-          "items"
-        ],
-        "type": "object",
-        "properties": {
-          "sourceKind": {
-            "type": "string"
-          },
-          "sourceId": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntitlementNotificationItem"
-            }
           }
         }
       },
@@ -2624,6 +2605,171 @@
           }
         }
       },
+      "UserNotificationPayload": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload"
+          },
+          {
+            "$ref": "#/components/schemas/UserNotificationPayloadMatchSettledPayload"
+          },
+          {
+            "$ref": "#/components/schemas/UserNotificationPayloadSetSettledPayload"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "entitlement-earned": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload",
+            "match-settled": "#/components/schemas/UserNotificationPayloadMatchSettledPayload",
+            "set-settled": "#/components/schemas/UserNotificationPayloadSetSettledPayload"
+          }
+        }
+      },
+      "UserNotificationPayloadEntitlementEarnedPayload": {
+        "required": [
+          "sourceKind",
+          "sourceId",
+          "reason",
+          "items",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "entitlement-earned"
+            ],
+            "type": "string"
+          },
+          "sourceKind": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitlementNotificationItem"
+            }
+          }
+        }
+      },
+      "UserNotificationPayloadMatchSettledPayload": {
+        "required": [
+          "matchId",
+          "mapId",
+          "botId",
+          "botName",
+          "botLookId",
+          "botAccent",
+          "outcome",
+          "opponentName",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "match-settled"
+            ],
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botName": {
+            "type": "string"
+          },
+          "botLookId": {
+            "type": "string"
+          },
+          "botAccent": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "opponentName": {
+            "type": "string"
+          }
+        }
+      },
+      "UserNotificationPayloadSetSettledPayload": {
+        "required": [
+          "matchSetId",
+          "botId",
+          "botName",
+          "botLookId",
+          "botAccent",
+          "outcome",
+          "score",
+          "opponentScore",
+          "ratingChange",
+          "opponentName",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "set-settled"
+            ],
+            "type": "string"
+          },
+          "matchSetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botName": {
+            "type": "string"
+          },
+          "botLookId": {
+            "type": "string"
+          },
+          "botAccent": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          },
+          "opponentScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "ratingChange": {
+            "type": "number",
+            "format": "double"
+          },
+          "opponentName": {
+            "type": "string"
+          }
+        }
+      },
       "UserNotificationResponse": {
         "required": [
           "id",
@@ -2653,7 +2799,7 @@
             "format": "date-time"
           },
           "payload": {
-            "$ref": "#/components/schemas/EntitlementEarnedPayload"
+            "$ref": "#/components/schemas/UserNotificationPayload"
           }
         }
       },

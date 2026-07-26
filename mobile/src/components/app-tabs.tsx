@@ -1,31 +1,42 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
-import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { Arena } from '@/theme/arena';
 
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
-
   return (
     <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}>
+      backgroundColor={Arena.panel}
+      indicatorColor={Arena.edge}
+      // iOS makes the tab bar transparent at a list's scroll edge and switches to a
+      // material once content passes under it, so the bar visibly changed shade between
+      // screens. Pin it to one appearance instead.
+      disableTransparentOnScrollEdge
+      tintColor={Arena.accent}
+      labelStyle={{ color: Arena.dim, selected: { color: Arena.accent } }}>
       <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Ladder</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/tabIcons/home.png')}
           renderingMode="template"
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="arena">
+        <NativeTabs.Trigger.Label>Arena</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="play.rectangle" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="bots">
+        <NativeTabs.Trigger.Label>Bots</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="garage">
+        <NativeTabs.Trigger.Label>Garage</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="wrench.and.screwdriver" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

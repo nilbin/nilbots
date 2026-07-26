@@ -53,6 +53,41 @@ public static class LadderStandings
             rank);
     }
 
+    /// <summary>
+    /// Every bot's standing on one ladder, keyed by bot.
+    /// <para>
+    /// The per-bot <see cref="ForBotAsync"/> costs two queries each, so a roster would pay
+    /// 2N to show rank. This reads the ladder once and ranks in memory — the same shape
+    /// the leaderboard endpoint already uses. Bots with no ranked set are absent rather
+    /// than present with a default rating, because an unplayed rating is not a standing.
+    /// </para>
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<Guid, LadderStanding>> ForRulesAsync(
+        this IQueryable<BotRating> ratings,
+        string rulesVersion,
+        CancellationToken cancellationToken = default)
+    {
+        var ranked = await ratings.RankedForRules(rulesVersion)
+            .Select(rating => new
+            {
+                rating.BotId,
+                rating.RulesVersion,
+                rating.Rating,
+                rating.RankedSets,
+            })
+            .ToListAsync(cancellationToken);
+
+        double[] ladderRatings = [.. ranked.Select(entry => entry.Rating)];
+        return ranked.ToDictionary(
+            entry => entry.BotId,
+            entry => new LadderStanding(
+                entry.BotId,
+                entry.RulesVersion,
+                Math.Round(entry.Rating),
+                entry.RankedSets,
+                CompetitionRank(ladderRatings, entry.Rating)));
+    }
+
     public static int CompetitionRank(
         IEnumerable<double> ladderRatings,
         double rating) => 1 + ladderRatings.Count(other => other > rating);

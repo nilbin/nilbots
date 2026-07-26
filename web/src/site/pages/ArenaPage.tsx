@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
-import { api, type BotSummary, type MatchSummary, type Meta } from '../api';
+import { api, type MatchSummary } from '../api';
+import { ErrorState, LoadingState } from '../components/StateView';
+import { useBots, useMeta } from '../queries';
 import { useAuth } from '../auth';
 
 const PAGE = 30;
@@ -9,9 +11,11 @@ const PAGE = 30;
 /// Landing + public match browser: recent matches, refreshed while any are running.
 export default function ArenaPage() {
   const [matches, setMatches] = useState<MatchSummary[] | null>(null);
-  const [bots, setBots] = useState<BotSummary[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
+  const { data: bots = [] } = useBots();
+  const { data: meta = null } = useMeta();
   const [exhausted, setExhausted] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [reloads, setReloads] = useState(0);
   const { user } = useAuth();
 
   // Filters live in the URL so a filtered feed can be linked and reloaded.
@@ -41,35 +45,42 @@ export default function ArenaPage() {
   );
 
   useEffect(() => {
-    void api.get<BotSummary[]>('/api/bots').then(setBots).catch(() => setBots([]));
-    void api.get<Meta>('/api/meta').then(setMeta).catch(() => setMeta(null));
-  }, []);
-
-  useEffect(() => {
     let timer: number | undefined;
     let stopped = false;
     setMatches(null);
     setExhausted(false);
+    setError(null);
     const load = async () => {
-      const data = await api.get<MatchSummary[]>(query(PAGE, 0));
-      if (stopped) return;
-      setMatches(data);
-      setExhausted(data.length < PAGE);
-      // Only follow a feed that has something moving in it.
-      if (data.some((m) => m.status === 'Pending' || m.status === 'Running'))
-        timer = window.setTimeout(load, 2500);
+      try {
+        const data = await api.get<MatchSummary[]>(query(PAGE, 0));
+        if (stopped) return;
+        setMatches(data);
+        setExhausted(data.length < PAGE);
+        // Only follow a feed that has something moving in it.
+        if (data.some((m) => m.status === 'Pending' || m.status === 'Running'))
+          timer = window.setTimeout(load, 2500);
+      } catch (cause) {
+        // Rejecting inside the polling loop killed the loop and left the feed on
+        // "Loading…" with no way back.
+        if (!stopped) setError(cause);
+      }
     };
     void load();
     return () => {
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, reloads]);
 
   const loadMore = async () => {
-    const more = await api.get<MatchSummary[]>(query(PAGE, matches?.length ?? 0));
-    setMatches([...(matches ?? []), ...more]);
-    if (more.length < PAGE) setExhausted(true);
+    try {
+      const more = await api.get<MatchSummary[]>(query(PAGE, matches?.length ?? 0));
+      setMatches([...(matches ?? []), ...more]);
+      if (more.length < PAGE) setExhausted(true);
+    } catch (cause) {
+      // A failed page must not discard the ones already shown.
+      setError(cause);
+    }
   };
 
   return (
@@ -149,8 +160,10 @@ export default function ArenaPage() {
             </button>
           )}
         </div>
-        {matches === null ? (
-          <p className="text-sm text-arena-dim">Loading…</p>
+        {error !== null ? (
+          <ErrorState error={error} onRetry={() => setReloads((n) => n + 1)} />
+        ) : matches === null ? (
+          <LoadingState label="Loading the arena…" />
         ) : matches.length === 0 ? (
           <p className="text-sm text-arena-dim">
             {filtered
@@ -179,7 +192,7 @@ export default function ArenaPage() {
   );
 }
 
-export function MatchRow({ match }: { match: MatchSummary }) {
+function MatchRow({ match }: { match: MatchSummary }) {
   const [a, b] = match.participants;
   const winner = match.winnerSlot;
   return (
