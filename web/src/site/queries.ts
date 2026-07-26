@@ -36,11 +36,24 @@ export function useBots() {
   return useQuery({ queryKey: keys.bots, queryFn: endpoints.bots });
 }
 
+/**
+ * One bot, polled only while a version of it is still compiling.
+ *
+ * Build state is the one thing on a bot's page that changes without the reader doing
+ * anything, and it is what they are watching for after a submit. Once nothing is queued
+ * or building, the page is static and the polling stops.
+ */
 export function useBot(key: string | undefined) {
   return useQuery({
     queryKey: keys.bot(key ?? ''),
     queryFn: () => endpoints.bot(key!),
     enabled: Boolean(key),
+    refetchInterval: (query) =>
+      query.state.data?.versions.some(
+        (version) => version.status === 'Pending' || version.status === 'Building',
+      )
+        ? 2_500
+        : false,
   });
 }
 

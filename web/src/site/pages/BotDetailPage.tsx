@@ -35,8 +35,6 @@ public sealed class MyBot : IBot
 export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
   const { botKey } = useParams<{ botKey: string }>();
-  // Polls only while a version is still building — the one thing on this page that
-  // changes without the reader doing anything.
   const { data: bot, error, refetch } = useBot(botKey);
   const [expanded, setExpanded] = useState<string | null>(null);
   const load = useCallback(async () => (await refetch()).data!, [refetch]);
