@@ -117,7 +117,7 @@ export default function HostedViewer({
   }, [following, playback.playing, playback.speed, playback.atEnd, tick, playback.tickCount, post]);
 
   return (
-    <div className="h-screen w-screen bg-arena-bg">
+    <div className="relative h-screen w-screen bg-arena-bg">
       <ArenaCanvas
         replay={replay}
         time={time}

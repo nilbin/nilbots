@@ -168,6 +168,12 @@ High-quality alpha WebP keeps those high-DPI atlases smaller than the former
 1× lossless files. Every `art.json` also declares a hard runtime asset budget;
 the build fails rather than silently making every replay download much larger.
 
+`arenaThemes.ts` registers every active manifest and URL, but image decoding is
+lazy: only the theme selected by the replay receives `Image` instances. Do not
+move `loadImage` back into manifest registration. Four 4096×4096 atlases per
+theme can occupy roughly 256 MiB after decoding regardless of their compact
+WebP transfer size; eagerly decoding several themes can crash mobile browsers.
+
 ### Zone treatment
 
 - A theme may use palette-only tint and perimeter treatment; Overgrown Lab

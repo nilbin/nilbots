@@ -78,7 +78,12 @@ export default function ArenaCanvas({
     <canvas
       ref={canvasRef}
       onClick={handleClick}
-      className="h-full w-full cursor-pointer"
+      // Absolutely positioned, not in flow. The render loop sizes this canvas from
+      // its parent every frame, so if the canvas also contributed to the parent's
+      // height the two would chase each other: canvas grows, parent grows by its
+      // border, canvas reads the larger value next frame. That is the arena slowly
+      // inflating on load. Out of flow, the parent measures independently.
+      className="absolute inset-0 h-full w-full cursor-pointer"
       role="img"
       aria-label="nilbots match playback"
     />

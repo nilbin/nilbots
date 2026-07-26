@@ -63,3 +63,20 @@ test('future map themes remain complete staged packages', () => {
   for (const id of ['desert-array', 'drowned-vault', 'void-sanctum'])
     assertCompletePackage(join(stagedRoot, id, 'runtime'), id);
 });
+
+test('theme registration does not eagerly decode high-resolution atlases', () => {
+  const source = readFileSync(
+    join(repositoryRoot, 'web', 'src', 'render', 'arenaThemes.ts'),
+    'utf8',
+  );
+  const registration = source.slice(
+    source.indexOf('function buildThemes'),
+    source.indexOf('function buildLooks'),
+  );
+  assert.match(registration, /\blazyImage\(/);
+  assert.doesNotMatch(
+    registration,
+    /\bloadImage\(/,
+    'Decode theme images only when the replay asks for that theme.',
+  );
+});

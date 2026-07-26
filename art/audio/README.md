@@ -1,0 +1,51 @@
+# nilbots audio candidates
+
+This directory contains review-stage audio, not runtime viewer assets.
+
+Run:
+
+```bash
+node scripts/generate-audio-candidates.mjs
+node scripts/generate-audio-v2-candidates.mjs
+node scripts/validate-audio-candidates.mjs
+node scripts/build-audio-sound-lab-site.mjs
+node scripts/export-runtime-audio-candidates.mjs
+```
+
+Then open `sound-lab/index.html` or serve `art/audio/sound-lab` from any static
+server. Generation is deterministic: the same script revision produces the
+same signed 16-bit, 44.1 kHz mono WAV files.
+
+The build command creates the static worker package used for the owner-only
+review site under the ignored `sandbox/audio-sound-lab-site` directory. It
+reuses `.openai/hosting.json`; never create a second site for this review lab.
+
+V1 contains three ten-cue procedural directions:
+
+- **Vector Tactical** — clean, dry, and precise.
+- **Foundry Signal** — mechanical, weighted, and industrial.
+- **Neon Circuit** — synthetic, musical, and expressive.
+
+V2 is a higher-fidelity vertical slice with four matched showcase moments and
+four directions:
+
+- **Aegis Systems** — precise, premium, and tactical.
+- **Obsidian Foundry** — physical, dense, and cinematic.
+- **Aurora Core** — luminous, energetic, and modern.
+- **Nilbots Signature** — Aegis clarity, Obsidian weight, and Aurora lift.
+
+V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
+layers include separate transients, tonal bodies, modal material resonance,
+debris, stereo movement, feedback-delay diffusion, and dynamics processing.
+**Nilbots Signature** applies that combined language to the complete
+projectile, impact, destruction, and unlock sample set. V1 remains in the
+sound lab as a collapsed reference archive.
+
+The lossless candidate masters stay under `art/`. The temporary in-game review
+build exports all four V2 directions to
+`web/src/assets/audio/candidates/<id>/` as 48 kHz stereo AAC-LC, using
+`scripts/export-runtime-audio-candidates.mjs`. Those checked-in delivery
+assets total roughly 0.54 MiB and let one replay switch between complete packs.
+The export requires macOS `afconvert`; the generated assets keep normal builds
+platform-independent. Once a direction is selected, remove the rejected
+runtime candidates and retain their lossless sources here.

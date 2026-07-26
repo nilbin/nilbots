@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>nilbots audio check</title>
+<style>
+ body{font:16px/1.55 system-ui,sans-serif;background:#0a0e14;color:#c9d5e3;padding:24px;max-width:34rem;margin:auto}
+ h1{font-size:19px;margin:0 0 4px}
+ p.lede{color:#64748b;font-size:14px;margin:0 0 20px}
+ button{display:block;width:100%;padding:15px;margin:10px 0;font-size:16px;border-radius:10px;
+   border:1px solid #1d2836;background:#111823;color:#38bdf8;text-align:left}
+ button b{display:block;color:#c9d5e3;font-weight:600}
+ button small{color:#64748b}
+ #log{margin-top:18px;padding:12px;border:1px solid #1d2836;border-radius:10px;background:#111823;
+   font:12px/1.6 ui-monospace,Menlo,monospace;white-space:pre-wrap;color:#64748b;min-height:5em}
+ .ok{color:#22c55e}.bad{color:#ef4444}
+</style>
+</head>
+<body>
+<h1>Audio check</h1>
+<p class="lede">Run these in order. Each isolates one layer, so whichever fails first is the cause.</p>
+
+<button id="t1"><b>1 · Web Audio tone</b><small>can this browser make any sound at all</small></button>
+<button id="t2"><b>2 · &lt;audio&gt; element</b><small>plays a real cue via the media element path</small></button>
+<button id="t3"><b>3 · decodeAudioData on a real cue</b><small>can Web Audio decode our AAC files — the likely culprit</small></button>
+
+<div id="log">ready</div>
+
+<script>
+var log = document.getElementById('log');
+var ctx = null;
+function say(text, cls) {
+  log.innerHTML += '\n' + (cls ? '<span class="' + cls + '">' + text + '</span>' : text);
+}
+function context() {
+  ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+  return ctx;
+}
+
+document.getElementById('t1').onclick = async function () {
+  try {
+    var c = context();
+    await c.resume();
+    var osc = c.createOscillator(), gain = c.createGain();
+    osc.frequency.value = 440; gain.gain.value = 0.22;
+    osc.connect(gain).connect(c.destination);
+    osc.start(); osc.stop(c.currentTime + 0.7);
+    say('1 · tone played · state=' + c.state + ' rate=' + c.sampleRate, 'ok');
+    say('   if you heard nothing here, it is the OS/browser, not our audio.');
+  } catch (e) { say('1 · FAILED ' + e.name + ': ' + e.message, 'bad'); }
+};
+
+document.getElementById('t2').onclick = function () {
+  var el = new Audio('audio-check-cue.m4a');
+  el.play().then(function () { say('2 · <audio> playing — the file is fine for the media path', 'ok'); })
+           .catch(function (e) { say('2 · FAILED ' + e.name + ': ' + e.message, 'bad'); });
+};
+
+document.getElementById('t3').onclick = async function () {
+  try {
+    var c = context();
+    await c.resume();
+    var bytes = await fetch('audio-check-cue.m4a').then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.arrayBuffer();
+    });
+    say('3 · fetched ' + bytes.byteLength + ' bytes, decoding…');
+    var buffer = await c.decodeAudioData(bytes);
+    var src = c.createBufferSource();
+    src.buffer = buffer; src.connect(c.destination); src.start();
+    say('3 · decoded ok · ' + buffer.duration.toFixed(2) + 's ' +
+        buffer.numberOfChannels + 'ch ' + buffer.sampleRate + 'Hz — you should hear it', 'ok');
+  } catch (e) {
+    say('3 · DECODE FAILED ' + e.name + ': ' + (e.message || '(no message)'), 'bad');
+    say('   This is the answer: the browser cannot decode our AAC/m4a cues.', 'bad');
+    say('   Fix = ship a second encoding (Opus in WebM, or MP3) alongside.');
+  }
+};
+</script>
+</body>
+</html>

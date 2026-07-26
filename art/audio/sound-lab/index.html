@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Three original audio directions for the nilbots arena."
+    />
+    <title>nilbots — arena sound lab</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b1016'/%3E%3Ccircle cx='18' cy='32' r='6' fill='%2347e6db'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%2347e6db'/%3E%3Ccircle cx='46' cy='32' r='6' fill='%2347e6db'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./soundboard.css" />
+  </head>
+  <body>
+    <div class="ambient ambient--cyan"></div>
+    <div class="ambient ambient--amber"></div>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="nilbots sound lab">
+        <span class="brand__mark" aria-hidden="true">
+          <i></i><i></i><i></i>
+        </span>
+        <span>nilbots</span>
+      </a>
+      <div class="topbar__label">
+        AUDIO R&amp;D <span>·</span> HIGH-FIDELITY REVIEW 02
+      </div>
+      <button class="quiet-button" type="button" data-action="stop">
+        <span class="stop-icon" aria-hidden="true"></span>
+        Stop audio
+      </button>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="eyebrow">
+          <span class="live-dot"></span>
+          V2 VERTICAL SLICE · HEADPHONES RECOMMENDED
+        </div>
+        <h1>How should the<br /><em>arena sound?</em></h1>
+        <p>
+          Four production-grade directions. Four identical showcase moments.
+          Layered stereo synthesis, physical resonance, spatial diffusion, and
+          disciplined mastering—still original and reproducible from source.
+        </p>
+        <div class="hero__meta">
+          <div>
+            <strong>16</strong>
+            <span>V2 showcase cues</span>
+          </div>
+          <div>
+            <strong>48</strong>
+            <span>kHz stereo PCM</span>
+          </div>
+          <div>
+            <strong>2×</strong>
+            <span>oversampled render</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="compare-panel" aria-labelledby="compare-title">
+        <div class="section-number">A—D</div>
+        <div class="compare-panel__body">
+          <div class="section-heading">
+            <div>
+              <p class="overline">FAST COMPARISON</p>
+              <h2 id="compare-title">One moment, four directions</h2>
+            </div>
+            <label class="volume">
+              <span>VOLUME</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.72"
+                data-volume
+              />
+              <output data-volume-label>72%</output>
+            </label>
+          </div>
+          <div class="compare-cues" data-compare-cues></div>
+          <div class="compare-players" data-compare-players></div>
+          <p class="keyboard-hint">
+            Keyboard: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd>
+            compare the selected cue · <kbd>space</kbd> stops
+          </p>
+        </div>
+      </section>
+
+      <section class="packs-section" aria-labelledby="packs-title">
+        <div class="section-intro">
+          <div>
+            <p class="overline">FULL DIRECTIONS</p>
+            <h2 id="packs-title">Listen for character, not loudness</h2>
+          </div>
+          <p>
+            Candidate D combines the strongest language from A, B, and C
+            across the complete sample set. Compare transient quality,
+            physical material, stereo depth, and reward character.
+          </p>
+        </div>
+        <div class="pack-list" data-packs></div>
+      </section>
+
+      <section class="archive-section">
+        <details>
+          <summary>
+            <span>
+              <small>REFERENCE ONLY</small>
+              Open the procedural V1 archive
+            </span>
+            <i aria-hidden="true"></i>
+          </summary>
+          <div class="archive__body">
+            <p>
+              The original mono candidates remain here for honest comparison.
+              They are not part of the V2 vote.
+            </p>
+            <div class="archive__controls" data-v1-archive></div>
+          </div>
+        </details>
+      </section>
+
+      <section class="notes">
+        <div class="section-number">SYS</div>
+        <div>
+          <p class="overline">IMPLEMENTATION NOTES</p>
+          <h2>Designed for deterministic replay playback</h2>
+          <div class="notes__grid">
+            <p>
+              <strong>Replay-safe.</strong> Sounds will be scheduled from
+              authoritative tick events, never from canvas animation guesses.
+            </p>
+            <p>
+              <strong>Cosmetic only.</strong> Projectile audio can follow the
+              projectile manifest without changing damage, timing, or visibility.
+            </p>
+            <p>
+              <strong>Voice-limited.</strong> Repeated fire and impacts will use
+              priorities and small deterministic variations instead of stacking noise.
+            </p>
+            <p>
+              <strong>Bundle-conscious.</strong> These candidates stay in
+              <code>art/</code>; only the chosen runtime set enters the viewer.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>nilbots audio lab / high-fidelity vertical slice v2</span>
+      <span data-audio-status>Ready. Select a cue.</span>
+    </footer>
+
+    <template id="pack-template">
+      <article class="pack">
+        <header class="pack__header">
+          <div class="pack__number"></div>
+          <div class="pack__title">
+            <p class="pack__kicker"></p>
+            <h3></h3>
+            <p class="pack__description"></p>
+          </div>
+          <div class="pack__actions">
+            <button class="demo-button" type="button" data-pack-demo>
+              <span class="play-triangle" aria-hidden="true"></span>
+              Play 7s demo
+            </button>
+            <button class="pick-button" type="button" data-pick>
+              Mark as favorite
+            </button>
+          </div>
+        </header>
+        <div class="cue-grid"></div>
+      </article>
+    </template>
+
+    <template id="cue-template">
+      <button class="cue" type="button">
+        <span class="cue__topline">
+          <span class="cue__category"></span>
+          <span class="cue__duration"></span>
+        </span>
+        <strong class="cue__label"></strong>
+        <span class="cue__description"></span>
+        <span class="cue__playline">
+          <span class="cue__icon" aria-hidden="true"></span>
+          <span class="cue__action">Play cue</span>
+          <span class="cue__meter" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+        </span>
+      </button>
+    </template>
+
+    <script src="./manifest.js"></script>
+    <script src="./manifest-v2.js"></script>
+    <script src="./soundboard.js" defer></script>
+  </body>
+</html>

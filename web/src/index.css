@@ -18,6 +18,15 @@ body {
   color: var(--color-arena-text);
 }
 
+/* The viewer sizes itself with h-full, which resolves to `auto` unless every ancestor
+   has a height — so in standalone mode the arena was content-sized rather than filling
+   the window. The site scrolls normally; only the chain needs to be complete. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
