@@ -66,6 +66,22 @@ builder.Services.AddScoped<AnnounceMatchResultJobHandler>();
 builder.Services.AddScoped<AnnounceSetResultJobHandler>();
 builder.Services.AddScoped<UserNotificationWriter>();
 builder.Services.AddScoped<MatchChallengeAnnouncer>();
+builder.Services.AddScoped<DeliverPushJobHandler>();
+// Expo's push service, behind IPushTransport so swapping to APNs/FCM directly later is a
+// change of implementation rather than of design (DECISIONS #118). A deployment with no
+// configured push service gets the no-op, so local development and tests never reach out.
+if (builder.Configuration.GetValue<bool>("BOTARENA_PUSH_ENABLED"))
+{
+    builder.Services.AddHttpClient<IPushTransport, ExpoPushTransport>(client =>
+    {
+        client.BaseAddress = new Uri("https://exp.host");
+        client.Timeout = TimeSpan.FromSeconds(20);
+    });
+}
+else
+{
+    builder.Services.AddSingleton<IPushTransport, DisabledPushTransport>();
+}
 builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
 
@@ -275,6 +291,8 @@ if (mode.RunsWeb)
     app.MapMatches();
     app.MapRanked();
     app.MapUserNotifications();
+    app.MapDevices();
+    app.MapNotificationPreferences();
     app.MapHub<UserNotificationsHub>("/hubs/notifications")
         .RequireAuthorization();
 

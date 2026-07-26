@@ -8,7 +8,8 @@ public sealed class BackgroundJobDispatcher(
     CompileSubmissionJobHandler compileSubmission,
     MatchExecutionJobHandler matchExecution,
     AnnounceMatchResultJobHandler announceMatchResult,
-    AnnounceSetResultJobHandler announceSetResult)
+    AnnounceSetResultJobHandler announceSetResult,
+    DeliverPushJobHandler deliverPush)
 {
     public Task<JobExecutionResult> DispatchAsync(
         BackgroundJob job,
@@ -30,6 +31,10 @@ public sealed class BackgroundJobDispatcher(
             BackgroundJob.AnnounceSetResultType =>
                 announceSetResult.HandleAsync(
                     job.PayloadId("matchSetId"),
+                    cancellationToken),
+            BackgroundJob.DeliverPushType =>
+                deliverPush.HandleAsync(
+                    job.PayloadId("notificationId"),
                     cancellationToken),
             _ => throw new InvalidOperationException(
                 $"Unknown job type '{job.Type}'."),

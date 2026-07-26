@@ -810,6 +810,92 @@
           }
         }
       }
+    },
+    "/api/devices": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/devices/{deviceId}": {
+      "delete": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/notifications/preferences": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationPreferenceResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationPreferenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2437,6 +2523,21 @@
           }
         }
       },
+      "NotificationPreferenceResponse": {
+        "required": [
+          "kind",
+          "pushEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "pushEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
       "RankedChallengeRequest": {
         "required": [
           "botId"
@@ -2459,6 +2560,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RegisterDeviceRequest": {
+        "required": [
+          "pushToken",
+          "deviceId",
+          "platform"
+        ],
+        "type": "object",
+        "properties": {
+          "pushToken": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
           }
         }
       },
@@ -2578,6 +2698,21 @@
           },
           "projectileLookId": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateNotificationPreferenceRequest": {
+        "required": [
+          "kind",
+          "pushEnabled"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "pushEnabled": {
+            "type": "boolean"
           }
         }
       },

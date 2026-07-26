@@ -1,3 +1,4 @@
+using BotArena.App.Jobs;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,7 +49,7 @@ public sealed class UserNotificationWriter(AppDbContext db)
         if (inserted != 1)
             return false;
 
-        await AnnounceAsync(notificationId, cancellationToken);
+        await AnnounceAsync(notificationId, createdAt, cancellationToken);
         return true;
     }
 
@@ -109,14 +110,52 @@ public sealed class UserNotificationWriter(AppDbContext db)
         if (announced.Count == 0)
             return false;
 
-        await AnnounceAsync(announced[0], cancellationToken);
+        await AnnounceAsync(announced[0], createdAt, cancellationToken);
         return true;
     }
 
-    private Task AnnounceAsync(Guid notificationId, CancellationToken cancellationToken) =>
-        db.Database.ExecuteSqlInterpolatedAsync($"""
+    /// <summary>
+    /// Wake every delivery channel for a row that definitely exists.
+    /// <para>
+    /// Realtime first, then the push job. PostgreSQL delivers a <c>pg_notify</c> when the
+    /// surrounding transaction commits, so web processes only learn about rows that are
+    /// visible (DECISIONS #108).
+    /// </para>
+    /// </summary>
+    private async Task AnnounceAsync(
+        Guid notificationId,
+        DateTime createdAt,
+        CancellationToken cancellationToken)
+    {
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
             SELECT pg_notify(
                 {PostgresNotificationListener.Channel},
                 {notificationId.ToString()})
             """, cancellationToken);
+
+        // Enqueued with raw SQL rather than db.BackgroundJobs.Add, because everything else
+        // in this class writes immediately and callers do not all reach a SaveChanges
+        // afterwards — the challenge endpoint announces *after* saving, on purpose. A
+        // tracked entity added here would silently never be inserted for that path.
+        string payload = $$"""{"notificationId":"{{notificationId}}"}""";
+        DateTime availableAt = createdAt.Add(PushDelay);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "BackgroundJobs"
+                ("Type", "PayloadJson", "Status", "Attempts", "AvailableAt", "CreatedAt")
+            VALUES
+                ({BackgroundJob.DeliverPushType}, CAST({payload} AS jsonb),
+                 {nameof(JobStatus.Pending)}, 0, {availableAt}, {createdAt})
+            """, cancellationToken);
+    }
+
+    /// <summary>
+    /// How long a push waits for the in-app channel to make it unnecessary.
+    /// <para>
+    /// Someone with the app open gets this over SignalR within a second and reads it; the
+    /// delay is what lets that count as delivered, so their phone does not also buzz about
+    /// something already on screen. Long enough to notice and read, short enough that a
+    /// challenge is still worth watching when it lands.
+    /// </para>
+    /// </summary>
+    private static readonly TimeSpan PushDelay = TimeSpan.FromSeconds(45);
 }
