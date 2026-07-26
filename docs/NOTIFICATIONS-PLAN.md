@@ -50,6 +50,23 @@ kind below depends on this and nothing else in the plan is safe until it lands.
 | `match-settled` | a match your bot fought finishes **broadcasting** | the result |
 | `set-settled` | a ranked set your bot fought is revealed | the set, with rating delta |
 
+### Firing on the broadcast boundary needs no new machinery
+
+Nothing runs at the moment a broadcast completes. The match worker sets
+`BroadcastStartedAt = CompletedAt + BroadcastDelaySeconds` and finishes; the broadcast
+ends later, at `BroadcastStartedAt + EndTick / PresentationTicksPerSecond`, with no
+process watching.
+
+`BackgroundJob` already solves this and it was not obvious: it carries `AvailableAt`, and
+`BackgroundJobLeaseStore` claims only rows where `AvailableAt <= now()`. So a job can be
+*scheduled*. Enqueue an announce job in the same transaction that completes the match,
+with `AvailableAt` set to the computed broadcast end. No sweeper, no timer, no polling
+loop — and it inherits the retry and `FOR UPDATE SKIP LOCKED` safety every other job has.
+
+Prefer that over a periodic sweeper looking for matches whose broadcast has elapsed: a
+sweeper re-scans the table forever to catch an event that is known exactly when the match
+completes.
+
 ### Broadcast secrecy is the hard constraint here
 
 A result notification must be written when the match **finishes broadcasting**, not when
@@ -141,8 +158,16 @@ result toasts for the match on screen and let the viewer's own ending deliver it
 
 ## Order of work
 
-1. Payload discriminated union + client regeneration. Nothing else is safe first.
+1. ~~Payload discriminated union + client regeneration.~~ **DONE.** The union is the
+   response contract only; storage stays concrete per kind and is read by `Kind`, so a
+   new kind needs no migration. Adding one means a `[JsonDerivedType]` on
+   `UserNotificationPayload`, a case in `ToResponse`, and
+   `bash scripts/generate-api-clients.sh`.
 2. `match-settled` / `set-settled` on the broadcast-complete boundary, with the set rule.
+   Emit from an announce job scheduled via `AvailableAt` (above). Open question worth
+   settling first: a ranked set's games each finish broadcasting at different times, so
+   `set-settled` schedules from the *last* game's boundary — which the finalizer knows and
+   an individual match worker does not.
 3. Mobile SignalR + in-app toasts (needs the garage's auth session).
 4. `match-challenged` and supersession.
 5. Device registration, preferences, delivery records, and push from a durable job.
