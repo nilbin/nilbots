@@ -13,6 +13,7 @@ import {
 import { replayMaxHealth } from '../replayMetadata';
 import { posesAt, type BotPose } from './interpolate';
 import { wallAtlasDestination } from './wallAtlasGeometry';
+import { drawFogMask } from './fogMask';
 
 const directionStep: Record<Direction, [number, number]> = {
   North: [0, -1],
@@ -274,10 +275,22 @@ export function drawArena(
     const botTick = currentTick.bots.find((b) => b.slot === slot);
     if (!botTick) return;
     const visible = new Set(botTick.visibleTiles.map(([x, y]) => `${x},${y}`));
-    ctx.fillStyle = 'rgba(4, 7, 12, 0.55)';
-    for (let y = 0; y < mapHeight; y++)
-      for (let x = 0; x < mapWidth; x++)
-        if (!visible.has(`${x},${y}`)) ctx.fillRect(px(x), py(y), tile, tile);
+
+    // Walls overhang their tile by a gutter, so a visible wall is cleared at its drawn
+    // extent — otherwise the tile grid cuts the sprite in half.
+    const { contentPixels, gutterPixels } = theme.walls.atlas;
+    const { destinationGutter } = wallAtlasDestination(tile, contentPixels, gutterPixels);
+
+    drawFogMask(
+      ctx,
+      { px, py, tile, wallGutter: destinationGutter },
+      {
+        mapWidth,
+        mapHeight,
+        visible,
+        isWall: (x, y) => mapTiles[y][x] === '#',
+      },
+    );
   }
 
   function drawWalls(): void {
