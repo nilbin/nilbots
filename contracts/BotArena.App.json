@@ -2613,12 +2613,16 @@
         "anyOf": [
           {
             "$ref": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload"
+          },
+          {
+            "$ref": "#/components/schemas/UserNotificationPayloadMatchSettledPayload"
           }
         ],
         "discriminator": {
           "propertyName": "kind",
           "mapping": {
-            "entitlement-earned": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload"
+            "entitlement-earned": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload",
+            "match-settled": "#/components/schemas/UserNotificationPayloadMatchSettledPayload"
           }
         }
       },
@@ -2653,6 +2657,44 @@
             "items": {
               "$ref": "#/components/schemas/EntitlementNotificationItem"
             }
+          }
+        }
+      },
+      "UserNotificationPayloadMatchSettledPayload": {
+        "required": [
+          "matchId",
+          "mapId",
+          "botId",
+          "botName",
+          "outcome",
+          "opponentName"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "match-settled"
+            ],
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botName": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "opponentName": {
+            "type": "string"
           }
         }
       },

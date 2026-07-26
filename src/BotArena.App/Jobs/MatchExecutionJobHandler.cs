@@ -147,12 +147,35 @@ public sealed class MatchExecutionJobHandler(
             match.CompletedAt = timeProvider.GetUtcNow().UtcDateTime;
         }
 
+        ScheduleResultAnnouncement(match);
+
         await db.SaveChangesAsync(cancellationToken);
         await ApplyTerminalEffectsAsync(match, cancellationToken);
         return new JobExecutionResult(
             match.Status == MatchStatus.Completed
                 ? "completed"
                 : "match_failed");
+    }
+
+    /// <summary>
+    /// Queue the announcement for the instant this match stops withholding its result.
+    /// <para>
+    /// Enqueued in the same SaveChanges as the completed match, so a result can never
+    /// exist without something scheduled to announce it.
+    /// </para>
+    /// <para>
+    /// Setless matches only. A ranked set announces once, when the last of its games has
+    /// finished broadcasting — a boundary the set's finalizer knows and a single game's
+    /// worker does not.
+    /// </para>
+    /// </summary>
+    private void ScheduleResultAnnouncement(Match match)
+    {
+        if (match.Status != MatchStatus.Completed || match.MatchSetId is not null)
+            return;
+        if (BroadcastSchedule.AnnounceAt(match) is not DateTime announceAt)
+            return;
+        db.BackgroundJobs.Add(BackgroundJob.AnnounceMatchResult(match.Id, announceAt));
     }
 
     private async Task ApplyTerminalEffectsAsync(

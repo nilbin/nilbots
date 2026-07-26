@@ -6,6 +6,19 @@ namespace BotArena.App.Notifications;
 public static class UserNotificationKinds
 {
     public const string EntitlementEarned = "entitlement-earned";
+
+    /// <summary>
+    /// An unranked match a player's bot fought has finished broadcasting.
+    /// <para>
+    /// Games inside a ranked set never use this: a set announces once, as
+    /// <see cref="SetSettled"/>. Six rows per set would both bury the inbox and leak the
+    /// set's shape game by game (DECISIONS #118).
+    /// </para>
+    /// </summary>
+    public const string MatchSettled = "match-settled";
+
+    /// <summary>A ranked set has been revealed, with its score and rating change.</summary>
+    public const string SetSettled = "set-settled";
 }
 
 public sealed record EntitlementNotificationItem(
@@ -37,6 +50,7 @@ public sealed record EntitlementNotificationItem(
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(EntitlementEarnedPayload), UserNotificationKinds.EntitlementEarned)]
+[JsonDerivedType(typeof(MatchSettledPayload), UserNotificationKinds.MatchSettled)]
 public abstract record UserNotificationPayload;
 
 public sealed record EntitlementEarnedPayload(
@@ -44,6 +58,23 @@ public sealed record EntitlementEarnedPayload(
     string SourceId,
     string? Reason,
     IReadOnlyList<EntitlementNotificationItem> Items) : UserNotificationPayload;
+
+/// <summary>
+/// A finished match, phrased from the recipient's side.
+/// <para>
+/// Per-recipient rather than a neutral description of the match: the whole value of this
+/// notification is "my bot won", so the outcome is already resolved for whoever is being
+/// told rather than leaving each client to work out which participant is theirs.
+/// </para>
+/// </summary>
+public sealed record MatchSettledPayload(
+    Guid MatchId,
+    string MapId,
+    Guid BotId,
+    string BotName,
+    /// <summary>Win, Loss or Draw, from this recipient's point of view.</summary>
+    string Outcome,
+    string OpponentName) : UserNotificationPayload;
 
 public sealed record UserNotificationResponse(
     Guid Id,
@@ -78,6 +109,8 @@ public static class UserNotificationContracts
         {
             UserNotificationKinds.EntitlementEarned =>
                 Deserialize<EntitlementEarnedPayload>(notification),
+            UserNotificationKinds.MatchSettled =>
+                Deserialize<MatchSettledPayload>(notification),
             _ => throw new NotSupportedException(
                 $"Notification kind '{notification.Kind}' has no response mapping. Add a " +
                 $"case here and a [JsonDerivedType] on {nameof(UserNotificationPayload)} " +

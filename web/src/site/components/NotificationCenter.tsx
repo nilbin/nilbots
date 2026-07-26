@@ -12,21 +12,35 @@ import {
   projectileLook,
   type BotLook,
 } from '../../render/arenaThemes';
-import { api, type UserNotification } from '../api';
+import { api, type UserNotification, type EntitlementEarnedPayload } from '../api';
 import { useAuth } from '../auth';
 
 const POLL_MS = 60_000;
 const VISIBLE_MS = 14_000;
 
+/**
+ * An unlock, narrowed from the notification union.
+ *
+ * Other kinds reach this component and are ignored *for display* — they are not unlocks
+ * and have no toast here yet. They stay unread as a result, which is the intended
+ * behaviour only until the site grows result toasts of its own (DECISIONS #119).
+ */
+type UnlockNotification = UserNotification & { payload: EntitlementEarnedPayload };
+
+function isUnlock(notification: UserNotification): notification is UnlockNotification {
+  return notification.payload?.kind === 'entitlement-earned';
+}
+
 export default function NotificationCenter() {
   const { user } = useAuth();
-  const [pending, setPending] = useState<UserNotification[]>([]);
+  const [pending, setPending] = useState<UnlockNotification[]>([]);
   const seen = useRef(new Set<string>());
 
   const receive = useCallback((notification: UserNotification) => {
+    // Narrowed on the payload's own discriminator, not the outer `kind`: they carry the
+    // same string, but TypeScript cannot use one property to narrow a sibling.
     if (
-      notification.kind !== 'entitlement-earned' ||
-      !Array.isArray(notification.payload?.items) ||
+      !isUnlock(notification) ||
       notification.payload.items.length === 0 ||
       seen.current.has(notification.id)
     )
@@ -132,7 +146,7 @@ function UnlockToast({
   queued,
   onDismiss,
 }: {
-  notification: UserNotification;
+  notification: UnlockNotification;
   queued: number;
   onDismiss: () => void;
 }) {

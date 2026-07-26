@@ -27,6 +27,23 @@ public class BackgroundJob
 
     public const string CompileSubmissionType = "CompileSubmission";
     public const string ExecuteMatchType = "ExecuteMatch";
+    public const string AnnounceMatchResultType = "AnnounceMatchResult";
+
+    /// <summary>
+    /// Announce a finished match, due when its broadcast ends.
+    /// <para>
+    /// The only job created with a future <see cref="AvailableAt"/>. Nothing runs at the
+    /// moment a broadcast completes, but that moment is known exactly when the match does,
+    /// so the schedule carries the announcement there instead of a sweeper hunting for
+    /// elapsed broadcasts.
+    /// </para>
+    /// </summary>
+    public static BackgroundJob AnnounceMatchResult(Guid matchId, DateTime availableAt) => new()
+    {
+        Type = AnnounceMatchResultType,
+        PayloadJson = JsonSerializer.Serialize(new { matchId }),
+        AvailableAt = availableAt,
+    };
 
     public static BackgroundJob CompileSubmission(Guid botVersionId) => new()
     {

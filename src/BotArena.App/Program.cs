@@ -62,6 +62,8 @@ builder.Services.AddScoped<BackgroundJobLeaseStore>();
 builder.Services.AddScoped<BackgroundJobDispatcher>();
 builder.Services.AddScoped<CompileSubmissionJobHandler>();
 builder.Services.AddScoped<MatchExecutionJobHandler>();
+builder.Services.AddScoped<AnnounceMatchResultJobHandler>();
+builder.Services.AddScoped<UserNotificationWriter>();
 builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
 
