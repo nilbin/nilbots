@@ -24,7 +24,6 @@ public sealed class CompilerSubmissionService(
     TimeProvider timeProvider)
 {
     // Serializes the very short global queue-count check across web replicas.
-    private const long GlobalAdmissionLock = 0x4e494c424f545301;
 
     public async Task<CompilerSubmissionDecision> EnqueueAsync(
         Guid botId,
@@ -40,8 +39,8 @@ public sealed class CompilerSubmissionService(
 
         // Always take locks in this order. Different users may arrive together,
         // but their global and account quota checks cannot race.
-        await AcquireLock(GlobalAdmissionLock, cancellationToken);
-        await AcquireLock(UserLock(userId), cancellationToken);
+        await AcquireLock(AdmissionLocks.CompilerQueue, cancellationToken);
+        await AcquireLock(AdmissionLocks.Compilation(userId), cancellationToken);
 
         bool ownsBot = await db.Bots.AnyAsync(
             b => b.Id == botId && b.OwnerUserId == userId,
@@ -122,7 +121,4 @@ public sealed class CompilerSubmissionService(
             $"SELECT pg_advisory_xact_lock({key})",
             cancellationToken);
     }
-
-    private static long UserLock(Guid userId) =>
-        BinaryPrimitives.ReadInt64LittleEndian(userId.ToByteArray());
 }

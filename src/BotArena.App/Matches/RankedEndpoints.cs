@@ -50,7 +50,7 @@ public static class RankedEndpoints
             await using var admissionScope =
                 await db.Database.BeginTransactionAsync(cancellationToken);
             await db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({RankedAccountLock(userId)})",
+                $"SELECT pg_advisory_xact_lock({AdmissionLocks.Ranked(userId)})",
                 cancellationToken);
 
             DateTime rankedDayAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-24);
@@ -307,14 +307,6 @@ public static class RankedEndpoints
     /// allow them by default so the harness keeps working; every other role refuses.
     /// Explicit configuration wins either way — which is also the only way to exercise
     /// the refusal on a machine running the single-process role.</summary>
-    /// <summary>
-    /// One advisory lock per account, so two simultaneous requests cannot both read a
-    /// count below the limit and both pass. Derived from the account id the same way
-    /// compilation derives its own.
-    /// </summary>
-    private static long RankedAccountLock(Guid userId) =>
-        System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(userId.ToByteArray());
-
     private static bool AllowsPinnedOpponents(ApplicationMode mode, IConfiguration configuration) =>
         configuration.GetValue<bool?>("BOTARENA_ALLOW_PINNED_RANKED") ?? mode.IsAll;
 
