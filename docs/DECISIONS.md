@@ -1750,6 +1750,27 @@ before picking a number.*
      would serve empty data, and `ToResponse` throws on unknown kinds to force
      the discriminated union to be built first.
 
+119. **Notification policy: announce what others did to you and what moved your
+     rating; report losses exactly like wins.** Settles the questions
+     [`NOTIFICATIONS-PLAN.md`](NOTIFICATIONS-PLAN.md) left open under #118. A
+     challenge notifies only the challenged — the challenger pressed the button
+     and is looking at the screen, and an app that echoes your own actions
+     teaches you to ignore it. Ranked sets notify both players because rating
+     moved for both; unranked results notify only the challenged, since nothing
+     moved and the only news is that someone else started it. Losses are
+     announced with the same prominence as wins despite the toast being
+     designed to feel rewarding: the ladder already shows the rating, so a
+     silent loss reads as the app concealing rather than sparing, and a channel
+     that only carries good news stops being believed. Push sends through
+     Expo's push service rather than direct APNs/FCM — no certificate
+     management and one API for both platforms, accepting a third party in the
+     delivery path and no per-message priority, and affordable only because
+     device registrations, per-channel delivery records and a durable sending
+     job already hide the transport; moving to direct APNs/FCM later changes
+     one job handler. The site renders the new kinds too rather than staying
+     entitlements-only, because both surfaces read the same durable records and
+     giving them different news would be a bug in every reading.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

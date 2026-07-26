@@ -147,10 +147,50 @@ result toasts for the match on screen and let the viewer's own ending deliver it
 4. `match-challenged` and supersession.
 5. Device registration, preferences, delivery records, and push from a durable job.
 
-## Open questions
+## Who gets told what
 
-- Does a challenge notification go to both players, or only the challenged one?
-- Should an unranked loss notify at all, or only ranked results and wins? Notifying every
-  outcome is the fastest way to teach players to mute the app.
-- Expo push service or direct APNs/FCM.
-- Whether the site grows the same result toasts, or keeps entitlements only.
+One rule generates most of the answers: **you are told about things other people did to
+you, and about things that changed your standing.** Everything else you already know,
+because you did it.
+
+- **A challenge notifies only the challenged.** The challenger just pressed the button and
+  is almost certainly looking at the screen; telling them is an echo, and an app that
+  echoes your own actions is one you learn to ignore.
+- **Ranked sets notify both players, win or lose.** Rating moved for both, so both have
+  news.
+- **Unranked results notify only the challenged.** No rating moved, so the only thing that
+  makes it worth interrupting for is that someone else started it.
+
+### Losses notify exactly like wins
+
+Tempting to suppress them — the toast is meant to feel rewarding, and "your bot lost −25"
+does not. Do it anyway.
+
+An app that only reports good news stops being believed, and players work it out fast:
+the rating on the ladder already tells them, so a silent loss reads as the app hiding
+something rather than sparing them. The reward has to come from the notification being
+*true*, not from it being selectively cheerful. The `−25` gets `Arena.live` and the same
+prominence the `+25` gets.
+
+## Push transport: Expo, behind the abstraction
+
+Send through **Expo's push service** rather than straight to APNs/FCM. It removes the
+certificate and key management, handles token rotation, and is one API for both
+platforms — real setup cost avoided for a project this size, against a third party in the
+delivery path and no per-message priority control.
+
+That is affordable precisely because of the shape the plan already requires: device
+registrations, per-channel delivery records, and a durable job doing the sending. Nothing
+above the job knows which transport is underneath, so moving to direct APNs/FCM later
+changes one job handler. Move when per-message priority or delivery telemetry starts
+mattering, not before.
+
+## The site gets result toasts too
+
+Same durable records, so the site should render the new kinds rather than staying
+entitlements-only. A player who uses both surfaces getting different news from each would
+be a bug in every reading. `NotificationCenter` already exists and already acknowledges;
+the new kinds are payloads it does not yet have a case for.
+
+The suppression rule travels with it: the site must not toast a result for a match being
+watched on screen either.
