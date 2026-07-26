@@ -165,3 +165,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
     is transactionally safe under concurrent workers. Next is source-owned
     progression/competition work as product needs appear. This is an
     incremental modular-monolith plan, not a rewrite.
+11. Replay-native ML support is proposed in
+    [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). The engine-rewrite
+    seam is intentionally narrow: construct one canonical public observation,
+    pass it to the runtime, snapshot that exact pre-tick input into replay v2,
+    and enforce parity/leakage tests. Dataset export, public corpus access,
+    bounded model assets, and starter inference remain sequenced follow-ons;
+    no game-rules or sandbox-limit change is proposed.
