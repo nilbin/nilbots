@@ -122,11 +122,70 @@ revisit F-skatt and VAT when the numbers say to.
 4. **Leave iOS purchases alone** until the app is actually shipping and there is revenue to
    reason about. Then it is IAP, as a second grant source.
 
+## The launch inventory already exists, and costs nothing to sell
+
+`cosmetics/catalog.json` has 11 starter items and 12 locked ones. Six of the locked ones are
+earnable today — Mantis at 1300 rating, Lancer, Aureate Warden, Talon, Arc Spark and Regent
+Lance, from first build / first unranked match / 100 ranked matches / 1300 rating. **Those
+should stay earned.** Selling something a player is currently grinding toward devalues the
+grind and the toast that celebrates it.
+
+The other six are reserved against sources nothing grants:
+
+| pair | bot look | projectile | reserved source kind |
+|---|---|---|---|
+| 1 | `helio-kite` | `helix-dart` | `achievement` |
+| 2 | `scrap-jackal` | `gravity-knot` | `challenge` |
+| 3 | `glass-manta` | `prism-fan` | `competition` |
+
+They are unreachable — no code path grants a `reserved-*` source — so making them
+purchasable takes nothing away from anyone. And they already fall into three (look,
+projectile) pairs by source kind, which is the packaging without having to invent it.
+
+**A package needs one small change to be real.** `BotLook.defaultProjectileLookId` exists,
+and `GaragePage.selectLook` already auto-selects the matching projectile when a look is
+chosen — but **no look manifest declares one**, so that path has never executed. Setting it
+on these three looks makes "buy the pair, get the pair" the behaviour the garage already
+implements, rather than a new concept in the checkout.
+
+Whether the entitlement is one purchase granting two items, or one item that implies the
+other, is a catalog question: `GrantForEventAsync` already grants every item matching a
+source, so a single `purchase/pack-helio-kite` source granting both is the smaller change.
+
+## Selling outside the EU
+
+Twenty-seven countries is the part that has a *name*. Globally it is worse, and the
+difference decides the provider rather than complicating it.
+
+- **The US has no national sales tax.** Around 45 states levy one, most with economic nexus
+  at [$100,000 or 200 transactions](https://www.avalara.com/us/en/learn/guides/state-by-state-guide-economic-nexus-laws.html)
+  ($500,000 in California and Texas), each with its own registration deadline, filing
+  cadence and — the awkward part — its own definition of whether a digital good is taxable
+  at all. Sellers routinely find out they crossed a threshold when a state writes to them,
+  by which point back taxes and penalties have accrued.
+- **Elsewhere**, a long list of digital-services regimes with low or zero registration
+  thresholds: Norway, Switzerland, the UK, Canada, Australia, New Zealand, Japan, South
+  Korea, Singapore, India.
+
+Doing that yourself is not a bigger version of the EU problem, it is a different job.
+
+**A merchant of record makes global the default rather than a project**, because being
+registered everywhere *is* the product — Paddle and FastSpring cover 100+ jurisdictions.
+Going worldwide changes nothing about the integration: the same webhook grants the same
+entitlement, and the tax difference between a buyer in Malmö and one in Ohio is entirely
+theirs.
+
+So the global ambition strengthens the recommendation rather than complicating it. The one
+thing it does change is that **Stripe stops being a serious alternative** — at EU-only scale
+"you handle VAT yourself" is a bad trade; at worldwide scale it is not a trade anyone should
+take without a finance function.
+
 ## What is deliberately not answered here
 
-- Which cosmetics are sold rather than earned. Everything currently unlocks by playing, and
-  a paid tier changes what the unlock toast *means* — worth its own decision, not a
-  by-product of picking a payment provider.
-- Prices and currencies.
+- Prices, currencies, and whether the three packs are priced alike.
 - Refunds, and what a refund does to an entitlement already equipped on a bot that has since
-  fought ranked matches.
+  fought ranked matches. The equipped appearance is snapshotted onto past matches, so
+  revoking cannot rewrite history — and probably should not try.
+- Whether paid cosmetics should be visually distinguishable from earned ones. A ladder where
+  the rare-looking chassis was bought rather than won is a different game from one where it
+  was not, and that is a design decision rather than a commerce one.
