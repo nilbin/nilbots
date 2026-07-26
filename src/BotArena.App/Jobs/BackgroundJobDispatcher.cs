@@ -7,7 +7,8 @@ namespace BotArena.App.Jobs;
 public sealed class BackgroundJobDispatcher(
     CompileSubmissionJobHandler compileSubmission,
     MatchExecutionJobHandler matchExecution,
-    AnnounceMatchResultJobHandler announceMatchResult)
+    AnnounceMatchResultJobHandler announceMatchResult,
+    AnnounceSetResultJobHandler announceSetResult)
 {
     public Task<JobExecutionResult> DispatchAsync(
         BackgroundJob job,
@@ -25,6 +26,10 @@ public sealed class BackgroundJobDispatcher(
             BackgroundJob.AnnounceMatchResultType =>
                 announceMatchResult.HandleAsync(
                     job.PayloadId("matchId"),
+                    cancellationToken),
+            BackgroundJob.AnnounceSetResultType =>
+                announceSetResult.HandleAsync(
+                    job.PayloadId("matchSetId"),
                     cancellationToken),
             _ => throw new InvalidOperationException(
                 $"Unknown job type '{job.Type}'."),

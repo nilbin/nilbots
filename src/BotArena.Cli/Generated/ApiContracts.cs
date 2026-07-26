@@ -1840,6 +1840,54 @@ namespace BotArena.Cli.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UserNotificationPayloadSetSettledPayload
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserNotificationPayloadSetSettledPayloadKind>))]
+        public UserNotificationPayloadSetSettledPayloadKind? Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchSetId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid MatchSetId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid BotId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Outcome { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("score")]
+        public double Score { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("opponentScore")]
+        public double OpponentScore { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ratingChange")]
+        public double RatingChange { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("opponentName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string OpponentName { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UserNotificationResponse
     {
 
@@ -1915,6 +1963,15 @@ namespace BotArena.Cli.Generated
 
         [System.Runtime.Serialization.EnumMember(Value = @"match-settled")]
         MatchSettled = 0,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum UserNotificationPayloadSetSettledPayloadKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"set-settled")]
+        SetSettled = 0,
 
     }
 

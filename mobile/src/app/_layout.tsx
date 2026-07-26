@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { ArenaViewerProvider } from '@/components/ArenaViewer';
+import { NotificationHost } from '@/components/NotificationHost';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { Arena } from '@/theme/arena';
 
@@ -87,6 +88,8 @@ export default function RootLayout() {
             <Stack.Screen name="matches/[id]" options={{ title: 'Match' }} />
             <Stack.Screen name="sets/[id]" options={{ title: 'Ranked set' }} />
           </Stack>
+            {/* Last child, so its toast layers over every screen and over the arena. */}
+            <NotificationHost />
           </ArenaViewerProvider>
         </AuthProvider>
       </ThemeProvider>

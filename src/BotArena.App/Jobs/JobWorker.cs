@@ -48,7 +48,10 @@ public sealed class JobWorker(
         // already spreads it out. A job type with no lane is never claimed at all, which
         // is silent: the row simply stays Pending forever.
         if (matchWorkers > 0)
+        {
             lanes.Add(RunLane(BackgroundJob.AnnounceMatchResultType, stoppingToken));
+            lanes.Add(RunLane(BackgroundJob.AnnounceSetResultType, stoppingToken));
+        }
         if (lanes.Count == 0)
             throw new InvalidOperationException($"Role '{mode.Name}' has no background job lanes.");
         await Task.WhenAll(lanes);

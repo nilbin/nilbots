@@ -51,6 +51,7 @@ public sealed record EntitlementNotificationItem(
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(EntitlementEarnedPayload), UserNotificationKinds.EntitlementEarned)]
 [JsonDerivedType(typeof(MatchSettledPayload), UserNotificationKinds.MatchSettled)]
+[JsonDerivedType(typeof(SetSettledPayload), UserNotificationKinds.SetSettled)]
 public abstract record UserNotificationPayload;
 
 public sealed record EntitlementEarnedPayload(
@@ -74,6 +75,24 @@ public sealed record MatchSettledPayload(
     string BotName,
     /// <summary>Win, Loss or Draw, from this recipient's point of view.</summary>
     string Outcome,
+    string OpponentName) : UserNotificationPayload;
+
+/// <summary>
+/// A revealed ranked set, phrased from the recipient's side.
+/// <para>
+/// <see cref="RatingChange"/> is this bot's own signed delta, not the set's — it is the
+/// number the notification exists to deliver ("+25"), and leaving each client to work out
+/// its sign from which side it is on is how one of them eventually gets it backwards.
+/// </para>
+/// </summary>
+public sealed record SetSettledPayload(
+    Guid MatchSetId,
+    Guid BotId,
+    string BotName,
+    string Outcome,
+    double Score,
+    double OpponentScore,
+    double RatingChange,
     string OpponentName) : UserNotificationPayload;
 
 public sealed record UserNotificationResponse(
@@ -111,6 +130,8 @@ public static class UserNotificationContracts
                 Deserialize<EntitlementEarnedPayload>(notification),
             UserNotificationKinds.MatchSettled =>
                 Deserialize<MatchSettledPayload>(notification),
+            UserNotificationKinds.SetSettled =>
+                Deserialize<SetSettledPayload>(notification),
             _ => throw new NotSupportedException(
                 $"Notification kind '{notification.Kind}' has no response mapping. Add a " +
                 $"case here and a [JsonDerivedType] on {nameof(UserNotificationPayload)} " +

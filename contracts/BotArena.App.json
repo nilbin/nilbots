@@ -2616,13 +2616,17 @@
           },
           {
             "$ref": "#/components/schemas/UserNotificationPayloadMatchSettledPayload"
+          },
+          {
+            "$ref": "#/components/schemas/UserNotificationPayloadSetSettledPayload"
           }
         ],
         "discriminator": {
           "propertyName": "kind",
           "mapping": {
             "entitlement-earned": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload",
-            "match-settled": "#/components/schemas/UserNotificationPayloadMatchSettledPayload"
+            "match-settled": "#/components/schemas/UserNotificationPayloadMatchSettledPayload",
+            "set-settled": "#/components/schemas/UserNotificationPayloadSetSettledPayload"
           }
         }
       },
@@ -2692,6 +2696,55 @@
           },
           "outcome": {
             "type": "string"
+          },
+          "opponentName": {
+            "type": "string"
+          }
+        }
+      },
+      "UserNotificationPayloadSetSettledPayload": {
+        "required": [
+          "matchSetId",
+          "botId",
+          "botName",
+          "outcome",
+          "score",
+          "opponentScore",
+          "ratingChange",
+          "opponentName"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "set-settled"
+            ],
+            "type": "string"
+          },
+          "matchSetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botName": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          },
+          "opponentScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "ratingChange": {
+            "type": "number",
+            "format": "double"
           },
           "opponentName": {
             "type": "string"

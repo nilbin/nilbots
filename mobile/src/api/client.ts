@@ -21,6 +21,11 @@ export type MatchSet = Schemas['MatchSetResponse'];
 export type BotMatchHistory = Schemas['BotMatchHistoryResponse'];
 export type BotStatistics = Schemas['BotStatistics'];
 export type MyBot = Schemas['MyBotResponse'];
+export type UserNotification = Schemas['UserNotificationResponse'];
+export type NotificationPayload = Schemas['UserNotificationPayload'];
+export type EntitlementEarnedPayload = Schemas['UserNotificationPayloadEntitlementEarnedPayload'];
+export type MatchSettledPayload = Schemas['UserNotificationPayloadMatchSettledPayload'];
+export type SetSettledPayload = Schemas['UserNotificationPayloadSetSettledPayload'];
 
 export class ApiError extends Error {
   constructor(
@@ -99,4 +104,13 @@ export const api = {
   matchSet: (setId: string) => request<MatchSet>(`/api/matchsets/${setId}`),
   /** The signed-in player's own bots. 401 when signed out — the garage handles that. */
   myBots: () => request<MyBot[]>('/api/bots/mine'),
+  /** Unread notifications: the recovery path for anything the hub did not deliver. */
+  notifications: () => request<UserNotification[]>('/api/notifications'),
+  readNotification: (id: string) =>
+    request<void>(`/api/notifications/${id}/read`, { method: 'POST' }),
+  /**
+   * The current access token, for the one consumer that cannot go through `request`:
+   * SignalR opens its own connection and needs to authenticate it itself.
+   */
+  accessToken: () => accessTokenProvider(),
 };

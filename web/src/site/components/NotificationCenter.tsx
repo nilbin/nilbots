@@ -39,12 +39,15 @@ export default function NotificationCenter() {
   const receive = useCallback((notification: UserNotification) => {
     // Narrowed on the payload's own discriminator, not the outer `kind`: they carry the
     // same string, but TypeScript cannot use one property to narrow a sibling.
-    if (
-      !isUnlock(notification) ||
-      notification.payload.items.length === 0 ||
-      seen.current.has(notification.id)
-    )
+    if (seen.current.has(notification.id)) return;
+    // Kinds this component has no toast for are still acknowledged, just not shown.
+    // Dropping them silently would leave them unread forever and grow an inbox the site
+    // can never clear (DECISIONS #119).
+    if (!isUnlock(notification) || notification.payload.items.length === 0) {
+      seen.current.add(notification.id);
+      void api.post(`/api/notifications/${notification.id}/read`, {}).catch(() => undefined);
       return;
+    }
     seen.current.add(notification.id);
     setPending((current) => [...current, notification]);
   }, []);

@@ -1580,7 +1580,7 @@ export interface components {
             lookId: string;
             projectileLookId: string;
         };
-        UserNotificationPayload: components["schemas"]["UserNotificationPayloadEntitlementEarnedPayload"] | components["schemas"]["UserNotificationPayloadMatchSettledPayload"];
+        UserNotificationPayload: components["schemas"]["UserNotificationPayloadEntitlementEarnedPayload"] | components["schemas"]["UserNotificationPayloadMatchSettledPayload"] | components["schemas"]["UserNotificationPayloadSetSettledPayload"];
         UserNotificationPayloadEntitlementEarnedPayload: {
             /** @enum {string} */
             kind?: "entitlement-earned";
@@ -1599,6 +1599,23 @@ export interface components {
             botId: string;
             botName: string;
             outcome: string;
+            opponentName: string;
+        };
+        UserNotificationPayloadSetSettledPayload: {
+            /** @enum {string} */
+            kind?: "set-settled";
+            /** Format: uuid */
+            matchSetId: string;
+            /** Format: uuid */
+            botId: string;
+            botName: string;
+            outcome: string;
+            /** Format: double */
+            score: number;
+            /** Format: double */
+            opponentScore: number;
+            /** Format: double */
+            ratingChange: number;
             opponentName: string;
         };
         UserNotificationResponse: {
