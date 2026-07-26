@@ -30,3 +30,7 @@ mobile/android/
 
 # TypeScript incremental build cache — a local artifact, not source.
 web/tsconfig.tsbuildinfo
+
+# Baked atlas variants — generated from the 4096 masters by
+# scripts/generate-atlas-variants.mjs, regenerated on dev/build.
+web/src/assets/themes/*/variants/

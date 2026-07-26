@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:review": "tsc -b && vite build --config vite.review.config.ts && node ../scripts/optimize-hosted-review-assets.mjs",
+    "dev": "npm run atlas:variants && vite",
+    "build": "npm run atlas:clean && tsc -b && vite build",
+    "build:review": "npm run atlas:variants && tsc -b && vite build --config vite.review.config.ts",
     "preview": "vite preview",
     "test": "node --test tests/*.test.ts",
-    "review": "node ../scripts/review-preview.mjs"
+    "review": "node ../scripts/review-preview.mjs",
+    "atlas:variants": "node ../scripts/generate-atlas-variants.mjs",
+    "atlas:clean": "node ../scripts/generate-atlas-variants.mjs --clean"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
