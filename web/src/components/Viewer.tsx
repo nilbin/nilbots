@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
 import type { ReplayDocument } from '../types';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplayAudio } from '../audio/useReplayAudio';
 import { useAssetReadiness } from '../render/useAssetReadiness';
+import { useImmersive } from './useImmersive';
 import ArenaCanvas from './ArenaCanvas';
 import AudioReviewControls from './AudioReviewControls';
 import Controls from './Controls';
@@ -18,6 +20,8 @@ export default function Viewer({
   live?: LiveFollow;
 }) {
   const assets = useAssetReadiness();
+  const immersive = useImmersive();
+  const shell = useRef<HTMLDivElement>(null);
   const playback = usePlayback(replay, assets.ready);
   const liveTime = useLiveFollower(replay, live);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -67,7 +71,18 @@ export default function Viewer({
     result && result.winnerSlot !== null ? header.participants[result.winnerSlot] : null;
 
   return (
-    <div className="mx-auto flex h-full max-w-7xl flex-col gap-3 p-3 md:p-5">
+    <div
+      ref={shell}
+      className={clsx(
+        'mx-auto flex flex-col gap-3',
+        immersive.active
+          // 100dvh, not vh: Safari's toolbars collapse on scroll and vh does not follow
+          // them, which leaves the arena taller than the screen exactly when there is no
+          // chrome left to scroll.
+          ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none bg-arena-bg p-2'
+          : 'h-full max-w-7xl p-3 md:p-5',
+      )}
+    >
       <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 className="text-xl"><Logo size={24} /></h1>
         <span className="font-mono text-xs text-arena-dim">
@@ -89,6 +104,14 @@ export default function Viewer({
             </span>
           )
         )}
+        <button
+          type="button"
+          onClick={() => immersive.toggle(shell.current)}
+          className="ml-auto rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
+          aria-pressed={immersive.active}
+        >
+          {immersive.active ? 'exit full screen' : 'full screen'}
+        </button>
       </header>
 
       {audioReviewEnabled && (
@@ -98,7 +121,12 @@ export default function Viewer({
         />
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[1fr_320px]">
+      <div
+        className={clsx(
+          'grid min-h-0 flex-1 gap-3',
+          immersive.active ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
+        )}
+      >
         <main className="relative min-h-[320px] overflow-hidden rounded-lg border border-arena-edge bg-arena-bg">
           <ArenaCanvas
             replay={replay}
@@ -159,7 +187,7 @@ export default function Viewer({
           )}
         </main>
 
-        <aside className="flex min-h-0 flex-col gap-3">
+        <aside className={clsx('flex min-h-0 flex-col gap-3', immersive.active && 'hidden')}>
           <BotPanel
             replay={replay}
             tick={tick}
