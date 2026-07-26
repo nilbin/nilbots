@@ -88,7 +88,12 @@ export const api = {
   botStats: (botId: string) => request<BotStatistics>(`/api/bots/${botId}/stats`),
   leaderboard: (rules?: string) =>
     request<Leaderboard>(`/api/leaderboard${rules ? `?rules=${encodeURIComponent(rules)}` : ''}`),
-  matches: () => request<MatchSummary[]>('/api/matches'),
+  matches: (options: { take: number; skip?: number; ranked?: boolean }) => {
+    const query = new URLSearchParams({ take: String(options.take) });
+    if (options.skip) query.set('skip', String(options.skip));
+    if (options.ranked !== undefined) query.set('ranked', String(options.ranked));
+    return request<MatchSummary[]>(`/api/matches?${query}`);
+  },
   match: (matchId: string) => request<MatchDetail>(`/api/matches/${matchId}`),
   matchLive: (matchId: string) => request<MatchLive>(`/api/matches/${matchId}/live`),
   matchSet: (setId: string) => request<MatchSet>(`/api/matchsets/${setId}`),

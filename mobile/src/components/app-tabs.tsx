@@ -21,6 +21,11 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="arena">
+        <NativeTabs.Trigger.Label>Arena</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="play.rectangle" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="bots">
         <NativeTabs.Trigger.Label>Bots</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
