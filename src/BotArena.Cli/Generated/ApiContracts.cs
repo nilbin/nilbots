@@ -1798,6 +1798,54 @@ namespace BotArena.Cli.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UserNotificationPayloadMatchChallengedPayload
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserNotificationPayloadMatchChallengedPayloadKind>))]
+        public UserNotificationPayloadMatchChallengedPayloadKind Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid MatchId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mapId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string MapId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid BotId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botLookId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotLookId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botAccent")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotAccent { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("challengerName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ChallengerName { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UserNotificationPayloadMatchSettledPayload
     {
 
@@ -1973,6 +2021,15 @@ namespace BotArena.Cli.Generated
 
         [System.Runtime.Serialization.EnumMember(Value = @"entitlement-earned")]
         EntitlementEarned = 0,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum UserNotificationPayloadMatchChallengedPayloadKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"match-challenged")]
+        MatchChallenged = 0,
 
     }
 

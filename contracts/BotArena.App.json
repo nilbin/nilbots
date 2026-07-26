@@ -2615,6 +2615,9 @@
             "$ref": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload"
           },
           {
+            "$ref": "#/components/schemas/UserNotificationPayloadMatchChallengedPayload"
+          },
+          {
             "$ref": "#/components/schemas/UserNotificationPayloadMatchSettledPayload"
           },
           {
@@ -2625,6 +2628,7 @@
           "propertyName": "kind",
           "mapping": {
             "entitlement-earned": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload",
+            "match-challenged": "#/components/schemas/UserNotificationPayloadMatchChallengedPayload",
             "match-settled": "#/components/schemas/UserNotificationPayloadMatchSettledPayload",
             "set-settled": "#/components/schemas/UserNotificationPayloadSetSettledPayload"
           }
@@ -2662,6 +2666,49 @@
             "items": {
               "$ref": "#/components/schemas/EntitlementNotificationItem"
             }
+          }
+        }
+      },
+      "UserNotificationPayloadMatchChallengedPayload": {
+        "required": [
+          "matchId",
+          "mapId",
+          "botId",
+          "botName",
+          "botLookId",
+          "botAccent",
+          "challengerName",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "match-challenged"
+            ],
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mapId": {
+            "type": "string"
+          },
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "botName": {
+            "type": "string"
+          },
+          "botLookId": {
+            "type": "string"
+          },
+          "botAccent": {
+            "type": "string"
+          },
+          "challengerName": {
+            "type": "string"
           }
         }
       },

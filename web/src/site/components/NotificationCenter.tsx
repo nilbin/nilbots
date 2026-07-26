@@ -36,7 +36,11 @@ function isShowable(notification: UserNotification): boolean {
   const payload = notification.payload;
   if (!payload) return false;
   if (payload.kind === 'entitlement-earned') return payload.items.length > 0;
-  return payload.kind === 'match-settled' || payload.kind === 'set-settled';
+  return (
+    payload.kind === 'match-challenged' ||
+    payload.kind === 'match-settled' ||
+    payload.kind === 'set-settled'
+  );
 }
 
 export default function NotificationCenter() {
@@ -139,7 +143,11 @@ export default function NotificationCenter() {
         onDismiss={() => dismiss(active.id)}
       />
     );
-  if (active.payload.kind === 'match-settled' || active.payload.kind === 'set-settled')
+  if (
+    active.payload.kind === 'match-challenged' ||
+    active.payload.kind === 'match-settled' ||
+    active.payload.kind === 'set-settled'
+  )
     return (
       <ResultToast
         key={active.id}

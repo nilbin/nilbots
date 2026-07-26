@@ -169,7 +169,13 @@ result toasts for the match on screen and let the viewer's own ending deliver it
    `set-settled` schedules from the *last* game's boundary — which the finalizer knows and
    an individual match worker does not.
 3. Mobile SignalR + in-app toasts (needs the garage's auth session).
-4. `match-challenged` and supersession.
+4. ~~`match-challenged` and supersession.~~ **DONE.** The subject key
+   (`UserNotificationKeys.MatchSubject`) is what makes it work: challenge and result
+   address one row, and `UserNotificationWriter.SupersedeAsync` rewrites it with
+   `ON CONFLICT DO UPDATE`, clearing `ReadAt`. The guarded `WHERE` is load-bearing — without
+   it a replayed job would resurrect a notification the player had dismissed. Pinned by
+   `UserNotificationSupersessionTests` against real PostgreSQL, because the behaviour *is*
+   the SQL.
 5. Device registration, preferences, delivery records, and push from a durable job.
 
 ## Who gets told what

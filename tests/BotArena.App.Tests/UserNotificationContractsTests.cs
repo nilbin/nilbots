@@ -78,6 +78,58 @@ public class UserNotificationContractsTests
     }
 
     [Fact]
+    public void AChallengeAndItsResultShareOneDedupeKey()
+    {
+        // Supersession lives or dies on this. The result rewrites the challenge's row
+        // rather than appending beside it, which only happens if both address the same
+        // (user, key) pair — so a key that embedded the kind, as these once did, would
+        // silently leave a stale "watch this" under its own outcome (DECISIONS #118).
+        var matchId = Guid.NewGuid();
+        var botId = Guid.NewGuid();
+
+        Assert.Equal(
+            UserNotificationKeys.MatchSubject(matchId, botId),
+            UserNotificationKeys.MatchSubject(matchId, botId));
+        Assert.DoesNotContain(UserNotificationKinds.MatchChallenged,
+            UserNotificationKeys.MatchSubject(matchId, botId));
+        Assert.DoesNotContain(UserNotificationKinds.MatchSettled,
+            UserNotificationKeys.MatchSubject(matchId, botId));
+    }
+
+    [Fact]
+    public void EachOfAPlayersBotsIsItsOwnSubject()
+    {
+        // Both participants can belong to one player, and each bot has its own outcome to
+        // be told about. A match-only key would collapse those into one notification.
+        var matchId = Guid.NewGuid();
+
+        Assert.NotEqual(
+            UserNotificationKeys.MatchSubject(matchId, Guid.NewGuid()),
+            UserNotificationKeys.MatchSubject(matchId, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void ToResponse_ReadsAChallengePayload()
+    {
+        string json = UserNotificationContracts.Serialize(
+            new MatchChallengedPayload(
+                Guid.NewGuid(),
+                "arena-01",
+                Guid.NewGuid(),
+                "Pincer",
+                "vanguard",
+                "#22d3ee",
+                "hunter"));
+
+        var response = UserNotificationContracts.ToResponse(
+            Notification(UserNotificationKinds.MatchChallenged, json));
+
+        var payload = Assert.IsType<MatchChallengedPayload>(response.Payload);
+        Assert.Equal("hunter", payload.ChallengerName);
+        Assert.Equal("arena-01", payload.MapId);
+    }
+
+    [Fact]
     public void ToResponse_RefusesAKindItCannotRepresent()
     {
         // The failure this exists to prevent: silently deserializing another kind's

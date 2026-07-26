@@ -8,6 +8,21 @@ public static class UserNotificationKinds
     public const string EntitlementEarned = "entitlement-earned";
 
     /// <summary>
+    /// Someone has thrown a bot of theirs at a bot of yours, and it is about to fight.
+    /// <para>
+    /// Only the challenged is told. The challenger pressed the button and is almost
+    /// certainly looking at the screen; telling them is an echo, and an app that echoes
+    /// your own actions is one you learn to ignore (DECISIONS #119).
+    /// </para>
+    /// <para>
+    /// This kind is transient by design: the same row becomes <see cref="MatchSettled"/>
+    /// when the fight finishes broadcasting, rather than a second row appearing beside it.
+    /// See <see cref="UserNotificationKeys.MatchSubject"/>.
+    /// </para>
+    /// </summary>
+    public const string MatchChallenged = "match-challenged";
+
+    /// <summary>
     /// An unranked match a player's bot fought has finished broadcasting.
     /// <para>
     /// Games inside a ranked set never use this: a set announces once, as
@@ -19,6 +34,29 @@ public static class UserNotificationKinds
 
     /// <summary>A ranked set has been revealed, with its score and rating change.</summary>
     public const string SetSettled = "set-settled";
+}
+
+/// <summary>
+/// Dedupe keys, which decide what counts as "the same notification".
+/// <para>
+/// A key is per *subject*, not per kind, and that is what makes supersession work: the
+/// challenge and its result are one row that changes, rather than a stale "watch this"
+/// accumulating beside its own outcome (DECISIONS #118).
+/// </para>
+/// </summary>
+public static class UserNotificationKeys
+{
+    /// <summary>
+    /// One row per (player's bot, match) — written as a challenge, rewritten as a result.
+    /// <para>
+    /// Scoped by bot as well as match because both participants can belong to one player,
+    /// and each of their bots has its own outcome to be told about.
+    /// </para>
+    /// </summary>
+    public static string MatchSubject(Guid matchId, Guid botId) => $"match:{matchId}:{botId}";
+
+    /// <summary>One row per (player's bot, ranked set).</summary>
+    public static string SetSubject(Guid matchSetId, Guid botId) => $"set:{matchSetId}:{botId}";
 }
 
 public sealed record EntitlementNotificationItem(
@@ -50,6 +88,7 @@ public sealed record EntitlementNotificationItem(
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(EntitlementEarnedPayload), UserNotificationKinds.EntitlementEarned)]
+[JsonDerivedType(typeof(MatchChallengedPayload), UserNotificationKinds.MatchChallenged)]
 [JsonDerivedType(typeof(MatchSettledPayload), UserNotificationKinds.MatchSettled)]
 [JsonDerivedType(typeof(SetSettledPayload), UserNotificationKinds.SetSettled)]
 public abstract record UserNotificationPayload;
@@ -59,6 +98,27 @@ public sealed record EntitlementEarnedPayload(
     string SourceId,
     string? Reason,
     IReadOnlyList<EntitlementNotificationItem> Items) : UserNotificationPayload;
+
+/// <summary>
+/// A match that has been created against one of the recipient's bots.
+/// <para>
+/// Carries the same bot identity fields as <see cref="MatchSettledPayload"/> so a client
+/// renders the challenge and its eventual result with one component and one set of assets
+/// — the row is going to turn into that result in place.
+/// </para>
+/// <para>
+/// No outcome, obviously, and none can be inferred: this is written when the match is
+/// queued, long before broadcast secrecy would allow a result to exist.
+/// </para>
+/// </summary>
+public sealed record MatchChallengedPayload(
+    Guid MatchId,
+    string MapId,
+    Guid BotId,
+    string BotName,
+    string BotLookId,
+    string BotAccent,
+    string ChallengerName) : UserNotificationPayload;
 
 /// <summary>
 /// A finished match, phrased from the recipient's side.
@@ -133,6 +193,8 @@ public static class UserNotificationContracts
         {
             UserNotificationKinds.EntitlementEarned =>
                 Deserialize<EntitlementEarnedPayload>(notification),
+            UserNotificationKinds.MatchChallenged =>
+                Deserialize<MatchChallengedPayload>(notification),
             UserNotificationKinds.MatchSettled =>
                 Deserialize<MatchSettledPayload>(notification),
             UserNotificationKinds.SetSettled =>

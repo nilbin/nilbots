@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom';
 import { botLook } from '../../render/arenaThemes';
-import type { MatchSettledPayload, SetSettledPayload } from '../api';
+import type {
+  MatchChallengedPayload,
+  MatchSettledPayload,
+  SetSettledPayload,
+} from '../api';
 
 /**
- * A finished fight, in the same shape as the unlock toast — eyebrow, artwork, headline,
- * a way in — but tinted by the outcome rather than achievement amber.
+ * Something happened to one of your bots — in the same shape as the unlock toast:
+ * eyebrow, artwork, headline, a way in.
  *
  * Sharing that shape is the point: both are the game telling you something happened to
  * your bot, and two unrelated toast designs would read as two unrelated products. What
@@ -13,18 +17,25 @@ import type { MatchSettledPayload, SetSettledPayload } from '../api';
  *
  * A loss gets the same size, the same artwork, the same prominence (DECISIONS #119). The
  * ladder already shows the rating; a shrunken loss reads as the app hiding it.
+ *
+ * A *challenge* renders here too rather than in a toast of its own, because on the server
+ * it is the same row: the notification you are looking at will be rewritten into its own
+ * result. One component means the invitation and the outcome cannot drift apart visually.
  */
 export default function ResultToast({
   payload,
   queued,
   onDismiss,
 }: {
-  payload: MatchSettledPayload | SetSettledPayload;
+  payload: MatchChallengedPayload | MatchSettledPayload | SetSettledPayload;
   queued: number;
   onDismiss: () => void;
 }) {
   const ranked = payload.kind === 'set-settled';
-  const tone = TONES[payload.outcome] ?? TONES.Draw;
+  const challenged = payload.kind === 'match-challenged';
+  // A challenge has no outcome and cannot have one — it is written when the match is
+  // queued, long before broadcast secrecy would allow a result to exist.
+  const tone = challenged ? TONES.Challenged : (TONES[payload.outcome] ?? TONES.Draw);
   const chassis = botLook(payload.botLookId);
 
   return (
@@ -57,13 +68,20 @@ export default function ResultToast({
 
         <div className="min-w-0 flex-1 py-0.5">
           <p className={`font-mono text-[10px] font-bold tracking-[0.22em] ${tone.eyebrow}`}>
-            {ranked ? 'RANKED SET' : 'MATCH COMPLETE'}
+            {challenged ? 'CHALLENGE' : ranked ? 'RANKED SET' : 'MATCH COMPLETE'}
           </p>
           <h2 className="mt-1 truncate text-lg font-black tracking-wide text-slate-100">
-            {payload.botName} {VERBS[payload.outcome] ?? 'drew'}
+            {challenged
+              ? `${payload.botName} was challenged`
+              : `${payload.botName} ${VERBS[payload.outcome] ?? 'drew'}`}
           </h2>
 
-          {payload.kind === 'set-settled' ? (
+          {payload.kind === 'match-challenged' ? (
+            <p className="mt-0.5 text-sm text-slate-400">
+              by {payload.challengerName} on{' '}
+              <span className="font-mono text-xs">{payload.mapId}</span>
+            </p>
+          ) : payload.kind === 'set-settled' ? (
             <p className="mt-0.5 font-mono text-sm font-semibold text-slate-200">
               {payload.score}–{payload.opponentScore}{' '}
               <span className="font-sans text-xs font-normal text-slate-400">
@@ -82,7 +100,11 @@ export default function ResultToast({
             onClick={onDismiss}
             className="mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold text-arena-accent transition-colors hover:text-sky-300"
           >
-            {payload.kind === 'set-settled' ? 'See the set' : 'Watch it back'}{' '}
+            {payload.kind === 'set-settled'
+              ? 'See the set'
+              : challenged
+                ? 'Watch it live'
+                : 'Watch it back'}{' '}
             <span aria-hidden>→</span>
           </Link>
           {queued > 0 && (
@@ -140,6 +162,16 @@ const TONES: Record<
     eyebrow: 'text-red-300',
     delta: 'text-red-400',
     halo: 'rgba(248,113,113,0.12)',
+  },
+  // Not an outcome — an invitation. The arena accent rather than a result colour, because
+  // green or red here would state a result the match has not produced yet.
+  Challenged: {
+    border: 'border-sky-300/45',
+    glow: 'shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(56,189,248,0.13)]',
+    rule: 'via-sky-200',
+    eyebrow: 'text-sky-300',
+    delta: 'text-sky-300',
+    halo: 'rgba(56,189,248,0.12)',
   },
   Draw: {
     border: 'border-slate-400/35',
