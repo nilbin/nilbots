@@ -7,6 +7,7 @@ import {
   type AudioCueId,
 } from './audioCandidates';
 import { replayAudioEventsAt } from './replayAudioEvents';
+import { readLocalSetting, writeLocalSetting } from './localSettings';
 
 const BASE_TICKS_PER_SECOND = 5;
 const MAX_ACTIVE_VOICES = 8;
@@ -60,6 +61,7 @@ export function useReplayAudio({
   speed,
   atEnd,
   following,
+  reviewEnabled = true,
 }: {
   replay: ReplayDocument;
   time: number;
@@ -67,13 +69,16 @@ export function useReplayAudio({
   speed: number;
   atEnd: boolean;
   following: boolean;
+  reviewEnabled?: boolean;
 }): ReplayAudioController {
   const [candidateId, setCandidateState] = useState<AudioCandidateId>(
-    readCandidate,
+    () => (reviewEnabled ? readCandidate() : 'nilbots-signature'),
   );
-  const [volume, setVolumeState] = useState(readVolume);
+  const [volume, setVolumeState] = useState(() =>
+    reviewEnabled ? readVolume() : 0.72,
+  );
   const [muted, setMutedState] = useState(
-    () => window.localStorage.getItem(muteStorageKey) === 'true',
+    () => reviewEnabled && readLocalSetting(muteStorageKey) === 'true',
   );
   const [enabled, setEnabled] = useState(false);
   const graph = useRef<AudioGraph | null>(null);
@@ -234,7 +239,7 @@ export function useReplayAudio({
   const setCandidate = useCallback(
     (selected: AudioCandidateId) => {
       setCandidateState(selected);
-      window.localStorage.setItem(candidateStorageKey, selected);
+      writeLocalSetting(candidateStorageKey, selected);
       stopAll();
       previousTick.current = currentTickRef.current;
       if (enabled) void preloadCandidate(selected);
@@ -245,12 +250,12 @@ export function useReplayAudio({
   const setVolume = useCallback((next: number) => {
     const clamped = Math.max(0, Math.min(1, next));
     setVolumeState(clamped);
-    window.localStorage.setItem(volumeStorageKey, String(clamped));
+    writeLocalSetting(volumeStorageKey, String(clamped));
   }, []);
 
   const setMuted = useCallback((next: boolean) => {
     setMutedState(next);
-    window.localStorage.setItem(muteStorageKey, String(next));
+    writeLocalSetting(muteStorageKey, String(next));
   }, []);
 
   useEffect(() => {
@@ -263,7 +268,7 @@ export function useReplayAudio({
   }, [muted, volume]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!reviewEnabled || !enabled) {
       previousTick.current = currentTick;
       return;
     }
@@ -331,6 +336,7 @@ export function useReplayAudio({
     following,
     playing,
     replay,
+    reviewEnabled,
     scheduleCue,
     speed,
     stopAll,
@@ -380,13 +386,13 @@ export function useReplayAudio({
 }
 
 function readCandidate(): AudioCandidateId {
-  const stored = window.localStorage.getItem(candidateStorageKey);
+  const stored = readLocalSetting(candidateStorageKey);
   const match = audioCandidates.find((candidate) => candidate.id === stored);
   return match?.id ?? 'nilbots-signature';
 }
 
 function readVolume(): number {
-  const value = window.localStorage.getItem(volumeStorageKey);
+  const value = readLocalSetting(volumeStorageKey);
   if (value === null) return 0.72;
   const stored = Number(value);
   return Number.isFinite(stored) && stored >= 0 && stored <= 1 ? stored : 0.72;
