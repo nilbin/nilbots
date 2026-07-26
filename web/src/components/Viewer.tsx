@@ -22,6 +22,8 @@ export default function Viewer({
   const assets = useAssetReadiness();
   const immersive = useImmersive();
   const shell = useRef<HTMLDivElement>(null);
+  // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
+  const [chromeVisible, setChromeVisible] = useState(true);
   const playback = usePlayback(replay, assets.ready);
   const liveTime = useLiveFollower(replay, live);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -66,6 +68,14 @@ export default function Viewer({
     return () => window.removeEventListener('keydown', onKey);
   }, [playback, isLive]);
 
+  // Hold the chrome only while it is wanted. Paused playback keeps it up: someone who
+  // stopped to look is not asking for the controls to vanish.
+  useEffect(() => {
+    if (!immersive.active || !chromeVisible || !playback.playing) return;
+    const timer = window.setTimeout(() => setChromeVisible(false), 2_800);
+    return () => window.clearTimeout(timer);
+  }, [immersive.active, chromeVisible, playback.playing]);
+
   const { header, result } = replay;
   const winner =
     result && result.winnerSlot !== null ? header.participants[result.winnerSlot] : null;
@@ -73,6 +83,7 @@ export default function Viewer({
   return (
     <div
       ref={shell}
+      onPointerDown={immersive.active ? () => setChromeVisible(true) : undefined}
       className={clsx(
         'relative mx-auto flex flex-col',
         immersive.active
@@ -131,12 +142,11 @@ export default function Viewer({
       <div
         className={clsx(
           'grid min-h-0 flex-1 gap-3',
-          immersive.active
-            // A 4:3 arena in a 2.16:1 landscape viewport is height-constrained, so ~40%
-            // of the width is letterbox. The panels cost the arena nothing there — it is
-            // still limited by height — and turn black into information.
-            ? 'grid-cols-1 landscape:grid-cols-[1fr_minmax(180px,260px)]'
-            : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
+          // Immersive is the arena and nothing else. Panels were tried in the landscape
+          // letterbox — they cost the arena no size, since it is height-constrained — but
+          // a third of the screen given to text is not "mainly the game". The black bars
+          // are aspect ratio, not waste, and framing beats clutter.
+          immersive.active ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
         )}
       >
         <main
@@ -206,13 +216,7 @@ export default function Viewer({
           )}
         </main>
 
-        <aside
-          className={clsx(
-            'flex min-h-0 flex-col gap-3',
-            // Hidden in portrait, where there is no spare width to hand it.
-            immersive.active && 'hidden landscape:flex landscape:overflow-y-auto landscape:p-2',
-          )}
-        >
+        <aside className={clsx('flex min-h-0 flex-col gap-3', immersive.active && 'hidden')}>
           <BotPanel
             replay={replay}
             tick={tick}
@@ -235,7 +239,15 @@ export default function Viewer({
             'pointer-events-none absolute inset-x-0 bottom-0 z-10 p-2 pb-[env(safe-area-inset-bottom)]',
         )}
       >
-        <div className={clsx(immersive.active && 'pointer-events-auto opacity-95')}>
+        <div
+          className={clsx(
+            immersive.active &&
+              clsx(
+                'pointer-events-auto transition-opacity duration-300',
+                chromeVisible ? 'opacity-95' : 'opacity-0',
+              ),
+          )}
+        >
           {isLive ? (
             <div className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4 font-mono text-xs text-arena-dim">
               <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
@@ -252,7 +264,10 @@ export default function Viewer({
         <button
           type="button"
           onClick={immersive.exit}
-          className="absolute top-0 right-0 z-20 m-2 rounded-md border border-arena-edge bg-arena-panel/80 px-2.5 py-1.5 font-mono text-[11px] text-arena-dim backdrop-blur transition-colors hover:border-arena-accent hover:text-arena-accent"
+          className={clsx(
+            'absolute top-0 right-0 z-20 m-2 rounded-md border border-arena-edge bg-arena-panel/80 px-2.5 py-1.5 font-mono text-[11px] text-arena-dim backdrop-blur transition-opacity duration-300 hover:border-arena-accent hover:text-arena-accent',
+            chromeVisible ? 'opacity-95' : 'opacity-0',
+          )}
           style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
           exit
