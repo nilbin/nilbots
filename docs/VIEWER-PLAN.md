@@ -152,15 +152,28 @@ to fix a problem that does not exist. In rough order of feel per unit of effort:
 
 ## 6. Audio depth
 
-- pan cues by tile x (`StereoPannerNode`) — cheap, and it makes the arena feel wide;
-- one `ConvolverNode` with a short impulse response to give the arena a room;
-- duck music under impacts;
-- adaptive music layered on health, control pressure and overtime. Replays are
-  deterministic, so the music state is reproducible tick-for-tick — two people reviewing
-  the same replay hear the same mix.
+- ~~pan cues by tile x (`StereoPannerNode`)~~ **DONE**;
+- ~~one `ConvolverNode` with a short impulse response to give the arena a room~~ **DONE.**
+  The response is *synthesized*, not shipped — a recorded IR is another asset in a payload
+  this project has spent real effort shrinking, and a plausible metal room is noise and an
+  envelope. Deterministic noise, so two people reviewing the same fight hear the same tail.
+  Cues send post-pan, so reflections inherit the cue's position instead of collapsing to
+  the centre.
 
-**Keep music out of the CLI artifact.** Cues are efficient (584 KB for 16), but loops are
-where audio payload explodes, and every `nilbots play` would carry a soundtrack.
+**Blocked on assets that do not exist:**
+
+- duck music under impacts;
+- adaptive music layered on health, control pressure and overtime.
+
+There is no music in the repository. Audio candidates carry four cues each — `projectile`,
+`impact`, `destroyed`, `unlock` — and nothing else, so both of these describe mixing a
+signal that has never been authored. They are not code-blocked; they are waiting on a
+soundtrack. Building the ducking bus before there is anything to duck would be scaffolding
+for a decision nobody has made yet.
+
+**Keep music out of the CLI artifact** when it does arrive. Cues are efficient (584 KB for
+16), but loops are where audio payload explodes, and every `nilbots play` would carry a
+soundtrack.
 
 ## Verifying
 

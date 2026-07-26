@@ -6,6 +6,7 @@ import {
   type AudioCandidateId,
   type AudioCueId,
 } from './audioCandidates';
+import { createArenaImpulse, ROOM_MIX } from './arenaRoom';
 import { replayAudioEventsAt } from './replayAudioEvents';
 import { readLocalSetting, writeLocalSetting } from './localSettings';
 
@@ -38,6 +39,12 @@ const cueVoiceLimit: Record<AudioCueId, number> = {
 interface AudioGraph {
   context: AudioContext;
   master: GainNode;
+  /**
+   * The reverb send. Cues connect here *in addition to* the master, so the dry signal
+   * keeps its timing and the room sits behind it — a cue routed only through the
+   * convolver would arrive smeared and late.
+   */
+  room: GainNode | null;
 }
 
 interface Voice {
@@ -131,7 +138,24 @@ export function useReplayAudio({
     limiter.attack.value = 0.002;
     limiter.release.value = 0.11;
     master.connect(limiter).connect(context.destination);
-    graph.current = { context, master };
+
+    // The room. Optional on purpose: ConvolverNode is universally supported but building
+    // the response allocates a couple of seconds of stereo float, and a browser that
+    // refuses for any reason should lose the reverb rather than the audio.
+    let room: GainNode | null = null;
+    try {
+      const convolver = context.createConvolver();
+      convolver.buffer = createArenaImpulse(context);
+      room = context.createGain();
+      room.gain.value = ROOM_MIX;
+      // Into master, not the limiter, so the volume control governs wet and dry together
+      // and muting actually mutes.
+      room.connect(convolver).connect(master);
+    } catch {
+      room = null;
+    }
+
+    graph.current = { context, master, room };
     return graph.current;
   }, []);
 
@@ -209,7 +233,7 @@ export function useReplayAudio({
           stopVoice(lowest);
         }
 
-        const { context, master } = graph.current;
+        const { context, master, room } = graph.current;
         const source = context.createBufferSource();
         const gain = context.createGain();
         source.buffer = buffer;
@@ -223,9 +247,13 @@ export function useReplayAudio({
           const panner = context.createStereoPanner();
           panner.pan.value = Math.max(-1, Math.min(1, pan)) * PAN_WIDTH;
           source.connect(gain).connect(panner).connect(master);
+          // Sent post-pan so the tail inherits the cue's position rather than collapsing
+          // every reflection to the centre.
+          if (room) panner.connect(room);
           panners.current.set(source, panner);
         } else {
           source.connect(gain).connect(master);
+          if (room) gain.connect(room);
         }
         const voice: Voice = {
           source,
