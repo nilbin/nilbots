@@ -29,6 +29,12 @@ public static class AccountsEndpoints
                 return Results.Problem("Password must be at least 8 characters.", statusCode: 400);
             if (await db.Users.AnyAsync(u => u.Email == email))
                 return Results.Problem("An account with this email already exists.", statusCode: 409);
+            // Rejected rather than silently altered. A name typed into a form is a choice,
+            // and quietly handing back "Pincer2" is how someone ends up on the ladder under
+            // a name they did not pick. The external-provider path suffixes instead,
+            // because there is no form and no one to ask (DECISIONS #121).
+            if (await DisplayNames.IsTakenAsync(db, displayName, default))
+                return Results.Problem("That display name is taken.", statusCode: 409);
 
             var user = new User { DisplayName = displayName, Email = email };
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, request.Password);

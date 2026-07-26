@@ -1809,3 +1809,28 @@ sign in with their password first.
 `User.PasswordHash` is nullable now. A Google-only account has no password, and the login
 endpoint refuses null before reaching the verifier — with the same message a wrong password
 gets, so it is not an account-enumeration oracle.
+
+
+## 121. Display names are unique, rejected on a form and suffixed from a provider
+
+Display names identify people everywhere it matters — the ladder, every match row, every
+bot card — so they are unique, **case-insensitively**. "Pincer" and "pincer" beside each
+other on a ladder are indistinguishable at a glance, which is impersonation rather than a
+collision, so the index is on `lower("DisplayName")`.
+
+How a conflict resolves depends on whether anyone is there to ask:
+
+- **Registration rejects** with 409. A name typed into a form is a choice, and quietly
+  storing "Pincer2" puts someone on the ladder under a name they did not pick.
+- **An external provider suffixes.** There is no form and nobody to prompt; refusing would
+  strand a new player on an error page over a name they never typed. Suffixes are applied
+  within the 40-character limit by trimming the stem, not by growing past it.
+
+`DisplayNames.FindFreeAsync` is advisory, not a reservation — two simultaneous sign-ups can
+both be told the same variant is free. The unique index decides, and
+`ExternalSignInService` retries on the violation.
+
+The migration renames existing duplicates before creating the index, keeping whoever held
+the name first, and loops until none remain: a suffixed name can collide with a name
+already present, and a deploy that renames people and *then* fails on index creation is the
+worst of both outcomes.

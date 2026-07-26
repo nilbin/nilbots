@@ -33,6 +33,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(u => u.Email).IsUnique();
+            // Display names are unique, case-insensitively — the index is a functional one
+            // on lower("DisplayName"), created in the AccountDisplayNames migration because
+            // EF cannot express an expression index. Case-insensitive on purpose: "Pincer"
+            // and "pincer" in the same ladder are indistinguishable at a glance, which is
+            // the whole of an impersonation.
             entity.Property(u => u.DisplayName).HasMaxLength(60);
             entity.Property(u => u.Email).HasMaxLength(200);
         });

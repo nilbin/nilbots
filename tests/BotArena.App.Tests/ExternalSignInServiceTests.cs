@@ -148,6 +148,55 @@ public class ExternalSignInServiceTests
         Assert.Equal("quiet", result.User!.DisplayName);
     }
 
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task AClashingProviderNameIsSuffixedRatherThanRefused()
+    {
+        await using var harness = await Harness.CreateAsync();
+        await harness.SeedLocalUserAsync("someone.else@example.test", "Player One");
+
+        // No form and nobody to ask: refusing here would strand a new player on an error
+        // page over a name they never typed. Registration rejects instead, because there
+        // a person chose it (DECISIONS #121).
+        var result = await harness.Service.SignInAsync(
+            Google("google-1", "new@example.test", name: "Player One"), default);
+
+        Assert.True(result.Created);
+        Assert.Equal("Player One2", result.User!.DisplayName);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task DisplayNamesClashCaseInsensitively()
+    {
+        await using var harness = await Harness.CreateAsync();
+        await harness.SeedLocalUserAsync("someone.else@example.test", "Pincer");
+
+        // "Pincer" and "pincer" side by side on a ladder are indistinguishable at a
+        // glance, which is impersonation rather than a collision.
+        var result = await harness.Service.SignInAsync(
+            Google("google-1", "new@example.test", name: "pincer"), default);
+
+        Assert.Equal("pincer2", result.User!.DisplayName);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task ALongNameStaysWithinTheColumnAfterSuffixing()
+    {
+        await using var harness = await Harness.CreateAsync();
+        string longName = new('a', 40);
+        await harness.SeedLocalUserAsync("someone.else@example.test", longName);
+
+        var result = await harness.Service.SignInAsync(
+            Google("google-1", "new@example.test", name: longName), default);
+
+        // Suffixed within the limit by trimming the stem, not by appending past it — the
+        // column would reject 41 characters and registration's own rule is 40.
+        Assert.Equal(40, result.User!.DisplayName.Length);
+        Assert.EndsWith("2", result.User!.DisplayName);
+    }
+
     private sealed class Harness : IAsyncDisposable
     {
         private PostgreSqlDatabaseFixture Database { get; init; } = null!;
@@ -167,12 +216,12 @@ public class ExternalSignInServiceTests
             };
         }
 
-        public async Task<Guid> SeedLocalUserAsync(string email)
+        public async Task<Guid> SeedLocalUserAsync(string email, string displayName = "Local Player")
         {
             var user = new User
             {
                 Email = email,
-                DisplayName = "Local Player",
+                DisplayName = displayName,
                 PasswordHash = "a-real-hash",
             };
             Db.Users.Add(user);
