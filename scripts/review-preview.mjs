@@ -16,8 +16,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
-import { mkdir } from 'node:fs/promises';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { cp, mkdir, rm } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -68,7 +68,24 @@ function lanAddress() {
 async function ensureReplay() {
   const target = join(dist, 'replay.json');
   const indexPath = join(dist, 'replays.json');
-  if (existsSync(indexPath)) return;
+  // `vite build` empties dist-review, so anything chosen last time is gone — which is how
+  // a deliberate REVIEW_BOTS selection silently reverted to the generic score on the next
+  // rebuild. The chosen set is cached outside the build output and restored, so a choice
+  // survives until it is explicitly refreshed.
+  const cache = join(web, '.review-cache');
+  const cacheIndex = join(cache, 'replays.json');
+  const refresh = process.argv.includes('--refresh') || process.env.REVIEW_REFRESH === '1';
+
+  if (existsSync(indexPath) && !refresh) return;
+  if (existsSync(cacheIndex) && !refresh) {
+    await cp(cache, dist, { recursive: true });
+    const restored = JSON.parse(readFileSync(cacheIndex, 'utf8'));
+    console.log(`  replays      ${restored.length} restored (--refresh to reselect):`);
+    for (const entry of restored) {
+      console.log(`                 ${entry.map} · ${entry.ticks}t · ${entry.bots.join(' v ')}`);
+    }
+    return;
+  }
 
   const api = process.env.BOTARENA_API ?? 'http://127.0.0.1:8080';
   /** Comma-separated bot names to prefer, e.g. REVIEW_BOTS="Pincer gen-10,Bastille gen-5". */
@@ -129,6 +146,14 @@ async function ensureReplay() {
     writeFileSync(indexPath, JSON.stringify(index, null, 2));
     // The single-replay path stays for anything that expects it.
     writeFileSync(target, JSON.stringify(chosen[0].replay));
+    // Keep a copy where the next build cannot delete it.
+    await rm(cache, { recursive: true, force: true });
+    await mkdir(join(cache, 'replays'), { recursive: true });
+    for (const entry of chosen) {
+      await cp(join(dist, 'replays', `${entry.id}.json`), join(cache, 'replays', `${entry.id}.json`));
+    }
+    await cp(indexPath, cacheIndex);
+    await cp(target, join(cache, 'replay.json'));
 
     console.log(`  replays      ${index.length} available:`);
     for (const entry of index) {

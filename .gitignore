@@ -37,3 +37,6 @@ web/src/assets/themes/*/variants/
 
 # Vite-built renderer harness for golden-frame tests.
 web/tests/.harness/
+
+# Cached review replay selection, restored across rebuilds.
+web/.review-cache/
