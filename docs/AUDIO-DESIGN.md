@@ -1,7 +1,8 @@
 # Audio design and asset workflow
 
-Status: high-fidelity vertical-slice review. No sounds are active in matches
-or replay playback.
+Status: high-fidelity in-game review. Four complete candidate directions are
+temporarily active in the web and standalone replay viewer behind an explicit
+audio-enable action. No direction has been selected for the product.
 
 ## Product principles
 
@@ -15,8 +16,9 @@ or replay playback.
    longer, but ranked sets must not become ten minutes of repeated fanfare.
 4. The replay is the schedule. Playback derives audio from authoritative tick
    transitions and replay events, not from canvas animation timing.
-5. Candidate assets stay under `art/audio`. Only selected and compressed
-   runtime assets enter the self-contained viewer.
+5. Lossless candidate masters stay under `art/audio`. Normally only selected
+   and compressed runtime assets enter the self-contained viewer; the
+   temporary review build carries all four V2 packs for same-replay A/B tests.
 
 ## Candidate sets
 
@@ -67,14 +69,41 @@ The soundboard at `art/audio/sound-lab/index.html` works from a static host and
 supports direct A/B/C comparison, full-pack demo sequences, volume control,
 keyboard shortcuts, and a browser-local favorite marker.
 
+## Temporary in-game review package
+
+Run:
+
+```bash
+node scripts/export-runtime-audio-candidates.mjs
+```
+
+This exports every complete V2 pack to
+`web/src/assets/audio/candidates/<id>/` as 48 kHz stereo AAC-LC. The 16
+delivery files total roughly 0.54 MiB; the production single-file viewer
+inlines them. The lossless WAVs remain the source of truth.
+
+The viewer derives projectile, impact, and destruction cues from authoritative
+`Shot`, `Damage`, and `Destroyed`/`Disqualified` replay events. Its fourth
+candidate cue is played after a winning terminal tick solely to audition the
+unlock sound in UI context. It is labelled `REVIEW ONLY`; the final match
+result needs a distinct cue. Seeking is silent, switching packs clears active
+voices, playback above 2× suspends audio, and mute/volume/candidate selection
+persist locally. Browser autoplay rules require `ENABLE AUDIO`.
+Enabling audio and changing packs restart a completed replay automatically so
+every direction is heard against the same timeline from tick zero.
+
+This review UI is intentionally absent from the native hosted viewer. It
+should not cross the mobile bridge until a product direction and native
+controls have been selected.
+
 ## Runtime package shape after selection
 
-Do not add all candidate packs to `web/src/assets`. Once a direction is
-selected:
+Once a direction is selected:
 
 1. Keep the selected WAV files as lossless source masters under `art/audio`.
-2. Export delivery assets in a browser-supported compressed format, measuring
-   actual decoded and transferred size.
+2. Remove the three rejected runtime candidate directories, rename the chosen
+   IDs from review terminology, and measure actual decoded and transferred
+   size.
 3. Put shared gameplay/UI cues in one runtime audio manifest.
 4. Let a projectile-look manifest optionally reference a stable sound-profile
    ID. Projectile visuals and sounds remain independently replaceable assets;

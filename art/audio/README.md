@@ -9,6 +9,7 @@ node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
+node scripts/export-runtime-audio-candidates.mjs
 ```
 
 Then open `sound-lab/index.html` or serve `art/audio/sound-lab` from any static
@@ -40,7 +41,11 @@ debris, stereo movement, feedback-delay diffusion, and dynamics processing.
 projectile, impact, destruction, and unlock sample set. V1 remains in the
 sound lab as a collapsed reference archive.
 
-All candidates stay under `art/` until a direction is selected. This prevents
-review sounds from entering the self-contained replay viewer. The
-chosen runtime assets will be copied into a dedicated web audio package,
-compressed for delivery, and covered by asset and replay-scheduling tests.
+The lossless candidate masters stay under `art/`. The temporary in-game review
+build exports all four V2 directions to
+`web/src/assets/audio/candidates/<id>/` as 48 kHz stereo AAC-LC, using
+`scripts/export-runtime-audio-candidates.mjs`. Those checked-in delivery
+assets total roughly 0.54 MiB and let one replay switch between complete packs.
+The export requires macOS `afconvert`; the generated assets keep normal builds
+platform-independent. Once a direction is selected, remove the rejected
+runtime candidates and retain their lossless sources here.

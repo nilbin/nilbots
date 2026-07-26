@@ -31,7 +31,14 @@ test('the standalone viewer never imports site code', () => {
   // One build serves two apps. The viewer runs from a file:// URL with no router, no auth
   // and no site chrome, so a site import there compiles and then throws at runtime for CLI
   // users — who are the ones least able to report it.
-  const viewerRoots = ['components', 'render', 'App.tsx', 'playback.ts', 'replayPresentation.ts'];
+  const viewerRoots = [
+    'audio',
+    'components',
+    'render',
+    'App.tsx',
+    'playback.ts',
+    'replayPresentation.ts',
+  ];
   const offenders: string[] = [];
 
   for (const file of files) {

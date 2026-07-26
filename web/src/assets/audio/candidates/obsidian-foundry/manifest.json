@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "id": "obsidian-foundry",
+  "number": "B",
+  "label": "Obsidian Foundry",
+  "kicker": "PHYSICAL · DENSE · CINEMATIC",
+  "reviewOnly": true,
+  "format": "aac-lc-m4a",
+  "sampleRate": 48000,
+  "channels": 2,
+  "cues": {
+    "projectile": "projectile.m4a",
+    "impact": "impact.m4a",
+    "destroyed": "destroyed.m4a",
+    "unlock": "unlock.m4a"
+  }
+}

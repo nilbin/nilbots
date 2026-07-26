@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReplayDocument } from '../types';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
+import { useReplayAudio } from '../audio/useReplayAudio';
 import ArenaCanvas from './ArenaCanvas';
+import AudioReviewControls from './AudioReviewControls';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
@@ -22,6 +24,14 @@ export default function Viewer({
   const isLive = live !== undefined;
   const time = isLive ? liveTime : playback.time;
   const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+  const audio = useReplayAudio({
+    replay,
+    time,
+    playing: isLive || playback.playing,
+    speed: isLive ? 1 : playback.speed,
+    atEnd: !isLive && playback.atEnd,
+    following: isLive,
+  });
 
   useEffect(() => {
     if (isLive) return; // No seeking during a live broadcast — viewers stay synchronized.
@@ -75,6 +85,11 @@ export default function Viewer({
           )
         )}
       </header>
+
+      <AudioReviewControls
+        audio={audio}
+        onRestart={isLive ? undefined : playback.restart}
+      />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[1fr_320px]">
         <main className="relative min-h-[320px] overflow-hidden rounded-lg border border-arena-edge bg-arena-bg">
