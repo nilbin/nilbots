@@ -6,26 +6,29 @@ import {
   projectileLook,
   projectileLookOptions,
 } from '../../render/arenaThemes';
-import { api, type BotDetail } from '../api';
+import { type BotDetail } from '../api';
 import {
   BOT_LOOK_KIND,
   cosmeticItem,
   PROJECTILE_LOOK_KIND,
   useCosmeticCatalog,
 } from '../cosmetics';
+import { errorMessage } from '../errorMessage';
+import { useUpdateAppearance } from '../queries';
 
 const botLooks = botLookOptions();
 const projectileLooks = projectileLookOptions();
 
 interface AppearanceEditorProps {
   bot: Pick<BotDetail, 'id' | 'accent' | 'lookId' | 'projectileLookId'>;
-  onSaved: () => Promise<unknown> | void;
+  /** Slug or id, whichever the page was routed by — the bot query is keyed on it. */
+  botKey: string;
   entitlementRevision?: number;
 }
 
 export default function AppearanceEditor({
   bot,
-  onSaved,
+  botKey,
   entitlementRevision = 0,
 }: AppearanceEditorProps) {
   const [accent, setAccent] = useState(bot.accent);
@@ -33,9 +36,7 @@ export default function AppearanceEditor({
   const [projectileLookId, setProjectileLookId] = useState(
     bot.projectileLookId,
   );
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const appearance = useUpdateAppearance(botKey, bot.id);
   const { catalog, error: catalogError } =
     useCosmeticCatalog(entitlementRevision);
 
@@ -74,26 +75,9 @@ export default function AppearanceEditor({
       setProjectileLookId(defaultProjectile);
   };
 
-  const save = async (event: React.FormEvent) => {
+  const save = (event: React.FormEvent) => {
     event.preventDefault();
-    setSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      await api.put(`/api/bots/${bot.id}/appearance`, {
-        accent,
-        lookId,
-        projectileLookId,
-      });
-      await onSaved();
-      setMessage('Appearance saved for future matches.');
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Could not save appearance.',
-      );
-    } finally {
-      setSaving(false);
-    }
+    appearance.mutate({ accent, lookId, projectileLookId });
   };
 
   return (
@@ -194,15 +178,25 @@ export default function AppearanceEditor({
             Changes apply to future matches. Existing replays retain their
             snapshotted appearance.
           </p>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {appearance.isError && (
+            <p className="text-sm text-red-400">
+              {errorMessage(appearance.error, 'Could not save appearance.')}
+            </p>
+          )}
           {catalogError && <p className="text-sm text-red-400">{catalogError}</p>}
-          {message && <p className="text-sm text-emerald-400">{message}</p>}
+          {/* Success survives only until the next edit — `dirty` going true means the
+              confirmation is describing a state the form has already left. */}
+          {appearance.isSuccess && !dirty && (
+            <p className="text-sm text-emerald-400">
+              Appearance saved for future matches.
+            </p>
+          )}
           <button
             type="submit"
-            disabled={!dirty || saving || !catalog || !selectionOwned}
+            disabled={!dirty || appearance.isPending || !catalog || !selectionOwned}
             className="self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {saving ? 'Saving…' : 'Save appearance'}
+            {appearance.isPending ? 'Saving…' : 'Save appearance'}
           </button>
         </div>
       </form>

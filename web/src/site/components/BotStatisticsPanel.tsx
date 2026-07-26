@@ -1,23 +1,36 @@
-import { useEffect, useState } from 'react';
-import { api, type BotRecord, type BotStatistics } from '../api';
+import { type BotRecord } from '../api';
+import { useBotStats } from '../queries';
+import { ErrorState, LoadingState } from './StateView';
 
 export default function BotStatisticsPanel({ botId }: { botId: string }) {
-  const [statistics, setStatistics] = useState<BotStatistics | null>(null);
-
-  useEffect(() => {
-    void api
-      .get<BotStatistics>(`/api/bots/${botId}/stats`)
-      .then(setStatistics)
-      .catch(() => setStatistics(null));
-  }, [botId]);
-
-  if (!statistics) return null;
+  const { data: statistics, isPending, isError, error, refetch } = useBotStats(botId);
 
   return (
     <section>
       <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
         PERFORMANCE
       </h2>
+      {isPending ? (
+        <LoadingState label="Loading performance…" />
+      ) : isError ? (
+        // Previously `.catch(() => setStatistics(null))`, which made a failed request
+        // indistinguishable from a pending one and left the section silently absent —
+        // the reader could not tell the bot had no record from the server being down.
+        <ErrorState error={error} onRetry={() => void refetch()} />
+      ) : (
+        <BotStatisticsContent statistics={statistics} />
+      )}
+    </section>
+  );
+}
+
+function BotStatisticsContent({
+  statistics,
+}: {
+  statistics: NonNullable<ReturnType<typeof useBotStats>['data']>;
+}) {
+  return (
+    <>
       <div className="grid gap-3 sm:grid-cols-3">
         <RecordCard label="Overall" record={statistics.overall} unit="match" featured />
         <RecordCard label="Ranked" record={statistics.ranked} unit="set" />
@@ -39,7 +52,7 @@ export default function BotStatisticsPanel({ botId }: { botId: string }) {
         A ranked set and an unranked challenge each count as one match. Combat
         totals retain all six arena games inside every ranked set.
       </p>
-    </section>
+    </>
   );
 }
 

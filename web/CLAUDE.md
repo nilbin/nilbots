@@ -70,27 +70,44 @@ sibling property. The server marks the discriminator required
 
 ## Data access
 
-**TanStack Query, one hook per resource, in `site/queries.ts`.** Pages never call the API
-directly and never own a fetch: they call a hook and render its four states.
+**TanStack Query, one hook per resource, in `site/queries.ts` — reads *and* writes.**
+Nothing outside `site/api.ts` calls `api.get`/`post`/`put`, and no component owns a fetch:
+it calls a hook and renders its states. That includes the session (`useMe`), the unlock
+catalog, and the notification inbox; the only `useEffect`s left in `site/` are a form
+prop-sync and the SignalR subscription, neither of which is a request.
 
-- **Endpoints are named in `site/api.ts`.** `endpoints.bot(key)` binds the path and its
-  response type together once, so they cannot drift; `api.get<T>(url)` states them
-  separately at every call site and a typo type-checks perfectly. The raw verbs remain for
-  mutations.
+- **Endpoints are named in `site/api.ts`**, request body *and* response type bound to the
+  path in one place. `api.post(url, { … })` states them separately at every call site, so a
+  renamed field type-checks perfectly and posts a shape the server ignores — which is
+  exactly what had happened: the challenge form omitted a required `seed` and nothing
+  noticed until the body was typed.
+- **Mutations are `useMutation`, and each one says what it invalidates.** A write that does
+  not is how a page ends up showing the value the user just changed away from, and
+  `useLogout` clearing the cache is what stops one account's private data being rendered to
+  the next. Hand-rolled `busy`/`error` pairs around a bare post are the pattern this
+  replaced — there were six, with six different error-message fallbacks (now
+  `site/errorMessage.ts`).
 - **Polling belongs in the hook**, never a component, and each one stops on its own
   condition: a match when it is finished *and* done broadcasting (status alone stops too
   early — the result is still withheld), a set when it is revealed, a replay when its
   broadcast ends.
 - **Query keys are arrays namespaced by resource** — `['bot', key]`, `['match', id, 'live']`.
 - **A 4xx is an answer, not a hiccup.** The client-level retry policy does not retry them,
-  so a mistyped id says "no such match" instead of spinning.
+  so a mistyped id says "no such match" instead of spinning. Where a status code is the
+  *expected* answer it is handled at the endpoint: `endpoints.me` turns 401 into `null`,
+  because "nobody is signed in" would otherwise put an error state on every public page.
 
 `StateView` gives loading, error and empty one implementation. **Every page that fetches
 handles all four states** — loading, error, empty, content — for the same reason the
-mobile app does: "no ranked sets yet" should read as intent, not as a bug. This used to be
-the app's weak spot; nine hand-rolled `useEffect` fetches each treated `null` as "loading",
-so a rejected request left the page on "Loading…" forever and four polling loops died on
-their first failure with no retry.
+mobile app does: "no ranked sets yet" should read as intent, not as a bug.
+
+This was the site's weak spot, and it took two passes to actually finish. Hand-rolled
+`useEffect` fetches each treated `null` as "loading", so a rejected request left the page
+on "Loading…" forever and the polling loops died on their first failure with no retry. The
+last two survived the first pass for months **while a working hook sat unused beside
+them** — `useBotStats` and `endpoints.botStats` both existed, and `BotStatisticsPanel`
+still fetched by hand, swallowing errors into `null` and rendering nothing. If you add a
+hook, wire it; an unused one reads as done.
 
 ## Styling
 

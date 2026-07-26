@@ -8,9 +8,9 @@ import {
   projectileLookOptions,
 } from '../../render/arenaThemes';
 import BotIdentity from '../components/BotIdentity';
-import { api } from '../api';
 import { useAuth } from '../auth';
-import { useMyBots } from '../queries';
+import { useCreateBot, useMyBots } from '../queries';
+import { errorMessage } from '../errorMessage';
 import {
   BOT_LOOK_KIND,
   cosmeticItem,
@@ -46,9 +46,9 @@ export default function GaragePage() {
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('vanguard');
   const [projectileLookId, setProjectileLookId] = useState('pulse-bolt');
-  const [error, setError] = useState<string | null>(null);
   const { catalog, error: catalogError } = useCosmeticCatalog();
   const navigate = useNavigate();
+  const creation = useCreateBot();
 
   if (loading) return <p className="text-sm text-arena-dim">Loading…</p>;
   if (!user) {
@@ -58,18 +58,8 @@ export default function GaragePage() {
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError(null);
-    try {
-      const bot = await api.post<{ id: string }>('/api/bots', {
-        name,
-        accent,
-        lookId,
-        projectileLookId,
-      });
-      navigate(`/bots/${bot.id}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create bot.');
-    }
+    const bot = await creation.mutateAsync({ name, accent, lookId, projectileLookId });
+    navigate(`/bots/${bot.id}`);
   };
   const selectedLookOwned =
     cosmeticItem(catalog, BOT_LOOK_KIND, lookId)?.owned === true;
@@ -235,16 +225,23 @@ export default function GaragePage() {
             />
             {projectileLook(projectileLookId).label}
           </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {creation.isError && (
+            <p className="text-sm text-red-400">
+              {errorMessage(creation.error, 'Failed to create bot.')}
+            </p>
+          )}
           {catalogError && <p className="text-sm text-red-400">{catalogError}</p>}
           <button
             type="submit"
             disabled={
-              !catalog || !selectedLookOwned || !selectedProjectileOwned
+              creation.isPending ||
+              !catalog ||
+              !selectedLookOwned ||
+              !selectedProjectileOwned
             }
             className="mt-1 self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Create bot
+            {creation.isPending ? 'Creating…' : 'Create bot'}
           </button>
         </form>
       </section>

@@ -1,5 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
-import { endpoints, type MatchDetail, type MatchLive, type MatchSetDetail } from './api';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  endpoints,
+  type MatchDetail,
+  type MatchLive,
+  type MatchSetDetail,
+  type MatchSummary,
+  type SubmitVersionRequest,
+  type UpdateBotAppearanceRequest,
+} from './api';
 
 /**
  * One hook per resource, each owning its own key and cadence.
@@ -21,11 +34,56 @@ const keys = {
   botMatches: (botId: string) => ['bot', botId, 'matches'] as const,
   botStats: (botId: string) => ['bot', botId, 'stats'] as const,
   leaderboard: (rules: string | null) => ['leaderboard', rules ?? 'current'] as const,
+  matches: (filters: MatchFilters) =>
+    ['matches', filters.bot, filters.map, filters.ranked] as const,
   match: (id: string) => ['match', id] as const,
   matchLive: (id: string) => ['match', id, 'live'] as const,
   matchSet: (id: string) => ['set', id] as const,
+  cosmetics: (revision: number) => ['cosmetics', revision] as const,
+  me: ['me'] as const,
   myBots: ['my-bots'] as const,
+  notifications: ['notifications'] as const,
 };
+
+/** The signed-in account. `data === null` means anonymous, which is not an error. */
+export function useMe() {
+  return useQuery({ queryKey: keys.me, queryFn: endpoints.me, staleTime: 60_000 });
+}
+
+/**
+ * Signing out, which must also forget everything the session could see.
+ *
+ * Clearing the cache is the point rather than a tidy-up: without it my bots, my unread
+ * notifications and every private response stay in memory, and the next render of a page
+ * that reads them shows the previous account's data before any request goes out.
+ */
+export function useLogout() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.logout,
+    onSuccess: () => {
+      client.setQueryData(keys.me, null);
+      client.clear();
+    },
+  });
+}
+
+/**
+ * Unread notifications, reloaded on a slow poll.
+ *
+ * The poll is the *recovery* path, not the delivery path — SignalR delivers, and this
+ * catches whatever arrived while the socket was down or the tab was asleep. The two are
+ * deliberately independent: a failed poll must not disturb the hub, and a dropped hub
+ * must not stop the poll.
+ */
+export function useNotifications(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.notifications,
+    queryFn: endpoints.notifications,
+    enabled,
+    refetchInterval: 60_000,
+  });
+}
 
 /** Versions and rules; changes about as often as a deploy. */
 export function useMeta() {
@@ -79,6 +137,51 @@ export function useLeaderboard(rules: string | null) {
     queryKey: keys.leaderboard(rules),
     queryFn: () => endpoints.leaderboard(rules),
   });
+}
+
+export interface MatchFilters {
+  bot: string;
+  map: string;
+  ranked: string;
+}
+
+/** How many matches a page of the feed asks for. Also the "there is more" test. */
+export const MATCH_PAGE = 30;
+
+/**
+ * The public match feed: paged, filterable, and followed while anything is still moving.
+ *
+ * Pages are `skip`/`take` over a feed that grows at the *front*, so a new match arriving
+ * mid-scroll shifts everything down a slot and the next page can repeat one. Left alone
+ * because the alternative is a cursor the endpoint does not offer, and a duplicate row in
+ * a browsing feed costs less than a keyset parameter the server would have to learn.
+ *
+ * The poll deliberately refetches *every* loaded page rather than only the first: a match
+ * on page three finishing is exactly the update someone scrolled down to watch.
+ */
+export function useMatches(filters: MatchFilters) {
+  return useInfiniteQuery({
+    queryKey: keys.matches(filters),
+    queryFn: ({ pageParam }) => endpoints.matches(matchQuery(filters, pageParam)),
+    initialPageParam: 0,
+    // A short page means the end of the feed; anything else may have more behind it.
+    getNextPageParam: (last: MatchSummary[], all) =>
+      last.length < MATCH_PAGE ? undefined : all.flat().length,
+    // Only follow a feed that has something moving in it.
+    refetchInterval: (query) =>
+      query.state.data?.pages.flat().some((m) => m.status === 'Pending' || m.status === 'Running')
+        ? 2_500
+        : false,
+  });
+}
+
+function matchQuery(filters: MatchFilters, skip: number) {
+  const q = new URLSearchParams({ take: String(MATCH_PAGE) });
+  if (skip > 0) q.set('skip', String(skip));
+  if (filters.bot !== '') q.set('bot', filters.bot);
+  if (filters.map !== '') q.set('map', filters.map);
+  if (filters.ranked !== '') q.set('ranked', filters.ranked);
+  return `/api/matches?${q}`;
 }
 
 /**
@@ -138,6 +241,101 @@ export function useMatchReplay(matchId: string | undefined, live: MatchLive | un
 
 export function useMyBots(enabled: boolean) {
   return useQuery({ queryKey: keys.myBots, queryFn: endpoints.myBots, enabled });
+}
+
+/**
+ * What this account has unlocked.
+ *
+ * `revision` is not a cache-buster but part of the identity: entitlements are granted by
+ * playing, so the catalog after a build lands is genuinely a different answer from the
+ * one before it. Callers pass their own notion of "something happened that could have
+ * unlocked a thing" and get a fresh fetch exactly then.
+ */
+export function useCosmetics(revision = 0) {
+  return useQuery({
+    queryKey: keys.cosmetics(revision),
+    queryFn: endpoints.cosmetics,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Writes, in the same file as the reads that they invalidate.
+ *
+ * Each of these was a hand-rolled `busy`/`error` pair around a bare `api.post`, repeated
+ * five times with five slightly different error-message fallbacks. `useMutation` carries
+ * pending and error state, and — the part that was missing everywhere — knows which
+ * cached reads the write just invalidated.
+ *
+ * They live beside the queries deliberately: a mutation that does not say what it stales
+ * is how a page ends up showing the value the user just changed away from.
+ */
+export function useCreateBot() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.createBot,
+    // A new bot belongs to both rosters, and the garage is usually the page that ordered it.
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.myBots });
+      void client.invalidateQueries({ queryKey: keys.bots });
+    },
+  });
+}
+
+/**
+ * Submitting a version starts a build, and `useBot` polls while one is running — so the
+ * refetch here is what *starts* that polling rather than merely refreshing a list.
+ */
+export function useSubmitVersion(botKey: string, botId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SubmitVersionRequest) => endpoints.submitVersion(botId, body),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.bot(botKey) }),
+  });
+}
+
+/** Appearance is drawn from `bot.accent`/`lookId` everywhere, so the bot is what stales. */
+export function useUpdateAppearance(botKey: string, botId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateBotAppearanceRequest) =>
+      endpoints.updateAppearance(botId, body),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.bot(botKey) }),
+  });
+}
+
+export function useChallenge() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.challenge,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+  });
+}
+
+/** No opponent: the server matchmakes by rating (DECISIONS #95). */
+export function useRankedChallenge() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.rankedChallenge,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+  });
+}
+
+export function useRegister() {
+  return useMutation({ mutationFn: endpoints.register });
+}
+
+export function useLogin() {
+  return useMutation({ mutationFn: endpoints.login });
+}
+
+/**
+ * Acknowledging a notification. Failure is deliberately silent at the call site: the
+ * unread poll will offer it again, and a toast that refuses to dismiss because its
+ * acknowledgement 500'd is worse than one acknowledged twice.
+ */
+export function useReadNotification() {
+  return useMutation({ mutationFn: endpoints.readNotification });
 }
 
 function isResolved(match: MatchDetail | undefined) {

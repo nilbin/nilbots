@@ -94,6 +94,14 @@ export type MatchSetDetail = Schemas['MatchSetResponse'];
 export type LeaderboardEntry = Schemas['LeaderboardEntryResponse'];
 export type Leaderboard = Schemas['LeaderboardResponse'];
 
+export type CreateBotRequest = Schemas['CreateBotRequest'];
+export type SubmitVersionRequest = Schemas['SubmitVersionRequest'];
+export type ChallengeRequest = Schemas['ChallengeRequest'];
+export type RankedChallengeRequest = Schemas['RankedChallengeRequest'];
+export type RegisterRequest = Schemas['RegisterRequest'];
+export type LoginRequest = Schemas['LoginRequest'];
+export type UpdateBotAppearanceRequest = Schemas['UpdateBotAppearanceRequest'];
+
 /**
  * Every endpoint the site reads, with its path and response type bound together in one
  * place.
@@ -105,6 +113,22 @@ export type Leaderboard = Schemas['LeaderboardResponse'];
  */
 export const endpoints = {
   meta: () => api.get<Meta>('/api/meta'),
+  /**
+   * The signed-in account, or null.
+   *
+   * 401 is the *answer* here, not a failure — "nobody is signed in" is what an anonymous
+   * visitor should get, and surfacing it as an error would put an error state on every
+   * page of a public site.
+   */
+  me: async (): Promise<Me | null> => {
+    try {
+      return await api.get<Me>('/api/accounts/me');
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) return null;
+      throw cause;
+    }
+  },
+  logout: () => api.post<unknown>('/api/accounts/logout'),
   bots: () => api.get<BotSummary[]>('/api/bots'),
   bot: (key: string) => api.get<BotDetail>(`/api/bots/${key}`),
   botMatches: (botId: string) => api.get<BotMatchHistory>(`/api/bots/${botId}/matches`),
@@ -119,5 +143,22 @@ export const endpoints = {
   matchReplay: (matchId: string) => api.get<ReplayDocument>(`/api/matches/${matchId}/replay`),
   matchSet: (setId: string) => api.get<MatchSetDetail>(`/api/matchsets/${setId}`),
   myBots: () => api.get<MyBot[]>('/api/bots/mine'),
+  cosmetics: () => api.get<CosmeticCatalog>('/api/cosmetics'),
   notifications: () => api.get<UserNotification[]>('/api/notifications?take=20'),
+
+  // Writes, bound the same way and for the same reason. The request bodies are generated
+  // too, so a field the server renamed fails here rather than silently posting a shape it
+  // ignores — which a bare `api.post(url, { ... })` cannot catch at all.
+  createBot: (body: CreateBotRequest) => api.post<{ id: string }>('/api/bots', body),
+  submitVersion: (botId: string, body: SubmitVersionRequest) =>
+    api.post<unknown>(`/api/bots/${botId}/versions`, body),
+  challenge: (body: ChallengeRequest) =>
+    api.post<{ id: string }>('/api/matches/challenge', body),
+  rankedChallenge: (body: RankedChallengeRequest) =>
+    api.post<{ id: string }>('/api/matches/ranked', body),
+  updateAppearance: (botId: string, body: UpdateBotAppearanceRequest) =>
+    api.put<unknown>(`/api/bots/${botId}/appearance`, body),
+  register: (body: RegisterRequest) => api.post<unknown>('/api/accounts/register', body),
+  login: (body: LoginRequest) => api.post<unknown>('/api/accounts/login', body),
+  readNotification: (id: string) => api.post<unknown>(`/api/notifications/${id}/read`, {}),
 };

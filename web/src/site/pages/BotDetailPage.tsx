@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
@@ -17,9 +17,8 @@ import { useBot } from '../queries';
 export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
   const { botKey } = useParams<{ botKey: string }>();
-  const { data: bot, error, refetch } = useBot(botKey);
+  const { data: bot, error } = useBot(botKey);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const load = useCallback(async () => (await refetch()).data!, [refetch]);
   const missing = error instanceof ApiError && error.status === 404;
 
   if (missing)
@@ -68,7 +67,7 @@ export default function BotDetailPage() {
       {bot.isOwner && (
         <AppearanceEditor
           bot={bot}
-          onSaved={load}
+          botKey={botKey!}
           entitlementRevision={
             bot.versions.filter((version) => version.status === 'Built').length
           }
@@ -137,7 +136,7 @@ export default function BotDetailPage() {
 
       <MatchHistory botId={bot.id} botSlug={bot.slug} />
 
-      {bot.isOwner && <SubmitPanel bot={bot} onSubmitted={load} />}
+      {bot.isOwner && <SubmitPanel bot={bot} botKey={botKey!} />}
     </div>
   );
 }
