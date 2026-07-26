@@ -42,7 +42,12 @@ public class StagedToolchainAssemblyTests
             Assert.True(
                 hashes.Count == 1,
                 $"{assembly} differs between the CLI and the server. Identical bot sources " +
-                "cannot compile to identical artifacts while this is true.");
+                "cannot compile to identical artifacts while this is true.\n\n" +
+                "Locally this is almost always a stale build rather than a real divergence: " +
+                "building or testing one project leaves the other host's staged copy behind, " +
+                "and the two hashes then disagree for no reason that survives a rebuild. Run " +
+                "`dotnet build BotArena.sln` and try again before believing it. CI builds " +
+                "everything from clean, so a failure there is the real thing.");
         }
     }
 
