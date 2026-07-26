@@ -1,3 +1,4 @@
+import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
 export interface BotLook {
   id: string;
@@ -343,6 +344,7 @@ function loadImage(source: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
   const image = new Image();
   image.decoding = 'async';
+  trackDecode(image);
   image.src = source;
   return image;
 }

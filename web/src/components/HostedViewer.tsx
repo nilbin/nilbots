@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReplayDocument } from '../types';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
+import { useAssetReadiness } from '../render/useAssetReadiness';
 import { createPresenter } from '../replayPresentation';
 import ArenaCanvas from './ArenaCanvas';
 
@@ -24,7 +25,8 @@ export default function HostedViewer({
   replay: ReplayDocument;
   live?: LiveFollow;
 }) {
-  const playback = usePlayback(replay);
+  const assets = useAssetReadiness();
+  const playback = usePlayback(replay, assets.ready);
   const liveTime = useLiveFollower(replay, live);
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -113,8 +115,12 @@ export default function HostedViewer({
       // The host hides its transport on this: a follower must not be able to seek away
       // from the moment every other viewer is on.
       following,
+      // The app renders only the canvas, so a loader built into this page would never
+      // reach it. Readiness rides with the transport instead.
+      loading: !assets.ready,
+      pendingAssets: assets.pending,
     });
-  }, [following, playback.playing, playback.speed, playback.atEnd, tick, playback.tickCount, post]);
+  }, [following, playback.playing, playback.speed, playback.atEnd, tick, playback.tickCount, assets.ready, assets.pending, post]);
 
   return (
     <div className="relative h-screen w-screen bg-arena-bg">

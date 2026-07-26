@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReplayDocument } from '../types';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplayAudio } from '../audio/useReplayAudio';
+import { useAssetReadiness } from '../render/useAssetReadiness';
 import ArenaCanvas from './ArenaCanvas';
 import AudioReviewControls from './AudioReviewControls';
 import Controls from './Controls';
@@ -16,7 +17,8 @@ export default function Viewer({
   replay: ReplayDocument;
   live?: LiveFollow;
 }) {
-  const playback = usePlayback(replay);
+  const assets = useAssetReadiness();
+  const playback = usePlayback(replay, assets.ready);
   const liveTime = useLiveFollower(replay, live);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
@@ -105,6 +107,13 @@ export default function Viewer({
             showVisibility={showVisibility}
             onSelectSlot={setSelectedSlot}
           />
+          {!assets.ready && (
+            <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/80">
+              <p className="font-mono text-xs tracking-widest text-arena-dim" role="status">
+                LOADING ARENA — {assets.pending} texture{assets.pending === 1 ? '' : 's'}
+              </p>
+            </div>
+          )}
           {!isLive && playback.atEnd && result && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/70">
               <div className="rounded-xl border border-arena-edge bg-arena-panel px-8 py-6 text-center shadow-2xl">
