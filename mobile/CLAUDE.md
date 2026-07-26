@@ -118,6 +118,21 @@ instance, not per match**. So: mount one WebView, keep it alive, and push replay
 over `postMessage`. Never remount it per match — that pays the whole bake every time
 and is exactly the stutter this design avoids.
 
+## Notifications
+
+Not built yet; design in [`../docs/NOTIFICATIONS-PLAN.md`](../docs/NOTIFICATIONS-PLAN.md)
+(DECISIONS #108/#118). Two things to know before touching it here.
+
+The app is a **delivery channel, not a second inbox**. Notifications are durable records
+on the server, reaching the app over the same SignalR hub the site uses, with unread
+reloaded on resume. Do not invent app-local notification state.
+
+In-app toasts are not system banners. A push can be plain; an in-app reward is the moment
+the game pays the player back, and it should feel like it. Result toasts reuse
+`OutcomeText` and `BotRecord`'s colours — `Arena.ok` for a gain, `Arena.live` for a loss —
+rather than inventing a third vocabulary for the same thing. Never toast over the arena
+viewer, and never toast a result for the match currently on screen.
+
 ## Verifying
 
 `npx tsc --noEmit` must be clean before committing. Run the app on the iOS Simulator

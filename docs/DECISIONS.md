@@ -1725,6 +1725,31 @@ before picking a number.*
      join `/api/leaderboard` — a client-side join would cap rank at that endpoint's slice
      and get ties wrong.
 
+118. **A match notification is one record per subject, emitted on the broadcast
+     boundary, and the mobile app is another channel rather than another
+     inbox.** Extending #108 beyond entitlements, planned in
+     [`NOTIFICATIONS-PLAN.md`](NOTIFICATIONS-PLAN.md). Three things are settled
+     here because getting them wrong is expensive later. First, a result is
+     written when a match finishes *broadcasting* and a set when it is
+     *revealed*, never on completion: emitting earlier would push "your bot
+     won" to a phone while the replay is still playing out, defeating
+     broadcast secrecy at the one moment it matters most. Second, a challenge
+     and its result are one row keyed by the subject match or set, rewritten
+     and re-announced on settlement rather than appended beside it, so the
+     inbox never holds a stale "watch this" next to its own outcome and the
+     dedupe key stays natural for silent retries; `ReadAt` clears on rewrite
+     because an outcome is new information. A ranked set emits one
+     notification, not one per game — six rows would both spam and leak the
+     set's shape game by game. Third, mobile consumes the same durable record
+     over the same SignalR channel with the same unread-on-resume recovery,
+     and push is a separate delivery with its own registration, preferences
+     and delivery records, sent from a durable job so match settlement never
+     depends on APNs being reachable. The blocking prerequisite is contract
+     shaped: `UserNotificationResponse.Payload` is typed as one payload record
+     so it reaches every generated client, a second kind compiles fine and
+     would serve empty data, and `ToResponse` throws on unknown kinds to force
+     the discriminated union to be built first.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
