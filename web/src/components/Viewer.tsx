@@ -74,16 +74,23 @@ export default function Viewer({
     <div
       ref={shell}
       className={clsx(
-        'mx-auto flex flex-col gap-3',
+        'relative mx-auto flex flex-col',
         immersive.active
-          // 100dvh, not vh: Safari's toolbars collapse on scroll and vh does not follow
-          // them, which leaves the arena taller than the screen exactly when there is no
-          // chrome left to scroll.
-          ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none bg-arena-bg p-2'
-          : 'h-full max-w-7xl p-3 md:p-5',
+          // The arena takes the whole viewport and the chrome floats over it. Merely
+          // trimming padding gained nothing on a phone, where the grid was already one
+          // column — the controls still claimed their own row and the arena stayed the
+          // same size. 100dvh, not vh: Safari's toolbars collapse on scroll and vh does
+          // not follow them.
+          ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none gap-0 bg-arena-bg'
+          : 'h-full max-w-7xl gap-3 p-3 md:p-5',
       )}
     >
-      <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <header
+        className={clsx(
+          'flex flex-wrap items-baseline gap-x-4 gap-y-1',
+          immersive.active && 'hidden',
+        )}
+      >
         <h1 className="text-xl"><Logo size={24} /></h1>
         <span className="font-mono text-xs text-arena-dim">
           {header.mapId} · seed {header.seed} · rules {header.gameRulesVersion} ·{' '}
@@ -114,7 +121,7 @@ export default function Viewer({
         </button>
       </header>
 
-      {audioReviewEnabled && (
+      {audioReviewEnabled && !immersive.active && (
         <AudioReviewControls
           audio={audio}
           onRestart={isLive ? undefined : playback.restart}
@@ -124,10 +131,22 @@ export default function Viewer({
       <div
         className={clsx(
           'grid min-h-0 flex-1 gap-3',
-          immersive.active ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
+          immersive.active
+            // A 4:3 arena in a 2.16:1 landscape viewport is height-constrained, so ~40%
+            // of the width is letterbox. The panels cost the arena nothing there — it is
+            // still limited by height — and turn black into information.
+            ? 'grid-cols-1 landscape:grid-cols-[1fr_minmax(180px,260px)]'
+            : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
         )}
       >
-        <main className="relative min-h-[320px] overflow-hidden rounded-lg border border-arena-edge bg-arena-bg">
+        <main
+          className={clsx(
+            'relative min-h-[320px] overflow-hidden bg-arena-bg',
+            // Edge to edge while immersive: a border and corner radius are panel styling,
+            // and they cost real pixels on a phone where the arena is already letterboxed.
+            immersive.active ? '' : 'rounded-lg border border-arena-edge',
+          )}
+        >
           <ArenaCanvas
             replay={replay}
             time={time}
@@ -187,7 +206,13 @@ export default function Viewer({
           )}
         </main>
 
-        <aside className={clsx('flex min-h-0 flex-col gap-3', immersive.active && 'hidden')}>
+        <aside
+          className={clsx(
+            'flex min-h-0 flex-col gap-3',
+            // Hidden in portrait, where there is no spare width to hand it.
+            immersive.active && 'hidden landscape:flex landscape:overflow-y-auto landscape:p-2',
+          )}
+        >
           <BotPanel
             replay={replay}
             tick={tick}
@@ -200,13 +225,38 @@ export default function Viewer({
         </aside>
       </div>
 
-      {isLive ? (
-        <div className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4 font-mono text-xs text-arena-dim">
-          <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
-          Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees this moment.
+      {/* Immersive: the transport floats over the arena rather than taking a row from it,
+          which is the whole point — a row of controls under a phone-height canvas is the
+          layout that made full screen pointless. Translucent and inset so it reads as
+          over the arena rather than crowding it. */}
+      <div
+        className={clsx(
+          immersive.active &&
+            'pointer-events-none absolute inset-x-0 bottom-0 z-10 p-2 pb-[env(safe-area-inset-bottom)]',
+        )}
+      >
+        <div className={clsx(immersive.active && 'pointer-events-auto opacity-95')}>
+          {isLive ? (
+            <div className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4 font-mono text-xs text-arena-dim">
+              <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
+              Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees this moment.
+            </div>
+          ) : (
+            <Controls playback={playback} />
+          )}
         </div>
-      ) : (
-        <Controls playback={playback} />
+      </div>
+
+      {/* The only way out while the page chrome is hidden. */}
+      {immersive.active && (
+        <button
+          type="button"
+          onClick={immersive.exit}
+          className="absolute top-0 right-0 z-20 m-2 rounded-md border border-arena-edge bg-arena-panel/80 px-2.5 py-1.5 font-mono text-[11px] text-arena-dim backdrop-blur transition-colors hover:border-arena-accent hover:text-arena-accent"
+          style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+        >
+          exit
+        </button>
       )}
     </div>
   );

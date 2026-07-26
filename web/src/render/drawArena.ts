@@ -111,7 +111,14 @@ export function drawArena(
   height: number,
 ): void {
   const { mapWidth, mapHeight, mapTiles, participants } = replay.header;
-  const tile = Math.floor(Math.min(width / (mapWidth + 1), height / (mapHeight + 1)));
+  // A margin so edge walls are not flush with the canvas. Fractional rather than a whole
+  // tile: at 24x18 a full tile is 4% of width and 5.5% of height given away to black, and
+  // on a letterboxed phone every pixel of arena is already scarce. Must match
+  // ArenaCanvas's hit-test, which converts clicks back to tiles with the same figure.
+  const MARGIN_TILES = 0.4;
+  const tile = Math.floor(
+    Math.min(width / (mapWidth + MARGIN_TILES), height / (mapHeight + MARGIN_TILES)),
+  );
   const originX = Math.floor((width - tile * mapWidth) / 2);
   const originY = Math.floor((height - tile * mapHeight) / 2);
   const px = (x: number) => originX + x * tile;

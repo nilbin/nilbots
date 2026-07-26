@@ -52,7 +52,8 @@ export default function ArenaCanvas({
     const clickY = event.clientY - rect.top;
     const { mapWidth, mapHeight } = replay.header;
     const tile = Math.floor(
-      Math.min(rect.width / (mapWidth + 1), rect.height / (mapHeight + 1)),
+      // Mirrors drawArena's MARGIN_TILES; if they disagree, clicks land on the wrong bot.
+      Math.min(rect.width / (mapWidth + 0.4), rect.height / (mapHeight + 0.4)),
     );
     const originX = Math.floor((rect.width - tile * mapWidth) / 2);
     const originY = Math.floor((rect.height - tile * mapHeight) / 2);
