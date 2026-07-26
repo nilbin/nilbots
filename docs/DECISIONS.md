@@ -1779,3 +1779,33 @@ before picking a number.*
   built-in-style multi-bot selector — decide when the project template lands.
 - wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
   verify when a second platform enters CI.
+
+## 120. Google sign-in through OpenIddict's client, linked on verified email only
+
+External identity is an OpenIddict *client* registration beside the server we already run,
+not `Microsoft.AspNetCore.Authentication.Google`. One OAuth library in the process instead
+of two, and the next provider — Apple, which the App Store requires alongside any
+third-party sign-in — is a registration rather than another handler and another config
+shape.
+
+**The callback issues exactly the session cookie the password flow issues**, and that is
+what makes this cheap: `/connect/authorize` authenticates from that cookie and bounces to
+the SPA login when it is absent, so the mobile app and the CLI inherit Google with no
+client change at all.
+
+Linking rules, in order, because the order is the security property:
+
+1. a known `(provider, subject)` signs in — the email is not consulted, so a renamed Google
+   account still reaches its own bots;
+2. a **verified** email matching a local account links to it;
+3. anything else creates an account.
+
+Linking on an *unverified* email would be account takeover: the provider vouches only that
+the user controls that provider account, not that inbox. When an unverified address
+collides with an existing account the sign-in is **refused** rather than given a second
+account — emails are unique, so "create anyway" is not available, and the owner is told to
+sign in with their password first.
+
+`User.PasswordHash` is nullable now. A Google-only account has no password, and the login
+endpoint refuses null before reaching the verifier — with the same message a wrong password
+gets, so it is not an account-enumeration oracle.

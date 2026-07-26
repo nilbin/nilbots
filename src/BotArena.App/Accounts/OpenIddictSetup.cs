@@ -82,6 +82,61 @@ public static class OpenIddictSetup
                 options.UseLocalServer();
                 options.UseAspNetCore();
             });
+
+        AddExternalProviders(builder, configuration, encryption, signing);
+    }
+
+    /// <summary>
+    /// Sign-in with Google, as an OpenIddict *client* beside the server.
+    /// <para>
+    /// The same library on both sides rather than a second OAuth stack: this app already
+    /// runs OpenIddict to issue tokens to the CLI and the mobile app, and adding
+    /// <c>Microsoft.AspNetCore.Authentication.Google</c> would mean two client
+    /// implementations, two configuration shapes and two sets of quirks in one process.
+    /// The web-integration package also turns the next provider — Apple, which the App
+    /// Store requires alongside any third-party sign-in — into a registration rather than
+    /// another handler.
+    /// </para>
+    /// <para>
+    /// Registered only when credentials exist. Without them the client is never added, the
+    /// scheme does not resolve, and <c>/api/accounts/providers</c> tells the site not to
+    /// offer a button that could only fail — which is the state every test run and every
+    /// local checkout is in.
+    /// </para>
+    /// </summary>
+    private static void AddExternalProviders(
+        OpenIddictBuilder builder,
+        IConfiguration configuration,
+        X509Certificate2 encryption,
+        X509Certificate2 signing)
+    {
+        if (!GoogleAuthOptions.IsConfigured(configuration))
+            return;
+
+        builder.AddClient(options =>
+        {
+            options.AllowAuthorizationCodeFlow();
+            // The client needs its own keys: it encrypts the state token that carries the
+            // return URL across the round trip to Google. Sharing the server's is
+            // deliberate — they are already provisioned, rotated and mounted together, and
+            // a second pair would be a second thing to get wrong in deployment.
+            options.AddEncryptionCertificate(encryption);
+            options.AddSigningCertificate(signing);
+
+            options.UseSystemNetHttp();
+            options.UseAspNetCore()
+                   .EnableRedirectionEndpointPassthrough()
+                   .EnablePostLogoutRedirectionEndpointPassthrough();
+
+            options.UseWebProviders().AddGoogle(google => google
+                .SetClientId(configuration[$"{GoogleAuthOptions.Section}:ClientId"]!)
+                .SetClientSecret(configuration[$"{GoogleAuthOptions.Section}:ClientSecret"]!)
+                // Relative: OpenIddict resolves it against the current request's host, so
+                // the same configuration works behind Caddy in production and on
+                // 127.0.0.1:8080 locally. This exact path must be registered in the Google
+                // Cloud console as an authorised redirect URI.
+                .SetRedirectUri("callback/login/google"));
+        });
     }
 
     public static void MapConnect(this IEndpointRouteBuilder routes)
