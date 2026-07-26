@@ -99,6 +99,15 @@ export function useReplayAudio({
     if (graph.current && graph.current.context.state !== 'closed') {
       return graph.current;
     }
+    // iOS silences Web Audio when the ring/silent switch is on — HTML <audio> is exempt,
+    // Web Audio is not — so a reviewer with the switch flipped hears nothing and
+    // reasonably concludes the audio is broken. Declaring the session as playback opts
+    // out of that, which is what a media page is supposed to do. WebKit-only and recent,
+    // hence the feature check; everywhere else this is a no-op.
+    const session = (navigator as Navigator & { audioSession?: { type: string } })
+      .audioSession;
+    if (session) session.type = 'playback';
+
     const context = new AudioContext({ latencyHint: 'interactive' });
     const master = context.createGain();
     const limiter = context.createDynamicsCompressor();
