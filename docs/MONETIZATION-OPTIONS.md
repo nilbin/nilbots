@@ -2,9 +2,10 @@
 
 Research, not a decision. Written to be argued with; nothing here is implemented.
 
-Not tax advice either. The VAT thresholds below come from public guidance and set the
-*shape* of the problem — an accountant or Skatteverket decides the specifics, and the cost
-of being wrong about VAT is not the kind of thing to work out from a search result.
+Not tax advice either. The thresholds below come from public guidance and set the *shape*
+of the problem; Skatteverket decides the specifics. That said, the shape is smaller than it
+looks — an earlier draft of this file implied a company was needed, which is wrong, and the
+correction is in "You do not need to register anything to start".
 
 ## The constraint that decides everything is Apple, not the payment provider
 
@@ -73,17 +74,38 @@ seller once registrations and filings are priced in.
 For a one-person project with no finance function, the MoR case is not close. The 2 points of
 margin buy the entire compliance surface.
 
-## No registered company is not a blocker for the provider
+## You do not need to register anything to start
 
+Neither side requires a company, and the Swedish side requires less than it first appears.
+
+**The provider.**
 [Paddle does not require a legal entity](https://help.boathouse.co/guides/beginners-guide-to-paddle/faq-can-i-sell-via-paddle-as-an-individual)
-— individuals and sole traders are accepted, and business verification is not required for
-them. Lemon Squeezy runs KYC/KYB per store and supports individuals in supported countries.
+— individuals and sole traders are accepted, and business verification is skipped for them.
+Lemon Squeezy runs KYC/KYB per store and supports individuals in supported countries.
 
-It may still be a blocker on the *Swedish* side, and that is the part worth an accountant:
-selling regularly is business activity, which means F-skatt and declaring the income.
-Registering an **enskild firma** is cheap and is the normal path before an AB. The VAT
-thresholds above apply identically to enskild firma and AB, so company form does not change
-the tax shape — only liability and administration.
+**Sweden.** An *enskild firma* is not a company: it is you, trading under your personnummer,
+and registering the name with Bolagsverket is voluntary. There is no entity to form.
+
+- **Hobbyverksamhet** covers activity without a profit motive or of small scale, and
+  [Skatteverket names internet income — e-sport, blogging and similar — as potentially
+  falling in it](https://www.skatteverket.se/privat/skatter/arbeteochinkomst/inkomster/hobby.4.58d555751259e4d661680003940.html).
+  A surplus is declared on form **T2** with the ordinary return. Keep the records seven
+  years.
+- **Näringsverksamhet** is the other side of that line — self-employed, regular, and run for
+  profit — and is where F-skatt belongs. A cosmetics shop with steady sales drifts this way
+  over time; the line is a judgement about the activity, not a revenue number.
+- **VAT is exempt below SEK 120,000** turnover (raised from 80,000 on 1 January 2025), and
+  [applies automatically without applying](https://www.bokio.se/blogg/hojd-omsattningsgrans-for-moms/)
+  if you are not already registered. It ends by itself on the transaction that crosses the
+  threshold.
+
+**And a merchant of record removes most of the rest.** You are not selling to consumers at
+all — you sell to Paddle, Paddle sells to the player. The €10,000 OSS threshold and 27
+national VAT rates are theirs by construction, not something you are exempt from but
+something you are not party to.
+
+The realistic first step is therefore: sell, declare the income, register nothing, and
+revisit F-skatt and VAT when the numbers say to.
 
 ## What I would do
 
@@ -93,8 +115,10 @@ the tax shape — only liability and administration.
 2. **Grant on webhook**, into the entitlement system that already exists — a `purchase`
    source kind, the payment reference as the source id, and the existing dedupe making a
    replayed webhook silent the same way a retried job already is.
-3. **Sort the Swedish side before the first sale, not after.** Enskild firma plus F-skatt,
-   and ask an accountant where the OSS threshold lands for this.
+3. **Declare the income; register nothing yet.** Under SEK 120,000 there is no VAT to
+   register for, and a merchant of record is the party selling to consumers anyway. F-skatt
+   and an enskild firma are what to revisit when this stops looking like a hobby — which is
+   a judgement about regularity and profit motive, not a threshold that trips.
 4. **Leave iOS purchases alone** until the app is actually shipping and there is revenue to
    reason about. Then it is IAP, as a second grant source.
 
