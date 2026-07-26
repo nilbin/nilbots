@@ -1850,6 +1850,11 @@ export interface components {
             name: string;
             content: string;
         };
+        StoreCategoryResponse: {
+            id: string;
+            label: string;
+            packs: components["schemas"]["StorePackResponse"][];
+        };
         StorePackItemResponse: {
             key: string;
             kind: string;
@@ -1862,10 +1867,11 @@ export interface components {
             description: string;
             items: components["schemas"]["StorePackItemResponse"][];
             owned: boolean;
+            repeatable: boolean;
         };
         StoreResponse: {
             open: boolean;
-            packs: components["schemas"]["StorePackResponse"][];
+            categories: components["schemas"]["StoreCategoryResponse"][];
         };
         SubmitVersionRequest: {
             entryType: string;

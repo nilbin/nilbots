@@ -108,12 +108,26 @@ public class CosmeticPackTests
     }
 
     [Fact]
-    public void TheShippedCatalogSellsCompletePairs()
+    public void EveryPackSitsOnAKnownShelf()
     {
         var catalog = CosmeticCatalog.LoadDefault();
 
-        Assert.NotEmpty(catalog.Packs);
-        foreach (CosmeticPack pack in catalog.Packs)
+        // A pack with no category would silently vanish from a store that renders by
+        // category — present in the API, invisible on the page.
+        Assert.All(catalog.Packs, pack => Assert.Contains(pack.Category, CosmeticCatalog.Categories));
+        Assert.Contains(catalog.Packs, pack => pack.Category == CosmeticCatalog.CapacityCategory);
+    }
+
+    [Fact]
+    public void EveryAppearancePackSellsACompletePair()
+    {
+        var catalog = CosmeticCatalog.LoadDefault();
+
+        var appearance = catalog.Packs
+            .Where(pack => pack.Category == CosmeticCatalog.AppearanceCategory)
+            .ToArray();
+        Assert.NotEmpty(appearance);
+        foreach (CosmeticPack pack in appearance)
         {
             IReadOnlyList<CosmeticCatalogItem> granted =
                 catalog.EntitlementsFor(CosmeticCatalog.PurchaseSource, pack.Id);

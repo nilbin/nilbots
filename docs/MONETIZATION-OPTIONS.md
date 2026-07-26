@@ -200,6 +200,41 @@ thing it does change is that **Stripe stops being a serious alternative** — at
 "you handle VAT yourself" is a bad trade; at worldwide scale it is not a trade anyone should
 take without a finance function.
 
+## Two shelves: appearance, and capacity
+
+Packs carry a category and the store groups by it, because the two are not comparable
+purchases — one is taste, the other is how much the account may do — and a single list of
+both reads as a jumble.
+
+**Capacity is where care is needed.** Builds are how a bot gets better, so selling them
+sells iteration speed on a competitive ladder; that is a different proposition from selling
+a chassis colour, and it is worth being deliberate about which limit is for sale:
+
+| limit | sold? | why |
+|---|---|---|
+| account daily (30) | **yes** | reads as "I ran out of turns today"; lifting it removes waiting |
+| account ten-minute (6) | no | burst protection — selling it sells tempo mid-tuning-session |
+| account queued (2) | no | same, and it is a claim on the build farm's attention |
+| network limits | no | belong to a connection; one purchase would lift a shared IP's ceiling |
+| global queued | no | the compiler's own capacity, not anyone's to buy |
+
+Capacity grants **stack** and are **capped** (`AccountCapacity.MaxPurchasedDailyBuilds`).
+The cap is not a pricing decision: the compiler is a real machine, and without one enough
+purchases could commit the build farm to work it cannot do — the person who paid being the
+one who finds out. Stacking is also why the store marks capacity packs `repeatable` while
+an appearance pack, once owned, is owned forever.
+
+What holding a capacity entitlement *means* lives in `Store/AccountCapacity.cs`, beside the
+limit it bends — not in the catalog JSON. A number in a data file that silently multiplies
+a rate limit is how a store ends up selling something nobody can reason about.
+
+### Other limits that could be sold, and were not
+
+Recorded so the next person does not have to go looking. Bot count is not capped at all
+today. Ranked set frequency is not capped. Neither is match history retention. All three are
+plausible products, and all three would change the game rather than the queue — which is a
+design decision, not a monetization one.
+
 ## What is deliberately not answered here
 
 - Prices, currencies, and whether the three packs are priced alike.

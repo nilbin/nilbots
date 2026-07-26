@@ -30,7 +30,13 @@ public sealed record CosmeticPack(
     string Label,
     string Description,
     /// <summary>Catalog keys, in display order — the chassis first.</summary>
-    IReadOnlyList<string> Items);
+    IReadOnlyList<string> Items,
+    /// <summary>
+    /// Which shelf this sits on. A store selling two unrelated things — how a bot looks and
+    /// what an account may do — reads as a jumble in one list, and the two are not
+    /// comparable purchases: one is taste, the other is capacity.
+    /// </summary>
+    string Category = CosmeticCatalog.AppearanceCategory);
 
 public sealed record CosmeticCatalogDocument(
     int Version,
@@ -45,6 +51,27 @@ public sealed class CosmeticCatalog
 {
     public const string BotLookKind = "bot-look";
     public const string ProjectileLookKind = "projectile-look";
+
+    /// <summary>
+    /// An entitlement that changes what an account may do rather than how it looks.
+    /// <para>
+    /// What holding one *means* lives in <see cref="Store.AccountCapacity"/>, next to the
+    /// limit it bends — deliberately not in this file, and not in the catalog JSON.
+    /// </para>
+    /// <para>
+    /// Its arrival is also why this type has outgrown its name: it is the entitlement
+    /// catalog now, not the cosmetic one. Renaming it touches every consumer, so it is
+    /// noted here rather than done mid-feature.
+    /// </para>
+    /// </summary>
+    public const string CapacityKind = Store.AccountCapacity.Kind;
+
+    /// <summary>Shelves. A pack declares one; the store groups by them, in this order.</summary>
+    public const string AppearanceCategory = "appearance";
+    public const string CapacityCategory = "capacity";
+
+    public static readonly IReadOnlyList<string> Categories =
+        [AppearanceCategory, CapacityCategory];
     public const string StarterAvailability = "starter";
     public const string EntitlementAvailability = "entitlement";
 
@@ -134,6 +161,9 @@ public sealed class CosmeticCatalog
                 throw new InvalidOperationException($"Duplicate pack '{pack.Id}'.");
             if (string.IsNullOrWhiteSpace(pack.Label) || string.IsNullOrWhiteSpace(pack.Description))
                 throw new InvalidOperationException($"Pack '{pack.Id}' needs a label and description.");
+            if (!Categories.Contains(pack.Category))
+                throw new InvalidOperationException(
+                    $"Pack '{pack.Id}' has unknown category '{pack.Category}'.");
             if (pack.Items.Count == 0)
                 throw new InvalidOperationException($"Pack '{pack.Id}' contains nothing.");
 
@@ -163,7 +193,7 @@ public sealed class CosmeticCatalog
 
     private static void Validate(CosmeticCatalogItem item)
     {
-        if (item.Kind is not BotLookKind and not ProjectileLookKind)
+        if (item.Kind is not BotLookKind and not ProjectileLookKind and not CapacityKind)
             throw new InvalidOperationException(
                 $"Cosmetic '{item.Key}' has unsupported kind '{item.Kind}'.");
         if (!IsPresentationId(item.Id) || item.Key != $"{item.Kind}:{item.Id}")

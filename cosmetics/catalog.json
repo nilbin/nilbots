@@ -221,6 +221,18 @@
         "sourceId": "glass-manta",
         "hint": "Available in the store."
       }
+    },
+    {
+      "key": "capacity:extra-daily-builds",
+      "kind": "capacity",
+      "id": "extra-daily-builds",
+      "label": "Extra daily builds",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "extra-daily-builds",
+        "hint": "Available in the store."
+      }
     }
   ],
   "packs": [
@@ -231,7 +243,8 @@
       "items": [
         "bot-look:helio-kite",
         "projectile-look:helix-dart"
-      ]
+      ],
+      "category": "appearance"
     },
     {
       "id": "scrap-jackal",
@@ -240,7 +253,8 @@
       "items": [
         "bot-look:scrap-jackal",
         "projectile-look:gravity-knot"
-      ]
+      ],
+      "category": "appearance"
     },
     {
       "id": "glass-manta",
@@ -249,7 +263,17 @@
       "items": [
         "bot-look:glass-manta",
         "projectile-look:prism-fan"
-      ]
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "extra-daily-builds",
+      "label": "Extra daily builds",
+      "description": "Raises your daily build allowance by 30, so a long tuning session does not run out of turns.",
+      "items": [
+        "capacity:extra-daily-builds"
+      ],
+      "category": "capacity"
     }
   ]
 }

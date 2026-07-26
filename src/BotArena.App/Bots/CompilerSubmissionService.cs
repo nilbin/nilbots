@@ -81,7 +81,16 @@ public sealed class CompilerSubmissionService(
                 v => v.Status == BuildStatus.Pending,
                 cancellationToken));
 
-        CompilerSubmissionDenial? denial = CompilerSubmissionPolicy.Evaluate(snapshot, limits);
+        // What this account has bought. Read live rather than cached on the user: an
+        // entitlement granted by a webhook seconds ago must count on the next submission,
+        // and this runs once per build rather than once per request.
+        List<string> entitlementKeys = await db.EntitlementGrants
+            .Where(grant => grant.UserId == userId && grant.RevokedAt == null)
+            .Select(grant => grant.EntitlementKey)
+            .ToListAsync(cancellationToken);
+
+        CompilerSubmissionDenial? denial = CompilerSubmissionPolicy.Evaluate(
+            snapshot, limits.ForAccount(entitlementKeys));
         if (denial is not null)
             return new(null, denial);
 

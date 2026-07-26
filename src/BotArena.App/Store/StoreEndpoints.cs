@@ -14,12 +14,27 @@ public sealed record StorePackResponse(
     string Description,
     IReadOnlyList<StorePackItemResponse> Items,
     /// <summary>Whether this account already owns everything in the pack.</summary>
-    bool Owned);
+    bool Owned,
+    /// <summary>
+    /// True when owning it again would do something.
+    /// <para>
+    /// Appearance is owned once and then owned forever, but capacity stacks — a second
+    /// grant of extra builds adds a second thirty. Without this the store would either grey
+    /// out a pack that is still worth buying, or offer one that would take money for
+    /// nothing.
+    /// </para>
+    /// </summary>
+    bool Repeatable);
+
+public sealed record StoreCategoryResponse(
+    string Id,
+    string Label,
+    IReadOnlyList<StorePackResponse> Packs);
 
 public sealed record StoreResponse(
     /// <summary>Whether anything can actually be bought right now.</summary>
     bool Open,
-    IReadOnlyList<StorePackResponse> Packs);
+    IReadOnlyList<StoreCategoryResponse> Categories);
 
 /// <summary>
 /// What is for sale.
@@ -50,7 +65,7 @@ public static class StoreEndpoints
                     .ToHashSetAsync(cancellationToken)
                 : [];
 
-            var packs = catalog.Packs.Select(pack => new StorePackResponse(
+            StorePackResponse Describe(CosmeticPack pack) => new(
                 pack.Id,
                 pack.Label,
                 pack.Description,
@@ -63,9 +78,33 @@ public static class StoreEndpoints
                     .ToArray(),
                 // Every item, not any: a pack half-owned through some future overlap is
                 // still worth buying, and showing it as owned would hide the rest.
-                pack.Items.All(owned.Contains))).ToArray();
+                pack.Items.All(owned.Contains),
+                pack.Category == CosmeticCatalog.CapacityCategory);
 
-            return Results.Ok(new StoreResponse(payments.IsConfigured, packs));
+            // Empty categories are dropped rather than rendered as a heading with nothing
+            // under it, and the order is the catalog's rather than the dictionary's.
+            var categories = CosmeticCatalog.Categories
+                .Select(category => new StoreCategoryResponse(
+                    category,
+                    CategoryLabel(category),
+                    catalog.Packs
+                        .Where(pack => pack.Category == category)
+                        .Select(Describe)
+                        .ToArray()))
+                .Where(category => category.Packs.Count > 0)
+                .ToArray();
+
+            return Results.Ok(new StoreResponse(payments.IsConfigured, categories));
         }).Produces<StoreResponse>().AllowAnonymous();
     }
+
+    /// <summary>
+    /// Shelf headings, server-side so the store reads the same on the site and in the app.
+    /// </summary>
+    private static string CategoryLabel(string category) => category switch
+    {
+        CosmeticCatalog.AppearanceCategory => "Appearance",
+        CosmeticCatalog.CapacityCategory => "Your account",
+        _ => category,
+    };
 }

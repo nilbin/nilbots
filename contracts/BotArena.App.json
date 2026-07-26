@@ -2723,6 +2723,28 @@
           }
         }
       },
+      "StoreCategoryResponse": {
+        "required": [
+          "id",
+          "label",
+          "packs"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "packs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorePackResponse"
+            }
+          }
+        }
+      },
       "StorePackItemResponse": {
         "required": [
           "key",
@@ -2752,7 +2774,8 @@
           "label",
           "description",
           "items",
-          "owned"
+          "owned",
+          "repeatable"
         ],
         "type": "object",
         "properties": {
@@ -2773,23 +2796,26 @@
           },
           "owned": {
             "type": "boolean"
+          },
+          "repeatable": {
+            "type": "boolean"
           }
         }
       },
       "StoreResponse": {
         "required": [
           "open",
-          "packs"
+          "categories"
         ],
         "type": "object",
         "properties": {
           "open": {
             "type": "boolean"
           },
-          "packs": {
+          "categories": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/StorePackResponse"
+              "$ref": "#/components/schemas/StoreCategoryResponse"
             }
           }
         }
