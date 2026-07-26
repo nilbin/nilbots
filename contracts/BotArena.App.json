@@ -2635,7 +2635,8 @@
           "sourceKind",
           "sourceId",
           "reason",
-          "items"
+          "items",
+          "kind"
         ],
         "properties": {
           "kind": {
@@ -2670,8 +2671,11 @@
           "mapId",
           "botId",
           "botName",
+          "botLookId",
+          "botAccent",
           "outcome",
-          "opponentName"
+          "opponentName",
+          "kind"
         ],
         "properties": {
           "kind": {
@@ -2694,6 +2698,12 @@
           "botName": {
             "type": "string"
           },
+          "botLookId": {
+            "type": "string"
+          },
+          "botAccent": {
+            "type": "string"
+          },
           "outcome": {
             "type": "string"
           },
@@ -2707,11 +2717,14 @@
           "matchSetId",
           "botId",
           "botName",
+          "botLookId",
+          "botAccent",
           "outcome",
           "score",
           "opponentScore",
           "ratingChange",
-          "opponentName"
+          "opponentName",
+          "kind"
         ],
         "properties": {
           "kind": {
@@ -2729,6 +2742,12 @@
             "format": "uuid"
           },
           "botName": {
+            "type": "string"
+          },
+          "botLookId": {
+            "type": "string"
+          },
+          "botAccent": {
             "type": "string"
           },
           "outcome": {

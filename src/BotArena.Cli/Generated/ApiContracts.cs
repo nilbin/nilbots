@@ -1767,8 +1767,9 @@ namespace BotArena.Cli.Generated
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserNotificationPayloadEntitlementEarnedPayloadKind>))]
-        public UserNotificationPayloadEntitlementEarnedPayloadKind? Kind { get; set; } = default!;
+        public UserNotificationPayloadEntitlementEarnedPayloadKind Kind { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("sourceKind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -1801,8 +1802,9 @@ namespace BotArena.Cli.Generated
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserNotificationPayloadMatchSettledPayloadKind>))]
-        public UserNotificationPayloadMatchSettledPayloadKind? Kind { get; set; } = default!;
+        public UserNotificationPayloadMatchSettledPayloadKind Kind { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("matchId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -1819,6 +1821,14 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("botName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string BotName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botLookId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotLookId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botAccent")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotAccent { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -1844,8 +1854,9 @@ namespace BotArena.Cli.Generated
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<UserNotificationPayloadSetSettledPayloadKind>))]
-        public UserNotificationPayloadSetSettledPayloadKind? Kind { get; set; } = default!;
+        public UserNotificationPayloadSetSettledPayloadKind Kind { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("matchSetId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -1858,6 +1869,14 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("botName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string BotName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botLookId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotLookId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("botAccent")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string BotAccent { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("outcome")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

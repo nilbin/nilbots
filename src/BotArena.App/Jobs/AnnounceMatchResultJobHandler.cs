@@ -85,6 +85,9 @@ public sealed class AnnounceMatchResultJobHandler(
                     match.MapId,
                     participant.BotId,
                     participant.NameSnapshot,
+                    // Snapshots, so a bot restyled since still appears as it fought.
+                    participant.LookIdSnapshot,
+                    participant.AccentSnapshot,
                     participant.Outcome ?? "Draw",
                     opponent?.NameSnapshot ?? "a removed bot"),
                 now,

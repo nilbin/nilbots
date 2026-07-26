@@ -55,6 +55,8 @@ export type EntitlementNotificationItem = Schemas['EntitlementNotificationItem']
 export type UserNotificationPayload = Schemas['UserNotificationPayload'];
 export type EntitlementEarnedPayload =
   Schemas['UserNotificationPayloadEntitlementEarnedPayload'];
+export type MatchSettledPayload = Schemas['UserNotificationPayloadMatchSettledPayload'];
+export type SetSettledPayload = Schemas['UserNotificationPayloadSetSettledPayload'];
 export type UserNotification = Schemas['UserNotificationResponse'];
 
 export type CosmeticUnlock = Schemas['CosmeticUnlock'];

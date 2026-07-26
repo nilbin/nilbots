@@ -1583,7 +1583,7 @@ export interface components {
         UserNotificationPayload: components["schemas"]["UserNotificationPayloadEntitlementEarnedPayload"] | components["schemas"]["UserNotificationPayloadMatchSettledPayload"] | components["schemas"]["UserNotificationPayloadSetSettledPayload"];
         UserNotificationPayloadEntitlementEarnedPayload: {
             /** @enum {string} */
-            kind?: "entitlement-earned";
+            kind: "entitlement-earned";
             sourceKind: string;
             sourceId: string;
             reason: null | string;
@@ -1591,24 +1591,28 @@ export interface components {
         };
         UserNotificationPayloadMatchSettledPayload: {
             /** @enum {string} */
-            kind?: "match-settled";
+            kind: "match-settled";
             /** Format: uuid */
             matchId: string;
             mapId: string;
             /** Format: uuid */
             botId: string;
             botName: string;
+            botLookId: string;
+            botAccent: string;
             outcome: string;
             opponentName: string;
         };
         UserNotificationPayloadSetSettledPayload: {
             /** @enum {string} */
-            kind?: "set-settled";
+            kind: "set-settled";
             /** Format: uuid */
             matchSetId: string;
             /** Format: uuid */
             botId: string;
             botName: string;
+            botLookId: string;
+            botAccent: string;
             outcome: string;
             /** Format: double */
             score: number;

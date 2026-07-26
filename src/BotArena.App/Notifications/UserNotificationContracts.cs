@@ -73,6 +73,9 @@ public sealed record MatchSettledPayload(
     string MapId,
     Guid BotId,
     string BotName,
+    /// <summary>Stable catalog id and accent, so a client renders the bot from its own assets (#108).</summary>
+    string BotLookId,
+    string BotAccent,
     /// <summary>Win, Loss or Draw, from this recipient's point of view.</summary>
     string Outcome,
     string OpponentName) : UserNotificationPayload;
@@ -89,6 +92,8 @@ public sealed record SetSettledPayload(
     Guid MatchSetId,
     Guid BotId,
     string BotName,
+    string BotLookId,
+    string BotAccent,
     string Outcome,
     double Score,
     double OpponentScore,

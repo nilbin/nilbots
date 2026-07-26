@@ -118,13 +118,16 @@ function describe(notification: UserNotification): Content | null {
         detail: `${payload.score}–${payload.opponentScore} against ${payload.opponentName}`,
         headline: `${gain ? '+' : ''}${Math.round(payload.ratingChange)}`,
         headlineColor: gain ? Arena.ok : Arena.live,
-        lookId: undefined,
+        lookId: payload.botLookId,
+        accent: payload.botAccent,
       };
     }
     case 'match-settled':
       return {
         title: `${payload.botName} ${outcomeVerb(payload.outcome)}`,
         detail: `against ${payload.opponentName} on ${payload.mapId}`,
+        lookId: payload.botLookId,
+        accent: payload.botAccent,
         headline: payload.outcome === 'Win' ? 'W' : payload.outcome === 'Loss' ? 'L' : 'D',
         headlineColor:
           payload.outcome === 'Win'

@@ -14,41 +14,45 @@ import {
 } from '../../render/arenaThemes';
 import { api, type UserNotification, type EntitlementEarnedPayload } from '../api';
 import { useAuth } from '../auth';
+import ResultToast from './ResultToast';
 
 const POLL_MS = 60_000;
 const VISIBLE_MS = 14_000;
 
-/**
- * An unlock, narrowed from the notification union.
- *
- * Other kinds reach this component and are ignored *for display* — they are not unlocks
- * and have no toast here yet. They stay unread as a result, which is the intended
- * behaviour only until the site grows result toasts of its own (DECISIONS #119).
- */
 type UnlockNotification = UserNotification & { payload: EntitlementEarnedPayload };
 
 function isUnlock(notification: UserNotification): notification is UnlockNotification {
   return notification.payload?.kind === 'entitlement-earned';
 }
 
+/**
+ * Whether this component has a toast for a notification.
+ *
+ * A kind with no toast is still acknowledged rather than dropped — ignoring one silently
+ * leaves it unread forever and grows an inbox the site can never clear. An unlock with no
+ * items is treated the same way: there is nothing to show.
+ */
+function isShowable(notification: UserNotification): boolean {
+  const payload = notification.payload;
+  if (!payload) return false;
+  if (payload.kind === 'entitlement-earned') return payload.items.length > 0;
+  return payload.kind === 'match-settled' || payload.kind === 'set-settled';
+}
+
 export default function NotificationCenter() {
   const { user } = useAuth();
-  const [pending, setPending] = useState<UnlockNotification[]>([]);
+  const [pending, setPending] = useState<UserNotification[]>([]);
   const seen = useRef(new Set<string>());
 
   const receive = useCallback((notification: UserNotification) => {
     // Narrowed on the payload's own discriminator, not the outer `kind`: they carry the
     // same string, but TypeScript cannot use one property to narrow a sibling.
     if (seen.current.has(notification.id)) return;
-    // Kinds this component has no toast for are still acknowledged, just not shown.
-    // Dropping them silently would leave them unread forever and grow an inbox the site
-    // can never clear (DECISIONS #119).
-    if (!isUnlock(notification) || notification.payload.items.length === 0) {
-      seen.current.add(notification.id);
+    seen.current.add(notification.id);
+    if (!isShowable(notification)) {
       void api.post(`/api/notifications/${notification.id}/read`, {}).catch(() => undefined);
       return;
     }
-    seen.current.add(notification.id);
     setPending((current) => [...current, notification]);
   }, []);
 
@@ -126,14 +130,27 @@ export default function NotificationCenter() {
   }, [active, dismiss]);
 
   if (!active) return null;
-  return (
-    <UnlockToast
-      key={active.id}
-      notification={active}
-      queued={pending.length - 1}
-      onDismiss={() => dismiss(active.id)}
-    />
-  );
+  // Narrowed on the payload's own discriminator, not the notification's — they carry the
+  // same string, but TypeScript cannot narrow a sibling property from it.
+  if (isUnlock(active))
+    return (
+      <UnlockToast
+        key={active.id}
+        notification={active}
+        queued={pending.length - 1}
+        onDismiss={() => dismiss(active.id)}
+      />
+    );
+  if (active.payload.kind === 'match-settled' || active.payload.kind === 'set-settled')
+    return (
+      <ResultToast
+        key={active.id}
+        payload={active.payload}
+        queued={pending.length - 1}
+        onDismiss={() => dismiss(active.id)}
+      />
+    );
+  return null;
 }
 
 async function stop(connection: HubConnection) {

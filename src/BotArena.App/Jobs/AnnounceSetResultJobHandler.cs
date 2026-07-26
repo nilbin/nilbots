@@ -46,7 +46,7 @@ public sealed class AnnounceSetResultJobHandler(
 
         var bots = await db.Bots
             .Where(bot => bot.Id == set.BotAId || bot.Id == set.BotBId)
-            .Select(bot => new { bot.Id, bot.Name, bot.OwnerUserId })
+            .Select(bot => new { bot.Id, bot.Name, bot.LookId, bot.Accent, bot.OwnerUserId })
             .ToListAsync(cancellationToken);
 
         foreach (var bot in bots)
@@ -64,6 +64,8 @@ public sealed class AnnounceSetResultJobHandler(
                     set.Id,
                     bot.Id,
                     bot.Name,
+                    bot.LookId,
+                    bot.Accent,
                     set.WinnerBotId is null
                         ? "Draw"
                         : set.WinnerBotId == bot.Id
