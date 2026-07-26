@@ -33,12 +33,21 @@ function run(command, commandArgs, options = {}) {
   return child;
 }
 
-function shutdown() {
+let shuttingDown = false;
+function shutdown(code = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  // Every child, always. A tunnel that outlives its server keeps a public URL alive
+  // pointing at nothing — and the next run publishes a second one, so they accumulate
+  // silently. Killing the server alone is not enough.
   for (const child of children) child.kill('SIGTERM');
-  process.exit(0);
+  process.exit(code);
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => shutdown(0));
+process.on('SIGTERM', () => shutdown(0));
+process.on('exit', () => {
+  for (const child of children) child.kill('SIGTERM');
+});
 
 function lanAddress() {
   for (const addresses of Object.values(networkInterfaces())) {
@@ -108,8 +117,10 @@ console.log('           open on a phone on the same Wi-Fi\n');
 
 // --host binds every interface, which is the whole point: localhost is unreachable
 // from the device you actually want to listen on.
+// If the server dies the tunnel is pointing at nothing, so take the whole thing down
+// rather than leave a public URL serving errors.
 run('vite', ['preview', '--config', 'vite.review.config.ts', '--host', '--port', String(port)], {
   stdio: 'inherit',
-});
+}).on('close', (code) => shutdown(code ?? 0));
 
 if (args.has('--tunnel')) startTunnel();
