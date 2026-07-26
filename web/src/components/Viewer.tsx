@@ -83,7 +83,14 @@ export default function Viewer({
   return (
     <div
       ref={shell}
-      onPointerDown={immersive.active ? () => setChromeVisible(true) : undefined}
+      onPointerDown={
+        immersive.active
+          ? () => {
+              setChromeVisible(true);
+              immersive.promote(shell.current);
+            }
+          : undefined
+      }
       className={clsx(
         'relative mx-auto flex flex-col',
         immersive.active
@@ -122,14 +129,19 @@ export default function Viewer({
             </span>
           )
         )}
-        <button
-          type="button"
-          onClick={() => immersive.toggle(shell.current)}
-          className="ml-auto rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
-          aria-pressed={immersive.active}
-        >
-          {immersive.active ? 'exit full screen' : 'full screen'}
-        </button>
+        {/* Pointer devices only. A phone says what it wants by being turned, and a button
+            that duplicated that would either fight the orientation or strand someone in a
+            mode their device disagrees with. */}
+        {immersive.offersToggle && (
+          <button
+            type="button"
+            onClick={() => immersive.toggle(shell.current)}
+            className="ml-auto rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
+            aria-pressed={immersive.active}
+          >
+            {immersive.active ? 'exit full screen' : 'full screen'}
+          </button>
+        )}
       </header>
 
       {audioReviewEnabled && !immersive.active && (
@@ -259,8 +271,10 @@ export default function Viewer({
         </div>
       </div>
 
-      {/* The only way out while the page chrome is hidden. */}
-      {immersive.active && (
+      {/* The only way out while the page chrome is hidden — on a pointer device. When the
+          device's own orientation put us here, turning it back is the way out, and a
+          button could only disagree with the phone it is drawn on. */}
+      {immersive.active && !immersive.automatic && (
         <button
           type="button"
           onClick={immersive.exit}

@@ -140,13 +140,22 @@ instance, not per match**. So: mount one WebView, keep it alive, and push replay
 over `postMessage`. Never remount it per match — that pays the whole bake every time
 and is exactly the stutter this design avoids.
 
-**The arena is landscape; the rest of the app is portrait.** An arena is wide and a
-phone held upright wastes most of it, so opening the viewer locks landscape and closing
-it restores portrait. That lock lives in JS, and `app.json` declares `"orientation":
-"default"` on purpose: it is the *native* orientation list, and **iOS silently refuses
-to rotate to an orientation the app never declared**. Narrowing it back to `"portrait"`
-turns the arena's `lockAsync` into a no-op that still resolves — nothing throws, nothing
-logs, the screen just stays upright.
+**Turning the phone is the full-screen control.** The arena is the one screen here that
+may rotate — every other one is a list, so the app is locked to portrait from the root
+layout and the viewer lifts that lock only while it is showing. Sideways it is the arena
+and nothing else, with the transport floating over it and fading out; upright it is the
+arena plus the cards, control bar and provenance that explain it. Read the shape from
+`useWindowDimensions`, not an orientation listener: it is a layout question, and a split
+view is landscape-shaped without the device having turned.
+
+Forcing the rotation instead was tried and reverted. It yanks the phone sideways whether
+or not that is what the viewer wanted, and it leaves the bot cards nowhere to go. The
+device asking is better than the app insisting — and it means there is no button.
+
+`app.json` declares `"orientation": "default"` on purpose: it is the *native* orientation
+list, and **iOS silently refuses to rotate to an orientation the app never declared**.
+Narrowing it back to `"portrait"` turns every `lockAsync`/`unlockAsync` here into a no-op
+that still resolves — nothing throws, nothing logs, the screen just stays upright.
 
 ## Notifications
 

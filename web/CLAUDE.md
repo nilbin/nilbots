@@ -107,6 +107,21 @@ Shadows are for things that float above the page — toasts — and nothing else
 Bot accents are **server data, not tokens**: `bot.accent` is a per-bot hex string, used
 directly. Run it through `adjustAccentForBackground` before drawing it on a panel.
 
+## Full screen is an orientation, not a button
+
+On a coarse pointer, `(orientation: landscape)` *is* immersive mode — the arena takes the
+viewport, portrait gives the page back, and there is no toggle and no exit button, because
+either would be overruled by the device the moment it disagreed. `useImmersive` owns that
+rule; pointer devices keep the button and real fullscreen.
+
+Do not try to invert it. A "full screen" button that demands landscape cannot work on the
+device that matters: **iPhone Safari has no Screen Orientation lock API and no
+`requestFullscreen` outside `<video>`**, so nothing the page does can make iOS turn itself.
+That is also why immersive mode is CSS (`100dvh`, page chrome hidden) rather than the
+Fullscreen API. Android does have both, and gets real fullscreen — but only from a user
+gesture, which an orientation change is not, so `promote()` upgrades on the first touch
+after landscape engages.
+
 ## Toasts
 
 `NotificationCenter` owns delivery — SignalR plus an unread poll — and routes by kind to a
