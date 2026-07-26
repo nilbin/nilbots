@@ -21,7 +21,11 @@ export interface PlaybackState {
 /** Presentation timeline (plan §28.1): ~5 ticks/second at 1x, decoupled from simulation. */
 const BASE_TICKS_PER_SECOND = 5;
 
-export function usePlayback(replay: ReplayDocument): PlaybackState {
+/**
+ * @param ready Hold at tick 0 until the arena's images have decoded. Without this the
+ * clock runs behind a loading screen, and the match is already underway when it lifts.
+ */
+export function usePlayback(replay: ReplayDocument, ready = true): PlaybackState {
   const tickCount = replay.ticks.length;
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -30,7 +34,7 @@ export function usePlayback(replay: ReplayDocument): PlaybackState {
   const lastStamp = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!playing) {
+    if (!playing || !ready) {
       lastStamp.current = null;
       return;
     }
@@ -49,7 +53,7 @@ export function usePlayback(replay: ReplayDocument): PlaybackState {
     };
     frame.current = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(frame.current);
-  }, [playing, speed, tickCount]);
+  }, [playing, ready, speed, tickCount]);
 
   const pause = useCallback(() => setPlaying(false), []);
   const play = useCallback(() => {

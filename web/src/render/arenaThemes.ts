@@ -1,3 +1,5 @@
+import { trackDecode } from './assetReadiness';
+import { preferredAtlasWidth } from './atlasResolution';
 export interface BotLook {
   id: string;
   label: string;
@@ -102,6 +104,15 @@ const themeImages = import.meta.glob<string>(
   ['../assets/themes/*/*.png', '../assets/themes/*/*.webp'],
   { eager: true, import: 'default', query: '?url' },
 );
+/**
+ * Baked-down atlases from `scripts/generate-atlas-variants.mjs`, keyed
+ * `.../variants/<name>@<width>.webp`. Generated and gitignored, so an absent variant is
+ * normal — `atlasSource` falls back to the master rather than failing.
+ */
+const themeAtlasVariants = import.meta.glob<string>(
+  '../assets/themes/*/variants/*.webp',
+  { eager: true, import: 'default', query: '?url' },
+);
 const lookManifests = import.meta.glob<BotLookManifest>(
   '../assets/bot-looks/*/look.json',
   { eager: true, import: 'default' },
@@ -188,13 +199,13 @@ function buildThemes(): Map<string, ArenaTheme> {
     const wallFamilies = new Map<string, WallFamily>();
     for (const [familyId, family] of Object.entries(manifest.walls.families)) {
       const materialTexture = lazyImage(
-        requireAsset(themeImages, `${directory}/${family.material}`, manifest.id),
+        atlasSource(directory, family.material),
       );
       const edgeAtlasTexture = lazyImage(
-        requireAsset(themeImages, `${directory}/${family.edgeAtlas}`, manifest.id),
+        atlasSource(directory, family.edgeAtlas),
       );
       const shadowAtlasTexture = lazyImage(
-        requireAsset(themeImages, `${directory}/${family.shadowAtlas}`, manifest.id),
+        atlasSource(directory, family.shadowAtlas),
       );
       wallFamilies.set(familyId, {
         id: familyId,
@@ -333,6 +344,7 @@ function loadImage(source: string): HTMLImageElement | null {
   if (typeof Image === 'undefined') return null;
   const image = new Image();
   image.decoding = 'async';
+  trackDecode(image);
   image.src = source;
   return image;
 }
@@ -342,6 +354,21 @@ function loadImage(source: string): HTMLImageElement | null {
  * discoverable, but only allocate its images when that theme is actually
  * rendered. A mobile replay should never decode the other maps' atlases.
  */
+/**
+ * The URL to actually download for an atlas: the baked variant this device needs, or the
+ * master when no smaller bake is big enough (or none was generated).
+ *
+ * Resolved per atlas rather than once globally so a missing variant degrades to the
+ * master for that file alone.
+ */
+function atlasSource(directory: string, filename: string): string {
+  const master = requireAsset(themeImages, `${directory}/${filename}`, directory);
+  const base = filename.replace(/\.webp$/, '');
+  const width = preferredAtlasWidth();
+  if (width >= 4096) return master;
+  return themeAtlasVariants[`${directory}/variants/${base}@${width}.webp`] ?? master;
+}
+
 function lazyImage(source: string): () => HTMLImageElement | null {
   let initialized = false;
   let image: HTMLImageElement | null = null;

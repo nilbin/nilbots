@@ -16,7 +16,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { cp, mkdir, rm } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -66,23 +67,141 @@ function lanAddress() {
  */
 async function ensureReplay() {
   const target = join(dist, 'replay.json');
-  if (existsSync(target)) return;
+  const indexPath = join(dist, 'replays.json');
+  // `vite build` empties dist-review, so anything chosen last time is gone — which is how
+  // a deliberate REVIEW_BOTS selection silently reverted to the generic score on the next
+  // rebuild. The chosen set is cached outside the build output and restored, so a choice
+  // survives until it is explicitly refreshed.
+  const cache = join(web, '.review-cache');
+  const cacheIndex = join(cache, 'replays.json');
+  const refresh = process.argv.includes('--refresh') || process.env.REVIEW_REFRESH === '1';
+
+  if (existsSync(indexPath) && !refresh) return;
+  if (existsSync(cacheIndex) && !refresh) {
+    await cp(cache, dist, { recursive: true });
+    const restored = JSON.parse(readFileSync(cacheIndex, 'utf8'));
+    console.log(`  replays      ${restored.length} restored (--refresh to reselect):`);
+    for (const entry of restored) {
+      console.log(`                 ${entry.map} · ${entry.ticks}t · ${entry.bots.join(' v ')}`);
+    }
+    return;
+  }
 
   const api = process.env.BOTARENA_API ?? 'http://127.0.0.1:8080';
+  /** Comma-separated bot names to prefer, e.g. REVIEW_BOTS="Pincer gen-10,Bastille gen-5". */
+  const preferred = (process.env.REVIEW_BOTS ?? '')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean);
+  const wanted = Number(process.env.REVIEW_COUNT ?? 4);
+
   try {
-    const matches = await fetch(`${api}/api/matches?take=20`).then((r) => r.json());
-    // A decisive, finished match exercises every cue — shots, damage, and a destruction.
-    const match =
-      matches.find((m) => m.status === 'Completed' && !m.broadcasting && m.winnerSlot !== null) ??
-      matches.find((m) => m.status === 'Completed' && !m.broadcasting);
-    if (!match) throw new Error('no completed match available');
-    const replay = await fetch(`${api}/api/matches/${match.id}/replay`).then((r) => r.text());
-    writeFileSync(target, replay);
-    console.log(`  replay.json  ← ${match.id} (${match.mapId})`);
+    const summaries = await fetch(`${api}/api/matches?take=60`).then((r) => r.json());
+    const settled = summaries.filter((m) => m.status === 'Completed' && !m.broadcasting);
+    if (settled.length === 0) throw new Error('no completed match available');
+
+    const scored = [];
+    for (const summary of settled.slice(0, 30)) {
+      const replay = await fetch(`${api}/api/matches/${summary.id}/replay`).then((r) => r.json());
+      const names = replay.header.participants.map((p) => p.name);
+      // A requested matchup wins outright: the reviewer asked for it, and the score is a
+      // stand-in for judgement rather than a replacement for it.
+      const requested =
+        preferred.length > 0 && preferred.every((want) => names.some((n) => n.toLowerCase().includes(want)));
+      scored.push({
+        id: summary.id,
+        replay,
+        names,
+        score: reviewScore(replay) + (requested ? 1000 : 0),
+      });
+    }
+    scored.sort((left, right) => right.score - left.score);
+
+    // One per matchup+map, so a picker offers genuinely different fights rather than four
+    // views of the same pairing.
+    const chosen = [];
+    const seen = new Set();
+    for (const candidate of scored) {
+      if (chosen.length >= wanted) break;
+      const key = `${[...candidate.names].sort().join('|')}@${candidate.replay.header.mapId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      chosen.push(candidate);
+    }
+    if (chosen.length === 0) throw new Error('no replay scored above zero');
+
+    await mkdir(join(dist, 'replays'), { recursive: true });
+    const index = [];
+    for (const entry of chosen) {
+      writeFileSync(join(dist, 'replays', `${entry.id}.json`), JSON.stringify(entry.replay));
+      index.push({
+        id: entry.id,
+        url: `replays/${entry.id}.json`,
+        map: entry.replay.header.mapId,
+        bots: entry.names,
+        ticks: entry.replay.ticks.length,
+        reason: entry.replay.result?.reason ?? null,
+      });
+    }
+    writeFileSync(indexPath, JSON.stringify(index, null, 2));
+    // The single-replay path stays for anything that expects it.
+    writeFileSync(target, JSON.stringify(chosen[0].replay));
+    // Keep a copy where the next build cannot delete it.
+    await rm(cache, { recursive: true, force: true });
+    await mkdir(join(cache, 'replays'), { recursive: true });
+    for (const entry of chosen) {
+      await cp(join(dist, 'replays', `${entry.id}.json`), join(cache, 'replays', `${entry.id}.json`));
+    }
+    await cp(indexPath, cacheIndex);
+    await cp(target, join(cache, 'replay.json'));
+
+    console.log(`  replays      ${index.length} available:`);
+    for (const entry of index) {
+      console.log(`                 ${entry.map} · ${entry.ticks}t · ${entry.bots.join(' v ')}`);
+    }
   } catch (cause) {
-    console.log(`  replay.json  MISSING — ${cause.message}`);
+    console.log(`  replays      NONE — ${cause.message}`);
     console.log(`               start the API, or copy a replay to dist-review/replay.json`);
   }
+}
+
+/**
+ * How useful a replay is for reviewing the arena.
+ *
+ * Cue variety dominates: a match with no impacts never plays the impact sound and never
+ * casts an impact light, so a reviewer cannot judge either however long it runs. A
+ * 121-tick match with 37 shots and no hits looks busy and tests one third of the work.
+ *
+ * Length is a mild bonus, not a driver, and this is why the strongest bots are the wrong
+ * choice — they end matches in ten ticks. What reads as a better bot makes a worse replay.
+ */
+function reviewScore(replay) {
+  let shots = 0;
+  let damage = 0;
+  let destroyed = 0;
+  const shooters = new Set();
+  for (const tick of replay.ticks) {
+    for (const event of tick.events ?? []) {
+      if (event.type === 'Shot') {
+        shots += 1;
+        shooters.add(event.slot);
+      } else if (event.type === 'Damage') damage += 1;
+      else if (event.type === 'Destroyed') destroyed += 1;
+    }
+  }
+
+  const variety = [shots, damage, destroyed].filter((count) => count > 0).length;
+  if (variety < 3) return variety * 5;
+
+  // Both sides must actually fight. A match against a bot that never fires runs the full
+  // length and exercises every cue, but reads as target practice — and picking one is how
+  // a reviewer ends up judging the arena on a replay nobody would watch.
+  const contested = shooters.size >= 2;
+  if (!contested) return 20;
+
+  const ticks = replay.ticks.length;
+  const watchable = ticks >= 60 && ticks <= 140 ? 15 : 0;
+  return 40 + Math.min(shots, 25) + Math.min(damage, 12) * 2 + watchable;
 }
 
 function startTunnel() {

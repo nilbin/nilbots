@@ -3,6 +3,7 @@ import type { ReplayDocument } from './types';
 import HostedViewer from './components/HostedViewer';
 import type { LiveFollow } from './playback';
 import Viewer from './components/Viewer';
+import ReplayPicker, { type ReplayChoice } from './components/ReplayPicker';
 
 /// Standalone viewer mode: replay embedded by the CLI, served as replay.json, or pushed
 /// in by an embedding host (the mobile app) through window.__BOTARENA_LOAD__.
@@ -24,6 +25,20 @@ export default function App() {
   // broadcast grows tick by tick and the host re-requests it as it does; blanking the
   // canvas on each of those would strobe the arena several times a second.
   const loaded = useRef<string | null>(null);
+  // A review build can carry several replays so treatments can be compared without
+  // reloading. Absent everywhere else, which leaves the CLI viewer and the site alone.
+  const [choices, setChoices] = useState<readonly ReplayChoice[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const loadChoice = useCallback((choice: ReplayChoice) => {
+    setActiveId(choice.id);
+    setLoadError(null);
+    setReplay(null);
+    return fetch(choice.url)
+      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
+      .then((data: ReplayDocument) => setReplay(data))
+      .catch(() => setLoadError('Could not load that replay.'));
+  }, []);
 
   const notifyHost = useCallback((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
@@ -64,8 +79,27 @@ export default function App() {
     };
   }, [notifyHost]);
 
+  // Offer the review build's replay set, when there is one.
   useEffect(() => {
-    if (replay || hosted) return;
+    if (hosted) return;
+    let cancelled = false;
+    fetch('replays.json')
+      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
+      .then((entries: ReplayChoice[]) => {
+        if (cancelled || entries.length === 0) return;
+        setChoices(entries);
+        void loadChoice(entries[0]);
+      })
+      .catch(() => {
+        // No index: a single-replay viewer, which is the normal case.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hosted]);
+
+  useEffect(() => {
+    if (replay || hosted || choices.length > 0) return;
     fetch('replay.json')
       .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
       .then((data: ReplayDocument) => setReplay(data))
@@ -74,7 +108,7 @@ export default function App() {
           'No replay embedded and no replay.json found. Generate one with: nilbots play',
         ),
       );
-  }, [replay, hosted]);
+  }, [replay, hosted, choices.length]);
 
   if (loadError) {
     return (
@@ -92,5 +126,14 @@ export default function App() {
   }
   // A host supplies its own header, transport and readouts, so it gets the canvas alone;
   // rendering the full viewer inside it would duplicate all three.
-  return hosted ? <HostedViewer replay={replay} live={live} /> : <Viewer replay={replay} />;
+  if (hosted) return <HostedViewer replay={replay} live={live} />;
+  if (choices.length < 2) return <Viewer replay={replay} />;
+  return (
+    <div className="flex h-full flex-col gap-2 p-3 pb-0 md:p-5 md:pb-0">
+      <ReplayPicker choices={choices} activeId={activeId} onSelect={loadChoice} />
+      <div className="min-h-0 flex-1">
+        <Viewer replay={replay} />
+      </div>
+    </div>
+  );
 }

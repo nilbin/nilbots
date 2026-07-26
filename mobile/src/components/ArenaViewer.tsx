@@ -8,9 +8,18 @@ import {
   useState,
 } from 'react';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 import { ArenaBotCard } from '@/components/arena/ArenaBotCard';
 import { ArenaControlBar } from '@/components/arena/ArenaControlBar';
@@ -84,6 +93,18 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
   const [transport, setTransport] = useState<ArenaTransport | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+
+  // Turning the phone is the full-screen control. Sideways means the arena and nothing
+  // else; upright means the arena plus the cards, transport and provenance that explain
+  // it. Read from the window rather than an orientation listener because this is a layout
+  // question — a foldable or a split view is landscape-shaped without the device having
+  // rotated, and the box is what the renderer letterboxes into either way.
+  const { width, height } = useWindowDimensions();
+  const landscape = width > height;
+  // Chrome over the arena fades out so nothing but the fight remains; any touch brings it
+  // back. Same rule as the site's immersive mode: paused playback keeps it up, because
+  // someone who stopped to look is not asking for the controls to vanish.
+  const [chromeVisible, setChromeVisible] = useState(true);
 
   // The page announces readiness once. A watch() before that has nowhere to land, so it
   // waits here and is replayed when the announcement arrives.
@@ -217,7 +238,68 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
     });
   }, [visible, watching, clock, load]);
 
+  /**
+   * The arena is the one screen that may rotate; portrait again on close.
+   *
+   * Every other screen is a list and stays upright, so the app is locked to portrait from
+   * the root layout. Here the lock is lifted for exactly as long as the arena is showing,
+   * and restored on the way out rather than left for the next screen to inherit.
+   *
+   * Unlock, not a landscape lock. Forcing the rotation was tried: it makes opening a
+   * replay yank the phone sideways whether or not that is what the viewer wanted, and it
+   * leaves the bot cards and the fight's metadata with nowhere to go. Turning the phone is
+   * already the gesture for "give me the big picture", so the device asks and this screen
+   * answers — see `landscape` below.
+   */
+  useEffect(() => {
+    if (!visible) return;
+    void ScreenOrientation.unlockAsync().catch(() => undefined);
+    return () => {
+      void ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP,
+      ).catch(() => undefined);
+    };
+  }, [visible]);
+
+  // Only worth hiding when the arena has the whole screen; in portrait the transport has
+  // its own row and nothing is competing with it.
+  useEffect(() => {
+    if (!visible || !landscape || !chromeVisible || !transport?.playing) return;
+    const timer = setTimeout(() => setChromeVisible(false), 2_800);
+    return () => clearTimeout(timer);
+  }, [visible, landscape, chromeVisible, transport?.playing]);
+
+  // Rotating back has to bring the controls with it, or a phone turned upright mid-fight
+  // would land on a layout whose transport had already faded out.
+  useEffect(() => {
+    if (!landscape) setChromeVisible(true);
+  }, [landscape]);
+
   const api = useMemo<ArenaViewerApi>(() => ({ watch }), [watch]);
+
+  // The same control in both layouts — a row of its own in portrait, floating over the
+  // arena in landscape — so it is built once rather than written twice.
+  //
+  // Absent while following: seeking a broadcast would put this viewer on a different tick
+  // from everyone else watching the same fight.
+  const transportNode = transport?.following ? (
+    <View style={styles.broadcasting}>
+      <Text style={styles.broadcastingText}>
+        Broadcasting · tick {String(transport.tick).padStart(3, '0')} — every viewer sees this
+        moment.
+      </Text>
+    </View>
+  ) : (
+    <ArenaTransportBar
+      transport={transport}
+      onToggle={() => control('toggle')}
+      onStep={(delta) => control('step', delta)}
+      onRestart={() => control('restart')}
+      onSpeed={(speed) => control('setSpeed', speed)}
+      onSeek={(tick) => control('seek', tick)}
+    />
+  );
+
   const lookFor = (slot: number) =>
     header?.participants.find((participant) => participant.slot === slot)?.lookId;
 
@@ -227,37 +309,51 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
 
       <View
         style={[StyleSheet.absoluteFill, styles.overlay, !visible && styles.hidden]}
-        pointerEvents={visible ? 'auto' : 'none'}>
-        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-          <View style={styles.bar}>
-            <View style={styles.titleBlock}>
-              <Text style={styles.title} numberOfLines={1}>
-                {title ?? 'Replay'}
-              </Text>
-              {header ? (
-                <Text style={styles.subtitle} numberOfLines={1}>
-                  {header.mapId} · rules {header.rulesVersion}
-                  {header.partial ? ' · broadcasting' : ''}
+        pointerEvents={visible ? 'auto' : 'none'}
+        // Passive: returning false declines the responder, so the touch still reaches the
+        // WebView and a tap on a bot selects it. Capturing here instead would make the
+        // arena unclickable in exactly the mode built around looking at it.
+        onStartShouldSetResponderCapture={
+          landscape
+            ? () => {
+                setChromeVisible(true);
+                return false;
+              }
+            : undefined
+        }>
+        {landscape ? null : (
+          <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+            <View style={styles.bar}>
+              <View style={styles.titleBlock}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {title ?? 'Replay'}
                 </Text>
-              ) : null}
+                {header ? (
+                  <Text style={styles.subtitle} numberOfLines={1}>
+                    {header.mapId} · rules {header.rulesVersion}
+                    {header.partial ? ' · broadcasting' : ''}
+                  </Text>
+                ) : null}
+              </View>
+              <Pressable
+                onPress={() => {
+                  control('pause');
+                  setVisible(false);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Close the replay"
+                hitSlop={12}>
+                <Text style={styles.close}>close</Text>
+              </Pressable>
             </View>
-            <Pressable
-              onPress={() => {
-                control('pause');
-                setVisible(false);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Close the replay"
-              hitSlop={12}>
-              <Text style={styles.close}>close</Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
+          </SafeAreaView>
+        )}
 
-        {/* The canvas keeps the arena's own aspect rather than stretching to fill: the
-            renderer letterboxes inside whatever box it is given, so a tall box just adds
-            dead bars above and below. */}
-        <View style={styles.canvas}>
+        {/* In portrait the canvas keeps the arena's own aspect rather than stretching to
+            fill: the renderer letterboxes inside whatever box it is given, so a tall box
+            just adds dead bars above and below. Sideways there is nothing to share the
+            screen with, so it takes all of it. */}
+        <View style={landscape ? styles.canvasFull : styles.canvas}>
           <WebView
             ref={webViewRef}
             source={{ uri: `${API_BASE_URL}/?standalone` }}
@@ -272,27 +368,60 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
           />
         </View>
 
-        {/* Absent while following: seeking a broadcast would put this viewer on a
-            different tick from everyone else watching the same fight. */}
-        {transport?.following ? (
-          <View style={styles.broadcasting}>
-            <Text style={styles.broadcastingText}>
-              Broadcasting · tick {String(transport.tick).padStart(3, '0')} — every viewer sees
-              this moment.
-            </Text>
-          </View>
+        {landscape ? (
+          <>
+            {/* Floating, not a row of its own. A row of controls under a landscape canvas
+                is the layout that made full screen pointless on the site, and the arena is
+                already height-constrained here — a row would come straight out of it. */}
+            <SafeAreaView
+              style={styles.floating}
+              edges={['bottom', 'left', 'right']}
+              pointerEvents={chromeVisible ? 'box-none' : 'none'}>
+              <View style={!chromeVisible && styles.faded}>{transportNode}</View>
+            </SafeAreaView>
+
+            {/* The only way out sideways, since the header bar is gone. */}
+            <SafeAreaView
+              style={styles.floatingTop}
+              edges={['top', 'right']}
+              pointerEvents={chromeVisible ? 'box-none' : 'none'}>
+              <Pressable
+                onPress={() => {
+                  control('pause');
+                  setVisible(false);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Close the replay"
+                hitSlop={12}
+                style={[styles.floatingClose, !chromeVisible && styles.faded]}>
+                <Text style={styles.close}>close</Text>
+              </Pressable>
+            </SafeAreaView>
+
+            {/* Not tied to the fading chrome: the result is the point of watching, and it
+                should not time out three seconds after arriving. */}
+            {result && transport?.atEnd ? (
+              <View style={styles.outcomeOverlay} pointerEvents="none">
+                <View style={styles.outcomeCard}>
+                  <Text style={styles.outcomeLine}>
+                    {result.winnerSlot === null
+                      ? 'DRAW'
+                      : `${header?.participants[result.winnerSlot]?.name ?? 'winner'} WINS`}
+                  </Text>
+                  <Text style={styles.outcomeReason}>
+                    {result.reason} · tick {result.endTick}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </>
         ) : (
-          <ArenaTransportBar
-            transport={transport}
-          onToggle={() => control('toggle')}
-          onStep={(delta) => control('step', delta)}
-          onRestart={() => control('restart')}
-          onSpeed={(speed) => control('setSpeed', speed)}
-            onSeek={(tick) => control('seek', tick)}
-          />
+          transportNode
         )}
 
-        <ScrollView style={styles.panels} contentContainerStyle={styles.panelsBody}>
+        <ScrollView
+          style={[styles.panels, landscape && styles.hidden]}
+          contentContainerStyle={styles.panelsBody}>
           {failed ? (
             <Text style={styles.error}>
               That replay could not be loaded. It may still be building.
@@ -368,7 +497,41 @@ const styles = StyleSheet.create({
   subtitle: { ...Mono, color: Arena.dim, fontSize: 11 },
   close: { ...Mono, color: Arena.accent, fontSize: 13 },
   canvas: { aspectRatio: 4 / 3, backgroundColor: Arena.bg },
+  canvasFull: { flex: 1, backgroundColor: Arena.bg },
   web: { flex: 1, backgroundColor: Arena.bg },
+  floating: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: Space.sm },
+  floatingTop: { position: 'absolute', top: 0, right: 0, alignItems: 'flex-end' },
+  floatingClose: {
+    margin: Space.sm,
+    borderWidth: 1,
+    borderColor: Arena.edge,
+    borderRadius: 6,
+    backgroundColor: Arena.panel,
+    paddingHorizontal: Space.sm,
+    paddingVertical: Space.xs,
+  },
+  // Hidden by opacity rather than unmounting: the transport keeps its scrubber position
+  // and the WebView underneath is never relaid out, so nothing jumps when it comes back.
+  faded: { opacity: 0 },
+  outcomeOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outcomeCard: {
+    borderWidth: 1,
+    borderColor: Arena.edge,
+    borderRadius: 12,
+    backgroundColor: Arena.panel,
+    paddingHorizontal: Space.xl,
+    paddingVertical: Space.lg,
+    alignItems: 'center',
+    gap: 2,
+  },
   panels: { flex: 1 },
   panelsBody: { gap: Space.sm, padding: Space.lg, paddingBottom: Space.xxl },
   error: { color: Arena.dim, fontSize: 13 },

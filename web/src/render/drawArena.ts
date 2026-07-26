@@ -12,6 +12,9 @@ import {
 } from './adaptiveAccent';
 import { replayMaxHealth } from '../replayMetadata';
 import { posesAt, type BotPose } from './interpolate';
+import { wallAtlasDestination } from './wallAtlasGeometry';
+import { drawFogMask } from './fogMask';
+import { drawLightSpill, type LightKind, type LightSource } from './lightSpill';
 
 const directionStep: Record<Direction, [number, number]> = {
   North: [0, -1],
@@ -108,7 +111,14 @@ export function drawArena(
   height: number,
 ): void {
   const { mapWidth, mapHeight, mapTiles, participants } = replay.header;
-  const tile = Math.floor(Math.min(width / (mapWidth + 1), height / (mapHeight + 1)));
+  // A margin so edge walls are not flush with the canvas. Fractional rather than a whole
+  // tile: at 24x18 a full tile is 4% of width and 5.5% of height given away to black, and
+  // on a letterboxed phone every pixel of arena is already scarce. Must match
+  // ArenaCanvas's hit-test, which converts clicks back to tiles with the same figure.
+  const MARGIN_TILES = 0.4;
+  const tile = Math.floor(
+    Math.min(width / (mapWidth + MARGIN_TILES), height / (mapHeight + MARGIN_TILES)),
+  );
   const originX = Math.floor((width - tile * mapWidth) / 2);
   const originY = Math.floor((height - tile * mapHeight) / 2);
   const px = (x: number) => originX + x * tile;
@@ -169,6 +179,7 @@ export function drawArena(
   drawZone();
   if (replay.header.visionCone) drawVisionCones();
   drawWalls();
+  drawSpill();
   if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
   drawProjectiles();
   drawHeardSounds();
@@ -266,6 +277,46 @@ export function drawArena(
     ctx.restore();
   }
 
+  /**
+   * Light thrown onto the arena by this tick's flashes, and the tail of the previous
+   * tick's — a muzzle flash that vanished on the tick boundary would strobe.
+   */
+  function drawSpill(): void {
+    const sources: LightSource[] = [];
+    const accentFor = (slot: number | undefined) =>
+      participants.find((p) => p.slot === slot)?.accent ?? '#ffffff';
+
+    const collect = (index: number, age: number) => {
+      const at = replay.ticks[index];
+      if (!at) return;
+      for (const event of at.events) {
+        const kind: LightKind | null =
+          event.type === 'Shot'
+            ? 'shot'
+            : event.type === 'Damage'
+              ? 'impact'
+              : event.type === 'Destroyed'
+                ? 'destroyed'
+                : null;
+        if (!kind) continue;
+        const source = event as unknown as { fromX?: number; fromY?: number; slot?: number };
+        if (typeof source.fromX !== 'number' || typeof source.fromY !== 'number') continue;
+        sources.push({
+          kind,
+          x: source.fromX,
+          y: source.fromY,
+          age,
+          color: accentFor(source.slot),
+        });
+      }
+    };
+
+    collect(tick, fraction);
+    collect(tick - 1, 1 + fraction);
+
+    drawLightSpill(ctx, sources, { px, py, tile });
+  }
+
   function drawFog(slot: number): void {
     // Show the selected bot's field of view by FOGGING what it can NOT see.
     // Vision range 6 spans most of a small map, so tinting the visible tiles
@@ -273,10 +324,22 @@ export function drawArena(
     const botTick = currentTick.bots.find((b) => b.slot === slot);
     if (!botTick) return;
     const visible = new Set(botTick.visibleTiles.map(([x, y]) => `${x},${y}`));
-    ctx.fillStyle = 'rgba(4, 7, 12, 0.55)';
-    for (let y = 0; y < mapHeight; y++)
-      for (let x = 0; x < mapWidth; x++)
-        if (!visible.has(`${x},${y}`)) ctx.fillRect(px(x), py(y), tile, tile);
+
+    // Walls overhang their tile by a gutter, so a visible wall is cleared at its drawn
+    // extent — otherwise the tile grid cuts the sprite in half.
+    const { contentPixels, gutterPixels } = theme.walls.atlas;
+    const { destinationGutter } = wallAtlasDestination(tile, contentPixels, gutterPixels);
+
+    drawFogMask(
+      ctx,
+      { px, py, tile, wallGutter: destinationGutter },
+      {
+        mapWidth,
+        mapHeight,
+        visible,
+        isWall: (x, y) => mapTiles[y][x] === '#',
+      },
+    );
   }
 
   function drawWalls(): void {
@@ -320,9 +383,11 @@ export function drawArena(
     if (!image.complete || image.naturalWidth === 0) return;
     const { columns, contentPixels, gutterPixels } = theme.walls.atlas;
     const sourceTile = image.naturalWidth / columns;
-    const scale = tile / contentPixels;
-    const destinationTile = sourceTile * scale;
-    const destinationGutter = gutterPixels * scale;
+    const { destinationTile, destinationGutter } = wallAtlasDestination(
+      tile,
+      contentPixels,
+      gutterPixels,
+    );
 
     // The mask selects a fully baked topology sprite. The canvas contributes
     // placement only; edges, corners, hardware, relief, and shadow live in art.

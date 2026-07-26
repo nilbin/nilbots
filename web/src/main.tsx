@@ -11,6 +11,9 @@ const standalone =
   window.location.protocol === 'file:' ||
   new URLSearchParams(window.location.search).has('standalone');
 
+// Lets CSS target viewer mode without duplicating the detection above.
+if (standalone) document.documentElement.dataset.arenaMode = 'viewer';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>{standalone ? <App /> : <Site />}</StrictMode>,
 );
