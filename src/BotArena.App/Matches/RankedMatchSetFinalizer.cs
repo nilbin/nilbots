@@ -3,6 +3,7 @@ using System.Diagnostics;
 using BotArena.App.Bots;
 using BotArena.App.Cosmetics;
 using BotArena.App.Shared;
+using BotArena.App.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -124,6 +125,18 @@ public sealed class RankedMatchSetFinalizer(
                         : null;
             set.Status = MatchSetStatus.Completed;
             set.CompletedAt = now;
+
+            // Announce when the last of the six games stops broadcasting. The finalizer
+            // runs as soon as every game has *executed*, which is earlier — replays are
+            // still playing out — and it is the only place that can see all six broadcast
+            // ends at once. A single game's worker knows only its own.
+            if (games
+                    .Select(BroadcastSchedule.AnnounceAt)
+                    .Max() is DateTime announceAt)
+            {
+                db.BackgroundJobs.Add(
+                    BackgroundJob.AnnounceSetResult(set.Id, announceAt));
+            }
 
             // Flush the rating and set transition before evaluating milestones so
             // their queries see this set and its new rating. Both writes, ledger

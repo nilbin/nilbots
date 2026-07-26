@@ -12,11 +12,32 @@ import {
   projectileLook,
   type BotLook,
 } from '../../render/arenaThemes';
-import { api, type UserNotification } from '../api';
+import { api, type UserNotification, type EntitlementEarnedPayload } from '../api';
 import { useAuth } from '../auth';
+import ResultToast from './ResultToast';
 
 const POLL_MS = 60_000;
 const VISIBLE_MS = 14_000;
+
+type UnlockNotification = UserNotification & { payload: EntitlementEarnedPayload };
+
+function isUnlock(notification: UserNotification): notification is UnlockNotification {
+  return notification.payload?.kind === 'entitlement-earned';
+}
+
+/**
+ * Whether this component has a toast for a notification.
+ *
+ * A kind with no toast is still acknowledged rather than dropped — ignoring one silently
+ * leaves it unread forever and grows an inbox the site can never clear. An unlock with no
+ * items is treated the same way: there is nothing to show.
+ */
+function isShowable(notification: UserNotification): boolean {
+  const payload = notification.payload;
+  if (!payload) return false;
+  if (payload.kind === 'entitlement-earned') return payload.items.length > 0;
+  return payload.kind === 'match-settled' || payload.kind === 'set-settled';
+}
 
 export default function NotificationCenter() {
   const { user } = useAuth();
@@ -24,14 +45,14 @@ export default function NotificationCenter() {
   const seen = useRef(new Set<string>());
 
   const receive = useCallback((notification: UserNotification) => {
-    if (
-      notification.kind !== 'entitlement-earned' ||
-      !Array.isArray(notification.payload?.items) ||
-      notification.payload.items.length === 0 ||
-      seen.current.has(notification.id)
-    )
-      return;
+    // Narrowed on the payload's own discriminator, not the outer `kind`: they carry the
+    // same string, but TypeScript cannot use one property to narrow a sibling.
+    if (seen.current.has(notification.id)) return;
     seen.current.add(notification.id);
+    if (!isShowable(notification)) {
+      void api.post(`/api/notifications/${notification.id}/read`, {}).catch(() => undefined);
+      return;
+    }
     setPending((current) => [...current, notification]);
   }, []);
 
@@ -109,14 +130,27 @@ export default function NotificationCenter() {
   }, [active, dismiss]);
 
   if (!active) return null;
-  return (
-    <UnlockToast
-      key={active.id}
-      notification={active}
-      queued={pending.length - 1}
-      onDismiss={() => dismiss(active.id)}
-    />
-  );
+  // Narrowed on the payload's own discriminator, not the notification's — they carry the
+  // same string, but TypeScript cannot narrow a sibling property from it.
+  if (isUnlock(active))
+    return (
+      <UnlockToast
+        key={active.id}
+        notification={active}
+        queued={pending.length - 1}
+        onDismiss={() => dismiss(active.id)}
+      />
+    );
+  if (active.payload.kind === 'match-settled' || active.payload.kind === 'set-settled')
+    return (
+      <ResultToast
+        key={active.id}
+        payload={active.payload}
+        queued={pending.length - 1}
+        onDismiss={() => dismiss(active.id)}
+      />
+    );
+  return null;
 }
 
 async function stop(connection: HubConnection) {
@@ -132,7 +166,7 @@ function UnlockToast({
   queued,
   onDismiss,
 }: {
-  notification: UserNotification;
+  notification: UnlockNotification;
   queued: number;
   onDismiss: () => void;
 }) {

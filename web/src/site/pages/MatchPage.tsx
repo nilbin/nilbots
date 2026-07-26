@@ -1,70 +1,22 @@
-import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { ReplayDocument } from '../../types';
 import Viewer from '../../components/Viewer';
-import { ApiError, api } from '../api';
-
-interface LiveState {
-  status: string;
-  matchSetId: string | null;
-  setGame: number | null;
-  presentationTicksPerSecond: number;
-  presentationTick: number;
-  totalTicks: number | null;
-  broadcastComplete: boolean;
-  countdownMs: number;
-}
+import { ApiError, type MatchLive } from '../api';
+import { useMatch, useMatchLive, useMatchReplay } from '../queries';
 
 export default function MatchPage() {
   const { matchId } = useParams<{ matchId: string }>();
-  const [live, setLive] = useState<LiveState | null>(null);
-  const [replay, setReplay] = useState<ReplayDocument | null>(null);
-  const [finished, setFinished] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [missing, setMissing] = useState(false);
+  // Two queries, not one loop: the clock says where the broadcast is, and the replay
+  // follows it. Each stops on its own condition, so nothing keeps polling a finished
+  // match.
+  const { data: live, error: liveError } = useMatchLive(matchId);
+  const { data: replay } = useMatchReplay(matchId, live);
+  // Only a failed match has an error worth showing in place of the arena; the detail
+  // carries the message the worker recorded.
+  const { data: detail } = useMatch(live?.status === 'Failed' ? matchId : undefined);
 
-  useEffect(() => {
-    let stopped = false;
-    let timer: number | undefined;
-
-    const poll = async () => {
-      try {
-        const state = await api.get<LiveState>(`/api/matches/${matchId}/live`);
-        if (stopped) return;
-        setLive(state);
-
-        if (state.status === 'Failed') {
-          const detail = await api.get<{ error: string | null }>(`/api/matches/${matchId}`);
-          setError(detail.error ?? 'Match failed to execute.');
-          return;
-        }
-        if (state.status !== 'Completed') {
-          timer = window.setTimeout(poll, 1500);
-          return;
-        }
-        if (state.broadcastComplete) {
-          setReplay(await api.get<ReplayDocument>(`/api/matches/${matchId}/replay`));
-          setFinished(true);
-          return;
-        }
-        // Mid-broadcast: pick up the ticks revealed so far and keep following.
-        setReplay(await api.get<ReplayDocument>(`/api/matches/${matchId}/replay`));
-        timer = window.setTimeout(poll, 1500);
-      } catch (e) {
-        if (stopped) return;
-        // A 404 is an answer, not a hiccup: retrying it forever left the page on
-        // "Loading…" for any mistyped match id (UI audit). Everything else is
-        // transient — a restarting server, a dropped connection — so keep polling.
-        if (e instanceof ApiError && e.status === 404) setMissing(true);
-        else timer = window.setTimeout(poll, 3000);
-      }
-    };
-    void poll();
-    return () => {
-      stopped = true;
-      window.clearTimeout(timer);
-    };
-  }, [matchId]);
+  const missing = liveError instanceof ApiError && liveError.status === 404;
+  const error = live?.status === 'Failed' ? (detail?.error ?? 'Match failed to execute.') : null;
+  const finished = live?.broadcastComplete ?? false;
 
   if (missing)
     return (
@@ -139,7 +91,7 @@ export default function MatchPage() {
   );
 }
 
-function RankedSetNavigation({ live }: { live: LiveState | null }) {
+function RankedSetNavigation({ live }: { live: MatchLive | undefined }) {
   if (!live?.matchSetId) return null;
   return (
     <Link

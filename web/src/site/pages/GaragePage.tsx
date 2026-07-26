@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import {
@@ -8,8 +8,9 @@ import {
   projectileLookOptions,
 } from '../../render/arenaThemes';
 import BotIdentity from '../components/BotIdentity';
-import { api, type MyBot } from '../api';
+import { api } from '../api';
 import { useAuth } from '../auth';
+import { useMyBots } from '../queries';
 import {
   BOT_LOOK_KIND,
   cosmeticItem,
@@ -39,7 +40,8 @@ const projectileLooks = projectileLookOptions();
 
 export default function GaragePage() {
   const { user, loading } = useAuth();
-  const [bots, setBots] = useState<MyBot[] | null>(null);
+  // Creating a bot navigates to it, so this list never needs a manual refresh.
+  const { data: bots = null } = useMyBots(Boolean(user));
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('vanguard');
@@ -47,10 +49,6 @@ export default function GaragePage() {
   const [error, setError] = useState<string | null>(null);
   const { catalog, error: catalogError } = useCosmeticCatalog();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) void api.get<MyBot[]>('/api/bots/mine').then(setBots);
-  }, [user]);
 
   if (loading) return <p className="text-sm text-arena-dim">Loading…</p>;
   if (!user) {

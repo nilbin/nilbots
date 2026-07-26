@@ -1,11 +1,13 @@
+using System.Text.Json;
 using BotArena.App.Notifications;
 
 namespace BotArena.App.Tests;
 
 /// <summary>
-/// <see cref="UserNotificationResponse.Payload"/> is a concrete type, which is only sound
-/// while one notification kind exists. Adding a second one compiles fine, so these pin the
-/// runtime guard that stands in for the compiler.
+/// <see cref="UserNotificationResponse.Payload"/> is a closed union, so a caller has to
+/// narrow before reading. What the type system still cannot check is the mapping from a
+/// stored <see cref="UserNotification.Kind"/> to the shape its JSON was written as — rows
+/// carry no discriminator — so these pin the runtime guard that stands in for it.
 /// </summary>
 public class UserNotificationContractsTests
 {
@@ -33,8 +35,46 @@ public class UserNotificationContractsTests
         var response = UserNotificationContracts.ToResponse(
             Notification(UserNotificationKinds.EntitlementEarned, json));
 
-        Assert.Equal("ranked-matches", response.Payload.SourceKind);
-        Assert.Equal("lancer", Assert.Single(response.Payload.Items).Id);
+        // Narrowing is the point of the union: the payload arrives as the base type and
+        // only an explicit kind check gets at the fields.
+        var payload = Assert.IsType<EntitlementEarnedPayload>(response.Payload);
+        Assert.Equal("ranked-matches", payload.SourceKind);
+        Assert.Equal("lancer", Assert.Single(payload.Items).Id);
+    }
+
+    [Fact]
+    public void ResponsePayload_CarriesItsKindDiscriminator()
+    {
+        // What every client narrows on. The discriminator only appears when the payload
+        // is serialized *through the base type*, so a response record typed to a concrete
+        // payload would drop it and leave TypeScript unable to tell the kinds apart —
+        // silently, since the fields would still be there for the one kind that exists.
+        var response = UserNotificationContracts.ToResponse(
+            Notification(
+                UserNotificationKinds.EntitlementEarned,
+                UserNotificationContracts.Serialize(
+                    new EntitlementEarnedPayload("ranked-matches", "10", null, []))));
+
+        string json = JsonSerializer.Serialize(response, new JsonSerializerOptions(
+            JsonSerializerDefaults.Web));
+
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal(
+            UserNotificationKinds.EntitlementEarned,
+            document.RootElement.GetProperty("payload").GetProperty("kind").GetString());
+    }
+
+    [Fact]
+    public void StoredPayload_HasNoDiscriminator()
+    {
+        // Storage is the concrete shape, deliberately. Rows written before the union
+        // existed have no discriminator, so writing one now would leave two formats in
+        // the column to read forever.
+        string stored = UserNotificationContracts.Serialize(
+            new EntitlementEarnedPayload("ranked-matches", "10", null, []));
+
+        using var document = JsonDocument.Parse(stored);
+        Assert.False(document.RootElement.TryGetProperty("kind", out _));
     }
 
     [Fact]
@@ -42,6 +82,7 @@ public class UserNotificationContractsTests
     {
         // The failure this exists to prevent: silently deserializing another kind's
         // payload into an all-default EntitlementEarnedPayload and serving it as real.
+        // The union alone cannot stop that — nothing about a new kind fails to compile.
         var unknown = Notification("season-ended", """{"season":3,"placement":"gold"}""");
 
         var error = Assert.Throws<NotSupportedException>(

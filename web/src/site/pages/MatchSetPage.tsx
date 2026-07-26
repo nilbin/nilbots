@@ -1,32 +1,19 @@
-import { useEffect, useState } from 'react';
+
 import { Link, useParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
-import { api, type MatchSetDetail, type SetGame } from '../api';
+import type { MatchSetDetail, SetGame } from '../api';
+import { useMatchSet } from '../queries';
+import { ErrorState, LoadingState } from '../components/StateView';
 
 /// A ranked set: six games, three map/seed pairs with mirrored starts. Outcomes and
 /// the rating swing reveal only as broadcasts finish — no spoilers from this page.
 export default function MatchSetPage() {
   const { setId } = useParams<{ setId: string }>();
-  const [set, setSet] = useState<MatchSetDetail | null>(null);
+  const { data: set, error, refetch } = useMatchSet(setId);
 
-  useEffect(() => {
-    let stopped = false;
-    let timer: number | undefined;
-    const poll = async () => {
-      const data = await api.get<MatchSetDetail>(`/api/matchsets/${setId}`);
-      if (stopped) return;
-      setSet(data);
-      if (!data.revealed && data.status !== 'Failed')
-        timer = window.setTimeout(poll, 2000);
-    };
-    void poll();
-    return () => {
-      stopped = true;
-      window.clearTimeout(timer);
-    };
-  }, [setId]);
-
-  if (!set) return <p className="text-sm text-arena-dim">Loading…</p>;
+  if (error !== null)
+    return <ErrorState error={error} onRetry={() => void refetch()} />;
+  if (!set) return <LoadingState label="Loading the set…" />;
 
   const winner =
     set.winnerBotId === set.botA.id ? set.botA : set.winnerBotId === set.botB.id ? set.botB : null;

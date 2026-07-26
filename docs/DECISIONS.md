@@ -1709,6 +1709,68 @@ before picking a number.*
      and current-IP discovery rather than treating address retention as an
      identity guarantee.
 
+117. **Roster and ladder filtering stays client-side until the roster outgrows one
+     response.** `GET /api/bots` and `GET /api/leaderboard` take no query parameters and
+     return everything; the site, the mobile app, and any future client each filter in
+     memory. That is deliberate at eight bots — the site's own note puts the threshold
+     past thirty — and it keeps one code path rather than three.
+     It is a cliff, not a plateau, and mobile reaches it first: a phone on cellular pays
+     to download the whole roster to render ten rows, with no pagination to fall back on.
+     When it bites, the fix is `?q=`, `?ranked=`, and cursor pagination on the endpoint,
+     after which every client filters server-side and the mobile lists become
+     infinite-scroll. Doing it now would add pagination to three clients to solve a
+     problem no user has.
+     Rank is the counter-example and already went the other way: it is a property of the
+     whole ladder, so `/api/bots` serves `currentStanding` rather than letting clients
+     join `/api/leaderboard` — a client-side join would cap rank at that endpoint's slice
+     and get ties wrong.
+
+118. **A match notification is one record per subject, emitted on the broadcast
+     boundary, and the mobile app is another channel rather than another
+     inbox.** Extending #108 beyond entitlements, planned in
+     [`NOTIFICATIONS-PLAN.md`](NOTIFICATIONS-PLAN.md). Three things are settled
+     here because getting them wrong is expensive later. First, a result is
+     written when a match finishes *broadcasting* and a set when it is
+     *revealed*, never on completion: emitting earlier would push "your bot
+     won" to a phone while the replay is still playing out, defeating
+     broadcast secrecy at the one moment it matters most. Second, a challenge
+     and its result are one row keyed by the subject match or set, rewritten
+     and re-announced on settlement rather than appended beside it, so the
+     inbox never holds a stale "watch this" next to its own outcome and the
+     dedupe key stays natural for silent retries; `ReadAt` clears on rewrite
+     because an outcome is new information. A ranked set emits one
+     notification, not one per game — six rows would both spam and leak the
+     set's shape game by game. Third, mobile consumes the same durable record
+     over the same SignalR channel with the same unread-on-resume recovery,
+     and push is a separate delivery with its own registration, preferences
+     and delivery records, sent from a durable job so match settlement never
+     depends on APNs being reachable. The blocking prerequisite is contract
+     shaped: `UserNotificationResponse.Payload` is typed as one payload record
+     so it reaches every generated client, a second kind compiles fine and
+     would serve empty data, and `ToResponse` throws on unknown kinds to force
+     the discriminated union to be built first.
+
+119. **Notification policy: announce what others did to you and what moved your
+     rating; report losses exactly like wins.** Settles the questions
+     [`NOTIFICATIONS-PLAN.md`](NOTIFICATIONS-PLAN.md) left open under #118. A
+     challenge notifies only the challenged — the challenger pressed the button
+     and is looking at the screen, and an app that echoes your own actions
+     teaches you to ignore it. Ranked sets notify both players because rating
+     moved for both; unranked results notify only the challenged, since nothing
+     moved and the only news is that someone else started it. Losses are
+     announced with the same prominence as wins despite the toast being
+     designed to feel rewarding: the ladder already shows the rating, so a
+     silent loss reads as the app concealing rather than sparing, and a channel
+     that only carries good news stops being believed. Push sends through
+     Expo's push service rather than direct APNs/FCM — no certificate
+     management and one API for both platforms, accepting a third party in the
+     delivery path and no per-message priority, and affordable only because
+     device registrations, per-channel delivery records and a durable sending
+     job already hide the transport; moving to direct APNs/FCM later changes
+     one job handler. The site renders the new kinds too rather than staying
+     entitlements-only, because both surfaces read the same durable records and
+     giving them different news would be a bug in every reading.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -1219,6 +1219,7 @@ export interface components {
             activeVersion: null | components["schemas"]["BotActiveVersionResponse"];
             /** Format: int32 */
             versionCount: number;
+            currentStanding?: null | components["schemas"]["LadderStanding"];
         };
         BotVersionResponse: {
             /** Format: uuid */
@@ -1312,12 +1313,6 @@ export interface components {
         CreatedMatchSetResponse: {
             /** Format: uuid */
             id: string;
-        };
-        EntitlementEarnedPayload: {
-            sourceKind: string;
-            sourceId: string;
-            reason: null | string;
-            items: components["schemas"]["EntitlementNotificationItem"][];
         };
         EntitlementNotificationItem: {
             key: string;
@@ -1585,6 +1580,48 @@ export interface components {
             lookId: string;
             projectileLookId: string;
         };
+        UserNotificationPayload: components["schemas"]["UserNotificationPayloadEntitlementEarnedPayload"] | components["schemas"]["UserNotificationPayloadMatchSettledPayload"] | components["schemas"]["UserNotificationPayloadSetSettledPayload"];
+        UserNotificationPayloadEntitlementEarnedPayload: {
+            /** @enum {string} */
+            kind: "entitlement-earned";
+            sourceKind: string;
+            sourceId: string;
+            reason: null | string;
+            items: components["schemas"]["EntitlementNotificationItem"][];
+        };
+        UserNotificationPayloadMatchSettledPayload: {
+            /** @enum {string} */
+            kind: "match-settled";
+            /** Format: uuid */
+            matchId: string;
+            mapId: string;
+            /** Format: uuid */
+            botId: string;
+            botName: string;
+            botLookId: string;
+            botAccent: string;
+            outcome: string;
+            opponentName: string;
+        };
+        UserNotificationPayloadSetSettledPayload: {
+            /** @enum {string} */
+            kind: "set-settled";
+            /** Format: uuid */
+            matchSetId: string;
+            /** Format: uuid */
+            botId: string;
+            botName: string;
+            botLookId: string;
+            botAccent: string;
+            outcome: string;
+            /** Format: double */
+            score: number;
+            /** Format: double */
+            opponentScore: number;
+            /** Format: double */
+            ratingChange: number;
+            opponentName: string;
+        };
         UserNotificationResponse: {
             /** Format: uuid */
             id: string;
@@ -1593,7 +1630,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             readAt: null | string;
-            payload: components["schemas"]["EntitlementEarnedPayload"];
+            payload: components["schemas"]["UserNotificationPayload"];
         };
         UserResponse: {
             /** Format: uuid */
