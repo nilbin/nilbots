@@ -68,7 +68,8 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
             Assert.Single(await verify.UserNotifications.ToArrayAsync());
         UserNotificationResponse response =
             UserNotificationContracts.ToResponse(notification);
-        Assert.Equal(2, response.Payload.Items.Count);
+        var payload = Assert.IsType<EntitlementEarnedPayload>(response.Payload);
+        Assert.Equal(2, payload.Items.Count);
     }
 
     [SkippableFact]

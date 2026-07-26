@@ -1314,12 +1314,6 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
-        EntitlementEarnedPayload: {
-            sourceKind: string;
-            sourceId: string;
-            reason: null | string;
-            items: components["schemas"]["EntitlementNotificationItem"][];
-        };
         EntitlementNotificationItem: {
             key: string;
             kind: string;
@@ -1586,6 +1580,15 @@ export interface components {
             lookId: string;
             projectileLookId: string;
         };
+        UserNotificationPayload: components["schemas"]["UserNotificationPayloadEntitlementEarnedPayload"];
+        UserNotificationPayloadEntitlementEarnedPayload: {
+            /** @enum {string} */
+            kind?: "entitlement-earned";
+            sourceKind: string;
+            sourceId: string;
+            reason: null | string;
+            items: components["schemas"]["EntitlementNotificationItem"][];
+        };
         UserNotificationResponse: {
             /** Format: uuid */
             id: string;
@@ -1594,7 +1597,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             readAt: null | string;
-            payload: components["schemas"]["EntitlementEarnedPayload"];
+            payload: components["schemas"]["UserNotificationPayload"];
         };
         UserResponse: {
             /** Format: uuid */

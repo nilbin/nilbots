@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace BotArena.App.Notifications;
 
@@ -13,66 +14,75 @@ public sealed record EntitlementNotificationItem(
     string Id,
     string Label);
 
+/// <summary>
+/// What a notification is about, as one closed set of shapes.
+/// <para>
+/// Polymorphic rather than a single record so a second kind cannot deserialize into the
+/// first and be served as plausible empty data, and rather than a raw JsonElement so it
+/// still reaches the OpenAPI document and every generated client — an untyped payload
+/// costs TypeScript `unknown` and makes the C# generator emit its own `JsonElement` class
+/// that collides with System.Text.Json's.
+/// </para>
+/// <para>
+/// The discriminator repeats <see cref="UserNotificationResponse.Kind"/> on purpose: it is
+/// what lets a TypeScript client narrow the union by inspecting the payload alone, which
+/// the outer property cannot do.
+/// </para>
+/// <para>
+/// This is a response contract, not a storage format. Rows hold the concrete payload with
+/// no discriminator — see <see cref="UserNotificationContracts.ToResponse"/>, which reads
+/// them by <see cref="UserNotification.Kind"/>. Keeping the two separate is what lets a
+/// kind be added without migrating every existing row.
+/// </para>
+/// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
+[JsonDerivedType(typeof(EntitlementEarnedPayload), UserNotificationKinds.EntitlementEarned)]
+public abstract record UserNotificationPayload;
+
 public sealed record EntitlementEarnedPayload(
     string SourceKind,
     string SourceId,
     string? Reason,
-    IReadOnlyList<EntitlementNotificationItem> Items);
+    IReadOnlyList<EntitlementNotificationItem> Items) : UserNotificationPayload;
 
-/// <summary>
-/// <para>
-/// <see cref="Payload"/> is typed rather than a raw JsonElement so it reaches the OpenAPI
-/// document and every generated client. An untyped payload costs more than it looks:
-/// TypeScript gets `unknown`, and the C# generator emits its own `JsonElement` class that
-/// collides with System.Text.Json's.
-/// </para>
-/// <para>
-/// This assumes one payload shape, which holds while <see cref="UserNotificationKinds"/>
-/// has a single member. Adding a second kind means making this a discriminated union
-/// (<c>[JsonPolymorphic]</c> on a base type, keyed by <see cref="Kind"/>) — not widening
-/// it back to JsonElement. Nothing about a second kind fails to compile, so
-/// <see cref="UserNotificationContracts.ToResponse"/> rejects unknown kinds at runtime
-/// instead: without that guard a new kind would deserialize into an empty payload of this
-/// type and ship silently wrong data to every client.
-/// </para>
-/// </summary>
 public sealed record UserNotificationResponse(
     Guid Id,
     string Kind,
     DateTime CreatedAt,
     DateTime? ReadAt,
-    EntitlementEarnedPayload Payload);
+    UserNotificationPayload Payload);
 
 public static class UserNotificationContracts
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
 
-    public static string Serialize<T>(T payload) =>
+    /// <summary>
+    /// Writes a payload for storage as its concrete shape, with no type discriminator.
+    /// <para>
+    /// Deliberately generic on the concrete type rather than taking the base: serializing
+    /// through <see cref="UserNotificationPayload"/> would stamp a discriminator into the
+    /// column, which no existing row has, leaving two storage formats to read forever.
+    /// </para>
+    /// </summary>
+    public static string Serialize<T>(T payload)
+        where T : UserNotificationPayload =>
         JsonSerializer.Serialize(payload, JsonOptions);
 
     public static UserNotificationResponse ToResponse(UserNotification notification)
     {
-        // Deserializing by Kind, not blindly: every kind currently shares one payload
-        // record, so an unrecognized kind would otherwise parse into an all-default
-        // EntitlementEarnedPayload and be served as if it were real. Fail here instead —
-        // this throw is what a second notification kind runs into, since adding one
-        // compiles perfectly well.
-        if (notification.Kind != UserNotificationKinds.EntitlementEarned)
+        // Read by Kind, because the stored JSON carries no discriminator to read it by.
+        // An unmapped kind is a bug — a row written by code that skipped this switch — and
+        // failing here is better than serving a default-valued payload as if it were real.
+        UserNotificationPayload payload = notification.Kind switch
         {
-            throw new NotSupportedException(
-                $"Notification kind '{notification.Kind}' has no response mapping. Give " +
-                $"{nameof(UserNotificationResponse)}.Payload a discriminated union keyed " +
-                "by Kind before emitting a new kind.");
-        }
-
-        // Written by Serialize<EntitlementEarnedPayload> with these same options, so the
-        // round-trip is total; a null here means a hand-edited row.
-        var payload = JsonSerializer.Deserialize<EntitlementEarnedPayload>(
-            notification.PayloadJson,
-            JsonOptions)
-            ?? throw new InvalidOperationException(
-                $"Notification {notification.Id} has an unreadable payload.");
+            UserNotificationKinds.EntitlementEarned =>
+                Deserialize<EntitlementEarnedPayload>(notification),
+            _ => throw new NotSupportedException(
+                $"Notification kind '{notification.Kind}' has no response mapping. Add a " +
+                $"case here and a [JsonDerivedType] on {nameof(UserNotificationPayload)} " +
+                "when emitting a new kind."),
+        };
 
         return new(
             notification.Id,
@@ -81,4 +91,12 @@ public static class UserNotificationContracts
             notification.ReadAt,
             payload);
     }
+
+    private static T Deserialize<T>(UserNotification notification)
+        where T : UserNotificationPayload =>
+        // Written by Serialize<T> with these same options, so the round-trip is total; a
+        // null here means a hand-edited row.
+        JsonSerializer.Deserialize<T>(notification.PayloadJson, JsonOptions)
+        ?? throw new InvalidOperationException(
+            $"Notification {notification.Id} has an unreadable payload.");
 }

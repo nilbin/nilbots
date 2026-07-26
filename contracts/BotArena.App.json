@@ -1600,35 +1600,6 @@
           }
         }
       },
-      "EntitlementEarnedPayload": {
-        "required": [
-          "sourceKind",
-          "sourceId",
-          "reason",
-          "items"
-        ],
-        "type": "object",
-        "properties": {
-          "sourceKind": {
-            "type": "string"
-          },
-          "sourceId": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntitlementNotificationItem"
-            }
-          }
-        }
-      },
       "EntitlementNotificationItem": {
         "required": [
           "key",
@@ -2634,6 +2605,57 @@
           }
         }
       },
+      "UserNotificationPayload": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "entitlement-earned": "#/components/schemas/UserNotificationPayloadEntitlementEarnedPayload"
+          }
+        }
+      },
+      "UserNotificationPayloadEntitlementEarnedPayload": {
+        "required": [
+          "sourceKind",
+          "sourceId",
+          "reason",
+          "items"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "entitlement-earned"
+            ],
+            "type": "string"
+          },
+          "sourceKind": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitlementNotificationItem"
+            }
+          }
+        }
+      },
       "UserNotificationResponse": {
         "required": [
           "id",
@@ -2663,7 +2685,7 @@
             "format": "date-time"
           },
           "payload": {
-            "$ref": "#/components/schemas/EntitlementEarnedPayload"
+            "$ref": "#/components/schemas/UserNotificationPayload"
           }
         }
       },

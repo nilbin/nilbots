@@ -47,7 +47,14 @@ export const api = {
 export type Me = Schemas['UserResponse'];
 
 export type EntitlementNotificationItem = Schemas['EntitlementNotificationItem'];
-export type EntitlementEarnedPayload = Schemas['EntitlementEarnedPayload'];
+/**
+ * A notification's payload is a union discriminated by its own `kind`. Narrow on that
+ * before reading fields — the outer `UserNotification.kind` is the same string but
+ * TypeScript cannot use it to narrow a sibling property.
+ */
+export type UserNotificationPayload = Schemas['UserNotificationPayload'];
+export type EntitlementEarnedPayload =
+  Schemas['UserNotificationPayloadEntitlementEarnedPayload'];
 export type UserNotification = Schemas['UserNotificationResponse'];
 
 export type CosmeticUnlock = Schemas['CosmeticUnlock'];
