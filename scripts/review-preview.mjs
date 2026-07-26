@@ -17,6 +17,7 @@
 
 import { spawn } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -66,30 +67,75 @@ function lanAddress() {
  */
 async function ensureReplay() {
   const target = join(dist, 'replay.json');
-  if (existsSync(target)) return;
+  const indexPath = join(dist, 'replays.json');
+  if (existsSync(indexPath)) return;
 
   const api = process.env.BOTARENA_API ?? 'http://127.0.0.1:8080';
+  /** Comma-separated bot names to prefer, e.g. REVIEW_BOTS="Pincer gen-10,Bastille gen-5". */
+  const preferred = (process.env.REVIEW_BOTS ?? '')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean);
+  const wanted = Number(process.env.REVIEW_COUNT ?? 4);
+
   try {
-    const summaries = await fetch(`${api}/api/matches?take=40`).then((r) => r.json());
+    const summaries = await fetch(`${api}/api/matches?take=60`).then((r) => r.json());
     const settled = summaries.filter((m) => m.status === 'Completed' && !m.broadcasting);
     if (settled.length === 0) throw new Error('no completed match available');
 
     const scored = [];
-    for (const summary of settled.slice(0, 25)) {
+    for (const summary of settled.slice(0, 30)) {
       const replay = await fetch(`${api}/api/matches/${summary.id}/replay`).then((r) => r.json());
-      scored.push({ id: summary.id, replay, score: reviewScore(replay) });
+      const names = replay.header.participants.map((p) => p.name);
+      // A requested matchup wins outright: the reviewer asked for it, and the score is a
+      // stand-in for judgement rather than a replacement for it.
+      const requested =
+        preferred.length > 0 && preferred.every((want) => names.some((n) => n.toLowerCase().includes(want)));
+      scored.push({
+        id: summary.id,
+        replay,
+        names,
+        score: reviewScore(replay) + (requested ? 1000 : 0),
+      });
     }
     scored.sort((left, right) => right.score - left.score);
-    const best = scored[0];
 
-    writeFileSync(target, JSON.stringify(best.replay));
-    const header = best.replay.header;
-    console.log(
-      `  replay.json  ← ${header.mapId}, ${best.replay.ticks.length} ticks, ` +
-        `${header.participants.map((p) => p.name).join(' v ')}`,
-    );
+    // One per matchup+map, so a picker offers genuinely different fights rather than four
+    // views of the same pairing.
+    const chosen = [];
+    const seen = new Set();
+    for (const candidate of scored) {
+      if (chosen.length >= wanted) break;
+      const key = `${[...candidate.names].sort().join('|')}@${candidate.replay.header.mapId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      chosen.push(candidate);
+    }
+    if (chosen.length === 0) throw new Error('no replay scored above zero');
+
+    await mkdir(join(dist, 'replays'), { recursive: true });
+    const index = [];
+    for (const entry of chosen) {
+      writeFileSync(join(dist, 'replays', `${entry.id}.json`), JSON.stringify(entry.replay));
+      index.push({
+        id: entry.id,
+        url: `replays/${entry.id}.json`,
+        map: entry.replay.header.mapId,
+        bots: entry.names,
+        ticks: entry.replay.ticks.length,
+        reason: entry.replay.result?.reason ?? null,
+      });
+    }
+    writeFileSync(indexPath, JSON.stringify(index, null, 2));
+    // The single-replay path stays for anything that expects it.
+    writeFileSync(target, JSON.stringify(chosen[0].replay));
+
+    console.log(`  replays      ${index.length} available:`);
+    for (const entry of index) {
+      console.log(`                 ${entry.map} · ${entry.ticks}t · ${entry.bots.join(' v ')}`);
+    }
   } catch (cause) {
-    console.log(`  replay.json  MISSING — ${cause.message}`);
+    console.log(`  replays      NONE — ${cause.message}`);
     console.log(`               start the API, or copy a replay to dist-review/replay.json`);
   }
 }
