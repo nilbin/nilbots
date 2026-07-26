@@ -12,6 +12,7 @@ import {
 } from './adaptiveAccent';
 import { replayMaxHealth } from '../replayMetadata';
 import { posesAt, type BotPose } from './interpolate';
+import { wallAtlasDestination } from './wallAtlasGeometry';
 
 const directionStep: Record<Direction, [number, number]> = {
   North: [0, -1],
@@ -320,9 +321,11 @@ export function drawArena(
     if (!image.complete || image.naturalWidth === 0) return;
     const { columns, contentPixels, gutterPixels } = theme.walls.atlas;
     const sourceTile = image.naturalWidth / columns;
-    const scale = tile / contentPixels;
-    const destinationTile = sourceTile * scale;
-    const destinationGutter = gutterPixels * scale;
+    const { destinationTile, destinationGutter } = wallAtlasDestination(
+      tile,
+      contentPixels,
+      gutterPixels,
+    );
 
     // The mask selects a fully baked topology sprite. The canvas contributes
     // placement only; edges, corners, hardware, relief, and shadow live in art.
