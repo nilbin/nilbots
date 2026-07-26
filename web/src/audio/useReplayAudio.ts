@@ -12,6 +12,12 @@ import { readLocalSetting, writeLocalSetting } from './localSettings';
 const BASE_TICKS_PER_SECOND = 5;
 const MAX_ACTIVE_VOICES = 8;
 const MAX_CROSSED_TICKS = 3;
+/**
+ * How far cues are allowed to move off centre. Full width puts an edge-of-map shot
+ * entirely in one ear, which is disorienting on headphones for a view you are looking
+ * straight at; this keeps the arena wide but coherent.
+ */
+const PAN_WIDTH = 0.7;
 const candidateStorageKey = 'nilbots.audio.review.candidate';
 const volumeStorageKey = 'nilbots.audio.review.volume';
 const muteStorageKey = 'nilbots.audio.review.muted';
@@ -84,6 +90,8 @@ export function useReplayAudio({
   const graph = useRef<AudioGraph | null>(null);
   const buffers = useRef(new Map<string, Promise<AudioBuffer>>());
   const voices = useRef<Voice[]>([]);
+  /** Panner per source, so a finished voice disconnects the node it created. */
+  const panners = useRef(new Map<AudioBufferSourceNode, StereoPannerNode>());
   const generation = useRef(0);
   const previousTick = useRef<number | null>(null);
   const candidateRef = useRef(candidateId);
@@ -174,6 +182,7 @@ export function useReplayAudio({
       cue: AudioCueId,
       delayMilliseconds: number,
       priority: number,
+      pan: number | null = null,
       expectedGeneration = generation.current,
     ) => {
       const selected = candidateRef.current;
@@ -205,7 +214,19 @@ export function useReplayAudio({
         const gain = context.createGain();
         source.buffer = buffer;
         gain.gain.value = cueGain[cue];
-        source.connect(gain).connect(master);
+
+        // Place the cue across the arena. Stereo panning rather than a 3D panner: this is
+        // a flat plan view heard on a phone speaker or laptop, where left/right is the
+        // only axis a listener can actually resolve, and StereoPannerNode costs far less.
+        // Centre-panned cues skip the node entirely rather than routing through a no-op.
+        if (pan !== null && pan !== 0 && typeof context.createStereoPanner === 'function') {
+          const panner = context.createStereoPanner();
+          panner.pan.value = Math.max(-1, Math.min(1, pan)) * PAN_WIDTH;
+          source.connect(gain).connect(panner).connect(master);
+          panners.current.set(source, panner);
+        } else {
+          source.connect(gain).connect(master);
+        }
         const voice: Voice = {
           source,
           cue,
@@ -220,6 +241,8 @@ export function useReplayAudio({
             );
             source.disconnect();
             gain.disconnect();
+            panners.current.get(source)?.disconnect();
+            panners.current.delete(source);
           },
           { once: true },
         );
@@ -340,6 +363,7 @@ export function useReplayAudio({
           event.cue,
           Math.max(0, event.tickOffset - elapsedTicks) * tickDuration,
           event.priority,
+          event.pan,
           expectedGeneration,
         );
       }
