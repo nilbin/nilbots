@@ -15,4 +15,5 @@ public static class BotArenaVersions
     public const string RuntimeProtocolVersion = "0.1";
     public const string RuntimeConfigurationVersion = "0.1";
     public const int ReplayFormatVersion = 1;
+    public const int PublicManifestSchemaVersion = 1;
 }
