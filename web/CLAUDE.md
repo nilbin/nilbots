@@ -126,7 +126,13 @@ Two rules that are easy to get wrong:
 
 `npm run build` type-checks (`tsc -b`) and builds. `npm test` runs the asset and metadata
 suites — they pin that every look manifest resolves to a real shipped sprite, which is
-what stops a rename from silently rendering nothing.
+what stops a rename from silently rendering nothing — plus `structure.test.ts`.
+
+CI runs both. **`structure.test.ts` enforces the two folder boundaries above** that fail
+silently rather than loudly: the viewer half importing site code (compiles, then throws at
+runtime for CLI users), and anything but `site/api.ts` importing the generated schema
+(spreads a regeneration's breakage across a dozen files instead of one). Prose alone was
+not holding them; if you change a boundary here, change that test in the same commit.
 
 The build emits a **single 14 MB `dist/index.html`**, inlined on purpose so the CLI can
 ship one file. The App serves it directly, so a viewer change is not live until

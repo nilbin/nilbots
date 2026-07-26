@@ -5,6 +5,32 @@ on:
   workflow_call:
 
 jobs:
+  web:
+    name: Web app builds, and its structure holds
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install web dependencies
+        run: npm ci --prefix web --silent
+
+      # `npm run build` runs `tsc -b` first, so this is the type check too.
+      - name: Build the web bundle
+        run: npm run build --prefix web
+
+      # Asset manifests (a renamed sprite otherwise renders nothing, silently) and the
+      # folder boundaries in web/CLAUDE.md.
+      - name: Run the web suite
+        run: npm test --prefix web
+
   contract-drift:
     name: API contract and generated clients are current
     runs-on: ubuntu-latest
