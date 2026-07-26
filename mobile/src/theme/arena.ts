@@ -21,6 +21,10 @@ export const Arena = {
   ok: '#22c55e',
   /** The bright centre of the logo mark. */
   spark: '#e2f3ff',
+  /** Zone control — the site's yellow-400, used for pressure and an active hold. */
+  zone: '#facc15',
+  /** A rejected or degraded action, short of an error. The site's amber-400. */
+  warn: '#fbbf24',
 } as const;
 
 export const Space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;

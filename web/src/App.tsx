@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ReplayDocument } from './types';
+import HostedViewer from './components/HostedViewer';
 import Viewer from './components/Viewer';
 
 /// Standalone viewer mode: replay embedded by the CLI, served as replay.json, or pushed
@@ -77,5 +78,7 @@ export default function App() {
       </div>
     );
   }
-  return <Viewer replay={replay} />;
+  // A host supplies its own header, transport and readouts, so it gets the canvas alone;
+  // rendering the full viewer inside it would duplicate all three.
+  return hosted ? <HostedViewer replay={replay} /> : <Viewer replay={replay} />;
 }

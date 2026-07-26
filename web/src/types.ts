@@ -262,6 +262,22 @@ declare global {
      * not per replay.
      */
     __BOTARENA_LOAD__?: (source: { url: string } | { replay: ReplayDocument }) => void;
+    /**
+     * Playback commands for an embedding host, present only while a hosted replay is
+     * mounted. The host draws its own transport; the clock stays on this side, so these
+     * are requests against it rather than a way to set the playhead per frame.
+     */
+    __BOTARENA_CONTROL__?: {
+      play: () => void;
+      pause: () => void;
+      toggle: () => void;
+      restart: () => void;
+      step: (delta: number) => void;
+      seek: (tick: number) => void;
+      setSpeed: (speed: number) => void;
+      selectSlot: (slot: number | null) => void;
+      setVisibility: (visible: boolean) => void;
+    };
     /** Injected by react-native-webview when the page is embedded in the mobile app. */
     ReactNativeWebView?: { postMessage: (message: string) => void };
   }
