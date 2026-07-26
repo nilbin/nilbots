@@ -28,6 +28,11 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="garage">
+        <NativeTabs.Trigger.Label>Garage</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="wrench.and.screwdriver" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

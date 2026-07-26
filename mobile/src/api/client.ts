@@ -20,6 +20,7 @@ export type MatchLive = Schemas['MatchLiveResponse'];
 export type MatchSet = Schemas['MatchSetResponse'];
 export type BotMatchHistory = Schemas['BotMatchHistoryResponse'];
 export type BotStatistics = Schemas['BotStatistics'];
+export type MyBot = Schemas['MyBotResponse'];
 
 export class ApiError extends Error {
   constructor(
@@ -30,12 +31,34 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Supplies a valid access token, or null when signed out.
+ *
+ * Injected by `AuthProvider` rather than imported, because auth needs this module (the
+ * API base URL, this very setter) and importing it back would be a cycle. It also keeps
+ * the folder contract intact: this stays the only module that calls `fetch`, and auth
+ * stays the only module that knows how a token is obtained or renewed.
+ */
+let accessTokenProvider: () => Promise<string | null> = async () => null;
+
+export function setAccessTokenProvider(provider: () => Promise<string | null>): void {
+  accessTokenProvider = provider;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Asked for per request, not cached here: the provider renews an expired token, so
+  // holding one would mean sending a stale one after the first hour.
+  const token = await accessTokenProvider();
+
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
-      headers: { Accept: 'application/json', ...init?.headers },
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init?.headers,
+      },
     });
   } catch (cause) {
     // A dead dev server is the overwhelmingly likely cause on a phone, and the default
@@ -69,4 +92,6 @@ export const api = {
   match: (matchId: string) => request<MatchDetail>(`/api/matches/${matchId}`),
   matchLive: (matchId: string) => request<MatchLive>(`/api/matches/${matchId}/live`),
   matchSet: (setId: string) => request<MatchSet>(`/api/matchsets/${setId}`),
+  /** The signed-in player's own bots. 401 when signed out — the garage handles that. */
+  myBots: () => request<MyBot[]>('/api/bots/mine'),
 };

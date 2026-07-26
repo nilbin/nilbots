@@ -20,6 +20,8 @@ framework — see *Dependencies* below before adding one.
 src/
   api/         Generated schema + the typed fetch client. NOTHING else talks HTTP.
   app/         Routes only. File path = URL path (expo-router).
+  auth/        OAuth flow + keychain-backed session. The only module that knows
+               how a token is obtained, stored or renewed.
   components/  Reusable, presentational, route-agnostic.
     ui/        Primitives with no domain knowledge (Screen, Card, StateView…).
   hooks/       Data access — one hook per resource, wrapping TanStack Query.
@@ -58,6 +60,26 @@ Query keys are arrays namespaced by resource: `['bots']`, `['bot', key]`,
 **Polling belongs in the hook.** `/api/matches/{id}/live` is a polling endpoint by
 design (there is no socket), so its hook sets `refetchInterval` and stops polling once
 the match completes. Do not scatter `setInterval` through components.
+
+## Auth
+
+Authorization Code + PKCE in the **system browser**, against the server's own OpenIddict
+as the public client `nilbots-mobile`. Never an embedded WebView — it can read what is
+typed into it, and a login form is exactly what that is.
+
+Three things that are easy to get wrong here:
+
+- **`offline_access` is the only scope.** It is the only one the server registers, so
+  adding `openid` or `profile` fails the authorize request outright with `invalid_scope`.
+- **Tokens go in `expo-secure-store`, never AsyncStorage.** A refresh token mints access
+  tokens for 30 days; AsyncStorage is a plain file in the app container.
+- **`api/client.ts` does not import `auth/`.** `AuthProvider` registers a token provider
+  via `setAccessTokenProvider`, because auth depends on the client and importing back
+  would be a cycle. Refreshes are deduplicated — OpenIddict rotates refresh tokens, so
+  two concurrent refreshes sign the user out.
+
+`expo-secure-store` and `expo-web-browser` are native modules with config plugins. Their
+`app.json` entries do nothing until `npx expo prebuild` and a rebuild.
 
 ## Control bars are one line
 

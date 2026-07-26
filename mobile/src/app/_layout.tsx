@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { ArenaViewerProvider } from '@/components/ArenaViewer';
+import { AuthProvider } from '@/auth/AuthProvider';
 import { Arena } from '@/theme/arena';
 
 SplashScreen.preventAutoHideAsync();
@@ -54,10 +55,15 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={Theme}>
-        {/* Above the navigator, not inside a screen: the viewer's WebView is mounted
-            once for the life of the app so texture decoding is paid once, not per
-            match. See ArenaViewer. */}
-        <ArenaViewerProvider>
+        {/* Outside the query client's consumers but inside its provider: AuthProvider
+            registers the token source that every request reads, and query keys include
+            the signed-in state so signing out drops one account's data rather than
+            leaving it on screen for the next person. */}
+        <AuthProvider>
+          {/* Above the navigator, not inside a screen: the viewer's WebView is mounted
+              once for the life of the app so texture decoding is paid once, not per
+              match. See ArenaViewer. */}
+          <ArenaViewerProvider>
           <Stack
             screenOptions={{
               headerStyle: { backgroundColor: Arena.bg },
@@ -81,7 +87,8 @@ export default function RootLayout() {
             <Stack.Screen name="matches/[id]" options={{ title: 'Match' }} />
             <Stack.Screen name="sets/[id]" options={{ title: 'Ranked set' }} />
           </Stack>
-        </ArenaViewerProvider>
+          </ArenaViewerProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
