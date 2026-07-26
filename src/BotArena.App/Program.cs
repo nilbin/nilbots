@@ -166,59 +166,8 @@ if (mode.RunsWeb)
     builder.Services.AddScoped<BotStatisticsQuery>();
     builder.Services.AddScoped<CompilerSubmissionService>();
     builder.Services.AddScoped<SubmitBotVersionUseCase>();
-    builder.Services.AddRateLimiter(options =>
-    {
-        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        options.OnRejected = (context, _) =>
-        {
-            if (context.Lease.TryGetMetadata(
-                    System.Threading.RateLimiting.MetadataName.RetryAfter,
-                    out TimeSpan retryAfter))
-            {
-                context.HttpContext.Response.Headers.RetryAfter =
-                    Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
-            }
-            return ValueTask.CompletedTask;
-        };
-        options.GlobalLimiter =
-            System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 600,
-                        Window = TimeSpan.FromMinutes(1),
-                    }));
-        // Credential endpoints: slow brute force.
-        options.AddPolicy("auth", context =>
-            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(1),
-                }));
-        // Compilation is expensive: a handful of submissions per user per ten minutes.
-        options.AddPolicy("submission", context =>
-            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-                $"{context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous"}:" +
-                $"{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
-                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 6,
-                    Window = TimeSpan.FromMinutes(10),
-                }));
-        options.AddPolicy("challenge", context =>
-            System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-                context.User.Identity?.Name ??
-                context.Connection.RemoteIpAddress?.ToString() ??
-                "unknown",
-                _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 20,
-                    Window = TimeSpan.FromMinutes(1),
-                }));
-    });
+    builder.Services.AddBotArenaRateLimiting();
+    builder.Services.AddSingleton(RankedSetLimits.FromConfiguration(builder.Configuration));
 
     if (trustForwardedHeaders)
     {

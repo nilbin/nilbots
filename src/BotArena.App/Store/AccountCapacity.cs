@@ -47,10 +47,39 @@ public static class AccountCapacity
     /// </summary>
     public const int MaxPurchasedDailyBuilds = 120;
 
+    /// <summary>Raises the daily ranked-set allowance. Stacks, like the build grant.</summary>
+    public const string ExtraDailyRankedSetsId = "extra-daily-ranked-sets";
+
+    public const string ExtraDailyRankedSetsKey = $"{Kind}:{ExtraDailyRankedSetsId}";
+
+    /// <summary>
+    /// How many ranked sets one grant adds to the daily cap.
+    /// <para>
+    /// Five, against a free ten — a smaller step than the build grant's thirty, because a
+    /// set is six matches and the match worker is the scarcer resource of the two.
+    /// </para>
+    /// </summary>
+    public const int ExtraDailyRankedSets = 5;
+
+    /// <summary>Ceiling on bought ranked sets, for the same reason builds have one.</summary>
+    public const int MaxPurchasedDailyRankedSets = 30;
+
     /// <summary>How many extra daily builds these entitlement keys are worth.</summary>
-    public static int ExtraDailyBuildsFor(IReadOnlyCollection<string> entitlementKeys)
-    {
-        int held = entitlementKeys.Count(key => key == ExtraDailyBuildsKey);
-        return Math.Min(held * ExtraDailyBuilds, MaxPurchasedDailyBuilds);
-    }
+    public static int ExtraDailyBuildsFor(IReadOnlyCollection<string> entitlementKeys) =>
+        Stacked(entitlementKeys, ExtraDailyBuildsKey, ExtraDailyBuilds, MaxPurchasedDailyBuilds);
+
+    /// <summary>How many extra daily ranked sets these entitlement keys are worth.</summary>
+    public static int ExtraDailyRankedSetsFor(IReadOnlyCollection<string> entitlementKeys) =>
+        Stacked(
+            entitlementKeys,
+            ExtraDailyRankedSetsKey,
+            ExtraDailyRankedSets,
+            MaxPurchasedDailyRankedSets);
+
+    private static int Stacked(
+        IReadOnlyCollection<string> entitlementKeys,
+        string key,
+        int perGrant,
+        int ceiling) =>
+        Math.Min(entitlementKeys.Count(held => held == key) * perGrant, ceiling);
 }

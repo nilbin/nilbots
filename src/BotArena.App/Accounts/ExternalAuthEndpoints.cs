@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using OpenIddict.Client.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using BotArena.App.Shared;
 
 namespace BotArena.App.Accounts;
 
@@ -55,7 +56,7 @@ public static class ExternalAuthEndpoints
             return Results.Challenge(
                 properties,
                 [OpenIddictClientAspNetCoreDefaults.AuthenticationScheme]);
-        }).AllowAnonymous().RequireRateLimiting("auth");
+        }).AllowAnonymous().RequireRateLimiting(RateLimitPolicies.Auth);
 
         // Where Google returns. The path is fixed by the client's registered redirect URI,
         // and passthrough is what lets this handler run instead of OpenIddict answering.

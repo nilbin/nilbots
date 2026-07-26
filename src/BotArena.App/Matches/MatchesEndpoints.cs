@@ -64,7 +64,7 @@ public static class MatchesEndpoints
             // and the result announcement still arrives.
             await challenges.AnnounceAsync(match, cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
-        }).Produces<CreatedMatchResponse>().RequireAuthorization().RequireRateLimiting("challenge");
+        }).Produces<CreatedMatchResponse>().RequireAuthorization().RequireRateLimiting(RateLimitPolicies.Challenge);
 
         // Filters are server-side on purpose: a browser-side filter can only narrow the
         // page it already has, so "every match Bastille played" would silently mean

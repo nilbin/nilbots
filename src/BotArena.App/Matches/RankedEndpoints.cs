@@ -34,11 +34,51 @@ public static class RankedEndpoints
                    MatchAdmissionService admission,
                    MatchParticipantSnapshotFactory snapshots,
                    MatchExecutionSettings matchSettings,
+                   RankedSetLimits rankedLimits,
+                   TimeProvider timeProvider,
                    HttpContext http,
                    CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
+
+            // Durable admission, in a transaction with an advisory lock on the account —
+            // the same shape compilation uses, and for the same reason. The HTTP limiter
+            // lives in one web process's memory, so it multiplies by replica and forgets
+            // everything on restart; a ranked set is six WASM matches and needs a limit
+            // that actually holds.
+            await using var admissionScope =
+                await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({RankedAccountLock(userId)})",
+                cancellationToken);
+
+            DateTime rankedDayAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-24);
+            var ownedSets =
+                from candidate in db.MatchSets
+                join ownedBot in db.Bots on candidate.BotAId equals ownedBot.Id
+                where ownedBot.OwnerUserId == userId
+                select candidate;
+
+            var rankedSnapshot = new RankedSetSnapshot(
+                AccountDailyCount: await ownedSets.CountAsync(
+                    candidate => candidate.CreatedAt >= rankedDayAgo,
+                    cancellationToken),
+                AccountUnfinishedCount: await ownedSets.CountAsync(
+                    candidate => candidate.Status == MatchSetStatus.Running,
+                    cancellationToken));
+
+            List<string> rankedEntitlements = await db.EntitlementGrants
+                .Where(grant => grant.UserId == userId && grant.RevokedAt == null)
+                .Select(grant => grant.EntitlementKey)
+                .ToListAsync(cancellationToken);
+
+            if (RankedSetPolicy.Evaluate(
+                    rankedSnapshot,
+                    rankedLimits.ForAccount(rankedEntitlements)) is string refusal)
+            {
+                return Results.Problem(refusal, statusCode: 429);
+            }
             ApplicationResult<AdmittedMatchBot> admittedA =
                 await admission.AdmitAsync(
                     request.BotId,
@@ -164,8 +204,13 @@ public static class RankedEndpoints
                 }
             }
             await db.SaveChangesAsync(cancellationToken);
+            // Committed only now: the count the next request reads has to include this set,
+            // and the lock has to survive until it does.
+            await admissionScope.CommitAsync(cancellationToken);
             return Results.Ok(new CreatedMatchSetResponse(set.Id));
-        }).Produces<CreatedMatchSetResponse>().RequireAuthorization().RequireRateLimiting("challenge");
+        }).Produces<CreatedMatchSetResponse>()
+          .RequireAuthorization()
+          .RequireRateLimiting(RateLimitPolicies.Ranked);
 
         routes.MapGet("/api/matchsets/{setId:guid}", async (
             Guid setId,
@@ -262,6 +307,14 @@ public static class RankedEndpoints
     /// allow them by default so the harness keeps working; every other role refuses.
     /// Explicit configuration wins either way — which is also the only way to exercise
     /// the refusal on a machine running the single-process role.</summary>
+    /// <summary>
+    /// One advisory lock per account, so two simultaneous requests cannot both read a
+    /// count below the limit and both pass. Derived from the account id the same way
+    /// compilation derives its own.
+    /// </summary>
+    private static long RankedAccountLock(Guid userId) =>
+        System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(userId.ToByteArray());
+
     private static bool AllowsPinnedOpponents(ApplicationMode mode, IConfiguration configuration) =>
         configuration.GetValue<bool?>("BOTARENA_ALLOW_PINNED_RANKED") ?? mode.IsAll;
 

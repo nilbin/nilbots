@@ -233,6 +233,18 @@
         "sourceId": "extra-daily-builds",
         "hint": "Available in the store."
       }
+    },
+    {
+      "key": "capacity:extra-daily-ranked-sets",
+      "kind": "capacity",
+      "id": "extra-daily-ranked-sets",
+      "label": "Extra daily ranked sets",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "extra-daily-ranked-sets",
+        "hint": "Available in the store."
+      }
     }
   ],
   "packs": [
@@ -272,6 +284,15 @@
       "description": "Raises your daily build allowance by 30, so a long tuning session does not run out of turns.",
       "items": [
         "capacity:extra-daily-builds"
+      ],
+      "category": "capacity"
+    },
+    {
+      "id": "extra-daily-ranked-sets",
+      "label": "Extra daily ranked sets",
+      "description": "Adds 5 ranked sets to your daily allowance. Each set is six games.",
+      "items": [
+        "capacity:extra-daily-ranked-sets"
       ],
       "category": "capacity"
     }

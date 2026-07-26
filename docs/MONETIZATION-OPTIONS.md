@@ -228,12 +228,24 @@ What holding a capacity entitlement *means* lives in `Store/AccountCapacity.cs`,
 limit it bends — not in the catalog JSON. A number in a data file that silently multiplies
 a rate limit is how a store ends up selling something nobody can reason about.
 
+### Ranked sets
+
+The second capacity product, and finding it exposed a gap rather than an opportunity:
+ranked sets had **no durable limit at all**. The only ceiling was the in-memory HTTP
+limiter shared with unranked challenges — 20 a minute, which at six matches per set is 120
+matches a minute, per web process, forgotten on restart.
+
+That is now enforced the way compilation is: a transaction and a per-account advisory lock,
+so two simultaneous requests cannot both read a count under the limit. Ten sets a day, two
+in flight, and the grant adds five. Concurrency is not for sale, for the same reason the
+ten-minute build cap is not — it is a claim on the shared match worker, and selling it lets
+a payer push other people's sets down the queue rather than merely play more of their own.
+
 ### Other limits that could be sold, and were not
 
 Recorded so the next person does not have to go looking. Bot count is not capped at all
-today. Ranked set frequency is not capped. Neither is match history retention. All three are
-plausible products, and all three would change the game rather than the queue — which is a
-design decision, not a monetization one.
+today; neither is match history retention. Both are plausible products, and both would
+change the game rather than the queue — which is a design decision, not a monetization one.
 
 ## What is deliberately not answered here
 

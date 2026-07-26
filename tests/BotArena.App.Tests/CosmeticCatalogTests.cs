@@ -81,9 +81,9 @@ public class CosmeticCatalogTests
         Assert.Equal(CosmeticUnlockEvents.Achievement, mantis.Unlock.SourceKind);
         Assert.Equal(mantis.Unlock, talon.Unlock);
 
-        // Six earned by playing, six sold as appearance packs, one sold as capacity.
+        // Six earned by playing, six sold as appearance packs, two sold as capacity.
         Assert.Equal(
-            13,
+            14,
             catalog.Items.Count(item =>
                 item.Availability == CosmeticCatalog.EntitlementAvailability));
         Assert.Equal(
