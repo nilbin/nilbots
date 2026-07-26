@@ -104,9 +104,15 @@ export function useReplayAudio({
     // reasonably concludes the audio is broken. Declaring the session as playback opts
     // out of that, which is what a media page is supposed to do. WebKit-only and recent,
     // hence the feature check; everywhere else this is a no-op.
-    const session = (navigator as Navigator & { audioSession?: { type: string } })
-      .audioSession;
-    if (session) session.type = 'playback';
+    try {
+      const session = (navigator as Navigator & { audioSession?: { type: string } })
+        .audioSession;
+      if (session) session.type = 'playback';
+    } catch {
+      // Best effort. A browser that exposes the property but rejects the assignment must
+      // not take the whole audio graph down with it — this is a silent-switch nicety, not
+      // a prerequisite for playing anything.
+    }
 
     const context = new AudioContext({ latencyHint: 'interactive' });
     const master = context.createGain();
