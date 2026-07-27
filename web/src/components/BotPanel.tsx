@@ -20,6 +20,28 @@ interface BotPanelProps {
   onToggleVisibility: () => void;
 }
 
+/**
+ * One plain sentence for what a bot is doing this tick.
+ *
+ * Action ids are engine vocabulary — `turn-left`, `shoot`, `wait` — and the panel used
+ * to print them raw behind an arrow. They are generated from the id rather than mapped
+ * by hand, so a new action reads sensibly the day it lands instead of falling through
+ * to a code.
+ */
+function describeAction(
+  actionId: string,
+  heading: string | null,
+  result: string | null,
+): string {
+  const words = actionId.replace(/[-_]/g, ' ');
+  const phrase =
+    words === 'wait'
+      ? 'Holding position'
+      : words.charAt(0).toUpperCase() + words.slice(1);
+  const aimed = heading ? `${phrase} ${heading.toLowerCase()}` : phrase;
+  return !result || result === 'success' ? aimed : `${aimed} — ${result}`;
+}
+
 export default function BotPanel({
   replay,
   tick,
@@ -35,19 +57,25 @@ export default function BotPanel({
     <div className="flex flex-col gap-3">
       {objective?.kind === 'legacy-control' && (
         <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
-          <div className="flex justify-between font-mono text-[11px] text-arena-dim">
-            <span>{objective.names[0]}</span>
-            <span>
-              {objective.overtime ? 'OVERTIME ' : ''}CONTROL{' '}
-              {objective.pressure > 0 ? '+' : ''}
-              {objective.pressure} / ±{objective.limit}
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="truncate text-[13px] text-arena-text">
+              {objective.names[0]}
             </span>
-            <span>{objective.names[1]}</span>
+            <span className="type-label shrink-0 text-[9px] text-arena-dim">
+              {objective.overtime ? 'Overtime · ' : ''}Control{' '}
+              <span className="tabular font-mono text-[11px] tracking-normal text-arena-text">
+                {objective.pressure > 0 ? '+' : ''}
+                {objective.pressure}/{objective.limit}
+              </span>
+            </span>
+            <span className="truncate text-right text-[13px] text-arena-text">
+              {objective.names[1]}
+            </span>
           </div>
           <div className="relative mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
             <div className="absolute inset-y-0 left-1/2 w-px bg-arena-dim" />
             <div
-              className="absolute top-0 h-full w-1 rounded bg-yellow-400 transition-[left]"
+              className="absolute top-0 h-full w-1 rounded bg-arena-text transition-[left]"
               style={{
                 left: `${Math.max(
                   0,
@@ -62,7 +90,7 @@ export default function BotPanel({
             />
           </div>
           {objective.phase && (
-            <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
+            <p className="type-label mt-2 text-center text-[9px] text-arena-dim">
               {objective.phase}
             </p>
           )}
@@ -71,11 +99,13 @@ export default function BotPanel({
 
       {objective?.kind === 'frontline' && (
         <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
-          <div className="flex items-center justify-between font-mono text-[11px] text-arena-dim">
-            <span>FRONTLINE</span>
-            <span>
-              POSITION {objective.activePositionIndex + 1}/
-              {objective.positionCount}
+          <div className="flex items-center justify-between">
+            <span className="type-label text-[9px] text-arena-dim">Frontline</span>
+            <span className="type-label text-[9px] text-arena-dim">
+              Position{' '}
+              <span className="tabular font-mono text-[11px] tracking-normal text-arena-text">
+                {objective.activePositionIndex + 1}/{objective.positionCount}
+              </span>
             </span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
@@ -83,8 +113,8 @@ export default function BotPanel({
               className={clsx(
                 'h-full transition-[width]',
                 objective.claimingTeamId === null
-                  ? 'bg-arena-dim'
-                  : 'bg-yellow-400',
+                  ? 'bg-arena-edge2'
+                  : 'bg-arena-dim',
               )}
               style={{
                 width: `${
@@ -94,7 +124,7 @@ export default function BotPanel({
               }}
             />
           </div>
-          <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
+          <p className="type-label mt-2 text-center text-[9px] text-arena-dim">
             {objective.phase}
           </p>
         </div>
@@ -154,86 +184,110 @@ export default function BotPanel({
                   · {unit.runtimeKind}
                 </span>
               </span>
+              {/* Eight statuses had eight hues, which is eight things competing with the
+                  one colour that means something — the player's accent. Out of the game
+                  a unit is out; everything else is a state it is passing through, and
+                  the word already says which. */}
               <span
-                className={clsx('ml-auto font-mono text-[11px]', {
-                  'text-emerald-400': unit.status === 'active',
-                  'text-red-400': unit.status === 'destroyed',
-                  'text-amber-400': unit.status === 'disqualified',
-                  'text-cyan-300': unit.status === 'respawning',
-                  'text-arena-dim': unit.status === 'locked',
-                  'text-emerald-300': unit.status === 'ready',
-                  'text-violet-300':
-                    unit.status === 'fabrication-queued',
-                  'text-amber-300': unit.status === 'rebuilding',
-                })}
+                className={clsx(
+                  'type-label ml-auto text-[10px] whitespace-nowrap',
+                  unit.status === 'destroyed' ||
+                    unit.status === 'disqualified'
+                    ? 'text-arena-hot'
+                    : unit.status === 'active'
+                      ? 'text-arena-text'
+                      : 'text-arena-dim',
+                )}
               >
-                {unit.status.toUpperCase()}
+                {unit.status}
                 {transition ? ` · ${transition}` : ''}
               </span>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-xs">
-              <span aria-label={`Health ${unit.health} of ${unit.maxHealth}`}>
+            {/* Health, cooldown and what it is doing — three rows, one idea each.
+                This was `♥♥♥ · CD 0 · ⬢ idle · → turn-left`: four encodings of state
+                on one line, three of them abbreviations only the author knew. */}
+            <dl className="mt-2.5 grid grid-cols-[4.5rem_1fr_auto] items-center gap-x-3 gap-y-2">
+              <dt className="type-label text-[10px] text-arena-dim">Health</dt>
+              <dd
+                className="flex gap-[3px]"
+                aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
+              >
                 {Array.from({ length: unit.maxHealth }, (_, index) => (
                   <span
                     key={index}
-                    style={{
-                      color:
-                        index < unit.health ? unit.accent : undefined,
-                    }}
-                    className={
-                      index < unit.health ? '' : 'text-arena-edge'
+                    className="h-2 flex-1 rounded-[2px] border"
+                    style={
+                      index < unit.health
+                        ? { background: unit.accent, borderColor: unit.accent }
+                        : { borderColor: 'var(--color-arena-edge)' }
                     }
-                  >
-                    ♥
-                  </span>
+                  />
                 ))}
-              </span>
-              <span className="text-arena-dim">
-                CD <span className="text-arena-text">{unit.cooldown}</span>
-              </span>
-              {unit.energy !== null && (
-                <span
-                  className="text-arena-dim"
-                  aria-label={`Energy ${unit.energy}`}
-                >
-                  ⚡ <span className="text-arena-text">{unit.energy}</span>
-                </span>
-              )}
-              {objective === null && unit.zoneTicks === null ? null : (
-                <span
-                  className={clsx(
-                    unit.holdingObjective
-                      ? 'text-yellow-400'
-                      : 'text-arena-dim',
-                  )}
-                  aria-label="Objective presence"
-                >
-                  ⬢{' '}
-                  <span className="text-arena-text">
-                    {unit.zoneTicks ??
-                      (unit.holdingObjective ? 'HOLD' : 'idle')}
+              </dd>
+              <dd className="tabular font-mono text-[11px] text-arena-dim">
+                {unit.health}/{unit.maxHealth}
+              </dd>
+
+              <dt className="type-label text-[10px] text-arena-dim">Weapon</dt>
+              <dd className="col-span-2 text-[13px] text-arena-text">
+                {unit.cooldown > 0 ? (
+                  <>
+                    Reloading —{' '}
+                    <span className="tabular font-mono text-[12px] text-arena-dim">
+                      {unit.cooldown}t
+                    </span>
+                  </>
+                ) : (
+                  'Ready'
+                )}
+                {unit.energy !== null && (
+                  <span className="tabular font-mono text-[12px] text-arena-dim">
+                    {' · '}
+                    {unit.energy} energy
                   </span>
-                </span>
-              )}
+                )}
+              </dd>
+
               {unit.actionId && (
-                <span className="text-arena-dim">
-                  → <span className="text-arena-text">{unit.actionId}</span>
-                  {unit.actionLaunchHeading && (
-                    <span className="text-cyan-200">
-                      {' '}
-                      · {unit.actionLaunchHeading.toUpperCase()}
-                    </span>
-                  )}
-                  {unit.actionResult !== 'success' && (
-                    <span className="text-amber-400">
-                      {' '}
-                      ({unit.actionResult})
-                    </span>
-                  )}
-                </span>
+                <>
+                  <dt className="type-label text-[10px] text-arena-dim">
+                    Doing
+                  </dt>
+                  <dd className="col-span-2 text-[13px] text-arena-text">
+                    {describeAction(
+                      unit.actionId,
+                      unit.actionLaunchHeading,
+                      unit.actionResult,
+                    )}
+                  </dd>
+                </>
               )}
-            </div>
+
+              {(objective !== null || unit.zoneTicks !== null) && (
+                <>
+                  <dt className="type-label text-[10px] text-arena-dim">
+                    Objective
+                  </dt>
+                  <dd className="col-span-2 text-[13px] text-arena-text">
+                    {unit.zoneTicks !== null ? (
+                      <>
+                        <span className="tabular font-mono text-[12px]">
+                          {unit.zoneTicks}
+                        </span>{' '}
+                        <span className="text-arena-dim">
+                          tick{unit.zoneTicks === 1 ? '' : 's'} held
+                        </span>
+                      </>
+                    ) : unit.holdingObjective ? (
+                      'Holding'
+                    ) : (
+                      <span className="text-arena-dim">Not on it</span>
+                    )}
+                  </dd>
+                </>
+              )}
+            </dl>
 
             {formTransition && (
               <p className="mt-2 font-mono text-[10px] tracking-wide text-violet-300">

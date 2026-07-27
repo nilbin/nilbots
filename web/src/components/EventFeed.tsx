@@ -1,20 +1,40 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
-import type { ReplayCausalEvent, ReplayModel } from '../replayModel';
+import type {
+  ReplayCausalEvent,
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../replayModel';
 import {
   actorName,
   teamName,
   unitName,
 } from '../replayParticipants';
 
+/** Events that end a unit's participation. The only ones that earn a colour. */
+const TERMINAL = new Set(['destroyed', 'disqualified', 'fault']);
+
+/**
+ * The index.
+ *
+ * This was a feed: a flat list that grew downward and coloured eight event types in
+ * eight hues, which is eight things competing with the one colour that means something.
+ * A deterministic replay is indexable, so the list is a seek control — newest first,
+ * every row jumping to the tick it names, and filterable to the unit you selected
+ * rather than making you scroll past everything the other one did.
+ */
 export default function EventFeed({
   replay,
   tick,
+  selectedUnitKey,
+  onSeek,
 }: {
   replay: ReplayModel;
   tick: number;
+  selectedUnitKey?: ReplayStableUnitKey | null;
+  onSeek?: (tick: number) => void;
 }) {
-  const feedRef = useRef<HTMLOListElement>(null);
+  const [mineOnly, setMineOnly] = useState(false);
   const entries = useMemo(() => {
     const list: { tick: number; event: ReplayCausalEvent }[] = [];
     for (const replayTick of replay.ticks) {
@@ -27,13 +47,15 @@ export default function EventFeed({
         list.push({ tick: replayTick.tick, event });
       }
     }
-    return list.slice(-80);
+    return list.slice(-120).reverse();
   }, [replay, tick]);
 
-  useEffect(() => {
-    const element = feedRef.current;
-    if (element) element.scrollTop = element.scrollHeight;
-  }, [entries.length]);
+  const involves = (event: ReplayCausalEvent) =>
+    !selectedUnitKey ||
+    event.sourceActor?.unitKey === selectedUnitKey ||
+    event.targetActor?.unitKey === selectedUnitKey;
+  const shown =
+    mineOnly && selectedUnitKey ? entries.filter((e) => involves(e.event)) : entries;
 
   const describe = (event: ReplayCausalEvent): string => {
     const stableUnit = replay.units.find(
@@ -120,62 +142,71 @@ export default function EventFeed({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-arena-edge bg-arena-panel">
-      <h2 className="border-b border-arena-edge px-3 py-2 font-mono text-xs tracking-widest text-arena-dim">
-        EVENT FEED
-      </h2>
-      {/* The feed scrolls; it never grows the page.
-
-          `lg:max-h-none` used to lift the cap on desktop, on the reasonable-sounding idea
-          that a tall column should let the feed fill it. It has no height to fill: the
-          arena and this column are two cells of one auto-height grid row, so the row is as
-          tall as its tallest cell — and an uncapped feed *is* the tallest cell the moment a
-          match produces more than a screenful of events. The arena, stretched to the row,
-          grew with it. Watch a busy match on a wide window and the board visibly inflates
-          under the playhead.
-
-          The cap is gone again at `lg`, but the reasoning is no longer wishful: the column
-          it sits in is out of flow there and has a real height to fill, so `flex-1` bounds
-          the feed and it scrolls. Below `lg` the panel is content in the page and the fixed
-          cap is what keeps it from burying the transport. */}
+      <div className="flex items-center gap-2 border-b border-arena-edge px-3 py-2">
+        <h2 className="type-label text-[10px] text-arena-dim">
+          Index · {shown.length} event{shown.length === 1 ? '' : 's'}
+        </h2>
+        {selectedUnitKey && (
+          <span className="ml-auto flex gap-1">
+            {([false, true] as const).map((only) => (
+              <button
+                key={String(only)}
+                type="button"
+                onClick={() => setMineOnly(only)}
+                aria-pressed={mineOnly === only}
+                className={clsx(
+                  'type-label rounded-full border px-2 py-0.5 text-[9px] transition-colors',
+                  mineOnly === only
+                    ? 'border-arena-edge2 bg-arena-raise text-arena-text'
+                    : 'border-arena-edge text-arena-dim hover:text-arena-text',
+                )}
+              >
+                {only ? 'Selected' : 'All'}
+              </button>
+            ))}
+          </span>
+        )}
+      </div>
+      {/* The list scrolls; it never grows the page. Below `lg` the panel is content in
+          the page and the cap keeps it from burying the transport; at `lg` the column is
+          out of flow with a real height, so flex-1 bounds it. */}
       <ol
-        ref={feedRef}
-        className="max-h-56 min-h-0 flex-1 space-y-1 overflow-y-auto p-3 font-mono text-xs lg:max-h-none"
+        className="max-h-64 min-h-0 flex-1 overflow-y-auto p-1.5 lg:max-h-none"
         aria-live="polite"
       >
-        {entries.length === 0 && (
-          <li className="text-arena-dim italic">No combat events yet…</li>
+        {shown.length === 0 && (
+          <li className="px-2 py-2 text-[13px] text-arena-dim italic">
+            Nothing has happened yet.
+          </li>
         )}
-        {entries.map(({ tick: eventTick, event }) => (
-          <li
-            key={event.eventId}
-            className={clsx('flex gap-2', {
-              'text-red-300':
-                event.type === 'destroyed' || event.type === 'damage',
-              'text-amber-300':
-                event.type === 'fault' ||
-                event.type === 'disqualified',
-              'text-cyan-200':
-                event.type === 'frontline-progress-changed' ||
-                event.type === 'frontline-position-advanced',
-              'text-violet-200':
-                event.type === 'fabrication-queued' ||
-                event.type === 'fabricated' ||
-                event.type === 'form-transition-started',
-              'text-emerald-200':
-                event.type === 'fabrication-unlocked' ||
-                event.type === 'rebuild-ready' ||
-                event.type === 'form-changed',
-              'text-amber-200':
-                event.type === 'form-transition-cancelled',
-              'text-arena-text':
-                event.type === 'shot' ||
-                event.type === 'move-blocked',
-            })}
-          >
-            <span className="text-arena-dim">
-              {String(eventTick).padStart(3, '0')}
-            </span>
-            <span>{describe(event)}</span>
+        {shown.map(({ tick: eventTick, event }) => (
+          <li key={event.eventId}>
+            <button
+              type="button"
+              onClick={() => onSeek?.(eventTick)}
+              disabled={!onSeek}
+              className={clsx(
+                'grid w-full grid-cols-[2.25rem_1fr] items-baseline gap-2.5 rounded px-2 py-1.5 text-left transition-colors',
+                onSeek && 'hover:bg-arena-raise',
+                eventTick === tick && 'bg-arena-raise',
+              )}
+            >
+              <span className="tabular font-mono text-[11px] text-arena-dim">
+                {String(eventTick).padStart(3, '0')}
+              </span>
+              <span
+                className={clsx(
+                  'text-[13px]',
+                  TERMINAL.has(event.type)
+                    ? 'font-semibold text-arena-hot'
+                    : involves(event)
+                      ? 'text-arena-text'
+                      : 'text-arena-dim',
+                )}
+              >
+                {describe(event)}
+              </span>
+            </button>
           </li>
         ))}
       </ol>

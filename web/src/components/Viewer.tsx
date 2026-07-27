@@ -218,32 +218,62 @@ export default function Viewer({
     >
       <header
         className={clsx(
-          'flex flex-wrap items-baseline gap-x-4 gap-y-1',
+          'relative flex flex-wrap items-center gap-x-4 gap-y-1',
           immersive.active && 'hidden',
         )}
       >
-        <h1 className="text-xl"><Logo size={24} /></h1>
-        <span className="font-mono text-xs text-arena-dim">
-          {replay.map.mapId} · seed {replay.seed} · rules{' '}
-          {replay.versions.gameRulesVersion} ·{' '}
-          {replay.teams
-            .map((team) => teamName(replay, team.teamId))
-            .join(' vs ')}
+        <h1><Logo size={22} /></h1>
+        {/* Who is fighting, not what the match is made of. The map, the seed, the rules
+            version and the hash are provenance — they matter enormously, which is why
+            they get a disclosure of their own rather than a byline nobody reads. */}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          {replay.teams.map((team, index) => (
+            <span key={team.teamKey} className="flex items-center gap-3">
+              {index > 0 && (
+                <span className="type-label text-[10px] text-arena-dim">vs</span>
+              )}
+              <span className="text-[15px] font-semibold text-arena-text">
+                {teamName(replay, team.teamId)}
+              </span>
+            </span>
+          ))}
         </span>
         {isLive ? (
-          <span className="ml-auto flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-0.5 font-mono text-[11px] font-bold text-red-400">
-            <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
-            LIVE
+          <span className="type-label ml-auto flex items-center gap-1.5 rounded-full border border-arena-hot/50 px-2.5 py-0.5 text-[10px] text-arena-hot">
+            <span className="inline-block size-1.5 animate-pulse rounded-full bg-arena-hot" />
+            Live
           </span>
         ) : (
-          replay.replayHash && (
-            <span
-              className="ml-auto font-mono text-[11px] text-arena-dim"
-              title={`replay ${replay.replayHash}`}
-            >
-              #{replay.replayHash.slice(0, 12)}
-            </span>
-          )
+          <details className="group ml-auto">
+            <summary className="type-label cursor-pointer list-none rounded-md border border-arena-edge px-2.5 py-1 text-[10px] text-arena-dim transition-colors hover:border-arena-edge2 hover:text-arena-text">
+              Verify
+            </summary>
+            {/* Determinism is the product's core claim, so the thing that lets anyone
+                check it should be legible and copyable rather than a grey #de24f5aa in
+                the corner. */}
+            <dl className="absolute right-0 z-20 mt-2 grid grid-cols-[4rem_1fr] gap-x-4 gap-y-1.5 rounded-lg border border-arena-edge bg-arena-panel p-3 shadow-lg">
+              <dt className="type-label text-[9px] text-arena-dim">Map</dt>
+              <dd className="tabular font-mono text-[12px] text-arena-text">
+                {replay.map.mapId}
+              </dd>
+              <dt className="type-label text-[9px] text-arena-dim">Seed</dt>
+              <dd className="tabular font-mono text-[12px] text-arena-text">
+                {String(replay.seed)}
+              </dd>
+              <dt className="type-label text-[9px] text-arena-dim">Rules</dt>
+              <dd className="tabular font-mono text-[12px] text-arena-text">
+                {replay.versions.gameRulesVersion}
+              </dd>
+              {replay.replayHash && (
+                <>
+                  <dt className="type-label text-[9px] text-arena-dim">Replay</dt>
+                  <dd className="font-mono text-[12px] break-all text-arena-text">
+                    {replay.replayHash}
+                  </dd>
+                </>
+              )}
+            </dl>
+          </details>
         )}
         {EXTERNAL_SOUNDTRACK_AVAILABLE && (
           <Suspense fallback={null}>
@@ -415,7 +445,12 @@ export default function Viewer({
               onSelectUnit={setSelectedUnitKey}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
             />
-            <EventFeed replay={replay} tick={tick} />
+            <EventFeed
+              replay={replay}
+              tick={tick}
+              selectedUnitKey={selectedUnitKey}
+              onSeek={isLive ? undefined : playback.seek}
+            />
           </div>
         </aside>
       </div>

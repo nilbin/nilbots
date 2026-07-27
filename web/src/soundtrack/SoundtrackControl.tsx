@@ -76,7 +76,7 @@ export default function SoundtrackControl({
           value={controller.volume}
           onChange={(event) => controller.setVolume(Number(event.target.value))}
           aria-label="Soundtrack volume"
-          className="h-1 w-16 accent-sky-400"
+          className="h-1 w-16 accent-(--color-arena-accent)"
         />
       )}
     </div>

@@ -82,7 +82,7 @@ export default function SoundEffectsControl({
             effects.setVolume(Number(event.currentTarget.value))
           }
           aria-label="Sound effects volume"
-          className="h-1 w-16 accent-sky-400"
+          className="h-1 w-16 accent-(--color-arena-accent)"
         />
       )}
     </div>
