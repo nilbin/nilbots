@@ -42,11 +42,28 @@ public static class AccountsEndpoints
             await db.SaveChangesAsync();
             await SignInAsync(http, user);
             return Results.Ok(ToResponse(user));
-        }).Produces<UserResponse>().RequireRateLimiting("auth");
+        }).Produces<UserResponse>().RequireRateLimiting(RateLimitPolicies.Auth);
 
-        group.MapPost("/login", async (LoginRequest request, AppDbContext db, HttpContext http) =>
+        group.MapPost("/login", async (
+            LoginRequest request,
+            AppDbContext db,
+            LoginThrottle throttle,
+            HttpContext http,
+            CancellationToken cancellationToken) =>
         {
             string email = request.Email.Trim().ToLowerInvariant();
+            System.Net.IPAddress? origin = http.Connection.RemoteIpAddress;
+
+            // Checked before the password is, so a guessing run costs a count rather than a
+            // password hash — and durably, because the HTTP limiter's ten a minute is ten
+            // per web process and forgotten on the next deploy.
+            if (!await throttle.IsAllowedAsync(email, origin, cancellationToken))
+            {
+                return Results.Problem(
+                    "Too many sign-in attempts. Wait a few minutes and try again.",
+                    statusCode: 429);
+            }
+
             var user = await db.Users.SingleOrDefaultAsync(u => u.Email == email);
             // A passwordless account — one that has only ever signed in through Google —
             // is refused before the verifier sees it. The message stays deliberately
@@ -56,10 +73,14 @@ public static class AccountsEndpoints
             if (user?.PasswordHash is not { Length: > 0 } hash ||
                 new PasswordHasher<User>().VerifyHashedPassword(user, hash, request.Password)
                     == PasswordVerificationResult.Failed)
+            {
+                await throttle.RecordFailureAsync(email, origin, cancellationToken);
                 return Results.Problem("Invalid email or password.", statusCode: 401);
+            }
+            await throttle.ClearAsync(email, cancellationToken);
             await SignInAsync(http, user);
             return Results.Ok(ToResponse(user));
-        }).Produces<UserResponse>().RequireRateLimiting("auth");
+        }).Produces<UserResponse>().RequireRateLimiting(RateLimitPolicies.Auth);
 
         group.MapPost("/logout", async (HttpContext http) =>
         {

@@ -3,5 +3,6 @@
   "label": "Glass Manta",
   "sprite": "sprite.svg",
   "suggestedAccent": "#67e8f9",
-  "scale": 1.3
+  "scale": 1.3,
+  "defaultProjectileLookId": "prism-fan"
 }

@@ -269,7 +269,7 @@ public static class BotsEndpoints
             return result.Succeeded
                 ? Results.Ok(result.Value)
                 : result.Error!.ToProblemDetails(http);
-        }).Produces<SubmittedBotVersion>().RequireAuthorization().RequireRateLimiting("submission");
+        }).Produces<SubmittedBotVersion>().RequireAuthorization().RequireRateLimiting(RateLimitPolicies.Submission);
 
         group.MapGet("/{botId:guid}/matches", async (
             Guid botId,

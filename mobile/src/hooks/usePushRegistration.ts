@@ -57,11 +57,17 @@ export function usePushRegistration(signedIn: boolean) {
       await api.unregisterDevice(await deviceId());
     };
 
-    // Failures are deliberately swallowed. Push is an enhancement — a player who cannot
-    // register still gets everything in-app and in the inbox, and an error banner about
-    // notification plumbing on launch would be noise.
-    if (signedIn) void register().catch(() => undefined);
-    else void unregister().catch(() => undefined);
+    // Non-fatal, but not silent. Push is an enhancement — a player who cannot register
+    // still gets everything in-app and in the inbox, so an error banner about notification
+    // plumbing at launch would be noise. A swallowed failure with *no* trace is worse
+    // though: this path only runs on real hardware, so the one place it can go wrong is
+    // the one place nobody is watching a console. `warn` keeps it out of the player's way
+    // and in the developer's.
+    const report = (reason: unknown) =>
+      console.warn('[push] registration failed', reason);
+
+    if (signedIn) void register().catch(report);
+    else void unregister().catch(report);
 
     return () => {
       cancelled = true;

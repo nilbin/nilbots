@@ -4,6 +4,7 @@ using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
+using BotArena.App.Store;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+    public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<DeviceRegistration> DeviceRegistrations => Set<DeviceRegistration>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
@@ -115,6 +118,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(notification => notification.DedupeKey).HasMaxLength(200);
             entity.Property(notification => notification.PayloadJson).HasColumnType("jsonb");
             entity.HasOne<User>().WithMany().HasForeignKey(notification => notification.UserId);
+        });
+
+        modelBuilder.Entity<LoginAttempt>(entity =>
+        {
+            // Both counted per window, so both are indexed with the timestamp.
+            entity.HasIndex(attempt => new { attempt.Identifier, attempt.OccurredAt });
+            entity.HasIndex(attempt => new { attempt.NetworkHash, attempt.OccurredAt });
+            entity.Property(attempt => attempt.Identifier).HasMaxLength(200);
+            entity.Property(attempt => attempt.NetworkHash).HasMaxLength(128);
+            // No foreign key: the whole point is recording attempts against addresses that
+            // may not be accounts at all.
+        });
+
+        modelBuilder.Entity<Purchase>(entity =>
+        {
+            // The idempotence key for webhooks: providers retry, and replay by hand.
+            entity.HasIndex(purchase => new { purchase.Provider, purchase.ProviderReference })
+                .IsUnique();
+            entity.HasIndex(purchase => new { purchase.UserId, purchase.PackId });
+            entity.Property(purchase => purchase.PackId).HasMaxLength(80);
+            entity.Property(purchase => purchase.Provider).HasMaxLength(30);
+            entity.Property(purchase => purchase.ProviderReference).HasMaxLength(200);
+            entity.Property(purchase => purchase.State).HasMaxLength(20);
+            entity.Property(purchase => purchase.Currency).HasMaxLength(3);
+            // Restrict, not cascade: a purchase is a financial record and must outlive
+            // tidying up an account.
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(purchase => purchase.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ExternalLogin>(entity =>
