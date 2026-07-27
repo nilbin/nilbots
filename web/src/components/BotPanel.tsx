@@ -1,51 +1,48 @@
 import clsx from 'clsx';
 import { useMemo } from 'react';
-import type { ReplayDocument } from '../types';
+import type {
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../replayModel';
 import { botLook } from '../render/arenaThemes';
 import { createPresenter } from '../replayPresentation';
-import { participantsBySlot } from '../replayParticipants';
+import {
+  participantForUnit,
+  visualIndexForUnit,
+} from '../replayParticipants';
 
 interface BotPanelProps {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   tick: number;
-  selectedSlot: number | null;
+  selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
-  onSelectSlot: (slot: number | null) => void;
+  onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onToggleVisibility: () => void;
 }
 
-/**
- * The viewer's per-tick readout. Every rules-derived number here — control pressure,
- * overtime limits, zone tallies, hold phases — comes from `createPresenter`, which the
- * mobile app's native panels also render from. Deriving any of it inline again would
- * make this a second rules surface to keep in step.
- */
 export default function BotPanel({
   replay,
   tick,
-  selectedSlot,
+  selectedUnitKey,
   showVisibility,
-  onSelectSlot,
+  onSelectUnit,
   onToggleVisibility,
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
-  const participantLookup = useMemo(
-    () => participantsBySlot(replay.header.participants),
-    [replay.header.participants],
-  );
-  const { control, bots } = presenter.at(tick);
+  const { objective, units } = presenter.at(tick);
 
   return (
     <div className="flex flex-col gap-3">
-      {control && (
+      {objective?.kind === 'legacy-control' && (
         <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
           <div className="flex justify-between font-mono text-[11px] text-arena-dim">
-            <span>{control.names[0]}</span>
+            <span>{objective.names[0]}</span>
             <span>
-              {control.overtime ? 'OVERTIME ' : ''}CONTROL {control.pressure > 0 ? '+' : ''}
-              {control.pressure} / ±{control.limit}
+              {objective.overtime ? 'OVERTIME ' : ''}CONTROL{' '}
+              {objective.pressure > 0 ? '+' : ''}
+              {objective.pressure} / ±{objective.limit}
             </span>
-            <span>{control.names[1]}</span>
+            <span>{objective.names[1]}</span>
           </div>
           <div className="relative mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
             <div className="absolute inset-y-0 left-1/2 w-px bg-arena-dim" />
@@ -54,26 +51,68 @@ export default function BotPanel({
               style={{
                 left: `${Math.max(
                   0,
-                  Math.min(100, 50 + (50 * control.pressure) / Math.max(1, control.limit)),
+                  Math.min(
+                    100,
+                    50 +
+                      (50 * objective.pressure) /
+                        Math.max(1, objective.limit),
+                  ),
                 )}%`,
               }}
             />
           </div>
-          {control.phase && (
+          {objective.phase && (
             <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
-              {control.phase}
+              {objective.phase}
             </p>
           )}
         </div>
       )}
 
-      {bots.map((bot) => {
-        const selected = selectedSlot === bot.slot;
-        const look = botLook(participantLookup.get(bot.slot)?.lookId, bot.slot);
+      {objective?.kind === 'frontline' && (
+        <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
+          <div className="flex items-center justify-between font-mono text-[11px] text-arena-dim">
+            <span>FRONTLINE</span>
+            <span>
+              POSITION {objective.activePositionIndex + 1}/
+              {objective.positionCount}
+            </span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
+            <div
+              className={clsx(
+                'h-full transition-[width]',
+                objective.claimingTeamId === null
+                  ? 'bg-arena-dim'
+                  : 'bg-yellow-400',
+              )}
+              style={{
+                width: `${
+                  (100 * Math.abs(objective.captureProgress)) /
+                  Math.max(1, objective.captureThreshold)
+                }%`,
+              }}
+            />
+          </div>
+          <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
+            {objective.phase}
+          </p>
+        </div>
+      )}
+
+      {units.map((unit) => {
+        const selected = selectedUnitKey === unit.unitKey;
+        const participant = participantForUnit(replay, unit.unitKey);
+        const look = botLook(
+          participant?.lookId ?? undefined,
+          visualIndexForUnit(replay, unit.unitKey),
+        );
         return (
           <button
-            key={bot.slot}
-            onClick={() => onSelectSlot(selected ? null : bot.slot)}
+            key={unit.unitKey}
+            onClick={() =>
+              onSelectUnit(selected ? null : unit.unitKey)
+            }
             aria-pressed={selected}
             className={clsx(
               'rounded-lg border p-3 text-left transition-colors',
@@ -87,84 +126,115 @@ export default function BotPanel({
                 {look.image && (
                   <img
                     src={look.imageUrl}
-                    alt={`${bot.lookLabel} chassis`}
+                    alt={`${unit.lookLabel} chassis`}
                     className="size-9 object-contain"
                   />
                 )}
               </span>
               <span>
-                <span className="block font-semibold">{bot.name}</span>
+                <span className="block font-semibold">{unit.name}</span>
                 <span className="block font-mono text-[10px] text-arena-dim">
-                  {bot.lookLabel} · slot {bot.slot} · {bot.runtimeKind}
+                  {unit.lookLabel} ·{' '}
+                  {unit.legacySlot === null
+                    ? `team ${unit.teamId} · unit ${unit.unitId}${unit.lifeId === null ? '' : ` · life ${unit.lifeId}`}`
+                    : `slot ${unit.legacySlot}`}{' '}
+                  · {unit.runtimeKind}
                 </span>
               </span>
               <span
                 className={clsx('ml-auto font-mono text-[11px]', {
-                  'text-emerald-400': bot.status === 'Active',
-                  'text-red-400': bot.status === 'Destroyed',
-                  'text-amber-400': bot.status === 'Disqualified',
+                  'text-emerald-400': unit.status === 'active',
+                  'text-red-400': unit.status === 'destroyed',
+                  'text-amber-400': unit.status === 'disqualified',
+                  'text-cyan-300': unit.status === 'respawning',
                 })}
               >
-                {bot.status.toUpperCase()}
+                {unit.status.toUpperCase()}
+                {unit.status === 'respawning' &&
+                unit.respawnAtTick !== null
+                  ? ` · T${unit.respawnAtTick}`
+                  : ''}
               </span>
             </div>
 
-            <div className="mt-2 flex items-center gap-3 font-mono text-xs">
-              <span aria-label={`Health ${bot.health} of ${bot.maxHealth}`}>
-                {Array.from({ length: bot.maxHealth }, (_, i) => (
+            <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-xs">
+              <span aria-label={`Health ${unit.health} of ${unit.maxHealth}`}>
+                {Array.from({ length: unit.maxHealth }, (_, index) => (
                   <span
-                    key={i}
-                    style={{ color: i < bot.health ? bot.accent : undefined }}
-                    className={i < bot.health ? '' : 'text-arena-edge'}
+                    key={index}
+                    style={{
+                      color:
+                        index < unit.health ? unit.accent : undefined,
+                    }}
+                    className={
+                      index < unit.health ? '' : 'text-arena-edge'
+                    }
                   >
                     ♥
                   </span>
                 ))}
               </span>
               <span className="text-arena-dim">
-                CD <span className="text-arena-text">{bot.cooldown}</span>
+                CD <span className="text-arena-text">{unit.cooldown}</span>
               </span>
-              {bot.energy !== undefined && (
-                <span className="text-arena-dim" aria-label={`Energy ${bot.energy}`}>
-                  ⚡ <span className="text-arena-text">{bot.energy}</span>
+              {unit.energy !== null && (
+                <span
+                  className="text-arena-dim"
+                  aria-label={`Energy ${unit.energy}`}
+                >
+                  ⚡ <span className="text-arena-text">{unit.energy}</span>
                 </span>
               )}
-              {control === null && bot.zoneTicks === null ? null : (
+              {objective === null && unit.zoneTicks === null ? null : (
                 <span
-                  className={clsx(bot.holdingZone ? 'text-yellow-400' : 'text-arena-dim')}
-                  aria-label={control ? 'Active zone hold' : 'Zone ticks'}
-                  title={
-                    control
-                      ? 'Gold = successfully waiting on a zone tile this tick'
-                      : 'Zone ticks (gold = on the zone now)'
-                  }
+                  className={clsx(
+                    unit.holdingObjective
+                      ? 'text-yellow-400'
+                      : 'text-arena-dim',
+                  )}
+                  aria-label="Objective presence"
                 >
                   ⬢{' '}
                   <span className="text-arena-text">
-                    {bot.zoneTicks ?? (bot.holdingZone ? 'HOLD' : 'idle')}
+                    {unit.zoneTicks ??
+                      (unit.holdingObjective ? 'HOLD' : 'idle')}
                   </span>
                 </span>
               )}
-              {bot.action && (
+              {unit.actionId && (
                 <span className="text-arena-dim">
-                  → <span className="text-arena-text">{bot.action}</span>
-                  {bot.actionResult !== 'Success' && (
-                    <span className="text-amber-400"> ({bot.actionResult})</span>
+                  → <span className="text-arena-text">{unit.actionId}</span>
+                  {unit.actionResult !== 'success' && (
+                    <span className="text-amber-400">
+                      {' '}
+                      ({unit.actionResult})
+                    </span>
                   )}
                 </span>
               )}
             </div>
 
-            {selected && bot.debug && (
+            {!unit.canMove && (
+              <p className="mt-2 font-mono text-[10px] tracking-wide text-cyan-300">
+                STATIONARY ·{' '}
+                {unit.omnidirectionalVision ? '360° VISION' : 'DIRECTED VISION'}
+                {' · '}
+                {unit.omnidirectionalShooting
+                  ? '360° FIRE'
+                  : 'DIRECTED FIRE'}
+              </p>
+            )}
+
+            {selected && unit.debug && (
               <pre className="mt-2 overflow-x-auto rounded bg-arena-bg/80 p-2 font-mono text-[11px] whitespace-pre-wrap text-arena-dim">
-                {bot.debug}
+                {unit.debug}
               </pre>
             )}
-            {selected && bot.action && (
+            {selected && unit.actionId && (
               <div className="mt-2 font-mono text-[11px] text-arena-dim">
-                sees {bot.visibleTiles} tiles ·{' '}
-                {bot.visibleEnemies.length > 0
-                  ? `enemy at ${bot.visibleEnemies.map((e) => `(${e.x},${e.y})`).join(' ')}`
+                sees {unit.visibleTiles} tiles ·{' '}
+                {unit.visibleEnemies.length > 0
+                  ? `enemy at ${unit.visibleEnemies.map((enemy) => `(${enemy.x},${enemy.y})`).join(' ')}`
                   : 'no enemies visible'}
               </div>
             )}
@@ -179,7 +249,7 @@ export default function BotPanel({
           onChange={onToggleVisibility}
           className="accent-(--color-arena-accent)"
         />
-        Show selected bot's field of view
+        Show selected unit&apos;s field of view
       </label>
     </div>
   );

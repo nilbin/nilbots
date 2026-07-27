@@ -1,55 +1,58 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReplayDocument } from '../types';
-import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
+import type {
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../replayModel';
+import {
+  usePlayback,
+  useLiveFollower,
+  type LiveFollow,
+} from '../playback';
 import { useAssetReadiness } from '../render/useAssetReadiness';
 import { createPresenter } from '../replayPresentation';
+import {
+  replayBridgeMessage,
+  selectedBridgeMessage,
+  tickBridgeMessage,
+  transportBridgeMessage,
+  type HostedBridgeVersion,
+} from '../hostedBridge';
 import ArenaCanvas from './ArenaCanvas';
 
 /**
- * The viewer reduced to its canvas, for an embedding host that draws its own chrome.
- *
- * The mobile app renders the transport, the control bar and the bot cards natively —
- * they are lists and buttons, and native ones scroll, scrub and feel right in a way a
- * WebView's cannot. What it cannot do natively is the arena itself: that is ~950 lines
- * of Canvas2D over megabytes of atlases, still moving, and worth exactly one
- * implementation.
- *
- * The playback clock stays on this side. The host asks for play/pause/seek and receives
- * a state message per tick; it does not drive `time` frame by frame, which would be a
- * bridge crossing per animation frame for something rAF already does locally.
+ * Canvas-only viewer for an embedding host. Bridge 1 is the historical mobile
+ * protocol and remains replay-v1/slot-only. Bridge 2 is explicit in the query
+ * string and speaks stable units over the version-neutral ReplayModel.
  */
 export default function HostedViewer({
   replay,
   live,
+  bridgeVersion,
 }: {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   live?: LiveFollow;
+  bridgeVersion: HostedBridgeVersion;
 }) {
   const assets = useAssetReadiness();
   const playback = usePlayback(replay, assets.ready);
   const liveTime = useLiveFollower(replay, live);
   const presenter = useMemo(() => createPresenter(replay), [replay]);
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [selectedUnitKey, setSelectedUnitKey] =
+    useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
 
-  // A live broadcast is not played, it is followed: the server's presentation clock says
-  // which tick every viewer is seeing, and the local clock only smooths between polls.
-  // Seeking would desynchronise this viewer from everyone else, which is the one thing
-  // broadcasting exists to prevent — so the host is told there is no transport.
   const following = live !== undefined;
   const time = following ? liveTime : playback.time;
-  // Clamped to 0 when nothing has been released yet, so a countdown-phase replay
-  // reports tick 0 rather than -1.
-  const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
-
+  const tick = Math.max(
+    0,
+    Math.min(Math.floor(time), replay.ticks.length - 1),
+  );
   const post = useRef((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }).current;
 
-  // Commands in. Rebound whenever playback identity changes so the host never holds a
-  // closure over a stale clock.
   useEffect(() => {
-    window.__BOTARENA_CONTROL__ = {
+    const common = {
       play: playback.play,
       pause: playback.pause,
       toggle: playback.toggle,
@@ -57,83 +60,96 @@ export default function HostedViewer({
       step: playback.step,
       seek: playback.seek,
       setSpeed: playback.setSpeed,
-      selectSlot: (slot) => setSelectedSlot(slot),
-      setVisibility: (visible) => setShowVisibility(visible),
+      setVisibility: (visible: boolean) => setShowVisibility(visible),
     };
+    window.__BOTARENA_CONTROL__ =
+      bridgeVersion === 1
+        ? {
+            ...common,
+            selectSlot: (slot: number | null) => {
+              const unit =
+                slot === null
+                  ? null
+                  : replay.units.find(
+                      (candidate) => candidate.teamId === slot,
+                    ) ?? null;
+              setSelectedUnitKey(unit?.unitKey ?? null);
+            },
+          }
+        : {
+            ...common,
+            selectUnit: (unitKey: ReplayStableUnitKey | null) => {
+              setSelectedUnitKey(
+                unitKey !== null &&
+                  replay.units.some(
+                    (candidate) => candidate.unitKey === unitKey,
+                  )
+                  ? unitKey
+                  : null,
+              );
+            },
+          };
     return () => {
       delete window.__BOTARENA_CONTROL__;
     };
-  }, [playback]);
+  }, [bridgeVersion, playback, replay.units]);
 
-  // The header never changes for a replay, so it is sent once rather than per tick.
-  useEffect(() => {
-    post({
-      type: 'replay',
-      header: {
-        mapId: replay.header.mapId,
-        seed: String(replay.header.seed),
-        rulesVersion: replay.header.gameRulesVersion,
-        replayHash: replay.replayHash ?? null,
-        tickCount: presenter.tickCount,
-        maxHealth: presenter.maxHealth,
-        partial: replay.partial ?? false,
-        participants: replay.header.participants.map((participant) => ({
-          slot: participant.slot,
-          name: participant.name,
-          accent: participant.accent,
-          lookId: participant.lookId,
-        })),
-      },
-      result: replay.result
-        ? {
-            winnerSlot: replay.result.winnerSlot,
-            reason: replay.result.reason,
-            endTick: replay.result.endTick,
-          }
-        : null,
-    });
-  }, [replay, presenter, post]);
-
-  // State out, once per tick rather than per frame: the host's readouts change on tick
-  // boundaries, and at 5 ticks/second even 8x playback is a modest message rate.
   const lastSent = useRef<number | null>(null);
+  useEffect(() => {
+    lastSent.current = null;
+    setSelectedUnitKey(null);
+    post(
+      replayBridgeMessage(
+        bridgeVersion,
+        replay,
+        presenter.tickCount,
+        presenter.maxHealth,
+      ),
+    );
+  }, [bridgeVersion, replay, presenter, post]);
+
   useEffect(() => {
     if (lastSent.current === tick) return;
     lastSent.current = tick;
-    post({ type: 'tick', ...presenter.at(tick) });
-  }, [tick, presenter, post]);
+    post(tickBridgeMessage(bridgeVersion, presenter.at(tick)));
+  }, [bridgeVersion, tick, presenter, post]);
 
-  // Transport state changes on its own schedule, so it rides separately.
   useEffect(() => {
-    post({
-      type: 'transport',
-      playing: following || playback.playing,
-      speed: playback.speed,
-      tick,
-      tickCount: playback.tickCount,
-      atEnd: !following && playback.atEnd,
-      // The host hides its transport on this: a follower must not be able to seek away
-      // from the moment every other viewer is on.
-      following,
-      // The app renders only the canvas, so a loader built into this page would never
-      // reach it. Readiness rides with the transport instead.
-      loading: !assets.ready,
-      pendingAssets: assets.pending,
-    });
-  }, [following, playback.playing, playback.speed, playback.atEnd, tick, playback.tickCount, assets.ready, assets.pending, post]);
+    post(
+      transportBridgeMessage(bridgeVersion, {
+        playing: following || playback.playing,
+        speed: playback.speed,
+        tick,
+        tickCount: playback.tickCount,
+        atEnd: !following && playback.atEnd,
+        following,
+        loading: !assets.ready,
+        pendingAssets: assets.pending,
+      }),
+    );
+  }, [
+    assets.pending,
+    assets.ready,
+    bridgeVersion,
+    following,
+    playback.atEnd,
+    playback.playing,
+    playback.speed,
+    playback.tickCount,
+    post,
+    tick,
+  ]);
 
   return (
     <div className="relative h-screen w-screen bg-arena-bg">
       <ArenaCanvas
         replay={replay}
         time={time}
-        selectedSlot={selectedSlot}
+        selectedUnitKey={selectedUnitKey}
         showVisibility={showVisibility}
-        onSelectSlot={(slot) => {
-          setSelectedSlot(slot);
-          // Tapping a bot on the canvas has to move the host's selection too, or the
-          // native cards would disagree with what the arena is highlighting.
-          post({ type: 'selected', slot });
+        onSelectUnit={(unitKey) => {
+          setSelectedUnitKey(unitKey);
+          post(selectedBridgeMessage(bridgeVersion, replay, unitKey));
         }}
       />
     </div>

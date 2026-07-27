@@ -1,139 +1,270 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ReplayDocument } from './types';
 import HostedViewer from './components/HostedViewer';
 import type { LiveFollow } from './playback';
 import Viewer from './components/Viewer';
-import ReplayPicker, { type ReplayChoice } from './components/ReplayPicker';
+import ReplayPicker, {
+  type ReplayChoice,
+} from './components/ReplayPicker';
+import {
+  loadReplayJson,
+  loadReplayObject,
+  type LoadedReplay,
+} from './replayIngress';
+import {
+  bridgeSupportsReplay,
+  errorBridgeMessage,
+  hostedBridgeVersion,
+  loadedBridgeMessage,
+  readyBridgeMessage,
+} from './hostedBridge';
 
-/// Standalone viewer mode: replay embedded by the CLI, served as replay.json, or pushed
-/// in by an embedding host (the mobile app) through window.__BOTARENA_LOAD__.
+interface InitialReplay {
+  loaded: LoadedReplay | null;
+  error: string | null;
+  unsupported: boolean;
+}
+
 export default function App() {
-  const [replay, setReplay] = useState<ReplayDocument | null>(
-    window.__BOTARENA_REPLAY__ ?? null,
+  const hosted = Boolean(window.ReactNativeWebView);
+  const bridgeVersion = hostedBridgeVersion(window.location.search);
+  const embeddedPresent = window.__BOTARENA_REPLAY__ !== undefined;
+  const [initial] = useState<InitialReplay>(() =>
+    decodeEmbeddedReplay(hosted, bridgeVersion),
   );
-  const [loadError, setLoadError] = useState<string | null>(null);
-  // An embedding host decides which replay is shown, so this page must not also go
-  // looking for replay.json. Not a race to be won by ordering: served from the site that
-  // request 404s, and its rejection would land *after* the host's replay and replace it
-  // with an error. Detected up front rather than on first __BOTARENA_LOAD__ call, so the
-  // fallback never starts.
-  const hosted = typeof window !== 'undefined' && Boolean(window.ReactNativeWebView);
-  // Present only while the host is following a broadcast; cleared when it stops, which
-  // is what hands control back to the local transport once the broadcast completes.
+  const [loadedReplay, setLoadedReplay] = useState<LoadedReplay | null>(
+    initial.loaded,
+  );
+  const [loadError, setLoadError] = useState<string | null>(initial.error);
   const [live, setLive] = useState<LiveFollow | undefined>(undefined);
-  // The URL currently shown, so a re-load of the *same* replay refreshes it in place. A
-  // broadcast grows tick by tick and the host re-requests it as it does; blanking the
-  // canvas on each of those would strobe the arena several times a second.
-  const loaded = useRef<string | null>(null);
-  // A review build can carry several replays so treatments can be compared without
-  // reloading. Absent everywhere else, which leaves the CLI viewer and the site alone.
+  const loadedUrl = useRef<string | null>(null);
   const [choices, setChoices] = useState<readonly ReplayChoice[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-
-  const loadChoice = useCallback((choice: ReplayChoice) => {
-    setActiveId(choice.id);
-    setLoadError(null);
-    setReplay(null);
-    return fetch(choice.url)
-      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
-      .then((data: ReplayDocument) => setReplay(data))
-      .catch(() => setLoadError('Could not load that replay.'));
-  }, []);
 
   const notifyHost = useCallback((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }, []);
 
+  const acceptReplay = useCallback(
+    (candidate: LoadedReplay, notifyLoaded: boolean) => {
+      if (
+        hosted &&
+        !bridgeSupportsReplay(bridgeVersion, candidate.replay)
+      ) {
+        // Unmount the previous HostedViewer before reporting the rejection:
+        // bridge 1 must never continue sending stale replay/tick messages after
+        // it is handed a replay-v2 document.
+        setLoadedReplay(null);
+        setLive(undefined);
+        notifyHost(
+          errorBridgeMessage(
+            bridgeVersion,
+            'unsupported-replay-version',
+          ),
+        );
+        return;
+      }
+      setLoadedReplay(candidate);
+      if (notifyLoaded) {
+        notifyHost(loadedBridgeMessage(bridgeVersion));
+      }
+    },
+    [bridgeVersion, hosted, notifyHost],
+  );
+
+  const fetchReplay = useCallback(
+    async (url: string): Promise<LoadedReplay> => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(String(response.status));
+      return loadReplayJson(await response.text());
+    },
+    [],
+  );
+
+  const loadChoice = useCallback(
+    (choice: ReplayChoice) => {
+      setActiveId(choice.id);
+      setLoadError(null);
+      setLoadedReplay(null);
+      return fetchReplay(choice.url)
+        .then((candidate) => acceptReplay(candidate, false))
+        .catch(() => setLoadError('Could not load that replay.'));
+    },
+    [acceptReplay, fetchReplay],
+  );
+
   useEffect(() => {
     window.__BOTARENA_LOAD__ = (source) => {
       setLoadError(null);
       setLive(source.live ?? undefined);
-      if ('replay' in source) {
-        setReplay(source.replay);
-        notifyHost({ type: 'loaded' });
+      if ('json' in source) {
+        try {
+          acceptReplay(loadReplayJson(source.json), true);
+        } catch (reason) {
+          setLoadedReplay(null);
+          notifyHost(
+            errorBridgeMessage(bridgeVersion, String(reason)),
+          );
+        }
         return;
       }
-      // Fetched here rather than handed over as JSON: the host and this page are the
-      // same origin, and pushing a whole replay document across the native bridge as a
-      // string is both slower and bounded in size.
-      if (loaded.current !== source.url) {
-        setReplay(null);
-        loaded.current = source.url;
+      if ('replay' in source) {
+        try {
+          acceptReplay(loadReplayObject(source.replay), true);
+        } catch (reason) {
+          setLoadedReplay(null);
+          notifyHost(
+            errorBridgeMessage(bridgeVersion, String(reason)),
+          );
+        }
+        return;
       }
-      fetch(source.url)
-        .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
-        .then((data: ReplayDocument) => {
-          setReplay(data);
-          notifyHost({ type: 'loaded' });
-        })
+
+      if (loadedUrl.current !== source.url) {
+        setLoadedReplay(null);
+        loadedUrl.current = source.url;
+      }
+      void fetchReplay(source.url)
+        .then((candidate) => acceptReplay(candidate, true))
         .catch((reason) => {
           setLoadError('Could not load that replay.');
-          notifyHost({ type: 'error', reason: String(reason) });
+          notifyHost(
+            errorBridgeMessage(bridgeVersion, String(reason)),
+          );
         });
     };
 
-    // A host cannot call __BOTARENA_LOAD__ before this runs, so announce that it can.
-    notifyHost({ type: 'ready' });
+    notifyHost(readyBridgeMessage(bridgeVersion));
+    if (initial.unsupported) {
+      notifyHost(
+        errorBridgeMessage(
+          bridgeVersion,
+          'unsupported-replay-version',
+        ),
+      );
+    }
     return () => {
       delete window.__BOTARENA_LOAD__;
     };
-  }, [notifyHost]);
+  }, [
+    acceptReplay,
+    bridgeVersion,
+    fetchReplay,
+    initial.unsupported,
+    notifyHost,
+  ]);
 
-  // Offer the review build's replay set, when there is one.
   useEffect(() => {
     if (hosted) return;
     let cancelled = false;
-    fetch('replays.json')
-      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
+    void fetch('replays.json')
+      .then((response) =>
+        response.ok
+          ? response.json()
+          : Promise.reject(response.status),
+      )
       .then((entries: ReplayChoice[]) => {
         if (cancelled || entries.length === 0) return;
         setChoices(entries);
         void loadChoice(entries[0]);
       })
       .catch(() => {
-        // No index: a single-replay viewer, which is the normal case.
+        // No review index: the normal single-replay viewer.
       });
     return () => {
       cancelled = true;
     };
-  }, [hosted]);
+  }, [hosted, loadChoice]);
 
   useEffect(() => {
-    if (replay || hosted || choices.length > 0) return;
-    fetch('replay.json')
-      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
-      .then((data: ReplayDocument) => setReplay(data))
+    if (
+      loadedReplay ||
+      hosted ||
+      embeddedPresent ||
+      choices.length > 0
+    )
+      return;
+    void fetchReplay('replay.json')
+      .then((candidate) => acceptReplay(candidate, false))
       .catch(() =>
         setLoadError(
           'No replay embedded and no replay.json found. Generate one with: nilbots play',
         ),
       );
-  }, [replay, hosted, choices.length]);
+  }, [
+    acceptReplay,
+    choices.length,
+    embeddedPresent,
+    fetchReplay,
+    hosted,
+    loadedReplay,
+  ]);
 
   if (loadError) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p className="max-w-md font-mono text-sm text-arena-dim">{loadError}</p>
+        <p className="max-w-md font-mono text-sm text-arena-dim">
+          {loadError}
+        </p>
       </div>
     );
   }
-  if (!replay) {
+  if (!loadedReplay) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p className="font-mono text-sm text-arena-dim">Loading replay…</p>
+        <p className="font-mono text-sm text-arena-dim">
+          Loading replay…
+        </p>
       </div>
     );
   }
-  // A host supplies its own header, transport and readouts, so it gets the canvas alone;
-  // rendering the full viewer inside it would duplicate all three.
-  if (hosted) return <HostedViewer replay={replay} live={live} />;
+
+  const replay = loadedReplay.replay;
+  if (hosted) {
+    return (
+      <HostedViewer
+        replay={replay}
+        live={live}
+        bridgeVersion={bridgeVersion}
+      />
+    );
+  }
   if (choices.length < 2) return <Viewer replay={replay} />;
   return (
     <div className="flex h-full flex-col gap-2 p-3 pb-0 md:p-5 md:pb-0">
-      <ReplayPicker choices={choices} activeId={activeId} onSelect={loadChoice} />
+      <ReplayPicker
+        choices={choices}
+        activeId={activeId}
+        onSelect={loadChoice}
+      />
       <div className="min-h-0 flex-1">
         <Viewer replay={replay} />
       </div>
     </div>
   );
+}
+
+function decodeEmbeddedReplay(
+  hosted: boolean,
+  bridgeVersion: 1 | 2,
+): InitialReplay {
+  const embedded = window.__BOTARENA_REPLAY__;
+  if (embedded === undefined) {
+    return { loaded: null, error: null, unsupported: false };
+  }
+  try {
+    const loaded =
+      typeof embedded === 'string'
+        ? loadReplayJson(embedded)
+        : loadReplayObject(embedded);
+    if (hosted && !bridgeSupportsReplay(bridgeVersion, loaded.replay)) {
+      return { loaded: null, error: null, unsupported: true };
+    }
+    return { loaded, error: null, unsupported: false };
+  } catch {
+    return {
+      loaded: null,
+      error: 'The embedded replay is not valid.',
+      unsupported: false,
+    };
+  }
 }

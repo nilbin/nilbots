@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { participantsBySlot } from '../src/replayParticipants.ts';
-import type { ReplayParticipant } from '../src/types.ts';
+import { participantsById } from '../src/replayParticipants.ts';
+import type { ReplayParticipantController } from '../src/replayModel.ts';
 
-test('participant lookup follows slots when replay order is reversed', () => {
-  const lookup = participantsBySlot([
+test('participant lookup follows IDs when replay order is reversed', () => {
+  const lookup = participantsById([
     participant(1, 'second'),
     participant(0, 'first'),
   ]);
@@ -13,8 +13,8 @@ test('participant lookup follows slots when replay order is reversed', () => {
   assert.equal(lookup.get(1)?.name, 'second');
 });
 
-test('participant lookup supports sparse slots without treating positions as identities', () => {
-  const lookup = participantsBySlot([
+test('participant lookup supports sparse IDs without treating positions as identities', () => {
+  const lookup = participantsById([
     participant(9, 'ninth'),
     participant(3, 'third'),
   ]);
@@ -25,15 +25,20 @@ test('participant lookup supports sparse slots without treating positions as ide
   assert.equal(lookup.get(1), undefined);
 });
 
-function participant(slot: number, name: string): ReplayParticipant {
+function participant(
+  participantId: number,
+  name: string,
+): ReplayParticipantController {
   return {
-    slot,
+    participantKey: `participant:${participantId}`,
+    participantId,
+    teamKey: `team:${participantId}`,
+    teamId: participantId,
     name,
     runtimeKind: 'wasm',
     artifactHash: '',
     accent: '#ffffff',
-    spawnX: 0,
-    spawnY: 0,
-    spawnFacing: 'North',
+    lookId: null,
+    projectileLookId: null,
   };
 }

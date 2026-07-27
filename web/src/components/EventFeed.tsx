@@ -1,60 +1,67 @@
 import { useEffect, useMemo, useRef } from 'react';
 import clsx from 'clsx';
-import type { GameEvent, ReplayDocument } from '../types';
-import { participantsBySlot } from '../replayParticipants';
+import type { ReplayCausalEvent, ReplayModel } from '../replayModel';
+import { actorName, teamName } from '../replayParticipants';
 
 export default function EventFeed({
   replay,
   tick,
 }: {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   tick: number;
 }) {
   const feedRef = useRef<HTMLOListElement>(null);
-  const participantLookup = useMemo(
-    () => participantsBySlot(replay.header.participants),
-    [replay.header.participants],
-  );
-
   const entries = useMemo(() => {
-    const list: { tick: number; event: GameEvent }[] = [];
-    for (const t of replay.ticks) {
-      if (t.tick > tick) break;
-      for (const event of t.events) {
-        if (event.type === 'Move' || event.type === 'Turn') continue; // Too chatty for a feed.
-        list.push({ tick: t.tick, event });
+    const list: { tick: number; event: ReplayCausalEvent }[] = [];
+    for (const replayTick of replay.ticks) {
+      if (replayTick.tick > tick) break;
+      for (const event of [
+        ...replayTick.lifecycleEvents,
+        ...replayTick.events,
+      ]) {
+        if (event.type === 'move' || event.type === 'turn') continue;
+        list.push({ tick: replayTick.tick, event });
       }
     }
     return list.slice(-80);
   }, [replay, tick]);
 
   useEffect(() => {
-    // Scroll only the feed's own container — scrollIntoView walks every
-    // scrollable ancestor, which on stacked (mobile) layouts yanked the whole
-    // page down to the feed on every event, hiding the arena.
-    const el = feedRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    const element = feedRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
   }, [entries.length]);
 
-  const name = (slot: number | undefined) =>
-    slot === undefined ? '?' : (participantLookup.get(slot)?.name ?? `slot ${slot}`);
-
-  const describe = ({ event }: { event: GameEvent }): string => {
+  const describe = (event: ReplayCausalEvent): string => {
     switch (event.type) {
-      case 'Shot':
-        return event.hitSlot !== undefined && event.hitSlot !== null
-          ? `${name(event.slot)} hits ${name(event.hitSlot)}`
-          : `${name(event.slot)} fires and misses`;
-      case 'Damage':
-        return `${name(event.targetSlot)} takes ${event.amount} damage (${event.newHealth} hp left)`;
-      case 'Destroyed':
-        return `${name(event.slot)} is destroyed`;
-      case 'MoveBlocked':
-        return `${name(event.slot)} bumps into something`;
-      case 'Fault':
-        return `${name(event.slot)} runtime fault: ${event.message ?? ''}`;
-      case 'Disqualified':
-        return `${name(event.slot)} is disqualified`;
+      case 'shot':
+        return event.targetActor
+          ? `${actorName(replay, event.sourceActor)} hits ${actorName(replay, event.targetActor)}`
+          : `${actorName(replay, event.sourceActor)} fires`;
+      case 'damage':
+        return (
+          `${actorName(replay, event.targetActor)} takes ${event.amount ?? '?'} damage` +
+          (event.newHealth === null
+            ? ''
+            : ` (${event.newHealth} hp left)`)
+        );
+      case 'destroyed':
+        return `${actorName(replay, event.targetActor)} is destroyed`;
+      case 'respawned':
+        return `${actorName(replay, event.sourceActor)} returns`;
+      case 'move-blocked':
+        return `${actorName(replay, event.sourceActor)} bumps into something`;
+      case 'fault':
+        return `${actorName(replay, event.sourceActor)} runtime fault`;
+      case 'disqualified':
+        return `${actorName(replay, event.targetActor)} is disqualified`;
+      case 'frontline-progress-changed':
+        return event.claimingTeamId === null
+          ? 'Frontline pressure neutralizes'
+          : `${teamName(replay, event.claimingTeamId)} advances capture to ${event.captureProgress ?? 0}`;
+      case 'frontline-position-advanced':
+        return `Frontline moves to position ${(event.toPositionIndex ?? 0) + 1}`;
+      case 'base-breached':
+        return `${teamName(replay, event.teamId ?? -1)} breaches the base`;
       default:
         return event.type;
     }
@@ -73,18 +80,27 @@ export default function EventFeed({
         {entries.length === 0 && (
           <li className="text-arena-dim italic">No combat events yet…</li>
         )}
-        {entries.map(({ tick: t, event }, index) => (
+        {entries.map(({ tick: eventTick, event }) => (
           <li
-            key={index}
+            key={event.eventId}
             className={clsx('flex gap-2', {
-              'text-red-300': event.type === 'Destroyed' || event.type === 'Damage',
-              'text-amber-300': event.type === 'Fault' || event.type === 'Disqualified',
+              'text-red-300':
+                event.type === 'destroyed' || event.type === 'damage',
+              'text-amber-300':
+                event.type === 'fault' ||
+                event.type === 'disqualified',
+              'text-cyan-200':
+                event.type === 'frontline-progress-changed' ||
+                event.type === 'frontline-position-advanced',
               'text-arena-text':
-                event.type === 'Shot' || event.type === 'MoveBlocked',
+                event.type === 'shot' ||
+                event.type === 'move-blocked',
             })}
           >
-            <span className="text-arena-dim">{String(t).padStart(3, '0')}</span>
-            <span>{describe({ event })}</span>
+            <span className="text-arena-dim">
+              {String(eventTick).padStart(3, '0')}
+            </span>
+            <span>{describe(event)}</span>
           </li>
         ))}
       </ol>

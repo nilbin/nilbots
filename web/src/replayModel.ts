@@ -101,6 +101,372 @@ export interface ReplayPosition {
   y: number;
 }
 
+export type ReplayObjectiveMode =
+  | 'none'
+  | 'zone-ticks'
+  | 'shared-pressure'
+  | 'frontline';
+export type ReplayScoreMetric = 'objective' | 'health' | 'damage-dealt';
+export type ReplayTeamPerception = 'individual' | 'immediate-union';
+export type ReplayActionParameterKind =
+  | 'shot-program'
+  | 'direction'
+  | 'unit-target'
+  | 'form-target';
+export type ReplayActionKind =
+  | 'wait'
+  | 'movement'
+  | 'rotation'
+  | 'attack'
+  | (string & {});
+export type ReplayTickResolutionPhase =
+  | 'freeze-observations'
+  | 'collect-joint-decisions'
+  | 'validate-actions'
+  | 'rotate'
+  | 'move'
+  | 'advance-existing-projectiles'
+  | 'launch-shots-and-apply-damage'
+  | 'update-cooldowns-and-energy'
+  | 'apply-runtime-faults'
+  | 'update-objective'
+  | 'resolve-match-completion'
+  | 'apply-tick-start-lifecycle'
+  | 'queue-destroyed-lives';
+
+export interface ReplayContractLimits {
+  maxTicks: number;
+  faultLimit: number;
+  teamCount: number;
+  participantCount: number;
+  unitSlotCount: number;
+  initialUnitsPerTeam: number;
+  maxUnitsPerTeam: number;
+  destructionEndsMatch: boolean;
+  respawnsEnabled: boolean;
+}
+
+export interface ReplayContractObjective {
+  mode: ReplayObjectiveMode;
+  zoneControlEnabled: boolean;
+  zoneDominationTicks: number;
+  zoneExclusiveAccrual: boolean;
+  sharedPressureEnabled: boolean;
+  controlBySoleOccupancy: boolean;
+  controlPressureLimit: number;
+  controlPressureGain: number;
+  controlPressureDecayInterval: number;
+  overtime: {
+    startTick: number;
+    pressureLimit: number;
+    pressureGain: number;
+    stopsDecay: boolean;
+  };
+  maxTickTiebreakers: ReplayScoreMetric[];
+}
+
+export interface ReplayContractFrontlineDefinition {
+  teamCount: number;
+  participantsPerTeam: number;
+  frontlinePositionCount: number;
+  initialUnitsPerTeam: number;
+  maxUnitsPerTeam: number;
+  teamPerception: ReplayTeamPerception;
+  capture: {
+    threshold: number;
+    gainPerSoleTeamTick: number;
+    decayAmount: number;
+    decayIntervalTicks: number;
+    redeployPauseTicks: number;
+    pushesToBreach: number;
+  };
+  lifecycle: {
+    primeRespawnTicks: number;
+    childRebuildTicks: number;
+    fabricationUnlockTicks: number[];
+  };
+  anchor: {
+    windupTicks: number;
+    healthGain: number;
+    irreversibleForLife: boolean;
+  };
+  alliedCombat: {
+    friendlyFireEnabled: boolean;
+    alliedProjectilesBlock: boolean;
+  };
+}
+
+export interface ReplayContractEnergyRules {
+  enabled: boolean;
+  maxEnergy: number;
+  shotEnergyCost: number;
+  regenerationIntervalTicks: number;
+  regenerationAmount: number;
+}
+
+export interface ReplayContractForm {
+  id: string;
+  maxHealth: number;
+  visionRange: number;
+  shootCooldownTicks: number;
+  omnidirectionalVision: boolean;
+  omnidirectionalShooting: boolean;
+  movementLayer: 'ground';
+  objectiveWeight: number;
+  canMove: boolean;
+  canShoot: boolean;
+  allowsProgrammedShots: boolean;
+  allowedActionIds: string[];
+}
+
+export interface ReplayContractAction {
+  id: string;
+  code: number;
+  kind: ReplayActionKind;
+  parameterKinds: ReplayActionParameterKind[];
+  enabled: boolean;
+}
+
+export interface ReplayContractProjectileRules {
+  mode: 'instant-ray' | 'discrete';
+  damagePerHit: number;
+  maxTravelTiles: number;
+  shootCooldownTicks: number;
+  ticksPerAdvance: number;
+  tilesPerAdvance: number;
+  launchTiles: number;
+  advancesOnLaunchTick: boolean;
+  damageAppliedSimultaneously: boolean;
+}
+
+export interface ReplayContractShotProgramRules {
+  enabled: boolean;
+  headingSectors: number;
+  bendStepOctants: number;
+  minInitialAimOctants: number;
+  maxInitialAimOctants: number;
+  aimOnlyProgram: Omit<ReplayShotProgram, 'initialAimOffset'>;
+  allowedCurvedBendDirections: number[];
+  minBendAfterTiles: number;
+  maxBendAfterTiles: number;
+  minBendEveryTiles: number;
+  maxBendEveryTiles: number;
+  minBendCount: number;
+  maxBendCount: number;
+  launchTiles: number;
+  payloadOptional: boolean;
+  defaultProgram: ReplayShotProgram;
+  invalidPayloadResult: 'blocked' | 'faulted' | 'rejected' | null;
+  unsupportedPayloadResult: 'blocked' | 'faulted' | 'rejected';
+  diagonalCornersMustBeClear: boolean;
+}
+
+export interface ReplayContractVisionRules {
+  range: number;
+  distanceMetric: 'chebyshev';
+  shape: 'omnidirectional' | 'facing-quadrant';
+  omnidirectionalProximityRange: number;
+  lineOfSight: 'corner-strict-supercover';
+  hearingRadius: number;
+  hearingBearingSectors: number;
+  hearingDistanceBandUpperBounds: number[];
+  loudEventTypes: string[];
+}
+
+export interface ReplayContractCollisionRules {
+  unitsBlockWalls: boolean;
+  unitsBlockUnits: boolean;
+  sameDestinationMovesBlockAll: boolean;
+  swapMovesBlocked: boolean;
+  followingVacatedUnitAllowed: boolean;
+  projectilesBlockMovement: boolean;
+  movingOntoProjectileCausesHit: boolean;
+  wallsConsumeProjectiles: boolean;
+  projectilesIgnoreOwner: boolean;
+  projectilesStopOnFirstNonOwnerUnit: boolean;
+  projectilesCollideWithProjectiles: boolean;
+}
+
+export interface ReplayContractTickResolutionRules {
+  observationsUsePreTickState: boolean;
+  decisionsResolveAsJointStep: boolean;
+  phases: ReplayTickResolutionPhase[];
+}
+
+export interface ReplayExactRulesContract {
+  schemaVersion: number;
+  rulesetId: string;
+  rulesFingerprint: string;
+  limits: ReplayContractLimits;
+  objective: ReplayContractObjective;
+  frontlineDefinition: ReplayContractFrontlineDefinition | null;
+  energy: ReplayContractEnergyRules;
+  forms: ReplayContractForm[];
+  actions: ReplayContractAction[];
+  projectiles: ReplayContractProjectileRules;
+  shotPrograms: ReplayContractShotProgramRules;
+  vision: ReplayContractVisionRules;
+  collisions: ReplayContractCollisionRules;
+  tickResolution: ReplayContractTickResolutionRules;
+}
+
+export interface ReplayContractMapSpawn {
+  teamId: number;
+  position: ReplayPosition;
+  facing: ReplayDirection;
+}
+
+export interface ReplayContractMap {
+  schemaVersion: number;
+  mapId: string;
+  mapVersion: number;
+  mapFingerprint: string;
+  formatVersion: number;
+  width: number;
+  height: number;
+  tileRows: string[];
+  spawns: ReplayContractMapSpawn[];
+  objectiveTiles: ReplayPosition[];
+  frontline: ReplayFrontlineMap | null;
+}
+
+export interface ReplayContractTopology {
+  teamCount: number;
+  participantCount: number;
+  unitSlotCount: number;
+  initialLifeCount: number;
+  teams: {
+    teamId: number;
+    teamKey: ReplayTeamKey;
+  }[];
+  participants: {
+    participantId: number;
+    participantKey: ReplayParticipantKey;
+    teamId: number;
+    teamKey: ReplayTeamKey;
+  }[];
+  unitSlots: {
+    teamId: number;
+    teamKey: ReplayTeamKey;
+    unitId: number;
+    unitKey: ReplayStableUnitKey;
+    controllerParticipantId: number;
+    controllerParticipantKey: ReplayParticipantKey;
+  }[];
+  initialLives: {
+    teamId: number;
+    unitId: number;
+    lifeId: number;
+    actorKey: ReplayActorLifeKey;
+    unitKey: ReplayStableUnitKey;
+    formId: string;
+  }[];
+}
+
+export interface ReplayExactMatchContract {
+  kind: 'v2-full';
+  completeness: 'exact';
+  schemaVersion: number;
+  matchContractFingerprint: string;
+  rules: ReplayExactRulesContract;
+  map: ReplayContractMap;
+  topology: ReplayContractTopology;
+}
+
+export interface ReplayLegacyPartialRulesContract {
+  schemaVersion: null;
+  rulesetId: string;
+  rulesFingerprint: null;
+  limits: {
+    maxTicks: number;
+    faultLimit: null;
+    teamCount: number;
+    participantCount: number;
+    unitSlotCount: number;
+    initialUnitsPerTeam: number;
+    maxUnitsPerTeam: number;
+    destructionEndsMatch: null;
+    respawnsEnabled: null;
+  };
+  objective: {
+    mode: Exclude<ReplayObjectiveMode, 'frontline'>;
+    zoneTiles: ReplayPosition[] | null;
+    zoneDominationTicks: null;
+    zoneExclusiveAccrual: null;
+    sharedPressureEnabled: boolean;
+    controlBySoleOccupancy: boolean | null;
+    controlPressureLimit: number | null;
+    controlPressureGain: null;
+    controlPressureDecayInterval: null;
+    overtime: {
+      startTick: number | null;
+      pressureLimit: number | null;
+      pressureGain: number | null;
+      stopsDecay: boolean | null;
+    };
+    maxTickTiebreakers: null;
+  };
+  frontlineDefinition: null;
+  energy: null;
+  forms: null;
+  actions: null;
+  projectiles: null;
+  shotPrograms: {
+    enabled: boolean | null;
+    limits: {
+      maxInitialAimOctants: number;
+      maxBendAfterTiles: number;
+      maxBendEveryTiles: number;
+      maxBendCount: number;
+      maxPathTiles: number;
+      launchTiles: number;
+      tilesPerAdvance: number;
+    } | null;
+  };
+  vision: {
+    range: number;
+    shape: 'omnidirectional' | 'facing-quadrant' | null;
+    distanceMetric: null;
+    omnidirectionalProximityRange: null;
+    lineOfSight: null;
+    hearingRadius: null;
+    hearingBearingSectors: null;
+    hearingDistanceBandUpperBounds: null;
+    loudEventTypes: null;
+  };
+  collisions: null;
+  tickResolution: null;
+  legacyMaxHealth: number | null;
+}
+
+export interface ReplayLegacyPartialMapContract {
+  schemaVersion: null;
+  mapId: string;
+  mapVersion: number;
+  mapFingerprint: null;
+  formatVersion: null;
+  width: number;
+  height: number;
+  tileRows: string[];
+  spawns: ReplayContractMapSpawn[];
+  objectiveTiles: ReplayPosition[] | null;
+  frontline: null;
+}
+
+export interface ReplayLegacyPartialMatchContract {
+  kind: 'legacy-partial';
+  completeness: 'legacy-partial';
+  schemaVersion: null;
+  matchContractFingerprint: null;
+  rules: ReplayLegacyPartialRulesContract;
+  map: ReplayLegacyPartialMapContract;
+  topology: ReplayContractTopology;
+}
+
+export type ReplayMatchContract =
+  | ReplayExactMatchContract
+  | ReplayLegacyPartialMatchContract;
+
 export interface ReplayParticipantController {
   participantKey: ReplayParticipantKey;
   participantId: number;
@@ -190,7 +556,8 @@ export type ReplayUnitLifecycleStatus =
   | 'active'
   | 'respawning'
   | 'destroyed'
-  | 'disqualified';
+  | 'disqualified'
+  | (string & {});
 
 export interface ReplayActorState {
   identity: ReplayActorIdentity;
@@ -566,11 +933,18 @@ export interface ReplayHeaderVersions {
 export interface ReplayModel {
   sourceVersion: ReplaySourceVersion;
   versions: ReplayHeaderVersions;
-  /** Always a decimal string in the normalized model. */
+  /**
+   * Decimal seed text. Exact for replay-v2 and for replay-v1 decoded from raw
+   * JSON through decodeReplayJson. Object-only replay-v1 decoding can only
+   * preserve the already-rounded JavaScript number; consult seedExact.
+   */
   seed: string;
+  seedExact: boolean;
+  seedEncoding: 'legacy-json-number' | 'decimal-string';
   partial: boolean;
   replayHash: string | null;
   matchContractFingerprint: string | null;
+  contract: ReplayMatchContract;
   map: ReplayMap;
   forms: ReplayForm[];
   participants: ReplayParticipantController[];

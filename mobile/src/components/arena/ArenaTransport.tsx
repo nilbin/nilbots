@@ -29,27 +29,54 @@ export function ArenaTransportBar({
 }) {
   const tickCount = transport?.tickCount ?? 0;
   const tick = transport?.tick ?? 0;
-  const progress = tickCount > 0 ? Math.min(1, tick / tickCount) : 0;
+  const loading = transport?.loading ?? true;
+  const progress =
+    tickCount > 1 ? Math.min(1, tick / (tickCount - 1)) : 0;
 
   return (
     <View style={styles.container}>
-      <Scrubber progress={progress} tickCount={tickCount} onSeek={onSeek} />
+      <Scrubber
+        progress={progress}
+        tickCount={tickCount}
+        disabled={loading}
+        onSeek={onSeek}
+      />
 
       <View style={styles.row}>
         <Text style={styles.counter}>
-          {String(tick).padStart(3, '0')}/{String(Math.max(0, tickCount - 1)).padStart(3, '0')}
+          {loading
+            ? `loading${transport?.pendingAssets ? ` ${transport.pendingAssets}` : ''}`
+            : `${String(tick).padStart(3, '0')}/${String(
+                Math.max(0, tickCount - 1),
+              ).padStart(3, '0')}`}
         </Text>
 
         <View style={styles.buttons}>
-          <TransportButton label="⏮" hint="Restart" onPress={onRestart} />
-          <TransportButton label="◀" hint="Step back one tick" onPress={() => onStep(-1)} />
+          <TransportButton
+            label="⏮"
+            hint="Restart"
+            disabled={loading}
+            onPress={onRestart}
+          />
+          <TransportButton
+            label="◀"
+            hint="Step back one tick"
+            disabled={loading}
+            onPress={() => onStep(-1)}
+          />
           <TransportButton
             label={transport?.atEnd ? '⟲' : transport?.playing ? '❚❚' : '▶'}
             hint={transport?.playing ? 'Pause' : 'Play'}
             onPress={transport?.atEnd ? onRestart : onToggle}
+            disabled={loading}
             primary
           />
-          <TransportButton label="▶" hint="Step forward one tick" onPress={() => onStep(1)} />
+          <TransportButton
+            label="▶"
+            hint="Step forward one tick"
+            disabled={loading}
+            onPress={() => onStep(1)}
+          />
         </View>
 
         <View style={styles.speeds}>
@@ -57,11 +84,20 @@ export function ArenaTransportBar({
             <Pressable
               key={speed}
               onPress={() => onSpeed(speed)}
+              disabled={loading}
               accessibilityRole="button"
               accessibilityLabel={`Play at ${speed} times speed`}
-              accessibilityState={{ selected: transport?.speed === speed }}
+              accessibilityState={{
+                disabled: loading,
+                selected: transport?.speed === speed,
+              }}
               hitSlop={6}>
-              <Text style={[styles.speed, transport?.speed === speed && styles.speedOn]}>
+              <Text
+                style={[
+                  styles.speed,
+                  transport?.speed === speed && styles.speedOn,
+                  loading && styles.disabled,
+                ]}>
                 {speed}x
               </Text>
             </Pressable>
@@ -79,18 +115,22 @@ export function ArenaTransportBar({
 function Scrubber({
   progress,
   tickCount,
+  disabled,
   onSeek,
 }: {
   progress: number;
   tickCount: number;
+  disabled: boolean;
   onSeek: (tick: number) => void;
 }) {
   const [width, setWidth] = useState(0);
 
   return (
     <Pressable
+      disabled={disabled}
       accessibilityRole="adjustable"
       accessibilityLabel="Playback position"
+      accessibilityState={{ disabled }}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       onPress={(event) => {
         if (width <= 0 || tickCount === 0) return;
@@ -109,22 +149,27 @@ function TransportButton({
   label,
   hint,
   onPress,
+  disabled = false,
   primary = false,
 }: {
   label: string;
   hint: string;
   onPress: () => void;
+  disabled?: boolean;
   primary?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={hint}
+      accessibilityState={{ disabled }}
       hitSlop={8}
       style={({ pressed }) => [
         styles.button,
         primary && styles.buttonPrimary,
+        disabled && styles.disabled,
         pressed && styles.buttonPressed,
       ]}>
       <Text style={[styles.buttonLabel, primary && styles.buttonLabelPrimary]}>{label}</Text>
@@ -160,4 +205,5 @@ const styles = StyleSheet.create({
   speeds: { flexDirection: 'row', gap: Space.sm, minWidth: 62, justifyContent: 'flex-end' },
   speed: { ...Mono, color: Arena.dim, fontSize: 11 },
   speedOn: { color: Arena.accent, fontWeight: '700' },
+  disabled: { opacity: 0.4 },
 });

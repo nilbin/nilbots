@@ -26,6 +26,11 @@ export type DecodedReplay =
       replay: Model.ReplayModel;
     };
 
+export type DecodedReplayJson = DecodedReplay & {
+  /** Original JSON text, retained unchanged for upstream hash verification. */
+  rawJson: string;
+};
+
 export class ReplayDecodeError extends Error {
   constructor(message: string) {
     super(message);
@@ -41,6 +46,49 @@ export class ReplayDecodeError extends Error {
  * hash before calling this function, then retain `wire` for diagnostics.
  */
 export function decodeReplay(input: unknown): DecodedReplay {
+  return decodeReplayInternal(input);
+}
+
+/**
+ * Parses, validates, and normalizes replay JSON while retaining lexical values
+ * that JSON.parse cannot represent exactly. Replay-v1 encoded its ulong seed as
+ * a JSON number; this is the lossless ingress for those historical documents.
+ */
+export function decodeReplayJson(json: string): DecodedReplayJson {
+  if (typeof json !== 'string') {
+    throw new ReplayDecodeError('replay: expected JSON text');
+  }
+
+  let input: unknown;
+  try {
+    input = JSON.parse(json) as unknown;
+  } catch (error) {
+    const detail = error instanceof Error ? ` (${error.message})` : '';
+    throw new ReplayDecodeError(`replay: invalid JSON${detail}`);
+  }
+
+  const version = replayVersionOf(input);
+  const v1Seed =
+    version === 1
+      ? {
+          decimal: replayV1SeedLexeme(json),
+          exact: true as const,
+        }
+      : undefined;
+  return {
+    ...decodeReplayInternal(input, v1Seed),
+    rawJson: json,
+  };
+}
+
+export function normalizeReplayJson(json: string): Model.ReplayModel {
+  return decodeReplayJson(json).replay;
+}
+
+function decodeReplayInternal(
+  input: unknown,
+  v1Seed?: V1SeedNormalization,
+): DecodedReplay {
   const version = replayVersionOf(input);
   if (version === 1) {
     validateReplayV1(input);
@@ -48,7 +96,7 @@ export function decodeReplay(input: unknown): DecodedReplay {
     return {
       replayVersion: 1,
       wire,
-      replay: normalizeReplayV1(wire),
+      replay: normalizeReplayV1Internal(wire, v1Seed),
     };
   }
 
@@ -91,6 +139,130 @@ function replayVersionOf(input: unknown): 1 | 2 {
   );
 }
 
+interface V1SeedNormalization {
+  decimal: string;
+  exact: boolean;
+}
+
+function replayV1SeedLexeme(json: string): string {
+  const rootStart = skipJsonWhitespace(json, 0);
+  const header = directJsonProperty(
+    json,
+    rootStart,
+    'header',
+    'replay.header',
+  );
+  if (!header || json[header.start] !== '{') {
+    throw new ReplayDecodeError('replay.header: missing required object');
+  }
+  const seed = directJsonProperty(
+    json,
+    header.start,
+    'seed',
+    'replay.header.seed',
+  );
+  if (!seed) {
+    throw new ReplayDecodeError('replay.header.seed: missing required property');
+  }
+  const lexeme = json.slice(seed.start, seed.end);
+  if (
+    !/^(0|[1-9][0-9]*)$/.test(lexeme) ||
+    BigInt(lexeme) > 18_446_744_073_709_551_615n
+  ) {
+    throw new ReplayDecodeError(
+      'replay.header.seed: expected an unsigned 64-bit JSON integer',
+    );
+  }
+  return lexeme;
+}
+
+function directJsonProperty(
+  json: string,
+  objectStart: number,
+  propertyName: string,
+  path: string,
+): { start: number; end: number } | null {
+  if (json[objectStart] !== '{') return null;
+  let found: { start: number; end: number } | null = null;
+  let index = skipJsonWhitespace(json, objectStart + 1);
+  while (index < json.length && json[index] !== '}') {
+    if (json[index] !== '"') return null;
+    const keyEnd = jsonStringEnd(json, index);
+    const key = JSON.parse(json.slice(index, keyEnd)) as string;
+    index = skipJsonWhitespace(json, keyEnd);
+    if (json[index] !== ':') return null;
+    const valueStart = skipJsonWhitespace(json, index + 1);
+    const valueEnd = jsonValueEnd(json, valueStart);
+    if (key === propertyName) {
+      if (found) {
+        throw new ReplayDecodeError(`${path}: duplicate property`);
+      }
+      found = { start: valueStart, end: valueEnd };
+    }
+    index = skipJsonWhitespace(json, valueEnd);
+    if (json[index] === ',') {
+      index = skipJsonWhitespace(json, index + 1);
+    } else if (json[index] !== '}') {
+      return null;
+    }
+  }
+  return found;
+}
+
+function jsonStringEnd(json: string, start: number): number {
+  let index = start + 1;
+  while (index < json.length) {
+    if (json[index] === '\\') {
+      index += 2;
+    } else if (json[index] === '"') {
+      return index + 1;
+    } else {
+      index += 1;
+    }
+  }
+  return json.length;
+}
+
+function jsonValueEnd(json: string, start: number): number {
+  const first = json[start];
+  if (first === '"') return jsonStringEnd(json, start);
+  if (first === '{' || first === '[') {
+    const opening = first;
+    const closing = first === '{' ? '}' : ']';
+    let depth = 0;
+    let index = start;
+    while (index < json.length) {
+      const character = json[index];
+      if (character === '"') {
+        index = jsonStringEnd(json, index);
+        continue;
+      }
+      if (character === opening) depth += 1;
+      if (character === closing) {
+        depth -= 1;
+        if (depth === 0) return index + 1;
+      }
+      index += 1;
+    }
+    return json.length;
+  }
+
+  let index = start;
+  while (
+    index < json.length &&
+    !/[\s,\]}]/.test(json[index] ?? '')
+  ) {
+    index += 1;
+  }
+  return index;
+}
+
+function skipJsonWhitespace(json: string, start: number): number {
+  let index = start;
+  while (index < json.length && /\s/.test(json[index] ?? '')) index += 1;
+  return index;
+}
+
 type Validator = (value: unknown, path: string) => void;
 type Shape = Readonly<Record<string, Validator>>;
 
@@ -130,9 +302,13 @@ const integerValue: Validator = (value, path) => {
   integer(value, path);
 };
 
-const jsonIntegerValue: Validator = (value, path) => {
-  if (typeof value !== 'number' || !Number.isInteger(value)) {
-    fail(path, 'expected an integer');
+const v1SeedValue: Validator = (value, path) => {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < 0
+  ) {
+    fail(path, 'expected a non-negative JSON integer');
   }
 };
 
@@ -304,7 +480,7 @@ const v1Header = strictObject(
     mapWidth: integerValue,
     mapHeight: integerValue,
     mapTiles: arrayOf(stringValue),
-    seed: jsonIntegerValue,
+    seed: v1SeedValue,
     maxTicks: integerValue,
     visionRange: integerValue,
     participants: arrayOf(v1Participant),
@@ -996,12 +1172,24 @@ const v2Observation = strictObject({
   frontlineObjective: nullable(v2ObservedObjective),
   actions: arrayOf(v2ObservedAction),
 });
-const v2ActionPayload = strictObject({
+const v2ActionPayloadShape = strictObject({
   shotProgram: nullable(v2ShotProgram),
   direction: nullable(v2Direction),
   unitTarget: nullable(unitTarget),
   formTargetId: nullable(stringValue),
 });
+const v2ActionPayload: Validator = (value, path) => {
+  v2ActionPayloadShape(value, path);
+  const payload = value as V2.ReplayV2ActionPayload;
+  if (
+    payload.shotProgram === null &&
+    payload.direction === null &&
+    payload.unitTarget === null &&
+    payload.formTargetId === null
+  ) {
+    fail(path, 'empty action payload must canonicalize to null');
+  }
+};
 const v2ActorDecision = strictObject({
   actionId: nullable(stringValue),
   actionCode: nullable(integerValue),
@@ -1284,6 +1472,14 @@ function validateV1Relationships(document: V1.ReplayV1Document): void {
           `unknown participant slot ${bot.slot}`,
         );
       }
+      for (const enemy of bot.visibleEnemies) {
+        if (!participantSlots.has(enemy.slot)) {
+          fail(
+            `replay.ticks[${tickIndex}].bots.visibleEnemies`,
+            `unknown participant slot ${enemy.slot}`,
+          );
+        }
+      }
     }
     for (const state of tick.state) {
       if (!participantSlots.has(state.slot)) {
@@ -1293,14 +1489,75 @@ function validateV1Relationships(document: V1.ReplayV1Document): void {
         );
       }
     }
+    tick.events.forEach((event, eventIndex) => {
+      for (const [field, slot] of [
+        ['slot', event.slot],
+        ['hitSlot', event.hitSlot],
+        ['targetSlot', event.targetSlot],
+      ] as const) {
+        if (slot !== undefined && !participantSlots.has(slot)) {
+          fail(
+            `replay.ticks[${tickIndex}].events[${eventIndex}].${field}`,
+            `unknown participant slot ${slot}`,
+          );
+        }
+      }
+    });
+    tick.projectiles?.forEach((projectile, projectileIndex) => {
+      if (!participantSlots.has(projectile.ownerSlot)) {
+        fail(
+          `replay.ticks[${tickIndex}].projectiles[${projectileIndex}].ownerSlot`,
+          `unknown participant slot ${projectile.ownerSlot}`,
+        );
+      }
+    });
+    tick.projectileTraversals?.forEach((traversal, traversalIndex) => {
+      if (!participantSlots.has(traversal.ownerSlot)) {
+        fail(
+          `replay.ticks[${tickIndex}].projectileTraversals[${traversalIndex}].ownerSlot`,
+          `unknown participant slot ${traversal.ownerSlot}`,
+        );
+      }
+    });
   });
+
+  if (document.result) {
+    if (
+      document.result.winnerSlot !== undefined &&
+      !participantSlots.has(document.result.winnerSlot)
+    ) {
+      fail(
+        'replay.result.winnerSlot',
+        `unknown participant slot ${document.result.winnerSlot}`,
+      );
+    }
+    ensureUnique(
+      document.result.bots,
+      (bot) => bot.slot,
+      'replay.result.bots',
+    );
+    const resultSlots = document.result.bots
+      .map((bot) => bot.slot)
+      .sort(compareNumber);
+    const expectedSlots = [...participantSlots].sort(compareNumber);
+    if (!sameNumbers(resultSlots, expectedSlots)) {
+      fail(
+        'replay.result.bots',
+        'must cover exactly the participant slots',
+      );
+    }
+  }
 }
 
 function validateV2Relationships(document: V2.ReplayV2Document): void {
   const { contract } = document.header;
   const { topology } = contract;
 
-  ensureUnique(topology.teams, (team) => team.teamId, 'replay.header.contract.topology.teams');
+  ensureUnique(
+    topology.teams,
+    (team) => team.teamId,
+    'replay.header.contract.topology.teams',
+  );
   ensureUnique(
     topology.participants,
     (participant) => participant.participantId,
@@ -1322,6 +1579,20 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
     'replay.header.participants',
   );
   ensureUnique(document.ticks, (tick) => tick.tick, 'replay.ticks');
+  const sortedTicks = document.ticks
+    .map((tick, inputIndex) => ({ tick, inputIndex }))
+    .sort((left, right) => left.tick.tick - right.tick.tick);
+  sortedTicks.forEach(({ tick }, index) => {
+    if (tick.tick !== index) {
+      fail(
+        'replay.ticks',
+        'tick IDs must start at zero and be contiguous',
+      );
+    }
+  });
+  if (!document.partial && sortedTicks.length === 0) {
+    fail('replay.ticks', 'a finalized replay-v2 must contain a tick');
+  }
 
   if (
     topology.teamCount !== topology.teams.length ||
@@ -1356,7 +1627,10 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
     );
   }
 
-  const teamIds = new Set(topology.teams.map((team) => team.teamId));
+  const topologyTeamIds = topology.teams
+    .map((team) => team.teamId)
+    .sort(compareNumber);
+  const teamIds = new Set(topologyTeamIds);
   const participantsById = new Map(
     topology.participants.map((participant) => [
       participant.participantId,
@@ -1371,6 +1645,12 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
       `${unit.teamId}:${unit.unitId}`,
       unit.controllerParticipantId,
     ]),
+  );
+  const initialLifeIds = new Set(
+    topology.initialLives.map(actorIdValue),
+  );
+  const contractActionsById = new Map(
+    contract.rules.actions.map((action) => [action.id, action]),
   );
 
   for (const participant of topology.participants) {
@@ -1400,24 +1680,43 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
   }
 
   const allEventIds = new Set<string>();
-  document.ticks.forEach((tick, tickIndex) => {
+  const seenActorLives = new Set<string>();
+  sortedTicks.forEach(({ tick, inputIndex: tickIndex }) => {
     validateV2WorldRelationships(
       tick.tickStart.state,
       unitKeys,
+      topologyTeamIds,
       `replay.ticks[${tickIndex}].tickStart.state`,
     );
     validateV2WorldRelationships(
       tick.postState,
       unitKeys,
+      topologyTeamIds,
       `replay.ticks[${tickIndex}].postState`,
     );
+    if (tick.tickStart.state.objective.nextTick !== tick.tick) {
+      fail(
+        `replay.ticks[${tickIndex}].tickStart.state.objective.nextTick`,
+        'must equal the containing tick',
+      );
+    }
+    if (tick.postState.objective.nextTick !== tick.tick + 1) {
+      fail(
+        `replay.ticks[${tickIndex}].postState.objective.nextTick`,
+        'must equal the tick after the containing tick',
+      );
+    }
 
-    const active = tick.tickStart.activeActors.map(actorIdValue).sort();
-    const turns = tick.actors.map((turn) => actorIdValue(turn.actorId)).sort();
+    const active = tick.tickStart.activeActors
+      .map(actorIdValue)
+      .sort(compareOrdinal);
+    const turns = tick.actors
+      .map((turn) => actorIdValue(turn.actorId))
+      .sort(compareOrdinal);
     const stateActors = tick.tickStart.state.teams
       .flatMap((team) => team.units)
       .flatMap((unit) => (unit.activeLife ? [actorIdValue(unit.activeLife.actorId)] : []))
-      .sort();
+      .sort(compareOrdinal);
     if (!sameStrings(active, turns) || !sameStrings(active, stateActors)) {
       fail(
         `replay.ticks[${tickIndex}]`,
@@ -1460,6 +1759,14 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
           'does not match header.actorRuntime',
         );
       }
+      const isFirstTurnForLife = !seenActorLives.has(identity);
+      if (isFirstTurnForLife !== (turn.lifeStart !== null)) {
+        fail(
+          `${actorPath}.lifeStart`,
+          "must appear exactly on an actor life's first turn",
+        );
+      }
+      seenActorLives.add(identity);
       if (turn.lifeStart) {
         const expectedParticipant = unitControllers.get(
           `${turn.actorId.teamId}:${turn.actorId.unitId}`,
@@ -1479,7 +1786,26 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
             'life-start identity or actor-runtime contract is inconsistent',
           );
         }
+        const isInitialLife = initialLifeIds.has(identity);
+        if (
+          (isInitialLife && turn.lifeStart.spawnReason !== 'initial') ||
+          (!isInitialLife &&
+            turn.actorId.unitId === 0 &&
+            turn.lifeStart.spawnReason !== 'respawn')
+        ) {
+          fail(
+            `${actorPath}.lifeStart.spawnReason`,
+            'is inconsistent with actor-life chronology',
+          );
+        }
       }
+      validateV2DecisionSemantics(
+        turn,
+        contractActionsById,
+        unitKeys,
+        new Set(contract.rules.forms.map((form) => form.id)),
+        actorPath,
+      );
       validateV2Aliases(turn, actorPath);
     });
 
@@ -1503,6 +1829,267 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
       allEventIds.add(event.eventId);
     });
   });
+
+  if (document.result) {
+    const resultPath = 'replay.result';
+    ensureUnique(
+      document.result.teams,
+      (team) => team.teamId,
+      `${resultPath}.teams`,
+    );
+    const resultTeamIds = document.result.teams
+      .map((team) => team.teamId)
+      .sort(compareNumber);
+    if (!sameNumbers(resultTeamIds, topologyTeamIds)) {
+      fail(
+        `${resultPath}.teams`,
+        'must cover exactly the topology team IDs',
+      );
+    }
+    const finalTick = sortedTicks.at(-1)?.tick;
+    if (!finalTick || document.result.endTick !== finalTick.tick) {
+      fail(
+        `${resultPath}.endTick`,
+        'must equal the final executed tick',
+      );
+    }
+    if (
+      finalTick &&
+      !sameV2Control(
+        document.result.objective,
+        finalTick.postState.objective,
+      )
+    ) {
+      fail(
+        `${resultPath}.objective`,
+        'must equal the final post-state objective',
+      );
+    }
+    if (
+      document.result.winnerTeamId !== null &&
+      !teamIds.has(document.result.winnerTeamId)
+    ) {
+      fail(
+        `${resultPath}.winnerTeamId`,
+        'must reference a topology team',
+      );
+    }
+    validateV2ObjectiveTeamReferences(
+      document.result.objective,
+      teamIds,
+      `${resultPath}.objective`,
+    );
+    if (
+      document.result.reason === 'base-breach' &&
+      document.result.winnerTeamId !==
+        document.result.objective.winnerTeamId
+    ) {
+      fail(
+        resultPath,
+        'a base-breach winner must equal the objective winner',
+      );
+    }
+  }
+}
+
+function validateV2DecisionSemantics(
+  turn: V2.ReplayV2ActorTurn,
+  actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
+  topologyUnitKeys: ReadonlySet<string>,
+  formIds: ReadonlySet<string>,
+  path: string,
+): void {
+  const accepted = turn.acceptedDecision;
+  if (
+    accepted.actionId === null ||
+    accepted.actionCode === null ||
+    accepted.faulted ||
+    accepted.faultMessage !== null
+  ) {
+    fail(
+      `${path}.acceptedDecision`,
+      'must have a canonical non-faulted action selector',
+    );
+  }
+
+  const acceptedAction = resolveV2ContractAction(
+    accepted.actionId,
+    accepted.actionCode,
+    actionsById,
+    `${path}.acceptedDecision`,
+  );
+  const chosenAction = resolveV2ContractAction(
+    turn.actionResolution.chosenActionId,
+    turn.actionResolution.chosenActionCode,
+    actionsById,
+    `${path}.actionResolution.chosenActionId`,
+  );
+  const validatedAction = resolveV2ContractAction(
+    turn.actionResolution.validatedActionId,
+    turn.actionResolution.validatedActionCode,
+    actionsById,
+    `${path}.actionResolution.validatedActionId`,
+  );
+  validateV2PayloadForAction(
+    accepted.payload,
+    acceptedAction,
+    topologyUnitKeys,
+    formIds,
+    `${path}.acceptedDecision.payload`,
+  );
+  validateV2PayloadForAction(
+    turn.actionResolution.chosenPayload,
+    chosenAction,
+    topologyUnitKeys,
+    formIds,
+    `${path}.actionResolution.chosenPayload`,
+  );
+  validateV2PayloadForAction(
+    turn.actionResolution.validatedPayload,
+    validatedAction,
+    topologyUnitKeys,
+    formIds,
+    `${path}.actionResolution.validatedPayload`,
+  );
+
+  if (
+    accepted.actionId !== turn.actionResolution.chosenActionId ||
+    accepted.actionCode !== turn.actionResolution.chosenActionCode ||
+    !sameV2ActionPayload(
+      accepted.payload,
+      turn.actionResolution.chosenPayload,
+    )
+  ) {
+    fail(
+      `${path}.acceptedDecision`,
+      'selector and payload must equal the chosen action resolution',
+    );
+  }
+}
+
+function resolveV2ContractAction(
+  actionId: string,
+  actionCode: number,
+  actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
+  path: string,
+): V2.ReplayV2ActionDefinition {
+  const action = actionsById.get(actionId);
+  if (!action || action.code !== actionCode) {
+    fail(path, 'action ID/code does not match the public contract');
+  }
+  return action;
+}
+
+function validateV2PayloadForAction(
+  payload: V2.ReplayV2ActionPayload | null,
+  action: V2.ReplayV2ActionDefinition,
+  topologyUnitKeys: ReadonlySet<string>,
+  formIds: ReadonlySet<string>,
+  path: string,
+): void {
+  if (!payload) return;
+  const kinds = new Set(action.parameterKinds);
+  if (
+    (payload.shotProgram !== null && !kinds.has('shot-program')) ||
+    (payload.direction !== null && !kinds.has('direction')) ||
+    (payload.unitTarget !== null && !kinds.has('unit-target')) ||
+    (payload.formTargetId !== null && !kinds.has('form-target'))
+  ) {
+    fail(path, `is inconsistent with action ${action.id}`);
+  }
+  if (
+    payload.unitTarget &&
+    !topologyUnitKeys.has(
+      `${payload.unitTarget.teamId}:${payload.unitTarget.unitId}`,
+    )
+  ) {
+    fail(`${path}.unitTarget`, 'must reference a topology unit');
+  }
+  if (
+    payload.formTargetId !== null &&
+    !formIds.has(payload.formTargetId)
+  ) {
+    fail(`${path}.formTargetId`, 'must reference a contract form');
+  }
+}
+
+function sameV2ActionPayload(
+  left: V2.ReplayV2ActionPayload | null,
+  right: V2.ReplayV2ActionPayload | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return (
+    left.direction === right.direction &&
+    left.formTargetId === right.formTargetId &&
+    sameV2UnitTarget(left.unitTarget, right.unitTarget) &&
+    sameV2ShotProgram(left.shotProgram, right.shotProgram)
+  );
+}
+
+function sameV2UnitTarget(
+  left: V2.ReplayV2ObservedUnitTarget | null,
+  right: V2.ReplayV2ObservedUnitTarget | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return left.teamId === right.teamId && left.unitId === right.unitId;
+}
+
+function sameV2ShotProgram(
+  left: V2.ReplayV2ShotProgram | null,
+  right: V2.ReplayV2ShotProgram | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return (
+    left.initialAimOffset === right.initialAimOffset &&
+    left.bendDirection === right.bendDirection &&
+    left.bendAfterTiles === right.bendAfterTiles &&
+    left.bendEveryTiles === right.bendEveryTiles &&
+    left.bendCount === right.bendCount
+  );
+}
+
+function sameV2Control(
+  left: V2.ReplayV2ControlState,
+  right: V2.ReplayV2ControlState,
+): boolean {
+  return (
+    left.nextTick === right.nextTick &&
+    left.activePositionIndex === right.activePositionIndex &&
+    left.claimingTeamId === right.claimingTeamId &&
+    left.captureProgress === right.captureProgress &&
+    left.decayTicksElapsed === right.decayTicksElapsed &&
+    left.controlResumesAtTick === right.controlResumesAtTick &&
+    left.winnerTeamId === right.winnerTeamId
+  );
+}
+
+function sameNumbers(
+  left: readonly number[],
+  right: readonly number[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function validateV2ObjectiveTeamReferences(
+  objective: V2.ReplayV2ControlState,
+  topologyTeamIds: ReadonlySet<number>,
+  path: string,
+): void {
+  if (
+    objective.claimingTeamId !== null &&
+    !topologyTeamIds.has(objective.claimingTeamId)
+  ) {
+    fail(`${path}.claimingTeamId`, 'must reference a topology team');
+  }
+  if (
+    objective.winnerTeamId !== null &&
+    !topologyTeamIds.has(objective.winnerTeamId)
+  ) {
+    fail(`${path}.winnerTeamId`, 'must reference a topology team');
+  }
 }
 
 function validateV2Aliases(
@@ -1552,17 +2139,25 @@ function validateV2Aliases(
   const events = new Set(
     turn.aliases.events.map((alias) => alias.eventHandle),
   );
+  const referencedLives = new Set<string>();
+  const referencedProjectiles = new Set<string>();
+  const referencedEvents = new Set<string>();
   const requireEnemy = (
     actor: V2.ReplayV2ObservedEnemyActorRef,
     actorPath: string,
   ) => {
+    referencedLives.add(actor.lifeHandle);
     const exact = lives.get(actor.lifeHandle);
     if (
       !exact ||
       exact.teamId !== actor.teamId ||
-      exact.unitId !== actor.unitId
+      exact.unitId !== actor.unitId ||
+      actor.teamId === turn.actorId.teamId
     ) {
-      fail(actorPath, 'enemy life handle has no matching alias');
+      fail(
+        actorPath,
+        'enemy life handle has no non-allied matching alias',
+      );
     }
   };
 
@@ -1570,10 +2165,29 @@ function validateV2Aliases(
     requireEnemy(enemy.actor, `${path}.observation.enemies[${index}].actor`),
   );
   turn.observation.visibleProjectiles?.forEach((projectile, index) => {
+    referencedProjectiles.add(projectile.projectileHandle);
     if (!projectiles.has(projectile.projectileHandle)) {
       fail(
         `${path}.observation.visibleProjectiles[${index}].projectileHandle`,
         'projectile handle has no matching alias',
+      );
+    }
+    const hasAlliedOwner = projectile.alliedOwnerActorId !== null;
+    const hasEnemyOwner = projectile.visibleEnemyOwner !== null;
+    if (
+      hasAlliedOwner === hasEnemyOwner ||
+      (hasAlliedOwner &&
+        (projectile.ownerTeamId !== turn.actorId.teamId ||
+          projectile.alliedOwnerActorId?.teamId !==
+            turn.actorId.teamId)) ||
+      (hasEnemyOwner &&
+        (projectile.ownerTeamId === turn.actorId.teamId ||
+          projectile.visibleEnemyOwner?.teamId !==
+            projectile.ownerTeamId))
+    ) {
+      fail(
+        `${path}.observation.visibleProjectiles[${index}]`,
+        'must expose exactly one owner representation consistent with ownerTeamId',
       );
     }
     if (projectile.visibleEnemyOwner) {
@@ -1584,6 +2198,7 @@ function validateV2Aliases(
     }
   });
   turn.observation.visibleEvents.forEach((event, index) => {
+    referencedEvents.add(event.eventHandle);
     if (!events.has(event.eventHandle)) {
       fail(
         `${path}.observation.visibleEvents[${index}].eventHandle`,
@@ -1599,6 +2214,15 @@ function validateV2Aliases(
         'projectile handle has no matching alias',
       );
     }
+    if (event.projectileHandle) {
+      referencedProjectiles.add(event.projectileHandle);
+    }
+    if (event.alliedActorId && event.enemyActor) {
+      fail(
+        `${path}.observation.visibleEvents[${index}]`,
+        'cannot expose both allied and enemy actor identities',
+      );
+    }
     if (event.enemyActor) {
       requireEnemy(
         event.enemyActor,
@@ -1607,6 +2231,7 @@ function validateV2Aliases(
     }
   });
   turn.observation.heardSounds?.forEach((sound, index) => {
+    referencedEvents.add(sound.eventHandle);
     if (!events.has(sound.eventHandle)) {
       fail(
         `${path}.observation.heardSounds[${index}].eventHandle`,
@@ -1614,14 +2239,55 @@ function validateV2Aliases(
       );
     }
   });
+  if (!sameStringSet(new Set(lives.keys()), referencedLives)) {
+    fail(
+      `${path}.aliases.enemyLives`,
+      'must exactly match enemy handles referenced by the observation',
+    );
+  }
+  if (!sameStringSet(projectiles, referencedProjectiles)) {
+    fail(
+      `${path}.aliases.projectiles`,
+      'must exactly match projectile handles referenced by the observation',
+    );
+  }
+  if (!sameStringSet(events, referencedEvents)) {
+    fail(
+      `${path}.aliases.events`,
+      'must exactly match event handles referenced by the observation',
+    );
+  }
+}
+
+function sameStringSet(
+  left: ReadonlySet<string>,
+  right: ReadonlySet<string>,
+): boolean {
+  if (left.size !== right.size) return false;
+  for (const value of left) {
+    if (!right.has(value)) return false;
+  }
+  return true;
 }
 
 function validateV2WorldRelationships(
   world: V2.ReplayV2WorldState,
   topologyUnitKeys: ReadonlySet<string>,
+  topologyTeamIds: readonly number[],
   path: string,
 ): void {
   ensureUnique(world.teams, (team) => team.teamId, `${path}.teams`);
+  const worldTeamIds = world.teams
+    .map((team) => team.teamId)
+    .sort(compareNumber);
+  if (!sameNumbers(worldTeamIds, topologyTeamIds)) {
+    fail(`${path}.teams`, 'must cover exactly the topology team IDs');
+  }
+  validateV2ObjectiveTeamReferences(
+    world.objective,
+    new Set(topologyTeamIds),
+    `${path}.objective`,
+  );
   ensureUnique(
     world.projectiles,
     (projectile) => projectile.projectileId,
@@ -1693,6 +2359,13 @@ function compareParticipant(
 
 export function normalizeReplayV1(
   document: V1.ReplayV1Document,
+): Model.ReplayModel {
+  return normalizeReplayV1Internal(document);
+}
+
+function normalizeReplayV1Internal(
+  document: V1.ReplayV1Document,
+  seedOverride?: V1SeedNormalization,
 ): Model.ReplayModel {
   const participants = [...document.header.participants]
     .sort((left, right) => left.slot - right.slot)
@@ -1778,7 +2451,7 @@ export function normalizeReplayV1(
                     .sort(comparePosition),
                 }))
                 .sort((left, right) =>
-                  left.family.localeCompare(right.family),
+                  compareOrdinal(left.family, right.family),
                 ) ?? null,
           },
   };
@@ -1800,6 +2473,10 @@ export function normalizeReplayV1(
         normalizedTicks.at(-1)?.after ?? initialWorld,
       )
     : null;
+  const normalizedSeed = seedOverride ?? {
+    decimal: String(document.header.seed),
+    exact: Number.isSafeInteger(document.header.seed),
+  };
 
   return {
     sourceVersion: 1,
@@ -1811,10 +2488,13 @@ export function normalizeReplayV1(
         document.header.runtimeConfigurationVersion,
       actorRuntime: null,
     },
-    seed: String(document.header.seed),
+    seed: normalizedSeed.decimal,
+    seedExact: normalizedSeed.exact,
+    seedEncoding: 'legacy-json-number',
     partial: 'partial' in document && document.partial === true,
     replayHash: document.replayHash ?? null,
     matchContractFingerprint: null,
+    contract: legacyContractFromV1(document.header),
     map,
     forms,
     participants,
@@ -1823,6 +2503,164 @@ export function normalizeReplayV1(
     initialWorld,
     ticks: normalizedTicks,
     result: terminal,
+  };
+}
+
+function legacyContractFromV1(
+  header: V1.ReplayV1Header,
+): Model.ReplayLegacyPartialMatchContract {
+  const participants = [...header.participants].sort(
+    (left, right) => left.slot - right.slot,
+  );
+  const objectiveMode =
+    header.controlPressureLimit !== undefined
+      ? 'shared-pressure'
+      : header.zoneTiles !== undefined
+        ? 'zone-ticks'
+        : 'none';
+
+  return {
+    kind: 'legacy-partial',
+    completeness: 'legacy-partial',
+    schemaVersion: null,
+    matchContractFingerprint: null,
+    rules: {
+      schemaVersion: null,
+      rulesetId: header.gameRulesVersion,
+      rulesFingerprint: null,
+      limits: {
+        maxTicks: header.maxTicks,
+        faultLimit: null,
+        teamCount: participants.length,
+        participantCount: participants.length,
+        unitSlotCount: participants.length,
+        initialUnitsPerTeam: 1,
+        maxUnitsPerTeam: 1,
+        destructionEndsMatch: null,
+        respawnsEnabled: null,
+      },
+      objective: {
+        mode: objectiveMode,
+        zoneTiles:
+          header.zoneTiles === undefined
+            ? null
+            : header.zoneTiles
+                .map(positionFromTuple)
+                .sort(comparePosition),
+        zoneDominationTicks: null,
+        zoneExclusiveAccrual: null,
+        sharedPressureEnabled:
+          header.controlPressureLimit !== undefined,
+        controlBySoleOccupancy:
+          header.controlBySoleOccupancy ?? null,
+        controlPressureLimit: header.controlPressureLimit ?? null,
+        controlPressureGain: null,
+        controlPressureDecayInterval: null,
+        overtime: {
+          startTick: header.controlOvertimeStartTick ?? null,
+          pressureLimit:
+            header.controlOvertimePressureLimit ?? null,
+          pressureGain: header.controlOvertimePressureGain ?? null,
+          stopsDecay: header.controlOvertimeStopsDecay ?? null,
+        },
+        maxTickTiebreakers: null,
+      },
+      frontlineDefinition: null,
+      energy: null,
+      forms: null,
+      actions: null,
+      projectiles: null,
+      shotPrograms: {
+        enabled: header.programmedShots ?? null,
+        limits: header.programmedShotLimits
+          ? { ...header.programmedShotLimits }
+          : null,
+      },
+      vision: {
+        range: header.visionRange,
+        shape:
+          header.visionCone === undefined
+            ? null
+            : header.visionCone
+              ? 'facing-quadrant'
+              : 'omnidirectional',
+        distanceMetric: null,
+        omnidirectionalProximityRange: null,
+        lineOfSight: null,
+        hearingRadius: null,
+        hearingBearingSectors: null,
+        hearingDistanceBandUpperBounds: null,
+        loudEventTypes: null,
+      },
+      collisions: null,
+      tickResolution: null,
+      legacyMaxHealth: header.maxHealth ?? null,
+    },
+    map: {
+      schemaVersion: null,
+      mapId: header.mapId,
+      mapVersion: header.mapVersion,
+      mapFingerprint: null,
+      formatVersion: null,
+      width: header.mapWidth,
+      height: header.mapHeight,
+      tileRows: [...header.mapTiles],
+      spawns: participants.map((participant) => ({
+        teamId: participant.slot,
+        position: {
+          x: participant.spawnX,
+          y: participant.spawnY,
+        },
+        facing: directionFromV1(participant.spawnFacing),
+      })),
+      objectiveTiles:
+        header.zoneTiles === undefined
+          ? null
+          : header.zoneTiles
+              .map(positionFromTuple)
+              .sort(comparePosition),
+      frontline: null,
+    },
+    topology: {
+      teamCount: participants.length,
+      participantCount: participants.length,
+      unitSlotCount: participants.length,
+      initialLifeCount: participants.length,
+      teams: participants.map((participant) => ({
+        teamId: participant.slot,
+        teamKey: replayTeamKey(participant.slot),
+      })),
+      participants: participants.map((participant) => ({
+        participantId: participant.slot,
+        participantKey: replayParticipantKey(participant.slot),
+        teamId: participant.slot,
+        teamKey: replayTeamKey(participant.slot),
+      })),
+      unitSlots: participants.map((participant) => {
+        const actor = replayDuelIdentity(participant.slot);
+        return {
+          teamId: participant.slot,
+          teamKey: replayTeamKey(participant.slot),
+          unitId: 0,
+          unitKey: actor.unitKey,
+          controllerParticipantId: participant.slot,
+          controllerParticipantKey: replayParticipantKey(
+            participant.slot,
+          ),
+        };
+      }),
+      initialLives: participants.map((participant) => {
+        const actor = replayDuelIdentity(participant.slot);
+        return {
+          teamId: participant.slot,
+          unitId: 0,
+          lifeId: 0,
+          actorKey: actor.actorKey,
+          unitKey: actor.unitKey,
+          formId: 'legacy-mobile',
+        };
+      }),
+    },
   };
 }
 
@@ -1903,16 +2741,20 @@ function v1World(
   const units = participantSlots.map<Model.ReplayUnitState>((slot) => {
     const identity = replayDuelIdentity(slot);
     const state = stateBySlot.get(slot);
+    const lifecycleStatus = state
+      ? lifecycleFromV1(state.status)
+      : 'destroyed';
     return {
       unitKey: identity.unitKey,
       teamKey: replayTeamKey(slot),
       teamId: slot,
       unitId: 0,
       formId: 'legacy-mobile',
-      lifecycleStatus: state ? lifecycleFromV1(state.status) : 'destroyed',
+      lifecycleStatus,
       respawnAtTick: null,
       damageDealt: null,
-      activeActorKey: state ? identity.actorKey : null,
+      activeActorKey:
+        lifecycleStatus === 'active' ? identity.actorKey : null,
     };
   });
   const teams = participantSlots.map<Model.ReplayTeamState>((slot) => ({
@@ -2566,7 +3408,7 @@ export function normalizeReplayV2(
     }));
 
   const forms = [...contract.rules.forms]
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort((left, right) => compareOrdinal(left.id, right.id))
     .map<Model.ReplayForm>((form) => ({
       formId: form.id,
       maxHealth: form.maxHealth,
@@ -2598,9 +3440,12 @@ export function normalizeReplayV2(
       actorRuntime: { ...document.header.actorRuntime },
     },
     seed: document.header.seed,
+    seedExact: true,
+    seedEncoding: 'decimal-string',
     partial: document.partial,
     replayHash: document.replayHash,
     matchContractFingerprint: contract.matchContractFingerprint,
+    contract: contractFromV2(contract),
     map: mapFromV2(document.header),
     forms,
     participants,
@@ -2609,6 +3454,187 @@ export function normalizeReplayV2(
     initialWorld,
     ticks: normalizedTicks,
     result: document.result ? resultFromV2(document.result) : null,
+  };
+}
+
+function contractFromV2(
+  contract: V2.ReplayV2MatchContract,
+): Model.ReplayExactMatchContract {
+  const { rules, map, topology } = contract;
+  return {
+    kind: 'v2-full',
+    completeness: 'exact',
+    schemaVersion: contract.schemaVersion,
+    matchContractFingerprint: contract.matchContractFingerprint,
+    rules: {
+      schemaVersion: rules.schemaVersion,
+      rulesetId: rules.rulesetId,
+      rulesFingerprint: rules.rulesFingerprint,
+      limits: { ...rules.limits },
+      objective: {
+        ...rules.objective,
+        overtime: { ...rules.objective.overtime },
+        maxTickTiebreakers: [...rules.objective.maxTickTiebreakers],
+      },
+      frontlineDefinition: rules.frontlineDefinition
+        ? {
+            ...rules.frontlineDefinition,
+            capture: { ...rules.frontlineDefinition.capture },
+            lifecycle: {
+              ...rules.frontlineDefinition.lifecycle,
+              fabricationUnlockTicks: [
+                ...rules.frontlineDefinition.lifecycle
+                  .fabricationUnlockTicks,
+              ],
+            },
+            anchor: { ...rules.frontlineDefinition.anchor },
+            alliedCombat: {
+              ...rules.frontlineDefinition.alliedCombat,
+            },
+          }
+        : null,
+      energy: { ...rules.energy },
+      forms: [...rules.forms]
+        .sort((left, right) => compareOrdinal(left.id, right.id))
+        .map((form) => ({
+          ...form,
+          allowedActionIds: [...form.allowedActionIds].sort(
+            compareOrdinal,
+          ),
+        })),
+      actions: [...rules.actions]
+        .sort(
+          (left, right) =>
+            left.code - right.code ||
+            compareOrdinal(left.id, right.id),
+        )
+        .map((action) => ({
+          ...action,
+          parameterKinds: [...action.parameterKinds],
+        })),
+      projectiles: { ...rules.projectiles },
+      shotPrograms: {
+        ...rules.shotPrograms,
+        aimOnlyProgram: { ...rules.shotPrograms.aimOnlyProgram },
+        allowedCurvedBendDirections: [
+          ...rules.shotPrograms.allowedCurvedBendDirections,
+        ],
+        defaultProgram: copyShotProgram(
+          rules.shotPrograms.defaultProgram,
+        ),
+      },
+      vision: {
+        ...rules.vision,
+        hearingDistanceBandUpperBounds: [
+          ...rules.vision.hearingDistanceBandUpperBounds,
+        ],
+        loudEventTypes: [...rules.vision.loudEventTypes],
+      },
+      collisions: { ...rules.collisions },
+      tickResolution: {
+        ...rules.tickResolution,
+        phases: [...rules.tickResolution.phases],
+      },
+    },
+    map: {
+      schemaVersion: map.schemaVersion,
+      mapId: map.mapId,
+      mapVersion: map.mapVersion,
+      mapFingerprint: map.mapFingerprint,
+      formatVersion: map.formatVersion,
+      width: map.width,
+      height: map.height,
+      tileRows: [...map.tileRows],
+      spawns: [...map.spawns]
+        .sort((left, right) => left.teamId - right.teamId)
+        .map((spawn) => ({
+          teamId: spawn.teamId,
+          position: { x: spawn.x, y: spawn.y },
+          facing: spawn.facing,
+        })),
+      objectiveTiles: map.objectiveTiles
+        .map(positionFromTuple)
+        .sort(comparePosition),
+      frontline: map.frontline
+        ? {
+            positions: [...map.frontline.positions]
+              .sort(
+                (left, right) =>
+                  left.positionIndex - right.positionIndex,
+              )
+              .map((position) => ({
+                positionIndex: position.positionIndex,
+                tiles: position.tiles
+                  .map(positionFromTuple)
+                  .sort(comparePosition),
+              })),
+            teamHomes: [...map.frontline.teamHomes]
+              .sort((left, right) => left.teamId - right.teamId)
+              .map((home) => ({
+                teamId: home.teamId,
+                primeSpawn: {
+                  x: home.primeSpawn.x,
+                  y: home.primeSpawn.y,
+                  facing: home.primeSpawn.facing,
+                },
+                protectedSpawnPad: home.protectedSpawnPad
+                  .map(positionFromTuple)
+                  .sort(comparePosition),
+              })),
+            anchorForbiddenTiles:
+              map.frontline.anchorForbiddenTiles
+                .map(positionFromTuple)
+                .sort(comparePosition),
+          }
+        : null,
+    },
+    topology: {
+      teamCount: topology.teamCount,
+      participantCount: topology.participantCount,
+      unitSlotCount: topology.unitSlotCount,
+      initialLifeCount: topology.initialLifeCount,
+      teams: [...topology.teams]
+        .sort((left, right) => left.teamId - right.teamId)
+        .map((team) => ({
+          teamId: team.teamId,
+          teamKey: replayTeamKey(team.teamId),
+        })),
+      participants: [...topology.participants]
+        .sort(compareParticipant)
+        .map((participant) => ({
+          participantId: participant.participantId,
+          participantKey: replayParticipantKey(
+            participant.participantId,
+          ),
+          teamId: participant.teamId,
+          teamKey: replayTeamKey(participant.teamId),
+        })),
+      unitSlots: [...topology.unitSlots]
+        .sort(compareUnitIdentity)
+        .map((unit) => ({
+          teamId: unit.teamId,
+          teamKey: replayTeamKey(unit.teamId),
+          unitId: unit.unitId,
+          unitKey: frontlineUnitKey(unit.teamId, unit.unitId),
+          controllerParticipantId: unit.controllerParticipantId,
+          controllerParticipantKey: replayParticipantKey(
+            unit.controllerParticipantId,
+          ),
+        })),
+      initialLives: [...topology.initialLives]
+        .sort(compareActorIdentity)
+        .map((life) => {
+          const actor = actorIdentityFromV2(life);
+          return {
+            teamId: life.teamId,
+            unitId: life.unitId,
+            lifeId: life.lifeId,
+            actorKey: actor.actorKey,
+            unitKey: actor.unitKey,
+            formId: life.formId,
+          };
+        }),
+    },
   };
 }
 
@@ -2664,7 +3690,7 @@ function mapFromV2(header: V2.ReplayV2Header): Model.ReplayMap {
                 tiles: group.tiles.map(copyPosition).sort(comparePosition),
               }))
               .sort((left, right) =>
-                left.family.localeCompare(right.family),
+                compareOrdinal(left.family, right.family),
               ) ?? null,
         }
       : null,
@@ -3066,7 +4092,7 @@ function observationFromV2(
       .sort(
         (left, right) =>
           left.actionCode - right.actionCode ||
-          left.actionId.localeCompare(right.actionId),
+          compareOrdinal(left.actionId, right.actionId),
       )
       .map((action) => ({
         actionId: action.actionId,
@@ -3268,4 +4294,8 @@ function compareAliasHandles(left: string, right: string): number {
   const leftOrdinal = Number(left.slice(left.lastIndexOf('-') + 1));
   const rightOrdinal = Number(right.slice(right.lastIndexOf('-') + 1));
   return leftOrdinal - rightOrdinal;
+}
+
+function compareOrdinal(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }

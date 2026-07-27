@@ -1,4 +1,4 @@
-import type { ReplayDocument } from '../types';
+import type { ReplayModel } from '../replayModel';
 import type { AudioCueId } from './audioCandidates';
 
 export interface ReplayAudioEvent {
@@ -25,13 +25,13 @@ export interface ReplayAudioEvent {
  * eventual match-win contract.
  */
 export function replayAudioEventsAt(
-  replay: ReplayDocument,
+  replay: ReplayModel,
   tickIndex: number,
 ): ReplayAudioEvent[] {
   const tick = replay.ticks[tickIndex];
   if (!tick) return [];
 
-  const width = replay.header.mapWidth;
+  const width = replay.map.width;
   /** Tile column to a pan position, with the map's centre column at dead centre. */
   const panAt = (x: number | undefined): number | null => {
     if (typeof x !== 'number' || width <= 1) return null;
@@ -41,16 +41,16 @@ export function replayAudioEventsAt(
   const scheduled: ReplayAudioEvent[] = [];
   for (const event of tick.events) {
     // Events carry their origin tile; a shot is placed where it was fired from.
-    const pan = panAt((event as { fromX?: number; x?: number }).fromX ?? (event as { x?: number }).x);
+    const pan = panAt(event.from?.x ?? event.to?.x);
     switch (event.type) {
-      case 'Shot':
+      case 'shot':
         scheduled.push({ cue: 'projectile', tickOffset: 0.46, priority: 1, pan });
         break;
-      case 'Damage':
+      case 'damage':
         scheduled.push({ cue: 'impact', tickOffset: 0.56, priority: 2, pan });
         break;
-      case 'Destroyed':
-      case 'Disqualified':
+      case 'destroyed':
+      case 'disqualified':
         scheduled.push({ cue: 'destroyed', tickOffset: 0.68, priority: 4, pan });
         break;
     }
@@ -59,7 +59,7 @@ export function replayAudioEventsAt(
   if (
     replay.result &&
     tick.tick === replay.result.endTick &&
-    replay.result.winnerSlot !== null
+    replay.result.winnerTeamId !== null
   ) {
     // A reward, not a thing in the arena — it belongs dead centre.
     scheduled.push({ cue: 'unlock', tickOffset: 2.35, priority: 3, pan: null });

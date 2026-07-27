@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   decodeReplay,
+  decodeReplayJson,
   ReplayDecodeError,
 } from '../src/replayNormalize.ts';
 import {
@@ -41,6 +43,40 @@ test('decoder retains the untouched wire object for upstream hash verification',
   assert.equal(decoded.replayVersion, 2);
 });
 
+test('raw JSON decoding preserves an unsafe replay-v1 seed lexically', () => {
+  const raw = replayFixtureText('golden-replay.json');
+  const exact = decodeReplayJson(raw);
+  const objectOnly = decodeReplay(JSON.parse(raw) as unknown);
+
+  assert.equal(exact.replay.seed, '3004873239773946906');
+  assert.equal(exact.replay.seedExact, true);
+  assert.equal(exact.replay.seedEncoding, 'legacy-json-number');
+  assert.equal(exact.rawJson, raw);
+  assert.equal(objectOnly.replay.seedExact, false);
+  assert.notEqual(objectOnly.replay.seed, exact.replay.seed);
+});
+
+test('raw JSON decoding rejects duplicate header or seed properties', () => {
+  const fixture = replayV1FixtureInput();
+  const serialized = JSON.stringify(fixture);
+  const duplicateSeed = serialized.replace(
+    '"seed":7',
+    '"seed":6,"seed":7',
+  );
+  assert.throws(
+    () => decodeReplayJson(duplicateSeed),
+    /header\.seed: duplicate property/,
+  );
+
+  const duplicateHeader = `{"header":${JSON.stringify(
+    fixture.header,
+  )},${serialized.slice(1)}`;
+  assert.throws(
+    () => decodeReplayJson(duplicateHeader),
+    /replay\.header: duplicate property/,
+  );
+});
+
 test('replay-v1 creates canonical virtual teams, units, and lives by sparse slot', () => {
   const decoded = decodeReplay(replayV1FixtureInput());
   const replay = decoded.replay;
@@ -67,6 +103,19 @@ test('replay-v1 creates canonical virtual teams, units, and lives by sparse slot
       (turn) => turn.observation.completeness === 'legacy-partial',
     ),
   );
+  assert.equal(replay.contract.kind, 'legacy-partial');
+  if (replay.contract.kind === 'legacy-partial') {
+    assert.equal(replay.contract.schemaVersion, null);
+    assert.equal(replay.contract.rules.rulesFingerprint, null);
+    assert.equal(replay.contract.rules.limits.maxTicks, 10);
+    assert.equal(replay.contract.rules.vision.range, 4);
+    assert.equal(replay.contract.rules.energy, null);
+    assert.equal(replay.contract.map.mapFingerprint, null);
+    assert.deepEqual(
+      replay.contract.topology.unitSlots.map((unit) => unit.unitKey),
+      ['duel:3:unit:0', 'duel:9:unit:0'],
+    );
+  }
 });
 
 test('replay-v1 accepts the live endpoint shape with omitted null result and hash', () => {
@@ -82,6 +131,18 @@ test('replay-v1 accepts the live endpoint shape with omitted null result and has
   assert.equal(decoded.replay.partial, true);
   assert.equal(decoded.replay.result, null);
   assert.equal(decoded.replay.replayHash, null);
+});
+
+test('replay-v1 destroyed units do not retain an active actor key', () => {
+  const input = replayV1FixtureInput();
+  input.ticks[0]!.state[0]!.status = 'Destroyed';
+
+  const unit = decodeReplay(input).replay.ticks[0]!.after.units.find(
+    (candidate) => candidate.teamId === input.ticks[0]!.state[0]!.slot,
+  );
+
+  assert.equal(unit?.lifecycleStatus, 'destroyed');
+  assert.equal(unit?.activeActorKey, null);
 });
 
 test('replay-v1 requires an explicit partial discriminator when final fields are absent', () => {
@@ -140,34 +201,22 @@ test('replay-v2 keeps a stable unit while separating exact respawn lives', () =>
 });
 
 test('replay-v2 keeps opaque observation handles separate from exact alias identities', () => {
-  const input = replayV2FixtureInput();
-  const turn = input.ticks[0]!.actors[0]!;
-  const exactEnemy = { teamId: 0, unitId: 0, lifeId: 99 };
-  turn.aliases.enemyLives = [
-    { lifeHandle: 'enemy-life-0', actorId: exactEnemy },
-  ];
-  turn.observation.enemies = [
-    {
-      actor: { teamId: 0, unitId: 0, lifeHandle: 'enemy-life-0' },
-      formId: 'prime',
-      position: { x: 2, y: 1 },
-      facing: 'west',
-      health: 2,
-      observedBy: [turn.actorId],
-    },
-  ];
-
-  const normalized = decodeReplay(input).replay.ticks[0]!.actorTurns[0]!;
+  const replay = decodeReplayJson(
+    replayFixtureText('frontline-replay-v2.json'),
+  ).replay;
+  const normalized = replay.ticks[0]!.actorTurns.find(
+    (turn) => turn.actor.teamId === 0,
+  )!;
 
   assert.deepEqual(normalized.observation.enemies[0]?.actor, {
     kind: 'opaque-enemy',
-    teamId: 0,
+    teamId: 1,
     unitId: 0,
     lifeHandle: 'enemy-life-0',
   });
   assert.equal(
     normalized.aliases.enemyLives[0]?.actor.actorKey,
-    'frontline:0:unit:0:life:99',
+    'frontline:1:unit:0:life:0',
   );
 });
 
@@ -189,6 +238,59 @@ test('replay-v2 keeps unsafe seed, projectile, score, and damage totals exact', 
   );
   assert.equal(replay.result?.teams[0]?.damageDealt, JS_UNSAFE_DECIMAL);
   assert.equal(replay.result?.territorialScore, `-${JS_UNSAFE_DECIMAL}`);
+});
+
+test('replay-v2 exposes a complete normalized public match contract', () => {
+  const replay = decodeReplay(replayV2FixtureInput()).replay;
+
+  assert.equal(replay.contract.kind, 'v2-full');
+  if (replay.contract.kind !== 'v2-full') return;
+  const { rules, map, topology } = replay.contract;
+
+  assert.equal(replay.contract.schemaVersion, 1);
+  assert.equal(
+    replay.contract.matchContractFingerprint,
+    'contract-fingerprint',
+  );
+  assert.equal(rules.rulesFingerprint, 'rules-fingerprint');
+  assert.equal(rules.limits.maxUnitsPerTeam, 1);
+  assert.deepEqual(rules.objective.maxTickTiebreakers, [
+    'objective',
+    'health',
+    'damage-dealt',
+  ]);
+  assert.equal(rules.frontlineDefinition?.teamPerception, 'immediate-union');
+  assert.equal(rules.frontlineDefinition?.capture.threshold, 3);
+  assert.equal(rules.frontlineDefinition?.lifecycle.primeRespawnTicks, 2);
+  assert.equal(rules.frontlineDefinition?.anchor.windupTicks, 2);
+  assert.equal(
+    rules.frontlineDefinition?.alliedCombat.friendlyFireEnabled,
+    false,
+  );
+  assert.equal(rules.energy.enabled, false);
+  assert.deepEqual(rules.forms[0]?.allowedActionIds, ['wait']);
+  assert.deepEqual(rules.actions[0]?.parameterKinds, []);
+  assert.equal(rules.projectiles.mode, 'discrete');
+  assert.equal(rules.shotPrograms.maxBendCount, 2);
+  assert.equal(rules.vision.lineOfSight, 'corner-strict-supercover');
+  assert.equal(rules.collisions.unitsBlockUnits, true);
+  assert.deepEqual(rules.tickResolution.phases, [
+    'freeze-observations',
+    'resolve-match-completion',
+  ]);
+  assert.equal(map.mapFingerprint, 'map-fingerprint');
+  assert.deepEqual(map.spawns[0], {
+    teamId: 0,
+    position: { x: 0, y: 1 },
+    facing: 'east',
+  });
+  assert.deepEqual(map.frontline?.positions[0]?.tiles, [{ x: 1, y: 1 }]);
+  assert.equal(topology.teamCount, 1);
+  assert.equal(topology.unitSlots[0]?.unitKey, 'frontline:0:unit:0');
+  assert.equal(
+    topology.initialLives[0]?.actorKey,
+    'frontline:0:unit:0:life:0',
+  );
 });
 
 test('replay-v2 canonicalizes numeric string IDs without mutating wire order', () => {
@@ -234,12 +336,7 @@ test('replay-v2 preserves null separately from supported-but-empty arrays', () =
   assert.deepEqual(
     decodeReplay(replayV2FixtureInput()).replay.ticks[0]?.actorTurns[0]
       ?.runtimeReply.payload,
-    {
-      shotProgram: null,
-      direction: null,
-      unitKey: null,
-      formTargetId: null,
-    },
+    null,
   );
 });
 
@@ -352,3 +449,10 @@ test('replay-v2 requires explicit nullable keys instead of treating omission as 
     /visibleProjectiles: missing required property/,
   );
 });
+
+function replayFixtureText(name: string): string {
+  return readFileSync(
+    new URL(`./fixtures/${name}`, import.meta.url),
+    'utf8',
+  );
+}

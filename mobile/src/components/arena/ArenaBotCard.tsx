@@ -1,97 +1,155 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BotSprite } from '@/components/BotSprite';
-import type { ArenaBot } from '@/components/arena/protocol';
+import type { ArenaUnitPresentation } from '@/components/arena/protocol';
 import { Arena, Mono, Radius, Space } from '@/theme/arena';
 
 const STATUS_COLOR: Record<string, string> = {
-  Active: Arena.ok,
-  Destroyed: Arena.live,
-  Disqualified: Arena.warn,
+  active: Arena.ok,
+  destroyed: Arena.live,
+  disqualified: Arena.warn,
+  respawning: Arena.live,
+  ready: Arena.accent,
+  'fabrication-queued': Arena.zone,
+  rebuilding: Arena.zone,
 };
 
 /**
- * One bot's state at the current tick: health, cooldown, zone hold, and what it chose to
- * do. Tapping selects it, which highlights it in the arena and reveals its debug line.
+ * One stable unit at the current tick.
  *
- * The accent is the one the renderer resolved for this bot against the panel background,
- * not the raw `bot.accent` from the API — so hearts here are the colour the chassis is
- * drawn with, including for looks that override their bot's accent.
+ * The card survives runtime-life changes: selection follows unitKey while actorKey and
+ * lifeId are allowed to be null during locks, respawns, rebuilds and fabrication. Tapping
+ * asks the WebView to select the stable unit and reveals observation/debug detail.
  */
 export function ArenaBotCard({
-  bot,
+  unit,
   lookId,
-  showZone,
+  showObjective,
   selected,
   onPress,
 }: {
-  bot: ArenaBot;
+  unit: ArenaUnitPresentation;
   lookId?: string;
-  /** Whether this match has a zone at all — the site shows an idle marker when it does. */
-  showZone: boolean;
+  /** Whether this match has an objective worth showing on the card. */
+  showObjective: boolean;
   selected: boolean;
   onPress: () => void;
 }) {
+  const healthPercent =
+    (100 * Math.max(0, Math.min(unit.health, unit.maxHealth))) /
+    Math.max(1, unit.maxHealth);
+  const hasLife = unit.actorKey !== null && unit.lifeId !== null;
+  const statusLabel = unit.status.replaceAll('-', ' ').toUpperCase();
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${bot.name}, ${bot.status}, ${bot.health} of ${bot.maxHealth} health`}
+      accessibilityLabel={`${unit.name}, team ${unit.teamId} unit ${unit.unitId}, ${statusLabel}, ${unit.health} of ${unit.maxHealth} health`}
       style={({ pressed }) => [
         styles.card,
         selected && styles.selected,
         pressed && styles.pressed,
       ]}>
       <View style={styles.head}>
-        <BotSprite lookId={lookId} accent={bot.accent} size="sm" />
+        <BotSprite lookId={lookId} accent={unit.accent} size="sm" />
         <View style={styles.identity}>
           <Text style={styles.name} numberOfLines={1}>
-            {bot.name}
+            {unit.name}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {bot.lookLabel} · slot {bot.slot} · {bot.runtimeKind}
+            team {unit.teamId} · unit {unit.unitId} · {unit.formId || 'no form'}
+          </Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {unit.runtimeKind} · life {unit.lifeId ?? '—'}
+            {unit.legacySlot === null ? '' : ` · legacy slot ${unit.legacySlot}`}
           </Text>
         </View>
-        <Text style={[styles.status, { color: STATUS_COLOR[bot.status] ?? Arena.dim }]}>
-          {bot.status.toUpperCase()}
+        <Text
+          style={[
+            styles.status,
+            { color: STATUS_COLOR[unit.status] ?? Arena.dim },
+          ]}>
+          {statusLabel}
         </Text>
+      </View>
+
+      <View style={styles.healthRow}>
+        <Text style={styles.stat}>
+          HP{' '}
+          <Text style={styles.statValue}>
+            {unit.health}/{unit.maxHealth}
+          </Text>
+        </Text>
+        <View style={styles.healthTrack}>
+          <View
+            style={[
+              styles.healthFill,
+              {
+                width: `${healthPercent}%`,
+                backgroundColor: unit.accent,
+              },
+            ]}
+          />
+        </View>
       </View>
 
       <View style={styles.stats}>
-        <Text style={styles.hearts} numberOfLines={1}>
-          {Array.from({ length: bot.maxHealth }, (_, index) => (
-            <Text key={index} style={{ color: index < bot.health ? bot.accent : Arena.edge }}>
-              ♥
-            </Text>
-          ))}
-        </Text>
-
         <Text style={styles.stat}>
-          CD <Text style={styles.statValue}>{bot.cooldown}</Text>
+          CD <Text style={styles.statValue}>{unit.cooldown}</Text>
         </Text>
 
-        {bot.energy !== undefined ? (
+        {unit.energy !== null ? (
           <Text style={styles.stat}>
-            ⚡ <Text style={styles.statValue}>{bot.energy}</Text>
+            ⚡ <Text style={styles.statValue}>{unit.energy}</Text>
           </Text>
         ) : null}
 
-        {showZone ? (
-          <Text style={[styles.stat, bot.holdingZone && styles.holding]}>
+        {showObjective ? (
+          <Text style={[styles.stat, unit.holdingObjective && styles.holding]}>
             ⬢{' '}
-            <Text style={bot.holdingZone ? styles.holding : styles.statValue}>
-              {bot.zoneTicks ?? (bot.holdingZone ? 'HOLD' : 'idle')}
+            <Text
+              style={
+                unit.holdingObjective ? styles.holding : styles.statValue
+              }>
+              {unit.zoneTicks ??
+                (unit.holdingObjective ? 'HOLDING' : 'idle')}
             </Text>
+          </Text>
+        ) : null}
+
+        {unit.respawnAtTick !== null ? (
+          <Text style={styles.stat}>
+            NEXT{' '}
+            <Text style={styles.statValue}>{unit.respawnAtTick}</Text>
           </Text>
         ) : null}
       </View>
 
-      {bot.action ? (
+      {!unit.canMove ||
+      unit.omnidirectionalVision ||
+      unit.omnidirectionalShooting ? (
+        <View style={styles.signals}>
+          {!unit.canMove ? (
+            <Text style={styles.signal}>STATIONARY</Text>
+          ) : null}
+          {unit.omnidirectionalVision ? (
+            <Text style={styles.signal}>360° VISION</Text>
+          ) : null}
+          {unit.omnidirectionalShooting ? (
+            <Text style={styles.signal}>360° FIRE</Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {unit.actionId !== null ? (
         <Text style={styles.action} numberOfLines={1}>
-          → <Text style={styles.statValue}>{bot.action}</Text>
-          {bot.actionResult && bot.actionResult !== 'Success' ? (
-            <Text style={styles.rejected}> ({bot.actionResult})</Text>
+          → <Text style={styles.statValue}>{unit.actionId}</Text>
+          {unit.actionResult !== null &&
+          unit.actionResult !== 'success' &&
+          unit.actionResult !== 'none' ? (
+            <Text style={styles.rejected}> ({unit.actionResult})</Text>
           ) : null}
         </Text>
       ) : null}
@@ -99,12 +157,17 @@ export function ArenaBotCard({
       {selected ? (
         <View style={styles.detail}>
           <Text style={styles.vision}>
-            sees {bot.visibleTiles} tiles ·{' '}
-            {bot.visibleEnemies.length > 0
-              ? `enemy at ${bot.visibleEnemies.map((e) => `(${e.x},${e.y})`).join(' ')}`
+            {hasLife ? unit.actorKey : 'no active life'} · sees{' '}
+            {unit.visibleTiles} tiles ·{' '}
+            {unit.visibleEnemies.length > 0
+              ? `${unit.visibleEnemies.length} ${
+                  unit.visibleEnemies.length === 1 ? 'enemy' : 'enemies'
+                } at ${unit.visibleEnemies
+                  .map((enemy) => `(${enemy.x},${enemy.y})`)
+                  .join(' ')}`
               : 'no enemies visible'}
           </Text>
-          {bot.debug ? <Text style={styles.debug}>{bot.debug}</Text> : null}
+          {unit.debug ? <Text style={styles.debug}>{unit.debug}</Text> : null}
         </View>
       ) : null}
     </Pressable>
@@ -126,15 +189,53 @@ const styles = StyleSheet.create({
   identity: { flex: 1, minWidth: 0 },
   name: { color: Arena.text, fontSize: 14, fontWeight: '600' },
   meta: { ...Mono, color: Arena.dim, fontSize: 10 },
-  status: { ...Mono, fontSize: 10 },
-  stats: { flexDirection: 'row', alignItems: 'center', gap: Space.md, flexWrap: 'wrap' },
-  hearts: { fontSize: 13, letterSpacing: 1 },
+  status: {
+    ...Mono,
+    fontSize: 9,
+    maxWidth: 92,
+    textAlign: 'right',
+  },
+  healthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+  },
+  healthTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Arena.edge,
+    overflow: 'hidden',
+  },
+  healthFill: { height: '100%' },
+  stats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.md,
+    flexWrap: 'wrap',
+  },
   stat: { ...Mono, color: Arena.dim, fontSize: 11 },
   statValue: { color: Arena.text },
   holding: { color: Arena.zone },
+  signals: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs },
+  signal: {
+    ...Mono,
+    color: Arena.accent,
+    borderWidth: 1,
+    borderColor: Arena.edge,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Space.xs,
+    paddingVertical: 2,
+    fontSize: 9,
+  },
   action: { ...Mono, color: Arena.dim, fontSize: 11 },
   rejected: { color: Arena.warn },
-  detail: { gap: Space.xs, borderTopWidth: 1, borderTopColor: Arena.edge, paddingTop: Space.sm },
+  detail: {
+    gap: Space.xs,
+    borderTopWidth: 1,
+    borderTopColor: Arena.edge,
+    paddingTop: Space.sm,
+  },
   vision: { ...Mono, color: Arena.dim, fontSize: 10 },
   debug: {
     ...Mono,

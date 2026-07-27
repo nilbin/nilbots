@@ -2,12 +2,15 @@ import { useCallback, useRef, useState } from 'react';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 import type {
+  ArenaControlMethod,
   ArenaHeader,
   ArenaMessage,
   ArenaResult,
   ArenaTick,
   ArenaTransport,
+  ArenaUnitKey,
 } from '@/components/arena/protocol';
+import { ARENA_BRIDGE_VERSION } from '@/components/arena/protocol';
 import { API_BASE_URL } from '@/api/config';
 
 /**
@@ -25,19 +28,19 @@ export interface ArenaBridge {
   webViewRef: React.RefObject<WebView | null>;
   onMessage: (event: WebViewMessageEvent) => void;
   /** Call a method on the page's control surface: play/pause/seek/… */
-  control: (method: string, ...args: unknown[]) => void;
+  control: (method: ArenaControlMethod, ...args: unknown[]) => void;
   /** Point the page at a replay, optionally anchored to a broadcast's clock. */
   load: (matchId: string, anchor?: BroadcastAnchor) => void;
   /** Queue a replay for when the page announces itself, or load it now if it already has. */
   loadWhenReady: (matchId: string) => void;
   /** Forget the current fight's readouts. */
   reset: () => void;
-  selectSlot: (slot: number) => void;
+  selectUnit: (unitKey: ArenaUnitKey) => void;
   header: ArenaHeader | null;
   result: ArenaResult;
   tick: ArenaTick | null;
   transport: ArenaTransport | null;
-  selectedSlot: number | null;
+  selectedUnitKey: ArenaUnitKey | null;
   failed: boolean;
 }
 
@@ -52,7 +55,8 @@ export function useArenaBridge(): ArenaBridge {
   const [result, setResult] = useState<ArenaResult>(null);
   const [tick, setTick] = useState<ArenaTick | null>(null);
   const [transport, setTransport] = useState<ArenaTransport | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [selectedUnitKey, setSelectedUnitKey] =
+    useState<ArenaUnitKey | null>(null);
   const [failed, setFailed] = useState(false);
 
   // The page announces readiness once. A load before that has nowhere to land, so it
@@ -100,18 +104,21 @@ export function useArenaBridge(): ArenaBridge {
     setResult(null);
     setTick(null);
     setTransport(null);
-    setSelectedSlot(null);
+    setSelectedUnitKey(null);
     setFailed(false);
   }, []);
 
   const onMessage = useCallback(
     (event: WebViewMessageEvent) => {
-      let message: ArenaMessage;
+      let decoded: unknown;
       try {
-        message = JSON.parse(event.nativeEvent.data) as ArenaMessage;
+        decoded = JSON.parse(event.nativeEvent.data);
       } catch {
         return;
       }
+      if (!isArenaMessage(decoded)) return;
+      const message = decoded;
+
       switch (message.type) {
         case 'ready':
           ready.current = true;
@@ -125,20 +132,16 @@ export function useArenaBridge(): ArenaBridge {
           setResult(message.result);
           break;
         case 'tick':
-          setTick({ tick: message.tick, control: message.control, bots: message.bots });
+          setTick(message);
           break;
         case 'transport':
-          setTransport({
-            playing: message.playing,
-            speed: message.speed,
-            tick: message.tick,
-            tickCount: message.tickCount,
-            atEnd: message.atEnd,
-            following: message.following,
-          });
+          setTransport(message);
           break;
         case 'selected':
-          setSelectedSlot(message.slot);
+          setSelectedUnitKey(message.unitKey);
+          break;
+        case 'loaded':
+          setFailed(false);
           break;
         case 'error':
           setFailed(true);
@@ -151,13 +154,13 @@ export function useArenaBridge(): ArenaBridge {
   // Deliberately not a functional update: the updater would have to send the message to
   // the page, and React may invoke it more than once. Selection is driven by taps, so
   // reading the rendered value is correct here.
-  const selectSlot = useCallback(
-    (slot: number) => {
-      const next = selectedSlot === slot ? null : slot;
-      setSelectedSlot(next);
-      control('selectSlot', next);
+  const selectUnit = useCallback(
+    (unitKey: ArenaUnitKey) => {
+      const next = selectedUnitKey === unitKey ? null : unitKey;
+      setSelectedUnitKey(next);
+      control('selectUnit', next);
     },
-    [control, selectedSlot],
+    [control, selectedUnitKey],
   );
 
   return {
@@ -167,12 +170,27 @@ export function useArenaBridge(): ArenaBridge {
     load,
     loadWhenReady,
     reset,
-    selectSlot,
+    selectUnit,
     header,
     result,
     tick,
     transport,
-    selectedSlot,
+    selectedUnitKey,
     failed,
   };
+}
+
+function isArenaMessage(value: unknown): value is ArenaMessage {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  if (candidate.bridgeVersion !== ARENA_BRIDGE_VERSION) return false;
+  return (
+    candidate.type === 'ready' ||
+    candidate.type === 'loaded' ||
+    candidate.type === 'error' ||
+    candidate.type === 'replay' ||
+    candidate.type === 'tick' ||
+    candidate.type === 'transport' ||
+    candidate.type === 'selected'
+  );
 }

@@ -9,7 +9,8 @@ export default function MatchPage() {
   // follows it. Each stops on its own condition, so nothing keeps polling a finished
   // match.
   const { data: live, error: liveError } = useMatchLive(matchId);
-  const { data: replay } = useMatchReplay(matchId, live);
+  const { data: loadedReplay } = useMatchReplay(matchId, live);
+  const replay = loadedReplay?.replay;
   // Only a failed match has an error worth showing in place of the arena; the detail
   // carries the message the worker recorded.
   const { data: detail } = useMatch(live?.status === 'Failed' ? matchId : undefined);

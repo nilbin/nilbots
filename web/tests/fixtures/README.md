@@ -18,5 +18,6 @@ UPDATE_GOLDEN=1 dotnet test tests/BotArena.Engine.Tests \
   --filter FullyQualifiedName~FrontlineReplayV2FixtureTests
 ```
 
-The frontend test reads each file as raw text, then applies `JSON.parse` and
-`decodeReplay`. Do not regenerate or reserialize these fixtures in TypeScript.
+The frontend test reads each file as raw text and passes it to
+`decodeReplayJson`, preserving lexical integers and the original bytes for hash
+verification. Do not regenerate or reserialize these fixtures in TypeScript.

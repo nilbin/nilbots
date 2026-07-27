@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ReplayDocument } from '../types';
+import type { ReplayModel } from '../replayModel';
 import {
   audioCandidate,
   audioCandidates,
@@ -76,7 +76,7 @@ export function useReplayAudio({
   following,
   reviewEnabled = true,
 }: {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   time: number;
   playing: boolean;
   speed: number;
