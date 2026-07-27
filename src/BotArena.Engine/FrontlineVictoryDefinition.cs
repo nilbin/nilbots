@@ -10,24 +10,14 @@ public sealed record FrontlineVictoryDefinition : VictoryDefinition
 {
     public FrontlineVictoryDefinition(
         int pushesToBreach,
-        ImmutableArray<ScoreChannelDefinition> rankingChannels)
-        : base(rankingChannels)
+        ImmutableArray<ScoreRankingDefinition> timeoutRanking)
+        : base(timeoutRanking)
     {
         if (pushesToBreach <= 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(pushesToBreach),
                 "Frontline pushes to breach must be positive.");
-        }
-        if (rankingChannels[0] is not
-            {
-                Channel: ScoreChannelDefinition.ChannelKind.TerritorialProgress,
-                Direction: ScoreChannelDefinition.SortDirection.HigherWins,
-            })
-        {
-            throw new ArgumentException(
-                "Frontline's primary ranking channel must be higher territorial progress.",
-                nameof(rankingChannels));
         }
 
         PushesToBreach = pushesToBreach;

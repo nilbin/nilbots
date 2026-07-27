@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace BotArena.Engine;
 
 /// <summary>
@@ -10,21 +12,25 @@ public sealed record DeathmatchGameModeDefinition : GameModeDefinition
 
     public DeathmatchGameModeDefinition(
         DeathmatchVictoryDefinition victory,
-        int respawnDelayTicks)
-        : base(Id, victory)
+        ImmutableArray<ScoreChannelDefinition> scoreCatalog,
+        DeathmatchScoringDefinition scoring)
+        : base(Id, victory, scoreCatalog)
     {
-        if (respawnDelayTicks < 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(respawnDelayTicks),
-                "Deathmatch respawn delay cannot be negative.");
-        }
+        ArgumentNullException.ThrowIfNull(scoring);
+        ValidatePrimaryTimeoutRanking(
+            ScoreChannelDefinition.ChannelKind.Kills);
+        ValidateSupportedScoreCatalog(
+            ScoreChannelDefinition.ChannelKind.Kills,
+            ScoreChannelDefinition.ChannelKind.Deaths,
+            ScoreChannelDefinition.ChannelKind.DamageDealt,
+            ScoreChannelDefinition.ChannelKind.ActiveHealth);
+
         DeathmatchVictory = victory;
-        RespawnDelayTicks = respawnDelayTicks;
+        Scoring = scoring;
     }
 
     public override GameModeDefinitionKind Kind =>
         GameModeDefinitionKind.Deathmatch;
     public DeathmatchVictoryDefinition DeathmatchVictory { get; }
-    public int RespawnDelayTicks { get; }
+    public DeathmatchScoringDefinition Scoring { get; }
 }

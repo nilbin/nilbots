@@ -10,24 +10,14 @@ public sealed record DeathmatchVictoryDefinition : VictoryDefinition
 {
     public DeathmatchVictoryDefinition(
         int? killsToWin,
-        ImmutableArray<ScoreChannelDefinition> rankingChannels)
-        : base(rankingChannels)
+        ImmutableArray<ScoreRankingDefinition> timeoutRanking)
+        : base(timeoutRanking)
     {
         if (killsToWin <= 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(killsToWin),
                 "A configured deathmatch kill limit must be positive.");
-        }
-        if (rankingChannels[0] is not
-            {
-                Channel: ScoreChannelDefinition.ChannelKind.Kills,
-                Direction: ScoreChannelDefinition.SortDirection.HigherWins,
-            })
-        {
-            throw new ArgumentException(
-                "Deathmatch's primary ranking channel must be higher kill count.",
-                nameof(rankingChannels));
         }
 
         KillsToWin = killsToWin;
@@ -38,4 +28,18 @@ public sealed record DeathmatchVictoryDefinition : VictoryDefinition
 
     /// <summary>Null means only the common match tick limit ends regulation.</summary>
     public int? KillsToWin { get; }
+
+    public TerminalTickPrecedenceKind TerminalTickPrecedence =>
+        TerminalTickPrecedenceKind
+            .KillLimitAfterCompleteJointTickBeforeMaxTickTimeout;
+
+    public enum TerminalTickPrecedenceKind
+    {
+        /// <summary>
+        /// On the final allowed tick, apply the complete joint tick and check
+        /// the kill limit first. If it is not reached, resolve the timeout
+        /// ranking. This prevents the same state receiving two result rules.
+        /// </summary>
+        KillLimitAfterCompleteJointTickBeforeMaxTickTimeout = 0,
+    }
 }

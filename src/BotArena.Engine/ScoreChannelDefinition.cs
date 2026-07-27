@@ -1,26 +1,31 @@
 namespace BotArena.Engine;
 
 /// <summary>
-/// One typed, ordered terminal-ranking value. Collection order is ranking
-/// priority; the channel kind supplies semantics without an open string key.
+/// One declared public scoreboard channel. Its kind fixes the value domain;
+/// timeout comparison order and direction live in
+/// <see cref="ScoreRankingDefinition"/>.
 /// </summary>
 public sealed record ScoreChannelDefinition
 {
-    public ScoreChannelDefinition(
-        ChannelKind channel,
-        SortDirection direction)
+    public ScoreChannelDefinition(ChannelKind channel)
     {
-        if (!Enum.IsDefined(channel))
-            throw new ArgumentOutOfRangeException(nameof(channel));
-        if (!Enum.IsDefined(direction))
-            throw new ArgumentOutOfRangeException(nameof(direction));
-
         Channel = channel;
-        Direction = direction;
+        Domain = ResolveValueDomain(channel);
     }
 
     public ChannelKind Channel { get; }
-    public SortDirection Direction { get; }
+    public ValueDomain Domain { get; }
+
+    internal static ValueDomain ResolveValueDomain(ChannelKind channel) =>
+        channel switch
+        {
+            ChannelKind.Kills => ValueDomain.NonNegative,
+            ChannelKind.Deaths => ValueDomain.NonNegative,
+            ChannelKind.DamageDealt => ValueDomain.NonNegative,
+            ChannelKind.ActiveHealth => ValueDomain.NonNegative,
+            ChannelKind.TerritorialProgress => ValueDomain.Signed,
+            _ => throw new ArgumentOutOfRangeException(nameof(channel)),
+        };
 
     public enum ChannelKind
     {
@@ -31,9 +36,9 @@ public sealed record ScoreChannelDefinition
         TerritorialProgress = 4,
     }
 
-    public enum SortDirection
+    public enum ValueDomain
     {
-        HigherWins = 0,
-        LowerWins = 1,
+        NonNegative = 0,
+        Signed = 1,
     }
 }

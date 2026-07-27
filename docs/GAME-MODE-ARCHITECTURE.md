@@ -22,8 +22,13 @@ Implementation checkpoint:
   Frontline-alpha fingerprints, and a real end-to-end alpha replay-v2 run.
 - Package B's mode/victory/format/topology and persistence-free
   playlist/ladder/rating definitions are implemented but unused.
-- Package C's isolated map-generation model is implemented; its resolved
-  rules and match-contract writers are still pending.
+- Package C's isolated map-generation model, resolved actor-rules catalog,
+  lifecycle profiles, three transition families, and generic standings
+  component are implemented but still unused. The cross-component resolved
+  match aggregate now accepts head-to-head, FFA-4, and 2v2 Deathmatch through
+  the same rules and rejects invalid capacity, placement, respawn, and mode-map
+  combinations before hashing. Canonical contract writers are the remaining
+  Package C work.
 - No new definition is routed into a session, API, ladder, SDK, replay, or
   viewer.
 
@@ -89,14 +94,17 @@ ResolvedMatchContract
   ruleset
     gameMode
     victory + score channels
-    lifecycle/spawn policy
+    lifecycle profiles
     forms[]
     movementProfiles[]
+    visionProfiles[]
     attackProfiles[]
     actions[]
+    fabricationTransitions[]
     sameLifeTransitions[]
     replicationTransitions[]
-    combat/perception/collision/tick rules
+    participant runtime-fault policy
+    combat/damage/perception/collision/tick rules
   matchFormat
   map
   exact topology
@@ -126,11 +134,24 @@ Victory is a typed part of the mode definition. The first variants are:
 - breach completion plus territorial timeout ranking;
 - optional score-limit completion plus max-tick score ranking.
 
-Dynamic score state is generic and keyed:
+The public score catalog is separate from the ordered timeout ranking.
+Deathmatch may expose deaths, damage, and active health without making them
+hidden tiebreakers. Frontline initially exposes exactly one signed
+`TerritorialProgress` channel and ranks timeouts by exactly that channel,
+higher first; it has no hidden timeout tiebreakers. Dynamic score state is
+generic and keyed:
 
 ```text
 teamId + scoreChannelId + exact integer value
 ```
+
+Frontline form objective weight is binary (`0` or `1`); positive bodies do not
+stack. Sole-team gain reaching or exceeding the threshold completes exactly
+one push and discards overshoot. Opposing gain erodes a claim to zero without
+starting its own claim on the same tick. Empty/contested decay uses consecutive
+ticks, resets after each applied interval and on any sole-control tick, floors
+at zero, and the disabled `(0, 0)` pair preserves the claim with a zero clock.
+Base breach on the final allowed tick precedes timeout.
 
 Terminal results use canonical team standings:
 
@@ -147,10 +168,29 @@ derived compatibility fields, but neither is the authoritative result model.
 Integers that may exceed JavaScript's safe range use canonical decimal strings
 on replay/API boundaries.
 
-Deathmatch initially awards one kill point to the team of the exact damage
-source that removes the final health point. Simultaneous mutual destruction
-may score for both teams. Lifecycle retirement by replication is not a death
-and awards no kill.
+Deathmatch uses raw counts rather than point multipliers. Every damage-caused
+destruction adds one Death to the destroyed actor's scoring team. The exact
+hostile damage instance that reduces remaining health to zero adds one Kill to
+its source life's scoring team; persistent projectiles retain their firing-life
+source. Allied or self final damage records the victim team's Death but no Kill,
+and hostile DamageDealt records only actual health removed. ActiveHealth is the
+terminal sum across active team lives.
+
+Lifecycle retirement by replication is not destruction and adds neither a
+Death nor a Kill. All joint-tick damage and score increments resolve before an
+optional kill limit is checked. A unique highest raw Kill count at or above the
+limit wins; teams tied at the top draw, so simultaneous mutual threshold kills
+remain representable. TimeoutRanking is not reused for this early result.
+On the final allowed tick, this complete-joint-tick kill-limit check precedes
+timeout ranking.
+
+Damage contacts are collected before any health mutation. Per target, they are
+then applied in canonical source-team/unit/life, projectile-ID, and path-contact
+order; actual health removal is capped to remaining health and the first
+ordered contact crossing zero owns lethal attribution. Projectile IDs are
+match-wide monotonic signed 64-bit integers assigned from canonical same-tick
+source order. This makes kill credit and replay events independent of hash-map
+iteration while preserving simultaneous joint-action validity.
 
 ## 5. Formats and exact topology
 
@@ -201,11 +241,18 @@ An initial life binds to a named resolved spawn. Validators prove:
 - no duplicate initial occupancy;
 - mode-required objective geometry exists;
 - transition placement regions can satisfy their declared bounded output;
+- automatic-return spawns are unique, permanently reserved, and cannot be
+  occupied by another initial life or lifecycle placement;
+- source-preserving fabrication has a legal source tile plus a candidate
+  offset for at least one possible dynamic actor facing;
 - format/map symmetry or fairness requirements declared by the playlist.
 
-Movement layers describe traversal compatibility, not independent vertical
-occupancy. All actor lives remain mutually exclusive per tile across layers;
-Air can cross wall geometry but cannot share a tile with a Ground life.
+Movement layers identify traversal compatibility, not independent vertical
+occupancy. All actor lives remain mutually exclusive per tile across layers.
+Rules schema 3 initially admits only the implemented Ground layer. Air is a
+future typed engine capability; its wall traversal, landing, projectile,
+vision, objective, and occupancy semantics must be added explicitly before a
+ruleset can select it.
 
 Maps select typed profile values only. They cannot insert callbacks or reorder
 engine phases.
@@ -222,12 +269,36 @@ form
   attack profile
   objective weight
   legal action IDs
-  presentation capability ID
 ```
 
-Named movement and attack profiles let two forms differ in wall traversal,
-speed, damage, range, cadence, or projectile behavior without pretending those
-are all global values.
+Named movement, vision, and attack profiles isolate capabilities and tuning
+from form identity. Schema 3 currently gives movement profiles only an
+implemented movement layer; speed or novel traversal becomes an additive typed
+capability when its exact tick semantics exist. Damage, range, cadence,
+projectile behavior, vision, health, and legal actions are already resolved
+data. Optional visual metadata maps stable form IDs to presentation outside
+gameplay fingerprints.
+
+Schema 3 admits one reproducible grid-combat kernel rather than arbitrary
+boolean combinations: exclusive Ground occupancy, connected conflicting moves
+all block, ordered projectile tile substeps cannot tunnel, walls precede actor
+contact, and all contacts enter one canonical damage batch. Allied projectile
+contact remains a closed selectable policy. Instant rays use canonical inert
+traversal fields; discrete projectiles do not receive a second launch-tick
+advance.
+
+Programmed attacks use an explicit eight-heading clockwise-modulo model,
+one-octant bends, unique initial offsets in `[-4, 3]`, and bend directions from
+`{-1, +1}`. Hearing likewise names its exact eight-octant strict-two-to-one
+cardinal boundary model; a sector count alone is not treated as sufficient
+semantics. Disabled capabilities use canonical inert values so behavior-equal
+rules cannot acquire different fingerprints or ML rules vectors.
+
+Attack availability is evaluated from pre-tick cooldown and energy. A
+successful attack sets the configured cooldown at end of tick without
+decrementing it immediately; other active ticks subtract one to zero. Energy
+cost is paid before same-tick regeneration, and regeneration follows global
+completed-match-tick modulo cadence rather than life age or time since spend.
 
 Actions keep stable string IDs and numeric codes. Arguments use a bounded
 tagged union with structural descriptors and per-tick legality masks. Do not
@@ -235,18 +306,36 @@ introduce arbitrary JSON/object bags. Unknown action or parameter semantics
 make an artifact explicitly ineligible or produce a typed unsupported result;
 they never silently become `Wait`.
 
-Two transition families are distinct:
+Three lifecycle-action families are distinct:
 
-1. **Same-life form transition** — one life and runtime survive, preserving
-   private memory according to a typed continuity policy. Anchor and a future
-   reversible ground/flight switch use this family.
-2. **One-to-many replication transition** — one source life retires and fresh
+1. **Source-preserving fabrication** — the source remains an ordinary active
+   life while one explicitly targeted, predeclared dormant slot is reserved
+   and later receives a fresh child life. The child has an isolated runtime
+   and no inherited private memory.
+2. **Same-life form transition** — one life and runtime survive, preserving
+   private memory, remaining cooldown, and non-refilling clamped energy
+   according to typed continuity policies. Queue and completion placement
+   legality use required/forbidden map tags; schema 3 retains the same occupied
+   Ground tile. Anchor and a future reversible ground/flight switch use this
+   family, with a later position/layer policy added to this tagged boundary.
+3. **One-to-many replication transition** — one source life retires and fresh
    descendant lives start in bounded slots. Split uses this family.
 
-The first Air movement profile is a localized new engine capability with
-explicit wall, projectile, landing, vision, and objective semantics. Once it
-exists, additional flying forms and their health/duration/action tuning are
-data-only.
+Rules own lifecycle profiles; the resolved match assigns one profile and an
+allowed-form set to every stable unit slot. Automatic respawn, readiness for
+explicit fabrication, and permanent dormancy are closed policies. Match-local
+participant-to-region bindings express roles such as “own fabrication pad”
+without baking team IDs into reusable rules or neutral maps.
+
+Every newly created life has a monotonically increasing slot-local life ID,
+fresh runtime and empty memory, deterministic seed, target-form maximum health,
+zero cooldown, target-profile maximum energy, and no previous action result.
+It may act on its creation tick and joins the normal global resource cadence
+at that tick's end.
+The first Air movement profile remains a localized new engine capability with
+explicit wall, projectile, landing, vision, objective, and occupancy
+semantics. Once it exists, additional flying forms and their
+health/duration/action tuning can be data-only.
 
 ## 8. Initial Split proof
 
@@ -298,6 +387,17 @@ The common actor host owns:
 - exact active-actor preparation;
 - runtime budgets, failure handling, and disposal;
 - replay chronology.
+
+Runtime faults are participant-scoped across every controlled slot, life, and
+runtime stage. A faulting life contributes `Wait` for that joint tick. After
+damage and before the mode update, a participant exceeding its declared
+tolerance is disqualified: all owned lives retire without kill/death credit and
+all owned slots become permanently dormant. A multi-participant scoring team
+remains eligible while any participant remains; fully disqualified teams rank
+below every eligible team and tie at the bottom. One remaining eligible team
+wins immediately, while zero eligible teams draw. Thus an FFA leader cannot
+fault out and retain a timeout win, and one faulted member does not erase a 2v2
+teammate.
 
 A typed mode session owns:
 
@@ -395,6 +495,10 @@ is queued and never resolve “whatever is current” at execution time.
 ### Package C — generic map/topology contract
 
 - Add map generation 3 with named neutral spawns and typed regions.
+- Add flat actor rules with profile catalogs, lifecycle assignments,
+  fabrication, same-life transitions, and replication.
+- Validate every rules/map/format/topology/deployment reference and bounded
+  lifecycle capacity before hashing.
 - Resolve head-to-head, FFA-4, and 2v2 fixture topologies.
 - Add rules schema 3 and match-contract schema 2 writers while keeping old
   writers byte-exact.

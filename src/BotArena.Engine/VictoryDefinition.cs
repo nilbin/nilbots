@@ -4,45 +4,46 @@ namespace BotArena.Engine;
 
 /// <summary>
 /// Closed vNext victory union. Mode-specific variants own their early terminal
-/// condition while this base owns the ordered timeout-ranking channels.
+/// condition while this base owns the ordered timeout-ranking policy.
 /// </summary>
 public abstract record VictoryDefinition
 {
     internal VictoryDefinition(
-        ImmutableArray<ScoreChannelDefinition> rankingChannels)
+        ImmutableArray<ScoreRankingDefinition> timeoutRanking)
     {
-        if (rankingChannels.IsDefaultOrEmpty)
+        if (timeoutRanking.IsDefaultOrEmpty)
         {
             throw new ArgumentException(
-                "Victory ranking channels must be initialized and non-empty.",
-                nameof(rankingChannels));
+                "Victory timeout ranking must be initialized and non-empty.",
+                nameof(timeoutRanking));
         }
-        if (rankingChannels.Any(channel => channel is null))
+        if (timeoutRanking.Any(reference => reference is null))
         {
             throw new ArgumentException(
-                "Victory ranking channels cannot contain null entries.",
-                nameof(rankingChannels));
+                "Victory timeout ranking cannot contain null entries.",
+                nameof(timeoutRanking));
         }
-        if (rankingChannels
-            .Select(channel => channel.Channel)
+        if (timeoutRanking
+            .Select(reference => reference.Channel)
             .Distinct()
-            .Count() != rankingChannels.Length)
+            .Count() != timeoutRanking.Length)
         {
             throw new ArgumentException(
-                "Victory ranking channel kinds must be unique.",
-                nameof(rankingChannels));
+                "Victory timeout-ranking channel references must be unique.",
+                nameof(timeoutRanking));
         }
 
-        RankingChannels = rankingChannels;
+        TimeoutRanking = timeoutRanking;
     }
 
     public abstract VictoryDefinitionKind Kind { get; }
 
     /// <summary>
-    /// Ordered, typed comparison channels. Exact equality across every channel
-    /// is a tied placement.
+    /// Ordered score comparisons used only when the common match tick limit
+    /// ends regulation. Early terminal conditions may produce different
+    /// standings from this score order.
     /// </summary>
-    public ImmutableArray<ScoreChannelDefinition> RankingChannels { get; }
+    public ImmutableArray<ScoreRankingDefinition> TimeoutRanking { get; }
 
     public enum VictoryDefinitionKind
     {
