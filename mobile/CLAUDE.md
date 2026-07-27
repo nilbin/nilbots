@@ -188,6 +188,35 @@ the game pays the player back, and it should feel like it. Result toasts reuse
 rather than inventing a third vocabulary for the same thing. Never toast over the arena
 viewer, and never toast a result for the match currently on screen.
 
+## Getting it onto a phone
+
+Three routes, and which one you need is decided by Apple rather than by preference.
+
+| | cost | push | lasts |
+|---|---|---|---|
+| `npx expo run:ios --device` over USB | free | **no** | 7 days |
+| EAS `preview` → iOS | Apple Developer Program, $99/yr | yes | until the profile expires |
+| EAS `preview` → Android APK | free | yes | indefinitely |
+
+**A free Apple ID cannot do push.** Xcode gives an unpaid account a "Personal Team", and
+personal teams cannot use entitlements at all — including `aps-environment`, which
+`expo-notifications` generates. The app installs and everything else works; registration
+simply never gets a token. So the cheapest way to actually exercise `ExpoPushTransport` and
+`usePushRegistration` is an **Android** build, which needs no paid account.
+
+`eas.json` profiles:
+
+- **development** — a dev client, and an iOS *simulator* build. What `expo run:ios`
+  produces locally, but built in the cloud.
+- **preview** — internal distribution: an APK on Android, an ad-hoc build on iOS. Pins
+  `EXPO_PUBLIC_NILBOTS_API` to `https://nilbots.com`, because a build on someone else's
+  phone cannot reach the Metro host that `api/config.ts` falls back to in development.
+- **production** — an app bundle, versions auto-incremented by EAS
+  (`appVersionSource: remote`, so the number lives with the build rather than in git).
+
+Over USB the API needs no override: `api/config.ts` resolves the Metro host's LAN address,
+so a phone on the same Wi-Fi reaches the Mac's `:8080` on its own.
+
 ## Verifying
 
 `npx tsc --noEmit` must be clean before committing. Run the app on the iOS Simulator
