@@ -3,8 +3,8 @@
  *
  * Effects and music retain independent mix controls, but meet at one final
  * limiter. The graph is deliberately lazy: constructing a viewer must not
- * create an AudioContext or touch the browser's audio session before a user
- * presses an audio control.
+ * create an AudioContext or touch the browser's audio session before a trusted
+ * user interaction.
  */
 export interface ArenaAudioGraph {
   context: AudioContext;
@@ -49,7 +49,7 @@ export class ArenaAudioSession {
 
   /**
    * Create the shared graph synchronously. Call this from the user gesture that
-   * enables either effects or music, before awaiting asset downloads.
+   * unlocks either effects or music, before awaiting asset downloads.
    */
   ensureGraph(): ArenaAudioGraph {
     if (this.disposed) {

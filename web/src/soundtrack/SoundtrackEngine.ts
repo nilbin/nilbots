@@ -54,7 +54,7 @@ export interface ScoreStartOptions {
     primaryPeakSeconds: number;
     getReplaySeconds: () => number;
   };
-  /** Premixed, non-adaptive A/B control synchronized directly to replay time. */
+  /** Premixed authored score synchronized directly to replay time. */
   straightThrough?: {
     getReplaySeconds: () => number;
     /**
@@ -304,9 +304,7 @@ export class SoundtrackEngine {
   }
 
   get title(): string {
-    return this.straightThrough
-      ? `${this.manifest.title} · Straight`
-      : this.manifest.title;
+    return this.manifest.title;
   }
 
   async start(

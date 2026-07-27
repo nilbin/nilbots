@@ -26,7 +26,7 @@
   "gridOriginFrame": 23079,
   "barFrames": 96000,
   "sourceEndFrame": 9527079,
-  "masterGainDb": -3,
+  "masterGainDb": -2,
   "encoding": {
     "bitrateKbps": 128
   },
@@ -47,7 +47,7 @@
       "source": "0 Drums.wav",
       "label": "Drums",
       "role": "rhythm",
-      "gainDb": 0,
+      "gainDb": -1,
       "response": {
         "minimum": 0.06,
         "full": 0.54
@@ -58,7 +58,7 @@
       "source": "1 Bass.wav",
       "label": "Bass",
       "role": "foundation",
-      "gainDb": 0,
+      "gainDb": -1,
       "response": {
         "minimum": 0,
         "full": 0
@@ -69,7 +69,7 @@
       "source": "2 Guitar.wav",
       "label": "Guitar",
       "role": "drive",
-      "gainDb": 0,
+      "gainDb": -1,
       "response": {
         "minimum": 0.58,
         "full": 0.94
@@ -80,7 +80,7 @@
       "source": "3 Percussion.wav",
       "label": "Percussion",
       "role": "texture",
-      "gainDb": 0,
+      "gainDb": -1,
       "response": {
         "minimum": 0.52,
         "full": 0.82
@@ -91,7 +91,7 @@
       "source": "4 Synth.wav",
       "label": "Synth",
       "role": "atmosphere",
-      "gainDb": 0,
+      "gainDb": -1,
       "response": {
         "minimum": 0,
         "full": 0
@@ -102,7 +102,7 @@
       "source": "5 Other.wav",
       "label": "Other",
       "role": "accent",
-      "gainDb": 0,
+      "gainDb": -1,
       "response": {
         "minimum": 0,
         "full": 0
@@ -122,9 +122,9 @@
     ]
   },
   "straightThroughCue": {
-    "id": "opening-passage",
+    "id": "full-score",
     "startBar": 0,
-    "barCount": 24,
+    "barCount": 99,
     "stems": [
       "drums",
       "bass",

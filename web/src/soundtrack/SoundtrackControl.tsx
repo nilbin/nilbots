@@ -20,18 +20,32 @@ export default function SoundtrackControl({
 
   const label = controller.enabled ? 'Disable soundtrack' : 'Enable soundtrack';
   const statusText =
-    controller.status === 'loading'
-      ? 'LOADING SCORE'
-      : controller.status === 'error'
-        ? 'SCORE ERROR'
-        : controller.enabled
-          ? (controller.title?.toUpperCase() ?? 'SOUNDTRACK ON')
-          : 'SOUNDTRACK OFF';
+    controller.status === 'armed'
+      ? 'SOUNDTRACK READY · INTERACT TO START'
+      : controller.status === 'loading'
+        ? 'LOADING SCORE'
+        : controller.status === 'paused'
+          ? 'SCORE PAUSED'
+          : controller.status === 'error'
+            ? 'SCORE ERROR'
+            : controller.enabled
+              ? (controller.title?.toUpperCase() ?? 'SOUNDTRACK ON')
+              : 'SOUNDTRACK OFF';
+  const accessibleStatus =
+    controller.status === 'error' && controller.error
+      ? `${statusText}: ${controller.error}`
+      : statusText;
+  const controlTitle =
+    controller.error ??
+    (controller.status === 'armed'
+      ? 'Soundtrack is enabled and will start with the next viewer interaction'
+      : controller.title ?? 'Soundtrack');
 
   return (
     <div
+      data-soundtrack-control
       className="flex items-center gap-2 rounded-md border border-arena-edge bg-arena-panel/90 px-2 py-1"
-      title={controller.error ?? controller.title ?? 'Adaptive soundtrack'}
+      title={controlTitle}
     >
       <button
         type="button"
@@ -50,6 +64,9 @@ export default function SoundtrackControl({
       <span className="hidden max-w-40 truncate font-mono text-[10px] text-arena-dim sm:block">
         {statusText}
       </span>
+      <span className="sr-only" role="status" aria-live="polite">
+        {accessibleStatus}
+      </span>
       {controller.enabled && (
         <input
           type="range"
@@ -65,4 +82,3 @@ export default function SoundtrackControl({
     </div>
   );
 }
-

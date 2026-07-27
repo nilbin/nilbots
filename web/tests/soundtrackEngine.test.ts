@@ -250,7 +250,7 @@ test(
         3,
         'master, pause, and one premix bus are the only gain nodes',
       );
-      assert.equal(engine.title, 'Engine Test · Straight');
+      assert.equal(engine.title, 'Engine Test');
 
       const fades = voice.bus.gain.calls.filter(
         (call) => call.method === 'setValueCurveAtTime',

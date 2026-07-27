@@ -14,6 +14,10 @@ import {
   type StraightThroughPauseReason,
 } from './SoundtrackEngine.ts';
 import { loadSoundtrack } from './manifest.ts';
+import {
+  readSoundtrackEnabledPreference,
+  writeSoundtrackEnabledPreference,
+} from './preferences.ts';
 import type { SoundtrackController } from './SoundtrackControl';
 import {
   collectCrossedSoundtrackTriggers,
@@ -47,19 +51,22 @@ export interface AdaptiveSoundtrackInput {
   followingLive?: boolean;
   /** Allow a finite resolution cue after transport reaches the end on its own. */
   playResolveTail?: boolean;
-  /** Replay transport rate; straight-through comparison audio is 1x-only. */
+  /** Replay transport rate; straight-through audio is 1x-only. */
   playbackSpeed?: number;
   soundtrackId?: string;
-  /** Explicit A/B control; adaptive highlight alignment remains the default. */
+  /** Straight-through is the viewer default; adaptive remains selectable. */
   scoreMode?: SoundtrackPlaybackMode;
+  /** The shared AudioContext was resumed by the viewer's gesture gate. */
+  activationGranted?: boolean;
   /** Increments for every explicit seek/step/restart, including forward jumps. */
   transportRevision?: number;
 }
 
 /**
  * Presentation-only bridge from the authoritative replay timeline to the audio
- * engine. Loading starts only from the explicit music button, satisfying browser
- * autoplay policy and keeping standalone replay files self-contained.
+ * engine. Playback is armed by default, but the graph remains lazy until a
+ * trusted interaction satisfies browser autoplay policy. Standalone replay
+ * files remain self-contained.
  */
 export function useAdaptiveSoundtrack({
   available,
@@ -72,7 +79,8 @@ export function useAdaptiveSoundtrack({
   playResolveTail = false,
   playbackSpeed = 1,
   soundtrackId,
-  scoreMode = 'adaptive',
+  scoreMode = 'straight',
+  activationGranted = false,
   transportRevision = 0,
 }: AdaptiveSoundtrackInput): SoundtrackController {
   const [planningGrid, setPlanningGrid] =
@@ -112,8 +120,15 @@ export function useAdaptiveSoundtrack({
   const activationRef = useRef(0);
   const transportRef = useRef(0);
   const faultedRef = useRef(false);
+  const availableRef = useRef(available);
   const soundtrackIdRef = useRef(soundtrackId);
   const scoreModeRef = useRef(scoreMode);
+  const preferenceEnabledRef = useRef(
+    readSoundtrackEnabledPreference(),
+  );
+  const initiallyEnabled =
+    available && preferenceEnabledRef.current;
+  const enabledRef = useRef(initiallyEnabled);
   const triggerCursorRef = useRef(createSoundtrackTriggerCursor());
   const latestRef = useRef({
     replay,
@@ -130,9 +145,13 @@ export function useAdaptiveSoundtrack({
     volume: DEFAULT_VOLUME,
   });
   const [status, setStatus] = useState<SoundtrackStatus>(
-    available ? 'off' : 'unavailable',
+    available
+      ? initiallyEnabled
+        ? 'armed'
+        : 'off'
+      : 'unavailable',
   );
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(initiallyEnabled);
   const [title, setTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolumeState] = useState(readStoredVolume);
@@ -151,7 +170,7 @@ export function useAdaptiveSoundtrack({
     volume,
   };
 
-  const disable = useCallback(() => {
+  const deactivate = useCallback((nextEnabled: boolean) => {
     activationRef.current += 1;
     transportRef.current += 1;
     faultedRef.current = false;
@@ -163,14 +182,29 @@ export function useAdaptiveSoundtrack({
     triggerCursorRef.current = createSoundtrackTriggerCursor();
     setPlanningGrid(null);
     if (engine) void engine.dispose();
-    setEnabled(false);
+    enabledRef.current = nextEnabled;
+    setEnabled(nextEnabled);
     setTitle(null);
     setError(null);
-    setStatus(available ? 'off' : 'unavailable');
+    setStatus(
+      available
+        ? nextEnabled
+          ? 'armed'
+          : 'off'
+        : 'unavailable',
+    );
   }, [available]);
 
   const enable = useCallback(() => {
-    if (!available || engineRef.current || abortRef.current) return;
+    if (
+      !available ||
+      !enabledRef.current ||
+      faultedRef.current ||
+      engineRef.current ||
+      abortRef.current
+    ) {
+      return;
+    }
     faultedRef.current = false;
     const serial = ++activationRef.current;
     let graph: ArenaAudioGraph;
@@ -179,7 +213,7 @@ export function useAdaptiveSoundtrack({
       // then take as long as needed without losing autoplay permission.
       graph = session.ensureGraph();
     } catch (reason: unknown) {
-      setEnabled(false);
+      faultedRef.current = true;
       setStatus('error');
       setError(
         reason instanceof Error
@@ -239,7 +273,6 @@ export function useAdaptiveSoundtrack({
             engineRef.current = null;
             readyEngineRef.current = null;
             void engine.dispose();
-            setEnabled(false);
             setTitle(null);
             setStatus('error');
             setError(reason.message);
@@ -347,16 +380,30 @@ export function useAdaptiveSoundtrack({
         if (engine) void engine.dispose();
         if (reason instanceof DOMException && reason.name === 'AbortError') return;
         faultedRef.current = true;
-        setEnabled(false);
         setStatus('error');
         setError(reason instanceof Error ? reason.message : 'Could not start soundtrack.');
       });
   }, [available, scoreMode, session, soundtrackId]);
 
+  const turnOff = useCallback(() => {
+    preferenceEnabledRef.current = false;
+    writeSoundtrackEnabledPreference(false);
+    deactivate(false);
+  }, [deactivate]);
+
+  const turnOn = useCallback(() => {
+    preferenceEnabledRef.current = true;
+    writeSoundtrackEnabledPreference(true);
+    enabledRef.current = true;
+    setEnabled(true);
+    setStatus(available ? 'armed' : 'unavailable');
+    enable();
+  }, [available, enable]);
+
   const toggle = useCallback(() => {
-    if (enabled) disable();
-    else enable();
-  }, [disable, enable, enabled]);
+    if (enabledRef.current) turnOff();
+    else turnOn();
+  }, [turnOff, turnOn]);
 
   const setVolume = useCallback((value: number) => {
     const normalized = Math.max(0, Math.min(1, value));
@@ -368,6 +415,18 @@ export function useAdaptiveSoundtrack({
       // Storage can be unavailable in hardened/private browsing contexts.
     }
   }, []);
+
+  useEffect(() => {
+    if (!available || !enabled) return;
+    if (activationGranted) enable();
+
+    const onTrustedClick = (event: MouseEvent) => {
+      if (!event.isTrusted || !enabledRef.current) return;
+      enable();
+    };
+    window.addEventListener('click', onTrustedClick);
+    return () => window.removeEventListener('click', onTrustedClick);
+  }, [activationGranted, available, enable, enabled]);
 
   useEffect(() => {
     const engine = readyEngineRef.current;
@@ -450,35 +509,46 @@ export function useAdaptiveSoundtrack({
   ]);
 
   useEffect(() => {
+    if (availableRef.current === available) return;
+    availableRef.current = available;
     if (!available) {
-      if (
-        enabled ||
-        engineRef.current !== null ||
-        abortRef.current !== null
-      ) {
-        disable();
-      } else {
-        setStatus('unavailable');
-      }
+      deactivate(false);
       return;
     }
-    setStatus((current) => (current === 'unavailable' ? 'off' : current));
-  }, [available, disable, enabled]);
+    const shouldArm = preferenceEnabledRef.current;
+    enabledRef.current = shouldArm;
+    setEnabled(shouldArm);
+    setStatus(shouldArm ? 'armed' : 'off');
+    if (shouldArm && activationGranted) enable();
+  }, [activationGranted, available, deactivate, enable]);
 
   useEffect(() => {
     if (soundtrackIdRef.current === soundtrackId) return;
     soundtrackIdRef.current = soundtrackId;
-    // Switching packs is explicit and silent until the user enables the new
-    // selection, preserving autoplay-policy guarantees.
-    disable();
-  }, [disable, soundtrackId]);
+    const shouldArm = available && preferenceEnabledRef.current;
+    deactivate(shouldArm);
+    if (shouldArm && activationGranted) enable();
+  }, [
+    activationGranted,
+    available,
+    deactivate,
+    enable,
+    soundtrackId,
+  ]);
 
   useEffect(() => {
     if (scoreModeRef.current === scoreMode) return;
     scoreModeRef.current = scoreMode;
-    // A/B mode changes replace the playback graph and require a fresh gesture.
-    disable();
-  }, [disable, scoreMode]);
+    const shouldArm = available && preferenceEnabledRef.current;
+    deactivate(shouldArm);
+    if (shouldArm && activationGranted) enable();
+  }, [
+    activationGranted,
+    available,
+    deactivate,
+    enable,
+    scoreMode,
+  ]);
 
   useEffect(
     () => () => {

@@ -129,18 +129,20 @@ manifest adds exact duration and per-stem file paths; the analysis output and
 asset inventory cover the same files. Neon Protocol's `final-runway` spans
 source bars 72–96 and anchors source bar 88.
 
-An optional `straightThroughCue` is the non-adaptive control path used to
-audition the authored score without runtime graph transitions. Its config
-declares a slug `id`, an integral `startBar`/`barCount` source range, and a
-non-empty set of known stem ids. The compiler sums those sample-aligned stems
+An optional `straightThroughCue` plays the authored score without runtime
+graph transitions. Its config declares a slug `id`, an integral
+`startBar`/`barCount` source range, and a non-empty set of known stem ids. The
+compiler sums those sample-aligned stems
 into one continuous mix using each stem's global `gainDb`, checks that the
 integer PCM does not clip, and verifies peak headroom after the runtime
 `masterGainDb`. It deliberately does not bake the pack master into the file.
 The manifest and analysis report expose only `id`, `startBar`, `barCount`,
 `durationSeconds`, and the single `file`; the source stem selection remains a
-compiler concern. Neon Protocol's `opening-passage` spans source bars 0–24 and
-uses Drums, Bass, Guitar, Synth, and Other. Its effectively silent Percussion
-stem is omitted.
+compiler concern. Neon Protocol's `full-score` spans the complete authored
+source, bars 0–99 (198 seconds), and uses Drums, Bass, Guitar, Synth, and
+Other. Its effectively silent Percussion stem is omitted. Every stem has 1 dB
+of premix headroom and the pack master gives that decibel back, preserving the
+previous runtime balance while keeping the integer premix below full scale.
 
 For a finalized replay, the runtime maps the relatively ranked primary
 highlight to that anchor and starts the cue on the next source beat. It reads
@@ -229,10 +231,12 @@ transition overlap. All must retain the configured peak headroom after the
 single `masterGainDb`. Rendered loop envelopes are identical across a
 section's stems.
 
-Neon Protocol uses a `-3 dB` pack master. Its effectively silent Percussion
-export is retained in the stem descriptor for future source revisions but
-omitted from the current section assets. The sparse Other stem is emitted only
-for the phrases containing its stinger.
+Neon Protocol uses `-1 dB` global stem gains with a `-2 dB` pack master,
+retaining the original effective `-3 dB` balance while giving its PCM premix
+safe summing headroom. Its effectively silent Percussion export is retained in
+the stem descriptor for future source revisions but omitted from the current
+section assets. The sparse Other stem is emitted only for the phrases
+containing its stinger.
 
 ## Outputs and atomicity
 
@@ -267,8 +271,9 @@ Vite copies them into the network-served `dist/` tree without importing the
 audio into JavaScript; the version directory is already content-addressed for
 immutable caching. The CLI Vite build sets `publicDir: false` and stubs the
 lazy score component, so self-contained `dist-cli/<theme>/` viewers contain
-neither packs nor soundtrack runtime. Website playback fetches the catalog,
-manifest, and needed stems on demand after a user enables music, while the
+neither packs nor soundtrack runtime. Website playback is armed by default and
+fetches the catalog, manifest, and needed audio on demand after the first
+trusted viewer interaction. A persisted user opt-out keeps it off. The
 standalone CLI viewer remains independent of network-only soundtrack content.
 The mutable catalog is served with `no-cache`; files below a validated
 content-version directory are one-year immutable, and missing
@@ -296,10 +301,12 @@ the latest request and commit at most once per audio bar; the terminal
 `resolve` state bypasses that latch so its still-quantized transition can meet
 the one-bar resolution budget.
 
-The `score=straight` A/B control is intentionally stricter: it is audible only
-at 1×, where source time can remain identical to replay time without
-pitch-shifting the authored mix. Other replay speeds suspend that cue; returning
-to 1× restarts it from the matching replay position on a source beat.
+Straight-through playback is the viewer default. It is audible only at 1×,
+where source time can remain identical to replay time without pitch-shifting
+the authored mix. Other replay speeds suspend that cue; returning to 1×
+restarts it from the matching replay position on a source beat. The adaptive
+director and graph remain available for continued tuning with
+`?score=adaptive`.
 
 Immediate director triggers are collected from every newly crossed replay
 tick, deduplicated by source tick and trigger type, and applied on the audio

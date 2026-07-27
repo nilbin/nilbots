@@ -12,6 +12,7 @@ import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplayAudio } from '../audio/useReplayAudio';
 import { useAssetReadiness } from '../render/useAssetReadiness';
+import { readSoundtrackEnabledPreference } from '../soundtrack/preferences';
 import { useImmersive } from './useImmersive';
 import ArenaCanvas from './ArenaCanvas';
 
@@ -54,6 +55,9 @@ export default function Viewer({
   const shell = useRef<HTMLDivElement>(null);
   const isLive = live !== undefined;
   const audioSession = useMemo(() => new ArenaAudioSession(), []);
+  const soundtrackActivationInFlight = useRef(false);
+  const [soundtrackActivationGranted, setSoundtrackActivationGranted] =
+    useState(false);
   // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
   const [chromeVisible, setChromeVisible] = useState(true);
   const playback = usePlayback(replay, assets.ready, !isLive);
@@ -87,6 +91,63 @@ export default function Viewer({
   });
 
   useEffect(() => audioSession.retainOwner(), [audioSession]);
+
+  useEffect(() => {
+    if (
+      !EXTERNAL_SOUNDTRACK_AVAILABLE ||
+      soundtrackActivationGranted
+    ) {
+      return;
+    }
+
+    const requestActivation = () => {
+      if (
+        soundtrackActivationInFlight.current ||
+        !readSoundtrackEnabledPreference()
+      ) {
+        return;
+      }
+      soundtrackActivationInFlight.current = true;
+      void audioSession.resume().then(
+        () => {
+          setSoundtrackActivationGranted(true);
+        },
+        () => {
+          // Keep the gate open so a later trusted interaction can retry.
+          soundtrackActivationInFlight.current = false;
+        },
+      );
+    };
+    const targetsSoundtrackControl = (target: EventTarget | null) =>
+      target instanceof Element &&
+      target.closest('[data-soundtrack-control]') !== null;
+    const onClick = (event: MouseEvent) => {
+      if (!event.isTrusted || targetsSoundtrackControl(event.target)) return;
+      requestActivation();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        !event.isTrusted ||
+        event.repeat ||
+        event.isComposing ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        targetsSoundtrackControl(event.target) ||
+        NON_ACTIVATING_SOUNDTRACK_KEYS.has(event.key)
+      ) {
+        return;
+      }
+      requestActivation();
+    };
+
+    window.addEventListener('click', onClick, true);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      window.removeEventListener('click', onClick, true);
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [audioSession, soundtrackActivationGranted]);
 
   useEffect(() => {
     if (isLive) return; // No seeking during a live broadcast — viewers stay synchronized.
@@ -197,6 +258,7 @@ export default function Viewer({
               playbackSpeed={isLive ? 1 : playback.speed}
               transportRevision={isLive ? 0 : playback.transportRevision}
               session={audioSession}
+              activationGranted={soundtrackActivationGranted}
               presentationId={soundtrackPresentationId}
               followingLive={isLive}
             />
@@ -427,3 +489,13 @@ export default function Viewer({
     </div>
   );
 }
+
+const NON_ACTIVATING_SOUNDTRACK_KEYS = new Set([
+  'Alt',
+  'CapsLock',
+  'Control',
+  'Escape',
+  'Meta',
+  'Shift',
+  'Tab',
+]);

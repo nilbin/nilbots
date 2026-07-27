@@ -127,7 +127,7 @@ export interface SoundtrackRetrospectiveCue {
 }
 
 /**
- * Premixed source-contiguous control cue for non-adaptive A/B playback.
+ * Premixed source-contiguous cue for straight-through playback.
  * Its encoded balance is authoritative; runtime stem processing is bypassed.
  */
 export interface SoundtrackStraightThroughCue {
@@ -183,7 +183,7 @@ export interface SoundtrackManifest {
   adaptiveSeam?: SoundtrackAdaptiveSeam;
   /** Optional continuous cue for whole-replay narrative planning. */
   retrospectiveCue?: SoundtrackRetrospectiveCue;
-  /** Optional premixed cue for the non-adaptive `score=straight` control. */
+  /** Optional premixed cue for straight-through playback. */
   straightThroughCue?: SoundtrackStraightThroughCue;
   entrySection: string;
   stems: SoundtrackStem[];
@@ -209,6 +209,7 @@ export interface SoundtrackCatalog {
 export type SoundtrackStatus =
   | 'unavailable'
   | 'off'
+  | 'armed'
   | 'loading'
   | 'playing'
   | 'paused'
