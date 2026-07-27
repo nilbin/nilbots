@@ -39,7 +39,9 @@ export default function ArenaCanvas3D({
     // is worth, and a 3× phone would otherwise render nine times the pixels of a 1×.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // PCFSoftShadowMap is deprecated as of r185 and silently downgrades to this one while
+    // warning on every mount; naming it is the same picture without the console noise.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     container.appendChild(renderer.domElement);

@@ -2,19 +2,20 @@ import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
 import { botLook, projectileLook, presentationAccent } from '../render/arenaThemes';
 import { posesAt } from '../render/interpolate';
+import { chassisModel } from './chassisModel';
 
 /**
  * The things that move.
  *
- * Bots and projectiles are quads lying **flat on the floor**, not billboards standing up to
- * face the camera. The sprites were drawn as a plan view — a chassis seen from directly
- * above — so standing one upright would show a top-down drawing pretending to be a side
- * view, which is the exact tell that makes cheap 2.5D look wrong. Laid flat they are simply
- * a plan view seen at an angle, which is what they are, and the foreshortening is correct
- * rather than fudged.
+ * A **bot is a solid**, extruded from its own sprite by `chassisModel` — so a Vanguard has
+ * a Vanguard's silhouette from any angle, casts a Vanguard-shaped shadow, and reads as a
+ * machine standing on the floor.
  *
- * They hover a hair above the floor so the depth buffer has something to separate them
- * from it, and so they catch the key light rather than z-fighting with their own shadow.
+ * **Projectiles are quads lying flat**, and that is not an oversight. The bolt sprites are
+ * a plan view; laid flat they are a plan view seen at an angle, which is what they are.
+ * Standing one upright would be a top-down drawing pretending to be a side view, which is
+ * the exact tell that makes cheap 2.5D look wrong. They hover a hair above the floor so the
+ * depth buffer has something to separate them from it.
  */
 
 /** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
@@ -32,6 +33,9 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
   const { participants } = replay.header;
+  // A replay can be closed while a chassis is still being fetched and triangulated. Adding
+  // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
+  let live = true;
 
   const bots = participants.map((participant, slot) => {
     const look = botLook(participant?.lookId, slot);
@@ -84,20 +88,42 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     lid.position.y = BOT_HEIGHT + 0.004;
     chassis.add(lid);
 
-    // A pool of accent light under the bot. The arena floor is near black, and a shadow
-    // alone tells you where a bot is not — this tells you where it is.
-    const glowGeometry = new THREE.PlaneGeometry(size * 2.1, size * 2.1);
+    // A pool of accent light under the bot, and the **only** place the owner's colour
+    // appears on a bot in this renderer — which makes it load-bearing rather than
+    // decoration. The flat renderer casts the same pool, so this is a match rather than an
+    // invention; it just has more work to do here, because a lit chassis wears its own
+    // paint and two players fielding the same look are otherwise the same object.
+    const glowGeometry = new THREE.PlaneGeometry(size * 2.4, size * 2.4);
     glowGeometry.rotateX(-Math.PI / 2);
     const glowMaterial = new THREE.MeshBasicMaterial({
       map: radialGlow(accent),
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      opacity: 0.5,
+      opacity: 0.72,
     });
     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
     glow.position.y = 0.012;
     chassis.add(glow);
+
+    // Swap the box for the real thing once the sprite has been parsed and triangulated.
+    //
+    // The box is a placeholder, not the design. It is here because the model arrives over a
+    // fetch and a first frame with nothing on the floor is worse than a first frame with a
+    // block on it — but a block is what a chassis looks like when this step is missing,
+    // which is exactly how it shipped once.
+    void chassisModel(look.imageUrl).then((model) => {
+      if (!live || !model) return;
+      // Cloned because the parse is cached per look, and a mirror match would otherwise
+      // have both bots claiming one Group — three.js reparents rather than shares, so the
+      // second bot would silently steal the first one's body. The clone shares geometry and
+      // materials, which is the point of caching in the first place.
+      const body = model.clone();
+      body.scale.setScalar(size);
+      chassis.add(body);
+      chassis.remove(hull);
+      chassis.remove(lid);
+    });
 
     chassis.visible = false;
     group.add(chassis);
@@ -169,7 +195,11 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     group,
     update,
     dispose: () => {
+      live = false;
       for (const item of disposables) item.dispose();
+      // Chassis geometry and materials are deliberately not disposed here: they are owned
+      // by the module-level parse cache and shared by every replay this page opens. Freeing
+      // them would leave the next match holding disposed buffers.
     },
   };
 }
