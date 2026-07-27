@@ -1824,16 +1824,7 @@ before picking a number.*
      integration remain later contracts rather than guessed behavior in this
      slice.
 
-## Deferred decisions
-
-- Numeric limits for submissions (archive size, file counts) — Phase 3.
-- Named RNG streams (`context.Random.Stream("...")`) — not in 0.1.
-- Whether player artifacts embed one bot per artifact (likely) or use the
-  built-in-style multi-bot selector — decide when the project template lands.
-- wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
-  verify when a second platform enters CI.
-
-## 120. Google sign-in through OpenIddict's client, linked on verified email only
+## 123. Google sign-in through OpenIddict's client, linked on verified email only
 
 External identity is an OpenIddict *client* registration beside the server we already run,
 not `Microsoft.AspNetCore.Authentication.Google`. One OAuth library in the process instead
@@ -1864,7 +1855,7 @@ endpoint refuses null before reaching the verifier — with the same message a w
 gets, so it is not an account-enumeration oracle.
 
 
-## 121. Display names are unique, rejected on a form and suffixed from a provider
+## 124. Display names are unique, rejected on a form and suffixed from a provider
 
 Display names identify people everywhere it matters — the ladder, every match row, every
 bot card — so they are unique, **case-insensitively**. "Pincer" and "pincer" beside each
@@ -1887,3 +1878,12 @@ The migration renames existing duplicates before creating the index, keeping who
 the name first, and loops until none remain: a suffixed name can collide with a name
 already present, and a deploy that renames people and *then* fails on index creation is the
 worst of both outcomes.
+
+## Deferred decisions
+
+- Numeric limits for submissions (archive size, file counts) — Phase 3.
+- Named RNG streams (`context.Random.Stream("...")`) — not in 0.1.
+- Whether player artifacts embed one bot per artifact (likely) or use the
+  built-in-style multi-bot selector — decide when the project template lands.
+- wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
+  verify when a second platform enters CI.
