@@ -11,7 +11,10 @@ import {
   headingAngle,
   posesAt,
 } from '../render/interpolate';
-import { replayMaxHealth } from '../replayMetadata';
+import {
+  maxHealthForActor,
+  replayMaxHealth,
+} from '../replayMetadata';
 import {
   participantForUnit,
   visualIndexForUnit,
@@ -89,6 +92,7 @@ export const PROJECTILE_HOVER = 0.2;
 /** Where health pips hang: above the floor, and back along Z to clear the bot on screen. */
 const PIP_HEIGHT = 0.72;
 const PIP_SETBACK = 0.55;
+const PIP_SPACING = 0.17;
 
 /**
  * How a followed bot is lit up.
@@ -494,6 +498,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // bot faced east, and the offset that lifts them clear of the hull swinging round with
     // the facing. They live in world space and are moved to follow instead.
     const pips = new THREE.Group();
+    pips.userData.cue = 'health-pips';
+    pips.userData.forUnitKey = unit.unitKey;
     const pipGeometry = new THREE.CircleGeometry(0.06, 12);
     const litPip = new THREE.MeshBasicMaterial({
       color: accent,
@@ -513,7 +519,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const pipMeshes: THREE.Mesh[] = [];
     for (let index = 0; index < maxHealth; index++) {
       const pip = new THREE.Mesh(pipGeometry, litPip);
-      pip.position.x = (index - (maxHealth - 1) / 2) * 0.17;
+      pip.position.x =
+        (index - (maxHealth - 1) / 2) * PIP_SPACING;
       // Square to the camera. It never rolls or orbits, so its pitch is a constant and one
       // rotation is enough — a billboard would be a per-frame lookAt for a fixed picture.
       pip.rotation.x = -CAMERA_PITCH;
@@ -910,9 +917,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         PIP_HEIGHT,
         glide.y + 0.5 - PIP_SETBACK,
       );
-      const formMaxHealth = form?.maxHealth ?? maxHealth;
+      const effectiveMaxHealth = maxHealthForActor(replay, {
+        formId: pose.formId,
+        health: pose.health,
+      });
       for (const [index, pip] of bot.pipMeshes.entries()) {
-        pip.visible = index < formMaxHealth;
+        pip.visible = index < effectiveMaxHealth;
+        pip.position.x =
+          (index - (effectiveMaxHealth - 1) / 2) * PIP_SPACING;
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
       }
 
