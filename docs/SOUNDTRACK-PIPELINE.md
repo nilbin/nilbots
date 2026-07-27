@@ -35,13 +35,11 @@ local compiler inputs and are excluded from both Git and Docker contexts,
 regardless of filename or directory. Use `--archive PATH` to validate an
 equivalent archive elsewhere without copying it into the checkout.
 
-The WAV metadata identifies Suno Studio as the source tool. The config and
-manifest deliberately record `rightsStatus: "user-supplied-unverified"` and
-`shipApproval: "pending"`. Generated Neon Protocol assets are for local and
-in-game audition only until the owner confirms the applicable rights and
-changes both fields to their approved values. Building does not imply
-permission to deploy or publish them. The canonical release workflow enforces
-that boundary with `scripts/assert_soundtrack_release.py`: production image
+The WAV metadata identifies Suno Studio as the source tool. The owner has
+confirmed the applicable rights and approved shipment, so the config and
+manifest record `rightsStatus: "rights-cleared"` and
+`shipApproval: "approved"`. The canonical release workflow enforces this
+boundary with `scripts/assert_soundtrack_release.py`: production image
 publication is blocked until every public pack version is rights-cleared,
 ship-approved, all authored loops are marked `auditioned`, and every encoded
 media file is declared by a manifest.

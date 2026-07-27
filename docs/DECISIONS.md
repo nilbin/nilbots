@@ -2113,8 +2113,8 @@ hardware-decoder path. The manifest and server MIME policy do not hard-code play
 that choice, so an Ogg/Opus variant can be measured later without redesigning the runtime.
 Codec size alone is not approval: transitions, loops and the combined in-game mix require
 listening on representative phones and headphones. Neon Protocol remains
-`user-supplied-unverified`, `shipApproval: pending`, and `analysis-reviewed` until rights
-and human audition are explicitly recorded.
+`analysis-reviewed` until every adaptive loop has completed human audition; its source
+rights are cleared and shipment is approved.
 
 ## Deferred decisions
 

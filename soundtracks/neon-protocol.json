@@ -5,8 +5,8 @@
   "default": true,
   "provenance": {
     "sourceTool": "Suno Studio",
-    "rightsStatus": "user-supplied-unverified",
-    "shipApproval": "pending"
+    "rightsStatus": "rights-cleared",
+    "shipApproval": "approved"
   },
   "sourceArchive": "../Neon Protocol Stems (120BPM).zip",
   "bpm": 120,
