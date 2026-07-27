@@ -1,0 +1,991 @@
+{
+  "schemaVersion": 1,
+  "id": "neon-protocol",
+  "title": "Neon Protocol",
+  "default": true,
+  "provenance": {
+    "sourceTool": "Suno Studio",
+    "rightsStatus": "user-supplied-unverified",
+    "shipApproval": "pending"
+  },
+  "sourceArchive": "../Neon Protocol Stems (120BPM).zip",
+  "bpm": 120,
+  "beatsPerBar": 4,
+  "segmentBars": 4,
+  "adaptiveLatencyBudgetBars": {
+    "gameplay": 2,
+    "resolve": 1
+  },
+  "gridOriginFrame": 23079,
+  "barFrames": 96000,
+  "sourceEndFrame": 9527079,
+  "masterGainDb": -3,
+  "encoding": {
+    "bitrateKbps": 128
+  },
+  "analysis": {
+    "windowMs": 50,
+    "activityDbfs": -54,
+    "silenceRmsDbfs": -72,
+    "silencePeakDbfs": -48,
+    "trimRmsDbfs": -58,
+    "trimPeakDbfs": -42,
+    "minimumBoundarySimilarity": 0.995,
+    "minimumTransitionSimilarity": 0.3,
+    "targetPeakDbfs": -1
+  },
+  "stems": [
+    {
+      "id": "drums",
+      "source": "0 Drums.wav",
+      "label": "Drums",
+      "role": "rhythm",
+      "gainDb": 0,
+      "response": {
+        "minimum": 0.06,
+        "full": 0.54
+      }
+    },
+    {
+      "id": "bass",
+      "source": "1 Bass.wav",
+      "label": "Bass",
+      "role": "foundation",
+      "gainDb": 0,
+      "response": {
+        "minimum": 0,
+        "full": 0
+      }
+    },
+    {
+      "id": "guitar",
+      "source": "2 Guitar.wav",
+      "label": "Guitar",
+      "role": "drive",
+      "gainDb": 0,
+      "response": {
+        "minimum": 0.58,
+        "full": 0.94
+      }
+    },
+    {
+      "id": "percussion",
+      "source": "3 Percussion.wav",
+      "label": "Percussion",
+      "role": "texture",
+      "gainDb": 0,
+      "response": {
+        "minimum": 0.52,
+        "full": 0.82
+      }
+    },
+    {
+      "id": "synth",
+      "source": "4 Synth.wav",
+      "label": "Synth",
+      "role": "atmosphere",
+      "gainDb": 0,
+      "response": {
+        "minimum": 0,
+        "full": 0
+      }
+    },
+    {
+      "id": "other",
+      "source": "5 Other.wav",
+      "label": "Other",
+      "role": "accent",
+      "gainDb": 0,
+      "response": {
+        "minimum": 0,
+        "full": 0
+      }
+    }
+  ],
+  "entrySection": "intro",
+  "sections": [
+    {
+      "id": "intro",
+      "label": "Cold Signal",
+      "startBar": 0,
+      "barCount": 4,
+      "classification": "sparse",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "full-a-one",
+      "label": "Protocol Online A",
+      "startBar": 4,
+      "barCount": 8,
+      "classification": "pursuit",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "full-a-two",
+      "label": "Protocol Online B",
+      "startBar": 12,
+      "barCount": 8,
+      "classification": "combat",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "lift-sting",
+      "label": "System Breach",
+      "startBar": 20,
+      "barCount": 4,
+      "classification": "climax",
+      "role": "stinger",
+      "cooldownSeconds": 32
+    },
+    {
+      "id": "drop",
+      "label": "Low Voltage",
+      "startBar": 24,
+      "barCount": 8,
+      "classification": "tension",
+      "role": "bridge"
+    },
+    {
+      "id": "medium-one",
+      "label": "Search Pattern",
+      "startBar": 32,
+      "barCount": 8,
+      "classification": "pursuit",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "medium-two",
+      "label": "Target Lock",
+      "startBar": 40,
+      "barCount": 4,
+      "classification": "pursuit",
+      "role": "bridge"
+    },
+    {
+      "id": "lift",
+      "label": "Escalation",
+      "startBar": 44,
+      "barCount": 4,
+      "classification": "combat",
+      "role": "bridge"
+    },
+    {
+      "id": "rebuild",
+      "label": "Reassembly",
+      "startBar": 48,
+      "barCount": 8,
+      "classification": "tension",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "combat",
+      "label": "Close Quarters",
+      "startBar": 56,
+      "barCount": 8,
+      "classification": "combat",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "cooldown",
+      "label": "Thermal Limit",
+      "startBar": 64,
+      "barCount": 4,
+      "classification": "tension",
+      "role": "bridge"
+    },
+    {
+      "id": "quiet",
+      "label": "Dark Channel",
+      "startBar": 68,
+      "barCount": 4,
+      "classification": "sparse",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "final-build-a",
+      "label": "Final Vector A",
+      "startBar": 72,
+      "barCount": 8,
+      "classification": "pursuit",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "final-build-b",
+      "label": "Final Vector B",
+      "startBar": 80,
+      "barCount": 8,
+      "classification": "combat",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "climax",
+      "label": "Neon Override",
+      "startBar": 88,
+      "barCount": 8,
+      "classification": "climax",
+      "role": "hold",
+      "repeat": {
+        "minimumBars": 8
+      },
+      "loop": {
+        "approval": "analysis-reviewed",
+        "strategy": "rendered-head-crossfade",
+        "crossfadeSeconds": 0.0625
+      }
+    },
+    {
+      "id": "outro",
+      "label": "Signal Collapse",
+      "startBar": 96,
+      "barCount": 3,
+      "classification": "resolve",
+      "role": "resolve"
+    }
+  ],
+  "transitions": [
+    {
+      "from": "intro",
+      "to": "full-a-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-one",
+      "to": "full-a-two",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-two",
+      "to": "lift-sting",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "lift-sting",
+      "to": "drop",
+      "timing": "section-end",
+      "quantizeBars": 4,
+      "crossfadeBars": 0,
+      "weight": 0.8
+    },
+    {
+      "from": "drop",
+      "to": "medium-one",
+      "timing": "section-end",
+      "quantizeBars": 4,
+      "crossfadeBars": 0,
+      "weight": 0.8
+    },
+    {
+      "from": "medium-two",
+      "to": "lift",
+      "timing": "section-end",
+      "quantizeBars": 4,
+      "crossfadeBars": 0,
+      "weight": 0.8
+    },
+    {
+      "from": "lift",
+      "to": "rebuild",
+      "timing": "section-end",
+      "quantizeBars": 4,
+      "crossfadeBars": 0,
+      "weight": 0.8
+    },
+    {
+      "from": "rebuild",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "combat",
+      "to": "cooldown",
+      "timing": "section-end",
+      "quantizeBars": 4,
+      "crossfadeBars": 0,
+      "weight": 0.8
+    },
+    {
+      "from": "cooldown",
+      "to": "quiet",
+      "timing": "section-end",
+      "quantizeBars": 4,
+      "crossfadeBars": 0,
+      "weight": 0.8
+    },
+    {
+      "from": "quiet",
+      "to": "final-build-a",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-a",
+      "to": "final-build-b",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-b",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "climax",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "outro",
+      "to": "intro",
+      "timing": "section-end",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.5
+    },
+    {
+      "from": "intro",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-one",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-two",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "drop",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "medium-one",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "rebuild",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "combat",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "quiet",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-a",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-b",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "lift-sting",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "medium-two",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "lift",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "cooldown",
+      "to": "outro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "intro",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "intro",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "intro",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "intro",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "drop",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "drop",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "drop",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "medium-one",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "medium-one",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "medium-one",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "medium-one",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "combat",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "combat",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "combat",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "combat",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "quiet",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "quiet",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "quiet",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "quiet",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-a",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-a",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-a",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-a",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-b",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-b",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "final-build-b",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "climax",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "climax",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "climax",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "climax",
+      "to": "combat",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-one",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-one",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-one",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-two",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-two",
+      "to": "rebuild",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-two",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "full-a-two",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "rebuild",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "rebuild",
+      "to": "medium-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "rebuild",
+      "to": "climax",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 1
+    },
+    {
+      "from": "intro",
+      "to": "quiet",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "quiet",
+      "to": "intro",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "rebuild",
+      "to": "cooldown",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "drop",
+      "to": "rebuild",
+      "timing": "section-end",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "full-a-one",
+      "to": "final-build-a",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "medium-one",
+      "to": "full-a-one",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "final-build-a",
+      "to": "medium-two",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "full-a-two",
+      "to": "lift",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "combat",
+      "to": "final-build-b",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "final-build-b",
+      "to": "full-a-two",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "climax",
+      "to": "lift-sting",
+      "timing": "next-quantum",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "lift-sting",
+      "to": "climax",
+      "timing": "section-end",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "medium-two",
+      "to": "medium-one",
+      "timing": "section-end",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "lift",
+      "to": "combat",
+      "timing": "section-end",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    },
+    {
+      "from": "cooldown",
+      "to": "drop",
+      "timing": "section-end",
+      "quantizeBars": 1,
+      "crossfadeBars": 0.25,
+      "weight": 0.9
+    }
+  ]
+}

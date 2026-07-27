@@ -1,0 +1,1155 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { SoundtrackEngine } from '../src/soundtrack/SoundtrackEngine.ts';
+
+const SAMPLE_RATE = 100;
+const BAR_FRAMES = 200;
+const BAR_SECONDS = BAR_FRAMES / SAMPLE_RATE;
+const SECTION_BARS = 4;
+const SECTION_SECONDS = SECTION_BARS * BAR_SECONDS;
+const STEM_IDS = ['foundation', 'drums', 'guitar'];
+
+test(
+  'a finite mandatory retarget and target-back always retain a successor',
+  { concurrency: false },
+  async () => {
+    const manifest = finiteRoutingManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      await enterFiniteCue(engine, context);
+      advanceToDecision(engine, context);
+      await flushAsync();
+
+      assertPending(engine, 'tension-loop', true);
+
+      engine.setDirection(direction('combat'));
+      await flushAsync();
+      assertPending(engine, 'combat-loop', true);
+
+      // The latest state in this audio bar is committed at the next bar. The
+      // combat exit is two-bar quantized, leaving time to retarget safely.
+      engine.setDirection(direction('tension'));
+      assert.equal(engine.direction.state, 'combat');
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+      const restored = assertPending(engine, 'tension-loop', true);
+
+      context.advanceTo(restored.when + restored.crossfadeSeconds + 0.01);
+      assert.equal(activeVoice(engine).section.id, 'tension-loop');
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+    });
+  },
+);
+
+test(
+  'a terminal direction replaces an in-flight mandatory exit and stale decode cannot win',
+  { concurrency: false },
+  async () => {
+    const manifest = finiteRoutingManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      context.holdDecode('tension-loop');
+      await enterFiniteCue(engine, context);
+      advanceToDecision(engine, context);
+      await flushAsync();
+
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading?.transition.to, 'tension-loop');
+      assert.equal(engine.loading?.mandatory, true);
+
+      engine.setDirection(direction('resolve', 0.9, 0.18));
+      await flushAsync();
+      const terminal = assertPending(engine, 'resolve', true);
+
+      context.releaseDecode('tension-loop');
+      await flushAsync();
+      assert.equal(engine.pending?.to.section.id, 'resolve');
+      assert.equal(engine.loading, null);
+
+      context.advanceTo(terminal.when + terminal.crossfadeSeconds + 0.01);
+      assert.equal(activeVoice(engine).section.id, 'resolve');
+    });
+  },
+);
+
+test(
+  'an explicit discontinuity cancels a pending rotation and rearms its loop decision',
+  { concurrency: false },
+  async () => {
+    const manifest = rotationManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse'));
+      const entry = activeVoice(engine);
+      assert.equal(entry.section.id, 'loop-a');
+
+      context.advanceTo(entry.decisionTimer.stopTime);
+      await flushAsync();
+      const firstRotation = assertPending(engine, 'loop-b', false);
+      assert.equal(
+        firstRotation.when,
+        entry.startedAt + 2 * entry.durationSeconds,
+      );
+
+      engine.resetForDiscontinuity();
+
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.ok(
+        entry.decisionTimer,
+        'the canceled rotation must rearm a timer',
+      );
+      const rearmedAt = entry.decisionTimer.stopTime;
+      assert.ok(rearmedAt > context.currentTime);
+
+      context.advanceTo(rearmedAt);
+      await flushAsync();
+      const rearmedRotation = assertPending(engine, 'loop-b', false);
+      assert.equal(
+        (rearmedRotation.when - entry.startedAt) % entry.durationSeconds,
+        0,
+      );
+    });
+  },
+);
+
+test(
+  'pause ramps only the soundtrack bus while its shared context keeps running',
+  { concurrency: false },
+  async () => {
+    await withEngine(rotationManifest(), async ({ context, engine }) => {
+      const pauseGain = engine.pauseGain.gain;
+
+      await engine.setPaused(true);
+      assert.equal(lastTargetCall(pauseGain).value, 0);
+      assert.equal(context.state, 'running');
+      assert.equal(context.suspendCalls, 0);
+
+      await engine.setPaused(false);
+      assert.equal(lastTargetCall(pauseGain).value, 1);
+      assert.equal(context.state, 'running');
+      assert.equal(context.resumeCalls, 0);
+
+      await engine.dispose();
+      assert.equal(context.state, 'running');
+      assert.equal(context.closeCalls, 0);
+    });
+  },
+);
+
+test(
+  'a finite resolve cue ends naturally without creating an automatic loop',
+  { concurrency: false },
+  async () => {
+    const manifest = makeManifest({
+      entrySection: 'resolve',
+      sections: [
+        section('resolve', 'resolve', false, { bars: 3, role: 'resolve' }),
+      ],
+      transitions: [],
+    });
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('resolve', 1, 0.2));
+      const resolve = activeVoice(engine);
+      const sources = [...resolve.sources];
+
+      assert.ok(sources.every((source) => source.loop === false));
+      context.advanceTo(
+        resolve.startedAt + resolve.durationSeconds + BAR_SECONDS,
+      );
+
+      assert.ok(sources.every((source) => source.ended));
+      assert.equal(context.bufferSources.length, STEM_IDS.length);
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.equal(resolve.decisionTimer, null);
+      assert.equal(activeVoice(engine).section.id, 'resolve');
+    });
+  },
+);
+
+test(
+  'a replay restart can follow an authored route from resolve back to gameplay',
+  { concurrency: false },
+  async () => {
+    const manifest = makeManifest({
+      entrySection: 'resolve',
+      sections: [
+        section('resolve', 'resolve', false, { bars: 3, role: 'resolve' }),
+        section('entry', 'sparse', true),
+      ],
+      transitions: [transition('resolve', 'entry', 'section-end')],
+    });
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('resolve', 1, 0.2));
+      const resolve = activeVoice(engine);
+      context.advanceTo(resolve.startedAt + resolve.durationSeconds + 0.01);
+
+      engine.resetForDiscontinuity();
+      engine.setDirection(direction('sparse'));
+      await flushAsync();
+
+      const restart = assertPending(engine, 'entry', false);
+      context.advanceTo(restart.when + restart.crossfadeSeconds + 0.01);
+      assert.equal(activeVoice(engine).section.id, 'entry');
+    });
+  },
+);
+
+test(
+  'event impulses open responsive stems immediately, stack by strength, and release on the audio clock',
+  { concurrency: false },
+  async () => {
+    const manifest = makeManifest({
+      entrySection: 'loop',
+      sections: [section('loop', 'sparse', true)],
+      transitions: [],
+    });
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse', 0.25, 0.25));
+      const voice = activeVoice(engine);
+      const foundation = voice.stemGains.get('foundation').gain;
+      const drums = voice.stemGains.get('drums').gain;
+
+      engine.setDirection(direction('sparse', 0.25, 0.25), [
+        trigger('contact', 1),
+      ]);
+      const contactTarget = lastTargetCall(drums);
+      const foundationAfterContact = lastTargetCall(foundation);
+      assert.equal(contactTarget.timeConstant, 0.018);
+      assert.equal(foundationAfterContact.value, 1);
+      assert.equal(engine.direction.state, 'sparse');
+      assert.equal(engine.pending, null);
+
+      engine.setDirection(direction('sparse', 0.25, 0.25), [
+        trigger('shot', 2),
+      ]);
+      const shotTarget = lastTargetCall(drums);
+      const shotTimer = engine.accentTimer;
+      assert.ok(shotTarget.value > contactTarget.value);
+      assert.equal(shotTarget.timeConstant, 0.012);
+
+      engine.setDirection(direction('sparse', 0.25, 0.25), [
+        trigger('damage', 3),
+      ]);
+      const damageTarget = lastTargetCall(drums);
+      const damageTimer = engine.accentTimer;
+      assert.notEqual(damageTimer, shotTimer);
+      assert.ok(damageTarget.value > shotTarget.value);
+      assert.equal(damageTarget.timeConstant, 0.008);
+      assert.equal(lastTargetCall(foundation).value, 1);
+
+      // A duplicate delivery is harmless and does not extend the envelope.
+      engine.setDirection(direction('sparse', 0.25, 0.25), [
+        trigger('damage', 3),
+      ]);
+      assert.equal(engine.accentTimer, damageTimer);
+      assert.equal(engine.receivedTriggerKeys.size, 3);
+
+      context.advanceTo(shotTimer.stopTime);
+      assert.equal(engine.accentTimer, damageTimer);
+      assert.equal(damageTimer.disconnected, false);
+      assert.equal(engine.accentBoost, 0.34);
+
+      context.advanceTo(damageTimer.stopTime);
+      const released = lastTargetCall(drums);
+      assert.equal(engine.accentBoost, 0);
+      assert.equal(released.timeConstant, 0.38);
+      assert.ok(released.value < damageTarget.value);
+    });
+  },
+);
+
+test(
+  'a distinctive stinger requires a major trigger, obeys cooldown, and resets for a new presentation segment',
+  { concurrency: false },
+  async () => {
+    const manifest = stingerManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('climax', 0.8, 0.7));
+
+      engine.setDirection(direction('climax', 0.8, 0.7), [trigger('shot', 1)]);
+      await flushAsync();
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+
+      engine.setDirection(direction('climax', 0.8, 0.7), [
+        trigger('damage', 2),
+      ]);
+      await flushAsync();
+      const first = assertPending(engine, 'impact-stinger', false);
+      assert.equal(
+        engine.stingerCooldownUntil.get('impact-stinger'),
+        first.when + 32,
+      );
+      context.advanceTo(first.when + first.crossfadeSeconds + 0.01);
+      assert.equal(activeVoice(engine).section.role, 'stinger');
+
+      await advanceFiniteToSuccessor(engine, context);
+      assert.equal(activeVoice(engine).section.id, 'climax-b');
+
+      engine.setDirection(direction('climax', 0.8, 0.7), [
+        trigger('destruction', 3),
+      ]);
+      await flushAsync();
+      assert.equal(engine.pending, null, 'cooldown blocks an immediate repeat');
+
+      engine.resetForDiscontinuity();
+      assert.equal(engine.stingerCooldownUntil.size, 0);
+      engine.setDirection(direction('climax', 0.8, 0.7), [
+        trigger('destruction', 4),
+      ]);
+      await flushAsync();
+      assertPending(engine, 'impact-stinger', false);
+    });
+  },
+);
+
+test(
+  'a major trigger during a matching-state crossfade retries its live stinger arm after unlock',
+  { concurrency: false },
+  async () => {
+    const manifest = stingerAfterTransitionManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse', 0.45, 0.55));
+      engine.setDirection(direction('combat', 0.78, 0.72));
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+      const combat = assertPending(engine, 'combat-loop', false);
+
+      context.advanceTo(combat.when + 0.1);
+      assert.equal(activeVoice(engine).section.id, 'combat-loop');
+      assert.ok(context.currentTime < engine.transitionLockedUntil);
+
+      engine.setDirection(direction('combat', 0.85, 0.72), [
+        trigger('damage', 12),
+      ]);
+      await flushAsync();
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.ok(engine.stingerArmedUntil > context.currentTime);
+
+      context.advanceTo(combat.when + combat.crossfadeSeconds + 0.005);
+      await flushAsync();
+      assertPending(engine, 'combat-stinger', false);
+      assert.equal(engine.stingerArmedUntil, 0);
+    });
+  },
+);
+
+test(
+  'a finite mandatory successor retries decode failure on a bounded audio-clock backoff',
+  { concurrency: false },
+  async () => {
+    const manifest = finiteRetryManifest();
+    await withEngine(manifest, async ({ context, engine, errors }) => {
+      // The finite voice prefetches once; fail that and the first mandatory
+      // attempt, then allow the audio-clock retry to recover.
+      context.failNextDecodes('exit-loop', STEM_IDS.length * 2);
+      await engine.start(direction('tension'));
+      await flushAsync();
+      assert.equal(context.decodeCount('exit-loop'), STEM_IDS.length);
+
+      const finite = activeVoice(engine);
+      context.advanceTo(finite.decisionTimer.stopTime);
+      await flushAsync();
+
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.ok(finite.decisionTimer, 'failed successor must rearm a retry');
+      assert.equal(finite.decisionTimer.stopTime, context.currentTime + 0.5);
+      assert.equal(context.decodeCount('exit-loop'), STEM_IDS.length * 2);
+
+      await flushAsync();
+      assert.equal(
+        context.decodeCount('exit-loop'),
+        STEM_IDS.length * 2,
+        'microtasks alone must not hammer the failed asset',
+      );
+
+      context.advanceTo(finite.decisionTimer.stopTime);
+      await flushAsync();
+      assertPending(engine, 'exit-loop', true);
+      assert.equal(context.decodeCount('exit-loop'), STEM_IDS.length * 3);
+      assert.equal(finite.successorRetryAttempts, 0);
+      assert.deepEqual(errors, []);
+    });
+  },
+);
+
+test(
+  'a permanently broken finite successor stops after four retries and surfaces one fatal error',
+  { concurrency: false },
+  async () => {
+    const manifest = finiteRetryManifest();
+    await withEngine(manifest, async ({ context, engine, errors }) => {
+      context.failNextDecodes('exit-loop', 100);
+      await engine.start(direction('tension'));
+      await flushAsync();
+
+      const finite = activeVoice(engine);
+      context.advanceTo(finite.decisionTimer.stopTime);
+      await flushAsync();
+
+      const expectedBackoffs = [0.5, 1, 2, 4];
+      for (const delay of expectedBackoffs) {
+        assert.ok(finite.decisionTimer);
+        assert.equal(
+          finite.decisionTimer.stopTime,
+          context.currentTime + delay,
+        );
+        context.advanceTo(finite.decisionTimer.stopTime);
+        await flushAsync();
+      }
+
+      assert.equal(finite.decisionTimer, null);
+      assert.equal(finite.successorRetryAttempts, 4);
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.equal(errors.length, 1);
+      assert.match(errors[0].message, /simulated decode failure/);
+      const attemptsAtFailure = context.decodeCount('exit-loop');
+
+      context.advanceTo(context.currentTime + 20);
+      await flushAsync();
+      assert.equal(context.decodeCount('exit-loop'), attemptsAtFailure);
+    });
+  },
+);
+
+test(
+  'horizontal calls commit once per audio bar and coalesce to the latest state',
+  { concurrency: false },
+  async () => {
+    const manifest = directStatesManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse'));
+
+      engine.setDirection(direction('tension'));
+      engine.setDirection(direction('combat'));
+      engine.setDirection(direction('pursuit'));
+
+      assert.equal(engine.direction.state, 'sparse');
+      assert.deepEqual([...context.decodedSectionIds], ['entry']);
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+      assert.equal(engine.direction.state, 'pursuit');
+      assertPending(engine, 'pursuit-loop', false);
+      assert.equal(context.decodedSectionIds.has('tension-loop'), false);
+      assert.equal(context.decodedSectionIds.has('combat-loop'), false);
+
+      engine.setDirection(direction('combat'));
+      engine.setDirection(direction('tension'));
+      assert.equal(engine.direction.state, 'pursuit');
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+
+      assert.equal(engine.direction.state, 'tension');
+      assertPending(engine, 'tension-loop', false);
+      assert.equal(context.decodedSectionIds.has('combat-loop'), false);
+    });
+  },
+);
+
+test(
+  'terminal resolve bypasses the phrase latch but still begins on the next authored quantum',
+  { concurrency: false },
+  async () => {
+    const manifest = directStatesManifest(true);
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse'));
+      const entry = activeVoice(engine);
+      context.advanceTo(entry.startedAt + BAR_SECONDS * 0.5);
+
+      engine.setDirection(direction('tension'));
+      assert.ok(engine.horizontalTimer);
+      engine.setDirection(direction('resolve', 0.95, 0.2));
+      await flushAsync();
+
+      assert.equal(engine.direction.state, 'resolve');
+      assert.equal(engine.horizontalTimer, null);
+      const pending = assertPending(engine, 'resolve', false);
+      assert.ok(
+        pending.when - context.currentTime <= BAR_SECONDS,
+        'resolve must not wait through an extra horizontal-latch bar',
+      );
+
+      context.advanceTo(pending.when + pending.crossfadeSeconds + 0.01);
+      assert.equal(activeVoice(engine).section.id, 'resolve');
+    });
+  },
+);
+
+test(
+  'adaptive routing chooses the lowest worst-case bar cost rather than the fewest hops',
+  { concurrency: false },
+  async () => {
+    const manifest = weightedRouteManifest();
+    await withEngine(manifest, async ({ engine }) => {
+      await engine.start(direction('sparse'));
+      engine.resetForDiscontinuity();
+      engine.setDirection(direction('combat'));
+      await flushAsync();
+
+      assertPending(engine, 'fast-one', false);
+    });
+  },
+);
+
+test(
+  'the resolve stem envelope spans the full finite cue and approaches targetIntensity on the audio clock',
+  { concurrency: false },
+  async () => {
+    const manifest = makeManifest({
+      entrySection: 'resolve',
+      sections: [
+        section('resolve', 'resolve', false, { bars: 3, role: 'resolve' }),
+      ],
+      transitions: [],
+    });
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('resolve', 1, 0.2));
+      const voice = activeVoice(engine);
+      const drums = voice.stemGains.get('drums').gain;
+      const curveCall = drums.calls.find(
+        (call) => call.method === 'setValueCurveAtTime',
+      );
+      assert.ok(curveCall);
+      assert.equal(curveCall.when, voice.startedAt);
+      assert.equal(curveCall.duration, 3 * BAR_SECONDS);
+      assert.equal(curveCall.curve.length, 64);
+      assert.ok(curveCall.curve[0] > curveCall.curve.at(-1));
+      assert.ok(Math.abs(curveCall.curve[0] - 1) < 1e-6);
+      assert.ok(Math.abs(curveCall.curve.at(-1) - response(0.2)) < 1e-6);
+
+      await engine.setPaused(true);
+      engine.setDirection(direction('resolve', 0.7, 0.2));
+      assert.equal(
+        drums.calls.filter((call) => call.method === 'setValueCurveAtTime')
+          .length,
+        1,
+        'ordinary frame samples must not erase the audio-clock resolve curve',
+      );
+      assert.equal(lastTargetCall(engine.pauseGain.gain).value, 0);
+      assert.equal(context.state, 'running');
+    });
+  },
+);
+
+function finiteRoutingManifest() {
+  return makeManifest({
+    entrySection: 'entry',
+    sections: [
+      section('entry', 'sparse', true),
+      section('finite', 'tension', false, { role: 'bridge' }),
+      section('tension-loop', 'tension', true),
+      section('combat-loop', 'combat', true),
+      section('resolve', 'resolve', false, { bars: 3, role: 'resolve' }),
+    ],
+    transitions: [
+      transition('entry', 'finite', 'next-quantum'),
+      transition('finite', 'tension-loop', 'section-end'),
+      transition('finite', 'combat-loop', 'next-quantum', {
+        quantizeBars: 2,
+      }),
+      transition('finite', 'resolve', 'next-quantum'),
+    ],
+  });
+}
+
+function rotationManifest() {
+  return makeManifest({
+    entrySection: 'loop-a',
+    sections: [
+      section('loop-a', 'sparse', true),
+      section('loop-b', 'sparse', true),
+      section('tension-loop', 'tension', true),
+    ],
+    transitions: [
+      transition('loop-a', 'loop-b', 'next-quantum'),
+      transition('loop-a', 'tension-loop', 'next-quantum'),
+    ],
+  });
+}
+
+function stingerManifest() {
+  return makeManifest({
+    entrySection: 'climax-a',
+    sections: [
+      section('climax-a', 'climax', true),
+      section('impact-stinger', 'climax', false, {
+        bars: 1,
+        role: 'stinger',
+        cooldownSeconds: 32,
+      }),
+      section('climax-b', 'climax', true),
+    ],
+    transitions: [
+      transition('climax-a', 'impact-stinger', 'next-quantum'),
+      transition('impact-stinger', 'climax-b', 'section-end'),
+      transition('climax-b', 'impact-stinger', 'next-quantum'),
+    ],
+  });
+}
+
+function stingerAfterTransitionManifest() {
+  return makeManifest({
+    entrySection: 'entry',
+    sections: [
+      section('entry', 'sparse', true),
+      section('combat-loop', 'combat', true),
+      section('combat-stinger', 'combat', false, {
+        bars: 1,
+        role: 'stinger',
+        cooldownSeconds: 32,
+      }),
+    ],
+    transitions: [
+      transition('entry', 'combat-loop', 'next-quantum'),
+      transition('combat-loop', 'combat-stinger', 'next-quantum'),
+    ],
+  });
+}
+
+function finiteRetryManifest() {
+  return makeManifest({
+    entrySection: 'finite',
+    sections: [
+      section('finite', 'tension', false, { role: 'bridge' }),
+      section('exit-loop', 'tension', true),
+    ],
+    transitions: [transition('finite', 'exit-loop', 'section-end')],
+  });
+}
+
+function directStatesManifest(includeResolve = false) {
+  const sections = [
+    section('entry', 'sparse', true),
+    section('tension-loop', 'tension', true),
+    section('pursuit-loop', 'pursuit', true),
+    section('combat-loop', 'combat', true),
+  ];
+  const transitions = [
+    transition('entry', 'tension-loop', 'next-quantum'),
+    transition('entry', 'pursuit-loop', 'next-quantum'),
+    transition('entry', 'combat-loop', 'next-quantum'),
+  ];
+  if (includeResolve) {
+    sections.push(
+      section('resolve', 'resolve', false, { bars: 3, role: 'resolve' }),
+    );
+    transitions.push(transition('entry', 'resolve', 'next-quantum'));
+  }
+  return makeManifest({ entrySection: 'entry', sections, transitions });
+}
+
+function weightedRouteManifest() {
+  return makeManifest({
+    entrySection: 'entry',
+    sections: [
+      section('entry', 'sparse', true),
+      section('slow-bridge', 'tension', false, {
+        bars: 8,
+        role: 'bridge',
+      }),
+      section('fast-one', 'tension', false, { bars: 1, role: 'bridge' }),
+      section('fast-two', 'pursuit', false, { bars: 1, role: 'bridge' }),
+      section('combat-loop', 'combat', true),
+    ],
+    transitions: [
+      transition('entry', 'slow-bridge', 'next-quantum'),
+      transition('slow-bridge', 'combat-loop', 'section-end'),
+      transition('entry', 'fast-one', 'next-quantum'),
+      transition('fast-one', 'fast-two', 'section-end'),
+      transition('fast-two', 'combat-loop', 'section-end'),
+    ],
+  });
+}
+
+function makeManifest({ entrySection, sections, transitions }) {
+  return {
+    schemaVersion: 1,
+    id: 'engine-test',
+    title: 'Engine Test',
+    provenance: {
+      sourceTool: 'test',
+      rightsStatus: 'rights-cleared',
+      shipApproval: 'approved',
+    },
+    bpm: 120,
+    beatsPerBar: 4,
+    sampleRate: SAMPLE_RATE,
+    gridOriginFrame: 0,
+    barFrames: BAR_FRAMES,
+    sourceEndFrame: SECTION_BARS * BAR_FRAMES,
+    segmentBars: SECTION_BARS,
+    durationSeconds: SECTION_SECONDS,
+    masterGainDb: -3,
+    adaptiveLatencyBudgetBars: { gameplay: 100, resolve: 100 },
+    entrySection,
+    stems: [
+      {
+        id: 'foundation',
+        label: 'Foundation',
+        role: 'foundation',
+        gainDb: 0,
+        response: { minimum: 0, full: 0 },
+      },
+      {
+        id: 'drums',
+        label: 'Drums',
+        role: 'rhythm',
+        gainDb: 0,
+        response: { minimum: 0, full: 1 },
+      },
+      {
+        id: 'guitar',
+        label: 'Guitar',
+        role: 'drive',
+        gainDb: 0,
+        response: { minimum: 0.55, full: 1 },
+      },
+    ],
+    sections,
+    transitions,
+    assets: {},
+  };
+}
+
+function section(
+  id,
+  classification,
+  loopable,
+  {
+    bars = SECTION_BARS,
+    role = loopable
+      ? 'hold'
+      : classification === 'resolve'
+        ? 'resolve'
+        : 'bridge',
+    cooldownSeconds,
+  } = {},
+) {
+  return {
+    id,
+    label: id,
+    classification,
+    role,
+    startBar: 0,
+    barCount: bars,
+    durationSeconds: bars * BAR_SECONDS,
+    energy: 0.5,
+    loopable,
+    ...(loopable ? { repeat: { minimumBars: bars * 2 } } : {}),
+    ...(cooldownSeconds === undefined ? {} : { cooldownSeconds }),
+    files: Object.fromEntries(
+      STEM_IDS.map((stemId) => [stemId, `assets/${id}/${stemId}.m4a`]),
+    ),
+  };
+}
+
+function transition(
+  from,
+  to,
+  timing,
+  { quantizeBars = 1, crossfadeBars = 0.25, weight = 1 } = {},
+) {
+  return {
+    from,
+    to,
+    timing,
+    quantizeBars,
+    crossfadeBars,
+    weight,
+  };
+}
+
+function direction(state, intensity = 0.5, targetIntensity = intensity) {
+  return { state, intensity, targetIntensity, momentum: 0 };
+}
+
+function trigger(type, sourceTick) {
+  return { type, sourceTick };
+}
+
+async function withEngine(manifest, run) {
+  const originalFetch = globalThis.fetch;
+  const durations = new Map(
+    manifest.sections.map((candidate) => [
+      candidate.id,
+      candidate.durationSeconds,
+    ]),
+  );
+  const context = new FakeAudioContext(durations);
+  globalThis.fetch = async (input) => {
+    const url = new URL(String(input));
+    const parts = url.pathname.split('/');
+    const sectionId = decodeURIComponent(parts.at(-2));
+    const bytes = new TextEncoder().encode(sectionId);
+    return {
+      ok: true,
+      arrayBuffer: async () =>
+        bytes.buffer.slice(
+          bytes.byteOffset,
+          bytes.byteOffset + bytes.byteLength,
+        ),
+    };
+  };
+  const loaded = {
+    catalog: {
+      schemaVersion: 1,
+      defaultId: manifest.id,
+      tracks: [
+        {
+          id: manifest.id,
+          title: manifest.title,
+          manifest: 'manifest.json',
+        },
+      ],
+    },
+    entry: {
+      id: manifest.id,
+      title: manifest.title,
+      manifest: 'manifest.json',
+    },
+    manifest,
+    manifestUrl: new URL('https://soundtrack.test/manifest.json'),
+  };
+  const errors = [];
+  const engine = new SoundtrackEngine(loaded, context, (error) => {
+    errors.push(error);
+  });
+  try {
+    await run({ context, engine, errors });
+  } finally {
+    try {
+      await engine.dispose();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+}
+
+async function enterFiniteCue(engine, context) {
+  await engine.start(direction('sparse'));
+  engine.setDirection(direction('tension'));
+  advanceHorizontalCommit(engine, context);
+  await flushAsync();
+  const transitionToFinite = assertPending(engine, 'finite', false);
+  context.advanceTo(
+    transitionToFinite.when + transitionToFinite.crossfadeSeconds + 0.01,
+  );
+  assert.equal(activeVoice(engine).section.id, 'finite');
+}
+
+async function advanceFiniteToSuccessor(engine, context) {
+  const finite = activeVoice(engine);
+  assert.ok(finite.decisionTimer);
+  context.advanceTo(finite.decisionTimer.stopTime);
+  await flushAsync();
+  const successor = engine.pending;
+  assert.ok(successor);
+  context.advanceTo(successor.when + successor.crossfadeSeconds + 0.01);
+  await flushAsync();
+}
+
+function advanceToDecision(engine, context) {
+  const voice = activeVoice(engine);
+  assert.ok(voice.decisionTimer);
+  context.advanceTo(voice.decisionTimer.stopTime);
+}
+
+function advanceHorizontalCommit(engine, context) {
+  const timer = engine.horizontalTimer;
+  assert.ok(timer, 'expected a queued horizontal commit');
+  context.advanceTo(timer.stopTime);
+}
+
+function activeVoice(engine) {
+  assert.ok(engine.active, 'expected an active soundtrack voice');
+  return engine.active;
+}
+
+function assertPending(engine, destination, mandatory) {
+  assert.ok(engine.pending, `expected a pending transition to ${destination}`);
+  assert.equal(engine.pending.to.section.id, destination);
+  assert.equal(engine.pending.mandatory, mandatory);
+  return engine.pending;
+}
+
+function lastTargetCall(parameter) {
+  const calls = parameter.calls.filter(
+    (candidate) => candidate.method === 'setTargetAtTime',
+  );
+  assert.ok(calls.length > 0, 'expected setTargetAtTime automation');
+  return calls.at(-1);
+}
+
+function response(intensity) {
+  return intensity * intensity * (3 - 2 * intensity);
+}
+
+async function flushAsync() {
+  for (let turn = 0; turn < 12; turn += 1) {
+    await Promise.resolve();
+  }
+}
+
+class FakeAudioContext {
+  constructor(durations) {
+    this.currentTime = 0;
+    this.state = 'running';
+    this.destination = {};
+    this.bufferSources = [];
+    this.gainNodes = [];
+    this.events = [];
+    this.nextEventId = 0;
+    this.decodeGates = new Map();
+    this.decodeFailures = new Map();
+    this.decodeCalls = [];
+    this.decodedSectionIds = new Set();
+    this.durations = durations;
+    this.suspendGate = null;
+    this.resumeGate = null;
+    this.suspendCalls = 0;
+    this.resumeCalls = 0;
+    this.closeCalls = 0;
+  }
+
+  createDynamicsCompressor() {
+    return connectable({
+      threshold: audioParam(),
+      knee: audioParam(),
+      ratio: audioParam(),
+      attack: audioParam(),
+      release: audioParam(),
+    });
+  }
+
+  createGain() {
+    const gain = connectable({ gain: audioParam() });
+    this.gainNodes.push(gain);
+    return gain;
+  }
+
+  createBufferSource() {
+    const source = connectable({
+      buffer: null,
+      loop: false,
+      loopEnd: 0,
+      startedAt: null,
+      stoppedAt: null,
+      ended: false,
+      start: (when) => {
+        source.startedAt = when;
+      },
+      stop: (when) => {
+        source.stoppedAt = when;
+      },
+    });
+    this.bufferSources.push(source);
+    return source;
+  }
+
+  createConstantSource() {
+    const timer = connectable({
+      offset: audioParam(),
+      onended: null,
+      stopTime: null,
+      ended: false,
+      start: () => {},
+      stop: (when) => {
+        timer.stopTime = when;
+        this.schedule(when, () => {
+          timer.ended = true;
+          timer.onended?.();
+        });
+      },
+    });
+    return timer;
+  }
+
+  async decodeAudioData(bytes) {
+    const sectionId = new TextDecoder().decode(bytes);
+    this.decodedSectionIds.add(sectionId);
+    this.decodeCalls.push(sectionId);
+    const failures = this.decodeFailures.get(sectionId) ?? 0;
+    if (failures > 0) {
+      this.decodeFailures.set(sectionId, failures - 1);
+      throw new Error(`simulated decode failure for ${sectionId}`);
+    }
+    const gate = this.decodeGates.get(sectionId);
+    if (gate) {
+      await gate.promise;
+      if (this.decodeGates.get(sectionId) === gate) {
+        this.decodeGates.delete(sectionId);
+      }
+    }
+    const duration = this.durations.get(sectionId);
+    assert.ok(duration, `missing fake duration for ${sectionId}`);
+    return {
+      length: duration * SAMPLE_RATE,
+      sampleRate: SAMPLE_RATE,
+      duration,
+    };
+  }
+
+  failNextDecodes(sectionId, count) {
+    this.decodeFailures.set(sectionId, count);
+  }
+
+  decodeCount(sectionId) {
+    return this.decodeCalls.filter((candidate) => candidate === sectionId)
+      .length;
+  }
+
+  holdDecode(sectionId) {
+    assert.equal(this.decodeGates.has(sectionId), false);
+    this.decodeGates.set(sectionId, deferred());
+  }
+
+  releaseDecode(sectionId) {
+    const gate = this.decodeGates.get(sectionId);
+    assert.ok(gate, `no held decode for ${sectionId}`);
+    gate.resolve();
+  }
+
+  holdNextSuspend() {
+    assert.equal(this.suspendGate, null);
+    this.suspendGate = deferred();
+  }
+
+  releaseSuspend() {
+    assert.ok(this.suspendGate);
+    this.suspendGate.resolve();
+  }
+
+  holdNextResume() {
+    assert.equal(this.resumeGate, null);
+    this.resumeGate = deferred();
+  }
+
+  releaseResume() {
+    assert.ok(this.resumeGate);
+    this.resumeGate.resolve();
+  }
+
+  async suspend() {
+    this.suspendCalls += 1;
+    const gate = this.suspendGate;
+    if (gate) {
+      await gate.promise;
+      if (this.suspendGate === gate) this.suspendGate = null;
+    }
+    if (this.state !== 'closed') this.state = 'suspended';
+  }
+
+  async resume() {
+    this.resumeCalls += 1;
+    const gate = this.resumeGate;
+    if (gate) {
+      await gate.promise;
+      if (this.resumeGate === gate) this.resumeGate = null;
+    }
+    if (this.state !== 'closed') this.state = 'running';
+  }
+
+  async close() {
+    this.closeCalls += 1;
+    this.state = 'closed';
+  }
+
+  schedule(when, callback) {
+    this.events.push({
+      at: Math.max(this.currentTime, when),
+      callback,
+      id: this.nextEventId,
+    });
+    this.nextEventId += 1;
+  }
+
+  advanceTo(target) {
+    assert.equal(this.state, 'running');
+    assert.ok(target >= this.currentTime);
+    while (true) {
+      this.events.sort(
+        (left, right) => left.at - right.at || left.id - right.id,
+      );
+      const event = this.events[0];
+      if (!event || event.at > target) break;
+      this.events.shift();
+      this.currentTime = event.at;
+      event.callback();
+    }
+    this.currentTime = target;
+    for (const source of this.bufferSources) {
+      if (source.startedAt === null || source.ended) continue;
+      const naturalEnd =
+        source.buffer === null
+          ? Number.POSITIVE_INFINITY
+          : source.startedAt + source.buffer.duration;
+      if (
+        (source.stoppedAt !== null && source.stoppedAt <= target) ||
+        (!source.loop && naturalEnd <= target)
+      ) {
+        source.ended = true;
+      }
+    }
+  }
+}
+
+function audioParam() {
+  return {
+    value: 1,
+    calls: [],
+    cancelScheduledValues(when) {
+      this.calls.push({ method: 'cancelScheduledValues', when });
+    },
+    setTargetAtTime(value, when, timeConstant) {
+      this.value = value;
+      this.calls.push({
+        method: 'setTargetAtTime',
+        value,
+        when,
+        timeConstant,
+      });
+    },
+    setValueAtTime(value, when) {
+      this.value = value;
+      this.calls.push({ method: 'setValueAtTime', value, when });
+    },
+    setValueCurveAtTime(curve, when, duration) {
+      const stored = Float32Array.from(curve);
+      this.value = stored.at(-1);
+      this.calls.push({
+        method: 'setValueCurveAtTime',
+        curve: stored,
+        when,
+        duration,
+      });
+    },
+  };
+}
+
+function connectable(properties) {
+  return {
+    connected: false,
+    disconnected: false,
+    connections: [],
+    connect(target) {
+      this.connected = true;
+      this.connections.push(target);
+      return target;
+    },
+    disconnect() {
+      this.disconnected = true;
+    },
+    ...properties,
+  };
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}

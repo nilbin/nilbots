@@ -12,5 +12,13 @@ export {
   spentBoltsAt,
 } from '../../src/render/interpolate';
 export { createPresenter } from '../../src/replayPresentation';
+export {
+  buildAdaptiveTimeline,
+  sampleAdaptiveTimeline,
+} from '../../src/soundtrack/director';
+export {
+  loadReplayJson,
+  loadReplayObject,
+} from '../../src/replayIngress';
 export { buildActors } from '../../src/render3d/arenaActors';
 export { buildOverlays } from '../../src/render3d/arenaOverlays';

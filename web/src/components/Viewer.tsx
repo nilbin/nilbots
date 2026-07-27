@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import type {
   ReplayModel,
@@ -8,6 +8,7 @@ import {
   participantForUnit,
   teamName,
 } from '../replayParticipants';
+import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplayAudio } from '../audio/useReplayAudio';
 import { useAssetReadiness } from '../render/useAssetReadiness';
@@ -28,23 +29,34 @@ import Logo from './Logo';
  * single-file artifact stubs this module out entirely (see vite.cli.config.ts).
  */
 const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
+const AdaptiveSoundtrack = lazy(
+  () => import('../soundtrack/AdaptiveSoundtrack'),
+);
 const DIMENSIONAL_RENDERER_AVAILABLE =
   typeof __BOTARENA_DIMENSIONAL_RENDERER__ !== 'boolean' ||
   __BOTARENA_DIMENSIONAL_RENDERER__;
+const EXTERNAL_SOUNDTRACK_AVAILABLE =
+  typeof __BOTARENA_EXTERNAL_SOUNDTRACK__ !== 'boolean' ||
+  __BOTARENA_EXTERNAL_SOUNDTRACK__;
 
 export default function Viewer({
   replay,
   live,
+  soundtrackPresentationId,
 }: {
   replay: ReplayModel;
   live?: LiveFollow;
+  /** Stable match identity across partial-live and complete replay documents. */
+  soundtrackPresentationId?: string;
 }) {
   const assets = useAssetReadiness();
   const immersive = useImmersive();
   const shell = useRef<HTMLDivElement>(null);
+  const isLive = live !== undefined;
+  const audioSession = useMemo(() => new ArenaAudioSession(), []);
   // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
   const [chromeVisible, setChromeVisible] = useState(true);
-  const playback = usePlayback(replay, assets.ready);
+  const playback = usePlayback(replay, assets.ready, !isLive);
   const liveTime = useLiveFollower(replay, live);
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
@@ -59,7 +71,6 @@ export default function Viewer({
         '3d',
   );
 
-  const isLive = live !== undefined;
   const audioReviewEnabled =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
   const time = isLive ? liveTime : playback.time;
@@ -72,7 +83,10 @@ export default function Viewer({
     atEnd: !isLive && playback.atEnd,
     following: isLive,
     reviewEnabled: audioReviewEnabled,
+    session: audioSession,
   });
+
+  useEffect(() => audioSession.retainOwner(), [audioSession]);
 
   useEffect(() => {
     if (isLive) return; // No seeking during a live broadcast — viewers stay synchronized.
@@ -172,6 +186,19 @@ export default function Viewer({
               #{replay.replayHash.slice(0, 12)}
             </span>
           )
+        )}
+        {EXTERNAL_SOUNDTRACK_AVAILABLE && (
+          <Suspense fallback={null}>
+            <AdaptiveSoundtrack
+              replay={replay}
+              time={time}
+              playing={isLive || playback.playing}
+              playResolveTail={!isLive && playback.endedNaturally}
+              transportRevision={isLive ? 0 : playback.transportRevision}
+              session={audioSession}
+              presentationId={soundtrackPresentationId}
+            />
+          </Suspense>
         )}
         {/* Which renderer. The CLI artifact intentionally stubs the dynamic module to
             keep three.js out of every copied replay, so it must not offer a blank mode. */}

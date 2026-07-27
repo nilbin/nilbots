@@ -57,7 +57,7 @@ public static class ReplayOutput
     /// than not at all.
     /// </para>
     /// </remarks>
-    private static string? FindTemplate(string? themeId)
+    internal static string? FindTemplate(string? themeId)
     {
         string? explicitPath = Environment.GetEnvironmentVariable("BOTARENA_VIEWER");
         if (!string.IsNullOrWhiteSpace(explicitPath))

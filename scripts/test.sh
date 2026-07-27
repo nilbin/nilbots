@@ -3,6 +3,7 @@
 # and prevents contract tests from silently exercising a stale tracked artifact.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
 bash scripts/build-wasm-guest.sh
 dotnet build BotArena.sln -v q
 dotnet test BotArena.sln --no-build -v q "$@"

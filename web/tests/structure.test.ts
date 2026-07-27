@@ -35,6 +35,7 @@ test('the standalone viewer never imports site code', () => {
     'audio',
     'components',
     'render',
+    'soundtrack',
     'App.tsx',
     'hostedBridge.ts',
     'playback.ts',

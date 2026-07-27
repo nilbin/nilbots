@@ -18,3 +18,9 @@ declare const __BOTARENA_DEFAULT_THEME__: string | undefined;
  * keep three.js out of every copied replay.
  */
 declare const __BOTARENA_DIMENSIONAL_RENDERER__: boolean | undefined;
+
+/**
+ * False in self-contained CLI viewers. HTTP builds lazy-load the runtime and
+ * fetch content-addressed score assets only after explicit user activation.
+ */
+declare const __BOTARENA_EXTERNAL_SOUNDTRACK__: boolean | undefined;

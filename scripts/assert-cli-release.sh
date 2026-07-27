@@ -113,6 +113,7 @@ EOF
       web/src/App.tsx
       web/src/components
       web/src/assets
+      web/src/audio
       web/src/index.css
       web/src/main.tsx
       web/src/playback.ts

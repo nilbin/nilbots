@@ -6,6 +6,7 @@ import {
   type AudioCandidateId,
   type AudioCueId,
 } from './audioCandidates';
+import { ArenaAudioSession } from './ArenaAudioSession';
 import { createArenaImpulse, ROOM_MIX } from './arenaRoom';
 import { replayAudioEventsAt } from './replayAudioEvents';
 import { readLocalSetting, writeLocalSetting } from './localSettings';
@@ -45,6 +46,7 @@ interface AudioGraph {
    * convolver would arrive smeared and late.
    */
   room: GainNode | null;
+  convolver: ConvolverNode | null;
 }
 
 interface Voice {
@@ -75,6 +77,7 @@ export function useReplayAudio({
   atEnd,
   following,
   reviewEnabled = true,
+  session,
 }: {
   replay: ReplayModel;
   time: number;
@@ -83,7 +86,22 @@ export function useReplayAudio({
   atEnd: boolean;
   following: boolean;
   reviewEnabled?: boolean;
+  /**
+   * Stable, viewer-owned session shared with other arena audio. Omitted only
+   * for compatibility with callers that have not yet moved ownership upward.
+   */
+  session?: ArenaAudioSession;
 }): ReplayAudioController {
+  const fallbackSession = useRef<ArenaAudioSession | null>(null);
+  if (!session && fallbackSession.current === null) {
+    fallbackSession.current = new ArenaAudioSession();
+  }
+  const audioSession = session ?? fallbackSession.current!;
+  const ownsSession = session === undefined;
+  useEffect(
+    () => (ownsSession ? audioSession.retainOwner() : undefined),
+    [audioSession, ownsSession],
+  );
   const [candidateId, setCandidateState] = useState<AudioCandidateId>(
     () => (reviewEnabled ? readCandidate() : 'nilbots-signature'),
   );
@@ -114,37 +132,17 @@ export function useReplayAudio({
     if (graph.current && graph.current.context.state !== 'closed') {
       return graph.current;
     }
-    // iOS silences Web Audio when the ring/silent switch is on — HTML <audio> is exempt,
-    // Web Audio is not — so a reviewer with the switch flipped hears nothing and
-    // reasonably concludes the audio is broken. Declaring the session as playback opts
-    // out of that, which is what a media page is supposed to do. WebKit-only and recent,
-    // hence the feature check; everywhere else this is a no-op.
-    try {
-      const session = (navigator as Navigator & { audioSession?: { type: string } })
-        .audioSession;
-      if (session) session.type = 'playback';
-    } catch {
-      // Best effort. A browser that exposes the property but rejects the assignment must
-      // not take the whole audio graph down with it — this is a silent-switch nicety, not
-      // a prerequisite for playing anything.
-    }
-
-    const context = new AudioContext({ latencyHint: 'interactive' });
+    const { context, effects } = audioSession.ensureGraph();
     const master = context.createGain();
-    const limiter = context.createDynamicsCompressor();
-    limiter.threshold.value = -4;
-    limiter.knee.value = 3;
-    limiter.ratio.value = 14;
-    limiter.attack.value = 0.002;
-    limiter.release.value = 0.11;
-    master.connect(limiter).connect(context.destination);
+    master.connect(effects);
 
     // The room. Optional on purpose: ConvolverNode is universally supported but building
     // the response allocates a couple of seconds of stereo float, and a browser that
     // refuses for any reason should lose the reverb rather than the audio.
     let room: GainNode | null = null;
+    let convolver: ConvolverNode | null = null;
     try {
-      const convolver = context.createConvolver();
+      convolver = context.createConvolver();
       convolver.buffer = createArenaImpulse(context);
       room = context.createGain();
       room.gain.value = ROOM_MIX;
@@ -152,12 +150,15 @@ export function useReplayAudio({
       // and muting actually mutes.
       room.connect(convolver).connect(master);
     } catch {
+      room?.disconnect();
+      convolver?.disconnect();
       room = null;
+      convolver = null;
     }
 
-    graph.current = { context, master, room };
+    graph.current = { context, master, room, convolver };
     return graph.current;
-  }, []);
+  }, [audioSession]);
 
   const stopAll = useCallback(() => {
     generation.current++;
@@ -287,7 +288,7 @@ export function useReplayAudio({
 
   const enable = useCallback(async () => {
     const current = ensureGraph();
-    await current.context.resume();
+    await audioSession.resume();
     current.master.gain.setValueAtTime(
       muted ? 0 : volume,
       current.context.currentTime,
@@ -295,7 +296,7 @@ export function useReplayAudio({
     setEnabled(true);
     previousTick.current = currentTickRef.current;
     await preloadCandidate(candidateRef.current);
-  }, [ensureGraph, muted, preloadCandidate, volume]);
+  }, [audioSession, ensureGraph, muted, preloadCandidate, volume]);
 
   const previewUnlock = useCallback(async () => {
     await enable();
@@ -421,12 +422,14 @@ export function useReplayAudio({
   useEffect(
     () => () => {
       stopAll();
-      const context = graph.current?.context;
+      const current = graph.current;
       graph.current = null;
       buffers.current.clear();
-      if (context && context.state !== 'closed') void context.close();
+      current?.room?.disconnect();
+      current?.convolver?.disconnect();
+      current?.master.disconnect();
     },
-    [stopAll],
+    [audioSession, stopAll],
   );
 
   return {

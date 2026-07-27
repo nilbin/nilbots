@@ -21,12 +21,24 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 const THEME = process.env.BOTARENA_CLI_THEME;
 
 export default defineConfig({
-  plugins: [scopeToTheme(THEME), stubDimensionalRenderer(), react(), tailwindcss(), viteSingleFile()],
+  // `public/` contains HTTP-only assets such as content-addressed soundtrack packs.
+  // A CLI viewer is a self-contained file:// artifact and cannot fetch them; copying the
+  // directory here would duplicate every pack into every per-theme build for no benefit.
+  publicDir: false,
+  plugins: [
+    scopeToTheme(THEME),
+    stubDimensionalRenderer(),
+    stubExternalSoundtrack(),
+    react(),
+    tailwindcss(),
+    viteSingleFile(),
+  ],
   define: {
     // A scoped artifact has no `control-room` to fall back to, so the fallback becomes the
     // theme it does have. Unscoped builds keep the ordinary default.
     __BOTARENA_DEFAULT_THEME__: JSON.stringify(THEME ?? 'control-room'),
     __BOTARENA_DIMENSIONAL_RENDERER__: 'false',
+    __BOTARENA_EXTERNAL_SOUNDTRACK__: 'false',
   },
   build: {
     outDir: THEME ? `dist-cli/${THEME}` : 'dist-cli',
@@ -53,6 +65,24 @@ function stubDimensionalRenderer(): Plugin {
     },
     load(id) {
       return id === '\0nilbots-no-3d' ? 'export default function NoRenderer() { return null; }' : null;
+    },
+  };
+}
+
+/** Keep the network-only soundtrack runtime out of copied file:// viewers. */
+function stubExternalSoundtrack(): Plugin {
+  return {
+    name: 'nilbots-stub-external-soundtrack',
+    enforce: 'pre',
+    resolveId(source) {
+      return source.includes('soundtrack/AdaptiveSoundtrack')
+        ? '\0nilbots-no-soundtrack'
+        : null;
+    },
+    load(id) {
+      return id === '\0nilbots-no-soundtrack'
+        ? 'export default function NoSoundtrack() { return null; }'
+        : null;
     },
   };
 }

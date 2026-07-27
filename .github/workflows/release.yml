@@ -54,6 +54,10 @@ jobs:
           WASI_SDK_PATH: /opt/botarena/wasi-sdk-29.0
         run: bash scripts/e2e.sh
 
+      - name: Require cleared and auditioned soundtrack media
+        if: inputs.operation == 'publish' || inputs.operation == 'publish-and-deploy'
+        run: python3 scripts/assert_soundtrack_release.py web/public/soundtracks/index.json
+
       # Deploying a server whose toolchain no published CLI bundles is how you get
       # version hell: `submit` refuses (DECISIONS #93) and the fix it prints —
       # `dotnet tool update -g Nilbots` — cannot work, because there is nothing to
@@ -75,7 +79,7 @@ jobs:
           name: nilbots-cli-assets
           path: |
             artifacts/wasm/builtin-bots.wasm
-            web/dist/index.html
+            web/dist-cli/
           if-no-files-found: error
           retention-days: 1
 

@@ -12,3 +12,5 @@ out
 sandbox
 var
 *.binlog
+# Soundtrack source archives are never runtime/compiler image inputs.
+*.zip

@@ -12,6 +12,7 @@ COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ ./
 COPY docs/PLAYER-GUIDE.md /src/docs/PLAYER-GUIDE.md
+COPY scripts/generate-atlas-variants.mjs scripts/build-cli-viewers.mjs /src/scripts/
 RUN npm run build
 
 FROM ubuntu:24.04 AS toolchain
@@ -50,7 +51,6 @@ RUN mkdir -p /opt/botarena/toolchain-libs /opt/botarena/nuget-feed \
        -exec sh -c 'for package do ln -sf "$package" "/opt/botarena/nuget-feed/$(basename "$package")"; done' sh {} + \
     && chmod o+x /root \
     && chmod -R a+rX /root/.nuget /opt/botarena
-COPY --from=web /src/web/dist /app/web/dist
 
 FROM toolchain AS compiler
 RUN mkdir -p /compiler-ipc /work \
@@ -95,7 +95,7 @@ COPY --from=toolchain /app/publish /app/publish
 COPY --from=toolchain /app/maps /app/maps
 COPY --from=toolchain /app/champions /app/champions
 COPY --from=toolchain /app/artifacts/wasm /app/artifacts/wasm
-COPY --from=toolchain /app/web/dist /app/web/dist
+COPY --from=web /src/web/dist /app/web/dist
 ENV BOTARENA_ROOT=/app \
     BOTARENA_DATA=/data \
     ASPNETCORE_URLS=http://0.0.0.0:8080 \

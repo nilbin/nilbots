@@ -22,6 +22,11 @@ jobs:
       - name: Install web dependencies
         run: npm ci --prefix web --silent
 
+      - name: Validate soundtrack compiler and audit tooling
+        run: |
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+          node --test scripts/tests/*.test.mjs
+
       # `npm run build` runs `tsc -b` first, so this is the type check too.
       - name: Build the web bundle
         run: npm run build --prefix web

@@ -336,12 +336,27 @@ if (mode.RunsWeb)
     // self-contained artifact is a separate build (web/dist-cli) and only `nilbots play`
     // needs it. Serving that one here made every visitor — and every cold WebView on a
     // phone — parse ~15 MB before anything rendered.
-    string? spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));
+    string? spaDir = builder.Configuration["BOTARENA_WEB_DIST"];
+    if (string.IsNullOrWhiteSpace(spaDir))
+        spaDir = RepoPaths.FindUpward(Path.Combine("web", "dist"));
+    else
+        spaDir = Path.GetFullPath(spaDir);
     if (spaDir is not null && File.Exists(Path.Combine(spaDir, "index.html")))
     {
         var spaFiles = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaDir);
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = spaFiles });
-        app.UseStaticFiles(new StaticFileOptions { FileProvider = spaFiles });
+        app.UseStaticFiles(SoundtrackStaticAssets.CreateOptions(spaFiles));
+        // Static files run first. Reaching this middleware means the soundtrack path does
+        // not exist, and it must remain a 404 rather than becoming the SPA's index.html.
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments("/soundtracks"))
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+            await next();
+        });
         app.MapFallbackToFile("index.html", new StaticFileOptions { FileProvider = spaFiles });
     }
 }

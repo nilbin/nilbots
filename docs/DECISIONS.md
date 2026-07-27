@@ -2080,6 +2080,42 @@ protocol/configuration 1.0, controlled build-cache provenance, the rebuilt artif
 CLI package 0.6.0. This is an internal canonical Frontline runtime, not a public shipment:
 CLI/App selection, server admission, evaluation and ladders remain Package 8.
 
+## 130. Adaptive music is a compiled, causal presentation graph
+
+A soundtrack is not one long backing file and it is not canonical match state. Local ZIP
+archives of aligned PCM stems are untrusted compiler inputs. A reviewed recipe pins their
+archive hash, musical grid, stem roles and response curves, phrases, rendered loop seams,
+transitions, latency bounds, provenance and approval status. The compiler analyzes the
+actual material, omits silent section/stem combinations, preserves relative stem balance,
+checks pack headroom and encoded duration, and emits a content-addressed catalog/manifest
+graph. A new score is another recipe and catalog entry, not another game/runtime feature.
+
+Runtime adaptation is vertical and horizontal. Sample-aligned stem gains follow immediate
+intensity, while sparse, tension, pursuit, combat, climax and resolve phrases navigate the
+reviewed graph on musical boundaries. The director consumes only normalized `ReplayModel`
+ticks already revealed and derives rules-sensitive objective/health state through the
+shared presentation model. Full replays and every live prefix therefore agree on their
+shared frames; results cannot leak backwards. Replay-v1 destruction is terminal, whereas
+Frontline destruction is only an accent because its exact contract permits respawn.
+
+Music is explicit, website-only media. A user gesture creates one viewer-owned Web Audio
+session shared with effects, then the browser fetches only the mutable catalog, one
+content-addressed manifest, and the sections needed next. Music has its own bus before the
+shared final limiter and cannot close or suspend effects. Hashed pack files are immutable;
+the catalog is revalidated. Missing pack URLs remain real 404s rather than SPA fallbacks.
+Self-contained CLI viewers stub the score module and do not copy `public/`; HostedViewer
+and the mobile bridge remain unchanged. Production release refuses any catalogued pack
+until rights are cleared, shipment is approved and every authored loop has completed
+human audition.
+
+AAC in M4A is the baseline output because it keeps the broadest practical Safari/iOS and
+hardware-decoder path. The manifest and server MIME policy do not hard-code playback to
+that choice, so an Ogg/Opus variant can be measured later without redesigning the runtime.
+Codec size alone is not approval: transitions, loops and the combined in-game mix require
+listening on representative phones and headphones. Neon Protocol remains
+`user-supplied-unverified`, `shipApproval: pending`, and `analysis-reviewed` until rights
+and human audition are explicitly recorded.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
@@ -2088,4 +2124,3 @@ CLI/App selection, server admission, evaluation and ladders remain Package 8.
   built-in-style multi-bot selector — decide when the project template lands.
 - wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
   verify when a second platform enters CI.
-

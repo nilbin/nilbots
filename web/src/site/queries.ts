@@ -257,10 +257,18 @@ export function useMatchSet(setId: string | undefined) {
  */
 export function useMatchReplay(matchId: string | undefined, live: MatchLive | undefined) {
   const ready = live?.status === 'Completed';
+  const complete = live?.broadcastComplete ?? false;
   return useQuery({
-    queryKey: ['match', matchId ?? '', 'replay'],
+    // Completion is a different representation: partial broadcasts withhold
+    // the result. A distinct key guarantees one final full-document request
+    // when the independent live clock flips, instead of merely stopping the
+    // partial query's interval and leaving its last response cached forever.
+    queryKey: ['match', matchId ?? '', 'replay', complete],
     queryFn: () => endpoints.matchReplay(matchId!),
     enabled: Boolean(matchId) && ready,
+    // Keep Viewer (and its shared audio session) mounted while the completion
+    // key's full document replaces the final partial response.
+    placeholderData: (previous) => previous,
     refetchInterval: () => (live && !live.broadcastComplete ? 1_500 : false),
     // Truncated mid-broadcast, so the cached copy goes stale the moment it lands.
     staleTime: 0,

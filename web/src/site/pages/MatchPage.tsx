@@ -78,6 +78,7 @@ export default function MatchPage() {
       <div className="min-h-0 flex-1">
         <Viewer
           replay={replay}
+          soundtrackPresentationId={matchId}
           live={
             finished
               ? undefined

@@ -60,6 +60,6 @@
          ThemeId. See ReplayOutput and web/vite.cli.config.ts. -->
     <None Include="../../web/dist-cli/**/index.html"
           Pack="true"
-          PackagePath="tools/net10.0/any/web/dist-cli/%(RecursiveDir)" />
+          PackagePath="tools/net10.0/any/web/dist-cli/" />
   </ItemGroup>
 </Project>

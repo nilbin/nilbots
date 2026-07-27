@@ -222,7 +222,7 @@ public static class DoctorCommand
         string? builtin = CliSupport.FindUpward(Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
         Report("built-in bots (WASM)", builtin is not null, builtin ?? "",
             "run scripts/build-wasm-guest.sh");
-        string? viewer = CliSupport.FindUpward(Path.Combine("web", "dist", "index.html"));
+        string? viewer = ReplayOutput.FindTemplate(themeId: null);
         Report("visual viewer", viewer is not null, viewer ?? "",
             "run `npm run build` in web/");
         string? maps = CliSupport.FindUpward("maps");

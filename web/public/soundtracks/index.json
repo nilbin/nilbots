@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "defaultId": "neon-protocol",
+  "tracks": [
+    {
+      "id": "neon-protocol",
+      "title": "Neon Protocol",
+      "manifest": "neon-protocol/v1-3c68abd2c9e71631/manifest.json"
+    }
+  ]
+}
