@@ -1056,36 +1056,38 @@ function tracerTexture(accent: THREE.Color): THREE.Texture | null {
   const green = Math.round(accent.g * 255);
   const blue = Math.round(accent.b * 255);
 
-  // Built per pixel rather than from two crossed gradients, because the shape is the point.
-  // Crossed gradients give a rectangle, and a rectangle brightest along the edge where it
-  // is cut is exactly a streak that stops dead at the bolt — the front end looked sliced.
-  // This is a capsule: it tapers to nothing at the tail and closes over a dome at the nose,
-  // so there is no edge anywhere for the eye to catch.
+  // A capsule as a distance field, in pixels.
+  //
+  // Two crossed gradients gave a rectangle, and a rectangle brightest along the edge where
+  // it is cut is a streak that stops dead at the bolt. Tapering only the *width* toward the
+  // nose did not fix it either: the centre line stayed fully opaque to the last texel, so
+  // the streak still ended in a bright sliver with a straight edge across it.
+  //
+  // Distance from a line segment rounds the ends in both dimensions at once, which is the
+  // only way the nose gets no edge at all. The head cap is kept a full radius inside the
+  // canvas so the cap itself cannot be clipped — which is the same mistake one step later.
+  const headRadius = height * 0.45;
+  const tailRadius = height * 0.06;
+  const headX = width - headRadius - 1;
+  const tailX = headRadius * 0.5;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const along = x / (width - 1);
-      const across = Math.abs(y / (height - 1) - 0.5) * 2;
-
-      // Half-width: opens out along the streak, then rounds off over the last of it.
-      const nose = 0.86;
-      const halfWidth =
-        along < nose
-          ? 0.18 + 0.82 * (along / nose) ** 0.7
-          : Math.sqrt(Math.max(0, 1 - ((along - nose) / (1 - nose)) ** 2));
+      // Where along the streak this pixel is, clamped so beyond either end the nearest
+      // point is the cap centre — which is what makes the ends round rather than square.
+      const along = Math.max(0, Math.min((x - tailX) / (headX - tailX), 1));
+      const radius = tailRadius + (headRadius - tailRadius) * along ** 0.7;
+      const distance = Math.hypot(x - (tailX + (headX - tailX) * along), y - height / 2);
 
       const offset = (y * width + x) * 4;
       image.data[offset] = red;
       image.data[offset + 1] = green;
       image.data[offset + 2] = blue;
-      if (halfWidth <= 0) {
-        image.data[offset + 3] = 0;
-        continue;
-      }
-      const edge = across / halfWidth;
+      const edge = distance / radius;
       // Soft to its own edge, and dimmer at the tail — a streak fading out behind, not a
       // solid bar with a gradient painted on it.
       const profile = edge >= 1 ? 0 : (1 - edge * edge) ** 1.5;
-      image.data[offset + 3] = Math.round(255 * 0.9 * profile * along ** 1.6);
+      image.data[offset + 3] = Math.round(255 * 0.92 * profile * (0.12 + 0.88 * along ** 1.5));
     }
   }
   context.putImageData(image, 0, 0);
