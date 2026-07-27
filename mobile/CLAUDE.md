@@ -78,8 +78,12 @@ Three things that are easy to get wrong here:
   would be a cycle. Refreshes are deduplicated — OpenIddict rotates refresh tokens, so
   two concurrent refreshes sign the user out.
 
-`expo-secure-store` and `expo-web-browser` are native modules with config plugins. Their
-`app.json` entries do nothing until `npx expo prebuild` and a rebuild.
+`expo-secure-store`, `expo-web-browser` and `expo-notifications` are native modules with
+config plugins. Their `app.json` entries do nothing until `npx expo prebuild` and a rebuild
+— `tsc` passing proves nothing about them, because the JavaScript compiles perfectly
+against a native module that is not linked. `expo-notifications` also generates the
+`aps-environment` entitlement, so a build without the prebuild has no push capability at
+all.
 
 ## Control bars are one line
 
@@ -165,6 +169,11 @@ Design in [`../docs/NOTIFICATIONS-PLAN.md`](../docs/NOTIFICATIONS-PLAN.md) (DECI
 The app is a **delivery channel, not a second inbox**. Notifications are durable records
 on the server, reaching the app over the same SignalR hub the site uses, with unread
 reloaded on resume. Do not invent app-local notification state.
+
+**The simulator cannot test push.** `Device.isDevice` is false there, so registration
+returns before ever asking for a token — which is correct, since a simulator has none, but
+it means the whole path is unexercised until it runs on hardware. Failures are logged
+rather than surfaced, deliberately, so check the console rather than expecting a banner.
 
 **Push registration follows the session, not the app.** `usePushRegistration` registers on
 sign-in and deletes on sign-out, because two people sharing a phone must not inherit each
