@@ -1690,7 +1690,642 @@ public sealed class GenericDeathmatchSessionTests
     }
 
     [Fact]
-    public void UnsupportedTransitionFamiliesAreRejectedAtConstruction()
+    public void SameLifeEndClockKeepsOneRuntimeAndWaitOnlyPendingState()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 3,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10
+                        ? observation.Tick switch
+                        {
+                            0 => GenericDeathmatchSessionTestFixture
+                                .Transform(),
+                            1 => GenericDeathmatchSessionTestFixture.Move(
+                                Direction.East),
+                            _ => GenericDeathmatchSessionTestFixture.Wait(),
+                        }
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 710);
+
+        GenericDeathmatchTickStart start = session.PrepareTick();
+        GenericActorRuntimeObservation west = start.Observations.Single(
+            observation => observation.Self.ActorId.TeamId == 0);
+        GenericActorRuntimeActionLegality transform =
+            west.ActionLegalities.Single(value =>
+                value.ActionId == "transform");
+        Assert.True(transform.AllowedByForm);
+        Assert.True(transform.Available);
+        Assert.Equal(
+            "anchored",
+            Assert.Single(
+                Assert.IsType<
+                        GenericActorRuntimeActionLegality.ArgumentConstraint
+                            .FormTargetConstraint>(
+                        Assert.Single(transform.Constraints))
+                    .AllowedFormIds));
+
+        GenericDeathmatchStepResult queued = session.Step();
+
+        Assert.Contains(
+            queued.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted);
+        Assert.DoesNotContain(
+            queued.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted);
+        Assert.Equal(
+            "mobile",
+            session.ActiveLives.Single(life =>
+                life.ActorId.TeamId == 0).FormId);
+
+        GenericDeathmatchTickStart pendingStart = session.PrepareTick();
+        GenericActorRuntimeObservation pending =
+            pendingStart.Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 0);
+        Assert.Equal("mobile", pending.Self.FormId);
+        Assert.NotNull(pending.Self.PendingSameLifeTransition);
+        Assert.True(pending.ActionLegalities.Single(value =>
+            value.ActionId == "wait").Available);
+        Assert.All(
+            pending.ActionLegalities.Where(value =>
+                value.ActionId != "wait"),
+            value => Assert.False(value.Available));
+        GenericActorRuntimeObservation opposing =
+            pendingStart.Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 1);
+        Assert.NotNull(
+            opposing.Enemies.Single(enemy =>
+                enemy.ActorId.TeamId == 0).PendingSameLifeTransition);
+
+        GenericDeathmatchStepResult completed = session.Step();
+
+        Assert.Equal(
+            GenericActorRuntimeActionResolution.ActionOutcome.Blocked,
+            completed.ActionResolutions.Single(value =>
+                value.ActorId.TeamId == 0).Resolution.Outcome);
+        Assert.Contains(
+            completed.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted);
+        Assert.Equal(
+            "anchored",
+            session.ActiveLives.Single(life =>
+                life.ActorId.TeamId == 0).FormId);
+        Assert.Equal(1, factories[10].CreateCount);
+        Assert.Single(factories[10].Starts);
+        Assert.NotNull(
+            session.Chronology.Ticks[0].PostState.ActiveLives.Single(
+                life => life.ActorId.TeamId == 0)
+                .PendingSameLifeTransition);
+        Assert.Null(
+            session.Chronology.Ticks[1].PostState.ActiveLives.Single(
+                life => life.ActorId.TeamId == 0)
+                .PendingSameLifeTransition);
+    }
+
+    [Fact]
+    public void SameLifeTickStartClockCompletesBeforeDueTickObservation()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 3,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 1,
+                        Completion =
+                            ActorTransitionWindupDefinition
+                                .ActorTransitionCompletionKind
+                                .TickStartAfterDuration,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10 && observation.Tick == 0
+                        ? GenericDeathmatchSessionTestFixture.Transform()
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 711);
+
+        GenericDeathmatchStepResult queued = Resolve(session);
+        Assert.Single(queued.Events.Where(value => value.Kind
+            == GenericActorRuntimeObservation.EventKind
+                .FormTransitionStarted));
+
+        GenericDeathmatchTickStart due = session.PrepareTick();
+        GenericActorRuntimeObservation west = due.Observations.Single(
+            observation => observation.Self.ActorId.TeamId == 0);
+
+        Assert.Equal("anchored", west.Self.FormId);
+        Assert.Null(west.Self.PendingSameLifeTransition);
+        Assert.Single(due.TickStartEvents.Where(value => value.Kind
+            == GenericActorRuntimeObservation.EventKind
+                .FormTransitionCompleted));
+        Assert.Equal(1, factories[10].CreateCount);
+        Assert.Single(factories[10].Starts);
+    }
+
+    [Fact]
+    public void DurationOneEndClockStartsAndCompletesInOneResolution()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 1,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 1,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, _) => start.ParticipantId == 10
+                    ? GenericDeathmatchSessionTestFixture.Transform()
+                    : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 712);
+
+        GenericDeathmatchStepResult step = Resolve(session);
+        GenericActorRuntimeObservation.EventKind[] transitionEvents =
+            step.Events
+                .Where(value => value.Kind is
+                    GenericActorRuntimeObservation.EventKind
+                        .FormTransitionStarted
+                    or GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted)
+                .Select(value => value.Kind)
+                .ToArray();
+
+        Assert.Equal(
+            [
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted,
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted,
+            ],
+            transitionEvents);
+        Assert.True(step.IsCompleted);
+        GenericActorWorldSnapshot.LifeSnapshot life =
+            session.Chronology.Ticks.Single().PostState.ActiveLives.Single(
+                value => value.ActorId.TeamId == 0);
+        Assert.Equal("anchored", life.FormId);
+        Assert.Null(life.PendingSameLifeTransition);
+        Assert.Equal(1, factories[10].CreateCount);
+    }
+
+    [Fact]
+    public void LethalDamageDestroysThenCancelsPendingSameLifeTransition()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 3,
+                        MaxHealth = 1,
+                        DamagePerHit = 1,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 3,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) => (start.ParticipantId, observation.Tick)
+                    switch
+                    {
+                        (10, 0) => GenericDeathmatchSessionTestFixture
+                            .Transform(),
+                        (20, 0) => GenericDeathmatchSessionTestFixture.Shoot(),
+                        _ => GenericDeathmatchSessionTestFixture.Wait(),
+                    });
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 713);
+
+        Resolve(session);
+        GenericDeathmatchStepResult lethal = Resolve(session);
+
+        int destroyed = EventIndex(
+            lethal,
+            GenericActorRuntimeObservation.EventKind.Destruction);
+        int cancelled = EventIndex(
+            lethal,
+            GenericActorRuntimeObservation.EventKind
+                .FormTransitionCancelled);
+        Assert.True(destroyed < cancelled);
+        Assert.DoesNotContain(
+            lethal.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted);
+    }
+
+    [Fact]
+    public void QueuePlacementBlockKeepsTargetConstraintAndEmitsNoStart()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 1,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        ForbidWestSpawn = true,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, _) => start.ParticipantId == 10
+                    ? GenericDeathmatchSessionTestFixture.Transform()
+                    : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 714);
+
+        GenericActorRuntimeActionLegality legality =
+            session.PrepareTick().Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 0)
+                .ActionLegalities.Single(value =>
+                    value.ActionId == "transform");
+        Assert.False(legality.Available);
+        Assert.Equal(
+            "anchored",
+            Assert.Single(
+                Assert.IsType<
+                        GenericActorRuntimeActionLegality.ArgumentConstraint
+                            .FormTargetConstraint>(
+                        Assert.Single(legality.Constraints))
+                    .AllowedFormIds));
+
+        GenericDeathmatchStepResult step = session.Step();
+
+        Assert.Equal(
+            GenericActorRuntimeActionResolution.ActionOutcome.Blocked,
+            step.ActionResolutions.Single(value =>
+                value.ActorId.TeamId == 0).Resolution.Outcome);
+        Assert.DoesNotContain(
+            step.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted);
+    }
+
+    [Fact]
+    public void TerminalFutureDueTransitionRemainsPending()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 1,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 3,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionSessionFactories(definition);
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 715);
+
+        GenericDeathmatchStepResult terminal = Resolve(session);
+
+        Assert.True(terminal.IsCompleted);
+        GenericActorWorldSnapshot.LifeSnapshot west =
+            session.Chronology.Ticks.Single().PostState.ActiveLives.Single(
+                life => life.ActorId.TeamId == 0);
+        Assert.Equal("mobile", west.FormId);
+        Assert.NotNull(west.PendingSameLifeTransition);
+        Assert.DoesNotContain(
+            terminal.Events,
+            value => value.Kind is
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted
+                or GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCancelled);
+    }
+
+    [Fact]
+    public void IrreversibleTransitionBlocksALaterReturnRouteForThatLife()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 2,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 1,
+                        IncludeReverseRoute = true,
+                        IrreversibleForLife = true,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10
+                        ? observation.Tick == 0
+                            ? GenericDeathmatchSessionTestFixture.Transform()
+                            : GenericDeathmatchSessionTestFixture.Transform(
+                                "mobile")
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 716);
+
+        Resolve(session);
+        GenericDeathmatchTickStart reverseStart = session.PrepareTick();
+        GenericActorRuntimeActionLegality reverseLegality =
+            reverseStart.Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 0)
+                .ActionLegalities.Single(value =>
+                    value.ActionId == "transform");
+        Assert.True(reverseLegality.AllowedByForm);
+        Assert.False(reverseLegality.Available);
+        Assert.Equal(
+            "mobile",
+            Assert.Single(
+                Assert.IsType<
+                        GenericActorRuntimeActionLegality.ArgumentConstraint
+                            .FormTargetConstraint>(
+                        Assert.Single(reverseLegality.Constraints))
+                    .AllowedFormIds));
+
+        GenericDeathmatchStepResult blocked = session.Step();
+
+        Assert.Equal(
+            GenericActorRuntimeActionResolution.ActionOutcome.Blocked,
+            blocked.ActionResolutions.Single(value =>
+                value.ActorId.TeamId == 0).Resolution.Outcome);
+        Assert.Equal(
+            "anchored",
+            session.ActiveLives.Single(life =>
+                life.ActorId.TeamId == 0).FormId);
+        Assert.DoesNotContain(
+            blocked.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted);
+    }
+
+    [Theory]
+    [InlineData(true, 2, 1)]
+    [InlineData(false, null, 2)]
+    public void SameLifeCompletionPreservesCooldownAndNormalizesEnergy(
+        bool targetHasAttack,
+        int? expectedEnergy,
+        int cooldownAfterTargetWait)
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 4,
+                        CooldownTicks = 3,
+                        MaxEnergy = 5,
+                        AttackEnergyCost = 1,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 1,
+                        TargetHasAttack = targetHasAttack,
+                        TargetMaxEnergy = targetHasAttack ? 2 : null,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10
+                        ? observation.Tick switch
+                        {
+                            0 => GenericDeathmatchSessionTestFixture.Shoot(),
+                            1 => GenericDeathmatchSessionTestFixture
+                                .Transform(),
+                            _ => GenericDeathmatchSessionTestFixture.Wait(),
+                        }
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 717);
+
+        Resolve(session);
+        Resolve(session);
+        GenericDeathmatchLifeSnapshot completed =
+            session.ActiveLives.Single(life =>
+                life.ActorId.TeamId == 0);
+        Assert.Equal(2, completed.Cooldown);
+        Assert.Equal(expectedEnergy, completed.Energy);
+
+        Resolve(session);
+        GenericDeathmatchLifeSnapshot afterWait =
+            session.ActiveLives.Single(life =>
+                life.ActorId.TeamId == 0);
+        Assert.Equal(cooldownAfterTargetWait, afterWait.Cooldown);
+        Assert.Equal(expectedEnergy, afterWait.Energy);
+    }
+
+    [Fact]
+    public void DisqualificationCancelsPendingSameLifeWorkBeforeRetirement()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 3,
+                        FaultsAllowedBeforeDisqualification = 0,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 3,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10
+                        ? observation.Tick == 0
+                            ? GenericDeathmatchSessionTestFixture.Transform()
+                            : GenericDeathmatchSessionTestFixture.Unknown()
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 718);
+
+        Resolve(session);
+        GenericDeathmatchStepResult disqualified = Resolve(session);
+
+        Assert.True(disqualified.IsCompleted);
+        int cancelled = EventIndex(
+            disqualified,
+            GenericActorRuntimeObservation.EventKind
+                .FormTransitionCancelled);
+        int retired = EventIndex(
+            disqualified,
+            GenericActorRuntimeObservation.EventKind.LifeRetired);
+        Assert.True(cancelled < retired);
+        Assert.DoesNotContain(
+            disqualified.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted);
+    }
+
+    [Fact]
+    public void FaultTerminalSkipsSurvivingTransitionDueInALaterPhase()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture
+                .DefinitionWithSameLifeTransition(
+                    new GenericDeathmatchSessionTestFixture.Options
+                    {
+                        MaxTicks = 3,
+                        FaultsAllowedBeforeDisqualification = 0,
+                    },
+                    new GenericDeathmatchSessionTestFixture.SameLifeOptions
+                    {
+                        DurationTicks = 2,
+                    });
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    (start.ParticipantId, observation.Tick) switch
+                    {
+                        (20, 0) => GenericDeathmatchSessionTestFixture
+                            .Transform(),
+                        (10, 1) => GenericDeathmatchSessionTestFixture
+                            .Unknown(),
+                        _ => GenericDeathmatchSessionTestFixture.Wait(),
+                    });
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 719);
+
+        Resolve(session);
+        GenericDeathmatchStepResult terminal = Resolve(session);
+
+        Assert.True(terminal.IsCompleted);
+        Assert.Equal(
+            GenericDeathmatchEndReason.FaultEligibility,
+            terminal.Result!.Reason);
+        Assert.DoesNotContain(
+            terminal.Events,
+            value => value.Kind
+                == GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted);
+        GenericDeathmatchLifeSnapshot survivor =
+            Assert.Single(session.ActiveLives);
+        Assert.Equal(1, survivor.ActorId.TeamId);
+        Assert.Equal("mobile", survivor.FormId);
+        Assert.NotNull(
+            session.Chronology.Ticks[^1].PostState.ActiveLives
+                .Single(life => life.ActorId == survivor.ActorId)
+                .PendingSameLifeTransition);
+        GenericActorMatchChronology chronology = session.Chronology;
+        Assert.Throws<ArgumentException>(() =>
+            new GenericActorMatchChronology(
+                chronology.Descriptor,
+                chronology.InitialFrame,
+                chronology.Ticks,
+                result: null));
+    }
+
+    private static Dictionary<
+        int,
+        GenericDeathmatchSessionTestFixture.RecordingFactory>
+        GenericDeathmatchSessionSessionFactories(
+            ActorResolvedMatchDefinition definition) =>
+        GenericDeathmatchSessionTestFixture.Factories(
+            definition,
+            (start, _) => start.ParticipantId == 10
+                ? GenericDeathmatchSessionTestFixture.Transform()
+                : GenericDeathmatchSessionTestFixture.Wait());
+
+    [Fact]
+    public void FabricationTransitionsAreRejectedAtConstruction()
     {
         ActorResolvedMatchDefinition definition =
             GenericActorContractTestFixture.WithTransitions();

@@ -14,6 +14,7 @@ public sealed class GenericDeathmatchSession : IDisposable
     private readonly GenericActorMatchHost _host;
     private readonly DeathmatchModeKernel _mode;
     private readonly SplitReplicationKernel _split;
+    private readonly ActorSameLifeTransitionKernel _sameLife;
     private readonly Dictionary<string, ActorFormDefinition> _forms;
     private readonly Dictionary<string, ActorVisionProfileDefinition>
         _visionProfiles;
@@ -80,6 +81,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             definition.Topology,
             (DeathmatchGameModeDefinition)definition.Rules.GameMode);
         _split = new SplitReplicationKernel(definition);
+        _sameLife = new ActorSameLifeTransitionKernel(definition);
         _scores = _mode.CreateInitialState();
         _host = new GenericActorMatchHost(
             definition,
@@ -251,6 +253,10 @@ public sealed class GenericDeathmatchSession : IDisposable
             tickStartEvents,
             lifeStarts,
             projectileTransitions);
+        CompleteDueSameLifeTransitions(
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                .TickStartAfterDuration,
+            tickStartEvents);
 
         ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents =
             [
@@ -331,6 +337,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             events,
             projectileTransitions);
         ReserveSplits(resolutions, events);
+        StartSameLifeTransitions(resolutions, events);
         AdvanceExistingProjectiles(
             contacts,
             ref contactOrdinal,
@@ -365,19 +372,9 @@ public sealed class GenericDeathmatchSession : IDisposable
 
         ImmutableArray<int> eligibleTeams = EligibleTeamIds();
         GenericDeathmatchResult? terminal = null;
-        if (eligibleTeams.Length <= 1)
-        {
-            // Fault-eligibility completion is itself a terminal tick phase.
-            // The public rules contract requires it to short-circuit both
-            // action-resource clocks and the Deathmatch mode update.
-            terminal = Complete(
-                GenericDeathmatchEndReason.FaultEligibility,
-                _mode.ResolveTimeoutStandings(
-                    _scores,
-                    ActiveHealthByTeam(),
-                    eligibleTeams));
-        }
-        else
+        bool faultEligibilityCompletion = eligibleTeams.Length <= 1;
+        bool killLimitCompletion = false;
+        if (!faultEligibilityCompletion)
         {
             // Resource clocks belong to action resolution, and therefore
             // settle before the later mode update (including a kill-limit
@@ -391,12 +388,36 @@ public sealed class GenericDeathmatchSession : IDisposable
                 eligibleTeams);
             _scores = modeTick.ScoreState;
             EmitScoreChanges(previousScores, _scores, events);
-            if (modeTick.KillLimitStandings is not null)
-            {
-                terminal = Complete(
-                    GenericDeathmatchEndReason.KillLimit,
-                    modeTick.KillLimitStandings);
-            }
+            killLimitCompletion = modeTick.KillLimitStandings is not null;
+            CompleteDueSameLifeTransitions(
+                ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                    .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate,
+                events);
+        }
+        if (faultEligibilityCompletion)
+        {
+            // Fault eligibility is an earlier terminal phase and therefore
+            // skips resources, mode update, and end-clock same-life work.
+            terminal = Complete(
+                GenericDeathmatchEndReason.FaultEligibility,
+                _mode.ResolveTimeoutStandings(
+                    _scores,
+                    ActiveHealthByTeam(),
+                    eligibleTeams));
+        }
+        else if (killLimitCompletion)
+        {
+            TeamStandings standings = _mode.ApplyJointTick(
+                    _scores,
+                    damageContacts: [],
+                    ActiveHealthByTeam(),
+                    eligibleTeams)
+                .KillLimitStandings
+                ?? throw new InvalidOperationException(
+                    "A reached Deathmatch kill limit disappeared before terminal resolution.");
+            terminal = Complete(
+                GenericDeathmatchEndReason.KillLimit,
+                standings);
         }
 
         int executedTick = Tick;
@@ -734,6 +755,12 @@ public sealed class GenericDeathmatchSession : IDisposable
                 state.Outcome =
                     GenericActorRuntimeActionResolution.ActionOutcome.Blocked;
             }
+            else if (life.PendingSameLifeTransition is not null
+                     && action.Kind != ActorActionKind.Wait)
+            {
+                state.Outcome =
+                    GenericActorRuntimeActionResolution.ActionOutcome.Blocked;
+            }
             else
             {
                 ValidateGameplayAvailability(life, action, state);
@@ -770,8 +797,21 @@ public sealed class GenericDeathmatchSession : IDisposable
                 if (matches.Length != 1)
                     Block(state);
                 return;
-            case ActorActionKind.Fabrication:
             case ActorActionKind.SameLifeTransition:
+                ActorFormTransitionDefinition[] sameLifeMatches =
+                    MatchingSameLifeTransitions(
+                        life,
+                        state.ValidatedAction)
+                    .ToArray();
+                if (sameLifeMatches.Length != 1
+                    || !_sameLife.CanQueue(
+                        SameLifeSnapshot(life),
+                        sameLifeMatches[0].TransitionId))
+                {
+                    Block(state);
+                }
+                return;
+            case ActorActionKind.Fabrication:
                 Block(state);
                 return;
             default:
@@ -1031,6 +1071,109 @@ public sealed class GenericDeathmatchSession : IDisposable
         }
     }
 
+    private void StartSameLifeTransitions(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (ActionState resolution in resolutions.Values
+                     .Where(resolution =>
+                         resolution.Outcome
+                            == GenericActorRuntimeActionResolution
+                                .ActionOutcome.Success
+                         && _actions[resolution.ValidatedAction.ActionId].Kind
+                            == ActorActionKind.SameLifeTransition)
+                     .OrderBy(resolution => resolution.ActorId))
+        {
+            LifeState life = _lives[resolution.ActorId];
+            ActorFormTransitionDefinition transition =
+                MatchingSameLifeTransitions(
+                    life,
+                    resolution.ValidatedAction)
+                .Single();
+            var request = new ActorSameLifeTransitionRequest(
+                life.ActorId,
+                transition.TransitionId,
+                $"same-life:{Tick}:{life.ActorId.TeamId}:" +
+                $"{life.ActorId.UnitId}:{life.ActorId.LifeId}:" +
+                $"{transition.TransitionId}");
+            ActorSameLifeTransitionQueueOutcome outcome = _sameLife.Queue(
+                Tick,
+                request,
+                SameLifeSnapshot(life));
+            if (outcome.Reservation is not
+                ActorSameLifeTransitionReservation reservation)
+            {
+                resolution.Outcome =
+                    GenericActorRuntimeActionResolution.ActionOutcome.Blocked;
+                continue;
+            }
+
+            life.PendingSameLifeTransition = reservation;
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted,
+                FormTransitionPayload(reservation),
+                life.Position));
+        }
+    }
+
+    private void CompleteDueSameLifeTransitions(
+        ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+            completionKind,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (LifeState life in _lives.Values
+                     .Where(life =>
+                         life.PendingSameLifeTransition is
+                             ActorSameLifeTransitionReservation pending
+                         && pending.DueTick == Tick
+                         && SameLifeTransition(pending).Windup.Completion
+                            == completionKind)
+                     .OrderBy(life => life.ActorId)
+                     .ToArray())
+        {
+            ActorSameLifeTransitionReservation reservation =
+                life.PendingSameLifeTransition!;
+            ActorSameLifeTransitionCompletion completion =
+                _sameLife.Complete(
+                    Tick,
+                    reservation,
+                    SameLifeSnapshot(life));
+            if (completion.Outcome
+                == ActorSameLifeTransitionCompletion
+                    .CompletionOutcomeKind.Cancelled)
+            {
+                CancelSameLifeTransition(life, events);
+                continue;
+            }
+
+            ActorSameLifeTransitionCompletion.CompletedState state =
+                completion.State
+                ?? throw new InvalidOperationException(
+                    "A completed same-life transition has no state.");
+            life.FormId = state.FormId;
+            life.Position = state.Position;
+            life.Facing = state.Facing;
+            life.Health = state.Health;
+            life.Cooldown = state.Cooldown;
+            life.Energy = state.Energy;
+            life.PendingSameLifeTransition = null;
+            life.HasPriorSameLifeTransition = true;
+            if (SameLifeTransition(reservation).IrreversibleForLife)
+            {
+                life.IrreversibleReturnFormIds.Add(
+                    reservation.SourceFormId);
+            }
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted,
+                FormTransitionPayload(reservation),
+                life.Position));
+        }
+    }
+
     private void AdvanceExistingProjectiles(
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
@@ -1283,9 +1426,14 @@ public sealed class GenericDeathmatchSession : IDisposable
 
         // Cancellation ordering is one complete joint-fault batch, never one
         // participant transaction at a time: every target-slot clock, then
-        // every replication bundle, then every active-life retirement.
+        // every replication bundle, then same-life work, then every
+        // active-life retirement.
         CancelParticipantClocks(participantSet, events);
         CancelParticipantSplits(participantSet, events);
+        CancelParticipantSameLifeTransitions(
+            participantSet,
+            includeDestroyed: false,
+            events);
 
         ActorIdentity[] retiredActors = participantBatch
             .SelectMany(participantId =>
@@ -1305,6 +1453,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                     GenericActorRuntimeObservation.EventKind.Destruction,
                     DestructionPayload(life),
                     life.Position));
+                CancelSameLifeTransition(life, events);
             }
             else
             {
@@ -1388,6 +1537,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 GenericActorRuntimeObservation.EventKind.Destruction,
                 DestructionPayload(life),
                 life.Position));
+            CancelSameLifeTransition(life, events);
             ScheduleAfterDestruction(slot, life);
         }
     }
@@ -1479,7 +1629,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             ActorAttackProfileDefinition? attack = AttackFor(life);
             if (attack is null)
             {
-                life.Cooldown = 0;
+                // A same-life transition into an unarmed form keeps the
+                // remaining cooldown as inert state.
                 life.Energy = null;
                 continue;
             }
@@ -1635,7 +1786,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                         item.life.Position,
                         item.life.Facing,
                         item.life.Health,
-                        PendingSameLifeTransition: null,
+                        PendingObservation(item.life),
                         item.observedBy))
                 .ToImmutableArray();
         HashSet<ActorIdentity> visibleEnemyIds =
@@ -1661,7 +1812,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                             life.Cooldown,
                             life.Energy,
                             life.PreviousActionResolution,
-                            PendingSameLifeTransition: null))
+                            PendingObservation(life)))
                     .ToImmutableArray()
                 : [];
 
@@ -1781,7 +1932,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 observer.Cooldown,
                 observer.Energy,
                 observer.PreviousActionResolution,
-                PendingSameLifeTransition: null),
+                PendingObservation(observer)),
             TeamUnitObservations(observer.ActorId.TeamId),
             _host.ParticipantStatuses,
             allies,
@@ -2005,6 +2156,8 @@ public sealed class GenericDeathmatchSession : IDisposable
         {
             return action.Kind == ActorActionKind.Wait;
         }
+        if (life.PendingSameLifeTransition is not null)
+            return action.Kind == ActorActionKind.Wait;
         return action.Kind switch
         {
             ActorActionKind.Wait => true,
@@ -2016,6 +2169,11 @@ public sealed class GenericDeathmatchSession : IDisposable
                     || life.Energy >= attack.AttackEnergyCost),
             ActorActionKind.Replication =>
                 MatchingSplitTransitions(life, action.Id).Length == 1,
+            ActorActionKind.SameLifeTransition =>
+                _sameLife.MatchRoutes(life.FormId, action.Id)
+                    .Any(transition => _sameLife.CanQueue(
+                        SameLifeSnapshot(life),
+                        transition.TransitionId)),
             _ => false,
         };
     }
@@ -2055,8 +2213,12 @@ public sealed class GenericDeathmatchSession : IDisposable
                 ActorActionParameterKind.FormTarget =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .FormTargetConstraint(
-                            _definition.Rules.Forms
-                                .Select(form => form.Id)
+                            _sameLife.MatchRoutes(
+                                    life.FormId,
+                                    action.Id)
+                                .Select(transition =>
+                                    transition.TargetFormId)
+                                .Distinct(StringComparer.Ordinal)
                                 .Order(StringComparer.Ordinal)
                                 .ToImmutableArray()),
                 ActorActionParameterKind.ProjectileHeading =>
@@ -2266,6 +2428,50 @@ public sealed class GenericDeathmatchSession : IDisposable
                 transition => transition.TransitionId,
                 StringComparer.Ordinal)
             .ToArray();
+
+    private ImmutableArray<ActorFormTransitionDefinition>
+        MatchingSameLifeTransitions(
+            LifeState life,
+            GenericActorRuntimeActionResolution.ResolvedAction action)
+    {
+        string? targetFormId = action.Arguments
+            .OfType<
+                GenericActorRuntimeActionArgument.FormTargetArgument>()
+            .SingleOrDefault()
+            ?.FormId;
+        return _sameLife.MatchRoutes(
+            life.FormId,
+            action.ActionId,
+            targetFormId);
+    }
+
+    private ActorFormTransitionDefinition SameLifeTransition(
+        ActorSameLifeTransitionReservation reservation) =>
+        _definition.Rules.SameLifeTransitions
+            .OfType<ActorFormTransitionDefinition>()
+            .Where(transition => string.Equals(
+                transition.TransitionId,
+                reservation.TransitionId,
+                StringComparison.Ordinal))
+            .Single();
+
+    private static ActorSameLifeTransitionActorSnapshot SameLifeSnapshot(
+        LifeState life) =>
+        new(
+            life.ActorId,
+            life.ParticipantId,
+            life.Generation,
+            life.FormId,
+            life.Position,
+            life.Facing,
+            life.Health,
+            life.Cooldown,
+            life.Energy,
+            life.HasPriorSameLifeTransition,
+            life.IrreversibleReturnFormIds
+                .Order(StringComparer.Ordinal)
+                .ToImmutableArray(),
+            life.PendingSameLifeTransition);
 
     private static GenericActorRuntimeActionResolution.ResolvedAction
         ToResolved(GenericActorRuntimeDecision decision) =>
@@ -2565,6 +2771,40 @@ public sealed class GenericDeathmatchSession : IDisposable
         }
     }
 
+    private void CancelSameLifeTransition(
+        LifeState life,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (life.PendingSameLifeTransition is not
+            ActorSameLifeTransitionReservation reservation)
+        {
+            return;
+        }
+        life.PendingSameLifeTransition = null;
+        events.Add(EmitSpatial(
+            Tick,
+            GenericActorRuntimeObservation.EventKind.FormTransitionCancelled,
+            FormTransitionPayload(reservation),
+            life.Position));
+    }
+
+    private void CancelParticipantSameLifeTransitions(
+        IReadOnlySet<int> participantIds,
+        bool includeDestroyed,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (LifeState life in _lives.Values
+                     .Where(life =>
+                         participantIds.Contains(life.ParticipantId)
+                         && life.PendingSameLifeTransition is not null
+                         && (includeDestroyed || life.Health > 0))
+                     .OrderBy(life => life.ActorId)
+                     .ToArray())
+        {
+            CancelSameLifeTransition(life, events);
+        }
+    }
+
     private void CancelParticipantSplits(
         IReadOnlySet<int> participantIds,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
@@ -2608,8 +2848,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             life.Health,
             life.Position,
             life.Facing,
-            HasPriorSameLifeTransition: false,
-            HasPendingSameLifeTransition: false);
+            life.HasPriorSameLifeTransition,
+            life.PendingSameLifeTransition is not null);
 
     private SplitReplicationSlotSnapshot SplitSlotSnapshot(
         SlotState slot) =>
@@ -2718,6 +2958,30 @@ public sealed class GenericDeathmatchSession : IDisposable
             reservation.DueTick,
             cancellationReason);
     }
+
+    private static GenericActorRuntimeObservation.PendingSameLifeTransition?
+        PendingObservation(LifeState life) =>
+        life.PendingSameLifeTransition is
+            ActorSameLifeTransitionReservation pending
+            ? new GenericActorRuntimeObservation.PendingSameLifeTransition(
+                pending.TransitionId,
+                pending.OperationId,
+                pending.TargetFormId,
+                pending.StartedTick,
+                pending.DueTick)
+            : null;
+
+    private static GenericActorRuntimeObservation.EventPayload.FormTransition
+        FormTransitionPayload(
+            ActorSameLifeTransitionReservation reservation) =>
+        new(
+            reservation.SourceActorId,
+            reservation.TransitionId,
+            reservation.OperationId,
+            reservation.SourceFormId,
+            reservation.TargetFormId,
+            reservation.StartedTick,
+            reservation.DueTick);
 
     private static SplitReplicationReservedDescendant? SplitTarget(
         SplitReplicationReservation reservation) =>
@@ -2862,7 +3126,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                         life.SourceTransitionId,
                         life.SourceOperationId,
                         life.PreviousActionResolution,
-                        pendingSameLifeTransition: null))
+                        PendingObservation(life)))
                 .ToImmutableArray();
         ImmutableArray<GenericActorWorldSnapshot.ProjectileSnapshot>
             projectiles = _projectiles
@@ -2985,11 +3249,10 @@ public sealed class GenericDeathmatchSession : IDisposable
                 "GenericDeathmatchSession requires a Deathmatch mode and map binding.",
                 nameof(definition));
         }
-        if (!definition.Rules.FabricationTransitions.IsEmpty
-            || !definition.Rules.SameLifeTransitions.IsEmpty)
+        if (!definition.Rules.FabricationTransitions.IsEmpty)
         {
             throw new NotSupportedException(
-                "The first generic Deathmatch session admits Split but does not yet execute fabrication or same-life transitions.");
+                "The generic Deathmatch session does not yet execute fabrication transitions.");
         }
         if (definition.Topology.InitialLives.Any(life =>
                 life.LifeId != 0)
@@ -3165,7 +3428,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         public ActorIdentity ActorId { get; }
         public int ParticipantId { get; }
         public int Generation { get; }
-        public string FormId { get; }
+        public string FormId { get; set; }
         public Position Position { get; set; }
         public Direction Facing { get; set; }
         public int Health { get; set; }
@@ -3183,6 +3446,12 @@ public sealed class GenericDeathmatchSession : IDisposable
             set;
         }
         public PendingDamageContact? DestructionCause { get; set; }
+        public ActorSameLifeTransitionReservation?
+            PendingSameLifeTransition
+        { get; set; }
+        public bool HasPriorSameLifeTransition { get; set; }
+        public HashSet<string> IrreversibleReturnFormIds { get; } =
+            new(StringComparer.Ordinal);
     }
 
     private sealed class ActionState

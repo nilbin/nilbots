@@ -47,6 +47,11 @@ public sealed record GenericActorMatchChronology
             descriptor,
             initialFrame,
             tickSnapshot);
+        ValidateSkippedTerminalSameLifeWork(
+            descriptor,
+            initialFrame,
+            tickSnapshot,
+            result);
         ValidateFactChronology(initialFrame, tickSnapshot);
         if (result is not null)
         {
@@ -281,6 +286,8 @@ public sealed record GenericActorMatchChronology
         }
 
         GenericActorWorldSnapshot previousState = initialFrame.State;
+        var irreversibleReturnForms =
+            new Dictionary<ActorIdentity, HashSet<string>>();
         foreach (GenericActorMatchTickFrame frame in ticks)
         {
             ValidateDerivedActiveHealth(
@@ -296,12 +303,140 @@ public sealed record GenericActorMatchChronology
                 previousState,
                 frame.TickStart,
                 nameof(ticks));
+            ValidateAndAdvanceIrreversibleSameLifeHistory(
+                definition,
+                frame.TickStart.Events,
+                irreversibleReturnForms,
+                nameof(ticks));
             ValidateResolutionLifeEvidence(
+                definition,
                 frame.TickStart.State,
                 frame.PostState,
+                frame.ActorTurns,
                 frame.Events,
                 nameof(ticks));
+            ValidateAndAdvanceIrreversibleSameLifeHistory(
+                definition,
+                frame.Events,
+                irreversibleReturnForms,
+                nameof(ticks));
             previousState = frame.PostState;
+        }
+    }
+
+    internal static void ValidateAndAdvanceIrreversibleSameLifeHistory(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        IDictionary<ActorIdentity, HashSet<string>> blockedReturnForms,
+        string parameterName)
+    {
+        foreach (GenericActorAuthoritativeEvent item in events
+                     .Where(item =>
+                         item.Kind
+                            == GenericActorRuntimeObservation.EventKind
+                                .FormTransitionCompleted)
+                     .OrderBy(item => item.Ordinal))
+        {
+            if (item.Payload is not
+                GenericActorRuntimeObservation.EventPayload.FormTransition
+                    payload)
+            {
+                throw new ArgumentException(
+                    "A form-transition completion must carry typed transition evidence.",
+                    parameterName);
+            }
+            ActorSameLifeTransitionDefinition? transition =
+                definition.Rules.SameLifeTransitions.SingleOrDefault(
+                    value => string.Equals(
+                        value.TransitionId,
+                        payload.TransitionId,
+                        StringComparison.Ordinal));
+            if (transition is null)
+            {
+                throw new ArgumentException(
+                    "A form-transition completion references an unknown transition.",
+                    parameterName);
+            }
+            if (!blockedReturnForms.TryGetValue(
+                    payload.ActorId,
+                    out HashSet<string>? blocked))
+            {
+                blocked = new HashSet<string>(StringComparer.Ordinal);
+                blockedReturnForms.Add(payload.ActorId, blocked);
+            }
+            if (blocked.Contains(transition.TargetFormId))
+            {
+                throw new ArgumentException(
+                    "A same-life completion cannot reverse an earlier irreversible transition for that life.",
+                    parameterName);
+            }
+            if (transition.IrreversibleForLife)
+                blocked.Add(transition.SourceFormId);
+        }
+    }
+
+    private static void ValidateSkippedTerminalSameLifeWork(
+        GenericActorMatchDescriptor descriptor,
+        GenericActorMatchInitialFrame initialFrame,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        GenericActorMatchResult? result)
+    {
+        GenericActorWorldSnapshot[] states =
+        [
+            initialFrame.State,
+            .. ticks.Select(frame => frame.TickStart.State),
+            .. ticks.Select(frame => frame.PostState),
+        ];
+        GenericActorWorldSnapshot[] overdueStates = states
+            .Where(state => state.ActiveLives.Any(life =>
+                life.PendingSameLifeTransition is { } pending
+                && pending.DueTick < state.NextTick))
+            .ToArray();
+        if (overdueStates.Length == 0)
+            return;
+
+        bool isFaultTerminal =
+            result?.Mode
+                is GenericActorMatchModeResult.Deathmatch deathmatch
+            && deathmatch.Reason
+                == GenericDeathmatchEndReason.FaultEligibility;
+        GenericActorWorldSnapshot? finalState =
+            ticks.Count == 0
+                ? null
+                : ticks[^1].PostState;
+        if (!isFaultTerminal
+            || finalState is null
+            || overdueStates.Length != 1
+            || !ReferenceEquals(overdueStates[0], finalState))
+        {
+            throw new ArgumentException(
+                "Due same-life work may remain pending only in the final state of a fault-eligibility terminal tick that skipped later phases.",
+                nameof(ticks));
+        }
+
+        foreach (GenericActorWorldSnapshot.LifeSnapshot life in
+                 finalState.ActiveLives.Where(life =>
+                     life.PendingSameLifeTransition is { } pending
+                     && pending.DueTick < finalState.NextTick))
+        {
+            GenericActorRuntimeObservation.PendingSameLifeTransition pending =
+                life.PendingSameLifeTransition!;
+            ActorSameLifeTransitionDefinition transition =
+                descriptor.Definition.Rules.SameLifeTransitions.Single(
+                    value => string.Equals(
+                        value.TransitionId,
+                        pending.TransitionId,
+                        StringComparison.Ordinal));
+            if (pending.DueTick != finalState.NextTick - 1
+                || transition.Windup.Completion
+                    != ActorTransitionWindupDefinition
+                        .ActorTransitionCompletionKind
+                        .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate)
+            {
+                throw new ArgumentException(
+                    "Fault-terminal pending same-life work must be exact-due work from the skipped end-clock phase.",
+                    nameof(ticks));
+            }
         }
     }
 
@@ -488,8 +623,10 @@ public sealed record GenericActorMatchChronology
     }
 
     private static void ValidateResolutionLifeEvidence(
+        ActorResolvedMatchDefinition definition,
         GenericActorWorldSnapshot before,
         GenericActorWorldSnapshot after,
+        IReadOnlyCollection<GenericActorMatchActorTurn> turns,
         IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
         string parameterName)
     {
@@ -511,6 +648,399 @@ public sealed record GenericActorMatchChronology
             events,
             requireUnchangedPosition: false,
             parameterName);
+        ValidateResolutionSameLifeTransitions(
+            definition,
+            before,
+            after,
+            turns,
+            events,
+            parameterName);
+    }
+
+    private static void ValidateResolutionSameLifeTransitions(
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot before,
+        GenericActorWorldSnapshot after,
+        IReadOnlyCollection<GenericActorMatchActorTurn> turns,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        string parameterName)
+    {
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            afterLives = after.ActiveLives.ToDictionary(
+                life => life.ActorId);
+        Dictionary<ActorIdentity, GenericActorMatchActorTurn> turnsByActor =
+            turns.ToDictionary(turn => turn.ActorId);
+        GenericActorAuthoritativeEvent[] orderedEvents = events
+            .OrderBy(item => item.Ordinal)
+            .ToArray();
+        ILookup<ActorIdentity, GenericActorAuthoritativeEvent>
+            transitionsByActor = orderedEvents
+                .Where(IsFormTransitionEvent)
+                .ToLookup(item =>
+                    ((GenericActorRuntimeObservation.EventPayload
+                        .FormTransition)item.Payload).ActorId);
+        HashSet<ActorIdentity> beforeActors = before.ActiveLives
+            .Select(life => life.ActorId)
+            .ToHashSet();
+        if (transitionsByActor.Any(group =>
+                !beforeActors.Contains(group.Key)))
+        {
+            throw new ArgumentException(
+                "Resolution form-transition evidence must identify an actor active at the frozen tick boundary.",
+                parameterName);
+        }
+
+        foreach (GenericActorWorldSnapshot.LifeSnapshot beforeLife in
+                 before.ActiveLives)
+        {
+            string expectedFormId = beforeLife.FormId;
+            GenericActorRuntimeObservation.PendingSameLifeTransition?
+                expectedPending = beforeLife.PendingSameLifeTransition;
+            ActorFormTransitionDefinition? completedTransition = null;
+            GenericActorAuthoritativeEvent? completionEvent = null;
+            foreach (GenericActorAuthoritativeEvent item in
+                     transitionsByActor[beforeLife.ActorId]
+                         .OrderBy(value => value.Ordinal))
+            {
+                var payload =
+                    (GenericActorRuntimeObservation.EventPayload
+                        .FormTransition)item.Payload;
+                ActorFormTransitionDefinition transition =
+                    ResolutionTransition(
+                        definition,
+                        payload,
+                        item,
+                        parameterName);
+                switch (item.Kind)
+                {
+                    case GenericActorRuntimeObservation.EventKind
+                        .FormTransitionStarted:
+                        if (expectedPending is not null
+                            || payload.StartedTick != item.Tick
+                            || !string.Equals(
+                                expectedFormId,
+                                payload.FromFormId,
+                                StringComparison.Ordinal))
+                        {
+                            throw new ArgumentException(
+                                "A resolution transition start must queue one route from the actor's current source form.",
+                                parameterName);
+                        }
+                        expectedPending =
+                            PendingTransitionFrom(payload);
+                        break;
+                    case GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCancelled:
+                        if (expectedPending is null
+                            || !PendingTransitionMatches(
+                                expectedPending,
+                                payload)
+                            || !string.Equals(
+                                expectedFormId,
+                                payload.FromFormId,
+                                StringComparison.Ordinal)
+                            || item.Tick < payload.StartedTick
+                            || item.Tick > payload.DueTick)
+                        {
+                            throw new ArgumentException(
+                                "A resolution transition cancellation must clear the actor's exact pending route before its due boundary passes.",
+                                parameterName);
+                        }
+                        expectedPending = null;
+                        break;
+                    case GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted:
+                        if (expectedPending is null
+                            || !PendingTransitionMatches(
+                                expectedPending,
+                                payload)
+                            || !string.Equals(
+                                expectedFormId,
+                                payload.FromFormId,
+                                StringComparison.Ordinal)
+                            || payload.DueTick != item.Tick
+                            || completedTransition is not null)
+                        {
+                            throw new ArgumentException(
+                                "A resolution transition completion must consume one exact due pending route.",
+                                parameterName);
+                        }
+                        expectedFormId = payload.ToFormId;
+                        expectedPending = null;
+                        completedTransition = transition;
+                        completionEvent = item;
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            "Unknown same-life transition event.");
+                }
+            }
+
+            if (!afterLives.TryGetValue(
+                    beforeLife.ActorId,
+                    out GenericActorWorldSnapshot.LifeSnapshot? afterLife))
+            {
+                if (completedTransition is not null
+                    || expectedPending is not null)
+                {
+                    throw new ArgumentException(
+                        "A removed life cannot complete or retain pending same-life work.",
+                        parameterName);
+                }
+                ValidateDestructionCancellationOrder(
+                    beforeLife,
+                    orderedEvents,
+                    parameterName);
+                continue;
+            }
+            if (!string.Equals(
+                    expectedFormId,
+                    afterLife.FormId,
+                    StringComparison.Ordinal)
+                || expectedPending != afterLife.PendingSameLifeTransition)
+            {
+                throw new ArgumentException(
+                    "Resolution form-transition evidence must exactly explain the surviving actor's post-state form and pending route.",
+                    parameterName);
+            }
+            if (completedTransition is not null
+                && !CompletedResolutionTransitionStateMatches(
+                    definition,
+                    completedTransition,
+                    beforeLife,
+                    afterLife,
+                    after,
+                    turnsByActor[beforeLife.ActorId],
+                    orderedEvents,
+                    completionEvent!))
+            {
+                throw new ArgumentException(
+                    "A resolution transition completion must preserve identity and evaluate exact completion-time health and combat continuity.",
+                    parameterName);
+            }
+        }
+    }
+
+    private static ActorFormTransitionDefinition ResolutionTransition(
+        ActorResolvedMatchDefinition definition,
+        GenericActorRuntimeObservation.EventPayload.FormTransition payload,
+        GenericActorAuthoritativeEvent item,
+        string parameterName)
+    {
+        ActorFormTransitionDefinition? transition =
+            definition.Rules.SameLifeTransitions
+                .OfType<ActorFormTransitionDefinition>()
+                .SingleOrDefault(value => string.Equals(
+                    value.TransitionId,
+                    payload.TransitionId,
+                    StringComparison.Ordinal));
+        long dueOffset = transition?.Windup.Completion switch
+        {
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                    .TickStartAfterDuration =>
+                transition.Windup.DurationTicks,
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                    .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate =>
+                transition.Windup.DurationTicks - 1L,
+            _ => -1,
+        };
+        if (transition is null
+            || string.IsNullOrWhiteSpace(payload.OperationId)
+            || !string.Equals(
+                transition.SourceFormId,
+                payload.FromFormId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                transition.TargetFormId,
+                payload.ToFormId,
+                StringComparison.Ordinal)
+            || payload.StartedTick < 0
+            || dueOffset < 0
+            || (long)payload.StartedTick + dueOffset != payload.DueTick
+            || item.Tick < payload.StartedTick)
+        {
+            throw new ArgumentException(
+                "Resolution form-transition evidence must reference one exact declared route and configured clock.",
+                parameterName);
+        }
+        return transition;
+    }
+
+    private static GenericActorRuntimeObservation.PendingSameLifeTransition
+        PendingTransitionFrom(
+            GenericActorRuntimeObservation.EventPayload.FormTransition
+                payload) =>
+        new(
+            payload.TransitionId,
+            payload.OperationId,
+            payload.ToFormId,
+            payload.StartedTick,
+            payload.DueTick);
+
+    private static void ValidateDestructionCancellationOrder(
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        string parameterName)
+    {
+        GenericActorAuthoritativeEvent? destruction = events
+            .SingleOrDefault(item =>
+                item.Kind
+                    == GenericActorRuntimeObservation.EventKind.Destruction
+                && item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.Destruction
+                        payload
+                && payload.ActorId == before.ActorId);
+        if (destruction is null)
+            return;
+        GenericActorAuthoritativeEvent? cancellation = events
+            .SingleOrDefault(item =>
+                item.Kind
+                    == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCancelled
+                && item.Payload is
+                    GenericActorRuntimeObservation.EventPayload
+                        .FormTransition payload
+                && payload.ActorId == before.ActorId);
+        if (cancellation is not null
+            && cancellation.Ordinal <= destruction.Ordinal)
+        {
+            throw new ArgumentException(
+                "Lethal same-life cancellation evidence must follow the actor's destruction evidence.",
+                parameterName);
+        }
+    }
+
+    private static bool CompletedResolutionTransitionStateMatches(
+        ActorResolvedMatchDefinition definition,
+        ActorFormTransitionDefinition transition,
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        GenericActorWorldSnapshot.LifeSnapshot after,
+        GenericActorWorldSnapshot postState,
+        GenericActorMatchActorTurn turn,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        GenericActorAuthoritativeEvent completionEvent)
+    {
+        ActorFormDefinition source = definition.Rules.Forms.Single(form =>
+            string.Equals(
+                form.Id,
+                transition.SourceFormId,
+                StringComparison.Ordinal));
+        ActorFormDefinition target = definition.Rules.Forms.Single(form =>
+            string.Equals(
+                form.Id,
+                transition.TargetFormId,
+                StringComparison.Ordinal));
+        int completionHealth = events
+            .Where(item => item.Ordinal < completionEvent.Ordinal
+                && item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.Damage
+                        damage
+                && damage.TargetActorId == before.ActorId)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.Damage)
+                    item.Payload).NewHealth)
+            .LastOrDefault(before.Health);
+        (int cooldown, int? energy) = ResolutionResourceState(
+            definition,
+            source,
+            before,
+            events,
+            completionEvent.Tick,
+            FaultEligibilitySkipsResourceUpdate(
+                definition,
+                postState));
+        int expectedHealth = TransitionHealth(
+            transition.Health,
+            completionHealth,
+            source.MaxHealth,
+            target.MaxHealth);
+        int? expectedEnergy = TransitionEnergy(
+            definition,
+            target,
+            energy);
+        return before.ActorId == after.ActorId
+            && before.ParticipantId == after.ParticipantId
+            && before.Generation == after.Generation
+            && before.Position == after.Position
+            && before.Facing == after.Facing
+            && after.Health == expectedHealth
+            && after.Cooldown == cooldown
+            && after.Energy == expectedEnergy
+            && before.SpawnedAtTick == after.SpawnedAtTick
+            && before.SpawnReason == after.SpawnReason
+            && before.ParentActorId == after.ParentActorId
+            && string.Equals(
+                before.SourceTransitionId,
+                after.SourceTransitionId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                before.SourceOperationId,
+                after.SourceOperationId,
+                StringComparison.Ordinal)
+            && ActionResolutionsSemanticallyEqual(
+                turn.ActionResolution,
+                after.PreviousActionResolution);
+    }
+
+    private static (int Cooldown, int? Energy) ResolutionResourceState(
+        ActorResolvedMatchDefinition definition,
+        ActorFormDefinition source,
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        int tick,
+        bool skipUpdate)
+    {
+        if (skipUpdate)
+            return (before.Cooldown, before.Energy);
+        if (source.AttackProfileId is not string attackProfileId)
+            return (before.Cooldown, null);
+        ActorAttackProfileDefinition attack =
+            definition.Rules.AttackProfiles.Single(profile =>
+                string.Equals(
+                    profile.Id,
+                    attackProfileId,
+                    StringComparison.Ordinal));
+        bool attacked = events.Any(item =>
+            item.Payload is
+                GenericActorRuntimeObservation.EventPayload.Attack attackEvent
+            && attackEvent.ActorId == before.ActorId);
+        int cooldown = attacked
+            ? attack.CooldownTicks
+            : Math.Max(0, before.Cooldown - 1);
+        if (attack.MaxEnergy == 0)
+            return (cooldown, null);
+        int energy = before.Energy
+            ?? throw new ArgumentException(
+                "An energy-bearing chronology life has no energy state.");
+        if (attacked)
+            energy = checked(energy - attack.AttackEnergyCost);
+        if (attack.EnergyRegenerationIntervalTicks > 0
+            && (tick + 1)
+                % attack.EnergyRegenerationIntervalTicks == 0)
+        {
+            energy = checked((int)Math.Min(
+                attack.MaxEnergy,
+                checked((long)energy
+                    + attack.EnergyRegenerationAmount)));
+        }
+        return (cooldown, energy);
+    }
+
+    private static bool FaultEligibilitySkipsResourceUpdate(
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot postState)
+    {
+        if (definition.Rules.GameMode is not DeathmatchGameModeDefinition)
+            return false;
+        HashSet<int> disqualified = postState.Participants
+            .Where(participant => participant.Disqualified)
+            .Select(participant => participant.ParticipantId)
+            .ToHashSet();
+        int eligibleTeamCount = definition.Topology.Teams.Count(team =>
+            definition.Topology.Participants.Any(participant =>
+                participant.TeamId == team.TeamId
+                && !disqualified.Contains(participant.ParticipantId)));
+        return eligibleTeamCount <= 1;
     }
 
     private static void ValidateSurvivingLivesAcrossLifecycleBoundary(

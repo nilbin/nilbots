@@ -1092,7 +1092,7 @@ public sealed class GenericActorWorldSnapshot
             || string.IsNullOrWhiteSpace(pending.TargetFormId)
             || pending.StartedTick < 0
             || pending.StartedTick >= nextTick
-            || pending.DueTick < nextTick)
+            || pending.DueTick < nextTick - 1)
         {
             return false;
         }
@@ -1129,8 +1129,17 @@ public sealed class GenericActorWorldSnapshot
                 transition.Windup.DurationTicks - 1L,
             _ => -1,
         };
-        return dueOffset >= 0
+        bool exactClock = dueOffset >= 0
             && (long)pending.StartedTick + dueOffset == pending.DueTick;
+        bool normallyPending = pending.DueTick >= nextTick;
+        bool skippedTerminalEndClock =
+            pending.DueTick == nextTick - 1
+            && transition.Windup.Completion
+                == ActorTransitionWindupDefinition
+                    .ActorTransitionCompletionKind
+                    .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate;
+        return exactClock
+            && (normallyPending || skippedTerminalEndClock);
     }
 
     private static bool TryReserveActorOccupancy(

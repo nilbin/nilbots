@@ -22,6 +22,27 @@ internal static class GenericDeathmatchSessionTestFixture
         public int SplitDurationTicks { get; init; } = 1;
     }
 
+    public sealed record SameLifeOptions
+    {
+        public int DurationTicks { get; init; } = 2;
+        public ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+            Completion
+        { get; init; } =
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate;
+        public int TargetMaxHealth { get; init; } = 5;
+        public ActorSameLifeHealthDefinition.HealthPolicyKind HealthPolicy
+        { get; init; } =
+            ActorSameLifeHealthDefinition.HealthPolicyKind
+                .AddFlatCappedToTargetMaximum;
+        public int FlatHealthGain { get; init; } = 2;
+        public bool TargetHasAttack { get; init; } = true;
+        public int? TargetMaxEnergy { get; init; }
+        public bool ForbidWestSpawn { get; init; }
+        public bool IrreversibleForLife { get; init; } = true;
+        public bool IncludeReverseRoute { get; init; }
+    }
+
     public static ActorResolvedMatchDefinition Definition(
         string formatName,
         Options? options = null)
@@ -794,6 +815,226 @@ internal static class GenericDeathmatchSessionTestFixture
             source.CapabilityVersions);
     }
 
+    public static ActorResolvedMatchDefinition
+        DefinitionWithSameLifeTransition(
+            Options? options = null,
+            SameLifeOptions? transitionOptions = null)
+    {
+        options ??= new Options
+        {
+            MaxTicks = 5,
+        };
+        transitionOptions ??= new SameLifeOptions();
+        ActorResolvedMatchDefinition source =
+            Definition("head-to-head", options);
+        ActorFormDefinition mobile = source.Rules.Forms.Single();
+        ActorAttackProfileDefinition sourceAttack =
+            source.Rules.AttackProfiles.Single();
+
+        string? targetAttackId = null;
+        ActorAttackProfileDefinition[] attacks =
+            source.Rules.AttackProfiles.ToArray();
+        if (transitionOptions.TargetHasAttack)
+        {
+            if (transitionOptions.TargetMaxEnergy is int targetMaxEnergy)
+            {
+                var targetAttack = new ActorAttackProfileDefinition(
+                    "anchored-attack",
+                    sourceAttack.OmnidirectionalAim,
+                    sourceAttack.Projectile,
+                    sourceAttack.CooldownTicks,
+                    targetMaxEnergy,
+                    attackEnergyCost: 0,
+                    energyRegenerationIntervalTicks: 0,
+                    energyRegenerationAmount: 0,
+                    sourceAttack.ShotProgram);
+                attacks = [.. attacks, targetAttack];
+                targetAttackId = targetAttack.Id;
+            }
+            else
+            {
+                targetAttackId = sourceAttack.Id;
+            }
+        }
+
+        var transform = new ActorActionDefinition(
+            "transform",
+            101,
+            ActorActionKind.SameLifeTransition,
+            [ActorActionParameterKind.FormTarget]);
+        var mobileWithTransform = new ActorFormDefinition(
+            mobile.Id,
+            mobile.MaxHealth,
+            mobile.MovementProfileId,
+            mobile.VisionProfileId,
+            mobile.AttackProfileId,
+            mobile.ObjectiveWeight,
+            [.. mobile.AllowedActionIds, transform.Id]);
+        var anchored = new ActorFormDefinition(
+            "anchored",
+            transitionOptions.TargetMaxHealth,
+            mobile.MovementProfileId,
+            mobile.VisionProfileId,
+            targetAttackId,
+            objectiveWeight: 0,
+            transitionOptions.TargetHasAttack
+                ? transitionOptions.IncludeReverseRoute
+                    ? ["wait", "shoot", "transform"]
+                    : ["wait", "shoot"]
+                : transitionOptions.IncludeReverseRoute
+                    ? ["wait", "transform"]
+                    : ["wait"]);
+        ActorMapTileTagDefinition.TileTagKind[] forbiddenTags =
+            transitionOptions.ForbidWestSpawn
+                ? [ActorMapTileTagDefinition.TileTagKind
+                    .TransitionPlacementForbidden]
+                : [];
+        var transition = new ActorFormTransitionDefinition(
+            "anchor-mobile",
+            transform.Id,
+            mobile.Id,
+            anchored.Id,
+            new ActorTransitionWindupDefinition(
+                transitionOptions.DurationTicks,
+                ActorTransitionWindupDefinition.PendingActionKind.WaitOnly,
+                ActorTransitionWindupDefinition.SourceFormKind
+                    .RetainSourceForm,
+                ActorTransitionWindupDefinition.TargetabilityKind
+                    .TargetableAndOccupiesTile,
+                ActorTransitionWindupDefinition.LethalDamageKind
+                    .CancelTransition,
+                transitionOptions.Completion,
+                ActorTransitionWindupDefinition.PlacementReferenceKind
+                    .QueueTimePose),
+            ActorSameLifeTransitionDefinition.MemoryContinuityKind
+                .PreservePrivateMemory,
+            new ActorSameLifeHealthDefinition(
+                transitionOptions.HealthPolicy,
+                transitionOptions.FlatHealthGain),
+            ActorSameLifeCombatStateDefinition.PreserveWithoutRefillV1,
+            new ActorSameLifePlacementDefinition(
+                ActorSameLifePlacementDefinition.PositionContinuityKind
+                    .SameOccupiedGroundTile,
+                ActorSameLifePlacementDefinition.LegalityEvaluationKind
+                    .QueueAndCompletionTileTags,
+                requiredTileTags: [],
+                forbiddenTags,
+                ActorSameLifePlacementDefinition.FailedCompletionKind
+                    .CancelAndRemainInSourceForm),
+            transitionOptions.IrreversibleForLife);
+        ActorSameLifeTransitionDefinition[] transitions =
+            transitionOptions.IncludeReverseRoute
+                ?
+                [
+                    transition,
+                    new ActorFormTransitionDefinition(
+                        "unanchor-mobile",
+                        transform.Id,
+                        anchored.Id,
+                        mobile.Id,
+                        new ActorTransitionWindupDefinition(
+                            durationTicks: 1,
+                            ActorTransitionWindupDefinition
+                                .PendingActionKind.WaitOnly,
+                            ActorTransitionWindupDefinition.SourceFormKind
+                                .RetainSourceForm,
+                            ActorTransitionWindupDefinition.TargetabilityKind
+                                .TargetableAndOccupiesTile,
+                            ActorTransitionWindupDefinition.LethalDamageKind
+                                .CancelTransition,
+                            ActorTransitionWindupDefinition
+                                .ActorTransitionCompletionKind
+                                .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate,
+                            ActorTransitionWindupDefinition
+                                .PlacementReferenceKind.QueueTimePose),
+                        ActorSameLifeTransitionDefinition
+                            .MemoryContinuityKind.PreservePrivateMemory,
+                        new ActorSameLifeHealthDefinition(
+                            ActorSameLifeHealthDefinition.HealthPolicyKind
+                                .PreserveCurrentCappedToTargetMaximum,
+                            flatHealthGain: 0),
+                        ActorSameLifeCombatStateDefinition
+                            .PreserveWithoutRefillV1,
+                        new ActorSameLifePlacementDefinition(
+                            ActorSameLifePlacementDefinition
+                                .PositionContinuityKind
+                                .SameOccupiedGroundTile,
+                            ActorSameLifePlacementDefinition
+                                .LegalityEvaluationKind
+                                .QueueAndCompletionTileTags,
+                            requiredTileTags: [],
+                            forbiddenTileTags: [],
+                            ActorSameLifePlacementDefinition
+                                .FailedCompletionKind
+                                .CancelAndRemainInSourceForm),
+                        irreversibleForLife: false),
+                ]
+                : [transition];
+        var rules = new ActorRulesDefinition(
+            "generic-deathmatch-same-life-fixture",
+            source.Rules.Limits,
+            source.Rules.SeedMechanics,
+            source.Rules.GameMode,
+            source.Rules.Lifecycle,
+            [mobileWithTransform, anchored],
+            source.Rules.MovementProfiles,
+            source.Rules.VisionProfiles,
+            attacks,
+            [.. source.Rules.Actions, transform],
+            fabricationTransitions: [],
+            sameLifeTransitions: transitions,
+            source.Rules.ReplicationTransitions,
+            source.Rules.TeamPerception,
+            source.Rules.Collisions,
+            source.Rules.TickResolution);
+
+        ActorMapDefinition map = source.Map;
+        if (transitionOptions.ForbidWestSpawn)
+        {
+            Position west = source.Map.SpawnAnchors
+                .Single(anchor => anchor.Spawn.SpawnId == "west")
+                .Spawn.Position;
+            map = new ActorMapDefinition(
+                source.Map.Id,
+                source.Map.Version,
+                source.Map.TileRows,
+                source.Map.SpawnAnchors,
+                source.Map.Regions,
+                [
+                    .. source.Map.TileTags,
+                    new ActorMapTileTagDefinition(
+                        "transition-forbidden",
+                        ActorMapTileTagDefinition.TileTagKind
+                            .TransitionPlacementForbidden,
+                        [west]),
+                ]);
+        }
+
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+            source.LifecycleAssignments
+                .Select(assignment =>
+                    new ActorUnitSlotLifecycleAssignmentDefinition(
+                        assignment.TeamId,
+                        assignment.UnitId,
+                        assignment.LifecycleProfileId,
+                        assignment.InitialGeneration,
+                        [.. assignment.AllowedFormIds, anchored.Id],
+                        assignment.InitialAvailability,
+                        assignment.UnlockTick,
+                        assignment.AssignedRespawnSpawnId))
+                .ToArray();
+        return new ActorResolvedMatchDefinition(
+            rules,
+            map,
+            source.Format,
+            source.Topology,
+            source.InitialDeployment,
+            assignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
     public static Dictionary<int, RecordingFactory> Factories(
         ActorResolvedMatchDefinition definition,
         Func<
@@ -868,6 +1109,17 @@ internal static class GenericDeathmatchSessionTestFixture
 
     public static GenericActorRuntimeDecision Split() =>
         new("split", 103, [], null);
+
+    public static GenericActorRuntimeDecision Transform(
+        string targetFormId = "anchored") =>
+        new(
+            "transform",
+            101,
+            [
+                new GenericActorRuntimeActionArgument.FormTargetArgument(
+                    targetFormId),
+            ],
+            null);
 
     public static GenericActorRuntimeDecision Unknown() =>
         new("unknown-action", 999, [], null);
