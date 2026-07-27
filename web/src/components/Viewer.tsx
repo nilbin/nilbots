@@ -458,18 +458,24 @@ export default function Viewer({
       {/* Immersive: the transport floats over the arena rather than taking a row from it,
           which is the whole point — a row of controls under a phone-height canvas is the
           layout that made full screen pointless. Translucent and inset so it reads as
-          over the arena rather than crowding it. */}
+          over the arena rather than crowding it.
+
+          A scrim carries it rather than the panel alone: map themes are not all dark.
+          gallery-01 is `frost-relay`, which is nearly white, and a hard-edged dark
+          rectangle dropped on it reads as damage. A gradient darkens whatever is
+          actually there — and it fades on the same element as the controls, so hidden
+          chrome cannot leave a permanent band across the bottom of the arena. */}
       <div
         className={clsx(
           immersive.active &&
-            'pointer-events-none absolute inset-x-0 bottom-0 z-10 p-2 pb-[env(safe-area-inset-bottom)]',
+            'pointer-events-none absolute inset-x-0 bottom-0 z-10',
         )}
       >
         <div
           className={clsx(
             immersive.active &&
               clsx(
-                'pointer-events-auto transition-opacity duration-300',
+                'pointer-events-auto bg-gradient-to-t from-arena-bg via-arena-bg/80 to-transparent p-2 pt-12 pb-[env(safe-area-inset-bottom)] transition-opacity duration-300',
                 chromeVisible ? 'opacity-95' : 'opacity-0',
               ),
           )}
