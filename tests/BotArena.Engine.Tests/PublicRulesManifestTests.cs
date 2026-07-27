@@ -7,7 +7,9 @@ public class PublicRulesManifestTests
     {
         PublicRulesManifest manifest = PublicRulesManifestFactory.CreateRules(GameRules.Current);
 
-        Assert.Equal(BotArenaVersions.PublicManifestSchemaVersion, manifest.SchemaVersion);
+        Assert.Equal(
+            BotArenaVersions.PublicRulesManifestSchemaVersion,
+            manifest.SchemaVersion);
         Assert.Equal(GameRules.Current.RulesVersion, manifest.RulesetId);
         Assert.Matches("^[0-9a-f]{64}$", manifest.RulesFingerprint);
 
@@ -23,8 +25,15 @@ public class PublicRulesManifestTests
         PublicFormDefinition form = Assert.Single(manifest.Forms);
         Assert.Equal("mobile", form.Id);
         Assert.Equal(GameRules.Current.MaxHealth, form.MaxHealth);
+        Assert.Equal(GameRules.Current.VisionRange, form.VisionRange);
+        Assert.Equal(GameRules.Current.ShootCooldownTicks, form.ShootCooldownTicks);
+        Assert.False(form.OmnidirectionalVision);
+        Assert.False(form.OmnidirectionalShooting);
         Assert.Equal(PublicMovementLayer.Ground, form.MovementLayer);
         Assert.Equal(1, form.ObjectiveWeight);
+        Assert.True(form.CanMove);
+        Assert.True(form.CanShoot);
+        Assert.True(form.AllowsProgrammedShots);
         Assert.Equal(
             ["move-forward", "shoot", "turn-left", "turn-right", "wait"],
             form.AllowedActionIds.ToArray());
@@ -35,9 +44,14 @@ public class PublicRulesManifestTests
         Assert.All(
             manifest.Actions.Where(action => action.Id.StartsWith("strafe-", StringComparison.Ordinal)),
             action => Assert.False(action.Enabled));
+        Assert.All(
+            manifest.Actions,
+            action => Assert.False(action.ParameterKinds.IsDefault));
         Assert.Equal(
-            PublicActionParameterKind.ShotProgram,
-            manifest.Actions.Single(action => action.Id == "shoot").ParameterKind);
+            [PublicActionParameterKind.ShotProgram],
+            manifest.Actions.Single(action => action.Id == "shoot")
+                .ParameterKinds
+                .ToArray());
 
         Assert.Equal(PublicObjectiveMode.SharedPressure, manifest.Objective.Mode);
         Assert.True(manifest.Objective.ControlBySoleOccupancy);
@@ -137,6 +151,12 @@ public class PublicRulesManifestTests
         Assert.False(manifest.Energy.Enabled);
         Assert.Equal(PublicProjectileMode.InstantRay, manifest.Projectiles.Mode);
         Assert.False(manifest.ShotPrograms.Enabled);
+        PublicFormDefinition form = Assert.Single(manifest.Forms);
+        Assert.True(form.OmnidirectionalVision);
+        Assert.False(form.OmnidirectionalShooting);
+        Assert.True(form.CanMove);
+        Assert.True(form.CanShoot);
+        Assert.False(form.AllowsProgrammedShots);
         Assert.Null(manifest.ShotPrograms.InvalidPayloadResult);
         Assert.Equal(
             PublicActionRejectionResult.Blocked,
@@ -144,9 +164,8 @@ public class PublicRulesManifestTests
         Assert.Equal(
             [PublicScoreMetric.Health, PublicScoreMetric.DamageDealt],
             manifest.Objective.MaxTickTiebreakers.ToArray());
-        Assert.Equal(
-            PublicActionParameterKind.None,
-            manifest.Actions.Single(action => action.Id == "shoot").ParameterKind);
+        Assert.Empty(
+            manifest.Actions.Single(action => action.Id == "shoot").ParameterKinds);
     }
 
     [Fact]
@@ -165,8 +184,7 @@ public class PublicRulesManifestTests
         Assert.Equal(
             PublicActionRejectionResult.Blocked,
             manifest.ShotPrograms.UnsupportedPayloadResult);
-        Assert.Equal(
-            PublicActionParameterKind.None,
-            manifest.Actions.Single(action => action.Id == "shoot").ParameterKind);
+        Assert.Empty(
+            manifest.Actions.Single(action => action.Id == "shoot").ParameterKinds);
     }
 }

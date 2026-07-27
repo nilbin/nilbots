@@ -115,7 +115,7 @@ public class MatchContractFingerprintTests
     }
 
     [Fact]
-    public void AggregateFingerprint_UsesStoredSchemaAndRejectsMixedSchemas()
+    public void RulesSchemaBump_DoesNotChangeMapFingerprint_AndMixedSchemasAreAccepted()
     {
         ArenaMap map = ArenaMap.Create(
             "contract",
@@ -126,27 +126,117 @@ public class MatchContractFingerprintTests
             ]);
         PublicMatchContractManifest current =
             PublicRulesManifestFactory.CreateMatchContract(GameRules.Current, map);
-        int storedSchema = current.SchemaVersion + 1;
-        PublicMatchContractManifest futureShaped = current with
+
+        Assert.Equal(
+            BotArenaVersions.PublicRulesManifestSchemaVersion,
+            current.Rules.SchemaVersion);
+        Assert.Equal(
+            BotArenaVersions.PublicMapManifestSchemaVersion,
+            current.Map.SchemaVersion);
+        Assert.Equal(
+            BotArenaVersions.PublicMatchContractSchemaVersion,
+            current.SchemaVersion);
+
+        PublicRulesManifest rulesSchemaBump = current.Rules with
         {
-            SchemaVersion = storedSchema,
+            SchemaVersion = current.Rules.SchemaVersion + 1,
+            RulesFingerprint = "",
+        };
+        string bumpedRulesFingerprint =
+            MatchContractFingerprint.ComputeRules(rulesSchemaBump, GameRules.Current);
+        PublicMapManifest mapSchemaBump = current.Map with
+        {
+            SchemaVersion = current.Map.SchemaVersion + 1,
+            MapFingerprint = "",
+        };
+        string bumpedMapFingerprint =
+            MatchContractFingerprint.ComputeMap(mapSchemaBump);
+
+        Assert.NotEqual(current.Rules.RulesFingerprint, bumpedRulesFingerprint);
+        Assert.NotEqual(current.Map.MapFingerprint, bumpedMapFingerprint);
+        Assert.Equal(
+            current.Map.MapFingerprint,
+            MatchContractFingerprint.ComputeMap(current.Map));
+
+        PublicMatchContractManifest mixedSchemas = current with
+        {
+            SchemaVersion = current.SchemaVersion + 1,
             MatchContractFingerprint = "",
-            Rules = current.Rules with { SchemaVersion = storedSchema },
-            Map = current.Map with { SchemaVersion = storedSchema },
+            Rules = rulesSchemaBump with
+            {
+                RulesFingerprint = bumpedRulesFingerprint,
+            },
+            Map = mapSchemaBump with
+            {
+                MapFingerprint = bumpedMapFingerprint,
+            },
         };
 
-        string futureFingerprint = MatchContractFingerprint.ComputeMatch(futureShaped);
+        string mixedFingerprint =
+            MatchContractFingerprint.ComputeMatch(mixedSchemas);
 
-        Assert.NotEqual(current.MatchContractFingerprint, futureFingerprint);
+        Assert.NotEqual(current.MatchContractFingerprint, mixedFingerprint);
         Assert.Equal(
-            futureFingerprint,
-            MatchContractFingerprint.ComputeMatch(futureShaped));
-        Assert.Throws<ArgumentException>(() =>
-            MatchContractFingerprint.ComputeMatch(
-                futureShaped with
-                {
-                    Map = futureShaped.Map with { SchemaVersion = storedSchema + 1 },
-                }));
+            mixedFingerprint,
+            MatchContractFingerprint.ComputeMatch(mixedSchemas));
+    }
+
+    [Fact]
+    public void AggregateFingerprint_IncludesEachStoredSchemaAxisDirectly()
+    {
+        ArenaMap map = ArenaMap.Create(
+            "contract",
+            ["#####", "#...#", "#####"],
+            [
+                new Spawn(1, 1, Direction.East),
+                new Spawn(3, 1, Direction.West),
+            ]);
+        PublicMatchContractManifest current =
+            PublicRulesManifestFactory.CreateMatchContract(GameRules.Current, map);
+        PublicMatchContractManifest rulesSchemaChanged = current with
+        {
+            MatchContractFingerprint = "",
+            Rules = current.Rules with
+            {
+                SchemaVersion = current.Rules.SchemaVersion + 1,
+            },
+        };
+        PublicMatchContractManifest mapSchemaChanged = current with
+        {
+            MatchContractFingerprint = "",
+            Map = current.Map with
+            {
+                SchemaVersion = current.Map.SchemaVersion + 1,
+            },
+        };
+        PublicMatchContractManifest matchSchemaChanged = current with
+        {
+            SchemaVersion = current.SchemaVersion + 1,
+            MatchContractFingerprint = "",
+        };
+
+        string rulesSchemaFingerprint =
+            MatchContractFingerprint.ComputeMatch(rulesSchemaChanged);
+        string mapSchemaFingerprint =
+            MatchContractFingerprint.ComputeMatch(mapSchemaChanged);
+        string matchSchemaFingerprint =
+            MatchContractFingerprint.ComputeMatch(matchSchemaChanged);
+
+        Assert.Equal(
+            current.Map.MapFingerprint,
+            rulesSchemaChanged.Map.MapFingerprint);
+        Assert.NotEqual(current.MatchContractFingerprint, rulesSchemaFingerprint);
+        Assert.NotEqual(current.MatchContractFingerprint, mapSchemaFingerprint);
+        Assert.NotEqual(current.MatchContractFingerprint, matchSchemaFingerprint);
+        Assert.Equal(
+            rulesSchemaFingerprint,
+            MatchContractFingerprint.ComputeMatch(rulesSchemaChanged));
+        Assert.Equal(
+            mapSchemaFingerprint,
+            MatchContractFingerprint.ComputeMatch(mapSchemaChanged));
+        Assert.Equal(
+            matchSchemaFingerprint,
+            MatchContractFingerprint.ComputeMatch(matchSchemaChanged));
     }
 
     [Fact]

@@ -216,6 +216,18 @@ public class FrontlineProjectileLifecycleTests
                 .Select(@event => @event.ActorId!.Value.TeamId)
                 .Order()
                 .ToArray());
+        foreach (FrontlineMatchEvent destroyed in frontline.Events.Where(
+                     @event =>
+                         @event.Type == FrontlineMatchEventType.Destroyed))
+        {
+            FrontlineMatchEvent fatalDamage = Assert.Single(
+                frontline.Events,
+                @event =>
+                    @event.Type == FrontlineMatchEventType.Damage
+                    && @event.ActorId == destroyed.ActorId);
+            Assert.Equal(fatalDamage.OtherActorId, destroyed.OtherActorId);
+            Assert.Equal(fatalDamage.ProjectileId, destroyed.ProjectileId);
+        }
         Assert.All(
             sessions.Frontline.State.Teams,
             team =>

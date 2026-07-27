@@ -125,8 +125,6 @@ internal static class SdkModelMapper
                 .ToArray(),
             VisibleEvents = observation.VisibleEvents
                 .Select(ToSdkEvent)
-                .Where(e => e is not null)
-                .Select(e => e!)
                 .ToArray(),
             Random = random,
             Debug = debug,
@@ -194,12 +192,11 @@ internal static class SdkModelMapper
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
-    private static Sdk.VisibleEvent? ToSdkEvent(GameEvent gameEvent)
-    {
-        var position = gameEvent.ReferencePositions().Cast<Position?>().FirstOrDefault();
-        if (position is null)
-            return null;
-        return new Sdk.VisibleEvent(
-            ToSdkEventKind(gameEvent.Type), gameEvent.Slot, new Sdk.Position(position.Value.X, position.Value.Y));
-    }
+    private static Sdk.VisibleEvent ToSdkEvent(ObservedEvent observedEvent) =>
+        new(
+            ToSdkEventKind(observedEvent.Type),
+            observedEvent.Slot,
+            new Sdk.Position(
+                observedEvent.Position.X,
+                observedEvent.Position.Y));
 }

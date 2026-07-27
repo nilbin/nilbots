@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace BotArena.Engine.Tests;
@@ -58,6 +59,31 @@ public class RulesManifestSerializerTests
             root.GetProperty("rules").GetProperty("actions")
                 .EnumerateArray()
                 .Select(action => action.GetProperty("code").GetInt32()));
+        Assert.All(
+            root.GetProperty("rules").GetProperty("actions").EnumerateArray(),
+            action => Assert.Equal(
+                ["id", "code", "kind", "parameterKinds", "enabled"],
+                action.EnumerateObject().Select(property => property.Name)));
+        Assert.Empty(
+            root.GetProperty("rules").GetProperty("actions")[0]
+                .GetProperty("parameterKinds")
+                .EnumerateArray());
+        Assert.Equal(
+            ["shot-program"],
+            root.GetProperty("rules").GetProperty("actions")[4]
+                .GetProperty("parameterKinds")
+                .EnumerateArray()
+                .Select(kind => kind.GetString()));
+        Assert.Equal(
+            [
+                "id", "maxHealth", "visionRange", "shootCooldownTicks",
+                "omnidirectionalVision", "omnidirectionalShooting",
+                "movementLayer", "objectiveWeight", "canMove", "canShoot",
+                "allowsProgrammedShots", "allowedActionIds",
+            ],
+            root.GetProperty("rules").GetProperty("forms")[0]
+                .EnumerateObject()
+                .Select(property => property.Name));
         Assert.Equal(
             [[3, 1], [1, 1]],
             root.GetProperty("map").GetProperty("objectiveTiles")
@@ -108,6 +134,61 @@ public class RulesManifestSerializerTests
     }
 
     [Fact]
+    public void ActionParameterKinds_SerializeEveryKindInCanonicalEnumOrder()
+    {
+        PublicRulesManifest manifest =
+            PublicRulesManifestFactory.CreateRules(GameRules.Current);
+        PublicActionDefinition shoot =
+            manifest.Actions.Single(action => action.Id == PublicActionIds.Shoot);
+        PublicRulesManifest allParameterKinds = manifest with
+        {
+            Actions = manifest.Actions
+                .Select(action => action.Id == shoot.Id
+                    ? action with
+                    {
+                        ParameterKinds = Enum
+                            .GetValues<PublicActionParameterKind>()
+                            .ToImmutableArray(),
+                    }
+                    : action)
+                .ToImmutableArray(),
+        };
+
+        using JsonDocument document = JsonDocument.Parse(
+            RulesManifestSerializer.ToCanonicalJson(allParameterKinds));
+
+        Assert.Equal(
+            ["shot-program", "direction", "unit-target", "form-target"],
+            document.RootElement.GetProperty("actions")
+                .EnumerateArray()
+                .Single(action =>
+                    action.GetProperty("id").GetString() == PublicActionIds.Shoot)
+                .GetProperty("parameterKinds")
+                .EnumerateArray()
+                .Select(kind => kind.GetString()));
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidActionParameterKinds))]
+    public void ActionParameterKinds_RejectInvalidCanonicalCollections(
+        ImmutableArray<PublicActionParameterKind> parameterKinds)
+    {
+        PublicRulesManifest manifest =
+            PublicRulesManifestFactory.CreateRules(GameRules.Current);
+        PublicRulesManifest invalid = manifest with
+        {
+            Actions = manifest.Actions
+                .Select(action => action.Id == PublicActionIds.Shoot
+                    ? action with { ParameterKinds = parameterKinds }
+                    : action)
+                .ToImmutableArray(),
+        };
+
+        Assert.ThrowsAny<ArgumentException>(
+            () => RulesManifestSerializer.ToCanonicalJson(invalid));
+    }
+
+    [Fact]
     public void FrontlineSerialization_AddsTypedDefinitionAndMapGeometryOnlyWhenPresent()
     {
         GameRules rules = GameRules.V0_1 with
@@ -141,13 +222,27 @@ public class RulesManifestSerializerTests
         Assert.Equal(
             [
                 "teamCount", "participantsPerTeam", "frontlinePositionCount",
-                "initialUnitsPerTeam", "maxUnitsPerTeam", "capture", "lifecycle",
-                "forms", "anchor", "alliedCombat",
+                "initialUnitsPerTeam", "maxUnitsPerTeam", "teamPerception",
+                "capture", "lifecycle", "anchor", "alliedCombat",
             ],
             rulesRoot.GetProperty("frontlineDefinition")
                 .EnumerateObject()
                 .Select(property => property.Name));
-        Assert.Empty(rulesRoot.GetProperty("forms").EnumerateArray());
+        Assert.Equal(
+            ["child-mobile", "prime-mobile", "turret"],
+            rulesRoot.GetProperty("forms")
+                .EnumerateArray()
+                .Select(form => form.GetProperty("id").GetString()));
+        Assert.Equal(
+            [
+                "id", "maxHealth", "visionRange", "shootCooldownTicks",
+                "omnidirectionalVision", "omnidirectionalShooting",
+                "movementLayer", "objectiveWeight", "canMove", "canShoot",
+                "allowsProgrammedShots", "allowedActionIds",
+            ],
+            rulesRoot.GetProperty("forms")[0]
+                .EnumerateObject()
+                .Select(property => property.Name));
         Assert.DoesNotContain(
             rulesRoot.GetProperty("actions").EnumerateArray(),
             action => action.GetProperty("id").GetString() is "fabricate" or "anchor");
@@ -177,5 +272,28 @@ public class RulesManifestSerializerTests
         return directory?.FullName
             ?? throw new InvalidOperationException(
                 "BotArena.sln not found above the test directory.");
+    }
+
+    public static TheoryData<ImmutableArray<PublicActionParameterKind>>
+        InvalidActionParameterKinds
+    {
+        get
+        {
+            var cases =
+                new TheoryData<ImmutableArray<PublicActionParameterKind>>();
+            cases.Add(default);
+            cases.Add(
+            [
+                PublicActionParameterKind.Direction,
+                PublicActionParameterKind.Direction,
+            ]);
+            cases.Add(
+            [
+                PublicActionParameterKind.FormTarget,
+                PublicActionParameterKind.UnitTarget,
+            ]);
+            cases.Add([(PublicActionParameterKind)int.MaxValue]);
+            return cases;
+        }
     }
 }

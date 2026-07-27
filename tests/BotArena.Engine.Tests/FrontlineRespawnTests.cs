@@ -135,6 +135,10 @@ public class FrontlineRespawnTests
             resolution => Assert.Equal(
                 ActionResult.Success,
                 resolution.Result));
+        Assert.DoesNotContain(
+            immediateAction.Events,
+            matchEvent =>
+                matchEvent.Type == FrontlineMatchEventType.Respawned);
         Assert.Equal(
             Direction.North,
             session.State.GetActiveLife(team0Life1).Facing);

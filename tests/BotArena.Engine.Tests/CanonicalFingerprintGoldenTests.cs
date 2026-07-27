@@ -5,24 +5,24 @@ public class CanonicalFingerprintGoldenTests
     [Theory]
     [InlineData(
         "0.1",
-        "b030b17da2e1278bb84b9c0f58df717a371b9ef0320783310f04fd6c7a08eb50",
-        "78ddee2c9ba7c0701edd67e68c1a88c4ceaf4a3a848f1c34408a8d55107e66ab")]
+        "9b30d8f2da91d919a726a09e847591a2d92489a4b82c7d06f1925223f55386a3",
+        "be49a666ec3f54cf78ad21f00b4490f098af5e194f34cd21734e2395a7cb90c6")]
     [InlineData(
         "0.2",
-        "9f6ca0eda8cedece89ae5b69fefe1fbe01d6af25afed5aa2ad5e737547cce5f0",
-        "77dd4c29a7127d7b8137f6b581132ebc09f50b553e17c4eea81fce444000e54f")]
+        "90370a9784ea59d6ab24d47142fbde76628162e7f5cd9593ad3fb0e82c1d9c2a",
+        "309acba54f8dcdceb349638de644240d5d6fcecc2c6a4a2e5b10f79dc589fbf6")]
     [InlineData(
         "0.3",
-        "d722b80489a066ff237ae48a64103c07774908be78186184bcaab83440685de0",
-        "6115ef3be5679d17662c6dc70832a88ca0d993ee5e50d7aa2fb75139f052b5f5")]
+        "4562aa71a96f86ebe8c17c643c968eccfae168fb582d8c4b59de7971194a561a",
+        "43c471e414bee83534298787a2d47e394541b2b171ab6136c90dd6fcc53ddd19")]
     [InlineData(
         "0.4",
-        "1f4a65a29be91762fe61cc06ba4e836c25dd89da8b1e578431d398b02338eb27",
-        "48a163b90678b7f2f7179ad4edea414eb82dbebad6fcf93d487fbd36278b7dd5")]
+        "58ad0b24cec382506966c7bb94c775a7cea35f87415ff42c69728c34c53201ac",
+        "12e8d8b0428e903274060e7f7e74b87b210b894539de459cc6786c46d64a9913")]
     [InlineData(
         "0.5",
-        "255d841f1c5118e467cad88971c87d1774920a1aaff161b1be578aae29c5a72e",
-        "c9330634f67975495fbeeeba93e0770677e02f9758d429739da8a1702975baa5")]
+        "d83258ec401c5033f22891489cee2ccaf9ad044e0bac8ac336ccd727f17e9a1e",
+        "9335f7471f8bf1676866d20c231ca3b0020e86f490189bce549fbdb542babe68")]
     public void OfficialRulesAndFormatV1Map_PinEveryRulesAndAggregateFingerprint(
         string rulesName,
         string expectedRulesFingerprint,
@@ -52,13 +52,13 @@ public class CanonicalFingerprintGoldenTests
             PublicRulesManifestFactory.CreateMatchContract(GameRules.Current, map);
 
         Assert.Equal(
-            "255d841f1c5118e467cad88971c87d1774920a1aaff161b1be578aae29c5a72e",
+            "d83258ec401c5033f22891489cee2ccaf9ad044e0bac8ac336ccd727f17e9a1e",
             contract.Rules.RulesFingerprint);
         Assert.Equal(
             "5a9f405755716ade6466243d9fa3a5c2a5cce9ccf42353cc7a6136ee8cd8ef0d",
             contract.Map.MapFingerprint);
         Assert.Equal(
-            "c9330634f67975495fbeeeba93e0770677e02f9758d429739da8a1702975baa5",
+            "9335f7471f8bf1676866d20c231ca3b0020e86f490189bce549fbdb542babe68",
             contract.MatchContractFingerprint);
     }
 
@@ -82,13 +82,13 @@ public class CanonicalFingerprintGoldenTests
             PublicRulesManifestFactory.CreateMatchContract(rules, map);
 
         Assert.Equal(
-            "358efbe4bc32de5b761d4fb999541d08c16991483d021d939dec1e6d100989f4",
+            "0b61638436eeb11f8eac844cd98e0ac2f21254ad5ce1d645c02025470155924f",
             contract.Rules.RulesFingerprint);
         Assert.Equal(
             "b0d3d42946fa80306694597eea3faefce5e64ce5da7324ab2c95e2d8b3db52cd",
             contract.Map.MapFingerprint);
         Assert.Equal(
-            "e4a0447d5dac26cf3f05aaa6e7388f9db5a64311b9fbab202bcc0d1e084e5765",
+            "a642f503f4c0e4cb7f8f3ad3743a466260b348731d77f19e8807ce3fab2854c6",
             contract.MatchContractFingerprint);
     }
 

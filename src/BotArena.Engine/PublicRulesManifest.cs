@@ -80,10 +80,9 @@ public sealed record PublicObjectiveOvertimeRules(
     bool StopsDecay);
 
 /// <summary>
-/// Typed definition-only contract for the experimental Frontline mode. It is
-/// intentionally separate from <see cref="PublicFormDefinition"/> and
-/// <see cref="PublicActionDefinition"/> until those forms and lifecycle actions
-/// are actually delivered by a session and runtime protocol.
+/// Typed definition-only contract for the experimental Frontline mode. Unit
+/// capabilities live in the shared <see cref="PublicRulesManifest.Forms"/>
+/// catalog; this subtree owns objective and lifecycle rules.
 /// </summary>
 public sealed record PublicFrontlineDefinition(
     int TeamCount,
@@ -91,9 +90,9 @@ public sealed record PublicFrontlineDefinition(
     int FrontlinePositionCount,
     int InitialUnitsPerTeam,
     int MaxUnitsPerTeam,
+    TeamPerceptionMode TeamPerception,
     PublicFrontlineCaptureDefinition Capture,
     PublicFrontlineLifecycleDefinition Lifecycle,
-    PublicFrontlineFormsDefinition Forms,
     PublicFrontlineAnchorDefinition Anchor,
     PublicFrontlineAlliedCombatDefinition AlliedCombat);
 
@@ -113,23 +112,6 @@ public sealed record PublicFrontlineLifecycleDefinition(
     int PrimeRespawnTicks,
     int ChildRebuildTicks,
     ImmutableArray<int> FabricationUnlockTicks);
-
-public sealed record PublicFrontlineFormsDefinition(
-    PublicFrontlineUnitFormDefinition Prime,
-    PublicFrontlineUnitFormDefinition Child,
-    PublicFrontlineUnitFormDefinition Turret);
-
-public sealed record PublicFrontlineUnitFormDefinition(
-    string FormId,
-    int MaxHealth,
-    int VisionRange,
-    int ShootCooldownTicks,
-    bool OmnidirectionalVision,
-    bool OmnidirectionalShooting,
-    int ObjectiveWeight,
-    bool CanMove,
-    bool CanShoot,
-    bool AllowsProgrammedShots);
 
 public sealed record PublicFrontlineAnchorDefinition(
     int WindupTicks,
@@ -161,8 +143,15 @@ public enum PublicMovementLayer
 public sealed record PublicFormDefinition(
     string Id,
     int MaxHealth,
+    int VisionRange,
+    int ShootCooldownTicks,
+    bool OmnidirectionalVision,
+    bool OmnidirectionalShooting,
     PublicMovementLayer MovementLayer,
     int ObjectiveWeight,
+    bool CanMove,
+    bool CanShoot,
+    bool AllowsProgrammedShots,
     ImmutableArray<string> AllowedActionIds);
 
 public enum PublicActionKind
@@ -175,15 +164,17 @@ public enum PublicActionKind
 
 public enum PublicActionParameterKind
 {
-    None,
-    ShotProgram,
+    ShotProgram = 0,
+    Direction = 1,
+    UnitTarget = 2,
+    FormTarget = 3,
 }
 
 public sealed record PublicActionDefinition(
     string Id,
     int Code,
     PublicActionKind Kind,
-    PublicActionParameterKind ParameterKind,
+    ImmutableArray<PublicActionParameterKind> ParameterKinds,
     bool Enabled);
 
 public enum PublicProjectileMode

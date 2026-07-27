@@ -157,7 +157,10 @@ public sealed class FrontlineMatchSession
         var resolutions = ValidateActions(
             tickStart.ActiveActors,
             frozenDecisions);
-        var events = new List<FrontlineMatchEvent>(tickStart.Events);
+        // Tick-start lifecycle facts remain phase-distinct on TickStart. The
+        // resolution list contains only facts produced after decisions are
+        // accepted, preventing replay-v2 from duplicating respawn events.
+        var events = new List<FrontlineMatchEvent>();
         var traversals = new List<FrontlineProjectileTraversal>();
         int executedTick = State.Tick;
 
@@ -899,6 +902,9 @@ public sealed class FrontlineMatchSession
         IReadOnlyList<PendingHit> pendingHits,
         List<FrontlineMatchEvent> events)
     {
+        var destructionCauses = new Dictionary<
+            FrontlineActorId,
+            (FrontlineActorId SourceActorId, long ProjectileId)>();
         foreach (IGrouping<FrontlineActorId, PendingHit> targetGroup in
                  pendingHits
                      .OrderBy(hit => hit.TargetActorId)
@@ -924,6 +930,8 @@ public sealed class FrontlineMatchSession
                 sourceUnit.DamageDealt += actualDamage;
                 if (TryGetActiveLife(hit.SourceActorId) is { } sourceLife)
                     sourceLife.DamageDealt += actualDamage;
+                destructionCauses[target.ActorId] =
+                    (hit.SourceActorId, hit.ProjectileId);
                 events.Add(new FrontlineMatchEvent
                 {
                     Tick = State.Tick,
@@ -951,12 +959,23 @@ public sealed class FrontlineMatchSession
 
                 int respawnAtTick = checked(
                     State.Tick + 1 + _frontlineRules.PrimeRespawnTicks);
+                FrontlineActorId? sourceActorId = null;
+                long? sourceProjectileId = null;
+                if (destructionCauses.TryGetValue(
+                        life.ActorId,
+                        out var cause))
+                {
+                    sourceActorId = cause.SourceActorId;
+                    sourceProjectileId = cause.ProjectileId;
+                }
                 events.Add(new FrontlineMatchEvent
                 {
                     Tick = State.Tick,
                     Type = FrontlineMatchEventType.Destroyed,
                     TeamId = team.TeamId,
                     ActorId = life.ActorId,
+                    OtherActorId = sourceActorId,
+                    ProjectileId = sourceProjectileId,
                     From = life.Position,
                     To = life.Position,
                     NewHealth = 0,

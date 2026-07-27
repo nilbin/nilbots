@@ -25,14 +25,6 @@ public static class MatchContractFingerprint
     public static string ComputeMatch(PublicMatchContractManifest manifest)
     {
         ArgumentNullException.ThrowIfNull(manifest);
-        if (manifest.Rules.SchemaVersion != manifest.SchemaVersion
-            || manifest.Map.SchemaVersion != manifest.SchemaVersion)
-        {
-            throw new ArgumentException(
-                "Match, rules, and map manifest schema versions must match.",
-                nameof(manifest));
-        }
-
         ValidateTopology(manifest);
         return Hash(RulesManifestSerializer.SerializeMatchFingerprintPayload(manifest));
     }
@@ -127,14 +119,14 @@ public static class MatchContractFingerprint
 
         HashSet<(int TeamId, int UnitId)> occupiedSlots = [];
         HashSet<(int TeamId, int UnitId, int LifeId)> lifeIds = [];
-        HashSet<string> formIds = manifest.Rules.Forms
-            .Select(form => form.Id)
-            .ToHashSet(StringComparer.Ordinal);
-        if (manifest.Rules.Frontline is { } frontline)
+        HashSet<string> formIds = new(StringComparer.Ordinal);
+        foreach (PublicFormDefinition form in manifest.Rules.Forms)
         {
-            formIds.Add(frontline.Forms.Prime.FormId);
-            formIds.Add(frontline.Forms.Child.FormId);
-            formIds.Add(frontline.Forms.Turret.FormId);
+            if (string.IsNullOrWhiteSpace(form.Id) || !formIds.Add(form.Id))
+            {
+                throw InvalidTopology(
+                    "Public form IDs must be unique and non-empty.");
+            }
         }
         foreach (PublicInitialLife life in topology.InitialLives)
         {

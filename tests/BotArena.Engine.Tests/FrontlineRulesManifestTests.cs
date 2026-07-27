@@ -55,6 +55,7 @@ public class FrontlineRulesManifestTests
         Assert.Equal(source.FrontlinePositionCount, definition.FrontlinePositionCount);
         Assert.Equal(source.InitialUnitsPerTeam, definition.InitialUnitsPerTeam);
         Assert.Equal(source.MaxUnitsPerTeam, definition.MaxUnitsPerTeam);
+        Assert.Equal(TeamPerceptionMode.ImmediateUnion, definition.TeamPerception);
         Assert.Equal(
             new PublicFrontlineCaptureDefinition(
                 source.CaptureThreshold,
@@ -69,9 +70,18 @@ public class FrontlineRulesManifestTests
         Assert.Equal(
             source.FabricationUnlockTicks.ToArray(),
             definition.Lifecycle.FabricationUnlockTicks.ToArray());
-        Assert.Equal(Project(source.PrimeForm), definition.Forms.Prime);
-        Assert.Equal(Project(source.ChildForm), definition.Forms.Child);
-        Assert.Equal(Project(source.TurretForm), definition.Forms.Turret);
+        Assert.Equal(
+            ["child-mobile", "prime-mobile", "turret"],
+            manifest.Forms.Select(form => form.Id).ToArray());
+        AssertForm(
+            source.ChildForm,
+            manifest.Forms.Single(form => form.Id == source.ChildForm.FormId));
+        AssertForm(
+            source.PrimeForm,
+            manifest.Forms.Single(form => form.Id == source.PrimeForm.FormId));
+        AssertForm(
+            source.TurretForm,
+            manifest.Forms.Single(form => form.Id == source.TurretForm.FormId));
         Assert.Equal(
             new PublicFrontlineAnchorDefinition(
                 source.AnchorWindupTicks,
@@ -84,7 +94,14 @@ public class FrontlineRulesManifestTests
                 source.AlliedProjectilesBlock),
             definition.AlliedCombat);
 
-        Assert.Empty(manifest.Forms);
+        Assert.Equal(3, manifest.Forms.Length);
+        Assert.All(
+            manifest.Forms,
+            form => Assert.Equal(PublicMovementLayer.Ground, form.MovementLayer));
+        Assert.Equal(
+            ["shoot", "turn-left", "turn-right", "wait"],
+            manifest.Forms.Single(form => form.Id == source.TurretForm.FormId)
+                .AllowedActionIds.ToArray());
         Assert.DoesNotContain(
             manifest.Actions,
             action => action.Id is "fabricate" or "anchor");
@@ -105,6 +122,50 @@ public class FrontlineRulesManifestTests
         Assert.Equal(
             PublicActionRejectionResult.Rejected,
             manifest.ShotPrograms.InvalidPayloadResult);
+    }
+
+    [Fact]
+    public void FormCatalog_DerivesAllowedActionsFromGlobalAndFormCapabilities()
+    {
+        FrontlineRules defaults = new();
+        FrontlineRules source = defaults with
+        {
+            ChildForm = defaults.ChildForm with { CanShoot = false },
+        };
+        GameRules rules = CreateRules(source) with
+        {
+            AllowStrafe = true,
+            AllowProgrammedShots = true,
+            ProjectileTicksPerTile = 1,
+        };
+
+        PublicRulesManifest manifest = PublicRulesManifestFactory.CreateRules(rules);
+
+        Assert.Equal(
+            [
+                "move-forward", "shoot", "strafe-left", "strafe-right",
+                "turn-left", "turn-right", "wait",
+            ],
+            manifest.Forms.Single(form => form.Id == source.PrimeForm.FormId)
+                .AllowedActionIds.ToArray());
+        Assert.Equal(
+            [
+                "move-forward", "strafe-left", "strafe-right",
+                "turn-left", "turn-right", "wait",
+            ],
+            manifest.Forms.Single(form => form.Id == source.ChildForm.FormId)
+                .AllowedActionIds.ToArray());
+        Assert.Equal(
+            ["shoot", "turn-left", "turn-right", "wait"],
+            manifest.Forms.Single(form => form.Id == source.TurretForm.FormId)
+                .AllowedActionIds.ToArray());
+
+        string[] definedActionIds = manifest.Actions
+            .Select(action => action.Id)
+            .ToArray();
+        Assert.All(
+            manifest.Forms.SelectMany(form => form.AllowedActionIds),
+            actionId => Assert.Contains(actionId, definedActionIds));
     }
 
     [Fact]
@@ -394,16 +455,37 @@ public class FrontlineRulesManifestTests
             Frontline = frontline,
         };
 
-    private static PublicFrontlineUnitFormDefinition Project(UnitFormRules form) =>
-        new(
-            form.FormId,
-            form.MaxHealth,
-            form.VisionRange,
-            form.ShootCooldownTicks,
-            form.OmnidirectionalVision,
-            form.OmnidirectionalShooting,
-            form.ObjectiveWeight,
-            form.CanMove,
-            form.CanShoot,
-            form.AllowsProgrammedShots);
+    private static void AssertForm(
+        UnitFormRules expected,
+        PublicFormDefinition actual)
+    {
+        Assert.Equal(expected.FormId, actual.Id);
+        Assert.Equal(expected.MaxHealth, actual.MaxHealth);
+        Assert.Equal(expected.VisionRange, actual.VisionRange);
+        Assert.Equal(expected.ShootCooldownTicks, actual.ShootCooldownTicks);
+        Assert.Equal(expected.OmnidirectionalVision, actual.OmnidirectionalVision);
+        Assert.Equal(expected.OmnidirectionalShooting, actual.OmnidirectionalShooting);
+        Assert.Equal(PublicMovementLayer.Ground, actual.MovementLayer);
+        Assert.Equal(expected.ObjectiveWeight, actual.ObjectiveWeight);
+        Assert.Equal(expected.CanMove, actual.CanMove);
+        Assert.Equal(expected.CanShoot, actual.CanShoot);
+        Assert.Equal(expected.AllowsProgrammedShots, actual.AllowsProgrammedShots);
+        Assert.Equal(AllowedActionIds(expected).ToArray(), actual.AllowedActionIds.ToArray());
+    }
+
+    private static System.Collections.Immutable.ImmutableArray<string> AllowedActionIds(
+        UnitFormRules form)
+    {
+        var ids = new List<string>
+        {
+            PublicActionIds.Wait,
+            PublicActionIds.TurnLeft,
+            PublicActionIds.TurnRight,
+        };
+        if (form.CanMove)
+            ids.Add(PublicActionIds.MoveForward);
+        if (form.CanShoot)
+            ids.Add(PublicActionIds.Shoot);
+        return [.. ids.Order(StringComparer.Ordinal)];
+    }
 }

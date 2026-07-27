@@ -80,7 +80,12 @@ public sealed class MatchSession
         bool FullyVisible(GameEvent e) => State.Rules.VisionCone
             ? e.ReferencePositions().Take(1).Any(visibleSet.Contains)
             : e.ReferencePositions().Any(visibleSet.Contains);
-        var events = _lastTickEvents.Where(FullyVisible).ToArray();
+        var events = _lastTickEvents
+            .Where(FullyVisible)
+            .Select(ToObservedEvent)
+            .Where(observed => observed is not null)
+            .Select(observed => observed!.Value)
+            .ToArray();
         List<HeardSound>? heard = null;
         if (State.Rules.HearingRadius > 0)
         {
@@ -152,6 +157,13 @@ public sealed class MatchSession
     // the same tick — there is no next observation that could use the sound (§I).
     private static bool IsLoud(GameEventType type) => type is GameEventType.Shot
         or GameEventType.Damage or GameEventType.Destroyed;
+
+    private static ObservedEvent? ToObservedEvent(GameEvent gameEvent)
+    {
+        foreach (Position position in gameEvent.ReferencePositions())
+            return new ObservedEvent(gameEvent.Type, gameEvent.Slot, position);
+        return null;
+    }
 
     /// <summary>Steps 3–11 of §4.7. Decisions must be indexed by slot.</summary>
     public TickResult Step(IReadOnlyList<BotDecision> decisions)

@@ -20,6 +20,16 @@ public readonly record struct ObservedProjectile(
 public readonly record struct HeardSound(GameEventType Type, int Bearing, int Distance);
 
 /// <summary>
+/// Public event projection delivered to a bot. The authoritative event may
+/// contain additional coordinates, targets, resolution details, or messages;
+/// those fields never cross the runtime boundary.
+/// </summary>
+public readonly record struct ObservedEvent(
+    GameEventType Type,
+    int? Slot,
+    Position Position);
+
+/// <summary>
 /// Everything a bot is allowed to know on one tick (plan §4.5). Built from the pre-tick state;
 /// never contains the full map or the opponent's pending action.
 /// </summary>
@@ -55,8 +65,12 @@ public sealed class BotObservation
     public IReadOnlyList<ObservedProjectile>? VisibleProjectiles { get; init; }
     /// <summary>Private programmed-shot action envelope; null when unsupported.</summary>
     public ShotProgramLimits? ShotPrograms { get; init; }
-    /// <summary>Previous-tick events whose reference positions are inside the current field of view.</summary>
-    public required IReadOnlyList<GameEvent> VisibleEvents { get; init; }
+    /// <summary>
+    /// Previous-tick events whose primary public position is inside the current
+    /// field of view. These are redacted projections, never authoritative
+    /// simulation events.
+    /// </summary>
+    public required IReadOnlyList<ObservedEvent> VisibleEvents { get; init; }
     /// <summary>Previous-tick LOUD events beyond sight but within the hearing radius,
     /// redacted to sounds; null when the rules have no hearing. Sighted events are
     /// delivered in <see cref="VisibleEvents"/> instead, never in both.</summary>

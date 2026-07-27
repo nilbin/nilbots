@@ -99,4 +99,27 @@ public class VisibilityTests
         var observation = session.BuildObservation(0);
         Assert.Contains(observation.VisibleEvents, e => e.Type == GameEventType.Move && e.Slot == 1);
     }
+
+    [Fact]
+    public void VisibleEvents_ArePublicPrimaryPositionProjections()
+    {
+        var session = new MatchSession(TestMaps.OpenRoom(), GameRules.V0_1);
+        session.Step([
+            BotDecision.Of(BotAction.Shoot),
+            BotDecision.Of(BotAction.Wait),
+        ]);
+
+        ObservedEvent shot = Assert.Single(
+            session.BuildObservation(1).VisibleEvents,
+            observed => observed.Type == GameEventType.Shot);
+
+        Assert.Equal(0, shot.Slot);
+        Assert.Equal(new Position(1, 2), shot.Position);
+        Assert.Equal(
+            ["Position", "Slot", "Type"],
+            typeof(ObservedEvent)
+                .GetProperties()
+                .Select(property => property.Name)
+                .Order(StringComparer.Ordinal));
+    }
 }

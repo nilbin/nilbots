@@ -16,35 +16,32 @@ public static class PublicRulesManifestFactory
             rules.AllowProgrammedShots && rules.ProjectileTicksPerTile > 0;
         ImmutableArray<PublicActionDefinition> actions =
         [
-            new("wait", (int)BotAction.Wait, PublicActionKind.Wait,
-                PublicActionParameterKind.None, true),
-            new("move-forward", (int)BotAction.MoveForward, PublicActionKind.Movement,
-                PublicActionParameterKind.None, true),
-            new("turn-left", (int)BotAction.TurnLeft, PublicActionKind.Rotation,
-                PublicActionParameterKind.None, true),
-            new("turn-right", (int)BotAction.TurnRight, PublicActionKind.Rotation,
-                PublicActionParameterKind.None, true),
-            new("shoot", (int)BotAction.Shoot, PublicActionKind.Attack,
+            new(PublicActionIds.Wait, (int)BotAction.Wait, PublicActionKind.Wait,
+                [], true),
+            new(PublicActionIds.MoveForward, (int)BotAction.MoveForward, PublicActionKind.Movement,
+                [], true),
+            new(PublicActionIds.TurnLeft, (int)BotAction.TurnLeft, PublicActionKind.Rotation,
+                [], true),
+            new(PublicActionIds.TurnRight, (int)BotAction.TurnRight, PublicActionKind.Rotation,
+                [], true),
+            new(PublicActionIds.Shoot, (int)BotAction.Shoot, PublicActionKind.Attack,
                 shotProgramsEnabled
-                    ? PublicActionParameterKind.ShotProgram
-                    : PublicActionParameterKind.None,
+                    ? [PublicActionParameterKind.ShotProgram]
+                    : [],
                 true),
-            new("strafe-left", (int)BotAction.StrafeLeft, PublicActionKind.Movement,
-                PublicActionParameterKind.None, rules.AllowStrafe),
-            new("strafe-right", (int)BotAction.StrafeRight, PublicActionKind.Movement,
-                PublicActionParameterKind.None, rules.AllowStrafe),
+            new(PublicActionIds.StrafeLeft, (int)BotAction.StrafeLeft, PublicActionKind.Movement,
+                [], rules.AllowStrafe),
+            new(PublicActionIds.StrafeRight, (int)BotAction.StrafeRight, PublicActionKind.Movement,
+                [], rules.AllowStrafe),
         ];
         actions = actions.OrderBy(action => action.Code).ToImmutableArray();
 
-        ImmutableArray<string> allowedActionIds = actions
-            .Where(action => action.Enabled)
-            .Select(action => action.Id)
-            .Order(StringComparer.Ordinal)
-            .ToImmutableArray();
+        ImmutableArray<PublicFormDefinition> forms =
+            CreateFormDefinitions(rules, frontline, actions, shotProgramsEnabled);
 
         var manifest = new PublicRulesManifest
         {
-            SchemaVersion = BotArenaVersions.PublicManifestSchemaVersion,
+            SchemaVersion = BotArenaVersions.PublicRulesManifestSchemaVersion,
             RulesetId = rules.RulesVersion,
             RulesFingerprint = "",
             Limits = new PublicMatchLimits(
@@ -94,16 +91,7 @@ public static class PublicRulesManifestFactory
                 rules.ShotEnergyCost,
                 rules.EnergyRegenTicks,
                 RegenerationAmount: 1),
-            Forms = frontline is null
-                ? [
-                    new PublicFormDefinition(
-                        MobileFormId,
-                        rules.MaxHealth,
-                        PublicMovementLayer.Ground,
-                        ObjectiveWeight: 1,
-                        allowedActionIds),
-                  ]
-                : [],
+            Forms = forms,
             Actions = actions,
             Projectiles = new PublicProjectileRules(
                 rules.ProjectileTicksPerTile > 0
@@ -243,7 +231,7 @@ public static class PublicRulesManifestFactory
 
         var manifest = new PublicMapManifest
         {
-            SchemaVersion = BotArenaVersions.PublicManifestSchemaVersion,
+            SchemaVersion = BotArenaVersions.PublicMapManifestSchemaVersion,
             MapId = map.Id,
             MapVersion = map.Version,
             MapFingerprint = "",
@@ -293,7 +281,7 @@ public static class PublicRulesManifestFactory
     {
         var manifest = new PublicMatchContractManifest
         {
-            SchemaVersion = BotArenaVersions.PublicManifestSchemaVersion,
+            SchemaVersion = BotArenaVersions.PublicMatchContractSchemaVersion,
             MatchContractFingerprint = "",
             Rules = rules,
             Map = map,
@@ -310,14 +298,6 @@ public static class PublicRulesManifestFactory
     {
         if (rules is null)
             return null;
-        if (rules.PrimeForm is null
-            || rules.ChildForm is null
-            || rules.TurretForm is null)
-        {
-            throw new ArgumentException(
-                "Frontline Prime, child, and turret form definitions are required.",
-                nameof(rules));
-        }
         if (rules.FabricationUnlockTicks.IsDefault)
         {
             throw new ArgumentException(
@@ -331,6 +311,7 @@ public static class PublicRulesManifestFactory
             rules.FrontlinePositionCount,
             rules.InitialUnitsPerTeam,
             rules.MaxUnitsPerTeam,
+            TeamPerceptionMode.ImmediateUnion,
             new PublicFrontlineCaptureDefinition(
                 rules.CaptureThreshold,
                 rules.CaptureGainPerSoleTeamTick,
@@ -342,10 +323,6 @@ public static class PublicRulesManifestFactory
                 rules.PrimeRespawnTicks,
                 rules.ChildRebuildTicks,
                 rules.FabricationUnlockTicks),
-            new PublicFrontlineFormsDefinition(
-                CreateFrontlineUnitFormDefinition(rules.PrimeForm),
-                CreateFrontlineUnitFormDefinition(rules.ChildForm),
-                CreateFrontlineUnitFormDefinition(rules.TurretForm)),
             new PublicFrontlineAnchorDefinition(
                 rules.AnchorWindupTicks,
                 rules.AnchorHealthGain,
@@ -355,19 +332,95 @@ public static class PublicRulesManifestFactory
                 rules.AlliedProjectilesBlock));
     }
 
-    private static PublicFrontlineUnitFormDefinition CreateFrontlineUnitFormDefinition(
-        UnitFormRules form) =>
+    private static ImmutableArray<PublicFormDefinition> CreateFormDefinitions(
+        GameRules rules,
+        FrontlineRules? frontline,
+        ImmutableArray<PublicActionDefinition> actions,
+        bool shotProgramsEnabled)
+    {
+        if (frontline is null)
+        {
+            return
+            [
+                CreateFormDefinition(
+                    MobileFormId,
+                    rules.MaxHealth,
+                    rules.VisionRange,
+                    rules.ShootCooldownTicks,
+                    omnidirectionalVision: !rules.VisionCone,
+                    omnidirectionalShooting: false,
+                    objectiveWeight: 1,
+                    canMove: true,
+                    canShoot: true,
+                    allowsProgrammedShots: shotProgramsEnabled,
+                    actions),
+            ];
+        }
+
+        if (frontline.PrimeForm is null
+            || frontline.ChildForm is null
+            || frontline.TurretForm is null)
+        {
+            throw new ArgumentException(
+                "Frontline Prime, child, and turret form definitions are required.",
+                nameof(frontline));
+        }
+
+        UnitFormRules[] sourceForms =
+        [
+            frontline.PrimeForm,
+            frontline.ChildForm,
+            frontline.TurretForm,
+        ];
+        return sourceForms
+            .Select(form => CreateFormDefinition(
+                form.FormId,
+                form.MaxHealth,
+                form.VisionRange,
+                form.ShootCooldownTicks,
+                form.OmnidirectionalVision,
+                form.OmnidirectionalShooting,
+                form.ObjectiveWeight,
+                form.CanMove,
+                form.CanShoot,
+                form.AllowsProgrammedShots,
+                actions))
+            .OrderBy(form => form.Id, StringComparer.Ordinal)
+            .ToImmutableArray();
+    }
+
+    private static PublicFormDefinition CreateFormDefinition(
+        string id,
+        int maxHealth,
+        int visionRange,
+        int shootCooldownTicks,
+        bool omnidirectionalVision,
+        bool omnidirectionalShooting,
+        int objectiveWeight,
+        bool canMove,
+        bool canShoot,
+        bool allowsProgrammedShots,
+        ImmutableArray<PublicActionDefinition> actions) =>
         new(
-            form.FormId,
-            form.MaxHealth,
-            form.VisionRange,
-            form.ShootCooldownTicks,
-            form.OmnidirectionalVision,
-            form.OmnidirectionalShooting,
-            form.ObjectiveWeight,
-            form.CanMove,
-            form.CanShoot,
-            form.AllowsProgrammedShots);
+            id,
+            maxHealth,
+            visionRange,
+            shootCooldownTicks,
+            omnidirectionalVision,
+            omnidirectionalShooting,
+            PublicMovementLayer.Ground,
+            objectiveWeight,
+            canMove,
+            canShoot,
+            allowsProgrammedShots,
+            actions
+                .Where(action =>
+                    action.Enabled
+                    && (action.Kind != PublicActionKind.Movement || canMove)
+                    && (action.Kind != PublicActionKind.Attack || canShoot))
+                .Select(action => action.Id)
+                .Order(StringComparer.Ordinal)
+                .ToImmutableArray());
 
     private static PublicFrontlineMapDefinition? CreateFrontlineMapDefinition(
         ArenaMap map)

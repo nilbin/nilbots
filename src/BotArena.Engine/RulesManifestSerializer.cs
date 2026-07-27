@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 
@@ -62,6 +63,8 @@ public static class RulesManifestSerializer
         {
             writer.WriteStartObject();
             writer.WriteNumber("schemaVersion", manifest.SchemaVersion);
+            writer.WriteNumber("rulesSchemaVersion", manifest.Rules.SchemaVersion);
+            writer.WriteNumber("mapSchemaVersion", manifest.Map.SchemaVersion);
             writer.WriteString("rulesetId", manifest.Rules.RulesetId);
             writer.WriteString("rulesFingerprint", manifest.Rules.RulesFingerprint);
             writer.WriteString("mapId", manifest.Map.MapId);
@@ -163,8 +166,21 @@ public static class RulesManifestSerializer
             writer.WriteStartObject();
             writer.WriteString("id", form.Id);
             writer.WriteNumber("maxHealth", form.MaxHealth);
+            writer.WriteNumber("visionRange", form.VisionRange);
+            writer.WriteNumber("shootCooldownTicks", form.ShootCooldownTicks);
+            writer.WriteBoolean(
+                "omnidirectionalVision",
+                form.OmnidirectionalVision);
+            writer.WriteBoolean(
+                "omnidirectionalShooting",
+                form.OmnidirectionalShooting);
             writer.WriteString("movementLayer", MovementLayerId(form.MovementLayer));
             writer.WriteNumber("objectiveWeight", form.ObjectiveWeight);
+            writer.WriteBoolean("canMove", form.CanMove);
+            writer.WriteBoolean("canShoot", form.CanShoot);
+            writer.WriteBoolean(
+                "allowsProgrammedShots",
+                form.AllowsProgrammedShots);
             writer.WritePropertyName("allowedActionIds");
             writer.WriteStartArray();
             foreach (string actionId in form.AllowedActionIds.Order(StringComparer.Ordinal))
@@ -182,7 +198,8 @@ public static class RulesManifestSerializer
             writer.WriteString("id", action.Id);
             writer.WriteNumber("code", action.Code);
             writer.WriteString("kind", ActionKindId(action.Kind));
-            writer.WriteString("parameterKind", ActionParameterKindId(action.ParameterKind));
+            writer.WritePropertyName("parameterKinds");
+            WriteActionParameterKinds(writer, action.ParameterKinds);
             writer.WriteBoolean("enabled", action.Enabled);
             writer.WriteEndObject();
         }
@@ -407,6 +424,9 @@ public static class RulesManifestSerializer
         writer.WriteNumber("frontlinePositionCount", frontline.FrontlinePositionCount);
         writer.WriteNumber("initialUnitsPerTeam", frontline.InitialUnitsPerTeam);
         writer.WriteNumber("maxUnitsPerTeam", frontline.MaxUnitsPerTeam);
+        writer.WriteString(
+            "teamPerception",
+            TeamPerceptionModeId(frontline.TeamPerception));
 
         writer.WritePropertyName("capture");
         writer.WriteStartObject();
@@ -439,16 +459,6 @@ public static class RulesManifestSerializer
         writer.WriteEndArray();
         writer.WriteEndObject();
 
-        writer.WritePropertyName("forms");
-        writer.WriteStartObject();
-        writer.WritePropertyName("prime");
-        WriteFrontlineUnitForm(writer, frontline.Forms.Prime);
-        writer.WritePropertyName("child");
-        WriteFrontlineUnitForm(writer, frontline.Forms.Child);
-        writer.WritePropertyName("turret");
-        WriteFrontlineUnitForm(writer, frontline.Forms.Turret);
-        writer.WriteEndObject();
-
         writer.WritePropertyName("anchor");
         writer.WriteStartObject();
         writer.WriteNumber("windupTicks", frontline.Anchor.WindupTicks);
@@ -467,30 +477,6 @@ public static class RulesManifestSerializer
             "alliedProjectilesBlock",
             frontline.AlliedCombat.AlliedProjectilesBlock);
         writer.WriteEndObject();
-        writer.WriteEndObject();
-    }
-
-    private static void WriteFrontlineUnitForm(
-        Utf8JsonWriter writer,
-        PublicFrontlineUnitFormDefinition form)
-    {
-        writer.WriteStartObject();
-        writer.WriteString("formId", form.FormId);
-        writer.WriteNumber("maxHealth", form.MaxHealth);
-        writer.WriteNumber("visionRange", form.VisionRange);
-        writer.WriteNumber("shootCooldownTicks", form.ShootCooldownTicks);
-        writer.WriteBoolean(
-            "omnidirectionalVision",
-            form.OmnidirectionalVision);
-        writer.WriteBoolean(
-            "omnidirectionalShooting",
-            form.OmnidirectionalShooting);
-        writer.WriteNumber("objectiveWeight", form.ObjectiveWeight);
-        writer.WriteBoolean("canMove", form.CanMove);
-        writer.WriteBoolean("canShoot", form.CanShoot);
-        writer.WriteBoolean(
-            "allowsProgrammedShots",
-            form.AllowsProgrammedShots);
         writer.WriteEndObject();
     }
 
@@ -668,10 +654,42 @@ public static class RulesManifestSerializer
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
+    private static void WriteActionParameterKinds(
+        Utf8JsonWriter writer,
+        ImmutableArray<PublicActionParameterKind> kinds)
+    {
+        if (kinds.IsDefault)
+        {
+            throw new ArgumentException(
+                "Action parameter kinds must be initialized.",
+                nameof(kinds));
+        }
+
+        writer.WriteStartArray();
+        PublicActionParameterKind? previous = null;
+        foreach (PublicActionParameterKind kind in kinds)
+        {
+            string kindId = ActionParameterKindId(kind);
+            if (previous is { } previousKind
+                && (int)kind <= (int)previousKind)
+            {
+                throw new ArgumentException(
+                    "Action parameter kinds must be unique and in canonical enum order.",
+                    nameof(kinds));
+            }
+
+            writer.WriteStringValue(kindId);
+            previous = kind;
+        }
+        writer.WriteEndArray();
+    }
+
     private static string ActionParameterKindId(PublicActionParameterKind kind) => kind switch
     {
-        PublicActionParameterKind.None => "none",
         PublicActionParameterKind.ShotProgram => "shot-program",
+        PublicActionParameterKind.Direction => "direction",
+        PublicActionParameterKind.UnitTarget => "unit-target",
+        PublicActionParameterKind.FormTarget => "form-target",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -750,5 +768,12 @@ public static class RulesManifestSerializer
         PublicTickResolutionPhase.QueueDestroyedLives =>
             "queue-destroyed-lives",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
+    };
+
+    private static string TeamPerceptionModeId(TeamPerceptionMode mode) => mode switch
+    {
+        TeamPerceptionMode.Individual => "individual",
+        TeamPerceptionMode.ImmediateUnion => "immediate-union",
+        _ => throw new ArgumentOutOfRangeException(nameof(mode)),
     };
 }
