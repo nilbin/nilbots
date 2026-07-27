@@ -242,12 +242,19 @@ export interface ReplayV1CompleteDocument {
   replayHash: string;
 }
 
-/** Shape emitted by the live-broadcast endpoint while the result is withheld. */
+/**
+ * Shape emitted by the live-broadcast endpoint while the result is withheld.
+ *
+ * MatchesEndpoints constructs result/replayHash as null, but replay-v1's
+ * canonical JSON options omit both null properties. Keep them optional-null
+ * for compatibility with the pre-serialization object as well as its actual
+ * JSON output. `partial: true` is the required wire discriminator.
+ */
 export interface ReplayV1PartialDocument {
   header: ReplayV1Header;
   ticks: ReplayV1Tick[];
-  result: null;
-  replayHash: null;
+  result?: null;
+  replayHash?: null;
   partial: true;
 }
 

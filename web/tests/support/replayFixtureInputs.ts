@@ -1,4 +1,7 @@
-import type { ReplayV1Document } from '../../src/replayWireV1.ts';
+import type {
+  ReplayV1Document,
+  ReplayV1PartialDocument,
+} from '../../src/replayWireV1.ts';
 import type {
   ReplayV2ActorId,
   ReplayV2CompleteDocument,
@@ -51,6 +54,16 @@ export function replayV1FixtureInput(): ReplayV1Document {
       ],
     },
     replayHash: '0'.repeat(64),
+  };
+}
+
+/** Exact JSON shape emitted by MatchesEndpoints during a replay-v1 broadcast. */
+export function replayV1LivePartialFixtureInput(): ReplayV1PartialDocument {
+  const complete = replayV1FixtureInput();
+  return {
+    header: structuredClone(complete.header),
+    ticks: structuredClone(complete.ticks),
+    partial: true,
   };
 }
 

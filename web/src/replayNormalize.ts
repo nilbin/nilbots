@@ -1183,15 +1183,20 @@ export function validateReplayV1(
   assertAllowedKeys(
     root,
     ['header', 'ticks', 'result', 'replayHash', 'partial'],
+    ['header', 'ticks'],
     'replay',
   );
-  v1Header(required(root, 'header', 'replay'), 'replay.header');
-  arrayOf(v1TickSchema)(required(root, 'ticks', 'replay'), 'replay.ticks');
+  v1Header(root.header, 'replay.header');
+  arrayOf(v1TickSchema)(root.ticks, 'replay.ticks');
 
   const isPartial = root.partial === true;
   if (isPartial) {
-    nullValue(required(root, 'result', 'replay'), 'replay.result');
-    nullValue(required(root, 'replayHash', 'replay'), 'replay.replayHash');
+    if (own(root, 'result')) {
+      nullValue(root.result, 'replay.result');
+    }
+    if (own(root, 'replayHash')) {
+      nullValue(root.replayHash, 'replay.replayHash');
+    }
   } else {
     if (own(root, 'partial')) {
       fail(
@@ -1234,13 +1239,14 @@ export function validateReplayV2(
 function assertAllowedKeys(
   value: Record<string, unknown>,
   allowedKeys: readonly string[],
+  requiredKeys: readonly string[],
   path: string,
 ): void {
   const allowed = new Set(allowedKeys);
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) fail(`${path}.${key}`, 'unknown property');
   }
-  for (const key of ['header', 'ticks', 'result', 'replayHash']) {
+  for (const key of requiredKeys) {
     if (!own(value, key)) fail(`${path}.${key}`, 'missing required property');
   }
 }
@@ -1250,10 +1256,7 @@ function assertExactKeys(
   keys: readonly string[],
   path: string,
 ): void {
-  assertAllowedKeys(value, keys, path);
-  for (const key of keys) {
-    if (!own(value, key)) fail(`${path}.${key}`, 'missing required property');
-  }
+  assertAllowedKeys(value, keys, keys, path);
 }
 
 function validateV1Relationships(document: V1.ReplayV1Document): void {
@@ -1809,8 +1812,8 @@ export function normalizeReplayV1(
       actorRuntime: null,
     },
     seed: String(document.header.seed),
-    partial: document.result === null,
-    replayHash: document.replayHash,
+    partial: 'partial' in document && document.partial === true,
+    replayHash: document.replayHash ?? null,
     matchContractFingerprint: null,
     map,
     forms,

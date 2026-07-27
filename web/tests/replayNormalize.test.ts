@@ -7,6 +7,7 @@ import {
 import {
   JS_UNSAFE_DECIMAL,
   replayV1FixtureInput,
+  replayV1LivePartialFixtureInput,
   replayV2FixtureInput,
   replayV2ZeroTickPartialFixtureInput,
 } from './support/replayFixtureInputs.ts';
@@ -65,6 +66,62 @@ test('replay-v1 creates canonical virtual teams, units, and lives by sparse slot
     replay.ticks[0]?.actorTurns.every(
       (turn) => turn.observation.completeness === 'legacy-partial',
     ),
+  );
+});
+
+test('replay-v1 accepts the live endpoint shape with omitted null result and hash', () => {
+  const input = replayV1LivePartialFixtureInput();
+
+  assert.equal(Object.hasOwn(input, 'result'), false);
+  assert.equal(Object.hasOwn(input, 'replayHash'), false);
+  assert.equal(input.partial, true);
+
+  const decoded = decodeReplay(input);
+
+  assert.strictEqual(decoded.wire, input);
+  assert.equal(decoded.replay.partial, true);
+  assert.equal(decoded.replay.result, null);
+  assert.equal(decoded.replay.replayHash, null);
+});
+
+test('replay-v1 requires an explicit partial discriminator when final fields are absent', () => {
+  const input = replayV1LivePartialFixtureInput() as {
+    partial?: true;
+  };
+  delete input.partial;
+
+  assert.throws(
+    () => decodeReplay(input),
+    /result: missing required property/,
+  );
+});
+
+test('finalized replay-v1 still requires its result and replay hash', () => {
+  const missingResult = replayV1FixtureInput() as unknown as {
+    result?: unknown;
+  };
+  delete missingResult.result;
+  assert.throws(
+    () => decodeReplay(missingResult),
+    /result: missing required property/,
+  );
+
+  const missingHash = replayV1FixtureInput() as unknown as {
+    replayHash?: unknown;
+  };
+  delete missingHash.replayHash;
+  assert.throws(
+    () => decodeReplay(missingHash),
+    /replayHash: missing required property/,
+  );
+
+  const explicitCompleteFlag = {
+    ...replayV1FixtureInput(),
+    partial: false,
+  };
+  assert.throws(
+    () => decodeReplay(explicitCompleteFlag),
+    /complete documents omit the partial property/,
   );
 });
 
