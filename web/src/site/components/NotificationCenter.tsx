@@ -187,43 +187,43 @@ function UnlockToast({
 
   return (
     <aside
-      className="unlock-toast fixed top-4 right-4 z-50 w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-amber-300/45 bg-[#101720]/96 shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(245,190,70,0.13)] backdrop-blur"
+      className="unlock-toast fixed top-4 right-4 z-50 w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-arena-accent/45 bg-[#101720]/96 shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(245,190,70,0.13)] backdrop-blur"
       role="status"
       aria-live="polite"
     >
       <div className="unlock-toast__sheen pointer-events-none absolute inset-0" />
-      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-amber-200 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-arena-accent to-transparent" />
       <div className="relative flex gap-4 p-4 sm:p-5">
         <UnlockArtwork
           chassis={chassis}
           projectileId={projectileItem?.id}
         />
         <div className="min-w-0 flex-1 py-0.5">
-          <p className="font-mono text-[10px] font-bold tracking-[0.22em] text-amber-300">
+          <p className="font-mono text-[10px] font-bold tracking-[0.22em] text-arena-accent">
             ACHIEVEMENT UNLOCKED
           </p>
-          <h2 className="mt-1 text-lg font-black tracking-wide text-slate-100">
+          <h2 className="mt-1 text-lg font-black tracking-wide text-arena-text">
             {title}
           </h2>
           {items.length > 1 && (
-            <p className="mt-0.5 text-sm font-semibold text-slate-200">
+            <p className="mt-0.5 text-sm font-semibold text-arena-text">
               {items.map((item) => item.label).join(' + ')}
             </p>
           )}
           {reason && (
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+            <p className="mt-1.5 text-xs leading-relaxed text-arena-dim">
               {reason}
             </p>
           )}
           <Link
             to="/garage"
             onClick={onDismiss}
-            className="mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold text-arena-accent transition-colors hover:text-sky-300"
+            className="mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold text-arena-accent transition-colors hover:text-arena-accent"
           >
             Equip in my garage <span aria-hidden>→</span>
           </Link>
           {queued > 0 && (
-            <p className="mt-2 font-mono text-[10px] text-slate-500">
+            <p className="mt-2 font-mono text-[10px] text-arena-dim">
               +{queued} more unlock{queued === 1 ? '' : 's'}
             </p>
           )}
@@ -232,7 +232,7 @@ function UnlockToast({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss unlock notification"
-          className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-200"
+          className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-arena-dim transition-colors hover:bg-white/5 hover:text-arena-text"
         >
           ×
         </button>
@@ -254,7 +254,7 @@ function UnlockArtwork({
       className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_42%,rgba(245,190,70,0.18),rgba(10,14,20,0.82)_68%)]"
       style={{ boxShadow: `inset 0 -3px 0 ${accent}55` }}
     >
-      <div className="unlock-toast__halo absolute size-16 rounded-full bg-amber-300/10 blur-xl" />
+      <div className="unlock-toast__halo absolute size-16 rounded-full bg-arena-accent/10 blur-xl" />
       {chassis ? (
         <img
           src={chassis.imageUrl}
@@ -268,10 +268,10 @@ function UnlockArtwork({
           className="relative h-16 w-20"
         />
       ) : (
-        <span className="relative text-3xl text-amber-300">✦</span>
+        <span className="relative text-3xl text-arena-accent">✦</span>
       )}
       {chassis && projectileId && (
-        <span className="absolute right-1.5 bottom-1.5 flex size-9 items-center justify-center rounded-full border border-amber-200/25 bg-[#0a0e14]/90 shadow-lg">
+        <span className="absolute right-1.5 bottom-1.5 flex size-9 items-center justify-center rounded-full border border-arena-accent/25 bg-[#0a0e14]/90 shadow-lg">
           <ProjectilePreview
             look={projectileLook(projectileId)}
             accent={accent}

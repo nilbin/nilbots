@@ -24,7 +24,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   const message = error instanceof Error ? error.message : String(error);
   return (
     <div className="py-8 text-center" role="alert">
-      <p className="text-sm text-red-300">{message}</p>
+      <p className="text-sm text-arena-hot">{message}</p>
       {onRetry && (
         <button
           type="button"
@@ -41,7 +41,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 export function EmptyState({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="py-10 text-center">
-      <p className="text-sm font-semibold text-slate-300">{title}</p>
+      <p className="text-sm font-semibold text-arena-dim">{title}</p>
       {detail && <p className="mt-1 text-xs text-arena-dim">{detail}</p>}
     </div>
   );

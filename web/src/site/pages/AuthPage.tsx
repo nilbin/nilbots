@@ -82,23 +82,23 @@ export default function AuthPage() {
             />
           </Field>
           {externalError === 'email-taken' && (
-            <p className="text-sm text-amber-300">
+            <p className="text-sm text-arena-accent">
               That address already has a nilbots account with a password. Sign in with it
               here, and Google will be linked for next time.
             </p>
           )}
           {externalError === 'google' && (
-            <p className="text-sm text-red-400">Google sign-in did not complete.</p>
+            <p className="text-sm text-arena-hot">Google sign-in did not complete.</p>
           )}
           {active.isError && (
-            <p className="text-sm text-red-400">
+            <p className="text-sm text-arena-hot">
               {errorMessage(active.error, 'Something went wrong.')}
             </p>
           )}
           <button
             type="submit"
             disabled={active.isPending}
-            className="mt-2 rounded-md bg-arena-accent py-2 font-semibold text-slate-950 transition-opacity disabled:opacity-50"
+            className="mt-2 rounded-md bg-arena-accent py-2 font-semibold text-arena-bg transition-opacity disabled:opacity-50"
           >
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </button>

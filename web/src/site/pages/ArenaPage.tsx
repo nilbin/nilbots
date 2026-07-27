@@ -44,7 +44,7 @@ export default function ArenaPage() {
         <div className="mt-4 flex gap-3">
           <Link
             to={user ? '/garage' : '/login'}
-            className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-slate-950"
+            className="rounded-md bg-arena-accent px-4 py-2 font-semibold text-arena-bg"
           >
             {user ? 'Open my garage' : 'Join the arena'}
           </Link>
@@ -168,8 +168,8 @@ function MatchRow({ match }: { match: MatchSummary }) {
           {match.setGame && <span className="rounded bg-arena-edge px-1.5 py-0.5">ranked g{match.setGame}</span>}
           {match.mapId} ·{' '}
           {match.broadcasting ? (
-            <span className="flex items-center gap-1 font-bold text-red-400">
-              <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-500" />
+            <span className="flex items-center gap-1 font-bold text-arena-hot">
+              <span className="inline-block size-1.5 animate-pulse rounded-full bg-arena-hot" />
               LIVE
             </span>
           ) : match.status === 'Completed' ? (

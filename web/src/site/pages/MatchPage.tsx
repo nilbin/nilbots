@@ -37,8 +37,8 @@ export default function MatchPage() {
     return (
       <div className="flex flex-col gap-3">
         <RankedSetNavigation live={live} />
-        <div className="rounded-xl border border-red-900 bg-arena-panel p-6">
-          <p className="font-semibold text-red-400">Match failed to execute.</p>
+        <div className="rounded-xl border border-arena-hot/40 bg-arena-panel p-6">
+          <p className="font-semibold text-arena-hot">Match failed to execute.</p>
           <pre className="mt-2 font-mono text-xs whitespace-pre-wrap text-arena-dim">{error}</pre>
         </div>
       </div>

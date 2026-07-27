@@ -58,7 +58,7 @@ export default function Controls({
               className={clsx(
                 'rounded px-2 py-1 font-mono text-xs transition-colors',
                 playback.speed === speed
-                  ? 'bg-arena-accent text-slate-950'
+                  ? 'bg-arena-accent text-arena-bg'
                   : 'text-arena-dim hover:bg-arena-edge hover:text-arena-text',
               )}
             >

@@ -482,7 +482,7 @@ export default function Viewer({
         >
           {isLive ? (
             <div className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4 font-mono text-xs text-arena-dim">
-              <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
+              <span className="inline-block size-2 animate-pulse rounded-full bg-arena-hot" />
               Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees this moment.
             </div>
           ) : (

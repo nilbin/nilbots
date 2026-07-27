@@ -290,7 +290,7 @@ export default function BotPanel({
             </dl>
 
             {formTransition && (
-              <p className="mt-2 font-mono text-[10px] tracking-wide text-violet-300">
+              <p className="mt-2 font-mono text-[10px] tracking-wide text-arena-dim">
                 ANCHORING · {formTransition.fromFormId.toUpperCase()} →{' '}
                 {formTransition.toFormId.toUpperCase()} · COMPLETES T
                 {formTransition.completesAtTick}
@@ -298,7 +298,7 @@ export default function BotPanel({
             )}
 
             {!unit.canMove && (
-              <p className="mt-2 font-mono text-[10px] tracking-wide text-cyan-300">
+              <p className="mt-2 font-mono text-[10px] tracking-wide text-arena-accent">
                 STATIONARY ·{' '}
                 {unit.omnidirectionalVision ? '360° VISION' : 'DIRECTED VISION'}
                 {' · '}

@@ -27,9 +27,9 @@ export default function MatchHistory({ botId, botSlug }: { botId: string; botSlu
                 className={
                   'w-10 font-mono text-[11px] ' +
                   (match.outcome === 'Win'
-                    ? 'text-emerald-400'
+                    ? 'text-arena-ok'
                     : match.outcome === 'Loss'
-                      ? 'text-red-400'
+                      ? 'text-arena-hot'
                       : 'text-arena-dim')
                 }
               >

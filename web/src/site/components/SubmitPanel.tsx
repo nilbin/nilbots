@@ -68,14 +68,14 @@ export default function SubmitPanel({ bot, botKey }: { bot: BotDetail; botKey: s
         className="w-full rounded-md border border-arena-edge bg-arena-bg p-3 font-mono text-xs text-arena-text outline-none focus:border-arena-accent"
       />
       {submission.isError && (
-        <p className="mt-2 text-sm text-red-400">
+        <p className="mt-2 text-sm text-arena-hot">
           {errorMessage(submission.error, 'Submission failed.')}
         </p>
       )}
       <button
         onClick={submit}
         disabled={submission.isPending || building}
-        className="mt-3 rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+        className="mt-3 rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg disabled:opacity-50"
       >
         {building
           ? 'Build in progress…'

@@ -91,8 +91,8 @@ function RecordCard({
         </span>
       </div>
       <p className="mt-3 text-xl font-bold">
-        <span className="text-emerald-400">{record.wins}W</span>{' '}
-        <span className="text-red-400">{record.losses}L</span>{' '}
+        <span className="text-arena-ok">{record.wins}W</span>{' '}
+        <span className="text-arena-hot">{record.losses}L</span>{' '}
         <span className="text-arena-text">{record.draws}D</span>
       </p>
       <p className="mt-1 font-mono text-[11px] text-arena-dim">

@@ -70,26 +70,26 @@ export default function ResultToast({
           <p className={`font-mono text-[10px] font-bold tracking-[0.22em] ${tone.eyebrow}`}>
             {challenged ? 'CHALLENGE' : ranked ? 'RANKED SET' : 'MATCH COMPLETE'}
           </p>
-          <h2 className="mt-1 truncate text-lg font-black tracking-wide text-slate-100">
+          <h2 className="mt-1 truncate text-lg font-black tracking-wide text-arena-text">
             {challenged
               ? `${payload.botName} was challenged`
               : `${payload.botName} ${VERBS[payload.outcome] ?? 'drew'}`}
           </h2>
 
           {payload.kind === 'match-challenged' ? (
-            <p className="mt-0.5 text-sm text-slate-400">
+            <p className="mt-0.5 text-sm text-arena-dim">
               by {payload.challengerName} on{' '}
               <span className="font-mono text-xs">{payload.mapId}</span>
             </p>
           ) : payload.kind === 'set-settled' ? (
-            <p className="mt-0.5 font-mono text-sm font-semibold text-slate-200">
+            <p className="mt-0.5 font-mono text-sm font-semibold text-arena-text">
               {payload.score}–{payload.opponentScore}{' '}
-              <span className="font-sans text-xs font-normal text-slate-400">
+              <span className="font-sans text-xs font-normal text-arena-dim">
                 against {payload.opponentName}
               </span>
             </p>
           ) : (
-            <p className="mt-0.5 text-sm text-slate-400">
+            <p className="mt-0.5 text-sm text-arena-dim">
               against {payload.opponentName} on{' '}
               <span className="font-mono text-xs">{payload.mapId}</span>
             </p>
@@ -98,7 +98,7 @@ export default function ResultToast({
           <Link
             to={payload.kind === 'set-settled' ? `/sets/${payload.matchSetId}` : `/matches/${payload.matchId}`}
             onClick={onDismiss}
-            className="mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold text-arena-accent transition-colors hover:text-sky-300"
+            className="mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold text-arena-accent transition-colors hover:text-arena-accent"
           >
             {payload.kind === 'set-settled'
               ? 'See the set'
@@ -108,7 +108,7 @@ export default function ResultToast({
             <span aria-hidden>→</span>
           </Link>
           {queued > 0 && (
-            <p className="mt-2 font-mono text-[10px] text-slate-500">+{queued} more</p>
+            <p className="mt-2 font-mono text-[10px] text-arena-dim">+{queued} more</p>
           )}
         </div>
 
@@ -124,7 +124,7 @@ export default function ResultToast({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss result notification"
-          className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-200"
+          className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-arena-dim transition-colors hover:bg-white/5 hover:text-arena-text"
         >
           ×
         </button>
@@ -148,37 +148,37 @@ const TONES: Record<
   }
 > = {
   Win: {
-    border: 'border-emerald-300/45',
+    border: 'border-arena-ok/45',
     glow: 'shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(52,211,153,0.13)]',
-    rule: 'via-emerald-200',
-    eyebrow: 'text-emerald-300',
-    delta: 'text-emerald-400',
+    rule: 'via-arena-ok',
+    eyebrow: 'text-arena-ok',
+    delta: 'text-arena-ok',
     halo: 'rgba(52,211,153,0.12)',
   },
   Loss: {
-    border: 'border-red-400/40',
+    border: 'border-arena-hot/40',
     glow: 'shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(248,113,113,0.12)]',
-    rule: 'via-red-300',
-    eyebrow: 'text-red-300',
-    delta: 'text-red-400',
+    rule: 'via-arena-hot',
+    eyebrow: 'text-arena-hot',
+    delta: 'text-arena-hot',
     halo: 'rgba(248,113,113,0.12)',
   },
   // Not an outcome — an invitation. The arena accent rather than a result colour, because
   // green or red here would state a result the match has not produced yet.
   Challenged: {
-    border: 'border-sky-300/45',
+    border: 'border-arena-accent/45',
     glow: 'shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(56,189,248,0.13)]',
-    rule: 'via-sky-200',
-    eyebrow: 'text-sky-300',
-    delta: 'text-sky-300',
+    rule: 'via-arena-accent',
+    eyebrow: 'text-arena-accent',
+    delta: 'text-arena-accent',
     halo: 'rgba(56,189,248,0.12)',
   },
   Draw: {
-    border: 'border-slate-400/35',
+    border: 'border-arena-edge2',
     glow: 'shadow-[0_22px_70px_rgba(0,0,0,0.55)]',
-    rule: 'via-slate-300',
-    eyebrow: 'text-slate-300',
-    delta: 'text-slate-300',
+    rule: 'via-arena-text',
+    eyebrow: 'text-arena-dim',
+    delta: 'text-arena-dim',
     halo: 'rgba(148,163,184,0.10)',
   },
 };

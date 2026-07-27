@@ -64,13 +64,13 @@ export default function MatchSetPage() {
           </p>
         )}
         {set.status === 'Failed' && (
-          <p className="mt-3 text-sm text-red-400">
+          <p className="mt-3 text-sm text-arena-hot">
             A game in this set failed to execute; no ratings were changed.
           </p>
         )}
         {!set.revealed && set.status !== 'Failed' && (
           <p className="mt-3 flex items-center gap-2 font-mono text-xs text-arena-dim">
-            <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
+            <span className="inline-block size-2 animate-pulse rounded-full bg-arena-hot" />
             Games are still broadcasting — results reveal as you watch them.
           </p>
         )}
@@ -123,8 +123,8 @@ function GameCard({ game, set }: { game: SetGame; set: MatchSetDetail }) {
           GAME {game.game} · {game.mapId}
           <span className="ml-auto">
             {game.broadcasting ? (
-              <span className="flex items-center gap-1 font-bold text-red-400">
-                <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-500" />
+              <span className="flex items-center gap-1 font-bold text-arena-hot">
+                <span className="inline-block size-1.5 animate-pulse rounded-full bg-arena-hot" />
                 LIVE
               </span>
             ) : game.status !== 'Completed' ? (

@@ -24,14 +24,14 @@ export default function CosmeticUnlocks({
       {!catalog && !error && (
         <p className="text-xs text-arena-dim">Loading cosmetic progress…</p>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-arena-hot">{error}</p>}
       <ul className="grid gap-3 sm:grid-cols-2">
         {unlocks.map((item) => (
           <li
             key={item.key}
             className="flex min-h-24 items-center gap-3 rounded-lg border border-arena-edge bg-arena-bg/60 p-3"
           >
-            <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-slate-950/50">
+            <span className="flex size-16 shrink-0 items-center justify-center rounded-md bg-arena-bg/50">
               {item.kind === 'bot-look' ? (
                 <img
                   src={botLook(item.id).imageUrl}
@@ -52,8 +52,8 @@ export default function CosmeticUnlocks({
                 <span
                   className={
                     item.owned
-                      ? 'rounded bg-emerald-400/15 px-1.5 py-0.5 font-mono text-[9px] text-emerald-300'
-                      : 'rounded bg-slate-500/15 px-1.5 py-0.5 font-mono text-[9px] text-arena-dim'
+                      ? 'rounded bg-arena-ok/15 px-1.5 py-0.5 font-mono text-[9px] text-arena-ok'
+                      : 'rounded bg-arena-dim/15 px-1.5 py-0.5 font-mono text-[9px] text-arena-dim'
                   }
                 >
                   {item.owned ? 'UNLOCKED' : 'LOCKED'}
@@ -70,7 +70,7 @@ export default function CosmeticUnlocks({
                       {item.progress.current}/{item.progress.target}
                     </span>
                   </span>
-                  <span className="block h-1 overflow-hidden rounded-full bg-slate-700">
+                  <span className="block h-1 overflow-hidden rounded-full bg-arena-edge2">
                     <span
                       className="block h-full rounded-full bg-arena-accent"
                       style={{

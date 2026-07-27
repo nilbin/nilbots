@@ -2,9 +2,9 @@
 export default function StatusBadge({ status }: { status: string }) {
   const color =
     status === 'Built'
-      ? 'text-emerald-400'
+      ? 'text-arena-ok'
       : status === 'Failed'
-        ? 'text-red-400'
-        : 'text-amber-300';
+        ? 'text-arena-hot'
+        : 'text-arena-accent';
   return <span className={`font-mono text-[11px] ${color}`}>{status.toUpperCase()}</span>;
 }

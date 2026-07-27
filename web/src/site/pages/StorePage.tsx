@@ -31,7 +31,7 @@ export default function StorePage() {
           earned by playing stays earned by playing.
         </p>
         {!store.open && (
-          <p className="mt-3 inline-block rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 font-mono text-[11px] tracking-wide text-amber-300">
+          <p className="mt-3 inline-block rounded-md border border-arena-accent/40 bg-arena-accent/10 px-3 py-1.5 font-mono text-[11px] tracking-wide text-arena-accent">
             NOT OPEN YET — browsing only
           </p>
         )}
@@ -70,7 +70,7 @@ function PackCard({
     <li
       className={
         'flex flex-col gap-3 rounded-xl border bg-arena-panel/60 p-4 ' +
-        (settled ? 'border-emerald-400/35' : 'border-arena-edge')
+        (settled ? 'border-arena-ok/35' : 'border-arena-edge')
       }
     >
       <div className="flex items-start gap-3">
@@ -80,7 +80,7 @@ function PackCard({
           <p className="mt-0.5 text-xs leading-relaxed text-arena-dim">{pack.description}</p>
         </div>
         {settled && (
-          <span className="shrink-0 rounded bg-emerald-400/15 px-2 py-0.5 font-mono text-[10px] tracking-wider text-emerald-300">
+          <span className="shrink-0 rounded bg-arena-ok/15 px-2 py-0.5 font-mono text-[10px] tracking-wider text-arena-ok">
             OWNED
           </span>
         )}

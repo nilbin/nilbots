@@ -226,11 +226,11 @@ export default function GaragePage() {
             {projectileLook(projectileLookId).label}
           </div>
           {creation.isError && (
-            <p className="text-sm text-red-400">
+            <p className="text-sm text-arena-hot">
               {errorMessage(creation.error, 'Failed to create bot.')}
             </p>
           )}
-          {catalogError && <p className="text-sm text-red-400">{catalogError}</p>}
+          {catalogError && <p className="text-sm text-arena-hot">{catalogError}</p>}
           <button
             type="submit"
             disabled={
@@ -239,7 +239,7 @@ export default function GaragePage() {
               !selectedLookOwned ||
               !selectedProjectileOwned
             }
-            className="mt-1 self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+            className="mt-1 self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg disabled:cursor-not-allowed disabled:opacity-40"
           >
             {creation.isPending ? 'Creating…' : 'Create bot'}
           </button>

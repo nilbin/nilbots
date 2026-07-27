@@ -109,12 +109,12 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
       <button
         onClick={() => void fight()}
         disabled={busy || !challenger || (!ranked && !opponent)}
-        className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
+        className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-arena-bg disabled:opacity-40"
       >
         {busy ? 'SENDING…' : ranked ? 'FIGHT FOR RATING' : 'FIGHT'}
       </button>
       {failure && (
-        <p className="w-full text-sm text-red-400">
+        <p className="w-full text-sm text-arena-hot">
           {errorMessage(failure, 'Challenge failed.')}
         </p>
       )}

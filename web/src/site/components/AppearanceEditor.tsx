@@ -179,22 +179,22 @@ export default function AppearanceEditor({
             snapshotted appearance.
           </p>
           {appearance.isError && (
-            <p className="text-sm text-red-400">
+            <p className="text-sm text-arena-hot">
               {errorMessage(appearance.error, 'Could not save appearance.')}
             </p>
           )}
-          {catalogError && <p className="text-sm text-red-400">{catalogError}</p>}
+          {catalogError && <p className="text-sm text-arena-hot">{catalogError}</p>}
           {/* Success survives only until the next edit — `dirty` going true means the
               confirmation is describing a state the form has already left. */}
           {appearance.isSuccess && !dirty && (
-            <p className="text-sm text-emerald-400">
+            <p className="text-sm text-arena-ok">
               Appearance saved for future matches.
             </p>
           )}
           <button
             type="submit"
             disabled={!dirty || appearance.isPending || !catalog || !selectionOwned}
-            className="self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+            className="self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg disabled:cursor-not-allowed disabled:opacity-40"
           >
             {appearance.isPending ? 'Saving…' : 'Save appearance'}
           </button>

@@ -47,7 +47,7 @@ export default function LeaderboardPage() {
               className={clsx(
                 'rounded px-2.5 py-1 font-mono text-xs transition-colors',
                 ladder === board.rulesVersion
-                  ? 'bg-arena-accent text-slate-950'
+                  ? 'bg-arena-accent text-arena-bg'
                   : 'border border-arena-edge text-arena-dim hover:border-arena-dim hover:text-arena-text',
               )}
             >
@@ -98,7 +98,7 @@ export default function LeaderboardPage() {
                   className={
                     'w-8 text-center font-mono text-sm ' +
                     (entry.rank === 1
-                      ? 'text-amber-300'
+                      ? 'text-arena-accent'
                       : entry.rank <= 3
                         ? 'text-arena-accent'
                         : 'text-arena-dim')
