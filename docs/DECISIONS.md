@@ -1927,6 +1927,116 @@ stack because its observation/replay seam is now implemented here while its prod
 packages are not. No balance value is promoted until Frontline-native all-WASM doctrines,
 causal arms, dynamics analysis and outcome-blind review pass the evaluation policy.
 
+## 126. A second renderer, in WebGL, beside the Canvas2D one
+
+`docs/VIEWER-PLAN.md` argued "Canvas2D throughout — no WebGL, no three.js", on the grounds
+that rasterisation is not the bottleneck and payload is. That reasoning was about *faking*
+depth. It does not survive wanting real depth: offsets and gradients cannot make a shadow
+fall across another wall, and no amount of Canvas2D produces a wall you can see the side of.
+
+So there are two renderers. **The Canvas2D one remains the default and is not replaced** —
+it is what the CLI ships, what the mobile app loads, and what the golden frames pin. The
+WebGL one is opt-in (`?renderer=3d`, or the toggle in the viewer header).
+
+The payload objection turned out to be answerable rather than fatal:
+
+- three.js stays in a **lazy renderer chunk** — currently about 609 KB raw and 162 KB
+  gzipped with the arena code — downloaded only if someone asks for the second renderer;
+- and it is **stubbed out of the CLI artifact entirely** (`vite.cli.config.ts`), because
+  `viteSingleFile` inlines every chunk, so laziness saves nothing there. The current
+  theme-scoped artifacts remain roughly 3.6–6.5 MiB with zero three.js in them.
+
+Against 3–7 MB of textures, 131 KB was never the deciding number. What the library actually
+buys is the directional shadow map, which is the whole point of building real geometry and
+is a night's work to hand-write badly.
+
+**It uses the shipped textures, not new art.** Wall bodies take the 1024² tiling albedo that
+previously only filled a flat silhouette; the 16-column topology atlas goes on top as a
+transparent cap, in the same order the 2D renderer composites it. Two things had to match
+the 2D renderer exactly to stop it looking like a different game: materials are mapped
+**once across the arena** in world space rather than tiled per tile (`drawTextureField`
+stretches one copy over the whole map and reveals it through geometry — repeating it per
+box was the single biggest reason the first attempt looked wrong), and the palette's
+`floorTint`/`wallTint` are applied as a colour multiply.
+
+Bots and projectiles started as quads lying **flat on the floor**, on the reasoning that the
+sprites are plan views and standing one upright shows a top-down drawing pretending to be a
+side view. That reasoning was right about the *sprite* and wrong about the *bot*: a decal on
+the ground has no silhouette, casts a shadow the shape of a postage stamp, and vanishes
+against a dark floor. See #127.
+
+They are also rasterised through a canvas wherever a sprite is still used as a texture,
+because every sprite is an SVG with only a `viewBox` — an unreliable WebGL texture source
+that silently yields a fully transparent texture, which `alphaTest` then discards, which is
+how the first working build had two active bots and nothing on the floor.
+
+## 127. The 2.5D renderer derives its models from the sprites, and copies the flat renderer's rules
+
+A chassis is not authored as a model. `chassisModel` fetches the look's SVG, extrudes every
+filled path, and uses **draw order as height** — a plan-view illustration is layered the way
+the object is built, hull then plating then cockpit, so the artist has already described the
+relief and the extruder only has to believe them. The alternative was twenty-three
+hand-modelled solids to keep in step with twenty-three sprites, obsolete the first time an
+artist adjusted one and the first time a cosmetic pack shipped. Now a new look added as a
+folder and a manifest gets a 3D form the same way it gets a 2D one.
+
+Walls are traced into outlines and extruded, not stamped as a box per tile: a run of wall is
+one chamfered solid rather than a row of cubes with four hidden faces each. Tracing is also
+what gives holes, which the boundary ring needs to not pave the floor. Both wall and floor
+albedos double as bump maps — the art already contains its relief as painted light and
+shade, so reading its luminance as height makes it answer *this* scene's key light.
+
+**Where the two renderers could disagree, the flat one wins**, because they are the same
+game and a player switching between them must not see two:
+
+- The owner's accent does **not** tint a chassis. The flat renderer draws these sprites
+  untinted; accent reaches the screen as health pips, the facing cone, the selection ring
+  and the pool of light on the floor. Emissive accent over hull greys this dark is not a
+  trace but the entire colour, and it made every bot a lozenge of team colour.
+- A projectile *is* recoloured wholesale, because the flat renderer does exactly that —
+  `source-in` over the sprite, keeping the alpha and replacing every pixel.
+- Bolt position comes from `boltsAt`, shared with the flat renderer. Facing is eased so a
+  bolt banks through an octant change instead of blinking; position never is.
+
+Selection is the other place the two differ on purpose. The flat renderer draws a dashed
+ring around the followed bot; here the **bot itself lights up**. A ring wide enough to clear
+a chassis became a halo louder than the arena, and tight enough to hug read as drawn across
+it — and a marker beside a thing is one you look away to read. The gain is multiplicative,
+not additive: hull greys are near-black and barely lit, so *adding* even 0.05 of emission to
+one is comparable to everything else it receives, and two attempts at a flat add both came
+out as a solid lozenge of team colour. Multiplying leaves near-zero near zero and lifts the
+trim the artist already drew bright.
+
+One deliberate divergence: fog darkens the **floor**, not the walls. A horizontal mask plane
+can only align at one height, and lifting it above the walls slides it off the floor by most
+of a tile at this camera pitch. Walls are static terrain both players have always known
+about; the information is in where bots and bolts are, and those are hidden by the actors.
+
+## 128. The 2.5D renderer consumes normalized replay identity and represents forms explicitly
+
+The second renderer does not get a replay-v2 parser. It receives the same version-neutral
+`ReplayModel`, `posesAt` interpolation and `replayPresentation` state as Canvas2D and the
+hosted bridge. That keeps replay-v1 behavior on the existing normalized duel identities
+while allowing Frontline to retain separate participant, stable-unit and exact-life
+identity. Bot rigs and selection are keyed by stable unit; damage, destruction and
+projectiles remain keyed by exact life, including an old life's projectile after that unit
+has respawned.
+
+Every stable unit gets a reusable rig, but it is visible only while the normalized world has
+an actor life. Locked, rebuilding and Ready child slots therefore never gain invented bodies
+or positions. A lifecycle ring appears only where the replay has an exact reserved
+fabrication tile, or at the authored automatic Prime return; queued fabrication gets the
+stronger windup. Anchor likewise displays the authoritative pending transition, keeps the
+mobile body through the windup, and switches only when the effective form changes. The
+turret is a separate circular body with eight radial vanes: stationary and 360-degree at a
+glance, without pretending its preserved body facing aims an absolute shot.
+
+Frontline objective geometry renders every authored position and promotes the active one
+from presentation state, so three-, five- and later variable-position maps use the same
+code. Projectile traversal is one shared normalized derivation with all eight headings and
+exact decimal-string identity. Canvas2D remains the default, and the self-contained CLI
+build neither includes three.js nor offers its deliberately stubbed renderer as a toggle.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

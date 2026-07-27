@@ -25,6 +25,7 @@ src/
   assets/         Bot chassis, projectile looks, map themes.
   components/     VIEWER components only — the arena canvas, bot panel, controls, feed.
   render/         Canvas2D drawing: drawArena, themes, accents, interpolation.
+  render3d/       Lazy WebGL renderer; consumes ReplayModel/presentation, never wire JSON.
   site/           The website: pages, its own components, its API client, auth.
   App.tsx         Standalone viewer mode.
   main.tsx        The mode switch.

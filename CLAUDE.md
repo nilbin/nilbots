@@ -120,7 +120,8 @@ Project boundaries that must not be violated:
   fingerprints, `FrontlineMatchSession`, independently instantiated per-life
   `ActorRuntime`s, canonical team observations, replication/fabrication,
   per-life Anchor/turret forms, and internal replay v2 exist. Web/mobile can
-  present that v2 through their version-neutral replay model. The shipped
+  present that v2 through their version-neutral replay model; the web viewer's
+  default Canvas2D and optional lazy WebGL renderers share those derivations. The shipped
   SDK/guest, protocol, CLI/App match path, canonical WASM runner, server
   admission, and ladders do not expose Frontline yet. Format-v2 assets live
   under `maps/experimental/`; current App and CLI catalogs/package inputs

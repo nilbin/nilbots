@@ -23,8 +23,9 @@ import {
   participantForUnit,
   visualIndexForUnit,
 } from '../replayParticipants';
-import { posesAt, type BotPose } from './interpolate';
+import { boltsAt, posesAt, type BotPose } from './interpolate';
 import { wallAtlasDestination } from './wallAtlasGeometry';
+import { WallLayout } from './wallTopology';
 import { drawFogMask } from './fogMask';
 import { drawLightSpill, type LightKind, type LightSource } from './lightSpill';
 
@@ -34,17 +35,6 @@ const directionStep: Record<ReplayDirection, [number, number]> = {
   south: [0, 1],
   west: [-1, 0],
 };
-
-const wallNeighbourStep: readonly [number, number][] = [
-  [0, -1],
-  [1, -1],
-  [1, 0],
-  [1, 1],
-  [0, 1],
-  [-1, 1],
-  [-1, 0],
-  [-1, -1],
-];
 
 const directionAngle: Record<ReplayDirection, number> = {
   north: -Math.PI / 2,
@@ -182,12 +172,12 @@ export function drawArena(
     replay.map.presentation?.interiorWall ?? undefined,
     theme.walls.defaults.interior,
   );
-  const wallOverrides = new Map<string, string>();
-  for (const group of replay.map.presentation?.wallGroups ?? []) {
-    const family = validWallFamily(group.family, interiorWall);
-    for (const position of group.tiles)
-      wallOverrides.set(`${position.x},${position.y}`, family);
-  }
+  const wallLayout = new WallLayout(
+    replay,
+    boundaryWall,
+    interiorWall,
+    (family) => validWallFamily(family, interiorWall),
+  );
   const lookFor = (unitKey: ReplayStableUnitKey) => {
     const participant = participantForUnit(replay, unitKey);
     return botLook(
@@ -600,12 +590,7 @@ export function drawArena(
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         if (wallFamilyAt(x, y) !== familyId) continue;
-        let mask = 0;
-        for (let bit = 0; bit < 8; bit++) {
-          const [dx, dy] = wallNeighbourStep[bit];
-          if (wallFamilyAt(x + dx, y + dy) === familyId)
-            mask |= 1 << bit;
-        }
+        const mask = wallLayout.maskAt(x, y, familyId);
         ctx.drawImage(
           image,
           (mask % columns) * sourceTile,
@@ -636,14 +621,7 @@ export function drawArena(
   }
 
   function wallFamilyAt(x: number, y: number): string | null {
-    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight)
-      return boundaryWall;
-    if (mapTiles[y][x] !== '#') return null;
-    const override = wallOverrides.get(`${x},${y}`);
-    if (override) return override;
-    return x === 0 || y === 0 || x === mapWidth - 1 || y === mapHeight - 1
-      ? boundaryWall
-      : interiorWall;
+    return wallLayout.familyAt(x, y);
   }
 
   function validWallFamily(candidate: string | undefined, fallback: string): string {
@@ -724,12 +702,9 @@ export function drawArena(
   }
 
   function drawProjectiles(): void {
-    // Replay traversals are authoritative ordered substeps. Interpolating across the
-    // path makes speed-two travel read A→B in the first half of the visual tick and
-    // B→C in the second; a first-substep hit naturally ends at B.
-    const traversals = currentTick?.projectileTraversals ?? [];
-    const bolts = currentTick?.after.projectiles ?? [];
-    if (bolts.length === 0 && traversals.length === 0) return;
+    // Both renderers consume the same normalized authoritative substep interpolation.
+    const bolts = boltsAt(replay, time);
+    if (bolts.length === 0) return;
     // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
     // (an unseen bolt is precisely the threat it doesn't know about).
     const seenTiles =
@@ -755,10 +730,6 @@ export function drawArena(
               )
               .map((alias) => alias.projectileId),
           );
-    const movingIds = new Set(
-      traversals.map((move) => move.projectileId),
-    );
-
     // Omniscient spectators see the locked future arc. A selected defender
     // sees only physically manifested segments; the owner authored the plan.
     const programmed = new Map<
@@ -768,15 +739,9 @@ export function drawArena(
         path: readonly { x: number; y: number }[];
       }
     >();
-    for (const move of traversals)
-      if (move.programmedPath)
-        programmed.set(move.projectileId, {
-          ownerActor: move.ownerActor,
-          path: move.programmedPath,
-        });
     for (const bolt of bolts)
       if (bolt.programmedPath)
-        programmed.set(bolt.projectileId, {
+        programmed.set(bolt.id, {
           ownerActor: bolt.ownerActor,
           path: bolt.programmedPath,
         });
@@ -808,35 +773,16 @@ export function drawArena(
       ctx.setLineDash([]);
     }
 
-    for (const move of traversals) {
-      if (move.path.length === 0) continue;
-      const points = [move.from, ...move.path];
-      const progress = fraction * move.path.length;
-      const segment = Math.min(Math.floor(progress), move.path.length - 1);
-      const local = Math.min(1, progress - segment);
-      const from = points[segment];
-      const to = points[segment + 1];
-      drawBolt(
-        from.x + (to.x - from.x) * local,
-        from.y + (to.y - from.y) * local,
-        headingBetween(from.x, from.y, to.x, to.y),
-        move.projectileId,
-        move.ownerActor,
-        false,
-        1,
-      );
-    }
     for (const bolt of bolts)
-      if (!movingIds.has(bolt.projectileId))
-        drawBolt(
-          bolt.position.x,
-          bolt.position.y,
-          bolt.heading ?? bolt.launchDirection,
-          bolt.projectileId,
-          bolt.ownerActor,
-          bolt.ticksUntilAdvance === 1,
-          bolt.tilesPerAdvance ?? 1,
-        );
+      drawBolt(
+        bolt.x,
+        bolt.y,
+        bolt.heading,
+        bolt.id,
+        bolt.ownerActor,
+        bolt.imminent,
+        bolt.tilesPerAdvance,
+      );
 
     function drawBolt(
       x: number,
@@ -898,23 +844,6 @@ export function drawArena(
       );
     }
 
-    function headingBetween(
-      fromX: number,
-      fromY: number,
-      toX: number,
-      toY: number,
-    ): ReplayProjectileHeading {
-      const dx = Math.sign(toX - fromX);
-      const dy = Math.sign(toY - fromY);
-      if (dx === 0 && dy < 0) return 'north';
-      if (dx > 0 && dy < 0) return 'north-east';
-      if (dx > 0 && dy === 0) return 'east';
-      if (dx > 0 && dy > 0) return 'south-east';
-      if (dx === 0 && dy > 0) return 'south';
-      if (dx < 0 && dy > 0) return 'south-west';
-      if (dx < 0 && dy === 0) return 'west';
-      return 'north-west';
-    }
   }
 
   function drawProjectileHead(

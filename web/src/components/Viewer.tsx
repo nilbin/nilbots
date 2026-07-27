@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import type {
   ReplayModel,
@@ -13,11 +13,24 @@ import { useReplayAudio } from '../audio/useReplayAudio';
 import { useAssetReadiness } from '../render/useAssetReadiness';
 import { useImmersive } from './useImmersive';
 import ArenaCanvas from './ArenaCanvas';
+
 import AudioReviewControls from './AudioReviewControls';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
 import Logo from './Logo';
+
+/**
+ * The 2.5D renderer, loaded only if asked for.
+ *
+ * `lazy` rather than a plain import so three.js lands in its own chunk: the Canvas2D
+ * viewer is the default and must not pay for a renderer it does not use, and the CLI's
+ * single-file artifact stubs this module out entirely (see vite.cli.config.ts).
+ */
+const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
+const DIMENSIONAL_RENDERER_AVAILABLE =
+  typeof __BOTARENA_DIMENSIONAL_RENDERER__ !== 'boolean' ||
+  __BOTARENA_DIMENSIONAL_RENDERER__;
 
 export default function Viewer({
   replay,
@@ -36,6 +49,15 @@ export default function Viewer({
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+  // Opt-in, and sticky for the session so a reviewer comparing the two is not retyping a
+  // query string. The Canvas2D renderer stays the default until this one has been judged
+  // on a real screen — it is an alternative, not a replacement.
+  const [dimensional, setDimensional] = useState(
+    () =>
+      DIMENSIONAL_RENDERER_AVAILABLE &&
+      new URLSearchParams(window.location.search).get('renderer') ===
+        '3d',
+  );
 
   const isLive = live !== undefined;
   const audioReviewEnabled =
@@ -151,6 +173,19 @@ export default function Viewer({
             </span>
           )
         )}
+        {/* Which renderer. The CLI artifact intentionally stubs the dynamic module to
+            keep three.js out of every copied replay, so it must not offer a blank mode. */}
+        {DIMENSIONAL_RENDERER_AVAILABLE && (
+          <button
+            type="button"
+            onClick={() => setDimensional((on) => !on)}
+            className="rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
+            aria-pressed={dimensional}
+            title="Switch between the flat and the 2.5D renderer"
+          >
+            {dimensional ? '2.5D' : '2D'}
+          </button>
+        )}
         {/* Pointer devices only. A phone says what it wants by being turned, and a button
             that duplicated that would either fight the orientation or strand someone in a
             mode their device disagrees with. */}
@@ -191,13 +226,25 @@ export default function Viewer({
             immersive.active ? '' : 'rounded-lg border border-arena-edge',
           )}
         >
-          <ArenaCanvas
-            replay={replay}
-            time={time}
-            selectedUnitKey={selectedUnitKey}
-            showVisibility={showVisibility}
-            onSelectUnit={setSelectedUnitKey}
-          />
+          {dimensional ? (
+            <Suspense fallback={null}>
+              <ArenaCanvas3D
+                replay={replay}
+                time={time}
+                selectedUnitKey={selectedUnitKey}
+                showVisibility={showVisibility}
+                onSelectUnit={setSelectedUnitKey}
+              />
+            </Suspense>
+          ) : (
+            <ArenaCanvas
+              replay={replay}
+              time={time}
+              selectedUnitKey={selectedUnitKey}
+              showVisibility={showVisibility}
+              onSelectUnit={setSelectedUnitKey}
+            />
+          )}
           {!assets.ready && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/80">
               <p className="font-mono text-xs tracking-widest text-arena-dim" role="status">
