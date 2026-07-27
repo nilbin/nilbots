@@ -31,20 +31,21 @@ const PIP_HEIGHT = 0.72;
 const PIP_SETBACK = 0.55;
 
 /**
- * The selection ring, as a fraction of the chassis it marks.
+ * How a followed bot is lit up.
  *
- * **It is a mark on the floor that the bot stands over, not a hoop around it.** That is the
- * whole reason it can be this tight: it sits at floor level and depth-tests, so the chassis
- * occludes the arc behind it and the ring is simply interrupted where the bot is. There is
- * no clearance to negotiate — a ring that "overlaps" the bot is a ring the bot is standing
- * on, which is what a selection marker should look like.
+ * The gain is **multiplicative, not additive**, and that distinction is the whole design.
+ * A hull grey here is near-black and barely lit, so *adding* even 0.05 of emission to it is
+ * comparable to everything else it receives — two attempts at a flat add both came out as a
+ * solid teal lozenge, the exact failure that took accent off these models to begin with.
+ * Multiplying leaves near-zero near zero and lifts what the artist already drew bright, so
+ * the followed bot's trim glows and its hull stays hull.
  *
- * Sized out from there instead. It started at 0.82–0.9 of the chassis scale, and with scales
- * running 1.2–1.34 that is nearly twice the bot's own half-span: a halo wide enough to reach
- * the health pips and bright enough to be the loudest thing in the arena.
+ * The pool of light underneath does the rest, since it is accent-coloured already.
  */
-const RING_INNER = 0.5;
-const RING_OUTER = 0.56;
+const SELECTED_TRIM_GAIN = 2.6;
+const SELECTED_TINT = 0.12;
+const SELECTED_POOL = 1;
+const UNSELECTED_POOL = 0.72;
 
 /**
  * Share of the remaining turn a bolt takes each frame.
@@ -144,11 +145,31 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
 
     // Every material this bot is allowed to fade, with the opacity it wants at full
     // strength — a glow pool at 1.0 is not the same picture as a hull at 1.0.
+    // The pool's base opacity is not a constant: following a bot brightens it, and fog can
+    // fade it, so the two have to compose rather than overwrite each other.
+    const glowFade = { material: glowMaterial as THREE.Material, base: UNSELECTED_POOL };
+    let lastFactor = 1;
     const fading: { material: THREE.Material; base: number }[] = [
       { material: hullMaterial, base: 1 },
       { material: lidMaterial, base: 1 },
-      { material: glowMaterial, base: 0.72 },
+      glowFade,
     ];
+
+    // What the highlight may repaint, each remembering the colours it wears unselected —
+    // a tint that cannot be undone is a bot that stays lit after you follow another one.
+    const tinting: {
+      material: THREE.MeshStandardMaterial;
+      baseColour: THREE.Color;
+      baseIntensity: number;
+    }[] = [];
+    const tintable = (material: THREE.MeshStandardMaterial) =>
+      tinting.push({
+        material,
+        baseColour: material.color.clone(),
+        baseIntensity: material.emissiveIntensity,
+      });
+    tintable(hullMaterial);
+    tintable(lidMaterial);
 
     // Swap the box for the real thing once the sprite has been parsed and triangulated.
     //
@@ -173,30 +194,45 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
         if (!mesh.isMesh || Array.isArray(mesh.material)) return;
         mesh.material = mesh.material.clone();
         fading.push({ material: mesh.material, base: 1 });
+        tintable(mesh.material as THREE.MeshStandardMaterial);
         disposables.push(mesh.material);
+        // A bot already being followed when its model lands has to arrive lit, not plain.
+        if (highlighted) {
+          highlighted = false;
+          highlight(true);
+        }
       });
       chassis.add(body);
       chassis.remove(hull);
       chassis.remove(lid);
     });
 
-    // A ring on the floor for the bot the panel is following. The flat renderer draws a
-    // dashed circle around the sprite; a ring lying on the floor is the same statement in a
-    // scene, and it survives the bot being behind a wall because it is drawn additively.
-    const ringGeometry = new THREE.RingGeometry(size * RING_INNER, size * RING_OUTER, 48);
-    ringGeometry.rotateX(-Math.PI / 2);
-    const ringMaterial = new THREE.MeshBasicMaterial({
-      color: accent,
-      transparent: true,
-      opacity: 0.6,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-    });
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-    ring.position.y = 0.02;
-    ring.visible = false;
-    chassis.add(ring);
+    // Following a bot lights *the bot*, not a ring drawn near it.
+    //
+    // A marker beside the thing is a marker you have to look away to read; the bot itself
+    // carrying the state is one glance. A ring was tried first and it was never the right
+    // shape of answer — too wide and it became a halo louder than the arena, tight enough
+    // to hug and it read as drawn across the chassis even though the depth buffer had it
+    // correctly behind.
+    //
+    // **This is not the accent tint that was removed** (DECISIONS #123). That one washed
+    // every bot in team colour permanently, which is identity the flat renderer does not
+    // give, and it flattened twelve chassis into one silhouette. This is *state*, on one bot
+    // at a time, and it is deliberately weak: enough to lift the followed bot off the floor
+    // and no further, so the chassis is still the chassis you picked.
+    let highlighted = false;
+    const highlight = (on: boolean) => {
+      // Only on change. This runs per frame per bot, and re-deriving a dozen colours sixty
+      // times a second to arrive at the answer already on screen is work for nothing.
+      if (on === highlighted) return;
+      highlighted = on;
+      for (const { material, baseColour, baseIntensity } of tinting) {
+        material.color.copy(baseColour).lerp(accent, on ? SELECTED_TINT : 0);
+        material.emissiveIntensity = baseIntensity * (on ? SELECTED_TRIM_GAIN : 1);
+      }
+      glowFade.base = on ? SELECTED_POOL : UNSELECTED_POOL;
+      fade(lastFactor);
+    };
 
     // Health, as pips floating over the bot — the one piece of state the flat renderer puts
     // on the arena rather than in a panel, because it is the thing you need while watching
@@ -235,18 +271,18 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       pipMeshes.push(pip);
     }
     group.add(pips);
-    disposables.push(ringGeometry, ringMaterial, pipGeometry, litPip, lostPip);
+    disposables.push(pipGeometry, litPip, lostPip);
 
     chassis.visible = false;
     group.add(chassis);
     disposables.push(hullGeometry, hullMaterial, lidGeometry, lidMaterial, glowGeometry, glowMaterial);
 
     fading.push(
-      { material: ringMaterial, base: 0.6 },
       { material: litPip, base: 1 },
       { material: lostPip, base: 0.35 },
     );
     const fade = (factor: number) => {
+      lastFactor = factor;
       for (const { material, base } of fading) {
         material.opacity = base * factor;
         material.transparent = factor < 1 || base < 1;
@@ -255,7 +291,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
 
     return {
       chassis,
-      ring,
+      highlight,
       pips,
       pipMeshes,
       litPip,
@@ -388,7 +424,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       if (!bot) continue;
       bot.chassis.visible = pose.status === 'Active';
       bot.chassis.position.set(pose.x + 0.5, 0, pose.y + 0.5);
-      bot.ring.visible = pose.slot === selectedSlot && pose.status === 'Active';
+      bot.highlight(pose.slot === selectedSlot && pose.status === 'Active');
 
       // Pips follow rather than ride, and sit forward of the bot in *screen* terms — a
       // raised camera projects height towards the viewer, so lifting them alone would drop

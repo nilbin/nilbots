@@ -1907,6 +1907,15 @@ game and a player switching between them must not see two:
 - Bolt position comes from `boltsAt`, shared with the flat renderer. Facing is eased so a
   bolt banks through an octant change instead of blinking; position never is.
 
+Selection is the other place the two differ on purpose. The flat renderer draws a dashed
+ring around the followed bot; here the **bot itself lights up**. A ring wide enough to clear
+a chassis became a halo louder than the arena, and tight enough to hug read as drawn across
+it — and a marker beside a thing is one you look away to read. The gain is multiplicative,
+not additive: hull greys are near-black and barely lit, so *adding* even 0.05 of emission to
+one is comparable to everything else it receives, and two attempts at a flat add both came
+out as a solid lozenge of team colour. Multiplying leaves near-zero near zero and lifts the
+trim the artist already drew bright.
+
 One deliberate divergence: fog darkens the **floor**, not the walls. A horizontal mask plane
 can only align at one height, and lifting it above the walls slides it off the floor by most
 of a tile at this camera pitch. Walls are static terrain both players have always known
