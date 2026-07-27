@@ -9,3 +9,4 @@ export { drawArena } from '../../src/render/drawArena';
 export { posesAt } from '../../src/render/interpolate';
 export { createPresenter } from '../../src/replayPresentation';
 export { buildActors } from '../../src/render3d/arenaActors';
+export { buildOverlays } from '../../src/render3d/arenaOverlays';

@@ -54,6 +54,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const spent = buildSpentBolts(replay, disposables);
   group.add(spent.group);
 
+  const impacts = buildImpacts(replay, disposables);
+  group.add(impacts.group);
+
   let painted = '';
 
   const update = (
@@ -81,6 +84,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
 
     flashes.update(tick, fraction);
     spent.update(time);
+    impacts.update(tick, fraction);
   };
 
   /**
@@ -273,7 +277,9 @@ function buildFlashes(
               life: 0.45,
             }
           : event.type === 'damage' || event.type === 'destroyed'
-            ? { at: event.to, colour: impact, size: 2.4, life: 0.8 }
+            // `from`, not `to`: on a damage event the model records where the hit *landed*
+            // in `from`, which is what the flat renderer draws its impact at.
+            ? { at: event.from, colour: impact, size: 2.4, life: 0.8 }
             : null;
       if (!flash || !flash.at) continue;
 
@@ -289,6 +295,87 @@ function buildFlashes(
       const own = mesh.material as THREE.MeshBasicMaterial;
       own.color.copy(flash.colour ?? impact);
       own.opacity = decay * decay;
+    }
+    for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/**
+ * A bolt arriving on something.
+ *
+ * The soft flare alone was light, not an event — it said "something is bright here", which
+ * is also what a muzzle says, so a hit and a shot read the same. A hit is a shockwave: a
+ * hard ring thrown outwards from the point of contact, fast, gone inside the tick. Two of
+ * them, offset in time and speed, because a single expanding circle reads as a bubble and
+ * two read as something coming apart.
+ *
+ * A kill throws it further and holds it longer, so the last hit of a match is visibly the
+ * one that ended it.
+ */
+function buildImpacts(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+  const group = new THREE.Group();
+  // Thin relative to its radius, so the expansion reads as a wave rather than a growing disc.
+  const geometry = new THREE.RingGeometry(0.78, 1, 40);
+  geometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry);
+
+  const pool: THREE.Mesh[] = [];
+  const borrow = (index: number) => {
+    while (pool.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      // Named, because two different things here are rings on the floor — this and a bolt
+      // dissipating — and telling them apart by geometry type is a guess.
+      mesh.userData.kind = 'impact';
+      mesh.visible = false;
+      group.add(mesh);
+      pool.push(mesh);
+      disposables.push(material);
+    }
+    return pool[index];
+  };
+
+  const hot = new THREE.Color('#fff1d0');
+  const fatal = new THREE.Color('#ffb057');
+
+  const update = (tick: number, fraction: number) => {
+    let used = 0;
+    for (const event of replay.ticks[tick]?.events ?? []) {
+      const killing = event.type === 'destroyed';
+      if (event.type !== 'damage' && !killing) continue;
+      // Where the hit landed. The model puts that in `from` for both kinds.
+      const at = event.from;
+      if (!at) continue;
+
+      // Impacts land late in the tick, on the same 0.6 the flash and the camera knock use,
+      // so the whole reaction to a hit happens at one instant.
+      const since = (fraction - 0.6) / 0.4;
+      if (since < 0 || since > 1) continue;
+
+      for (const wave of killing ? [0, 0.35] : [0]) {
+        const age = (since - wave) / (1 - wave);
+        if (age < 0 || age > 1) continue;
+        const mesh = borrow(used++);
+        mesh.visible = true;
+        mesh.position.set(at.x + 0.5, 0.06, at.y + 0.5);
+        // Fast at first and slowing, which is what a shockwave does and what a linear
+        // expansion conspicuously does not.
+        const reach = (killing ? 2.6 : 1.35) * Math.sqrt(age);
+        mesh.scale.setScalar(0.25 + reach);
+        const material = mesh.material as THREE.MeshBasicMaterial;
+        material.color.copy(killing ? fatal : hot);
+        material.opacity = (1 - age) ** 1.8 * (killing ? 0.95 : 0.8);
+      }
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
   };
@@ -325,6 +412,7 @@ function buildSpentBolts(
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geometry, material);
+      mesh.userData.kind = 'dissipation';
       mesh.visible = false;
       group.add(mesh);
       pool.push(mesh);

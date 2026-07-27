@@ -1043,32 +1043,52 @@ function radialGlow(accent: THREE.Color): THREE.Texture | null {
  */
 function tracerTexture(accent: THREE.Color): THREE.Texture | null {
   if (typeof document === 'undefined') return null;
-  const width = 128;
-  const height = 32;
+  const width = 160;
+  const height = 48;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) return null;
 
-  const rgb = `${Math.round(accent.r * 255)}, ${Math.round(accent.g * 255)}, ${Math.round(accent.b * 255)}`;
-  // Left edge is the tail, right edge the head, because the quad is laid out along −x and
-  // read back to front.
-  const along = context.createLinearGradient(0, 0, width, 0);
-  along.addColorStop(0, `rgba(${rgb}, 0)`);
-  along.addColorStop(0.65, `rgba(${rgb}, 0.32)`);
-  along.addColorStop(1, `rgba(${rgb}, 0.85)`);
-  context.fillStyle = along;
-  context.fillRect(0, 0, width, height);
+  const image = context.createImageData(width, height);
+  const red = Math.round(accent.r * 255);
+  const green = Math.round(accent.g * 255);
+  const blue = Math.round(accent.b * 255);
 
-  // Soften the long edges so the streak is a beam rather than a ribbon with corners.
-  const across = context.createLinearGradient(0, 0, 0, height);
-  across.addColorStop(0, 'rgba(0, 0, 0, 1)');
-  across.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
-  across.addColorStop(1, 'rgba(0, 0, 0, 1)');
-  context.globalCompositeOperation = 'destination-out';
-  context.fillStyle = across;
-  context.fillRect(0, 0, width, height);
+  // Built per pixel rather than from two crossed gradients, because the shape is the point.
+  // Crossed gradients give a rectangle, and a rectangle brightest along the edge where it
+  // is cut is exactly a streak that stops dead at the bolt — the front end looked sliced.
+  // This is a capsule: it tapers to nothing at the tail and closes over a dome at the nose,
+  // so there is no edge anywhere for the eye to catch.
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const along = x / (width - 1);
+      const across = Math.abs(y / (height - 1) - 0.5) * 2;
+
+      // Half-width: opens out along the streak, then rounds off over the last of it.
+      const nose = 0.86;
+      const halfWidth =
+        along < nose
+          ? 0.18 + 0.82 * (along / nose) ** 0.7
+          : Math.sqrt(Math.max(0, 1 - ((along - nose) / (1 - nose)) ** 2));
+
+      const offset = (y * width + x) * 4;
+      image.data[offset] = red;
+      image.data[offset + 1] = green;
+      image.data[offset + 2] = blue;
+      if (halfWidth <= 0) {
+        image.data[offset + 3] = 0;
+        continue;
+      }
+      const edge = across / halfWidth;
+      // Soft to its own edge, and dimmer at the tail — a streak fading out behind, not a
+      // solid bar with a gradient painted on it.
+      const profile = edge >= 1 ? 0 : (1 - edge * edge) ** 1.5;
+      image.data[offset + 3] = Math.round(255 * 0.9 * profile * along ** 1.6);
+    }
+  }
+  context.putImageData(image, 0, 0);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;

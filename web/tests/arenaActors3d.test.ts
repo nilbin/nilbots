@@ -5,7 +5,7 @@ import test from 'node:test';
 import * as THREE from 'three';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import type { ReplayStableUnitKey } from '../src/replayModel.ts';
-import { buildActors } from './.harness/harness.entry.js';
+import { buildActors, buildOverlays } from './.harness/harness.entry.js';
 
 /**
  * The reactions a bot has to being shot at, which are the one part of the 2.5D renderer
@@ -177,4 +177,35 @@ test('a bot crossing tiles in a row does not stop at every boundary', () => {
   assert.ok(after > 0.005, `still moving out of it (${after})`);
 
   actors.dispose();
+});
+
+test('a hit throws a shockwave, and only at the instant it lands', () => {
+  const overlays = buildOverlays(replay);
+  const damage = replay.ticks.findIndex((tick) =>
+    tick.events.some((event) => event.type === 'damage'),
+  );
+  assert.ok(damage >= 0, 'the fixture lands a hit somewhere');
+
+  // By name, not by geometry: a bolt dissipating is also a ring on the floor, and counting
+  // those as impacts is how this test first "passed" a moment that had none.
+  const showing = () => {
+    let visible = 0;
+    overlays.group.traverse((node) => {
+      if (node.visible && node.userData.kind === 'impact') visible += 1;
+    });
+    return visible;
+  };
+
+  // Impacts land late in the tick, on the same 0.6 the flash and the camera knock use.
+  overlays.update(damage + 0.2, null, false);
+  assert.equal(showing(), 0, 'nothing before the bolt arrives');
+
+  overlays.update(damage + 0.75, null, false);
+  assert.ok(showing() > 0, 'a wave at the moment of contact');
+
+  // And gone by the next tick rather than left ringing.
+  overlays.update(damage + 1.4, null, false);
+  assert.equal(showing(), 0, 'spent by the following tick');
+
+  overlays.dispose();
 });
