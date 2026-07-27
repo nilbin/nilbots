@@ -74,25 +74,46 @@ test('a firing bot recoils, and only while its shot is in progress', () => {
 
 test('a bot drifts through a corner and is never still when it is not', () => {
   const actors = buildActors(replay);
-  // A tick where a bot turns, found rather than assumed — the fixture is free to change.
-  const turn = replay.ticks.findIndex((tick) =>
-    tick.events.some((event) => event.type === 'Turn'),
-  );
-  assert.ok(turn >= 0, 'the fixture has a bot turning somewhere');
-  const turning = replay.ticks[turn].events.find((event) => event.type === 'Turn')!.slot!;
+  // An *isolated* corner: a bot that turns and then does not turn again for two ticks.
+  // A bot spinning several ticks running holds full slip throughout — correctly, and it
+  // never recovers inside the window this test is about.
+  let turn = -1;
+  let turning = -1;
+  for (let index = 0; index < replay.ticks.length - 3 && turn < 0; index++) {
+    for (const event of replay.ticks[index].events) {
+      if (event.type !== 'Turn') continue;
+      const spinning = [1, 2, 3].some((ahead) =>
+        replay.ticks[index + ahead]?.events.some(
+          (later) => later.type === 'Turn' && later.slot === event.slot,
+        ),
+      );
+      if (!spinning) {
+        turn = index;
+        turning = event.slot!;
+        break;
+      }
+    }
+  }
+  assert.ok(turn >= 0, 'the fixture has a bot taking a corner on its own');
   const chassis = chassisOf(actors.group, turning);
   const body = chassis.children.find((child) => child.type === 'Group')!;
 
-  // Mid-turn is where the ease is steepest, so the drift is at its hardest.
-  actors.update(turn + 0.5, null, false);
+  // The slip peaks a little *after* the rotation finishes, and that is the whole point:
+  // driven straight from the angular rate it existed only while the bot was turning, which
+  // is one tick — gone before it read as anything.
+  actors.update(turn + 0.75, null, false);
   const lean = Math.abs(body.rotation.x);
   const slide = Math.abs(body.position.z);
-  assert.ok(lean > 0.05, `banked into the corner (${lean})`);
-  assert.ok(slide > 0.02, `back end stepped out (${slide})`);
+  assert.ok(lean > 0.25, `banked hard into the corner (${lean})`);
+  assert.ok(slide > 0.15, `back end stepped out (${slide})`);
 
-  // And the drift recovers by the end of the tick rather than leaving the bot cocked over.
-  actors.update(turn + 1, null, false);
-  assert.ok(Math.abs(body.rotation.x) < lean * 0.5, 'straightened up out of the corner');
+  // Still sliding a whole tick after the turn completed…
+  actors.update(turn + 1.4, null, false);
+  assert.ok(Math.abs(body.position.z) > slide * 0.4, 'the slide outlives the rotation');
+
+  // …and unwound a tick after that, rather than left cocked over for the rest of the match.
+  actors.update(turn + 2.6, null, false);
+  assert.ok(Math.abs(body.rotation.x) < lean * 0.3, 'recovers out of the corner');
 
   // Idle life: a bot doing nothing still moves, and moves differently a moment later.
   const still = replay.ticks.findIndex((tick, index) =>

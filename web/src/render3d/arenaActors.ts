@@ -60,28 +60,46 @@ const HIT_FLASH = 1.6;
 /**
  * Idle life: what a bot does when it is doing nothing.
  *
- * A machine holding position was perfectly still, which is the one thing nothing alive or
- * powered ever is. Two incommensurate rates so it never settles into a visible loop, and
- * lateral rather than vertical because these are ground machines — a bot bobbing up and
- * down reads as hovering, which is a different vehicle.
+ * A machine holding position was perfectly still, which is the one thing nothing powered
+ * ever is. Built like the projectile wobble — every axis is a sum of two incommensurate
+ * sines, so nothing settles into a loop the eye can catch, and each bot is offset by its
+ * slot so two of them never breathe together.
+ *
+ * Lighter on the vertical than the horizontal: these sit on the floor, and a bot bobbing as
+ * freely as a bolt in flight reads as hovering, which is a different machine.
  */
-const IDLE_SWAY = 0.028;
-const IDLE_YAW = 0.045;
+const IDLE_SWAY = 0.05;
+const IDLE_RISE = 0.022;
+const IDLE_ROLL = 0.055;
+const IDLE_YAW = 0.05;
 
 /**
  * How hard a bot drifts through a corner.
  *
  * A tile grid only ever asks for 90° turns, and taken flat that is a chassis snapping to a
  * new heading — correct, and lifeless. So the body over-rotates into the corner, banks, and
- * lets its back end step out, then recovers as the turn finishes: a handbrake turn, which
- * is what a fast tracked thing pivoting in its own length would actually look like.
+ * lets its back end step out: a handbrake turn.
  *
- * Driven by how fast the *facing* is changing, so it costs nothing when a bot drives
- * straight, and a bot that turns and moves in the same tick drifts through the corner.
+ * **The slide has to outlive the rotation**, which the first attempt missed. Driving it
+ * straight from the angular rate meant it existed only while the bot was actually turning —
+ * one tick, under a fifth of a second at normal speed, gone before it registered as
+ * anything. What a car does is build a slip angle during the turn and then hold it,
+ * recovering over the next second, and that trailing part is the whole read.
  */
-const DRIFT_YAW = 0.5;
-const DRIFT_LEAN = 0.32;
-const DRIFT_SLIDE = 0.2;
+const DRIFT_YAW = 0.55;
+const DRIFT_LEAN = 0.4;
+const DRIFT_SLIDE = 0.26;
+
+/**
+ * How a turn's contribution to the slip angle rises and falls, in ticks since it began.
+ *
+ * A bump rather than a spike: it peaks just after the turn completes and is spent about a
+ * tick and a half later. Summing it over the last few ticks means a bot taking two corners
+ * in a row keeps sliding through both, which is what a machine carrying speed does.
+ */
+function driftResponse(age: number): number {
+  return Math.exp(-(((age - 0.85) / 0.72) ** 2));
+}
 
 const WHITE = new THREE.Color(0xffffff);
 
@@ -513,9 +531,14 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     // The tiles either side of this tick's, so movement can be splined through them.
     const previous = stateBefore(replay, tick - 1);
     const next = stateBefore(replay, tick + 2);
-    // `posesAt` eases rotation with a cubic, so the turn is fastest mid-tick; this is that
-    // ease's slope, normalised so a full 90° swing peaks at 1.
-    const easeSlope = fraction < 0.5 ? 4 * fraction : 4 * (1 - fraction);
+    // One further back again, so a turn's slip can still be decaying two ticks later.
+    const earlier = stateBefore(replay, tick - 2);
+    const turnedIn: [typeof opening, typeof opening][] = [
+      [opening, closing],
+      [previous, opening],
+      [earlier, previous],
+    ];
+
     // Beams and impacts land in the second half of the tick, after movement has settled —
     // the same window the flat renderer uses, so a hit lands at the same instant in both.
     const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
@@ -587,20 +610,29 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // renderer uses, so both viewers swing a bot through exactly the same arc.
       bot.chassis.rotation.y = -pose.angle;
 
-      // How hard this bot is swinging through a corner right now, as −1…1.
-      const from = opening.find((state) => state.slot === pose.slot);
-      const to = closing.find((state) => state.slot === pose.slot);
-      const swing =
-        from && to
-          ? shortestTurn(directionAngle(from.facing), directionAngle(to.facing)) * easeSlope
-          : 0;
-      const drift = Math.max(-1, Math.min(swing / Math.PI, 1)) * (1 - collapse);
+      // The slip angle this bot is carrying, as −1…1: every turn it has taken in the last
+      // three ticks, each weighted by how long ago it began.
+      let slip = 0;
+      for (const [age, [from, to]] of turnedIn.entries()) {
+        const a = from.find((state) => state.slot === pose.slot);
+        const b = to.find((state) => state.slot === pose.slot);
+        if (!a || !b) continue;
+        slip +=
+          shortestTurn(directionAngle(a.facing), directionAngle(b.facing)) *
+          driftResponse(fraction + age);
+      }
+      // Normalised against a single right angle, so one corner is a full drift and two in a
+      // row saturate rather than spinning the body off its chassis.
+      const drift = Math.max(-1, Math.min(slip / (Math.PI / 2), 1)) * (1 - collapse);
 
       // Idle life, damped out while drifting so the two are not fighting for the same axis,
       // and while dying so a wreck does not keep breathing.
       const idle = (1 - Math.abs(drift)) * (1 - collapse);
-      const sway = Math.sin(time * 1.7 + pose.slot * 2.2) * 0.6
-        + Math.sin(time * 2.9 + pose.slot * 4.1) * 0.4;
+      const phase = pose.slot * 2.399;
+      const sway =
+        Math.sin(time * 1.9 + phase) + Math.sin(time * 3.1 + phase * 2.3) * 0.55;
+      const rise =
+        Math.sin(time * 2.3 + phase * 1.7) + Math.sin(time * 1.3 + phase) * 0.5;
 
       // Recoil is a kick *backwards along the facing*, which in the chassis' own frame is
       // simply −x — one of the things that gets easier once a bot is an object with an
@@ -619,8 +651,9 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // bot off the tile the replay says it is on.
       bot.body.position.x = -kick;
       bot.body.position.z = drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
+      bot.body.position.y = idle * rise * IDLE_RISE;
       bot.body.rotation.y = -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
-      bot.body.rotation.x = drift * DRIFT_LEAN;
+      bot.body.rotation.x = drift * DRIFT_LEAN + idle * rise * IDLE_ROLL;
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
