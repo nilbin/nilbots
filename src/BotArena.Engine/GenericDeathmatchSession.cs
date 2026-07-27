@@ -11,6 +11,9 @@ namespace BotArena.Engine;
 public sealed class GenericDeathmatchSession : IDisposable
 {
     private readonly ActorResolvedMatchDefinition _definition;
+    private readonly GenericActorMatchDescriptor _matchDescriptor;
+    private readonly InMemoryGenericActorMatchChronologyRecorder _chronology =
+        new();
     private readonly GenericActorRuntimeCoordinator _runtimes;
     private readonly DeathmatchModeKernel _mode;
     private readonly SplitReplicationKernel _split;
@@ -32,9 +35,12 @@ public sealed class GenericDeathmatchSession : IDisposable
     private readonly Dictionary<int, int> _nextEventOrdinalByTick = [];
     private readonly Dictionary<ObservationAudienceKey, EventProjectionState>
         _eventProjectionStates = [];
-    private ImmutableArray<AuthoritativeEvent> _priorResolvedEvents;
+    private ImmutableArray<GenericActorAuthoritativeEvent>
+        _priorResolvedEvents;
     private GenericDeathmatchTickStart? _preparedTick;
+    private GenericActorMatchTickStart? _preparedChronologyTick;
     private DeathmatchScoreState _scores;
+    private long _nextAuthoritativeFactOrdinal;
     private long _nextProjectileId;
     private int _operationGate;
     private bool _disposed;
@@ -55,6 +61,10 @@ public sealed class GenericDeathmatchSession : IDisposable
         ValidateSupportedDefinition(definition);
 
         _definition = definition;
+        _matchDescriptor = GenericActorMatchDescriptor.Create(
+            definition,
+            matchSeed,
+            participantSnapshot);
         _matchSeed = matchSeed;
         _forms = definition.Rules.Forms.ToDictionary(
             form => form.Id,
@@ -89,7 +99,9 @@ public sealed class GenericDeathmatchSession : IDisposable
             participantSnapshot);
 
         var initialEvents =
-            ImmutableArray.CreateBuilder<AuthoritativeEvent>();
+            ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
+        var initialStarts =
+            ImmutableArray.CreateBuilder<GenericActorLifeStart>();
         try
         {
             foreach (InitialLifeDeployment deployment in
@@ -113,6 +125,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                     sourceTransitionId: null,
                     sourceOperationId: null,
                     exactLifeId: deployment.LifeId);
+                initialStarts.Add(life.LifeStart);
                 initialEvents.Add(EmitSpatial(
                     tick: 0,
                     GenericActorRuntimeObservation.EventKind.LifeSpawned,
@@ -127,18 +140,52 @@ public sealed class GenericDeathmatchSession : IDisposable
         }
 
         _priorResolvedEvents = initialEvents.ToImmutable();
+        _chronology.RecordInitial(
+            _matchDescriptor,
+            new GenericActorMatchInitialFrame(
+                SnapshotWorld(),
+                initialStarts.ToImmutable(),
+                _priorResolvedEvents));
     }
 
     public ActorResolvedMatchDefinition Definition => _definition;
     public int Tick { get; private set; }
     public bool IsCompleted => Result is not null;
     public GenericDeathmatchResult? Result { get; private set; }
-    public DeathmatchScoreState Scores => _scores;
+    public DeathmatchScoreState Scores
+    {
+        get
+        {
+            ThrowIfOperationInProgress();
+            return _scores;
+        }
+    }
+    public GenericActorMatchDescriptor MatchDescriptor
+    {
+        get
+        {
+            // The descriptor carries the match seed. Generic runtimes receive
+            // only their derived actor-life seed, so exposing this object
+            // during an in-process callback would give that adapter more
+            // information than an isolated WASM runtime.
+            ThrowIfOperationInProgress();
+            return _matchDescriptor;
+        }
+    }
+    public GenericActorMatchChronology Chronology
+    {
+        get
+        {
+            ThrowIfOperationInProgress();
+            return _chronology.Snapshot;
+        }
+    }
 
     public ImmutableArray<GenericDeathmatchLifeSnapshot> ActiveLives
     {
         get
         {
+            ThrowIfOperationInProgress();
             ThrowIfDisposed();
             return _lives.Values
                 .OrderBy(life => life.ActorId)
@@ -151,6 +198,7 @@ public sealed class GenericDeathmatchSession : IDisposable
     {
         get
         {
+            ThrowIfOperationInProgress();
             ThrowIfDisposed();
             return _projectiles
                 .OrderBy(projectile => projectile.Id)
@@ -172,6 +220,7 @@ public sealed class GenericDeathmatchSession : IDisposable
     {
         get
         {
+            ThrowIfOperationInProgress();
             ThrowIfDisposed();
             return _slots.Values
                 .OrderBy(slot => slot.TeamId)
@@ -205,12 +254,22 @@ public sealed class GenericDeathmatchSession : IDisposable
             return _preparedTick;
 
         var tickStartEvents =
-            ImmutableArray.CreateBuilder<AuthoritativeEvent>();
+            ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
+        var lifeStarts =
+            ImmutableArray.CreateBuilder<GenericActorLifeStart>();
+        var projectileTransitions =
+            ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
         ApplyInitialUnlocks();
-        ApplyAutomaticReturns(tickStartEvents);
-        CompleteDueSplits(tickStartEvents);
+        ApplyAutomaticReturns(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
+        CompleteDueSplits(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
 
-        ImmutableArray<AuthoritativeEvent> sourceEvents =
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents =
             [
                 .. _priorResolvedEvents,
                 .. tickStartEvents,
@@ -224,8 +283,17 @@ public sealed class GenericDeathmatchSession : IDisposable
             Tick,
             observations,
             tickStartEvents
-                .Select(item => item.Event)
+                .Select(ToObservedEvent)
                 .ToImmutableArray());
+        _preparedChronologyTick = new GenericActorMatchTickStart(
+            Tick,
+            SnapshotWorld(),
+            observations
+                .Select(observation => observation.Self.ActorId)
+                .ToImmutableArray(),
+            lifeStarts.ToImmutable(),
+            tickStartEvents.ToImmutable(),
+            projectileTransitions.ToImmutable());
         return _preparedTick;
     }
 
@@ -265,7 +333,10 @@ public sealed class GenericDeathmatchSession : IDisposable
         GenericActorRuntimeTickResult runtimeTick =
             _runtimes.CollectTickDecisions(Tick, supplied);
         var resolutions = CreateActionResolutions(runtimeTick);
-        var events = ImmutableArray.CreateBuilder<AuthoritativeEvent>();
+        var events =
+            ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
+        var projectileTransitions =
+            ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
         var contacts = new List<PendingDamageContact>();
         int contactOrdinal = 0;
 
@@ -274,16 +345,19 @@ public sealed class GenericDeathmatchSession : IDisposable
             resolutions,
             contacts,
             ref contactOrdinal,
-            events);
+            events,
+            projectileTransitions);
         ReserveSplits(resolutions, events);
         AdvanceExistingProjectiles(
             contacts,
-            ref contactOrdinal);
+            ref contactOrdinal,
+            projectileTransitions);
         ResolveAttacks(
             resolutions,
             contacts,
             ref contactOrdinal,
-            events);
+            events,
+            projectileTransitions);
         ImmutableArray<DeathmatchDamageContact> scoredContacts =
             ApplyDamage(contacts, events);
 
@@ -301,7 +375,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             runtimeTick.NewlyDisqualifiedParticipantIds.ToHashSet();
         ApplyDisqualifications(
             runtimeTick.NewlyDisqualifiedParticipantIds,
-            events);
+            events,
+            projectileTransitions);
         FinalizeDestroyedLives(newlyDisqualified, events);
         RememberActionResolutions(resolutions);
 
@@ -364,14 +439,52 @@ public sealed class GenericDeathmatchSession : IDisposable
                         resolution.ActorId,
                         resolution.ToPublic()))
                 .ToImmutableArray();
-        ImmutableArray<AuthoritativeEvent> authoritativeEvents =
+        ImmutableArray<GenericActorAuthoritativeEvent> authoritativeEvents =
             events.ToImmutable();
         ImmutableArray<GenericActorRuntimeObservation.ObservedEvent>
             resolvedEvents = authoritativeEvents
-                .Select(item => item.Event)
+                .Select(ToObservedEvent)
                 .ToImmutableArray();
+
+        GenericActorMatchTickStart chronologyTick =
+            _preparedChronologyTick
+            ?? throw new InvalidOperationException(
+                "The prepared tick has no authoritative chronology.");
+        Dictionary<ActorIdentity, GenericActorRuntimeObservation>
+            observationsByActor = tickStart.Observations.ToDictionary(
+                observation => observation.Self.ActorId);
+        ImmutableArray<GenericActorMatchActorTurn> actorTurns =
+            runtimeTick.Turns
+                .OrderBy(turn => turn.ActorId)
+                .Select(turn =>
+                    new GenericActorMatchActorTurn(
+                        executedTick,
+                        turn.ParticipantId,
+                        turn.ActorId,
+                        observationsByActor[turn.ActorId],
+                        turn.SubmittedDecision,
+                        resolutions[turn.ActorId].ToPublic()))
+                .ToImmutableArray();
+        GenericActorWorldSnapshot postState = SnapshotWorld();
+        _chronology.RecordResolvedTick(
+            new GenericActorMatchTickFrame(
+                chronologyTick,
+                actorTurns,
+                authoritativeEvents,
+                projectileTransitions.ToImmutable(),
+                postState));
+        if (terminal is not null)
+        {
+            _chronology.RecordCompleted(
+                ToGenericResult(
+                    terminal,
+                    eligibleTeams,
+                    postState));
+        }
+
         _priorResolvedEvents = authoritativeEvents;
         _preparedTick = null;
+        _preparedChronologyTick = null;
         return new GenericDeathmatchStepResult(
             executedTick,
             tickStart,
@@ -413,6 +526,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             _splitReservations.Clear();
             _eventProjectionStates.Clear();
             _preparedTick = null;
+            _preparedChronologyTick = null;
         }
     }
 
@@ -437,7 +551,9 @@ public sealed class GenericDeathmatchSession : IDisposable
     }
 
     private void ApplyAutomaticReturns(
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (SlotState slot in _slots.Values
                      .OrderBy(slot => slot.TeamId)
@@ -452,7 +568,9 @@ public sealed class GenericDeathmatchSession : IDisposable
                         "Automatic return has no target form.");
                 InitialSpawnDefinition spawn = _spawns[
                     slot.Assignment.AssignedRespawnSpawnId!];
-                ConsumeProjectilesAt(spawn.Position);
+                ConsumeProjectilesAt(
+                    spawn.Position,
+                    traversals);
                 LifeState life = CreateLife(
                     slot,
                     formId,
@@ -464,6 +582,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                     slot.PendingParentActorId,
                     sourceTransitionId: null,
                     sourceOperationId: null);
+                lifeStarts.Add(life.LifeStart);
                 ClearPendingClock(slot);
                 events.Add(EmitSpatial(
                     Tick,
@@ -483,7 +602,9 @@ public sealed class GenericDeathmatchSession : IDisposable
     }
 
     private void CompleteDueSplits(
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         SplitReplicationReservation[] due = _splitReservations
             .Where(reservation => reservation.DueTick == Tick)
@@ -536,7 +657,9 @@ public sealed class GenericDeathmatchSession : IDisposable
                 // projectile already occupying any output tile before the
                 // first descendant is created, so descendant enumeration
                 // order cannot decide which output survives.
-                ConsumeProjectilesAt(spawn.Position);
+                ConsumeProjectilesAt(
+                    spawn.Position,
+                    traversals);
             }
             _runtimes.RetireLife(source.ActorId);
             _lives.Remove(source.ActorId);
@@ -571,6 +694,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                     source.ActorId,
                     reservation.TransitionId,
                     reservation.OperationId);
+                lifeStarts.Add(descendant.LifeStart);
                 events.Add(EmitSpatial(
                     Tick,
                     GenericActorRuntimeObservation.EventKind.LifeSpawned,
@@ -682,7 +806,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void ResolveRotations(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         foreach (ActionState resolution in resolutions.Values
                      .OrderBy(value => value.ActorId))
@@ -721,7 +845,8 @@ public sealed class GenericDeathmatchSession : IDisposable
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         var targets = new Dictionary<ActorIdentity, Position>();
         var blocked = new HashSet<ActorIdentity>();
@@ -769,6 +894,17 @@ public sealed class GenericDeathmatchSession : IDisposable
                     continue;
                 blocked.Add(life.ActorId);
                 _projectiles.Remove(projectile);
+                traversals.Add(CreateProjectileTraversal(
+                    projectile,
+                    GenericActorProjectileTraversal.TraversalPhase.Resolution,
+                    GenericActorProjectileTraversal.TraversalTrigger
+                        .MovementContact,
+                    projectile.Position,
+                    [],
+                    new GenericActorProjectileTraversal.TerminalDisposition
+                        .MovementContact(
+                            life.ActorId,
+                            contact.Damages)));
                 if (contact.Damages)
                 {
                     contacts.Add(new PendingDamageContact(
@@ -835,7 +971,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void ReserveSplits(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         SplitReplicationRequest[] requests = resolutions.Values
             .Where(resolution =>
@@ -915,7 +1051,8 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void AdvanceExistingProjectiles(
         ICollection<PendingDamageContact> contacts,
-        ref int contactOrdinal)
+        ref int contactOrdinal,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (ProjectileState projectile in _projectiles
                      .OrderBy(projectile => projectile.Id)
@@ -930,7 +1067,10 @@ public sealed class GenericDeathmatchSession : IDisposable
                 projectile,
                 projectile.Profile.Projectile.TilesPerAdvance,
                 contacts,
-                ref contactOrdinal);
+                ref contactOrdinal,
+                traversals,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .ScheduledAdvance);
         }
     }
 
@@ -938,7 +1078,8 @@ public sealed class GenericDeathmatchSession : IDisposable
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (ActionState resolution in resolutions.Values
                      .OrderBy(value => value.ActorId))
@@ -973,8 +1114,10 @@ public sealed class GenericDeathmatchSession : IDisposable
                 shooter.ParticipantId,
                 shooter.ActorId.TeamId,
                 shooter.ActorId,
+                Tick,
                 shooter.Position,
                 heading,
+                program,
                 profile,
                 path);
             resolution.SuccessfulAttack = true;
@@ -997,7 +1140,10 @@ public sealed class GenericDeathmatchSession : IDisposable
                 projectile,
                 launchTraversal,
                 contacts,
-                ref contactOrdinal);
+                ref contactOrdinal,
+                traversals,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .AttackLaunch);
             if (!projectile.Consumed
                 && projectile.RemainingTiles > 0
                 && profile.Projectile.Mode == ActorProjectileMode.Discrete)
@@ -1011,8 +1157,13 @@ public sealed class GenericDeathmatchSession : IDisposable
         ProjectileState projectile,
         int maximumTiles,
         ICollection<PendingDamageContact> contacts,
-        ref int contactOrdinal)
+        ref int contactOrdinal,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals,
+        GenericActorProjectileTraversal.TraversalTrigger trigger)
     {
+        Position from = projectile.Position;
+        var entered = ImmutableArray.CreateBuilder<Position>();
+        GenericActorProjectileTraversal.TerminalDisposition? terminal = null;
         for (int step = 0;
              step < maximumTiles
              && projectile.NextPathIndex < projectile.Path.Length
@@ -1025,6 +1176,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 projectile.Position,
                 next);
             projectile.Position = next;
+            entered.Add(next);
             projectile.RemainingTiles--;
             LifeState? target = _lives.Values
                 .Where(life => life.Position == projectile.Position)
@@ -1038,6 +1190,11 @@ public sealed class GenericDeathmatchSession : IDisposable
                 continue;
             projectile.Consumed = true;
             _projectiles.Remove(projectile);
+            terminal =
+                new GenericActorProjectileTraversal.TerminalDisposition
+                    .ActorContact(
+                        target.ActorId,
+                        contact.Damages);
             if (contact.Damages)
             {
                 contacts.Add(new PendingDamageContact(
@@ -1048,20 +1205,35 @@ public sealed class GenericDeathmatchSession : IDisposable
                     projectile.Profile.Projectile.DamagePerHit,
                     contactOrdinal++));
             }
-            return;
+            break;
         }
 
-        if (projectile.NextPathIndex >= projectile.Path.Length
-            || projectile.RemainingTiles == 0)
+        if (terminal is null
+            && (projectile.NextPathIndex >= projectile.Path.Length
+                || projectile.RemainingTiles == 0))
         {
             projectile.Consumed = true;
             _projectiles.Remove(projectile);
+            terminal = projectile.RemainingTiles == 0
+                ? new GenericActorProjectileTraversal.TerminalDisposition
+                    .RangeExhausted()
+                : new GenericActorProjectileTraversal.TerminalDisposition
+                    .WallOrPathExhausted();
         }
+        terminal ??=
+            new GenericActorProjectileTraversal.TerminalDisposition.Retained();
+        traversals.Add(CreateProjectileTraversal(
+            projectile,
+            GenericActorProjectileTraversal.TraversalPhase.Resolution,
+            trigger,
+            from,
+            entered.ToImmutable(),
+            terminal));
     }
 
     private ImmutableArray<DeathmatchDamageContact> ApplyDamage(
         IEnumerable<PendingDamageContact> contacts,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         var scored = ImmutableArray.CreateBuilder<DeathmatchDamageContact>();
         foreach (IGrouping<ActorIdentity, PendingDamageContact> targetGroup in
@@ -1116,7 +1288,8 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void ApplyDisqualifications(
         IEnumerable<int> participantIds,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         int[] participantBatch = participantIds
             .Distinct()
@@ -1188,6 +1361,16 @@ public sealed class GenericDeathmatchSession : IDisposable
                      .ToArray())
         {
             _projectiles.Remove(projectile);
+            traversals.Add(CreateProjectileTraversal(
+                projectile,
+                GenericActorProjectileTraversal.TraversalPhase.Resolution,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .ParticipantDisqualification,
+                projectile.Position,
+                [],
+                new GenericActorProjectileTraversal.TerminalDisposition
+                    .ParticipantDisqualification(
+                        projectile.OwnerParticipantId)));
         }
         foreach (int participantId in participantBatch)
         {
@@ -1203,7 +1386,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void FinalizeDestroyedLives(
         IReadOnlySet<int> newlyDisqualified,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         foreach (LifeState life in _lives.Values
                      .Where(life => life.Health == 0)
@@ -1229,7 +1412,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void CancelParticipantClocks(
         IReadOnlySet<int> participantIds,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         foreach (SlotState slot in _slots.Values
                      .Where(slot =>
@@ -1354,7 +1537,7 @@ public sealed class GenericDeathmatchSession : IDisposable
     private void EmitScoreChanges(
         DeathmatchScoreState previous,
         DeathmatchScoreState current,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         Dictionary<int, DeathmatchTeamScore> before =
             previous.Teams.ToDictionary(score => score.TeamId);
@@ -1387,7 +1570,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         string channel,
         long before,
         long after,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         if (before == after
             || !_definition.Rules.GameMode.ScoreCatalog.Any(item =>
@@ -1422,7 +1605,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private GenericActorRuntimeObservation ProjectObservation(
         LifeState observer,
-        ImmutableArray<AuthoritativeEvent> sourceEvents)
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents)
     {
         ImmutableArray<LifeState> sensors =
             _definition.Rules.TeamPerception.Kind
@@ -1540,23 +1723,26 @@ public sealed class GenericDeathmatchSession : IDisposable
                 GenericActorRuntimeObservation.ObservedSound>();
         EventProjectionState eventProjection =
             EventProjectionFor(observer);
-        foreach (AuthoritativeEvent source in
+        foreach (GenericActorAuthoritativeEvent source in
                  sourceEvents
-                     .OrderBy(item => item.Event.SourceTick)
-                     .ThenBy(item => item.Event.SourceOrdinal))
+                     .OrderBy(item => item.Tick)
+                     .ThenBy(item => item.GlobalOrdinal))
         {
+            GenericActorRuntimeObservation.ObservedEvent sourceEvent =
+                ToObservedEvent(source);
             GenericActorRuntimeObservation.EventPayload projectedPayload =
-                source.Event.Payload;
+                source.UnredactedPayload;
             ImmutableArray<ActorIdentity> observedBy = [];
             var sounds = new List<ProjectedSound>();
-            bool includeVisible = source.Audience switch
+            bool includeVisible = source.EventAudience switch
             {
-                EventAudience.Public => true,
-                EventAudience.TeamPrivate teamPrivate =>
+                GenericActorAuthoritativeEvent.Audience.Public => true,
+                GenericActorAuthoritativeEvent.Audience.TeamPrivate
+                    teamPrivate =>
                     teamPrivate.TeamId == observer.ActorId.TeamId,
-                EventAudience.Spatial spatial =>
+                GenericActorAuthoritativeEvent.Audience.Spatial spatial =>
                     ProjectSpatialEvent(
-                        source.Event,
+                        sourceEvent,
                         spatial.PrimaryPosition,
                         observer.ActorId.TeamId,
                         sensors,
@@ -1572,16 +1758,16 @@ public sealed class GenericDeathmatchSession : IDisposable
                 continue;
 
             ProjectedEventIdentity identity = eventProjection.Resolve(
-                source.Event.EventHandle,
-                source.Event.SourceTick);
+                source.EventHandle,
+                source.Tick);
             if (includeVisible)
             {
                 visibleEvents.Add(new
                     GenericActorRuntimeObservation.ObservedEvent(
                         identity.Handle,
-                        source.Event.SourceTick,
+                        source.Tick,
                         identity.SourceOrdinal,
-                        source.Event.Kind,
+                        source.Kind,
                         projectedPayload,
                         observedBy));
             }
@@ -1590,10 +1776,10 @@ public sealed class GenericDeathmatchSession : IDisposable
                 heardSounds.Add(
                     new GenericActorRuntimeObservation.ObservedSound(
                         identity.Handle,
-                        source.Event.SourceTick,
+                        source.Tick,
                         identity.SourceOrdinal,
                         sound.ObserverActorId,
-                        source.Event.Kind,
+                        source.Kind,
                         sound.Bearing,
                         sound.DistanceBand));
             }
@@ -2006,6 +2192,18 @@ public sealed class GenericDeathmatchSession : IDisposable
             IReadOnlySet<ActorIdentity> visibleEnemyIds) =>
         payload switch
         {
+            GenericActorRuntimeObservation.EventPayload.Attack value
+                when value.ActorId.TeamId != observingTeamId =>
+                value with
+                {
+                    // The launch heading is observable, but accepted
+                    // arguments may encode future bends that have not yet
+                    // manifested on the board.
+                    Action = value.Action with
+                    {
+                        Arguments = [],
+                    },
+                },
             GenericActorRuntimeObservation.EventPayload.Damage value =>
                 value with
                 {
@@ -2026,8 +2224,38 @@ public sealed class GenericDeathmatchSession : IDisposable
                             ? source
                             : null,
                 },
+            GenericActorRuntimeObservation.EventPayload.LifeSpawned value =>
+                RedactLifeSpawned(
+                    value,
+                    observingTeamId,
+                    visibleEnemyIds),
             _ => payload,
         };
+
+    internal static GenericActorRuntimeObservation.EventPayload.LifeSpawned
+        RedactLifeSpawned(
+            GenericActorRuntimeObservation.EventPayload.LifeSpawned value,
+            int observingTeamId,
+            IReadOnlySet<ActorIdentity> visibleEnemyIds)
+    {
+        bool parentDisclosed =
+            value.ParentActorId is ActorIdentity parent
+            && (parent.TeamId == observingTeamId
+                || visibleEnemyIds.Contains(parent));
+        return value with
+        {
+            ParentActorId = parentDisclosed
+                ? value.ParentActorId
+                : null,
+            // Operation handles correlate every descendant with its source
+            // bundle. Some handles also predate this projector and embed the
+            // source identity, so they must follow the same disclosure rule
+            // as ParentActorId.
+            SourceOperationId = parentDisclosed
+                ? value.SourceOperationId
+                : null,
+        };
+    }
 
     private ActorVisionProfileDefinition VisionFor(LifeState life) =>
         _visionProfiles[_forms[life.FormId].VisionProfileId];
@@ -2107,41 +2335,13 @@ public sealed class GenericDeathmatchSession : IDisposable
         Position origin,
         ProjectileHeading initialHeading,
         ActorAttackProfileDefinition profile,
-        ShotProgram? program)
-    {
-        var path = ImmutableArray.CreateBuilder<Position>();
-        Position position = origin;
-        ProjectileHeading heading = initialHeading;
-        int bends = 0;
-        for (int tilesMoved = 0;
-             tilesMoved < profile.Projectile.MaxTravelTiles;
-             tilesMoved++)
-        {
-            if (program is ShotProgram curve
-                && bends < curve.BendCount
-                && tilesMoved >= curve.BendAfterTiles
-                && (tilesMoved - curve.BendAfterTiles)
-                    % curve.BendEveryTiles == 0)
-            {
-                heading = heading.Turned(curve.BendDirection);
-                bends++;
-            }
-            var (dx, dy) = heading.Vector();
-            Position next = position.Offset(dx, dy);
-            if (_definition.Map.IsWall(next)
-                || dx != 0
-                && dy != 0
-                && profile.Projectile.DiagonalCornersMustBeClear
-                && (_definition.Map.IsWall(position.Offset(dx, 0))
-                    || _definition.Map.IsWall(position.Offset(0, dy))))
-            {
-                break;
-            }
-            position = next;
-            path.Add(position);
-        }
-        return path.ToImmutable();
-    }
+        ShotProgram? program) =>
+        GenericActorProjectilePath.Trace(
+            _definition.Map,
+            origin,
+            initialHeading,
+            profile,
+            program);
 
     private ProjectileContact Contact(
         ProjectileState projectile,
@@ -2198,7 +2398,9 @@ public sealed class GenericDeathmatchSession : IDisposable
             reservation.Descendants.Any(descendant =>
                 descendant.Position == position));
 
-    private void ConsumeProjectilesAt(Position position)
+    private void ConsumeProjectilesAt(
+        Position position,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (ProjectileState projectile in _projectiles
                      .Where(projectile => projectile.Position == position)
@@ -2206,7 +2408,42 @@ public sealed class GenericDeathmatchSession : IDisposable
                      .ToArray())
         {
             _projectiles.Remove(projectile);
+            traversals.Add(CreateProjectileTraversal(
+                projectile,
+                GenericActorProjectileTraversal.TraversalPhase.TickStart,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .LifecyclePlacement,
+                projectile.Position,
+                [],
+                new GenericActorProjectileTraversal.TerminalDisposition
+                    .LifecyclePlacementPurge(position)));
         }
+    }
+
+    private GenericActorProjectileTraversal CreateProjectileTraversal(
+        ProjectileState projectile,
+        GenericActorProjectileTraversal.TraversalPhase phase,
+        GenericActorProjectileTraversal.TraversalTrigger trigger,
+        Position from,
+        IReadOnlyList<Position> path,
+        GenericActorProjectileTraversal.TerminalDisposition terminal)
+    {
+        return new GenericActorProjectileTraversal(
+            Tick,
+            NextAuthoritativeFactOrdinal(),
+            phase,
+            trigger,
+            projectile.Id,
+            projectile.OwnerParticipantId,
+            projectile.OwnerTeamId,
+            projectile.OwnerActorId,
+            projectile.Profile.Id,
+            from,
+            path,
+            projectile.LaunchHeading,
+            projectile.Heading,
+            projectile.ShotProgram,
+            terminal);
     }
 
     private LifeState CreateLife(
@@ -2245,7 +2482,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 $"Slot {slot.TeamId}:{slot.UnitId} expected life ID " +
                 $"{slot.NextLifeId}, got {lifeId}.");
         }
-        slot.NextLifeId = checked(lifeId + 1);
+        int nextLifeId = checked(lifeId + 1);
         var actorId = new ActorIdentity(
             slot.TeamId,
             slot.UnitId,
@@ -2257,23 +2494,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         int? energy = attack is { MaxEnergy: > 0 }
             ? attack.MaxEnergy
             : null;
-        var life = new LifeState(
-            actorId,
-            slot.ParticipantId,
-            generation,
-            formId,
-            position,
-            facing,
-            health,
-            energy,
-            reason,
-            parentActorId,
-            sourceTransitionId,
-            sourceOperationId);
-        slot.ActiveLife = life;
-        slot.Kind = SlotKind.Active;
-        _lives.Add(actorId, life);
-        _runtimes.StartLife(new GenericActorRuntimeStart
+        var runtimeStart = new GenericActorRuntimeStart
         {
             SchemaVersion =
                 _definition.CapabilityVersions.MatchStartSchemaVersion,
@@ -2292,7 +2513,29 @@ public sealed class GenericDeathmatchSession : IDisposable
                 sourceTransitionId,
                 sourceOperationId),
             Contract = _definition,
-        });
+        };
+        GenericActorLifeStart lifeStart =
+            GenericActorLifeStart.FromRuntimeStart(runtimeStart);
+        var life = new LifeState(
+            actorId,
+            slot.ParticipantId,
+            generation,
+            formId,
+            position,
+            facing,
+            health,
+            energy,
+            Tick,
+            lifeStart,
+            reason,
+            parentActorId,
+            sourceTransitionId,
+            sourceOperationId);
+        _runtimes.StartLife(runtimeStart);
+        slot.NextLifeId = nextLifeId;
+        slot.ActiveLife = life;
+        slot.Kind = SlotKind.Active;
+        _lives.Add(actorId, life);
         return life;
     }
 
@@ -2332,7 +2575,7 @@ public sealed class GenericDeathmatchSession : IDisposable
     private void CancelSourceSplit(
         ActorIdentity sourceActorId,
         string reason,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         foreach (SplitReplicationReservation reservation in
                  _splitReservations
@@ -2356,7 +2599,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private void CancelParticipantSplits(
         IReadOnlySet<int> participantIds,
-        ImmutableArray<AuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         foreach (SplitReplicationReservation reservation in
                  _splitReservations
@@ -2532,7 +2775,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             life.Position);
     }
 
-    private AuthoritativeEvent EmitSpatial(
+    private GenericActorAuthoritativeEvent EmitSpatial(
         int tick,
         GenericActorRuntimeObservation.EventKind kind,
         GenericActorRuntimeObservation.EventPayload payload,
@@ -2541,9 +2784,10 @@ public sealed class GenericDeathmatchSession : IDisposable
             tick,
             kind,
             payload,
-            new EventAudience.Spatial(primaryPosition));
+            new GenericActorAuthoritativeEvent.Audience.Spatial(
+                primaryPosition));
 
-    private AuthoritativeEvent EmitTeamPrivate(
+    private GenericActorAuthoritativeEvent EmitTeamPrivate(
         int tick,
         GenericActorRuntimeObservation.EventKind kind,
         GenericActorRuntimeObservation.EventPayload payload,
@@ -2552,33 +2796,54 @@ public sealed class GenericDeathmatchSession : IDisposable
             tick,
             kind,
             payload,
-            new EventAudience.TeamPrivate(teamId));
+            new GenericActorAuthoritativeEvent.Audience.TeamPrivate(teamId));
 
-    private AuthoritativeEvent EmitPublic(
+    private GenericActorAuthoritativeEvent EmitPublic(
         int tick,
         GenericActorRuntimeObservation.EventKind kind,
         GenericActorRuntimeObservation.EventPayload payload) =>
-        Emit(tick, kind, payload, new EventAudience.Public());
+        Emit(
+            tick,
+            kind,
+            payload,
+            new GenericActorAuthoritativeEvent.Audience.Public());
 
-    private AuthoritativeEvent Emit(
+    private GenericActorAuthoritativeEvent Emit(
         int tick,
         GenericActorRuntimeObservation.EventKind kind,
         GenericActorRuntimeObservation.EventPayload payload,
-        EventAudience audience)
+        GenericActorAuthoritativeEvent.Audience audience)
     {
-        int ordinal = _nextEventOrdinalByTick.GetValueOrDefault(tick);
-        _nextEventOrdinalByTick[tick] = checked(ordinal + 1);
-        return new AuthoritativeEvent(
-            new GenericActorRuntimeObservation.ObservedEvent(
-                FormattableString.Invariant(
-                    $"authoritative-event:{tick}:{ordinal}"),
-                tick,
-                ordinal,
-                kind,
-                payload,
-                []),
+        long globalOrdinal = NextAuthoritativeFactOrdinal();
+        int sourceOrdinal = _nextEventOrdinalByTick.GetValueOrDefault(tick);
+        _nextEventOrdinalByTick[tick] = checked(sourceOrdinal + 1);
+        return new GenericActorAuthoritativeEvent(
+            FormattableString.Invariant(
+                $"authoritative-event:{globalOrdinal}"),
+            tick,
+            globalOrdinal,
+            sourceOrdinal,
+            kind,
+            payload,
             audience);
     }
+
+    private long NextAuthoritativeFactOrdinal()
+    {
+        long ordinal = _nextAuthoritativeFactOrdinal;
+        _nextAuthoritativeFactOrdinal = checked(ordinal + 1);
+        return ordinal;
+    }
+
+    private static GenericActorRuntimeObservation.ObservedEvent
+        ToObservedEvent(GenericActorAuthoritativeEvent source) =>
+        new(
+            source.EventHandle,
+            source.Tick,
+            source.SourceOrdinal,
+            source.Kind,
+            source.UnredactedPayload,
+            []);
 
     private static GenericDeathmatchLifeSnapshot Snapshot(LifeState life) =>
         new(
@@ -2592,6 +2857,117 @@ public sealed class GenericDeathmatchSession : IDisposable
             life.Cooldown,
             life.Energy,
             life.PreviousActionResolution);
+
+    private GenericActorWorldSnapshot SnapshotWorld()
+    {
+        ImmutableArray<GenericActorWorldSnapshot.SlotSnapshot> slots =
+            _slots.Values
+                .OrderBy(slot => slot.TeamId)
+                .ThenBy(slot => slot.UnitId)
+                .Select(slot =>
+                    new GenericActorWorldSnapshot.SlotSnapshot(
+                        slot.TeamId,
+                        slot.UnitId,
+                        slot.ParticipantId,
+                        slot.NextLifeId,
+                        ProjectSlotState(slot),
+                        slot.PendingParentActorId,
+                        slot.SplitReservation))
+                .ToImmutableArray();
+        ImmutableArray<GenericActorWorldSnapshot.LifeSnapshot> lives =
+            _lives.Values
+                .OrderBy(life => life.ActorId)
+                .Select(life =>
+                    new GenericActorWorldSnapshot.LifeSnapshot(
+                        life.ActorId,
+                        life.ParticipantId,
+                        life.Generation,
+                        life.FormId,
+                        life.Position,
+                        life.Facing,
+                        life.Health,
+                        life.Cooldown,
+                        life.Energy,
+                        life.SpawnedAtTick,
+                        life.SpawnReason,
+                        life.ParentActorId,
+                        life.SourceTransitionId,
+                        life.SourceOperationId,
+                        life.PreviousActionResolution,
+                        pendingSameLifeTransition: null))
+                .ToImmutableArray();
+        ImmutableArray<GenericActorWorldSnapshot.ProjectileSnapshot>
+            projectiles = _projectiles
+                .OrderBy(projectile => projectile.Id)
+                .Select(projectile =>
+                    new GenericActorWorldSnapshot.ProjectileSnapshot(
+                        projectile.Id,
+                        projectile.OwnerParticipantId,
+                        projectile.OwnerTeamId,
+                        projectile.OwnerActorId,
+                        projectile.Profile.Id,
+                        projectile.SpawnedAtTick,
+                        projectile.Origin,
+                        projectile.Position,
+                        projectile.LaunchHeading,
+                        projectile.Heading,
+                        projectile.ShotProgram,
+                        projectile.Path,
+                        projectile.NextPathIndex,
+                        projectile.RemainingTiles,
+                        projectile.TicksUntilAdvance))
+                .ToImmutableArray();
+        return new GenericActorWorldSnapshot(
+            _definition,
+            Tick,
+            _nextProjectileId,
+            _runtimes.ParticipantStatuses,
+            slots,
+            lives,
+            _splitReservations,
+            projectiles,
+            Scoreboard(),
+            DeathmatchModeState());
+    }
+
+    private static GenericActorMatchResult ToGenericResult(
+        GenericDeathmatchResult result,
+        IReadOnlyCollection<int> eligibleTeamIds,
+        GenericActorWorldSnapshot finalState)
+    {
+        Dictionary<(int TeamId, int UnitId),
+            GenericActorWorldSnapshot.LifeSnapshot> livesBySlot =
+            finalState.ActiveLives.ToDictionary(
+                life => (life.ActorId.TeamId, life.ActorId.UnitId));
+        ImmutableArray<GenericActorMatchResult.UnitTerminalFact> units =
+            finalState.Slots
+                .Select(slot =>
+                    new GenericActorMatchResult.UnitTerminalFact(
+                        slot,
+                        livesBySlot.GetValueOrDefault(
+                            (slot.TeamId, slot.UnitId))))
+                .ToImmutableArray();
+        return new GenericActorMatchResult(
+            CompletionReasonId(result.Reason),
+            result.EndTick,
+            result.Standings,
+            eligibleTeamIds,
+            units,
+            new GenericActorMatchModeResult.Deathmatch(
+                result.Reason,
+                result.Scores));
+    }
+
+    private static string CompletionReasonId(
+        GenericDeathmatchEndReason reason) =>
+        reason switch
+        {
+            GenericDeathmatchEndReason.FaultEligibility =>
+                "fault-eligibility",
+            GenericDeathmatchEndReason.KillLimit => "kill-limit",
+            GenericDeathmatchEndReason.MaxTicks => "max-ticks",
+            _ => throw new ArgumentOutOfRangeException(nameof(reason)),
+        };
 
     private static Dictionary<(int TeamId, int UnitId), SlotState>
         CreateSlots(ActorResolvedMatchDefinition definition)
@@ -2675,6 +3051,15 @@ public sealed class GenericDeathmatchSession : IDisposable
     private void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(_disposed, this);
 
+    private void ThrowIfOperationInProgress()
+    {
+        if (Volatile.Read(ref _operationGate) != 0)
+        {
+            throw new InvalidOperationException(
+                "Authoritative session state cannot be inspected from inside a runtime callback.");
+        }
+    }
+
     private SessionOperation EnterOperation(string operationName)
     {
         if (Interlocked.CompareExchange(
@@ -2691,25 +3076,6 @@ public sealed class GenericDeathmatchSession : IDisposable
     private void ExitOperation()
     {
         Volatile.Write(ref _operationGate, 0);
-    }
-
-    private sealed record AuthoritativeEvent(
-        GenericActorRuntimeObservation.ObservedEvent Event,
-        EventAudience Audience);
-
-    private abstract record EventAudience
-    {
-        private EventAudience()
-        {
-        }
-
-        public sealed record Public : EventAudience;
-
-        public sealed record Spatial(
-            Position PrimaryPosition) : EventAudience;
-
-        public sealed record TeamPrivate(
-            int TeamId) : EventAudience;
     }
 
     private readonly record struct ObservationAudienceKey(
@@ -2826,6 +3192,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             Direction facing,
             int health,
             int? energy,
+            int spawnedAtTick,
+            GenericActorLifeStart lifeStart,
             GenericActorRuntimeStart.SpawnReason spawnReason,
             ActorIdentity? parentActorId,
             string? sourceTransitionId,
@@ -2839,6 +3207,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             Facing = facing;
             Health = health;
             Energy = energy;
+            SpawnedAtTick = spawnedAtTick;
+            LifeStart = lifeStart;
             SpawnReason = spawnReason;
             ParentActorId = parentActorId;
             SourceTransitionId = sourceTransitionId;
@@ -2854,6 +3224,8 @@ public sealed class GenericDeathmatchSession : IDisposable
         public int Health { get; set; }
         public int Cooldown { get; set; }
         public int? Energy { get; set; }
+        public int SpawnedAtTick { get; }
+        public GenericActorLifeStart LifeStart { get; }
         public GenericActorRuntimeStart.SpawnReason SpawnReason { get; }
         public ActorIdentity? ParentActorId { get; }
         public string? SourceTransitionId { get; }
@@ -2922,8 +3294,10 @@ public sealed class GenericDeathmatchSession : IDisposable
             int ownerParticipantId,
             int ownerTeamId,
             ActorIdentity ownerActorId,
-            Position position,
-            ProjectileHeading heading,
+            int spawnedAtTick,
+            Position origin,
+            ProjectileHeading launchHeading,
+            ShotProgram? shotProgram,
             ActorAttackProfileDefinition profile,
             ImmutableArray<Position> path)
         {
@@ -2931,8 +3305,12 @@ public sealed class GenericDeathmatchSession : IDisposable
             OwnerParticipantId = ownerParticipantId;
             OwnerTeamId = ownerTeamId;
             OwnerActorId = ownerActorId;
-            Position = position;
-            Heading = heading;
+            SpawnedAtTick = spawnedAtTick;
+            Origin = origin;
+            Position = origin;
+            LaunchHeading = launchHeading;
+            Heading = launchHeading;
+            ShotProgram = shotProgram;
             Profile = profile;
             Path = path;
             RemainingTiles = profile.Projectile.MaxTravelTiles;
@@ -2943,8 +3321,12 @@ public sealed class GenericDeathmatchSession : IDisposable
         public int OwnerParticipantId { get; }
         public int OwnerTeamId { get; }
         public ActorIdentity OwnerActorId { get; }
+        public int SpawnedAtTick { get; }
+        public Position Origin { get; }
         public Position Position { get; set; }
+        public ProjectileHeading LaunchHeading { get; }
         public ProjectileHeading Heading { get; set; }
+        public ShotProgram? ShotProgram { get; }
         public ActorAttackProfileDefinition Profile { get; }
         public ImmutableArray<Position> Path { get; }
         public int NextPathIndex { get; set; }

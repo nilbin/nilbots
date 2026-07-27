@@ -167,6 +167,25 @@ public sealed record ActorShotProgramDefinition
     public ActorActionRejectionResult UnsupportedPayloadResult { get; }
     public bool DiagonalCornersMustBeClear { get; }
 
+    internal bool IsValid(ShotProgram program) =>
+        IsValidProgram(
+            new ActorShotProgramValue(
+                program.InitialAimOffset,
+                program.BendDirection,
+                program.BendAfterTiles,
+                program.BendEveryTiles,
+                program.BendCount),
+            AimOnlyProgram,
+            AllowedCurvedBendDirections,
+            MinInitialAimSteps,
+            MaxInitialAimSteps,
+            MinBendAfterTiles,
+            MaxBendAfterTiles,
+            MinBendEveryTiles,
+            MaxBendEveryTiles,
+            MinBendCount,
+            MaxBendCount);
+
     private static void ValidatePositiveRange(
         int minimum,
         int maximum,

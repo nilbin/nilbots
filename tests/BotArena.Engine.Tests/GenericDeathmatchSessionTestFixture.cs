@@ -825,6 +825,8 @@ internal static class GenericDeathmatchSessionTestFixture
                 TeamId = participant.TeamId,
                 Name = $"participant-{participant.ParticipantId}",
                 RuntimeFactory = factories[participant.ParticipantId],
+                ArtifactHash =
+                    $"fixture-participant-{participant.ParticipantId}",
             }).ToImmutableArray();
     }
 
@@ -852,12 +854,15 @@ internal static class GenericDeathmatchSessionTestFixture
             null);
 
     public static GenericActorRuntimeDecision Shoot() =>
+        Shoot(ShotProgram.Straight);
+
+    public static GenericActorRuntimeDecision Shoot(ShotProgram program) =>
         new(
             "shoot",
             4,
             [
                 new GenericActorRuntimeActionArgument.ShotProgramArgument(
-                    ShotProgram.Straight),
+                    program),
             ],
             null);
 

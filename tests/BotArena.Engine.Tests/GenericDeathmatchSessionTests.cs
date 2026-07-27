@@ -399,6 +399,7 @@ public sealed class GenericDeathmatchSessionTests
                 ParticipantId = 10,
                 TeamId = 0,
                 Name = "sdk-attacker",
+                ArtifactHash = "fixture-sdk-attacker",
                 RuntimeFactory =
                     new InProcessGenericActorRuntimeFactory(() => sdkBot),
             },
@@ -407,6 +408,7 @@ public sealed class GenericDeathmatchSessionTests
                 ParticipantId = 20,
                 TeamId = 1,
                 Name = "recording-opponent",
+                ArtifactHash = "fixture-recording-opponent",
                 RuntimeFactory = opponentFactory,
             },
         ];
@@ -989,6 +991,95 @@ public sealed class GenericDeathmatchSessionTests
     }
 
     [Fact]
+    public void EnemyAttackEventsRevealLaunchButNotFutureProgram()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericDeathmatchSessionTestFixture.Definition(
+                "head-to-head",
+                new GenericDeathmatchSessionTestFixture.Options
+                {
+                    MaxTicks = 2,
+                });
+        var curve = new ShotProgram(
+            InitialAimOffset: 0,
+            BendDirection: 1,
+            BendAfterTiles: 2,
+            BendEveryTiles: 2,
+            BendCount: 1);
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ParticipantId == 10 && observation.Tick == 0
+                        ? GenericDeathmatchSessionTestFixture.Shoot(curve)
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 7031);
+
+        Resolve(session);
+        GenericDeathmatchTickStart next = session.PrepareTick();
+        GenericActorRuntimeObservation owner = next.Observations.Single(
+            observation => observation.Self.ActorId.TeamId == 0);
+        GenericActorRuntimeObservation opponent = next.Observations.Single(
+            observation => observation.Self.ActorId.TeamId == 1);
+        var ownerAttack = Assert.IsType<
+            GenericActorRuntimeObservation.EventPayload.Attack>(
+                owner.VisibleEvents.Single(value => value.Kind
+                    == GenericActorRuntimeObservation.EventKind.Attack)
+                    .Payload);
+        var enemyAttack = Assert.IsType<
+            GenericActorRuntimeObservation.EventPayload.Attack>(
+                opponent.VisibleEvents.Single(value => value.Kind
+                    == GenericActorRuntimeObservation.EventKind.Attack)
+                    .Payload);
+
+        Assert.Single(ownerAttack.Action.Arguments);
+        Assert.Empty(enemyAttack.Action.Arguments);
+        Assert.Equal(ownerAttack.Heading, enemyAttack.Heading);
+        Assert.Equal(ownerAttack.Origin, enemyAttack.Origin);
+    }
+
+    [Fact]
+    public void EnemySplitSpawnDoesNotRevealAnUnseenParentThroughItsOperation()
+    {
+        var parent = new ActorIdentity(0, 0, 7);
+        var payload =
+            new GenericActorRuntimeObservation.EventPayload.LifeSpawned(
+                new ActorIdentity(0, 1, 0),
+                ParticipantId: 10,
+                parent,
+                Generation: 1,
+                FormId: "child",
+                Health: 1,
+                new Position(2, 2),
+                GenericActorRuntimeStart.SpawnReason.Replication,
+                SourceTransitionId: "split-mobile",
+                SourceOperationId: "split:4:0:0:7");
+
+        GenericActorRuntimeObservation.EventPayload.LifeSpawned hidden =
+            GenericDeathmatchSession.RedactLifeSpawned(
+                payload,
+                observingTeamId: 1,
+                visibleEnemyIds: new HashSet<ActorIdentity>());
+        GenericActorRuntimeObservation.EventPayload.LifeSpawned visible =
+            GenericDeathmatchSession.RedactLifeSpawned(
+                payload,
+                observingTeamId: 1,
+                visibleEnemyIds: new HashSet<ActorIdentity> { parent });
+
+        Assert.Null(hidden.ParentActorId);
+        Assert.Null(hidden.SourceOperationId);
+        Assert.Equal(parent, visible.ParentActorId);
+        Assert.Equal(payload.SourceOperationId, visible.SourceOperationId);
+    }
+
+    [Fact]
     public void HiddenSplitLifecycleEventsDoNotBecomeGlobalFacts()
     {
         ActorResolvedMatchDefinition definition =
@@ -1505,6 +1596,14 @@ public sealed class GenericDeathmatchSessionTests
                         Capture(failures, () => session!.Step());
                         Capture(failures, () => session!.Run());
                         Capture(failures, () => session!.Dispose());
+                        Capture(
+                            failures,
+                            () => _ = session!.MatchDescriptor);
+                        Capture(failures, () => _ = session!.Chronology);
+                        Capture(failures, () => _ = session!.ActiveLives);
+                        Capture(failures, () => _ = session!.Projectiles);
+                        Capture(failures, () => _ = session!.Slots);
+                        Capture(failures, () => _ = session!.Scores);
                     }
                     return GenericDeathmatchSessionTestFixture.Wait();
                 });
@@ -1518,7 +1617,7 @@ public sealed class GenericDeathmatchSessionTests
             GenericDeathmatchStepResult first = Resolve(session);
 
             Assert.False(first.IsCompleted);
-            Assert.Equal(4, failures.Count);
+            Assert.Equal(10, failures.Count);
             Assert.All(
                 failures,
                 failure => Assert.IsType<InvalidOperationException>(failure));
@@ -1549,6 +1648,7 @@ public sealed class GenericDeathmatchSessionTests
                 ParticipantId = 10,
                 TeamId = 0,
                 Name = "sdk-malformed",
+                ArtifactHash = "fixture-sdk-malformed",
                 RuntimeFactory =
                     new InProcessGenericActorRuntimeFactory(() => sdkBot),
             },
@@ -1557,6 +1657,7 @@ public sealed class GenericDeathmatchSessionTests
                 ParticipantId = 20,
                 TeamId = 1,
                 Name = "recording-opponent",
+                ArtifactHash = "fixture-recording-opponent",
                 RuntimeFactory = opponentFactory,
             },
         ];

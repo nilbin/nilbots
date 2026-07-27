@@ -213,6 +213,27 @@ public sealed class SplitReplicationKernel
             descendants);
     }
 
+    /// <summary>
+    /// Reuses the execution kernel's exact static reservation proof when a
+    /// chronology snapshot is validated outside queue/completion execution.
+    /// Dynamic queue-time occupancy cannot be reconstructed from a later
+    /// snapshot and is therefore checked separately by the chronology layer.
+    /// </summary>
+    internal void ValidateReservationEvidence(
+        SplitReplicationReservation reservation)
+    {
+        ArgumentNullException.ThrowIfNull(reservation);
+        if (!_transitions.TryGetValue(
+                reservation.TransitionId,
+                out SplitReplicationTransitionDefinition? transition))
+        {
+            throw new ArgumentException(
+                "Reservation references an unknown Split transition.",
+                nameof(reservation));
+        }
+        ValidateReservation(reservation, transition);
+    }
+
     private void ValidateReservation(
         SplitReplicationReservation reservation,
         SplitReplicationTransitionDefinition transition)
