@@ -33,6 +33,8 @@ internal sealed class DeathmatchActorMatchModeDriver
     }
 
     public DeathmatchScoreState Scores => _scores;
+    public GenericActorModeState State =>
+        new GenericActorModeState.Deathmatch(_scores);
 
     public GenericActorModeTickResult ApplyJointTick(
         GenericActorModeWorldView world,

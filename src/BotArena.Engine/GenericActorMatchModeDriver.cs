@@ -8,6 +8,8 @@ namespace BotArena.Engine;
 /// </summary>
 internal interface IGenericActorMatchModeDriver
 {
+    GenericActorModeState State { get; }
+
     GenericActorModeTickResult ApplyJointTick(
         GenericActorModeWorldView world,
         GenericActorModeTickInput input);
@@ -19,6 +21,24 @@ internal interface IGenericActorMatchModeDriver
 
     GenericActorModeProjection Project(
         GenericActorModeWorldView world);
+}
+
+internal abstract record GenericActorModeState
+{
+    private GenericActorModeState()
+    {
+    }
+
+    internal sealed record Deathmatch : GenericActorModeState
+    {
+        public Deathmatch(DeathmatchScoreState scores)
+        {
+            ArgumentNullException.ThrowIfNull(scores);
+            Scores = scores;
+        }
+
+        public DeathmatchScoreState Scores { get; }
+    }
 }
 
 internal sealed record GenericActorModeWorldView
