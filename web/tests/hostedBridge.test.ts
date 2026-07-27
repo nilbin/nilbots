@@ -22,6 +22,15 @@ const replayV2 = loadReplayJson(
     'utf8',
   ),
 ).replay;
+const replayV3 = loadReplayJson(
+  readFileSync(
+    new URL(
+      '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+).replay;
 
 test('no bridge query retains bridge-v1 message and slot compatibility', () => {
   assert.equal(hostedBridgeVersion('?standalone'), 1);
@@ -165,6 +174,49 @@ test('bridge-v1 rejects replay-v2 with only the stable error envelope', () => {
     errorBridgeMessage(1, 'unsupported-replay-version'),
     { type: 'error', reason: 'unsupported-replay-version' },
   );
+});
+
+test('bridge-v3 carries generic source identity, mode, scores, and tick state', () => {
+  assert.equal(hostedBridgeVersion('?standalone&bridge=3'), 3);
+  assert.deepEqual(readyBridgeMessage(3), {
+    type: 'ready',
+    bridgeVersion: 3,
+  });
+  assert.equal(bridgeSupportsReplay(2, replayV3), false);
+  assert.equal(bridgeSupportsReplay(3, replayV3), true);
+
+  const message = replayBridgeMessage(3, replayV3, 2, 3);
+  assert.equal(message.bridgeVersion, 3);
+  assert.deepEqual(message.header.mode, {
+    kind: 'deathmatch',
+    id: 'deathmatch',
+  });
+  assert.deepEqual(
+    message.header.units.map((unit) => unit.unitKey),
+    ['generic:0:unit:0', 'generic:1:unit:0'],
+  );
+  assert.deepEqual(message.result?.teams[0]?.scores, [
+    { channel: 'kills', value: '0' },
+    { channel: 'deaths', value: '0' },
+    { channel: 'damage-dealt', value: '1' },
+    { channel: 'active-health', value: '2' },
+  ]);
+  assert.deepEqual(message.result?.mode, replayV3.result?.mode);
+
+  const tick = tickBridgeMessage(
+    3,
+    legacyPresentation(),
+    replayV3.initialWorld ?? undefined,
+  );
+  assert.equal(tick.bridgeVersion, 3);
+  assert.deepEqual(tick.mode, {
+    kind: 'deathmatch',
+    modeId: 'deathmatch',
+  });
+  assert.deepEqual(tick.scoreboard?.teams[0]?.scores[0], {
+    channel: 'kills',
+    value: '0',
+  });
 });
 
 function legacyPresentation(): TickPresentation {

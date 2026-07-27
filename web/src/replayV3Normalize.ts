@@ -1,0 +1,4645 @@
+import {
+  replayGenericIdentity,
+  replayParticipantKey,
+  replayTeamKey,
+} from './replayModel';
+import type * as Model from './replayModel';
+import type * as V3 from './replayWireV3';
+
+export type ReplayV3Fail = (path: string, message: string) => never;
+
+const own = (value: object, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
+function object(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail(path, 'expected an object');
+  }
+  return value as Record<string, unknown>;
+}
+
+function exact(
+  value: unknown,
+  path: string,
+  keys: readonly string[],
+  fail: ReplayV3Fail,
+): Record<string, unknown> {
+  const item = object(value, path, fail);
+  const allowed = new Set(keys);
+  for (const key of Object.keys(item)) {
+    if (!allowed.has(key)) fail(`${path}.${key}`, 'unknown property');
+  }
+  for (const key of keys) {
+    if (!own(item, key)) fail(`${path}.${key}`, 'missing required property');
+  }
+  return item;
+}
+
+function array(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): unknown[] {
+  if (!Array.isArray(value)) fail(path, 'expected an array');
+  return value;
+}
+
+function string(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): asserts value is string {
+  if (typeof value !== 'string') fail(path, 'expected a string');
+}
+
+function nonEmpty(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): asserts value is string {
+  string(value, path, fail);
+  if (value.length === 0) fail(path, 'must not be empty');
+}
+
+function integer(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): asserts value is number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
+    fail(path, 'expected a safe integer');
+  }
+}
+
+function boolean(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): asserts value is boolean {
+  if (typeof value !== 'boolean') fail(path, 'expected a boolean');
+}
+
+function nullable(
+  value: unknown,
+  path: string,
+  validator: (value: unknown, path: string, fail: ReplayV3Fail) => void,
+  fail: ReplayV3Fail,
+): void {
+  if (value !== null) validator(value, path, fail);
+}
+
+function canonicalUnsigned(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+  max: bigint,
+): asserts value is string {
+  if (
+    typeof value !== 'string' ||
+    !/^(0|[1-9][0-9]*)$/.test(value) ||
+    BigInt(value) > max
+  ) {
+    fail(path, 'expected a canonical non-negative decimal string');
+  }
+}
+
+function uint64(value: unknown, path: string, fail: ReplayV3Fail): void {
+  canonicalUnsigned(value, path, fail, 18_446_744_073_709_551_615n);
+}
+
+function int64(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+  nonNegative = false,
+): void {
+  if (typeof value !== 'string' || !/^(0|-?[1-9][0-9]*)$/.test(value)) {
+    fail(path, 'expected a canonical signed 64-bit decimal string');
+  }
+  const parsed = BigInt(value);
+  if (
+    parsed < -9_223_372_036_854_775_808n ||
+    parsed > 9_223_372_036_854_775_807n ||
+    (nonNegative && parsed < 0n)
+  ) {
+    fail(path, 'expected a canonical signed 64-bit decimal string');
+  }
+}
+
+function direction(value: unknown, path: string, fail: ReplayV3Fail): void {
+  if (!['north', 'east', 'south', 'west'].includes(String(value))) {
+    fail(path, 'expected a cardinal direction');
+  }
+}
+
+function heading(value: unknown, path: string, fail: ReplayV3Fail): void {
+  if (
+    ![
+      'north',
+      'north-east',
+      'east',
+      'south-east',
+      'south',
+      'south-west',
+      'west',
+      'north-west',
+    ].includes(String(value))
+  ) {
+    fail(path, 'expected an eight-way projectile heading');
+  }
+}
+
+function actorId(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(value, path, ['teamId', 'unitId', 'lifeId'], fail);
+  integer(item.teamId, `${path}.teamId`, fail);
+  integer(item.unitId, `${path}.unitId`, fail);
+  integer(item.lifeId, `${path}.lifeId`, fail);
+}
+
+function position(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(value, path, ['x', 'y'], fail);
+  integer(item.x, `${path}.x`, fail);
+  integer(item.y, `${path}.y`, fail);
+}
+
+function contractPosition(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const tuple = array(value, path, fail);
+  if (tuple.length !== 2) fail(path, 'expected a two-item position tuple');
+  integer(tuple[0], `${path}[0]`, fail);
+  integer(tuple[1], `${path}[1]`, fail);
+}
+
+function shotProgram(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'initialAimOffset',
+      'bendDirection',
+      'bendAfterTiles',
+      'bendEveryTiles',
+      'bendCount',
+    ],
+    fail,
+  );
+  for (const key of Object.keys(item)) integer(item[key], `${path}.${key}`, fail);
+}
+
+function jsonValue(value: unknown, path: string, fail: ReplayV3Fail): void {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'boolean'
+  ) {
+    return;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value)) fail(path, 'expected a safe JSON integer');
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) =>
+      jsonValue(entry, `${path}[${index}]`, fail),
+    );
+    return;
+  }
+  const item = object(value, path, fail);
+  for (const [key, entry] of Object.entries(item)) {
+    jsonValue(entry, `${path}.${key}`, fail);
+  }
+}
+
+function validateContract(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const contract = exact(
+    value,
+    path,
+    [
+      'schemaVersion',
+      'matchContractFingerprint',
+      'capabilityVersions',
+      'rules',
+      'map',
+      'format',
+      'topology',
+      'initialDeployment',
+      'lifecycleAssignments',
+      'participantRegionAssignments',
+      'modeMapBinding',
+    ],
+    fail,
+  );
+  integer(contract.schemaVersion, `${path}.schemaVersion`, fail);
+  nonEmpty(
+    contract.matchContractFingerprint,
+    `${path}.matchContractFingerprint`,
+    fail,
+  );
+  const capabilities = exact(
+    contract.capabilityVersions,
+    `${path}.capabilityVersions`,
+    [
+      'contractProfileId',
+      'runtimeProtocolVersion',
+      'runtimeConfigurationVersion',
+      'runtimeContractVersion',
+      'matchStartSchemaVersion',
+      'observationSchemaVersion',
+      'decisionSchemaVersion',
+      'matchContractSchemaVersion',
+    ],
+    fail,
+  );
+  for (const key of [
+    'contractProfileId',
+    'runtimeProtocolVersion',
+    'runtimeConfigurationVersion',
+  ]) {
+    nonEmpty(capabilities[key], `${path}.capabilityVersions.${key}`, fail);
+  }
+  for (const key of [
+    'runtimeContractVersion',
+    'matchStartSchemaVersion',
+    'observationSchemaVersion',
+    'decisionSchemaVersion',
+    'matchContractSchemaVersion',
+  ]) {
+    integer(capabilities[key], `${path}.capabilityVersions.${key}`, fail);
+  }
+
+  const rules = exact(
+    contract.rules,
+    `${path}.rules`,
+    [
+      'schemaVersion',
+      'rulesetId',
+      'rulesFingerprint',
+      'limits',
+      'seedMechanics',
+      'gameMode',
+      'lifecycle',
+      'forms',
+      'movementProfiles',
+      'visionProfiles',
+      'attackProfiles',
+      'actions',
+      'fabricationTransitions',
+      'sameLifeTransitions',
+      'replicationTransitions',
+      'teamPerception',
+      'collisions',
+      'tickResolution',
+    ],
+    fail,
+  );
+  integer(rules.schemaVersion, `${path}.rules.schemaVersion`, fail);
+  nonEmpty(rules.rulesetId, `${path}.rules.rulesetId`, fail);
+  nonEmpty(rules.rulesFingerprint, `${path}.rules.rulesFingerprint`, fail);
+  for (const key of [
+    'limits',
+    'seedMechanics',
+    'gameMode',
+    'lifecycle',
+    'teamPerception',
+    'collisions',
+    'tickResolution',
+  ]) {
+    jsonValue(rules[key], `${path}.rules.${key}`, fail);
+  }
+  const limits = object(rules.limits, `${path}.rules.limits`, fail);
+  integer(limits.maxTicks, `${path}.rules.limits.maxTicks`, fail);
+  const mode = object(rules.gameMode, `${path}.rules.gameMode`, fail);
+  nonEmpty(mode.kind, `${path}.rules.gameMode.kind`, fail);
+  nonEmpty(mode.modeId, `${path}.rules.gameMode.modeId`, fail);
+  const scoreCatalog = array(
+    mode.scoreCatalog,
+    `${path}.rules.gameMode.scoreCatalog`,
+    fail,
+  );
+  scoreCatalog.forEach((entry, index) => {
+    const score = object(
+      entry,
+      `${path}.rules.gameMode.scoreCatalog[${index}]`,
+      fail,
+    );
+    nonEmpty(
+      score.channel,
+      `${path}.rules.gameMode.scoreCatalog[${index}].channel`,
+      fail,
+    );
+  });
+  for (const key of [
+    'forms',
+    'movementProfiles',
+    'visionProfiles',
+    'attackProfiles',
+    'actions',
+    'fabricationTransitions',
+    'sameLifeTransitions',
+    'replicationTransitions',
+  ]) {
+    const entries = array(rules[key], `${path}.rules.${key}`, fail);
+    entries.forEach((entry, index) =>
+      jsonValue(entry, `${path}.rules.${key}[${index}]`, fail),
+    );
+  }
+
+  const map = exact(
+    contract.map,
+    `${path}.map`,
+    [
+      'schemaVersion',
+      'mapId',
+      'mapVersion',
+      'mapFingerprint',
+      'formatVersion',
+      'width',
+      'height',
+      'tileRows',
+      'spawnAnchors',
+      'regions',
+      'tileTags',
+    ],
+    fail,
+  );
+  for (const key of [
+    'schemaVersion',
+    'mapVersion',
+    'formatVersion',
+    'width',
+    'height',
+  ]) {
+    integer(map[key], `${path}.map.${key}`, fail);
+  }
+  for (const key of ['mapId', 'mapFingerprint']) {
+    nonEmpty(map[key], `${path}.map.${key}`, fail);
+  }
+  array(map.tileRows, `${path}.map.tileRows`, fail).forEach((row, index) =>
+    string(row, `${path}.map.tileRows[${index}]`, fail),
+  );
+  array(map.spawnAnchors, `${path}.map.spawnAnchors`, fail).forEach(
+    (entry, index) => {
+      const spawn = exact(
+        entry,
+        `${path}.map.spawnAnchors[${index}]`,
+        ['spawnId', 'position', 'facing', 'compatibleMovementLayers'],
+        fail,
+      );
+      nonEmpty(spawn.spawnId, `${path}.map.spawnAnchors[${index}].spawnId`, fail);
+      contractPosition(
+        spawn.position,
+        `${path}.map.spawnAnchors[${index}].position`,
+        fail,
+      );
+      direction(spawn.facing, `${path}.map.spawnAnchors[${index}].facing`, fail);
+      array(
+        spawn.compatibleMovementLayers,
+        `${path}.map.spawnAnchors[${index}].compatibleMovementLayers`,
+        fail,
+      ).forEach((layer, layerIndex) =>
+        nonEmpty(
+          layer,
+          `${path}.map.spawnAnchors[${index}].compatibleMovementLayers[${layerIndex}]`,
+          fail,
+        ),
+      );
+    },
+  );
+  array(map.regions, `${path}.map.regions`, fail).forEach((entry, index) => {
+    const regionPath = `${path}.map.regions[${index}]`;
+    const region = exact(entry, regionPath, ['regionId', 'kind', 'tiles'], fail);
+    nonEmpty(region.regionId, `${regionPath}.regionId`, fail);
+    if (
+      region.kind !== 'objective' &&
+      region.kind !== 'transition-placement'
+    ) {
+      fail(`${regionPath}.kind`, 'unknown map region kind');
+    }
+    array(region.tiles, `${regionPath}.tiles`, fail).forEach(
+      (tile, tileIndex) =>
+        contractPosition(tile, `${regionPath}.tiles[${tileIndex}]`, fail),
+    );
+  });
+  array(map.tileTags, `${path}.map.tileTags`, fail).forEach((entry, index) => {
+    const tagPath = `${path}.map.tileTags[${index}]`;
+    const tag = exact(entry, tagPath, ['tagId', 'kind', 'tiles'], fail);
+    nonEmpty(tag.tagId, `${tagPath}.tagId`, fail);
+    if (
+      tag.kind !== 'transition-placement-forbidden' &&
+      tag.kind !== 'spawn-protected'
+    ) {
+      fail(`${tagPath}.kind`, 'unknown map tile-tag kind');
+    }
+    array(tag.tiles, `${tagPath}.tiles`, fail).forEach((tile, tileIndex) =>
+      contractPosition(tile, `${tagPath}.tiles[${tileIndex}]`, fail),
+    );
+  });
+
+  jsonValue(contract.format, `${path}.format`, fail);
+  validateTopology(contract.topology, `${path}.topology`, fail);
+  validateInitialDeployment(
+    contract.initialDeployment,
+    `${path}.initialDeployment`,
+    fail,
+  );
+  for (const key of [
+    'lifecycleAssignments',
+    'participantRegionAssignments',
+  ]) {
+    array(contract[key], `${path}.${key}`, fail).forEach((entry, index) =>
+      jsonValue(entry, `${path}.${key}[${index}]`, fail),
+    );
+  }
+  const bindingPath = `${path}.modeMapBinding`;
+  const binding = object(contract.modeMapBinding, bindingPath, fail);
+  if (binding.kind === 'deathmatch') {
+    exact(binding, bindingPath, ['kind'], fail);
+  } else if (binding.kind === 'frontline') {
+    const frontline = exact(
+      binding,
+      bindingPath,
+      ['kind', 'orderedObjectiveRegionIds', 'teamAdvances'],
+      fail,
+    );
+    array(
+      frontline.orderedObjectiveRegionIds,
+      `${bindingPath}.orderedObjectiveRegionIds`,
+      fail,
+    ).forEach((regionId, index) =>
+      nonEmpty(
+        regionId,
+        `${bindingPath}.orderedObjectiveRegionIds[${index}]`,
+        fail,
+      ),
+    );
+    array(frontline.teamAdvances, `${bindingPath}.teamAdvances`, fail).forEach(
+      (entry, index) => {
+        const advancePath = `${bindingPath}.teamAdvances[${index}]`;
+        const advance = exact(
+          entry,
+          advancePath,
+          ['teamId', 'direction', 'objectiveIndexDelta'],
+          fail,
+        );
+        integer(advance.teamId, `${advancePath}.teamId`, fail);
+        if (
+          advance.direction !== 'toward-lower-index' &&
+          advance.direction !== 'toward-higher-index'
+        ) {
+          fail(`${advancePath}.direction`, 'unknown objective advance direction');
+        }
+        integer(
+          advance.objectiveIndexDelta,
+          `${advancePath}.objectiveIndexDelta`,
+          fail,
+        );
+        if (
+          advance.objectiveIndexDelta !==
+          (advance.direction === 'toward-lower-index' ? -1 : 1)
+        ) {
+          fail(
+            `${advancePath}.objectiveIndexDelta`,
+            'must match the objective advance direction',
+          );
+        }
+      },
+    );
+  } else {
+    fail(`${bindingPath}.kind`, `unknown mode-map binding ${String(binding.kind)}`);
+  }
+}
+
+function validateTopology(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const topology = exact(
+    value,
+    path,
+    [
+      'schemaVersion',
+      'topologyFingerprint',
+      'counts',
+      'teams',
+      'participants',
+      'unitSlots',
+      'initialLives',
+    ],
+    fail,
+  );
+  integer(topology.schemaVersion, `${path}.schemaVersion`, fail);
+  nonEmpty(topology.topologyFingerprint, `${path}.topologyFingerprint`, fail);
+  const counts = exact(
+    topology.counts,
+    `${path}.counts`,
+    ['teamCount', 'participantCount', 'unitSlotCount', 'initialLifeCount'],
+    fail,
+  );
+  for (const key of Object.keys(counts)) {
+    integer(counts[key], `${path}.counts.${key}`, fail);
+  }
+  array(topology.teams, `${path}.teams`, fail).forEach((entry, index) => {
+    const team = exact(entry, `${path}.teams[${index}]`, ['teamId'], fail);
+    integer(team.teamId, `${path}.teams[${index}].teamId`, fail);
+  });
+  array(topology.participants, `${path}.participants`, fail).forEach(
+    (entry, index) => {
+      const participant = exact(
+        entry,
+        `${path}.participants[${index}]`,
+        ['participantId', 'teamId'],
+        fail,
+      );
+      integer(
+        participant.participantId,
+        `${path}.participants[${index}].participantId`,
+        fail,
+      );
+      integer(participant.teamId, `${path}.participants[${index}].teamId`, fail);
+    },
+  );
+  array(topology.unitSlots, `${path}.unitSlots`, fail).forEach(
+    (entry, index) => {
+      const slot = exact(
+        entry,
+        `${path}.unitSlots[${index}]`,
+        ['teamId', 'unitId', 'controllerParticipantId'],
+        fail,
+      );
+      for (const key of ['teamId', 'unitId', 'controllerParticipantId']) {
+        integer(slot[key], `${path}.unitSlots[${index}].${key}`, fail);
+      }
+    },
+  );
+  array(topology.initialLives, `${path}.initialLives`, fail).forEach(
+    (entry, index) => {
+      const life = exact(
+        entry,
+        `${path}.initialLives[${index}]`,
+        ['teamId', 'unitId', 'lifeId', 'formId'],
+        fail,
+      );
+      for (const key of ['teamId', 'unitId', 'lifeId']) {
+        integer(life[key], `${path}.initialLives[${index}].${key}`, fail);
+      }
+      nonEmpty(life.formId, `${path}.initialLives[${index}].formId`, fail);
+    },
+  );
+}
+
+function validateInitialDeployment(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const deployment = exact(value, path, ['spawns', 'lives'], fail);
+  array(deployment.spawns, `${path}.spawns`, fail).forEach((entry, index) => {
+    const spawn = exact(
+      entry,
+      `${path}.spawns[${index}]`,
+      ['spawnId', 'position', 'facing'],
+      fail,
+    );
+    nonEmpty(spawn.spawnId, `${path}.spawns[${index}].spawnId`, fail);
+    contractPosition(spawn.position, `${path}.spawns[${index}].position`, fail);
+    direction(spawn.facing, `${path}.spawns[${index}].facing`, fail);
+  });
+  array(deployment.lives, `${path}.lives`, fail).forEach((entry, index) => {
+    const life = exact(
+      entry,
+      `${path}.lives[${index}]`,
+      ['teamId', 'unitId', 'lifeId', 'formId', 'spawnId'],
+      fail,
+    );
+    for (const key of ['teamId', 'unitId', 'lifeId']) {
+      integer(life[key], `${path}.lives[${index}].${key}`, fail);
+    }
+    nonEmpty(life.formId, `${path}.lives[${index}].formId`, fail);
+    nonEmpty(life.spawnId, `${path}.lives[${index}].spawnId`, fail);
+  });
+}
+
+function unitSlotState(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  switch (base.kind) {
+    case 'active': {
+      const item = exact(
+        base,
+        path,
+        ['kind', 'actorId', 'generation', 'formId'],
+        fail,
+      );
+      actorId(item.actorId, `${path}.actorId`, fail);
+      integer(item.generation, `${path}.generation`, fail);
+      nonEmpty(item.formId, `${path}.formId`, fail);
+      return;
+    }
+    case 'availability-pending': {
+      const item = exact(base, path, ['kind', 'reason', 'dueTick'], fail);
+      nonEmpty(item.reason, `${path}.reason`, fail);
+      integer(item.dueTick, `${path}.dueTick`, fail);
+      return;
+    }
+    case 'automatic-return-pending': {
+      const item = exact(
+        base,
+        path,
+        ['kind', 'dueTick', 'targetFormId', 'generation'],
+        fail,
+      );
+      integer(item.dueTick, `${path}.dueTick`, fail);
+      nonEmpty(item.targetFormId, `${path}.targetFormId`, fail);
+      integer(item.generation, `${path}.generation`, fail);
+      return;
+    }
+    case 'ready':
+    case 'permanently-dormant':
+      exact(base, path, ['kind'], fail);
+      return;
+    case 'fabrication-pending':
+    case 'replication-pending': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'dueTick',
+          'sourceActorId',
+          'transitionId',
+          'operationId',
+          'targetFormId',
+          'reservedPosition',
+        ],
+        fail,
+      );
+      integer(item.dueTick, `${path}.dueTick`, fail);
+      actorId(item.sourceActorId, `${path}.sourceActorId`, fail);
+      for (const key of ['transitionId', 'operationId', 'targetFormId']) {
+        nonEmpty(item[key], `${path}.${key}`, fail);
+      }
+      position(item.reservedPosition, `${path}.reservedPosition`, fail);
+      return;
+    }
+    default:
+      fail(`${path}.kind`, `unknown slot state ${String(base.kind)}`);
+  }
+}
+
+function participantStatus(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    ['participantId', 'teamId', 'runtimeFaultCount', 'disqualified'],
+    fail,
+  );
+  integer(item.participantId, `${path}.participantId`, fail);
+  integer(item.teamId, `${path}.teamId`, fail);
+  int64(item.runtimeFaultCount, `${path}.runtimeFaultCount`, fail, true);
+  boolean(item.disqualified, `${path}.disqualified`, fail);
+}
+
+function pendingTransition(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  if (value === null) return;
+  const item = exact(
+    value,
+    path,
+    ['transitionId', 'operationId', 'targetFormId', 'startedTick', 'dueTick'],
+    fail,
+  );
+  for (const key of ['transitionId', 'operationId', 'targetFormId']) {
+    nonEmpty(item[key], `${path}.${key}`, fail);
+  }
+  integer(item.startedTick, `${path}.startedTick`, fail);
+  integer(item.dueTick, `${path}.dueTick`, fail);
+}
+
+function rawArgument(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  if (base.kind === 'form-target') {
+    const item = exact(base, path, ['kind', 'formId'], fail);
+    nullable(item.formId, `${path}.formId`, string, fail);
+    return;
+  }
+  const item = exact(base, path, ['kind', 'value'], fail);
+  switch (item.kind) {
+    case 'shot-program':
+      shotProgram(item.value, `${path}.value`, fail);
+      return;
+    case 'direction':
+    case 'projectile-heading':
+      integer(item.value, `${path}.value`, fail);
+      return;
+    case 'unit-target': {
+      const target = exact(item.value, `${path}.value`, ['teamId', 'unitId'], fail);
+      integer(target.teamId, `${path}.value.teamId`, fail);
+      integer(target.unitId, `${path}.value.unitId`, fail);
+      return;
+    }
+    default:
+      fail(`${path}.kind`, `unknown raw action argument ${String(item.kind)}`);
+  }
+}
+
+function actionArgument(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  if (base.kind === 'form-target') {
+    const item = exact(base, path, ['kind', 'formId'], fail);
+    nonEmpty(item.formId, `${path}.formId`, fail);
+    return;
+  }
+  const item = exact(base, path, ['kind', 'value'], fail);
+  switch (item.kind) {
+    case 'shot-program':
+      shotProgram(item.value, `${path}.value`, fail);
+      return;
+    case 'direction':
+      direction(item.value, `${path}.value`, fail);
+      return;
+    case 'projectile-heading':
+      heading(item.value, `${path}.value`, fail);
+      return;
+    case 'unit-target': {
+      const target = exact(item.value, `${path}.value`, ['teamId', 'unitId'], fail);
+      integer(target.teamId, `${path}.value.teamId`, fail);
+      integer(target.unitId, `${path}.value.unitId`, fail);
+      return;
+    }
+    default:
+      fail(`${path}.kind`, `unknown action argument ${String(item.kind)}`);
+  }
+}
+
+function resolvedAction(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(value, path, ['actionId', 'actionCode', 'arguments'], fail);
+  nonEmpty(item.actionId, `${path}.actionId`, fail);
+  integer(item.actionCode, `${path}.actionCode`, fail);
+  array(item.arguments, `${path}.arguments`, fail).forEach((entry, index) =>
+    actionArgument(entry, `${path}.arguments[${index}]`, fail),
+  );
+}
+
+function runtimeFault(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'participantId',
+      'actorId',
+      'stage',
+      'faultCode',
+      'cumulativeFaultCount',
+      'disqualificationTriggered',
+    ],
+    fail,
+  );
+  integer(item.participantId, `${path}.participantId`, fail);
+  actorId(item.actorId, `${path}.actorId`, fail);
+  nonEmpty(item.stage, `${path}.stage`, fail);
+  nonEmpty(item.faultCode, `${path}.faultCode`, fail);
+  int64(item.cumulativeFaultCount, `${path}.cumulativeFaultCount`, fail, true);
+  boolean(
+    item.disqualificationTriggered,
+    `${path}.disqualificationTriggered`,
+    fail,
+  );
+}
+
+function actionResolution(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'submittedAction',
+      'acceptedAction',
+      'validatedAction',
+      'outcome',
+      'runtimeFault',
+    ],
+    fail,
+  );
+  nullable(item.submittedAction, `${path}.submittedAction`, resolvedAction, fail);
+  resolvedAction(item.acceptedAction, `${path}.acceptedAction`, fail);
+  resolvedAction(item.validatedAction, `${path}.validatedAction`, fail);
+  nonEmpty(item.outcome, `${path}.outcome`, fail);
+  nullable(item.runtimeFault, `${path}.runtimeFault`, runtimeFault, fail);
+}
+
+function lifeState(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'actorId',
+      'participantId',
+      'generation',
+      'formId',
+      'position',
+      'facing',
+      'health',
+      'cooldown',
+      'energy',
+      'spawnedAtTick',
+      'spawnReason',
+      'parentActorId',
+      'sourceTransitionId',
+      'sourceOperationId',
+      'previousActionResolution',
+      'pendingSameLifeTransition',
+    ],
+    fail,
+  );
+  actorId(item.actorId, `${path}.actorId`, fail);
+  for (const key of [
+    'participantId',
+    'generation',
+    'health',
+    'cooldown',
+    'spawnedAtTick',
+  ]) {
+    integer(item[key], `${path}.${key}`, fail);
+  }
+  nullable(item.energy, `${path}.energy`, integer, fail);
+  nonEmpty(item.formId, `${path}.formId`, fail);
+  position(item.position, `${path}.position`, fail);
+  direction(item.facing, `${path}.facing`, fail);
+  nonEmpty(item.spawnReason, `${path}.spawnReason`, fail);
+  nullable(item.parentActorId, `${path}.parentActorId`, actorId, fail);
+  nullable(item.sourceTransitionId, `${path}.sourceTransitionId`, string, fail);
+  nullable(item.sourceOperationId, `${path}.sourceOperationId`, string, fail);
+  nullable(
+    item.previousActionResolution,
+    `${path}.previousActionResolution`,
+    actionResolution,
+    fail,
+  );
+  pendingTransition(
+    item.pendingSameLifeTransition,
+    `${path}.pendingSameLifeTransition`,
+    fail,
+  );
+}
+
+function pendingReplication(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'sourceActorId',
+      'participantId',
+      'sourceGeneration',
+      'sourceFormId',
+      'sourcePosition',
+      'sourceFacing',
+      'transitionId',
+      'operationId',
+      'queuedTick',
+      'dueTick',
+      'descendants',
+    ],
+    fail,
+  );
+  actorId(item.sourceActorId, `${path}.sourceActorId`, fail);
+  for (const key of [
+    'participantId',
+    'sourceGeneration',
+    'queuedTick',
+    'dueTick',
+  ]) {
+    integer(item[key], `${path}.${key}`, fail);
+  }
+  for (const key of ['sourceFormId', 'transitionId', 'operationId']) {
+    nonEmpty(item[key], `${path}.${key}`, fail);
+  }
+  position(item.sourcePosition, `${path}.sourcePosition`, fail);
+  direction(item.sourceFacing, `${path}.sourceFacing`, fail);
+  array(item.descendants, `${path}.descendants`, fail).forEach(
+    (entry, index) => {
+      const descendant = exact(
+        entry,
+        `${path}.descendants[${index}]`,
+        ['teamId', 'unitId', 'formId', 'generation', 'position'],
+        fail,
+      );
+      for (const key of ['teamId', 'unitId', 'generation']) {
+        integer(descendant[key], `${path}.descendants[${index}].${key}`, fail);
+      }
+      nonEmpty(
+        descendant.formId,
+        `${path}.descendants[${index}].formId`,
+        fail,
+      );
+      position(
+        descendant.position,
+        `${path}.descendants[${index}].position`,
+        fail,
+      );
+    },
+  );
+}
+
+function slotState(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'teamId',
+      'unitId',
+      'participantId',
+      'nextLifeId',
+      'state',
+      'pendingParentActorId',
+      'splitReservation',
+    ],
+    fail,
+  );
+  for (const key of ['teamId', 'unitId', 'participantId', 'nextLifeId']) {
+    integer(item[key], `${path}.${key}`, fail);
+  }
+  unitSlotState(item.state, `${path}.state`, fail);
+  nullable(item.pendingParentActorId, `${path}.pendingParentActorId`, actorId, fail);
+  nullable(item.splitReservation, `${path}.splitReservation`, pendingReplication, fail);
+}
+
+function projectileState(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'projectileId',
+      'ownerParticipantId',
+      'ownerTeamId',
+      'ownerActorId',
+      'attackProfileId',
+      'spawnedAtTick',
+      'origin',
+      'position',
+      'launchHeading',
+      'heading',
+      'shotProgram',
+      'committedPath',
+      'nextPathIndex',
+      'remainingTiles',
+      'ticksUntilAdvance',
+    ],
+    fail,
+  );
+  int64(item.projectileId, `${path}.projectileId`, fail, true);
+  for (const key of [
+    'ownerParticipantId',
+    'ownerTeamId',
+    'spawnedAtTick',
+    'nextPathIndex',
+    'remainingTiles',
+    'ticksUntilAdvance',
+  ]) {
+    integer(item[key], `${path}.${key}`, fail);
+  }
+  actorId(item.ownerActorId, `${path}.ownerActorId`, fail);
+  nonEmpty(item.attackProfileId, `${path}.attackProfileId`, fail);
+  position(item.origin, `${path}.origin`, fail);
+  position(item.position, `${path}.position`, fail);
+  heading(item.launchHeading, `${path}.launchHeading`, fail);
+  heading(item.heading, `${path}.heading`, fail);
+  nullable(item.shotProgram, `${path}.shotProgram`, shotProgram, fail);
+  array(item.committedPath, `${path}.committedPath`, fail).forEach(
+    (entry, index) => position(entry, `${path}.committedPath[${index}]`, fail),
+  );
+}
+
+function scoreboard(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const board = exact(value, path, ['teams'], fail);
+  array(board.teams, `${path}.teams`, fail).forEach((entry, index) => {
+    const team = exact(
+      entry,
+      `${path}.teams[${index}]`,
+      ['teamId', 'eligible', 'scores'],
+      fail,
+    );
+    integer(team.teamId, `${path}.teams[${index}].teamId`, fail);
+    boolean(team.eligible, `${path}.teams[${index}].eligible`, fail);
+    array(team.scores, `${path}.teams[${index}].scores`, fail).forEach(
+      (scoreEntry, scoreIndex) => {
+        const score = exact(
+          scoreEntry,
+          `${path}.teams[${index}].scores[${scoreIndex}]`,
+          ['channel', 'value'],
+          fail,
+        );
+        nonEmpty(
+          score.channel,
+          `${path}.teams[${index}].scores[${scoreIndex}].channel`,
+          fail,
+        );
+        int64(
+          score.value,
+          `${path}.teams[${index}].scores[${scoreIndex}].value`,
+          fail,
+        );
+      },
+    );
+  });
+}
+
+function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  if (base.kind === 'deathmatch') {
+    const item = exact(base, path, ['kind', 'modeId'], fail);
+    nonEmpty(item.modeId, `${path}.modeId`, fail);
+    return;
+  }
+  if (base.kind === 'frontline') {
+    const item = exact(
+      base,
+      path,
+      [
+        'kind',
+        'modeId',
+        'activePositionIndex',
+        'claimingTeamId',
+        'captureProgress',
+        'decayTicksElapsed',
+        'controlResumesAtTick',
+      ],
+      fail,
+    );
+    nonEmpty(item.modeId, `${path}.modeId`, fail);
+    for (const key of [
+      'activePositionIndex',
+      'captureProgress',
+      'decayTicksElapsed',
+      'controlResumesAtTick',
+    ]) {
+      integer(item[key], `${path}.${key}`, fail);
+    }
+    nullable(item.claimingTeamId, `${path}.claimingTeamId`, integer, fail);
+    return;
+  }
+  fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
+}
+
+function worldState(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const world = exact(
+    value,
+    path,
+    [
+      'matchContractFingerprint',
+      'nextTick',
+      'nextProjectileId',
+      'participants',
+      'slots',
+      'activeLives',
+      'pendingReplications',
+      'projectiles',
+      'scoreboard',
+      'mode',
+    ],
+    fail,
+  );
+  nonEmpty(
+    world.matchContractFingerprint,
+    `${path}.matchContractFingerprint`,
+    fail,
+  );
+  integer(world.nextTick, `${path}.nextTick`, fail);
+  int64(world.nextProjectileId, `${path}.nextProjectileId`, fail, true);
+  array(world.participants, `${path}.participants`, fail).forEach(
+    (entry, index) => participantStatus(entry, `${path}.participants[${index}]`, fail),
+  );
+  array(world.slots, `${path}.slots`, fail).forEach((entry, index) =>
+    slotState(entry, `${path}.slots[${index}]`, fail),
+  );
+  array(world.activeLives, `${path}.activeLives`, fail).forEach((entry, index) =>
+    lifeState(entry, `${path}.activeLives[${index}]`, fail),
+  );
+  array(world.pendingReplications, `${path}.pendingReplications`, fail).forEach(
+    (entry, index) =>
+      pendingReplication(entry, `${path}.pendingReplications[${index}]`, fail),
+  );
+  array(world.projectiles, `${path}.projectiles`, fail).forEach((entry, index) =>
+    projectileState(entry, `${path}.projectiles[${index}]`, fail),
+  );
+  scoreboard(world.scoreboard, `${path}.scoreboard`, fail);
+  modeState(world.mode, `${path}.mode`, fail);
+}
+
+function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const start = exact(
+    value,
+    path,
+    [
+      'schemaVersion',
+      'runtimeContractVersion',
+      'actorId',
+      'participantId',
+      'actorRandomSeed',
+      'origin',
+      'matchContractFingerprint',
+    ],
+    fail,
+  );
+  integer(start.schemaVersion, `${path}.schemaVersion`, fail);
+  integer(start.runtimeContractVersion, `${path}.runtimeContractVersion`, fail);
+  actorId(start.actorId, `${path}.actorId`, fail);
+  integer(start.participantId, `${path}.participantId`, fail);
+  uint64(start.actorRandomSeed, `${path}.actorRandomSeed`, fail);
+  const origin = exact(
+    start.origin,
+    `${path}.origin`,
+    [
+      'reason',
+      'generation',
+      'parentActorId',
+      'sourceTransitionId',
+      'sourceOperationId',
+    ],
+    fail,
+  );
+  nonEmpty(origin.reason, `${path}.origin.reason`, fail);
+  integer(origin.generation, `${path}.origin.generation`, fail);
+  nullable(origin.parentActorId, `${path}.origin.parentActorId`, actorId, fail);
+  nullable(
+    origin.sourceTransitionId,
+    `${path}.origin.sourceTransitionId`,
+    string,
+    fail,
+  );
+  nullable(
+    origin.sourceOperationId,
+    `${path}.origin.sourceOperationId`,
+    string,
+    fail,
+  );
+  nonEmpty(
+    start.matchContractFingerprint,
+    `${path}.matchContractFingerprint`,
+    fail,
+  );
+}
+
+function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'actorId',
+      'generation',
+      'formId',
+      'position',
+      'facing',
+      'health',
+      'cooldown',
+      'energy',
+      'previousActionResolution',
+      'pendingSameLifeTransition',
+    ],
+    fail,
+  );
+  actorId(item.actorId, `${path}.actorId`, fail);
+  integer(item.generation, `${path}.generation`, fail);
+  nonEmpty(item.formId, `${path}.formId`, fail);
+  position(item.position, `${path}.position`, fail);
+  direction(item.facing, `${path}.facing`, fail);
+  integer(item.health, `${path}.health`, fail);
+  integer(item.cooldown, `${path}.cooldown`, fail);
+  nullable(item.energy, `${path}.energy`, integer, fail);
+  nullable(
+    item.previousActionResolution,
+    `${path}.previousActionResolution`,
+    actionResolution,
+    fail,
+  );
+  pendingTransition(
+    item.pendingSameLifeTransition,
+    `${path}.pendingSameLifeTransition`,
+    fail,
+  );
+}
+
+function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  const actorAction = (keys: string[]) => {
+    const item = exact(base, path, ['kind', 'actorId', 'action', ...keys], fail);
+    actorId(item.actorId, `${path}.actorId`, fail);
+    resolvedAction(item.action, `${path}.action`, fail);
+    return item;
+  };
+  switch (base.kind) {
+    case 'rotation': {
+      const item = actorAction(['position', 'fromFacing', 'toFacing']);
+      position(item.position, `${path}.position`, fail);
+      direction(item.fromFacing, `${path}.fromFacing`, fail);
+      direction(item.toFacing, `${path}.toFacing`, fail);
+      return;
+    }
+    case 'movement': {
+      const item = actorAction(['from', 'to', 'facing']);
+      position(item.from, `${path}.from`, fail);
+      position(item.to, `${path}.to`, fail);
+      direction(item.facing, `${path}.facing`, fail);
+      return;
+    }
+    case 'movement-blocked': {
+      const item = actorAction(['from', 'attemptedTo', 'facing']);
+      position(item.from, `${path}.from`, fail);
+      position(item.attemptedTo, `${path}.attemptedTo`, fail);
+      direction(item.facing, `${path}.facing`, fail);
+      return;
+    }
+    case 'attack': {
+      const item = actorAction(['projectileId', 'origin', 'heading']);
+      int64(item.projectileId, `${path}.projectileId`, fail, true);
+      position(item.origin, `${path}.origin`, fail);
+      heading(item.heading, `${path}.heading`, fail);
+      return;
+    }
+    case 'damage': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'sourceTeamId',
+          'sourceActorId',
+          'targetActorId',
+          'projectileId',
+          'amount',
+          'newHealth',
+          'position',
+        ],
+        fail,
+      );
+      integer(item.sourceTeamId, `${path}.sourceTeamId`, fail);
+      nullable(item.sourceActorId, `${path}.sourceActorId`, actorId, fail);
+      actorId(item.targetActorId, `${path}.targetActorId`, fail);
+      int64(item.projectileId, `${path}.projectileId`, fail, true);
+      integer(item.amount, `${path}.amount`, fail);
+      integer(item.newHealth, `${path}.newHealth`, fail);
+      position(item.position, `${path}.position`, fail);
+      return;
+    }
+    case 'destruction': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'actorId',
+          'sourceTeamId',
+          'sourceActorId',
+          'projectileId',
+          'generation',
+          'formId',
+          'position',
+        ],
+        fail,
+      );
+      actorId(item.actorId, `${path}.actorId`, fail);
+      nullable(item.sourceTeamId, `${path}.sourceTeamId`, integer, fail);
+      nullable(item.sourceActorId, `${path}.sourceActorId`, actorId, fail);
+      if (item.projectileId !== null) {
+        int64(item.projectileId, `${path}.projectileId`, fail, true);
+      }
+      integer(item.generation, `${path}.generation`, fail);
+      nonEmpty(item.formId, `${path}.formId`, fail);
+      position(item.position, `${path}.position`, fail);
+      return;
+    }
+    case 'life-spawned': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'actorId',
+          'participantId',
+          'parentActorId',
+          'generation',
+          'formId',
+          'health',
+          'position',
+          'reason',
+          'sourceTransitionId',
+          'sourceOperationId',
+        ],
+        fail,
+      );
+      actorId(item.actorId, `${path}.actorId`, fail);
+      integer(item.participantId, `${path}.participantId`, fail);
+      nullable(item.parentActorId, `${path}.parentActorId`, actorId, fail);
+      integer(item.generation, `${path}.generation`, fail);
+      nonEmpty(item.formId, `${path}.formId`, fail);
+      integer(item.health, `${path}.health`, fail);
+      position(item.position, `${path}.position`, fail);
+      nonEmpty(item.reason, `${path}.reason`, fail);
+      nullable(item.sourceTransitionId, `${path}.sourceTransitionId`, string, fail);
+      nullable(item.sourceOperationId, `${path}.sourceOperationId`, string, fail);
+      return;
+    }
+    case 'life-retired': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'actorId',
+          'generation',
+          'formId',
+          'position',
+          'reason',
+          'sourceTransitionId',
+          'sourceOperationId',
+        ],
+        fail,
+      );
+      actorId(item.actorId, `${path}.actorId`, fail);
+      integer(item.generation, `${path}.generation`, fail);
+      nonEmpty(item.formId, `${path}.formId`, fail);
+      position(item.position, `${path}.position`, fail);
+      nonEmpty(item.reason, `${path}.reason`, fail);
+      nullable(item.sourceTransitionId, `${path}.sourceTransitionId`, string, fail);
+      nullable(item.sourceOperationId, `${path}.sourceOperationId`, string, fail);
+      return;
+    }
+    case 'runtime-fault': {
+      const item = exact(base, path, ['kind', 'fault'], fail);
+      runtimeFault(item.fault, `${path}.fault`, fail);
+      return;
+    }
+    case 'participant': {
+      const item = exact(base, path, ['kind', 'participantId', 'teamId'], fail);
+      integer(item.participantId, `${path}.participantId`, fail);
+      integer(item.teamId, `${path}.teamId`, fail);
+      return;
+    }
+    case 'lifecycle': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'transitionId',
+          'operationId',
+          'sourceActorId',
+          'targetTeamId',
+          'targetUnitId',
+          'dueTick',
+          'cancellationReason',
+        ],
+        fail,
+      );
+      nonEmpty(item.transitionId, `${path}.transitionId`, fail);
+      nonEmpty(item.operationId, `${path}.operationId`, fail);
+      actorId(item.sourceActorId, `${path}.sourceActorId`, fail);
+      nullable(item.targetTeamId, `${path}.targetTeamId`, integer, fail);
+      nullable(item.targetUnitId, `${path}.targetUnitId`, integer, fail);
+      nullable(item.dueTick, `${path}.dueTick`, integer, fail);
+      nullable(item.cancellationReason, `${path}.cancellationReason`, string, fail);
+      return;
+    }
+    case 'form-transition': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'actorId',
+          'transitionId',
+          'operationId',
+          'fromFormId',
+          'toFormId',
+          'startedTick',
+          'dueTick',
+        ],
+        fail,
+      );
+      actorId(item.actorId, `${path}.actorId`, fail);
+      for (const key of [
+        'transitionId',
+        'operationId',
+        'fromFormId',
+        'toFormId',
+      ]) {
+        nonEmpty(item[key], `${path}.${key}`, fail);
+      }
+      integer(item.startedTick, `${path}.startedTick`, fail);
+      integer(item.dueTick, `${path}.dueTick`, fail);
+      return;
+    }
+    case 'score-changed': {
+      const item = exact(
+        base,
+        path,
+        ['kind', 'teamId', 'channel', 'newValue'],
+        fail,
+      );
+      integer(item.teamId, `${path}.teamId`, fail);
+      nonEmpty(item.channel, `${path}.channel`, fail);
+      int64(item.newValue, `${path}.newValue`, fail);
+      return;
+    }
+    case 'mode-changed': {
+      const item = exact(base, path, ['kind', 'state'], fail);
+      modeState(item.state, `${path}.state`, fail);
+      return;
+    }
+    case 'lifecycle-clock-cancelled': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'targetTeamId',
+          'targetUnitId',
+          'cancelledState',
+          'cancellationReason',
+        ],
+        fail,
+      );
+      integer(item.targetTeamId, `${path}.targetTeamId`, fail);
+      integer(item.targetUnitId, `${path}.targetUnitId`, fail);
+      unitSlotState(item.cancelledState, `${path}.cancelledState`, fail);
+      nonEmpty(item.cancellationReason, `${path}.cancellationReason`, fail);
+      return;
+    }
+    default:
+      fail(`${path}.kind`, `unknown event payload ${String(base.kind)}`);
+  }
+}
+
+function validateEventKindAndPayload(
+  kind: string,
+  payload: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const expectedPayloadKind = (() => {
+    switch (kind) {
+      case 'rotation':
+      case 'movement':
+      case 'movement-blocked':
+      case 'attack':
+      case 'damage':
+      case 'destruction':
+      case 'life-spawned':
+      case 'life-retired':
+      case 'runtime-fault':
+      case 'score-changed':
+      case 'mode-changed':
+      case 'lifecycle-clock-cancelled':
+        return kind;
+      case 'participant-disqualified':
+        return 'participant';
+      case 'lifecycle-queued':
+      case 'lifecycle-cancelled':
+      case 'lifecycle-completed':
+        return 'lifecycle';
+      case 'form-transition-started':
+      case 'form-transition-completed':
+      case 'form-transition-cancelled':
+        return 'form-transition';
+      default:
+        fail(`${path}.kind`, `unknown event kind ${kind}`);
+    }
+  })();
+  if ((payload as Record<string, unknown>).kind !== expectedPayloadKind) {
+    fail(
+      `${path}.kind`,
+      `must use payload kind ${expectedPayloadKind}`,
+    );
+  }
+}
+
+function observedEvent(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    ['eventHandle', 'sourceTick', 'sourceOrdinal', 'kind', 'payload', 'observedBy'],
+    fail,
+  );
+  nonEmpty(item.eventHandle, `${path}.eventHandle`, fail);
+  integer(item.sourceTick, `${path}.sourceTick`, fail);
+  integer(item.sourceOrdinal, `${path}.sourceOrdinal`, fail);
+  nonEmpty(item.kind, `${path}.kind`, fail);
+  eventPayload(item.payload, `${path}.payload`, fail);
+  validateEventKindAndPayload(item.kind, item.payload, path, fail);
+  array(item.observedBy, `${path}.observedBy`, fail).forEach((entry, index) =>
+    actorId(entry, `${path}.observedBy[${index}]`, fail),
+  );
+}
+
+function actionConstraint(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  if (base.kind === 'shot-program') {
+    const item = exact(base, path, ['kind', 'allowed'], fail);
+    boolean(item.allowed, `${path}.allowed`, fail);
+    return;
+  }
+  if (base.kind === 'form-target') {
+    const item = exact(base, path, ['kind', 'allowedFormIds'], fail);
+    array(item.allowedFormIds, `${path}.allowedFormIds`, fail).forEach(
+      (entry, index) =>
+        nonEmpty(entry, `${path}.allowedFormIds[${index}]`, fail),
+    );
+    return;
+  }
+  const item = exact(base, path, ['kind', 'allowedValues'], fail);
+  const values = array(item.allowedValues, `${path}.allowedValues`, fail);
+  if (base.kind === 'direction') {
+    values.forEach((entry, index) =>
+      direction(entry, `${path}.allowedValues[${index}]`, fail),
+    );
+    return;
+  }
+  if (base.kind === 'projectile-heading') {
+    values.forEach((entry, index) =>
+      heading(entry, `${path}.allowedValues[${index}]`, fail),
+    );
+    return;
+  }
+  if (base.kind === 'unit-target') {
+    values.forEach((entry, index) => {
+      const target = exact(
+        entry,
+        `${path}.allowedValues[${index}]`,
+        ['teamId', 'unitId'],
+        fail,
+      );
+      integer(target.teamId, `${path}.allowedValues[${index}].teamId`, fail);
+      integer(target.unitId, `${path}.allowedValues[${index}].unitId`, fail);
+    });
+    return;
+  }
+  fail(`${path}.kind`, `unknown action constraint ${String(base.kind)}`);
+}
+
+function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'schemaVersion',
+      'tick',
+      'matchContractFingerprint',
+      'self',
+      'teamUnits',
+      'participants',
+      'allies',
+      'enemies',
+      'visibleTiles',
+      'visibleProjectiles',
+      'visibleEvents',
+      'heardSounds',
+      'scoreboard',
+      'mode',
+      'actionLegalities',
+    ],
+    fail,
+  );
+  integer(item.schemaVersion, `${path}.schemaVersion`, fail);
+  integer(item.tick, `${path}.tick`, fail);
+  nonEmpty(
+    item.matchContractFingerprint,
+    `${path}.matchContractFingerprint`,
+    fail,
+  );
+  observedSelf(item.self, `${path}.self`, fail);
+  array(item.teamUnits, `${path}.teamUnits`, fail).forEach((entry, index) => {
+    const unit = exact(
+      entry,
+      `${path}.teamUnits[${index}]`,
+      ['teamId', 'unitId', 'state'],
+      fail,
+    );
+    integer(unit.teamId, `${path}.teamUnits[${index}].teamId`, fail);
+    integer(unit.unitId, `${path}.teamUnits[${index}].unitId`, fail);
+    unitSlotState(unit.state, `${path}.teamUnits[${index}].state`, fail);
+  });
+  array(item.participants, `${path}.participants`, fail).forEach(
+    (entry, index) =>
+      participantStatus(entry, `${path}.participants[${index}]`, fail),
+  );
+  array(item.allies, `${path}.allies`, fail).forEach((entry, index) =>
+    observedSelf(entry, `${path}.allies[${index}]`, fail),
+  );
+  array(item.enemies, `${path}.enemies`, fail).forEach((entry, index) => {
+    const enemy = exact(
+      entry,
+      `${path}.enemies[${index}]`,
+      [
+        'actorId',
+        'formId',
+        'position',
+        'facing',
+        'health',
+        'pendingSameLifeTransition',
+        'observedBy',
+      ],
+      fail,
+    );
+    actorId(enemy.actorId, `${path}.enemies[${index}].actorId`, fail);
+    nonEmpty(enemy.formId, `${path}.enemies[${index}].formId`, fail);
+    position(enemy.position, `${path}.enemies[${index}].position`, fail);
+    direction(enemy.facing, `${path}.enemies[${index}].facing`, fail);
+    integer(enemy.health, `${path}.enemies[${index}].health`, fail);
+    pendingTransition(
+      enemy.pendingSameLifeTransition,
+      `${path}.enemies[${index}].pendingSameLifeTransition`,
+      fail,
+    );
+    array(enemy.observedBy, `${path}.enemies[${index}].observedBy`, fail).forEach(
+      (observer, observerIndex) =>
+        actorId(
+          observer,
+          `${path}.enemies[${index}].observedBy[${observerIndex}]`,
+          fail,
+        ),
+    );
+  });
+  array(item.visibleTiles, `${path}.visibleTiles`, fail).forEach(
+    (entry, index) => {
+      const tile = exact(
+        entry,
+        `${path}.visibleTiles[${index}]`,
+        ['position', 'isWall', 'observedBy'],
+        fail,
+      );
+      position(tile.position, `${path}.visibleTiles[${index}].position`, fail);
+      boolean(tile.isWall, `${path}.visibleTiles[${index}].isWall`, fail);
+      array(
+        tile.observedBy,
+        `${path}.visibleTiles[${index}].observedBy`,
+        fail,
+      ).forEach((observer, observerIndex) =>
+        actorId(
+          observer,
+          `${path}.visibleTiles[${index}].observedBy[${observerIndex}]`,
+          fail,
+        ),
+      );
+    },
+  );
+  if (item.visibleProjectiles !== null) {
+    array(item.visibleProjectiles, `${path}.visibleProjectiles`, fail).forEach(
+      (entry, index) => {
+        const projectile = exact(
+          entry,
+          `${path}.visibleProjectiles[${index}]`,
+          [
+            'projectileId',
+            'ownerTeamId',
+            'ownerActorId',
+            'position',
+            'heading',
+            'tilesPerAdvance',
+            'ticksUntilAdvance',
+            'remainingTiles',
+            'observedBy',
+          ],
+          fail,
+        );
+        int64(
+          projectile.projectileId,
+          `${path}.visibleProjectiles[${index}].projectileId`,
+          fail,
+          true,
+        );
+        integer(
+          projectile.ownerTeamId,
+          `${path}.visibleProjectiles[${index}].ownerTeamId`,
+          fail,
+        );
+        nullable(
+          projectile.ownerActorId,
+          `${path}.visibleProjectiles[${index}].ownerActorId`,
+          actorId,
+          fail,
+        );
+        position(
+          projectile.position,
+          `${path}.visibleProjectiles[${index}].position`,
+          fail,
+        );
+        heading(
+          projectile.heading,
+          `${path}.visibleProjectiles[${index}].heading`,
+          fail,
+        );
+        for (const key of [
+          'tilesPerAdvance',
+          'ticksUntilAdvance',
+          'remainingTiles',
+        ]) {
+          integer(
+            projectile[key],
+            `${path}.visibleProjectiles[${index}].${key}`,
+            fail,
+          );
+        }
+        array(
+          projectile.observedBy,
+          `${path}.visibleProjectiles[${index}].observedBy`,
+          fail,
+        ).forEach((observer, observerIndex) =>
+          actorId(
+            observer,
+            `${path}.visibleProjectiles[${index}].observedBy[${observerIndex}]`,
+            fail,
+          ),
+        );
+      },
+    );
+  }
+  array(item.visibleEvents, `${path}.visibleEvents`, fail).forEach(
+    (entry, index) =>
+      observedEvent(entry, `${path}.visibleEvents[${index}]`, fail),
+  );
+  if (item.heardSounds !== null) {
+    array(item.heardSounds, `${path}.heardSounds`, fail).forEach(
+      (entry, index) => {
+        const sound = exact(
+          entry,
+          `${path}.heardSounds[${index}]`,
+          [
+            'eventHandle',
+            'sourceTick',
+            'sourceOrdinal',
+            'observerActorId',
+            'kind',
+            'bearing',
+            'distance',
+          ],
+          fail,
+        );
+        nonEmpty(sound.eventHandle, `${path}.heardSounds[${index}].eventHandle`, fail);
+        for (const key of ['sourceTick', 'sourceOrdinal', 'bearing', 'distance']) {
+          integer(sound[key], `${path}.heardSounds[${index}].${key}`, fail);
+        }
+        actorId(
+          sound.observerActorId,
+          `${path}.heardSounds[${index}].observerActorId`,
+          fail,
+        );
+        nonEmpty(sound.kind, `${path}.heardSounds[${index}].kind`, fail);
+      },
+    );
+  }
+  scoreboard(item.scoreboard, `${path}.scoreboard`, fail);
+  modeState(item.mode, `${path}.mode`, fail);
+  array(item.actionLegalities, `${path}.actionLegalities`, fail).forEach(
+    (entry, index) => {
+      const legality = exact(
+        entry,
+        `${path}.actionLegalities[${index}]`,
+        ['actionId', 'actionCode', 'allowedByForm', 'available', 'constraints'],
+        fail,
+      );
+      nonEmpty(legality.actionId, `${path}.actionLegalities[${index}].actionId`, fail);
+      integer(
+        legality.actionCode,
+        `${path}.actionLegalities[${index}].actionCode`,
+        fail,
+      );
+      boolean(
+        legality.allowedByForm,
+        `${path}.actionLegalities[${index}].allowedByForm`,
+        fail,
+      );
+      boolean(
+        legality.available,
+        `${path}.actionLegalities[${index}].available`,
+        fail,
+      );
+      array(
+        legality.constraints,
+        `${path}.actionLegalities[${index}].constraints`,
+        fail,
+      ).forEach((constraint, constraintIndex) =>
+        actionConstraint(
+          constraint,
+          `${path}.actionLegalities[${index}].constraints[${constraintIndex}]`,
+          fail,
+        ),
+      );
+    },
+  );
+}
+
+function submittedDecision(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    ['actionId', 'actionCode', 'arguments', 'debugMessage'],
+    fail,
+  );
+  nullable(item.actionId, `${path}.actionId`, string, fail);
+  integer(item.actionCode, `${path}.actionCode`, fail);
+  if (item.arguments !== null) {
+    array(item.arguments, `${path}.arguments`, fail).forEach((entry, index) => {
+      if (entry !== null) rawArgument(entry, `${path}.arguments[${index}]`, fail);
+    });
+  }
+  nullable(item.debugMessage, `${path}.debugMessage`, string, fail);
+}
+
+function actorTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const turn = exact(
+    value,
+    path,
+    [
+      'tick',
+      'participantId',
+      'actorId',
+      'observation',
+      'submittedDecision',
+      'actionResolution',
+    ],
+    fail,
+  );
+  integer(turn.tick, `${path}.tick`, fail);
+  integer(turn.participantId, `${path}.participantId`, fail);
+  actorId(turn.actorId, `${path}.actorId`, fail);
+  observation(turn.observation, `${path}.observation`, fail);
+  nullable(
+    turn.submittedDecision,
+    `${path}.submittedDecision`,
+    submittedDecision,
+    fail,
+  );
+  actionResolution(turn.actionResolution, `${path}.actionResolution`, fail);
+}
+
+function eventAudience(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  if (base.kind === 'public') {
+    exact(base, path, ['kind'], fail);
+    return;
+  }
+  if (base.kind === 'spatial') {
+    const item = exact(base, path, ['kind', 'primaryPosition'], fail);
+    position(item.primaryPosition, `${path}.primaryPosition`, fail);
+    return;
+  }
+  if (base.kind === 'team-private') {
+    const item = exact(base, path, ['kind', 'teamId'], fail);
+    integer(item.teamId, `${path}.teamId`, fail);
+    return;
+  }
+  fail(`${path}.kind`, `unknown event audience ${String(base.kind)}`);
+}
+
+function authoritativeEvent(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const event = exact(
+    value,
+    path,
+    [
+      'eventHandle',
+      'tick',
+      'globalOrdinal',
+      'sourceOrdinal',
+      'kind',
+      'payload',
+      'audience',
+    ],
+    fail,
+  );
+  nonEmpty(event.eventHandle, `${path}.eventHandle`, fail);
+  integer(event.tick, `${path}.tick`, fail);
+  int64(event.globalOrdinal, `${path}.globalOrdinal`, fail, true);
+  integer(event.sourceOrdinal, `${path}.sourceOrdinal`, fail);
+  nonEmpty(event.kind, `${path}.kind`, fail);
+  eventPayload(event.payload, `${path}.payload`, fail);
+  validateEventKindAndPayload(event.kind, event.payload, path, fail);
+  eventAudience(event.audience, `${path}.audience`, fail);
+}
+
+function traversalTerminal(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const base = object(value, path, fail);
+  string(base.kind, `${path}.kind`, fail);
+  if (
+    base.kind === 'retained' ||
+    base.kind === 'wall-or-path-exhausted' ||
+    base.kind === 'range-exhausted'
+  ) {
+    exact(base, path, ['kind'], fail);
+    return;
+  }
+  if (base.kind === 'actor-contact' || base.kind === 'movement-contact') {
+    const item = exact(base, path, ['kind', 'targetActorId', 'appliedDamage'], fail);
+    actorId(item.targetActorId, `${path}.targetActorId`, fail);
+    boolean(item.appliedDamage, `${path}.appliedDamage`, fail);
+    return;
+  }
+  if (base.kind === 'lifecycle-placement-purge') {
+    const item = exact(base, path, ['kind', 'position'], fail);
+    position(item.position, `${path}.position`, fail);
+    return;
+  }
+  if (base.kind === 'participant-disqualification') {
+    const item = exact(base, path, ['kind', 'participantId'], fail);
+    integer(item.participantId, `${path}.participantId`, fail);
+    return;
+  }
+  fail(`${path}.kind`, `unknown traversal terminal ${String(base.kind)}`);
+}
+
+function traversal(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'tick',
+      'globalOrdinal',
+      'phase',
+      'trigger',
+      'projectileId',
+      'ownerParticipantId',
+      'ownerTeamId',
+      'ownerActorId',
+      'attackProfileId',
+      'from',
+      'path',
+      'launchHeading',
+      'finalHeading',
+      'shotProgram',
+      'terminal',
+    ],
+    fail,
+  );
+  integer(item.tick, `${path}.tick`, fail);
+  int64(item.globalOrdinal, `${path}.globalOrdinal`, fail, true);
+  nonEmpty(item.phase, `${path}.phase`, fail);
+  nonEmpty(item.trigger, `${path}.trigger`, fail);
+  int64(item.projectileId, `${path}.projectileId`, fail, true);
+  integer(item.ownerParticipantId, `${path}.ownerParticipantId`, fail);
+  integer(item.ownerTeamId, `${path}.ownerTeamId`, fail);
+  actorId(item.ownerActorId, `${path}.ownerActorId`, fail);
+  nonEmpty(item.attackProfileId, `${path}.attackProfileId`, fail);
+  position(item.from, `${path}.from`, fail);
+  array(item.path, `${path}.path`, fail).forEach((entry, index) =>
+    position(entry, `${path}.path[${index}]`, fail),
+  );
+  heading(item.launchHeading, `${path}.launchHeading`, fail);
+  heading(item.finalHeading, `${path}.finalHeading`, fail);
+  nullable(item.shotProgram, `${path}.shotProgram`, shotProgram, fail);
+  traversalTerminal(item.terminal, `${path}.terminal`, fail);
+}
+
+function validateResult(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const result = exact(
+    value,
+    path,
+    [
+      'completionReason',
+      'endTick',
+      'standings',
+      'eligibleTeamIds',
+      'units',
+      'mode',
+    ],
+    fail,
+  );
+  nonEmpty(result.completionReason, `${path}.completionReason`, fail);
+  nullable(result.endTick, `${path}.endTick`, integer, fail);
+  const standings = exact(
+    result.standings,
+    `${path}.standings`,
+    ['winnerTeamId', 'teams'],
+    fail,
+  );
+  nullable(standings.winnerTeamId, `${path}.standings.winnerTeamId`, integer, fail);
+  array(standings.teams, `${path}.standings.teams`, fail).forEach(
+    (entry, index) => {
+      const team = exact(
+        entry,
+        `${path}.standings.teams[${index}]`,
+        ['teamId', 'rank', 'outcome', 'scores'],
+        fail,
+      );
+      integer(team.teamId, `${path}.standings.teams[${index}].teamId`, fail);
+      integer(team.rank, `${path}.standings.teams[${index}].rank`, fail);
+      if (!['win', 'loss', 'draw'].includes(String(team.outcome))) {
+        fail(
+          `${path}.standings.teams[${index}].outcome`,
+          'expected win, loss, or draw',
+        );
+      }
+      const board = { teams: [{ teamId: team.teamId, eligible: true, scores: team.scores }] };
+      scoreboard(board, `${path}.standings.teams[${index}].scoreboard`, fail);
+    },
+  );
+  array(result.eligibleTeamIds, `${path}.eligibleTeamIds`, fail).forEach(
+    (teamId, index) =>
+      integer(teamId, `${path}.eligibleTeamIds[${index}]`, fail),
+  );
+  array(result.units, `${path}.units`, fail).forEach((entry, index) => {
+    const unit = exact(
+      entry,
+      `${path}.units[${index}]`,
+      ['slot', 'activeLife'],
+      fail,
+    );
+    slotState(unit.slot, `${path}.units[${index}].slot`, fail);
+    nullable(unit.activeLife, `${path}.units[${index}].activeLife`, lifeState, fail);
+  });
+  const mode = object(result.mode, `${path}.mode`, fail);
+  if (mode.kind !== 'deathmatch') {
+    fail(`${path}.mode.kind`, `unknown mode result ${String(mode.kind)}`);
+  }
+  const deathmatch = exact(mode, `${path}.mode`, ['kind', 'reason', 'scores'], fail);
+  nonEmpty(deathmatch.reason, `${path}.mode.reason`, fail);
+  array(deathmatch.scores, `${path}.mode.scores`, fail).forEach(
+    (entry, index) => {
+      const score = exact(
+        entry,
+        `${path}.mode.scores[${index}]`,
+        ['teamId', 'kills', 'deaths', 'damageDealt'],
+        fail,
+      );
+      integer(score.teamId, `${path}.mode.scores[${index}].teamId`, fail);
+      for (const key of ['kills', 'deaths', 'damageDealt']) {
+        int64(score[key], `${path}.mode.scores[${index}].${key}`, fail, true);
+      }
+    },
+  );
+}
+
+/**
+ * Validates the closed replay-v3 envelope and all replay-owned DTOs before
+ * relationship checks. The embedded contract's extensible policy objects are
+ * JSON-validated but retained verbatim.
+ */
+export function validateReplayV3(
+  input: unknown,
+  fail: ReplayV3Fail,
+): asserts input is V3.ReplayV3Document {
+  const root = exact(
+    input,
+    'replay',
+    ['header', 'initialFrame', 'ticks', 'result', 'replayHash', 'partial'],
+    fail,
+  );
+  const header = exact(
+    root.header,
+    'replay.header',
+    [
+      'replayVersion',
+      'engineVersion',
+      'gameRulesVersion',
+      'runtime',
+      'seed',
+      'contract',
+      'presentation',
+      'provenance',
+    ],
+    fail,
+  );
+  if (header.replayVersion !== 3) {
+    fail('replay.header.replayVersion', 'expected replay version 3');
+  }
+  nonEmpty(header.engineVersion, 'replay.header.engineVersion', fail);
+  nonEmpty(header.gameRulesVersion, 'replay.header.gameRulesVersion', fail);
+  const runtime = exact(
+    header.runtime,
+    'replay.header.runtime',
+    [
+      'contractProfileId',
+      'protocolVersion',
+      'configurationVersion',
+      'runtimeContractVersion',
+      'matchStartSchemaVersion',
+      'observationSchemaVersion',
+      'decisionSchemaVersion',
+      'matchContractSchemaVersion',
+    ],
+    fail,
+  );
+  for (const key of ['contractProfileId', 'protocolVersion', 'configurationVersion']) {
+    nonEmpty(runtime[key], `replay.header.runtime.${key}`, fail);
+  }
+  for (const key of [
+    'runtimeContractVersion',
+    'matchStartSchemaVersion',
+    'observationSchemaVersion',
+    'decisionSchemaVersion',
+    'matchContractSchemaVersion',
+  ]) {
+    integer(runtime[key], `replay.header.runtime.${key}`, fail);
+  }
+  uint64(header.seed, 'replay.header.seed', fail);
+  validateContract(header.contract, 'replay.header.contract', fail);
+  if (header.presentation !== null) {
+    const presentation = exact(
+      header.presentation,
+      'replay.header.presentation',
+      ['themeId', 'map', 'forms'],
+      fail,
+    );
+    nullable(presentation.themeId, 'replay.header.presentation.themeId', string, fail);
+    if (presentation.map !== null) {
+      const map = exact(
+        presentation.map,
+        'replay.header.presentation.map',
+        ['boundaryWall', 'interiorWall', 'wallGroups'],
+        fail,
+      );
+      nonEmpty(map.boundaryWall, 'replay.header.presentation.map.boundaryWall', fail);
+      nonEmpty(map.interiorWall, 'replay.header.presentation.map.interiorWall', fail);
+      array(map.wallGroups, 'replay.header.presentation.map.wallGroups', fail).forEach(
+        (entry, index) => {
+          const group = exact(
+            entry,
+            `replay.header.presentation.map.wallGroups[${index}]`,
+            ['family', 'tiles'],
+            fail,
+          );
+          nonEmpty(
+            group.family,
+            `replay.header.presentation.map.wallGroups[${index}].family`,
+            fail,
+          );
+          array(
+            group.tiles,
+            `replay.header.presentation.map.wallGroups[${index}].tiles`,
+            fail,
+          ).forEach((tile, tileIndex) =>
+            position(
+              tile,
+              `replay.header.presentation.map.wallGroups[${index}].tiles[${tileIndex}]`,
+              fail,
+            ),
+          );
+        },
+      );
+    }
+    array(presentation.forms, 'replay.header.presentation.forms', fail).forEach(
+      (entry, index) => {
+        const form = exact(
+          entry,
+          `replay.header.presentation.forms[${index}]`,
+          ['formId', 'lookId', 'projectileLookId'],
+          fail,
+        );
+        nonEmpty(form.formId, `replay.header.presentation.forms[${index}].formId`, fail);
+        nullable(
+          form.lookId,
+          `replay.header.presentation.forms[${index}].lookId`,
+          string,
+          fail,
+        );
+        nullable(
+          form.projectileLookId,
+          `replay.header.presentation.forms[${index}].projectileLookId`,
+          string,
+          fail,
+        );
+      },
+    );
+  }
+  if (header.provenance !== null) {
+    const provenance = exact(
+      header.provenance,
+      'replay.header.provenance',
+      ['participants'],
+      fail,
+    );
+    array(provenance.participants, 'replay.header.provenance.participants', fail).forEach(
+      (entry, index) => {
+        const participant = exact(
+          entry,
+          `replay.header.provenance.participants[${index}]`,
+          [
+            'participantId',
+            'teamId',
+            'name',
+            'runtimeKind',
+            'artifactHash',
+            'accent',
+            'lookId',
+            'projectileLookId',
+          ],
+          fail,
+        );
+        integer(
+          participant.participantId,
+          `replay.header.provenance.participants[${index}].participantId`,
+          fail,
+        );
+        integer(
+          participant.teamId,
+          `replay.header.provenance.participants[${index}].teamId`,
+          fail,
+        );
+        for (const key of ['name', 'runtimeKind', 'accent']) {
+          string(
+            participant[key],
+            `replay.header.provenance.participants[${index}].${key}`,
+            fail,
+          );
+        }
+        for (const key of ['artifactHash', 'lookId', 'projectileLookId']) {
+          nullable(
+            participant[key],
+            `replay.header.provenance.participants[${index}].${key}`,
+            string,
+            fail,
+          );
+        }
+      },
+    );
+  }
+
+  const initial = exact(
+    root.initialFrame,
+    'replay.initialFrame',
+    ['state', 'lifeStarts', 'events'],
+    fail,
+  );
+  worldState(initial.state, 'replay.initialFrame.state', fail);
+  array(initial.lifeStarts, 'replay.initialFrame.lifeStarts', fail).forEach(
+    (entry, index) => lifeStart(entry, `replay.initialFrame.lifeStarts[${index}]`, fail),
+  );
+  array(initial.events, 'replay.initialFrame.events', fail).forEach(
+    (entry, index) =>
+      authoritativeEvent(entry, `replay.initialFrame.events[${index}]`, fail),
+  );
+
+  array(root.ticks, 'replay.ticks', fail).forEach((entry, index) => {
+    const tick = exact(
+      entry,
+      `replay.ticks[${index}]`,
+      ['tick', 'tickStart', 'actorTurns', 'events', 'traversals', 'postState'],
+      fail,
+    );
+    integer(tick.tick, `replay.ticks[${index}].tick`, fail);
+    const start = exact(
+      tick.tickStart,
+      `replay.ticks[${index}].tickStart`,
+      ['tick', 'state', 'activeActorIds', 'lifeStarts', 'events', 'traversals'],
+      fail,
+    );
+    integer(start.tick, `replay.ticks[${index}].tickStart.tick`, fail);
+    worldState(start.state, `replay.ticks[${index}].tickStart.state`, fail);
+    array(start.activeActorIds, `replay.ticks[${index}].tickStart.activeActorIds`, fail).forEach(
+      (actor, actorIndex) =>
+        actorId(
+          actor,
+          `replay.ticks[${index}].tickStart.activeActorIds[${actorIndex}]`,
+          fail,
+        ),
+    );
+    array(start.lifeStarts, `replay.ticks[${index}].tickStart.lifeStarts`, fail).forEach(
+      (life, lifeIndex) =>
+        lifeStart(
+          life,
+          `replay.ticks[${index}].tickStart.lifeStarts[${lifeIndex}]`,
+          fail,
+        ),
+    );
+    array(start.events, `replay.ticks[${index}].tickStart.events`, fail).forEach(
+      (event, eventIndex) =>
+        authoritativeEvent(
+          event,
+          `replay.ticks[${index}].tickStart.events[${eventIndex}]`,
+          fail,
+        ),
+    );
+    array(start.traversals, `replay.ticks[${index}].tickStart.traversals`, fail).forEach(
+      (item, traversalIndex) =>
+        traversal(
+          item,
+          `replay.ticks[${index}].tickStart.traversals[${traversalIndex}]`,
+          fail,
+        ),
+    );
+    array(tick.actorTurns, `replay.ticks[${index}].actorTurns`, fail).forEach(
+      (turn, turnIndex) =>
+        actorTurn(turn, `replay.ticks[${index}].actorTurns[${turnIndex}]`, fail),
+    );
+    array(tick.events, `replay.ticks[${index}].events`, fail).forEach(
+      (event, eventIndex) =>
+        authoritativeEvent(event, `replay.ticks[${index}].events[${eventIndex}]`, fail),
+    );
+    array(tick.traversals, `replay.ticks[${index}].traversals`, fail).forEach(
+      (item, traversalIndex) =>
+        traversal(
+          item,
+          `replay.ticks[${index}].traversals[${traversalIndex}]`,
+          fail,
+        ),
+    );
+    worldState(tick.postState, `replay.ticks[${index}].postState`, fail);
+  });
+
+  nullable(root.result, 'replay.result', validateResult, fail);
+  if (root.replayHash !== null) {
+    if (typeof root.replayHash !== 'string' || !/^[0-9a-f]{64}$/.test(root.replayHash)) {
+      fail('replay.replayHash', 'expected lowercase SHA-256 hex or null');
+    }
+  }
+  boolean(root.partial, 'replay.partial', fail);
+
+  validateV3Relationships(input as V3.ReplayV3Document, fail);
+}
+
+function actorValue(actor: V3.ReplayV3ActorId): string {
+  return `${actor.teamId}:${actor.unitId}:${actor.lifeId}`;
+}
+
+function unitValue(unit: { teamId: number; unitId: number }): string {
+  return `${unit.teamId}:${unit.unitId}`;
+}
+
+function sorted(values: Iterable<string>): string[] {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
+function sameSet(left: Iterable<string>, right: Iterable<string>): boolean {
+  return JSON.stringify(sorted(left)) === JSON.stringify(sorted(right));
+}
+
+function ensureUnique<T>(
+  entries: readonly T[],
+  key: (entry: T) => string | number,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const seen = new Set<string | number>();
+  for (const entry of entries) {
+    const value = key(entry);
+    if (seen.has(value)) fail(path, `duplicate identity ${String(value)}`);
+    seen.add(value);
+  }
+}
+
+function validateV3Relationships(
+  document: V3.ReplayV3Document,
+  fail: ReplayV3Fail,
+): void {
+  const { header, initialFrame } = document;
+  const { contract } = header;
+  const { topology } = contract;
+  const fingerprint = contract.matchContractFingerprint;
+
+  const runtimePairs: [string, string | number, string | number][] = [
+    [
+      'contractProfileId',
+      header.runtime.contractProfileId,
+      contract.capabilityVersions.contractProfileId,
+    ],
+    [
+      'protocolVersion',
+      header.runtime.protocolVersion,
+      contract.capabilityVersions.runtimeProtocolVersion,
+    ],
+    [
+      'configurationVersion',
+      header.runtime.configurationVersion,
+      contract.capabilityVersions.runtimeConfigurationVersion,
+    ],
+    [
+      'runtimeContractVersion',
+      header.runtime.runtimeContractVersion,
+      contract.capabilityVersions.runtimeContractVersion,
+    ],
+    [
+      'matchStartSchemaVersion',
+      header.runtime.matchStartSchemaVersion,
+      contract.capabilityVersions.matchStartSchemaVersion,
+    ],
+    [
+      'observationSchemaVersion',
+      header.runtime.observationSchemaVersion,
+      contract.capabilityVersions.observationSchemaVersion,
+    ],
+    [
+      'decisionSchemaVersion',
+      header.runtime.decisionSchemaVersion,
+      contract.capabilityVersions.decisionSchemaVersion,
+    ],
+    [
+      'matchContractSchemaVersion',
+      header.runtime.matchContractSchemaVersion,
+      contract.capabilityVersions.matchContractSchemaVersion,
+    ],
+  ];
+  for (const [name, runtime, capability] of runtimePairs) {
+    if (runtime !== capability) {
+      fail(
+        `replay.header.runtime.${name}`,
+        'must match contract capability versions',
+      );
+    }
+  }
+  if (contract.rules.rulesetId !== header.gameRulesVersion) {
+    fail(
+      'replay.header.gameRulesVersion',
+      'must match contract.rules.rulesetId',
+    );
+  }
+  if (contract.rules.gameMode.kind !== contract.modeMapBinding.kind) {
+    fail(
+      'replay.header.contract.modeMapBinding.kind',
+      'must match rules.gameMode.kind',
+    );
+  }
+  if (
+    contract.map.tileRows.length !== contract.map.height ||
+    contract.map.tileRows.some((row) => row.length !== contract.map.width)
+  ) {
+    fail(
+      'replay.header.contract.map.tileRows',
+      'must match the declared width and height',
+    );
+  }
+
+  ensureUnique(topology.teams, (team) => team.teamId, 'replay.header.contract.topology.teams', fail);
+  ensureUnique(
+    topology.participants,
+    (participant) => participant.participantId,
+    'replay.header.contract.topology.participants',
+    fail,
+  );
+  ensureUnique(
+    topology.unitSlots,
+    unitValue,
+    'replay.header.contract.topology.unitSlots',
+    fail,
+  );
+  ensureUnique(
+    topology.initialLives,
+    actorValue,
+    'replay.header.contract.topology.initialLives',
+    fail,
+  );
+  const counts = topology.counts;
+  for (const [path, actual, expected] of [
+    ['teamCount', topology.teams.length, counts.teamCount],
+    ['participantCount', topology.participants.length, counts.participantCount],
+    ['unitSlotCount', topology.unitSlots.length, counts.unitSlotCount],
+    ['initialLifeCount', topology.initialLives.length, counts.initialLifeCount],
+  ] as const) {
+    if (actual !== expected) {
+      fail(
+        `replay.header.contract.topology.counts.${path}`,
+        `declares ${expected} but contains ${actual}`,
+      );
+    }
+  }
+
+  const teams = new Set(topology.teams.map((team) => team.teamId));
+  const participants = new Map(
+    topology.participants.map((participant) => [
+      participant.participantId,
+      participant,
+    ]),
+  );
+  const slots = new Map(
+    topology.unitSlots.map((slot) => [unitValue(slot), slot]),
+  );
+  const forms = new Set(contract.rules.forms.map((form) => form.id));
+  for (const [index, participant] of topology.participants.entries()) {
+    if (!teams.has(participant.teamId)) {
+      fail(
+        `replay.header.contract.topology.participants[${index}].teamId`,
+        `unknown team ${participant.teamId}`,
+      );
+    }
+  }
+  for (const [index, slot] of topology.unitSlots.entries()) {
+    const controller = participants.get(slot.controllerParticipantId);
+    if (!teams.has(slot.teamId)) {
+      fail(
+        `replay.header.contract.topology.unitSlots[${index}].teamId`,
+        `unknown team ${slot.teamId}`,
+      );
+    }
+    if (!controller || controller.teamId !== slot.teamId) {
+      fail(
+        `replay.header.contract.topology.unitSlots[${index}].controllerParticipantId`,
+        'must reference a participant on the same team',
+      );
+    }
+  }
+  for (const [index, life] of topology.initialLives.entries()) {
+    if (!slots.has(unitValue(life))) {
+      fail(
+        `replay.header.contract.topology.initialLives[${index}]`,
+        'must reference a topology unit slot',
+      );
+    }
+    if (!forms.has(life.formId)) {
+      fail(
+        `replay.header.contract.topology.initialLives[${index}].formId`,
+        `unknown form ${life.formId}`,
+      );
+    }
+  }
+
+  ensureUnique(
+    contract.initialDeployment.spawns,
+    (spawn) => spawn.spawnId,
+    'replay.header.contract.initialDeployment.spawns',
+    fail,
+  );
+  ensureUnique(
+    contract.initialDeployment.lives,
+    actorValue,
+    'replay.header.contract.initialDeployment.lives',
+    fail,
+  );
+  if (
+    !sameSet(
+      contract.initialDeployment.lives.map(actorValue),
+      topology.initialLives.map(actorValue),
+    )
+  ) {
+    fail(
+      'replay.header.contract.initialDeployment.lives',
+      'must cover exactly the topology initial lives',
+    );
+  }
+  const spawnIds = new Set(
+    contract.initialDeployment.spawns.map((spawn) => spawn.spawnId),
+  );
+  for (const [index, life] of contract.initialDeployment.lives.entries()) {
+    const topologyLife = topology.initialLives.find(
+      (candidate) => actorValue(candidate) === actorValue(life),
+    );
+    if (
+      !topologyLife ||
+      topologyLife.formId !== life.formId ||
+      !spawnIds.has(life.spawnId)
+    ) {
+      fail(
+        `replay.header.contract.initialDeployment.lives[${index}]`,
+        'must match a topology life, form, and declared spawn',
+      );
+    }
+  }
+
+  if (header.provenance) {
+    ensureUnique(
+      header.provenance.participants,
+      (participant) => participant.participantId,
+      'replay.header.provenance.participants',
+      fail,
+    );
+    if (
+      !sameSet(
+        header.provenance.participants.map((participant) =>
+          String(participant.participantId),
+        ),
+        topology.participants.map((participant) =>
+          String(participant.participantId),
+        ),
+      )
+    ) {
+      fail(
+        'replay.header.provenance.participants',
+        'must cover exactly the topology participants',
+      );
+    }
+    header.provenance.participants.forEach((participant, index) => {
+      if (
+        participants.get(participant.participantId)?.teamId !==
+        participant.teamId
+      ) {
+        fail(
+          `replay.header.provenance.participants[${index}].teamId`,
+          'must match topology participant team',
+        );
+      }
+    });
+  }
+
+  const scoreChannels = contract.rules.gameMode.scoreCatalog.map(
+    (score) => score.channel,
+  );
+  ensureUnique(
+    contract.rules.gameMode.scoreCatalog,
+    (score) => score.channel,
+    'replay.header.contract.rules.gameMode.scoreCatalog',
+    fail,
+  );
+
+  const validateWorld = (
+    world: V3.ReplayV3WorldState,
+    path: string,
+    expectedNextTick: number,
+  ) => {
+    if (world.matchContractFingerprint !== fingerprint) {
+      fail(
+        `${path}.matchContractFingerprint`,
+        'must match header contract fingerprint',
+      );
+    }
+    if (world.nextTick !== expectedNextTick) {
+      fail(`${path}.nextTick`, `expected ${expectedNextTick}`);
+    }
+    ensureUnique(world.participants, (status) => status.participantId, `${path}.participants`, fail);
+    ensureUnique(world.slots, unitValue, `${path}.slots`, fail);
+    ensureUnique(world.activeLives, (life) => actorValue(life.actorId), `${path}.activeLives`, fail);
+    ensureUnique(world.projectiles, (projectile) => projectile.projectileId, `${path}.projectiles`, fail);
+    if (
+      !sameSet(
+        world.participants.map((status) => String(status.participantId)),
+        topology.participants.map((participant) => String(participant.participantId)),
+      )
+    ) {
+      fail(`${path}.participants`, 'must cover exactly topology participants');
+    }
+    if (
+      !sameSet(world.slots.map(unitValue), topology.unitSlots.map(unitValue))
+    ) {
+      fail(`${path}.slots`, 'must cover exactly topology unit slots');
+    }
+    for (const [index, status] of world.participants.entries()) {
+      if (participants.get(status.participantId)?.teamId !== status.teamId) {
+        fail(
+          `${path}.participants[${index}].teamId`,
+          'must match topology participant team',
+        );
+      }
+    }
+    const activeByActor = new Map(
+      world.activeLives.map((life) => [actorValue(life.actorId), life]),
+    );
+    for (const [index, slot] of world.slots.entries()) {
+      const topologySlot = slots.get(unitValue(slot));
+      if (
+        !topologySlot ||
+        topologySlot.controllerParticipantId !== slot.participantId
+      ) {
+        fail(
+          `${path}.slots[${index}].participantId`,
+          'must match topology controller',
+        );
+      }
+      if (slot.state.kind === 'active') {
+        const active = activeByActor.get(actorValue(slot.state.actorId));
+        if (
+          !active ||
+          unitValue(active.actorId) !== unitValue(slot) ||
+          active.participantId !== slot.participantId ||
+          active.generation !== slot.state.generation ||
+          active.formId !== slot.state.formId
+        ) {
+          fail(
+            `${path}.slots[${index}].state`,
+            'active slot must match exactly one active life',
+          );
+        }
+      }
+    }
+    for (const [index, life] of world.activeLives.entries()) {
+      const slot = world.slots.find(
+        (candidate) => unitValue(candidate) === unitValue(life.actorId),
+      );
+      if (
+        !slot ||
+        slot.state.kind !== 'active' ||
+        actorValue(slot.state.actorId) !== actorValue(life.actorId)
+      ) {
+        fail(
+          `${path}.activeLives[${index}]`,
+          'must be the active life of its stable unit slot',
+        );
+      }
+    }
+    ensureUnique(world.scoreboard.teams, (team) => team.teamId, `${path}.scoreboard.teams`, fail);
+    if (
+      !sameSet(
+        world.scoreboard.teams.map((team) => String(team.teamId)),
+        topology.teams.map((team) => String(team.teamId)),
+      )
+    ) {
+      fail(`${path}.scoreboard.teams`, 'must cover exactly topology teams');
+    }
+    world.scoreboard.teams.forEach((team, index) => {
+      ensureUnique(team.scores, (score) => score.channel, `${path}.scoreboard.teams[${index}].scores`, fail);
+      if (!sameSet(team.scores.map((score) => score.channel), scoreChannels)) {
+        fail(
+          `${path}.scoreboard.teams[${index}].scores`,
+          'must cover exactly the mode score catalog',
+        );
+      }
+    });
+    if (
+      world.mode.kind !== contract.rules.gameMode.kind ||
+      world.mode.modeId !== contract.rules.gameMode.modeId
+    ) {
+      fail(`${path}.mode`, 'must match the resolved contract game mode');
+    }
+  };
+
+  validateWorld(initialFrame.state, 'replay.initialFrame.state', 0);
+  if (
+    !sameSet(
+      initialFrame.lifeStarts.map((start) => actorValue(start.actorId)),
+      topology.initialLives.map(actorValue),
+    )
+  ) {
+    fail(
+      'replay.initialFrame.lifeStarts',
+      'must cover exactly the topology initial lives',
+    );
+  }
+
+  const validateStart = (
+    start: V3.ReplayV3LifeStart,
+    path: string,
+  ) => {
+    if (
+      start.matchContractFingerprint !== fingerprint ||
+      start.schemaVersion !== header.runtime.matchStartSchemaVersion ||
+      start.runtimeContractVersion !== header.runtime.runtimeContractVersion
+    ) {
+      fail(path, 'life start versions/fingerprint must match the replay header');
+    }
+    const slot = slots.get(unitValue(start.actorId));
+    if (!slot || slot.controllerParticipantId !== start.participantId) {
+      fail(`${path}.participantId`, 'must match the topology unit controller');
+    }
+  };
+  initialFrame.lifeStarts.forEach((start, index) =>
+    {
+      const path = `replay.initialFrame.lifeStarts[${index}]`;
+      validateStart(start, path);
+      const life = initialFrame.state.activeLives.find(
+        (candidate) =>
+          actorValue(candidate.actorId) === actorValue(start.actorId),
+      );
+      if (
+        !life ||
+        life.participantId !== start.participantId ||
+        life.generation !== start.origin.generation
+      ) {
+        fail(path, 'must match an initial authoritative active life');
+      }
+    },
+  );
+
+  const ordinalOwners = new Map<string, string>();
+  const recordOrdinals = (
+    values: readonly ({ globalOrdinal: string })[],
+    path: string,
+  ) => {
+    values.forEach((value, index) => {
+      const owner = `${path}[${index}]`;
+      const prior = ordinalOwners.get(value.globalOrdinal);
+      if (prior) {
+        fail(`${owner}.globalOrdinal`, `duplicates ${prior}.globalOrdinal`);
+      }
+      ordinalOwners.set(value.globalOrdinal, owner);
+    });
+  };
+  recordOrdinals(initialFrame.events, 'replay.initialFrame.events');
+
+  let previousWorld = initialFrame.state;
+  document.ticks.forEach((tick, tickIndex) => {
+    const path = `replay.ticks[${tickIndex}]`;
+    if (tick.tick !== tickIndex || tick.tickStart.tick !== tick.tick) {
+      fail(`${path}.tick`, `ticks must be contiguous from zero`);
+    }
+    if (JSON.stringify(tick.tickStart.state) !== JSON.stringify(previousWorld)) {
+      fail(`${path}.tickStart.state`, 'must equal the preceding authoritative world');
+    }
+    validateWorld(tick.tickStart.state, `${path}.tickStart.state`, tick.tick);
+    validateWorld(tick.postState, `${path}.postState`, tick.tick + 1);
+    if (
+      !sameSet(
+        tick.tickStart.activeActorIds.map(actorValue),
+        tick.tickStart.state.activeLives.map((life) => actorValue(life.actorId)),
+      )
+    ) {
+      fail(
+        `${path}.tickStart.activeActorIds`,
+        'must cover exactly the tick-start active lives',
+      );
+    }
+    ensureUnique(tick.actorTurns, (turn) => actorValue(turn.actorId), `${path}.actorTurns`, fail);
+    if (
+      !sameSet(
+        tick.actorTurns.map((turn) => actorValue(turn.actorId)),
+        tick.tickStart.activeActorIds.map(actorValue),
+      )
+    ) {
+      fail(`${path}.actorTurns`, 'must cover exactly the active actors');
+    }
+    tick.tickStart.lifeStarts.forEach((start, index) => {
+      const startPath = `${path}.tickStart.lifeStarts[${index}]`;
+      validateStart(start, startPath);
+      const life = tick.tickStart.state.activeLives.find(
+        (candidate) =>
+          actorValue(candidate.actorId) === actorValue(start.actorId),
+      );
+      if (
+        !life ||
+        life.participantId !== start.participantId ||
+        life.generation !== start.origin.generation
+      ) {
+        fail(startPath, 'must match a tick-start authoritative active life');
+      }
+    });
+    tick.actorTurns.forEach((turn, turnIndex) => {
+      const turnPath = `${path}.actorTurns[${turnIndex}]`;
+      const actor = tick.tickStart.state.activeLives.find(
+        (life) => actorValue(life.actorId) === actorValue(turn.actorId),
+      );
+      if (
+        !actor ||
+        actor.participantId !== turn.participantId ||
+        turn.tick !== tick.tick ||
+        actorValue(turn.observation.self.actorId) !== actorValue(turn.actorId) ||
+        turn.observation.tick !== tick.tick ||
+        turn.observation.schemaVersion !== header.runtime.observationSchemaVersion ||
+        turn.observation.matchContractFingerprint !== fingerprint
+      ) {
+        fail(turnPath, 'turn identity, tick, or observation contract is inconsistent');
+      }
+      const observedSelf = turn.observation.self;
+      if (
+        actor.generation !== observedSelf.generation ||
+        actor.formId !== observedSelf.formId ||
+        JSON.stringify(actor.position) !==
+          JSON.stringify(observedSelf.position) ||
+        actor.facing !== observedSelf.facing ||
+        actor.health !== observedSelf.health ||
+        actor.cooldown !== observedSelf.cooldown ||
+        actor.energy !== observedSelf.energy ||
+        JSON.stringify(actor.previousActionResolution) !==
+          JSON.stringify(observedSelf.previousActionResolution) ||
+        JSON.stringify(actor.pendingSameLifeTransition) !==
+          JSON.stringify(observedSelf.pendingSameLifeTransition)
+      ) {
+        fail(
+          `${turnPath}.observation.self`,
+          'must equal the exact frozen tick-start life',
+        );
+      }
+      if (
+        JSON.stringify(turn.observation.participants) !==
+          JSON.stringify(tick.tickStart.state.participants) ||
+        JSON.stringify(turn.observation.scoreboard) !==
+          JSON.stringify(tick.tickStart.state.scoreboard) ||
+        JSON.stringify(turn.observation.mode) !==
+          JSON.stringify(tick.tickStart.state.mode)
+      ) {
+        fail(
+          `${turnPath}.observation`,
+          'participants, scoreboard, and mode must use the frozen tick-start state',
+        );
+      }
+      const expectedTeamUnits = tick.tickStart.state.slots
+        .filter((slot) => slot.teamId === turn.actorId.teamId)
+        .map(unitValue);
+      if (
+        !sameSet(
+          turn.observation.teamUnits.map(unitValue),
+          expectedTeamUnits,
+        )
+      ) {
+        fail(
+          `${turnPath}.observation.teamUnits`,
+          'must cover exactly the observer team unit slots',
+        );
+      }
+      turn.observation.teamUnits.forEach((observedUnit, unitIndex) => {
+        const authoritative = tick.tickStart.state.slots.find(
+          (slot) => unitValue(slot) === unitValue(observedUnit),
+        );
+        if (
+          !authoritative ||
+          JSON.stringify(observedUnit.state) !==
+            JSON.stringify(authoritative.state)
+        ) {
+          fail(
+            `${turnPath}.observation.teamUnits[${unitIndex}].state`,
+            'must equal the frozen tick-start slot state',
+          );
+        }
+      });
+      const actionsById = new Map(
+        contract.rules.actions.map((action) => [action.id, action]),
+      );
+      ensureUnique(
+        turn.observation.actionLegalities,
+        (legality) => legality.actionId,
+        `${turnPath}.observation.actionLegalities`,
+        fail,
+      );
+      if (
+        !sameSet(
+          turn.observation.actionLegalities.map(
+            (legality) => legality.actionId,
+          ),
+          contract.rules.actions.map((action) => action.id),
+        )
+      ) {
+        fail(
+          `${turnPath}.observation.actionLegalities`,
+          'must cover exactly the contract action catalog',
+        );
+      }
+      turn.observation.actionLegalities.forEach((legality, legalityIndex) => {
+        if (actionsById.get(legality.actionId)?.code !== legality.actionCode) {
+          fail(
+            `${turnPath}.observation.actionLegalities[${legalityIndex}].actionCode`,
+            'must match the contract action code',
+          );
+        }
+      });
+      for (const [name, action] of [
+        ['acceptedAction', turn.actionResolution.acceptedAction],
+        ['validatedAction', turn.actionResolution.validatedAction],
+      ] as const) {
+        if (actionsById.get(action.actionId)?.code !== action.actionCode) {
+          fail(
+            `${turnPath}.actionResolution.${name}`,
+            'must reference a contract action id/code pair',
+          );
+        }
+      }
+    });
+    for (const [collectionName, values] of [
+      ['tickStart.events', tick.tickStart.events],
+      ['events', tick.events],
+    ] as const) {
+      values.forEach((event, index) => {
+        if (
+          event.tick !== tick.tick ||
+          (index > 0 &&
+            event.sourceOrdinal <= (values[index - 1]?.sourceOrdinal ?? -1))
+        ) {
+          fail(
+            `${path}.${collectionName}[${index}]`,
+            'event tick must match and source ordinals must be increasing',
+          );
+        }
+      });
+      recordOrdinals(values, `${path}.${collectionName}`);
+    }
+    for (const [collectionName, values] of [
+      ['tickStart.traversals', tick.tickStart.traversals],
+      ['traversals', tick.traversals],
+    ] as const) {
+      values.forEach((item, index) => {
+        if (item.tick !== tick.tick) {
+          fail(
+            `${path}.${collectionName}[${index}].tick`,
+            'must match the owning tick',
+          );
+        }
+      });
+      recordOrdinals(values, `${path}.${collectionName}`);
+    }
+    previousWorld = tick.postState;
+  });
+
+  if (document.partial !== (document.result === null)) {
+    fail('replay.partial', 'must be true exactly when result is null');
+  }
+  if (document.partial && document.replayHash !== null) {
+    fail('replay.replayHash', 'partial replay must not carry a hash');
+  }
+  if (!document.partial && document.replayHash === null) {
+    fail('replay.replayHash', 'complete replay must carry a hash');
+  }
+  if (document.result) {
+    const result = document.result;
+    const finalWorld = previousWorld;
+    ensureUnique(result.standings.teams, (team) => team.teamId, 'replay.result.standings.teams', fail);
+    if (
+      !sameSet(
+        result.standings.teams.map((team) => String(team.teamId)),
+        topology.teams.map((team) => String(team.teamId)),
+      )
+    ) {
+      fail('replay.result.standings.teams', 'must cover exactly topology teams');
+    }
+    if (
+      result.standings.winnerTeamId !== null &&
+      !teams.has(result.standings.winnerTeamId)
+    ) {
+      fail('replay.result.standings.winnerTeamId', 'unknown winning team');
+    }
+    if (
+      !sameSet(
+        result.eligibleTeamIds.map(String),
+        finalWorld.scoreboard.teams
+          .filter((team) => team.eligible)
+          .map((team) => String(team.teamId)),
+      )
+    ) {
+      fail(
+        'replay.result.eligibleTeamIds',
+        'must match the final scoreboard eligibility',
+      );
+    }
+    ensureUnique(result.units, (unit) => unitValue(unit.slot), 'replay.result.units', fail);
+    if (
+      !sameSet(
+        result.units.map((unit) => unitValue(unit.slot)),
+        finalWorld.slots.map(unitValue),
+      )
+    ) {
+      fail('replay.result.units', 'must cover exactly the final unit slots');
+    }
+    result.units.forEach((unit, index) => {
+      const finalSlot = finalWorld.slots.find(
+        (slot) => unitValue(slot) === unitValue(unit.slot),
+      );
+      const finalLife = finalWorld.activeLives.find(
+        (life) => unitValue(life.actorId) === unitValue(unit.slot),
+      ) ?? null;
+      if (
+        JSON.stringify(unit.slot) !== JSON.stringify(finalSlot) ||
+        JSON.stringify(unit.activeLife) !== JSON.stringify(finalLife)
+      ) {
+        fail(
+          `replay.result.units[${index}]`,
+          'must match the final authoritative slot and active life',
+        );
+      }
+    });
+    result.standings.teams.forEach((standing, index) => {
+      const finalScore = finalWorld.scoreboard.teams.find(
+        (team) => team.teamId === standing.teamId,
+      );
+      if (
+        !finalScore ||
+        JSON.stringify(standing.scores) !== JSON.stringify(finalScore.scores)
+      ) {
+        fail(
+          `replay.result.standings.teams[${index}].scores`,
+          'must match the final scoreboard',
+        );
+      }
+    });
+    if (
+      result.endTick !== null &&
+      result.endTick !== document.ticks.at(-1)?.tick
+    ) {
+      fail('replay.result.endTick', 'must identify the last replay tick');
+    }
+    if (
+      result.mode.kind !== finalWorld.mode.kind ||
+      result.mode.reason !== result.completionReason
+    ) {
+      fail('replay.result.mode', 'must match completion reason and final mode');
+    }
+    ensureUnique(result.mode.scores, (score) => score.teamId, 'replay.result.mode.scores', fail);
+    if (
+      !sameSet(
+        result.mode.scores.map((score) => String(score.teamId)),
+        topology.teams.map((team) => String(team.teamId)),
+      )
+    ) {
+      fail('replay.result.mode.scores', 'must cover exactly topology teams');
+    }
+  }
+}
+
+function compareUnit(
+  left: { teamId: number; unitId: number },
+  right: { teamId: number; unitId: number },
+): number {
+  return left.teamId - right.teamId || left.unitId - right.unitId;
+}
+
+function compareActor(
+  left: V3.ReplayV3ActorId,
+  right: V3.ReplayV3ActorId,
+): number {
+  return compareUnit(left, right) || left.lifeId - right.lifeId;
+}
+
+function copyPosition(value: V3.ReplayV3Position): Model.ReplayPosition {
+  return { x: value.x, y: value.y };
+}
+
+function positionFromTuple(
+  value: V3.ReplayV3ContractPosition,
+): Model.ReplayPosition {
+  return { x: value[0], y: value[1] };
+}
+
+function genericUnitKey(
+  teamId: number,
+  unitId: number,
+): Model.ReplayStableUnitKey {
+  return replayGenericIdentity(teamId, unitId, 0).unitKey;
+}
+
+function identity(
+  value: V3.ReplayV3ActorId,
+): Model.ReplayGenericActorIdentity {
+  return replayGenericIdentity(value.teamId, value.unitId, value.lifeId);
+}
+
+export function normalizeReplayV3(
+  document: V3.ReplayV3Document,
+): Model.ReplayModel {
+  const { contract } = document.header;
+  const provenance = new Map(
+    document.header.provenance?.participants.map((participant) => [
+      participant.participantId,
+      participant,
+    ]) ?? [],
+  );
+  const participants = [...contract.topology.participants]
+    .sort((left, right) => left.participantId - right.participantId)
+    .map<Model.ReplayParticipantController>((participant) => {
+      const source = provenance.get(participant.participantId);
+      return {
+        participantKey: replayParticipantKey(participant.participantId),
+        participantId: participant.participantId,
+        teamKey: replayTeamKey(participant.teamId),
+        teamId: participant.teamId,
+        name: source?.name ?? `participant ${participant.participantId}`,
+        runtimeKind: source?.runtimeKind ?? 'unknown',
+        artifactHash: source?.artifactHash ?? null,
+        accent: source?.accent ?? '#94a3b8',
+        lookId: source?.lookId ?? null,
+        projectileLookId: source?.projectileLookId ?? null,
+      };
+    });
+  const initialLifeByUnit = new Map(
+    contract.topology.initialLives.map((life) => [unitValue(life), life]),
+  );
+  const units = [...contract.topology.unitSlots]
+    .sort(compareUnit)
+    .map<Model.ReplayStableUnit>((slot) => {
+      const initialLife = initialLifeByUnit.get(unitValue(slot));
+      const initialActor = initialLife ? identity(initialLife) : null;
+      return {
+        unitKey: genericUnitKey(slot.teamId, slot.unitId),
+        teamKey: replayTeamKey(slot.teamId),
+        teamId: slot.teamId,
+        unitId: slot.unitId,
+        controllerParticipantKey: replayParticipantKey(
+          slot.controllerParticipantId,
+        ),
+        controllerParticipantId: slot.controllerParticipantId,
+        initialActorKey: initialActor?.actorKey ?? null,
+        initialLifeId: initialLife?.lifeId ?? null,
+        initialFormId: initialLife?.formId ?? null,
+      };
+    });
+  const teams = [...contract.topology.teams]
+    .sort((left, right) => left.teamId - right.teamId)
+    .map<Model.ReplayTeam>((team) => ({
+      teamKey: replayTeamKey(team.teamId),
+      teamId: team.teamId,
+      participantKeys: participants
+        .filter((participant) => participant.teamId === team.teamId)
+        .map((participant) => participant.participantKey),
+      unitKeys: units
+        .filter((unit) => unit.teamId === team.teamId)
+        .map((unit) => unit.unitKey),
+    }));
+  const formPresentation = new Map(
+    document.header.presentation?.forms.map((form) => [form.formId, form]) ??
+      [],
+  );
+  const movementProfiles = new Map(
+    contract.rules.movementProfiles.map((profile) => [profile.id, profile]),
+  );
+  const visionProfiles = new Map(
+    contract.rules.visionProfiles.map((profile) => [profile.id, profile]),
+  );
+  const attackProfiles = new Map(
+    contract.rules.attackProfiles.map((profile) => [profile.id, profile]),
+  );
+  const forms = [...contract.rules.forms]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map<Model.ReplayForm>((form) => {
+      const movement = form.movementProfileId
+        ? movementProfiles.get(form.movementProfileId)
+        : undefined;
+      const vision = visionProfiles.get(form.visionProfileId);
+      const attack = form.attackProfileId
+        ? attackProfiles.get(form.attackProfileId)
+        : undefined;
+      const presentation = formPresentation.get(form.id);
+      return {
+        formId: form.id,
+        maxHealth: form.maxHealth,
+        visionRange: vision?.range ?? 0,
+        shootCooldownTicks: attack?.cooldownTicks ?? null,
+        omnidirectionalVision: vision?.shape === 'omnidirectional',
+        omnidirectionalShooting: attack?.omnidirectionalAim ?? false,
+        movementLayer: movement?.movementLayer ?? 'none',
+        objectiveWeight: form.objectiveWeight,
+        canMove: movement !== undefined,
+        canShoot: attack !== undefined,
+        allowsProgrammedShots: attack?.shotProgram.enabled ?? false,
+        allowedActionIds: [...form.allowedActionIds],
+        lookId: presentation?.lookId ?? null,
+        projectileLookId: presentation?.projectileLookId ?? null,
+        completeness: 'exact',
+      };
+    });
+  const ticks = document.ticks.map((tick) => tickFromV3(tick, document));
+
+  return {
+    sourceVersion: 3,
+    versions: {
+      engineVersion: document.header.engineVersion,
+      gameRulesVersion: document.header.gameRulesVersion,
+      runtimeProtocolVersion: document.header.runtime.protocolVersion,
+      runtimeConfigurationVersion:
+        document.header.runtime.configurationVersion,
+      actorRuntime: {
+        family: document.header.runtime.contractProfileId,
+        protocolVersion: document.header.runtime.protocolVersion,
+        configurationVersion: document.header.runtime.configurationVersion,
+        version: document.header.runtime.runtimeContractVersion,
+        matchStartSchemaVersion:
+          document.header.runtime.matchStartSchemaVersion,
+        observationSchemaVersion:
+          document.header.runtime.observationSchemaVersion,
+        decisionSchemaVersion: document.header.runtime.decisionSchemaVersion,
+      },
+    },
+    seed: document.header.seed,
+    seedExact: true,
+    seedEncoding: 'decimal-string',
+    partial: document.partial,
+    replayHash: document.replayHash,
+    matchContractFingerprint: contract.matchContractFingerprint,
+    contract: contractFromV3(contract),
+    map: mapFromV3(document.header),
+    forms,
+    participants,
+    teams,
+    units,
+    initialWorld: worldFromV3(document.initialFrame.state, document),
+    initialLifeStarts: document.initialFrame.lifeStarts.map(lifeStartFromV3),
+    initialEvents: document.initialFrame.events.map(eventFromV3),
+    ticks,
+    result: document.result ? resultFromV3(document.result, document) : null,
+  };
+}
+
+function contractFromV3(
+  contract: V3.ReplayV3ResolvedContract,
+): Model.ReplayGenericMatchContract {
+  const topology = contract.topology;
+  const firstAttack = contract.rules.attackProfiles[0];
+  const firstVision = contract.rules.visionProfiles[0];
+  const shot = firstAttack?.shotProgram;
+  const shotRecord = (shot ?? {}) as Record<string, unknown>;
+  const aimOnly = (shotRecord.aimOnlyProgram ?? {}) as Record<string, unknown>;
+  const defaultProgram = shot?.defaultProgram ?? {
+    initialAimOffset: 0,
+    bendDirection: 0,
+    bendAfterTiles: 0,
+    bendEveryTiles: 1,
+    bendCount: 0,
+  };
+  const collisions = contract.rules.collisions;
+  const bool = (key: string, fallback: boolean) =>
+    typeof collisions[key] === 'boolean'
+      ? (collisions[key] as boolean)
+      : fallback;
+  const spawnsById = new Map(
+    contract.initialDeployment.spawns.map((spawn) => [spawn.spawnId, spawn]),
+  );
+  return {
+    kind: 'v3-generic',
+    completeness: 'exact',
+    schemaVersion: contract.schemaVersion,
+    matchContractFingerprint: contract.matchContractFingerprint,
+    modeKind: contract.rules.gameMode.kind,
+    modeId: contract.rules.gameMode.modeId,
+    rawContract: contract,
+    rules: {
+      schemaVersion: contract.rules.schemaVersion,
+      rulesetId: contract.rules.rulesetId,
+      rulesFingerprint: contract.rules.rulesFingerprint,
+      limits: {
+        maxTicks: Number(contract.rules.limits.maxTicks),
+        faultLimit: Number(
+          ((contract.rules.limits.runtimeFaults ?? {}) as Record<string, unknown>)
+            .faultsAllowedBeforeDisqualification ?? 0,
+        ),
+        teamCount: topology.counts.teamCount,
+        participantCount: topology.counts.participantCount,
+        unitSlotCount: topology.counts.unitSlotCount,
+        initialUnitsPerTeam: Math.min(
+          ...topology.teams.map(
+            (team) =>
+              topology.initialLives.filter((life) => life.teamId === team.teamId)
+                .length,
+          ),
+        ),
+        maxUnitsPerTeam: Math.max(
+          ...topology.teams.map(
+            (team) =>
+              topology.unitSlots.filter((slot) => slot.teamId === team.teamId)
+                .length,
+          ),
+        ),
+        destructionEndsMatch: false,
+        respawnsEnabled: true,
+      },
+      objective: {
+        mode: contract.rules.gameMode.kind === 'frontline' ? 'frontline' : 'none',
+        zoneControlEnabled: contract.rules.gameMode.kind === 'frontline',
+        zoneDominationTicks: 0,
+        zoneExclusiveAccrual: false,
+        sharedPressureEnabled: false,
+        controlBySoleOccupancy: false,
+        controlPressureLimit: 0,
+        controlPressureGain: 0,
+        controlPressureDecayInterval: 0,
+        overtime: {
+          startTick: 0,
+          pressureLimit: 0,
+          pressureGain: 0,
+          stopsDecay: false,
+        },
+        maxTickTiebreakers: [],
+      },
+      frontlineDefinition: null,
+      energy: {
+        enabled: (firstAttack?.maxEnergy ?? 0) > 0,
+        maxEnergy: firstAttack?.maxEnergy ?? 0,
+        shotEnergyCost: firstAttack?.attackEnergyCost ?? 0,
+        regenerationIntervalTicks:
+          firstAttack?.energyRegenerationIntervalTicks ?? 0,
+        regenerationAmount: firstAttack?.energyRegenerationAmount ?? 0,
+      },
+      forms: contract.rules.forms.map((form) => {
+        const movement = contract.rules.movementProfiles.find(
+          (profile) => profile.id === form.movementProfileId,
+        );
+        const vision = contract.rules.visionProfiles.find(
+          (profile) => profile.id === form.visionProfileId,
+        );
+        const attack = contract.rules.attackProfiles.find(
+          (profile) => profile.id === form.attackProfileId,
+        );
+        return {
+          id: form.id,
+          maxHealth: form.maxHealth,
+          visionRange: vision?.range ?? 0,
+          shootCooldownTicks: attack?.cooldownTicks ?? 0,
+          omnidirectionalVision: vision?.shape === 'omnidirectional',
+          omnidirectionalShooting: attack?.omnidirectionalAim ?? false,
+          movementLayer: movement?.movementLayer ?? 'none',
+          objectiveWeight: form.objectiveWeight,
+          canMove: movement !== undefined,
+          canShoot: attack !== undefined,
+          allowsProgrammedShots: attack?.shotProgram.enabled ?? false,
+          allowedActionIds: [...form.allowedActionIds],
+        };
+      }),
+      actions: contract.rules.actions.map((action) => ({
+        id: action.id,
+        code: action.code,
+        kind: action.kind,
+        parameterKinds: [...action.parameterKinds] as Model.ReplayActionParameterKind[],
+        enabled: true,
+      })),
+      projectiles: {
+        mode:
+          firstAttack?.projectile.mode === 'instant-ray'
+            ? 'instant-ray'
+            : 'discrete',
+        damagePerHit: firstAttack?.projectile.damagePerHit ?? 0,
+        maxTravelTiles: firstAttack?.projectile.maxTravelTiles ?? 0,
+        shootCooldownTicks: firstAttack?.cooldownTicks ?? 0,
+        ticksPerAdvance: firstAttack?.projectile.ticksPerAdvance ?? 0,
+        tilesPerAdvance: firstAttack?.projectile.tilesPerAdvance ?? 0,
+        launchTiles: firstAttack?.projectile.launchTiles ?? 0,
+        advancesOnLaunchTick:
+          firstAttack?.projectile.advancesOnLaunchTick ?? false,
+        damageAppliedSimultaneously:
+          firstAttack?.projectile.damageAppliedSimultaneously ?? false,
+      },
+      shotPrograms: {
+        enabled: shot?.enabled ?? false,
+        headingSectors: shot?.headingSectors ?? 8,
+        bendStepOctants: Number(shotRecord.bendStepSectors ?? 1),
+        minInitialAimOctants: shot?.minInitialAimSteps ?? 0,
+        maxInitialAimOctants: shot?.maxInitialAimSteps ?? 0,
+        aimOnlyProgram: {
+          bendDirection: Number(aimOnly.bendDirection ?? 0),
+          bendAfterTiles: Number(aimOnly.bendAfterTiles ?? 0),
+          bendEveryTiles: Number(aimOnly.bendEveryTiles ?? 1),
+          bendCount: Number(aimOnly.bendCount ?? 0),
+        },
+        allowedCurvedBendDirections: [
+          ...((shotRecord.allowedCurvedBendDirections as number[] | undefined) ??
+            []),
+        ],
+        minBendAfterTiles: Number(shotRecord.minBendAfterTiles ?? 0),
+        maxBendAfterTiles: Number(shotRecord.maxBendAfterTiles ?? 0),
+        minBendEveryTiles: Number(shotRecord.minBendEveryTiles ?? 1),
+        maxBendEveryTiles: Number(shotRecord.maxBendEveryTiles ?? 1),
+        minBendCount: Number(shotRecord.minBendCount ?? 0),
+        maxBendCount: Number(shotRecord.maxBendCount ?? 0),
+        launchTiles: shot?.launchTiles ?? 0,
+        payloadOptional: shot?.payloadOptional ?? false,
+        defaultProgram: { ...defaultProgram },
+        invalidPayloadResult:
+          shotRecord.invalidPayloadResult === 'blocked' ||
+          shotRecord.invalidPayloadResult === 'faulted' ||
+          shotRecord.invalidPayloadResult === 'rejected'
+            ? shotRecord.invalidPayloadResult
+            : null,
+        unsupportedPayloadResult:
+          shotRecord.unsupportedPayloadResult === 'faulted' ||
+          shotRecord.unsupportedPayloadResult === 'rejected'
+            ? shotRecord.unsupportedPayloadResult
+            : 'blocked',
+        diagonalCornersMustBeClear:
+          shot?.diagonalCornersMustBeClear ?? false,
+      },
+      vision: {
+        range: firstVision?.range ?? 0,
+        distanceMetric: 'chebyshev',
+        shape:
+          firstVision?.shape === 'facing-quadrant'
+            ? 'facing-quadrant'
+            : 'omnidirectional',
+        omnidirectionalProximityRange:
+          firstVision?.omnidirectionalProximityRange ?? 0,
+        lineOfSight: 'corner-strict-supercover',
+        hearingRadius: firstVision?.hearingRadius ?? 0,
+        hearingBearingSectors: firstVision?.hearingBearingSectors ?? 0,
+        hearingDistanceBandUpperBounds: [
+          ...(firstVision?.hearingDistanceBandUpperBounds ?? []),
+        ],
+        loudEventTypes: [...(firstVision?.loudEventKinds ?? [])],
+      },
+      collisions: {
+        unitsBlockWalls: bool('actorsBlockWalls', true),
+        unitsBlockUnits: bool('actorsBlockActors', true),
+        sameDestinationMovesBlockAll: bool('sameDestinationMovesBlockAll', true),
+        swapMovesBlocked: bool('swapMovesBlocked', true),
+        followingVacatedUnitAllowed: bool('followingVacatedActorAllowed', false),
+        projectilesBlockMovement: bool('projectilesBlockMovement', true),
+        movingOntoProjectileCausesHit: bool(
+          'movingOntoProjectileCausesHit',
+          true,
+        ),
+        wallsConsumeProjectiles: bool('wallsConsumeProjectiles', true),
+        projectilesIgnoreOwner: bool('projectilesIgnoreFiringLife', true),
+        projectilesStopOnFirstNonOwnerUnit: bool(
+          'projectilesStopOnFirstEnemyActor',
+          true,
+        ),
+        projectilesCollideWithProjectiles: bool(
+          'projectilesCollideWithProjectiles',
+          false,
+        ),
+      },
+      tickResolution: {
+        observationsUsePreTickState:
+          contract.rules.tickResolution.observationsUsePreTickState === true,
+        decisionsResolveAsJointStep:
+          contract.rules.tickResolution.decisionsResolveAsJointStep === true,
+        phases: [...contract.rules.tickResolution.phases],
+      },
+    },
+    map: {
+      schemaVersion: contract.map.schemaVersion,
+      mapId: contract.map.mapId,
+      mapVersion: contract.map.mapVersion,
+      mapFingerprint: contract.map.mapFingerprint,
+      formatVersion: contract.map.formatVersion,
+      width: contract.map.width,
+      height: contract.map.height,
+      tileRows: [...contract.map.tileRows],
+      spawns: contract.initialDeployment.lives
+        .map((life) => {
+          const spawn = spawnsById.get(life.spawnId);
+          return spawn
+            ? {
+                teamId: life.teamId,
+                position: positionFromTuple(spawn.position),
+                facing: spawn.facing,
+              }
+            : null;
+        })
+        .filter((spawn): spawn is NonNullable<typeof spawn> => spawn !== null),
+      objectiveTiles: [],
+      frontline: null,
+    },
+    topology: {
+      teamCount: topology.counts.teamCount,
+      participantCount: topology.counts.participantCount,
+      unitSlotCount: topology.counts.unitSlotCount,
+      initialLifeCount: topology.counts.initialLifeCount,
+      teams: topology.teams.map((team) => ({
+        teamId: team.teamId,
+        teamKey: replayTeamKey(team.teamId),
+      })),
+      participants: topology.participants.map((participant) => ({
+        participantId: participant.participantId,
+        participantKey: replayParticipantKey(participant.participantId),
+        teamId: participant.teamId,
+        teamKey: replayTeamKey(participant.teamId),
+      })),
+      unitSlots: topology.unitSlots.map((slot) => ({
+        teamId: slot.teamId,
+        teamKey: replayTeamKey(slot.teamId),
+        unitId: slot.unitId,
+        unitKey: genericUnitKey(slot.teamId, slot.unitId),
+        controllerParticipantId: slot.controllerParticipantId,
+        controllerParticipantKey: replayParticipantKey(
+          slot.controllerParticipantId,
+        ),
+      })),
+      initialLives: topology.initialLives.map((life) => {
+        const actor = identity(life);
+        return {
+          teamId: life.teamId,
+          unitId: life.unitId,
+          lifeId: life.lifeId,
+          actorKey: actor.actorKey,
+          unitKey: actor.unitKey,
+          formId: life.formId,
+        };
+      }),
+    },
+  };
+}
+
+function mapFromV3(header: V3.ReplayV3Header): Model.ReplayMap {
+  const map = header.contract.map;
+  return {
+    mapId: map.mapId,
+    mapVersion: map.mapVersion,
+    formatVersion: map.formatVersion,
+    width: map.width,
+    height: map.height,
+    tileRows: [...map.tileRows],
+    objectiveTiles: [],
+    frontline: null,
+    presentation: header.presentation
+      ? {
+          themeId: header.presentation.themeId,
+          boundaryWall: header.presentation.map?.boundaryWall ?? null,
+          interiorWall: header.presentation.map?.interiorWall ?? null,
+          wallGroups:
+            header.presentation.map?.wallGroups.map((group) => ({
+              family: group.family,
+              tiles: group.tiles.map(copyPosition),
+            })) ?? null,
+        }
+      : null,
+  };
+}
+
+function scoreValue(
+  scores: readonly V3.ReplayV3ScoreValue[],
+  channel: string,
+): string | null {
+  return scores.find((score) => score.channel === channel)?.value ?? null;
+}
+
+function scoreboardFromV3(
+  scoreboard: V3.ReplayV3Scoreboard,
+): Model.ReplayScoreboard {
+  return {
+    teams: scoreboard.teams.map((team) => ({
+      teamKey: replayTeamKey(team.teamId),
+      teamId: team.teamId,
+      eligible: team.eligible,
+      scores: team.scores.map((score) => ({ ...score })),
+    })),
+  };
+}
+
+function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
+  return mode.kind === 'deathmatch'
+    ? { kind: 'deathmatch', modeId: mode.modeId }
+    : {
+        kind: 'frontline',
+        modeId: mode.modeId,
+        activePositionIndex: mode.activePositionIndex,
+        claimingTeamId: mode.claimingTeamId,
+        captureProgress: mode.captureProgress,
+        decayTicksElapsed: mode.decayTicksElapsed,
+        controlResumesAtTick: mode.controlResumesAtTick,
+      };
+}
+
+function objectiveFromV3(
+  mode: V3.ReplayV3ModeState,
+): Model.ReplayObjectiveState {
+  if (mode.kind === 'frontline') {
+    return {
+      kind: 'frontline',
+      nextTick: 0,
+      activePositionIndex: mode.activePositionIndex,
+      claimingTeamId: mode.claimingTeamId,
+      captureProgress: mode.captureProgress,
+      decayTicksElapsed: mode.decayTicksElapsed,
+      controlResumesAtTick: mode.controlResumesAtTick,
+      winnerTeamId: null,
+      completeness: 'exact',
+    };
+  }
+  return {
+    kind: 'legacy',
+    mode: 'none',
+    controlPressure: null,
+    zoneTicks: [],
+    completeness: 'legacy-derived',
+  };
+}
+
+function slotLifecycle(
+  state: V3.ReplayV3UnitSlotState,
+): Model.ReplayUnitLifecycleStatus {
+  switch (state.kind) {
+    case 'active':
+      return 'active';
+    case 'availability-pending':
+      return 'locked';
+    case 'automatic-return-pending':
+      return 'respawning';
+    case 'ready':
+      return 'ready';
+    case 'fabrication-pending':
+      return 'fabrication-queued';
+    case 'replication-pending':
+      return 'replication-pending';
+    case 'permanently-dormant':
+      return 'locked';
+  }
+}
+
+function defaultFormForSlot(
+  slot: { teamId: number; unitId: number; state: V3.ReplayV3UnitSlotState },
+  document: V3.ReplayV3Document,
+): string {
+  return (
+    document.header.contract.topology.initialLives.find(
+      (life) => unitValue(life) === unitValue(slot),
+    )?.formId ??
+    document.header.contract.lifecycleAssignments.find(
+      (assignment) => unitValue(assignment) === unitValue(slot),
+    )?.allowedFormIds[0] ??
+    (slot.state.kind === 'active' ? slot.state.formId : null) ??
+    document.header.contract.rules.forms[0]?.id ??
+    ''
+  );
+}
+
+function transitionFromV3(
+  transition: V3.ReplayV3PendingSameLifeTransition | null,
+  fromFormId: string,
+): Model.ReplayFormTransition | null {
+  return transition
+    ? {
+        fromFormId,
+        toFormId: transition.targetFormId,
+        startedAtTick: transition.startedTick,
+        completesAtTick: transition.dueTick,
+      }
+    : null;
+}
+
+function worldFromV3(
+  world: V3.ReplayV3WorldState,
+  document: V3.ReplayV3Document,
+): Model.ReplayWorldSnapshot {
+  const actors = [...world.activeLives]
+    .sort((left, right) => compareActor(left.actorId, right.actorId))
+    .map<Model.ReplayActorState>((life) => {
+      const actor = identity(life.actorId);
+      return {
+        identity: actor,
+        actorKey: actor.actorKey,
+        unitKey: actor.unitKey,
+        formId: life.formId,
+        position: copyPosition(life.position),
+        facing: life.facing,
+        health: life.health,
+        cooldown: life.cooldown,
+        energy: life.energy,
+        damageDealt: null,
+        previousActionResult:
+          (life.previousActionResolution?.outcome as Model.ReplayActionResult) ??
+          'none',
+        spawnedAtTick: life.spawnedAtTick,
+        participantId: life.participantId,
+        generation: life.generation,
+        spawnReason: life.spawnReason,
+        parentActor: life.parentActorId ? identity(life.parentActorId) : null,
+        sourceTransitionId: life.sourceTransitionId,
+        sourceOperationId: life.sourceOperationId,
+        pendingFormTransition: transitionFromV3(
+          life.pendingSameLifeTransition,
+          life.formId,
+        ),
+        status: 'active',
+      };
+    });
+  const units = [...world.slots]
+    .sort(compareUnit)
+    .map<Model.ReplayUnitState>((slot) => {
+      const activeActorId =
+        slot.state.kind === 'active' ? slot.state.actorId : null;
+      const active =
+        activeActorId
+          ? world.activeLives.find(
+              (life) =>
+                actorValue(life.actorId) === actorValue(activeActorId),
+            )
+          : undefined;
+      const defaultFormId = defaultFormForSlot(slot, document);
+      const due =
+        'dueTick' in slot.state && typeof slot.state.dueTick === 'number'
+          ? slot.state.dueTick
+          : null;
+      return {
+        unitKey: genericUnitKey(slot.teamId, slot.unitId),
+        teamKey: replayTeamKey(slot.teamId),
+        teamId: slot.teamId,
+        unitId: slot.unitId,
+        defaultFormId,
+        formId:
+          active?.formId ??
+          ('targetFormId' in slot.state ? slot.state.targetFormId : defaultFormId),
+        lifecycleStatus: slotLifecycle(slot.state),
+        respawnAtTick:
+          slot.state.kind === 'automatic-return-pending' ? due : null,
+        unlockAtTick:
+          slot.state.kind === 'availability-pending' ? due : null,
+        rebuildReadyAtTick: null,
+        fabricationAtTick:
+          slot.state.kind === 'fabrication-pending' ||
+          slot.state.kind === 'replication-pending'
+            ? due
+            : null,
+        reservedSpawn:
+          slot.state.kind === 'fabrication-pending' ||
+          slot.state.kind === 'replication-pending'
+            ? copyPosition(slot.state.reservedPosition)
+            : null,
+        pendingSpawnReason:
+          slot.state.kind === 'automatic-return-pending'
+            ? 'respawn'
+            : slot.state.kind === 'fabrication-pending'
+              ? 'fabrication'
+              : slot.state.kind === 'replication-pending'
+                ? 'replication'
+                : null,
+        hasSpawned: slot.nextLifeId > 0,
+        nextLifeId: slot.nextLifeId,
+        damageDealt: null,
+        activeActorKey:
+          slot.state.kind === 'active'
+            ? identity(slot.state.actorId).actorKey
+            : null,
+      };
+    });
+  const teams = [...document.header.contract.topology.teams]
+    .sort((left, right) => left.teamId - right.teamId)
+    .map<Model.ReplayTeamState>((team) => {
+      const score = world.scoreboard.teams.find(
+        (entry) => entry.teamId === team.teamId,
+      );
+      return {
+        teamKey: replayTeamKey(team.teamId),
+        teamId: team.teamId,
+        damageDealt: score ? scoreValue(score.scores, 'damage-dealt') : null,
+        unitKeys: units
+          .filter((unit) => unit.teamId === team.teamId)
+          .map((unit) => unit.unitKey),
+      };
+    });
+  const objective = objectiveFromV3(world.mode);
+  if (objective.kind === 'frontline') objective.nextTick = world.nextTick;
+  return {
+    completeness: 'exact',
+    participants: world.participants.map((participant) => ({
+      participantKey: replayParticipantKey(participant.participantId),
+      participantId: participant.participantId,
+      teamKey: replayTeamKey(participant.teamId),
+      teamId: participant.teamId,
+      runtimeFaultCount: participant.runtimeFaultCount,
+      disqualified: participant.disqualified,
+    })),
+    teams,
+    units,
+    actors,
+    projectiles: [...world.projectiles]
+      .sort((left, right) =>
+        BigInt(left.projectileId) < BigInt(right.projectileId) ? -1 : 1,
+      )
+      .map((projectile) => {
+        const owner = identity(projectile.ownerActorId);
+        return {
+          projectileId: projectile.projectileId,
+          ownerActor: owner,
+          ownerActorKey: owner.actorKey,
+          position: copyPosition(projectile.position),
+          launchDirection: projectile.launchHeading,
+          heading: projectile.heading,
+          shotProgram: projectile.shotProgram
+            ? { ...projectile.shotProgram }
+            : null,
+          programmedPath: projectile.committedPath.map(copyPosition),
+          ticksUntilAdvance: projectile.ticksUntilAdvance,
+          remainingTiles: projectile.remainingTiles,
+          tilesPerAdvance:
+            document.header.contract.rules.attackProfiles.find(
+              (profile) => profile.id === projectile.attackProfileId,
+            )?.projectile.tilesPerAdvance ?? null,
+          nextProgrammedPathIndex: projectile.nextPathIndex,
+          tilesTraveled: projectile.nextPathIndex,
+          phase: null,
+          ownerParticipantId: projectile.ownerParticipantId,
+          attackProfileId: projectile.attackProfileId,
+          spawnedAtTick: projectile.spawnedAtTick,
+          origin: copyPosition(projectile.origin),
+          committedPath: projectile.committedPath.map(copyPosition),
+        };
+      }),
+    scoreboard: scoreboardFromV3(world.scoreboard),
+    mode: modeFromV3(world.mode),
+    objective,
+  };
+}
+
+function tickFromV3(
+  tick: V3.ReplayV3Tick,
+  document: V3.ReplayV3Document,
+): Model.ReplayTick {
+  const starts = new Map(
+    tick.tickStart.lifeStarts.map((start) => [actorValue(start.actorId), start]),
+  );
+  return {
+    tick: tick.tick,
+    before: worldFromV3(tick.tickStart.state, document),
+    activeActorKeys: tick.tickStart.activeActorIds.map(
+      (actor) => identity(actor).actorKey,
+    ),
+    lifecycleEvents: tick.tickStart.events.map(eventFromV3),
+    actorTurns: tick.actorTurns.map((turn) =>
+      actorTurnFromV3(turn, starts.get(actorValue(turn.actorId)) ?? null),
+    ),
+    events: tick.events.map(eventFromV3),
+    projectileTraversals: [
+      ...tick.tickStart.traversals,
+      ...tick.traversals,
+    ].map(traversalFromV3),
+    after: worldFromV3(tick.postState, document),
+  };
+}
+
+function payloadFromArguments(
+  argumentsValue: readonly V3.ReplayV3ActionArgument[],
+): Model.ReplayActionPayload {
+  const payload: Model.ReplayActionPayload = {
+    shotProgram: null,
+    direction: null,
+    launchHeading: null,
+    unitKey: null,
+    formTargetId: null,
+  };
+  for (const argument of argumentsValue) {
+    switch (argument.kind) {
+      case 'shot-program':
+        payload.shotProgram = { ...argument.value };
+        break;
+      case 'direction':
+        payload.direction = argument.value;
+        break;
+      case 'projectile-heading':
+        payload.launchHeading = argument.value;
+        break;
+      case 'unit-target':
+        payload.unitKey = genericUnitKey(
+          argument.value.teamId,
+          argument.value.unitId,
+        );
+        break;
+      case 'form-target':
+        payload.formTargetId = argument.formId;
+        break;
+    }
+  }
+  return payload;
+}
+
+function rawPayload(
+  argumentsValue: readonly (V3.ReplayV3RawActionArgument | null)[] | null,
+): Model.ReplayActionPayload | null {
+  if (argumentsValue === null) return null;
+  const payload: Model.ReplayActionPayload = {
+    shotProgram: null,
+    direction: null,
+    launchHeading: null,
+    unitKey: null,
+    formTargetId: null,
+  };
+  for (const argument of argumentsValue) {
+    if (argument === null) continue;
+    switch (argument.kind) {
+      case 'shot-program':
+        payload.shotProgram = { ...argument.value };
+        break;
+      case 'unit-target':
+        payload.unitKey = genericUnitKey(
+          argument.value.teamId,
+          argument.value.unitId,
+        );
+        break;
+      case 'form-target':
+        payload.formTargetId = argument.formId;
+        break;
+      // Raw numeric enum arguments deliberately remain only on the retained
+      // wire document until they have been accepted into a named value.
+      case 'direction':
+      case 'projectile-heading':
+        break;
+    }
+  }
+  return payload;
+}
+
+function decisionFromResolved(
+  action: V3.ReplayV3ResolvedAction,
+): Model.ReplayActorDecision {
+  return {
+    actionId: action.actionId,
+    actionCode: action.actionCode,
+    payload: payloadFromArguments(action.arguments),
+    debugMessage: null,
+    faulted: false,
+    faultMessage: null,
+  };
+}
+
+function resolutionFromV3(
+  resolution: V3.ReplayV3ActionResolution,
+): Model.ReplayActionResolution {
+  const accepted = resolution.acceptedAction;
+  const validated = resolution.validatedAction;
+  return {
+    chosenActionId: accepted.actionId,
+    chosenActionCode: accepted.actionCode,
+    chosenPayload: payloadFromArguments(accepted.arguments),
+    validatedActionId: validated.actionId,
+    validatedActionCode: validated.actionCode,
+    validatedPayload: payloadFromArguments(validated.arguments),
+    result: resolution.outcome as Model.ReplayActionResult,
+    submittedActionId: resolution.submittedAction?.actionId ?? null,
+    runtimeFault: resolution.runtimeFault
+      ? {
+          participantId: resolution.runtimeFault.participantId,
+          actor: identity(resolution.runtimeFault.actorId),
+          stage: resolution.runtimeFault.stage,
+          faultCode: resolution.runtimeFault.faultCode,
+          cumulativeFaultCount: resolution.runtimeFault.cumulativeFaultCount,
+          disqualificationTriggered:
+            resolution.runtimeFault.disqualificationTriggered,
+        }
+      : null,
+  };
+}
+
+function lifeStartFromV3(
+  start: V3.ReplayV3LifeStart,
+): Model.ReplayActorLifeStart {
+  return {
+    completeness: 'exact',
+    schemaVersion: start.schemaVersion,
+    runtimeContractVersion: start.runtimeContractVersion,
+    actor: identity(start.actorId),
+    participantId: start.participantId,
+    actorRandomSeed: start.actorRandomSeed,
+    spawnReason: start.origin.reason,
+    generation: start.origin.generation,
+    parentActor: start.origin.parentActorId
+      ? identity(start.origin.parentActorId)
+      : null,
+    sourceTransitionId: start.origin.sourceTransitionId,
+    sourceOperationId: start.origin.sourceOperationId,
+    matchContractFingerprint: start.matchContractFingerprint,
+  };
+}
+
+function observedActor(
+  actor: V3.ReplayV3ObservedSelf | V3.ReplayV3ObservedAlly,
+  observedBy: Model.ReplayActorLifeKey[],
+): Model.ReplayObservedActor {
+  return {
+    actor: { kind: 'exact', identity: identity(actor.actorId) },
+    formId: actor.formId,
+    position: copyPosition(actor.position),
+    facing: actor.facing,
+    health: actor.health,
+    cooldown: actor.cooldown,
+    energy: actor.energy,
+    previousActionResult:
+      (actor.previousActionResolution?.outcome as Model.ReplayActionResult) ??
+      null,
+    pendingFormTransition: transitionFromV3(
+      actor.pendingSameLifeTransition,
+      actor.formId,
+    ),
+    observedBy,
+  };
+}
+
+function observedUnitFromV3(
+  unit: V3.ReplayV3Observation['teamUnits'][number],
+): Model.ReplayObservedUnit {
+  const active =
+    unit.state.kind === 'active' ? identity(unit.state.actorId) : null;
+  const due =
+    'dueTick' in unit.state && typeof unit.state.dueTick === 'number'
+      ? unit.state.dueTick
+      : null;
+  return {
+    unitKey: genericUnitKey(unit.teamId, unit.unitId),
+    teamId: unit.teamId,
+    unitId: unit.unitId,
+    formId:
+      unit.state.kind === 'active'
+        ? unit.state.formId
+        : 'targetFormId' in unit.state
+          ? unit.state.targetFormId
+          : '',
+    lifecycleStatus: slotLifecycle(unit.state),
+    activeActor: active,
+    respawnAtTick:
+      unit.state.kind === 'automatic-return-pending' ? due : null,
+    unlockAtTick: unit.state.kind === 'availability-pending' ? due : null,
+    rebuildReadyAtTick: null,
+    fabricationAtTick:
+      unit.state.kind === 'fabrication-pending' ||
+      unit.state.kind === 'replication-pending'
+        ? due
+        : null,
+  };
+}
+
+function observationFromV3(
+  observation: V3.ReplayV3Observation,
+): Model.ReplayActorObservation {
+  const self = identity(observation.self.actorId);
+  return {
+    completeness: 'exact',
+    schemaVersion: observation.schemaVersion,
+    tick: observation.tick,
+    matchContractFingerprint: observation.matchContractFingerprint,
+    teamPerception: null,
+    participants: observation.participants.map((participant) => ({
+      participantKey: replayParticipantKey(participant.participantId),
+      participantId: participant.participantId,
+      teamKey: replayTeamKey(participant.teamId),
+      teamId: participant.teamId,
+      runtimeFaultCount: participant.runtimeFaultCount,
+      disqualified: participant.disqualified,
+    })),
+    self: observedActor(observation.self, [self.actorKey]),
+    teamUnits: observation.teamUnits.map(observedUnitFromV3),
+    allies: observation.allies.map((ally) =>
+      observedActor(ally, [self.actorKey]),
+    ),
+    enemies: observation.enemies.map((enemy) => ({
+      actor: { kind: 'exact', identity: identity(enemy.actorId) },
+      formId: enemy.formId,
+      position: copyPosition(enemy.position),
+      facing: enemy.facing,
+      health: enemy.health,
+      cooldown: null,
+      energy: null,
+      previousActionResult: null,
+      pendingFormTransition: transitionFromV3(
+        enemy.pendingSameLifeTransition,
+        enemy.formId,
+      ),
+      observedBy: enemy.observedBy.map((actor) => identity(actor).actorKey),
+    })),
+    visibleTiles: observation.visibleTiles.map((tile) => ({
+      position: copyPosition(tile.position),
+      isWall: tile.isWall,
+      observedBy: tile.observedBy.map((actor) => identity(actor).actorKey),
+    })),
+    visibleProjectiles:
+      observation.visibleProjectiles?.map((projectile) => {
+        const owner = projectile.ownerActorId
+          ? identity(projectile.ownerActorId)
+          : null;
+        return {
+          projectileHandle: projectile.projectileId,
+          projectileId: projectile.projectileId,
+          ownerTeamId: projectile.ownerTeamId,
+          ownerActor: owner,
+          alliedOwnerActor:
+            owner?.teamId === observation.self.actorId.teamId ? owner : null,
+          visibleEnemyOwner: null,
+          position: copyPosition(projectile.position),
+          heading: projectile.heading,
+          tilesPerAdvance: projectile.tilesPerAdvance,
+          ticksUntilAdvance: projectile.ticksUntilAdvance,
+          remainingTiles: projectile.remainingTiles,
+          observedBy: projectile.observedBy.map(
+            (actor) => identity(actor).actorKey,
+          ),
+        };
+      }) ?? null,
+    visibleEvents: observation.visibleEvents.map(observedEventFromV3),
+    heardSounds:
+      observation.heardSounds?.map((sound) => ({
+        eventHandle: sound.eventHandle,
+        sourceTick: sound.sourceTick,
+        observerActor: identity(sound.observerActorId),
+        type: sound.kind,
+        bearing: sound.bearing,
+        distance: sound.distance,
+      })) ?? null,
+    scoreboard: scoreboardFromV3(observation.scoreboard),
+    mode: modeFromV3(observation.mode),
+    frontlineObjective:
+      observation.mode.kind === 'frontline'
+        ? {
+            activePositionIndex: observation.mode.activePositionIndex,
+            claimingTeamId: observation.mode.claimingTeamId,
+            captureProgress: observation.mode.captureProgress,
+            decayTicksElapsed: observation.mode.decayTicksElapsed,
+            controlResumesAtTick: observation.mode.controlResumesAtTick,
+          }
+        : null,
+    actions: observation.actionLegalities.map((legality) => {
+      const shot = legality.constraints.find(
+        (constraint) => constraint.kind === 'shot-program',
+      );
+      const directions = legality.constraints.find(
+        (constraint) => constraint.kind === 'direction',
+      );
+      const headings = legality.constraints.find(
+        (constraint) => constraint.kind === 'projectile-heading',
+      );
+      const units = legality.constraints.find(
+        (constraint) => constraint.kind === 'unit-target',
+      );
+      const forms = legality.constraints.find(
+        (constraint) => constraint.kind === 'form-target',
+      );
+      return {
+        actionId: legality.actionId,
+        actionCode: legality.actionCode,
+        parameterKinds: legality.constraints.map(
+          (constraint) => constraint.kind,
+        ),
+        enabled: legality.allowedByForm,
+        available: legality.available,
+        shotProgramAvailable:
+          shot?.kind === 'shot-program' ? shot.allowed : null,
+        allowedDirections:
+          directions?.kind === 'direction'
+            ? [...directions.allowedValues]
+            : null,
+        allowedProjectileHeadings:
+          headings?.kind === 'projectile-heading'
+            ? [...headings.allowedValues]
+            : null,
+        allowedUnitKeys:
+          units?.kind === 'unit-target'
+            ? units.allowedValues.map((unit) =>
+                genericUnitKey(unit.teamId, unit.unitId),
+              )
+            : null,
+        allowedFormTargets:
+          forms?.kind === 'form-target' ? [...forms.allowedFormIds] : null,
+      };
+    }),
+  };
+}
+
+function actorTurnFromV3(
+  turn: V3.ReplayV3ActorTurn,
+  start: V3.ReplayV3LifeStart | null,
+): Model.ReplayActorTurn {
+  const actor = identity(turn.actorId);
+  const submitted = turn.submittedDecision;
+  return {
+    actor,
+    actorKey: actor.actorKey,
+    lifeStart: start ? lifeStartFromV3(start) : null,
+    observation: observationFromV3(turn.observation),
+    aliases: {
+      completeness: 'exact',
+      enemyLives: [],
+      projectiles:
+        turn.observation.visibleProjectiles?.map((projectile) => ({
+          projectileHandle: projectile.projectileId,
+          projectileId: projectile.projectileId,
+        })) ?? [],
+      events: turn.observation.visibleEvents.map((event) => ({
+        eventHandle: event.eventHandle,
+        eventId: event.eventHandle,
+      })),
+    },
+    runtimeReply: {
+      actionId: submitted?.actionId ?? null,
+      actionCode: submitted?.actionCode ?? null,
+      payload: submitted ? rawPayload(submitted.arguments) : null,
+      debugMessage: submitted?.debugMessage ?? null,
+      faulted:
+        turn.actionResolution.runtimeFault !== null ||
+        turn.actionResolution.outcome === 'faulted',
+      faultMessage: turn.actionResolution.runtimeFault?.faultCode ?? null,
+    },
+    acceptedDecision: decisionFromResolved(
+      turn.actionResolution.acceptedAction,
+    ),
+    actionResolution: resolutionFromV3(turn.actionResolution),
+  };
+}
+
+function payloadRecord(
+  payload: V3.ReplayV3EventPayload,
+): Record<string, unknown> {
+  return payload as Record<string, unknown>;
+}
+
+function actorField(
+  payload: Record<string, unknown>,
+  key: string,
+): Model.ReplayActorIdentity | null {
+  const value = payload[key] as V3.ReplayV3ActorId | null | undefined;
+  return value ? identity(value) : null;
+}
+
+function positionField(
+  payload: Record<string, unknown>,
+  key: string,
+): Model.ReplayPosition | null {
+  const value = payload[key] as V3.ReplayV3Position | null | undefined;
+  return value ? copyPosition(value) : null;
+}
+
+function stringField(
+  payload: Record<string, unknown>,
+  key: string,
+): string | null {
+  return typeof payload[key] === 'string' ? (payload[key] as string) : null;
+}
+
+function numberField(
+  payload: Record<string, unknown>,
+  key: string,
+): number | null {
+  return typeof payload[key] === 'number' ? (payload[key] as number) : null;
+}
+
+function actionFromPayload(
+  payload: Record<string, unknown>,
+): V3.ReplayV3ResolvedAction | null {
+  return (payload.action as V3.ReplayV3ResolvedAction | undefined) ?? null;
+}
+
+function observedEventFromV3(
+  event: V3.ReplayV3ObservedEvent,
+): Model.ReplayObservedEvent {
+  const payload = payloadRecord(event.payload);
+  const actor =
+    actorField(payload, 'actorId') ??
+    actorField(payload, 'targetActorId') ??
+    actorField(payload, 'sourceActorId');
+  const action = actionFromPayload(payload);
+  const transition =
+    event.payload.kind === 'form-transition'
+      ? {
+          fromFormId: stringField(payload, 'fromFormId'),
+          toFormId: stringField(payload, 'toFormId'),
+          startedAtTick: numberField(payload, 'startedTick'),
+          dueTick: numberField(payload, 'dueTick'),
+        }
+      : null;
+  return {
+    eventHandle: event.eventHandle,
+    sourceTick: event.sourceTick,
+    type: event.kind,
+    teamId:
+      numberField(payload, 'teamId') ??
+      numberField(payload, 'sourceTeamId') ??
+      actor?.teamId ??
+      null,
+    alliedActor: actor,
+    enemyActor: null,
+    projectileHandle: stringField(payload, 'projectileId'),
+    position:
+      positionField(payload, 'position') ??
+      positionField(payload, 'origin') ??
+      positionField(payload, 'to'),
+    facing:
+      (stringField(payload, 'facing') as Model.ReplayDirection | null) ??
+      (stringField(payload, 'toFacing') as Model.ReplayDirection | null),
+    projectileHeading: stringField(
+      payload,
+      'heading',
+    ) as Model.ReplayProjectileHeading | null,
+    fromFormId: transition?.fromFormId ?? null,
+    toFormId: transition?.toFormId ?? null,
+    formTransitionStartedAtTick: transition?.startedAtTick ?? null,
+    formTransitionCompletesAtTick: transition?.dueTick ?? null,
+    actionId: action?.actionId ?? null,
+    actionCode: action?.actionCode ?? null,
+    formTargetId:
+      action?.arguments.find((argument) => argument.kind === 'form-target')
+        ?.kind === 'form-target'
+        ? (
+            action.arguments.find(
+              (argument) => argument.kind === 'form-target',
+            ) as Extract<V3.ReplayV3ActionArgument, { kind: 'form-target' }>
+          ).formId
+        : null,
+    actionResult: null,
+    amount: numberField(payload, 'amount'),
+    newHealth: numberField(payload, 'newHealth'),
+    observedBy: event.observedBy.map((observer) => identity(observer).actorKey),
+    sourceOrdinal: event.sourceOrdinal,
+    payloadKind: event.payload.kind,
+  };
+}
+
+function eventFromV3(
+  event: V3.ReplayV3AuthoritativeEvent,
+): Model.ReplayCausalEvent {
+  const payload = payloadRecord(event.payload);
+  const primaryActor =
+    actorField(payload, 'actorId') ?? actorField(payload, 'sourceActorId');
+  const targetActor = actorField(payload, 'targetActorId');
+  const action = actionFromPayload(payload);
+  const actionPayload = action ? payloadFromArguments(action.arguments) : null;
+  const position =
+    positionField(payload, 'position') ?? positionField(payload, 'origin');
+  const from =
+    positionField(payload, 'from') ??
+    (event.payload.kind === 'rotation' ? position : null);
+  const to =
+    positionField(payload, 'to') ??
+    positionField(payload, 'attemptedTo') ??
+    position;
+  const teamId =
+    numberField(payload, 'teamId') ??
+    numberField(payload, 'sourceTeamId') ??
+    numberField(payload, 'targetTeamId') ??
+    primaryActor?.teamId ??
+    targetActor?.teamId ??
+    null;
+  const unitId =
+    numberField(payload, 'targetUnitId') ??
+    primaryActor?.unitId ??
+    targetActor?.unitId ??
+    null;
+  return {
+    eventId: event.eventHandle,
+    tick: event.tick,
+    ordinal: event.sourceOrdinal,
+    type: event.kind,
+    teamId,
+    unitId,
+    sourceActor: primaryActor,
+    targetActor,
+    projectileId: stringField(payload, 'projectileId'),
+    from,
+    to,
+    fromFacing: stringField(
+      payload,
+      'fromFacing',
+    ) as Model.ReplayDirection | null,
+    toFacing:
+      (stringField(payload, 'toFacing') as Model.ReplayDirection | null) ??
+      (stringField(payload, 'facing') as Model.ReplayDirection | null),
+    projectileHeading: stringField(
+      payload,
+      'heading',
+    ) as Model.ReplayProjectileHeading | null,
+    fromFormId: stringField(payload, 'fromFormId'),
+    toFormId:
+      stringField(payload, 'toFormId') ??
+      stringField(payload, 'targetFormId'),
+    formTransitionStartedAtTick: numberField(payload, 'startedTick'),
+    formTransitionCompletesAtTick: numberField(payload, 'dueTick'),
+    actionPayload,
+    actionId: action?.actionId ?? null,
+    actionCode: action?.actionCode ?? null,
+    actionResult: null,
+    amount: numberField(payload, 'amount'),
+    newHealth: numberField(payload, 'newHealth'),
+    lifecycleStatus:
+      event.payload.kind === 'life-spawned'
+        ? 'active'
+        : event.payload.kind === 'life-retired' ||
+            event.payload.kind === 'destruction'
+          ? 'destroyed'
+          : null,
+    spawnReason: stringField(payload, 'reason'),
+    respawnAtTick: null,
+    unlockAtTick: null,
+    rebuildReadyAtTick: null,
+    fabricationAtTick: numberField(payload, 'dueTick'),
+    fromPositionIndex: numberField(payload, 'fromPositionIndex'),
+    toPositionIndex: numberField(payload, 'toPositionIndex'),
+    claimingTeamId: numberField(payload, 'claimingTeamId'),
+    captureProgress: numberField(payload, 'captureProgress'),
+    controlResumesAtTick: numberField(payload, 'controlResumesAtTick'),
+    completeness: 'exact',
+    globalOrdinal: event.globalOrdinal,
+    payloadKind: event.payload.kind,
+    audience:
+      event.audience.kind === 'spatial'
+        ? {
+            kind: 'spatial',
+            primaryPosition: copyPosition(event.audience.primaryPosition),
+          }
+        : event.audience.kind === 'team-private'
+          ? { kind: 'team-private', teamId: event.audience.teamId }
+          : { kind: 'public' },
+  };
+}
+
+function traversalFromV3(
+  traversal: V3.ReplayV3ProjectileTraversal,
+): Model.ReplayProjectileTraversal {
+  const owner = identity(traversal.ownerActorId);
+  return {
+    projectileId: traversal.projectileId,
+    ownerActor: owner,
+    ownerActorKey: owner.actorKey,
+    launchDirection: traversal.launchHeading,
+    from: copyPosition(traversal.from),
+    path: traversal.path.map(copyPosition),
+    heading: traversal.finalHeading,
+    shotProgram: traversal.shotProgram
+      ? { ...traversal.shotProgram }
+      : null,
+    programmedPath: null,
+    globalOrdinal: traversal.globalOrdinal,
+    phase: traversal.phase,
+    trigger: traversal.trigger,
+    ownerParticipantId: traversal.ownerParticipantId,
+    ownerTeamId: traversal.ownerTeamId,
+    attackProfileId: traversal.attackProfileId,
+    finalHeading: traversal.finalHeading,
+    terminal: { ...traversal.terminal },
+  };
+}
+
+function resultFromV3(
+  result: V3.ReplayV3Result,
+  document: V3.ReplayV3Document,
+): Model.ReplayTerminalResult {
+  const finalWorld =
+    document.ticks.at(-1)?.postState ?? document.initialFrame.state;
+  const unitFactsByKey = new Map(
+    result.units.map((unit) => [unitValue(unit.slot), unit]),
+  );
+  const teams = result.standings.teams.map<Model.ReplayTeamResult>(
+    (standing) => {
+      const teamUnits = document.header.contract.topology.unitSlots
+        .filter((slot) => slot.teamId === standing.teamId)
+        .sort(compareUnit)
+        .map<Model.ReplayUnitResult>((topologySlot) => {
+          const fact = unitFactsByKey.get(unitValue(topologySlot));
+          if (!fact) {
+            throw new Error(
+              `validated replay-v3 result lost unit ${unitValue(topologySlot)}`,
+            );
+          }
+          const active = fact.activeLife;
+          const activeActor = active ? identity(active.actorId) : null;
+          const defaultFormId = defaultFormForSlot(fact.slot, document);
+          return {
+            unitKey: genericUnitKey(fact.slot.teamId, fact.slot.unitId),
+            teamId: fact.slot.teamId,
+            unitId: fact.slot.unitId,
+            defaultFormId,
+            formId:
+              active?.formId ??
+              ('targetFormId' in fact.slot.state
+                ? fact.slot.state.targetFormId
+                : defaultFormId),
+            lifecycleStatus: slotLifecycle(fact.slot.state),
+            activeActor,
+            activeActorKey: activeActor?.actorKey ?? null,
+            health: active?.health ?? 0,
+            damageDealt: null,
+            pendingFormTransition: active
+              ? transitionFromV3(
+                  active.pendingSameLifeTransition,
+                  active.formId,
+                )
+              : null,
+            participantId: fact.slot.participantId,
+            generation: active?.generation ?? null,
+            nextLifeId: fact.slot.nextLifeId,
+          };
+        });
+      return {
+        teamKey: replayTeamKey(standing.teamId),
+        teamId: standing.teamId,
+        outcome: standing.outcome,
+        activeHealth: Number(scoreValue(standing.scores, 'active-health') ?? 0),
+        damageDealt: scoreValue(standing.scores, 'damage-dealt') ?? '0',
+        units: teamUnits,
+        faults: null,
+        zoneTicks: null,
+        rank: standing.rank,
+        scores: standing.scores.map((score) => ({ ...score })),
+      };
+    },
+  );
+  const objective = objectiveFromV3(finalWorld.mode);
+  if (objective.kind === 'frontline') objective.nextTick = finalWorld.nextTick;
+  return {
+    winnerTeamId: result.standings.winnerTeamId,
+    reason: result.completionReason,
+    endTick:
+      result.endTick ??
+      document.ticks.at(-1)?.tick ??
+      Math.max(0, finalWorld.nextTick - 1),
+    reportedEndTick: result.endTick,
+    territorialScore: null,
+    objective,
+    teams,
+    eligibleTeamIds: [...result.eligibleTeamIds],
+    mode: {
+      kind: 'deathmatch',
+      reason: result.mode.reason,
+      scores: result.mode.scores.map((score) => ({
+        teamKey: replayTeamKey(score.teamId),
+        ...score,
+      })),
+    },
+  };
+}

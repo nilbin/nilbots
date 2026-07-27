@@ -135,7 +135,7 @@ Use `npx expo install`, never bare `npm install`, so versions stay SDK-compatibl
 ## The arena viewer
 
 Match playback renders in a **WebView** running the site's hosted
-`?standalone&bridge=2` build, not a reimplemented renderer. The CLI alone needs the
+`?standalone&bridge=3` build, not a reimplemented renderer. The CLI alone needs the
 self-contained `viewer.html`; mobile uses the App-served hashed build.
 `web/src/render/drawArena.ts` is a large Canvas2D renderer over WebP wall atlases and
 SVG sprites; porting it to Skia is a real project and the renderer is still moving.
@@ -145,11 +145,12 @@ instance, not per match**. So: mount one WebView, keep it alive, and push replay
 over `postMessage`. Never remount it per match — that pays the whole bake every time
 and is exactly the stutter this design avoids.
 
-The mobile host requests hosted bridge v2. That bridge carries replay-version-neutral
-team/unit/life presentation, including Frontline lifecycle, current/default form,
-pending Anchor transition, and terminal stable-unit rows. Its hand-written types in
-`components/arena/protocol.ts` must stay in lockstep with `web/src/hostedBridge.ts`;
-bridge v1 remains unchanged for legacy consumers and cannot carry replay v2.
+The mobile host requests hosted bridge v3. It carries replay-version-neutral
+team/unit/life presentation for replay sources v1-v3, plus mode identity, tick
+scoreboards and terminal ranked scores. Its hand-written types in
+`components/arena/protocol.ts` must stay in lockstep with `web/src/hostedBridge.ts`.
+Bridges v1 and v2 remain unchanged for legacy consumers: v1 only carries replay v1,
+while v2 carries replay v1 or v2.
 
 **Turning the phone is the full-screen control.** The arena is the one screen here that
 may rotate — every other one is a list, so the app is locked to portrait from the root

@@ -5,8 +5,9 @@
  * UI selection can follow a unit through respawns while projectiles, events,
  * decisions, and observations retain causal ownership by the exact life.
  */
+import type { ReplayV3ResolvedContract } from './replayWireV3';
 
-export type ReplaySourceVersion = 1 | 2;
+export type ReplaySourceVersion = 1 | 2 | 3;
 export type ReplayObservationCompleteness = 'exact' | 'legacy-partial';
 export type ReplayStateCompleteness = 'exact' | 'legacy-derived';
 
@@ -23,15 +24,18 @@ export type ReplayActionResult =
   | 'success'
   | 'blocked'
   | 'on-cooldown'
-  | 'faulted';
+  | 'faulted'
+  | (string & {});
 
 export type ReplayStableUnitKey =
   | `duel:${number}:unit:0`
-  | `frontline:${number}:unit:${number}`;
+  | `frontline:${number}:unit:${number}`
+  | `generic:${number}:unit:${number}`;
 
 export type ReplayActorLifeKey =
   | `duel:${number}:unit:0:life:0`
-  | `frontline:${number}:unit:${number}:life:${number}`;
+  | `frontline:${number}:unit:${number}:life:${number}`
+  | `generic:${number}:unit:${number}:life:${number}`;
 
 export type ReplayTeamKey = `team:${number}`;
 export type ReplayParticipantKey = `participant:${number}`;
@@ -55,9 +59,19 @@ export interface ReplayFrontlineActorIdentity {
   actorKey: ReplayActorLifeKey;
 }
 
+export interface ReplayGenericActorIdentity {
+  kind: 'generic';
+  teamId: number;
+  unitId: number;
+  lifeId: number;
+  unitKey: ReplayStableUnitKey;
+  actorKey: ReplayActorLifeKey;
+}
+
 export type ReplayActorIdentity =
   | ReplayDuelActorIdentity
-  | ReplayFrontlineActorIdentity;
+  | ReplayFrontlineActorIdentity
+  | ReplayGenericActorIdentity;
 
 export function replayTeamKey(teamId: number): ReplayTeamKey {
   return `team:${teamId}`;
@@ -93,6 +107,21 @@ export function replayFrontlineIdentity(
     lifeId,
     unitKey: `frontline:${teamId}:unit:${unitId}`,
     actorKey: `frontline:${teamId}:unit:${unitId}:life:${lifeId}`,
+  };
+}
+
+export function replayGenericIdentity(
+  teamId: number,
+  unitId: number,
+  lifeId: number,
+): ReplayGenericActorIdentity {
+  return {
+    kind: 'generic',
+    teamId,
+    unitId,
+    lifeId,
+    unitKey: `generic:${teamId}:unit:${unitId}`,
+    actorKey: `generic:${teamId}:unit:${unitId}:life:${lifeId}`,
   };
 }
 
@@ -145,7 +174,8 @@ export type ReplayTickResolutionPhase =
   | 'queue-destroyed-lives'
   | 'queue-fabrications'
   | 'start-form-transitions'
-  | 'complete-form-transitions';
+  | 'complete-form-transitions'
+  | (string & {});
 
 export interface ReplayContractLimits {
   maxTicks: number;
@@ -287,7 +317,7 @@ export interface ReplayContractForm {
   shootCooldownTicks: number;
   omnidirectionalVision: boolean;
   omnidirectionalShooting: boolean;
-  movementLayer: 'ground';
+  movementLayer: string;
   objectiveWeight: number;
   canMove: boolean;
   canShoot: boolean;
@@ -449,6 +479,20 @@ export interface ReplayExactMatchContract {
   topology: ReplayContractTopology;
 }
 
+/**
+ * A replay-v3 contract keeps the canonical generic actor contract intact while
+ * also exposing the small compatibility projection consumed by today's
+ * viewer. New actions, forms, modes, and policy fields remain available in
+ * rawContract without requiring the viewer model to predict them.
+ */
+export interface ReplayGenericMatchContract
+  extends Omit<ReplayExactMatchContract, 'kind'> {
+  kind: 'v3-generic';
+  modeKind: string;
+  modeId: string;
+  rawContract: ReplayV3ResolvedContract;
+}
+
 export interface ReplayLegacyPartialRulesContract {
   schemaVersion: null;
   rulesetId: string;
@@ -541,6 +585,7 @@ export interface ReplayLegacyPartialMatchContract {
 
 export type ReplayMatchContract =
   | ReplayExactMatchContract
+  | ReplayGenericMatchContract
   | ReplayLegacyPartialMatchContract;
 
 export interface ReplayParticipantController {
@@ -550,7 +595,7 @@ export interface ReplayParticipantController {
   teamId: number;
   name: string;
   runtimeKind: string;
-  artifactHash: string;
+  artifactHash: string | null;
   accent: string;
   lookId: string | null;
   projectileLookId: string | null;
@@ -588,6 +633,8 @@ export interface ReplayForm {
   canShoot: boolean;
   allowsProgrammedShots: boolean;
   allowedActionIds: string[] | null;
+  lookId?: string | null;
+  projectileLookId?: string | null;
   completeness: ReplayStateCompleteness;
 }
 
@@ -644,7 +691,8 @@ export type ReplayActorSpawnReason =
   | 'respawn'
   | 'rebuild'
   | 'fabrication'
-  | 'legacy';
+  | 'legacy'
+  | (string & {});
 
 export interface ReplayActorState {
   identity: ReplayActorIdentity;
@@ -660,6 +708,12 @@ export interface ReplayActorState {
   damageDealt: string | null;
   previousActionResult: ReplayActionResult;
   spawnedAtTick: number | null;
+  participantId?: number;
+  generation?: number;
+  spawnReason?: ReplayActorSpawnReason;
+  parentActor?: ReplayActorIdentity | null;
+  sourceTransitionId?: string | null;
+  sourceOperationId?: string | null;
   pendingFormTransition: ReplayFormTransition | null;
   status: ReplayUnitLifecycleStatus;
 }
@@ -694,12 +748,58 @@ export interface ReplayTeamState {
   unitKeys: ReplayStableUnitKey[];
 }
 
+export interface ReplayParticipantStatus {
+  participantKey: ReplayParticipantKey;
+  participantId: number;
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  runtimeFaultCount: string;
+  disqualified: boolean;
+}
+
+export interface ReplayScoreValue {
+  channel: string;
+  /** Canonical signed decimal text. */
+  value: string;
+}
+
+export interface ReplayTeamScore {
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  eligible: boolean;
+  scores: ReplayScoreValue[];
+}
+
+export interface ReplayScoreboard {
+  teams: ReplayTeamScore[];
+}
+
+export type ReplayModeState =
+  | {
+      kind: 'deathmatch';
+      modeId: string;
+    }
+  | {
+      kind: 'frontline';
+      modeId: string;
+      activePositionIndex: number;
+      claimingTeamId: number | null;
+      captureProgress: number;
+      decayTicksElapsed: number;
+      controlResumesAtTick: number;
+    }
+  | {
+      kind: string;
+      modeId: string;
+      state: Readonly<Record<string, unknown>>;
+    };
+
 export interface ReplayProjectileState {
   projectileId: string;
   ownerActor: ReplayActorIdentity;
   ownerActorKey: ReplayActorLifeKey;
   position: ReplayPosition;
-  launchDirection: ReplayDirection;
+  launchDirection: ReplayProjectileHeading;
   heading: ReplayProjectileHeading | null;
   shotProgram: ReplayShotProgram | null;
   programmedPath: ReplayPosition[] | null;
@@ -709,6 +809,11 @@ export interface ReplayProjectileState {
   nextProgrammedPathIndex: number | null;
   tilesTraveled: number | null;
   phase: number | null;
+  ownerParticipantId?: number;
+  attackProfileId?: string;
+  spawnedAtTick?: number;
+  origin?: ReplayPosition;
+  committedPath?: ReplayPosition[];
 }
 
 export interface ReplayLegacyObjectiveState {
@@ -740,10 +845,13 @@ export type ReplayObjectiveState =
 
 export interface ReplayWorldSnapshot {
   completeness: ReplayStateCompleteness;
+  participants?: ReplayParticipantStatus[];
   teams: ReplayTeamState[];
   units: ReplayUnitState[];
   actors: ReplayActorState[];
   projectiles: ReplayProjectileState[] | null;
+  scoreboard?: ReplayScoreboard;
+  mode?: ReplayModeState;
   objective: ReplayObjectiveState;
 }
 
@@ -807,6 +915,8 @@ export interface ReplayObservedProjectile {
   /** Opaque match-local observation handle; null only for replay-v1. */
   projectileHandle: string | null;
   ownerTeamId: number;
+  /** Exact owner when replay-v3 exposes it, regardless of team. */
+  ownerActor?: ReplayActorIdentity | null;
   alliedOwnerActor: ReplayActorIdentity | null;
   visibleEnemyOwner: ReplayOpaqueEnemyActorRef | null;
   position: ReplayPosition;
@@ -815,6 +925,8 @@ export interface ReplayObservedProjectile {
   ticksUntilAdvance: number;
   remainingTiles: number;
   observedBy: ReplayActorLifeKey[];
+  /** Exact authoritative projectile identity in replay-v3. */
+  projectileId?: string;
 }
 
 export interface ReplayObservedEvent {
@@ -840,6 +952,8 @@ export interface ReplayObservedEvent {
   amount: number | null;
   newHealth: number | null;
   observedBy: ReplayActorLifeKey[];
+  sourceOrdinal?: number;
+  payloadKind?: string;
 }
 
 export interface ReplayObservedSound {
@@ -878,6 +992,7 @@ export interface ReplayActorObservation {
   tick: number;
   matchContractFingerprint: string | null;
   teamPerception: string | null;
+  participants?: ReplayParticipantStatus[];
   self: ReplayObservedActor | null;
   teamUnits: ReplayObservedUnit[];
   allies: ReplayObservedActor[];
@@ -886,6 +1001,8 @@ export interface ReplayActorObservation {
   visibleProjectiles: ReplayObservedProjectile[] | null;
   visibleEvents: ReplayObservedEvent[];
   heardSounds: ReplayObservedSound[] | null;
+  scoreboard?: ReplayScoreboard;
+  mode?: ReplayModeState;
   frontlineObjective: ReplayObservedFrontlineObjective | null;
   actions: ReplayObservedActionAvailability[] | null;
 }
@@ -915,6 +1032,15 @@ export interface ReplayActionResolution {
   validatedActionCode: number | null;
   validatedPayload: ReplayActionPayload | null;
   result: ReplayActionResult;
+  submittedActionId?: string | null;
+  runtimeFault?: {
+    participantId: number;
+    actor: ReplayActorIdentity;
+    stage: string;
+    faultCode: string;
+    cumulativeFaultCount: string;
+    disqualificationTriggered: boolean;
+  } | null;
 }
 
 export interface ReplayActorLifeStart {
@@ -925,6 +1051,10 @@ export interface ReplayActorLifeStart {
   participantId: number;
   actorRandomSeed: string | null;
   spawnReason: ReplayActorSpawnReason;
+  generation?: number;
+  parentActor?: ReplayActorIdentity | null;
+  sourceTransitionId?: string | null;
+  sourceOperationId?: string | null;
   matchContractFingerprint: string | null;
 }
 
@@ -992,18 +1122,32 @@ export interface ReplayCausalEvent {
   captureProgress: number | null;
   controlResumesAtTick: number | null;
   completeness: ReplayObservationCompleteness;
+  globalOrdinal?: string;
+  payloadKind?: string;
+  audience?:
+    | { kind: 'public' }
+    | { kind: 'spatial'; primaryPosition: ReplayPosition }
+    | { kind: 'team-private'; teamId: number };
 }
 
 export interface ReplayProjectileTraversal {
   projectileId: string;
   ownerActor: ReplayActorIdentity;
   ownerActorKey: ReplayActorLifeKey;
-  launchDirection: ReplayDirection;
+  launchDirection: ReplayProjectileHeading;
   from: ReplayPosition;
   path: ReplayPosition[];
   heading: ReplayProjectileHeading | null;
   shotProgram: ReplayShotProgram | null;
   programmedPath: ReplayPosition[] | null;
+  globalOrdinal?: string;
+  phase?: string;
+  trigger?: string;
+  ownerParticipantId?: number;
+  ownerTeamId?: number;
+  attackProfileId?: string;
+  finalHeading?: ReplayProjectileHeading;
+  terminal?: Readonly<Record<string, unknown>>;
 }
 
 export interface ReplayTick {
@@ -1026,6 +1170,8 @@ export interface ReplayTeamResult {
   units: ReplayUnitResult[];
   faults: number | null;
   zoneTicks: number | null;
+  rank?: number;
+  scores?: ReplayScoreValue[];
 }
 
 export interface ReplayUnitResult {
@@ -1038,8 +1184,24 @@ export interface ReplayUnitResult {
   activeActor: ReplayActorIdentity | null;
   activeActorKey: ReplayActorLifeKey | null;
   health: number;
-  damageDealt: string;
+  /** Null when the source format exposes only team-level damage. */
+  damageDealt: string | null;
   pendingFormTransition: ReplayFormTransition | null;
+  participantId?: number;
+  generation?: number | null;
+  nextLifeId?: number;
+}
+
+export interface ReplayDeathmatchResult {
+  kind: 'deathmatch';
+  reason: string;
+  scores: {
+    teamKey: ReplayTeamKey;
+    teamId: number;
+    kills: string;
+    deaths: string;
+    damageDealt: string;
+  }[];
 }
 
 export interface ReplayTerminalResult {
@@ -1049,6 +1211,13 @@ export interface ReplayTerminalResult {
   territorialScore: string | null;
   objective: ReplayObjectiveState;
   teams: ReplayTeamResult[];
+  /** Exact wire value; null is permitted by the generic result contract. */
+  reportedEndTick?: number | null;
+  eligibleTeamIds?: number[];
+  mode?: ReplayDeathmatchResult | {
+    kind: string;
+    result: Readonly<Record<string, unknown>>;
+  };
 }
 
 export interface ReplayHeaderVersions {
@@ -1092,6 +1261,8 @@ export interface ReplayModel {
    * Topology, map, forms, and participants remain available.
    */
   initialWorld: ReplayWorldSnapshot | null;
+  initialLifeStarts?: ReplayActorLifeStart[];
+  initialEvents?: ReplayCausalEvent[];
   ticks: ReplayTick[];
   result: ReplayTerminalResult | null;
 }

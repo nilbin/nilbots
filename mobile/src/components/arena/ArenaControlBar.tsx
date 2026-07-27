@@ -9,7 +9,7 @@ import { Arena, Mono, Radius, Space } from '@/theme/arena';
  * Legacy pressure uses a centred signed marker. Frontline uses ordinary
  * zero-to-threshold progress and also exposes its current authored position.
  * No capture or winner rule is implemented here; this draws the values and
- * phase wording sent over bridge v2.
+ * phase wording sent over bridge v3.
  */
 export function ArenaControlBar({ objective }: { objective: ArenaObjective }) {
   if (objective.kind === 'frontline') {

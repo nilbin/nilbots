@@ -13,7 +13,7 @@ import {
 export interface LoadedReplay {
   replay: ReplayModel;
   wire: ReplayWireDocument;
-  replayVersion: 1 | 2;
+  replayVersion: 1 | 2 | 3;
   rawJson: string | null;
 }
 

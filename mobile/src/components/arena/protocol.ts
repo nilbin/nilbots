@@ -1,12 +1,15 @@
 /**
- * The bridge-v2 contract between the app and the arena WebView.
+ * The bridge-v3 contract between the app and the arena WebView.
  *
  * Hand-maintained, and deliberately so: it mirrors `web/src/hostedBridge.ts` and
  * `web/src/replayPresentation.ts`. The WebView owns replay decoding and every
  * rules-derived presentation value. Mobile is only a consumer of these messages.
+ * Bridge v3 is replay-version-neutral and currently carries replay sources v1-v3.
  */
 
-export const ARENA_BRIDGE_VERSION = 2 as const;
+export const ARENA_BRIDGE_VERSION = 3 as const;
+
+export type ArenaReplayVersion = 1 | 2 | 3;
 
 export type ArenaUnitKey = string;
 
@@ -43,8 +46,13 @@ export type ArenaForm = {
   allowedActionIds: string[];
 };
 
+export type ArenaModeIdentity = {
+  kind: string;
+  id: string;
+};
+
 export type ArenaHeader = {
-  replayVersion: 1 | 2;
+  replayVersion: ArenaReplayVersion;
   mapId: string;
   /** Canonical decimal text. Consult seedExact before presenting it as exact. */
   seed: string;
@@ -52,6 +60,7 @@ export type ArenaHeader = {
   rulesVersion: string;
   replayHash: string | null;
   tickCount: number;
+  mode: ArenaModeIdentity;
   /** A live broadcast's replay is truncated to the ticks released so far. */
   partial: boolean;
   participants: ArenaParticipant[];
@@ -60,12 +69,20 @@ export type ArenaHeader = {
   forms: ArenaForm[];
 };
 
+export type ArenaScoreValue = {
+  channel: string;
+  /** Canonical signed decimal text; never coerce this through a JavaScript number. */
+  value: string;
+};
+
 export type ArenaTeamResult = {
   teamId: number;
   outcome: 'win' | 'loss' | 'draw';
   activeHealth: number;
   /** Canonical decimal text; never coerce this through a JavaScript number. */
   damageDealt: string;
+  rank: number | null;
+  scores: ArenaScoreValue[];
   units: ArenaUnitResult[];
 };
 
@@ -86,16 +103,42 @@ export type ArenaUnitResult = {
   lifecycleStatus: string;
   activeActorKey: string | null;
   health: number;
-  /** Canonical decimal text; never coerce this through a JavaScript number. */
-  damageDealt: string;
+  /** Canonical decimal text, or null when the replay only exposes team damage. */
+  damageDealt: string | null;
 };
+
+export type ArenaDeathmatchResult = {
+  kind: 'deathmatch';
+  reason: string;
+  scores: {
+    teamKey: string;
+    teamId: number;
+    /** Canonical decimal text; never coerce this through a JavaScript number. */
+    kills: string;
+    /** Canonical decimal text; never coerce this through a JavaScript number. */
+    deaths: string;
+    /** Canonical decimal text; never coerce this through a JavaScript number. */
+    damageDealt: string;
+  }[];
+};
+
+export type ArenaModeResult =
+  | ArenaDeathmatchResult
+  | {
+      kind: string;
+      result: Readonly<Record<string, unknown>>;
+    }
+  | null;
 
 export type ArenaResult = {
   winnerTeamId: number | null;
   reason: string;
   endTick: number;
+  reportedEndTick: number | null;
+  eligibleTeamIds: number[];
   /** Canonical decimal text when the result includes a territorial tiebreak. */
   territorialScore: string | null;
+  mode: ArenaModeResult;
   teams: ArenaTeamResult[];
 } | null;
 
@@ -124,6 +167,37 @@ export type ArenaObjective =
   | ArenaLegacyControlObjective
   | ArenaFrontlineObjective;
 
+export type ArenaTeamScore = {
+  teamKey: string;
+  teamId: number;
+  eligible: boolean;
+  scores: ArenaScoreValue[];
+};
+
+export type ArenaScoreboard = {
+  teams: ArenaTeamScore[];
+};
+
+export type ArenaModeState =
+  | {
+      kind: 'deathmatch';
+      modeId: string;
+    }
+  | {
+      kind: 'frontline';
+      modeId: string;
+      activePositionIndex: number;
+      claimingTeamId: number | null;
+      captureProgress: number;
+      decayTicksElapsed: number;
+      controlResumesAtTick: number;
+    }
+  | {
+      kind: string;
+      modeId: string;
+      state: Readonly<Record<string, unknown>>;
+    };
+
 export type ArenaUnitPresentation = {
   unitKey: ArenaUnitKey;
   /** Exact runtime-life identity; null while this stable unit has no body. */
@@ -132,7 +206,7 @@ export type ArenaUnitPresentation = {
   unitId: number;
   lifeId: number | null;
   participantId: number;
-  /** Replay-v1 compatibility identity; absent from replay-v2 units. */
+  /** Replay-v1 compatibility identity; absent from replay-v2/v3 units. */
   legacySlot: number | null;
   name: string;
   accent: string;
@@ -179,6 +253,8 @@ export type ArenaTick = {
   tick: number;
   objective: ArenaObjective | null;
   units: ArenaUnitPresentation[];
+  scoreboard: ArenaScoreboard | null;
+  mode: ArenaModeState | null;
 };
 
 export type ArenaTransport = {
@@ -209,7 +285,7 @@ export type ArenaControlMethod =
   | 'setVisibility'
   | 'selectUnit';
 
-/** Messages bridge v2 sends from the page to the native app. */
+/** Messages bridge v3 sends from the page to the native app. */
 export type ArenaMessage =
   | {
       type: 'ready';

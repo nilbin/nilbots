@@ -7,10 +7,16 @@ import {
 import type * as Model from './replayModel';
 import type * as V1 from './replayWireV1';
 import type * as V2 from './replayWireV2';
+import type * as V3 from './replayWireV3';
+import {
+  normalizeReplayV3,
+  validateReplayV3,
+} from './replayV3Normalize';
 
 export type ReplayWireDocument =
   | V1.ReplayV1Document
-  | V2.ReplayV2Document;
+  | V2.ReplayV2Document
+  | V3.ReplayV3Document;
 
 export type DecodedReplay =
   | {
@@ -23,6 +29,12 @@ export type DecodedReplay =
       replayVersion: 2;
       /** The validated input object, retained by identity and never mutated. */
       wire: V2.ReplayV2Document;
+      replay: Model.ReplayModel;
+    }
+  | {
+      replayVersion: 3;
+      /** The validated input object, retained by identity and never mutated. */
+      wire: V3.ReplayV3Document;
       replay: Model.ReplayModel;
     };
 
@@ -67,6 +79,7 @@ export function decodeReplayJson(json: string): DecodedReplayJson {
     throw new ReplayDecodeError(`replay: invalid JSON${detail}`);
   }
 
+  rejectDuplicateJsonProperties(json);
   const version = replayVersionOf(input);
   const v1Seed =
     version === 1
@@ -100,6 +113,16 @@ function decodeReplayInternal(
     };
   }
 
+  if (version === 3) {
+    validateReplayV3(input, fail);
+    const wire = input;
+    return {
+      replayVersion: 3,
+      wire,
+      replay: normalizeReplayV3(wire),
+    };
+  }
+
   validateReplayV2(input);
   const wire = input;
   return {
@@ -120,11 +143,15 @@ export function validateReplayWire(input: unknown): ReplayWireDocument {
     validateReplayV1(input);
     return input;
   }
+  if (version === 3) {
+    validateReplayV3(input, fail);
+    return input;
+  }
   validateReplayV2(input);
   return input;
 }
 
-function replayVersionOf(input: unknown): 1 | 2 {
+function replayVersionOf(input: unknown): 1 | 2 | 3 {
   const root = record(input, 'replay');
   const header = record(required(root, 'header', 'replay'), 'replay.header');
   const version = integer(
@@ -132,7 +159,7 @@ function replayVersionOf(input: unknown): 1 | 2 {
     'replay.header.replayVersion',
   );
 
-  if (version === 1 || version === 2) return version;
+  if (version === 1 || version === 2 || version === 3) return version;
 
   throw new ReplayDecodeError(
     `replay.header.replayVersion: unsupported replay version ${version}`,
@@ -174,6 +201,58 @@ function replayV1SeedLexeme(json: string): string {
     );
   }
   return lexeme;
+}
+
+/**
+ * JSON.parse keeps only the last duplicate property. Replay documents are
+ * evidence, so accepting that lossy interpretation would make validation
+ * depend on parser behavior instead of the supplied bytes.
+ */
+function rejectDuplicateJsonProperties(json: string): void {
+  scanJsonValueForDuplicates(json, skipJsonWhitespace(json, 0), 'replay');
+}
+
+function scanJsonValueForDuplicates(
+  json: string,
+  start: number,
+  path: string,
+): number {
+  if (json[start] === '{') {
+    const seen = new Set<string>();
+    let index = skipJsonWhitespace(json, start + 1);
+    while (json[index] !== '}') {
+      const keyEnd = jsonStringEnd(json, index);
+      const key = JSON.parse(json.slice(index, keyEnd)) as string;
+      if (seen.has(key)) fail(`${path}.${key}`, 'duplicate property');
+      seen.add(key);
+      index = skipJsonWhitespace(json, keyEnd);
+      index = skipJsonWhitespace(json, index + 1);
+      index = scanJsonValueForDuplicates(json, index, `${path}.${key}`);
+      index = skipJsonWhitespace(json, index);
+      if (json[index] === ',') {
+        index = skipJsonWhitespace(json, index + 1);
+      }
+    }
+    return index + 1;
+  }
+  if (json[start] === '[') {
+    let index = skipJsonWhitespace(json, start + 1);
+    let itemIndex = 0;
+    while (json[index] !== ']') {
+      index = scanJsonValueForDuplicates(
+        json,
+        index,
+        `${path}[${itemIndex}]`,
+      );
+      itemIndex += 1;
+      index = skipJsonWhitespace(json, index);
+      if (json[index] === ',') {
+        index = skipJsonWhitespace(json, index + 1);
+      }
+    }
+    return index + 1;
+  }
+  return jsonValueEnd(json, start);
 }
 
 function directJsonProperty(

@@ -29,7 +29,7 @@ src/
   site/           The website: pages, its own components, its API client, auth.
   App.tsx         Standalone viewer mode.
   main.tsx        The mode switch.
-  types.ts        Hand-maintained replay mirror (see root CLAUDE.md).
+  replayWire*.ts Hand-maintained versioned replay mirrors (see root CLAUDE.md).
   playback.ts     Playback clock + live follower.
   replay*.ts      Replay derivation shared by both modes.
 ```
@@ -55,11 +55,14 @@ consequences:
   play/pause/seek. Changing that contract means changing `mobile/src/components/arena/`
   in the same commit — it is hand-mirrored, like `types.ts`.
 
-Replay v1 and internal Frontline replay v2 meet only at the version-neutral
-`ReplayModel`. Decode and validate each wire format before normalization; never infer a
-missing v2 lifecycle, form, action-mask, or causal event from presentation state. Hosted
-bridge v1 remains the legacy slot-shaped contract and must reject v2. Bridge v2 carries
-stable team/unit/life and terminal form state, and its TypeScript mirror in
+Replay v1, internal Frontline replay v2, and generic actor replay v3 meet only at the
+version-neutral `ReplayModel`. Decode and validate each wire format before normalization;
+never infer missing lifecycle, form, action-mask, identity, score, or causal data from
+presentation state. Replay v3 keeps the canonical generic contract and stable
+team/unit/life identity separate, so actor count and future action/form catalogs do not
+change viewer identity. Hosted bridge v1 remains the legacy slot-shaped contract and
+rejects v2/v3; bridge v2 remains the stable v1/v2 contract; bridge v3 adds generic mode
+and scoreboard data. The TypeScript mirror in
 `mobile/src/components/arena/protocol.ts` changes in the same commit.
 
 ## Types come from the server
