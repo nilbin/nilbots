@@ -1085,6 +1085,55 @@ export function drawArena(
     ctx.save();
     ctx.translate(cx, cy);
 
+    if (!destroyed && !ghosted && pose.pendingFormTransition) {
+      const transition = pose.pendingFormTransition;
+      const duration = Math.max(
+        1,
+        transition.completesAtTick - transition.startedAtTick + 1,
+      );
+      const progress = Math.max(
+          0,
+          Math.min(
+            1,
+            (time - transition.startedAtTick) / duration,
+          ),
+      );
+      const windupRadius = radius + tile * 0.16;
+      ctx.save();
+      ctx.rotate(time * Math.PI * 0.45);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.24);
+      ctx.lineWidth = Math.max(2, tile * 0.045);
+      ctx.setLineDash([tile * 0.08, tile * 0.07]);
+      ctx.beginPath();
+      ctx.arc(0, 0, windupRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.92);
+      ctx.lineWidth = Math.max(2.5, tile * 0.06);
+      ctx.beginPath();
+      ctx.arc(
+        0,
+        0,
+        windupRadius,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * progress,
+      );
+      ctx.stroke();
+      for (let index = 0; index < 4; index++) {
+        const angle = index * (Math.PI / 2);
+        ctx.fillStyle = hexWithAlpha(accent, 0.78);
+        ctx.fillRect(
+          Math.cos(angle) * (windupRadius + tile * 0.035) -
+            tile * 0.025,
+          Math.sin(angle) * (windupRadius + tile * 0.035) -
+            tile * 0.025,
+          tile * 0.05,
+          tile * 0.05,
+        );
+      }
+      ctx.restore();
+    }
+
     if (!destroyed && form?.canMove === false) {
       ctx.save();
       ctx.strokeStyle = hexWithAlpha(accent, 0.58);

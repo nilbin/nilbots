@@ -762,6 +762,7 @@ public class FrontlineObservationProjectorTests
         var enemyLife999 = new FrontlineActorId(1, 0, 999);
         enemyUnit.ActiveLife = InvokeInternalConstructor<FrontlineLifeState>(
             enemyLife999,
+            frontline.PrimeForm.FormId,
             new Position(7, 2),
             Direction.West,
             frontline.PrimeForm.MaxHealth,
@@ -951,6 +952,7 @@ public class FrontlineObservationProjectorTests
                         FrontlineLifeState life =
                             InvokeInternalConstructor<FrontlineLifeState>(
                                 actor.ActorId,
+                                actor.FormId,
                                 actor.Position,
                                 actor.Facing,
                                 actor.Health,

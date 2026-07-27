@@ -24,6 +24,10 @@ public sealed record FrontlineMatchEvent
     public int? ActionCode { get; init; }
     public ActorActionPayload? ActionPayload { get; init; }
     public ActionResult? ActionResult { get; init; }
+    public string? FromFormId { get; init; }
+    public string? ToFormId { get; init; }
+    public int? FormTransitionStartedAtTick { get; init; }
+    public int? FormTransitionCompletesAtTick { get; init; }
     public int? Amount { get; init; }
     public int? NewHealth { get; init; }
     public FrontlineLifecycleStatus? LifecycleStatus { get; init; }

@@ -665,6 +665,7 @@ const v2ActionParameterKind = oneOf(
   'direction',
   'unit-target',
   'form-target',
+  'projectile-heading',
 );
 const v2EventType = oneOf(
   'respawned',
@@ -681,6 +682,9 @@ const v2EventType = oneOf(
   'fabrication-queued',
   'fabricated',
   'rebuild-ready',
+  'form-transition-started',
+  'form-changed',
+  'form-transition-cancelled',
 );
 const v2ObservedEventType = oneOf(
   'respawned',
@@ -699,6 +703,9 @@ const v2ObservedEventType = oneOf(
   'fabrication-queued',
   'fabricated',
   'rebuild-ready',
+  'form-transition-started',
+  'form-changed',
+  'form-transition-cancelled',
 );
 const actorId = strictObject({
   teamId: integerValue,
@@ -876,9 +883,45 @@ const v2FrontlineDefinition = strictObject({
     requiresExplicitRefabricationAfterRebuild: booleanValue,
   }),
   anchor: strictObject({
+    actionId: nonEmptyString,
+    sourceFormId: nonEmptyString,
+    targetFormId: nonEmptyString,
     windupTicks: integerValue,
+    consumesTick: booleanValue,
+    completion: literal(
+      'end-of-started-tick-plus-windup-minus-one-after-objective',
+    ),
+    pendingActions: literal('wait-only'),
+    survivingDamage: literal('does-not-cancel'),
+    death: literal('cancels-with-explicit-event'),
+    forbiddenTiles: literal(
+      'all-map-anchor-forbidden-tiles-illegal',
+    ),
+    pendingForm: literal('source-form-until-completion'),
     healthGain: integerValue,
+    healthTransition: literal(
+      'minimum-target-maximum-and-current-plus-gain',
+    ),
+    stateContinuity: literal(
+      'same-life-runtime-memory-position-facing-cooldown-energy-and-damage',
+    ),
+    terminal: literal(
+      'preserve-future-pending-without-synthetic-cancellation',
+    ),
     irreversibleForLife: booleanValue,
+  }),
+  turretFire: strictObject({
+    actionId: nonEmptyString,
+    formId: nonEmptyString,
+    allowedProjectileHeadings: arrayOf(v2Heading),
+    aim: literal('absolute-eight-way-launch-heading'),
+    projectile: literal('one-straight-non-programmed-projectile'),
+    facing: literal('body-facing-unchanged'),
+    range: literal('global-projectile-range'),
+    resources: literal('standard-energy-cooldown-and-damage'),
+    traversal: literal(
+      'standard-traversal-strict-diagonal-corners',
+    ),
   }),
   alliedCombat: strictObject({
     friendlyFireEnabled: booleanValue,
@@ -912,7 +955,14 @@ const v2Form = strictObject({
 const v2ActionDefinition = strictObject({
   id: stringValue,
   code: integerValue,
-  kind: oneOf('wait', 'movement', 'rotation', 'attack', 'fabrication'),
+  kind: oneOf(
+    'wait',
+    'movement',
+    'rotation',
+    'attack',
+    'fabrication',
+    'transformation',
+  ),
   parameterKinds: arrayOf(v2ActionParameterKind),
   enabled: booleanValue,
 });
@@ -1007,6 +1057,8 @@ const v2TickResolutionRules = strictObject({
       'apply-tick-start-lifecycle',
       'queue-destroyed-lives',
       'queue-fabrications',
+      'start-form-transitions',
+      'complete-form-transitions',
     ),
   ),
 });
@@ -1146,9 +1198,27 @@ const v2Header = strictObject({
   participants: arrayOf(v2Participant),
 });
 
+const v2FormTransitionShape = strictObject({
+  fromFormId: nonEmptyString,
+  toFormId: nonEmptyString,
+  startedAtTick: integerValue,
+  completesAtTick: integerValue,
+});
+const v2FormTransition: Validator = (value, path) => {
+  v2FormTransitionShape(value, path);
+  const transition = value as V2.ReplayV2FormTransition;
+  if (
+    transition.fromFormId === transition.toFormId ||
+    transition.startedAtTick < 0 ||
+    transition.completesAtTick < transition.startedAtTick
+  ) {
+    fail(path, 'form transition has invalid forms or chronology');
+  }
+};
 const v2ObservedSelf = strictObject({
   actorId,
   formId: stringValue,
+  pendingFormTransition: nullable(v2FormTransition),
   position: positionObject,
   facing: v2Direction,
   health: integerValue,
@@ -1165,6 +1235,7 @@ const v2ObservedEnemyActor = strictObject({
 const v2ObservedEnemy = strictObject({
   actor: v2ObservedEnemyActor,
   formId: stringValue,
+  pendingFormTransition: nullable(v2FormTransition),
   position: positionObject,
   facing: v2Direction,
   health: integerValue,
@@ -1208,6 +1279,15 @@ const v2ObservedEvent = strictObject({
   projectileHandle: nullable(projectileHandle),
   position: nullable(positionObject),
   facing: nullable(v2Direction),
+  projectileHeading: nullable(v2Heading),
+  fromFormId: nullable(stringValue),
+  toFormId: nullable(stringValue),
+  formTransitionStartedAtTick: nullable(integerValue),
+  formTransitionCompletesAtTick: nullable(integerValue),
+  actionId: nullable(stringValue),
+  actionCode: nullable(integerValue),
+  formTargetId: nullable(stringValue),
+  actionResult: nullable(v2ActionResult),
   amount: nullable(integerValue),
   newHealth: nullable(integerValue),
   observedBy: arrayOf(actorId),
@@ -1235,6 +1315,7 @@ const v2ObservedAction = strictObject({
   available: booleanValue,
   shotProgramAvailable: nullable(booleanValue),
   allowedDirections: nullable(arrayOf(v2Direction)),
+  allowedProjectileHeadings: nullable(arrayOf(v2Heading)),
   allowedUnitTargets: nullable(arrayOf(unitTarget)),
   allowedFormTargets: nullable(arrayOf(stringValue)),
 });
@@ -1257,6 +1338,7 @@ const v2Observation = strictObject({
 const v2ActionPayloadShape = strictObject({
   shotProgram: nullable(v2ShotProgram),
   direction: nullable(v2Direction),
+  launchHeading: nullable(v2Heading),
   unitTarget: nullable(unitTarget),
   formTargetId: nullable(stringValue),
 });
@@ -1266,6 +1348,7 @@ const v2ActionPayload: Validator = (value, path) => {
   if (
     payload.shotProgram === null &&
     payload.direction === null &&
+    payload.launchHeading === null &&
     payload.unitTarget === null &&
     payload.formTargetId === null
   ) {
@@ -1342,10 +1425,14 @@ const v2Event = strictObject({
   fromFacing: nullable(v2Direction),
   toFacing: nullable(v2Direction),
   projectileHeading: nullable(v2Heading),
-  actionPayload: nullable(v2ActionPayload),
   actionId: nullable(stringValue),
   actionCode: nullable(integerValue),
+  actionPayload: nullable(v2ActionPayload),
   actionResult: nullable(v2ActionResult),
+  fromFormId: nullable(stringValue),
+  toFormId: nullable(stringValue),
+  formTransitionStartedAtTick: nullable(integerValue),
+  formTransitionCompletesAtTick: nullable(integerValue),
   amount: nullable(integerValue),
   newHealth: nullable(integerValue),
   lifecycleStatus: nullable(v2Lifecycle),
@@ -1372,6 +1459,8 @@ const v2Traversal = strictObject({
 });
 const v2LifeState = strictObject({
   actorId,
+  formId: nonEmptyString,
+  pendingFormTransition: nullable(v2FormTransition),
   position: positionObject,
   facing: v2Direction,
   health: integerValue,
@@ -1384,7 +1473,7 @@ const v2LifeState = strictObject({
 const v2UnitState = strictObject({
   teamId: integerValue,
   unitId: integerValue,
-  formId: stringValue,
+  defaultFormId: nonEmptyString,
   lifecycleStatus: v2Lifecycle,
   respawnAtTick: nullable(integerValue),
   unlockAtTick: nullable(integerValue),
@@ -1445,7 +1534,9 @@ const v2Tick = strictObject({
 const v2UnitResult = strictObject({
   teamId: integerValue,
   unitId: integerValue,
+  defaultFormId: nonEmptyString,
   formId: nonEmptyString,
+  pendingFormTransition: nullable(v2FormTransition),
   lifecycleStatus: v2Lifecycle,
   activeActorId: nullable(actorId),
   health: integerValue,
@@ -1781,6 +1872,11 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
     contractFormsById,
     unitKeys,
   );
+  validateV2TransformationContract(
+    contract,
+    contractActionsById,
+    contractFormsById,
+  );
 
   for (const participant of topology.participants) {
     if (!teamIds.has(participant.teamId)) {
@@ -1811,7 +1907,21 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
   const allEventIds = new Set<string>();
   const seenActorLives = new Set<string>();
   let priorPostState: V2.ReplayV2WorldState | null = null;
+  let priorResolutionEvents: readonly V2.ReplayV2Event[] = [];
   sortedTicks.forEach(({ tick, inputIndex: tickIndex }) => {
+    if (
+      tick.tickStart.lifecycleEvents.some(
+        (event) =>
+          event.type === 'form-transition-started' ||
+          event.type === 'form-changed' ||
+          event.type === 'form-transition-cancelled',
+      )
+    ) {
+      fail(
+        `replay.ticks[${tickIndex}].tickStart.lifecycleEvents`,
+        'form-transition events belong only to authoritative resolution',
+      );
+    }
     validateV2WorldRelationships(
       tick.tickStart.state,
       unitKeys,
@@ -1819,6 +1929,7 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
       tick.tick,
       contract.rules.frontlineDefinition ?? null,
       contract.map.frontline ?? null,
+      contractFormsById,
       `replay.ticks[${tickIndex}].tickStart.state`,
     );
     validateV2WorldRelationships(
@@ -1828,6 +1939,7 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
       tick.tick,
       contract.rules.frontlineDefinition ?? null,
       contract.map.frontline ?? null,
+      contractFormsById,
       `replay.ticks[${tickIndex}].postState`,
     );
     if (tick.tick === 0) {
@@ -1897,6 +2009,12 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
       `replay.ticks[${tickIndex}].actors`,
     );
 
+    const observableEventsById = new Map(
+      [
+        ...priorResolutionEvents,
+        ...tick.tickStart.lifecycleEvents,
+      ].map((event) => [event.eventId, event]),
+    );
     tick.actors.forEach((turn, actorIndex) => {
       const identity = actorIdValue(turn.actorId);
       const actorPath = `replay.ticks[${tickIndex}].actors[${actorIndex}]`;
@@ -1993,7 +2111,11 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
         tick.tickStart.state,
         actorPath,
       );
-      validateV2Aliases(turn, actorPath);
+      validateV2Aliases(
+        turn,
+        observableEventsById,
+        actorPath,
+      );
     });
 
     const tickEvents = [
@@ -2021,9 +2143,28 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
         contractFormIds,
         contract.rules.shotPrograms,
         contract.rules.frontlineDefinition?.fabrication ?? null,
+        contract.rules.frontlineDefinition?.anchor ?? null,
         `replay.ticks[${tickIndex}].events[${eventIndex}]`,
       );
     });
+    if (contract.rules.frontlineDefinition) {
+      validateV2DamageAttributionTick(
+        tick,
+        contract,
+        `replay.ticks[${tickIndex}]`,
+      );
+      validateV2FormTransitionTick(
+        tick,
+        contract,
+        `replay.ticks[${tickIndex}]`,
+      );
+      validateV2TurretShotTick(
+        tick,
+        contract,
+        `replay.ticks[${tickIndex}]`,
+      );
+    }
+    priorResolutionEvents = tick.resolution.events;
     priorPostState = tick.postState;
   });
 
@@ -2198,6 +2339,150 @@ function validateV2FabricationContract(
   }
 }
 
+const canonicalProjectileHeadings: readonly V2.ReplayV2ProjectileHeading[] = [
+  'north',
+  'north-east',
+  'east',
+  'south-east',
+  'south',
+  'south-west',
+  'west',
+  'north-west',
+];
+
+function validateV2TransformationContract(
+  contract: V2.ReplayV2MatchContract,
+  actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
+  formsById: ReadonlyMap<string, V2.ReplayV2FormDefinition>,
+): void {
+  const frontline = contract.rules.frontlineDefinition;
+  if (!frontline) return;
+
+  const anchorPath =
+    'replay.header.contract.rules.frontlineDefinition.anchor';
+  const turretPath =
+    'replay.header.contract.rules.frontlineDefinition.turretFire';
+  const anchor = frontline.anchor;
+  const turretFire = frontline.turretFire;
+  const transform = actionsById.get(anchor.actionId);
+  const directionalShot = actionsById.get(turretFire.actionId);
+  const sourceForm = formsById.get(anchor.sourceFormId);
+  const targetForm = formsById.get(anchor.targetFormId);
+  const turretForm = formsById.get(turretFire.formId);
+
+  if (
+    anchor.actionId !== 'transform' ||
+    !transform ||
+    transform.code !== 101 ||
+    !transform.enabled ||
+    transform.kind !== 'transformation' ||
+    !sameStrings(transform.parameterKinds, ['form-target'])
+  ) {
+    fail(
+      `${anchorPath}.actionId`,
+      'must reference canonical enabled Transform/101 with one form-target parameter',
+    );
+  }
+  if (
+    anchor.sourceFormId !==
+      frontline.deployment.childDefaultFormId ||
+    anchor.sourceFormId === anchor.targetFormId ||
+    !sourceForm ||
+    !targetForm ||
+    !sourceForm.allowedActionIds.includes(anchor.actionId)
+  ) {
+    fail(
+      anchorPath,
+      'must transform the child default form into a distinct contract form allowed by the source form',
+    );
+  }
+  if (
+    anchor.windupTicks <= 0 ||
+    anchor.healthGain < 0 ||
+    !anchor.consumesTick ||
+    !anchor.irreversibleForLife
+  ) {
+    fail(
+      anchorPath,
+      'must publish a positive consuming irreversible windup and non-negative health gain',
+    );
+  }
+  if (
+    turretFire.actionId !== 'shoot-direction' ||
+    !directionalShot ||
+    directionalShot.code !== 102 ||
+    !directionalShot.enabled ||
+    directionalShot.kind !== 'attack' ||
+    !sameStrings(directionalShot.parameterKinds, [
+      'projectile-heading',
+    ])
+  ) {
+    fail(
+      `${turretPath}.actionId`,
+      'must reference canonical enabled ShootDirection/102 with one projectile-heading parameter',
+    );
+  }
+  if (
+    turretFire.formId !== anchor.targetFormId ||
+    turretForm !== targetForm ||
+    !turretForm ||
+    turretForm.canMove ||
+    !turretForm.canShoot ||
+    turretForm.allowsProgrammedShots ||
+    !turretForm.omnidirectionalVision ||
+    !turretForm.omnidirectionalShooting ||
+    turretForm.objectiveWeight !== 0 ||
+    !sameStrings(turretForm.allowedActionIds, [
+      'shoot-direction',
+      'wait',
+    ])
+  ) {
+    fail(
+      `${turretPath}.formId`,
+      'must be the stationary, omnidirectional, zero-objective-weight target form with exactly ShootDirection and Wait',
+    );
+  }
+  ensureUnique(
+    turretFire.allowedProjectileHeadings,
+    (heading) => heading,
+    `${turretPath}.allowedProjectileHeadings`,
+  );
+  if (
+    !sameStrings(
+      turretFire.allowedProjectileHeadings,
+      canonicalProjectileHeadings,
+    )
+  ) {
+    fail(
+      `${turretPath}.allowedProjectileHeadings`,
+      'must contain all eight canonical headings in canonical order',
+    );
+  }
+
+  const phases = contract.rules.tickResolution.phases;
+  const startIndex = phases.indexOf('start-form-transitions');
+  const combatIndex = phases.indexOf(
+    'launch-shots-and-apply-damage',
+  );
+  const objectiveIndex = phases.indexOf('update-objective');
+  const completionIndex = phases.indexOf(
+    'complete-form-transitions',
+  );
+  if (
+    startIndex < 0 ||
+    combatIndex < 0 ||
+    objectiveIndex < 0 ||
+    completionIndex < 0 ||
+    startIndex >= combatIndex ||
+    completionIndex <= objectiveIndex
+  ) {
+    fail(
+      'replay.header.contract.rules.tickResolution.phases',
+      'must start transitions before combat and complete them after objective resolution',
+    );
+  }
+}
+
 function validateV2ObservedActionSemantics(
   turn: V2.ReplayV2ActorTurn,
   actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
@@ -2248,7 +2533,7 @@ function validateV2ObservedActionSemantics(
     !authoritativeLife ||
     actorIdValue(authoritativeLife.actorId) !==
       actorIdValue(turn.actorId) ||
-    turn.observation.self.formId !== authoritativeUnit.formId ||
+    turn.observation.self.formId !== authoritativeLife.formId ||
     !samePosition(
       turn.observation.self.position,
       authoritativeLife.position,
@@ -2258,7 +2543,11 @@ function validateV2ObservedActionSemantics(
     turn.observation.self.cooldown !== authoritativeLife.cooldown ||
     turn.observation.self.energy !== authoritativeLife.energy ||
     turn.observation.self.previousActionResult !==
-      authoritativeLife.previousActionResult
+      authoritativeLife.previousActionResult ||
+    !sameV2FormTransition(
+      turn.observation.self.pendingFormTransition,
+      authoritativeLife.pendingFormTransition,
+    )
   ) {
     fail(
       `${path}.observation.self`,
@@ -2279,7 +2568,7 @@ function validateV2ObservedActionSemantics(
         !expected ||
         unit.teamId !== expected.teamId ||
         unit.unitId !== expected.unitId ||
-        unit.formId !== expected.formId ||
+        unit.formId !== v2UnitEffectiveFormId(expected) ||
         unit.lifecycleStatus !== expected.lifecycleStatus ||
         !sameNullableActorId(
           unit.activeActorId,
@@ -2298,6 +2587,109 @@ function validateV2ObservedActionSemantics(
     );
   }
 
+  const worldUnits = world.teams.flatMap((team) => team.units);
+  const expectedAlliedActorKeys = new Set(
+    authoritativeTeam.units
+      .flatMap((unit) => unit.activeLife ? [unit.activeLife] : [])
+      .filter(
+        (life) =>
+          actorIdValue(life.actorId) !== actorIdValue(turn.actorId),
+      )
+      .map((life) => actorIdValue(life.actorId)),
+  );
+  if (
+    turn.observation.allies.length !== expectedAlliedActorKeys.size ||
+    turn.observation.allies.some(
+      (ally) => !expectedAlliedActorKeys.has(actorIdValue(ally.actorId)),
+    )
+  ) {
+    fail(
+      `${path}.observation.allies`,
+      'must cover every other authoritative active allied life',
+    );
+  }
+  for (const [index, ally] of turn.observation.allies.entries()) {
+    const unit = worldUnits.find(
+      (candidate) =>
+        candidate.teamId === ally.actorId.teamId &&
+        candidate.unitId === ally.actorId.unitId,
+    );
+    const life = unit?.activeLife;
+    if (
+      ally.actorId.teamId !== turn.actorId.teamId ||
+      actorIdValue(ally.actorId) === actorIdValue(turn.actorId) ||
+      !life ||
+      actorIdValue(life.actorId) !== actorIdValue(ally.actorId) ||
+      ally.formId !== life.formId ||
+      !samePosition(ally.position, life.position) ||
+      ally.facing !== life.facing ||
+      ally.health !== life.health ||
+      ally.cooldown !== life.cooldown ||
+      ally.energy !== life.energy ||
+      ally.previousActionResult !== life.previousActionResult ||
+      !sameV2FormTransition(
+        ally.pendingFormTransition,
+        life.pendingFormTransition,
+      )
+    ) {
+      fail(
+        `${path}.observation.allies[${index}]`,
+        'must equal its authoritative allied tick-start life',
+      );
+    }
+  }
+
+  const enemyAliases = new Map(
+    turn.aliases.enemyLives.map((alias) => [
+      alias.lifeHandle,
+      alias.actorId,
+    ]),
+  );
+  for (const [index, enemy] of turn.observation.enemies.entries()) {
+    const exactActor = enemyAliases.get(enemy.actor.lifeHandle);
+    const unit = exactActor
+      ? worldUnits.find(
+          (candidate) =>
+            candidate.teamId === exactActor.teamId &&
+            candidate.unitId === exactActor.unitId,
+        )
+      : null;
+    const life = unit?.activeLife;
+    if (
+      !exactActor ||
+      exactActor.teamId === turn.actorId.teamId ||
+      exactActor.teamId !== enemy.actor.teamId ||
+      exactActor.unitId !== enemy.actor.unitId ||
+      !life ||
+      actorIdValue(life.actorId) !== actorIdValue(exactActor) ||
+      enemy.formId !== life.formId ||
+      !samePosition(enemy.position, life.position) ||
+      enemy.facing !== life.facing ||
+      enemy.health !== life.health ||
+      !sameV2FormTransition(
+        enemy.pendingFormTransition,
+        life.pendingFormTransition,
+      )
+    ) {
+      fail(
+        `${path}.observation.enemies[${index}]`,
+        'must equal the aliased authoritative enemy tick-start life',
+      );
+    }
+  }
+
+  const currentForm = matchContract.rules.forms.find(
+    (form) => form.id === authoritativeLife.formId,
+  );
+  const frontline = matchContract.rules.frontlineDefinition;
+  const home = matchContract.map.frontline?.teamHomes.find(
+    (candidate) => candidate.teamId === turn.actorId.teamId,
+  );
+  const onAnchorForbiddenTile =
+    matchContract.map.frontline?.anchorForbiddenTiles.some((position) =>
+      sameContractPosition(position, authoritativeLife.position),
+    ) ?? false;
+
   for (const action of observed) {
     const contract = actionsById.get(action.actionId)!;
     action.allowedUnitTargets?.forEach((target) => {
@@ -2310,12 +2702,102 @@ function validateV2ObservedActionSemantics(
         );
       }
     });
+    if (
+      contract.parameterKinds.includes('projectile-heading') !==
+      (action.allowedProjectileHeadings !== null)
+    ) {
+      fail(
+        `${path}.observation.actions.${action.actionId}.allowedProjectileHeadings`,
+        'nullability must exactly match projectile-heading support',
+      );
+    }
+    if (
+      contract.parameterKinds.includes('form-target') !==
+      (action.allowedFormTargets !== null)
+    ) {
+      fail(
+        `${path}.observation.actions.${action.actionId}.allowedFormTargets`,
+        'nullability must exactly match form-target support',
+      );
+    }
+    if (
+      action.available &&
+      (!contract.enabled ||
+        !currentForm?.allowedActionIds.includes(contract.id))
+    ) {
+      fail(
+        `${path}.observation.actions.${action.actionId}`,
+        'an action excluded by the active form cannot be available',
+      );
+    }
+    if (authoritativeLife.pendingFormTransition) {
+      const expectedAvailable =
+        contract.id === 'wait' &&
+        contract.enabled &&
+        (currentForm?.allowedActionIds.includes(contract.id) ?? false);
+      if (action.available !== expectedAvailable) {
+        fail(
+          `${path}.observation.actions.${action.actionId}`,
+          'pending form transitions must expose Wait as the only available action',
+        );
+      }
+    }
+    if (contract.id === 'transform') {
+      const expectedAvailable =
+        contract.enabled &&
+        (currentForm?.allowedActionIds.includes(contract.id) ?? false) &&
+        authoritativeLife.pendingFormTransition === null &&
+        frontline !== undefined &&
+        authoritativeLife.formId === frontline.anchor.sourceFormId &&
+        !onAnchorForbiddenTile;
+      const expectedTargets =
+        expectedAvailable && frontline
+          ? [frontline.anchor.targetFormId]
+          : [];
+      if (
+        action.available !== expectedAvailable ||
+        action.allowedFormTargets === null ||
+        !sameStrings(action.allowedFormTargets, expectedTargets) ||
+        action.allowedProjectileHeadings !== null
+      ) {
+        fail(
+          `${path}.observation.actions.${action.actionId}`,
+          'transform availability must exactly match source form, pending state, and map legality',
+        );
+      }
+    }
+    if (contract.id === 'shoot-direction') {
+      const expectedAvailable =
+        contract.enabled &&
+        (currentForm?.allowedActionIds.includes(contract.id) ?? false) &&
+        authoritativeLife.pendingFormTransition === null &&
+        currentForm?.canShoot === true &&
+        authoritativeLife.cooldown === 0 &&
+        (!matchContract.rules.energy.enabled ||
+          authoritativeLife.energy !== null &&
+            authoritativeLife.energy >=
+              matchContract.rules.energy.shotEnergyCost);
+      const expectedHeadings =
+        expectedAvailable && frontline
+          ? frontline.turretFire.allowedProjectileHeadings
+          : [];
+      if (
+        action.available !== expectedAvailable ||
+        action.allowedProjectileHeadings === null ||
+        !sameStrings(
+          action.allowedProjectileHeadings,
+          expectedHeadings,
+        ) ||
+        action.allowedFormTargets !== null
+      ) {
+        fail(
+          `${path}.observation.actions.${action.actionId}`,
+          'directional fire mask must exactly match turret form, resources, and all eight headings',
+        );
+      }
+    }
     if (contract.kind !== 'fabrication') continue;
 
-    const frontline = matchContract.rules.frontlineDefinition;
-    const home = matchContract.map.frontline?.teamHomes.find(
-      (candidate) => candidate.teamId === turn.actorId.teamId,
-    );
     if (!frontline || !home) {
       fail(
         `${path}.observation.actions.${action.actionId}`,
@@ -2336,9 +2818,6 @@ function validateV2ObservedActionSemantics(
       )
       .sort(compareUnitIdentity)
       .map((unit) => ({ teamId: unit.teamId, unitId: unit.unitId }));
-    const currentForm = matchContract.rules.forms.find(
-      (form) => form.id === authoritativeUnit.formId,
-    );
     const expectedAvailable =
       contract.enabled &&
       (currentForm?.allowedActionIds.includes(contract.id) ?? false) &&
@@ -2363,6 +2842,7 @@ function validateV2EventSemantics(
   formIds: ReadonlySet<string>,
   shotProgramRules: V2.ReplayV2ShotProgramRules,
   fabrication: V2.ReplayV2FrontlineFabricationDefinition | null,
+  anchor: V2.ReplayV2FrontlineAnchorDefinition | null,
   path: string,
 ): void {
   if (
@@ -2417,6 +2897,71 @@ function validateV2EventSemantics(
     actor !== null &&
     actor.teamId === event.teamId &&
     actor.unitId === event.unitId;
+  const isFormEvent =
+    event.type === 'form-transition-started' ||
+    event.type === 'form-changed' ||
+    event.type === 'form-transition-cancelled';
+  if (isFormEvent) {
+    const payload = event.actionPayload;
+    if (
+      !anchor ||
+      event.teamId === null ||
+      event.unitId === null ||
+      !actorMatchesUnit(event.sourceActorId) ||
+      event.targetActorId !== null ||
+      event.actionId !== anchor.actionId ||
+      event.actionCode !== 101 ||
+      event.actionResult !== 'success' ||
+      payload === null ||
+      payload.formTargetId !== anchor.targetFormId ||
+      payload.shotProgram !== null ||
+      payload.direction !== null ||
+      payload.launchHeading !== null ||
+      payload.unitTarget !== null ||
+      event.fromFormId !== anchor.sourceFormId ||
+      event.toFormId !== anchor.targetFormId ||
+      event.formTransitionStartedAtTick === null ||
+      event.formTransitionCompletesAtTick !==
+        event.formTransitionStartedAtTick +
+          anchor.windupTicks -
+          1 ||
+      event.from === null ||
+      event.to === null ||
+      !samePosition(event.from, event.to) ||
+      event.fromFacing === null ||
+      event.toFacing !== event.fromFacing ||
+      event.newHealth === null ||
+      event.newHealth < 0 ||
+      (event.type === 'form-transition-started' &&
+        event.tick !== event.formTransitionStartedAtTick) ||
+      (event.type === 'form-changed' &&
+        event.tick !== event.formTransitionCompletesAtTick) ||
+      (event.type === 'form-transition-cancelled' &&
+        (event.tick < event.formTransitionStartedAtTick ||
+          event.tick > event.formTransitionCompletesAtTick))
+    ) {
+      fail(path, `invalid ${event.type} transition payload`);
+    }
+  } else if (
+    event.fromFormId !== null ||
+    event.toFormId !== null ||
+    event.formTransitionStartedAtTick !== null ||
+    event.formTransitionCompletesAtTick !== null
+  ) {
+    fail(path, 'non-form event cannot carry form-transition context');
+  }
+  if (
+    event.type === 'shot' &&
+    event.actionId === 'shoot-direction' &&
+    (event.actionPayload?.launchHeading === null ||
+      event.actionPayload?.launchHeading === undefined ||
+      event.projectileHeading !== event.actionPayload.launchHeading ||
+      event.fromFacing === null ||
+      event.toFacing !== event.fromFacing ||
+      event.actionPayload.shotProgram !== null)
+  ) {
+    fail(path, 'directional Shot must preserve body facing and launch heading');
+  }
 
   switch (event.type) {
     case 'respawned':
@@ -2515,6 +3060,1093 @@ function validateV2EventSemantics(
       }
       break;
     }
+  }
+}
+
+function validateV2FormTransitionTick(
+  tick: V2.ReplayV2Tick,
+  matchContract: V2.ReplayV2MatchContract,
+  path: string,
+): void {
+  const frontline = matchContract.rules.frontlineDefinition!;
+  const anchor = frontline.anchor;
+  const formsById = new Map(
+    matchContract.rules.forms.map((form) => [form.id, form]),
+  );
+  const beforeUnits = new Map(
+    tick.tickStart.state.teams
+      .flatMap((team) => team.units)
+      .map((unit) => [`${unit.teamId}:${unit.unitId}`, unit]),
+  );
+  const afterUnits = new Map(
+    tick.postState.teams
+      .flatMap((team) => team.units)
+      .map((unit) => [`${unit.teamId}:${unit.unitId}`, unit]),
+  );
+  const turns = new Map(
+    tick.actors.map((turn) => [actorIdValue(turn.actorId), turn]),
+  );
+  const formEvents = tick.resolution.events.filter(
+    (event) =>
+      event.type === 'form-transition-started' ||
+      event.type === 'form-changed' ||
+      event.type === 'form-transition-cancelled',
+  );
+  const accountedEventIds = new Set<string>();
+  const firstChangedIndex = tick.resolution.events.findIndex(
+    (event) => event.type === 'form-changed',
+  );
+  if (
+    firstChangedIndex >= 0 &&
+    tick.resolution.events
+      .slice(firstChangedIndex)
+      .some((event) => event.type !== 'form-changed')
+  ) {
+    fail(
+      `${path}.resolution.events`,
+      'form-change completions must be the final resolution-event suffix',
+    );
+  }
+  const firstCombatIndex = tick.resolution.events.findIndex(
+    (event) =>
+      event.type === 'shot' ||
+      event.type === 'damage' ||
+      event.type === 'destroyed',
+  );
+  const lastPreStartIndex = tick.resolution.events.reduce(
+    (last, event, index) =>
+      event.type === 'turn' ||
+      event.type === 'move' ||
+      event.type === 'move-blocked' ||
+      event.type === 'fabrication-queued'
+        ? index
+        : last,
+    -1,
+  );
+  const lastObjectiveIndex = tick.resolution.events.reduce(
+    (last, event, index) =>
+      event.type === 'frontline-progress-changed' ||
+      event.type === 'frontline-position-advanced' ||
+      event.type === 'base-breached'
+        ? index
+        : last,
+    -1,
+  );
+
+  for (const beforeUnit of beforeUnits.values()) {
+    const beforeLife = beforeUnit.activeLife;
+    if (!beforeLife) continue;
+    const actorKey = actorIdValue(beforeLife.actorId);
+    const afterUnit = afterUnits.get(
+      `${beforeUnit.teamId}:${beforeUnit.unitId}`,
+    )!;
+    const postActiveLife = afterUnit.activeLife;
+    const afterLife =
+      postActiveLife &&
+      actorIdValue(postActiveLife.actorId) === actorKey
+        ? postActiveLife
+        : null;
+    const turn = turns.get(actorKey);
+    const actorEvents = formEvents.filter(
+      (event) =>
+        event.sourceActorId !== null &&
+        actorIdValue(event.sourceActorId) === actorKey,
+    );
+    const started = actorEvents.filter(
+      (event) => event.type === 'form-transition-started',
+    );
+    const changed = actorEvents.filter(
+      (event) => event.type === 'form-changed',
+    );
+    const cancelled = actorEvents.filter(
+      (event) => event.type === 'form-transition-cancelled',
+    );
+    const destroyed = tick.resolution.events.filter(
+      (event) =>
+        event.type === 'destroyed' &&
+        event.targetActorId !== null &&
+        actorIdValue(event.targetActorId) === actorKey,
+    );
+    const acceptedTransform =
+      turn?.actionResolution.validatedActionId === anchor.actionId &&
+      turn.actionResolution.validatedActionCode === 101 &&
+      turn.actionResolution.validatedPayload?.formTargetId ===
+        anchor.targetFormId &&
+      beforeLife.formId === anchor.sourceFormId &&
+      !matchContract.map.frontline!.anchorForbiddenTiles.some(
+        (position) =>
+          sameContractPosition(position, beforeLife.position),
+      ) &&
+      turn.actionResolution.result === 'success';
+    if (
+      started.length > 1 ||
+      changed.length > 1 ||
+      cancelled.length > 1 ||
+      destroyed.length > 1
+    ) {
+      fail(
+        `${path}.resolution.events`,
+        `life ${actorKey} has duplicate form or destruction events`,
+      );
+    }
+
+    let transition = beforeLife.pendingFormTransition;
+    if (transition) {
+      if (
+        !turn ||
+        turn.actionResolution.validatedActionId !== 'wait' ||
+        started.length !== 0
+      ) {
+        fail(
+          `${path}.actors`,
+          'a pending transition must resolve Wait and cannot restart',
+        );
+      }
+    } else if (acceptedTransform) {
+      if (started.length !== 1) {
+        fail(
+          `${path}.resolution.events`,
+          'a successful transform must emit exactly one start event',
+        );
+      }
+      const start = started[0]!;
+      transition = {
+        fromFormId: start.fromFormId!,
+        toFormId: start.toFormId!,
+        startedAtTick: start.formTransitionStartedAtTick!,
+        completesAtTick: start.formTransitionCompletesAtTick!,
+      };
+      if (
+        start.newHealth !== beforeLife.health ||
+        start.from === null ||
+        !samePosition(start.from, beforeLife.position) ||
+        start.fromFacing !== beforeLife.facing
+      ) {
+        fail(
+          `${path}.resolution.events`,
+          'transition start must snapshot the source life exactly',
+        );
+      }
+      const startIndex = tick.resolution.events.indexOf(start);
+      if (
+        startIndex <= lastPreStartIndex ||
+        firstCombatIndex >= 0 &&
+          startIndex >= firstCombatIndex
+      ) {
+        fail(
+          `${path}.resolution.events`,
+          'transition starts must precede projectile combat',
+        );
+      }
+    } else if (actorEvents.length > 0) {
+      fail(
+        `${path}.resolution.events`,
+        'form events require an existing pending transition or successful transform',
+      );
+    }
+
+    const died = destroyed.length === 1;
+    if (died !== (afterLife === null)) {
+      fail(
+        `${path}.postState`,
+        'life destruction events and post-state must agree',
+      );
+    }
+
+    if (!transition) {
+      if (
+        afterLife &&
+        (afterLife.formId !== beforeLife.formId ||
+          afterLife.pendingFormTransition !== null)
+      ) {
+        fail(
+          `${path}.postState`,
+          'a surviving life cannot change form without transition causality',
+        );
+      }
+      continue;
+    }
+    actorEvents.forEach((event) => accountedEventIds.add(event.eventId));
+    if (
+      transition.fromFormId !== anchor.sourceFormId ||
+      transition.toFormId !== anchor.targetFormId
+    ) {
+      fail(`${path}.resolution.events`, 'transition forms drift from contract');
+    }
+    if (
+      actorEvents.some(
+        (event) =>
+          event.fromFormId !== transition!.fromFormId ||
+          event.toFormId !== transition!.toFormId ||
+          event.formTransitionStartedAtTick !==
+            transition!.startedAtTick ||
+          event.formTransitionCompletesAtTick !==
+            transition!.completesAtTick,
+      )
+    ) {
+      fail(
+        `${path}.resolution.events`,
+        'form-event context must equal the life pending transition',
+      );
+    }
+
+    if (died) {
+      const destroyedIndex = tick.resolution.events.indexOf(
+        destroyed[0]!,
+      );
+      const cancellationIndex = tick.resolution.events.findIndex(
+        (event) =>
+          event.type === 'form-transition-cancelled' &&
+          event.sourceActorId !== null &&
+          actorIdValue(event.sourceActorId) === actorKey,
+      );
+      if (
+        destroyedIndex < 0 ||
+        cancellationIndex !== destroyedIndex + 1 ||
+        cancelled.length !== 1 ||
+        changed.length !== 0 ||
+        cancelled[0]!.newHealth !== 0 ||
+        destroyed[0]!.newHealth !== 0
+      ) {
+        fail(
+          `${path}.resolution.events`,
+          'lethal pending transitions require adjacent Destroyed then FormTransitionCancelled',
+        );
+      }
+      continue;
+    }
+
+    if (!afterLife) {
+      fail(
+        `${path}.postState`,
+        'a surviving pending transition must retain its active life',
+      );
+    }
+    if (
+      !samePosition(afterLife.position, beforeLife.position) ||
+      afterLife.facing !== beforeLife.facing ||
+      cancelled.length !== 0
+    ) {
+      fail(
+        `${path}.postState`,
+        'surviving transitions must preserve the same life, position, and facing',
+      );
+    }
+
+    const damageEvents = tick.resolution.events.filter(
+      (event) =>
+        event.type === 'damage' &&
+        event.targetActorId !== null &&
+        actorIdValue(event.targetActorId) === actorKey,
+    );
+    const healthBeforeCompletion =
+      damageEvents.at(-1)?.newHealth ?? beforeLife.health;
+    const due = transition.completesAtTick === tick.tick;
+    const targetForm = formsById.get(transition.toFormId);
+    const expectedHealth =
+      due && targetForm
+        ? Math.min(
+            targetForm.maxHealth,
+            healthBeforeCompletion + anchor.healthGain,
+          )
+        : healthBeforeCompletion;
+    const expectedCooldown = Math.max(0, beforeLife.cooldown - 1);
+    let expectedEnergy = beforeLife.energy;
+    const energyRules = matchContract.rules.energy;
+    if (
+      energyRules.enabled &&
+      expectedEnergy !== null &&
+      expectedEnergy < energyRules.maxEnergy &&
+      energyRules.regenerationIntervalTicks > 0 &&
+      (tick.tick + 1) % energyRules.regenerationIntervalTicks === 0
+    ) {
+      expectedEnergy = Math.min(
+        energyRules.maxEnergy,
+        expectedEnergy + energyRules.regenerationAmount,
+      );
+    }
+    const lifeCreditedDamage = tick.resolution.events
+      .filter(
+        (event) =>
+          event.type === 'damage' &&
+          event.sourceActorId !== null &&
+          actorIdValue(event.sourceActorId) === actorKey,
+      )
+      .reduce((total, event) => total + BigInt(event.amount ?? 0), 0n);
+    const unitCreditedDamage = tick.resolution.events
+      .filter(
+        (event) =>
+          event.type === 'damage' &&
+          event.sourceActorId?.teamId === beforeUnit.teamId &&
+          event.sourceActorId.unitId === beforeUnit.unitId,
+      )
+      .reduce((total, event) => total + BigInt(event.amount ?? 0), 0n);
+    const expectedLifeDamage = (
+      BigInt(beforeLife.damageDealt) + lifeCreditedDamage
+    ).toString();
+    const expectedUnitDamage = (
+      BigInt(beforeUnit.damageDealt) + unitCreditedDamage
+    ).toString();
+    if (
+      afterLife.spawnedAtTick !== beforeLife.spawnedAtTick ||
+      afterLife.cooldown !== expectedCooldown ||
+      afterLife.energy !== expectedEnergy ||
+      afterLife.previousActionResult !==
+        turn?.actionResolution.result ||
+      afterLife.health !== expectedHealth ||
+      afterLife.damageDealt !== expectedLifeDamage ||
+      afterUnit.damageDealt !== expectedUnitDamage
+    ) {
+      fail(
+        `${path}.postState`,
+        'pending transitions must preserve same-life state while normal damage, cooldown, energy, and result phases continue',
+      );
+    }
+
+    if (transition.completesAtTick === tick.tick) {
+      const change = changed[0];
+      if (
+        changed.length !== 1 ||
+        !change ||
+        targetForm === undefined ||
+        afterLife.formId !== transition.toFormId ||
+        afterLife.pendingFormTransition !== null ||
+        afterLife.health !== expectedHealth ||
+        change.newHealth !== expectedHealth ||
+        change.from === null ||
+        !samePosition(change.from, afterLife.position) ||
+        change.fromFacing !== afterLife.facing ||
+        tick.resolution.events.indexOf(change) <= lastObjectiveIndex
+      ) {
+        fail(
+          `${path}.postState`,
+          'due transition must complete after objective with canonical health gain',
+        );
+      }
+    } else if (
+      transition.completesAtTick > tick.tick &&
+      (changed.length !== 0 ||
+        afterLife.formId !== transition.fromFormId ||
+        !sameV2FormTransition(
+          afterLife.pendingFormTransition,
+          transition,
+        ))
+    ) {
+      fail(
+        `${path}.postState`,
+        'future transition must remain pending in its source form',
+      );
+    }
+  }
+
+  if (
+    formEvents.some((event) => !accountedEventIds.has(event.eventId))
+  ) {
+    fail(`${path}.resolution.events`, 'contains an orphan form event');
+  }
+}
+
+function validateV2DamageAttributionTick(
+  tick: V2.ReplayV2Tick,
+  matchContract: V2.ReplayV2MatchContract,
+  path: string,
+): void {
+  const stableUnitIds = new Set(
+    matchContract.topology.unitSlots.map(
+      (unit) => `${unit.teamId}:${unit.unitId}`,
+    ),
+  );
+  const hasStableUnit = (actorId: V2.ReplayV2ActorId): boolean =>
+    stableUnitIds.has(`${actorId.teamId}:${actorId.unitId}`);
+  const tickStartLives = new Map(
+    tick.tickStart.state.teams
+      .flatMap((team) => team.units)
+      .flatMap((unit) => unit.activeLife ? [unit.activeLife] : [])
+      .map((life) => [actorIdValue(life.actorId), life]),
+  );
+  const combatPositions = new Map(
+    [...tickStartLives].map(([actorKey, life]) => [
+      actorKey,
+      { ...life.position },
+    ]),
+  );
+  for (const move of tick.resolution.events) {
+    if (
+      move.type === 'move' &&
+      move.sourceActorId !== null &&
+      move.to !== null
+    ) {
+      const moverKey = actorIdValue(move.sourceActorId);
+      if (combatPositions.has(moverKey)) {
+        combatPositions.set(moverKey, { ...move.to });
+      }
+    }
+  }
+
+  const projectileOwners = new Map<string, string>();
+  for (const projectile of [
+    ...tick.tickStart.state.projectiles,
+    ...tick.postState.projectiles,
+  ]) {
+    if (!hasStableUnit(projectile.ownerActorId)) {
+      fail(
+        `${path}.projectiles`,
+        'projectile owner must reference a stable unit in contract topology',
+      );
+    }
+  }
+  for (const projectile of tick.tickStart.state.projectiles) {
+    projectileOwners.set(
+      projectile.projectileId,
+      actorIdValue(projectile.ownerActorId),
+    );
+  }
+  for (const traversal of tick.resolution.projectileTraversals) {
+    if (!hasStableUnit(traversal.ownerActorId)) {
+      fail(
+        `${path}.resolution.projectileTraversals`,
+        'projectile traversal owner must reference a stable unit in contract topology',
+      );
+    }
+    const ownerKey = actorIdValue(traversal.ownerActorId);
+    const existingOwner = projectileOwners.get(
+      traversal.projectileId,
+    );
+    if (
+      existingOwner !== undefined &&
+      existingOwner !== ownerKey
+    ) {
+      fail(
+        `${path}.resolution.projectileTraversals`,
+        'projectile traversal changed its exact firing-life owner',
+      );
+    }
+    projectileOwners.set(traversal.projectileId, ownerKey);
+  }
+
+  const remainingHealth = new Map(
+    [...tickStartLives].map(([actorKey, life]) => [
+      actorKey,
+      life.health,
+    ]),
+  );
+  const lastDamageByTarget = new Map<
+    string,
+    V2.ReplayV2Event
+  >();
+  const resolutionEvents = tick.resolution.events;
+  const damageEvents = resolutionEvents.filter(
+    (event) => event.type === 'damage',
+  );
+  for (const damage of damageEvents) {
+    const targetKey =
+      damage.targetActorId === null
+        ? null
+        : actorIdValue(damage.targetActorId);
+    const sourceKey =
+      damage.sourceActorId === null
+        ? null
+        : actorIdValue(damage.sourceActorId);
+    const priorHealth =
+      targetKey === null
+        ? undefined
+        : remainingHealth.get(targetKey);
+    const targetPosition =
+      targetKey === null
+        ? undefined
+        : combatPositions.get(targetKey);
+    const projectileOwner =
+      damage.projectileId === null
+        ? undefined
+        : projectileOwners.get(damage.projectileId);
+    const expectedAmount =
+      priorHealth === undefined
+        ? undefined
+        : Math.min(
+            matchContract.rules.projectiles.damagePerHit,
+            priorHealth,
+          );
+    if (
+      damage.targetActorId === null ||
+      damage.sourceActorId === null ||
+      damage.projectileId === null ||
+      damage.amount === null ||
+      damage.newHealth === null ||
+      targetKey === null ||
+      sourceKey === null ||
+      priorHealth === undefined ||
+      targetPosition === undefined ||
+      projectileOwner !== sourceKey ||
+      !hasStableUnit(damage.sourceActorId) ||
+      damage.teamId !== damage.targetActorId.teamId ||
+      damage.from === null ||
+      !samePosition(damage.from, targetPosition) ||
+      damage.to === null ||
+      !samePosition(damage.to, targetPosition) ||
+      damage.amount !== expectedAmount ||
+      damage.amount <= 0 ||
+      damage.newHealth !== priorHealth - damage.amount
+    ) {
+      fail(
+        `${path}.resolution.events`,
+        "Damage must form an exact per-target health chain from a projectile's exact firing life",
+      );
+    }
+    remainingHealth.set(targetKey, damage.newHealth);
+    lastDamageByTarget.set(targetKey, damage);
+  }
+
+  const destroyedEvents = resolutionEvents.filter(
+    (event) => event.type === 'destroyed',
+  );
+  const postLives = new Map(
+    tick.postState.teams
+      .flatMap((team) => team.units)
+      .flatMap((unit) => unit.activeLife ? [unit.activeLife] : [])
+      .map((life) => [actorIdValue(life.actorId), life]),
+  );
+  const beforeUnits = new Map(
+    tick.tickStart.state.teams
+      .flatMap((team) => team.units)
+      .map((unit) => [
+        `${unit.teamId}:${unit.unitId}`,
+        unit,
+      ]),
+  );
+  const afterUnits = new Map(
+    tick.postState.teams
+      .flatMap((team) => team.units)
+      .map((unit) => [
+        `${unit.teamId}:${unit.unitId}`,
+        unit,
+      ]),
+  );
+  for (const [actorKey, health] of remainingHealth) {
+    const destroyed = destroyedEvents.filter(
+      (event) =>
+        event.targetActorId !== null &&
+        actorIdValue(event.targetActorId) === actorKey,
+    );
+    if (health > 0) {
+      if (destroyed.length !== 0) {
+        fail(
+          `${path}.resolution.events`,
+          'surviving health cannot emit Destroyed',
+        );
+      }
+      const formChangesAfterHealthResolution =
+        resolutionEvents.some(
+          (event) =>
+            event.type === 'form-changed' &&
+            event.sourceActorId !== null &&
+            actorIdValue(event.sourceActorId) === actorKey,
+        );
+      if (
+        !formChangesAfterHealthResolution &&
+        postLives.get(actorKey)?.health !== health
+      ) {
+        fail(
+          `${path}.postState`,
+          'surviving post-state health must equal its exact Damage chain',
+        );
+      }
+      continue;
+    }
+
+    const destruction = destroyed[0];
+    const fatalDamage = lastDamageByTarget.get(actorKey);
+    if (
+      destroyed.length !== 1 ||
+      !destruction ||
+      !fatalDamage ||
+      (destruction.sourceActorId === null
+        ? null
+        : actorIdValue(destruction.sourceActorId)) !==
+        (fatalDamage.sourceActorId === null
+          ? null
+          : actorIdValue(fatalDamage.sourceActorId)) ||
+      destruction.projectileId !== fatalDamage.projectileId ||
+      destruction.newHealth !== 0 ||
+      resolutionEvents.indexOf(destruction) <=
+        resolutionEvents.indexOf(fatalDamage)
+    ) {
+      fail(
+        `${path}.resolution.events`,
+        'zero-health target must emit one later Destroyed event with the exact fatal projectile cause',
+      );
+    }
+
+    const actorId = destruction.targetActorId!;
+    const unitKey = `${actorId.teamId}:${actorId.unitId}`;
+    const beforeUnit = beforeUnits.get(unitKey)!;
+    const afterUnit = afterUnits.get(unitKey)!;
+    const prime = actorId.unitId === 0;
+    const lifecycle =
+      matchContract.rules.frontlineDefinition!.lifecycle;
+    const dueTick =
+      tick.tick +
+      1 +
+      (prime
+        ? lifecycle.primeRespawnTicks
+        : lifecycle.childRebuildTicks);
+    const expectedStatus = prime
+      ? 'respawning'
+      : 'rebuilding';
+    const expectedRespawnAtTick = prime ? dueTick : null;
+    const expectedRebuildReadyAtTick = prime ? null : dueTick;
+    const combatPosition = combatPositions.get(actorKey)!;
+    if (
+      destruction.teamId !== actorId.teamId ||
+      destruction.unitId !== actorId.unitId ||
+      destruction.from === null ||
+      !samePosition(destruction.from, combatPosition) ||
+      destruction.to === null ||
+      !samePosition(destruction.to, combatPosition) ||
+      destruction.lifecycleStatus !== expectedStatus ||
+      destruction.respawnAtTick !== expectedRespawnAtTick ||
+      destruction.rebuildReadyAtTick !==
+        expectedRebuildReadyAtTick ||
+      afterUnit.activeLife !== null ||
+      afterUnit.lifecycleStatus !== expectedStatus ||
+      afterUnit.respawnAtTick !== expectedRespawnAtTick ||
+      afterUnit.rebuildReadyAtTick !==
+        expectedRebuildReadyAtTick ||
+      afterUnit.fabricationAtTick !== null ||
+      afterUnit.reservedSpawn !== null ||
+      afterUnit.pendingSpawnReason !== null ||
+      afterUnit.defaultFormId !== beforeUnit.defaultFormId ||
+      afterUnit.unlockAtTick !== beforeUnit.unlockAtTick ||
+      afterUnit.hasSpawned !== beforeUnit.hasSpawned ||
+      afterUnit.nextLifeId !== beforeUnit.nextLifeId
+    ) {
+      fail(
+        `${path}.postState`,
+        'destruction must apply the exact Prime respawn or child rebuild reset to its stable unit',
+      );
+    }
+  }
+  if (
+    destroyedEvents.some(
+      (event) =>
+        event.targetActorId === null ||
+        !remainingHealth.has(actorIdValue(event.targetActorId)),
+    )
+  ) {
+    fail(
+      `${path}.resolution.events`,
+      'Destroyed must reference a tick-start life',
+    );
+  }
+
+  for (const [unitKey, beforeUnit] of beforeUnits) {
+    const afterUnit = afterUnits.get(unitKey)!;
+    const creditedToUnit = damageEvents
+      .filter(
+        (event) =>
+          event.sourceActorId?.teamId === beforeUnit.teamId &&
+          event.sourceActorId.unitId === beforeUnit.unitId,
+      )
+      .reduce((total, event) => total + BigInt(event.amount ?? 0), 0n);
+    const expectedUnitDamage = (
+      BigInt(beforeUnit.damageDealt) + creditedToUnit
+    ).toString();
+    if (afterUnit.damageDealt !== expectedUnitDamage) {
+      fail(
+        `${path}.postState`,
+        'damage from every firing life must credit its stable unit by actual health removed',
+      );
+    }
+
+    const beforeLife = beforeUnit.activeLife;
+    const afterLife = afterUnit.activeLife;
+    if (
+      !beforeLife ||
+      !afterLife ||
+      actorIdValue(beforeLife.actorId) !==
+        actorIdValue(afterLife.actorId)
+    ) {
+      continue;
+    }
+    const actorKey = actorIdValue(beforeLife.actorId);
+    const creditedToLife = damageEvents
+      .filter(
+        (event) =>
+          event.sourceActorId !== null &&
+          actorIdValue(event.sourceActorId) === actorKey,
+      )
+      .reduce((total, event) => total + BigInt(event.amount ?? 0), 0n);
+    const expectedLifeDamage = (
+      BigInt(beforeLife.damageDealt) + creditedToLife
+    ).toString();
+    if (afterLife.damageDealt !== expectedLifeDamage) {
+      fail(
+        `${path}.postState`,
+        'damage must credit only the exact surviving firing life',
+      );
+    }
+  }
+
+  for (const [state, phase] of [
+    [tick.tickStart.state, 'tickStart.state'],
+    [tick.postState, 'postState'],
+  ] as const) {
+    for (const team of state.teams) {
+      const expectedTeamDamage = team.units
+        .reduce(
+          (total, unit) => total + BigInt(unit.damageDealt),
+          0n,
+        )
+        .toString();
+      if (team.damageDealt !== expectedTeamDamage) {
+        fail(
+          `${path}.${phase}`,
+          'team damage must equal its stable-unit damage aggregate',
+        );
+      }
+    }
+  }
+}
+
+function validateV2TurretShotTick(
+  tick: V2.ReplayV2Tick,
+  matchContract: V2.ReplayV2MatchContract,
+  path: string,
+): void {
+  const turretFire =
+    matchContract.rules.frontlineDefinition!.turretFire;
+  const turretForm = matchContract.rules.forms.find(
+    (form) => form.id === turretFire.formId,
+  )!;
+  const tickStartLives = new Map(
+    tick.tickStart.state.teams
+      .flatMap((team) => team.units)
+      .flatMap((unit) => unit.activeLife ? [unit.activeLife] : [])
+      .map((life) => [actorIdValue(life.actorId), life]),
+  );
+  const combatPositions = new Map(
+    [...tickStartLives].map(([actorKey, life]) => [
+      actorKey,
+      { ...life.position },
+    ]),
+  );
+  for (const move of tick.resolution.events) {
+    if (
+      move.type === 'move' &&
+      move.sourceActorId !== null &&
+      move.to !== null
+    ) {
+      const moverKey = actorIdValue(move.sourceActorId);
+      if (combatPositions.has(moverKey)) {
+        combatPositions.set(moverKey, { ...move.to });
+      }
+    }
+  }
+  const postProjectiles = new Map(
+    tick.postState.projectiles.map((projectile) => [
+      projectile.projectileId,
+      projectile,
+    ]),
+  );
+  const tickStartProjectileIds = new Set(
+    tick.tickStart.state.projectiles.map(
+      (projectile) => projectile.projectileId,
+    ),
+  );
+  const shotEvents = tick.resolution.events.filter(
+    (event) =>
+      event.type === 'shot' &&
+      event.actionId === turretFire.actionId,
+  );
+  const shotTurns = tick.actors.filter(
+    (turn) =>
+      turn.actionResolution.validatedActionId ===
+      turretFire.actionId,
+  );
+  if (shotEvents.length !== shotTurns.length) {
+    fail(
+      `${path}.resolution.events`,
+      'every validated shoot-direction resolution must emit exactly one turret Shot event',
+    );
+  }
+
+  for (const turn of shotTurns) {
+    const actorKey = actorIdValue(turn.actorId);
+    const actorShots = shotEvents.filter(
+      (event) =>
+        event.sourceActorId !== null &&
+        actorIdValue(event.sourceActorId) === actorKey,
+    );
+    const shot = actorShots[0];
+    const shooter = tickStartLives.get(actorKey);
+    const heading =
+      turn.actionResolution.validatedPayload?.launchHeading;
+    if (
+      actorShots.length !== 1 ||
+      !shot ||
+      !shooter ||
+      shooter.formId !== turretFire.formId ||
+      turn.actionResolution.result !== 'success' ||
+      heading === null ||
+      heading === undefined ||
+      shot.projectileHeading !== heading
+    ) {
+      fail(
+        `${path}.resolution.events`,
+        'turret Shot must originate from its matching successful active-turret resolution',
+      );
+    }
+
+    const [dx, dy] = v2HeadingVector(heading);
+    const spawn = {
+      x: shooter.position.x + dx,
+      y: shooter.position.y + dy,
+    };
+    const wall = (position: V2.ReplayV2Position): boolean =>
+      position.x < 0 ||
+      position.y < 0 ||
+      position.x >= matchContract.map.width ||
+      position.y >= matchContract.map.height ||
+      matchContract.map.tileRows[position.y]?.[position.x] === '#';
+    const blocked =
+      wall(spawn) ||
+      (dx !== 0 &&
+        dy !== 0 &&
+        (wall({
+          x: shooter.position.x + dx,
+          y: shooter.position.y,
+        }) ||
+          wall({
+            x: shooter.position.x,
+            y: shooter.position.y + dy,
+          })));
+    const newOwnerTraversalIds = [
+      ...new Set(
+        tick.resolution.projectileTraversals
+          .filter(
+            (traversal) =>
+              !tickStartProjectileIds.has(
+                traversal.projectileId,
+              ) &&
+              actorIdValue(traversal.ownerActorId) === actorKey,
+          )
+          .map((traversal) => traversal.projectileId),
+      ),
+    ];
+    const newOwnerPostProjectileIds = [
+      ...new Set(
+        tick.postState.projectiles
+          .filter(
+            (projectile) =>
+              !tickStartProjectileIds.has(
+                projectile.projectileId,
+              ) &&
+              actorIdValue(projectile.ownerActorId) === actorKey,
+          )
+          .map((projectile) => projectile.projectileId),
+      ),
+    ];
+    if (
+      shot.from === null ||
+      !samePosition(shot.from, shooter.position) ||
+      shot.to === null ||
+      !samePosition(shot.to, spawn) ||
+      shot.fromFacing !== shooter.facing ||
+      shot.toFacing !== shooter.facing
+    ) {
+      fail(
+        `${path}.resolution.events`,
+        'turret Shot must retain its absolute-heading launch tile and unchanged body facing',
+      );
+    }
+
+    if (blocked) {
+      if (
+        shot.projectileId !== null ||
+        shot.targetActorId !== null ||
+        newOwnerTraversalIds.length !== 0 ||
+        newOwnerPostProjectileIds.length !== 0
+      ) {
+        fail(
+          `${path}.resolution`,
+          'wall- or corner-blocked turret launch cannot create a projectile or traversal',
+        );
+      }
+    } else {
+      if (shot.projectileId === null) {
+        fail(
+          `${path}.resolution.events`,
+          'unblocked turret launch requires a projectile ID',
+        );
+      }
+      const traversals =
+        tick.resolution.projectileTraversals.filter(
+          (traversal) =>
+            traversal.projectileId === shot.projectileId,
+        );
+      const traversal = traversals[0];
+      if (
+        traversals.length !== 1 ||
+        !traversal ||
+        actorIdValue(traversal.ownerActorId) !== actorKey ||
+        traversal.launchDirection !== shooter.facing ||
+        !samePosition(traversal.from, shooter.position) ||
+        traversal.path.length !== 1 ||
+        !samePosition(traversal.path[0]!, spawn) ||
+        traversal.heading !== heading ||
+        traversal.shotProgram !== null ||
+        traversal.programmedPath !== null
+      ) {
+        fail(
+          `${path}.resolution.projectileTraversals`,
+          'turret launch must create one one-tile straight non-programmed traversal',
+        );
+      }
+      const occupyingLife = [...tickStartLives.values()].find(
+        (life) =>
+          actorIdValue(life.actorId) !== actorKey &&
+          samePosition(
+            combatPositions.get(actorIdValue(life.actorId))!,
+            spawn,
+          ),
+      );
+      const alliedCombat =
+        matchContract.rules.frontlineDefinition!.alliedCombat;
+      const ignoredAlly =
+        occupyingLife !== undefined &&
+        occupyingLife.actorId.teamId === turn.actorId.teamId &&
+        !alliedCombat.friendlyFireEnabled &&
+        !alliedCombat.alliedProjectilesBlock;
+      const contact = ignoredAlly ? undefined : occupyingLife;
+      const shouldPersist =
+        contact === undefined &&
+        matchContract.rules.projectiles.maxTravelTiles !== 1;
+      const persisted = postProjectiles.get(shot.projectileId);
+      if (
+        tickStartProjectileIds.has(shot.projectileId) ||
+        !sameStrings(newOwnerTraversalIds, [shot.projectileId]) ||
+        !sameStrings(
+          newOwnerPostProjectileIds,
+          shouldPersist ? [shot.projectileId] : [],
+        ) ||
+        !sameNullableActorId(
+          shot.targetActorId,
+          contact?.actorId ?? null,
+        ) ||
+        (persisted !== undefined) !== shouldPersist ||
+        (persisted !== undefined &&
+          (actorIdValue(persisted.ownerActorId) !== actorKey ||
+            persisted.launchDirection !== shooter.facing ||
+            persisted.heading !== heading ||
+            persisted.shotProgram !== null ||
+            persisted.programmedPath !== null ||
+            !samePosition(persisted.position, spawn)))
+      ) {
+        fail(
+          `${path}.postState.projectiles`,
+          'turret projectile persistence and spawn contact must match public range and allied-contact rules',
+        );
+      }
+    }
+
+    const postUnit = tick.postState.teams
+      .flatMap((team) => team.units)
+      .find(
+        (unit) =>
+          unit.teamId === turn.actorId.teamId &&
+          unit.unitId === turn.actorId.unitId,
+      )!;
+    const postLife =
+      postUnit.activeLife &&
+      actorIdValue(postUnit.activeLife.actorId) === actorKey
+        ? postUnit.activeLife
+        : null;
+    if (!postLife) continue;
+
+    let expectedEnergy = shooter.energy;
+    const energyRules = matchContract.rules.energy;
+    if (energyRules.enabled) {
+      if (expectedEnergy === null) {
+        fail(
+          `${path}.tickStart.state`,
+          'enabled turret energy requires a tick-start value',
+        );
+      }
+      expectedEnergy -= energyRules.shotEnergyCost;
+      if (
+        energyRules.regenerationIntervalTicks > 0 &&
+        (tick.tick + 1) % energyRules.regenerationIntervalTicks === 0 &&
+        expectedEnergy < energyRules.maxEnergy
+      ) {
+        expectedEnergy = Math.min(
+          energyRules.maxEnergy,
+          expectedEnergy + energyRules.regenerationAmount,
+        );
+      }
+    }
+    const lastDamage = tick.resolution.events
+      .filter(
+        (event) =>
+          event.type === 'damage' &&
+          event.targetActorId !== null &&
+          actorIdValue(event.targetActorId) === actorKey,
+      )
+      .at(-1);
+    const expectedHealth =
+      lastDamage?.newHealth ?? shooter.health;
+    const creditedDamage = tick.resolution.events
+      .filter(
+        (event) =>
+          event.type === 'damage' &&
+          event.sourceActorId !== null &&
+          actorIdValue(event.sourceActorId) === actorKey,
+      )
+      .reduce((total, event) => total + BigInt(event.amount ?? 0), 0n);
+    const expectedDamage = (
+      BigInt(shooter.damageDealt) + creditedDamage
+    ).toString();
+    if (
+      postLife.formId !== shooter.formId ||
+      !sameV2FormTransition(
+        postLife.pendingFormTransition,
+        shooter.pendingFormTransition,
+      ) ||
+      !samePosition(postLife.position, shooter.position) ||
+      postLife.facing !== shooter.facing ||
+      postLife.health !== expectedHealth ||
+      postLife.cooldown !== turretForm.shootCooldownTicks ||
+      postLife.energy !== expectedEnergy ||
+      postLife.damageDealt !== expectedDamage ||
+      postLife.previousActionResult !== 'success' ||
+      postLife.spawnedAtTick !== shooter.spawnedAtTick
+    ) {
+      fail(
+        `${path}.postState`,
+        'surviving turret fire must preserve its exact life while applying standard health, damage, cooldown, energy, and action-result phases',
+      );
+    }
+  }
+}
+
+function v2HeadingVector(
+  heading: V2.ReplayV2ProjectileHeading,
+): readonly [number, number] {
+  switch (heading) {
+    case 'north':
+      return [0, -1];
+    case 'north-east':
+      return [1, -1];
+    case 'east':
+      return [1, 0];
+    case 'south-east':
+      return [1, 1];
+    case 'south':
+      return [0, 1];
+    case 'south-west':
+      return [-1, 1];
+    case 'west':
+      return [-1, 0];
+    case 'north-west':
+      return [-1, -1];
   }
 }
 
@@ -2623,8 +4255,12 @@ function validateV2PayloadForAction(
   path: string,
 ): void {
   if (!payload) {
-    if (action.kind === 'fabrication') {
-      fail(path, 'fabrication requires an explicit unit target');
+    if (
+      action.kind === 'fabrication' ||
+      action.id === 'transform' ||
+      action.id === 'shoot-direction'
+    ) {
+      fail(path, `${action.id} requires an explicit payload`);
     }
     return;
   }
@@ -2632,6 +4268,8 @@ function validateV2PayloadForAction(
   if (
     (payload.shotProgram !== null && !kinds.has('shot-program')) ||
     (payload.direction !== null && !kinds.has('direction')) ||
+    (payload.launchHeading !== null &&
+      !kinds.has('projectile-heading')) ||
     (payload.unitTarget !== null && !kinds.has('unit-target')) ||
     (payload.formTargetId !== null && !kinds.has('form-target'))
   ) {
@@ -2664,11 +4302,35 @@ function validateV2PayloadForAction(
       payload.unitTarget.unitId === 0 ||
       payload.shotProgram !== null ||
       payload.direction !== null ||
+      payload.launchHeading !== null ||
       payload.formTargetId !== null)
   ) {
     fail(
       path,
       'fabrication requires only an own-team unit target',
+    );
+  }
+  if (
+    action.id === 'transform' &&
+    (payload.formTargetId === null ||
+      payload.shotProgram !== null ||
+      payload.direction !== null ||
+      payload.launchHeading !== null ||
+      payload.unitTarget !== null)
+  ) {
+    fail(path, 'transform requires only an explicit form target');
+  }
+  if (
+    action.id === 'shoot-direction' &&
+    (payload.launchHeading === null ||
+      payload.shotProgram !== null ||
+      payload.direction !== null ||
+      payload.unitTarget !== null ||
+      payload.formTargetId !== null)
+  ) {
+    fail(
+      path,
+      'shoot-direction requires only an explicit projectile heading',
     );
   }
 }
@@ -2708,6 +4370,7 @@ function sameV2ActionPayload(
   if (left === null || right === null) return left === right;
   return (
     left.direction === right.direction &&
+    left.launchHeading === right.launchHeading &&
     left.formTargetId === right.formTargetId &&
     sameV2UnitTarget(left.unitTarget, right.unitTarget) &&
     sameV2ShotProgram(left.shotProgram, right.shotProgram)
@@ -2820,7 +4483,7 @@ function sameV2UnitState(
   return (
     left.teamId === right.teamId &&
     left.unitId === right.unitId &&
-    left.formId === right.formId &&
+    left.defaultFormId === right.defaultFormId &&
     left.lifecycleStatus === right.lifecycleStatus &&
     left.respawnAtTick === right.respawnAtTick &&
     left.unlockAtTick === right.unlockAtTick &&
@@ -2842,6 +4505,7 @@ function sameV2LifeState(
   if (left === null || right === null) return left === right;
   return (
     actorIdValue(left.actorId) === actorIdValue(right.actorId) &&
+    left.formId === right.formId &&
     samePosition(left.position, right.position) &&
     left.facing === right.facing &&
     left.health === right.health &&
@@ -2849,8 +4513,29 @@ function sameV2LifeState(
     left.energy === right.energy &&
     left.damageDealt === right.damageDealt &&
     left.previousActionResult === right.previousActionResult &&
-    left.spawnedAtTick === right.spawnedAtTick
+    left.spawnedAtTick === right.spawnedAtTick &&
+    sameV2FormTransition(
+      left.pendingFormTransition,
+      right.pendingFormTransition,
+    )
   );
+}
+
+function sameV2FormTransition(
+  left: V2.ReplayV2FormTransition | null,
+  right: V2.ReplayV2FormTransition | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return (
+    left.fromFormId === right.fromFormId &&
+    left.toFormId === right.toFormId &&
+    left.startedAtTick === right.startedAtTick &&
+    left.completesAtTick === right.completesAtTick
+  );
+}
+
+function v2UnitEffectiveFormId(unit: V2.ReplayV2UnitState): string {
+  return unit.activeLife?.formId ?? unit.defaultFormId;
 }
 
 function sameV2ProjectileSequences(
@@ -2981,12 +4666,17 @@ function validateV2TerminalUnits(
         unitResult.teamId !== teamResult.teamId ||
         !expectedUnitKeys.has(key) ||
         !worldUnit ||
-        unitResult.formId !== worldUnit.formId ||
+        unitResult.defaultFormId !== worldUnit.defaultFormId ||
+        unitResult.formId !== v2UnitEffectiveFormId(worldUnit) ||
         unitResult.lifecycleStatus !== worldUnit.lifecycleStatus ||
         unitResult.health !== (worldUnit.activeLife?.health ?? 0) ||
         unitResult.damageDealt !== worldUnit.damageDealt ||
         (unitResult.activeActorId === null) !==
           (worldUnit.activeLife === null) ||
+        !sameV2FormTransition(
+          unitResult.pendingFormTransition,
+          worldUnit.activeLife?.pendingFormTransition ?? null,
+        ) ||
         (unitResult.activeActorId !== null &&
           worldUnit.activeLife !== null &&
           actorIdValue(unitResult.activeActorId) !==
@@ -3036,6 +4726,7 @@ function validateV2ObjectiveTeamReferences(
 
 function validateV2Aliases(
   turn: V2.ReplayV2ActorTurn,
+  observableEventsById: ReadonlyMap<string, V2.ReplayV2Event>,
   path: string,
 ): void {
   ensureUnique(
@@ -3075,11 +4766,17 @@ function validateV2Aliases(
       alias.actorId,
     ]),
   );
-  const projectiles = new Set(
-    turn.aliases.projectiles.map((alias) => alias.projectileHandle),
+  const projectiles = new Map(
+    turn.aliases.projectiles.map((alias) => [
+      alias.projectileHandle,
+      alias.projectileId,
+    ]),
   );
-  const events = new Set(
-    turn.aliases.events.map((alias) => alias.eventHandle),
+  const events = new Map(
+    turn.aliases.events.map((alias) => [
+      alias.eventHandle,
+      alias.eventId,
+    ]),
   );
   const referencedLives = new Set<string>();
   const referencedProjectiles = new Set<string>();
@@ -3087,7 +4784,7 @@ function validateV2Aliases(
   const requireEnemy = (
     actor: V2.ReplayV2ObservedEnemyActorRef,
     actorPath: string,
-  ) => {
+  ): V2.ReplayV2ActorId => {
     referencedLives.add(actor.lifeHandle);
     const exact = lives.get(actor.lifeHandle);
     if (
@@ -3101,6 +4798,30 @@ function validateV2Aliases(
         'enemy life handle has no non-allied matching alias',
       );
     }
+    return exact;
+  };
+  const requireEvent = (
+    eventHandle: string,
+    sourceTick: number,
+    type: V2.ReplayV2ObservedEventType,
+    eventPath: string,
+  ): V2.ReplayV2Event => {
+    referencedEvents.add(eventHandle);
+    const eventId = events.get(eventHandle);
+    const authoritative = eventId
+      ? observableEventsById.get(eventId)
+      : undefined;
+    if (
+      !authoritative ||
+      authoritative.tick !== sourceTick ||
+      authoritative.type !== type
+    ) {
+      fail(
+        eventPath,
+        'event handle must resolve to an observable authoritative event with exact tick and type',
+      );
+    }
+    return authoritative;
   };
 
   turn.observation.enemies.forEach((enemy, index) =>
@@ -3140,13 +4861,13 @@ function validateV2Aliases(
     }
   });
   turn.observation.visibleEvents.forEach((event, index) => {
-    referencedEvents.add(event.eventHandle);
-    if (!events.has(event.eventHandle)) {
-      fail(
-        `${path}.observation.visibleEvents[${index}].eventHandle`,
-        'event handle has no matching alias',
-      );
-    }
+    const eventPath = `${path}.observation.visibleEvents[${index}]`;
+    const authoritative = requireEvent(
+      event.eventHandle,
+      event.sourceTick,
+      event.type,
+      `${eventPath}.eventHandle`,
+    );
     if (
       event.projectileHandle &&
       !projectiles.has(event.projectileHandle)
@@ -3168,18 +4889,133 @@ function validateV2Aliases(
     if (event.enemyActor) {
       requireEnemy(
         event.enemyActor,
-        `${path}.observation.visibleEvents[${index}].enemyActor`,
+        `${eventPath}.enemyActor`,
+      );
+    }
+    const expectedActor =
+      authoritative.type === 'damage' ||
+      authoritative.type === 'destroyed'
+        ? authoritative.targetActorId
+        : authoritative.sourceActorId;
+    if (expectedActor === null) {
+      if (
+        event.alliedActorId !== null ||
+        event.enemyActor !== null
+      ) {
+        fail(
+          eventPath,
+          'an actorless authoritative event cannot gain an observed actor',
+        );
+      }
+    } else if (expectedActor.teamId === turn.actorId.teamId) {
+      if (
+        event.alliedActorId === null ||
+        actorIdValue(event.alliedActorId) !==
+          actorIdValue(expectedActor) ||
+        event.enemyActor !== null
+      ) {
+        fail(
+          eventPath,
+          'observed allied event actor must equal its authoritative actor',
+        );
+      }
+    } else if (
+      event.enemyActor === null ||
+      actorIdValue(
+        requireEnemy(event.enemyActor, `${eventPath}.enemyActor`),
+      ) !== actorIdValue(expectedActor) ||
+      event.alliedActorId !== null
+    ) {
+      fail(
+        eventPath,
+        'observed enemy event actor must resolve to its authoritative actor',
+      );
+    }
+
+    const authoritativeProjectileId = authoritative.projectileId;
+    if (
+      authoritativeProjectileId === null
+        ? event.projectileHandle !== null
+        : event.projectileHandle === null ||
+          projectiles.get(event.projectileHandle) !==
+            authoritativeProjectileId
+    ) {
+      fail(
+        `${eventPath}.projectileHandle`,
+        'must resolve exactly to the authoritative event projectile',
+      );
+    }
+
+    const exposesTransition =
+      authoritative.type === 'form-transition-started' ||
+      authoritative.type === 'form-changed' ||
+      authoritative.type === 'form-transition-cancelled';
+    const exposesAction =
+      authoritative.type === 'shot' || exposesTransition;
+    const expectedPosition = v2ObservedEventPosition(authoritative);
+    const exposesFacing =
+      authoritative.type === 'turn' ||
+      authoritative.type === 'shot' ||
+      authoritative.type === 'respawned' ||
+      exposesTransition;
+    const exposesHealth =
+      authoritative.type === 'damage' ||
+      authoritative.type === 'destroyed' ||
+      authoritative.type === 'respawned' ||
+      exposesTransition;
+    if (
+      event.teamId !== authoritative.teamId ||
+      !sameNullablePosition(event.position, expectedPosition) ||
+      event.facing !==
+        (exposesFacing
+          ? authoritative.toFacing ?? authoritative.fromFacing
+          : null) ||
+      event.projectileHeading !==
+        (authoritative.type === 'shot'
+          ? authoritative.projectileHeading
+          : null) ||
+      event.fromFormId !==
+        (exposesTransition ? authoritative.fromFormId : null) ||
+      event.toFormId !==
+        (exposesTransition ? authoritative.toFormId : null) ||
+      event.formTransitionStartedAtTick !==
+        (exposesTransition
+          ? authoritative.formTransitionStartedAtTick
+          : null) ||
+      event.formTransitionCompletesAtTick !==
+        (exposesTransition
+          ? authoritative.formTransitionCompletesAtTick
+          : null) ||
+      event.actionId !==
+        (exposesAction ? authoritative.actionId : null) ||
+      event.actionCode !==
+        (exposesAction ? authoritative.actionCode : null) ||
+      event.formTargetId !==
+        (exposesTransition
+          ? authoritative.actionPayload?.formTargetId ?? null
+          : null) ||
+      event.actionResult !==
+        (exposesAction ? authoritative.actionResult : null) ||
+      event.amount !==
+        (authoritative.type === 'damage'
+          ? authoritative.amount
+          : null) ||
+      event.newHealth !==
+        (exposesHealth ? authoritative.newHealth : null)
+    ) {
+      fail(
+        eventPath,
+        'observed event state, action, heading, and form causality must exactly match its authoritative event',
       );
     }
   });
   turn.observation.heardSounds?.forEach((sound, index) => {
-    referencedEvents.add(sound.eventHandle);
-    if (!events.has(sound.eventHandle)) {
-      fail(
-        `${path}.observation.heardSounds[${index}].eventHandle`,
-        'event handle has no matching alias',
-      );
-    }
+    requireEvent(
+      sound.eventHandle,
+      sound.sourceTick,
+      sound.type,
+      `${path}.observation.heardSounds[${index}].eventHandle`,
+    );
   });
   if (!sameStringSet(new Set(lives.keys()), referencedLives)) {
     fail(
@@ -3187,17 +5023,51 @@ function validateV2Aliases(
       'must exactly match enemy handles referenced by the observation',
     );
   }
-  if (!sameStringSet(projectiles, referencedProjectiles)) {
+  if (
+    !sameStringSet(
+      new Set(projectiles.keys()),
+      referencedProjectiles,
+    )
+  ) {
     fail(
       `${path}.aliases.projectiles`,
       'must exactly match projectile handles referenced by the observation',
     );
   }
-  if (!sameStringSet(events, referencedEvents)) {
+  if (
+    !sameStringSet(new Set(events.keys()), referencedEvents)
+  ) {
     fail(
       `${path}.aliases.events`,
       'must exactly match event handles referenced by the observation',
     );
+  }
+}
+
+function v2ObservedEventPosition(
+  event: V2.ReplayV2Event,
+): V2.ReplayV2Position | null {
+  switch (event.type) {
+    case 'respawned':
+    case 'fabrication-queued':
+    case 'fabricated':
+      return event.to;
+    case 'turn':
+    case 'move':
+    case 'move-blocked':
+    case 'shot':
+    case 'damage':
+    case 'destroyed':
+    case 'form-transition-started':
+    case 'form-changed':
+    case 'form-transition-cancelled':
+      return event.from;
+    case 'fabrication-unlocked':
+    case 'rebuild-ready':
+    case 'frontline-progress-changed':
+    case 'frontline-position-advanced':
+    case 'base-breached':
+      return null;
   }
 }
 
@@ -3246,11 +5116,12 @@ function validateV2InitialDeployment(
     );
     const hasInitialLife = initial !== undefined;
     if (
-      unit.formId !== expectedFormId ||
+      unit.defaultFormId !== expectedFormId ||
       (unit.unitId === 0) !== hasInitialLife ||
       (initial !== undefined &&
         (initial.formId !== expectedFormId ||
           unit.activeLife === null ||
+          unit.activeLife.formId !== expectedFormId ||
           actorIdValue(unit.activeLife.actorId) !==
             actorIdValue(initial)))
     ) {
@@ -3450,7 +5321,9 @@ function validateV2SpawnedUnit(
     after.hasSpawned &&
     after.damageDealt === before.damageDealt &&
     after.unlockAtTick === before.unlockAtTick &&
-    after.formId === expectedFormId
+    after.defaultFormId === expectedFormId &&
+    life.formId === expectedFormId &&
+    life.pendingFormTransition === null
   );
 }
 
@@ -3510,6 +5383,7 @@ function validateV2WorldRelationships(
   tick: number,
   frontline: V2.ReplayV2FrontlineDefinition | null,
   frontlineMap: V2.ReplayV2FrontlineMapDefinition | null,
+  formsById: ReadonlyMap<string, V2.ReplayV2FormDefinition>,
   path: string,
 ): void {
   ensureUnique(world.teams, (team) => team.teamId, `${path}.teams`);
@@ -3559,9 +5433,9 @@ function validateV2WorldRelationships(
           unit.unitId === 0
             ? frontline.deployment.primeDefaultFormId
             : frontline.deployment.childDefaultFormId;
-        if (unit.formId !== expectedFormId) {
+        if (unit.defaultFormId !== expectedFormId) {
           fail(
-            `${path}.teams.${team.teamId}.units.${unit.unitId}.formId`,
+            `${path}.teams.${team.teamId}.units.${unit.unitId}.defaultFormId`,
             'must equal the deployment default for this stable slot',
           );
         }
@@ -3572,12 +5446,59 @@ function validateV2WorldRelationships(
         `${path}.teams.${team.teamId}.units.${unit.unitId}`,
       );
       if (unit.activeLife) {
-        const actor = unit.activeLife.actorId;
+        const life = unit.activeLife;
+        const actor = life.actorId;
         if (actor.teamId !== unit.teamId || actor.unitId !== unit.unitId) {
           fail(`${path}.teams.units.activeLife`, 'actor/unit identity mismatch');
         }
+        if (
+          frontline &&
+          (unit.unitId === 0
+            ? life.formId !== unit.defaultFormId
+            : life.formId !== unit.defaultFormId &&
+              life.formId !== frontline.anchor.targetFormId)
+        ) {
+          fail(
+            `${path}.teams.${team.teamId}.units.${unit.unitId}.activeLife.formId`,
+            'must be the stable default or the irreversible Anchor target form',
+          );
+        }
+        const currentForm = formsById.get(life.formId);
+        if (
+          !currentForm ||
+          life.health <= 0 ||
+          life.health > currentForm.maxHealth
+        ) {
+          fail(
+            `${path}.teams.${team.teamId}.units.${unit.unitId}.activeLife`,
+            'current form and positive health must match the contract form',
+          );
+        }
+        const pending = life.pendingFormTransition;
+        if (
+          pending &&
+          (!frontline ||
+            life.formId !== pending.fromFormId ||
+            pending.fromFormId !== frontline.anchor.sourceFormId ||
+            pending.toFormId !== frontline.anchor.targetFormId ||
+            pending.completesAtTick !==
+              pending.startedAtTick +
+                frontline.anchor.windupTicks -
+                1 ||
+            pending.startedAtTick < 0 ||
+            pending.startedAtTick >= world.objective.nextTick ||
+            pending.completesAtTick < world.objective.nextTick ||
+            frontlineMap?.anchorForbiddenTiles.some((position) =>
+              sameContractPosition(position, life.position),
+            ))
+        ) {
+          fail(
+            `${path}.teams.${team.teamId}.units.${unit.unitId}.activeLife.pendingFormTransition`,
+            'must preserve the canonical source form and inclusive windup chronology',
+          );
+        }
         actorKeys.push(actorIdValue(actor));
-        const position = `${unit.activeLife.position.x}:${unit.activeLife.position.y}`;
+        const position = `${life.position.x}:${life.position.y}`;
         if (occupied.has(position)) {
           fail(path, 'active unit positions must be unique');
         }
@@ -4143,6 +6064,7 @@ function v1World(
           actionResults.get(state.slot) ?? 'None',
         ),
         spawnedAtTick: 0,
+        pendingFormTransition: null,
         status: lifecycleFromV1(state.status),
       };
     });
@@ -4157,6 +6079,7 @@ function v1World(
       teamKey: replayTeamKey(slot),
       teamId: slot,
       unitId: 0,
+      defaultFormId: 'legacy-mobile',
       formId: 'legacy-mobile',
       lifecycleStatus,
       respawnAtTick: null,
@@ -4328,6 +6251,7 @@ function v1ActorTurn(
             cooldown: null,
             energy: null,
             previousActionResult: null,
+            pendingFormTransition: null,
             observedBy: [identity.actorKey],
           };
         }),
@@ -4381,6 +6305,7 @@ function v1ActorTurn(
         ? {
             shotProgram: submittedProgram,
             direction: null,
+            launchHeading: null,
             unitKey: null,
             formTargetId: null,
           }
@@ -4396,6 +6321,7 @@ function v1ActorTurn(
         ? {
             shotProgram: submittedProgram,
             direction: null,
+            launchHeading: null,
             unitKey: null,
             formTargetId: null,
           }
@@ -4411,6 +6337,7 @@ function v1ActorTurn(
         ? {
             shotProgram: submittedProgram,
             direction: null,
+            launchHeading: null,
             unitKey: null,
             formTargetId: null,
           }
@@ -4421,6 +6348,7 @@ function v1ActorTurn(
         ? {
             shotProgram: submittedProgram,
             direction: null,
+            launchHeading: null,
             unitKey: null,
             formTargetId: null,
           }
@@ -4468,6 +6396,10 @@ function causalEventFromV1(
       : null,
     toFacing: event.toFacing ? directionFromV1(event.toFacing) : null,
     projectileHeading: null,
+    fromFormId: null,
+    toFormId: null,
+    formTransitionStartedAtTick: null,
+    formTransitionCompletesAtTick: null,
     actionPayload: null,
     actionId: null,
     actionCode: null,
@@ -4563,12 +6495,14 @@ function v1TerminalResult(
             unitKey: replayDuelIdentity(bot.slot).unitKey,
             teamId: bot.slot,
             unitId: 0,
+            defaultFormId: 'legacy-mobile',
             formId: 'legacy-mobile',
             lifecycleStatus: lifecycleFromV1(bot.finalStatus),
             activeActor: null,
             activeActorKey: null,
             health: bot.finalHealth,
             damageDealt: String(bot.damageDealt),
+            pendingFormTransition: null,
           },
         ],
         faults: bot.faults,
@@ -4590,6 +6524,7 @@ function observedActorFromState(
     cooldown: state.cooldown,
     energy: state.energy,
     previousActionResult: state.previousActionResult,
+    pendingFormTransition: state.pendingFormTransition,
     observedBy,
   };
 }
@@ -4933,6 +6868,13 @@ function contractFromV2(
             deployment: { ...rules.frontlineDefinition.deployment },
             fabrication: { ...rules.frontlineDefinition.fabrication },
             anchor: { ...rules.frontlineDefinition.anchor },
+            turretFire: {
+              ...rules.frontlineDefinition.turretFire,
+              allowedProjectileHeadings: [
+                ...rules.frontlineDefinition.turretFire
+                  .allowedProjectileHeadings,
+              ],
+            },
             alliedCombat: {
               ...rules.frontlineDefinition.alliedCombat,
             },
@@ -5181,7 +7123,8 @@ function worldFromV2(
         teamKey: replayTeamKey(unit.teamId),
         teamId: unit.teamId,
         unitId: unit.unitId,
-        formId: unit.formId,
+        defaultFormId: unit.defaultFormId,
+        formId: v2UnitEffectiveFormId(unit),
         lifecycleStatus: unit.lifecycleStatus,
         respawnAtTick: unit.respawnAtTick,
         unlockAtTick: unit.unlockAtTick,
@@ -5237,7 +7180,7 @@ function actorStateFromV2(
     identity,
     actorKey: identity.actorKey,
     unitKey: identity.unitKey,
-    formId: unit.formId,
+    formId: life.formId,
     position: copyPosition(life.position),
     facing: life.facing,
     health: life.health,
@@ -5246,6 +7189,9 @@ function actorStateFromV2(
     damageDealt: life.damageDealt,
     previousActionResult: life.previousActionResult,
     spawnedAtTick: life.spawnedAtTick,
+    pendingFormTransition: copyV2FormTransition(
+      life.pendingFormTransition,
+    ),
     status: unit.lifecycleStatus,
   };
 }
@@ -5382,6 +7328,7 @@ function actionPayloadFromV2(
           ? copyShotProgram(payload.shotProgram)
           : null,
         direction: payload.direction,
+        launchHeading: payload.launchHeading,
         unitKey: payload.unitTarget
           ? frontlineUnitKey(
               payload.unitTarget.teamId,
@@ -5438,6 +7385,9 @@ function observationFromV2(
         cooldown: null,
         energy: null,
         previousActionResult: null,
+        pendingFormTransition: copyV2FormTransition(
+          enemy.pendingFormTransition,
+        ),
         observedBy: [...enemy.observedBy]
           .sort(compareActorIdentity)
           .map((actor) => actorIdentityFromV2(actor).actorKey),
@@ -5501,6 +7451,17 @@ function observationFromV2(
         projectileHandle: event.projectileHandle,
         position: event.position ? copyPosition(event.position) : null,
         facing: event.facing,
+        projectileHeading: event.projectileHeading,
+        fromFormId: event.fromFormId,
+        toFormId: event.toFormId,
+        formTransitionStartedAtTick:
+          event.formTransitionStartedAtTick,
+        formTransitionCompletesAtTick:
+          event.formTransitionCompletesAtTick,
+        actionId: event.actionId,
+        actionCode: event.actionCode,
+        formTargetId: event.formTargetId,
+        actionResult: event.actionResult,
         amount: event.amount,
         newHealth: event.newHealth,
         observedBy: [...event.observedBy]
@@ -5562,6 +7523,10 @@ function observationFromV2(
           action.allowedDirections === null
             ? null
             : [...action.allowedDirections],
+        allowedProjectileHeadings:
+          action.allowedProjectileHeadings === null
+            ? null
+            : [...action.allowedProjectileHeadings],
         allowedUnitKeys:
           action.allowedUnitTargets === null
             ? null
@@ -5592,8 +7557,17 @@ function observedSelfFromV2(
     cooldown: observed.cooldown,
     energy: observed.energy,
     previousActionResult: observed.previousActionResult,
+    pendingFormTransition: copyV2FormTransition(
+      observed.pendingFormTransition,
+    ),
     observedBy,
   };
+}
+
+function copyV2FormTransition(
+  transition: V2.ReplayV2FormTransition | null,
+): Model.ReplayFormTransition | null {
+  return transition ? { ...transition } : null;
 }
 
 function eventFromV2(
@@ -5619,6 +7593,12 @@ function eventFromV2(
     fromFacing: event.fromFacing,
     toFacing: event.toFacing,
     projectileHeading: event.projectileHeading,
+    fromFormId: event.fromFormId,
+    toFormId: event.toFormId,
+    formTransitionStartedAtTick:
+      event.formTransitionStartedAtTick,
+    formTransitionCompletesAtTick:
+      event.formTransitionCompletesAtTick,
     actionPayload: actionPayloadFromV2(event.actionPayload),
     actionId: event.actionId,
     actionCode: event.actionCode,
@@ -5685,12 +7665,16 @@ function resultFromV2(result: V2.ReplayV2Result): Model.ReplayTerminalResult {
               unitKey: frontlineUnitKey(unit.teamId, unit.unitId),
               teamId: unit.teamId,
               unitId: unit.unitId,
+              defaultFormId: unit.defaultFormId,
               formId: unit.formId,
               lifecycleStatus: unit.lifecycleStatus,
               activeActor,
               activeActorKey: activeActor?.actorKey ?? null,
               health: unit.health,
               damageDealt: unit.damageDealt,
+              pendingFormTransition: copyV2FormTransition(
+                unit.pendingFormTransition,
+              ),
             };
           }),
         faults: null,

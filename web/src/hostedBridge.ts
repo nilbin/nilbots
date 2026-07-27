@@ -133,6 +133,10 @@ export function replayBridgeMessage(
         canShoot: form.canShoot,
         omnidirectionalVision: form.omnidirectionalVision,
         omnidirectionalShooting: form.omnidirectionalShooting,
+        objectiveWeight: form.objectiveWeight,
+        allowedActionIds: form.allowedActionIds
+          ? [...form.allowedActionIds]
+          : [],
       })),
     },
     result: replay.result
@@ -150,7 +154,11 @@ export function replayBridgeMessage(
               unitKey: unit.unitKey,
               teamId: unit.teamId,
               unitId: unit.unitId,
+              defaultFormId: unit.defaultFormId,
               formId: unit.formId,
+              pendingFormTransition: unit.pendingFormTransition
+                ? { ...unit.pendingFormTransition }
+                : null,
               lifecycleStatus: unit.lifecycleStatus,
               activeActorKey: unit.activeActorKey,
               health: unit.health,

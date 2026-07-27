@@ -1,7 +1,9 @@
 import type {
   ReplayActorLifeKey,
   ReplayActorState,
+  ReplayFormTransition,
   ReplayModel,
+  ReplayProjectileHeading,
   ReplayStableUnitKey,
   ReplayUnitLifecycleStatus,
   ReplayWorldSnapshot,
@@ -73,6 +75,7 @@ export interface UnitPresentation {
   fabricationAtTick: number | null;
   reservedSpawn: { x: number; y: number } | null;
   pendingSpawnReason: string | null;
+  pendingFormTransition: ReplayFormTransition | null;
   health: number;
   maxHealth: number;
   cooldown: number;
@@ -80,6 +83,7 @@ export interface UnitPresentation {
   zoneTicks: number | null;
   holdingObjective: boolean;
   actionId: string | null;
+  actionLaunchHeading: ReplayProjectileHeading | null;
   actionResult: string | null;
   debug: string | null;
   visibleTiles: number;
@@ -166,7 +170,18 @@ function presentUnit(
     after?.actors.find((candidate) => candidate.unitKey === unitKey) ??
     before?.actors.find((candidate) => candidate.unitKey === unitKey) ??
     null;
-  const formId = afterUnit?.formId ?? actor?.formId ?? unit.initialFormId ?? '';
+  const activeActor =
+    after?.actors.find(
+      (candidate) =>
+        candidate.unitKey === unitKey && candidate.status === 'active',
+    ) ??
+    null;
+  const formId =
+    activeActor?.formId ??
+    actor?.formId ??
+    afterUnit?.formId ??
+    unit.initialFormId ??
+    '';
   const form = replay.forms.find(
     (candidate) => candidate.formId === formId,
   );
@@ -175,12 +190,6 @@ function presentUnit(
   const look = botLook(participant?.lookId ?? undefined, visualIndex);
   const status =
     afterUnit?.lifecycleStatus ?? actor?.status ?? 'respawning';
-  const activeActor =
-    after?.actors.find(
-      (candidate) =>
-        candidate.unitKey === unitKey && candidate.status === 'active',
-    ) ??
-    null;
   const position = activeActor?.position ?? actor?.position ?? null;
   const frontlineObjective =
     after?.objective.kind === 'frontline' ? after.objective : null;
@@ -234,6 +243,9 @@ function presentUnit(
       ? { ...afterUnit.reservedSpawn }
       : null,
     pendingSpawnReason: afterUnit?.pendingSpawnReason ?? null,
+    pendingFormTransition: activeActor?.pendingFormTransition
+      ? { ...activeActor.pendingFormTransition }
+      : null,
     health: activeActor?.health ?? (status === 'active' ? (actor?.health ?? 0) : 0),
     maxHealth: form?.maxHealth ?? Math.max(1, actor?.health ?? maxHealthFallback(replay)),
     cooldown: activeActor?.cooldown ?? 0,
@@ -248,6 +260,8 @@ function presentUnit(
         (turn?.actionResolution.validatedActionId === 'wait' &&
           turn.actionResolution.result === 'success')),
     actionId: turn?.actionResolution.chosenActionId ?? null,
+    actionLaunchHeading:
+      turn?.actionResolution.chosenPayload?.launchHeading ?? null,
     actionResult: turn?.actionResolution.result ?? null,
     debug: turn?.runtimeReply.debugMessage ?? null,
     visibleTiles: turn?.observation.visibleTiles.length ?? 0,

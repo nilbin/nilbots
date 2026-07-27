@@ -158,7 +158,10 @@ public class RulesManifestSerializerTests
             RulesManifestSerializer.ToCanonicalJson(allParameterKinds));
 
         Assert.Equal(
-            ["shot-program", "direction", "unit-target", "form-target"],
+            [
+                "shot-program", "direction", "unit-target", "form-target",
+                "projectile-heading",
+            ],
             document.RootElement.GetProperty("actions")
                 .EnumerateArray()
                 .Single(action =>
@@ -224,7 +227,7 @@ public class RulesManifestSerializerTests
                 "teamCount", "participantsPerTeam", "frontlinePositionCount",
                 "initialUnitsPerTeam", "maxUnitsPerTeam", "teamPerception",
                 "capture", "victory", "lifecycle", "deployment",
-                "fabrication", "anchor", "alliedCombat",
+                "fabrication", "anchor", "turretFire", "alliedCombat",
             ],
             rulesRoot.GetProperty("frontlineDefinition")
                 .EnumerateObject()

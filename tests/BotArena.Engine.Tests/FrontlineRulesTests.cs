@@ -61,7 +61,10 @@ public class FrontlineRulesTests
                 0,
                 false,
                 true,
-                false),
+                false)
+            {
+                CanRotate = false,
+            },
             rules.TurretForm);
         Assert.Equal(1, rules.AnchorWindupTicks);
         Assert.Equal(2, rules.AnchorHealthGain);

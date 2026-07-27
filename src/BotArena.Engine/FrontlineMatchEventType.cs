@@ -17,4 +17,7 @@ public enum FrontlineMatchEventType
     FabricationQueued = 11,
     Fabricated = 12,
     RebuildReady = 13,
+    FormTransitionStarted = 14,
+    FormChanged = 15,
+    FormTransitionCancelled = 16,
 }

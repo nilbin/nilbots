@@ -1,6 +1,7 @@
 import type {
   ReplayActorLifeKey,
   ReplayDirection,
+  ReplayFormTransition,
   ReplayModel,
   ReplayStableUnitKey,
   ReplayUnitLifecycleStatus,
@@ -19,6 +20,7 @@ export interface BotPose {
   angle: number;
   health: number;
   cooldown: number;
+  pendingFormTransition: ReplayFormTransition | null;
   status: ReplayUnitLifecycleStatus;
 }
 
@@ -77,16 +79,44 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
         ...start,
         health: 0,
         status: 'destroyed' as const,
-      };
+    };
     const fromAngle = directionAngle(start.facing);
     const rotation = shortestRotation(fromAngle, directionAngle(end.facing));
+    const startedTransitionEvent = replay.ticks[tick].events.find(
+      (event) =>
+        event.type === 'form-transition-started' &&
+        event.sourceActor?.actorKey === start.actorKey &&
+        event.fromFormId !== null &&
+        event.toFormId !== null &&
+        event.formTransitionStartedAtTick !== null &&
+        event.formTransitionCompletesAtTick !== null,
+    );
+    const startedTransition = startedTransitionEvent
+      ? {
+          fromFormId: startedTransitionEvent.fromFormId!,
+          toFormId: startedTransitionEvent.toFormId!,
+          startedAtTick:
+            startedTransitionEvent.formTransitionStartedAtTick!,
+          completesAtTick:
+            startedTransitionEvent.formTransitionCompletesAtTick!,
+        }
+      : null;
+    const pendingFormTransition =
+      startedTransition !== null && fraction < 0.9
+        ? startedTransition
+        : start.pendingFormTransition !== null &&
+            end.pendingFormTransition === null
+        ? fraction < 0.9
+          ? start.pendingFormTransition
+          : null
+        : (end.pendingFormTransition ?? start.pendingFormTransition);
     return {
       actorKey: start.actorKey,
       unitKey: start.unitKey,
       teamId: start.identity.teamId,
       unitId: start.identity.unitId,
       lifeId: start.identity.lifeId,
-      formId: start.formId,
+      formId: fraction < 0.9 ? start.formId : end.formId,
       x:
         start.position.x +
         (end.position.x - start.position.x) * fraction,
@@ -96,6 +126,7 @@ export function posesAt(replay: ReplayModel, time: number): BotPose[] {
       angle: fromAngle + rotation * fraction,
       health: fraction < 0.6 ? start.health : end.health,
       cooldown: end.cooldown,
+      pendingFormTransition,
       status: fraction < 0.9 ? start.status : end.status,
     };
   });
@@ -116,6 +147,7 @@ function poseFromState(
     angle: directionAngle(state.facing),
     health: state.health,
     cooldown: state.cooldown,
+    pendingFormTransition: state.pendingFormTransition,
     status: state.status,
   };
 }

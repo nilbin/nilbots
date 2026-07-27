@@ -11,6 +11,8 @@ public static class PublicActionIds
     public const string StrafeLeft = "strafe-left";
     public const string StrafeRight = "strafe-right";
     public const string Fabricate = "fabricate";
+    public const string Transform = "transform";
+    public const string ShootDirection = "shoot-direction";
 }
 
 /// <summary>
@@ -20,6 +22,8 @@ public static class PublicActionIds
 public static class PublicActionCodes
 {
     public const int Fabricate = 100;
+    public const int Transform = 101;
+    public const int ShootDirection = 102;
 }
 
 /// <summary>
@@ -33,6 +37,7 @@ public sealed record ActorActionPayload
     public Direction? Direction { get; init; }
     public ObservedUnitTarget? UnitTarget { get; init; }
     public string? FormTargetId { get; init; }
+    public ProjectileHeading? LaunchHeading { get; init; }
 }
 
 /// <summary>
@@ -95,6 +100,24 @@ public sealed record ActorDecision
             PublicActionIds.Fabricate,
             PublicActionCodes.Fabricate,
             new ActorActionPayload { UnitTarget = target },
+            debug);
+
+    public static ActorDecision Transform(
+        string formTargetId,
+        string? debug = null) =>
+        Of(
+            PublicActionIds.Transform,
+            PublicActionCodes.Transform,
+            new ActorActionPayload { FormTargetId = formTargetId },
+            debug);
+
+    public static ActorDecision ShootDirection(
+        ProjectileHeading launchHeading,
+        string? debug = null) =>
+        Of(
+            PublicActionIds.ShootDirection,
+            PublicActionCodes.ShootDirection,
+            new ActorActionPayload { LaunchHeading = launchHeading },
             debug);
 
     public static ActorDecision Fault(string message) =>

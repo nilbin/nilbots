@@ -6,9 +6,11 @@ The replay-v2 normalization boundary is pinned to byte-for-byte engine output:
 - `frontline-replay-v2-partial-zero-tick.json`
 
 `FrontlineReplayV2FixtureTests` produces both with the JS-unsafe seed
-`9007199254740993`. The finalized fixture covers initial-life destruction, a
-respawn gap, and the next lives returning; the partial fixture is the hashless
-zero-tick prefix from an actor failure.
+`9007199254740993`. The finalized fixture covers timed unlock and fabrication,
+independent child lives, movement/turning, same-tick Anchor start/change,
+default versus effective form, absolute turret fire and traversal, observed
+Shot context, and terminal stable-unit form rows. The partial fixture is the
+hashless zero-tick prefix from an actor failure.
 
 Normal test runs only compare exact bytes. Regenerate deliberately from the
 repository root with:

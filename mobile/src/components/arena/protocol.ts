@@ -39,6 +39,8 @@ export type ArenaForm = {
   canShoot: boolean;
   omnidirectionalVision: boolean;
   omnidirectionalShooting: boolean;
+  objectiveWeight: number;
+  allowedActionIds: string[];
 };
 
 export type ArenaHeader = {
@@ -67,11 +69,20 @@ export type ArenaTeamResult = {
   units: ArenaUnitResult[];
 };
 
+export type ArenaFormTransition = {
+  fromFormId: string;
+  toFormId: string;
+  startedAtTick: number;
+  completesAtTick: number;
+};
+
 export type ArenaUnitResult = {
   unitKey: ArenaUnitKey;
   teamId: number;
   unitId: number;
+  defaultFormId: string;
   formId: string;
+  pendingFormTransition: ArenaFormTransition | null;
   lifecycleStatus: string;
   activeActorKey: string | null;
   health: number;
@@ -138,6 +149,7 @@ export type ArenaUnitPresentation = {
   fabricationAtTick: number | null;
   reservedSpawn: { x: number; y: number } | null;
   pendingSpawnReason: string | null;
+  pendingFormTransition: ArenaFormTransition | null;
   health: number;
   maxHealth: number;
   cooldown: number;
@@ -145,6 +157,16 @@ export type ArenaUnitPresentation = {
   zoneTicks: number | null;
   holdingObjective: boolean;
   actionId: string | null;
+  actionLaunchHeading:
+    | 'north'
+    | 'north-east'
+    | 'east'
+    | 'south-east'
+    | 'south'
+    | 'south-west'
+    | 'west'
+    | 'north-west'
+    | null;
   actionResult: string | null;
   debug: string | null;
   visibleTiles: number;

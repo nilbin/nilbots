@@ -84,6 +84,21 @@ public static class ActorDecisionAdapter
                 $"Action '{action.Id}' does not accept a form target.",
                 nameof(decision));
         }
+        if (payload?.LaunchHeading is not null
+            && !action.ParameterKinds.Contains(
+                PublicActionParameterKind.ProjectileHeading))
+        {
+            throw new ArgumentException(
+                $"Action '{action.Id}' does not accept a launch heading.",
+                nameof(decision));
+        }
+        if (payload?.LaunchHeading is ProjectileHeading launchHeading
+            && !Enum.IsDefined(launchHeading))
+        {
+            throw new ArgumentException(
+                "The launch heading is outside the eight-way projectile heading catalog.",
+                nameof(decision));
+        }
         if (payload?.ShotProgram is ShotProgram program
             && contract.Rules.ShotPrograms.Enabled
             && !IsValidShotProgram(program, contract.Rules.ShotPrograms))
@@ -97,6 +112,34 @@ public static class ActorDecisionAdapter
         {
             throw new ArgumentException(
                 "Fabrication requires an explicit unit target.",
+                nameof(decision));
+        }
+        if (action.Kind == PublicActionKind.Transformation
+            && payload?.FormTargetId is null)
+        {
+            throw new ArgumentException(
+                "Transformation requires an explicit form target.",
+                nameof(decision));
+        }
+        if (action.Kind == PublicActionKind.Transformation
+            && (contract.Rules.Frontline is not { } transformFrontline
+                || !string.Equals(
+                    payload!.FormTargetId,
+                    transformFrontline.Anchor.TargetFormId,
+                    StringComparison.Ordinal)))
+        {
+            throw new ArgumentException(
+                "Transformation target must match the active Anchor contract.",
+                nameof(decision));
+        }
+        if (string.Equals(
+                action.Id,
+                PublicActionIds.ShootDirection,
+                StringComparison.Ordinal)
+            && payload?.LaunchHeading is null)
+        {
+            throw new ArgumentException(
+                "Directional shooting requires an explicit launch heading.",
                 nameof(decision));
         }
         if (action.Kind == PublicActionKind.Fabrication
@@ -133,7 +176,8 @@ public static class ActorDecisionAdapter
         && (payload.ShotProgram is not null
             || payload.Direction is not null
             || payload.UnitTarget is not null
-            || payload.FormTargetId is not null);
+            || payload.FormTargetId is not null
+            || payload.LaunchHeading is not null);
 
     private static bool IsValidShotProgram(
         ShotProgram program,

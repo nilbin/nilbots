@@ -114,6 +114,7 @@ export default function BotPanel({
                     unit.fabricationAtTick !== null
                   ? `SPAWN T${unit.fabricationAtTick}`
                   : null;
+        const formTransition = unit.pendingFormTransition;
         const participant = participantForUnit(replay, unit.unitKey);
         const look = botLook(
           participant?.lookId ?? undefined,
@@ -218,6 +219,12 @@ export default function BotPanel({
               {unit.actionId && (
                 <span className="text-arena-dim">
                   → <span className="text-arena-text">{unit.actionId}</span>
+                  {unit.actionLaunchHeading && (
+                    <span className="text-cyan-200">
+                      {' '}
+                      · {unit.actionLaunchHeading.toUpperCase()}
+                    </span>
+                  )}
                   {unit.actionResult !== 'success' && (
                     <span className="text-amber-400">
                       {' '}
@@ -227,6 +234,14 @@ export default function BotPanel({
                 </span>
               )}
             </div>
+
+            {formTransition && (
+              <p className="mt-2 font-mono text-[10px] tracking-wide text-violet-300">
+                ANCHORING · {formTransition.fromFormId.toUpperCase()} →{' '}
+                {formTransition.toFormId.toUpperCase()} · COMPLETES T
+                {formTransition.completesAtTick}
+              </p>
+            )}
 
             {!unit.canMove && (
               <p className="mt-2 font-mono text-[10px] tracking-wide text-cyan-300">

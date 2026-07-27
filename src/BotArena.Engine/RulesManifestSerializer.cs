@@ -145,7 +145,11 @@ public static class RulesManifestSerializer
         if (manifest.Frontline is { } frontline)
         {
             writer.WritePropertyName("frontlineDefinition");
-            WriteFrontlineDefinition(writer, frontline, manifest.Forms);
+            WriteFrontlineDefinition(
+                writer,
+                frontline,
+                manifest.Forms,
+                manifest.Actions);
         }
 
         writer.WritePropertyName("energy");
@@ -417,7 +421,8 @@ public static class RulesManifestSerializer
     private static void WriteFrontlineDefinition(
         Utf8JsonWriter writer,
         PublicFrontlineDefinition frontline,
-        ImmutableArray<PublicFormDefinition> forms)
+        ImmutableArray<PublicFormDefinition> forms,
+        ImmutableArray<PublicActionDefinition> actions)
     {
         if (forms.IsDefault
             || string.IsNullOrWhiteSpace(
@@ -443,6 +448,136 @@ public static class RulesManifestSerializer
         {
             throw new ArgumentException(
                 "Frontline deployment default and fabricator form IDs must reference distinct matching catalog forms.",
+                nameof(frontline));
+        }
+        PublicActionDefinition? anchorAction = actions.IsDefault
+            ? null
+            : actions.SingleOrDefault(action => string.Equals(
+                action.Id,
+                frontline.Anchor.ActionId,
+                StringComparison.Ordinal));
+        PublicActionDefinition? turretAction = actions.IsDefault
+            ? null
+            : actions.SingleOrDefault(action => string.Equals(
+                action.Id,
+                frontline.TurretFire.ActionId,
+                StringComparison.Ordinal));
+        PublicFormDefinition? sourceForm = forms.SingleOrDefault(form =>
+            string.Equals(
+                form.Id,
+                frontline.Anchor.SourceFormId,
+                StringComparison.Ordinal));
+        PublicFormDefinition? targetForm = forms.SingleOrDefault(form =>
+            string.Equals(
+                form.Id,
+                frontline.Anchor.TargetFormId,
+                StringComparison.Ordinal));
+        ProjectileHeading[] allHeadings =
+            Enum.GetValues<ProjectileHeading>();
+        if (frontline.Anchor.WindupTicks <= 0
+            || frontline.Anchor.HealthGain < 0
+            || !frontline.Anchor.ConsumesTick
+            || !frontline.Anchor.IrreversibleForLife
+            || frontline.Anchor.Completion
+                != PublicFrontlineAnchorCompletionPolicy
+                    .EndOfStartedTickPlusWindupMinusOneAfterObjective
+            || frontline.Anchor.PendingActions
+                != PublicFrontlineAnchorPendingActionPolicy.WaitOnly
+            || frontline.Anchor.SurvivingDamage
+                != PublicFrontlineAnchorSurvivingDamagePolicy.DoesNotCancel
+            || frontline.Anchor.Death
+                != PublicFrontlineAnchorDeathPolicy
+                    .CancelsWithExplicitEvent
+            || frontline.Anchor.ForbiddenTiles
+                != PublicFrontlineAnchorForbiddenTilePolicy
+                    .AllMapAnchorForbiddenTilesIllegal
+            || frontline.Anchor.PendingForm
+                != PublicFrontlineAnchorPendingFormPolicy
+                    .SourceFormUntilCompletion
+            || frontline.Anchor.Health
+                != PublicFrontlineAnchorHealthPolicy
+                    .MinimumTargetMaximumAndCurrentPlusGain
+            || frontline.Anchor.StateContinuity
+                != PublicFrontlineAnchorStateContinuityPolicy
+                    .SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage
+            || frontline.Anchor.Terminal
+                != PublicFrontlineAnchorTerminalPolicy
+                    .PreserveFuturePendingWithoutSyntheticCancellation
+            || !string.Equals(
+                frontline.Anchor.ActionId,
+                PublicActionIds.Transform,
+                StringComparison.Ordinal)
+            || anchorAction is not
+                {
+                    Code: PublicActionCodes.Transform,
+                    Kind: PublicActionKind.Transformation,
+                    Enabled: true,
+                }
+            || !anchorAction.ParameterKinds.SequenceEqual(
+                [PublicActionParameterKind.FormTarget])
+            || !string.Equals(
+                frontline.Anchor.SourceFormId,
+                frontline.Deployment.ChildDefaultFormId,
+                StringComparison.Ordinal)
+            || string.Equals(
+                frontline.Anchor.SourceFormId,
+                frontline.Anchor.TargetFormId,
+                StringComparison.Ordinal)
+            || sourceForm is null
+            || targetForm is null
+            || !sourceForm.AllowedActionIds.Contains(
+                PublicActionIds.Transform,
+                StringComparer.Ordinal)
+            || !string.Equals(
+                frontline.TurretFire.ActionId,
+                PublicActionIds.ShootDirection,
+                StringComparison.Ordinal)
+            || turretAction is not
+                {
+                    Code: PublicActionCodes.ShootDirection,
+                    Kind: PublicActionKind.Attack,
+                    Enabled: true,
+                }
+            || !turretAction.ParameterKinds.SequenceEqual(
+                [PublicActionParameterKind.ProjectileHeading])
+            || !string.Equals(
+                frontline.TurretFire.FormId,
+                frontline.Anchor.TargetFormId,
+                StringComparison.Ordinal)
+            || targetForm.CanMove
+            || !targetForm.CanShoot
+            || !targetForm.OmnidirectionalVision
+            || !targetForm.OmnidirectionalShooting
+            || targetForm.ObjectiveWeight != 0
+            || targetForm.AllowsProgrammedShots
+            || !targetForm.AllowedActionIds.SequenceEqual(
+                [PublicActionIds.ShootDirection, PublicActionIds.Wait])
+            || frontline.TurretFire.AllowedProjectileHeadings.IsDefault
+            || !frontline.TurretFire.AllowedProjectileHeadings
+                .SequenceEqual(allHeadings)
+            || frontline.TurretFire.Aim
+                != PublicFrontlineTurretFireAimPolicy
+                    .AbsoluteEightWayLaunchHeading
+            || frontline.TurretFire.Projectile
+                != PublicFrontlineTurretFireProjectilePolicy
+                    .OneStraightNonProgrammedProjectile
+            || frontline.TurretFire.Facing
+                != PublicFrontlineTurretFireFacingPolicy
+                    .BodyFacingUnchanged
+            || frontline.TurretFire.Range
+                != PublicFrontlineTurretFireRangePolicy
+                    .GlobalProjectileRange
+            || frontline.TurretFire.Resources
+                != PublicFrontlineTurretFireResourcePolicy
+                    .StandardEnergyCooldownAndDamage
+            || frontline.TurretFire.Traversal
+                != PublicFrontlineTurretFireTraversalPolicy
+                    .StandardTraversalStrictDiagonalCorners)
+        {
+            throw new ArgumentException(
+                "Frontline Anchor and turret-fire contracts must bind the " +
+                "exact source/target forms, actions, capabilities, and all " +
+                "eight canonical projectile headings.",
                 nameof(frontline));
         }
 
@@ -601,11 +736,84 @@ public static class RulesManifestSerializer
 
         writer.WritePropertyName("anchor");
         writer.WriteStartObject();
+        writer.WriteString("actionId", frontline.Anchor.ActionId);
+        writer.WriteString("sourceFormId", frontline.Anchor.SourceFormId);
+        writer.WriteString("targetFormId", frontline.Anchor.TargetFormId);
         writer.WriteNumber("windupTicks", frontline.Anchor.WindupTicks);
+        writer.WriteBoolean("consumesTick", frontline.Anchor.ConsumesTick);
+        writer.WriteString(
+            "completion",
+            FrontlineAnchorCompletionPolicyId(
+                frontline.Anchor.Completion));
+        writer.WriteString(
+            "pendingActions",
+            FrontlineAnchorPendingActionPolicyId(
+                frontline.Anchor.PendingActions));
+        writer.WriteString(
+            "survivingDamage",
+            FrontlineAnchorSurvivingDamagePolicyId(
+                frontline.Anchor.SurvivingDamage));
+        writer.WriteString(
+            "death",
+            FrontlineAnchorDeathPolicyId(frontline.Anchor.Death));
+        writer.WriteString(
+            "forbiddenTiles",
+            FrontlineAnchorForbiddenTilePolicyId(
+                frontline.Anchor.ForbiddenTiles));
+        writer.WriteString(
+            "pendingForm",
+            FrontlineAnchorPendingFormPolicyId(
+                frontline.Anchor.PendingForm));
         writer.WriteNumber("healthGain", frontline.Anchor.HealthGain);
+        writer.WriteString(
+            "healthTransition",
+            FrontlineAnchorHealthPolicyId(frontline.Anchor.Health));
+        writer.WriteString(
+            "stateContinuity",
+            FrontlineAnchorStateContinuityPolicyId(
+                frontline.Anchor.StateContinuity));
+        writer.WriteString(
+            "terminal",
+            FrontlineAnchorTerminalPolicyId(frontline.Anchor.Terminal));
         writer.WriteBoolean(
             "irreversibleForLife",
             frontline.Anchor.IrreversibleForLife);
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("turretFire");
+        writer.WriteStartObject();
+        writer.WriteString("actionId", frontline.TurretFire.ActionId);
+        writer.WriteString("formId", frontline.TurretFire.FormId);
+        writer.WritePropertyName("allowedProjectileHeadings");
+        writer.WriteStartArray();
+        foreach (ProjectileHeading heading in
+                 frontline.TurretFire.AllowedProjectileHeadings)
+        {
+            writer.WriteStringValue(ProjectileHeadingId(heading));
+        }
+        writer.WriteEndArray();
+        writer.WriteString(
+            "aim",
+            FrontlineTurretFireAimPolicyId(frontline.TurretFire.Aim));
+        writer.WriteString(
+            "projectile",
+            FrontlineTurretFireProjectilePolicyId(
+                frontline.TurretFire.Projectile));
+        writer.WriteString(
+            "facing",
+            FrontlineTurretFireFacingPolicyId(
+                frontline.TurretFire.Facing));
+        writer.WriteString(
+            "range",
+            FrontlineTurretFireRangePolicyId(frontline.TurretFire.Range));
+        writer.WriteString(
+            "resources",
+            FrontlineTurretFireResourcePolicyId(
+                frontline.TurretFire.Resources));
+        writer.WriteString(
+            "traversal",
+            FrontlineTurretFireTraversalPolicyId(
+                frontline.TurretFire.Traversal));
         writer.WriteEndObject();
 
         writer.WritePropertyName("alliedCombat");
@@ -845,6 +1053,7 @@ public static class RulesManifestSerializer
         PublicActionKind.Rotation => "rotation",
         PublicActionKind.Attack => "attack",
         PublicActionKind.Fabrication => "fabrication",
+        PublicActionKind.Transformation => "transformation",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -884,6 +1093,7 @@ public static class RulesManifestSerializer
         PublicActionParameterKind.Direction => "direction",
         PublicActionParameterKind.UnitTarget => "unit-target",
         PublicActionParameterKind.FormTarget => "form-target",
+        PublicActionParameterKind.ProjectileHeading => "projectile-heading",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -963,8 +1173,169 @@ public static class RulesManifestSerializer
             "queue-destroyed-lives",
         PublicTickResolutionPhase.QueueFabrications =>
             "queue-fabrications",
+        PublicTickResolutionPhase.StartFormTransitions =>
+            "start-form-transitions",
+        PublicTickResolutionPhase.CompleteFormTransitions =>
+            "complete-form-transitions",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
     };
+
+    private static string FrontlineAnchorCompletionPolicyId(
+        PublicFrontlineAnchorCompletionPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorCompletionPolicy
+                    .EndOfStartedTickPlusWindupMinusOneAfterObjective =>
+                "end-of-started-tick-plus-windup-minus-one-after-objective",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorPendingActionPolicyId(
+        PublicFrontlineAnchorPendingActionPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorPendingActionPolicy.WaitOnly =>
+                "wait-only",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorSurvivingDamagePolicyId(
+        PublicFrontlineAnchorSurvivingDamagePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorSurvivingDamagePolicy.DoesNotCancel =>
+                "does-not-cancel",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorDeathPolicyId(
+        PublicFrontlineAnchorDeathPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorDeathPolicy.CancelsWithExplicitEvent =>
+                "cancels-with-explicit-event",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorForbiddenTilePolicyId(
+        PublicFrontlineAnchorForbiddenTilePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorForbiddenTilePolicy
+                    .AllMapAnchorForbiddenTilesIllegal =>
+                "all-map-anchor-forbidden-tiles-illegal",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorPendingFormPolicyId(
+        PublicFrontlineAnchorPendingFormPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorPendingFormPolicy.SourceFormUntilCompletion =>
+                "source-form-until-completion",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorHealthPolicyId(
+        PublicFrontlineAnchorHealthPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorHealthPolicy
+                    .MinimumTargetMaximumAndCurrentPlusGain =>
+                "minimum-target-maximum-and-current-plus-gain",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorStateContinuityPolicyId(
+        PublicFrontlineAnchorStateContinuityPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorStateContinuityPolicy
+                    .SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage =>
+                "same-life-runtime-memory-position-facing-cooldown-energy-and-damage",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineAnchorTerminalPolicyId(
+        PublicFrontlineAnchorTerminalPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineAnchorTerminalPolicy
+                    .PreserveFuturePendingWithoutSyntheticCancellation =>
+                "preserve-future-pending-without-synthetic-cancellation",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineTurretFireAimPolicyId(
+        PublicFrontlineTurretFireAimPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineTurretFireAimPolicy.AbsoluteEightWayLaunchHeading =>
+                "absolute-eight-way-launch-heading",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineTurretFireProjectilePolicyId(
+        PublicFrontlineTurretFireProjectilePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineTurretFireProjectilePolicy
+                    .OneStraightNonProgrammedProjectile =>
+                "one-straight-non-programmed-projectile",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineTurretFireFacingPolicyId(
+        PublicFrontlineTurretFireFacingPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineTurretFireFacingPolicy.BodyFacingUnchanged =>
+                "body-facing-unchanged",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineTurretFireRangePolicyId(
+        PublicFrontlineTurretFireRangePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineTurretFireRangePolicy.GlobalProjectileRange =>
+                "global-projectile-range",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineTurretFireResourcePolicyId(
+        PublicFrontlineTurretFireResourcePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineTurretFireResourcePolicy
+                    .StandardEnergyCooldownAndDamage =>
+                "standard-energy-cooldown-and-damage",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineTurretFireTraversalPolicyId(
+        PublicFrontlineTurretFireTraversalPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineTurretFireTraversalPolicy
+                    .StandardTraversalStrictDiagonalCorners =>
+                "standard-traversal-strict-diagonal-corners",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string ProjectileHeadingId(ProjectileHeading heading) =>
+        heading switch
+        {
+            ProjectileHeading.North => "north",
+            ProjectileHeading.NorthEast => "north-east",
+            ProjectileHeading.East => "east",
+            ProjectileHeading.SouthEast => "south-east",
+            ProjectileHeading.South => "south",
+            ProjectileHeading.SouthWest => "south-west",
+            ProjectileHeading.West => "west",
+            ProjectileHeading.NorthWest => "north-west",
+            _ => throw new ArgumentOutOfRangeException(nameof(heading)),
+        };
 
     private static string TeamPerceptionModeId(TeamPerceptionMode mode) => mode switch
     {

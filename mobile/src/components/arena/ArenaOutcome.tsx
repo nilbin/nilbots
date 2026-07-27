@@ -66,6 +66,9 @@ export function ArenaOutcome({
                     U{unit.unitId} · {unit.formId} ·{' '}
                     {unit.lifecycleStatus.replaceAll('-', ' ')} · HP{' '}
                     {unit.health} · damage {unit.damageDealt}
+                    {unit.pendingFormTransition
+                      ? ` · anchoring → ${unit.pendingFormTransition.toFormId} T${unit.pendingFormTransition.completesAtTick}`
+                      : ''}
                   </Text>
                 ))}
               </View>

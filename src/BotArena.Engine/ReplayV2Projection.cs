@@ -128,7 +128,12 @@ internal static class ReplayV2Projection
                 observation.Self.Health,
                 observation.Self.Cooldown,
                 observation.Self.Energy,
-                observation.Self.PreviousActionResult),
+                observation.Self.PreviousActionResult)
+            {
+                PendingFormTransition =
+                    FormTransition(
+                        observation.Self.PendingFormTransition),
+            },
             observation.TeamUnits
                 .OrderBy(unit => unit.TeamId)
                 .ThenBy(unit => unit.UnitId)
@@ -155,7 +160,11 @@ internal static class ReplayV2Projection
                     ally.Health,
                     ally.Cooldown,
                     ally.Energy,
-                    ally.PreviousActionResult))
+                    ally.PreviousActionResult)
+                {
+                    PendingFormTransition =
+                        FormTransition(ally.PendingFormTransition),
+                })
                 .ToImmutableArray(),
             observation.Enemies
                 .OrderBy(enemy => enemy.Actor.TeamId)
@@ -169,7 +178,11 @@ internal static class ReplayV2Projection
                     enemy.Position,
                     enemy.Facing,
                     enemy.Health,
-                    ActorIds(enemy.ObservedBy)))
+                    ActorIds(enemy.ObservedBy))
+                {
+                    PendingFormTransition =
+                        FormTransition(enemy.PendingFormTransition),
+                })
                 .ToImmutableArray(),
             observation.VisibleTiles
                 .OrderBy(tile => tile.Position.Y)
@@ -225,7 +238,20 @@ internal static class ReplayV2Projection
                     value.Facing,
                     value.Amount,
                     value.NewHealth,
-                    ActorIds(value.ObservedBy)))
+                    ActorIds(value.ObservedBy))
+                {
+                    ProjectileHeading = value.ProjectileHeading,
+                    FromFormId = value.FromFormId,
+                    ToFormId = value.ToFormId,
+                    FormTransitionStartedAtTick =
+                        value.FormTransitionStartedAtTick,
+                    FormTransitionCompletesAtTick =
+                        value.FormTransitionCompletesAtTick,
+                    ActionId = value.ActionId,
+                    ActionCode = value.ActionCode,
+                    FormTargetId = value.FormTargetId,
+                    ActionResult = value.ActionResult,
+                })
                 .ToImmutableArray(),
             observation.HeardSounds is { } sounds
                 ? sounds
@@ -281,7 +307,15 @@ internal static class ReplayV2Projection
                         ? forms
                             .Order(StringComparer.Ordinal)
                             .ToImmutableArray()
-                        : null))
+                        : null)
+                {
+                    AllowedProjectileHeadings =
+                        action.AllowedProjectileHeadings is { } headings
+                            ? headings
+                                .OrderBy(heading => (int)heading)
+                                .ToImmutableArray()
+                            : null,
+                })
                 .ToImmutableArray());
     }
 
@@ -419,7 +453,15 @@ internal static class ReplayV2Projection
             value.ToPositionIndex,
             value.ClaimingTeamId,
             value.CaptureProgress,
-            value.ControlResumesAtTick);
+            value.ControlResumesAtTick)
+        {
+            FromFormId = value.FromFormId,
+            ToFormId = value.ToFormId,
+            FormTransitionStartedAtTick =
+                value.FormTransitionStartedAtTick,
+            FormTransitionCompletesAtTick =
+                value.FormTransitionCompletesAtTick,
+        };
     }
 
     private static ReplayV2ActionPayload? ActionPayload(
@@ -429,7 +471,8 @@ internal static class ReplayV2Projection
             || (payload.ShotProgram is null
                 && payload.Direction is null
                 && payload.UnitTarget is null
-                && payload.FormTargetId is null))
+                && payload.FormTargetId is null
+                && payload.LaunchHeading is null))
         {
             return null;
         }
@@ -442,7 +485,10 @@ internal static class ReplayV2Projection
                     target.TeamId,
                     target.UnitId)
                 : null,
-            payload.FormTargetId);
+            payload.FormTargetId)
+        {
+            LaunchHeading = payload.LaunchHeading,
+        };
     }
 
     private static ReplayV2ActionPayload? ActionPayload(
@@ -453,7 +499,10 @@ internal static class ReplayV2Projection
                 shotProgram,
                 Direction: null,
                 UnitTarget: null,
-                FormTargetId: null);
+                FormTargetId: null)
+            {
+                LaunchHeading = null,
+            };
 
     public static ReplayV2ProjectileTraversal ProjectileTraversal(
         FrontlineProjectileTraversal traversal)
@@ -486,7 +535,7 @@ internal static class ReplayV2Projection
                         .Select(unit => new ReplayV2UnitState(
                             unit.TeamId,
                             unit.UnitId,
-                            unit.FormId,
+                            unit.DefaultFormId,
                             unit.LifecycleStatus,
                             unit.RespawnAtTick,
                             unit.UnlockAtTick,
@@ -500,6 +549,7 @@ internal static class ReplayV2Projection
                             unit.ActiveLife is { } life
                                 ? new ReplayV2LifeState(
                                     ActorId(life.ActorId),
+                                    life.FormId,
                                     life.Position,
                                     life.Facing,
                                     life.Health,
@@ -508,6 +558,11 @@ internal static class ReplayV2Projection
                                     WireInt64(life.DamageDealt),
                                     life.LastActionResult,
                                     life.SpawnedAtTick)
+                                {
+                                    PendingFormTransition =
+                                        FormTransition(
+                                            life.PendingFormTransition),
+                                }
                                 : null))
                         .ToImmutableArray()))
                 .ToImmutableArray(),
@@ -549,13 +604,19 @@ internal static class ReplayV2Projection
                         .Select(unit => new ReplayV2UnitResult(
                             unit.TeamId,
                             unit.UnitId,
+                            unit.DefaultFormId,
                             unit.FormId,
                             unit.LifecycleStatus,
                             unit.ActiveActorId is { } actorId
                                 ? ActorId(actorId)
                                 : null,
                             unit.Health,
-                            WireInt64(unit.DamageDealt)))
+                            WireInt64(unit.DamageDealt))
+                        {
+                            PendingFormTransition =
+                                FormTransition(
+                                    unit.PendingFormTransition),
+                        })
                         .ToImmutableArray()))
                 .ToImmutableArray());
     }
@@ -593,6 +654,26 @@ internal static class ReplayV2Projection
 
     private static ReplayV2ActorId ActorId(FrontlineActorId actorId) =>
         new(actorId.TeamId, actorId.UnitId, actorId.LifeId);
+
+    private static ReplayV2FormTransition? FormTransition(
+        ObservedFormTransition? transition) =>
+        transition is null
+            ? null
+            : new ReplayV2FormTransition(
+                transition.FromFormId,
+                transition.ToFormId,
+                transition.StartedAtTick,
+                transition.CompletesAtTick);
+
+    private static ReplayV2FormTransition? FormTransition(
+        FrontlinePendingFormTransition? transition) =>
+        transition is null
+            ? null
+            : new ReplayV2FormTransition(
+                transition.FromFormId,
+                transition.ToFormId,
+                transition.StartedAtTick,
+                transition.CompletesAtTick);
 
     private static ImmutableArray<ReplayV2ActorId> ActorIds(
         IEnumerable<ActorIdentity> actorIds) =>

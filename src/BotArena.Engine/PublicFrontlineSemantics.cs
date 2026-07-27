@@ -95,3 +95,82 @@ public enum PublicFrontlineProjectileAttributionPolicy
 {
     ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved,
 }
+
+/// <summary>
+/// A transition submitted on tick T completes after that tick's objective at
+/// the end of T + N - 1, where N is the public windup.
+/// </summary>
+public enum PublicFrontlineAnchorCompletionPolicy
+{
+    EndOfStartedTickPlusWindupMinusOneAfterObjective,
+}
+
+public enum PublicFrontlineAnchorHealthPolicy
+{
+    MinimumTargetMaximumAndCurrentPlusGain,
+}
+
+public enum PublicFrontlineAnchorPendingActionPolicy
+{
+    WaitOnly,
+}
+
+public enum PublicFrontlineAnchorSurvivingDamagePolicy
+{
+    DoesNotCancel,
+}
+
+public enum PublicFrontlineAnchorDeathPolicy
+{
+    CancelsWithExplicitEvent,
+}
+
+public enum PublicFrontlineAnchorForbiddenTilePolicy
+{
+    AllMapAnchorForbiddenTilesIllegal,
+}
+
+public enum PublicFrontlineAnchorPendingFormPolicy
+{
+    SourceFormUntilCompletion,
+}
+
+public enum PublicFrontlineAnchorStateContinuityPolicy
+{
+    SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage,
+}
+
+public enum PublicFrontlineAnchorTerminalPolicy
+{
+    PreserveFuturePendingWithoutSyntheticCancellation,
+}
+
+public enum PublicFrontlineTurretFireAimPolicy
+{
+    AbsoluteEightWayLaunchHeading,
+}
+
+public enum PublicFrontlineTurretFireProjectilePolicy
+{
+    OneStraightNonProgrammedProjectile,
+}
+
+public enum PublicFrontlineTurretFireFacingPolicy
+{
+    BodyFacingUnchanged,
+}
+
+public enum PublicFrontlineTurretFireRangePolicy
+{
+    GlobalProjectileRange,
+}
+
+public enum PublicFrontlineTurretFireResourcePolicy
+{
+    StandardEnergyCooldownAndDamage,
+}
+
+public enum PublicFrontlineTurretFireTraversalPolicy
+{
+    StandardTraversalStrictDiagonalCorners,
+}

@@ -8,4 +8,12 @@ public sealed record FrontlineUnitMatchResult(
     FrontlineLifecycleStatus LifecycleStatus,
     FrontlineActorId? ActiveActorId,
     int Health,
-    long DamageDealt);
+    long DamageDealt)
+{
+    public string DefaultFormId { get; init; } = FormId;
+    public FrontlinePendingFormTransition? PendingFormTransition
+    {
+        get;
+        init;
+    }
+}

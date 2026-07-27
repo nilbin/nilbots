@@ -158,8 +158,20 @@ public static class MatchDefinitionResolver
         }
         if (rules.AnchorWindupTicks <= 0)
             errors.Add("Frontline AnchorWindupTicks must be positive.");
+        if ((long)outerRules.MaxTicks + rules.AnchorWindupTicks - 1
+            > int.MaxValue)
+        {
+            errors.Add(
+                "Frontline MaxTicks plus AnchorWindupTicks minus one must fit " +
+                "in a 32-bit absolute tick.");
+        }
         if (rules.AnchorHealthGain < 0)
             errors.Add("Frontline AnchorHealthGain cannot be negative.");
+        if (!rules.AnchorIrreversibleForLife)
+        {
+            errors.Add(
+                "Frontline Anchor must be irreversible for the current life.");
+        }
 
         if (rules.FabricationUnlockTicks.IsDefault)
         {
@@ -238,6 +250,20 @@ public static class MatchDefinitionResolver
                     $"Frontline form '{form.FormId}' ObjectiveWeight cannot be negative.");
             }
         }
+        UnitFormRules turret = rules.TurretForm;
+        if (turret.CanMove
+            || turret.CanRotate
+            || !turret.CanShoot
+            || !turret.OmnidirectionalVision
+            || !turret.OmnidirectionalShooting
+            || turret.ObjectiveWeight != 0
+            || turret.AllowsProgrammedShots)
+        {
+            errors.Add(
+                "Frontline turret must be stationary, non-rotating, " +
+                "omnidirectional for vision and shooting, objective weight " +
+                "zero, shoot-capable, and unable to use programmed shots.");
+        }
     }
 
     private static void ValidateAnchorSpawnSafety(
@@ -247,8 +273,9 @@ public static class MatchDefinitionResolver
         FrontlineMapProfile profile,
         List<string> errors)
     {
-        // Package 2 declares only PrimeSpawn as a spawn location. Protected-pad
-        // tiles are geometry and Anchor exclusions, not implicit spawn candidates.
+        // This invariant deliberately protects the automatic authored Prime
+        // return tile. Other protected-pad tiles are explicit child
+        // fabrication candidates, but do not receive spawn-fire immunity.
         FrontlineAnchorSpawnThreat? threat = FrontlineMapSafety
             .FindAnchorSpawnThreats(
                 outerRules,

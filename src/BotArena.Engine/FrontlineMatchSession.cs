@@ -60,6 +60,7 @@ public sealed class FrontlineMatchSession
                     LifeId: 0);
                 var life = new FrontlineLifeState(
                     actorId,
+                    _frontlineRules.PrimeForm.FormId,
                     new Position(home.PrimeSpawn.X, home.PrimeSpawn.Y),
                     home.PrimeSpawn.Facing,
                     _frontlineRules.PrimeForm.MaxHealth,
@@ -191,6 +192,7 @@ public sealed class FrontlineMatchSession
         ResolveTurns(resolutions, events);
         ResolveMovement(resolutions, events);
         ResolveFabrication(resolutions, events);
+        StartFormTransitions(resolutions, events);
 
         var pendingHits = new List<PendingHit>();
         AdvanceProjectiles(pendingHits, traversals);
@@ -209,6 +211,7 @@ public sealed class FrontlineMatchSession
         }
         UpdateCooldownsAndEnergy(shotActors, executedTick);
         ResolveObjective(events);
+        CompleteDueFormTransitions(events);
 
         State.Tick = executedTick + 1;
         FrontlineMatchResult? result = null;
@@ -400,9 +403,10 @@ public sealed class FrontlineMatchSession
             unit.UnitId,
             unit.NextLifeId);
         unit.NextLifeId++;
-        UnitFormRules form = FormFor(unit);
+        UnitFormRules form = FormFor(unit.DefaultFormId);
         unit.ActiveLife = new FrontlineLifeState(
             actorId,
+            unit.DefaultFormId,
             position,
             facing,
             form.MaxHealth,
@@ -476,18 +480,6 @@ public sealed class FrontlineMatchSession
             throw new NotSupportedException(
                 "The Frontline session requires a positive Prime objective weight.");
         }
-        if (_frontlineRules.PrimeForm.OmnidirectionalShooting)
-        {
-            throw new NotSupportedException(
-                "Frontline Package 5 has no omnidirectional shooting action.");
-        }
-        if (!_frontlineRules.ChildForm.CanMove
-            || !_frontlineRules.ChildForm.CanShoot
-            || _frontlineRules.ChildForm.OmnidirectionalShooting)
-        {
-            throw new NotSupportedException(
-                "Package 5 supports only the mobile child form; Anchor remains out of scope.");
-        }
     }
 
     private void ValidateDecisionKeys(
@@ -538,7 +530,12 @@ public sealed class FrontlineMatchSession
             FrontlineUnitState unit = State.GetUnit(
                 actorId.TeamId,
                 actorId.UnitId);
-            UnitFormRules form = FormFor(unit);
+            UnitFormRules form = FormFor(life.FormId);
+            PublicFormDefinition publicForm = _contract.Rules.Forms.Single(
+                candidate => string.Equals(
+                    candidate.Id,
+                    life.FormId,
+                    StringComparison.Ordinal));
             string validatedActionId = chosenActionId;
             int validatedActionCode = chosenActionCode;
             ActorActionPayload? validatedPayload = chosenPayload;
@@ -560,7 +557,26 @@ public sealed class FrontlineMatchSession
                 BotAction.MoveForward or
                 BotAction.StrafeLeft or
                 BotAction.StrafeRight;
-            if (movement && !form.CanMove)
+            if (life.PendingFormTransition is not null
+                && !string.Equals(
+                    chosenActionId,
+                    PublicActionIds.Wait,
+                    StringComparison.Ordinal))
+            {
+                Block();
+            }
+            else if (!publicForm.AllowedActionIds.Contains(
+                         chosenActionId,
+                         StringComparer.Ordinal))
+            {
+                Block();
+            }
+            else if (movement && !form.CanMove)
+            {
+                Block();
+            }
+            else if (legacyAction is BotAction.TurnLeft or BotAction.TurnRight
+                     && !form.CanRotate)
             {
                 Block();
             }
@@ -625,10 +641,58 @@ public sealed class FrontlineMatchSession
                     Block();
                 }
             }
+            else if (string.Equals(
+                         chosenActionId,
+                         PublicActionIds.Transform,
+                         StringComparison.Ordinal))
+            {
+                PublicFrontlineAnchorDefinition anchor =
+                    _contract.Rules.Frontline!.Anchor;
+                if (!string.Equals(
+                        life.FormId,
+                        anchor.SourceFormId,
+                        StringComparison.Ordinal)
+                    || !string.Equals(
+                        chosenPayload!.FormTargetId,
+                        anchor.TargetFormId,
+                        StringComparison.Ordinal)
+                    || _profile.AnchorForbiddenTiles.Contains(life.Position))
+                {
+                    Block();
+                }
+            }
+            else if (string.Equals(
+                         chosenActionId,
+                         PublicActionIds.ShootDirection,
+                         StringComparison.Ordinal))
+            {
+                PublicFrontlineTurretFireDefinition turretFire =
+                    _contract.Rules.Frontline!.TurretFire;
+                if (!string.Equals(
+                        life.FormId,
+                        turretFire.FormId,
+                        StringComparison.Ordinal)
+                    || !form.CanShoot
+                    || !form.OmnidirectionalShooting
+                    || !turretFire.AllowedProjectileHeadings.Contains(
+                        chosenPayload!.LaunchHeading!.Value))
+                {
+                    Block();
+                }
+                else if (life.Cooldown > 0)
+                {
+                    Block(ActionResult.OnCooldown);
+                }
+                else if (rules.MaxEnergy > 0
+                         && life.Energy < rules.ShotEnergyCost)
+                {
+                    Block(ActionResult.OnCooldown);
+                }
+            }
             else if (legacyAction is null)
             {
                 throw new InvalidOperationException(
-                    $"Action '{chosenActionId}' has no Package 5 resolver.");
+                    $"Action '{chosenActionId}' has no Frontline resolver.");
             }
 
             resolutions.Add(
@@ -884,6 +948,85 @@ public sealed class FrontlineMatchSession
         return null;
     }
 
+    private void StartFormTransitions(
+        IReadOnlyDictionary<FrontlineActorId, FrontlineActionResolution> resolutions,
+        List<FrontlineMatchEvent> events)
+    {
+        PublicFrontlineAnchorDefinition anchor =
+            _contract.Rules.Frontline!.Anchor;
+        foreach (FrontlineActionResolution resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            if (!string.Equals(
+                    resolution.ValidatedActionId,
+                    anchor.ActionId,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            FrontlineLifeState life =
+                State.GetActiveLife(resolution.ActorId);
+            int completesAtTick = checked(
+                State.Tick + anchor.WindupTicks - 1);
+            var pending = new FrontlinePendingFormTransition(
+                life.FormId,
+                anchor.TargetFormId,
+                State.Tick,
+                completesAtTick);
+            life.PendingFormTransition = pending;
+            events.Add(FormTransitionEvent(
+                FrontlineMatchEventType.FormTransitionStarted,
+                life,
+                pending));
+        }
+    }
+
+    private void CompleteDueFormTransitions(
+        List<FrontlineMatchEvent> events)
+    {
+        PublicFrontlineAnchorDefinition anchor =
+            _contract.Rules.Frontline!.Anchor;
+        foreach (FrontlineLifeState life in ActiveLives().ToArray())
+        {
+            FrontlinePendingFormTransition? pending =
+                life.PendingFormTransition;
+            if (pending is null)
+                continue;
+            if (pending.CompletesAtTick < State.Tick)
+            {
+                throw new InvalidOperationException(
+                    $"Actor {life.ActorId} missed form-transition tick " +
+                    $"{pending.CompletesAtTick}.");
+            }
+            if (pending.CompletesAtTick != State.Tick)
+                continue;
+            if (!string.Equals(
+                    life.FormId,
+                    pending.FromFormId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    pending.ToFormId,
+                    anchor.TargetFormId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Actor {life.ActorId} has incoherent pending form state.");
+            }
+
+            UnitFormRules targetForm = FormFor(pending.ToFormId);
+            life.Health = (int)Math.Min(
+                targetForm.MaxHealth,
+                (long)life.Health + anchor.HealthGain);
+            life.FormId = pending.ToFormId;
+            life.PendingFormTransition = null;
+            events.Add(FormTransitionEvent(
+                FrontlineMatchEventType.FormChanged,
+                life,
+                pending));
+        }
+    }
+
     private void AdvanceProjectiles(
         List<PendingHit> pendingHits,
         List<FrontlineProjectileTraversal> traversals)
@@ -1011,13 +1154,25 @@ public sealed class FrontlineMatchSession
         var path = new List<Position>();
         bool consumed = false;
         bool despawned = false;
-        var (dx, dy) = projectile.Direction.Vector();
+        var (dx, dy) = projectile.Heading is ProjectileHeading heading
+            ? heading.Vector()
+            : projectile.Direction.Vector();
         for (int step = 0;
              step < _definition.Rules.ProjectileTilesPerAdvance;
              step++)
         {
             Position next = projectile.Position.Offset(dx, dy);
             if (_definition.Map.IsWall(next))
+            {
+                despawned = true;
+                break;
+            }
+            if (dx != 0
+                && dy != 0
+                && (_definition.Map.IsWall(
+                        projectile.Position.Offset(dx, 0))
+                    || _definition.Map.IsWall(
+                        projectile.Position.Offset(0, dy))))
             {
                 despawned = true;
                 break;
@@ -1054,7 +1209,8 @@ public sealed class FrontlineMatchSession
                 projectile.OwnerActorId,
                 projectile.Direction,
                 from,
-                path.ToImmutableArray()));
+                path.ToImmutableArray(),
+                projectile.Heading));
         }
         if (!consumed && !despawned)
             surviving.Add(projectile);
@@ -1074,14 +1230,32 @@ public sealed class FrontlineMatchSession
             if (!string.Equals(
                     resolution.ValidatedActionId,
                     PublicActionIds.Shoot,
+                    StringComparison.Ordinal)
+                && !string.Equals(
+                    resolution.ValidatedActionId,
+                    PublicActionIds.ShootDirection,
                     StringComparison.Ordinal))
+            {
                 continue;
+            }
 
             shotActors.Add(resolution.ActorId);
             FrontlineLifeState shooter = State.GetActiveLife(resolution.ActorId);
-            UnitFormRules form = FormFor(State.GetUnit(
-                resolution.ActorId.TeamId,
-                resolution.ActorId.UnitId));
+            UnitFormRules form = FormFor(shooter.FormId);
+            if (string.Equals(
+                    resolution.ValidatedActionId,
+                    PublicActionIds.ShootDirection,
+                    StringComparison.Ordinal))
+            {
+                ResolveDirectionalShot(
+                    shooter,
+                    resolution.ValidatedPayload!.LaunchHeading!.Value,
+                    resolution.ValidatedPayload,
+                    pendingHits,
+                    events,
+                    traversals);
+                continue;
+            }
             if (_definition.Rules.AllowProgrammedShots
                 && form.AllowsProgrammedShots)
             {
@@ -1103,6 +1277,78 @@ public sealed class FrontlineMatchSession
             }
         }
         return shotActors;
+    }
+
+    private void ResolveDirectionalShot(
+        FrontlineLifeState shooter,
+        ProjectileHeading launchHeading,
+        ActorActionPayload payload,
+        List<PendingHit> pendingHits,
+        List<FrontlineMatchEvent> events,
+        List<FrontlineProjectileTraversal> traversals)
+    {
+        var (dx, dy) = launchHeading.Vector();
+        Position spawn = shooter.Position.Offset(dx, dy);
+        bool cornerBlocked = dx != 0
+            && dy != 0
+            && (_definition.Map.IsWall(shooter.Position.Offset(dx, 0))
+                || _definition.Map.IsWall(shooter.Position.Offset(0, dy)));
+        if (_definition.Map.IsWall(spawn)
+            || cornerBlocked)
+        {
+            events.Add(ShotEvent(
+                shooter,
+                spawn,
+                projectileId: null,
+                target: null,
+                launchHeading,
+                program: null,
+                PublicActionIds.ShootDirection,
+                PublicActionCodes.ShootDirection,
+                payload));
+            return;
+        }
+
+        ProjectileContact contact = ContactAt(shooter.ActorId, spawn);
+        long projectileId = State.NextProjectileId++;
+        events.Add(ShotEvent(
+            shooter,
+            spawn,
+            projectileId,
+            contact.ActorId,
+            launchHeading,
+            program: null,
+            PublicActionIds.ShootDirection,
+            PublicActionCodes.ShootDirection,
+            payload));
+        traversals.Add(new FrontlineProjectileTraversal(
+            projectileId,
+            shooter.ActorId,
+            shooter.Facing,
+            shooter.Position,
+            ImmutableArray.Create(spawn),
+            launchHeading));
+        if (contact.Consumes)
+        {
+            AddPendingHit(
+                shooter.ActorId,
+                projectileId,
+                contact,
+                pendingHits);
+            return;
+        }
+        if (_definition.Rules.ShotRange == 1)
+            return;
+
+        State.MutableProjectiles.Add(new FrontlineProjectileState(
+            projectileId,
+            shooter.ActorId,
+            spawn,
+            shooter.Facing,
+            launchHeading)
+        {
+            TilesTraveled = 1,
+        });
     }
 
     private void ResolveStraightShot(
@@ -1345,6 +1591,14 @@ public sealed class FrontlineMatchSession
                     RespawnAtTick = isPrime ? readyAtTick : null,
                     RebuildReadyAtTick = isPrime ? null : readyAtTick,
                 });
+                if (life.PendingFormTransition is { } pending)
+                {
+                    events.Add(FormTransitionEvent(
+                        FrontlineMatchEventType.FormTransitionCancelled,
+                        life,
+                        pending));
+                    life.PendingFormTransition = null;
+                }
                 unit.ActiveLife = null;
                 unit.LifecycleStatus = isPrime
                     ? FrontlineLifecycleStatus.Respawning
@@ -1366,9 +1620,7 @@ public sealed class FrontlineMatchSession
         foreach (FrontlineLifeState life in ActiveLives())
         {
             bool shot = shotActors.Contains(life.ActorId);
-            UnitFormRules form = FormFor(State.GetUnit(
-                life.ActorId.TeamId,
-                life.ActorId.UnitId));
+            UnitFormRules form = FormFor(life.FormId);
             life.Cooldown = shot
                 ? form.ShootCooldownTicks
                 : Math.Max(0, life.Cooldown - 1);
@@ -1395,9 +1647,7 @@ public sealed class FrontlineMatchSession
             FrontlineTeamPresence.FromOccupyingTeamIds(
                 ActiveLives()
                     .Where(life =>
-                        FormFor(State.GetUnit(
-                                life.ActorId.TeamId,
-                                life.ActorId.UnitId))
+                        FormFor(life.FormId)
                             .ObjectiveWeight > 0
                         && activeTiles.Contains(life.Position))
                     .Select(life => life.ActorId.TeamId));
@@ -1479,7 +1729,12 @@ public sealed class FrontlineMatchSession
                         unit.LifecycleStatus,
                         unit.ActiveLife?.ActorId,
                         unit.ActiveLife?.Health ?? 0,
-                        unit.DamageDealt))
+                        unit.DamageDealt)
+                    {
+                        DefaultFormId = unit.DefaultFormId,
+                        PendingFormTransition =
+                            unit.ActiveLife?.PendingFormTransition,
+                    })
                     .ToImmutableArray();
                 return new FrontlineTeamMatchResult(
                     team.TeamId,
@@ -1564,7 +1819,10 @@ public sealed class FrontlineMatchSession
         long? projectileId,
         FrontlineActorId? target,
         ProjectileHeading? heading,
-        ShotProgram? program) =>
+        ShotProgram? program,
+        string actionId = PublicActionIds.Shoot,
+        int actionCode = (int)BotAction.Shoot,
+        ActorActionPayload? actionPayload = null) =>
         new()
         {
             Tick = State.Tick,
@@ -1579,8 +1837,45 @@ public sealed class FrontlineMatchSession
             ToFacing = shooter.Facing,
             ProjectileHeading = heading,
             ShotProgram = program,
-            Action = BotAction.Shoot,
+            Action = string.Equals(
+                    actionId,
+                    PublicActionIds.Shoot,
+                    StringComparison.Ordinal)
+                ? BotAction.Shoot
+                : null,
+            ActionId = actionId,
+            ActionCode = actionCode,
+            ActionPayload = actionPayload,
             ActionResult = ActionResult.Success,
+        };
+
+    private FrontlineMatchEvent FormTransitionEvent(
+        FrontlineMatchEventType type,
+        FrontlineLifeState life,
+        FrontlinePendingFormTransition pending) =>
+        new()
+        {
+            Tick = State.Tick,
+            Type = type,
+            TeamId = life.ActorId.TeamId,
+            UnitId = life.ActorId.UnitId,
+            ActorId = life.ActorId,
+            From = life.Position,
+            To = life.Position,
+            FromFacing = life.Facing,
+            ToFacing = life.Facing,
+            ActionId = PublicActionIds.Transform,
+            ActionCode = PublicActionCodes.Transform,
+            ActionPayload = new ActorActionPayload
+            {
+                FormTargetId = pending.ToFormId,
+            },
+            ActionResult = ActionResult.Success,
+            FromFormId = pending.FromFormId,
+            ToFormId = pending.ToFormId,
+            FormTransitionStartedAtTick = pending.StartedAtTick,
+            FormTransitionCompletesAtTick = pending.CompletesAtTick,
+            NewHealth = life.Health,
         };
 
     private bool IsOpposingProtectedPad(int teamId, Position position) =>
@@ -1603,31 +1898,31 @@ public sealed class FrontlineMatchSession
     private FrontlineTeamHome Home(int teamId) =>
         _profile.TeamHomes.Single(home => home.TeamId == teamId);
 
-    private UnitFormRules FormFor(FrontlineUnitState unit)
+    private UnitFormRules FormFor(string formId)
     {
         if (string.Equals(
-                unit.FormId,
+                formId,
                 _frontlineRules.PrimeForm.FormId,
                 StringComparison.Ordinal))
         {
             return _frontlineRules.PrimeForm;
         }
         if (string.Equals(
-                unit.FormId,
+                formId,
                 _frontlineRules.ChildForm.FormId,
                 StringComparison.Ordinal))
         {
             return _frontlineRules.ChildForm;
         }
         if (string.Equals(
-                unit.FormId,
+                formId,
                 _frontlineRules.TurretForm.FormId,
                 StringComparison.Ordinal))
         {
             return _frontlineRules.TurretForm;
         }
         throw new InvalidOperationException(
-            $"Unit {unit.TeamId}:{unit.UnitId} uses unknown form '{unit.FormId}'.");
+            $"Frontline life uses unknown form '{formId}'.");
     }
 
     private IReadOnlyList<FrontlineActorId> ActiveActorIds() =>

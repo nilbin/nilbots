@@ -101,6 +101,13 @@ export interface ReplayPosition {
   y: number;
 }
 
+export interface ReplayFormTransition {
+  fromFormId: string;
+  toFormId: string;
+  startedAtTick: number;
+  completesAtTick: number;
+}
+
 export type ReplayObjectiveMode =
   | 'none'
   | 'zone-ticks'
@@ -112,13 +119,15 @@ export type ReplayActionParameterKind =
   | 'shot-program'
   | 'direction'
   | 'unit-target'
-  | 'form-target';
+  | 'form-target'
+  | 'projectile-heading';
 export type ReplayActionKind =
   | 'wait'
   | 'movement'
   | 'rotation'
   | 'attack'
   | 'fabrication'
+  | 'transformation'
   | (string & {});
 export type ReplayTickResolutionPhase =
   | 'freeze-observations'
@@ -134,7 +143,9 @@ export type ReplayTickResolutionPhase =
   | 'resolve-match-completion'
   | 'apply-tick-start-lifecycle'
   | 'queue-destroyed-lives'
-  | 'queue-fabrications';
+  | 'queue-fabrications'
+  | 'start-form-transitions'
+  | 'complete-form-transitions';
 
 export interface ReplayContractLimits {
   maxTicks: number;
@@ -226,9 +237,33 @@ export interface ReplayContractFrontlineDefinition {
     requiresExplicitRefabricationAfterRebuild: boolean;
   };
   anchor: {
+    actionId: string;
+    sourceFormId: string;
+    targetFormId: string;
     windupTicks: number;
+    consumesTick: boolean;
+    completion: 'end-of-started-tick-plus-windup-minus-one-after-objective';
+    pendingActions: 'wait-only';
+    survivingDamage: 'does-not-cancel';
+    death: 'cancels-with-explicit-event';
+    forbiddenTiles: 'all-map-anchor-forbidden-tiles-illegal';
+    pendingForm: 'source-form-until-completion';
     healthGain: number;
+    healthTransition: 'minimum-target-maximum-and-current-plus-gain';
+    stateContinuity: 'same-life-runtime-memory-position-facing-cooldown-energy-and-damage';
+    terminal: 'preserve-future-pending-without-synthetic-cancellation';
     irreversibleForLife: boolean;
+  };
+  turretFire: {
+    actionId: string;
+    formId: string;
+    allowedProjectileHeadings: ReplayProjectileHeading[];
+    aim: 'absolute-eight-way-launch-heading';
+    projectile: 'one-straight-non-programmed-projectile';
+    facing: 'body-facing-unchanged';
+    range: 'global-projectile-range';
+    resources: 'standard-energy-cooldown-and-damage';
+    traversal: 'standard-traversal-strict-diagonal-corners';
   };
   alliedCombat: {
     friendlyFireEnabled: boolean;
@@ -625,6 +660,7 @@ export interface ReplayActorState {
   damageDealt: string | null;
   previousActionResult: ReplayActionResult;
   spawnedAtTick: number | null;
+  pendingFormTransition: ReplayFormTransition | null;
   status: ReplayUnitLifecycleStatus;
 }
 
@@ -633,6 +669,8 @@ export interface ReplayUnitState {
   teamKey: ReplayTeamKey;
   teamId: number;
   unitId: number;
+  defaultFormId: string;
+  /** Effective form: the active life's current form, or the slot default. */
   formId: string;
   lifecycleStatus: ReplayUnitLifecycleStatus;
   respawnAtTick: number | null;
@@ -755,6 +793,7 @@ export interface ReplayObservedActor {
   cooldown: number | null;
   energy: number | null;
   previousActionResult: ReplayActionResult | null;
+  pendingFormTransition: ReplayFormTransition | null;
   observedBy: ReplayActorLifeKey[];
 }
 
@@ -789,6 +828,15 @@ export interface ReplayObservedEvent {
   projectileHandle: string | null;
   position: ReplayPosition | null;
   facing: ReplayDirection | null;
+  projectileHeading: ReplayProjectileHeading | null;
+  fromFormId: string | null;
+  toFormId: string | null;
+  formTransitionStartedAtTick: number | null;
+  formTransitionCompletesAtTick: number | null;
+  actionId: string | null;
+  actionCode: number | null;
+  formTargetId: string | null;
+  actionResult: ReplayActionResult | null;
   amount: number | null;
   newHealth: number | null;
   observedBy: ReplayActorLifeKey[];
@@ -811,6 +859,7 @@ export interface ReplayObservedActionAvailability {
   available: boolean;
   shotProgramAvailable: boolean | null;
   allowedDirections: ReplayDirection[] | null;
+  allowedProjectileHeadings: ReplayProjectileHeading[] | null;
   allowedUnitKeys: ReplayStableUnitKey[] | null;
   allowedFormTargets: string[] | null;
 }
@@ -844,6 +893,7 @@ export interface ReplayActorObservation {
 export interface ReplayActionPayload {
   shotProgram: ReplayShotProgram | null;
   direction: ReplayDirection | null;
+  launchHeading: ReplayProjectileHeading | null;
   unitKey: ReplayStableUnitKey | null;
   formTargetId: string | null;
 }
@@ -920,6 +970,10 @@ export interface ReplayCausalEvent {
   fromFacing: ReplayDirection | null;
   toFacing: ReplayDirection | null;
   projectileHeading: ReplayProjectileHeading | null;
+  fromFormId: string | null;
+  toFormId: string | null;
+  formTransitionStartedAtTick: number | null;
+  formTransitionCompletesAtTick: number | null;
   actionPayload: ReplayActionPayload | null;
   actionId: string | null;
   actionCode: number | null;
@@ -978,12 +1032,14 @@ export interface ReplayUnitResult {
   unitKey: ReplayStableUnitKey;
   teamId: number;
   unitId: number;
+  defaultFormId: string;
   formId: string;
   lifecycleStatus: ReplayUnitLifecycleStatus;
   activeActor: ReplayActorIdentity | null;
   activeActorKey: ReplayActorLifeKey | null;
   health: number;
   damageDealt: string;
+  pendingFormTransition: ReplayFormTransition | null;
 }
 
 export interface ReplayTerminalResult {

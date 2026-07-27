@@ -175,6 +175,436 @@ public sealed class FrontlineActorMatchEngineTests
     }
 
     [Fact]
+    public void Run_TransformPreservesRuntimeMemoryAndReplayShotCausality()
+    {
+        GameRules baseline = FrontlineTestDefinitions.ReplicationRules(
+            maxTicks: 12,
+            firstUnlockTick: 1,
+            secondUnlockTick: 2,
+            shootCooldownTicks: 1);
+        GameRules rules = baseline with
+        {
+            MaxEnergy = 4,
+            ShotEnergyCost = 2,
+            EnergyRegenTicks = 1,
+            Frontline = baseline.Frontline! with
+            {
+                AnchorWindupTicks = 1,
+            },
+        };
+        ActorDecision Decide(
+            ActorMatchStart start,
+            ActorObservation observation)
+        {
+            int teamId = start.ActorId.TeamId;
+            int unitId = start.ActorId.UnitId;
+            if (unitId == 0)
+            {
+                return observation.Tick switch
+                {
+                    1 => ActorDecision.Fabricate(
+                        new ObservedUnitTarget(teamId, 1)),
+                    _ => ActorDecision.Wait(),
+                };
+            }
+            if (unitId != 1)
+                return ActorDecision.Wait();
+            return (teamId, observation.Tick) switch
+            {
+                (0, 2) => ActorDecision.MoveForward(),
+                (0, 3) => ActorDecision.TurnRight(),
+                (0, 4 or 5 or 6) => ActorDecision.MoveForward(),
+                (0, 7) => ActorDecision.TurnLeft(),
+                (0, 8) => ActorDecision.MoveForward(),
+                (1, 2) => ActorDecision.TurnLeft(),
+                (1, 3 or 4 or 5) => ActorDecision.MoveForward(),
+                (1, 6) => ActorDecision.TurnRight(),
+                (1, 7) => ActorDecision.MoveForward(),
+                (_, 9) => ActorDecision.Transform("turret"),
+                (_, 10) => ActorDecision.ShootDirection(
+                    teamId == 0
+                        ? ProjectileHeading.East
+                        : ProjectileHeading.West),
+                _ => ActorDecision.Wait(),
+            };
+        }
+
+        var teamZero = new RecordingFactory([], Decide);
+        var teamOne = new RecordingFactory([], Decide);
+        FrontlineActorMatchRunResult run =
+            new FrontlineActorMatchEngine().Run(new()
+            {
+                Map = FrontlineTestDefinitions.AnchorMapV2(),
+                Rules = rules,
+                Seed = 42,
+                Participants =
+                [
+                    Participant(0, 0, "zero", teamZero),
+                    Participant(1, 1, "one", teamOne),
+                ],
+            });
+
+        Assert.True(ReplayV2Serializer.VerifyHash(run.ReplayJson));
+        Assert.Equal(2, teamZero.Runtimes.Count);
+        Assert.Equal(2, teamOne.Runtimes.Count);
+        RecordingRuntime childRuntime = teamZero.Runtimes.Single(runtime =>
+            runtime.Start!.ActorId.UnitId == 1);
+        Assert.Equal(10, childRuntime.ExecutionCount);
+        Assert.Equal(
+            ActorSpawnReason.Fabrication,
+            childRuntime.Start!.SpawnReason);
+        ReplayV2ActorTurn firstChildTurn = run.Replay.Ticks[2].Actors
+            .Single(actor =>
+                actor.ActorId == new ReplayV2ActorId(0, 1, 0));
+        Assert.Equal(new Position(1, 3),
+            firstChildTurn.Observation.Self.Position);
+        Assert.Equal(Direction.East, firstChildTurn.Observation.Self.Facing);
+        Assert.Equal(
+            PublicActionIds.MoveForward,
+            firstChildTurn.ActionResolution.ValidatedActionId);
+        Assert.Equal(
+            [
+                new Position(1, 3),
+                new Position(2, 3),
+                new Position(2, 3),
+                new Position(2, 4),
+                new Position(2, 5),
+                new Position(2, 6),
+                new Position(2, 6),
+                new Position(3, 6),
+            ],
+            run.Replay.Ticks[2..10]
+                .Select(tick => tick.Actors.Single(actor =>
+                        actor.ActorId == new ReplayV2ActorId(0, 1, 0))
+                    .Observation.Self.Position)
+                .ToArray());
+
+        ReplayV2Tick transformTick = run.Replay.Ticks[9];
+        ReplayV2ActorTurn transformTurn = transformTick.Actors.Single(actor =>
+            actor.ActorId == new ReplayV2ActorId(0, 1, 0));
+        Assert.Equal(new Position(3, 6),
+            transformTurn.Observation.Self.Position);
+        Assert.Equal(
+            PublicActionIds.Transform,
+            transformTurn.ActionResolution.ValidatedActionId);
+        ReplayV2Event started = Assert.Single(
+            transformTick.Resolution.Events,
+            value => value.Type
+                == FrontlineMatchEventType.FormTransitionStarted
+                && value.SourceActorId == new ReplayV2ActorId(0, 1, 0));
+        ReplayV2Event changed = Assert.Single(
+            transformTick.Resolution.Events,
+            value => value.Type == FrontlineMatchEventType.FormChanged
+                && value.SourceActorId == new ReplayV2ActorId(0, 1, 0));
+        Assert.Equal(PublicActionIds.Transform, started.ActionId);
+        Assert.Equal("turret", changed.ToFormId);
+        ReplayV2UnitState transformed = transformTick.PostState.Teams
+            .Single(team => team.TeamId == 0).Units
+            .Single(unit => unit.UnitId == 1);
+        Assert.Equal("child-mobile", transformed.DefaultFormId);
+        Assert.Equal("turret", transformed.ActiveLife!.FormId);
+        Assert.Equal(new ReplayV2ActorId(0, 1, 0),
+            transformed.ActiveLife.ActorId);
+
+        ReplayV2Tick shotTick = run.Replay.Ticks[10];
+        ReplayV2Event shot = Assert.Single(
+            shotTick.Resolution.Events,
+            value => value.Type == FrontlineMatchEventType.Shot
+                && value.SourceActorId == new ReplayV2ActorId(0, 1, 0));
+        Assert.Equal(PublicActionIds.ShootDirection, shot.ActionId);
+        Assert.Equal(ProjectileHeading.East, shot.ProjectileHeading);
+        Assert.Equal(
+            ProjectileHeading.East,
+            shot.ActionPayload!.LaunchHeading);
+        ReplayV2ProjectileTraversal traversal = Assert.Single(
+            shotTick.Resolution.ProjectileTraversals,
+            value => value.ProjectileId == shot.ProjectileId);
+        Assert.Equal([shot.To!.Value], traversal.Path.ToArray());
+        Assert.Null(traversal.ShotProgram);
+        Assert.Null(traversal.ProgrammedPath);
+        ReplayV2LifeState firedLife = shotTick.PostState.Teams
+            .Single(team => team.TeamId == 0).Units
+            .Single(unit => unit.UnitId == 1)
+            .ActiveLife!;
+        Assert.Equal(1, firedLife.Cooldown);
+        Assert.Equal(3, firedLife.Energy);
+        Assert.Equal(ActionResult.Success,
+            firedLife.PreviousActionResult);
+        ReplayV2ObservedEvent observedShot = Assert.Single(
+            run.Replay.Ticks[11].Actors
+                .Single(actor =>
+                    actor.ActorId == new ReplayV2ActorId(0, 1, 0))
+                .Observation.VisibleEvents,
+            value => value.Type == ObservedMatchEventType.Shot
+                && value.AlliedActorId
+                    == new ReplayV2ActorId(0, 1, 0));
+        Assert.Equal(PublicActionIds.ShootDirection, observedShot.ActionId);
+        Assert.Equal(
+            PublicActionCodes.ShootDirection,
+            observedShot.ActionCode);
+        Assert.Equal(ProjectileHeading.East,
+            observedShot.ProjectileHeading);
+        Assert.Equal(ActionResult.Success, observedShot.ActionResult);
+
+        ReplayV2UnitResult result = run.Replay.Result.Teams
+            .Single(team => team.TeamId == 0).Units
+            .Single(unit => unit.UnitId == 1);
+        Assert.Equal("child-mobile", result.DefaultFormId);
+        Assert.Equal("turret", result.FormId);
+
+        var turretActor = new ReplayV2ActorId(0, 1, 0);
+        AssertTickMutationRejected(
+            run.Replay,
+            tickId: 10,
+            tick => ReplacePostLife(
+                tick,
+                turretActor,
+                life => life with
+                {
+                    Cooldown = life.Cooldown + 1,
+                }),
+            "surviving turret fire");
+        AssertTickMutationRejected(
+            run.Replay,
+            tickId: 10,
+            tick => ReplacePostLife(
+                tick,
+                turretActor,
+                life => life with
+                {
+                    Energy = life.Energy + 1,
+                }),
+            "surviving turret fire");
+        AssertTickMutationRejected(
+            run.Replay,
+            tickId: 10,
+            tick => tick with
+            {
+                Resolution = tick.Resolution with
+                {
+                    ProjectileTraversals =
+                        tick.Resolution.ProjectileTraversals.Add(
+                            traversal with
+                            {
+                                ProjectileId = "999999",
+                            }),
+                },
+            },
+            "persistence");
+
+        ActorDecision DecideBlocked(
+            ActorMatchStart start,
+            ActorObservation observation) =>
+            start.ActorId.TeamId == 0
+            && start.ActorId.UnitId == 1
+            && observation.Tick == 10
+                ? ActorDecision.ShootDirection(
+                    ProjectileHeading.NorthWest)
+                : Decide(start, observation);
+        FrontlineActorMatchRunResult blockedRun =
+            new FrontlineActorMatchEngine().Run(new()
+            {
+                Map = FrontlineTestDefinitions.AnchorMapV2(),
+                Rules = rules,
+                Seed = 42,
+                Participants =
+                [
+                    Participant(
+                        0,
+                        0,
+                        "zero",
+                        new RecordingFactory([], DecideBlocked)),
+                    Participant(
+                        1,
+                        1,
+                        "one",
+                        new RecordingFactory([], DecideBlocked)),
+                ],
+            });
+        Assert.True(ReplayV2Serializer.VerifyHash(
+            blockedRun.ReplayJson));
+        ReplayV2Tick blockedTick = blockedRun.Replay.Ticks[10];
+        ReplayV2Event blockedShot = Assert.Single(
+            blockedTick.Resolution.Events,
+            value => value.Type == FrontlineMatchEventType.Shot
+                && value.SourceActorId == turretActor);
+        Assert.Null(blockedShot.ProjectileId);
+        Assert.DoesNotContain(
+            blockedTick.Resolution.ProjectileTraversals,
+            value => value.OwnerActorId == turretActor);
+        AssertTickMutationRejected(
+            blockedRun.Replay,
+            tickId: 10,
+            tick => tick with
+            {
+                Resolution = tick.Resolution with
+                {
+                    Events = tick.Resolution.Events
+                        .Select(value =>
+                            value.EventId == blockedShot.EventId
+                                ? value with
+                                {
+                                    ProjectileId = "999999",
+                                }
+                                : value)
+                        .ToImmutableArray(),
+                },
+            },
+            "blocked turret launch");
+    }
+
+    [Fact]
+    public void Run_FiveSlotUnitFourFabricatesTransformsAndReplaysEndToEnd()
+    {
+        GameRules baseline = FrontlineTestDefinitions.ReplicationRules(
+            maxTicks: 14,
+            firstUnlockTick: 1,
+            secondUnlockTick: 2);
+        GameRules rules = baseline with
+        {
+            Frontline = baseline.Frontline! with
+            {
+                MaxUnitsPerTeam = 5,
+                FabricationUnlockTicks = [1, 2, 3, 4],
+                AnchorWindupTicks = 1,
+            },
+        };
+        ActorDecision Decide(
+            ActorMatchStart start,
+            ActorObservation observation)
+        {
+            int teamId = start.ActorId.TeamId;
+            if (start.ActorId.UnitId == 0)
+            {
+                return observation.Tick is >= 1 and <= 4
+                    ? ActorDecision.Fabricate(
+                        new ObservedUnitTarget(
+                            teamId,
+                            observation.Tick))
+                    : ActorDecision.Wait();
+            }
+            if (start.ActorId.UnitId != 4)
+                return ActorDecision.Wait();
+            return (teamId, observation.Tick) switch
+            {
+                (0, 5) => ActorDecision.TurnRight(),
+                (0, 6) => ActorDecision.MoveForward(),
+                (0, 7) => ActorDecision.TurnLeft(),
+                (0, 8 or 9) => ActorDecision.MoveForward(),
+                (1, 5) => ActorDecision.TurnLeft(),
+                (1, 6) => ActorDecision.MoveForward(),
+                (1, 7) => ActorDecision.TurnRight(),
+                (1, 8 or 9) => ActorDecision.MoveForward(),
+                (_, 12) => ActorDecision.Transform("turret"),
+                _ => ActorDecision.Wait(),
+            };
+        }
+
+        var teamZero = new RecordingFactory([], Decide);
+        var teamOne = new RecordingFactory([], Decide);
+        FrontlineActorMatchRunResult run =
+            new FrontlineActorMatchEngine().Run(new()
+            {
+                Map = FrontlineTestDefinitions.AnchorMapV2(),
+                Rules = rules,
+                Seed = 43,
+                Participants =
+                [
+                    Participant(0, 0, "zero", teamZero),
+                    Participant(1, 1, "one", teamOne),
+                ],
+            });
+
+        Assert.True(ReplayV2Serializer.VerifyHash(run.ReplayJson));
+        Assert.Equal(
+            5,
+            run.Replay.Header.Contract.Rules.Frontline!.MaxUnitsPerTeam);
+        Assert.All(
+            run.Replay.Header.Contract.Topology.Teams,
+            team => Assert.Equal(
+                [0, 1, 2, 3, 4],
+                run.Replay.Header.Contract.Topology.UnitSlots
+                    .Where(unit => unit.TeamId == team.TeamId)
+                    .Select(unit => unit.UnitId)
+                    .ToArray()));
+        Assert.Contains(
+            new ReplayV2ActorId(0, 4, 0),
+            run.Replay.Ticks[5].TickStart.ActiveActors);
+        Assert.All(
+            run.Replay.Header.Contract.Topology.Teams,
+            team => Assert.Equal(
+                5,
+                run.Replay.Ticks[5].Actors.Count(actor =>
+                    actor.ActorId.TeamId == team.TeamId)));
+        Assert.Equal(10, run.Replay.Ticks[5].Actors.Length);
+        Assert.All(
+            run.Replay.Ticks[5].Actors,
+            actor => Assert.Equal(
+                5,
+                actor.Observation.TeamUnits.Length));
+        Assert.Equal(5, teamZero.Runtimes.Count);
+        Assert.Equal(5, teamOne.Runtimes.Count);
+        Assert.Equal(
+            5,
+            teamZero.Runtimes
+                .Select(runtime => runtime.Start!.ActorId.UnitId)
+                .Distinct()
+                .Count());
+        Assert.Equal(
+            5,
+            teamOne.Runtimes
+                .Select(runtime => runtime.Start!.ActorId.UnitId)
+                .Distinct()
+                .Count());
+        ReplayV2ActorTurn firstUnitFourTurn =
+            run.Replay.Ticks[5].Actors.Single(actor =>
+                actor.ActorId == new ReplayV2ActorId(0, 4, 0));
+        Assert.Equal(5, firstUnitFourTurn.Observation.TeamUnits.Length);
+        Assert.Equal("child-mobile",
+            firstUnitFourTurn.Observation.Self.FormId);
+        Assert.Equal(ActorSpawnReason.Fabrication,
+            firstUnitFourTurn.LifeStart!.SpawnReason);
+
+        ReplayV2Tick transformTick = run.Replay.Ticks[12];
+        Assert.Equal(
+            2,
+            transformTick.Resolution.Events.Count(value =>
+                value.Type
+                    == FrontlineMatchEventType.FormTransitionStarted));
+        Assert.Equal(
+            2,
+            transformTick.Resolution.Events.Count(value =>
+                value.Type == FrontlineMatchEventType.FormChanged));
+        ReplayV2UnitState unitFour = transformTick.PostState.Teams
+            .Single(team => team.TeamId == 0).Units
+            .Single(unit => unit.UnitId == 4);
+        Assert.Equal("child-mobile", unitFour.DefaultFormId);
+        Assert.Equal("turret", unitFour.ActiveLife!.FormId);
+        Assert.Equal(
+            "turret",
+            run.Replay.Ticks[13].Actors
+                .Single(actor =>
+                    actor.ActorId == new ReplayV2ActorId(0, 4, 0))
+                .Observation.TeamUnits
+                .Single(unit => unit.UnitId == 4)
+                .FormId);
+
+        Assert.All(
+            run.Replay.Result.Teams,
+            team =>
+            {
+                Assert.Equal(5, team.Units.Length);
+                ReplayV2UnitResult result =
+                    team.Units.Single(unit => unit.UnitId == 4);
+                Assert.Equal("child-mobile", result.DefaultFormId);
+                Assert.Equal("turret", result.FormId);
+                Assert.Equal(
+                    new ReplayV2ActorId(team.TeamId, 4, 0),
+                    result.ActiveActorId);
+            });
+    }
+
+    [Fact]
     public void Run_IsIndependentOfParticipantInputOrder()
     {
         GameRules rules = FrontlineTestDefinitions.PrimeOnlyRules(maxTicks: 2);
@@ -602,7 +1032,7 @@ public sealed class FrontlineActorMatchEngineTests
             tickId: 0,
             teamId: 0,
             unitId: 1,
-            unit => unit with { FormId = "turret" },
+            unit => unit with { DefaultFormId = "turret" },
             "deployment default form");
         ReplayV2LifeState primeLife = run.Replay.Ticks[0]
             .TickStart.State.Teams
@@ -631,7 +1061,7 @@ public sealed class FrontlineActorMatchEngineTests
             tickId: 2,
             teamId: 0,
             unitId: 1,
-            unit => unit with { FormId = "turret" },
+            unit => unit with { DefaultFormId = "turret" },
             "lifecycle transition");
         AssertFrontlineContractMutationRejected(
             run.Replay,
@@ -786,6 +1216,57 @@ public sealed class FrontlineActorMatchEngineTests
             exception.Message,
             StringComparison.OrdinalIgnoreCase);
     }
+
+    private static void AssertTickMutationRejected(
+        ReplayV2 replay,
+        int tickId,
+        Func<ReplayV2Tick, ReplayV2Tick> replace,
+        string expectedMessage)
+    {
+        ReplayV2 mutated = replay with
+        {
+            Ticks = replay.Ticks
+                .Select(tick => tick.Tick == tickId
+                    ? replace(tick)
+                    : tick)
+                .ToImmutableArray(),
+        };
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            ReplayV2Serializer.ComputeHash(mutated));
+        Assert.Contains(
+            expectedMessage,
+            exception.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ReplayV2Tick ReplacePostLife(
+        ReplayV2Tick tick,
+        ReplayV2ActorId actorId,
+        Func<ReplayV2LifeState, ReplayV2LifeState> replace) =>
+        tick with
+        {
+            PostState = tick.PostState with
+            {
+                Teams = tick.PostState.Teams
+                    .Select(team => team.TeamId != actorId.TeamId
+                        ? team
+                        : team with
+                        {
+                            Units = team.Units
+                                .Select(unit =>
+                                    unit.UnitId != actorId.UnitId
+                                    || unit.ActiveLife is null
+                                        ? unit
+                                        : unit with
+                                        {
+                                            ActiveLife = replace(
+                                                unit.ActiveLife),
+                                        })
+                                .ToImmutableArray(),
+                        })
+                    .ToImmutableArray(),
+            },
+        };
 
     private static void AssertFrontlineContractMutationRejected(
         ReplayV2 replay,

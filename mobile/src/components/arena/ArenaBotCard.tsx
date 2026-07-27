@@ -53,6 +53,7 @@ export function ArenaBotCard({
               unit.fabricationAtTick !== null
             ? { label: 'SPAWN', tick: unit.fabricationAtTick }
             : null;
+  const formTransition = unit.pendingFormTransition;
 
   return (
     <Pressable
@@ -138,12 +139,25 @@ export function ArenaBotCard({
             <Text style={styles.statValue}>T{transition.tick}</Text>
           </Text>
         ) : null}
+        {formTransition ? (
+          <Text style={[styles.stat, styles.anchoring]}>
+            ANCHOR{' '}
+            <Text style={styles.statValue}>
+              {formTransition.fromFormId}→{formTransition.toFormId} · T
+              {formTransition.completesAtTick}
+            </Text>
+          </Text>
+        ) : null}
       </View>
 
-      {!unit.canMove ||
+      {formTransition ||
+      !unit.canMove ||
       unit.omnidirectionalVision ||
       unit.omnidirectionalShooting ? (
         <View style={styles.signals}>
+          {formTransition ? (
+            <Text style={[styles.signal, styles.windup]}>WINDUP</Text>
+          ) : null}
           {!unit.canMove ? (
             <Text style={styles.signal}>STATIONARY</Text>
           ) : null}
@@ -159,6 +173,9 @@ export function ArenaBotCard({
       {unit.actionId !== null ? (
         <Text style={styles.action} numberOfLines={1}>
           → <Text style={styles.statValue}>{unit.actionId}</Text>
+          {unit.actionLaunchHeading
+            ? ` · ${unit.actionLaunchHeading.toUpperCase()}`
+            : ''}
           {unit.actionResult !== null &&
           unit.actionResult !== 'success' &&
           unit.actionResult !== 'none' ? (
@@ -230,6 +247,7 @@ const styles = StyleSheet.create({
   stat: { ...Mono, color: Arena.dim, fontSize: 11 },
   statValue: { color: Arena.text },
   holding: { color: Arena.zone },
+  anchoring: { color: Arena.zone },
   signals: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs },
   signal: {
     ...Mono,
@@ -241,6 +259,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     fontSize: 9,
   },
+  windup: { color: Arena.zone },
   action: { ...Mono, color: Arena.dim, fontSize: 11 },
   rejected: { color: Arena.warn },
   detail: {

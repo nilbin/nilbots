@@ -93,6 +93,26 @@ export default function EventFeed({
         return `${actorName(replay, event.sourceActor)} is fabricated`;
       case 'rebuild-ready':
         return `${stableName} is rebuilt and ready`;
+      case 'form-transition-started':
+        return (
+          `${actorName(replay, event.sourceActor)} begins anchoring` +
+          (event.fromFormId && event.toFormId
+            ? ` · ${event.fromFormId} → ${event.toFormId}`
+            : '') +
+          (event.formTransitionCompletesAtTick === null
+            ? ''
+            : ` · completes T${event.formTransitionCompletesAtTick}`)
+        );
+      case 'form-changed':
+        return (
+          `${actorName(replay, event.sourceActor)} changes form` +
+          (event.toFormId ? ` · ${event.toFormId}` : '')
+        );
+      case 'form-transition-cancelled':
+        return (
+          `${actorName(replay, event.sourceActor ?? event.targetActor)} anchoring is cancelled` +
+          (event.toFormId ? ` · ${event.toFormId}` : '')
+        );
       default:
         return event.type;
     }
@@ -125,10 +145,14 @@ export default function EventFeed({
                 event.type === 'frontline-position-advanced',
               'text-violet-200':
                 event.type === 'fabrication-queued' ||
-                event.type === 'fabricated',
+                event.type === 'fabricated' ||
+                event.type === 'form-transition-started',
               'text-emerald-200':
                 event.type === 'fabrication-unlocked' ||
-                event.type === 'rebuild-ready',
+                event.type === 'rebuild-ready' ||
+                event.type === 'form-changed',
+              'text-amber-200':
+                event.type === 'form-transition-cancelled',
               'text-arena-text':
                 event.type === 'shot' ||
                 event.type === 'move-blocked',

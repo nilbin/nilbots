@@ -147,7 +147,12 @@ public sealed class FrontlineObservationProjector
                     contract.Rules.Energy.Enabled
                         ? candidate.Energy
                         : null,
-                    candidate.PreviousActionResult))
+                    candidate.PreviousActionResult)
+                {
+                    PendingFormTransition =
+                        ObservedTransition(
+                            candidate.PendingFormTransition),
+                })
                 .ToImmutableArray();
             ImmutableArray<ObservedMapTile> visibleTiles = ProjectVisibleTiles(
                 state.Definition.Map,
@@ -192,7 +197,11 @@ public sealed class FrontlineObservationProjector
                     contract.Rules.Energy.Enabled
                         ? actor.Energy
                         : null,
-                    actor.PreviousActionResult),
+                    actor.PreviousActionResult)
+                {
+                    PendingFormTransition =
+                        ObservedTransition(actor.PendingFormTransition),
+                },
                 TeamUnits = teamUnits,
                 Allies = allies,
                 Enemies = enemies,
@@ -506,13 +515,14 @@ public sealed class FrontlineObservationProjector
                     ? null
                     : new ActorSnapshot(
                         ActorIdentity.FromFrontline(unit.ActiveLife.ActorId),
-                        unit.FormId,
+                        unit.ActiveLife.FormId,
                         unit.ActiveLife.Position,
                         unit.ActiveLife.Facing,
                         unit.ActiveLife.Health,
                         unit.ActiveLife.Cooldown,
                         unit.ActiveLife.Energy,
-                        unit.ActiveLife.LastActionResult);
+                        unit.ActiveLife.LastActionResult,
+                        unit.ActiveLife.PendingFormTransition);
                 units.Add(new UnitSnapshot(
                     unit.TeamId,
                     unit.UnitId,
@@ -611,7 +621,11 @@ public sealed class FrontlineObservationProjector
                 enemy.Position,
                 enemy.Facing,
                 enemy.Health,
-                observedBy));
+                observedBy)
+            {
+                PendingFormTransition =
+                    ObservedTransition(enemy.PendingFormTransition),
+            });
         }
         return enemies.ToImmutable();
     }
@@ -823,7 +837,10 @@ public sealed class FrontlineObservationProjector
             matchEvent.Type is
                 FrontlineMatchEventType.Turn or
                 FrontlineMatchEventType.Shot or
-                FrontlineMatchEventType.Respawned
+                FrontlineMatchEventType.Respawned or
+                FrontlineMatchEventType.FormTransitionStarted or
+                FrontlineMatchEventType.FormChanged or
+                FrontlineMatchEventType.FormTransitionCancelled
                 ? matchEvent.ToFacing ?? matchEvent.FromFacing
                 : null,
             matchEvent.Type == FrontlineMatchEventType.Damage
@@ -832,10 +849,52 @@ public sealed class FrontlineObservationProjector
             matchEvent.Type is
                 FrontlineMatchEventType.Damage or
                 FrontlineMatchEventType.Destroyed or
-                FrontlineMatchEventType.Respawned
+                FrontlineMatchEventType.Respawned or
+                FrontlineMatchEventType.FormTransitionStarted or
+                FrontlineMatchEventType.FormChanged or
+                FrontlineMatchEventType.FormTransitionCancelled
                 ? matchEvent.NewHealth
                 : null,
-            observedBy);
+            observedBy)
+        {
+            ProjectileHeading = matchEvent.Type
+                    == FrontlineMatchEventType.Shot
+                ? matchEvent.ProjectileHeading
+                : null,
+            FromFormId = matchEvent.FromFormId,
+            ToFormId = matchEvent.ToFormId,
+            FormTransitionStartedAtTick =
+                matchEvent.FormTransitionStartedAtTick,
+            FormTransitionCompletesAtTick =
+                matchEvent.FormTransitionCompletesAtTick,
+            ActionId = matchEvent.Type is
+                    FrontlineMatchEventType.Shot or
+                    FrontlineMatchEventType.FormTransitionStarted or
+                    FrontlineMatchEventType.FormChanged or
+                    FrontlineMatchEventType.FormTransitionCancelled
+                ? matchEvent.ActionId
+                : null,
+            ActionCode = matchEvent.Type is
+                    FrontlineMatchEventType.Shot or
+                    FrontlineMatchEventType.FormTransitionStarted or
+                    FrontlineMatchEventType.FormChanged or
+                    FrontlineMatchEventType.FormTransitionCancelled
+                ? matchEvent.ActionCode
+                : null,
+            FormTargetId = matchEvent.Type is
+                    FrontlineMatchEventType.FormTransitionStarted or
+                    FrontlineMatchEventType.FormChanged or
+                    FrontlineMatchEventType.FormTransitionCancelled
+                ? matchEvent.ActionPayload?.FormTargetId
+                : null,
+            ActionResult = matchEvent.Type is
+                    FrontlineMatchEventType.Shot or
+                    FrontlineMatchEventType.FormTransitionStarted or
+                    FrontlineMatchEventType.FormChanged or
+                    FrontlineMatchEventType.FormTransitionCancelled
+                ? matchEvent.ActionResult
+                : null,
+        };
     }
 
     private static ImmutableArray<ObservedActionAvailability> ProjectActions(
@@ -856,9 +915,21 @@ public sealed class FrontlineObservationProjector
         {
             bool available =
                 action.Enabled && allowedActionIds.Contains(action.Id);
+            if (actor.PendingFormTransition is not null
+                && !string.Equals(
+                    action.Id,
+                    PublicActionIds.Wait,
+                    StringComparison.Ordinal))
+            {
+                available = false;
+            }
             if (string.Equals(
                     action.Id,
                     PublicActionIds.Shoot,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    action.Id,
+                    PublicActionIds.ShootDirection,
                     StringComparison.Ordinal))
             {
                 available = available
@@ -909,6 +980,38 @@ public sealed class FrontlineObservationProjector
                 available = available
                     && allowedUnitTargets is { IsEmpty: false };
             }
+            PublicFrontlineAnchorDefinition? anchor =
+                rules.Frontline?.Anchor;
+            ImmutableArray<string>? allowedFormTargets =
+                action.ParameterKinds.Contains(
+                    PublicActionParameterKind.FormTarget)
+                    ? available
+                        && anchor is not null
+                        && string.Equals(
+                            actor.FormId,
+                            anchor.SourceFormId,
+                            StringComparison.Ordinal)
+                        && !profile.AnchorForbiddenTiles.Contains(
+                            actor.Position)
+                        ? [anchor.TargetFormId]
+                        : []
+                    : null;
+            if (string.Equals(
+                    action.Id,
+                    PublicActionIds.Transform,
+                    StringComparison.Ordinal))
+            {
+                available = available
+                    && allowedFormTargets is { IsEmpty: false };
+            }
+            ImmutableArray<ProjectileHeading>? allowedProjectileHeadings =
+                action.ParameterKinds.Contains(
+                    PublicActionParameterKind.ProjectileHeading)
+                    ? available
+                        ? rules.Frontline!.TurretFire
+                            .AllowedProjectileHeadings
+                        : []
+                    : null;
             actions.Add(new ObservedActionAvailability(
                 action.Id,
                 action.Code,
@@ -918,7 +1021,11 @@ public sealed class FrontlineObservationProjector
                 shotProgramAvailable,
                 AllowedDirections: null,
                 AllowedUnitTargets: allowedUnitTargets,
-                AllowedFormTargets: null));
+                AllowedFormTargets: allowedFormTargets)
+            {
+                AllowedProjectileHeadings =
+                    allowedProjectileHeadings,
+            });
         }
         return actions.MoveToImmutable();
     }
@@ -931,6 +1038,16 @@ public sealed class FrontlineObservationProjector
             .Select(sensor => sensor.Actor.ActorId)
             .Order()
             .ToImmutableArray();
+
+    private static ObservedFormTransition? ObservedTransition(
+        FrontlinePendingFormTransition? transition) =>
+        transition is null
+            ? null
+            : new ObservedFormTransition(
+                transition.FromFormId,
+                transition.ToFormId,
+                transition.StartedAtTick,
+                transition.CompletesAtTick);
 
     private static ImmutableArray<SourcedEvent> SnapshotEvents(
         IReadOnlyList<FrontlineMatchEvent> priorResolvedEvents,
@@ -976,7 +1093,11 @@ public sealed class FrontlineObservationProjector
                 or FrontlineMatchEventType.MoveBlocked
                 or FrontlineMatchEventType.Shot
                 or FrontlineMatchEventType.Damage
-                or FrontlineMatchEventType.Destroyed => matchEvent.From,
+                or FrontlineMatchEventType.Destroyed
+                or FrontlineMatchEventType.FormTransitionStarted
+                or FrontlineMatchEventType.FormChanged
+                or FrontlineMatchEventType.FormTransitionCancelled =>
+                matchEvent.From,
             FrontlineMatchEventType.FrontlineProgressChanged
                 or FrontlineMatchEventType.FrontlinePositionAdvanced
                 or FrontlineMatchEventType.BaseBreached => null,
@@ -999,6 +1120,12 @@ public sealed class FrontlineObservationProjector
                 ObservedMatchEventType.Fabricated,
             FrontlineMatchEventType.RebuildReady =>
                 ObservedMatchEventType.RebuildReady,
+            FrontlineMatchEventType.FormTransitionStarted =>
+                ObservedMatchEventType.FormTransitionStarted,
+            FrontlineMatchEventType.FormChanged =>
+                ObservedMatchEventType.FormChanged,
+            FrontlineMatchEventType.FormTransitionCancelled =>
+                ObservedMatchEventType.FormTransitionCancelled,
             FrontlineMatchEventType.Turn =>
                 ObservedMatchEventType.Turn,
             FrontlineMatchEventType.Move =>
@@ -1077,7 +1204,8 @@ public sealed class FrontlineObservationProjector
         int Health,
         int Cooldown,
         int Energy,
-        ActionResult PreviousActionResult);
+        ActionResult PreviousActionResult,
+        FrontlinePendingFormTransition? PendingFormTransition);
 
     private sealed record SensorSnapshot(
         ActorSnapshot Actor,

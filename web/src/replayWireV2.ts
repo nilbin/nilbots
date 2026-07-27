@@ -46,7 +46,10 @@ export type ReplayV2EventType =
   | 'fabrication-unlocked'
   | 'fabrication-queued'
   | 'fabricated'
-  | 'rebuild-ready';
+  | 'rebuild-ready'
+  | 'form-transition-started'
+  | 'form-changed'
+  | 'form-transition-cancelled';
 
 export type ReplayV2ObservedEventType =
   | ReplayV2EventType
@@ -57,7 +60,8 @@ export type ReplayV2ActionParameterKind =
   | 'shot-program'
   | 'direction'
   | 'unit-target'
-  | 'form-target';
+  | 'form-target'
+  | 'projectile-heading';
 
 export interface ReplayV2Position {
   x: number;
@@ -198,9 +202,34 @@ export interface ReplayV2FrontlineFabricationDefinition {
 }
 
 export interface ReplayV2FrontlineAnchorDefinition {
+  actionId: string;
+  sourceFormId: string;
+  targetFormId: string;
   windupTicks: number;
+  consumesTick: boolean;
+  completion: 'end-of-started-tick-plus-windup-minus-one-after-objective';
+  pendingActions: 'wait-only';
+  survivingDamage: 'does-not-cancel';
+  death: 'cancels-with-explicit-event';
+  forbiddenTiles: 'all-map-anchor-forbidden-tiles-illegal';
+  pendingForm: 'source-form-until-completion';
   healthGain: number;
+  healthTransition: 'minimum-target-maximum-and-current-plus-gain';
+  stateContinuity: 'same-life-runtime-memory-position-facing-cooldown-energy-and-damage';
+  terminal: 'preserve-future-pending-without-synthetic-cancellation';
   irreversibleForLife: boolean;
+}
+
+export interface ReplayV2FrontlineTurretFireDefinition {
+  actionId: string;
+  formId: string;
+  allowedProjectileHeadings: ReplayV2ProjectileHeading[];
+  aim: 'absolute-eight-way-launch-heading';
+  projectile: 'one-straight-non-programmed-projectile';
+  facing: 'body-facing-unchanged';
+  range: 'global-projectile-range';
+  resources: 'standard-energy-cooldown-and-damage';
+  traversal: 'standard-traversal-strict-diagonal-corners';
 }
 
 export interface ReplayV2FrontlineDeploymentDefinition {
@@ -233,6 +262,7 @@ export interface ReplayV2FrontlineDefinition {
   deployment: ReplayV2FrontlineDeploymentDefinition;
   fabrication: ReplayV2FrontlineFabricationDefinition;
   anchor: ReplayV2FrontlineAnchorDefinition;
+  turretFire: ReplayV2FrontlineTurretFireDefinition;
   alliedCombat: ReplayV2FrontlineAlliedCombatDefinition;
 }
 
@@ -262,7 +292,13 @@ export interface ReplayV2FormDefinition {
 export interface ReplayV2ActionDefinition {
   id: string;
   code: number;
-  kind: 'wait' | 'movement' | 'rotation' | 'attack' | 'fabrication';
+  kind:
+    | 'wait'
+    | 'movement'
+    | 'rotation'
+    | 'attack'
+    | 'fabrication'
+    | 'transformation';
   parameterKinds: ReplayV2ActionParameterKind[];
   enabled: boolean;
 }
@@ -365,7 +401,9 @@ export type ReplayV2TickResolutionPhase =
   | 'resolve-match-completion'
   | 'apply-tick-start-lifecycle'
   | 'queue-destroyed-lives'
-  | 'queue-fabrications';
+  | 'queue-fabrications'
+  | 'start-form-transitions'
+  | 'complete-form-transitions';
 
 export interface ReplayV2TickResolutionRules {
   observationsUsePreTickState: boolean;
@@ -495,9 +533,17 @@ export interface ReplayV2ObservedUnitSlot {
   fabricationAtTick: number | null;
 }
 
+export interface ReplayV2FormTransition {
+  fromFormId: string;
+  toFormId: string;
+  startedAtTick: number;
+  completesAtTick: number;
+}
+
 export interface ReplayV2ObservedSelf {
   actorId: ReplayV2ActorId;
   formId: string;
+  pendingFormTransition: ReplayV2FormTransition | null;
   position: ReplayV2Position;
   facing: ReplayV2Direction;
   health: number;
@@ -511,6 +557,7 @@ export interface ReplayV2ObservedAlly extends ReplayV2ObservedSelf {}
 export interface ReplayV2ObservedEnemy {
   actor: ReplayV2ObservedEnemyActorRef;
   formId: string;
+  pendingFormTransition: ReplayV2FormTransition | null;
   position: ReplayV2Position;
   facing: ReplayV2Direction;
   health: number;
@@ -552,6 +599,15 @@ export interface ReplayV2ObservedEvent {
   projectileHandle: string | null;
   position: ReplayV2Position | null;
   facing: ReplayV2Direction | null;
+  projectileHeading: ReplayV2ProjectileHeading | null;
+  fromFormId: string | null;
+  toFormId: string | null;
+  formTransitionStartedAtTick: number | null;
+  formTransitionCompletesAtTick: number | null;
+  actionId: string | null;
+  actionCode: number | null;
+  formTargetId: string | null;
+  actionResult: ReplayV2ActionResult | null;
   amount: number | null;
   newHealth: number | null;
   observedBy: ReplayV2ActorId[];
@@ -587,6 +643,7 @@ export interface ReplayV2ObservedActionAvailability {
   available: boolean;
   shotProgramAvailable: boolean | null;
   allowedDirections: ReplayV2Direction[] | null;
+  allowedProjectileHeadings: ReplayV2ProjectileHeading[] | null;
   allowedUnitTargets: ReplayV2ObservedUnitTarget[] | null;
   allowedFormTargets: string[] | null;
 }
@@ -611,6 +668,7 @@ export interface ReplayV2ActorObservation {
 export interface ReplayV2ActionPayload {
   shotProgram: ReplayV2ShotProgram | null;
   direction: ReplayV2Direction | null;
+  launchHeading: ReplayV2ProjectileHeading | null;
   unitTarget: ReplayV2ObservedUnitTarget | null;
   formTargetId: string | null;
 }
@@ -691,10 +749,14 @@ export interface ReplayV2Event {
   fromFacing: ReplayV2Direction | null;
   toFacing: ReplayV2Direction | null;
   projectileHeading: ReplayV2ProjectileHeading | null;
-  actionPayload: ReplayV2ActionPayload | null;
   actionId: string | null;
   actionCode: number | null;
+  actionPayload: ReplayV2ActionPayload | null;
   actionResult: ReplayV2ActionResult | null;
+  fromFormId: string | null;
+  toFormId: string | null;
+  formTransitionStartedAtTick: number | null;
+  formTransitionCompletesAtTick: number | null;
   amount: number | null;
   newHealth: number | null;
   lifecycleStatus: ReplayV2LifecycleStatus | null;
@@ -728,6 +790,8 @@ export interface ReplayV2AuthoritativeResolution {
 
 export interface ReplayV2LifeState {
   actorId: ReplayV2ActorId;
+  formId: string;
+  pendingFormTransition: ReplayV2FormTransition | null;
   position: ReplayV2Position;
   facing: ReplayV2Direction;
   health: number;
@@ -742,7 +806,7 @@ export interface ReplayV2LifeState {
 export interface ReplayV2UnitState {
   teamId: number;
   unitId: number;
-  formId: string;
+  defaultFormId: string;
   lifecycleStatus: ReplayV2LifecycleStatus;
   respawnAtTick: number | null;
   unlockAtTick: number | null;
@@ -824,7 +888,9 @@ export interface ReplayV2TeamResult {
 export interface ReplayV2UnitResult {
   teamId: number;
   unitId: number;
+  defaultFormId: string;
   formId: string;
+  pendingFormTransition: ReplayV2FormTransition | null;
   lifecycleStatus: ReplayV2LifecycleStatus;
   activeActorId: ReplayV2ActorId | null;
   health: number;

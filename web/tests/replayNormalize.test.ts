@@ -186,46 +186,71 @@ test('finalized replay-v1 still requires its result and replay hash', () => {
   );
 });
 
-test('replay-v2 keeps stable units while separating exact respawn lives', () => {
+test('replay-v2 keeps stable units while adding exact fabricated lives', () => {
   const replay = decodeReplayJson(
     replayFixtureText('frontline-replay-v2.json'),
   ).replay;
   const opening = replay.ticks[0];
-  const respawned = replay.ticks[2];
+  const fabricated = replay.ticks[2];
+  const nextTurn = replay.ticks[3];
 
   assert.equal(
     opening?.before.actors[0]?.actorKey,
     'frontline:0:unit:0:life:0',
   );
   assert.equal(
-    respawned?.before.actors[0]?.actorKey,
-    'frontline:0:unit:0:life:1',
+    fabricated?.before.actors.find(
+      (actor) =>
+        actor.identity.teamId === 0 &&
+        actor.identity.unitId === 1,
+    )?.actorKey,
+    'frontline:0:unit:1:life:0',
   );
   assert.equal(
-    opening?.before.actors[0]?.unitKey,
-    respawned?.before.actors[0]?.unitKey,
+    fabricated?.before.actors.find(
+      (actor) =>
+        actor.identity.teamId === 0 &&
+        actor.identity.unitId === 1,
+    )?.unitKey,
+    nextTurn?.before.actors.find(
+      (actor) =>
+        actor.identity.teamId === 0 &&
+        actor.identity.unitId === 1,
+    )?.unitKey,
   );
-  assert.equal(opening?.before.actors[0]?.unitKey, 'frontline:0:unit:0');
-  assert.equal(replay.units[0]?.initialActorKey, 'frontline:0:unit:0:life:0');
+  assert.equal(
+    replay.units.find(
+      (unit) => unit.teamId === 0 && unit.unitId === 1,
+    )?.initialActorKey,
+    null,
+  );
 });
 
-test('replay-v2 keeps opaque observation handles separate from exact alias identities', () => {
+test('replay-v2 keeps opaque observation handles separate from exact event identities', () => {
   const replay = decodeReplayJson(
     replayFixtureText('frontline-replay-v2.json'),
   ).replay;
-  const normalized = replay.ticks[0]!.actorTurns.find(
+  const normalized = replay.ticks[11]!.actorTurns.find(
     (turn) => turn.actor.teamId === 0,
   )!;
+  const event = normalized.observation.visibleEvents.find(
+    (candidate) => candidate.type === 'shot',
+  )!;
 
-  assert.deepEqual(normalized.observation.enemies[0]?.actor, {
-    kind: 'opaque-enemy',
-    teamId: 1,
-    unitId: 0,
-    lifeHandle: 'enemy-life-0',
-  });
+  assert.equal(event.eventHandle, 'event-11');
+  assert.equal(event.projectileHandle, 'projectile-0');
   assert.equal(
-    normalized.aliases.enemyLives[0]?.actor.actorKey,
-    'frontline:1:unit:0:life:0',
+    normalized.aliases.events.find(
+      (alias) => alias.eventHandle === event.eventHandle,
+    )?.eventId,
+    'resolution:10:0',
+  );
+  assert.equal(
+    normalized.aliases.projectiles.find(
+      (alias) =>
+        alias.projectileHandle === event.projectileHandle,
+    )?.projectileId,
+    '0',
   );
 });
 
@@ -257,6 +282,7 @@ test('replay-v2 preserves exact terminal unit rows and rejects final-world drift
       unitKey: 'frontline:0:unit:0',
       teamId: 0,
       unitId: 0,
+      defaultFormId: 'prime',
       formId: 'prime',
       lifecycleStatus: 'active',
       activeActor: {
@@ -270,6 +296,7 @@ test('replay-v2 preserves exact terminal unit rows and rejects final-world drift
       activeActorKey: 'frontline:0:unit:0:life:0',
       health: 5,
       damageDealt: JS_UNSAFE_DECIMAL,
+      pendingFormTransition: null,
     },
   ]);
 
@@ -396,8 +423,8 @@ test('replay-v2 rejects frozen Frontline advance and deployment-form drift', () 
   );
 
   const wrongPrimeForm = replayV2FixtureInput();
-  wrongPrimeForm.ticks[0]!.tickStart.state.teams[0]!.units[0]!.formId =
-    'child';
+  wrongPrimeForm.ticks[0]!.tickStart.state.teams[0]!.units[0]!
+    .defaultFormId = 'child';
   assert.throws(
     () => decodeReplay(wrongPrimeForm),
     /must equal the deployment default/,
@@ -421,6 +448,58 @@ test('replay-v2 rejects noncanonical Frontline control states', () => {
   assert.throws(
     () => decodeReplay(winnerWithFutureResume),
     /Frontline control state violates canonical invariants/,
+  );
+});
+
+test('replay-v2 freezes transform and turret-fire contract semantics', () => {
+  const wrongTransformCode = replayV2FixtureInput();
+  wrongTransformCode.header.contract.rules.actions.find(
+    (action) => action.id === 'transform',
+  )!.code = 100;
+  assert.throws(
+    () => decodeReplay(wrongTransformCode),
+    /canonical enabled Transform\/101/,
+  );
+
+  const missingHeading = replayV2FixtureInput();
+  missingHeading.header.contract.rules.frontlineDefinition!
+    .turretFire.allowedProjectileHeadings.pop();
+  assert.throws(
+    () => decodeReplay(missingHeading),
+    /all eight canonical headings/,
+  );
+
+  const weightedTurret = replayV2FixtureInput();
+  weightedTurret.header.contract.rules.forms.find(
+    (form) => form.id === 'turret',
+  )!.objectiveWeight = 1;
+  assert.throws(
+    () => decodeReplay(weightedTurret),
+    /zero-objective-weight target form/,
+  );
+
+  const mobileTurret = replayV2FixtureInput();
+  mobileTurret.header.contract.rules.forms
+    .find((form) => form.id === 'turret')!
+    .allowedActionIds.push('transform');
+  assert.throws(
+    () => decodeReplay(mobileTurret),
+    /exactly ShootDirection and Wait/,
+  );
+
+  const completionBeforeObjective = replayV2FixtureInput();
+  const phases =
+    completionBeforeObjective.header.contract.rules.tickResolution
+      .phases;
+  const completion = phases.indexOf('complete-form-transitions');
+  const objective = phases.indexOf('update-objective');
+  [phases[completion], phases[objective]] = [
+    phases[objective]!,
+    phases[completion]!,
+  ];
+  assert.throws(
+    () => decodeReplay(completionBeforeObjective),
+    /complete them after objective resolution/,
   );
 });
 
@@ -469,11 +548,39 @@ test('replay-v2 exposes a complete normalized public match contract', () => {
   );
   assert.equal(rules.frontlineDefinition?.anchor.windupTicks, 2);
   assert.equal(
+    rules.frontlineDefinition?.anchor.death,
+    'cancels-with-explicit-event',
+  );
+  assert.equal(
+    rules.frontlineDefinition?.anchor.pendingForm,
+    'source-form-until-completion',
+  );
+  assert.deepEqual(
+    rules.frontlineDefinition?.turretFire.allowedProjectileHeadings,
+    [
+      'north',
+      'north-east',
+      'east',
+      'south-east',
+      'south',
+      'south-west',
+      'west',
+      'north-west',
+    ],
+  );
+  assert.equal(
+    rules.frontlineDefinition?.turretFire.facing,
+    'body-facing-unchanged',
+  );
+  assert.equal(
     rules.frontlineDefinition?.alliedCombat.friendlyFireEnabled,
     false,
   );
   assert.equal(rules.energy.enabled, false);
-  assert.deepEqual(rules.forms[0]?.allowedActionIds, ['wait']);
+  assert.deepEqual(rules.forms[0]?.allowedActionIds, [
+    'transform',
+    'wait',
+  ]);
   assert.deepEqual(rules.actions[0]?.parameterKinds, []);
   assert.equal(rules.projectiles.mode, 'discrete');
   assert.equal(rules.shotPrograms.maxBendCount, 2);
@@ -482,6 +589,10 @@ test('replay-v2 exposes a complete normalized public match contract', () => {
   assert.deepEqual(rules.tickResolution.phases, [
     'queue-fabrications',
     'freeze-observations',
+    'start-form-transitions',
+    'launch-shots-and-apply-damage',
+    'update-objective',
+    'complete-form-transitions',
     'resolve-match-completion',
   ]);
   assert.equal(map.mapFingerprint, 'map-fingerprint');
@@ -560,6 +671,9 @@ test('replay-v2 preserves runtime, accepted, and resolved generic payloads indep
     parameterKinds: ['direction', 'unit-target', 'form-target'],
     enabled: true,
   });
+  input.header.contract.rules.forms
+    .find((form) => form.id === 'prime')!
+    .allowedActionIds.push('future-flight');
   for (const actor of input.ticks[0]!.actors) {
     actor.observation.actions.push({
       actionId: 'future-flight',
@@ -569,6 +683,7 @@ test('replay-v2 preserves runtime, accepted, and resolved generic payloads indep
       available: true,
       shotProgramAvailable: null,
       allowedDirections: ['north'],
+      allowedProjectileHeadings: null,
       allowedUnitTargets: [{ teamId: 0, unitId: 0 }],
       allowedFormTargets: ['flight'],
     });
@@ -580,6 +695,7 @@ test('replay-v2 preserves runtime, accepted, and resolved generic payloads indep
     payload: {
       shotProgram: null,
       direction: 'north',
+      launchHeading: null,
       unitTarget: null,
       formTargetId: 'flight',
     },
@@ -615,10 +731,15 @@ test('replay-v2 preserves runtime, accepted, and resolved generic payloads indep
       actionPayload: {
         shotProgram: null,
         direction: 'north',
+        launchHeading: null,
         unitTarget: { teamId: 0, unitId: 0 },
         formTargetId: 'flight',
       },
       actionResult: 'success',
+      fromFormId: null,
+      toFormId: null,
+      formTransitionStartedAtTick: null,
+      formTransitionCompletesAtTick: null,
       amount: null,
       newHealth: null,
       lifecycleStatus: null,
@@ -643,6 +764,7 @@ test('replay-v2 preserves runtime, accepted, and resolved generic payloads indep
   assert.deepEqual(normalized.events[0]?.actionPayload, {
     shotProgram: null,
     direction: 'north',
+    launchHeading: null,
     unitKey: 'frontline:0:unit:0',
     formTargetId: 'flight',
   });
@@ -727,7 +849,7 @@ function replayV2FabricationFixtureInput() {
   const readyChild = {
     teamId: 0,
     unitId: 1,
-    formId: 'child',
+    defaultFormId: 'child',
     lifecycleStatus: 'ready' as const,
     respawnAtTick: null,
     unlockAtTick: 0,
@@ -768,6 +890,7 @@ function replayV2FabricationFixtureInput() {
       available: actorTurn.actorId.teamId === 0,
       shotProgramAvailable: null,
       allowedDirections: null,
+      allowedProjectileHeadings: null,
       allowedUnitTargets:
         actorTurn.actorId.teamId === 0
           ? [{ teamId: 0, unitId: 1 }]
@@ -792,12 +915,17 @@ function replayV2FabricationFixtureInput() {
     actionPayload: {
       shotProgram: null,
       direction: null,
+      launchHeading: null,
       unitTarget: { teamId: 0, unitId: 1 },
       formTargetId: null,
     },
     actionId: 'fabricate',
     actionCode: 7,
     actionResult: 'success',
+    fromFormId: null,
+    toFormId: null,
+    formTransitionStartedAtTick: null,
+    formTransitionCompletesAtTick: null,
     amount: null,
     newHealth: null,
     lifecycleStatus: 'fabrication-queued',
@@ -815,7 +943,9 @@ function replayV2FabricationFixtureInput() {
   input.result.teams[0]!.units.push({
     teamId: 0,
     unitId: 1,
+    defaultFormId: 'child',
     formId: 'child',
+    pendingFormTransition: null,
     lifecycleStatus: 'fabrication-queued',
     activeActorId: null,
     health: 0,

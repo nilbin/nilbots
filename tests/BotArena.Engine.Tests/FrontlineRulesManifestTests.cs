@@ -26,11 +26,13 @@ public class FrontlineRulesManifestTests
                 PublicTickResolutionPhase.Rotate,
                 PublicTickResolutionPhase.Move,
                 PublicTickResolutionPhase.QueueFabrications,
+                PublicTickResolutionPhase.StartFormTransitions,
                 PublicTickResolutionPhase.AdvanceExistingProjectiles,
                 PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
                 PublicTickResolutionPhase.QueueDestroyedLives,
                 PublicTickResolutionPhase.UpdateCooldownsAndEnergy,
                 PublicTickResolutionPhase.UpdateObjective,
+                PublicTickResolutionPhase.CompleteFormTransitions,
                 PublicTickResolutionPhase.ResolveMatchCompletion,
             ],
             manifest.TickResolution.Phases.ToArray());
@@ -144,15 +146,21 @@ public class FrontlineRulesManifestTests
         AssertForm(
             source.ChildForm,
             manifest.Forms.Single(form => form.Id == source.ChildForm.FormId),
-            allowsFabrication: false);
+            allowsFabrication: false,
+            allowsTransformation: true,
+            allowsDirectionalShooting: false);
         AssertForm(
             source.PrimeForm,
             manifest.Forms.Single(form => form.Id == source.PrimeForm.FormId),
-            allowsFabrication: true);
+            allowsFabrication: true,
+            allowsTransformation: false,
+            allowsDirectionalShooting: false);
         AssertForm(
             source.TurretForm,
             manifest.Forms.Single(form => form.Id == source.TurretForm.FormId),
-            allowsFabrication: false);
+            allowsFabrication: false,
+            allowsTransformation: false,
+            allowsDirectionalShooting: true);
         Assert.Equal(
             new PublicFrontlineAnchorDefinition(
                 source.AnchorWindupTicks,
@@ -172,7 +180,7 @@ public class FrontlineRulesManifestTests
             manifest.Forms,
             form => Assert.Equal(PublicMovementLayer.Ground, form.MovementLayer));
         Assert.Equal(
-            ["shoot", "turn-left", "turn-right", "wait"],
+            ["shoot-direction", "wait"],
             manifest.Forms.Single(form => form.Id == source.TurretForm.FormId)
                 .AllowedActionIds.ToArray());
         PublicActionDefinition fabrication = manifest.Actions.Single(
@@ -183,9 +191,23 @@ public class FrontlineRulesManifestTests
             [PublicActionParameterKind.UnitTarget],
             fabrication.ParameterKinds.ToArray());
         Assert.True(fabrication.Enabled);
-        Assert.DoesNotContain(
-            manifest.Actions,
-            action => action.Id == "anchor");
+        PublicActionDefinition transform = manifest.Actions.Single(
+            action => action.Id == PublicActionIds.Transform);
+        Assert.Equal(PublicActionCodes.Transform, transform.Code);
+        Assert.Equal(PublicActionKind.Transformation, transform.Kind);
+        Assert.Equal(
+            [PublicActionParameterKind.FormTarget],
+            transform.ParameterKinds.ToArray());
+        PublicActionDefinition shootDirection = manifest.Actions.Single(
+            action => action.Id == PublicActionIds.ShootDirection);
+        Assert.Equal(PublicActionCodes.ShootDirection, shootDirection.Code);
+        Assert.Equal(PublicActionKind.Attack, shootDirection.Kind);
+        Assert.Equal(
+            [PublicActionParameterKind.ProjectileHeading],
+            shootDirection.ParameterKinds.ToArray());
+        Assert.Equal(
+            Enum.GetValues<ProjectileHeading>(),
+            definition.TurretFire.AllowedProjectileHeadings);
     }
 
     [Fact]
@@ -237,6 +259,163 @@ public class FrontlineRulesManifestTests
     }
 
     [Fact]
+    public void AnchorAndTurretSemanticMutations_AreRejectedByCanonicalCodec()
+    {
+        PublicRulesManifest manifest =
+            PublicRulesManifestFactory.CreateRules(
+                CreateRules(new FrontlineRules()));
+        PublicFrontlineDefinition baseline =
+            Assert.IsType<PublicFrontlineDefinition>(manifest.Frontline);
+        Func<PublicFrontlineDefinition, PublicFrontlineDefinition>[] mutations =
+        [
+            value => value with
+            {
+                Anchor = value.Anchor with { WindupTicks = 0 },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with { HealthGain = -1 },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with { ConsumesTick = false },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    IrreversibleForLife = false,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    Completion =
+                        (PublicFrontlineAnchorCompletionPolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    PendingActions =
+                        (PublicFrontlineAnchorPendingActionPolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    SurvivingDamage =
+                        (PublicFrontlineAnchorSurvivingDamagePolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    Death = (PublicFrontlineAnchorDeathPolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    ForbiddenTiles =
+                        (PublicFrontlineAnchorForbiddenTilePolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    PendingForm =
+                        (PublicFrontlineAnchorPendingFormPolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    Health = (PublicFrontlineAnchorHealthPolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    StateContinuity =
+                        (PublicFrontlineAnchorStateContinuityPolicy)999,
+                },
+            },
+            value => value with
+            {
+                Anchor = value.Anchor with
+                {
+                    Terminal =
+                        (PublicFrontlineAnchorTerminalPolicy)999,
+                },
+            },
+            value => value with
+            {
+                TurretFire = value.TurretFire with
+                {
+                    Aim = (PublicFrontlineTurretFireAimPolicy)999,
+                },
+            },
+            value => value with
+            {
+                TurretFire = value.TurretFire with
+                {
+                    Projectile =
+                        (PublicFrontlineTurretFireProjectilePolicy)999,
+                },
+            },
+            value => value with
+            {
+                TurretFire = value.TurretFire with
+                {
+                    Facing = (PublicFrontlineTurretFireFacingPolicy)999,
+                },
+            },
+            value => value with
+            {
+                TurretFire = value.TurretFire with
+                {
+                    Range = (PublicFrontlineTurretFireRangePolicy)999,
+                },
+            },
+            value => value with
+            {
+                TurretFire = value.TurretFire with
+                {
+                    Resources =
+                        (PublicFrontlineTurretFireResourcePolicy)999,
+                },
+            },
+            value => value with
+            {
+                TurretFire = value.TurretFire with
+                {
+                    Traversal =
+                        (PublicFrontlineTurretFireTraversalPolicy)999,
+                },
+            },
+        ];
+
+        foreach (Func<PublicFrontlineDefinition,
+                     PublicFrontlineDefinition> mutate in mutations)
+        {
+            Assert.Throws<ArgumentException>(() =>
+                RulesManifestSerializer.ToCanonicalJson(manifest with
+                {
+                    Frontline = mutate(baseline),
+                }));
+        }
+    }
+
+    [Fact]
     public void FormCatalog_DerivesAllowedActionsFromGlobalAndFormCapabilities()
     {
         FrontlineRules defaults = new();
@@ -263,12 +442,12 @@ public class FrontlineRulesManifestTests
         Assert.Equal(
             [
                 "move-forward", "strafe-left", "strafe-right",
-                "turn-left", "turn-right", "wait",
+                "transform", "turn-left", "turn-right", "wait",
             ],
             manifest.Forms.Single(form => form.Id == source.ChildForm.FormId)
                 .AllowedActionIds.ToArray());
         Assert.Equal(
-            ["shoot", "turn-left", "turn-right", "wait"],
+            ["shoot-direction", "wait"],
             manifest.Forms.Single(form => form.Id == source.TurretForm.FormId)
                 .AllowedActionIds.ToArray());
 
@@ -430,9 +609,20 @@ public class FrontlineRulesManifestTests
         string before = PublicRulesManifestFactory
             .CreateRules(CreateRules(baseline))
             .RulesFingerprint;
-        string after = PublicRulesManifestFactory
-            .CreateRules(CreateRules(mutate(baseline)))
-            .RulesFingerprint;
+        string after;
+        try
+        {
+            after = PublicRulesManifestFactory
+                .CreateRules(CreateRules(mutate(baseline)))
+                .RulesFingerprint;
+        }
+        catch (ArgumentException)
+        {
+            // Frozen P6 capability/irreversibility mutations are invalid
+            // contracts, which is stronger than merely changing identity.
+            Assert.False(string.IsNullOrWhiteSpace(propertyPath));
+            return;
+        }
 
         Assert.NotEqual(before, after);
         Assert.False(string.IsNullOrWhiteSpace(propertyPath));
@@ -522,6 +712,11 @@ public class FrontlineRulesManifestTests
             form => form with { CanMove = !form.CanMove });
         yield return FormCase(
             owner,
+            nameof(UnitFormRules.CanRotate),
+            replace,
+            form => form with { CanRotate = !form.CanRotate });
+        yield return FormCase(
+            owner,
             nameof(UnitFormRules.CanShoot),
             replace,
             form => form with { CanShoot = !form.CanShoot });
@@ -570,7 +765,9 @@ public class FrontlineRulesManifestTests
     private static void AssertForm(
         UnitFormRules expected,
         PublicFormDefinition actual,
-        bool allowsFabrication)
+        bool allowsFabrication,
+        bool allowsTransformation,
+        bool allowsDirectionalShooting)
     {
         Assert.Equal(expected.FormId, actual.Id);
         Assert.Equal(expected.MaxHealth, actual.MaxHealth);
@@ -584,26 +781,39 @@ public class FrontlineRulesManifestTests
         Assert.Equal(expected.CanShoot, actual.CanShoot);
         Assert.Equal(expected.AllowsProgrammedShots, actual.AllowsProgrammedShots);
         Assert.Equal(
-            AllowedActionIds(expected, allowsFabrication).ToArray(),
+            AllowedActionIds(
+                expected,
+                allowsFabrication,
+                allowsTransformation,
+                allowsDirectionalShooting).ToArray(),
             actual.AllowedActionIds.ToArray());
     }
 
     private static System.Collections.Immutable.ImmutableArray<string> AllowedActionIds(
         UnitFormRules form,
-        bool allowsFabrication)
+        bool allowsFabrication,
+        bool allowsTransformation,
+        bool allowsDirectionalShooting)
     {
         var ids = new List<string>
         {
             PublicActionIds.Wait,
-            PublicActionIds.TurnLeft,
-            PublicActionIds.TurnRight,
         };
+        if (form.CanRotate)
+        {
+            ids.Add(PublicActionIds.TurnLeft);
+            ids.Add(PublicActionIds.TurnRight);
+        }
         if (form.CanMove)
             ids.Add(PublicActionIds.MoveForward);
-        if (form.CanShoot)
+        if (form.CanShoot && !allowsDirectionalShooting)
             ids.Add(PublicActionIds.Shoot);
+        if (form.CanShoot && allowsDirectionalShooting)
+            ids.Add(PublicActionIds.ShootDirection);
         if (allowsFabrication)
             ids.Add(PublicActionIds.Fabricate);
+        if (allowsTransformation)
+            ids.Add(PublicActionIds.Transform);
         return [.. ids.Order(StringComparer.Ordinal)];
     }
 }

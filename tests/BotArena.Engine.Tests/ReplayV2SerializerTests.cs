@@ -24,7 +24,7 @@ public sealed class ReplayV2SerializerTests
             Encoding.UTF8.GetBytes(forwardPayload)));
         Assert.Equal(forwardPayload, reversePayload);
         Assert.Equal(
-            "ddb2f7d01ea3e37c8b16bcfa1ec4f02385d9ec73e590cbd16897ac8c5024cbe8",
+            "cb5b2ded89f3785e46f596746fd51066997d21ce32a5e31f702153ac83df0866",
             ReplayV2Serializer.ComputeHash(forward));
         Assert.Equal(expectedHash, ReplayV2Serializer.ComputeHash(forward));
         Assert.Equal(
@@ -130,6 +130,7 @@ public sealed class ReplayV2SerializerTests
     public void CanonicalCodec_PreservesEveryInt64MetricPastJsSafeRange()
     {
         const string damageDealt = "9007199254740993";
+        const string creditedDamageDealt = "9007199254740994";
         ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
         PublicFrontlineDefinition frontline =
             replay.Header.Contract.Rules.Frontline!;
@@ -223,7 +224,33 @@ public sealed class ReplayV2SerializerTests
             },
             PostState = WithDamageDealt(
                 tick.PostState,
-                damageDealt),
+                damageDealt) with
+            {
+                Teams = WithDamageDealt(
+                        tick.PostState,
+                        damageDealt)
+                    .Teams
+                    .Select(team => team.TeamId != 0
+                        ? team
+                        : team with
+                        {
+                            DamageDealt = creditedDamageDealt,
+                            Units = team.Units
+                                .Select(unit => unit with
+                                {
+                                    DamageDealt =
+                                        creditedDamageDealt,
+                                    ActiveLife =
+                                        unit.ActiveLife! with
+                                        {
+                                            DamageDealt =
+                                                creditedDamageDealt,
+                                        },
+                                })
+                                .ToImmutableArray(),
+                        })
+                    .ToImmutableArray(),
+            },
         });
         replay = replay with
         {
@@ -233,11 +260,15 @@ public sealed class ReplayV2SerializerTests
                 Teams = replay.Result.Teams
                     .Select(team => team with
                     {
-                        DamageDealt = damageDealt,
+                        DamageDealt = team.TeamId == 0
+                            ? creditedDamageDealt
+                            : damageDealt,
                         Units = team.Units
                             .Select(unit => unit with
                             {
-                                DamageDealt = damageDealt,
+                                DamageDealt = team.TeamId == 0
+                                    ? creditedDamageDealt
+                                    : damageDealt,
                             })
                             .ToImmutableArray(),
                     })
@@ -259,8 +290,15 @@ public sealed class ReplayV2SerializerTests
         Assert.All(damageValues, value =>
         {
             Assert.Equal(JsonValueKind.String, value.ValueKind);
-            Assert.Equal(damageDealt, value.GetString());
+            Assert.True(long.Parse(
+                    value.GetString()!,
+                    CultureInfo.InvariantCulture)
+                > 9_007_199_254_740_991L);
         });
+        Assert.Contains(damageValues, value =>
+            value.GetString() == damageDealt);
+        Assert.Contains(damageValues, value =>
+            value.GetString() == creditedDamageDealt);
         Assert.Equal(JsonValueKind.String, score.ValueKind);
         Assert.Equal(territorialScore, score.GetString());
         Assert.True(ReplayV2Serializer.VerifyHash(json));
@@ -289,6 +327,146 @@ public sealed class ReplayV2SerializerTests
         Assert.Empty(
             second.GetProperty("visibleProjectiles").EnumerateArray());
         Assert.Empty(second.GetProperty("heardSounds").EnumerateArray());
+    }
+
+    [Fact]
+    public void Validation_RejectsImpossibleDamageHealthChain()
+    {
+        ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
+        replay = WithTick(replay, tick => tick with
+        {
+            Resolution = tick.Resolution with
+            {
+                Events = tick.Resolution.Events
+                    .Select(value =>
+                        value.Type == FrontlineMatchEventType.Damage
+                            ? value with
+                            {
+                                NewHealth = value.NewHealth + 1,
+                            }
+                            : value)
+                    .ToImmutableArray(),
+            },
+        });
+
+        AssertInvalid(replay, "health chain");
+    }
+
+    [Fact]
+    public void Validation_RejectsProjectileOwnerOutsideStableUnitTopology()
+    {
+        ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
+        var undeclaredOwner = new ReplayV2ActorId(99, 99, 0);
+        replay = WithTick(replay, tick =>
+        {
+            ReplayV2Event damage = Assert.Single(
+                tick.Resolution.Events,
+                value => value.Type == FrontlineMatchEventType.Damage);
+            var traversal = new ReplayV2ProjectileTraversal(
+                "999999",
+                undeclaredOwner,
+                Direction.East,
+                damage.From!.Value,
+                [damage.To!.Value],
+                ProjectileHeading.East,
+                ShotProgram: null,
+                ProgrammedPath: null);
+            return tick with
+            {
+                Resolution = tick.Resolution with
+                {
+                    Events = tick.Resolution.Events
+                        .Select(value => value.EventId != damage.EventId
+                            ? value
+                            : value with
+                            {
+                                SourceActorId = undeclaredOwner,
+                                ProjectileId = traversal.ProjectileId,
+                            })
+                        .ToImmutableArray(),
+                    ProjectileTraversals =
+                        tick.Resolution.ProjectileTraversals.Add(
+                            traversal),
+                },
+            };
+        });
+
+        AssertInvalid(replay, "contract topology");
+    }
+
+    [Fact]
+    public void Validation_AllowsOldLifeOwnerAndCreditsOnlyStableUnit()
+    {
+        ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
+        var oldLifeOwner = new ReplayV2ActorId(0, 0, 999);
+        replay = WithTick(replay, tick => tick with
+        {
+            TickStart = tick.TickStart with
+            {
+                State = tick.TickStart.State with
+                {
+                    Projectiles = tick.TickStart.State.Projectiles
+                        .Select(projectile =>
+                            projectile.ProjectileId
+                                == ExactJsUnsafeProjectileId.ToString(
+                                    CultureInfo.InvariantCulture)
+                                ? projectile with
+                                {
+                                    OwnerActorId = oldLifeOwner,
+                                }
+                                : projectile)
+                        .ToImmutableArray(),
+                },
+            },
+            Resolution = tick.Resolution with
+            {
+                Events = tick.Resolution.Events
+                    .Select(value =>
+                        value.Type == FrontlineMatchEventType.Damage
+                            ? value with
+                            {
+                                SourceActorId = oldLifeOwner,
+                            }
+                            : value)
+                    .ToImmutableArray(),
+            },
+            PostState = tick.PostState with
+            {
+                Teams = tick.PostState.Teams
+                    .Select(team => team.TeamId != 0
+                        ? team
+                        : team with
+                        {
+                            Units = team.Units
+                                .Select(unit => unit.UnitId != 0
+                                    ? unit
+                                    : unit with
+                                    {
+                                        ActiveLife =
+                                            unit.ActiveLife! with
+                                            {
+                                                DamageDealt = "0",
+                                            },
+                                    })
+                                .ToImmutableArray(),
+                        })
+                    .ToImmutableArray(),
+                Projectiles = tick.PostState.Projectiles
+                    .Select(projectile =>
+                        projectile.ProjectileId
+                            == ExactJsUnsafeProjectileId.ToString(
+                                CultureInfo.InvariantCulture)
+                            ? projectile with
+                            {
+                                OwnerActorId = oldLifeOwner,
+                            }
+                            : projectile)
+                    .ToImmutableArray(),
+            },
+        });
+
+        string json = ReplayV2Serializer.ToJson(replay);
+        Assert.True(ReplayV2Serializer.VerifyHash(json));
     }
 
     [Fact]
@@ -580,7 +758,7 @@ public sealed class ReplayV2SerializerTests
                 replay,
                 teamId: 0,
                 unitId: 0,
-                unit => unit with { FormId = "child-mobile" }),
+                unit => unit with { DefaultFormId = "child-mobile" }),
             "deployment default form");
         AssertInvalid(
             WithTickStartUnit(
@@ -615,7 +793,7 @@ public sealed class ReplayV2SerializerTests
                                     ? unit
                                     : unit with
                                     {
-                                        FormId = "child-mobile",
+                                        DefaultFormId = "child-mobile",
                                     })
                                 .ToImmutableArray(),
                         })
@@ -636,7 +814,7 @@ public sealed class ReplayV2SerializerTests
                                     ? unit
                                     : unit with
                                     {
-                                        FormId = "child-mobile",
+                                        DefaultFormId = "child-mobile",
                                     })
                                 .ToImmutableArray(),
                         })
@@ -1331,7 +1509,8 @@ public sealed class ReplayV2SerializerTests
             From = session.State.GetActiveLife(actorIds[1]).Position,
             To = session.State.GetActiveLife(actorIds[1]).Position,
             Amount = 1,
-            NewHealth = session.State.GetActiveLife(actorIds[1]).Health,
+            NewHealth =
+                session.State.GetActiveLife(actorIds[1]).Health - 1,
         };
         ReplayV2AuthoritativeResolution resolution =
             ReplayV2Projection.Resolution(step with { Events = [damage] });
@@ -1339,6 +1518,47 @@ public sealed class ReplayV2SerializerTests
             ReplayV2Projection.WorldState(session.State),
             actorIds[0],
             reverseInsertionOrder);
+        postState = postState with
+        {
+            Teams = postState.Teams
+                .Select(team => team with
+                {
+                    DamageDealt = team.TeamId == actorIds[0].TeamId
+                        ? "1"
+                        : team.DamageDealt,
+                    Units = team.Units
+                        .Select(unit =>
+                        {
+                            if (unit.TeamId == actorIds[0].TeamId
+                                && unit.UnitId == actorIds[0].UnitId)
+                            {
+                                return unit with
+                                {
+                                    DamageDealt = "1",
+                                    ActiveLife = unit.ActiveLife! with
+                                    {
+                                        DamageDealt = "1",
+                                    },
+                                };
+                            }
+                            if (unit.TeamId == actorIds[1].TeamId
+                                && unit.UnitId == actorIds[1].UnitId)
+                            {
+                                return unit with
+                                {
+                                    ActiveLife = unit.ActiveLife! with
+                                    {
+                                        Health =
+                                            unit.ActiveLife.Health - 1,
+                                    },
+                                };
+                            }
+                            return unit;
+                        })
+                        .ToImmutableArray(),
+                })
+                .ToImmutableArray(),
+        };
 
         IEnumerable<FrontlineActorId> actorOrder = reverseInsertionOrder
             ? actorIds.Reverse()
@@ -1403,6 +1623,35 @@ public sealed class ReplayV2SerializerTests
             .ToImmutableArray();
 
         ReplayV2Result result = ReplayV2Projection.Result(step.Result!);
+        result = result with
+        {
+            Teams = result.Teams
+                .Select(team => team with
+                {
+                    ActiveHealth = team.TeamId == actorIds[1].TeamId
+                        ? team.ActiveHealth - 1
+                        : team.ActiveHealth,
+                    DamageDealt = team.TeamId == actorIds[0].TeamId
+                        ? "1"
+                        : team.DamageDealt,
+                    Units = team.Units
+                        .Select(unit => unit with
+                        {
+                            Health =
+                                unit.TeamId == actorIds[1].TeamId
+                                && unit.UnitId == actorIds[1].UnitId
+                                    ? unit.Health - 1
+                                    : unit.Health,
+                            DamageDealt =
+                                unit.TeamId == actorIds[0].TeamId
+                                && unit.UnitId == actorIds[0].UnitId
+                                    ? "1"
+                                    : unit.DamageDealt,
+                        })
+                        .ToImmutableArray(),
+                })
+                .ToImmutableArray(),
+        };
         if (reverseInsertionOrder)
             result = result with { Teams = result.Teams.Reverse().ToImmutableArray() };
 
@@ -1448,17 +1697,34 @@ public sealed class ReplayV2SerializerTests
         ];
         ImmutableArray<ObservedActionAvailability> actions =
             contract.Rules.Actions
-                .Select(action => new ObservedActionAvailability(
-                    action.Id,
-                    action.Code,
-                    action.ParameterKinds,
-                    action.Enabled,
-                    action.Enabled,
-                    action.ParameterKinds.Contains(
-                        PublicActionParameterKind.ShotProgram),
-                    AllowedDirections: null,
-                    AllowedUnitTargets: null,
-                    AllowedFormTargets: null))
+                .Select(action =>
+                {
+                    bool isTransform = string.Equals(
+                        action.Id,
+                        PublicActionIds.Transform,
+                        StringComparison.Ordinal);
+                    bool isDirectionalShot = string.Equals(
+                        action.Id,
+                        PublicActionIds.ShootDirection,
+                        StringComparison.Ordinal);
+                    return new ObservedActionAvailability(
+                        action.Id,
+                        action.Code,
+                        action.ParameterKinds,
+                        action.Enabled,
+                        action.Enabled
+                            && !isTransform
+                            && !isDirectionalShot,
+                        action.ParameterKinds.Contains(
+                            PublicActionParameterKind.ShotProgram),
+                        AllowedDirections: null,
+                        AllowedUnitTargets: null,
+                        AllowedFormTargets: isTransform ? [] : null)
+                    {
+                        AllowedProjectileHeadings =
+                            isDirectionalShot ? [] : null,
+                    };
+                })
                 .ToImmutableArray();
         if (reverseInsertionOrder)
         {
@@ -1474,7 +1740,7 @@ public sealed class ReplayV2SerializerTests
             TeamPerception = TeamPerceptionMode.ImmediateUnion,
             Self = new ObservedSelf(
                 observer,
-                selfUnit.FormId,
+                self.FormId,
                 self.Position,
                 self.Facing,
                 self.Health,
@@ -1486,7 +1752,7 @@ public sealed class ReplayV2SerializerTests
                 new ObservedUnitSlot(
                     actorId.TeamId,
                     actorId.UnitId,
-                    selfUnit.FormId,
+                    self.FormId,
                     FrontlineLifecycleStatus.Active,
                     observer,
                     RespawnAtTick: null),
@@ -1499,7 +1765,7 @@ public sealed class ReplayV2SerializerTests
                         enemyId.TeamId,
                         enemyId.UnitId,
                         "enemy-life-0"),
-                    enemyUnit.FormId,
+                    enemy.FormId,
                     enemy.Position,
                     enemy.Facing,
                     enemy.Health,

@@ -48,8 +48,8 @@ public sealed class MatchEngine
         if (definition.IsFrontline)
         {
             throw new NotSupportedException(
-                "Frontline is definition-only; MatchEngine cannot run it before " +
-                "the dedicated Frontline session is implemented.");
+                "Frontline requires the dedicated experimental " +
+                "FrontlineMatchSession; legacy MatchEngine does not route it.");
         }
         if (participants.Count != map.Spawns.Count)
             throw new ArgumentException(

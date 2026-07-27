@@ -61,7 +61,10 @@ public sealed record FrontlineRules
         ObjectiveWeight: 0,
         CanMove: false,
         CanShoot: true,
-        AllowsProgrammedShots: false);
+        AllowsProgrammedShots: false)
+    {
+        CanRotate = false,
+    };
 
     public int AnchorWindupTicks { get; init; } = 1;
     public int AnchorHealthGain { get; init; } = 2;

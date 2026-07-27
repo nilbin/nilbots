@@ -15,9 +15,9 @@ public sealed record PublicRulesManifest
     public required PublicMatchLimits Limits { get; init; }
     public required PublicObjectiveRules Objective { get; init; }
     /// <summary>
-    /// Experimental Frontline definition data. Lifecycle timings are paired
-    /// with explicit catalog actions only when that mechanic is runnable.
-    /// Anchor remains definition-only until its separate package lands.
+    /// Runnable experimental Frontline lifecycle, fabrication, Anchor, and
+    /// turret-fire contract for the internal headless match and replay path.
+    /// Delivery through the public App/protocol boundary remains deferred.
     /// </summary>
     public required PublicFrontlineDefinition? Frontline { get; init; }
     public required PublicEnergyRules Energy { get; init; }
@@ -80,9 +80,10 @@ public sealed record PublicObjectiveOvertimeRules(
     bool StopsDecay);
 
 /// <summary>
-/// Typed definition-only contract for the experimental Frontline mode. Unit
+/// Typed contract for the runnable experimental Frontline mode. Unit
 /// capabilities live in the shared <see cref="PublicRulesManifest.Forms"/>
-/// catalog; this subtree owns objective, lifecycle, and fabrication rules.
+/// catalog; this subtree owns objective, lifecycle, fabrication, Anchor, and
+/// turret-fire rules.
 /// </summary>
 public sealed record PublicFrontlineDefinition(
     int TeamCount,
@@ -97,7 +98,11 @@ public sealed record PublicFrontlineDefinition(
     PublicFrontlineDeploymentDefinition Deployment,
     PublicFrontlineFabricationDefinition Fabrication,
     PublicFrontlineAnchorDefinition Anchor,
-    PublicFrontlineAlliedCombatDefinition AlliedCombat);
+    PublicFrontlineAlliedCombatDefinition AlliedCombat)
+{
+    public PublicFrontlineTurretFireDefinition TurretFire { get; init; } =
+        PublicFrontlineTurretFireDefinition.Default;
+}
 
 public sealed record PublicFrontlineCaptureDefinition(
     int Threshold,
@@ -150,7 +155,68 @@ public sealed record PublicFrontlineLifecycleDefinition(
 public sealed record PublicFrontlineAnchorDefinition(
     int WindupTicks,
     int HealthGain,
-    bool IrreversibleForLife);
+    bool IrreversibleForLife)
+{
+    public string ActionId { get; init; } = PublicActionIds.Transform;
+    public string SourceFormId { get; init; } = "child-mobile";
+    public string TargetFormId { get; init; } = "turret";
+    public bool ConsumesTick { get; init; } = true;
+    public PublicFrontlineAnchorCompletionPolicy Completion { get; init; } =
+        PublicFrontlineAnchorCompletionPolicy
+            .EndOfStartedTickPlusWindupMinusOneAfterObjective;
+    public PublicFrontlineAnchorPendingActionPolicy PendingActions { get; init; } =
+        PublicFrontlineAnchorPendingActionPolicy.WaitOnly;
+    public PublicFrontlineAnchorSurvivingDamagePolicy SurvivingDamage
+    {
+        get;
+        init;
+    } = PublicFrontlineAnchorSurvivingDamagePolicy.DoesNotCancel;
+    public PublicFrontlineAnchorDeathPolicy Death { get; init; } =
+        PublicFrontlineAnchorDeathPolicy.CancelsWithExplicitEvent;
+    public PublicFrontlineAnchorForbiddenTilePolicy ForbiddenTiles { get; init; } =
+        PublicFrontlineAnchorForbiddenTilePolicy
+            .AllMapAnchorForbiddenTilesIllegal;
+    public PublicFrontlineAnchorPendingFormPolicy PendingForm { get; init; } =
+        PublicFrontlineAnchorPendingFormPolicy.SourceFormUntilCompletion;
+    public PublicFrontlineAnchorHealthPolicy Health { get; init; } =
+        PublicFrontlineAnchorHealthPolicy
+            .MinimumTargetMaximumAndCurrentPlusGain;
+    public PublicFrontlineAnchorStateContinuityPolicy StateContinuity
+    {
+        get;
+        init;
+    } = PublicFrontlineAnchorStateContinuityPolicy
+        .SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage;
+    public PublicFrontlineAnchorTerminalPolicy Terminal { get; init; } =
+        PublicFrontlineAnchorTerminalPolicy
+            .PreserveFuturePendingWithoutSyntheticCancellation;
+}
+
+public sealed record PublicFrontlineTurretFireDefinition(
+    string ActionId,
+    string FormId,
+    ImmutableArray<ProjectileHeading> AllowedProjectileHeadings,
+    PublicFrontlineTurretFireAimPolicy Aim,
+    PublicFrontlineTurretFireProjectilePolicy Projectile,
+    PublicFrontlineTurretFireFacingPolicy Facing,
+    PublicFrontlineTurretFireRangePolicy Range,
+    PublicFrontlineTurretFireResourcePolicy Resources,
+    PublicFrontlineTurretFireTraversalPolicy Traversal)
+{
+    public static PublicFrontlineTurretFireDefinition Default => new(
+        PublicActionIds.ShootDirection,
+        "turret",
+        Enum.GetValues<ProjectileHeading>().ToImmutableArray(),
+        PublicFrontlineTurretFireAimPolicy.AbsoluteEightWayLaunchHeading,
+        PublicFrontlineTurretFireProjectilePolicy
+            .OneStraightNonProgrammedProjectile,
+        PublicFrontlineTurretFireFacingPolicy.BodyFacingUnchanged,
+        PublicFrontlineTurretFireRangePolicy.GlobalProjectileRange,
+        PublicFrontlineTurretFireResourcePolicy
+            .StandardEnergyCooldownAndDamage,
+        PublicFrontlineTurretFireTraversalPolicy
+            .StandardTraversalStrictDiagonalCorners);
+}
 
 /// <summary>
 /// Frontline-specific override for allied non-owner projectile contact. Enemy
@@ -191,11 +257,12 @@ public sealed record PublicFormDefinition(
 
 public enum PublicActionKind
 {
-    Wait,
-    Movement,
-    Rotation,
-    Attack,
-    Fabrication,
+    Wait = 0,
+    Movement = 1,
+    Rotation = 2,
+    Attack = 3,
+    Fabrication = 4,
+    Transformation = 5,
 }
 
 public enum PublicActionParameterKind
@@ -204,6 +271,7 @@ public enum PublicActionParameterKind
     Direction = 1,
     UnitTarget = 2,
     FormTarget = 3,
+    ProjectileHeading = 4,
 }
 
 public sealed record PublicActionDefinition(
@@ -332,6 +400,8 @@ public enum PublicTickResolutionPhase
     ApplyTickStartLifecycle,
     QueueDestroyedLives,
     QueueFabrications,
+    StartFormTransitions = 14,
+    CompleteFormTransitions = 15,
 }
 
 public sealed record PublicTickResolutionRules(

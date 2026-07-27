@@ -91,7 +91,10 @@ public sealed record ObservedSelf(
     int Health,
     int Cooldown,
     int? Energy,
-    ActionResult PreviousActionResult);
+    ActionResult PreviousActionResult)
+{
+    public ObservedFormTransition? PendingFormTransition { get; init; }
+}
 
 /// <summary>
 /// An active allied life. Allies share their complete gameplay state, but not
@@ -105,7 +108,10 @@ public sealed record ObservedAlly(
     int Health,
     int Cooldown,
     int? Energy,
-    ActionResult PreviousActionResult);
+    ActionResult PreviousActionResult)
+{
+    public ObservedFormTransition? PendingFormTransition { get; init; }
+}
 
 /// <summary>
 /// Audience-local reference to an enemy life. Team and stable unit are public,
@@ -123,7 +129,17 @@ public sealed record ObservedEnemy(
     Position Position,
     Direction Facing,
     int Health,
-    ImmutableArray<ActorIdentity> ObservedBy);
+    ImmutableArray<ActorIdentity> ObservedBy)
+{
+    public ObservedFormTransition? PendingFormTransition { get; init; }
+}
+
+/// <summary>Public telegraph of a life-scoped form transition.</summary>
+public sealed record ObservedFormTransition(
+    string FromFormId,
+    string ToFormId,
+    int StartedAtTick,
+    int CompletesAtTick);
 
 /// <summary>A visible map tile and the exact allied sensors contributing it.</summary>
 public sealed record ObservedMapTile(
@@ -176,6 +192,9 @@ public enum ObservedMatchEventType
     FabricationQueued = 13,
     Fabricated = 14,
     RebuildReady = 15,
+    FormTransitionStarted = 16,
+    FormChanged = 17,
+    FormTransitionCancelled = 18,
 }
 
 /// <summary>
@@ -194,7 +213,18 @@ public sealed record ObservedMatchEvent(
     Direction? Facing,
     int? Amount,
     int? NewHealth,
-    ImmutableArray<ActorIdentity> ObservedBy);
+    ImmutableArray<ActorIdentity> ObservedBy)
+{
+    public ProjectileHeading? ProjectileHeading { get; init; }
+    public string? FromFormId { get; init; }
+    public string? ToFormId { get; init; }
+    public int? FormTransitionStartedAtTick { get; init; }
+    public int? FormTransitionCompletesAtTick { get; init; }
+    public string? ActionId { get; init; }
+    public int? ActionCode { get; init; }
+    public string? FormTargetId { get; init; }
+    public ActionResult? ActionResult { get; init; }
+}
 
 /// <summary>
 /// One redacted sound report. Bearing and distance are relative to the named
@@ -230,7 +260,14 @@ public sealed record ObservedActionAvailability(
     bool? ShotProgramAvailable,
     ImmutableArray<Direction>? AllowedDirections,
     ImmutableArray<ObservedUnitTarget>? AllowedUnitTargets,
-    ImmutableArray<string>? AllowedFormTargets);
+    ImmutableArray<string>? AllowedFormTargets)
+{
+    public ImmutableArray<ProjectileHeading>? AllowedProjectileHeadings
+    {
+        get;
+        init;
+    }
+}
 
 /// <summary>A stable unit target used by future parameterized actions.</summary>
 public readonly record struct ObservedUnitTarget(int TeamId, int UnitId);

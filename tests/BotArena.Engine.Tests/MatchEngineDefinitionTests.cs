@@ -34,7 +34,7 @@ public class MatchEngineDefinitionTests
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             new MatchEngine().Run(configuration));
 
-        Assert.Contains("definition-only", exception.Message);
+        Assert.Contains("dedicated experimental FrontlineMatchSession", exception.Message);
     }
 
     private static ArenaMap FrontlineMap() =>

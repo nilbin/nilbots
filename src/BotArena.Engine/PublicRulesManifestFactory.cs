@@ -45,6 +45,21 @@ public static class PublicRulesManifestFactory
                 [PublicActionParameterKind.UnitTarget],
                 Enabled: true));
         }
+        if (frontline is not null)
+        {
+            actionBuilder.Add(new PublicActionDefinition(
+                PublicActionIds.Transform,
+                PublicActionCodes.Transform,
+                PublicActionKind.Transformation,
+                [PublicActionParameterKind.FormTarget],
+                Enabled: true));
+            actionBuilder.Add(new PublicActionDefinition(
+                PublicActionIds.ShootDirection,
+                PublicActionCodes.ShootDirection,
+                PublicActionKind.Attack,
+                [PublicActionParameterKind.ProjectileHeading],
+                Enabled: true));
+        }
         ImmutableArray<PublicActionDefinition> actions = actionBuilder
             .OrderBy(action => action.Code)
             .ToImmutableArray();
@@ -200,11 +215,13 @@ public static class PublicRulesManifestFactory
                 PublicTickResolutionPhase.Rotate,
                 PublicTickResolutionPhase.Move,
                 PublicTickResolutionPhase.QueueFabrications,
+                PublicTickResolutionPhase.StartFormTransitions,
                 PublicTickResolutionPhase.AdvanceExistingProjectiles,
                 PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
                 PublicTickResolutionPhase.QueueDestroyedLives,
                 PublicTickResolutionPhase.UpdateCooldownsAndEnergy,
                 PublicTickResolutionPhase.UpdateObjective,
+                PublicTickResolutionPhase.CompleteFormTransitions,
                 PublicTickResolutionPhase.ResolveMatchCompletion,
             ]
             :
@@ -401,12 +418,52 @@ public static class PublicRulesManifestFactory
             new PublicFrontlineAnchorDefinition(
                 rules.AnchorWindupTicks,
                 rules.AnchorHealthGain,
-                rules.AnchorIrreversibleForLife),
+                rules.AnchorIrreversibleForLife)
+            {
+                ActionId = PublicActionIds.Transform,
+                SourceFormId = rules.ChildForm.FormId,
+                TargetFormId = rules.TurretForm.FormId,
+                ConsumesTick = true,
+                Completion = PublicFrontlineAnchorCompletionPolicy
+                    .EndOfStartedTickPlusWindupMinusOneAfterObjective,
+                PendingActions =
+                    PublicFrontlineAnchorPendingActionPolicy.WaitOnly,
+                SurvivingDamage =
+                    PublicFrontlineAnchorSurvivingDamagePolicy.DoesNotCancel,
+                Death = PublicFrontlineAnchorDeathPolicy
+                    .CancelsWithExplicitEvent,
+                ForbiddenTiles = PublicFrontlineAnchorForbiddenTilePolicy
+                    .AllMapAnchorForbiddenTilesIllegal,
+                PendingForm = PublicFrontlineAnchorPendingFormPolicy
+                    .SourceFormUntilCompletion,
+                Health = PublicFrontlineAnchorHealthPolicy
+                    .MinimumTargetMaximumAndCurrentPlusGain,
+                StateContinuity = PublicFrontlineAnchorStateContinuityPolicy
+                    .SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage,
+                Terminal = PublicFrontlineAnchorTerminalPolicy
+                    .PreserveFuturePendingWithoutSyntheticCancellation,
+            },
             new PublicFrontlineAlliedCombatDefinition(
                 rules.FriendlyFireEnabled,
                 rules.AlliedProjectilesBlock,
                 PublicFrontlineProjectileAttributionPolicy
-                    .ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved));
+                    .ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved))
+        {
+            TurretFire = new PublicFrontlineTurretFireDefinition(
+                PublicActionIds.ShootDirection,
+                rules.TurretForm.FormId,
+                Enum.GetValues<ProjectileHeading>().ToImmutableArray(),
+                PublicFrontlineTurretFireAimPolicy
+                    .AbsoluteEightWayLaunchHeading,
+                PublicFrontlineTurretFireProjectilePolicy
+                    .OneStraightNonProgrammedProjectile,
+                PublicFrontlineTurretFireFacingPolicy.BodyFacingUnchanged,
+                PublicFrontlineTurretFireRangePolicy.GlobalProjectileRange,
+                PublicFrontlineTurretFireResourcePolicy
+                    .StandardEnergyCooldownAndDamage,
+                PublicFrontlineTurretFireTraversalPolicy
+                    .StandardTraversalStrictDiagonalCorners),
+        };
     }
 
     private static ImmutableArray<PublicFormDefinition> CreateFormDefinitions(
@@ -428,9 +485,12 @@ public static class PublicRulesManifestFactory
                     omnidirectionalShooting: false,
                     objectiveWeight: 1,
                     canMove: true,
+                    canRotate: true,
                     canShoot: true,
                     allowsProgrammedShots: shotProgramsEnabled,
                     allowsFabrication: false,
+                    allowsTransformation: false,
+                    allowsDirectionalShooting: false,
                     actions),
             ];
         }
@@ -460,6 +520,7 @@ public static class PublicRulesManifestFactory
                 form.OmnidirectionalShooting,
                 form.ObjectiveWeight,
                 form.CanMove,
+                form.CanRotate,
                 form.CanShoot,
                 form.AllowsProgrammedShots,
                 allowsFabrication: string.Equals(
@@ -468,6 +529,14 @@ public static class PublicRulesManifestFactory
                         StringComparison.Ordinal)
                     && frontline.MaxUnitsPerTeam
                         > frontline.InitialUnitsPerTeam,
+                allowsTransformation: string.Equals(
+                    form.FormId,
+                    frontline.ChildForm.FormId,
+                    StringComparison.Ordinal),
+                allowsDirectionalShooting: string.Equals(
+                    form.FormId,
+                    frontline.TurretForm.FormId,
+                    StringComparison.Ordinal),
                 actions))
             .OrderBy(form => form.Id, StringComparer.Ordinal)
             .ToImmutableArray();
@@ -482,9 +551,12 @@ public static class PublicRulesManifestFactory
         bool omnidirectionalShooting,
         int objectiveWeight,
         bool canMove,
+        bool canRotate,
         bool canShoot,
         bool allowsProgrammedShots,
         bool allowsFabrication,
+        bool allowsTransformation,
+        bool allowsDirectionalShooting,
         ImmutableArray<PublicActionDefinition> actions) =>
         new(
             id,
@@ -502,9 +574,21 @@ public static class PublicRulesManifestFactory
                 .Where(action =>
                     action.Enabled
                     && (action.Kind != PublicActionKind.Movement || canMove)
-                    && (action.Kind != PublicActionKind.Attack || canShoot)
+                    && (action.Kind != PublicActionKind.Rotation || canRotate)
+                    && (!string.Equals(
+                            action.Id,
+                            PublicActionIds.Shoot,
+                            StringComparison.Ordinal)
+                        || (canShoot && !allowsDirectionalShooting))
+                    && (!string.Equals(
+                            action.Id,
+                            PublicActionIds.ShootDirection,
+                            StringComparison.Ordinal)
+                        || (canShoot && allowsDirectionalShooting))
                     && (action.Kind != PublicActionKind.Fabrication
-                        || allowsFabrication))
+                        || allowsFabrication)
+                    && (action.Kind != PublicActionKind.Transformation
+                        || allowsTransformation))
                 .Select(action => action.Id)
                 .Order(StringComparer.Ordinal)
                 .ToImmutableArray());

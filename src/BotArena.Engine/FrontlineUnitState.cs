@@ -27,7 +27,7 @@ public sealed class FrontlineUnitState
 
         TeamId = teamId;
         UnitId = unitId;
-        FormId = formId;
+        DefaultFormId = formId;
         ActiveLife = activeLife;
         NextLifeId = nextLifeId;
         LifecycleStatus = lifecycleStatus;
@@ -37,7 +37,13 @@ public sealed class FrontlineUnitState
 
     public int TeamId { get; }
     public int UnitId { get; }
-    public string FormId { get; internal set; }
+    /// <summary>Stable deployment-default form for this slot lineage.</summary>
+    public string DefaultFormId { get; }
+    /// <summary>
+    /// Effective form for existing engine consumers. An absent slot naturally
+    /// falls back to its deployment default.
+    /// </summary>
+    public string FormId => ActiveLife?.FormId ?? DefaultFormId;
     public FrontlineLifecycleStatus LifecycleStatus { get; internal set; }
     public FrontlineLifeState? ActiveLife { get; internal set; }
     public int NextLifeId { get; internal set; }

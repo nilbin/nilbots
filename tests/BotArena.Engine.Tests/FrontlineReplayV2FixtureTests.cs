@@ -52,17 +52,21 @@ public sealed class FrontlineReplayV2FixtureTests
         IActorRuntimeFactory teamZero,
         IActorRuntimeFactory teamOne)
     {
-        GameRules rules = FrontlineTestDefinitions.PrimeOnlyRules(
-            maxTicks: 4,
-            primeRespawnTicks: 1,
-            shootCooldownTicks: 0) with
+        GameRules baseline = FrontlineTestDefinitions.ReplicationRules(
+            maxTicks: 12,
+            firstUnlockTick: 1,
+            secondUnlockTick: 2,
+            shootCooldownTicks: 1);
+        GameRules rules = baseline with
         {
-            DamagePerHit = 3,
-            ProgrammedShotLaunchTiles = 8,
+            Frontline = baseline.Frontline! with
+            {
+                AnchorWindupTicks = 1,
+            },
         };
         return new FrontlineActorMatchConfiguration
         {
-            Map = FrontlineTestDefinitions.OpenMapV2(),
+            Map = FrontlineTestDefinitions.AnchorMapV2(),
             Rules = rules,
             Seed = FixtureSeed,
             Participants =
@@ -106,35 +110,39 @@ public sealed class FrontlineReplayV2FixtureTests
     private static void AssertCompleteCoverage(
         FrontlineActorMatchRunResult run)
     {
-        Assert.Equal(4, run.Replay.Ticks.Length);
+        Assert.Equal(12, run.Replay.Ticks.Length);
         Assert.Equal(
             FixtureSeed.ToString(System.Globalization.CultureInfo.InvariantCulture),
             run.Replay.Header.Seed);
         Assert.Equal(
             2,
-            run.Replay.Ticks[0].Resolution.Events.Count(
-                item => item.Type == FrontlineMatchEventType.Destroyed));
+            run.Replay.Ticks[9].Resolution.Events.Count(item =>
+                item.Type
+                    == FrontlineMatchEventType.FormTransitionStarted));
+        Assert.Equal(
+            2,
+            run.Replay.Ticks[9].Resolution.Events.Count(item =>
+                item.Type == FrontlineMatchEventType.FormChanged));
+        Assert.Equal(
+            2,
+            run.Replay.Ticks[10].Resolution.Events.Count(item =>
+                item.Type == FrontlineMatchEventType.Shot
+                && item.ActionId == PublicActionIds.ShootDirection));
+        Assert.Contains(
+            run.Replay.Ticks[11].Actors
+                .SelectMany(actor => actor.Observation.VisibleEvents),
+            item => item.Type == ObservedMatchEventType.Shot
+                && item.ActionId == PublicActionIds.ShootDirection
+                && item.ProjectileHeading is
+                    ProjectileHeading.East or ProjectileHeading.West);
         Assert.All(
-            run.Replay.Ticks[0].TickStart.ActiveActors,
-            actor => Assert.Equal(0, actor.LifeId));
-        Assert.DoesNotContain(
-            run.Replay.Ticks[0].PostState.Teams
-                .SelectMany(team => team.Units),
-            unit => unit.ActiveLife is not null);
-        Assert.Empty(run.Replay.Ticks[1].TickStart.ActiveActors);
-        Assert.Empty(run.Replay.Ticks[1].Actors);
-        Assert.All(
-            run.Replay.Ticks[2].TickStart.ActiveActors,
-            actor => Assert.Equal(1, actor.LifeId));
-        Assert.All(
-            run.Replay.Ticks[2].Actors,
-            actor =>
+            run.Replay.Result.Teams,
+            team =>
             {
-                Assert.Equal(1, actor.ActorId.LifeId);
-                Assert.Equal(
-                    ActorSpawnReason.Respawn,
-                    Assert.IsType<ReplayV2LifeStart>(
-                        actor.LifeStart).SpawnReason);
+                ReplayV2UnitResult child = team.Units.Single(unit =>
+                    unit.UnitId == 1);
+                Assert.Equal("child-mobile", child.DefaultFormId);
+                Assert.Equal("turret", child.FormId);
             });
         Assert.True(ReplayV2Serializer.VerifyHash(run.ReplayJson));
     }
@@ -231,9 +239,34 @@ public sealed class FrontlineReplayV2FixtureTests
             ActorMatchStart start = _start
                 ?? throw new InvalidOperationException(
                     "Fixture runtime was not started.");
-            return start.SpawnReason == ActorSpawnReason.Initial
-                ? ActorDecision.Shoot(ShotProgram.Straight)
-                : ActorDecision.Wait();
+            int teamId = start.ActorId.TeamId;
+            if (start.ActorId.UnitId == 0)
+            {
+                return observation.Tick == 1
+                    ? ActorDecision.Fabricate(
+                        new ObservedUnitTarget(teamId, 1))
+                    : ActorDecision.Wait();
+            }
+            if (start.ActorId.UnitId != 1)
+                return ActorDecision.Wait();
+            return (teamId, observation.Tick) switch
+            {
+                (0, 2) => ActorDecision.MoveForward(),
+                (0, 3) => ActorDecision.TurnRight(),
+                (0, 4 or 5 or 6) => ActorDecision.MoveForward(),
+                (0, 7) => ActorDecision.TurnLeft(),
+                (0, 8) => ActorDecision.MoveForward(),
+                (1, 2) => ActorDecision.TurnLeft(),
+                (1, 3 or 4 or 5) => ActorDecision.MoveForward(),
+                (1, 6) => ActorDecision.TurnRight(),
+                (1, 7) => ActorDecision.MoveForward(),
+                (_, 9) => ActorDecision.Transform("turret"),
+                (_, 10) => ActorDecision.ShootDirection(
+                    teamId == 0
+                        ? ProjectileHeading.East
+                        : ProjectileHeading.West),
+                _ => ActorDecision.Wait(),
+            };
         }
     }
 }

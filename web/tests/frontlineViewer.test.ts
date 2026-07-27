@@ -19,7 +19,7 @@ const replay = loadReplayJson(
   ),
 ).replay;
 
-test('actor-life interpolation never morphs a destroyed life into its respawn', () => {
+test('actor-life interpolation adds fabricated lives without morphing primes', () => {
   assert.deepEqual(
     posesAt(replay, 0.5).map((pose) => pose.actorKey),
     [
@@ -27,21 +27,30 @@ test('actor-life interpolation never morphs a destroyed life into its respawn', 
       'frontline:1:unit:0:life:0',
     ],
   );
-  assert.deepEqual(posesAt(replay, 1.5), []);
+  assert.deepEqual(
+    posesAt(replay, 1.5).map((pose) => pose.actorKey),
+    [
+      'frontline:0:unit:0:life:0',
+      'frontline:1:unit:0:life:0',
+    ],
+  );
   assert.deepEqual(
     posesAt(replay, 2.25).map((pose) => pose.actorKey),
     [
-      'frontline:0:unit:0:life:1',
-      'frontline:1:unit:0:life:1',
+      'frontline:0:unit:0:life:0',
+      'frontline:0:unit:1:life:0',
+      'frontline:1:unit:0:life:0',
+      'frontline:1:unit:1:life:0',
     ],
   );
 });
 
-test('Frontline presentation follows stable units across the respawn gap', () => {
+test('Frontline presentation follows stable units through fabrication and anchoring', () => {
   const presenter = createPresenter(replay);
   const opening = presenter.at(0);
-  const gap = presenter.at(1);
-  const returned = presenter.at(2);
+  const queued = presenter.at(1);
+  const fabricated = presenter.at(2);
+  const anchored = presenter.at(9);
 
   assert.equal(opening.objective?.kind, 'frontline');
   assert.equal(
@@ -52,18 +61,30 @@ test('Frontline presentation follows stable units across the respawn gap', () =>
   );
   assert.deepEqual(
     opening.units.map((unit) => unit.unitKey),
-    gap.units.map((unit) => unit.unitKey),
+    queued.units.map((unit) => unit.unitKey),
   );
   assert.deepEqual(
-    gap.units.map((unit) => unit.status),
-    ['respawning', 'respawning'],
-  );
-  assert.deepEqual(
-    returned.units.map((unit) => unit.actorKey),
+    queued.units.map((unit) => unit.status),
     [
-      'frontline:0:unit:0:life:1',
-      'frontline:1:unit:0:life:1',
+      'active',
+      'fabrication-queued',
+      'locked',
+      'active',
+      'fabrication-queued',
+      'locked',
     ],
+  );
+  assert.equal(
+    fabricated.units.find(
+      (unit) => unit.teamId === 0 && unit.unitId === 1,
+    )?.actorKey,
+    'frontline:0:unit:1:life:0',
+  );
+  assert.equal(
+    anchored.units.find(
+      (unit) => unit.teamId === 0 && unit.unitId === 1,
+    )?.formId,
+    'turret',
   );
 
   const retainedDestroyedActor = structuredClone(replay);
@@ -82,7 +103,7 @@ test('Frontline presentation follows stable units across the respawn gap', () =>
   assert.equal(destroyed.energy, null);
 });
 
-test('Frontline, stationary 360 forms, and old-life projectiles render', () => {
+test('Frontline, stationary 360 forms, and attributed projectiles render', () => {
   const base = frameHash(replay, 2.25);
   const blank = createHash('sha256')
     .update(createCanvas(640, 480).toBuffer('image/png'))
@@ -108,8 +129,8 @@ test('Frontline, stationary 360 forms, and old-life projectiles render', () => {
   assert.notEqual(frameHash(turretReplay, 2.25), base);
 
   const projectileReplay = structuredClone(replay);
-  const traversal = projectileReplay.ticks[0]!.projectileTraversals[0]!;
-  projectileReplay.ticks[1]!.after.projectiles = [
+  const traversal = projectileReplay.ticks[10]!.projectileTraversals[0]!;
+  projectileReplay.ticks[8]!.after.projectiles = [
     {
       projectileId: 'old-life-projectile',
       ownerActor: traversal.ownerActor,
@@ -132,8 +153,77 @@ test('Frontline, stationary 360 forms, and old-life projectiles render', () => {
     'Fixture Zero',
   );
   assert.notEqual(
-    frameHash(projectileReplay, 1.25),
-    frameHash(replay, 1.25),
+    frameHash(projectileReplay, 8.25),
+    frameHash(replay, 8.25),
+  );
+});
+
+test('same-tick anchoring telegraphs before the body becomes a turret', () => {
+  const anchored = structuredClone(replay);
+  const tick = anchored.ticks[2]!;
+  const before = tick.before.actors[0]!;
+  const after = tick.after.actors.find(
+    (candidate) => candidate.actorKey === before.actorKey,
+  )!;
+  before.formId = 'child-mobile';
+  before.pendingFormTransition = null;
+  after.formId = 'turret';
+  after.pendingFormTransition = null;
+
+  const template = anchored.ticks[0]!.events[0]!;
+  tick.events = [
+    {
+      ...template,
+      eventId: 'resolution:2:0',
+      tick: 2,
+      ordinal: 0,
+      type: 'form-transition-started',
+      teamId: before.identity.teamId,
+      unitId: before.identity.unitId,
+      sourceActor: before.identity,
+      targetActor: null,
+      projectileId: null,
+      from: { ...before.position },
+      to: { ...before.position },
+      fromFacing: before.facing,
+      toFacing: before.facing,
+      projectileHeading: null,
+      fromFormId: 'child-mobile',
+      toFormId: 'turret',
+      formTransitionStartedAtTick: 2,
+      formTransitionCompletesAtTick: 2,
+      actionPayload: {
+        shotProgram: null,
+        direction: null,
+        launchHeading: null,
+        unitKey: null,
+        formTargetId: 'turret',
+      },
+      actionId: 'transform',
+      actionCode: 101,
+      actionResult: 'success',
+      newHealth: after.health,
+    },
+  ];
+
+  const windingUp = posesAt(anchored, 2.25)[0]!;
+  assert.equal(windingUp.formId, 'child-mobile');
+  assert.deepEqual(windingUp.pendingFormTransition, {
+    fromFormId: 'child-mobile',
+    toFormId: 'turret',
+    startedAtTick: 2,
+    completesAtTick: 2,
+  });
+
+  const transformed = posesAt(anchored, 2.99)[0]!;
+  assert.equal(transformed.formId, 'turret');
+  assert.equal(transformed.pendingFormTransition, null);
+
+  const withoutTelegraph = structuredClone(anchored);
+  withoutTelegraph.ticks[2]!.events = [];
+  assert.notEqual(
+    frameHash(anchored, 2.25),
+    frameHash(withoutTelegraph, 2.25),
   );
 });
 

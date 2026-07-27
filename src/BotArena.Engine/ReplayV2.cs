@@ -158,7 +158,10 @@ internal sealed record ReplayV2ObservedSelf(
     int Health,
     int Cooldown,
     int? Energy,
-    ActionResult PreviousActionResult);
+    ActionResult PreviousActionResult)
+{
+    public ReplayV2FormTransition? PendingFormTransition { get; init; }
+}
 
 internal sealed record ReplayV2ObservedAlly(
     ReplayV2ActorId ActorId,
@@ -168,7 +171,10 @@ internal sealed record ReplayV2ObservedAlly(
     int Health,
     int Cooldown,
     int? Energy,
-    ActionResult PreviousActionResult);
+    ActionResult PreviousActionResult)
+{
+    public ReplayV2FormTransition? PendingFormTransition { get; init; }
+}
 
 internal sealed record ReplayV2ObservedEnemyActorRef(
     int TeamId,
@@ -181,7 +187,16 @@ internal sealed record ReplayV2ObservedEnemy(
     Position Position,
     Direction Facing,
     int Health,
-    ImmutableArray<ReplayV2ActorId> ObservedBy);
+    ImmutableArray<ReplayV2ActorId> ObservedBy)
+{
+    public ReplayV2FormTransition? PendingFormTransition { get; init; }
+}
+
+internal sealed record ReplayV2FormTransition(
+    string FromFormId,
+    string ToFormId,
+    int StartedAtTick,
+    int CompletesAtTick);
 
 internal sealed record ReplayV2ObservedMapTile(
     Position Position,
@@ -212,7 +227,18 @@ internal sealed record ReplayV2ObservedEvent(
     Direction? Facing,
     int? Amount,
     int? NewHealth,
-    ImmutableArray<ReplayV2ActorId> ObservedBy);
+    ImmutableArray<ReplayV2ActorId> ObservedBy)
+{
+    public ProjectileHeading? ProjectileHeading { get; init; }
+    public string? FromFormId { get; init; }
+    public string? ToFormId { get; init; }
+    public int? FormTransitionStartedAtTick { get; init; }
+    public int? FormTransitionCompletesAtTick { get; init; }
+    public string? ActionId { get; init; }
+    public int? ActionCode { get; init; }
+    public string? FormTargetId { get; init; }
+    public ActionResult? ActionResult { get; init; }
+}
 
 internal sealed record ReplayV2ObservedSound(
     string EventHandle,
@@ -242,13 +268,23 @@ internal sealed record ReplayV2ObservedActionAvailability(
     bool? ShotProgramAvailable,
     ImmutableArray<Direction>? AllowedDirections,
     ImmutableArray<ReplayV2ObservedUnitTarget>? AllowedUnitTargets,
-    ImmutableArray<string>? AllowedFormTargets);
+    ImmutableArray<string>? AllowedFormTargets)
+{
+    public ImmutableArray<ProjectileHeading>? AllowedProjectileHeadings
+    {
+        get;
+        init;
+    }
+}
 
 internal sealed record ReplayV2ActionPayload(
     ShotProgram? ShotProgram,
     Direction? Direction,
     ReplayV2ObservedUnitTarget? UnitTarget,
-    string? FormTargetId);
+    string? FormTargetId)
+{
+    public ProjectileHeading? LaunchHeading { get; init; }
+}
 
 internal sealed record ReplayV2ActorDecision(
     string? ActionId,
@@ -302,7 +338,13 @@ internal sealed record ReplayV2Event(
     int? ToPositionIndex,
     int? ClaimingTeamId,
     int? CaptureProgress,
-    int? ControlResumesAtTick);
+    int? ControlResumesAtTick)
+{
+    public string? FromFormId { get; init; }
+    public string? ToFormId { get; init; }
+    public int? FormTransitionStartedAtTick { get; init; }
+    public int? FormTransitionCompletesAtTick { get; init; }
+}
 
 internal sealed record ReplayV2ProjectileTraversal(
     string ProjectileId,
@@ -327,7 +369,7 @@ internal sealed record ReplayV2TeamState(
 internal sealed record ReplayV2UnitState(
     int TeamId,
     int UnitId,
-    string FormId,
+    string DefaultFormId,
     FrontlineLifecycleStatus LifecycleStatus,
     int? RespawnAtTick,
     int? UnlockAtTick,
@@ -342,6 +384,7 @@ internal sealed record ReplayV2UnitState(
 
 internal sealed record ReplayV2LifeState(
     ReplayV2ActorId ActorId,
+    string FormId,
     Position Position,
     Direction Facing,
     int Health,
@@ -349,7 +392,10 @@ internal sealed record ReplayV2LifeState(
     int? Energy,
     string DamageDealt,
     ActionResult PreviousActionResult,
-    int SpawnedAtTick);
+    int SpawnedAtTick)
+{
+    public ReplayV2FormTransition? PendingFormTransition { get; init; }
+}
 
 internal sealed record ReplayV2ProjectileState(
     string ProjectileId,
@@ -390,8 +436,12 @@ internal sealed record ReplayV2TeamResult(
 internal sealed record ReplayV2UnitResult(
     int TeamId,
     int UnitId,
+    string DefaultFormId,
     string FormId,
     FrontlineLifecycleStatus LifecycleStatus,
     ReplayV2ActorId? ActiveActorId,
     int Health,
-    string DamageDealt);
+    string DamageDealt)
+{
+    public ReplayV2FormTransition? PendingFormTransition { get; init; }
+}

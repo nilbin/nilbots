@@ -238,7 +238,7 @@ public sealed class FrontlineActorMatchEngine
             .ToDictionary(
                 participantId => participantId,
                 _ => definition.Rules.MaxDebugBytesPerMatch);
-        // Package 5 freezes the hybrid budget scope: execution/startup
+        // Frontline freezes the hybrid budget scope: execution/startup
         // resources and MaxDebugBytesPerTick apply independently to each body,
         // while MaxDebugBytesPerMatch is shared by every life controlled by
         // the submitted participant.

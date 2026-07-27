@@ -213,6 +213,51 @@ public static class FrontlineTestDefinitions
         }
         """);
 
+    public static ArenaMap AnchorMapV2() => ArenaMap.FromJson("""
+        {
+          "formatVersion": 2,
+          "id": "frontline-test-anchor",
+          "version": 1,
+          "width": 15,
+          "height": 9,
+          "tiles": [
+            "###############",
+            "#..#.......#..#",
+            "#..#.......#..#",
+            "#..#.......#..#",
+            "#..#..#....#..#",
+            "#..#.......#..#",
+            "#.............#",
+            "#..#.......#..#",
+            "###############"
+          ],
+          "spawns": [
+            { "teamId": 0, "x": 1, "y": 4, "facing": "East" },
+            { "teamId": 1, "x": 13, "y": 4, "facing": "West" }
+          ],
+          "frontline": {
+            "positions": [
+              { "tiles": [[5,2]] },
+              { "tiles": [[7,2]] },
+              { "tiles": [[9,2]] }
+            ],
+            "homePads": [
+              { "teamId": 0, "tiles": [[1,3],[2,3],[1,4],[2,4],[1,5],[2,5]] },
+              { "teamId": 1, "tiles": [[12,3],[13,3],[12,4],[13,4],[12,5],[13,5]] }
+            ],
+            "anchorForbiddenTiles": [
+              [1,1],[2,1],[12,1],[13,1],
+              [1,2],[2,2],[5,2],[7,2],[9,2],[12,2],[13,2],
+              [1,3],[2,3],[12,3],[13,3],
+              [1,4],[2,4],[12,4],[13,4],
+              [1,5],[2,5],[12,5],[13,5],
+              [1,6],[2,6],[12,6],[13,6],
+              [1,7],[2,7],[4,7],[10,7],[12,7],[13,7]
+            ]
+          }
+        }
+        """);
+
     public static ArenaMap OpenMapV1() => ArenaMap.FromJson("""
         {
           "formatVersion": 1,

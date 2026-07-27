@@ -5,13 +5,16 @@ public sealed class FrontlineLifeState
 {
     internal FrontlineLifeState(
         FrontlineActorId actorId,
+        string formId,
         Position position,
         Direction facing,
         int health,
         int spawnedAtTick,
         int energy = 0)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(formId);
         ActorId = actorId;
+        FormId = formId;
         Position = position;
         Facing = facing;
         Health = health;
@@ -20,6 +23,12 @@ public sealed class FrontlineLifeState
     }
 
     public FrontlineActorId ActorId { get; }
+    public string FormId { get; internal set; }
+    public FrontlinePendingFormTransition? PendingFormTransition
+    {
+        get;
+        internal set;
+    }
     public Position Position { get; internal set; }
     public Direction Facing { get; internal set; }
     public int Health { get; internal set; }
