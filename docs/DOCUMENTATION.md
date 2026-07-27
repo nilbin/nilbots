@@ -59,6 +59,13 @@ shipped duel contract.
 - [`ARENA-VISUALS.md`](ARENA-VISUALS.md), [`AUDIO-DESIGN.md`](AUDIO-DESIGN.md),
   and [`COSMETICS-ENTITLEMENTS.md`](COSMETICS-ENTITLEMENTS.md) — current
   presentation/content contracts and implementation status.
+- [`design/`](design/README.md) — the web and mobile design reference:
+  colour and type policy, the Forge ground, the logotype, and redesigns of
+  the viewer, bot page, first run and CLI output. Open `design/climb.html`
+  from disk. **Specification, not shipped state** — its Open section lists
+  what is undecided, and two recorded decisions (2.5D as the default
+  renderer, a shared three.js renderer replacing the mobile WebView) are not
+  implemented.
 - [`USER-NOTIFICATIONS.md`](USER-NOTIFICATIONS.md) — shipped entitlement
   notification behavior.
 
