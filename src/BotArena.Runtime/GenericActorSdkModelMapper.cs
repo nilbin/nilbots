@@ -323,6 +323,14 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.EventPayload.ModeChanged payload =>
                 new Sdk.GenericActorContext.EventPayload.ModeChanged(
                     ToSdk(payload.State)),
+            GenericActorRuntimeObservation.EventPayload
+                .LifecycleClockCancelled payload =>
+                new Sdk.GenericActorContext.EventPayload
+                    .LifecycleClockCancelled(
+                        payload.TargetTeamId,
+                        payload.TargetUnitId,
+                        ToSdk(payload.CancelledState),
+                        payload.CancellationReason),
             _ => throw UnknownUnion(value),
         };
 
@@ -630,6 +638,8 @@ internal static class GenericActorSdkModelMapper
                 Sdk.GenericActorContext.EventKind.ScoreChanged,
             GenericActorRuntimeObservation.EventKind.ModeChanged =>
                 Sdk.GenericActorContext.EventKind.ModeChanged,
+            GenericActorRuntimeObservation.EventKind.LifecycleClockCancelled =>
+                Sdk.GenericActorContext.EventKind.LifecycleClockCancelled,
             _ => throw UnknownEnum(value),
         };
 

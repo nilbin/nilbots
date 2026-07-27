@@ -42,6 +42,13 @@ public sealed class InProcessGenericActorRuntimeTests
             .Select(team => team.TeamId));
         Assert.Equal(["wait", "shoot"], bot.Context.ActionLegalities
             .Select(action => action.ActionId));
+        var cancelledClock = Assert.IsType<
+            Sdk.GenericActorContext.EventPayload.LifecycleClockCancelled>(
+                bot.Context.VisibleEvents[1].Payload);
+        Assert.Equal(1, cancelledClock.TargetUnitId);
+        Assert.IsType<
+            Sdk.GenericActorContext.UnitSlotState.AvailabilityPending>(
+                cancelledClock.CancelledState);
         Assert.InRange(bot.RandomValue, 0, 10_000);
 
         Assert.Equal("custom-action", decision.ActionId);
@@ -246,6 +253,24 @@ public sealed class InProcessGenericActorRuntimeTests
                         TeamId: 0,
                         Channel: "kills",
                         NewValue: 0),
+                    [actorId]),
+                new(
+                    EventHandle: "event-1",
+                    SourceTick: 0,
+                    SourceOrdinal: 1,
+                    Engine.GenericActorRuntimeObservation.EventKind
+                        .LifecycleClockCancelled,
+                    new Engine.GenericActorRuntimeObservation.EventPayload
+                        .LifecycleClockCancelled(
+                            targetTeamId: 0,
+                            targetUnitId: 1,
+                            new Engine.GenericActorRuntimeObservation
+                                .UnitSlotState.AvailabilityPending(
+                                    Engine.GenericActorRuntimeObservation
+                                        .AvailabilityReason
+                                        .DestructionRecovery,
+                                    DueTick: 3),
+                            "participant-disqualified"),
                     [actorId]),
             ],
             [],

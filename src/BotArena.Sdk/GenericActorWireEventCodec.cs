@@ -368,6 +368,23 @@ internal static class GenericActorWireEventCodec
                     1,
                     GenericActorWireObservationCodec.EncodeMode(mode.State));
                 break;
+            case GenericActorContext.EventPayload.LifecycleClockCancelled
+                clock:
+                writer.Field(
+                    1,
+                    ActorWireValue.Int32(clock.TargetTeamId));
+                writer.Field(
+                    2,
+                    ActorWireValue.Int32(clock.TargetUnitId));
+                writer.Field(
+                    3,
+                    GenericActorWireObservationCodec.EncodeUnitSlotState(
+                        clock.CancelledState));
+                writer.Field(
+                    4,
+                    GenericActorWireCodecValues.SemanticId(
+                        clock.CancellationReason));
+                break;
             default:
                 throw new InvalidOperationException(
                     "Unknown generic actor event payload variant.");
@@ -430,6 +447,17 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireObservationCodec.DecodeMode(
                             reader.Required(1),
                             depth + 1)),
+                GenericActorContext.EventKind.LifecycleClockCancelled =>
+                    new GenericActorContext.EventPayload
+                        .LifecycleClockCancelled(
+                            GenericActorWireCodecValues.Int32(reader, 1),
+                            GenericActorWireCodecValues.Int32(reader, 2),
+                            GenericActorWireObservationCodec
+                                .DecodeUnitSlotState(
+                                    reader.Required(3),
+                                    depth + 1),
+                            GenericActorWireCodecValues.SemanticId(
+                                reader.Required(4))),
                 _ => throw new FormatException(
                     "Unknown generic actor event discriminator."),
             },

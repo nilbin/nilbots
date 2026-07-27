@@ -118,6 +118,40 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
     }
 
     /// <summary>
+    /// Projects a raw runtime reply into the public typed action model only
+    /// when its selectors, argument shape, and catalog-static values are
+    /// representable. Dynamic per-tick illegality and debug-message faults do
+    /// not make an otherwise well-formed submitted action unrepresentable.
+    /// </summary>
+    internal bool TryProjectSubmittedAction(
+        GenericActorRuntimeDecision? decision,
+        out GenericActorRuntimeActionResolution.ResolvedAction?
+            submittedAction)
+    {
+        submittedAction = null;
+        if (!TryResolveCatalogAction(
+                decision,
+                out ActorActionDefinition? action)
+            || !TryCanonicalizeArguments(
+                formId: null,
+                action!,
+                decision!.Arguments,
+                out ImmutableArray<GenericActorRuntimeActionArgument>
+                    arguments,
+                out _))
+        {
+            return false;
+        }
+
+        submittedAction =
+            new GenericActorRuntimeActionResolution.ResolvedAction(
+                action!.Id,
+                action.Code,
+                arguments);
+        return true;
+    }
+
+    /// <summary>
     /// Registers one authoritative active life. Runtime creation and
     /// <see cref="IGenericActorRuntime.StartLife"/> occur immediately before
     /// its first canonical decision opportunity, so any failure joins that
@@ -180,7 +214,7 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
         }
 
         _occupiedSlots.Remove((actorId.TeamId, actorId.UnitId));
-        DisposeRuntime(life);
+        DiscardRuntime(life);
     }
 
     /// <summary>
@@ -282,16 +316,19 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
             .Select(life => life.Start.ActorId)
             .Order()
             .ToArray();
-        var disposalErrors = new List<Exception>();
+        ActiveLifeState[] retiredLives = actorIds
+            .Select(actorId => _activeLives[actorId])
+            .ToArray();
         foreach (ActorIdentity actorId in actorIds)
         {
-            ActiveLifeState life = _activeLives[actorId];
             _activeLives.Remove(actorId);
             _occupiedSlots.Remove((actorId.TeamId, actorId.UnitId));
-            TryDisposeRuntime(life, disposalErrors);
+        }
+        foreach (ActiveLifeState life in retiredLives)
+        {
+            DiscardRuntime(life);
         }
 
-        ThrowDisposalErrors(disposalErrors);
         return actorIds.ToImmutableArray();
     }
 
@@ -737,6 +774,81 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
             return false;
         }
 
+        if (!TryResolveCatalogAction(
+                decision,
+                out ActorActionDefinition? action,
+                out faultCode))
+        {
+            return false;
+        }
+        GenericActorRuntimeActionLegality legality =
+            observation.ActionLegalities.Single(value =>
+                string.Equals(
+                    value.ActionId,
+                    action!.Id,
+                    StringComparison.Ordinal));
+        if (!TryCanonicalizeArguments(
+                legality.AllowedByForm
+                    ? observation.Self.FormId
+                    : null,
+                action!,
+                decision.Arguments,
+                out ImmutableArray<GenericActorRuntimeActionArgument>
+                    arguments,
+                out faultCode))
+        {
+            return false;
+        }
+
+        if (legality.AllowedByForm)
+        {
+            foreach (GenericActorRuntimeActionArgument argument in arguments)
+            {
+                GenericActorRuntimeActionLegality.ArgumentConstraint
+                    constraint = legality.Constraints.Single(
+                        value => value.Kind == argument.Kind);
+                if (!IsArgumentInDomain(
+                        observation.Self.FormId,
+                        action!,
+                        argument,
+                        constraint))
+                {
+                    faultCode =
+                        GenericActorRuntimeFaultCodes.ArgumentOutOfDomain;
+                    return false;
+                }
+            }
+        }
+
+        admitted = new GenericActorRuntimeDecision(
+            action!.Id,
+            action.Code,
+            arguments,
+            decision.DebugMessage);
+        faultCode = null;
+        return true;
+    }
+
+    private bool TryResolveCatalogAction(
+        GenericActorRuntimeDecision? decision,
+        out ActorActionDefinition? action) =>
+        TryResolveCatalogAction(decision, out action, out _);
+
+    private bool TryResolveCatalogAction(
+        GenericActorRuntimeDecision? decision,
+        out ActorActionDefinition? action,
+        out string? faultCode)
+    {
+        action = null;
+        if (decision is null
+            || string.IsNullOrWhiteSpace(decision.ActionId)
+            || decision.ActionCode < 0
+            || decision.Arguments.IsDefault)
+        {
+            faultCode = GenericActorRuntimeFaultCodes.MalformedDecision;
+            return false;
+        }
+
         bool hasId = _actionsById.TryGetValue(
             decision.ActionId,
             out ActorActionDefinition? byId);
@@ -756,18 +868,30 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
             return false;
         }
 
-        ActorActionDefinition action = byId!;
-        GenericActorRuntimeActionLegality legality =
-            observation.ActionLegalities.Single(value =>
-                string.Equals(
-                    value.ActionId,
-                    action.Id,
-                    StringComparison.Ordinal));
-        var arguments = new Dictionary<
+        action = byId;
+        faultCode = null;
+        return true;
+    }
+
+    private bool TryCanonicalizeArguments(
+        string? formId,
+        ActorActionDefinition action,
+        ImmutableArray<GenericActorRuntimeActionArgument> submittedArguments,
+        out ImmutableArray<GenericActorRuntimeActionArgument> arguments,
+        out string? faultCode)
+    {
+        arguments = default;
+        if (submittedArguments.IsDefault)
+        {
+            faultCode = GenericActorRuntimeFaultCodes.MalformedDecision;
+            return false;
+        }
+
+        var byKind = new Dictionary<
             ActorActionParameterKind,
             GenericActorRuntimeActionArgument>();
         foreach (GenericActorRuntimeActionArgument? argument in
-                 decision.Arguments)
+                 submittedArguments)
         {
             if (argument is null
                 || !Enum.IsDefined(argument.Kind))
@@ -775,7 +899,7 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
                 faultCode = GenericActorRuntimeFaultCodes.MalformedArgument;
                 return false;
             }
-            if (!arguments.TryAdd(argument.Kind, argument))
+            if (!byKind.TryAdd(argument.Kind, argument))
             {
                 faultCode = GenericActorRuntimeFaultCodes.DuplicateArgument;
                 return false;
@@ -785,50 +909,33 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
                 faultCode = GenericActorRuntimeFaultCodes.UnexpectedArgument;
                 return false;
             }
+            if (!IsStructurallyRepresentableArgument(argument))
+            {
+                faultCode =
+                    GenericActorRuntimeFaultCodes.ArgumentOutOfDomain;
+                return false;
+            }
         }
 
         foreach (ActorActionParameterKind kind in action.ParameterKinds)
         {
-            if (!arguments.ContainsKey(kind)
-                && !IsOptionalArgument(
-                    observation.Self.FormId,
-                    action,
-                    kind))
+            if (!byKind.ContainsKey(kind)
+                && !IsOptionalArgument(formId, action, kind))
             {
                 faultCode = GenericActorRuntimeFaultCodes.MissingArgument;
                 return false;
             }
         }
 
-        foreach ((ActorActionParameterKind kind,
-                  GenericActorRuntimeActionArgument argument) in arguments)
-        {
-            GenericActorRuntimeActionLegality.ArgumentConstraint constraint =
-                legality.Constraints.Single(value => value.Kind == kind);
-            if (!IsArgumentInDomain(
-                    observation.Self.FormId,
-                    action,
-                    argument,
-                    constraint))
-            {
-                faultCode = GenericActorRuntimeFaultCodes.ArgumentOutOfDomain;
-                return false;
-            }
-        }
-
-        admitted = new GenericActorRuntimeDecision(
-            action.Id,
-            action.Code,
-            arguments.Values
-                .OrderBy(argument => argument.Kind)
-                .ToImmutableArray(),
-            decision.DebugMessage);
+        arguments = byKind.Values
+            .OrderBy(argument => argument.Kind)
+            .ToImmutableArray();
         faultCode = null;
         return true;
     }
 
     private bool IsOptionalArgument(
-        string formId,
+        string? formId,
         ActorActionDefinition action,
         ActorActionParameterKind kind)
     {
@@ -838,16 +945,43 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
             return false;
         }
 
-        ActorFormDefinition form = _formsById[formId];
-        return form.AttackProfileId is string attackProfileId
+        IEnumerable<ActorFormDefinition> candidateForms = formId is null
+            ? _formsById.Values.Where(form =>
+                form.AllowedActionIds.Contains(
+                    action.Id,
+                    StringComparer.Ordinal))
+            : [_formsById[formId]];
+        return candidateForms.Any(form =>
+            form.AttackProfileId is string attackProfileId
             && _contract.Rules.AttackProfiles
                 .Single(profile =>
                     string.Equals(
                         profile.Id,
                         attackProfileId,
                         StringComparison.Ordinal))
-                .ShotProgram.PayloadOptional;
+                .ShotProgram.PayloadOptional);
     }
+
+    private bool IsStructurallyRepresentableArgument(
+        GenericActorRuntimeActionArgument argument) =>
+        argument switch
+        {
+            GenericActorRuntimeActionArgument.ShotProgramArgument => true,
+            GenericActorRuntimeActionArgument.DirectionArgument value =>
+                Enum.IsDefined(value.Value),
+            GenericActorRuntimeActionArgument.UnitTargetArgument value =>
+                value.Value.TeamId >= 0
+                && value.Value.UnitId >= 0
+                && _slots.ContainsKey(
+                    (value.Value.TeamId, value.Value.UnitId)),
+            GenericActorRuntimeActionArgument.FormTargetArgument value =>
+                !string.IsNullOrWhiteSpace(value.FormId)
+                && _formsById.ContainsKey(value.FormId),
+            GenericActorRuntimeActionArgument.ProjectileHeadingArgument
+                value =>
+                Enum.IsDefined(value.Value),
+            _ => false,
+        };
 
     private bool IsArgumentInDomain(
         string formId,
@@ -1119,25 +1253,19 @@ public sealed class GenericActorRuntimeCoordinator : IDisposable
 
     private static void DiscardRuntime(ActiveLifeState life)
     {
-        if (life.Runtime is null)
+        IGenericActorRuntime? runtime = life.Runtime;
+        life.Runtime = null;
+        if (runtime is null)
             return;
         try
         {
-            life.Runtime.Dispose();
+            runtime.Dispose();
         }
         catch (Exception)
         {
-            // Runtime disposal is best-effort on a faulted adapter. It cannot
-            // replace the deterministic stage fault already being recorded.
+            // Adapter cleanup is best-effort after authoritative runtime and
+            // lifecycle state has already committed.
         }
-        life.Runtime = null;
-    }
-
-    private static void DisposeRuntime(ActiveLifeState life)
-    {
-        IGenericActorRuntime? runtime = life.Runtime;
-        life.Runtime = null;
-        runtime?.Dispose();
     }
 
     private static void TryDisposeRuntime(

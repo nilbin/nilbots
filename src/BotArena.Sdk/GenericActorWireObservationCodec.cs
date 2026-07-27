@@ -358,7 +358,7 @@ internal static class GenericActorWireObservationCodec
             "unit-slot observation");
     }
 
-    private static byte[] EncodeUnitSlotState(
+    internal static byte[] EncodeUnitSlotState(
         GenericActorContext.UnitSlotState value)
     {
         var writer = new ActorWireObjectWriter();
@@ -367,7 +367,7 @@ internal static class GenericActorWireObservationCodec
         return writer.ToArray();
     }
 
-    private static GenericActorContext.UnitSlotState DecodeUnitSlotState(
+    internal static GenericActorContext.UnitSlotState DecodeUnitSlotState(
         byte[] bytes,
         int depth)
     {

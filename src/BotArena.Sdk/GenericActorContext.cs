@@ -1780,6 +1780,60 @@ public sealed record GenericActorContext
             internal override bool Supports(EventKind kind) =>
                 kind == EventKind.ModeChanged;
         }
+
+        /// <summary>
+        /// A participant disqualification cancelled a pending stable-slot
+        /// availability or automatic-return clock.
+        /// </summary>
+        public sealed record LifecycleClockCancelled : EventPayload
+        {
+            /// <summary>Creates an exact lifecycle-clock cancellation fact.</summary>
+            /// <param name="targetTeamId">Owning scoring team of the target slot.</param>
+            /// <param name="targetUnitId">Stable target unit identifier.</param>
+            /// <param name="cancelledState">
+            /// Exact pending clock state immediately before cancellation.
+            /// </param>
+            /// <param name="cancellationReason">Stable cancellation reason ID.</param>
+            public LifecycleClockCancelled(
+                int targetTeamId,
+                int targetUnitId,
+                UnitSlotState cancelledState,
+                string cancellationReason)
+            {
+                if (targetTeamId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(targetTeamId));
+                if (targetUnitId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(targetUnitId));
+                ArgumentNullException.ThrowIfNull(cancelledState);
+                if (cancelledState is not UnitSlotState.AvailabilityPending
+                    and not UnitSlotState.AutomaticReturnPending)
+                {
+                    throw new ArgumentException(
+                        "A lifecycle clock cancellation must snapshot an availability or automatic-return clock.",
+                        nameof(cancelledState));
+                }
+
+                TargetTeamId = targetTeamId;
+                TargetUnitId = targetUnitId;
+                CancelledState = cancelledState;
+                CancellationReason =
+                    GenericActorDynamicValueRules.SemanticId(
+                        cancellationReason,
+                        nameof(cancellationReason));
+            }
+
+            /// <summary>Owning scoring team of the target slot.</summary>
+            public int TargetTeamId { get; }
+            /// <summary>Stable target unit identifier.</summary>
+            public int TargetUnitId { get; }
+            /// <summary>Pending state immediately before cancellation.</summary>
+            public UnitSlotState CancelledState { get; }
+            /// <summary>Stable cancellation reason ID.</summary>
+            public string CancellationReason { get; }
+
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.LifecycleClockCancelled;
+        }
     }
 
     /// <summary>Discriminator for visible events and redacted heard-event kinds.</summary>
@@ -1821,6 +1875,8 @@ public sealed record GenericActorContext
         ScoreChanged = 16,
         /// <summary>Mode-specific public objective state changed.</summary>
         ModeChanged = 17,
+        /// <summary>A pending stable-slot lifecycle clock was cancelled.</summary>
+        LifecycleClockCancelled = 18,
     }
 
     /// <summary>Authoritative score channels for every public scoring team.</summary>

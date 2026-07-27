@@ -319,6 +319,203 @@ public sealed class GenericActorRuntimeCoordinatorTests
         };
 
     [Fact]
+    public void FormMaskPrecedesDynamicDomainWhileMalformedPayloadStillFaults()
+    {
+        ActorResolvedMatchDefinition contract = WithFaultAllowance(
+            GenericActorContractTestFixture.WithTransitions(),
+            faultsAllowed: 5);
+        int call = 0;
+        var first = new RecordingFactory(
+            execute: _ => ++call switch
+            {
+                1 => Fabricate(new(0, 1)),
+                2 => Fabricate(new(0, 1)),
+                _ => Fabricate(new(99, 99)),
+            });
+        var second = new RecordingFactory();
+        using var coordinator = Coordinator(
+            contract,
+            (10, first),
+            (20, second));
+        ActorIdentity actor = new(0, 0, 0);
+        ActorIdentity opponent = new(1, 0, 0);
+        coordinator.StartLife(Start(contract, 10, actor));
+        coordinator.StartLife(Start(contract, 20, opponent));
+
+        GenericActorRuntimeTurn formRejected =
+            coordinator.CollectTickDecisions(
+                0,
+                [
+                    Observation(
+                        contract,
+                        actor,
+                        0,
+                        formId: "child",
+                        emptyDomainActionId: "fabricate"),
+                    Observation(contract, opponent, 0),
+                ]).Turns.Single(turn => turn.ActorId == actor);
+        GenericActorRuntimeTurn dynamicDomainFault =
+            coordinator.CollectTickDecisions(
+                1,
+                [
+                    Observation(
+                        contract,
+                        actor,
+                        1,
+                        formId: "mobile",
+                        emptyDomainActionId: "fabricate"),
+                    Observation(contract, opponent, 1),
+                ]).Turns.Single(turn => turn.ActorId == actor);
+        GenericActorRuntimeTurn malformedTarget =
+            coordinator.CollectTickDecisions(
+                2,
+                [
+                    Observation(
+                        contract,
+                        actor,
+                        2,
+                        formId: "child",
+                        emptyDomainActionId: "fabricate"),
+                    Observation(contract, opponent, 2),
+                ]).Turns.Single(turn => turn.ActorId == actor);
+
+        Assert.Equal(
+            GenericActorRuntimeActionResolution.ActionOutcome.Success,
+            formRejected.AdmissionOutcome);
+        Assert.Null(formRejected.RuntimeFault);
+        Assert.Equal("fabricate", formRejected.AcceptedDecision.ActionId);
+
+        Assert.Equal(
+            GenericActorRuntimeActionResolution.ActionOutcome.Faulted,
+            dynamicDomainFault.AdmissionOutcome);
+        Assert.Equal(
+            GenericActorRuntimeFaultCodes.ArgumentOutOfDomain,
+            dynamicDomainFault.RuntimeFault?.FaultCode);
+        Assert.True(
+            coordinator.TryProjectSubmittedAction(
+                dynamicDomainFault.SubmittedDecision,
+                out GenericActorRuntimeActionResolution.ResolvedAction?
+                    projected));
+        Assert.Equal("fabricate", projected?.ActionId);
+
+        Assert.Equal(
+            GenericActorRuntimeActionResolution.ActionOutcome.Faulted,
+            malformedTarget.AdmissionOutcome);
+        Assert.Equal(
+            GenericActorRuntimeFaultCodes.ArgumentOutOfDomain,
+            malformedTarget.RuntimeFault?.FaultCode);
+        Assert.False(
+            coordinator.TryProjectSubmittedAction(
+                malformedTarget.SubmittedDecision,
+                out _));
+    }
+
+    [Fact]
+    public void SubmittedActionProjection_IsTotalAndCatalogStructural()
+    {
+        ActorResolvedMatchDefinition contract = WithProjectionCatalog();
+        var first = new RecordingFactory();
+        var second = new RecordingFactory();
+        using var coordinator = Coordinator(
+            contract,
+            (10, first),
+            (20, second));
+
+        GenericActorRuntimeDecision[] representable =
+        [
+            Fabricate(new(0, 1)),
+            new(
+                "move",
+                1,
+                [
+                    new GenericActorRuntimeActionArgument.DirectionArgument(
+                        Direction.North),
+                ],
+                null),
+            new(
+                "anchor",
+                101,
+                [
+                    new GenericActorRuntimeActionArgument.FormTargetArgument(
+                        "turret"),
+                ],
+                null),
+            new("wait", 0, [], new string('x', 4097)),
+            new("shoot", 4, [], null),
+            Shoot(new ShotProgram(99, 0, 0, 1, 0)),
+        ];
+        foreach (GenericActorRuntimeDecision decision in representable)
+        {
+            Assert.True(
+                coordinator.TryProjectSubmittedAction(
+                    decision,
+                    out GenericActorRuntimeActionResolution.ResolvedAction?
+                        action));
+            Assert.NotNull(action);
+        }
+
+        GenericActorRuntimeDecision?[] notRepresentable =
+        [
+            null,
+            new("wait", 0, default, null),
+            new(
+                "wait",
+                0,
+                ImmutableArray.CreateRange<
+                    GenericActorRuntimeActionArgument>(
+                        new GenericActorRuntimeActionArgument[] { null! }),
+                null),
+            new("not-catalogued", 999, [], null),
+            new("wait", 4, [], null),
+            new("fabricate", 100, [], null),
+            new(
+                "fabricate",
+                100,
+                [
+                    new GenericActorRuntimeActionArgument
+                        .UnitTargetArgument(new(0, 1)),
+                    new GenericActorRuntimeActionArgument
+                        .UnitTargetArgument(new(0, 1)),
+                ],
+                null),
+            new(
+                "fabricate",
+                100,
+                [
+                    new GenericActorRuntimeActionArgument.DirectionArgument(
+                        Direction.North),
+                ],
+                null),
+            new(
+                "move",
+                1,
+                [
+                    new GenericActorRuntimeActionArgument.DirectionArgument(
+                        (Direction)999),
+                ],
+                null),
+            Fabricate(new(99, 99)),
+            new(
+                "anchor",
+                101,
+                [
+                    new GenericActorRuntimeActionArgument.FormTargetArgument(
+                        "not-a-form"),
+                ],
+                null),
+        ];
+        foreach (GenericActorRuntimeDecision? decision in notRepresentable)
+        {
+            Assert.False(
+                coordinator.TryProjectSubmittedAction(
+                    decision,
+                    out GenericActorRuntimeActionResolution.ResolvedAction?
+                        action));
+            Assert.Null(action);
+        }
+    }
+
+    [Fact]
     public void ValidationFault_RetainsHealthyRuntimeInstance()
     {
         ActorResolvedMatchDefinition contract = WithFaultAllowance(
@@ -719,6 +916,108 @@ public sealed class GenericActorRuntimeCoordinatorTests
         Assert.Equal(1, participant20.DisposeCount);
     }
 
+    [Fact]
+    public void RetireLife_DisposeFailureCannotSplitLifecycleState()
+    {
+        ActorResolvedMatchDefinition contract =
+            GenericActorContractTestFixture.Deathmatch("head-to-head");
+        var first = new RecordingFactory();
+        var second = new RecordingFactory();
+        var coordinator = Coordinator(
+            contract,
+            (10, first),
+            (20, second));
+        ActorIdentity actor = new(0, 0, 0);
+        ActorIdentity opponent = new(1, 0, 0);
+        coordinator.StartLife(Start(contract, 10, actor));
+        coordinator.StartLife(Start(contract, 20, opponent));
+        coordinator.CollectTickDecisions(
+            0,
+            [
+                Observation(contract, actor, 0),
+                Observation(contract, opponent, 0),
+            ]);
+        first.Runtimes.Single().DisposeFailure =
+            new InvalidOperationException("host cleanup failed");
+
+        Exception? retirementError = Record.Exception(
+            () => coordinator.RetireLife(actor));
+
+        Assert.Null(retirementError);
+        Assert.Equal([opponent], coordinator.ActiveActorIds.ToArray());
+        Assert.True(first.Runtimes.Single().Disposed);
+        Assert.Equal(1, first.Runtimes.Single().DisposeCount);
+
+        ActorIdentity replacement = new(0, 0, 1);
+        coordinator.StartLife(Start(contract, 10, replacement));
+        GenericActorRuntimeTickResult next =
+            coordinator.CollectTickDecisions(
+                1,
+                [
+                    Observation(contract, replacement, 1),
+                    Observation(contract, opponent, 1),
+                ]);
+        Assert.Equal(
+            [replacement, opponent],
+            next.Turns.Select(turn => turn.ActorId));
+
+        coordinator.Dispose();
+        Assert.Equal(1, first.Runtimes[0].DisposeCount);
+    }
+
+    [Fact]
+    public void ApplyDisqualification_DisposeFailuresCannotSplitBatchState()
+    {
+        ActorResolvedMatchDefinition contract = WithFaultAllowance(
+            GenericActorContractTestFixture.WithTransitions(),
+            faultsAllowed: 1);
+        var first = new RecordingFactory(execute: _ => Unknown());
+        var second = new RecordingFactory();
+        using var coordinator = Coordinator(
+            contract,
+            (10, first),
+            (20, second));
+        ActorIdentity firstActor = new(0, 0, 0);
+        ActorIdentity secondActor = new(0, 1, 0);
+        ActorIdentity opponent = new(1, 0, 0);
+        coordinator.StartLife(Start(contract, 10, secondActor));
+        coordinator.StartLife(Start(contract, 20, opponent));
+        coordinator.StartLife(Start(contract, 10, firstActor));
+        GenericActorRuntimeTickResult faulted =
+            coordinator.CollectTickDecisions(
+                0,
+                coordinator.ActiveActorIds.Select(actorId =>
+                    Observation(contract, actorId, 0)));
+        Assert.Equal([10], faulted.NewlyDisqualifiedParticipantIds.ToArray());
+        foreach (RecordingRuntime runtime in first.Runtimes)
+        {
+            runtime.DisposeFailure =
+                new InvalidOperationException("host cleanup failed");
+        }
+
+        ImmutableArray<ActorIdentity> retired = [];
+        Exception? disqualificationError = Record.Exception(
+            () => retired = coordinator.ApplyDisqualification(10));
+
+        Assert.Null(disqualificationError);
+        Assert.Equal([firstActor, secondActor], retired.ToArray());
+        Assert.Equal([opponent], coordinator.ActiveActorIds.ToArray());
+        Assert.True(
+            coordinator.ParticipantStatuses.Single(status =>
+                status.ParticipantId == 10).Disqualified);
+        Assert.All(first.Runtimes, runtime =>
+        {
+            Assert.True(runtime.Disposed);
+            Assert.Equal(1, runtime.DisposeCount);
+        });
+
+        GenericActorRuntimeTickResult next =
+            coordinator.CollectTickDecisions(
+                1,
+                [Observation(contract, opponent, 1)]);
+        Assert.Single(next.Turns);
+    }
+
     private static GenericActorRuntimeCoordinator Coordinator(
         ActorResolvedMatchDefinition contract,
         params (int ParticipantId, RecordingFactory Factory)[] factories)
@@ -792,23 +1091,34 @@ public sealed class GenericActorRuntimeCoordinatorTests
     private static GenericActorRuntimeObservation Observation(
         ActorResolvedMatchDefinition contract,
         ActorIdentity actorId,
-        int tick)
+        int tick,
+        string formId = "mobile",
+        string? emptyDomainActionId = null)
     {
         ActorFormDefinition form = contract.Rules.Forms.Single(value =>
-            value.Id == "mobile");
+            value.Id == formId);
         ImmutableArray<GenericActorRuntimeActionLegality> legalities =
             contract.Rules.Actions.Select(action =>
             {
                 bool allowed = form.AllowedActionIds.Contains(
                     action.Id,
                     StringComparer.Ordinal);
+                bool domainAvailable =
+                    allowed
+                    && !string.Equals(
+                        action.Id,
+                        emptyDomainActionId,
+                        StringComparison.Ordinal);
                 return new GenericActorRuntimeActionLegality(
                     action.Id,
                     action.Code,
                     allowed,
-                    Available: allowed,
+                    Available: domainAvailable,
                     action.ParameterKinds.Select(kind =>
-                        Constraint(contract, kind)).ToImmutableArray());
+                        Constraint(
+                            contract,
+                            kind,
+                            domainAvailable)).ToImmutableArray());
             }).ToImmutableArray();
         return new GenericActorRuntimeObservation(
             contract.CapabilityVersions.ObservationSchemaVersion,
@@ -842,35 +1152,107 @@ public sealed class GenericActorRuntimeCoordinatorTests
     private static GenericActorRuntimeActionLegality.ArgumentConstraint
         Constraint(
             ActorResolvedMatchDefinition contract,
-            ActorActionParameterKind kind) =>
+            ActorActionParameterKind kind,
+            bool domainAvailable) =>
         kind switch
         {
             ActorActionParameterKind.ShotProgram =>
                 new GenericActorRuntimeActionLegality.ArgumentConstraint
-                    .ShotProgramConstraint(true),
+                    .ShotProgramConstraint(domainAvailable),
             ActorActionParameterKind.Direction =>
                 new GenericActorRuntimeActionLegality.ArgumentConstraint
                     .DirectionConstraint(
-                        Enum.GetValues<Direction>().ToImmutableArray()),
+                        domainAvailable
+                            ? Enum.GetValues<Direction>().ToImmutableArray()
+                            : []),
             ActorActionParameterKind.UnitTarget =>
                 new GenericActorRuntimeActionLegality.ArgumentConstraint
                     .UnitTargetConstraint(
-                        contract.Topology.UnitSlots.Select(slot =>
-                            new GenericActorRuntimeActionArgument.UnitTarget(
-                                slot.TeamId,
-                                slot.UnitId)).ToImmutableArray()),
+                        domainAvailable
+                            ? contract.Topology.UnitSlots.Select(slot =>
+                                new GenericActorRuntimeActionArgument.UnitTarget(
+                                    slot.TeamId,
+                                    slot.UnitId)).ToImmutableArray()
+                            : []),
             ActorActionParameterKind.FormTarget =>
                 new GenericActorRuntimeActionLegality.ArgumentConstraint
                     .FormTargetConstraint(
-                        contract.Rules.Forms.Select(form => form.Id)
-                            .ToImmutableArray()),
+                        domainAvailable
+                            ? contract.Rules.Forms.Select(form => form.Id)
+                                .ToImmutableArray()
+                            : []),
             ActorActionParameterKind.ProjectileHeading =>
                 new GenericActorRuntimeActionLegality.ArgumentConstraint
                     .ProjectileHeadingConstraint(
-                        Enum.GetValues<ProjectileHeading>()
-                            .ToImmutableArray()),
+                        domainAvailable
+                            ? Enum.GetValues<ProjectileHeading>()
+                                .ToImmutableArray()
+                            : []),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
+
+    private static ActorResolvedMatchDefinition WithProjectionCatalog()
+    {
+        ActorResolvedMatchDefinition source =
+            GenericActorContractTestFixture.WithTransitions();
+        ActorRulesDefinition rules = source.Rules;
+        ActorActionDefinition targetedAnchor = new(
+            "anchor",
+            101,
+            ActorActionKind.SameLifeTransition,
+            [ActorActionParameterKind.FormTarget]);
+        ActorActionDefinition move = new(
+            "move",
+            1,
+            ActorActionKind.Movement,
+            [ActorActionParameterKind.Direction]);
+        ActorFormDefinition[] forms = rules.Forms.Select(form =>
+            new ActorFormDefinition(
+                form.Id,
+                form.MaxHealth,
+                form.MovementProfileId,
+                form.VisionProfileId,
+                form.AttackProfileId,
+                form.ObjectiveWeight,
+                form.Id == "mobile"
+                    ? form.AllowedActionIds.Append(move.Id)
+                    : form.AllowedActionIds)).ToArray();
+        ActorActionDefinition[] actions =
+        [
+            .. rules.Actions.Select(action =>
+                action.Id == targetedAnchor.Id
+                    ? targetedAnchor
+                    : action),
+            move,
+        ];
+        var projectedRules = new ActorRulesDefinition(
+            rules.RulesetId,
+            rules.Limits,
+            rules.SeedMechanics,
+            rules.GameMode,
+            rules.Lifecycle,
+            forms,
+            rules.MovementProfiles,
+            rules.VisionProfiles,
+            rules.AttackProfiles,
+            actions,
+            rules.FabricationTransitions,
+            rules.SameLifeTransitions,
+            rules.ReplicationTransitions,
+            rules.TeamPerception,
+            rules.Collisions,
+            rules.TickResolution);
+        return new ActorResolvedMatchDefinition(
+            projectedRules,
+            source.Map,
+            source.Format,
+            source.Topology,
+            source.InitialDeployment,
+            source.LifecycleAssignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
 
     private static ActorResolvedMatchDefinition WithFaultAllowance(
         ActorResolvedMatchDefinition source,
@@ -913,6 +1295,17 @@ public sealed class GenericActorRuntimeCoordinatorTests
 
     private static GenericActorRuntimeDecision Unknown() =>
         new("not-catalogued", 999, [], null);
+
+    private static GenericActorRuntimeDecision Fabricate(
+        GenericActorRuntimeActionArgument.UnitTarget target) =>
+        new(
+            "fabricate",
+            100,
+            [
+                new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                    target),
+            ],
+            null);
 
     private static GenericActorRuntimeDecision Shoot(ShotProgram program) =>
         new(
@@ -983,6 +1376,8 @@ public sealed class GenericActorRuntimeCoordinatorTests
         public GenericActorRuntimeStart? ReceivedStart { get; private set; }
         public int ExecuteCount { get; private set; }
         public bool Disposed { get; private set; }
+        public int DisposeCount { get; private set; }
+        public Exception? DisposeFailure { get; set; }
 
         public void StartLife(GenericActorRuntimeStart start)
         {
@@ -1003,6 +1398,9 @@ public sealed class GenericActorRuntimeCoordinatorTests
         {
             Assert.False(Disposed);
             Disposed = true;
+            DisposeCount++;
+            if (DisposeFailure is not null)
+                throw DisposeFailure;
         }
     }
 }

@@ -109,9 +109,9 @@ public sealed class GenericActorObservationCodecTests
                 GenericActorWireObservationCodec.Encode(
                     GenericActorDynamicTestFixture.Context()));
 
-        Assert.Equal(18, decoded.VisibleEvents.Length);
+        Assert.Equal(19, decoded.VisibleEvents.Length);
         Assert.Equal(
-            Enumerable.Range(0, 18),
+            Enumerable.Range(0, 19),
             decoded.VisibleEvents.Select(value => value.SourceOrdinal));
         Assert.Collection(
             decoded.VisibleEvents.Select(value => value.Payload),
@@ -150,7 +150,10 @@ public sealed class GenericActorObservationCodecTests
             payload => Assert.IsType<
                 GenericActorContext.EventPayload.ScoreChanged>(payload),
             payload => Assert.IsType<
-                GenericActorContext.EventPayload.ModeChanged>(payload));
+                GenericActorContext.EventPayload.ModeChanged>(payload),
+            payload => Assert.IsType<
+                GenericActorContext.EventPayload.LifecycleClockCancelled>(
+                    payload));
 
         var attack = Assert.IsType<
             GenericActorContext.EventPayload.Attack>(
@@ -182,6 +185,16 @@ public sealed class GenericActorObservationCodecTests
             GenericActorContext.EventPayload.ScoreChanged>(
                 decoded.VisibleEvents[16].Payload);
         Assert.Equal(long.MaxValue, score.NewValue);
+        var clock = Assert.IsType<
+            GenericActorContext.EventPayload.LifecycleClockCancelled>(
+                decoded.VisibleEvents[18].Payload);
+        Assert.Equal(5, clock.TargetUnitId);
+        Assert.IsType<
+            GenericActorContext.UnitSlotState.AutomaticReturnPending>(
+                clock.CancelledState);
+        Assert.Equal(
+            "participant-disqualified",
+            clock.CancellationReason);
         Assert.Equal(
             decoded.VisibleEvents[3].SourceOrdinal,
             Assert.Single(decoded.HeardSounds!.Value).SourceOrdinal);

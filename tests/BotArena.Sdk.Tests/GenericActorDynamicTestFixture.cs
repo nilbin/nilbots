@@ -371,6 +371,15 @@ internal static class GenericActorDynamicTestFixture
             new GenericActorContext.EventPayload.ModeChanged(
                 new GenericActorContext.ModeObservationState.Deathmatch(
                     "deathmatch")),
+            new GenericActorContext.EventPayload.LifecycleClockCancelled(
+                targetTeamId: 0,
+                targetUnitId: 5,
+                new GenericActorContext.UnitSlotState
+                    .AutomaticReturnPending(
+                        dueTick: 12,
+                        "mobile",
+                        generation: 2),
+                "participant-disqualified"),
         ];
 
         GenericActorContext.EventKind[] kinds =

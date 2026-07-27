@@ -312,6 +312,48 @@ public sealed record GenericActorRuntimeObservation(
 
         public sealed record ModeChanged(
             ModeObservationState State) : EventPayload;
+
+        public sealed record LifecycleClockCancelled : EventPayload
+        {
+            public LifecycleClockCancelled(
+                int targetTeamId,
+                int targetUnitId,
+                UnitSlotState cancelledState,
+                string cancellationReason)
+            {
+                ArgumentNullException.ThrowIfNull(cancelledState);
+                ArgumentException.ThrowIfNullOrWhiteSpace(
+                    cancellationReason);
+                if (targetTeamId < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(targetTeamId));
+                }
+                if (targetUnitId < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(targetUnitId));
+                }
+                if (cancelledState is not
+                        UnitSlotState.AvailabilityPending
+                    and not UnitSlotState.AutomaticReturnPending)
+                {
+                    throw new ArgumentException(
+                        "A lifecycle clock cancellation must snapshot an availability or automatic-return clock.",
+                        nameof(cancelledState));
+                }
+
+                TargetTeamId = targetTeamId;
+                TargetUnitId = targetUnitId;
+                CancelledState = cancelledState;
+                CancellationReason = cancellationReason;
+            }
+
+            public int TargetTeamId { get; }
+            public int TargetUnitId { get; }
+            public UnitSlotState CancelledState { get; }
+            public string CancellationReason { get; }
+        }
     }
 
     public enum EventKind
@@ -334,6 +376,7 @@ public sealed record GenericActorRuntimeObservation(
         FormTransitionCancelled = 15,
         ScoreChanged = 16,
         ModeChanged = 17,
+        LifecycleClockCancelled = 18,
     }
 
     public sealed record ScoreboardState(
