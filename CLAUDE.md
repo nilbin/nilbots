@@ -68,7 +68,7 @@ dotnet build BotArena.sln                  # all managed code
 bash scripts/test.sh                       # all test suites (builds WASM guest first)
 dotnet test tests/BotArena.Engine.Tests --filter "FullyQualifiedName~MovementTests"
 bash scripts/build-wasm-guest.sh           # cross-platform, input-stamped guest build
-(cd web && npm run build)                  # SPA → web/dist/index.html (single file)
+(cd web && npm run build)                  # hashed dist/ + theme-scoped dist-cli viewers
 bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI clients
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
@@ -111,19 +111,21 @@ Project boundaries that must not be violated:
   `PublicRulesManifestFactory` projects `GameRules`, `ArenaMap`, and exact
   scoring-team/submitted-participant/stable-unit-slot/initial-life topology
   into explicitly ordered canonical rules, map, and aggregate fingerprints.
-  This contract is engine-only today; protocol 0.1 and replay v1 do not yet
-  deliver or embed it.
-- Frontline is an unshipped, engine-only experiment implemented through
-  Package 3. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
+  Shipped protocol 0.1 and replay v1 do not deliver or embed it; the internal
+  Frontline replay v2 embeds it for the experimental runtime and viewer.
+- Frontline is an unshipped experiment implemented internally through
+  Package 6. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
   continue through legacy `MatchSession`, runtime protocol 0.1, replay v1, and
-  map format 1. Experimental map format 2, the rules/map/topology resolver,
-  `FrontlineControlSystem`, and an explicitly constructed Prime-only
-  `FrontlineMatchSession` exist. The session is headless: it owns no bot
-  runtime, canonical observation, replay, CLI ruleset, App match path, viewer,
-  or server ladder. Package 4's runtime/observation/replay-v2 slice is next.
-  Format-v2 assets live under `maps/experimental/`; current App and CLI
-  catalogs/package inputs enumerate only top-level format-v1 maps, and legacy
-  `MatchEngine` still rejects a Frontline definition defensively.
+  map format 1. Experimental map format 2, exact rules/map/topology
+  fingerprints, `FrontlineMatchSession`, independently instantiated per-life
+  `ActorRuntime`s, canonical team observations, replication/fabrication,
+  per-life Anchor/turret forms, and internal replay v2 exist. Web/mobile can
+  present that v2 through their version-neutral replay model. The shipped
+  SDK/guest, protocol, CLI/App match path, canonical WASM runner, server
+  admission, and ladders do not expose Frontline yet. Format-v2 assets live
+  under `maps/experimental/`; current App and CLI catalogs/package inputs
+  enumerate only top-level format-v1 maps, and legacy `MatchEngine` still
+  rejects a Frontline definition defensively.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated types, mapped by adapters in
   BotArena.Runtime (in-process, diagnostic only) and BotArena.Guest (the
@@ -196,22 +198,43 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   team, submitted participant, stable team-local unit slot, and runtime life
   are distinct; consumers resolve them by their explicit IDs. Canonical
   collection order is a serialization/fingerprint rule, not an identity rule.
-- The Package 3 Frontline call boundary is
-  `PrepareTick()` → exact keyed `Step(...)`. Preparation applies due lifecycle
+- The Frontline call boundary is
+  `PrepareTick()` → exact keyed `StepActors(...)` (with `Step(...)` retained as
+  the historical `BotDecision` adapter). Preparation applies due lifecycle
   once, is idempotent until a successful step, and returns canonical
   `(teamId, unitId, lifeId)` actors. The decision dictionary must contain
   exactly those keys (empty when no lives are active); missing, extra, or stale
   lives fail atomically. A destruction on tick `D` respawns at
   `D + 1 + PrimeRespawnTicks`, and the new life may act immediately.
-- Package 3 protected pads block opposing ground entry only: they grant no
-  damage immunity, do not stop projectiles, and only the authored
-  `PrimeSpawn` is a respawn tile. Old-life projectiles persist with their exact
+- Each active Frontline life owns an independent runtime instance of its
+  submitted participant's artifact. Form changes preserve that exact life,
+  runtime, and private memory; destruction disposes it, and respawn or
+  refabrication creates a fresh `lifeId` and runtime. Stable slots retain an
+  immutable default form while the active life carries its effective form and
+  pending transition.
+- Frontline protected pads block opposing ground entry only: they grant no
+  damage immunity and do not stop projectiles. The authored `PrimeSpawn` is
+  permanently reserved against own children; fabrication selects another free
+  pad tile after movement. Old-life projectiles persist with their exact
   firing-life owner. Damage events/ledgers count
   `min(DamagePerHit, remainingHealth)`, objective presence uses post-damage
   active lives, and a final-tick breach precedes max-tick completion. The
   objective-only max-tick score is
   `(activePositionIndex - positionCount/2) * captureThreshold + signedCaptureProgress`
-  (positive team 0, negative team 1, zero draw).
+  in the public team-advance direction (zero draws).
+- Anchor is a life-scoped `child-mobile` → `turret` transition. It starts after
+  movement/fabrication, remains the source form and Wait-only through combat
+  and objective, completes after objective on
+  `startedTick + windupTicks - 1`, and emits explicit start/change/cancel
+  events. Death emits Destroyed then cancellation; a future-due terminal
+  transition stays pending. Turrets are stationary/non-rotating,
+  objective-weight zero, see and fire omnidirectionally, and use the separate
+  absolute-eight-way `shoot-direction` action without changing body facing.
+- Internal replay v2 snapshots the exact canonical observation passed to each
+  life runtime, its accepted decision and masks, lifecycle/form causality,
+  authoritative post-state, and terminal stable-unit result. Its Engine and
+  TypeScript validators intentionally reject self-consistent impossible
+  histories. Replay-v1 verification and hashes remain byte-exact.
 - Rules/map aliases and presentation are outside component content hashes;
   ordered gameplay sequences stay ordered, true sets are canonicalized, and
   the aggregate match fingerprint includes the exact topology and public

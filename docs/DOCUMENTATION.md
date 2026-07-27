@@ -18,30 +18,34 @@ wrong; it changes which document is the current entry point.
 ## Active Frontline and ML work
 
 - [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) —
-  package order and current code boundary. Packages 0–3 are implemented
-  through the Prime-only headless session; Package 4's
-  runtime/observation/replay-v2 slice is next.
+  package order and current code boundary. Packages 0–6 are implemented on
+  the internal experimental path: canonical per-life runtime/observation,
+  replay v2, replication, fabrication, Anchor, and viewer/mobile mirrors.
+  SDK/protocol vNext and product admission remain later packages.
 - [`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) — exploratory
-  gameplay and architecture envelope, including the implemented Package 3
-  lifecycle/territorial checkpoint. Numeric values remain experiment arms,
-  not balance verdicts.
+  gameplay and architecture envelope, including the implemented
+  runtime/replication/Anchor checkpoint. Numeric values remain experiment
+  arms, not balance verdicts.
+- [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md) — concise
+  player/bot contract for the frozen internal experiment. It is not the
+  shipped player guide or an SDK/protocol availability claim.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, replay v2, datasets, and bounded model assets.
-  It is relevant to Frontline but is not a shipped replay or ML contract.
+  Its internal Frontline observation/replay seam is implemented; dataset,
+  corpus, model-asset, inference, and public-product packages remain planned.
 - [`EVALUATION-METHODOLOGY.md`](EVALUATION-METHODOLOGY.md) — required evidence
   policy before any rules experiment is promoted.
 
-There is intentionally no `EXPERIMENTAL-FRONTLINE.md` player contract yet.
-The headless Prime-only checkpoint has no public runtime, observation,
-protocol, replay, CLI, or viewer surface. Add the player contract only after
-those surfaces and the remaining replication/Anchor arms are frozen; bot
-authors should not have to infer rules from planning documents.
+Frontline remains unshipped despite having an internal contract and viewer.
+Protocol 0.1, the current SDK/guest, CLI/App match selection, server admission,
+canonical WASM execution, and ranked ladders still expose only the supported
+historical product paths.
 
 ## Current technical and product references
 
 - [`REPLAY-FORMAT.md`](REPLAY-FORMAT.md) — replay version 1. Preserve its
-  semantics and hashes when Package 4 adds replay v2; the headless Frontline
-  state is not a replay contract.
+  semantics and hashes. Its status note points to the separate internal
+  observation-complete replay-v2 experiment without mutating the v1 contract.
 - [`WASM-DEVELOPMENT.md`](WASM-DEVELOPMENT.md) — current controlled
   NativeAOT/WASM build and runtime workflow.
 - [`ARENA-VISUALS.md`](ARENA-VISUALS.md), [`AUDIO-DESIGN.md`](AUDIO-DESIGN.md),

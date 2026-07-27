@@ -1,16 +1,25 @@
 # Replay-native ML support: engine-rewrite integration plan
 
-Status: shared proposal for the concurrent engine rewrite, 2026-07-26;
-reconciled with the Frontline public-contract foundation on 2026-07-27. This
-document is the authoritative generic ML/data plan. It records investigation
-conclusions and an implementation plan; it does not yet pin replay-v2, corpus,
-or model-asset product decisions in `DECISIONS.md`.
+Status: shared ML/data plan, 2026-07-26; reconciled with the Frontline
+public-contract foundation and internal replay-v2 implementation on
+2026-07-27. Work package A's canonical observation/replay seam is implemented
+for the internal Frontline path. Dataset export, corpus access, model assets,
+starter inference, protocol delivery, and public replay-v2 product decisions
+remain planned.
 
 Frontline does not create a second ML stack. Where older examples below say
 `slot`, that is the legacy-duel actor identity. The common v2 design must also
 represent a Frontline runtime life as `teamId + unitId + lifeId`, carry the
 exact public match manifest/fingerprint, and encode variable entity
 collections plus masks rather than assuming two bodies.
+
+The implemented Frontline checkpoint now does exactly that: it constructs one
+canonical public observation per active life, supplies that observation to the
+life runtime, snapshots the same projection into internal replay v2, and
+records variable topology, lifecycle, fabrication, form transitions, dynamic
+legality masks, and authoritative result facts. This is an engine/replay
+foundation, not a claim that the shipped SDK/protocol or dataset tooling can
+consume it yet.
 
 ## Executive conclusion
 
@@ -71,10 +80,12 @@ The surrounding fairness rules are:
 This is an information-parity contract, not a promise that all players own the
 same training hardware or use the same technique.
 
-## Current gap
+## Shipped replay-v1 gap and internal checkpoint
 
-The current replay has much of the underlying information, but not the exact
-input record a trainer needs.
+The shipped replay v1 has much of the underlying information, but not the
+exact input record a trainer needs. That gap remains for historical duel
+matches and is why official dataset export must not pretend v1 is
+observation-complete.
 
 `MatchSession.BuildObservation` constructs a pre-tick `BotObservation`.
 `MatchEngine.BuildReplayTick` later records:
@@ -106,6 +117,13 @@ There is a second divergence to remove during the rewrite:
 while the WASM and in-process adapters independently reduce them to the
 player-visible kind, acting slot, and primary position. The engine/runtime
 boundary should already be public-only.
+
+The separate Frontline path closes both gaps internally with
+`ActorObservation`, `FrontlineObservationProjector`, `ActorRuntime`, and
+replay v2. It deliberately leaves the shipped duel `BotObservation`,
+protocol 0.1, and replay-v1 bytes untouched. Protocol vNext and later product
+integration should consume the new public-only path rather than reconstructing
+inputs from omniscient state.
 
 ## Rewrite inclusion boundary
 
@@ -353,7 +371,10 @@ than pretending reconstruction is exact.
 
 ## Work package A — observation and replay foundation
 
-This is the engine-rewrite package.
+Status: **implemented for the internal Frontline path**. The remaining work is
+SDK/protocol-vNext delivery, public version dispatch/admission, and any later
+decision to generalize the shipped duel runtime onto the same model. Replay v1
+remains a dedicated historical reader/verifier.
 
 ### Implementation
 
@@ -393,6 +414,13 @@ This is the engine-rewrite package.
 - actor observations pass the leakage audit;
 - no gameplay result changes on frozen artifacts/maps/seeds unless the rewrite
   separately and deliberately versions gameplay.
+
+The internal Frontline implementation meets these engine/replay criteria with
+deterministic fixtures, strict Engine and TypeScript semantic validators, a
+version-neutral viewer model, and frozen replay-v1 compatibility shields. This
+does not complete the end-to-end ML-friendly gate: dataset/corpus commands,
+model packaging, starter inference, canonical WASM protocol vNext, and public
+release remain Work packages B–E and Frontline Packages 7–8.
 
 ## Work package B — replay-only dataset CLI
 

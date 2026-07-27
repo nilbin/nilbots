@@ -54,6 +54,13 @@ consequences:
   play/pause/seek. Changing that contract means changing `mobile/src/components/arena/`
   in the same commit — it is hand-mirrored, like `types.ts`.
 
+Replay v1 and internal Frontline replay v2 meet only at the version-neutral
+`ReplayModel`. Decode and validate each wire format before normalization; never infer a
+missing v2 lifecycle, form, action-mask, or causal event from presentation state. Hosted
+bridge v1 remains the legacy slot-shaped contract and must reject v2. Bridge v2 carries
+stable team/unit/life and terminal form state, and its TypeScript mirror in
+`mobile/src/components/arena/protocol.ts` changes in the same commit.
+
 ## Types come from the server
 
 Response types are aliases onto `api/schema.d.ts`, generated from the OpenAPI document.

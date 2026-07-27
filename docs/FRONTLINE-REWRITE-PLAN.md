@@ -11,11 +11,12 @@ versus one body into a territorial contest between two submitted
 intelligences that may each replicate into several independent runtime
 instances.
 
-Implementation checkpoint: Packages 0–3 are implemented through a
-deterministic Prime-only headless match. Package 4's
-runtime/observation/replay-v2 vertical slice is next. The experimental
-checkpoint is not exposed through the current SDK, protocol, replay, CLI, App,
-or viewer.
+Implementation checkpoint: Packages 0–6 are implemented on an internal
+experimental path: deterministic multi-life runtime/session, canonical team
+observation, strict replay v2, replication/fabrication, per-life Anchor/turret,
+and version-neutral web/mobile presentation. It is not exposed through the
+shipped SDK, protocol, replay-v1 emitter, CLI/App match path, canonical WASM
+runner, server admission, or ladder.
 
 ## Relationship to current plans
 
@@ -88,10 +89,11 @@ intelligence instantiated in several bodies.
 
 ### 1.3 Anchoring
 
-In the initial arm, a child may irreversibly Anchor for its current life and
-become a turret. Reversibility remains an isolated alternative, not a settled
-rule. Anchoring changes the child's form; it does not replace the submitted
-policy with host AI.
+In the implemented initial arm, a child may irreversibly Anchor for its
+current life and become a turret. A future reversible form would require a new
+explicit action/health contract rather than toggling this arm. Anchoring
+changes the child's form; it does not replace the submitted policy with host
+AI.
 
 The anchored instance continues to execute the same artifact, but with a
 different legal-action set and body:
@@ -183,8 +185,9 @@ multiplying objective income.
 - A destroyed child or turret makes its fabrication slot unavailable for the
   rebuild interval, then the Prime may instantiate it again.
 - Enemy ground movement cannot enter the opposing protected pad. The pad
-  grants no damage immunity and does not block projectiles; its other tiles
-  are not implicit respawn or fabrication candidates.
+  grants no damage immunity and does not block projectiles. The exact
+  `PrimeSpawn` is reserved; the other non-wall pad tiles are child
+  fabrication candidates in canonical Y-then-X order after movement.
 - A projectile remains owned by the exact firing life and survives that life's
   destruction. Under the initial no-friendly-fire/no-allied-blocking rules it
   passes through later allied lives but may still hit an enemy.
@@ -223,8 +226,8 @@ the physical comeback mechanism.
 
 The implemented map has now been audited through the actual headless session.
 This is mechanical evidence, not a balance or entertainment verdict. Because
-the default `FrontlineRules` includes the still-unimplemented fabrication
-slots, the executable audit kept its five-position capture, redeploy, and
+the Package 3 audit predated the now-implemented fabrication slots, that
+historical executable arm kept its five-position capture, redeploy, and
 respawn values but explicitly selected one Prime per team, no fabrication
 unlocks, and `MaxTicks = 500`.
 
@@ -397,8 +400,9 @@ Do not build a general gameplay scripting language. When a genuinely new
 physical semantic appears, add one small typed engine capability and publish
 it through the catalog.
 
-Unit identity survives a form transition. Respawn/rebuild creates a new
-`lifeId`; fabrication slot and lineage remain stable.
+Unit identity survives a form transition. Prime respawn or successful child
+(re)fabrication creates a new `lifeId`; the child slot and lineage remain
+stable while `Rebuilding` and `Ready` are body-absent states.
 
 ## 6. Actions and legality
 
@@ -457,28 +461,36 @@ order. If explicit communication is later useful, test a fixed-size signal
 emitted with the action and delivered to all allies on the next tick in stable
 unit-ID order.
 
-Destruction disposes that runtime instance. A respawn/rebuild creates a fresh
-instance and private memory for a new `lifeId`. A form transition keeps the
-same instance and memory.
+Destruction disposes that runtime instance. Prime respawn or successful child
+(re)fabrication creates a fresh instance and private memory for a new
+`lifeId`; the rebuild timer becoming Ready creates neither. A form transition
+keeps the same instance and memory.
 
-### 7.1 Implemented Prime-only headless contract
+### 7.1 Implemented internal runtime contract
 
-Package 3 freezes lifecycle and joint-action identity without inventing an
-observation or replay shape. `PrepareTick()` applies due tick-start respawns
-once and returns active keys in canonical
-`(teamId, unitId, lifeId)` order. Repeated calls before a successful
-`Step()` are idempotent.
-`Step(IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions)` accepts
-exactly that key set: missing, extra, and stale-life keys fail atomically;
-insertion order has no effect. An empty active set requires an empty
-dictionary, while a newly respawned life appears in the due tick's set and may
-act immediately.
+Packages 3–6 now freeze lifecycle, joint-action identity, observation,
+replication, and form causality. `PrepareTick()` applies due tick-start
+transitions once and returns active keys in canonical
+`(teamId, unitId, lifeId)` order. Repeated calls before a successful step are
+idempotent. One canonical `ActorObservation` is built for every exact key
+before any runtime executes. `StepActors(...)` accepts exactly that key set:
+missing, extra, and stale-life keys fail atomically; insertion order has no
+effect. An empty active set requires an empty dictionary, while a newly
+created life appears in the due tick's set and may act immediately.
 
-Resolution is turn → simultaneous movement → existing projectiles → new shots
-and simultaneous damage → queue destroyed lives → cooldown/energy →
-objective → completion. Objective presence is evaluated from post-damage
-active lives, so a destroyed occupant neither captures nor contests that
-tick. Credited and emitted damage is actual health removed:
+Each participant supplies a runtime factory. Prime, fabricated child, and
+replacement lives receive independent instances of the same submitted
+artifact. Form changes retain the exact instance and memory; destruction
+disposes it and a later life starts fresh.
+
+Resolution is tick-start lifecycle → frozen observations/validation → turn
+and simultaneous movement → queue fabrication and form-transition starts →
+existing projectiles/new shots/simultaneous damage → destruction and explicit
+transition cancellation → cooldown/energy → objective → due form changes →
+completion. Objective presence is evaluated from post-damage active lives but
+before due Anchor completion, so a surviving child contributes mobile weight
+on its transform tick and a destroyed occupant contributes nothing. Credited
+and emitted damage is actual health removed:
 
 ```text
 actualDamage = min(DamagePerHit, remainingHealth)
@@ -489,18 +501,28 @@ At `MaxTicks`, the implemented objective-only result is:
 ```text
 centre = FrontlinePositionCount / 2
 position = (ActivePositionIndex - centre) * CaptureThreshold
-claim = +CaptureProgress for team 0, -CaptureProgress for team 1, else 0
+claim = CaptureProgress signed by the claiming team's public advance direction
 territorialScore = position + claim
 ```
 
-Positive wins for team 0, negative for team 1, and zero draws. Health and
-damage are recorded but do not break the tie. Objective resolution checks a
-base breach before `MaxTicks`, so a breach on the final allowed tick wins.
+Positive awards the increasing-index team, negative the decreasing-index
+team, and zero draws. Health and damage are recorded but do not break the tie.
+Objective resolution checks a base breach before `MaxTicks`, so a breach on
+the final allowed tick wins.
 
 In-flight projectiles are not tied to actor liveness: their owner remains the
 exact firing `FrontlineActorId`, they persist after destruction, and their
 damage continues to accrue to the stable firing unit. A newly respawned allied
 life is not retroactively the projectile owner.
+
+Fabrication targets Ready own child slots from the Prime's protected pad and
+spawns on the next tick at the first free non-Prime pad tile in canonical
+order. A rebuilt slot requires explicit refabrication. Anchor is a Wait-only
+life-scoped channel from `child-mobile` to `turret`; death emits Destroyed then
+FormTransitionCancelled, while successful completion keeps the same runtime
+and applies the clamped health gain. Turret fire uses a separate absolute
+eight-heading action, never changes body facing, and launches one straight
+non-programmed projectile.
 
 ### 7.2 Protocol vNext
 
@@ -662,11 +684,14 @@ Blind replay review must specifically score:
 - the spatial value and counterplay of turrets;
 - whether replication phases feel like escalation rather than clutter.
 
-The frontend refactor has landed. Replay-v1 presentation now resolves
-participants by stable slot rather than array position, which is the safe
-first normalization step. Frontline-specific fields and visuals remain
-deferred until replay v2 supplies the real team/unit/life and objective data;
-the list above is still a presentation contract, not implemented UI.
+The frontend refactor and internal Frontline presentation have landed.
+Replay-v1 still resolves participants by stable slot, while replay v2
+normalizes team/unit/life, lifecycle, forms, fabrication, objective, and
+transition facts into the same viewer model. Canvas, event feed, bot cards,
+hosted bridge v2, and native mobile cards visualize stable units, respawn and
+rebuild state, Anchor windup, turret/360 state, and terminal pending forms.
+Outcome-blind product review remains unperformed; implemented UI is not
+evidence that the games are legible or entertaining.
 
 ## 12. Experiment sequence
 
@@ -693,12 +718,14 @@ redesigned product.
 
 ## 13. Scripted acceptance before balance
 
-Package 3 passes the Prime-only deterministic subset: exact prepared keys,
-combat/projectile parity, repeated respawn, simultaneous destruction,
-old-life projectile persistence, actual-damage overkill, post-damage
-objective presence, early/final-tick breach, and territorial max-tick
-completion. Replication, Anchor, and native-bot gates below remain future
-work.
+Packages 3–6 pass the deterministic mechanics subset: exact prepared keys and
+runtime instances, combat/projectile parity, repeated respawn,
+replication/refabrication, simultaneous destruction, old-life projectile
+persistence, actual-damage overkill, post-damage objective presence,
+early/final-tick breach, territorial timeout, Anchor timing/cancellation,
+current/default form state, absolute turret fire, observation masks, and
+strict replay causality. Native-bot dynamics and entertainment gates below
+remain future work.
 
 - An unopposed sweep wins before the first fabrication unlock but not
   implausibly close to tick zero.
@@ -724,21 +751,16 @@ work.
 
 ## 14. Open decisions
 
-- Which sight, hearing, event, and provenance facts enter the recommended
-  immediate team union, and does any other information require an explicit
-  next-tick signal?
-- Does a new child begin with empty private memory, an explicit spawn message,
-  or a bounded team-state snapshot?
-- Does fabrication occur adjacent to the Prime or at the home pad?
-- Is Anchor irreversible for a life, or may a turret self-destruct to begin
-  its rebuild timer?
-- Are mobile child and Prime HP initially identical?
-- What exact shoot-direction action and telegraph keeps 360° turret fire
-  readable?
+- Does a later explicit next-tick team signal add useful strategy beyond the
+  implemented frozen perception union, and what fixed-size budget would keep
+  it deterministic?
+- Do later balance arms keep Prime/mobile child HP identical, or vary one
+  factor after the implemented baseline has native-policy evidence?
 - Can flying forms contest the frontline, and on which collision layer may
   projectiles hit them?
 - Which ruleset changes merely obsolete an old bot, and which make it
   ineligible?
-- What runtime budget is per body and what, if anything, is capped per team?
+- Should future public competition add a participant-wide fuel/memory ceiling
+  beyond the implemented per-life tick limits and shared debug budget?
 - Are public ranked replays automatically licensed for aggregate training
   datasets, or is separate consent/provenance required?

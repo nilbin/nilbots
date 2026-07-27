@@ -6,14 +6,16 @@ document turns
 implementation sequence. It does not mean Frontline has shipped, been
 pre-registered, or replaced rules 0.5.
 
-The frontend refactor and replay-v1 participant-identity normalization are
-integrated. Frontline-specific `web/` and `mobile/` work still waits for the
-authoritative replay-v2 state it will consume.
+The frontend refactor, replay-v1 participant-identity normalization, and
+version-neutral replay presentation are integrated. Web and mobile now mirror
+the authoritative internal Frontline replay-v2 state rather than a
+presentation-only substitute.
 
-Current implementation scope: Packages 0–3 are implemented through a
-Prime-only headless `FrontlineMatchSession`. Package 4's
-runtime/observation/replay-v2 vertical slice is next; replication, Anchor,
-protocol vNext, and product surfaces remain planned.
+Current implementation scope: Packages 0–6 are implemented on the internal
+experimental path. That includes independent per-life runtimes, canonical
+team observation, replay v2, replication/fabrication, Anchor/turret forms, and
+viewer/mobile presentation. Package 7's SDK/protocol-vNext delivery and the
+remaining Package 8 CLI/App/WASM/evaluation release path remain planned.
 
 ## 1. Recommendation
 
@@ -30,10 +32,12 @@ Give each implementation slice one owner and integrate it before starting
 dependants. Shared contract files are integration choke points, not parallel
 editing targets.
 
-The first completed code changes were an engine-only public-contract
-foundation, historical characterization shield, Frontline definition/kernel,
-and Prime-only headless session. They leave legacy gameplay, replay-v1 bytes,
-artifacts, SDK, protocol, CLI, App, and frontend behavior unchanged.
+The completed internal slices include the public-contract foundation,
+historical characterization shield, Frontline definition/kernel, multi-life
+session, actor runtime/observation/replay seam, replication, Anchor, and
+version-neutral viewers. They leave official gameplay, replay-v1 bytes,
+artifacts, SDK, protocol, CLI/App match selection, and server behavior
+unchanged.
 
 ## 2. Relationship to replay-native ML work
 
@@ -43,8 +47,8 @@ workload.
 
 | Replay-native package | Relationship to Frontline |
 | --- | --- |
-| A — canonical observation and replay v2 | Its engine/replay seam is absorbed into Frontline Package 4 and its deferred viewer-consumer work completes in Package 8. One implementation must serve rules 0.5 and Frontline. |
-| B — replay-only dataset CLI | Follow-on after Package 4's schema is frozen; not on the Frontline gameplay critical path. |
+| A — canonical observation and replay v2 | The internal Frontline engine/replay seam and viewer consumer are implemented through Packages 4 and 8. Public delivery and any later duel generalization must reuse this model without changing replay v1. |
+| B — replay-only dataset CLI | The internal observation-complete schema is now available, but the exporter remains a product follow-on rather than part of Frontline gameplay. |
 | C — public corpus access | Independent App/CLI product follow-on after replay v2; preserve broadcast secrecy. |
 | D — bounded model assets | Separate toolchain/submission project after its WASM spike; do not overlap protocol/toolchain choke points casually. |
 | E — starter inference and rollout | Follow-on proving the shared platform; Frontline supplies variable-entity examples and reward facts. |
@@ -61,10 +65,10 @@ authoritative pre-tick state
     -> snapshot events and authoritative post-state
 ```
 
-For duel rules, the actor key is the historical slot. For Frontline it is
-`teamId + unitId + lifeId`. Design one discriminated actor identity in replay
-v2 if both efforts share a rewrite window. If a closed slot-only v2 ships
-first, Frontline must bump the replay format instead of silently changing v2.
+The internal actor identity represents a historical duel slot as a normalized
+stable identity and a Frontline actor as `teamId + unitId + lifeId`. Shipped
+duels remain on replay v1; a later public duel-v2 path must reuse the same
+identity model rather than narrowing or silently reinterpreting v2.
 
 There will be one canonical replay writer, one replay-to-dataset exporter, one
 corpus path, and one model-asset path. Frontline adds entity identity,
@@ -139,7 +143,8 @@ Freeze these before the package that consumes them, not all at once.
 - `lifeId`: monotonically increasing for each new runtime life.
 - Canonical entity order: `(teamId, unitId, lifeId)`.
 - A form change retains runtime memory; destruction disposes the runtime; a
-  respawn/rebuild creates fresh memory and a new `lifeId`.
+  Prime respawn or successful child (re)fabrication creates fresh memory and a
+  new `lifeId`. Rebuilding becoming Ready creates no life.
 - `PrepareTick()` applies due lifecycle transitions once and returns the exact
   canonical actor keys required by `Step(...)`; repeated preparation before a
   successful step is idempotent.
@@ -152,27 +157,34 @@ Freeze these before the package that consumes them, not all at once.
 - Decide fuel, fault, memory, startup, and debug budgets per body versus per
   team.
 
-### Before replication
+### Replication decisions frozen in Package 5
 
-- Fabrication location: protected home pad or adjacent to Prime.
-- Canonical behavior when every eligible spawn tile is occupied.
-- Child start state: empty private memory plus an explicit spawn reason is the
-  recommended baseline.
-- Exact team-perception union, provenance representation, and ordering.
-- Whether one faulty body disqualifies that unit or the whole submitted team.
+- Fabrication targets an own Ready child slot while the Prime stands on its
+  protected home pad. Spawn selection uses the first free non-Prime pad tile
+  in canonical Y-then-X order after movement.
+- A full pad leaves the attempt legal in the mask but resolves it as
+  `Blocked`; an ally vacating a tile that tick can make it succeed.
+- Every child life starts with fresh private memory, an explicit spawn reason,
+  the slot's default form, and authored home facing.
+- Team observations use one frozen allied-perception union with exact
+  `observedBy` provenance and no same-tick action sharing.
+- Runtime failures are attributed to the exact host life; per-body tick
+  budgets and a participant-shared match debug budget remain explicit.
 
-### Before Anchor
+### Anchor decisions frozen in Package 6
 
-- The initial definition exposes eight-way directional fire and keeps
-  programmed curves off for turrets. Freeze that arm or explicitly test a
-  curve-enabled alternative before implementing Anchor; enabling it changes
-  map safety validation and legal Anchor geometry.
-- Health transition on Anchor; recommended first arm is `+2`, clamped to the
-  turret maximum, rather than an implicit full heal.
-- Irreversible for one life versus explicit self-destruction.
-- Exact illegal tiles and form-dependent objective weight.
+- Turrets use separate `shoot-direction` action 102 with one absolute
+  eight-way heading. They cannot use legacy facing-based Shoot or programmed
+  curves, and body facing does not change.
+- Anchor action 101 is irreversible for the current life, adds `+2` health
+  clamped to the turret maximum, and retains the same runtime/memory.
+- A transform submitted on tick `T` completes after objective at
+  `T + windupTicks - 1`; the pending source form is Wait-only. Nonlethal
+  damage continues and death emits Destroyed then explicit cancellation.
+- Every map-authored Anchor-forbidden tile is illegal. Turret objective weight
+  is zero; it cannot capture or contest.
 
-### Before replay v2 is declared stable
+### Replay-v2 decisions frozen internally
 
 - Discriminated duel-slot versus Frontline-life actor identity.
 - Canonical ordering for actor observations, decisions, events, and state.
@@ -180,6 +192,10 @@ Freeze these before the package that consumes them, not all at once.
 - Manifest placement and exact rules/map/match fingerprint coverage.
 - Public actor observation versus omniscient spectator/critic separation.
 - Replay-v1 reader/hash behavior and permanent fixtures.
+
+These are implemented and strict on the internal Frontline path. Replay v2 is
+not a public CLI/App/server format yet; public emission still requires the
+Package 7/8 version, compatibility, and release gates.
 
 ### Before ranked or public use
 
@@ -284,8 +300,9 @@ Narrow existing-file changes:
 - keep format-v2 assets under `maps/experimental/`, outside the current
   App/CLI top-level map catalog and CLI package wildcard;
 - resolve map/rules compatibility before queueing and again before legacy
-  execution; legacy `MatchEngine` continues rejecting a Frontline definition
-  until Package 4 adds explicit runtime routing to `FrontlineMatchSession`.
+  execution; legacy `MatchEngine` continues rejecting a Frontline definition,
+  while the internal experimental path uses the dedicated
+  `FrontlineActorMatchEngine` and `FrontlineMatchSession`.
 
 Acceptance:
 
@@ -351,8 +368,9 @@ Package 4. Invalid decision sets do not consume or mutate the prepared tick.
   empty joint steps continue until lifecycle transitions restore actors.
 - Enemy ground movement cannot enter the opposing protected home pad. There
   is no spawn or pad damage immunity, projectiles are not blocked, and
-  `PrimeSpawn` is the only Prime respawn tile; other pad tiles are not fallback
-  spawn or fabrication tiles.
+  `PrimeSpawn` is the only Prime respawn tile. At the Package 3 checkpoint,
+  other pad tiles were not fallback spawns; Package 5 later made the
+  non-Prime tiles explicit child-fabrication candidates.
 - In-flight projectiles survive their firing life's destruction. Ownership
   remains the exact old `FrontlineActorId`; with the initial no-friendly-fire,
   no-allied-blocking rules they pass through a later allied life, may damage
@@ -397,13 +415,14 @@ deterministic lifecycle reruns.
 
 ### Package 4 — runtime, canonical observation, and replay v2 foundation
 
-Status: **next**.
+Status: **implemented internally**, including the version-neutral web/mobile
+consumer seam.
 
-Goal: turn the Package 3 headless session into a Prime-only
+Result: the headless session became a canonical per-life
 runtime/observation/replay-v2 vertical slice while implementing the
-engine/replay seam of replay-native ML Work Package A once. Its viewer
-consumer work completes against the now-open frontend boundary in Package 8,
-after replay v2 supplies authoritative data.
+engine/replay seam of replay-native ML Work Package A once. The viewer
+consumer uses the authoritative v2 payload through one normalization layer;
+replay v1 remains exact.
 
 Requirements from `REPLAY-NATIVE-ML-PLAN.md`:
 
@@ -428,7 +447,7 @@ Frontline-specific additions:
 - no same-tick allied action enters another actor's observation;
 - runtime orchestration calls `PrepareTick()`, builds every actor observation
   from the same frozen tick start, obtains one decision for each exact key, and
-  submits that keyed joint action to `Step()`;
+  submits that keyed joint action to `StepActors(...)`;
 - replay v2 records tick-start lifecycle events and the exact actor-key set so
   respawn gaps and new lives are reconstructible without simulation;
 - this slice may prove the engine/in-process runtime boundary, but must not
@@ -437,17 +456,20 @@ Frontline-specific additions:
 
 Primary current surfaces:
 
-- `src/BotArena.Engine/BotObservation.cs`
-- `src/BotArena.Engine/MatchSession.cs`
-- `src/BotArena.Engine/MatchEngine.cs`
+- `src/BotArena.Engine/ActorObservation.cs`
+- `src/BotArena.Engine/ActorRuntime.cs`
+- `src/BotArena.Engine/FrontlineActorMatchEngine.cs`
 - `src/BotArena.Engine/FrontlineMatchSession.cs`
-- `src/BotArena.Engine/Replay.cs`
-- `src/BotArena.Engine/GameEvent.cs`
-- `src/BotArena.Runtime/InProcessBotRuntime.cs`
-- replay/determinism/runtime contract tests
+- `src/BotArena.Engine/FrontlineObservationProjector.cs`
+- `src/BotArena.Engine/ReplayV2.cs`
+- `src/BotArena.Engine/ReplayV2Projection.cs`
+- `src/BotArena.Engine/ReplayV2Serializer.cs`
+- Engine replay/determinism/runtime contract tests and the TypeScript wire,
+  normalization, presentation, and bridge mirrors
 
-Backend-only version dispatch and verification may land here. Frontend replay
-mirrors and consumers remain deferred.
+Backend-only version dispatch and public verification remain deferred. The
+internal Engine serializer, TypeScript mirror, viewer, hosted bridge v2, and
+mobile native cards are implemented without making the App emit v2.
 
 Keep replay v2 internal until the Frontline action/lifecycle variants it claims
 to represent are covered. After a replay version is publicly emitted, any
@@ -464,6 +486,8 @@ Gate:
 - no gameplay result changes on frozen legacy fixtures.
 
 ### Package 5 — entity actions and replication
+
+Status: **implemented internally**.
 
 Goal: instantiate the same submitted artifact independently for each active
 body and each new life.
@@ -483,7 +507,8 @@ Runtime ownership:
   team-level runtime factory;
 - keep participants as the two submitted policies;
 - create one isolated in-process/test runtime per active life;
-- dispose it on destruction and create fresh memory on respawn/rebuild;
+- dispose it on destruction and create fresh memory on Prime respawn or child
+  (re)fabrication;
 - keep execution sequential initially over frozen observations.
 
 Add:
@@ -502,13 +527,15 @@ and allied-projectile tests.
 
 ### Package 6 — forms and Anchor
 
+Status: **implemented internally**.
+
 Goal: implement typed capabilities rather than scattered turret branches.
 
 - Mobile Prime, mobile child, and turret definitions.
 - Form-derived health, vision, movement layer, objective weight, and actions.
 - Same runtime survives Anchor.
-- Anchor is telegraphed, consumes the tick, and resolves at tick end only if
-  the child survives.
+- Anchor is telegraphed, consumes the tick, and resolves after objective on
+  the exact due tick only if the child survives.
 - Turrets cannot move, capture, contest, or Anchor on prohibited tiles.
 - Directional turret fire is explicit in action, replay, and observed event.
 
@@ -521,7 +548,9 @@ First causal arms remain:
 5. range 6 versus 7 only if needed.
 
 Gate: scripted open-ground 1v1 and coordinated 2v1 turret tests, map coverage,
-and obsolete-front usefulness diagnostics.
+five-slot state/observation/replay coverage, exact form-transition causality,
+and obsolete-front usefulness diagnostics. These are mechanics diagnostics,
+not a balance verdict.
 
 ### Package 7 — SDK and protocol vNext
 
@@ -534,8 +563,8 @@ them in Runtime/Guest adapters.
   tick.
 - Compile/load a WASM module once per submitted artifact, but create an
   isolated store and instance for each active life.
-- Dispose a life instance on destruction and create a fresh one on
-  respawn/rebuild.
+- Dispose a life instance on destruction and create a fresh one on Prime
+  respawn or successful child (re)fabrication.
 - Spike binary encodings under NativeAOT/WASI before choosing one.
 - Preserve a small negotiation/bootstrap path so the host identifies
   protocol 0.1 versus vNext rather than trusting unused metadata.
@@ -556,6 +585,10 @@ WASM/in-process parity, observation/replay parity, and per-life isolation.
 
 ### Package 8 — consumers, evaluation, and experimental release
 
+Status: **partially implemented**. Internal web/mobile presentation and the
+experimental brief are complete; Backend/CLI/WASM delivery and product
+evaluation remain.
+
 Goal: make Frontline observable and evaluable without claiming it has shipped.
 
 Backend/CLI first:
@@ -566,7 +599,7 @@ Backend/CLI first:
 - rules/map/match fingerprints in diagnostics;
 - clean experimental rules selection.
 
-Frontend after replay v2 is available:
+Frontend against internal replay v2 — implemented:
 
 - one replay-version normalization layer;
 - team/unit/life presentation through `replayPresentation.ts`;
@@ -574,9 +607,8 @@ Frontend after replay v2 is available:
 - hosted-viewer bridge and matching native mobile cards/controls;
 - v1 golden fixtures plus new Frontline golden frames.
 
-Then:
+Remaining:
 
-- publish a concise `EXPERIMENTAL-FRONTLINE.md`;
 - commission native bot doctrines under equal budgets;
 - run causal arms, dynamics analysis, and outcome-blind review;
 - record a ship/hold verdict without altering current rules documentation.
@@ -598,28 +630,27 @@ here and are not required to answer whether Frontline is fun.
 Do not assign a second agent to `GameRules`, `BotArenaVersions`, or manifest
 files during this wave.
 
-### Engine wave — completed through Package 3
+### Engine waves — completed through Package 6
 
-- One engine owner for Packages 2–3.
+- One engine owner for Packages 2–6, integrated in ordered checkpoints.
 - One independent adversarial-test owner after public types stabilize.
 - The primary integrator owns shared-combat extraction and compatibility
   review.
 
-### Observation/replay wave — next
+### Observation/replay wave — completed internally
 
 Package 4 has one contract owner spanning engine observation and replay
 serialization. A separate leakage/fixture reviewer may add tests after DTOs
 stabilize. Do not split observation construction and replay projection between
 agents; their identity is the invariant.
 
-### Runtime/gameplay wave
+### SDK/protocol and product wave — next
 
-After actor/action types freeze:
+The actor/action/replay types are frozen internally. Next:
 
 - runtime/protocol owner for runtime-factory and Package 7 work;
-- engine owner for fabrication, entity actions, and Anchor;
-- replay owner extends lifecycle facts without changing the canonical
-  observation seam;
+- replay/CLI owner adds public dispatch without changing the canonical
+  observation seam or v1 verification;
 - primary integrator owns shared identity/action types and version axes.
 
 `MatchEngine`, `MatchSession`, `Replay.cs`, `BotArenaVersions`, shared identity
@@ -650,14 +681,17 @@ After SDK, CLI, replay, and the experimental brief are usable:
 
 ## 7. Frontend boundary and staged implementation
 
-The refactor is integrated, and replay-v1 presentation now resolves
-participants by stable slot rather than array position, with reordered and
-sparse-slot coverage. That completed normalization does not invent replay-v2
-fields or change the hosted-viewer bridge.
+The refactor is integrated. Replay-v1 presentation resolves participants by
+stable slot rather than array position, and internal replay v2 normalizes
+team/unit/life, lifecycle, forms, fabrication, and Frontline state into the
+same playback model. Hosted bridge v1 remains unchanged; bridge v2 carries
+stable-unit/team terminal rows and current form/transition presentation.
 
-The remaining Frontline work will touch:
+The implemented Frontline consumer work touches:
 
-- `web/src/types.ts` — hand-maintained replay mirror;
+- `web/src/types.ts` and `web/src/replayWireV2.ts` — versioned wire mirrors;
+- `web/src/replayNormalize.ts` and `web/src/replayModel.ts` — strict
+  version-boundary validation and the shared normalized model;
 - `web/src/replayPresentation.ts` — shared per-tick presentation derivation;
 - viewer components, playback, and Canvas2D renderer under `web/src/`;
 - site replay pages;
@@ -666,20 +700,23 @@ The remaining Frontline work will touch:
 
 The renderer serves the site, CLI self-contained viewer, hosted review, and
 mobile WebView. Mobile renders the arena canvas in the hosted WebView and
-native controls/cards outside it. Later work must:
+native controls/cards outside it. The internal consumer slice now:
 
-- preserve replay-v1 viewing and normalize new replay formats once;
-- add team/unit/life identity, forms, fabrication/lifecycle state, and the
+- preserves replay-v1 viewing and normalizes v2 once;
+- carries team/unit/life identity, forms, fabrication/lifecycle state, and the
   five-position Frontline;
-- derive health, objective, and timing language from the manifest;
-- group events by team while retaining unit attribution;
-- extend `HostedViewer` and the native bridge in lockstep;
-- retain phone/desktop golden-frame and outcome-blind review coverage.
+- derives health, objective, and timing language from the manifest;
+- groups events by team while retaining unit attribution;
+- extends `HostedViewer` bridge v2 and the native bridge in lockstep.
 
-Implement the Frontline-specific portion only after replay v2 supplies stable
-team/unit/life, lifecycle, form, fabrication, and objective fields. Coordinate
-any hosted-viewer bridge change with the native mobile arena components in the
-same integration slice.
+Phone/desktop golden-frame coverage and outcome-blind product review remain
+release gates rather than evidence supplied by the mechanics fixture.
+
+The Frontline-specific portion was implemented only after Engine replay v2
+supplied stable team/unit/life, lifecycle, form, fabrication, and objective
+fields. Hosted-viewer bridge and native mobile arena changes landed in the
+same integration slices. Public App/CLI emission and release-version work
+remain deferred.
 
 ## 8. Documentation migration
 
@@ -699,9 +736,10 @@ Do not rewrite historical documents as though Frontline has already shipped.
 
 - `GAME-DESIGN.md`, `PLAN-SUMMARY.md`, and `DECISIONS.md` identify Frontline
   as the active experiment while retaining rules 0.5 as current.
-- Create concise `docs/EXPERIMENTAL-FRONTLINE.md` only after its remaining
-  player-facing arms are frozen; an unresolved design plan is not a bot
-  contract.
+- `EXPERIMENTAL-FRONTLINE.md` is now the concise internal bot contract for
+  the implemented headless lifecycle, fabrication, Anchor, turret-fire, and
+  replay-v2 checkpoint. It remains explicitly non-public until the remaining
+  release surfaces and player-facing arms are frozen.
 - Maintain `DOCUMENTATION.md` as the status index; split replay/protocol guides
   by version when v2 creates simultaneously supported formats.
 - Continue recording only actually frozen decisions, never numeric
@@ -745,7 +783,8 @@ Every package must pass:
 - `bash scripts/test.sh` before integration when SDK/Guest/WASM is touched.
 
 Packages touching web/mobile run the scoped builds/tests from `web/CLAUDE.md`
-and `mobile/CLAUDE.md`. Replay-v2 fields still gate the actual Frontline UI.
+and `mobile/CLAUDE.md`. Frontline UI work consumes only authoritative replay-v2
+fields; it must not invent presentation-only gameplay state.
 
 Before an experimental server deployment:
 
@@ -763,28 +802,24 @@ dynamics metrics, and locked outcome-blind viewer notes.
 
 ## 10. Immediate implementation wave
 
-Packages 0–3 now establish the historical shield, exact public contract,
-format-v2 map, rules/map/topology resolver, pure objective kernel, and a
-deterministic Prime-only headless match. Official rules 0.1–0.5, protocol 0.1,
-replay v1, and their canonical hashes remain unchanged. The experimental map
-is absent from current App/CLI catalogs and packages, and legacy
+Packages 0–6 now establish the historical shield, exact public contract,
+format-v2 map, multi-life runtime/session, canonical public team observation,
+replication/fabrication, Anchor/turret forms, strict internal replay v2, and
+version-neutral web/mobile presentation. Official rules 0.1–0.5, protocol
+0.1, replay v1, and their canonical hashes remain unchanged. The experimental
+map is absent from current App/CLI catalogs and packages, and legacy
 `MatchEngine` still rejects it rather than silently running duel mechanics.
-The completed frontend change is limited to stable replay-v1 participant
-lookup; it adds no speculative Frontline payload or visuals.
 
-The active dependent slice is Package 4:
+The next dependent implementation slice is Package 7 plus the remaining
+Package 8 product path:
 
-1. define one canonical public observation for each life-qualified actor in a
-   prepared tick;
-2. drive the Prime-only session through runtimes using exactly the
-   `PrepareTick().ActiveActors` keys;
-3. snapshot those same observations, keyed decisions, lifecycle events,
-   projectile traversals, objective changes, and authoritative post-state into
-   replay v2;
-4. preserve replay-v1 read/verify/view behavior and prevent omniscient state
-   from leaking into actor observations;
-5. keep Frontline viewer work deferred until that authoritative v2 payload is
-   stable.
-
-This absorbs the existing replay-native observation seam instead of creating a
-throwaway Frontline-only data path or a second ML implementation.
+1. mirror the frozen manifest, variable observations, and typed actions into
+   SDK/Guest types without introducing an Engine reference;
+2. choose and version a bounded framed protocol through the NativeAOT/WASI
+   spike, then prove independent WASM instances per active life;
+3. add CLI/App/server ruleset dispatch, eligibility/admission, replay
+   verification/summary, and release-version guards without emitting v2 early;
+4. build the replay-only dataset and corpus follow-ons through the shared
+   `REPLAY-NATIVE-ML-PLAN.md`, not a Frontline-specific exporter;
+5. commission native doctrines, run causal arms and dynamics analysis, and
+   complete locked outcome-blind review before any ship decision.

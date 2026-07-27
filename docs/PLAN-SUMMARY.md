@@ -86,8 +86,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 ## What exists in this repo (2026-07-27)
 
 - `src/BotArena.Engine` — pure engine: rules, maps, FOV, RNG, tick resolution,
-  replay + SHA-256 hash, plus the experimental Prime-only headless
-  `FrontlineMatchSession`. No web/DB/WASM dependencies.
+  replay + SHA-256 hash, plus the experimental multi-life
+  `FrontlineMatchSession`, canonical actor observation/runtime seam, and
+  internal observation-complete replay v2. No web/DB/WASM dependencies.
 - `src/BotArena.Sdk` — developer API (`IBot`, `BotContext`, `Actions`,
   `IBotRandom`, `IBotDebug`); engine-independent.
 - `src/BotArena.Bots.BuiltIn` — Idle/Wander/Hunter/Coward against the SDK only.
@@ -111,7 +112,8 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   Garage replicas remain co-located until additional VPS nodes justify a
   private multi-zone layout.
 - `web/` — one React build, two modes: the nilbots site (router) and the
-  standalone replay viewer the CLI embeds replays into.
+  standalone replay viewer the CLI embeds replays into. One normalized model
+  preserves replay v1 and can present internal Frontline replay v2.
 - `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
   and replay-viewer suites, including DocDrift tests that pin mechanical
   docs/mirrors to the engine.
@@ -131,20 +133,31 @@ as deterministic public inputs. This keeps future player counts, maps,
 seasons, and forms representable without fixing bots or ML models to today's
 body count.
 
-Packages 0–3 of
+Packages 0–6 of
 [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) are
-implemented: the historical shield and public fingerprints, explicit
-team/participant/unit/life topology, disabled rules and map-format-2
-definition, pre-tick resolver, pure objective kernel, and deterministic
-Prime-only headless session. Its `PrepareTick`/`Step` boundary freezes exact
-life-qualified actor keys; Prime destruction/respawn, persistent old-life
-projectiles, actual-damage accounting, post-damage objective control,
-territorial max-tick scoring, and final-tick breach precedence are now
-executable and tested. This remains an engine-only experiment: Package 4's
-runtime/observation/replay-v2 vertical slice is next. The integrated frontend
-and replay-v1 participant-identity normalization are ready, but actual
-Frontline presentation waits for replay-v2 authoritative state rather than
-inventing a temporary payload. The shared ML/data path remains
+implemented on the internal experimental path. The historical shield and
+public fingerprints, explicit team/participant/unit/life topology,
+map-format-2 definition, objective kernel, independently instantiated
+same-artifact runtimes, canonical team observations, replication/fabrication,
+per-life Anchor/turret forms, and strict replay v2 are executable and tested.
+
+`PrepareTick()` freezes exact life-qualified actor keys and observations before
+any runtime acts. `StepActors()` resolves the keyed joint action, including
+Prime respawn, child rebuild/refabrication, persistent old-life projectiles,
+post-damage objective control, form-transition start/change/cancel, and
+absolute eight-way turret fire. Replay v2 snapshots those exact observations,
+decisions, masks, lifecycle facts, post-state, and terminal stable-unit rows.
+The web viewer and mobile bridge consume the same version-neutral normalized
+model and visualize the five-position objective, lifecycle, Anchor windup, and
+turret state.
+
+This is still not a shipped gameplay path. SDK/guest types, protocol vNext,
+canonical WASM life instances, CLI/App selection, server admission, dataset
+tools, and any ladder remain Packages 7–8 or replay-native follow-ons. Official
+rules 0.5, protocol 0.1, replay v1, and their hashes remain unchanged. The
+frozen internal contract is
+[`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md); the shared ML/data
+path remains
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md).
 
 ## Next session pointers
@@ -200,9 +213,9 @@ inventing a temporary payload. The shared ML/data path remains
     incremental modular-monolith plan, not a rewrite.
 11. Replay-native ML support is proposed in
     [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). The engine-rewrite
-    seam is the next Frontline package: construct one canonical public
-    observation for each `PrepareTick` actor, pass that same input to its
-    runtime, snapshot it with the keyed joint step into replay v2, and enforce
-    parity/leakage tests. Dataset export, public corpus access, bounded model
-    assets, and starter inference remain sequenced follow-ons; no sandbox-limit
-    change is proposed.
+    seam is now implemented for internal Frontline: one canonical public
+    observation per `PrepareTick` actor is passed to its life runtime and
+    snapshotted with the keyed joint step into strict replay v2. Dataset
+    export, public corpus access, bounded model assets, starter inference, and
+    protocol/public-product delivery remain sequenced follow-ons; no
+    sandbox-limit change is proposed.

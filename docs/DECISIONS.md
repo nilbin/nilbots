@@ -1879,6 +1879,54 @@ the name first, and loops until none remain: a suffixed name can collide with a 
 already present, and a deploy that renames people and *then* fails on index creation is the
 worst of both outcomes.
 
+## 125. Frontline's internal contract is per-life, replay-native, and form-extensible
+
+This completes the later contracts deliberately left open by #122 without rewriting that
+historical Prime-only checkpoint. One submitted participant remains one policy/artifact,
+but a team owns stable Prime/child slots and the host creates an independent runtime for
+every active `(teamId, unitId, lifeId)`. Every new life starts with fresh private memory;
+a form transition keeps the exact runtime and memory. Counts, topology, forms, actions,
+parameter bounds and all gameplay rules are immutable public match inputs, while variable
+allies, enemies, projectiles and objectives remain ordered collections with masks. A later
+four- or five-body map therefore changes data volume and training distribution, not the
+policy's one-action-per-life interface.
+
+Fabrication is explicit action `fabricate`/100. The Prime must be on its own protected pad
+and target one Ready child slot. Capacity is resolved after movement; success reserves the
+first free non-Prime pad tile in canonical Y-then-X order and creates the child next tick.
+A full pad is a valid attempt that resolves Blocked. Destruction starts the child rebuild
+timer; becoming Ready does not auto-spawn it, and explicit refabrication creates a fresh
+life in the slot's default mobile form. Old-life projectiles retain exact ownership and
+continue crediting actual health removed to the stable firing unit.
+
+Anchor is explicit action `transform`/101 from `child-mobile` to `turret`, irreversible for
+that life and illegal on every map-authored Anchor-forbidden tile. A start on tick `T`
+completes after objective at `T + windupTicks - 1`; the source form remains Wait-only and
+objective-weighted through that tick. Nonlethal damage continues the channel. Lethal
+damage emits Destroyed then FormTransitionCancelled; a match ending before a future due
+tick leaves the transition pending. Completion preserves actor/runtime/memory, position,
+facing, cooldown, energy and damage, and applies
+`min(turret.maxHealth, currentHealth + anchor.healthGain)`. The initial turret cannot move,
+rotate, capture or contest, has 360-degree perception, and uses separate action
+`shoot-direction`/102: one absolute eight-way straight non-programmed projectile with
+unchanged body facing and the ordinary global range/resource/collision rules.
+
+One canonical public team observation is frozen for every active life before any runtime
+executes; allies share the visible union with exact provenance but never same-tick
+decisions. Internal replay v2 stores that exact observation, legality masks, runtime reply,
+accepted decision, ordered lifecycle/form events, authoritative post-state and terminal
+stable-unit results. Engine and TypeScript validators reject impossible but
+self-consistent histories. Web and mobile normalize/present v1 and this internal v2
+without changing bridge v1.
+
+This is still an experimental implementation, not a release decision. Official rules
+0.1–0.5, replay v1 and protocol 0.1 remain exact; SDK/Guest protocol vNext, canonical WASM
+life instances, CLI/App/server admission, datasets/corpus/model assets and ranked use are
+later work. [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) remains the shared ML
+stack because its observation/replay seam is now implemented here while its product
+packages are not. No balance value is promoted until Frontline-native all-WASM doctrines,
+causal arms, dynamics analysis and outcome-blind review pass the evaluation policy.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
