@@ -4,6 +4,6 @@ namespace BotArena.Engine;
 public sealed record FrontlineTeamMatchResult(
     int TeamId,
     FrontlineTeamOutcome Outcome,
-    int FinalHealth,
+    int ActiveHealth,
     long DamageDealt,
-    FrontlineLifecycleStatus FinalLifecycleStatus);
+    IReadOnlyList<FrontlineUnitMatchResult> Units);

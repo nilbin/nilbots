@@ -90,9 +90,9 @@ public sealed record FrontlineActorMatchFailed(
 }
 
 /// <summary>
-/// A rejected experimental runtime operation. Package 4 deliberately aborts
-/// instead of silently turning malformed output into Wait; a deterministic
-/// unit/team fault policy is frozen with replication before public routing.
+/// A rejected experimental runtime operation. The host deliberately aborts
+/// instead of silently turning malformed output into Wait; gameplay fault
+/// semantics remain outside the Frontline session.
 /// </summary>
 public sealed class FrontlineActorHostException : Exception
 {
@@ -150,7 +150,7 @@ public sealed class FrontlineActorHostException : Exception
 }
 
 /// <summary>
-/// Prime-only vertical slice joining prepared Frontline ticks, canonical actor
+/// Entity-runtime host joining prepared Frontline ticks, canonical actor
 /// observations, one isolated runtime per life, and canonical replay v2.
 /// Runtime factories remain caller-owned; every life instance created from
 /// them is disposed by this host.
@@ -238,6 +238,10 @@ public sealed class FrontlineActorMatchEngine
             .ToDictionary(
                 participantId => participantId,
                 _ => definition.Rules.MaxDebugBytesPerMatch);
+        // Package 5 freezes the hybrid budget scope: execution/startup
+        // resources and MaxDebugBytesPerTick apply independently to each body,
+        // while MaxDebugBytesPerMatch is shared by every life controlled by
+        // the submitted participant.
 
         try
         {
@@ -295,9 +299,9 @@ public sealed class FrontlineActorMatchEngine
                 var acceptedDecisions = new Dictionary<
                     ActorIdentity,
                     ActorDecision>();
-                var primeDecisions = new Dictionary<
+                var entityDecisions = new Dictionary<
                     FrontlineActorId,
-                    BotDecision>();
+                    ActorDecision>();
                 foreach (ActorIdentity actorId in observations.Keys.Order())
                 {
                     ActorDecision raw;
@@ -328,17 +332,16 @@ public sealed class FrontlineActorMatchEngine
                     {
                         canonical = ActorDecisionAdapter.Normalize(
                             raw,
-                            contract);
+                            contract,
+                            actorId);
                         canonical = ApplyDebugBudget(
                             canonical,
                             debugBudgets,
                             liveRuntimes[actorId].ParticipantId,
                             ref remainingDiagnosticBytesThisTick);
-                        primeDecisions.Add(
+                        entityDecisions.Add(
                             actorId.ToFrontline(),
-                            ActorDecisionAdapter.ToPrimeDecision(
-                                canonical,
-                                contract));
+                            canonical);
                     }
                     catch (Exception exception)
                     {
@@ -370,7 +373,7 @@ public sealed class FrontlineActorMatchEngine
                     acceptedDecisions.Add(actorId, canonical);
                 }
 
-                FrontlineStepResult step = session.Step(primeDecisions);
+                FrontlineStepResult step = session.StepActors(entityDecisions);
                 Dictionary<ActorIdentity, FrontlineActionResolution>
                     resolutions = step.ActionResolutions.ToDictionary(
                         resolution =>
@@ -534,8 +537,10 @@ public sealed class FrontlineActorMatchEngine
             participantsById,
         IReadOnlyDictionary<ActorIdentity, LiveRuntime> liveRuntimes)
     {
-        HashSet<FrontlineActorId> respawned =
-            tickStart.RespawnedActors.ToHashSet();
+        Dictionary<FrontlineActorId, ActorSpawnReason> spawned =
+            tickStart.SpawnedLives.ToDictionary(
+                item => item.ActorId,
+                item => item.Reason);
         var starts = new Dictionary<ActorIdentity, ActorMatchStart>();
         foreach (ActorIdentity actorId in actorIds.Order())
         {
@@ -549,8 +554,10 @@ public sealed class FrontlineActorMatchEngine
             ActorParticipantConfiguration participant =
                 participantsById[unit.ControllerParticipantId];
             ActorSpawnReason reason =
-                respawned.Contains(actorId.ToFrontline())
-                    ? ActorSpawnReason.Respawn
+                spawned.TryGetValue(
+                    actorId.ToFrontline(),
+                    out ActorSpawnReason spawnedReason)
+                    ? spawnedReason
                     : actorId.LifeId == 0 && tickStart.Tick == 0
                         ? ActorSpawnReason.Initial
                         : throw new InvalidOperationException(

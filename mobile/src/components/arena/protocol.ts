@@ -61,10 +61,22 @@ export type ArenaHeader = {
 export type ArenaTeamResult = {
   teamId: number;
   outcome: 'win' | 'loss' | 'draw';
-  finalHealth: number;
+  activeHealth: number;
   /** Canonical decimal text; never coerce this through a JavaScript number. */
   damageDealt: string;
-  finalLifecycleStatus: string;
+  units: ArenaUnitResult[];
+};
+
+export type ArenaUnitResult = {
+  unitKey: ArenaUnitKey;
+  teamId: number;
+  unitId: number;
+  formId: string;
+  lifecycleStatus: string;
+  activeActorKey: string | null;
+  health: number;
+  /** Canonical decimal text; never coerce this through a JavaScript number. */
+  damageDealt: string;
 };
 
 export type ArenaResult = {
@@ -121,6 +133,11 @@ export type ArenaUnitPresentation = {
   omnidirectionalShooting: boolean;
   status: string;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+  reservedSpawn: { x: number; y: number } | null;
+  pendingSpawnReason: string | null;
   health: number;
   maxHealth: number;
   cooldown: number;

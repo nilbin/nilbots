@@ -69,11 +69,17 @@ test('Frontline presentation follows stable units across the respawn gap', () =>
   const retainedDestroyedActor = structuredClone(replay);
   const actor = retainedDestroyedActor.ticks[2]!.after.actors[0]!;
   actor.status = 'destroyed';
+  actor.health = 4;
+  actor.cooldown = 7;
+  actor.energy = 9;
   retainedDestroyedActor.ticks[2]!.after.units[0]!.lifecycleStatus =
-    'destroyed';
+    'rebuilding';
   const destroyed = createPresenter(retainedDestroyedActor).at(2).units[0]!;
   assert.equal(destroyed.actorKey, null);
   assert.equal(destroyed.lifeId, null);
+  assert.equal(destroyed.health, 0);
+  assert.equal(destroyed.cooldown, 0);
+  assert.equal(destroyed.energy, null);
 });
 
 test('Frontline, stationary 360 forms, and old-life projectiles render', () => {

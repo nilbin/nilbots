@@ -77,7 +77,10 @@ public sealed record ObservedUnitSlot(
     string FormId,
     FrontlineLifecycleStatus LifecycleStatus,
     ActorIdentity? ActiveActorId,
-    int? RespawnAtTick);
+    int? RespawnAtTick,
+    int? UnlockAtTick = null,
+    int? RebuildReadyAtTick = null,
+    int? FabricationAtTick = null);
 
 /// <summary>The observing life's complete private/public state.</summary>
 public sealed record ObservedSelf(
@@ -169,6 +172,10 @@ public enum ObservedMatchEventType
     FrontlineProgressChanged = 9,
     FrontlinePositionAdvanced = 10,
     BaseBreached = 11,
+    FabricationUnlocked = 12,
+    FabricationQueued = 13,
+    Fabricated = 14,
+    RebuildReady = 15,
 }
 
 /// <summary>

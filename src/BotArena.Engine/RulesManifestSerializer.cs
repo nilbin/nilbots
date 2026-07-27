@@ -145,7 +145,7 @@ public static class RulesManifestSerializer
         if (manifest.Frontline is { } frontline)
         {
             writer.WritePropertyName("frontlineDefinition");
-            WriteFrontlineDefinition(writer, frontline);
+            WriteFrontlineDefinition(writer, frontline, manifest.Forms);
         }
 
         writer.WritePropertyName("energy");
@@ -416,8 +416,36 @@ public static class RulesManifestSerializer
 
     private static void WriteFrontlineDefinition(
         Utf8JsonWriter writer,
-        PublicFrontlineDefinition frontline)
+        PublicFrontlineDefinition frontline,
+        ImmutableArray<PublicFormDefinition> forms)
     {
+        if (forms.IsDefault
+            || string.IsNullOrWhiteSpace(
+                frontline.Deployment.PrimeDefaultFormId)
+            || string.IsNullOrWhiteSpace(
+                frontline.Deployment.ChildDefaultFormId)
+            || string.Equals(
+                frontline.Deployment.PrimeDefaultFormId,
+                frontline.Deployment.ChildDefaultFormId,
+                StringComparison.Ordinal)
+            || !forms.Any(form => string.Equals(
+                form.Id,
+                frontline.Deployment.PrimeDefaultFormId,
+                StringComparison.Ordinal))
+            || !forms.Any(form => string.Equals(
+                form.Id,
+                frontline.Deployment.ChildDefaultFormId,
+                StringComparison.Ordinal))
+            || !string.Equals(
+                frontline.Fabrication.FabricatorFormId,
+                frontline.Deployment.PrimeDefaultFormId,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Frontline deployment default and fabricator form IDs must reference distinct matching catalog forms.",
+                nameof(frontline));
+        }
+
         writer.WriteStartObject();
         writer.WriteNumber("teamCount", frontline.TeamCount);
         writer.WriteNumber("participantsPerTeam", frontline.ParticipantsPerTeam);
@@ -442,6 +470,37 @@ public static class RulesManifestSerializer
             "redeployPauseTicks",
             frontline.Capture.RedeployPauseTicks);
         writer.WriteNumber("pushesToBreach", frontline.Capture.PushesToBreach);
+        writer.WriteString(
+            "presence",
+            FrontlineCapturePresencePolicyId(frontline.Capture.Presence));
+        writer.WriteString(
+            "nonSolePresence",
+            FrontlineNonSolePresencePolicyId(
+                frontline.Capture.NonSolePresence));
+        writer.WriteString(
+            "counterCapture",
+            FrontlineCounterCapturePolicyId(
+                frontline.Capture.CounterCapture));
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("victory");
+        writer.WriteStartObject();
+        writer.WriteString(
+            "initialPosition",
+            FrontlineInitialPositionPolicyId(
+                frontline.Victory.InitialPosition));
+        writer.WritePropertyName("teamAdvances");
+        WriteFrontlineTeamAdvances(
+            writer,
+            frontline.Victory.TeamAdvances);
+        writer.WriteString(
+            "completionPrecedence",
+            FrontlineCompletionPrecedenceId(
+                frontline.Victory.CompletionPrecedence));
+        writer.WriteString(
+            "timeoutResolution",
+            FrontlineTimeoutResolutionId(
+                frontline.Victory.TimeoutResolution));
         writer.WriteEndObject();
 
         writer.WritePropertyName("lifecycle");
@@ -457,6 +516,87 @@ public static class RulesManifestSerializer
         foreach (int tick in frontline.Lifecycle.FabricationUnlockTicks)
             writer.WriteNumberValue(tick);
         writer.WriteEndArray();
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("deployment");
+        writer.WriteStartObject();
+        writer.WriteString(
+            "primeDefaultFormId",
+            frontline.Deployment.PrimeDefaultFormId);
+        writer.WriteString(
+            "childDefaultFormId",
+            frontline.Deployment.ChildDefaultFormId);
+        writer.WriteString(
+            "destructionTransitionClock",
+            FrontlineDestructionTransitionClockId(
+                frontline.Deployment.DestructionTransitionClock));
+        writer.WriteString(
+            "primeReturn",
+            FrontlinePrimeReturnPolicyId(
+                frontline.Deployment.PrimeReturn));
+        writer.WriteString(
+            "childReturn",
+            FrontlineChildReturnPolicyId(
+                frontline.Deployment.ChildReturn));
+        writer.WriteString(
+            "newLife",
+            FrontlineNewLifePolicyId(frontline.Deployment.NewLife));
+        writer.WriteString(
+            "primeSpawnReservation",
+            FrontlinePrimeSpawnReservationPolicyId(
+                frontline.Deployment.PrimeSpawnReservation));
+        writer.WriteString(
+            "protectedPad",
+            FrontlineProtectedPadPolicyId(
+                frontline.Deployment.ProtectedPad));
+        writer.WriteEndObject();
+
+        writer.WritePropertyName("fabrication");
+        writer.WriteStartObject();
+        writer.WriteBoolean("enabled", frontline.Fabrication.Enabled);
+        writer.WriteString("actionId", frontline.Fabrication.ActionId);
+        writer.WriteNumber(
+            "fabricatorUnitId",
+            frontline.Fabrication.FabricatorUnitId);
+        writer.WriteString(
+            "fabricatorFormId",
+            frontline.Fabrication.FabricatorFormId);
+        writer.WriteString(
+            "targetPolicy",
+            FrontlineFabricationTargetPolicyId(
+                frontline.Fabrication.TargetPolicy));
+        writer.WriteString(
+            "activationRegion",
+            FrontlineFabricationActivationRegionId(
+                frontline.Fabrication.ActivationRegion));
+        writer.WriteBoolean("consumesTick", frontline.Fabrication.ConsumesTick);
+        writer.WriteNumber(
+            "spawnDelayTicks",
+            frontline.Fabrication.SpawnDelayTicks);
+        writer.WriteString(
+            "capacityEvaluation",
+            FrontlineFabricationCapacityEvaluationId(
+                frontline.Fabrication.CapacityEvaluation));
+        writer.WriteString(
+            "spawnRegion",
+            FrontlineFabricationSpawnRegionId(
+                frontline.Fabrication.SpawnRegion));
+        writer.WriteString(
+            "spawnSelection",
+            FrontlineFabricationSpawnSelectionId(
+                frontline.Fabrication.SpawnSelection));
+        writer.WriteString(
+            "spawnFacing",
+            FrontlineFabricationSpawnFacingId(
+                frontline.Fabrication.SpawnFacing));
+        writer.WriteString(
+            "unavailableSpawnResult",
+            ActionRejectionResultId(
+                frontline.Fabrication.UnavailableSpawnResult));
+        writer.WriteBoolean(
+            "requiresExplicitRefabricationAfterRebuild",
+            frontline.Fabrication
+                .RequiresExplicitRefabricationAfterRebuild);
         writer.WriteEndObject();
 
         writer.WritePropertyName("anchor");
@@ -476,8 +616,61 @@ public static class RulesManifestSerializer
         writer.WriteBoolean(
             "alliedProjectilesBlock",
             frontline.AlliedCombat.AlliedProjectilesBlock);
+        writer.WriteString(
+            "projectileAttribution",
+            FrontlineProjectileAttributionPolicyId(
+                frontline.AlliedCombat.ProjectileAttribution));
         writer.WriteEndObject();
         writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineTeamAdvances(
+        Utf8JsonWriter writer,
+        ImmutableArray<PublicFrontlineTeamAdvance> advances)
+    {
+        if (advances.IsDefault)
+        {
+            throw new ArgumentException(
+                "Frontline team advances must be initialized.",
+                nameof(advances));
+        }
+
+        PublicFrontlineTeamAdvance[] canonical = advances
+            .OrderBy(value => value.TeamId)
+            .ToArray();
+        if (canonical.Length != 2
+            || canonical[0].TeamId != 0
+            || canonical[1].TeamId != 1
+            || !canonical
+                .Select(value => value.PositionIndexDelta)
+                .Order()
+                .SequenceEqual([-1, 1]))
+        {
+            throw new ArgumentException(
+                "Frontline team advances must define teams 0 and 1 with unique -1 and +1 position deltas.",
+                nameof(advances));
+        }
+
+        writer.WriteStartArray();
+        int? previousTeamId = null;
+        foreach (PublicFrontlineTeamAdvance advance in canonical)
+        {
+            if (previousTeamId == advance.TeamId)
+            {
+                throw new ArgumentException(
+                    "Frontline team advances require unique team IDs.",
+                    nameof(advances));
+            }
+
+            writer.WriteStartObject();
+            writer.WriteNumber("teamId", advance.TeamId);
+            writer.WriteNumber(
+                "positionIndexDelta",
+                advance.PositionIndexDelta);
+            writer.WriteEndObject();
+            previousTeamId = advance.TeamId;
+        }
+        writer.WriteEndArray();
     }
 
     private static void WriteFrontlineMapDefinition(
@@ -651,6 +844,7 @@ public static class RulesManifestSerializer
         PublicActionKind.Movement => "movement",
         PublicActionKind.Rotation => "rotation",
         PublicActionKind.Attack => "attack",
+        PublicActionKind.Fabrication => "fabrication",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -767,6 +961,8 @@ public static class RulesManifestSerializer
             "apply-tick-start-lifecycle",
         PublicTickResolutionPhase.QueueDestroyedLives =>
             "queue-destroyed-lives",
+        PublicTickResolutionPhase.QueueFabrications =>
+            "queue-fabrications",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
     };
 
@@ -776,4 +972,185 @@ public static class RulesManifestSerializer
         TeamPerceptionMode.ImmediateUnion => "immediate-union",
         _ => throw new ArgumentOutOfRangeException(nameof(mode)),
     };
+
+    private static string FrontlineCapturePresencePolicyId(
+        PublicFrontlineCapturePresencePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineCapturePresencePolicy
+                    .BinaryPositiveWeightPerTeamNoStacking =>
+                "binary-positive-weight-per-team-no-stacking",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineNonSolePresencePolicyId(
+        PublicFrontlineNonSolePresencePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineNonSolePresencePolicy.DecayExistingClaim =>
+                "decay-existing-claim",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineCounterCapturePolicyId(
+        PublicFrontlineCounterCapturePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineCounterCapturePolicy.ErodeToNeutralBeforeClaim =>
+                "erode-to-neutral-before-claim",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineInitialPositionPolicyId(
+        PublicFrontlineInitialPositionPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineInitialPositionPolicy.CentrePositionIndex =>
+                "centre-position-index",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineCompletionPrecedenceId(
+        PublicFrontlineCompletionPrecedence precedence) =>
+        precedence switch
+        {
+            PublicFrontlineCompletionPrecedence.BaseBreachBeforeMaxTicks =>
+                "base-breach-before-max-ticks",
+            _ => throw new ArgumentOutOfRangeException(nameof(precedence)),
+        };
+
+    private static string FrontlineTimeoutResolutionId(
+        PublicFrontlineTimeoutResolution resolution) =>
+        resolution switch
+        {
+            PublicFrontlineTimeoutResolution
+                    .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers =>
+                "signed-position-threshold-plus-claim-zero-draw-no-tiebreakers",
+            _ => throw new ArgumentOutOfRangeException(nameof(resolution)),
+        };
+
+    private static string FrontlineDestructionTransitionClockId(
+        PublicFrontlineDestructionTransitionClock clock) =>
+        clock switch
+        {
+            PublicFrontlineDestructionTransitionClock
+                    .TickStartAtDestroyedTickPlusOnePlusDelay =>
+                "tick-start-at-destroyed-tick-plus-one-plus-delay",
+            _ => throw new ArgumentOutOfRangeException(nameof(clock)),
+        };
+
+    private static string FrontlinePrimeReturnPolicyId(
+        PublicFrontlinePrimeReturnPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlinePrimeReturnPolicy.AutomaticAtAuthoredPrimeSpawn =>
+                "automatic-at-authored-prime-spawn",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineChildReturnPolicyId(
+        PublicFrontlineChildReturnPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineChildReturnPolicy.ReadyThenExplicitFabrication =>
+                "ready-then-explicit-fabrication",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineNewLifePolicyId(
+        PublicFrontlineNewLifePolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineNewLifePolicy
+                    .FreshRuntimeFormDefaultsHomeFacingCanActOnCreationTick =>
+                "fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlinePrimeSpawnReservationPolicyId(
+        PublicFrontlinePrimeSpawnReservationPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlinePrimeSpawnReservationPolicy
+                    .PermanentAgainstOwnChildren =>
+                "permanent-against-own-children",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineProtectedPadPolicyId(
+        PublicFrontlineProtectedPadPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineProtectedPadPolicy
+                    .EnemyGroundEntryBlockedNoDamageImmunityNoProjectileBlocking =>
+                "enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineProjectileAttributionPolicyId(
+        PublicFrontlineProjectileAttributionPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineProjectileAttributionPolicy
+                    .ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved =>
+                "exact-firing-life-persists-credits-stable-unit-by-actual-health-removed",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineFabricationTargetPolicyId(
+        PublicFrontlineFabricationTargetPolicy policy) =>
+        policy switch
+        {
+            PublicFrontlineFabricationTargetPolicy.OwnReadyChildSlot =>
+                "own-ready-child-slot",
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+
+    private static string FrontlineFabricationActivationRegionId(
+        PublicFrontlineFabricationActivationRegion region) =>
+        region switch
+        {
+            PublicFrontlineFabricationActivationRegion.OwnProtectedSpawnPad =>
+                "own-protected-spawn-pad",
+            _ => throw new ArgumentOutOfRangeException(nameof(region)),
+        };
+
+    private static string FrontlineFabricationSpawnRegionId(
+        PublicFrontlineFabricationSpawnRegion region) =>
+        region switch
+        {
+            PublicFrontlineFabricationSpawnRegion
+                    .OwnProtectedSpawnPadExcludingPrimeSpawn =>
+                "own-protected-spawn-pad-excluding-prime-spawn",
+            _ => throw new ArgumentOutOfRangeException(nameof(region)),
+        };
+
+    private static string FrontlineFabricationCapacityEvaluationId(
+        PublicFrontlineFabricationCapacityEvaluation evaluation) =>
+        evaluation switch
+        {
+            PublicFrontlineFabricationCapacityEvaluation
+                    .PostMovementDuringQueueFabrications =>
+                "post-movement-during-queue-fabrications",
+            _ => throw new ArgumentOutOfRangeException(nameof(evaluation)),
+        };
+
+    private static string FrontlineFabricationSpawnSelectionId(
+        PublicFrontlineFabricationSpawnSelection selection) =>
+        selection switch
+        {
+            PublicFrontlineFabricationSpawnSelection
+                    .FirstUnoccupiedUnreservedCanonicalYThenX =>
+                "first-unoccupied-unreserved-canonical-y-x",
+            _ => throw new ArgumentOutOfRangeException(nameof(selection)),
+        };
+
+    private static string FrontlineFabricationSpawnFacingId(
+        PublicFrontlineFabricationSpawnFacing facing) =>
+        facing switch
+        {
+            PublicFrontlineFabricationSpawnFacing.OwnPrimeSpawnFacing =>
+                "own-prime-spawn-facing",
+            _ => throw new ArgumentOutOfRangeException(nameof(facing)),
+        };
 }

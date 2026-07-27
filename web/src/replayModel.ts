@@ -118,6 +118,7 @@ export type ReplayActionKind =
   | 'movement'
   | 'rotation'
   | 'attack'
+  | 'fabrication'
   | (string & {});
 export type ReplayTickResolutionPhase =
   | 'freeze-observations'
@@ -132,7 +133,8 @@ export type ReplayTickResolutionPhase =
   | 'update-objective'
   | 'resolve-match-completion'
   | 'apply-tick-start-lifecycle'
-  | 'queue-destroyed-lives';
+  | 'queue-destroyed-lives'
+  | 'queue-fabrications';
 
 export interface ReplayContractLimits {
   maxTicks: number;
@@ -179,11 +181,49 @@ export interface ReplayContractFrontlineDefinition {
     decayIntervalTicks: number;
     redeployPauseTicks: number;
     pushesToBreach: number;
+    presence: 'binary-positive-weight-per-team-no-stacking';
+    nonSolePresence: 'decay-existing-claim';
+    counterCapture: 'erode-to-neutral-before-claim';
+  };
+  victory: {
+    initialPosition: 'centre-position-index';
+    teamAdvances: {
+      teamId: number;
+      positionIndexDelta: number;
+    }[];
+    completionPrecedence: 'base-breach-before-max-ticks';
+    timeoutResolution: 'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
   };
   lifecycle: {
     primeRespawnTicks: number;
     childRebuildTicks: number;
     fabricationUnlockTicks: number[];
+  };
+  deployment: {
+    primeDefaultFormId: string;
+    childDefaultFormId: string;
+    destructionTransitionClock: 'tick-start-at-destroyed-tick-plus-one-plus-delay';
+    primeReturn: 'automatic-at-authored-prime-spawn';
+    childReturn: 'ready-then-explicit-fabrication';
+    newLife: 'fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick';
+    primeSpawnReservation: 'permanent-against-own-children';
+    protectedPad: 'enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking';
+  };
+  fabrication: {
+    enabled: boolean;
+    actionId: string;
+    fabricatorUnitId: number;
+    fabricatorFormId: string;
+    targetPolicy: 'own-ready-child-slot';
+    activationRegion: 'own-protected-spawn-pad';
+    consumesTick: boolean;
+    spawnDelayTicks: number;
+    capacityEvaluation: 'post-movement-during-queue-fabrications';
+    spawnRegion: 'own-protected-spawn-pad-excluding-prime-spawn';
+    spawnSelection: 'first-unoccupied-unreserved-canonical-y-x';
+    spawnFacing: 'own-prime-spawn-facing';
+    unavailableSpawnResult: 'blocked' | 'faulted' | 'rejected';
+    requiresExplicitRefabricationAfterRebuild: boolean;
   };
   anchor: {
     windupTicks: number;
@@ -193,6 +233,7 @@ export interface ReplayContractFrontlineDefinition {
   alliedCombat: {
     friendlyFireEnabled: boolean;
     alliedProjectilesBlock: boolean;
+    projectileAttribution: 'exact-firing-life-persists-credits-stable-unit-by-actual-health-removed';
   };
 }
 
@@ -555,9 +596,20 @@ export interface ReplayMap {
 export type ReplayUnitLifecycleStatus =
   | 'active'
   | 'respawning'
+  | 'locked'
+  | 'ready'
+  | 'fabrication-queued'
+  | 'rebuilding'
   | 'destroyed'
   | 'disqualified'
   | (string & {});
+
+export type ReplayActorSpawnReason =
+  | 'initial'
+  | 'respawn'
+  | 'rebuild'
+  | 'fabrication'
+  | 'legacy';
 
 export interface ReplayActorState {
   identity: ReplayActorIdentity;
@@ -584,6 +636,13 @@ export interface ReplayUnitState {
   formId: string;
   lifecycleStatus: ReplayUnitLifecycleStatus;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+  reservedSpawn: ReplayPosition | null;
+  pendingSpawnReason: ReplayActorSpawnReason | null;
+  hasSpawned: boolean;
+  nextLifeId: number | null;
   /** Exact canonical decimal total, or null when replay-v1 did not expose it. */
   damageDealt: string | null;
   activeActorKey: ReplayActorLifeKey | null;
@@ -666,6 +725,9 @@ export interface ReplayObservedUnit {
   lifecycleStatus: ReplayUnitLifecycleStatus;
   activeActor: ReplayActorIdentity | null;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
 }
 
 export interface ReplayOpaqueEnemyActorRef {
@@ -812,7 +874,7 @@ export interface ReplayActorLifeStart {
   actor: ReplayActorIdentity;
   participantId: number;
   actorRandomSeed: string | null;
-  spawnReason: 'initial' | 'respawn' | 'rebuild' | 'fabrication' | 'legacy';
+  spawnReason: ReplayActorSpawnReason;
   matchContractFingerprint: string | null;
 }
 
@@ -849,6 +911,7 @@ export interface ReplayCausalEvent {
   ordinal: number;
   type: string;
   teamId: number | null;
+  unitId: number | null;
   sourceActor: ReplayActorIdentity | null;
   targetActor: ReplayActorIdentity | null;
   projectileId: string | null;
@@ -864,7 +927,11 @@ export interface ReplayCausalEvent {
   amount: number | null;
   newHealth: number | null;
   lifecycleStatus: ReplayUnitLifecycleStatus | null;
+  spawnReason: ReplayActorSpawnReason | null;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
   fromPositionIndex: number | null;
   toPositionIndex: number | null;
   claimingTeamId: number | null;
@@ -900,11 +967,23 @@ export interface ReplayTeamResult {
   teamKey: ReplayTeamKey;
   teamId: number;
   outcome: 'win' | 'loss' | 'draw';
-  finalHealth: number;
+  activeHealth: number;
   damageDealt: string;
-  finalLifecycleStatus: ReplayUnitLifecycleStatus;
+  units: ReplayUnitResult[];
   faults: number | null;
   zoneTicks: number | null;
+}
+
+export interface ReplayUnitResult {
+  unitKey: ReplayStableUnitKey;
+  teamId: number;
+  unitId: number;
+  formId: string;
+  lifecycleStatus: ReplayUnitLifecycleStatus;
+  activeActor: ReplayActorIdentity | null;
+  activeActorKey: ReplayActorLifeKey | null;
+  health: number;
+  damageDealt: string;
 }
 
 export interface ReplayTerminalResult {

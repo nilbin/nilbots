@@ -3,16 +3,17 @@ using System.Collections.Immutable;
 namespace BotArena.Engine;
 
 /// <summary>
-/// Headless Prime-only Frontline simulation. This session deliberately does
-/// not own runtimes, observations, replay, fabrication, or Anchor. Callers
-/// prepare a tick to discover the exact active life identities, then submit
-/// one keyed joint decision for that frozen actor set.
+/// Headless Frontline simulation. The session owns stable unit slots,
+/// lifecycle, and entity-action resolution but not runtimes, observations, or
+/// replay. Callers prepare a tick to discover the exact active life
+/// identities, then submit one keyed joint decision for that frozen actor set.
 /// </summary>
 public sealed class FrontlineMatchSession
 {
     private readonly ResolvedMatchDefinition _definition;
     private readonly FrontlineRules _frontlineRules;
     private readonly FrontlineMapProfile _profile;
+    private readonly PublicMatchContractManifest _contract;
     private FrontlineTickStart? _preparedTick;
 
     public FrontlineMatchSession(ResolvedMatchDefinition definition)
@@ -30,6 +31,10 @@ public sealed class FrontlineMatchSession
             ?? throw new ArgumentException(
                 "FrontlineMatchSession requires a Frontline map profile.",
                 nameof(definition));
+        _contract = PublicRulesManifestFactory.CreateMatchContract(
+            _definition.Rules,
+            _definition.Map,
+            _definition.Topology);
         ValidateSupportedDefinition();
         State = null!;
         Reset();
@@ -39,7 +44,10 @@ public sealed class FrontlineMatchSession
     public bool IsCompleted => State.IsCompleted;
     public FrontlineMatchResult? Result => State.Result;
 
-    /// <summary>Restores authored Prime lives, tick zero, and centre control.</summary>
+    /// <summary>
+    /// Restores authored Prime lives, locked child slots, tick zero, and
+    /// centre control.
+    /// </summary>
     public FrontlineResetResult Reset()
     {
         ImmutableArray<FrontlineTeamState> teams = _profile.TeamHomes
@@ -57,13 +65,32 @@ public sealed class FrontlineMatchSession
                     _frontlineRules.PrimeForm.MaxHealth,
                     spawnedAtTick: 0,
                     energy: _definition.Rules.MaxEnergy);
-                var prime = new FrontlineUnitState(
-                    home.TeamId,
-                    unitId: 0,
-                    _frontlineRules.PrimeForm.FormId,
-                    life,
-                    nextLifeId: 1);
-                return new FrontlineTeamState(home.TeamId, [prime]);
+                var units = new List<FrontlineUnitState>
+                {
+                    new(
+                        home.TeamId,
+                        unitId: 0,
+                        _frontlineRules.PrimeForm.FormId,
+                        life,
+                        nextLifeId: 1),
+                };
+                for (int unitId = 1;
+                     unitId < _frontlineRules.MaxUnitsPerTeam;
+                     unitId++)
+                {
+                    units.Add(new FrontlineUnitState(
+                        home.TeamId,
+                        unitId,
+                        _frontlineRules.ChildForm.FormId,
+                        activeLife: null,
+                        nextLifeId: 0,
+                        lifecycleStatus: FrontlineLifecycleStatus.Locked)
+                    {
+                        UnlockAtTick =
+                            _frontlineRules.FabricationUnlockTicks[unitId - 1],
+                    });
+                }
+                return new FrontlineTeamState(home.TeamId, units);
             })
             .ToImmutableArray();
 
@@ -76,8 +103,10 @@ public sealed class FrontlineMatchSession
     }
 
     /// <summary>
-    /// Applies due tick-start respawns once, then freezes the exact actor keys
-    /// required by <see cref="Step"/>. Repeated calls before Step are idempotent.
+    /// Applies due tick-start unlock, rebuild-ready, fabrication, and respawn
+    /// transitions once, then freezes the exact actor keys required by
+    /// <see cref="StepActors"/>.
+    /// Repeated calls before Step are idempotent.
     /// </summary>
     public FrontlineTickStart PrepareTick()
     {
@@ -88,47 +117,16 @@ public sealed class FrontlineMatchSession
 
         var events = new List<FrontlineMatchEvent>();
         var respawned = new List<FrontlineActorId>();
+        var spawned = new List<FrontlineLifeSpawn>();
         foreach (FrontlineTeamState team in State.Teams.OrderBy(team => team.TeamId))
         {
             foreach (FrontlineUnitState unit in team.Units.OrderBy(unit => unit.UnitId))
             {
-                if (unit.RespawnAtTick is not int dueTick)
-                    continue;
-                if (dueTick < State.Tick)
-                {
-                    throw new InvalidOperationException(
-                        $"Unit {team.TeamId}:{unit.UnitId} missed respawn tick {dueTick}.");
-                }
-                if (dueTick != State.Tick)
-                    continue;
-
-                FrontlineTeamHome home = Home(team.TeamId);
-                var actorId = new FrontlineActorId(
-                    team.TeamId,
-                    unit.UnitId,
-                    unit.NextLifeId);
-                unit.NextLifeId++;
-                unit.ActiveLife = new FrontlineLifeState(
-                    actorId,
-                    new Position(home.PrimeSpawn.X, home.PrimeSpawn.Y),
-                    home.PrimeSpawn.Facing,
-                    _frontlineRules.PrimeForm.MaxHealth,
-                    State.Tick,
-                    _definition.Rules.MaxEnergy);
-                unit.LifecycleStatus = FrontlineLifecycleStatus.Active;
-                unit.RespawnAtTick = null;
-                respawned.Add(actorId);
-                events.Add(new FrontlineMatchEvent
-                {
-                    Tick = State.Tick,
-                    Type = FrontlineMatchEventType.Respawned,
-                    TeamId = team.TeamId,
-                    ActorId = actorId,
-                    To = unit.ActiveLife.Position,
-                    ToFacing = unit.ActiveLife.Facing,
-                    NewHealth = unit.ActiveLife.Health,
-                    LifecycleStatus = FrontlineLifecycleStatus.Active,
-                });
+                ApplyTickStartLifecycle(
+                    unit,
+                    respawned,
+                    spawned,
+                    events);
             }
         }
 
@@ -136,13 +134,32 @@ public sealed class FrontlineMatchSession
             State.Tick,
             ActiveActorIds(),
             respawned.Order().ToImmutableArray(),
-            events.ToImmutableArray());
+            events.ToImmutableArray())
+        {
+            SpawnedLives = spawned
+                .OrderBy(item => item.ActorId)
+                .ToImmutableArray(),
+        };
         return _preparedTick;
     }
 
-    /// <summary>Resolves one prepared, stable-keyed joint action.</summary>
+    /// <summary>
+    /// Compatibility adapter for Package 3 callers. Entity actions use the
+    /// <see cref="ActorDecision"/> overload and never extend
+    /// <see cref="BotAction"/>.
+    /// </summary>
     public FrontlineStepResult Step(
         IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions)
+    {
+        ArgumentNullException.ThrowIfNull(decisions);
+        return StepActors(decisions.ToDictionary(
+            pair => pair.Key,
+            pair => ToActorDecision(pair.Value)));
+    }
+
+    /// <summary>Resolves one prepared, stable-keyed joint entity action.</summary>
+    public FrontlineStepResult StepActors(
+        IReadOnlyDictionary<FrontlineActorId, ActorDecision> decisions)
     {
         ArgumentNullException.ThrowIfNull(decisions);
         if (IsCompleted)
@@ -150,13 +167,20 @@ public sealed class FrontlineMatchSession
         FrontlineTickStart tickStart = _preparedTick
             ?? throw new InvalidOperationException(
                 "PrepareTick must be called before Step.");
-        Dictionary<FrontlineActorId, BotDecision> frozenDecisions =
+        Dictionary<FrontlineActorId, ActorDecision> frozenDecisions =
             decisions.ToDictionary(entry => entry.Key, entry => entry.Value);
         ValidateDecisionKeys(tickStart, frozenDecisions);
+        Dictionary<FrontlineActorId, ActorDecision> canonicalDecisions =
+            frozenDecisions.ToDictionary(
+                pair => pair.Key,
+                pair => ActorDecisionAdapter.Normalize(
+                    pair.Value,
+                    _contract,
+                    ActorIdentity.FromFrontline(pair.Key)));
 
         var resolutions = ValidateActions(
             tickStart.ActiveActors,
-            frozenDecisions);
+            canonicalDecisions);
         // Tick-start lifecycle facts remain phase-distinct on TickStart. The
         // resolution list contains only facts produced after decisions are
         // accepted, preventing replay-v2 from duplicating respawn events.
@@ -166,12 +190,13 @@ public sealed class FrontlineMatchSession
 
         ResolveTurns(resolutions, events);
         ResolveMovement(resolutions, events);
+        ResolveFabrication(resolutions, events);
 
         var pendingHits = new List<PendingHit>();
         AdvanceProjectiles(pendingHits, traversals);
         HashSet<FrontlineActorId> shotActors = ResolveShooting(
             resolutions,
-            frozenDecisions,
+            canonicalDecisions,
             pendingHits,
             events,
             traversals);
@@ -217,16 +242,211 @@ public sealed class FrontlineMatchSession
         return stepResult;
     }
 
+    private void ApplyTickStartLifecycle(
+        FrontlineUnitState unit,
+        ICollection<FrontlineActorId> respawned,
+        ICollection<FrontlineLifeSpawn> spawned,
+        ICollection<FrontlineMatchEvent> events)
+    {
+        if (unit.LifecycleStatus == FrontlineLifecycleStatus.Locked)
+        {
+            int unlockAtTick = unit.UnlockAtTick
+                ?? throw new InvalidOperationException(
+                    $"Locked unit {unit.TeamId}:{unit.UnitId} has no unlock tick.");
+            EnsureLifecycleTickNotMissed(unit, unlockAtTick, "unlock");
+            if (unlockAtTick == State.Tick)
+            {
+                unit.LifecycleStatus = FrontlineLifecycleStatus.Ready;
+                events.Add(new FrontlineMatchEvent
+                {
+                    Tick = State.Tick,
+                    Type = FrontlineMatchEventType.FabricationUnlocked,
+                    TeamId = unit.TeamId,
+                    UnitId = unit.UnitId,
+                    LifecycleStatus = FrontlineLifecycleStatus.Ready,
+                    UnlockAtTick = unlockAtTick,
+                });
+            }
+            return;
+        }
+
+        if (unit.LifecycleStatus == FrontlineLifecycleStatus.Rebuilding)
+        {
+            int readyAtTick = unit.RebuildReadyAtTick
+                ?? throw new InvalidOperationException(
+                    $"Rebuilding unit {unit.TeamId}:{unit.UnitId} has no ready tick.");
+            EnsureLifecycleTickNotMissed(unit, readyAtTick, "rebuild");
+            if (readyAtTick == State.Tick)
+            {
+                unit.LifecycleStatus = FrontlineLifecycleStatus.Ready;
+                unit.RebuildReadyAtTick = null;
+                events.Add(new FrontlineMatchEvent
+                {
+                    Tick = State.Tick,
+                    Type = FrontlineMatchEventType.RebuildReady,
+                    TeamId = unit.TeamId,
+                    UnitId = unit.UnitId,
+                    LifecycleStatus = FrontlineLifecycleStatus.Ready,
+                    RebuildReadyAtTick = readyAtTick,
+                });
+            }
+            return;
+        }
+
+        if (unit.LifecycleStatus == FrontlineLifecycleStatus.FabricationQueued)
+        {
+            int fabricationAtTick = unit.FabricationAtTick
+                ?? throw new InvalidOperationException(
+                    $"Queued unit {unit.TeamId}:{unit.UnitId} has no fabrication tick.");
+            EnsureLifecycleTickNotMissed(unit, fabricationAtTick, "fabrication");
+            if (fabricationAtTick == State.Tick)
+            {
+                Position spawn = unit.ReservedSpawn
+                    ?? throw new InvalidOperationException(
+                        $"Queued unit {unit.TeamId}:{unit.UnitId} has no reserved spawn.");
+                ActorSpawnReason reason = unit.PendingSpawnReason
+                    ?? throw new InvalidOperationException(
+                        $"Queued unit {unit.TeamId}:{unit.UnitId} has no spawn reason.");
+                CreateLife(unit, spawn, Home(unit.TeamId).PrimeSpawn.Facing);
+                unit.FabricationAtTick = null;
+                unit.ReservedSpawn = null;
+                unit.PendingSpawnReason = null;
+                unit.HasSpawned = true;
+                spawned.Add(new FrontlineLifeSpawn(
+                    unit.ActiveLife!.ActorId,
+                    reason));
+                events.Add(new FrontlineMatchEvent
+                {
+                    Tick = State.Tick,
+                    Type = FrontlineMatchEventType.Fabricated,
+                    TeamId = unit.TeamId,
+                    UnitId = unit.UnitId,
+                    ActorId = unit.ActiveLife.ActorId,
+                    To = unit.ActiveLife.Position,
+                    ToFacing = unit.ActiveLife.Facing,
+                    NewHealth = unit.ActiveLife.Health,
+                    LifecycleStatus = FrontlineLifecycleStatus.Active,
+                    SpawnReason = reason,
+                    FabricationAtTick = fabricationAtTick,
+                });
+            }
+            return;
+        }
+
+        if (unit.LifecycleStatus != FrontlineLifecycleStatus.Respawning)
+            return;
+
+        int dueTick = unit.RespawnAtTick
+            ?? throw new InvalidOperationException(
+                $"Respawning unit {unit.TeamId}:{unit.UnitId} has no respawn tick.");
+        EnsureLifecycleTickNotMissed(unit, dueTick, "respawn");
+        if (dueTick != State.Tick)
+            return;
+
+        FrontlineTeamHome home = Home(unit.TeamId);
+        CreateLife(
+            unit,
+            new Position(home.PrimeSpawn.X, home.PrimeSpawn.Y),
+            home.PrimeSpawn.Facing);
+        unit.RespawnAtTick = null;
+        respawned.Add(unit.ActiveLife!.ActorId);
+        spawned.Add(new FrontlineLifeSpawn(
+            unit.ActiveLife.ActorId,
+            ActorSpawnReason.Respawn));
+        events.Add(new FrontlineMatchEvent
+        {
+            Tick = State.Tick,
+            Type = FrontlineMatchEventType.Respawned,
+            TeamId = unit.TeamId,
+            UnitId = unit.UnitId,
+            ActorId = unit.ActiveLife.ActorId,
+            To = unit.ActiveLife.Position,
+            ToFacing = unit.ActiveLife.Facing,
+            NewHealth = unit.ActiveLife.Health,
+            LifecycleStatus = FrontlineLifecycleStatus.Active,
+            SpawnReason = ActorSpawnReason.Respawn,
+        });
+    }
+
+    private void EnsureLifecycleTickNotMissed(
+        FrontlineUnitState unit,
+        int dueTick,
+        string transition)
+    {
+        if (dueTick < State.Tick)
+        {
+            throw new InvalidOperationException(
+                $"Unit {unit.TeamId}:{unit.UnitId} missed {transition} tick {dueTick}.");
+        }
+    }
+
+    private void CreateLife(
+        FrontlineUnitState unit,
+        Position position,
+        Direction facing)
+    {
+        if (unit.ActiveLife is not null)
+        {
+            throw new InvalidOperationException(
+                $"Unit {unit.TeamId}:{unit.UnitId} already has an active life.");
+        }
+        if (ActiveLives().Any(life => life.Position == position))
+        {
+            throw new InvalidOperationException(
+                $"Lifecycle spawn tile {position} is occupied.");
+        }
+        var actorId = new FrontlineActorId(
+            unit.TeamId,
+            unit.UnitId,
+            unit.NextLifeId);
+        unit.NextLifeId++;
+        UnitFormRules form = FormFor(unit);
+        unit.ActiveLife = new FrontlineLifeState(
+            actorId,
+            position,
+            facing,
+            form.MaxHealth,
+            State.Tick,
+            _definition.Rules.MaxEnergy);
+        unit.LifecycleStatus = FrontlineLifecycleStatus.Active;
+    }
+
+    private static ActorDecision ToActorDecision(BotDecision decision)
+    {
+        ArgumentNullException.ThrowIfNull(decision);
+        if (decision.Faulted)
+            return ActorDecision.Fault(decision.FaultMessage ?? "fault");
+        ActorActionPayload? payload = decision.ShotProgram is null
+            ? null
+            : new ActorActionPayload { ShotProgram = decision.ShotProgram };
+        string actionId = decision.Action switch
+        {
+            BotAction.Wait => PublicActionIds.Wait,
+            BotAction.MoveForward => PublicActionIds.MoveForward,
+            BotAction.TurnLeft => PublicActionIds.TurnLeft,
+            BotAction.TurnRight => PublicActionIds.TurnRight,
+            BotAction.Shoot => PublicActionIds.Shoot,
+            BotAction.StrafeLeft => PublicActionIds.StrafeLeft,
+            BotAction.StrafeRight => PublicActionIds.StrafeRight,
+            _ => throw new ArgumentException(
+                "Decision contains an unknown historical action.",
+                nameof(decision)),
+        };
+        return ActorDecision.Of(
+            actionId,
+            (int)decision.Action,
+            payload,
+            decision.DebugMessage);
+    }
+
     private void ValidateSupportedDefinition()
     {
         GameRules rules = _definition.Rules;
         if (_frontlineRules.InitialUnitsPerTeam != 1
-            || _frontlineRules.MaxUnitsPerTeam != 1
-            || _frontlineRules.FabricationUnlockTicks.IsDefaultOrEmpty is false)
+            || _frontlineRules.MaxUnitsPerTeam < 1)
         {
             throw new NotSupportedException(
-                "The headless Package 3 session supports exactly one Prime per team " +
-                "and no fabrication unlocks.");
+                "Frontline replication requires one initial Prime per team.");
         }
         if (rules.ProjectileTicksPerTile <= 0
             || rules.ProjectileTilesPerAdvance <= 0)
@@ -237,7 +457,8 @@ public sealed class FrontlineMatchSession
         if (rules.DamagePerHit <= 0)
             throw new NotSupportedException("Frontline projectile damage must be positive.");
         if (rules.AllowProgrammedShots
-            && _frontlineRules.PrimeForm.AllowsProgrammedShots
+            && (_frontlineRules.PrimeForm.AllowsProgrammedShots
+                || _frontlineRules.ChildForm.AllowsProgrammedShots)
             && (rules.ShotRange <= 0 || rules.ProgrammedShotLaunchTiles <= 0))
         {
             throw new NotSupportedException(
@@ -253,18 +474,25 @@ public sealed class FrontlineMatchSession
         if (_frontlineRules.PrimeForm.ObjectiveWeight <= 0)
         {
             throw new NotSupportedException(
-                "The Prime-only session requires a positive Prime objective weight.");
+                "The Frontline session requires a positive Prime objective weight.");
         }
         if (_frontlineRules.PrimeForm.OmnidirectionalShooting)
         {
             throw new NotSupportedException(
-                "Prime-only Package 3 has no omnidirectional shooting action.");
+                "Frontline Package 5 has no omnidirectional shooting action.");
+        }
+        if (!_frontlineRules.ChildForm.CanMove
+            || !_frontlineRules.ChildForm.CanShoot
+            || _frontlineRules.ChildForm.OmnidirectionalShooting)
+        {
+            throw new NotSupportedException(
+                "Package 5 supports only the mobile child form; Anchor remains out of scope.");
         }
     }
 
     private void ValidateDecisionKeys(
         FrontlineTickStart tickStart,
-        IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions)
+        IReadOnlyDictionary<FrontlineActorId, ActorDecision> decisions)
     {
         FrontlineActorId[] actual = decisions.Keys.Order().ToArray();
         if (!actual.SequenceEqual(tickStart.ActiveActors))
@@ -276,7 +504,7 @@ public sealed class FrontlineMatchSession
 
         foreach (FrontlineActorId actorId in tickStart.ActiveActors)
         {
-            BotDecision? decision = decisions[actorId];
+            ActorDecision? decision = decisions[actorId];
             if (decision is null)
             {
                 throw new ArgumentException(
@@ -286,29 +514,7 @@ public sealed class FrontlineMatchSession
             if (decision.Faulted)
             {
                 throw new ArgumentException(
-                    "Runtime faults are outside the Package 3 headless session.",
-                    nameof(decisions));
-            }
-            if (!Enum.IsDefined(decision.Action))
-            {
-                throw new ArgumentException(
-                    $"Actor {actorId} submitted an unknown action.",
-                    nameof(decisions));
-            }
-            if (decision.ShotProgram is not null
-                && decision.Action != BotAction.Shoot)
-            {
-                throw new ArgumentException(
-                    "A shot program is valid only on Shoot.",
-                    nameof(decisions));
-            }
-            if (decision.ShotProgram is ShotProgram program
-                && _definition.Rules.AllowProgrammedShots
-                && _frontlineRules.PrimeForm.AllowsProgrammedShots
-                && !_definition.Rules.IsValidShotProgram(program))
-            {
-                throw new ArgumentException(
-                    $"Actor {actorId} submitted an invalid shot program.",
+                    "Runtime faults are outside the headless Frontline session.",
                     nameof(decisions));
             }
         }
@@ -316,74 +522,126 @@ public sealed class FrontlineMatchSession
 
     private Dictionary<FrontlineActorId, FrontlineActionResolution> ValidateActions(
         IReadOnlyList<FrontlineActorId> actors,
-        IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions)
+        IReadOnlyDictionary<FrontlineActorId, ActorDecision> decisions)
     {
         var resolutions = new Dictionary<
             FrontlineActorId,
             FrontlineActionResolution>();
-        UnitFormRules form = _frontlineRules.PrimeForm;
         GameRules rules = _definition.Rules;
         foreach (FrontlineActorId actorId in actors)
         {
-            BotDecision decision = decisions[actorId];
+            ActorDecision decision = decisions[actorId];
+            string chosenActionId = decision.ActionId!;
+            int chosenActionCode = decision.ActionCode!.Value;
+            ActorActionPayload? chosenPayload = decision.Payload;
             FrontlineLifeState life = State.GetActiveLife(actorId);
-            BotAction validated = decision.Action;
+            FrontlineUnitState unit = State.GetUnit(
+                actorId.TeamId,
+                actorId.UnitId);
+            UnitFormRules form = FormFor(unit);
+            string validatedActionId = chosenActionId;
+            int validatedActionCode = chosenActionCode;
+            ActorActionPayload? validatedPayload = chosenPayload;
             ActionResult result = ActionResult.Success;
-            ShotProgram? validatedProgram = decision.ShotProgram;
+            BotAction? legacyAction =
+                Enum.IsDefined(typeof(BotAction), chosenActionCode)
+                    ? (BotAction)chosenActionCode
+                    : null;
 
-            bool movement = decision.Action is
+            void Block(ActionResult blockedResult = ActionResult.Blocked)
+            {
+                validatedActionId = PublicActionIds.Wait;
+                validatedActionCode = (int)BotAction.Wait;
+                validatedPayload = null;
+                result = blockedResult;
+            }
+
+            bool movement = legacyAction is
                 BotAction.MoveForward or
                 BotAction.StrafeLeft or
                 BotAction.StrafeRight;
             if (movement && !form.CanMove)
             {
-                validated = BotAction.Wait;
-                result = ActionResult.Blocked;
+                Block();
             }
-            else if (decision.Action is BotAction.StrafeLeft or BotAction.StrafeRight
+            else if (legacyAction is BotAction.StrafeLeft or BotAction.StrafeRight
                      && !rules.AllowStrafe)
             {
-                validated = BotAction.Wait;
-                result = ActionResult.Blocked;
+                Block();
             }
-            else if (decision.Action == BotAction.Shoot && !form.CanShoot)
+            else if (legacyAction == BotAction.Shoot && !form.CanShoot)
             {
-                validated = BotAction.Wait;
-                result = ActionResult.Blocked;
-                validatedProgram = null;
+                Block();
             }
-            else if (decision.ShotProgram is not null
+            else if (chosenPayload?.ShotProgram is not null
                      && (!rules.AllowProgrammedShots
                          || !form.AllowsProgrammedShots))
             {
-                validated = BotAction.Wait;
-                result = ActionResult.Blocked;
-                validatedProgram = null;
+                Block();
             }
-            else if (decision.Action == BotAction.Shoot && life.Cooldown > 0)
+            else if (legacyAction == BotAction.Shoot && life.Cooldown > 0)
             {
-                validated = BotAction.Wait;
-                result = ActionResult.OnCooldown;
-                validatedProgram = null;
+                Block(ActionResult.OnCooldown);
             }
-            else if (decision.Action == BotAction.Shoot
+            else if (legacyAction == BotAction.Shoot
                      && rules.MaxEnergy > 0
                      && life.Energy < rules.ShotEnergyCost)
             {
-                validated = BotAction.Wait;
-                result = ActionResult.OnCooldown;
-                validatedProgram = null;
+                Block(ActionResult.OnCooldown);
+            }
+            else if (string.Equals(
+                         chosenActionId,
+                         PublicActionIds.Fabricate,
+                         StringComparison.Ordinal))
+            {
+                PublicFrontlineFabricationDefinition fabrication =
+                    _contract.Rules.Frontline!.Fabrication;
+                ObservedUnitTarget target = chosenPayload!.UnitTarget!.Value;
+                if (target.TeamId != actorId.TeamId
+                    || target.UnitId == fabrication.FabricatorUnitId
+                    || !State.GetTeam(actorId.TeamId).Units.Any(
+                        candidate => candidate.UnitId == target.UnitId))
+                {
+                    throw new ArgumentException(
+                        $"Actor {actorId} submitted an invalid fabrication target.");
+                }
+
+                FrontlineUnitState targetUnit = State.GetUnit(
+                    target.TeamId,
+                    target.UnitId);
+                if (actorId.UnitId != fabrication.FabricatorUnitId
+                    || !string.Equals(
+                        unit.FormId,
+                        fabrication.FabricatorFormId,
+                        StringComparison.Ordinal)
+                    || targetUnit.LifecycleStatus
+                        != FrontlineLifecycleStatus.Ready)
+                {
+                    Block();
+                }
+                else if (!Home(actorId.TeamId).ProtectedSpawnPad.Contains(
+                             life.Position))
+                {
+                    Block();
+                }
+            }
+            else if (legacyAction is null)
+            {
+                throw new InvalidOperationException(
+                    $"Action '{chosenActionId}' has no Package 5 resolver.");
             }
 
             resolutions.Add(
                 actorId,
                 new FrontlineActionResolution(
                     actorId,
-                    decision.Action,
-                    validated,
-                    result,
-                    decision.ShotProgram,
-                    validatedProgram));
+                    chosenActionId,
+                    chosenActionCode,
+                    chosenPayload,
+                    validatedActionId,
+                    validatedActionCode,
+                    validatedPayload,
+                    result));
         }
         return resolutions;
     }
@@ -446,7 +704,8 @@ public sealed class FrontlineMatchSession
             Position target = life.Position.Offset(dx, dy);
             targets.Add(actorId, target);
             if (_definition.Map.IsWall(target)
-                || IsOpposingProtectedPad(actorId.TeamId, target))
+                || IsOpposingProtectedPad(actorId.TeamId, target)
+                || IsReservedPrimeSpawn(actorId, target))
             {
                 blocked.Add(actorId);
             }
@@ -534,6 +793,95 @@ public sealed class FrontlineMatchSession
                 ActionResult = ActionResult.Success,
             });
         }
+    }
+
+    private void ResolveFabrication(
+        Dictionary<FrontlineActorId, FrontlineActionResolution> resolutions,
+        List<FrontlineMatchEvent> events)
+    {
+        foreach (FrontlineActorId actorId in resolutions.Keys.Order())
+        {
+            FrontlineActionResolution resolution = resolutions[actorId];
+            if (!string.Equals(
+                    resolution.ValidatedActionId,
+                    PublicActionIds.Fabricate,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            ObservedUnitTarget target =
+                resolution.ValidatedPayload!.UnitTarget!.Value;
+            FrontlineUnitState targetUnit = State.GetUnit(
+                target.TeamId,
+                target.UnitId);
+            Position? spawn = SelectFabricationSpawn(actorId.TeamId);
+            if (spawn is null)
+            {
+                resolutions[actorId] = resolution with
+                {
+                    ValidatedActionId = PublicActionIds.Wait,
+                    ValidatedActionCode = (int)BotAction.Wait,
+                    ValidatedPayload = null,
+                    Result = ActionResult.Blocked,
+                };
+                continue;
+            }
+
+            int fabricationAtTick = checked(State.Tick + 1);
+            ActorSpawnReason reason = targetUnit.HasSpawned
+                ? ActorSpawnReason.Rebuild
+                : ActorSpawnReason.Fabrication;
+            targetUnit.LifecycleStatus =
+                FrontlineLifecycleStatus.FabricationQueued;
+            targetUnit.FabricationAtTick = fabricationAtTick;
+            targetUnit.ReservedSpawn = spawn;
+            targetUnit.PendingSpawnReason = reason;
+            events.Add(new FrontlineMatchEvent
+            {
+                Tick = State.Tick,
+                Type = FrontlineMatchEventType.FabricationQueued,
+                TeamId = actorId.TeamId,
+                UnitId = targetUnit.UnitId,
+                ActorId = actorId,
+                To = spawn,
+                ActionId = PublicActionIds.Fabricate,
+                ActionCode = PublicActionCodes.Fabricate,
+                ActionPayload = resolution.ValidatedPayload,
+                ActionResult = ActionResult.Success,
+                LifecycleStatus =
+                    FrontlineLifecycleStatus.FabricationQueued,
+                SpawnReason = reason,
+                FabricationAtTick = fabricationAtTick,
+            });
+        }
+    }
+
+    private Position? SelectFabricationSpawn(int teamId)
+    {
+        FrontlineTeamHome home = Home(teamId);
+        var primeSpawn = new Position(
+            home.PrimeSpawn.X,
+            home.PrimeSpawn.Y);
+        HashSet<Position> unavailable = ActiveLives()
+            .Select(life => life.Position)
+            .Concat(State.Teams
+                .SelectMany(team => team.Units)
+                .Where(unit => unit.ReservedSpawn is not null)
+                .Select(unit => unit.ReservedSpawn!.Value))
+            .ToHashSet();
+        foreach (Position position in home.ProtectedSpawnPad
+                     .OrderBy(position => position.Y)
+                     .ThenBy(position => position.X))
+        {
+            if (position != primeSpawn
+                && !_definition.Map.IsWall(position)
+                && !unavailable.Contains(position))
+            {
+                return position;
+            }
+        }
+        return null;
     }
 
     private void AdvanceProjectiles(
@@ -714,7 +1062,7 @@ public sealed class FrontlineMatchSession
 
     private HashSet<FrontlineActorId> ResolveShooting(
         IReadOnlyDictionary<FrontlineActorId, FrontlineActionResolution> resolutions,
-        IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions,
+        IReadOnlyDictionary<FrontlineActorId, ActorDecision> decisions,
         List<PendingHit> pendingHits,
         List<FrontlineMatchEvent> events,
         List<FrontlineProjectileTraversal> traversals)
@@ -723,17 +1071,23 @@ public sealed class FrontlineMatchSession
         foreach (FrontlineActionResolution resolution in resolutions.Values
                      .OrderBy(resolution => resolution.ActorId))
         {
-            if (resolution.ValidatedAction != BotAction.Shoot)
+            if (!string.Equals(
+                    resolution.ValidatedActionId,
+                    PublicActionIds.Shoot,
+                    StringComparison.Ordinal))
                 continue;
 
             shotActors.Add(resolution.ActorId);
             FrontlineLifeState shooter = State.GetActiveLife(resolution.ActorId);
+            UnitFormRules form = FormFor(State.GetUnit(
+                resolution.ActorId.TeamId,
+                resolution.ActorId.UnitId));
             if (_definition.Rules.AllowProgrammedShots
-                && _frontlineRules.PrimeForm.AllowsProgrammedShots)
+                && form.AllowsProgrammedShots)
             {
                 ResolveProgrammedShot(
                     shooter,
-                    decisions[resolution.ActorId].ShotProgram
+                    decisions[resolution.ActorId].Payload?.ShotProgram
                         ?? ShotProgram.Straight,
                     pendingHits,
                     events,
@@ -957,8 +1311,13 @@ public sealed class FrontlineMatchSession
                 if (life is null || life.Health > 0)
                     continue;
 
-                int respawnAtTick = checked(
-                    State.Tick + 1 + _frontlineRules.PrimeRespawnTicks);
+                bool isPrime = unit.UnitId == 0;
+                int readyAtTick = checked(
+                    State.Tick
+                    + 1
+                    + (isPrime
+                        ? _frontlineRules.PrimeRespawnTicks
+                        : _frontlineRules.ChildRebuildTicks));
                 FrontlineActorId? sourceActorId = null;
                 long? sourceProjectileId = null;
                 if (destructionCauses.TryGetValue(
@@ -973,18 +1332,28 @@ public sealed class FrontlineMatchSession
                     Tick = State.Tick,
                     Type = FrontlineMatchEventType.Destroyed,
                     TeamId = team.TeamId,
+                    UnitId = unit.UnitId,
                     ActorId = life.ActorId,
                     OtherActorId = sourceActorId,
                     ProjectileId = sourceProjectileId,
                     From = life.Position,
                     To = life.Position,
                     NewHealth = 0,
-                    LifecycleStatus = FrontlineLifecycleStatus.Respawning,
-                    RespawnAtTick = respawnAtTick,
+                    LifecycleStatus = isPrime
+                        ? FrontlineLifecycleStatus.Respawning
+                        : FrontlineLifecycleStatus.Rebuilding,
+                    RespawnAtTick = isPrime ? readyAtTick : null,
+                    RebuildReadyAtTick = isPrime ? null : readyAtTick,
                 });
                 unit.ActiveLife = null;
-                unit.LifecycleStatus = FrontlineLifecycleStatus.Respawning;
-                unit.RespawnAtTick = respawnAtTick;
+                unit.LifecycleStatus = isPrime
+                    ? FrontlineLifecycleStatus.Respawning
+                    : FrontlineLifecycleStatus.Rebuilding;
+                unit.RespawnAtTick = isPrime ? readyAtTick : null;
+                unit.RebuildReadyAtTick = isPrime ? null : readyAtTick;
+                unit.FabricationAtTick = null;
+                unit.ReservedSpawn = null;
+                unit.PendingSpawnReason = null;
             }
         }
     }
@@ -997,8 +1366,11 @@ public sealed class FrontlineMatchSession
         foreach (FrontlineLifeState life in ActiveLives())
         {
             bool shot = shotActors.Contains(life.ActorId);
+            UnitFormRules form = FormFor(State.GetUnit(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId));
             life.Cooldown = shot
-                ? _frontlineRules.PrimeForm.ShootCooldownTicks
+                ? form.ShootCooldownTicks
                 : Math.Max(0, life.Cooldown - 1);
             if (rules.MaxEnergy <= 0)
                 continue;
@@ -1023,7 +1395,10 @@ public sealed class FrontlineMatchSession
             FrontlineTeamPresence.FromOccupyingTeamIds(
                 ActiveLives()
                     .Where(life =>
-                        _frontlineRules.PrimeForm.ObjectiveWeight > 0
+                        FormFor(State.GetUnit(
+                                life.ActorId.TeamId,
+                                life.ActorId.UnitId))
+                            .ObjectiveWeight > 0
                         && activeTiles.Contains(life.Position))
                     .Select(life => life.ActorId.TeamId));
         FrontlineControlStepResult step = FrontlineControlSystem.Step(
@@ -1087,15 +1462,25 @@ public sealed class FrontlineMatchSession
             ? State.Control.WinnerTeamId
             : score switch
             {
-                > 0 => 0,
-                < 0 => 1,
+                > 0 => TeamAdvancing(1),
+                < 0 => TeamAdvancing(-1),
                 _ => null,
             };
         ImmutableArray<FrontlineTeamMatchResult> teams = State.Teams
             .OrderBy(team => team.TeamId)
             .Select(team =>
             {
-                FrontlineUnitState prime = team.GetUnit(0);
+                ImmutableArray<FrontlineUnitMatchResult> units = team.Units
+                    .OrderBy(unit => unit.UnitId)
+                    .Select(unit => new FrontlineUnitMatchResult(
+                        team.TeamId,
+                        unit.UnitId,
+                        unit.FormId,
+                        unit.LifecycleStatus,
+                        unit.ActiveLife?.ActorId,
+                        unit.ActiveLife?.Health ?? 0,
+                        unit.DamageDealt))
+                    .ToImmutableArray();
                 return new FrontlineTeamMatchResult(
                     team.TeamId,
                     winnerTeamId is null
@@ -1103,9 +1488,9 @@ public sealed class FrontlineMatchSession
                         : team.TeamId == winnerTeamId
                             ? FrontlineTeamOutcome.Win
                             : FrontlineTeamOutcome.Loss,
-                    prime.ActiveLife?.Health ?? 0,
-                    prime.DamageDealt,
-                    prime.LifecycleStatus);
+                    units.Sum(unit => unit.Health),
+                    team.DamageDealt,
+                    units);
             })
             .ToImmutableArray();
         var result = new FrontlineMatchResult(
@@ -1125,14 +1510,20 @@ public sealed class FrontlineMatchSession
         long positionScore =
             (long)(State.Control.ActivePositionIndex - centre)
             * _frontlineRules.CaptureThreshold;
-        int claimScore = State.Control.ClaimingTeamId switch
-        {
-            0 => State.Control.CaptureProgress,
-            1 => -State.Control.CaptureProgress,
-            _ => 0,
-        };
+        int claimScore = State.Control.ClaimingTeamId is int claimingTeamId
+            ? _contract.Rules.Frontline!.Victory.TeamAdvances
+                .Single(advance => advance.TeamId == claimingTeamId)
+                .PositionIndexDelta
+                * State.Control.CaptureProgress
+            : 0;
         return positionScore + claimScore;
     }
+
+    private int TeamAdvancing(int positionIndexDelta) =>
+        _contract.Rules.Frontline!.Victory.TeamAdvances
+            .Single(advance =>
+                advance.PositionIndexDelta == positionIndexDelta)
+            .TeamId;
 
     private ProjectileContact ContactAt(
         FrontlineActorId ownerActorId,
@@ -1197,8 +1588,47 @@ public sealed class FrontlineMatchSession
             home.TeamId != teamId
             && home.ProtectedSpawnPad.Contains(position));
 
+    private bool IsReservedPrimeSpawn(
+        FrontlineActorId actorId,
+        Position position)
+    {
+        if (actorId.UnitId == 0)
+            return false;
+        FrontlineTeamHome home = Home(actorId.TeamId);
+        return position == new Position(
+            home.PrimeSpawn.X,
+            home.PrimeSpawn.Y);
+    }
+
     private FrontlineTeamHome Home(int teamId) =>
         _profile.TeamHomes.Single(home => home.TeamId == teamId);
+
+    private UnitFormRules FormFor(FrontlineUnitState unit)
+    {
+        if (string.Equals(
+                unit.FormId,
+                _frontlineRules.PrimeForm.FormId,
+                StringComparison.Ordinal))
+        {
+            return _frontlineRules.PrimeForm;
+        }
+        if (string.Equals(
+                unit.FormId,
+                _frontlineRules.ChildForm.FormId,
+                StringComparison.Ordinal))
+        {
+            return _frontlineRules.ChildForm;
+        }
+        if (string.Equals(
+                unit.FormId,
+                _frontlineRules.TurretForm.FormId,
+                StringComparison.Ordinal))
+        {
+            return _frontlineRules.TurretForm;
+        }
+        throw new InvalidOperationException(
+            $"Unit {unit.TeamId}:{unit.UnitId} uses unknown form '{unit.FormId}'.");
+    }
 
     private IReadOnlyList<FrontlineActorId> ActiveActorIds() =>
         ActiveLives()

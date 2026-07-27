@@ -14,8 +14,8 @@ public static class PublicRulesManifestFactory
         FrontlineRules? frontline = rules.Frontline;
         bool shotProgramsEnabled =
             rules.AllowProgrammedShots && rules.ProjectileTicksPerTile > 0;
-        ImmutableArray<PublicActionDefinition> actions =
-        [
+        var actionBuilder = new List<PublicActionDefinition>
+        {
             new(PublicActionIds.Wait, (int)BotAction.Wait, PublicActionKind.Wait,
                 [], true),
             new(PublicActionIds.MoveForward, (int)BotAction.MoveForward, PublicActionKind.Movement,
@@ -33,8 +33,21 @@ public static class PublicRulesManifestFactory
                 [], rules.AllowStrafe),
             new(PublicActionIds.StrafeRight, (int)BotAction.StrafeRight, PublicActionKind.Movement,
                 [], rules.AllowStrafe),
-        ];
-        actions = actions.OrderBy(action => action.Code).ToImmutableArray();
+        };
+        bool fabricationEnabled = frontline is not null
+            && frontline.MaxUnitsPerTeam > frontline.InitialUnitsPerTeam;
+        if (fabricationEnabled)
+        {
+            actionBuilder.Add(new PublicActionDefinition(
+                PublicActionIds.Fabricate,
+                PublicActionCodes.Fabricate,
+                PublicActionKind.Fabrication,
+                [PublicActionParameterKind.UnitTarget],
+                Enabled: true));
+        }
+        ImmutableArray<PublicActionDefinition> actions = actionBuilder
+            .OrderBy(action => action.Code)
+            .ToImmutableArray();
 
         ImmutableArray<PublicFormDefinition> forms =
             CreateFormDefinitions(rules, frontline, actions, shotProgramsEnabled);
@@ -186,6 +199,7 @@ public static class PublicRulesManifestFactory
                 PublicTickResolutionPhase.ValidateActions,
                 PublicTickResolutionPhase.Rotate,
                 PublicTickResolutionPhase.Move,
+                PublicTickResolutionPhase.QueueFabrications,
                 PublicTickResolutionPhase.AdvanceExistingProjectiles,
                 PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
                 PublicTickResolutionPhase.QueueDestroyedLives,
@@ -318,18 +332,81 @@ public static class PublicRulesManifestFactory
                 rules.CaptureDecayAmount,
                 rules.CaptureDecayIntervalTicks,
                 rules.RedeployPauseTicks,
-                rules.PushesToBreach),
+                rules.PushesToBreach,
+                PublicFrontlineCapturePresencePolicy
+                    .BinaryPositiveWeightPerTeamNoStacking,
+                PublicFrontlineNonSolePresencePolicy.DecayExistingClaim,
+                PublicFrontlineCounterCapturePolicy
+                    .ErodeToNeutralBeforeClaim),
+            new PublicFrontlineVictoryDefinition(
+                PublicFrontlineInitialPositionPolicy.CentrePositionIndex,
+                [
+                    new PublicFrontlineTeamAdvance(
+                        TeamId: 0,
+                        PositionIndexDelta: 1),
+                    new PublicFrontlineTeamAdvance(
+                        TeamId: 1,
+                        PositionIndexDelta: -1),
+                ],
+                PublicFrontlineCompletionPrecedence
+                    .BaseBreachBeforeMaxTicks,
+                PublicFrontlineTimeoutResolution
+                    .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers),
             new PublicFrontlineLifecycleDefinition(
                 rules.PrimeRespawnTicks,
                 rules.ChildRebuildTicks,
                 rules.FabricationUnlockTicks),
+            new PublicFrontlineDeploymentDefinition(
+                rules.PrimeForm.FormId,
+                rules.ChildForm.FormId,
+                PublicFrontlineDestructionTransitionClock
+                    .TickStartAtDestroyedTickPlusOnePlusDelay,
+                PublicFrontlinePrimeReturnPolicy
+                    .AutomaticAtAuthoredPrimeSpawn,
+                PublicFrontlineChildReturnPolicy
+                    .ReadyThenExplicitFabrication,
+                PublicFrontlineNewLifePolicy
+                    .FreshRuntimeFormDefaultsHomeFacingCanActOnCreationTick,
+                PublicFrontlinePrimeSpawnReservationPolicy
+                    .PermanentAgainstOwnChildren,
+                PublicFrontlineProtectedPadPolicy
+                    .EnemyGroundEntryBlockedNoDamageImmunityNoProjectileBlocking),
+            new PublicFrontlineFabricationDefinition(
+                Enabled:
+                    rules.MaxUnitsPerTeam > rules.InitialUnitsPerTeam,
+                ActionId: PublicActionIds.Fabricate,
+                FabricatorUnitId: 0,
+                FabricatorFormId: rules.PrimeForm.FormId,
+                TargetPolicy:
+                    PublicFrontlineFabricationTargetPolicy.OwnReadyChildSlot,
+                ActivationRegion:
+                    PublicFrontlineFabricationActivationRegion
+                        .OwnProtectedSpawnPad,
+                ConsumesTick: true,
+                SpawnDelayTicks: 1,
+                CapacityEvaluation:
+                    PublicFrontlineFabricationCapacityEvaluation
+                        .PostMovementDuringQueueFabrications,
+                SpawnRegion:
+                    PublicFrontlineFabricationSpawnRegion
+                        .OwnProtectedSpawnPadExcludingPrimeSpawn,
+                SpawnSelection:
+                    PublicFrontlineFabricationSpawnSelection
+                        .FirstUnoccupiedUnreservedCanonicalYThenX,
+                SpawnFacing:
+                    PublicFrontlineFabricationSpawnFacing.OwnPrimeSpawnFacing,
+                UnavailableSpawnResult:
+                    PublicActionRejectionResult.Blocked,
+                RequiresExplicitRefabricationAfterRebuild: true),
             new PublicFrontlineAnchorDefinition(
                 rules.AnchorWindupTicks,
                 rules.AnchorHealthGain,
                 rules.AnchorIrreversibleForLife),
             new PublicFrontlineAlliedCombatDefinition(
                 rules.FriendlyFireEnabled,
-                rules.AlliedProjectilesBlock));
+                rules.AlliedProjectilesBlock,
+                PublicFrontlineProjectileAttributionPolicy
+                    .ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved));
     }
 
     private static ImmutableArray<PublicFormDefinition> CreateFormDefinitions(
@@ -353,6 +430,7 @@ public static class PublicRulesManifestFactory
                     canMove: true,
                     canShoot: true,
                     allowsProgrammedShots: shotProgramsEnabled,
+                    allowsFabrication: false,
                     actions),
             ];
         }
@@ -384,6 +462,12 @@ public static class PublicRulesManifestFactory
                 form.CanMove,
                 form.CanShoot,
                 form.AllowsProgrammedShots,
+                allowsFabrication: string.Equals(
+                        form.FormId,
+                        frontline.PrimeForm.FormId,
+                        StringComparison.Ordinal)
+                    && frontline.MaxUnitsPerTeam
+                        > frontline.InitialUnitsPerTeam,
                 actions))
             .OrderBy(form => form.Id, StringComparer.Ordinal)
             .ToImmutableArray();
@@ -400,6 +484,7 @@ public static class PublicRulesManifestFactory
         bool canMove,
         bool canShoot,
         bool allowsProgrammedShots,
+        bool allowsFabrication,
         ImmutableArray<PublicActionDefinition> actions) =>
         new(
             id,
@@ -417,7 +502,9 @@ public static class PublicRulesManifestFactory
                 .Where(action =>
                     action.Enabled
                     && (action.Kind != PublicActionKind.Movement || canMove)
-                    && (action.Kind != PublicActionKind.Attack || canShoot))
+                    && (action.Kind != PublicActionKind.Attack || canShoot)
+                    && (action.Kind != PublicActionKind.Fabrication
+                        || allowsFabrication))
                 .Select(action => action.Id)
                 .Order(StringComparer.Ordinal)
                 .ToImmutableArray());

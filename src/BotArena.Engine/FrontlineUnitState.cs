@@ -32,6 +32,7 @@ public sealed class FrontlineUnitState
         NextLifeId = nextLifeId;
         LifecycleStatus = lifecycleStatus;
         RespawnAtTick = respawnAtTick;
+        HasSpawned = activeLife is not null;
     }
 
     public int TeamId { get; }
@@ -45,6 +46,16 @@ public sealed class FrontlineUnitState
     /// respawn is queued.
     /// </summary>
     public int? RespawnAtTick { get; internal set; }
+    /// <summary>Fixed match tick at which this child slot first becomes ready.</summary>
+    public int? UnlockAtTick { get; internal set; }
+    /// <summary>Tick start at which a destroyed child becomes ready to rebuild.</summary>
+    public int? RebuildReadyAtTick { get; internal set; }
+    /// <summary>Tick start at which an explicitly queued child life is created.</summary>
+    public int? FabricationAtTick { get; internal set; }
+    /// <summary>Spawn tile reserved by a successful fabrication action.</summary>
+    public Position? ReservedSpawn { get; internal set; }
+    public ActorSpawnReason? PendingSpawnReason { get; internal set; }
+    public bool HasSpawned { get; internal set; }
     public long DamageDealt { get; internal set; }
 
     public bool IsActive =>

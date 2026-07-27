@@ -298,6 +298,27 @@ public class MatchDefinitionResolverTests
                 && error.Contains("BendCount = 2"));
     }
 
+    [Fact]
+    public void ChildRebuildAbsoluteTickMustFitBeforeSessionStarts()
+    {
+        FrontlineRules frontline = new()
+        {
+            ChildRebuildTicks = int.MaxValue,
+        };
+
+        MatchDefinitionValidationException exception =
+            Assert.Throws<MatchDefinitionValidationException>(() =>
+                MatchDefinitionResolver.Resolve(
+                    FrontlineGameRules(frontline),
+                    FrontlineMap()));
+
+        Assert.Contains(
+            exception.Errors,
+            error => error.Contains(
+                "MaxTicks plus ChildRebuildTicks",
+                StringComparison.Ordinal));
+    }
+
     private static GameRules FrontlineGameRules(
         FrontlineRules? frontline = null) =>
         GameRules.V0_1 with

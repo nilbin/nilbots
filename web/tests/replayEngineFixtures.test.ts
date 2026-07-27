@@ -62,6 +62,47 @@ test('engine-authored finalized replay-v2 decodes without reserialization', () =
       (turn) => turn.lifeStart?.spawnReason === 'respawn',
     ),
   );
+  assert.deepEqual(
+    replay.result?.teams.map((team) => ({
+      teamId: team.teamId,
+      activeHealth: team.activeHealth,
+      units: team.units.map((unit) => ({
+        unitKey: unit.unitKey,
+        lifecycleStatus: unit.lifecycleStatus,
+        activeActorKey: unit.activeActorKey,
+        health: unit.health,
+        damageDealt: unit.damageDealt,
+      })),
+    })),
+    [
+      {
+        teamId: 0,
+        activeHealth: 3,
+        units: [
+          {
+            unitKey: 'frontline:0:unit:0',
+            lifecycleStatus: 'active',
+            activeActorKey: 'frontline:0:unit:0:life:1',
+            health: 3,
+            damageDealt: '3',
+          },
+        ],
+      },
+      {
+        teamId: 1,
+        activeHealth: 3,
+        units: [
+          {
+            unitKey: 'frontline:1:unit:0',
+            lifecycleStatus: 'active',
+            activeActorKey: 'frontline:1:unit:0:life:1',
+            health: 3,
+            damageDealt: '3',
+          },
+        ],
+      },
+    ],
+  );
 });
 
 test('engine-authored tick-zero failure decodes as a hashless empty prefix', () => {
@@ -131,6 +172,35 @@ test('replay-v2 requires lifeStart exactly on each actor life first turn', () =>
   assert.throws(
     () => decodeReplay(repeated),
     /lifeStart.*first turn/,
+  );
+});
+
+test('replay-v2 enforces initial deployment and cross-tick lifecycle continuity', () => {
+  const duplicateInitialSlot = finalizedV2Fixture();
+  duplicateInitialSlot.header.contract.topology.initialLives.push({
+    ...duplicateInitialSlot.header.contract.topology.initialLives[0]!,
+    lifeId: 99,
+  });
+  duplicateInitialSlot.header.contract.topology.initialLifeCount += 1;
+  assert.throws(
+    () => decodeReplay(duplicateInitialSlot),
+    /multiple initial lives for stable unit/,
+  );
+
+  const unannouncedWorldChange = finalizedV2Fixture();
+  unannouncedWorldChange.ticks[1]!.tickStart.state.teams[0]!.damageDealt =
+    '1';
+  assert.throws(
+    () => decodeReplay(unannouncedWorldChange),
+    /prior tick's post-state/,
+  );
+
+  const invalidRespawnLife = finalizedV2Fixture();
+  invalidRespawnLife.ticks[2]!.tickStart.state.teams[0]!.units[0]!
+    .activeLife!.cooldown = 1;
+  assert.throws(
+    () => decodeReplay(invalidRespawnLife),
+    /lifecycle transition for unit 0:0 does not match its event/,
   );
 });
 
@@ -228,6 +298,20 @@ test('replay-v2 rejects terminal and objective team drift', () => {
   assert.throws(
     () => decodeReplay(objectiveDrift),
     /final post-state objective/,
+  );
+
+  const missingUnit = finalizedV2Fixture();
+  missingUnit.result.teams[0]!.units = [];
+  assert.throws(
+    () => decodeReplay(missingUnit),
+    /cover exactly the topology units/,
+  );
+
+  const staleUnit = finalizedV2Fixture();
+  staleUnit.result.teams[0]!.units[0]!.health -= 1;
+  assert.throws(
+    () => decodeReplay(staleUnit),
+    /differs from the final world/,
   );
 });
 

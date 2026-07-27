@@ -58,8 +58,17 @@ export function ArenaOutcome({
                 </Text>
               ) : null}
               <Text style={styles.aggregate}>
-                aggregate HP {team.finalHealth} · damage {team.damageDealt}
+                active HP {team.activeHealth} · damage {team.damageDealt}
               </Text>
+              <View style={styles.units}>
+                {team.units.map((unit) => (
+                  <Text key={unit.unitKey} style={styles.unit}>
+                    U{unit.unitId} · {unit.formId} ·{' '}
+                    {unit.lifecycleStatus.replaceAll('-', ' ')} · HP{' '}
+                    {unit.health} · damage {unit.damageDealt}
+                  </Text>
+                ))}
+              </View>
             </View>
           );
         })}
@@ -111,4 +120,11 @@ const styles = StyleSheet.create({
   teamOutcome: { ...Mono, color: Arena.accent, fontSize: 10 },
   participants: { color: Arena.dim, fontSize: 10 },
   aggregate: { ...Mono, color: Arena.dim, fontSize: 9 },
+  units: {
+    borderTopWidth: 1,
+    borderTopColor: Arena.edge,
+    paddingTop: Space.xs,
+    gap: 2,
+  },
+  unit: { ...Mono, color: Arena.dim, fontSize: 8 },
 });

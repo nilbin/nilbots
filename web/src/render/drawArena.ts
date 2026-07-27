@@ -353,6 +353,30 @@ export function drawArena(
         ctx.strokeRect(px(point.x), py(point.y), tile, tile);
       }
     }
+
+    const world = currentTick?.after ?? replay.initialWorld;
+    for (const unit of world?.units ?? []) {
+      if (!unit.reservedSpawn) continue;
+      const color = accentFor(unit.unitKey);
+      const centreX = px(unit.reservedSpawn.x) + tile / 2;
+      const centreY = py(unit.reservedSpawn.y) + tile / 2;
+      const pulse = 0.82 + 0.12 * Math.sin(time * Math.PI * 2);
+      ctx.fillStyle = hexWithAlpha(color, 0.12);
+      ctx.strokeStyle = hexWithAlpha(color, 0.9);
+      ctx.lineWidth = Math.max(2, tile * 0.045);
+      ctx.setLineDash([tile * 0.11, tile * 0.07]);
+      ctx.beginPath();
+      ctx.arc(
+        centreX,
+        centreY,
+        tile * 0.31 * pulse,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.restore();
 
     const active = frontline.positions.find(

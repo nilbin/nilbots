@@ -10,6 +10,16 @@ public static class PublicActionIds
     public const string Shoot = "shoot";
     public const string StrafeLeft = "strafe-left";
     public const string StrafeRight = "strafe-right";
+    public const string Fabricate = "fabricate";
+}
+
+/// <summary>
+/// Stable public codes for entity actions that are deliberately outside the
+/// historical <see cref="BotAction"/> enum.
+/// </summary>
+public static class PublicActionCodes
+{
+    public const int Fabricate = 100;
 }
 
 /// <summary>
@@ -76,6 +86,15 @@ public sealed record ActorDecision
             program is null
                 ? null
                 : new ActorActionPayload { ShotProgram = program },
+            debug);
+
+    public static ActorDecision Fabricate(
+        ObservedUnitTarget target,
+        string? debug = null) =>
+        Of(
+            PublicActionIds.Fabricate,
+            PublicActionCodes.Fabricate,
+            new ActorActionPayload { UnitTarget = target },
             debug);
 
     public static ActorDecision Fault(string message) =>

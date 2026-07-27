@@ -645,7 +645,20 @@ const v2ActionResult = oneOf(
   'on-cooldown',
   'faulted',
 );
-const v2Lifecycle = oneOf('active', 'respawning');
+const v2Lifecycle = oneOf(
+  'active',
+  'respawning',
+  'locked',
+  'ready',
+  'fabrication-queued',
+  'rebuilding',
+);
+const v2SpawnReason = oneOf(
+  'initial',
+  'respawn',
+  'rebuild',
+  'fabrication',
+);
 const v2TeamPerception = oneOf('individual', 'immediate-union');
 const v2ActionParameterKind = oneOf(
   'shot-program',
@@ -664,6 +677,10 @@ const v2EventType = oneOf(
   'frontline-progress-changed',
   'frontline-position-advanced',
   'base-breached',
+  'fabrication-unlocked',
+  'fabrication-queued',
+  'fabricated',
+  'rebuild-ready',
 );
 const v2ObservedEventType = oneOf(
   'respawned',
@@ -678,6 +695,10 @@ const v2ObservedEventType = oneOf(
   'frontline-progress-changed',
   'frontline-position-advanced',
   'base-breached',
+  'fabrication-unlocked',
+  'fabrication-queued',
+  'fabricated',
+  'rebuild-ready',
 );
 const actorId = strictObject({
   teamId: integerValue,
@@ -794,11 +815,65 @@ const v2FrontlineDefinition = strictObject({
     decayIntervalTicks: integerValue,
     redeployPauseTicks: integerValue,
     pushesToBreach: integerValue,
+    presence: literal('binary-positive-weight-per-team-no-stacking'),
+    nonSolePresence: literal('decay-existing-claim'),
+    counterCapture: literal('erode-to-neutral-before-claim'),
+  }),
+  victory: strictObject({
+    initialPosition: literal('centre-position-index'),
+    teamAdvances: arrayOf(
+      strictObject({
+        teamId: integerValue,
+        positionIndexDelta: integerValue,
+      }),
+    ),
+    completionPrecedence: literal('base-breach-before-max-ticks'),
+    timeoutResolution: literal(
+      'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
+    ),
   }),
   lifecycle: strictObject({
     primeRespawnTicks: integerValue,
     childRebuildTicks: integerValue,
     fabricationUnlockTicks: arrayOf(integerValue),
+  }),
+  deployment: strictObject({
+    primeDefaultFormId: nonEmptyString,
+    childDefaultFormId: nonEmptyString,
+    destructionTransitionClock: literal(
+      'tick-start-at-destroyed-tick-plus-one-plus-delay',
+    ),
+    primeReturn: literal('automatic-at-authored-prime-spawn'),
+    childReturn: literal('ready-then-explicit-fabrication'),
+    newLife: literal(
+      'fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick',
+    ),
+    primeSpawnReservation: literal('permanent-against-own-children'),
+    protectedPad: literal(
+      'enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking',
+    ),
+  }),
+  fabrication: strictObject({
+    enabled: booleanValue,
+    actionId: nonEmptyString,
+    fabricatorUnitId: integerValue,
+    fabricatorFormId: nonEmptyString,
+    targetPolicy: literal('own-ready-child-slot'),
+    activationRegion: literal('own-protected-spawn-pad'),
+    consumesTick: booleanValue,
+    spawnDelayTicks: integerValue,
+    capacityEvaluation: literal(
+      'post-movement-during-queue-fabrications',
+    ),
+    spawnRegion: literal(
+      'own-protected-spawn-pad-excluding-prime-spawn',
+    ),
+    spawnSelection: literal(
+      'first-unoccupied-unreserved-canonical-y-x',
+    ),
+    spawnFacing: literal('own-prime-spawn-facing'),
+    unavailableSpawnResult: oneOf('blocked', 'faulted', 'rejected'),
+    requiresExplicitRefabricationAfterRebuild: booleanValue,
   }),
   anchor: strictObject({
     windupTicks: integerValue,
@@ -808,6 +883,9 @@ const v2FrontlineDefinition = strictObject({
   alliedCombat: strictObject({
     friendlyFireEnabled: booleanValue,
     alliedProjectilesBlock: booleanValue,
+    projectileAttribution: literal(
+      'exact-firing-life-persists-credits-stable-unit-by-actual-health-removed',
+    ),
   }),
 });
 const v2EnergyRules = strictObject({
@@ -834,7 +912,7 @@ const v2Form = strictObject({
 const v2ActionDefinition = strictObject({
   id: stringValue,
   code: integerValue,
-  kind: oneOf('wait', 'movement', 'rotation', 'attack'),
+  kind: oneOf('wait', 'movement', 'rotation', 'attack', 'fabrication'),
   parameterKinds: arrayOf(v2ActionParameterKind),
   enabled: booleanValue,
 });
@@ -928,6 +1006,7 @@ const v2TickResolutionRules = strictObject({
       'resolve-match-completion',
       'apply-tick-start-lifecycle',
       'queue-destroyed-lives',
+      'queue-fabrications',
     ),
   ),
 });
@@ -1098,6 +1177,9 @@ const v2ObservedUnit = strictObject({
   lifecycleStatus: v2Lifecycle,
   activeActorId: nullable(actorId),
   respawnAtTick: nullable(integerValue),
+  unlockAtTick: nullable(integerValue),
+  rebuildReadyAtTick: nullable(integerValue),
+  fabricationAtTick: nullable(integerValue),
 });
 const v2ObservedTile = strictObject({
   position: positionObject,
@@ -1214,7 +1296,7 @@ const v2LifeStart = strictObject({
   actorId,
   participantId: integerValue,
   actorRandomSeed: canonicalSeed,
-  spawnReason: oneOf('initial', 'respawn', 'rebuild', 'fabrication'),
+  spawnReason: v2SpawnReason,
   matchContractFingerprint: stringValue,
 });
 const v2Aliases = strictObject({
@@ -1251,6 +1333,7 @@ const v2Event = strictObject({
   tick: integerValue,
   type: v2EventType,
   teamId: nullable(integerValue),
+  unitId: nullable(integerValue),
   sourceActorId: nullable(actorId),
   targetActorId: nullable(actorId),
   projectileId: nullable(canonicalProjectileId),
@@ -1266,7 +1349,11 @@ const v2Event = strictObject({
   amount: nullable(integerValue),
   newHealth: nullable(integerValue),
   lifecycleStatus: nullable(v2Lifecycle),
+  spawnReason: nullable(v2SpawnReason),
   respawnAtTick: nullable(integerValue),
+  unlockAtTick: nullable(integerValue),
+  rebuildReadyAtTick: nullable(integerValue),
+  fabricationAtTick: nullable(integerValue),
   fromPositionIndex: nullable(integerValue),
   toPositionIndex: nullable(integerValue),
   claimingTeamId: nullable(integerValue),
@@ -1300,6 +1387,13 @@ const v2UnitState = strictObject({
   formId: stringValue,
   lifecycleStatus: v2Lifecycle,
   respawnAtTick: nullable(integerValue),
+  unlockAtTick: nullable(integerValue),
+  rebuildReadyAtTick: nullable(integerValue),
+  fabricationAtTick: nullable(integerValue),
+  reservedSpawn: nullable(positionObject),
+  pendingSpawnReason: nullable(v2SpawnReason),
+  hasSpawned: booleanValue,
+  nextLifeId: integerValue,
   damageDealt: canonicalProjectileId,
   activeLife: nullable(v2LifeState),
 });
@@ -1348,12 +1442,21 @@ const v2Tick = strictObject({
   }),
   postState: v2World,
 });
+const v2UnitResult = strictObject({
+  teamId: integerValue,
+  unitId: integerValue,
+  formId: nonEmptyString,
+  lifecycleStatus: v2Lifecycle,
+  activeActorId: nullable(actorId),
+  health: integerValue,
+  damageDealt: canonicalProjectileId,
+});
 const v2TeamResult = strictObject({
   teamId: integerValue,
   outcome: oneOf('win', 'loss', 'draw'),
-  finalHealth: integerValue,
+  activeHealth: integerValue,
   damageDealt: canonicalProjectileId,
-  finalLifecycleStatus: v2Lifecycle,
+  units: arrayOf(v2UnitResult),
 });
 const v2Result = strictObject({
   winnerTeamId: nullable(integerValue),
@@ -1578,6 +1681,21 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
     (participant) => participant.participantId,
     'replay.header.participants',
   );
+  ensureUnique(
+    contract.rules.forms,
+    (form) => form.id,
+    'replay.header.contract.rules.forms',
+  );
+  ensureUnique(
+    contract.rules.actions,
+    (action) => action.id,
+    'replay.header.contract.rules.actions',
+  );
+  ensureUnique(
+    contract.rules.actions,
+    (action) => action.code,
+    'replay.header.contract.rules.actions',
+  );
   ensureUnique(document.ticks, (tick) => tick.tick, 'replay.ticks');
   const sortedTicks = document.ticks
     .map((tick, inputIndex) => ({ tick, inputIndex }))
@@ -1652,6 +1770,17 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
   const contractActionsById = new Map(
     contract.rules.actions.map((action) => [action.id, action]),
   );
+  const contractFormsById = new Map(
+    contract.rules.forms.map((form) => [form.id, form]),
+  );
+  const contractFormIds = new Set(contractFormsById.keys());
+
+  validateV2FabricationContract(
+    contract,
+    contractActionsById,
+    contractFormsById,
+    unitKeys,
+  );
 
   for (const participant of topology.participants) {
     if (!teamIds.has(participant.teamId)) {
@@ -1681,19 +1810,52 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
 
   const allEventIds = new Set<string>();
   const seenActorLives = new Set<string>();
+  let priorPostState: V2.ReplayV2WorldState | null = null;
   sortedTicks.forEach(({ tick, inputIndex: tickIndex }) => {
     validateV2WorldRelationships(
       tick.tickStart.state,
       unitKeys,
       topologyTeamIds,
+      tick.tick,
+      contract.rules.frontlineDefinition ?? null,
+      contract.map.frontline ?? null,
       `replay.ticks[${tickIndex}].tickStart.state`,
     );
     validateV2WorldRelationships(
       tick.postState,
       unitKeys,
       topologyTeamIds,
+      tick.tick,
+      contract.rules.frontlineDefinition ?? null,
+      contract.map.frontline ?? null,
       `replay.ticks[${tickIndex}].postState`,
     );
+    if (tick.tick === 0) {
+      validateV2InitialDeployment(
+        contract,
+        tick.tickStart.state,
+        `replay.ticks[${tickIndex}].tickStart.state`,
+      );
+    }
+    if (priorPostState !== null) {
+      if (tick.tickStart.lifecycleEvents.length === 0) {
+        if (!sameV2WorldState(priorPostState, tick.tickStart.state)) {
+          fail(
+            `replay.ticks[${tickIndex}].tickStart.state`,
+            "must exactly equal the prior tick's post-state when no lifecycle events occur",
+          );
+        }
+      } else {
+        validateV2LifecycleTransition(
+          contract,
+          priorPostState,
+          tick.tickStart.state,
+          tick.tickStart.lifecycleEvents,
+          tick.tick,
+          `replay.ticks[${tickIndex}].tickStart`,
+        );
+      }
+    }
     if (tick.tickStart.state.objective.nextTick !== tick.tick) {
       fail(
         `replay.ticks[${tickIndex}].tickStart.state.objective.nextTick`,
@@ -1787,11 +1949,27 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
           );
         }
         const isInitialLife = initialLifeIds.has(identity);
+        const expectedSpawnReason: V2.ReplayV2LifeStart['spawnReason'] =
+          isInitialLife
+            ? 'initial'
+            : turn.actorId.unitId === 0
+              ? 'respawn'
+              : turn.actorId.lifeId === 0
+                ? 'fabrication'
+                : 'rebuild';
+        const spawnEvents = tick.tickStart.lifecycleEvents.filter(
+          (event) =>
+            event.sourceActorId !== null &&
+            actorIdValue(event.sourceActorId) === identity &&
+            (event.type === 'respawned' ||
+              event.type === 'fabricated'),
+        );
         if (
-          (isInitialLife && turn.lifeStart.spawnReason !== 'initial') ||
+          turn.lifeStart.spawnReason !== expectedSpawnReason ||
+          (isInitialLife && spawnEvents.length !== 0) ||
           (!isInitialLife &&
-            turn.actorId.unitId === 0 &&
-            turn.lifeStart.spawnReason !== 'respawn')
+            (spawnEvents.length !== 1 ||
+              spawnEvents[0]?.spawnReason !== expectedSpawnReason))
         ) {
           fail(
             `${actorPath}.lifeStart.spawnReason`,
@@ -1803,7 +1981,16 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
         turn,
         contractActionsById,
         unitKeys,
-        new Set(contract.rules.forms.map((form) => form.id)),
+        contractFormIds,
+        contract.rules.shotPrograms,
+        actorPath,
+      );
+      validateV2ObservedActionSemantics(
+        turn,
+        contractActionsById,
+        unitKeys,
+        contract,
+        tick.tickStart.state,
         actorPath,
       );
       validateV2Aliases(turn, actorPath);
@@ -1827,7 +2014,17 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
         );
       }
       allEventIds.add(event.eventId);
+      validateV2EventSemantics(
+        event,
+        unitKeys,
+        contractActionsById,
+        contractFormIds,
+        contract.rules.shotPrograms,
+        contract.rules.frontlineDefinition?.fabrication ?? null,
+        `replay.ticks[${tickIndex}].events[${eventIndex}]`,
+      );
     });
+    priorPostState = tick.postState;
   });
 
   if (document.result) {
@@ -1889,6 +2086,435 @@ function validateV2Relationships(document: V2.ReplayV2Document): void {
         'a base-breach winner must equal the objective winner',
       );
     }
+    if (finalTick) {
+      validateV2TerminalUnits(
+        document.result,
+        finalTick.postState,
+        topology.unitSlots,
+        resultPath,
+      );
+    }
+  }
+}
+
+function validateV2FabricationContract(
+  contract: V2.ReplayV2MatchContract,
+  actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
+  formsById: ReadonlyMap<string, V2.ReplayV2FormDefinition>,
+  topologyUnitKeys: ReadonlySet<string>,
+): void {
+  const frontline = contract.rules.frontlineDefinition;
+  if (!frontline) return;
+
+  const path =
+    'replay.header.contract.rules.frontlineDefinition.fabrication';
+  const fabrication = frontline.fabrication;
+  ensureUnique(
+    frontline.victory.teamAdvances,
+    (advance) => advance.teamId,
+    'replay.header.contract.rules.frontlineDefinition.victory.teamAdvances',
+  );
+  const advanceTeams = frontline.victory.teamAdvances
+    .map((advance) => advance.teamId)
+    .sort(compareNumber);
+  const topologyTeams = contract.topology.teams
+    .map((team) => team.teamId)
+    .sort(compareNumber);
+  if (
+    !sameNumbers(advanceTeams, topologyTeams) ||
+    frontline.victory.teamAdvances.length !== 2 ||
+    !sameNumbers(
+      frontline.victory.teamAdvances
+        .map((advance) => advance.positionIndexDelta)
+        .sort(compareNumber),
+      [-1, 1],
+    )
+  ) {
+    fail(
+      'replay.header.contract.rules.frontlineDefinition.victory.teamAdvances',
+      'must map the two topology teams uniquely to -1 and +1',
+    );
+  }
+  if (
+    !contract.rules.tickResolution.phases.includes('queue-fabrications')
+  ) {
+    fail(
+      'replay.header.contract.rules.tickResolution.phases',
+      'Frontline contracts must publish queue-fabrications',
+    );
+  }
+  const { primeDefaultFormId, childDefaultFormId } =
+    frontline.deployment;
+  if (
+    primeDefaultFormId === childDefaultFormId ||
+    !formsById.has(primeDefaultFormId) ||
+    !formsById.has(childDefaultFormId) ||
+    fabrication.fabricatorFormId !== primeDefaultFormId
+  ) {
+    fail(
+      'replay.header.contract.rules.frontlineDefinition.deployment',
+      'default and fabricator form IDs must reference distinct matching contract forms',
+    );
+  }
+  if (!formsById.has(fabrication.fabricatorFormId)) {
+    fail(
+      `${path}.fabricatorFormId`,
+      'must reference a contract form',
+    );
+  }
+  for (const team of contract.topology.teams) {
+    if (
+      !topologyUnitKeys.has(
+        `${team.teamId}:${fabrication.fabricatorUnitId}`,
+      )
+    ) {
+      fail(
+        `${path}.fabricatorUnitId`,
+        `team ${team.teamId} has no matching fabricator unit`,
+      );
+    }
+  }
+  if (!fabrication.enabled) return;
+
+  const action = actionsById.get(fabrication.actionId);
+  if (
+    !action ||
+    !action.enabled ||
+    action.kind !== 'fabrication' ||
+    action.parameterKinds.length !== 1 ||
+    action.parameterKinds[0] !== 'unit-target'
+  ) {
+    fail(
+      `${path}.actionId`,
+      'must reference an enabled unit-target fabrication action',
+    );
+  }
+  const form = formsById.get(fabrication.fabricatorFormId);
+  if (!form?.allowedActionIds.includes(fabrication.actionId)) {
+    fail(
+      `${path}.fabricatorFormId`,
+      'fabricator form must allow the fabrication action',
+    );
+  }
+}
+
+function validateV2ObservedActionSemantics(
+  turn: V2.ReplayV2ActorTurn,
+  actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
+  topologyUnitKeys: ReadonlySet<string>,
+  matchContract: V2.ReplayV2MatchContract,
+  world: V2.ReplayV2WorldState,
+  path: string,
+): void {
+  const observed = turn.observation.actions;
+  ensureUnique(
+    observed,
+    (action) => action.actionId,
+    `${path}.observation.actions`,
+  );
+  ensureUnique(
+    observed,
+    (action) => action.actionCode,
+    `${path}.observation.actions`,
+  );
+  if (
+    observed.length !== actionsById.size ||
+    observed.some((action) => {
+      const contract = actionsById.get(action.actionId);
+      return (
+        !contract ||
+        action.actionCode !== contract.code ||
+        action.enabled !== contract.enabled ||
+        !sameStrings(action.parameterKinds, contract.parameterKinds)
+      );
+    })
+  ) {
+    fail(
+      `${path}.observation.actions`,
+      'must mirror every public contract action selector',
+    );
+  }
+
+  const authoritativeTeam = world.teams.find(
+    (team) => team.teamId === turn.actorId.teamId,
+  );
+  const authoritativeUnit = authoritativeTeam?.units.find(
+    (unit) => unit.unitId === turn.actorId.unitId,
+  );
+  const authoritativeLife = authoritativeUnit?.activeLife;
+  if (
+    !authoritativeTeam ||
+    !authoritativeUnit ||
+    !authoritativeLife ||
+    actorIdValue(authoritativeLife.actorId) !==
+      actorIdValue(turn.actorId) ||
+    turn.observation.self.formId !== authoritativeUnit.formId ||
+    !samePosition(
+      turn.observation.self.position,
+      authoritativeLife.position,
+    ) ||
+    turn.observation.self.facing !== authoritativeLife.facing ||
+    turn.observation.self.health !== authoritativeLife.health ||
+    turn.observation.self.cooldown !== authoritativeLife.cooldown ||
+    turn.observation.self.energy !== authoritativeLife.energy ||
+    turn.observation.self.previousActionResult !==
+      authoritativeLife.previousActionResult
+  ) {
+    fail(
+      `${path}.observation.self`,
+      'must equal the authoritative tick-start life',
+    );
+  }
+  const observedUnits = [...turn.observation.teamUnits].sort(
+    compareUnitIdentity,
+  );
+  const expectedUnits = [...authoritativeTeam.units].sort(
+    compareUnitIdentity,
+  );
+  if (
+    observedUnits.length !== expectedUnits.length ||
+    observedUnits.some((unit, index) => {
+      const expected = expectedUnits[index];
+      return (
+        !expected ||
+        unit.teamId !== expected.teamId ||
+        unit.unitId !== expected.unitId ||
+        unit.formId !== expected.formId ||
+        unit.lifecycleStatus !== expected.lifecycleStatus ||
+        !sameNullableActorId(
+          unit.activeActorId,
+          expected.activeLife?.actorId ?? null,
+        ) ||
+        unit.respawnAtTick !== expected.respawnAtTick ||
+        unit.unlockAtTick !== expected.unlockAtTick ||
+        unit.rebuildReadyAtTick !== expected.rebuildReadyAtTick ||
+        unit.fabricationAtTick !== expected.fabricationAtTick
+      );
+    })
+  ) {
+    fail(
+      `${path}.observation.teamUnits`,
+      'must equal the authoritative tick-start team units',
+    );
+  }
+
+  for (const action of observed) {
+    const contract = actionsById.get(action.actionId)!;
+    action.allowedUnitTargets?.forEach((target) => {
+      if (
+        !topologyUnitKeys.has(`${target.teamId}:${target.unitId}`)
+      ) {
+        fail(
+          `${path}.observation.actions.allowedUnitTargets`,
+          'must reference topology units',
+        );
+      }
+    });
+    if (contract.kind !== 'fabrication') continue;
+
+    const frontline = matchContract.rules.frontlineDefinition;
+    const home = matchContract.map.frontline?.teamHomes.find(
+      (candidate) => candidate.teamId === turn.actorId.teamId,
+    );
+    if (!frontline || !home) {
+      fail(
+        `${path}.observation.actions.${action.actionId}`,
+        'fabrication requires Frontline home and rule definitions',
+      );
+    }
+    const onHomePad =
+      turn.actorId.unitId === frontline.fabrication.fabricatorUnitId &&
+      home.protectedSpawnPad.some((position) =>
+        sameContractPosition(position, authoritativeLife.position),
+      );
+    const expectedTargets = authoritativeTeam.units
+      .filter(
+        (unit) =>
+          onHomePad &&
+          unit.unitId > 0 &&
+          unit.lifecycleStatus === 'ready',
+      )
+      .sort(compareUnitIdentity)
+      .map((unit) => ({ teamId: unit.teamId, unitId: unit.unitId }));
+    const currentForm = matchContract.rules.forms.find(
+      (form) => form.id === authoritativeUnit.formId,
+    );
+    const expectedAvailable =
+      contract.enabled &&
+      (currentForm?.allowedActionIds.includes(contract.id) ?? false) &&
+      expectedTargets.length > 0;
+    if (
+      action.allowedUnitTargets === null ||
+      !sameUnitTargets(action.allowedUnitTargets, expectedTargets) ||
+      action.available !== expectedAvailable
+    ) {
+      fail(
+        `${path}.observation.actions.${action.actionId}`,
+        'fabrication mask must exactly match the authoritative form, home-pad, and Ready-slot state',
+      );
+    }
+  }
+}
+
+function validateV2EventSemantics(
+  event: V2.ReplayV2Event,
+  topologyUnitKeys: ReadonlySet<string>,
+  actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
+  formIds: ReadonlySet<string>,
+  shotProgramRules: V2.ReplayV2ShotProgramRules,
+  fabrication: V2.ReplayV2FrontlineFabricationDefinition | null,
+  path: string,
+): void {
+  if (
+    event.unitId !== null &&
+    (event.teamId === null ||
+      !topologyUnitKeys.has(`${event.teamId}:${event.unitId}`))
+  ) {
+    fail(
+      path,
+      'event unitId must pair with a topology team/unit identity',
+    );
+  }
+  if ((event.actionId === null) !== (event.actionCode === null)) {
+    fail(path, 'event action selector must contain both ID and code');
+  }
+  if (event.actionId !== null && event.actionCode !== null) {
+    const action = resolveV2ContractAction(
+      event.actionId,
+      event.actionCode,
+      actionsById,
+      `${path}.actionId`,
+    );
+    validateV2PayloadForAction(
+      event.actionPayload,
+      action,
+      topologyUnitKeys,
+      formIds,
+      shotProgramRules,
+      event.sourceActorId?.teamId ?? event.teamId ?? -1,
+      `${path}.actionPayload`,
+    );
+  } else if (event.actionPayload !== null) {
+    fail(path, 'event cannot carry a payload without an action selector');
+  }
+
+  const requireLifecycle = (
+    status: V2.ReplayV2LifecycleStatus,
+    field: 'unlockAtTick' | 'rebuildReadyAtTick' | 'fabricationAtTick',
+  ) => {
+    if (
+      event.teamId === null ||
+      event.unitId === null ||
+      event.lifecycleStatus !== status ||
+      event[field] !== event.tick
+    ) {
+      fail(path, `invalid ${event.type} lifecycle payload`);
+    }
+  };
+  const actorMatchesUnit = (
+    actor: V2.ReplayV2ActorId | null,
+  ): actor is V2.ReplayV2ActorId =>
+    actor !== null &&
+    actor.teamId === event.teamId &&
+    actor.unitId === event.unitId;
+
+  switch (event.type) {
+    case 'respawned':
+      if (
+        event.teamId === null ||
+        event.unitId !== 0 ||
+        !actorMatchesUnit(event.sourceActorId) ||
+        event.lifecycleStatus !== 'active' ||
+        event.spawnReason !== 'respawn' ||
+        event.to === null ||
+        event.toFacing === null ||
+        event.newHealth === null
+      ) {
+        fail(path, 'invalid respawned lifecycle payload');
+      }
+      break;
+    case 'destroyed':
+      if (
+        event.teamId === null ||
+        event.unitId === null ||
+        !actorMatchesUnit(event.targetActorId) ||
+        event.newHealth !== 0 ||
+        (event.unitId === 0
+          ? event.lifecycleStatus !== 'respawning' ||
+            event.respawnAtTick === null ||
+            event.respawnAtTick <= event.tick ||
+            event.rebuildReadyAtTick !== null
+          : event.lifecycleStatus !== 'rebuilding' ||
+            event.rebuildReadyAtTick === null ||
+            event.rebuildReadyAtTick <= event.tick ||
+            event.respawnAtTick !== null)
+      ) {
+        fail(path, 'invalid destroyed lifecycle payload');
+      }
+      break;
+    case 'fabrication-unlocked':
+      if (event.unitId === null || event.unitId <= 0 || event.sourceActorId !== null) {
+        fail(path, 'invalid fabrication-unlocked lifecycle payload');
+      }
+      requireLifecycle('ready', 'unlockAtTick');
+      break;
+    case 'rebuild-ready':
+      if (event.unitId === null || event.unitId <= 0 || event.sourceActorId !== null) {
+        fail(path, 'invalid rebuild-ready lifecycle payload');
+      }
+      requireLifecycle('ready', 'rebuildReadyAtTick');
+      break;
+    case 'fabricated':
+      requireLifecycle('active', 'fabricationAtTick');
+      if (
+        event.unitId === null ||
+        event.unitId <= 0 ||
+        !actorMatchesUnit(event.sourceActorId) ||
+        event.spawnReason !==
+          (event.sourceActorId.lifeId === 0
+            ? 'fabrication'
+            : 'rebuild') ||
+        event.to === null ||
+        event.toFacing === null ||
+        event.newHealth === null
+      ) {
+        fail(path, 'fabricated event must identify the spawned life');
+      }
+      break;
+    case 'fabrication-queued': {
+      const action =
+        event.actionId === null
+          ? null
+          : actionsById.get(event.actionId) ?? null;
+      if (
+        event.teamId === null ||
+        event.unitId === null ||
+        event.unitId <= 0 ||
+        event.sourceActorId === null ||
+        event.sourceActorId.teamId !== event.teamId ||
+        fabrication === null ||
+        !fabrication.enabled ||
+        event.sourceActorId.unitId !== fabrication.fabricatorUnitId ||
+        event.actionId !== fabrication.actionId ||
+        action === null ||
+        event.actionCode !== action.code ||
+        event.actionResult !== 'success' ||
+        event.to === null ||
+        event.lifecycleStatus !== 'fabrication-queued' ||
+        event.fabricationAtTick === null ||
+        event.fabricationAtTick !==
+          event.tick + fabrication.spawnDelayTicks ||
+        (event.spawnReason !== 'fabrication' &&
+          event.spawnReason !== 'rebuild') ||
+        event.actionPayload === null ||
+        event.actionPayload.unitTarget === null ||
+        event.actionPayload.unitTarget.teamId !== event.teamId ||
+        event.actionPayload.unitTarget.unitId !== event.unitId
+      ) {
+        fail(path, 'invalid fabrication-queued lifecycle payload');
+      }
+      break;
+    }
   }
 }
 
@@ -1897,6 +2523,7 @@ function validateV2DecisionSemantics(
   actionsById: ReadonlyMap<string, V2.ReplayV2ActionDefinition>,
   topologyUnitKeys: ReadonlySet<string>,
   formIds: ReadonlySet<string>,
+  shotProgramRules: V2.ReplayV2ShotProgramRules,
   path: string,
 ): void {
   const accepted = turn.acceptedDecision;
@@ -1935,6 +2562,8 @@ function validateV2DecisionSemantics(
     acceptedAction,
     topologyUnitKeys,
     formIds,
+    shotProgramRules,
+    turn.actorId.teamId,
     `${path}.acceptedDecision.payload`,
   );
   validateV2PayloadForAction(
@@ -1942,6 +2571,8 @@ function validateV2DecisionSemantics(
     chosenAction,
     topologyUnitKeys,
     formIds,
+    shotProgramRules,
+    turn.actorId.teamId,
     `${path}.actionResolution.chosenPayload`,
   );
   validateV2PayloadForAction(
@@ -1949,6 +2580,8 @@ function validateV2DecisionSemantics(
     validatedAction,
     topologyUnitKeys,
     formIds,
+    shotProgramRules,
+    turn.actorId.teamId,
     `${path}.actionResolution.validatedPayload`,
   );
 
@@ -1985,9 +2618,16 @@ function validateV2PayloadForAction(
   action: V2.ReplayV2ActionDefinition,
   topologyUnitKeys: ReadonlySet<string>,
   formIds: ReadonlySet<string>,
+  shotProgramRules: V2.ReplayV2ShotProgramRules,
+  actorTeamId: number,
   path: string,
 ): void {
-  if (!payload) return;
+  if (!payload) {
+    if (action.kind === 'fabrication') {
+      fail(path, 'fabrication requires an explicit unit target');
+    }
+    return;
+  }
   const kinds = new Set(action.parameterKinds);
   if (
     (payload.shotProgram !== null && !kinds.has('shot-program')) ||
@@ -2011,6 +2651,54 @@ function validateV2PayloadForAction(
   ) {
     fail(`${path}.formTargetId`, 'must reference a contract form');
   }
+  if (
+    payload.shotProgram !== null &&
+    !isV2ShotProgramWithinRules(payload.shotProgram, shotProgramRules)
+  ) {
+    fail(`${path}.shotProgram`, 'is outside the public shot-program rules');
+  }
+  if (
+    action.kind === 'fabrication' &&
+    (payload.unitTarget === null ||
+      payload.unitTarget.teamId !== actorTeamId ||
+      payload.unitTarget.unitId === 0 ||
+      payload.shotProgram !== null ||
+      payload.direction !== null ||
+      payload.formTargetId !== null)
+  ) {
+    fail(
+      path,
+      'fabrication requires only an own-team unit target',
+    );
+  }
+}
+
+function isV2ShotProgramWithinRules(
+  program: V2.ReplayV2ShotProgram,
+  rules: V2.ReplayV2ShotProgramRules,
+): boolean {
+  if (
+    program.initialAimOffset < rules.minInitialAimOctants ||
+    program.initialAimOffset > rules.maxInitialAimOctants
+  ) {
+    return false;
+  }
+  if (program.bendCount === 0) {
+    return (
+      program.bendDirection === rules.aimOnlyProgram.bendDirection &&
+      program.bendAfterTiles === rules.aimOnlyProgram.bendAfterTiles &&
+      program.bendEveryTiles === rules.aimOnlyProgram.bendEveryTiles
+    );
+  }
+  return (
+    rules.allowedCurvedBendDirections.includes(program.bendDirection) &&
+    program.bendAfterTiles >= rules.minBendAfterTiles &&
+    program.bendAfterTiles <= rules.maxBendAfterTiles &&
+    program.bendEveryTiles >= rules.minBendEveryTiles &&
+    program.bendEveryTiles <= rules.maxBendEveryTiles &&
+    program.bendCount >= rules.minBendCount &&
+    program.bendCount <= rules.maxBendCount
+  );
 }
 
 function sameV2ActionPayload(
@@ -2034,6 +2722,46 @@ function sameV2UnitTarget(
   return left.teamId === right.teamId && left.unitId === right.unitId;
 }
 
+function sameUnitTargets(
+  left: readonly V2.ReplayV2ObservedUnitTarget[],
+  right: readonly V2.ReplayV2ObservedUnitTarget[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every(
+      (target, index) =>
+        right[index] !== undefined &&
+        sameV2UnitTarget(target, right[index]),
+    )
+  );
+}
+
+function sameNullableActorId(
+  left: V2.ReplayV2ActorId | null,
+  right: V2.ReplayV2ActorId | null,
+): boolean {
+  return (
+    (left === null && right === null) ||
+    (left !== null &&
+      right !== null &&
+      actorIdValue(left) === actorIdValue(right))
+  );
+}
+
+function samePosition(
+  left: Readonly<Model.ReplayPosition>,
+  right: Readonly<Model.ReplayPosition>,
+): boolean {
+  return left.x === right.x && left.y === right.y;
+}
+
+function sameContractPosition(
+  left: V2.ReplayV2ContractPosition,
+  right: Readonly<Model.ReplayPosition>,
+): boolean {
+  return left[0] === right.x && left[1] === right.y;
+}
+
 function sameV2ShotProgram(
   left: V2.ReplayV2ShotProgram | null,
   right: V2.ReplayV2ShotProgram | null,
@@ -2045,6 +2773,147 @@ function sameV2ShotProgram(
     left.bendAfterTiles === right.bendAfterTiles &&
     left.bendEveryTiles === right.bendEveryTiles &&
     left.bendCount === right.bendCount
+  );
+}
+
+function sameV2WorldState(
+  left: V2.ReplayV2WorldState,
+  right: V2.ReplayV2WorldState,
+): boolean {
+  const leftTeams = [...left.teams].sort(
+    (first, second) => first.teamId - second.teamId,
+  );
+  const rightTeams = [...right.teams].sort(
+    (first, second) => first.teamId - second.teamId,
+  );
+  return (
+    sameV2Control(left.objective, right.objective) &&
+    sameV2ProjectileSequences(left.projectiles, right.projectiles) &&
+    leftTeams.length === rightTeams.length &&
+    leftTeams.every((team, index) => {
+      const other = rightTeams[index];
+      if (
+        !other ||
+        team.teamId !== other.teamId ||
+        team.damageDealt !== other.damageDealt
+      ) {
+        return false;
+      }
+      const units = [...team.units].sort(compareUnitIdentity);
+      const otherUnits = [...other.units].sort(compareUnitIdentity);
+      return (
+        units.length === otherUnits.length &&
+        units.every(
+          (unit, unitIndex) =>
+            otherUnits[unitIndex] !== undefined &&
+            sameV2UnitState(unit, otherUnits[unitIndex]!),
+        )
+      );
+    })
+  );
+}
+
+function sameV2UnitState(
+  left: V2.ReplayV2UnitState,
+  right: V2.ReplayV2UnitState,
+): boolean {
+  return (
+    left.teamId === right.teamId &&
+    left.unitId === right.unitId &&
+    left.formId === right.formId &&
+    left.lifecycleStatus === right.lifecycleStatus &&
+    left.respawnAtTick === right.respawnAtTick &&
+    left.unlockAtTick === right.unlockAtTick &&
+    left.rebuildReadyAtTick === right.rebuildReadyAtTick &&
+    left.fabricationAtTick === right.fabricationAtTick &&
+    sameNullablePosition(left.reservedSpawn, right.reservedSpawn) &&
+    left.pendingSpawnReason === right.pendingSpawnReason &&
+    left.hasSpawned === right.hasSpawned &&
+    left.nextLifeId === right.nextLifeId &&
+    left.damageDealt === right.damageDealt &&
+    sameV2LifeState(left.activeLife, right.activeLife)
+  );
+}
+
+function sameV2LifeState(
+  left: V2.ReplayV2LifeState | null,
+  right: V2.ReplayV2LifeState | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return (
+    actorIdValue(left.actorId) === actorIdValue(right.actorId) &&
+    samePosition(left.position, right.position) &&
+    left.facing === right.facing &&
+    left.health === right.health &&
+    left.cooldown === right.cooldown &&
+    left.energy === right.energy &&
+    left.damageDealt === right.damageDealt &&
+    left.previousActionResult === right.previousActionResult &&
+    left.spawnedAtTick === right.spawnedAtTick
+  );
+}
+
+function sameV2ProjectileSequences(
+  left: readonly V2.ReplayV2ProjectileState[],
+  right: readonly V2.ReplayV2ProjectileState[],
+): boolean {
+  const leftProjectiles = [...left].sort((first, second) =>
+    compareDecimalStrings(first.projectileId, second.projectileId),
+  );
+  const rightProjectiles = [...right].sort((first, second) =>
+    compareDecimalStrings(first.projectileId, second.projectileId),
+  );
+  return (
+    leftProjectiles.length === rightProjectiles.length &&
+    leftProjectiles.every(
+      (projectile, index) =>
+        rightProjectiles[index] !== undefined &&
+        sameV2ProjectileState(projectile, rightProjectiles[index]!),
+    )
+  );
+}
+
+function sameV2ProjectileState(
+  left: V2.ReplayV2ProjectileState,
+  right: V2.ReplayV2ProjectileState,
+): boolean {
+  return (
+    left.projectileId === right.projectileId &&
+    actorIdValue(left.ownerActorId) === actorIdValue(right.ownerActorId) &&
+    samePosition(left.position, right.position) &&
+    left.launchDirection === right.launchDirection &&
+    left.heading === right.heading &&
+    sameV2ShotProgram(left.shotProgram, right.shotProgram) &&
+    sameNullablePositionSequence(
+      left.programmedPath,
+      right.programmedPath,
+    ) &&
+    left.nextProgrammedPathIndex === right.nextProgrammedPathIndex &&
+    left.tilesTraveled === right.tilesTraveled &&
+    left.phase === right.phase
+  );
+}
+
+function sameNullablePosition(
+  left: Readonly<Model.ReplayPosition> | null,
+  right: Readonly<Model.ReplayPosition> | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return samePosition(left, right);
+}
+
+function sameNullablePositionSequence(
+  left: readonly V2.ReplayV2Position[] | null,
+  right: readonly V2.ReplayV2Position[] | null,
+): boolean {
+  if (left === null || right === null) return left === right;
+  return (
+    left.length === right.length &&
+    left.every(
+      (position, index) =>
+        right[index] !== undefined &&
+        samePosition(position, right[index]!),
+    )
   );
 }
 
@@ -2061,6 +2930,79 @@ function sameV2Control(
     left.controlResumesAtTick === right.controlResumesAtTick &&
     left.winnerTeamId === right.winnerTeamId
   );
+}
+
+function validateV2TerminalUnits(
+  result: V2.ReplayV2Result,
+  finalWorld: V2.ReplayV2WorldState,
+  topologyUnits: readonly V2.ReplayV2TopologyUnitSlot[],
+  path: string,
+): void {
+  const expectedUnitKeys = new Set(
+    topologyUnits.map((unit) => `${unit.teamId}:${unit.unitId}`),
+  );
+  const actualUnitKeys = new Set<string>();
+
+  for (const teamResult of result.teams) {
+    const worldTeam = finalWorld.teams.find(
+      (team) => team.teamId === teamResult.teamId,
+    );
+    if (!worldTeam) {
+      fail(`${path}.teams`, 'terminal team is absent from final world');
+    }
+    ensureUnique(
+      teamResult.units,
+      (unit) => `${unit.teamId}:${unit.unitId}`,
+      `${path}.teams.${teamResult.teamId}.units`,
+    );
+    if (
+      teamResult.damageDealt !== worldTeam.damageDealt ||
+      teamResult.activeHealth !==
+        worldTeam.units.reduce(
+          (sum, unit) => sum + (unit.activeLife?.health ?? 0),
+          0,
+        )
+    ) {
+      fail(
+        `${path}.teams.${teamResult.teamId}`,
+        'aggregate health or damage differs from the final world',
+      );
+    }
+
+    for (const unitResult of teamResult.units) {
+      const key = `${unitResult.teamId}:${unitResult.unitId}`;
+      actualUnitKeys.add(key);
+      const worldUnit = worldTeam.units.find(
+        (unit) =>
+          unit.teamId === unitResult.teamId &&
+          unit.unitId === unitResult.unitId,
+      );
+      if (
+        unitResult.teamId !== teamResult.teamId ||
+        !expectedUnitKeys.has(key) ||
+        !worldUnit ||
+        unitResult.formId !== worldUnit.formId ||
+        unitResult.lifecycleStatus !== worldUnit.lifecycleStatus ||
+        unitResult.health !== (worldUnit.activeLife?.health ?? 0) ||
+        unitResult.damageDealt !== worldUnit.damageDealt ||
+        (unitResult.activeActorId === null) !==
+          (worldUnit.activeLife === null) ||
+        (unitResult.activeActorId !== null &&
+          worldUnit.activeLife !== null &&
+          actorIdValue(unitResult.activeActorId) !==
+            actorIdValue(worldUnit.activeLife.actorId))
+      ) {
+        fail(
+          `${path}.teams.${teamResult.teamId}.units`,
+          `unit ${key} differs from the final world`,
+        );
+      }
+    }
+  }
+
+  if (!sameStringSet(actualUnitKeys, expectedUnitKeys)) {
+    fail(`${path}.teams.units`, 'must cover exactly the topology units');
+  }
 }
 
 function sameNumbers(
@@ -2270,10 +3212,304 @@ function sameStringSet(
   return true;
 }
 
+function validateV2InitialDeployment(
+  contract: V2.ReplayV2MatchContract,
+  world: V2.ReplayV2WorldState,
+  path: string,
+): void {
+  const frontline = contract.rules.frontlineDefinition;
+  if (!frontline) {
+    fail(path, 'tick-zero deployment requires Frontline rules');
+  }
+  const initialLivesByUnit = new Map<
+    string,
+    V2.ReplayV2TopologyInitialLife
+  >();
+  for (const life of contract.topology.initialLives) {
+    const key = `${life.teamId}:${life.unitId}`;
+    if (initialLivesByUnit.has(key)) {
+      fail(
+        'replay.header.contract.topology.initialLives',
+        `contains multiple initial lives for stable unit ${key}`,
+      );
+    }
+    initialLivesByUnit.set(key, life);
+  }
+
+  for (const unit of world.teams.flatMap((team) => team.units)) {
+    const expectedFormId =
+      unit.unitId === 0
+        ? frontline.deployment.primeDefaultFormId
+        : frontline.deployment.childDefaultFormId;
+    const initial = initialLivesByUnit.get(
+      `${unit.teamId}:${unit.unitId}`,
+    );
+    const hasInitialLife = initial !== undefined;
+    if (
+      unit.formId !== expectedFormId ||
+      (unit.unitId === 0) !== hasInitialLife ||
+      (initial !== undefined &&
+        (initial.formId !== expectedFormId ||
+          unit.activeLife === null ||
+          actorIdValue(unit.activeLife.actorId) !==
+            actorIdValue(initial)))
+    ) {
+      fail(
+        `${path}.teams.${unit.teamId}.units.${unit.unitId}`,
+        'must use its deployment default form and exact initial-life topology',
+      );
+    }
+  }
+}
+
+function validateV2LifecycleTransition(
+  contract: V2.ReplayV2MatchContract,
+  before: V2.ReplayV2WorldState,
+  after: V2.ReplayV2WorldState,
+  events: readonly V2.ReplayV2Event[],
+  tick: number,
+  path: string,
+): void {
+  const beforeTeams = [...before.teams].sort(
+    (left, right) => left.teamId - right.teamId,
+  );
+  const afterTeams = [...after.teams].sort(
+    (left, right) => left.teamId - right.teamId,
+  );
+  if (
+    !sameV2Control(before.objective, after.objective) ||
+    !sameV2ProjectileSequences(before.projectiles, after.projectiles) ||
+    beforeTeams.length !== afterTeams.length ||
+    beforeTeams.some(
+      (team, index) =>
+        team.teamId !== afterTeams[index]?.teamId ||
+        team.damageDealt !== afterTeams[index]?.damageDealt,
+    )
+  ) {
+    fail(
+      path,
+      'lifecycle application may change only stable-unit lifecycle state',
+    );
+  }
+
+  const beforeUnits = new Map(
+    before.teams
+      .flatMap((team) => team.units)
+      .map((unit) => [`${unit.teamId}:${unit.unitId}`, unit]),
+  );
+  const afterUnits = new Map(
+    after.teams
+      .flatMap((team) => team.units)
+      .map((unit) => [`${unit.teamId}:${unit.unitId}`, unit]),
+  );
+  const transitions = new Map<string, V2.ReplayV2Event>();
+  for (const event of events) {
+    if (event.teamId === null || event.unitId === null) {
+      fail(path, 'every lifecycle event requires a stable team/unit identity');
+    }
+    const key = `${event.teamId}:${event.unitId}`;
+    if (transitions.has(key)) {
+      fail(path, `contains duplicate lifecycle transitions for unit ${key}`);
+    }
+    if (!beforeUnits.has(key) || !afterUnits.has(key)) {
+      fail(path, `lifecycle event references unknown stable unit ${key}`);
+    }
+    transitions.set(key, event);
+  }
+
+  for (const [key, prior] of beforeUnits) {
+    const current = afterUnits.get(key);
+    if (!current) {
+      fail(path, `lifecycle transition dropped stable unit ${key}`);
+    }
+    const event = transitions.get(key);
+    if (!event) {
+      if (!sameV2UnitState(prior, current)) {
+        fail(path, `unit ${key} changed without a lifecycle event`);
+      }
+      continue;
+    }
+
+    let coherent = false;
+    switch (event.type) {
+      case 'fabrication-unlocked':
+        coherent =
+          prior.lifecycleStatus === 'locked' &&
+          prior.unlockAtTick === tick &&
+          sameV2UnitState(current, {
+            ...prior,
+            lifecycleStatus: 'ready',
+          });
+        break;
+      case 'rebuild-ready':
+        coherent =
+          prior.lifecycleStatus === 'rebuilding' &&
+          prior.rebuildReadyAtTick === tick &&
+          sameV2UnitState(current, {
+            ...prior,
+            lifecycleStatus: 'ready',
+            rebuildReadyAtTick: null,
+          });
+        break;
+      case 'fabricated':
+        coherent = validateV2SpawnedUnit(
+          contract,
+          prior,
+          current,
+          event,
+          tick,
+          false,
+        );
+        break;
+      case 'respawned':
+        coherent = validateV2SpawnedUnit(
+          contract,
+          prior,
+          current,
+          event,
+          tick,
+          true,
+        );
+        break;
+    }
+    if (!coherent) {
+      fail(path, `lifecycle transition for unit ${key} does not match its event`);
+    }
+  }
+}
+
+function validateV2SpawnedUnit(
+  contract: V2.ReplayV2MatchContract,
+  before: V2.ReplayV2UnitState,
+  after: V2.ReplayV2UnitState,
+  event: V2.ReplayV2Event,
+  tick: number,
+  primeRespawn: boolean,
+): boolean {
+  const frontline = contract.rules.frontlineDefinition;
+  const map = contract.map.frontline;
+  const life = after.activeLife;
+  if (!frontline || !map || !life) return false;
+
+  const expectedFormId = primeRespawn
+    ? frontline.deployment.primeDefaultFormId
+    : frontline.deployment.childDefaultFormId;
+  const form = contract.rules.forms.find(
+    (candidate) => candidate.id === expectedFormId,
+  );
+  const home = map.teamHomes.find(
+    (candidate) => candidate.teamId === after.teamId,
+  );
+  const expectedPosition = primeRespawn
+    ? home?.primeSpawn ?? null
+    : before.reservedSpawn;
+  const expectedReason = primeRespawn
+    ? 'respawn'
+    : before.pendingSpawnReason;
+
+  return (
+    form !== undefined &&
+    home !== undefined &&
+    expectedPosition !== null &&
+    before.activeLife === null &&
+    before.unitId === after.unitId &&
+    before.teamId === after.teamId &&
+    (primeRespawn ? before.unitId === 0 : before.unitId > 0) &&
+    before.lifecycleStatus ===
+      (primeRespawn ? 'respawning' : 'fabrication-queued') &&
+    (primeRespawn
+      ? before.respawnAtTick === tick
+      : before.fabricationAtTick === tick) &&
+    event.spawnReason === expectedReason &&
+    sameNullableActorId(event.sourceActorId, life.actorId) &&
+    life.actorId.teamId === after.teamId &&
+    life.actorId.unitId === after.unitId &&
+    life.actorId.lifeId === before.nextLifeId &&
+    samePosition(life.position, expectedPosition) &&
+    life.facing === home.primeSpawn.facing &&
+    life.health === form.maxHealth &&
+    event.to !== null &&
+    samePosition(event.to, life.position) &&
+    event.toFacing === life.facing &&
+    event.newHealth === life.health &&
+    life.cooldown === 0 &&
+    life.energy ===
+      (contract.rules.energy.enabled
+        ? contract.rules.energy.maxEnergy
+        : null) &&
+    life.damageDealt === '0' &&
+    life.previousActionResult === 'none' &&
+    life.spawnedAtTick === tick &&
+    after.lifecycleStatus === 'active' &&
+    after.nextLifeId === before.nextLifeId + 1 &&
+    after.respawnAtTick === null &&
+    after.rebuildReadyAtTick === null &&
+    after.fabricationAtTick === null &&
+    after.reservedSpawn === null &&
+    after.pendingSpawnReason === null &&
+    after.hasSpawned &&
+    after.damageDealt === before.damageDealt &&
+    after.unlockAtTick === before.unlockAtTick &&
+    after.formId === expectedFormId
+  );
+}
+
+function validateV2ControlState(
+  state: V2.ReplayV2ControlState,
+  frontline: V2.ReplayV2FrontlineDefinition,
+  topologyTeamIds: readonly number[],
+  path: string,
+): void {
+  const topologyTeams = new Set(topologyTeamIds);
+  const winnerAdvance =
+    state.winnerTeamId === null
+      ? null
+      : frontline.victory.teamAdvances.find(
+          (advance) => advance.teamId === state.winnerTeamId,
+        ) ?? null;
+  const invalid =
+    state.nextTick < 0 ||
+    state.activePositionIndex < 0 ||
+    state.activePositionIndex >= frontline.frontlinePositionCount ||
+    (state.claimingTeamId !== null &&
+      !topologyTeams.has(state.claimingTeamId)) ||
+    (state.winnerTeamId !== null &&
+      !topologyTeams.has(state.winnerTeamId)) ||
+    state.captureProgress < 0 ||
+    state.captureProgress >= frontline.capture.threshold ||
+    state.decayTicksElapsed < 0 ||
+    state.decayTicksElapsed >= frontline.capture.decayIntervalTicks ||
+    state.controlResumesAtTick < 0 ||
+    (state.claimingTeamId === null &&
+      (state.captureProgress !== 0 ||
+        state.decayTicksElapsed !== 0)) ||
+    (state.claimingTeamId !== null && state.captureProgress === 0) ||
+    (state.nextTick < state.controlResumesAtTick &&
+      (state.claimingTeamId !== null ||
+        state.captureProgress !== 0 ||
+        state.decayTicksElapsed !== 0)) ||
+    (state.winnerTeamId !== null &&
+      (winnerAdvance === null ||
+        state.activePositionIndex !==
+          (winnerAdvance.positionIndexDelta > 0
+            ? frontline.frontlinePositionCount - 1
+            : 0) ||
+        state.claimingTeamId !== null ||
+        state.captureProgress !== 0 ||
+        state.decayTicksElapsed !== 0 ||
+        state.controlResumesAtTick > state.nextTick));
+  if (invalid) {
+    fail(path, 'Frontline control state violates canonical invariants');
+  }
+}
+
 function validateV2WorldRelationships(
   world: V2.ReplayV2WorldState,
   topologyUnitKeys: ReadonlySet<string>,
   topologyTeamIds: readonly number[],
+  tick: number,
+  frontline: V2.ReplayV2FrontlineDefinition | null,
+  frontlineMap: V2.ReplayV2FrontlineMapDefinition | null,
   path: string,
 ): void {
   ensureUnique(world.teams, (team) => team.teamId, `${path}.teams`);
@@ -2288,12 +3524,23 @@ function validateV2WorldRelationships(
     new Set(topologyTeamIds),
     `${path}.objective`,
   );
+  if (frontline) {
+    validateV2ControlState(
+      world.objective,
+      frontline,
+      topologyTeamIds,
+      `${path}.objective`,
+    );
+  }
   ensureUnique(
     world.projectiles,
     (projectile) => projectile.projectileId,
     `${path}.projectiles`,
   );
   const actorKeys: string[] = [];
+  const worldUnitKeys: string[] = [];
+  const occupied = new Set<string>();
+  const reserved = new Set<string>();
   for (const team of world.teams) {
     ensureUnique(team.units, (unit) => unit.unitId, `${path}.teams.units`);
     for (const unit of team.units) {
@@ -2306,17 +3553,178 @@ function validateV2WorldRelationships(
           `unit ${unit.teamId}:${unit.unitId} is inconsistent with topology`,
         );
       }
+      worldUnitKeys.push(`${unit.teamId}:${unit.unitId}`);
+      if (frontline) {
+        const expectedFormId =
+          unit.unitId === 0
+            ? frontline.deployment.primeDefaultFormId
+            : frontline.deployment.childDefaultFormId;
+        if (unit.formId !== expectedFormId) {
+          fail(
+            `${path}.teams.${team.teamId}.units.${unit.unitId}.formId`,
+            'must equal the deployment default for this stable slot',
+          );
+        }
+      }
+      validateV2UnitLifecycle(
+        unit,
+        tick,
+        `${path}.teams.${team.teamId}.units.${unit.unitId}`,
+      );
       if (unit.activeLife) {
         const actor = unit.activeLife.actorId;
         if (actor.teamId !== unit.teamId || actor.unitId !== unit.unitId) {
           fail(`${path}.teams.units.activeLife`, 'actor/unit identity mismatch');
         }
         actorKeys.push(actorIdValue(actor));
+        const position = `${unit.activeLife.position.x}:${unit.activeLife.position.y}`;
+        if (occupied.has(position)) {
+          fail(path, 'active unit positions must be unique');
+        }
+        occupied.add(position);
+      }
+      if (unit.reservedSpawn) {
+        const home = frontlineMap?.teamHomes.find(
+          (candidate) => candidate.teamId === unit.teamId,
+        );
+        const position = `${unit.reservedSpawn.x}:${unit.reservedSpawn.y}`;
+        if (
+          !home ||
+          samePosition(unit.reservedSpawn, home.primeSpawn) ||
+          !home.protectedSpawnPad.some((candidate) =>
+            sameContractPosition(candidate, unit.reservedSpawn!),
+          ) ||
+          reserved.has(position)
+        ) {
+          fail(
+            `${path}.teams.${team.teamId}.units.${unit.unitId}.reservedSpawn`,
+            'must be a unique non-Prime tile on the unit team protected pad',
+          );
+        }
+        reserved.add(position);
       }
     }
   }
   if (new Set(actorKeys).size !== actorKeys.length) {
     fail(path, 'active actor identities must be unique');
+  }
+  if (
+    !sameStringSet(new Set(worldUnitKeys), new Set(topologyUnitKeys))
+  ) {
+    fail(`${path}.teams.units`, 'must cover exactly the topology units');
+  }
+  for (const position of reserved) {
+    if (occupied.has(position)) {
+      fail(path, 'fabrication reservations must be unoccupied');
+    }
+  }
+}
+
+function validateV2UnitLifecycle(
+  unit: V2.ReplayV2UnitState,
+  tick: number,
+  path: string,
+): void {
+  const active = unit.activeLife !== null;
+  if ((unit.lifecycleStatus === 'active') !== active) {
+    fail(
+      path,
+      'active lifecycle status and activeLife must agree exactly',
+    );
+  }
+  if (
+    unit.nextLifeId < 0 ||
+    (unit.activeLife !== null &&
+      unit.activeLife.actorId.lifeId !== unit.nextLifeId - 1)
+  ) {
+    fail(`${path}.nextLifeId`, 'is inconsistent with the active life');
+  }
+  if (
+    unit.activeLife &&
+    (unit.activeLife.spawnedAtTick < 0 ||
+      unit.activeLife.spawnedAtTick > tick)
+  ) {
+    fail(`${path}.activeLife.spawnedAtTick`, 'is outside world chronology');
+  }
+
+  const noFabricationReservation =
+    unit.fabricationAtTick === null &&
+    unit.reservedSpawn === null &&
+    unit.pendingSpawnReason === null;
+  switch (unit.lifecycleStatus) {
+    case 'active':
+      if (
+        unit.respawnAtTick !== null ||
+        unit.rebuildReadyAtTick !== null ||
+        !noFabricationReservation ||
+        !unit.hasSpawned
+      ) {
+        fail(path, 'active unit has stale lifecycle scheduling state');
+      }
+      break;
+    case 'respawning':
+      if (
+        unit.unitId !== 0 ||
+        unit.respawnAtTick === null ||
+        unit.respawnAtTick <= tick ||
+        unit.rebuildReadyAtTick !== null ||
+        !noFabricationReservation ||
+        !unit.hasSpawned
+      ) {
+        fail(path, 'invalid respawn lifecycle scheduling state');
+      }
+      break;
+    case 'locked':
+      if (
+        unit.unitId === 0 ||
+        unit.unlockAtTick === null ||
+        unit.unlockAtTick <= tick ||
+        unit.respawnAtTick !== null ||
+        unit.rebuildReadyAtTick !== null ||
+        !noFabricationReservation ||
+        unit.hasSpawned ||
+        unit.nextLifeId !== 0
+      ) {
+        fail(path, 'invalid locked lifecycle scheduling state');
+      }
+      break;
+    case 'ready':
+      if (
+        unit.unitId === 0 ||
+        unit.respawnAtTick !== null ||
+        unit.rebuildReadyAtTick !== null ||
+        !noFabricationReservation
+      ) {
+        fail(path, 'ready unit has stale lifecycle scheduling state');
+      }
+      break;
+    case 'fabrication-queued':
+      if (
+        unit.unitId === 0 ||
+        unit.respawnAtTick !== null ||
+        unit.rebuildReadyAtTick !== null ||
+        unit.fabricationAtTick === null ||
+        unit.fabricationAtTick <= tick ||
+        unit.reservedSpawn === null ||
+        unit.pendingSpawnReason === null ||
+        unit.pendingSpawnReason !==
+          (unit.hasSpawned ? 'rebuild' : 'fabrication')
+      ) {
+        fail(path, 'invalid queued fabrication lifecycle state');
+      }
+      break;
+    case 'rebuilding':
+      if (
+        unit.unitId === 0 ||
+        unit.respawnAtTick !== null ||
+        unit.rebuildReadyAtTick === null ||
+        unit.rebuildReadyAtTick <= tick ||
+        !noFabricationReservation ||
+        !unit.hasSpawned
+      ) {
+        fail(path, 'invalid rebuilding lifecycle scheduling state');
+      }
+      break;
   }
 }
 
@@ -2752,6 +4160,13 @@ function v1World(
       formId: 'legacy-mobile',
       lifecycleStatus,
       respawnAtTick: null,
+      unlockAtTick: null,
+      rebuildReadyAtTick: null,
+      fabricationAtTick: null,
+      reservedSpawn: null,
+      pendingSpawnReason: null,
+      hasSpawned: true,
+      nextLifeId: 1,
       damageDealt: null,
       activeActorKey:
         lifecycleStatus === 'active' ? identity.actorKey : null,
@@ -2881,6 +4296,9 @@ function v1ActorTurn(
     lifecycleStatus: selfState?.status ?? 'destroyed',
     activeActor: selfState?.identity ?? null,
     respawnAtTick: null,
+    unlockAtTick: null,
+    rebuildReadyAtTick: null,
+    fabricationAtTick: null,
   };
   const submittedProgram = turn.shotProgram
     ? copyShotProgram(turn.shotProgram)
@@ -3039,6 +4457,7 @@ function causalEventFromV1(
     ordinal,
     type: eventTypeFromV1(event.type),
     teamId: sourceActor?.teamId ?? targetActor?.teamId ?? null,
+    unitId: sourceActor?.unitId ?? targetActor?.unitId ?? null,
     sourceActor,
     targetActor,
     projectileId: null,
@@ -3061,7 +4480,11 @@ function causalEventFromV1(
         : event.type === 'Disqualified'
           ? 'disqualified'
           : null,
+    spawnReason: null,
     respawnAtTick: null,
+    unlockAtTick: null,
+    rebuildReadyAtTick: null,
+    fabricationAtTick: null,
     fromPositionIndex: null,
     toPositionIndex: null,
     claimingTeamId: null,
@@ -3133,9 +4556,21 @@ function v1TerminalResult(
         teamKey: replayTeamKey(bot.slot),
         teamId: bot.slot,
         outcome: bot.outcome.toLowerCase() as 'win' | 'loss' | 'draw',
-        finalHealth: bot.finalHealth,
+        activeHealth: bot.finalHealth,
         damageDealt: String(bot.damageDealt),
-        finalLifecycleStatus: lifecycleFromV1(bot.finalStatus),
+        units: [
+          {
+            unitKey: replayDuelIdentity(bot.slot).unitKey,
+            teamId: bot.slot,
+            unitId: 0,
+            formId: 'legacy-mobile',
+            lifecycleStatus: lifecycleFromV1(bot.finalStatus),
+            activeActor: null,
+            activeActorKey: null,
+            health: bot.finalHealth,
+            damageDealt: String(bot.damageDealt),
+          },
+        ],
         faults: bot.faults,
         zoneTicks: bot.zoneTicks ?? null,
       })),
@@ -3480,6 +4915,14 @@ function contractFromV2(
         ? {
             ...rules.frontlineDefinition,
             capture: { ...rules.frontlineDefinition.capture },
+            victory: {
+              ...rules.frontlineDefinition.victory,
+              teamAdvances: [
+                ...rules.frontlineDefinition.victory.teamAdvances,
+              ]
+                .sort((left, right) => left.teamId - right.teamId)
+                .map((advance) => ({ ...advance })),
+            },
             lifecycle: {
               ...rules.frontlineDefinition.lifecycle,
               fabricationUnlockTicks: [
@@ -3487,6 +4930,8 @@ function contractFromV2(
                   .fabricationUnlockTicks,
               ],
             },
+            deployment: { ...rules.frontlineDefinition.deployment },
+            fabrication: { ...rules.frontlineDefinition.fabrication },
             anchor: { ...rules.frontlineDefinition.anchor },
             alliedCombat: {
               ...rules.frontlineDefinition.alliedCombat,
@@ -3739,6 +5184,15 @@ function worldFromV2(
         formId: unit.formId,
         lifecycleStatus: unit.lifecycleStatus,
         respawnAtTick: unit.respawnAtTick,
+        unlockAtTick: unit.unlockAtTick,
+        rebuildReadyAtTick: unit.rebuildReadyAtTick,
+        fabricationAtTick: unit.fabricationAtTick,
+        reservedSpawn: unit.reservedSpawn
+          ? copyPosition(unit.reservedSpawn)
+          : null,
+        pendingSpawnReason: unit.pendingSpawnReason,
+        hasSpawned: unit.hasSpawned,
+        nextLifeId: unit.nextLifeId,
         damageDealt: unit.damageDealt,
         activeActorKey: unit.activeLife
           ? actorIdentityFromV2(unit.activeLife.actorId).actorKey
@@ -3962,6 +5416,9 @@ function observationFromV2(
           ? actorIdentityFromV2(unit.activeActorId)
           : null,
         respawnAtTick: unit.respawnAtTick,
+        unlockAtTick: unit.unlockAtTick,
+        rebuildReadyAtTick: unit.rebuildReadyAtTick,
+        fabricationAtTick: unit.fabricationAtTick,
       })),
     allies: [...observation.allies]
       .sort((left, right) =>
@@ -4149,6 +5606,7 @@ function eventFromV2(
     ordinal,
     type: event.type,
     teamId: event.teamId,
+    unitId: event.unitId,
     sourceActor: event.sourceActorId
       ? actorIdentityFromV2(event.sourceActorId)
       : null,
@@ -4168,7 +5626,11 @@ function eventFromV2(
     amount: event.amount,
     newHealth: event.newHealth,
     lifecycleStatus: event.lifecycleStatus,
+    spawnReason: event.spawnReason,
     respawnAtTick: event.respawnAtTick,
+    unlockAtTick: event.unlockAtTick,
+    rebuildReadyAtTick: event.rebuildReadyAtTick,
+    fabricationAtTick: event.fabricationAtTick,
     fromPositionIndex: event.fromPositionIndex,
     toPositionIndex: event.toPositionIndex,
     claimingTeamId: event.claimingTeamId,
@@ -4211,9 +5673,26 @@ function resultFromV2(result: V2.ReplayV2Result): Model.ReplayTerminalResult {
         teamKey: replayTeamKey(team.teamId),
         teamId: team.teamId,
         outcome: team.outcome,
-        finalHealth: team.finalHealth,
+        activeHealth: team.activeHealth,
         damageDealt: team.damageDealt,
-        finalLifecycleStatus: team.finalLifecycleStatus,
+        units: [...team.units]
+          .sort((left, right) => left.unitId - right.unitId)
+          .map((unit) => {
+            const activeActor = unit.activeActorId
+              ? actorIdentityFromV2(unit.activeActorId)
+              : null;
+            return {
+              unitKey: frontlineUnitKey(unit.teamId, unit.unitId),
+              teamId: unit.teamId,
+              unitId: unit.unitId,
+              formId: unit.formId,
+              lifecycleStatus: unit.lifecycleStatus,
+              activeActor,
+              activeActorKey: activeActor?.actorKey ?? null,
+              health: unit.health,
+              damageDealt: unit.damageDealt,
+            };
+          }),
         faults: null,
         zoneTicks: null,
       })),

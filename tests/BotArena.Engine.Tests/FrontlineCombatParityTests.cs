@@ -236,8 +236,8 @@ public class FrontlineCombatParityTests
                     legacyResolution.Result),
                 new ResolutionSnapshot(
                     frontlineResolution.ActorId.TeamId,
-                    frontlineResolution.ChosenAction,
-                    frontlineResolution.ValidatedAction,
+                    frontlineResolution.ChosenAction!.Value,
+                    frontlineResolution.ValidatedAction!.Value,
                     frontlineResolution.Result));
 
             FrontlineLifeState frontlineLife =

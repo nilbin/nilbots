@@ -150,6 +150,12 @@ public static class MatchDefinitionResolver
         }
         if (rules.ChildRebuildTicks <= 0)
             errors.Add("Frontline ChildRebuildTicks must be positive.");
+        if ((long)outerRules.MaxTicks + rules.ChildRebuildTicks > int.MaxValue)
+        {
+            errors.Add(
+                "Frontline MaxTicks plus ChildRebuildTicks must fit in a " +
+                "32-bit absolute tick.");
+        }
         if (rules.AnchorWindupTicks <= 0)
             errors.Add("Frontline AnchorWindupTicks must be positive.");
         if (rules.AnchorHealthGain < 0)

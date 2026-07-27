@@ -9,6 +9,7 @@ public sealed record FrontlineMatchEvent
     public required int Tick { get; init; }
     public required FrontlineMatchEventType Type { get; init; }
     public int? TeamId { get; init; }
+    public int? UnitId { get; init; }
     public FrontlineActorId? ActorId { get; init; }
     public FrontlineActorId? OtherActorId { get; init; }
     public long? ProjectileId { get; init; }
@@ -19,11 +20,18 @@ public sealed record FrontlineMatchEvent
     public ProjectileHeading? ProjectileHeading { get; init; }
     public ShotProgram? ShotProgram { get; init; }
     public BotAction? Action { get; init; }
+    public string? ActionId { get; init; }
+    public int? ActionCode { get; init; }
+    public ActorActionPayload? ActionPayload { get; init; }
     public ActionResult? ActionResult { get; init; }
     public int? Amount { get; init; }
     public int? NewHealth { get; init; }
     public FrontlineLifecycleStatus? LifecycleStatus { get; init; }
+    public ActorSpawnReason? SpawnReason { get; init; }
     public int? RespawnAtTick { get; init; }
+    public int? UnlockAtTick { get; init; }
+    public int? RebuildReadyAtTick { get; init; }
+    public int? FabricationAtTick { get; init; }
     public int? FromPositionIndex { get; init; }
     public int? ToPositionIndex { get; init; }
     public int? ClaimingTeamId { get; init; }

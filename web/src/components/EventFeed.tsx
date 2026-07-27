@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import clsx from 'clsx';
 import type { ReplayCausalEvent, ReplayModel } from '../replayModel';
-import { actorName, teamName } from '../replayParticipants';
+import {
+  actorName,
+  teamName,
+  unitName,
+} from '../replayParticipants';
 
 export default function EventFeed({
   replay,
@@ -32,6 +36,13 @@ export default function EventFeed({
   }, [entries.length]);
 
   const describe = (event: ReplayCausalEvent): string => {
+    const stableUnit = replay.units.find(
+      (unit) =>
+        unit.teamId === event.teamId && unit.unitId === event.unitId,
+    );
+    const stableName = stableUnit
+      ? unitName(replay, stableUnit.unitKey)
+      : `team ${event.teamId ?? '?'} unit ${event.unitId ?? '?'}`;
     switch (event.type) {
       case 'shot':
         return event.targetActor
@@ -45,7 +56,14 @@ export default function EventFeed({
             : ` (${event.newHealth} hp left)`)
         );
       case 'destroyed':
-        return `${actorName(replay, event.targetActor)} is destroyed`;
+        return (
+          `${actorName(replay, event.targetActor)} is destroyed` +
+          (event.respawnAtTick !== null
+            ? ` · returns T${event.respawnAtTick}`
+            : event.rebuildReadyAtTick !== null
+              ? ` · rebuild ready T${event.rebuildReadyAtTick}`
+              : '')
+        );
       case 'respawned':
         return `${actorName(replay, event.sourceActor)} returns`;
       case 'move-blocked':
@@ -62,6 +80,19 @@ export default function EventFeed({
         return `Frontline moves to position ${(event.toPositionIndex ?? 0) + 1}`;
       case 'base-breached':
         return `${teamName(replay, event.teamId ?? -1)} breaches the base`;
+      case 'fabrication-unlocked':
+        return `${stableName} unlocks for fabrication`;
+      case 'fabrication-queued':
+        return (
+          `${actorName(replay, event.sourceActor)} queues ${stableName}` +
+          (event.fabricationAtTick === null
+            ? ''
+            : ` · spawns T${event.fabricationAtTick}`)
+        );
+      case 'fabricated':
+        return `${actorName(replay, event.sourceActor)} is fabricated`;
+      case 'rebuild-ready':
+        return `${stableName} is rebuilt and ready`;
       default:
         return event.type;
     }
@@ -92,6 +123,12 @@ export default function EventFeed({
               'text-cyan-200':
                 event.type === 'frontline-progress-changed' ||
                 event.type === 'frontline-position-advanced',
+              'text-violet-200':
+                event.type === 'fabrication-queued' ||
+                event.type === 'fabricated',
+              'text-emerald-200':
+                event.type === 'fabrication-unlocked' ||
+                event.type === 'rebuild-ready',
               'text-arena-text':
                 event.type === 'shot' ||
                 event.type === 'move-blocked',

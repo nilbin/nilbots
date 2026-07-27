@@ -83,6 +83,35 @@ test('bridge-v2 publishes stable units, teams, and team results', () => {
     message.result?.teams.map((team) => team.teamId),
     [0, 1],
   );
+  assert.ok(
+    message.result?.teams.every(
+      (team) =>
+        'activeHealth' in team &&
+        team.units.every(
+          (unit) =>
+            unit.unitKey ===
+            `frontline:${unit.teamId}:unit:${unit.unitId}`,
+      ),
+    ),
+  );
+  assert.deepEqual(message.result?.teams[0], {
+    teamId: 0,
+    outcome: 'draw',
+    activeHealth: 3,
+    damageDealt: '3',
+    units: [
+      {
+        unitKey: 'frontline:0:unit:0',
+        teamId: 0,
+        unitId: 0,
+        formId: 'prime-mobile',
+        lifecycleStatus: 'active',
+        activeActorKey: 'frontline:0:unit:0:life:1',
+        health: 3,
+        damageDealt: '3',
+      },
+    ],
+  });
   assert.deepEqual(
     selectedBridgeMessage(2, replayV2, replayV2.units[0]!.unitKey),
     {
@@ -128,6 +157,11 @@ function legacyPresentation(): TickPresentation {
         omnidirectionalShooting: false,
         status: 'active',
         respawnAtTick: null,
+        unlockAtTick: null,
+        rebuildReadyAtTick: null,
+        fabricationAtTick: null,
+        reservedSpawn: null,
+        pendingSpawnReason: null,
         health: 3,
         maxHealth: 3,
         cooldown: 0,

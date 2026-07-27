@@ -441,6 +441,15 @@ internal static class ReplayV2Serializer
             writer.WritePropertyName("activeActorId");
             WriteNullableActorId(writer, unit.ActiveActorId);
             WriteNullableNumber(writer, "respawnAtTick", unit.RespawnAtTick);
+            WriteNullableNumber(writer, "unlockAtTick", unit.UnlockAtTick);
+            WriteNullableNumber(
+                writer,
+                "rebuildReadyAtTick",
+                unit.RebuildReadyAtTick);
+            WriteNullableNumber(
+                writer,
+                "fabricationAtTick",
+                unit.FabricationAtTick);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -873,6 +882,7 @@ internal static class ReplayV2Serializer
         writer.WriteNumber("tick", value.Tick);
         writer.WriteString("type", FrontlineEventTypeId(value.Type));
         WriteNullableNumber(writer, "teamId", value.TeamId);
+        WriteNullableNumber(writer, "unitId", value.UnitId);
         writer.WritePropertyName("sourceActorId");
         WriteNullableActorId(writer, value.SourceActorId);
         writer.WritePropertyName("targetActorId");
@@ -918,7 +928,22 @@ internal static class ReplayV2Serializer
             value.LifecycleStatus is { } lifecycle
                 ? LifecycleId(lifecycle)
                 : null);
+        WriteNullableString(
+            writer,
+            "spawnReason",
+            value.SpawnReason is { } spawnReason
+                ? SpawnReasonId(spawnReason)
+                : null);
         WriteNullableNumber(writer, "respawnAtTick", value.RespawnAtTick);
+        WriteNullableNumber(writer, "unlockAtTick", value.UnlockAtTick);
+        WriteNullableNumber(
+            writer,
+            "rebuildReadyAtTick",
+            value.RebuildReadyAtTick);
+        WriteNullableNumber(
+            writer,
+            "fabricationAtTick",
+            value.FabricationAtTick);
         WriteNullableNumber(
             writer,
             "fromPositionIndex",
@@ -1021,6 +1046,25 @@ internal static class ReplayV2Serializer
             "lifecycleStatus",
             LifecycleId(unit.LifecycleStatus));
         WriteNullableNumber(writer, "respawnAtTick", unit.RespawnAtTick);
+        WriteNullableNumber(writer, "unlockAtTick", unit.UnlockAtTick);
+        WriteNullableNumber(
+            writer,
+            "rebuildReadyAtTick",
+            unit.RebuildReadyAtTick);
+        WriteNullableNumber(
+            writer,
+            "fabricationAtTick",
+            unit.FabricationAtTick);
+        writer.WritePropertyName("reservedSpawn");
+        WriteNullablePosition(writer, unit.ReservedSpawn);
+        WriteNullableString(
+            writer,
+            "pendingSpawnReason",
+            unit.PendingSpawnReason is { } pendingSpawnReason
+                ? SpawnReasonId(pendingSpawnReason)
+                : null);
+        writer.WriteBoolean("hasSpawned", unit.HasSpawned);
+        writer.WriteNumber("nextLifeId", unit.NextLifeId);
         writer.WriteString("damageDealt", unit.DamageDealt);
         writer.WritePropertyName("activeLife");
         if (unit.ActiveLife is not { } life)
@@ -1098,11 +1142,27 @@ internal static class ReplayV2Serializer
             writer.WriteStartObject();
             writer.WriteNumber("teamId", team.TeamId);
             writer.WriteString("outcome", TeamOutcomeId(team.Outcome));
-            writer.WriteNumber("finalHealth", team.FinalHealth);
+            writer.WriteNumber("activeHealth", team.ActiveHealth);
             writer.WriteString("damageDealt", team.DamageDealt);
-            writer.WriteString(
-                "finalLifecycleStatus",
-                LifecycleId(team.FinalLifecycleStatus));
+            writer.WritePropertyName("units");
+            writer.WriteStartArray();
+            foreach (ReplayV2UnitResult unit in team.Units
+                         .OrderBy(value => value.UnitId))
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("teamId", unit.TeamId);
+                writer.WriteNumber("unitId", unit.UnitId);
+                writer.WriteString("formId", unit.FormId);
+                writer.WriteString(
+                    "lifecycleStatus",
+                    LifecycleId(unit.LifecycleStatus));
+                writer.WritePropertyName("activeActorId");
+                WriteNullableActorId(writer, unit.ActiveActorId);
+                writer.WriteNumber("health", unit.Health);
+                writer.WriteString("damageDealt", unit.DamageDealt);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -1348,6 +1408,7 @@ internal static class ReplayV2Serializer
                 nameof(header));
         }
         ArgumentNullException.ThrowIfNull(header.Contract);
+        _ = RulesManifestSerializer.ToCanonicalJson(header.Contract.Rules);
         if (!string.Equals(
                 header.GameRulesVersion,
                 header.Contract.Rules.RulesetId,
@@ -1483,6 +1544,12 @@ internal static class ReplayV2Serializer
             RequireInitialized(
                 tick.PostState.Projectiles,
                 $"ticks[{tick.Tick}].postState.projectiles");
+            if (tick.Tick == 0)
+            {
+                ValidateInitialDeployment(
+                    header.Contract,
+                    tick.TickStart.State);
+            }
             if (priorPostState is not null
                 && tick.TickStart.LifecycleEvents.IsEmpty
                 && !WorldStatesEqual(
@@ -1492,6 +1559,16 @@ internal static class ReplayV2Serializer
                 throw new ArgumentException(
                     $"Tick {tick.Tick} tick-start state must exactly equal the prior tick's post-state.",
                     nameof(ticks));
+            }
+            if (priorPostState is not null
+                && !tick.TickStart.LifecycleEvents.IsEmpty)
+            {
+                ValidateLifecycleTransition(
+                    header.Contract,
+                    priorPostState,
+                    tick.TickStart.State,
+                    tick.TickStart.LifecycleEvents,
+                    tick.Tick);
             }
 
             EnsureUnique(
@@ -1611,12 +1688,12 @@ internal static class ReplayV2Serializer
                 tick.TickStart.State,
                 tick.Tick,
                 "tick-start",
-                expectedTeamIds);
+                header.Contract);
             ValidateWorldState(
                 tick.PostState,
                 tick.Tick,
                 "post-state",
-                expectedTeamIds);
+                header.Contract);
             priorResolutionEvents = tick.Resolution.Events;
             priorPostState = tick.PostState;
         }
@@ -1633,12 +1710,54 @@ internal static class ReplayV2Serializer
             replay.Result.Teams,
             value => value.TeamId,
             "result team IDs");
+        int[] topologyTeamIds = replay.Header.Contract.Topology.Teams
+            .Select(team => team.TeamId)
+            .Order()
+            .ToArray();
+        if (!replay.Result.Teams
+                .Select(team => team.TeamId)
+                .Order()
+                .SequenceEqual(topologyTeamIds))
+        {
+            throw new ArgumentException(
+                "Replay result team IDs must exactly match contract topology.",
+                nameof(replay));
+        }
         foreach (ReplayV2TeamResult team in replay.Result.Teams)
         {
+            RequireInitialized(
+                team.Units,
+                $"result team {team.TeamId} units");
             RequireWireInt64(
                 team.DamageDealt,
                 $"result team {team.TeamId} damageDealt",
                 nonNegative: true);
+            EnsureUnique(
+                team.Units,
+                unit => unit.UnitId,
+                $"result team {team.TeamId} unit IDs");
+            int[] expectedUnitIds = replay.Header.Contract.Topology.UnitSlots
+                .Where(unit => unit.TeamId == team.TeamId)
+                .Select(unit => unit.UnitId)
+                .Order()
+                .ToArray();
+            if (!team.Units
+                    .Select(unit => unit.UnitId)
+                    .Order()
+                    .SequenceEqual(expectedUnitIds)
+                || team.Units.Any(unit => unit.TeamId != team.TeamId))
+            {
+                throw new ArgumentException(
+                    $"Replay result team {team.TeamId} units must exactly match contract topology.",
+                    nameof(replay));
+            }
+            foreach (ReplayV2UnitResult unit in team.Units)
+            {
+                RequireWireInt64(
+                    unit.DamageDealt,
+                    $"result unit {unit.TeamId}:{unit.UnitId} damageDealt",
+                    nonNegative: true);
+            }
         }
 
         ReplayV2Tick finalTick =
@@ -1660,10 +1779,115 @@ internal static class ReplayV2Serializer
                 nameof(replay));
         }
 
-        int[] topologyTeamIds = replay.Header.Contract.Topology.Teams
-            .Select(team => team.TeamId)
-            .Order()
+        PublicFrontlineDefinition frontline =
+            replay.Header.Contract.Rules.Frontline
+            ?? throw new ArgumentException(
+                "Replay-v2 terminal validation requires Frontline rules.",
+                nameof(replay));
+        IReadOnlyDictionary<int, int> advanceDirections =
+            ValidateAdvanceDirections(frontline, topologyTeamIds);
+        long expectedTerritorialScore = TerritorialScore(
+            frontline,
+            replay.Result.Control,
+            advanceDirections);
+        long actualTerritorialScore = long.Parse(
+            replay.Result.TerritorialScore,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture);
+        if (actualTerritorialScore != expectedTerritorialScore)
+        {
+            throw new ArgumentException(
+                "Replay result territorialScore must exactly match final Frontline control.",
+                nameof(replay));
+        }
+
+        int maxTicks = replay.Header.Contract.Rules.Limits.MaxTicks;
+        bool breached = replay.Result.Control.WinnerTeamId is not null;
+        FrontlineMatchEndReason expectedReason = breached
+            ? FrontlineMatchEndReason.BaseBreach
+            : replay.Result.EndTick == maxTicks - 1
+                ? FrontlineMatchEndReason.MaxTicks
+                : throw new ArgumentException(
+                    "Replay result ends before a base breach or the exact MaxTicks timeout.",
+                    nameof(replay));
+        if (replay.Result.EndTick >= maxTicks
+            || replay.Result.Reason != expectedReason)
+        {
+            throw new ArgumentException(
+                "Replay result reason/end tick must honor base-breach precedence and the exact MaxTicks timeout.",
+                nameof(replay));
+        }
+
+        int? expectedWinnerTeamId = breached
+            ? replay.Result.Control.WinnerTeamId
+            : expectedTerritorialScore switch
+            {
+                > 0 => advanceDirections.Single(pair => pair.Value > 0).Key,
+                < 0 => advanceDirections.Single(pair => pair.Value < 0).Key,
+                _ => null,
+            };
+        if (replay.Result.WinnerTeamId != expectedWinnerTeamId)
+        {
+            throw new ArgumentException(
+                "Replay result winnerTeamId must match breach state or signed territorialScore.",
+                nameof(replay));
+        }
+
+        ReplayV2Event[] breachEvents = replay.Ticks
+            .SelectMany(tick => tick.TickStart.LifecycleEvents
+                .Concat(tick.Resolution.Events))
+            .Where(value =>
+                value.Type == FrontlineMatchEventType.BaseBreached)
             .ToArray();
+        bool breachEventsCoherent = breached
+            ? breachEvents is [var breachEvent]
+                && breachEvent.Tick == replay.Result.EndTick
+                && breachEvent.TeamId == expectedWinnerTeamId
+                && breachEvent.FromPositionIndex
+                    == replay.Result.Control.ActivePositionIndex
+                && breachEvent.ToPositionIndex
+                    == replay.Result.Control.ActivePositionIndex
+                && breachEvent.ClaimingTeamId is null
+                && breachEvent.CaptureProgress == 0
+            : breachEvents.Length == 0;
+        if (!breachEventsCoherent)
+        {
+            throw new ArgumentException(
+                "Replay result base-breach state must have exactly one matching final-tick breach event.",
+                nameof(replay));
+        }
+
+        ReplayV2TeamResult[] resultTeams = replay.Result.Teams
+            .OrderBy(team => team.TeamId)
+            .ToArray();
+        ReplayV2TeamState[] finalTeams = finalTick.PostState.Teams
+            .OrderBy(team => team.TeamId)
+            .ToArray();
+        if (resultTeams.Length != finalTeams.Length
+            || resultTeams.Zip(finalTeams).Any(pair =>
+                pair.First.TeamId != pair.Second.TeamId
+                || pair.First.DamageDealt != pair.Second.DamageDealt
+                || pair.First.ActiveHealth
+                    != pair.Second.Units.Sum(unit =>
+                        unit.ActiveLife?.Health ?? 0)
+                || !pair.First.Units
+                    .OrderBy(unit => unit.UnitId)
+                    .SequenceEqual(pair.Second.Units
+                        .OrderBy(unit => unit.UnitId)
+                        .Select(unit => new ReplayV2UnitResult(
+                            unit.TeamId,
+                            unit.UnitId,
+                            unit.FormId,
+                            unit.LifecycleStatus,
+                            unit.ActiveLife?.ActorId,
+                            unit.ActiveLife?.Health ?? 0,
+                            unit.DamageDealt)))))
+        {
+            throw new ArgumentException(
+                "Replay result units and aggregates must exactly match final post-state.",
+                nameof(replay));
+        }
+
         int[] postStateTeamIds = finalTick.PostState.Teams
             .Select(team => team.TeamId)
             .Order()
@@ -1694,6 +1918,67 @@ internal static class ReplayV2Serializer
                 "A base-breach winner must match the final objective winner.",
                 nameof(replay));
         }
+        if (replay.Result.Teams.Any(team =>
+                team.Outcome
+                    != (expectedWinnerTeamId is null
+                        ? FrontlineTeamOutcome.Draw
+                        : team.TeamId == expectedWinnerTeamId
+                            ? FrontlineTeamOutcome.Win
+                            : FrontlineTeamOutcome.Loss)))
+        {
+            throw new ArgumentException(
+                "Replay result team outcomes must derive only from winnerTeamId.",
+                nameof(replay));
+        }
+    }
+
+    private static long TerritorialScore(
+        PublicFrontlineDefinition frontline,
+        ReplayV2ControlState control,
+        IReadOnlyDictionary<int, int> advanceDirections)
+    {
+        int centre = frontline.FrontlinePositionCount / 2;
+        long positionScore =
+            (long)(control.ActivePositionIndex - centre)
+            * frontline.Capture.Threshold;
+        int claimScore = control.ClaimingTeamId is int claimingTeamId
+            ? advanceDirections[claimingTeamId]
+                * control.CaptureProgress
+            : 0;
+        return positionScore + claimScore;
+    }
+
+    private static IReadOnlyDictionary<int, int> ValidateAdvanceDirections(
+        PublicFrontlineDefinition frontline,
+        IEnumerable<int> expectedTeamIds)
+    {
+        if (frontline.Victory.TeamAdvances.IsDefault)
+        {
+            throw new ArgumentException(
+                "Frontline victory team advances must be initialized.");
+        }
+        PublicFrontlineTeamAdvance[] advances =
+            frontline.Victory.TeamAdvances
+                .OrderBy(value => value.TeamId)
+                .ToArray();
+        int[] teams = expectedTeamIds.Order().ToArray();
+        if (advances.Length != 2
+            || !advances
+                .Select(value => value.TeamId)
+                .SequenceEqual(teams)
+            || advances.Select(value => value.TeamId).Distinct().Count()
+                != advances.Length
+            || !advances
+                .Select(value => value.PositionIndexDelta)
+                .Order()
+                .SequenceEqual([-1, 1]))
+        {
+            throw new ArgumentException(
+                "Frontline victory team advances must map the two topology teams uniquely to -1 and +1.");
+        }
+        return advances.ToDictionary(
+            value => value.TeamId,
+            value => value.PositionIndexDelta);
     }
 
     private static void ValidateActorTurn(
@@ -1795,7 +2080,13 @@ internal static class ReplayV2Serializer
                 || pair.First.ActiveActorId
                     != pair.Second.ActiveLife?.ActorId
                 || pair.First.RespawnAtTick
-                    != pair.Second.RespawnAtTick))
+                    != pair.Second.RespawnAtTick
+                || pair.First.UnlockAtTick
+                    != pair.Second.UnlockAtTick
+                || pair.First.RebuildReadyAtTick
+                    != pair.Second.RebuildReadyAtTick
+                || pair.First.FabricationAtTick
+                    != pair.Second.FabricationAtTick))
         {
             throw new ArgumentException(
                 $"Tick {tick.Tick} observation teamUnits must equal authoritative tick-start state.",
@@ -1916,6 +2207,62 @@ internal static class ReplayV2Serializer
                 RequireInitialized(targets, "action.allowedUnitTargets");
             if (action.AllowedFormTargets is { } forms)
                 RequireInitialized(forms, "action.allowedFormTargets");
+            if (knownAction.Kind == PublicActionKind.Fabrication)
+            {
+                (PublicFrontlineFabricationDefinition fabrication,
+                    PublicActionDefinition fabricationAction) =
+                    ResolveFabricationContract(
+                        header.Contract,
+                        $"tick {tick.Tick} observation");
+                if (!ReferenceEquals(knownAction, fabricationAction))
+                {
+                    throw new ArgumentException(
+                        $"Tick {tick.Tick} fabrication action must match the Frontline contract definition.",
+                        nameof(turn));
+                }
+                PublicFrontlineTeamHome home = header.Contract.Map.Frontline!
+                    .TeamHomes.Single(value =>
+                        value.TeamId == turn.ActorId.TeamId);
+                bool onHomePad =
+                    turn.ActorId.UnitId == fabrication.FabricatorUnitId
+                    && home.ProtectedSpawnPad.Contains(self.Position);
+                ReplayV2ObservedUnitTarget[] expectedTargets =
+                    authoritativeTeam.Units
+                        .Where(unit =>
+                            onHomePad
+                            && unit.UnitId
+                                != fabrication.FabricatorUnitId
+                            && unit.LifecycleStatus
+                                == FrontlineLifecycleStatus.Ready)
+                        .OrderBy(unit => unit.UnitId)
+                        .Select(unit => new ReplayV2ObservedUnitTarget(
+                            unit.TeamId,
+                            unit.UnitId))
+                        .ToArray();
+                ReplayV2ObservedUnitTarget[] actualTargets =
+                    (action.AllowedUnitTargets
+                        ?? throw new ArgumentException(
+                            $"Tick {tick.Tick} fabrication mask requires allowedUnitTargets."))
+                    .ToArray();
+                PublicFormDefinition currentForm =
+                    header.Contract.Rules.Forms.Single(value =>
+                        string.Equals(
+                            value.Id,
+                            self.FormId,
+                            StringComparison.Ordinal));
+                bool expectedAvailable = knownAction.Enabled
+                    && currentForm.AllowedActionIds.Contains(
+                        knownAction.Id,
+                        StringComparer.Ordinal)
+                    && expectedTargets.Length > 0;
+                if (!actualTargets.SequenceEqual(expectedTargets)
+                    || action.Available != expectedAvailable)
+                {
+                    throw new ArgumentException(
+                        $"Tick {tick.Tick} fabrication legality mask must equal authoritative slot and home-pad state.",
+                        nameof(turn));
+                }
+            }
         }
         EnsureUnique(
             observation.Actions,
@@ -1969,6 +2316,19 @@ internal static class ReplayV2Serializer
                 value.TeamId == turn.ActorId.TeamId
                 && value.UnitId == turn.ActorId.UnitId
                 && value.LifeId == turn.ActorId.LifeId);
+        ReplayV2Event? spawnEvent = tick.TickStart.LifecycleEvents
+            .SingleOrDefault(value =>
+                value.SourceActorId == turn.ActorId
+                && value.Type is
+                    FrontlineMatchEventType.Respawned or
+                    FrontlineMatchEventType.Fabricated);
+        ActorSpawnReason? expectedSpawnReason = isInitialLife
+            ? ActorSpawnReason.Initial
+            : turn.ActorId.UnitId == 0
+                ? ActorSpawnReason.Respawn
+                : turn.ActorId.LifeId == 0
+                    ? ActorSpawnReason.Fabrication
+                    : ActorSpawnReason.Rebuild;
         if (unit is null
             || start.SchemaVersion
                 != header.ActorRuntime.MatchStartSchemaVersion
@@ -1982,11 +2342,11 @@ internal static class ReplayV2Serializer
                 start.MatchContractFingerprint,
                 header.Contract.MatchContractFingerprint,
                 StringComparison.Ordinal)
-            || (isInitialLife
-                && start.SpawnReason != ActorSpawnReason.Initial)
+            || start.SpawnReason != expectedSpawnReason
+            || (isInitialLife && spawnEvent is not null)
             || (!isInitialLife
-                && turn.ActorId.UnitId == 0
-                && start.SpawnReason != ActorSpawnReason.Respawn))
+                && (spawnEvent is null
+                    || spawnEvent.SpawnReason != expectedSpawnReason)))
         {
             throw new ArgumentException(
                 $"Tick {tick.Tick} lifeStart must match its actor, controller, contract, schemas, seed shape, and spawn chronology.",
@@ -2395,6 +2755,294 @@ internal static class ReplayV2Serializer
             .AsSpan()
             .SequenceEqual(Write(writer => WriteWorldState(writer, right)));
 
+    private static void ValidateLifecycleTransition(
+        PublicMatchContractManifest contract,
+        ReplayV2WorldState before,
+        ReplayV2WorldState after,
+        ImmutableArray<ReplayV2Event> events,
+        int tick)
+    {
+        if (before.Control != after.Control
+            || !before.Projectiles.SequenceEqual(after.Projectiles)
+            || !before.Teams
+                .OrderBy(team => team.TeamId)
+                .Select(team => (team.TeamId, team.DamageDealt))
+                .SequenceEqual(after.Teams
+                    .OrderBy(team => team.TeamId)
+                    .Select(team => (team.TeamId, team.DamageDealt))))
+        {
+            throw new ArgumentException(
+                $"Tick {tick} lifecycle may change only stable-unit lifecycle state.");
+        }
+
+        Dictionary<(int TeamId, int UnitId), ReplayV2UnitState> beforeUnits =
+            before.Teams
+                .SelectMany(team => team.Units)
+                .ToDictionary(unit => (unit.TeamId, unit.UnitId));
+        Dictionary<(int TeamId, int UnitId), ReplayV2UnitState> afterUnits =
+            after.Teams
+                .SelectMany(team => team.Units)
+                .ToDictionary(unit => (unit.TeamId, unit.UnitId));
+        Dictionary<(int TeamId, int UnitId), ReplayV2Event> transitions;
+        try
+        {
+            transitions = events.ToDictionary(
+                value => (
+                    value.TeamId
+                        ?? throw new ArgumentException(
+                            $"Tick {tick} lifecycle event requires teamId."),
+                    value.UnitId
+                        ?? throw new ArgumentException(
+                            $"Tick {tick} lifecycle event requires unitId.")));
+        }
+        catch (ArgumentException exception)
+            when (!exception.Message.Contains(
+                "requires",
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Tick {tick} has duplicate lifecycle transitions for one unit.",
+                exception);
+        }
+
+        foreach (((int teamId, int unitId), ReplayV2UnitState prior)
+                 in beforeUnits.OrderBy(pair => pair.Key.TeamId)
+                     .ThenBy(pair => pair.Key.UnitId))
+        {
+            ReplayV2UnitState current = afterUnits[(teamId, unitId)];
+            if (!transitions.TryGetValue((teamId, unitId), out ReplayV2Event? value))
+            {
+                if (prior != current)
+                {
+                    throw new ArgumentException(
+                        $"Tick {tick} unit {teamId}:{unitId} changed without a lifecycle event.");
+                }
+                continue;
+            }
+
+            bool coherent = value.Type switch
+            {
+                FrontlineMatchEventType.FabricationUnlocked =>
+                    prior.LifecycleStatus == FrontlineLifecycleStatus.Locked
+                    && prior.UnlockAtTick == tick
+                    && current == prior with
+                    {
+                        LifecycleStatus = FrontlineLifecycleStatus.Ready,
+                    },
+                FrontlineMatchEventType.RebuildReady =>
+                    prior.LifecycleStatus
+                        == FrontlineLifecycleStatus.Rebuilding
+                    && prior.RebuildReadyAtTick == tick
+                    && current == prior with
+                    {
+                        LifecycleStatus = FrontlineLifecycleStatus.Ready,
+                        RebuildReadyAtTick = null,
+                    },
+                FrontlineMatchEventType.Fabricated =>
+                    ValidateSpawnedUnit(
+                        contract,
+                        prior,
+                        current,
+                        value,
+                        tick,
+                        primeRespawn: false),
+                FrontlineMatchEventType.Respawned =>
+                    ValidateSpawnedUnit(
+                        contract,
+                        prior,
+                        current,
+                        value,
+                        tick,
+                        primeRespawn: true),
+                _ => false,
+            };
+            if (!coherent)
+            {
+                throw new ArgumentException(
+                    $"Tick {tick} lifecycle transition for unit {teamId}:{unitId} does not match its event.");
+            }
+        }
+    }
+
+    private static bool ValidateSpawnedUnit(
+        PublicMatchContractManifest contract,
+        ReplayV2UnitState before,
+        ReplayV2UnitState after,
+        ReplayV2Event value,
+        int tick,
+        bool primeRespawn)
+    {
+        if (after.ActiveLife is not { } life)
+            return false;
+        PublicFrontlineDeploymentDefinition deployment =
+            contract.Rules.Frontline!.Deployment;
+        string expectedFormId = primeRespawn
+            ? deployment.PrimeDefaultFormId
+            : deployment.ChildDefaultFormId;
+        PublicFormDefinition form = contract.Rules.Forms.Single(candidate =>
+            string.Equals(
+                candidate.Id,
+                expectedFormId,
+                StringComparison.Ordinal));
+        PublicFrontlineTeamHome home = contract.Map.Frontline!.TeamHomes
+            .Single(candidate => candidate.TeamId == after.TeamId);
+        Position? expectedPosition = primeRespawn
+            ? home.PrimeSpawnPosition
+            : before.ReservedSpawn;
+        ActorSpawnReason? expectedReason = primeRespawn
+            ? ActorSpawnReason.Respawn
+            : before.PendingSpawnReason;
+        return before.ActiveLife is null
+            && before.LifecycleStatus
+                == (primeRespawn
+                    ? FrontlineLifecycleStatus.Respawning
+                    : FrontlineLifecycleStatus.FabricationQueued)
+            && (primeRespawn
+                ? before.RespawnAtTick == tick
+                : before.FabricationAtTick == tick)
+            && value.SpawnReason == expectedReason
+            && value.SourceActorId == life.ActorId
+            && life.ActorId.TeamId == after.TeamId
+            && life.ActorId.UnitId == after.UnitId
+            && life.ActorId.LifeId == before.NextLifeId
+            && life.Position == expectedPosition
+            && life.Facing == home.PrimeSpawnFacing
+            && life.Health == form.MaxHealth
+            && value.To == life.Position
+            && value.ToFacing == life.Facing
+            && value.NewHealth == life.Health
+            && life.Cooldown == 0
+            && life.Energy
+                == (contract.Rules.Energy.Enabled
+                    ? contract.Rules.Energy.MaxEnergy
+                    : null)
+            && life.DamageDealt == "0"
+            && life.PreviousActionResult == ActionResult.None
+            && life.SpawnedAtTick == tick
+            && after.LifecycleStatus == FrontlineLifecycleStatus.Active
+            && after.NextLifeId == before.NextLifeId + 1
+            && after.RespawnAtTick is null
+            && after.RebuildReadyAtTick is null
+            && after.FabricationAtTick is null
+            && after.ReservedSpawn is null
+            && after.PendingSpawnReason is null
+            && after.HasSpawned
+            && after.DamageDealt == before.DamageDealt
+            && after.UnlockAtTick == before.UnlockAtTick
+            && string.Equals(
+                after.FormId,
+                expectedFormId,
+                StringComparison.Ordinal);
+    }
+
+    private static void ValidateInitialDeployment(
+        PublicMatchContractManifest contract,
+        ReplayV2WorldState state)
+    {
+        PublicFrontlineDefinition frontline = contract.Rules.Frontline
+            ?? throw new ArgumentException(
+                "Replay-v2 initial deployment requires Frontline rules.");
+        Dictionary<(int TeamId, int UnitId), PublicInitialLife> initialLives =
+            contract.Topology.InitialLives.ToDictionary(
+                life => (life.TeamId, life.UnitId));
+        var childUnlocks =
+            new Dictionary<(int TeamId, int UnitId), int>();
+        foreach (PublicScoringTeam team in contract.Topology.Teams)
+        {
+            PublicUnitSlot[] childSlots = contract.Topology.UnitSlots
+                .Where(slot =>
+                    slot.TeamId == team.TeamId
+                    && !initialLives.ContainsKey(
+                        (slot.TeamId, slot.UnitId)))
+                .OrderBy(slot => slot.UnitId)
+                .ToArray();
+            if (childSlots.Length
+                != frontline.Lifecycle.FabricationUnlockTicks.Length)
+            {
+                throw new ArgumentException(
+                    $"Replay tick-zero team {team.TeamId} child slots must match the fabrication unlock schedule.");
+            }
+            for (int index = 0; index < childSlots.Length; index++)
+            {
+                childUnlocks.Add(
+                    (childSlots[index].TeamId, childSlots[index].UnitId),
+                    frontline.Lifecycle.FabricationUnlockTicks[index]);
+            }
+        }
+        foreach (ReplayV2UnitState unit in state.Teams
+                     .SelectMany(team => team.Units))
+        {
+            bool hasInitialLife = initialLives.TryGetValue(
+                (unit.TeamId, unit.UnitId),
+                out PublicInitialLife? initial);
+            string expectedFormId = hasInitialLife
+                ? frontline.Deployment.PrimeDefaultFormId
+                : frontline.Deployment.ChildDefaultFormId;
+            bool coherent;
+            if (hasInitialLife && initial is not null)
+            {
+                PublicFrontlineTeamHome home =
+                    contract.Map.Frontline!.TeamHomes.Single(value =>
+                        value.TeamId == unit.TeamId);
+                PublicFormDefinition form =
+                    contract.Rules.Forms.Single(value =>
+                        string.Equals(
+                            value.Id,
+                            expectedFormId,
+                            StringComparison.Ordinal));
+                ReplayV2ActorId actorId = new(
+                    initial.TeamId,
+                    initial.UnitId,
+                    initial.LifeId);
+                coherent = unit.ActiveLife is { } life
+                    && string.Equals(
+                        unit.FormId,
+                        expectedFormId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        initial.FormId,
+                        expectedFormId,
+                        StringComparison.Ordinal)
+                    && unit.LifecycleStatus
+                        == FrontlineLifecycleStatus.Active
+                    && unit.NextLifeId == initial.LifeId + 1
+                    && unit.HasSpawned
+                    && unit.UnlockAtTick is null
+                    && life.ActorId == actorId
+                    && life.Position == home.PrimeSpawnPosition
+                    && life.Facing == home.PrimeSpawnFacing
+                    && life.Health == form.MaxHealth
+                    && life.Cooldown == 0
+                    && life.Energy
+                        == (contract.Rules.Energy.Enabled
+                            ? contract.Rules.Energy.MaxEnergy
+                            : null)
+                    && life.PreviousActionResult == ActionResult.None
+                    && life.SpawnedAtTick == 0;
+            }
+            else
+            {
+                coherent = string.Equals(
+                        unit.FormId,
+                        expectedFormId,
+                        StringComparison.Ordinal)
+                    && unit.ActiveLife is null
+                    && unit.LifecycleStatus
+                        == FrontlineLifecycleStatus.Locked
+                    && unit.NextLifeId == 0
+                    && !unit.HasSpawned
+                    && unit.UnlockAtTick
+                        == childUnlocks[(unit.TeamId, unit.UnitId)]
+                    && unit.DamageDealt == "0";
+            }
+            if (!coherent)
+            {
+                throw new ArgumentException(
+                    $"Replay tick-zero unit {unit.TeamId}:{unit.UnitId} must use its deployment default form and exact initial-life topology.");
+            }
+        }
+    }
+
     private static ReplayV2ActorId? ObservedEventActor(
         ReplayV2Event value) =>
         value.Type is
@@ -2427,6 +3075,14 @@ internal static class ReplayV2Serializer
                 ObservedMatchEventType.FrontlinePositionAdvanced,
             FrontlineMatchEventType.BaseBreached =>
                 ObservedMatchEventType.BaseBreached,
+            FrontlineMatchEventType.FabricationUnlocked =>
+                ObservedMatchEventType.FabricationUnlocked,
+            FrontlineMatchEventType.FabricationQueued =>
+                ObservedMatchEventType.FabricationQueued,
+            FrontlineMatchEventType.Fabricated =>
+                ObservedMatchEventType.Fabricated,
+            FrontlineMatchEventType.RebuildReady =>
+                ObservedMatchEventType.RebuildReady,
             _ => throw new ArgumentOutOfRangeException(nameof(type)),
         };
 
@@ -2450,6 +3106,38 @@ internal static class ReplayV2Serializer
             chosen,
             $"tick {tick} chosen resolution",
             contract);
+        if (chosen.Kind == PublicActionKind.Fabrication)
+        {
+            PublicFrontlineFabricationDefinition fabrication =
+                ResolveFabricationContract(
+                    contract,
+                    $"tick {tick} chosen resolution").Definition;
+            if (resolution.ChosenPayload?.UnitTarget is not { } chosenTarget
+                || chosenTarget.TeamId != resolution.ActorId.TeamId
+                || chosenTarget.UnitId == fabrication.FabricatorUnitId)
+            {
+                throw new ArgumentException(
+                    $"Tick {tick} fabrication resolution target must be an own child slot.");
+            }
+        }
+        if (validated.Kind == PublicActionKind.Fabrication)
+        {
+            PublicFrontlineFabricationDefinition fabrication =
+                ResolveFabricationContract(
+                    contract,
+                    $"tick {tick} validated resolution").Definition;
+            if (resolution.ActorId.UnitId
+                    != fabrication.FabricatorUnitId
+                || resolution.ValidatedPayload?.UnitTarget
+                    is not { } validatedTarget
+                || validatedTarget.TeamId != resolution.ActorId.TeamId
+                || validatedTarget.UnitId
+                    == fabrication.FabricatorUnitId)
+            {
+                throw new ArgumentException(
+                    $"Tick {tick} validated fabrication target must be an own child slot.");
+            }
+        }
         ValidateActionPayload(
             resolution.ValidatedPayload,
             validated,
@@ -2509,7 +3197,14 @@ internal static class ReplayV2Serializer
         PublicMatchContractManifest contract)
     {
         if (payload is null)
+        {
+            if (action.Kind == PublicActionKind.Fabrication)
+            {
+                throw new ArgumentException(
+                    $"{context} fabrication payload requires a unit target.");
+            }
             return;
+        }
         RejectEmptyPayload(payload, context);
         if ((payload.ShotProgram is not null
                 && !action.ParameterKinds.Contains(
@@ -2526,6 +3221,15 @@ internal static class ReplayV2Serializer
         {
             throw new ArgumentException(
                 $"{context} payload is inconsistent with action '{action.Id}'.");
+        }
+        if (action.Kind == PublicActionKind.Fabrication
+            && (payload.UnitTarget is null
+                || payload.ShotProgram is not null
+                || payload.Direction is not null
+                || payload.FormTargetId is not null))
+        {
+            throw new ArgumentException(
+                $"{context} fabrication payload must contain only its unit target.");
         }
         if (payload.Direction is { } direction
             && !Enum.IsDefined(direction))
@@ -2626,12 +3330,43 @@ internal static class ReplayV2Serializer
         return byId;
     }
 
+    private static (
+        PublicFrontlineFabricationDefinition Definition,
+        PublicActionDefinition Action)
+        ResolveFabricationContract(
+            PublicMatchContractManifest contract,
+            string context)
+    {
+        PublicFrontlineFabricationDefinition definition =
+            contract.Rules.Frontline?.Fabrication
+            ?? throw new ArgumentException(
+                $"{context} fabrication requires Frontline rules.");
+        PublicActionDefinition? action = contract.Rules.Actions
+            .FirstOrDefault(candidate => string.Equals(
+                candidate.Id,
+                definition.ActionId,
+                StringComparison.Ordinal));
+        if (!definition.Enabled
+            || action is null
+            || !action.Enabled
+            || action.Kind != PublicActionKind.Fabrication)
+        {
+            throw new ArgumentException(
+                $"{context} fabrication must match an enabled Frontline contract action.");
+        }
+        return (definition, action);
+    }
+
     private static void ValidateWorldState(
         ReplayV2WorldState state,
         int tick,
         string phase,
-        IReadOnlyList<int> expectedTeamIds)
+        PublicMatchContractManifest contract)
     {
+        int[] expectedTeamIds = contract.Topology.Teams
+            .Select(team => team.TeamId)
+            .Order()
+            .ToArray();
         EnsureUnique(
             state.Teams,
             value => value.TeamId,
@@ -2652,10 +3387,33 @@ internal static class ReplayV2Serializer
             throw new ArgumentException(
                 $"Tick {tick} {phase} objective team references must match contract topology.");
         }
+        ValidateControlState(state.Control, contract, tick, phase);
         EnsureUnique(
             state.Projectiles,
             value => value.ProjectileId,
             $"tick {tick} {phase} projectile IDs");
+        ReplayV2UnitState[] allUnits = state.Teams
+            .SelectMany(team => team.Units)
+            .ToArray();
+        EnsureUnique(
+            allUnits.Where(unit => unit.ActiveLife is not null),
+            unit => unit.ActiveLife!.ActorId,
+            $"tick {tick} {phase} active actor IDs");
+        EnsureUnique(
+            allUnits.Where(unit => unit.ActiveLife is not null),
+            unit => unit.ActiveLife!.Position,
+            $"tick {tick} {phase} active positions");
+        Position[] reservedSpawns = allUnits
+            .Where(unit => unit.ReservedSpawn is not null)
+            .Select(unit => unit.ReservedSpawn!.Value)
+            .ToArray();
+        if (reservedSpawns.Distinct().Count() != reservedSpawns.Length
+            || reservedSpawns.Any(position => allUnits.Any(unit =>
+                unit.ActiveLife?.Position == position)))
+        {
+            throw new ArgumentException(
+                $"Tick {tick} {phase} fabrication reservations must be unique and unoccupied.");
+        }
         foreach (ReplayV2TeamState team in state.Teams)
         {
             RequireWireInt64(
@@ -2674,12 +3432,52 @@ internal static class ReplayV2Serializer
                 throw new ArgumentException(
                     $"Tick {tick} {phase} unit team identity is inconsistent.");
             }
+            (int TeamId, int UnitId)[] expectedUnits = contract.Topology.UnitSlots
+                .Where(unit => unit.TeamId == team.TeamId)
+                .Select(unit => (unit.TeamId, unit.UnitId))
+                .OrderBy(unit => unit.UnitId)
+                .ToArray();
+            (int TeamId, int UnitId)[] actualUnits = team.Units
+                .Select(unit => (unit.TeamId, unit.UnitId))
+                .OrderBy(unit => unit.UnitId)
+                .ToArray();
+            if (!actualUnits.SequenceEqual(expectedUnits))
+            {
+                throw new ArgumentException(
+                    $"Tick {tick} {phase} units must exactly match contract topology.");
+            }
             foreach (ReplayV2UnitState unit in team.Units)
             {
+                PublicFrontlineDeploymentDefinition deployment =
+                    contract.Rules.Frontline!.Deployment;
+                string expectedFormId = unit.UnitId == 0
+                    ? deployment.PrimeDefaultFormId
+                    : deployment.ChildDefaultFormId;
+                if (!string.Equals(
+                        unit.FormId,
+                        expectedFormId,
+                        StringComparison.Ordinal))
+                {
+                    throw new ArgumentException(
+                        $"Tick {tick} {phase} unit {unit.TeamId}:{unit.UnitId} must use its deployment default form.");
+                }
+                if (unit.ReservedSpawn is Position reserved)
+                {
+                    PublicFrontlineTeamHome home =
+                        contract.Map.Frontline!.TeamHomes.Single(value =>
+                            value.TeamId == unit.TeamId);
+                    if (reserved == home.PrimeSpawnPosition
+                        || !home.ProtectedSpawnPad.Contains(reserved))
+                    {
+                        throw new ArgumentException(
+                            $"Tick {tick} {phase} unit reservation must use its non-Prime protected home pad.");
+                    }
+                }
                 RequireWireInt64(
                     unit.DamageDealt,
                     $"tick {tick} {phase} unit {unit.TeamId}:{unit.UnitId} damageDealt",
                     nonNegative: true);
+                ValidateUnitLifecycle(unit, tick, phase);
                 if (unit.ActiveLife is { } life)
                 {
                     RequireWireInt64(
@@ -2704,6 +3502,144 @@ internal static class ReplayV2Serializer
         }
     }
 
+    private static void ValidateControlState(
+        ReplayV2ControlState state,
+        PublicMatchContractManifest contract,
+        int tick,
+        string phase)
+    {
+        PublicFrontlineDefinition frontline = contract.Rules.Frontline
+            ?? throw new ArgumentException(
+                $"Tick {tick} {phase} state requires Frontline rules.");
+        IReadOnlyDictionary<int, int> advanceDirections =
+            ValidateAdvanceDirections(
+                frontline,
+                contract.Topology.Teams.Select(team => team.TeamId));
+        bool invalid =
+            state.NextTick < 0
+            || state.ActivePositionIndex < 0
+            || state.ActivePositionIndex >= frontline.FrontlinePositionCount
+            || state.ClaimingTeamId is int claimingTeamId
+                && !advanceDirections.ContainsKey(claimingTeamId)
+            || state.WinnerTeamId is int referencedWinnerTeamId
+                && !advanceDirections.ContainsKey(referencedWinnerTeamId)
+            || state.CaptureProgress < 0
+            || state.CaptureProgress >= frontline.Capture.Threshold
+            || state.DecayTicksElapsed < 0
+            || state.DecayTicksElapsed
+                >= frontline.Capture.DecayIntervalTicks
+            || state.ControlResumesAtTick < 0
+            || state.ClaimingTeamId is null
+                && state.CaptureProgress != 0
+            || state.ClaimingTeamId is null
+                && state.DecayTicksElapsed != 0
+            || state.ClaimingTeamId is not null
+                && state.CaptureProgress == 0
+            || state.NextTick < state.ControlResumesAtTick
+                && (state.ClaimingTeamId is not null
+                    || state.CaptureProgress != 0
+                    || state.DecayTicksElapsed != 0)
+            || state.WinnerTeamId is int winnerTeamId
+                && (state.ActivePositionIndex
+                        != (advanceDirections[winnerTeamId] > 0
+                            ? frontline.FrontlinePositionCount - 1
+                            : 0)
+                    || state.ClaimingTeamId is not null
+                    || state.CaptureProgress != 0
+                    || state.DecayTicksElapsed != 0
+                    || state.ControlResumesAtTick > state.NextTick);
+        if (invalid)
+        {
+            throw new ArgumentException(
+                $"Tick {tick} {phase} Frontline control state violates canonical invariants.");
+        }
+    }
+
+    private static void ValidateUnitLifecycle(
+        ReplayV2UnitState unit,
+        int tick,
+        string phase)
+    {
+        if (unit.NextLifeId < 0)
+        {
+            throw new ArgumentException(
+                $"Tick {tick} {phase} unit {unit.TeamId}:{unit.UnitId} has a negative nextLifeId.");
+        }
+        bool active = unit.ActiveLife is not null;
+        if (active != (unit.LifecycleStatus
+                == FrontlineLifecycleStatus.Active))
+        {
+            throw new ArgumentException(
+                $"Tick {tick} {phase} unit {unit.TeamId}:{unit.UnitId} active-life state is incoherent.");
+        }
+        if (unit.ActiveLife is { } life
+            && (life.ActorId.TeamId != unit.TeamId
+                || life.ActorId.UnitId != unit.UnitId
+                || life.ActorId.LifeId != unit.NextLifeId - 1
+                || !unit.HasSpawned))
+        {
+            throw new ArgumentException(
+                $"Tick {tick} {phase} active life must match its stable slot lineage.");
+        }
+
+        bool noQueuedSpawn = unit.FabricationAtTick is null
+            && unit.ReservedSpawn is null
+            && unit.PendingSpawnReason is null;
+        bool coherent = unit.LifecycleStatus switch
+        {
+            FrontlineLifecycleStatus.Active =>
+                unit.RespawnAtTick is null
+                && unit.RebuildReadyAtTick is null
+                && noQueuedSpawn,
+            FrontlineLifecycleStatus.Respawning =>
+                unit.UnitId == 0
+                && !active
+                && unit.RespawnAtTick > tick
+                && unit.RebuildReadyAtTick is null
+                && noQueuedSpawn
+                && unit.HasSpawned,
+            FrontlineLifecycleStatus.Locked =>
+                unit.UnitId > 0
+                && !active
+                && unit.UnlockAtTick > tick
+                && unit.RespawnAtTick is null
+                && unit.RebuildReadyAtTick is null
+                && noQueuedSpawn
+                && !unit.HasSpawned
+                && unit.NextLifeId == 0,
+            FrontlineLifecycleStatus.Ready =>
+                unit.UnitId > 0
+                && !active
+                && unit.RespawnAtTick is null
+                && unit.RebuildReadyAtTick is null
+                && noQueuedSpawn,
+            FrontlineLifecycleStatus.FabricationQueued =>
+                unit.UnitId > 0
+                && !active
+                && unit.RespawnAtTick is null
+                && unit.RebuildReadyAtTick is null
+                && unit.FabricationAtTick > tick
+                && unit.ReservedSpawn is not null
+                && unit.PendingSpawnReason
+                    == (unit.HasSpawned
+                        ? ActorSpawnReason.Rebuild
+                        : ActorSpawnReason.Fabrication),
+            FrontlineLifecycleStatus.Rebuilding =>
+                unit.UnitId > 0
+                && !active
+                && unit.RespawnAtTick is null
+                && unit.RebuildReadyAtTick > tick
+                && noQueuedSpawn
+                && unit.HasSpawned,
+            _ => false,
+        };
+        if (!coherent)
+        {
+            throw new ArgumentException(
+                $"Tick {tick} {phase} unit {unit.TeamId}:{unit.UnitId} lifecycle fields are incoherent.");
+        }
+    }
+
     private static void ValidateEvent(
         ReplayV2Event value,
         int expectedTick,
@@ -2723,6 +3659,15 @@ internal static class ReplayV2Serializer
         }
         if (value.ProjectileId is { } projectileId)
             RequireWireId(projectileId, $"event {value.EventId} projectile ID");
+        if (value.UnitId is int unitId
+            && (value.TeamId is not int teamId
+                || !contract.Topology.UnitSlots.Any(unit =>
+                    unit.TeamId == teamId
+                    && unit.UnitId == unitId)))
+        {
+            throw new ArgumentException(
+                $"Replay event '{value.EventId}' unit must exist in match topology.");
+        }
         if ((value.ActionId is null) != (value.ActionCode is null))
         {
             throw new ArgumentException(
@@ -2746,6 +3691,95 @@ internal static class ReplayV2Serializer
         {
             throw new ArgumentException(
                 $"Replay event '{value.EventId}' cannot carry a payload without an action.");
+        }
+
+        PublicFrontlineFabricationDefinition? fabrication = null;
+        PublicActionDefinition? fabricationAction = null;
+        if (value.Type is
+            FrontlineMatchEventType.FabricationUnlocked or
+            FrontlineMatchEventType.FabricationQueued or
+            FrontlineMatchEventType.Fabricated or
+            FrontlineMatchEventType.RebuildReady)
+        {
+            (fabrication, fabricationAction) =
+                ResolveFabricationContract(
+                    contract,
+                    $"event {value.EventId}");
+        }
+        bool lifecycleCoherent = value.Type switch
+        {
+            FrontlineMatchEventType.FabricationUnlocked =>
+                value.UnitId is int unlockedUnitId
+                && unlockedUnitId
+                    != fabrication!.FabricatorUnitId
+                && value.SourceActorId is null
+                && value.LifecycleStatus == FrontlineLifecycleStatus.Ready
+                && value.UnlockAtTick == expectedTick,
+            FrontlineMatchEventType.FabricationQueued =>
+                value.UnitId is int queuedUnitId
+                && queuedUnitId != fabrication!.FabricatorUnitId
+                && value.SourceActorId is { } source
+                && source.UnitId == fabrication.FabricatorUnitId
+                && source.TeamId == value.TeamId
+                && value.ActionId == fabrication.ActionId
+                && value.ActionCode == fabricationAction!.Code
+                && value.ActionPayload?.UnitTarget
+                    == new ReplayV2ObservedUnitTarget(
+                        value.TeamId!.Value,
+                        value.UnitId!.Value)
+                && value.LifecycleStatus
+                    == FrontlineLifecycleStatus.FabricationQueued
+                && value.SpawnReason is
+                    ActorSpawnReason.Fabrication or ActorSpawnReason.Rebuild
+                && value.FabricationAtTick
+                    == checked(
+                        expectedTick + fabrication.SpawnDelayTicks)
+                && value.To is not null,
+            FrontlineMatchEventType.Fabricated =>
+                value.UnitId is int fabricatedUnitId
+                && fabricatedUnitId
+                    != fabrication!.FabricatorUnitId
+                && value.SourceActorId is { } fabricated
+                && fabricated.TeamId == value.TeamId
+                && fabricated.UnitId == value.UnitId
+                && value.SpawnReason
+                    == (fabricated.LifeId == 0
+                        ? ActorSpawnReason.Fabrication
+                        : ActorSpawnReason.Rebuild)
+                && value.LifecycleStatus == FrontlineLifecycleStatus.Active
+                && value.FabricationAtTick == expectedTick
+                && value.To is not null,
+            FrontlineMatchEventType.RebuildReady =>
+                value.UnitId is int rebuiltUnitId
+                && rebuiltUnitId
+                    != fabrication!.FabricatorUnitId
+                && value.SourceActorId is null
+                && value.LifecycleStatus == FrontlineLifecycleStatus.Ready
+                && value.RebuildReadyAtTick == expectedTick,
+            FrontlineMatchEventType.Respawned =>
+                value.UnitId == 0
+                && value.SourceActorId is { UnitId: 0 }
+                && value.SpawnReason == ActorSpawnReason.Respawn
+                && value.LifecycleStatus == FrontlineLifecycleStatus.Active,
+            FrontlineMatchEventType.Destroyed
+                when value.TargetActorId is { } destroyed =>
+                value.UnitId == destroyed.UnitId
+                && value.TeamId == destroyed.TeamId
+                && (destroyed.UnitId == 0
+                    ? value.LifecycleStatus
+                        == FrontlineLifecycleStatus.Respawning
+                        && value.RespawnAtTick > expectedTick
+                        && value.RebuildReadyAtTick is null
+                    : value.LifecycleStatus
+                        == FrontlineLifecycleStatus.Rebuilding
+                        && value.RebuildReadyAtTick > expectedTick
+                        && value.RespawnAtTick is null),
+            _ => true,
+        };
+        if (!lifecycleCoherent)
+        {
+            throw new ArgumentException(
+                $"Replay event '{value.EventId}' lifecycle fields are incoherent.");
         }
     }
 
@@ -2970,6 +4004,11 @@ internal static class ReplayV2Serializer
         {
             FrontlineLifecycleStatus.Active => "active",
             FrontlineLifecycleStatus.Respawning => "respawning",
+            FrontlineLifecycleStatus.Locked => "locked",
+            FrontlineLifecycleStatus.Ready => "ready",
+            FrontlineLifecycleStatus.FabricationQueued =>
+                "fabrication-queued",
+            FrontlineLifecycleStatus.Rebuilding => "rebuilding",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -3010,6 +4049,12 @@ internal static class ReplayV2Serializer
             ObservedMatchEventType.FrontlinePositionAdvanced =>
                 "frontline-position-advanced",
             ObservedMatchEventType.BaseBreached => "base-breached",
+            ObservedMatchEventType.FabricationUnlocked =>
+                "fabrication-unlocked",
+            ObservedMatchEventType.FabricationQueued =>
+                "fabrication-queued",
+            ObservedMatchEventType.Fabricated => "fabricated",
+            ObservedMatchEventType.RebuildReady => "rebuild-ready",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -3028,6 +4073,12 @@ internal static class ReplayV2Serializer
             FrontlineMatchEventType.FrontlinePositionAdvanced =>
                 "frontline-position-advanced",
             FrontlineMatchEventType.BaseBreached => "base-breached",
+            FrontlineMatchEventType.FabricationUnlocked =>
+                "fabrication-unlocked",
+            FrontlineMatchEventType.FabricationQueued =>
+                "fabrication-queued",
+            FrontlineMatchEventType.Fabricated => "fabricated",
+            FrontlineMatchEventType.RebuildReady => "rebuild-ready",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

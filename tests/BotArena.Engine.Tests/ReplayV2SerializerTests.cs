@@ -22,10 +22,9 @@ public sealed class ReplayV2SerializerTests
         string reversePayload = ReplayV2Serializer.ToCanonicalJson(reverse);
         string expectedHash = Convert.ToHexStringLower(SHA256.HashData(
             Encoding.UTF8.GetBytes(forwardPayload)));
-
         Assert.Equal(forwardPayload, reversePayload);
         Assert.Equal(
-            "7685a3535dbc7494ec228889d08d31b61fe8deda9b784f71e81fc52d0484b225",
+            "ddb2f7d01ea3e37c8b16bcfa1ec4f02385d9ec73e590cbd16897ac8c5024cbe8",
             ReplayV2Serializer.ComputeHash(forward));
         Assert.Equal(expectedHash, ReplayV2Serializer.ComputeHash(forward));
         Assert.Equal(
@@ -85,7 +84,7 @@ public sealed class ReplayV2SerializerTests
                 .GetInt32());
 
         Assert.Equal(
-            ["lifecycle:0:0"],
+            [],
             tick.GetProperty("tickStart")
                 .GetProperty("lifecycleEvents")
                 .EnumerateArray()
@@ -131,8 +130,89 @@ public sealed class ReplayV2SerializerTests
     public void CanonicalCodec_PreservesEveryInt64MetricPastJsSafeRange()
     {
         const string damageDealt = "9007199254740993";
-        const string territorialScore = "-9007199254740993";
         ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
+        PublicFrontlineDefinition frontline =
+            replay.Header.Contract.Rules.Frontline!;
+        PublicRulesManifest wideRules = replay.Header.Contract.Rules with
+        {
+            RulesFingerprint = "",
+            Frontline = frontline with
+            {
+                FrontlinePositionCount = int.MaxValue,
+                Capture = frontline.Capture with
+                {
+                    Threshold = int.MaxValue,
+                },
+            },
+        };
+        wideRules = wideRules with
+        {
+            RulesFingerprint = MatchContractFingerprint.ComputeRules(
+                wideRules,
+                FrontlineTestDefinitions.PrimeOnlyRules(maxTicks: 1)),
+        };
+        PublicMatchContractManifest wideContract =
+            replay.Header.Contract with
+            {
+                Rules = wideRules,
+                MatchContractFingerprint = "",
+            };
+        wideContract = wideContract with
+        {
+            MatchContractFingerprint =
+                MatchContractFingerprint.ComputeMatch(wideContract),
+        };
+        string territorialScore = (
+            (long)(replay.Result.Control.ActivePositionIndex
+                - (int.MaxValue / 2))
+            * int.MaxValue).ToString(CultureInfo.InvariantCulture);
+        Assert.True(
+            Math.Abs(long.Parse(
+                territorialScore,
+                CultureInfo.InvariantCulture))
+            > 9_007_199_254_740_991L);
+        replay = replay with
+        {
+            Header = replay.Header with
+            {
+                Contract = wideContract,
+            },
+            Ticks = replay.Ticks
+                .Select(tick => tick with
+                {
+                    Actors = tick.Actors
+                        .Select(actor => actor with
+                        {
+                            LifeStart = actor.LifeStart is { } lifeStart
+                                ? lifeStart with
+                                {
+                                    MatchContractFingerprint =
+                                        wideContract
+                                            .MatchContractFingerprint,
+                                }
+                                : null,
+                            Observation = actor.Observation with
+                            {
+                                MatchContractFingerprint =
+                                    wideContract.MatchContractFingerprint,
+                            },
+                        })
+                        .ToImmutableArray(),
+                })
+                .ToImmutableArray(),
+            Result = replay.Result with
+            {
+                WinnerTeamId = 1,
+                Teams = replay.Result.Teams
+                    .Select(team => team with
+                    {
+                        Outcome = team.TeamId == 1
+                            ? FrontlineTeamOutcome.Win
+                            : FrontlineTeamOutcome.Loss,
+                    })
+                    .ToImmutableArray(),
+            },
+        };
         replay = WithTick(replay, tick => tick with
         {
             TickStart = tick.TickStart with
@@ -154,6 +234,12 @@ public sealed class ReplayV2SerializerTests
                     .Select(team => team with
                     {
                         DamageDealt = damageDealt,
+                        Units = team.Units
+                            .Select(unit => unit with
+                            {
+                                DamageDealt = damageDealt,
+                            })
+                            .ToImmutableArray(),
                     })
                     .ToImmutableArray(),
             },
@@ -169,7 +255,7 @@ public sealed class ReplayV2SerializerTests
             document.RootElement,
             "territorialScore"));
 
-        Assert.Equal(14, damageValues.Length);
+        Assert.Equal(16, damageValues.Length);
         Assert.All(damageValues, value =>
         {
             Assert.Equal(JsonValueKind.String, value.ValueKind);
@@ -340,13 +426,27 @@ public sealed class ReplayV2SerializerTests
                         FrontlineTeamOutcome.Draw,
                         3,
                         long.MaxValue,
-                        FrontlineLifecycleStatus.Active),
+                        [new(
+                            1,
+                            0,
+                            "prime-mobile",
+                            FrontlineLifecycleStatus.Active,
+                            new FrontlineActorId(1, 0, 0),
+                            3,
+                            long.MaxValue)]),
                     new(
                         0,
                         FrontlineTeamOutcome.Draw,
                         3,
                         long.MaxValue,
-                        FrontlineLifecycleStatus.Active),
+                        [new(
+                            0,
+                            0,
+                            "prime-mobile",
+                            FrontlineLifecycleStatus.Active,
+                            new FrontlineActorId(0, 0, 0),
+                            3,
+                            long.MaxValue)]),
                 ]));
         Assert.Equal(
             [0, 1],
@@ -468,6 +568,83 @@ public sealed class ReplayV2SerializerTests
             ReplayV2Serializer.ToPartialJson(
                 replay.Header,
                 [tick with { Tick = 1 }]));
+    }
+
+    [Fact]
+    public void Validation_RejectsTickZeroDeploymentDefaultFormDrift()
+    {
+        ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
+
+        AssertInvalid(
+            WithTickStartUnit(
+                replay,
+                teamId: 0,
+                unitId: 0,
+                unit => unit with { FormId = "child-mobile" }),
+            "deployment default form");
+        AssertInvalid(
+            WithTickStartUnit(
+                replay,
+                teamId: 0,
+                unitId: 0,
+                unit => unit with
+                {
+                    ActiveLife = unit.ActiveLife! with
+                    {
+                        Health = unit.ActiveLife.Health - 1,
+                    },
+                }),
+            "exact initial-life topology");
+    }
+
+    [Fact]
+    public void Validation_RejectsFinalPostStateDefaultFormDrift()
+    {
+        ReplayV2 replay = CreateReplay(reverseInsertionOrder: false);
+        ReplayV2 mutated = WithTick(replay, tick => tick with
+        {
+            PostState = tick.PostState with
+            {
+                Teams = tick.PostState.Teams
+                    .Select(team => team.TeamId != 0
+                        ? team
+                        : team with
+                        {
+                            Units = team.Units
+                                .Select(unit => unit.UnitId != 0
+                                    ? unit
+                                    : unit with
+                                    {
+                                        FormId = "child-mobile",
+                                    })
+                                .ToImmutableArray(),
+                        })
+                    .ToImmutableArray(),
+            },
+        });
+        mutated = mutated with
+        {
+            Result = mutated.Result with
+            {
+                Teams = mutated.Result.Teams
+                    .Select(team => team.TeamId != 0
+                        ? team
+                        : team with
+                        {
+                            Units = team.Units
+                                .Select(unit => unit.UnitId != 0
+                                    ? unit
+                                    : unit with
+                                    {
+                                        FormId = "child-mobile",
+                                    })
+                                .ToImmutableArray(),
+                        })
+                    .ToImmutableArray(),
+            },
+        };
+
+        AssertInvalid(mutated, "deployment default form");
     }
 
     [Fact]
@@ -745,7 +922,7 @@ public sealed class ReplayV2SerializerTests
                     ],
                 },
             }),
-            "exactly match");
+            "does not resolve");
     }
 
     [Fact]
@@ -788,6 +965,119 @@ public sealed class ReplayV2SerializerTests
                 },
             },
             "team IDs");
+        AssertInvalid(
+            replay with
+            {
+                Result = replay.Result with
+                {
+                    TerritorialScore = "1",
+                },
+            },
+            "territorialScore");
+        AssertInvalid(
+            replay with
+            {
+                Result = replay.Result with
+                {
+                    WinnerTeamId = 0,
+                },
+            },
+            "winnerTeamId");
+        AssertInvalid(
+            replay with
+            {
+                Result = replay.Result with
+                {
+                    Teams = replay.Result.Teams
+                        .Select((team, index) => index == 0
+                            ? team with
+                            {
+                                Outcome = FrontlineTeamOutcome.Win,
+                            }
+                            : team)
+                        .ToImmutableArray(),
+                },
+            },
+            "outcomes");
+        AssertInvalid(
+            replay with
+            {
+                Result = replay.Result with
+                {
+                    Reason = FrontlineMatchEndReason.BaseBreach,
+                },
+            },
+            "reason");
+        PublicFrontlineDefinition frontline =
+            replay.Header.Contract.Rules.Frontline!;
+        PublicRulesManifest invalidAdvanceRules =
+            replay.Header.Contract.Rules with
+            {
+                Frontline = frontline with
+                {
+                    Victory = frontline.Victory with
+                    {
+                        TeamAdvances =
+                        [
+                            new PublicFrontlineTeamAdvance(0, 1),
+                            new PublicFrontlineTeamAdvance(1, 1),
+                        ],
+                    },
+                },
+            };
+        AssertInvalid(
+            replay with
+            {
+                Header = replay.Header with
+                {
+                    Contract = replay.Header.Contract with
+                    {
+                        Rules = invalidAdvanceRules,
+                    },
+                },
+            },
+            "team advances");
+    }
+
+    [Fact]
+    public void Validation_RecomputesBaseBreachTerminalSemantics()
+    {
+        ReplayV2 replay = AsTeamZeroBaseBreach(
+            CreateReplay(reverseInsertionOrder: false));
+
+        _ = ReplayV2Serializer.ComputeHash(replay);
+
+        AssertInvalid(
+            WithTick(replay, tick => tick with
+            {
+                Resolution = tick.Resolution with
+                {
+                    Events = tick.Resolution.Events
+                        .Where(value =>
+                            value.Type
+                                != FrontlineMatchEventType.BaseBreached)
+                        .ToImmutableArray(),
+                },
+            }),
+            "breach event");
+        AssertInvalid(
+            replay with
+            {
+                Result = replay.Result with
+                {
+                    Reason = FrontlineMatchEndReason.MaxTicks,
+                },
+            },
+            "precedence");
+        AssertInvalid(
+            replay with
+            {
+                Result = replay.Result with
+                {
+                    WinnerTeamId = 1,
+                },
+            },
+            "winnerTeamId");
     }
 
     private static void AssertInvalid(
@@ -808,6 +1098,95 @@ public sealed class ReplayV2SerializerTests
     {
         ReplayV2Tick tick = Assert.Single(replay.Ticks);
         return replay with { Ticks = [replace(tick)] };
+    }
+
+    private static ReplayV2 WithTickStartUnit(
+        ReplayV2 replay,
+        int teamId,
+        int unitId,
+        Func<ReplayV2UnitState, ReplayV2UnitState> replace) =>
+        WithTick(replay, tick => tick with
+        {
+            TickStart = tick.TickStart with
+            {
+                State = tick.TickStart.State with
+                {
+                    Teams = tick.TickStart.State.Teams
+                        .Select(team => team.TeamId != teamId
+                            ? team
+                            : team with
+                            {
+                                Units = team.Units
+                                    .Select(unit => unit.UnitId != unitId
+                                        ? unit
+                                        : replace(unit))
+                                    .ToImmutableArray(),
+                            })
+                        .ToImmutableArray(),
+                },
+            },
+        });
+
+    private static ReplayV2 AsTeamZeroBaseBreach(ReplayV2 replay)
+    {
+        ReplayV2Tick tick = Assert.Single(replay.Ticks);
+        PublicFrontlineDefinition frontline =
+            replay.Header.Contract.Rules.Frontline!;
+        int breachedPosition = frontline.FrontlinePositionCount - 1;
+        var control = tick.PostState.Control with
+        {
+            ActivePositionIndex = breachedPosition,
+            ClaimingTeamId = null,
+            CaptureProgress = 0,
+            DecayTicksElapsed = 0,
+            WinnerTeamId = 0,
+        };
+        ReplayV2Event breach = ReplayV2Projection.Event(
+            "resolution:0:base-breach",
+            new FrontlineMatchEvent
+            {
+                Tick = tick.Tick,
+                Type = FrontlineMatchEventType.BaseBreached,
+                TeamId = 0,
+                FromPositionIndex = breachedPosition,
+                ToPositionIndex = breachedPosition,
+                ClaimingTeamId = null,
+                CaptureProgress = 0,
+            });
+        return replay with
+        {
+            Ticks =
+            [
+                tick with
+                {
+                    Resolution = tick.Resolution with
+                    {
+                        Events = tick.Resolution.Events.Add(breach),
+                    },
+                    PostState = tick.PostState with
+                    {
+                        Control = control,
+                    },
+                },
+            ],
+            Result = replay.Result with
+            {
+                WinnerTeamId = 0,
+                Reason = FrontlineMatchEndReason.BaseBreach,
+                TerritorialScore =
+                    frontline.Capture.Threshold.ToString(
+                        CultureInfo.InvariantCulture),
+                Control = control,
+                Teams = replay.Result.Teams
+                    .Select(team => team with
+                    {
+                        Outcome = team.TeamId == 0
+                            ? FrontlineTeamOutcome.Win
+                            : FrontlineTeamOutcome.Loss,
+                    })
+                    .ToImmutableArray(),
+            },
+        };
     }
 
     private static ReplayV2WorldState WithDamageDealt(
@@ -922,19 +1301,8 @@ public sealed class ReplayV2SerializerTests
         FrontlineTickStart prepared = session.PrepareTick();
         FrontlineActorId[] actorIds = prepared.ActiveActors.Order().ToArray();
 
-        var lifecycle = new FrontlineMatchEvent
-        {
-            Tick = prepared.Tick,
-            Type = FrontlineMatchEventType.Respawned,
-            TeamId = actorIds[0].TeamId,
-            ActorId = actorIds[0],
-            To = session.State.GetActiveLife(actorIds[0]).Position,
-            ToFacing = session.State.GetActiveLife(actorIds[0]).Facing,
-            NewHealth = session.State.GetActiveLife(actorIds[0]).Health,
-            LifecycleStatus = FrontlineLifecycleStatus.Active,
-        };
         ReplayV2TickStart tickStart = ReplayV2Projection.TickStart(
-            prepared with { Events = [lifecycle] },
+            prepared,
             session.State);
         tickStart = tickStart with
         {

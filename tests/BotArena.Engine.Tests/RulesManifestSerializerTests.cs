@@ -223,11 +223,90 @@ public class RulesManifestSerializerTests
             [
                 "teamCount", "participantsPerTeam", "frontlinePositionCount",
                 "initialUnitsPerTeam", "maxUnitsPerTeam", "teamPerception",
-                "capture", "lifecycle", "anchor", "alliedCombat",
+                "capture", "victory", "lifecycle", "deployment",
+                "fabrication", "anchor", "alliedCombat",
             ],
             rulesRoot.GetProperty("frontlineDefinition")
                 .EnumerateObject()
                 .Select(property => property.Name));
+        JsonElement capture =
+            rulesRoot.GetProperty("frontlineDefinition")
+                .GetProperty("capture");
+        Assert.Equal(
+            [
+                "threshold", "gainPerSoleTeamTick", "decayAmount",
+                "decayIntervalTicks", "redeployPauseTicks", "pushesToBreach",
+                "presence", "nonSolePresence", "counterCapture",
+            ],
+            capture.EnumerateObject().Select(property => property.Name));
+        Assert.Equal(
+            "binary-positive-weight-per-team-no-stacking",
+            capture.GetProperty("presence").GetString());
+        Assert.Equal(
+            "decay-existing-claim",
+            capture.GetProperty("nonSolePresence").GetString());
+        Assert.Equal(
+            "erode-to-neutral-before-claim",
+            capture.GetProperty("counterCapture").GetString());
+        JsonElement victory =
+            rulesRoot.GetProperty("frontlineDefinition")
+                .GetProperty("victory");
+        Assert.Equal(
+            [
+                "initialPosition", "teamAdvances", "completionPrecedence",
+                "timeoutResolution",
+            ],
+            victory.EnumerateObject().Select(property => property.Name));
+        Assert.Equal(
+            "centre-position-index",
+            victory.GetProperty("initialPosition").GetString());
+        Assert.Equal(
+            [(0, 1), (1, -1)],
+            victory.GetProperty("teamAdvances")
+                .EnumerateArray()
+                .Select(value => (
+                    value.GetProperty("teamId").GetInt32(),
+                    value.GetProperty("positionIndexDelta").GetInt32())));
+        Assert.Equal(
+            "base-breach-before-max-ticks",
+            victory.GetProperty("completionPrecedence").GetString());
+        Assert.Equal(
+            "signed-position-threshold-plus-claim-zero-draw-no-tiebreakers",
+            victory.GetProperty("timeoutResolution").GetString());
+        JsonElement deployment =
+            rulesRoot.GetProperty("frontlineDefinition")
+                .GetProperty("deployment");
+        Assert.Equal(
+            [
+                "primeDefaultFormId", "childDefaultFormId",
+                "destructionTransitionClock", "primeReturn", "childReturn",
+                "newLife", "primeSpawnReservation", "protectedPad",
+            ],
+            deployment.EnumerateObject().Select(property => property.Name));
+        Assert.Equal(
+            "prime-mobile",
+            deployment.GetProperty("primeDefaultFormId").GetString());
+        Assert.Equal(
+            "child-mobile",
+            deployment.GetProperty("childDefaultFormId").GetString());
+        Assert.Equal(
+            "tick-start-at-destroyed-tick-plus-one-plus-delay",
+            deployment.GetProperty("destructionTransitionClock").GetString());
+        Assert.Equal(
+            "automatic-at-authored-prime-spawn",
+            deployment.GetProperty("primeReturn").GetString());
+        Assert.Equal(
+            "ready-then-explicit-fabrication",
+            deployment.GetProperty("childReturn").GetString());
+        Assert.Equal(
+            "fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick",
+            deployment.GetProperty("newLife").GetString());
+        Assert.Equal(
+            "permanent-against-own-children",
+            deployment.GetProperty("primeSpawnReservation").GetString());
+        Assert.Equal(
+            "enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking",
+            deployment.GetProperty("protectedPad").GetString());
         Assert.Equal(
             ["child-mobile", "prime-mobile", "turret"],
             rulesRoot.GetProperty("forms")
@@ -243,9 +322,78 @@ public class RulesManifestSerializerTests
             rulesRoot.GetProperty("forms")[0]
                 .EnumerateObject()
                 .Select(property => property.Name));
+        JsonElement fabrication =
+            rulesRoot.GetProperty("frontlineDefinition")
+                .GetProperty("fabrication");
+        Assert.Equal(
+            [
+                "enabled", "actionId", "fabricatorUnitId", "fabricatorFormId",
+                "targetPolicy", "activationRegion", "consumesTick",
+                "spawnDelayTicks", "capacityEvaluation", "spawnRegion",
+                "spawnSelection",
+                "spawnFacing", "unavailableSpawnResult",
+                "requiresExplicitRefabricationAfterRebuild",
+            ],
+            fabrication.EnumerateObject().Select(property => property.Name));
+        Assert.True(fabrication.GetProperty("enabled").GetBoolean());
+        Assert.Equal(
+            "fabricate",
+            fabrication.GetProperty("actionId").GetString());
+        Assert.Equal(0, fabrication.GetProperty("fabricatorUnitId").GetInt32());
+        Assert.Equal(
+            "prime-mobile",
+            fabrication.GetProperty("fabricatorFormId").GetString());
+        Assert.Equal(
+            "own-ready-child-slot",
+            fabrication.GetProperty("targetPolicy").GetString());
+        Assert.Equal(
+            "own-protected-spawn-pad",
+            fabrication.GetProperty("activationRegion").GetString());
+        Assert.True(fabrication.GetProperty("consumesTick").GetBoolean());
+        Assert.Equal(1, fabrication.GetProperty("spawnDelayTicks").GetInt32());
+        Assert.Equal(
+            "post-movement-during-queue-fabrications",
+            fabrication.GetProperty("capacityEvaluation").GetString());
+        Assert.Equal(
+            "own-protected-spawn-pad-excluding-prime-spawn",
+            fabrication.GetProperty("spawnRegion").GetString());
+        Assert.Equal(
+            "first-unoccupied-unreserved-canonical-y-x",
+            fabrication.GetProperty("spawnSelection").GetString());
+        Assert.Equal(
+            "own-prime-spawn-facing",
+            fabrication.GetProperty("spawnFacing").GetString());
+        Assert.Equal(
+            "blocked",
+            fabrication.GetProperty("unavailableSpawnResult").GetString());
+        Assert.True(
+            fabrication
+                .GetProperty("requiresExplicitRefabricationAfterRebuild")
+                .GetBoolean());
+        Assert.Contains(
+            rulesRoot.GetProperty("actions").EnumerateArray(),
+            action =>
+                action.GetProperty("id").GetString() == "fabricate"
+                && action.GetProperty("code").GetInt32()
+                    == PublicActionCodes.Fabricate
+                && action.GetProperty("kind").GetString() == "fabrication"
+                && action.GetProperty("parameterKinds")[0].GetString()
+                    == "unit-target");
         Assert.DoesNotContain(
             rulesRoot.GetProperty("actions").EnumerateArray(),
-            action => action.GetProperty("id").GetString() is "fabricate" or "anchor");
+            action => action.GetProperty("id").GetString() == "anchor");
+        JsonElement alliedCombat =
+            rulesRoot.GetProperty("frontlineDefinition")
+                .GetProperty("alliedCombat");
+        Assert.Equal(
+            [
+                "friendlyFireEnabled", "alliedProjectilesBlock",
+                "projectileAttribution",
+            ],
+            alliedCombat.EnumerateObject().Select(property => property.Name));
+        Assert.Equal(
+            "exact-firing-life-persists-credits-stable-unit-by-actual-health-removed",
+            alliedCombat.GetProperty("projectileAttribution").GetString());
 
         Assert.Equal(
             [
@@ -260,6 +408,230 @@ public class RulesManifestSerializerTests
                 .Select(property => property.Name));
         Assert.Empty(mapRoot.GetProperty("objectiveTiles").EnumerateArray());
     }
+
+    [Fact]
+    public void FrontlineSemanticEnums_RejectUnknownValues()
+    {
+        PublicRulesManifest manifest = PublicRulesManifestFactory.CreateRules(
+            GameRules.V0_1 with
+            {
+                RulesVersion = "frontline-invalid-semantics-test",
+                Frontline = new FrontlineRules(),
+            });
+        PublicFrontlineDefinition frontline =
+            Assert.IsType<PublicFrontlineDefinition>(manifest.Frontline);
+        const int unknown = int.MaxValue;
+        PublicRulesManifest[] invalid =
+        [
+            WithFrontline(manifest, frontline with
+            {
+                Capture = frontline.Capture with
+                {
+                    Presence =
+                        (PublicFrontlineCapturePresencePolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Capture = frontline.Capture with
+                {
+                    NonSolePresence =
+                        (PublicFrontlineNonSolePresencePolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Capture = frontline.Capture with
+                {
+                    CounterCapture =
+                        (PublicFrontlineCounterCapturePolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    InitialPosition =
+                        (PublicFrontlineInitialPositionPolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    CompletionPrecedence =
+                        (PublicFrontlineCompletionPrecedence)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    TimeoutResolution =
+                        (PublicFrontlineTimeoutResolution)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    DestructionTransitionClock =
+                        (PublicFrontlineDestructionTransitionClock)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    PrimeReturn =
+                        (PublicFrontlinePrimeReturnPolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    ChildReturn =
+                        (PublicFrontlineChildReturnPolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    NewLife =
+                        (PublicFrontlineNewLifePolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    PrimeSpawnReservation =
+                        (PublicFrontlinePrimeSpawnReservationPolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    ProtectedPad =
+                        (PublicFrontlineProtectedPadPolicy)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                Fabrication = frontline.Fabrication with
+                {
+                    CapacityEvaluation =
+                        (PublicFrontlineFabricationCapacityEvaluation)unknown,
+                },
+            }),
+            WithFrontline(manifest, frontline with
+            {
+                AlliedCombat = frontline.AlliedCombat with
+                {
+                    ProjectileAttribution =
+                        (PublicFrontlineProjectileAttributionPolicy)unknown,
+                },
+            }),
+        ];
+
+        Assert.All(
+            invalid,
+            value => Assert.Throws<ArgumentOutOfRangeException>(() =>
+                RulesManifestSerializer.ToCanonicalJson(value)));
+    }
+
+    [Fact]
+    public void FrontlineTeamAdvances_AreCanonicalAndRequireUniqueTeamIds()
+    {
+        PublicRulesManifest manifest = PublicRulesManifestFactory.CreateRules(
+            GameRules.V0_1 with
+            {
+                RulesVersion = "frontline-team-advance-test",
+                Frontline = new FrontlineRules(),
+            });
+        PublicFrontlineDefinition frontline =
+            Assert.IsType<PublicFrontlineDefinition>(manifest.Frontline);
+        PublicRulesManifest reversed = WithFrontline(
+            manifest,
+            frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    TeamAdvances =
+                        frontline.Victory.TeamAdvances
+                            .Reverse()
+                            .ToImmutableArray(),
+                },
+            });
+        Assert.Equal(
+            RulesManifestSerializer.ToCanonicalJson(manifest),
+            RulesManifestSerializer.ToCanonicalJson(reversed));
+
+        PublicRulesManifest duplicate = WithFrontline(
+            manifest,
+            frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    TeamAdvances =
+                    [
+                        new PublicFrontlineTeamAdvance(0, 1),
+                        new PublicFrontlineTeamAdvance(0, -1),
+                    ],
+                },
+            });
+        Assert.Throws<ArgumentException>(() =>
+            RulesManifestSerializer.ToCanonicalJson(duplicate));
+
+        PublicRulesManifest invalidDelta = WithFrontline(
+            manifest,
+            frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    TeamAdvances =
+                    [
+                        new PublicFrontlineTeamAdvance(0, 1),
+                        new PublicFrontlineTeamAdvance(1, 1),
+                    ],
+                },
+            });
+        Assert.Throws<ArgumentException>(() =>
+            RulesManifestSerializer.ToCanonicalJson(invalidDelta));
+    }
+
+    [Fact]
+    public void FrontlineDeployment_DefaultFormsMustReferenceCatalog()
+    {
+        PublicRulesManifest manifest = PublicRulesManifestFactory.CreateRules(
+            GameRules.V0_1 with
+            {
+                RulesVersion = "frontline-default-form-test",
+                Frontline = new FrontlineRules(),
+            });
+        PublicFrontlineDefinition frontline =
+            Assert.IsType<PublicFrontlineDefinition>(manifest.Frontline);
+        PublicRulesManifest invalid = WithFrontline(
+            manifest,
+            frontline with
+            {
+                Deployment = frontline.Deployment with
+                {
+                    ChildDefaultFormId = "missing-form",
+                },
+            });
+
+        Assert.Throws<ArgumentException>(() =>
+            RulesManifestSerializer.ToCanonicalJson(invalid));
+    }
+
+    private static PublicRulesManifest WithFrontline(
+        PublicRulesManifest manifest,
+        PublicFrontlineDefinition frontline) =>
+        manifest with { Frontline = frontline };
 
     private static string FindRepoRoot()
     {

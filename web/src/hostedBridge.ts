@@ -144,9 +144,18 @@ export function replayBridgeMessage(
           teams: replay.result.teams.map((team) => ({
             teamId: team.teamId,
             outcome: team.outcome,
-            finalHealth: team.finalHealth,
+            activeHealth: team.activeHealth,
             damageDealt: team.damageDealt,
-            finalLifecycleStatus: team.finalLifecycleStatus,
+            units: team.units.map((unit) => ({
+              unitKey: unit.unitKey,
+              teamId: unit.teamId,
+              unitId: unit.unitId,
+              formId: unit.formId,
+              lifecycleStatus: unit.lifecycleStatus,
+              activeActorKey: unit.activeActorKey,
+              health: unit.health,
+              damageDealt: unit.damageDealt,
+            })),
           })),
         }
       : null,

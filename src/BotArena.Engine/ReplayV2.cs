@@ -145,7 +145,10 @@ internal sealed record ReplayV2ObservedUnitSlot(
     string FormId,
     FrontlineLifecycleStatus LifecycleStatus,
     ReplayV2ActorId? ActiveActorId,
-    int? RespawnAtTick);
+    int? RespawnAtTick,
+    int? UnlockAtTick,
+    int? RebuildReadyAtTick,
+    int? FabricationAtTick);
 
 internal sealed record ReplayV2ObservedSelf(
     ReplayV2ActorId ActorId,
@@ -274,6 +277,7 @@ internal sealed record ReplayV2Event(
     int Tick,
     FrontlineMatchEventType Type,
     int? TeamId,
+    int? UnitId,
     ReplayV2ActorId? SourceActorId,
     ReplayV2ActorId? TargetActorId,
     string? ProjectileId,
@@ -289,7 +293,11 @@ internal sealed record ReplayV2Event(
     int? Amount,
     int? NewHealth,
     FrontlineLifecycleStatus? LifecycleStatus,
+    ActorSpawnReason? SpawnReason,
     int? RespawnAtTick,
+    int? UnlockAtTick,
+    int? RebuildReadyAtTick,
+    int? FabricationAtTick,
     int? FromPositionIndex,
     int? ToPositionIndex,
     int? ClaimingTeamId,
@@ -322,6 +330,13 @@ internal sealed record ReplayV2UnitState(
     string FormId,
     FrontlineLifecycleStatus LifecycleStatus,
     int? RespawnAtTick,
+    int? UnlockAtTick,
+    int? RebuildReadyAtTick,
+    int? FabricationAtTick,
+    Position? ReservedSpawn,
+    ActorSpawnReason? PendingSpawnReason,
+    bool HasSpawned,
+    int NextLifeId,
     string DamageDealt,
     ReplayV2LifeState? ActiveLife);
 
@@ -368,6 +383,15 @@ internal sealed record ReplayV2Result(
 internal sealed record ReplayV2TeamResult(
     int TeamId,
     FrontlineTeamOutcome Outcome,
-    int FinalHealth,
+    int ActiveHealth,
     string DamageDealt,
-    FrontlineLifecycleStatus FinalLifecycleStatus);
+    ImmutableArray<ReplayV2UnitResult> Units);
+
+internal sealed record ReplayV2UnitResult(
+    int TeamId,
+    int UnitId,
+    string FormId,
+    FrontlineLifecycleStatus LifecycleStatus,
+    ReplayV2ActorId? ActiveActorId,
+    int Health,
+    string DamageDealt);

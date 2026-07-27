@@ -13,4 +13,8 @@ public enum FrontlineMatchEventType
     FrontlineProgressChanged = 7,
     FrontlinePositionAdvanced = 8,
     BaseBreached = 9,
+    FabricationUnlocked = 10,
+    FabricationQueued = 11,
+    Fabricated = 12,
+    RebuildReady = 13,
 }

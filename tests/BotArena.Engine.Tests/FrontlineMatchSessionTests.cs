@@ -9,24 +9,42 @@ public class FrontlineMatchSessionTests
     private static readonly FrontlineActorId Team1Life0 = new(1, 0, 0);
 
     [Fact]
-    public void Constructor_RejectsMultiUnitAndNonFrontlineDefinitions()
+    public void Constructor_AcceptsFiveStableSlotsAndRejectsNonFrontline()
     {
-        GameRules multiUnitRules =
+        GameRules supportedRules =
             FrontlineTestDefinitions.PrimeOnlyRules(maxTicks: 500) with
             {
                 Frontline = new FrontlineRules(),
             };
-        ResolvedMatchDefinition multiUnitDefinition =
+        ResolvedMatchDefinition supportedDefinition =
             MatchDefinitionResolver.Resolve(
-                multiUnitRules,
+                supportedRules,
+                FrontlineTestDefinitions.Frontline01());
+        FrontlineRules fiveSlotFrontline =
+            supportedRules.Frontline! with
+            {
+                MaxUnitsPerTeam = 5,
+                FabricationUnlockTicks = [120, 200, 260, 400],
+            };
+        ResolvedMatchDefinition fiveSlotDefinition =
+            MatchDefinitionResolver.Resolve(
+                supportedRules with { Frontline = fiveSlotFrontline },
                 FrontlineTestDefinitions.Frontline01());
         ResolvedMatchDefinition legacyDefinition =
             MatchDefinitionResolver.Resolve(
                 GameRules.V0_1,
                 FrontlineTestDefinitions.OpenMapV1());
 
-        Assert.Throws<NotSupportedException>(
-            () => new FrontlineMatchSession(multiUnitDefinition));
+        _ = new FrontlineMatchSession(supportedDefinition);
+        var fiveSlotSession =
+            new FrontlineMatchSession(fiveSlotDefinition);
+        Assert.All(
+            fiveSlotSession.State.Teams,
+            team => Assert.Equal(
+                [0, 1, 2, 3, 4],
+                team.Units.Select(unit => unit.UnitId).ToArray()));
+        FrontlineTickStart tick = fiveSlotSession.PrepareTick();
+        fiveSlotSession.Step(WaitDecisions(tick.ActiveActors));
         Assert.Throws<ArgumentException>(
             () => new FrontlineMatchSession(legacyDefinition));
     }

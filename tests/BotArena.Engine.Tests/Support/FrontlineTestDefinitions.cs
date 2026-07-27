@@ -3,11 +3,36 @@ using BotArena.Engine;
 namespace BotArena.Engine.Tests.Support;
 
 /// <summary>
-/// Small, resolver-valid Frontline definitions for Package 3 session tests.
-/// These fixtures deliberately model only the two initial Primes.
+/// Small, resolver-valid Frontline definitions for entity-session tests.
+/// Individual helpers opt into Prime-only or replicated stable-unit topology.
 /// </summary>
 public static class FrontlineTestDefinitions
 {
+    public static GameRules ReplicationRules(
+        int maxTicks = 20,
+        int firstUnlockTick = 1,
+        int secondUnlockTick = 2,
+        int childRebuildTicks = 2,
+        int primeRespawnTicks = 3,
+        int shootCooldownTicks = 0)
+    {
+        GameRules baseline = PrimeOnlyRules(
+            maxTicks,
+            primeRespawnTicks,
+            shootCooldownTicks: shootCooldownTicks);
+        return baseline with
+        {
+            RulesVersion = "frontline-replication-test",
+            Frontline = baseline.Frontline! with
+            {
+                MaxUnitsPerTeam = 3,
+                ChildRebuildTicks = childRebuildTicks,
+                FabricationUnlockTicks =
+                    [firstUnlockTick, secondUnlockTick],
+            },
+        };
+    }
+
     public static GameRules PrimeOnlyRules(
         int maxTicks = 100,
         int primeRespawnTicks = 3,
@@ -105,6 +130,47 @@ public static class FrontlineTestDefinitions
               [1,1], [2,1], [3,1], [4,1], [5,1], [6,1], [7,1],
               [1,2], [2,2], [3,2], [4,2], [5,2], [6,2], [7,2],
               [1,3], [2,3], [3,3], [4,3], [5,3], [6,3], [7,3]
+            ]
+          }
+        }
+        """);
+
+    public static ArenaMap ReplicationMapV2() => ArenaMap.FromJson("""
+        {
+          "formatVersion": 2,
+          "id": "frontline-test-replication",
+          "version": 1,
+          "width": 13,
+          "height": 7,
+          "tiles": [
+            "#############",
+            "#...........#",
+            "#...........#",
+            "#...........#",
+            "#...........#",
+            "#...........#",
+            "#############"
+          ],
+          "spawns": [
+            { "teamId": 0, "x": 1, "y": 3, "facing": "East" },
+            { "teamId": 1, "x": 11, "y": 3, "facing": "West" }
+          ],
+          "frontline": {
+            "positions": [
+              { "tiles": [[3,1]] },
+              { "tiles": [[6,1]] },
+              { "tiles": [[9,1]] }
+            ],
+            "homePads": [
+              { "teamId": 0, "tiles": [[2,4],[1,3],[1,4]] },
+              { "teamId": 1, "tiles": [[11,4],[10,4],[11,3]] }
+            ],
+            "anchorForbiddenTiles": [
+              [1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[11,1],
+              [1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],[9,2],[10,2],[11,2],
+              [1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[11,3],
+              [1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[7,4],[8,4],[9,4],[10,4],[11,4],
+              [1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[11,5]
             ]
           }
         }

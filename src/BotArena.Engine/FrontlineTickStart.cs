@@ -8,4 +8,11 @@ public sealed record FrontlineTickStart(
     int Tick,
     IReadOnlyList<FrontlineActorId> ActiveActors,
     IReadOnlyList<FrontlineActorId> RespawnedActors,
-    IReadOnlyList<FrontlineMatchEvent> Events);
+    IReadOnlyList<FrontlineMatchEvent> Events)
+{
+    /// <summary>
+    /// Exact new lives created at this tick start. This includes Prime
+    /// respawns, first fabrications, and later child rebuilds.
+    /// </summary>
+    public IReadOnlyList<FrontlineLifeSpawn> SpawnedLives { get; init; } = [];
+}

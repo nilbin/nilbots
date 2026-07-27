@@ -127,7 +127,10 @@ public sealed class FrontlineObservationProjector
                     unit.FormId,
                     unit.LifecycleStatus,
                     unit.ActiveLife?.ActorId,
-                    unit.RespawnAtTick))
+                    unit.RespawnAtTick,
+                    unit.UnlockAtTick,
+                    unit.RebuildReadyAtTick,
+                    unit.FabricationAtTick))
                 .ToImmutableArray();
             ImmutableArray<ObservedAlly> allies = actors
                 .Where(candidate =>
@@ -201,7 +204,9 @@ public sealed class FrontlineObservationProjector
                 Actions = ProjectActions(
                     contract.Rules,
                     form,
-                    actor),
+                    actor,
+                    units,
+                    state.Definition.FrontlineMapProfile!),
             });
             replayAliases.Add(usedAliases.ToReplayAliases(actor.ActorId));
         }
@@ -514,7 +519,11 @@ public sealed class FrontlineObservationProjector
                     unit.FormId,
                     unit.LifecycleStatus,
                     activeLife,
-                    unit.RespawnAtTick));
+                    unit.RespawnAtTick,
+                    unit.UnlockAtTick,
+                    unit.RebuildReadyAtTick,
+                    unit.FabricationAtTick,
+                    unit.ReservedSpawn));
             }
         }
         return units.ToImmutable();
@@ -832,7 +841,9 @@ public sealed class FrontlineObservationProjector
     private static ImmutableArray<ObservedActionAvailability> ProjectActions(
         PublicRulesManifest rules,
         PublicFormDefinition form,
-        ActorSnapshot actor)
+        ActorSnapshot actor,
+        ImmutableArray<UnitSnapshot> units,
+        FrontlineMapProfile profile)
     {
         HashSet<string> allowedActionIds = form.AllowedActionIds
             .ToHashSet(StringComparer.Ordinal);
@@ -864,6 +875,40 @@ public sealed class FrontlineObservationProjector
                         && form.AllowsProgrammedShots
                         && rules.ShotPrograms.Enabled
                     : null;
+            FrontlineTeamHome home = profile.TeamHomes.Single(
+                value => value.TeamId == actor.ActorId.TeamId);
+            PublicFrontlineFabricationDefinition? fabrication =
+                rules.Frontline?.Fabrication;
+            bool fabricatorOnHomePad =
+                fabrication is not null
+                && actor.ActorId.UnitId == fabrication.FabricatorUnitId
+                && home.ProtectedSpawnPad.Contains(actor.Position);
+            ImmutableArray<ObservedUnitTarget>? allowedUnitTargets =
+                action.ParameterKinds.Contains(
+                    PublicActionParameterKind.UnitTarget)
+                    ? units
+                        .Where(unit =>
+                            fabricatorOnHomePad
+                            && unit.TeamId == actor.ActorId.TeamId
+                            && unit.UnitId
+                                != fabrication!.FabricatorUnitId
+                            && unit.LifecycleStatus
+                                == FrontlineLifecycleStatus.Ready)
+                        .OrderBy(unit => unit.TeamId)
+                        .ThenBy(unit => unit.UnitId)
+                        .Select(unit => new ObservedUnitTarget(
+                            unit.TeamId,
+                            unit.UnitId))
+                        .ToImmutableArray()
+                    : null;
+            if (string.Equals(
+                    action.Id,
+                    PublicActionIds.Fabricate,
+                    StringComparison.Ordinal))
+            {
+                available = available
+                    && allowedUnitTargets is { IsEmpty: false };
+            }
             actions.Add(new ObservedActionAvailability(
                 action.Id,
                 action.Code,
@@ -872,7 +917,7 @@ public sealed class FrontlineObservationProjector
                 available,
                 shotProgramAvailable,
                 AllowedDirections: null,
-                AllowedUnitTargets: null,
+                AllowedUnitTargets: allowedUnitTargets,
                 AllowedFormTargets: null));
         }
         return actions.MoveToImmutable();
@@ -922,6 +967,10 @@ public sealed class FrontlineObservationProjector
         matchEvent.Type switch
         {
             FrontlineMatchEventType.Respawned => matchEvent.To,
+            FrontlineMatchEventType.FabricationQueued
+                or FrontlineMatchEventType.Fabricated => matchEvent.To,
+            FrontlineMatchEventType.FabricationUnlocked
+                or FrontlineMatchEventType.RebuildReady => null,
             FrontlineMatchEventType.Turn
                 or FrontlineMatchEventType.Move
                 or FrontlineMatchEventType.MoveBlocked
@@ -942,6 +991,14 @@ public sealed class FrontlineObservationProjector
         {
             FrontlineMatchEventType.Respawned =>
                 ObservedMatchEventType.Respawned,
+            FrontlineMatchEventType.FabricationUnlocked =>
+                ObservedMatchEventType.FabricationUnlocked,
+            FrontlineMatchEventType.FabricationQueued =>
+                ObservedMatchEventType.FabricationQueued,
+            FrontlineMatchEventType.Fabricated =>
+                ObservedMatchEventType.Fabricated,
+            FrontlineMatchEventType.RebuildReady =>
+                ObservedMatchEventType.RebuildReady,
             FrontlineMatchEventType.Turn =>
                 ObservedMatchEventType.Turn,
             FrontlineMatchEventType.Move =>
@@ -1006,7 +1063,11 @@ public sealed class FrontlineObservationProjector
         string FormId,
         FrontlineLifecycleStatus LifecycleStatus,
         ActorSnapshot? ActiveLife,
-        int? RespawnAtTick);
+        int? RespawnAtTick,
+        int? UnlockAtTick,
+        int? RebuildReadyAtTick,
+        int? FabricationAtTick,
+        Position? ReservedSpawn);
 
     private sealed record ActorSnapshot(
         ActorIdentity ActorId,

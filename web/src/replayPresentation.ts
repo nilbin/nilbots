@@ -68,6 +68,11 @@ export interface UnitPresentation {
   omnidirectionalShooting: boolean;
   status: ReplayUnitLifecycleStatus;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+  reservedSpawn: { x: number; y: number } | null;
+  pendingSpawnReason: string | null;
   health: number;
   maxHealth: number;
   cooldown: number;
@@ -222,6 +227,13 @@ function presentUnit(
     omnidirectionalShooting: form?.omnidirectionalShooting ?? false,
     status,
     respawnAtTick: afterUnit?.respawnAtTick ?? null,
+    unlockAtTick: afterUnit?.unlockAtTick ?? null,
+    rebuildReadyAtTick: afterUnit?.rebuildReadyAtTick ?? null,
+    fabricationAtTick: afterUnit?.fabricationAtTick ?? null,
+    reservedSpawn: afterUnit?.reservedSpawn
+      ? { ...afterUnit.reservedSpawn }
+      : null,
+    pendingSpawnReason: afterUnit?.pendingSpawnReason ?? null,
     health: activeActor?.health ?? (status === 'active' ? (actor?.health ?? 0) : 0),
     maxHealth: form?.maxHealth ?? Math.max(1, actor?.health ?? maxHealthFallback(replay)),
     cooldown: activeActor?.cooldown ?? 0,

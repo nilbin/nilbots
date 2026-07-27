@@ -9,6 +9,7 @@ const STATUS_COLOR: Record<string, string> = {
   destroyed: Arena.live,
   disqualified: Arena.warn,
   respawning: Arena.live,
+  locked: Arena.dim,
   ready: Arena.accent,
   'fabrication-queued': Arena.zone,
   rebuilding: Arena.zone,
@@ -40,6 +41,18 @@ export function ArenaBotCard({
     Math.max(1, unit.maxHealth);
   const hasLife = unit.actorKey !== null && unit.lifeId !== null;
   const statusLabel = unit.status.replaceAll('-', ' ').toUpperCase();
+  const transition =
+    unit.status === 'respawning' && unit.respawnAtTick !== null
+      ? { label: 'RESPAWN', tick: unit.respawnAtTick }
+      : unit.status === 'locked' && unit.unlockAtTick !== null
+        ? { label: 'UNLOCK', tick: unit.unlockAtTick }
+        : unit.status === 'rebuilding' &&
+            unit.rebuildReadyAtTick !== null
+          ? { label: 'READY', tick: unit.rebuildReadyAtTick }
+          : unit.status === 'fabrication-queued' &&
+              unit.fabricationAtTick !== null
+            ? { label: 'SPAWN', tick: unit.fabricationAtTick }
+            : null;
 
   return (
     <Pressable
@@ -119,10 +132,10 @@ export function ArenaBotCard({
           </Text>
         ) : null}
 
-        {unit.respawnAtTick !== null ? (
+        {transition ? (
           <Text style={styles.stat}>
-            NEXT{' '}
-            <Text style={styles.statValue}>{unit.respawnAtTick}</Text>
+            {transition.label}{' '}
+            <Text style={styles.statValue}>T{transition.tick}</Text>
           </Text>
         ) : null}
       </View>

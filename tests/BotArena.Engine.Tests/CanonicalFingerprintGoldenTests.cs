@@ -82,13 +82,13 @@ public class CanonicalFingerprintGoldenTests
             PublicRulesManifestFactory.CreateMatchContract(rules, map);
 
         Assert.Equal(
-            "0b61638436eeb11f8eac844cd98e0ac2f21254ad5ce1d645c02025470155924f",
+            "8e584bfec6c6e10bce5923bffb270dc28573518e24489dcdf7e3273191bc9301",
             contract.Rules.RulesFingerprint);
         Assert.Equal(
             "b0d3d42946fa80306694597eea3faefce5e64ce5da7324ab2c95e2d8b3db52cd",
             contract.Map.MapFingerprint);
         Assert.Equal(
-            "a642f503f4c0e4cb7f8f3ad3743a466260b348731d77f19e8807ce3fab2854c6",
+            "c0644ba43a59b8caa56cb01dbfdbc388cf2fc43845f30957fac085b852cb37bd",
             contract.MatchContractFingerprint);
     }
 

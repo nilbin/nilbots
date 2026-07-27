@@ -140,7 +140,10 @@ internal static class ReplayV2Projection
                     unit.ActiveActorId is null
                         ? null
                         : ActorId(unit.ActiveActorId),
-                    unit.RespawnAtTick))
+                    unit.RespawnAtTick,
+                    unit.UnlockAtTick,
+                    unit.RebuildReadyAtTick,
+                    unit.FabricationAtTick))
                 .ToImmutableArray(),
             observation.Allies
                 .OrderBy(ally => ally.ActorId)
@@ -315,12 +318,12 @@ internal static class ReplayV2Projection
         ArgumentNullException.ThrowIfNull(resolution);
         return new ReplayV2ActionResolution(
             ActorId(resolution.ActorId),
-            ActionId(resolution.ChosenAction),
-            (int)resolution.ChosenAction,
-            ActionPayload(resolution.ChosenShotProgram),
-            ActionId(resolution.ValidatedAction),
-            (int)resolution.ValidatedAction,
-            ActionPayload(resolution.ValidatedShotProgram),
+            resolution.ChosenActionId,
+            resolution.ChosenActionCode,
+            ActionPayload(resolution.ChosenPayload),
+            resolution.ValidatedActionId,
+            resolution.ValidatedActionCode,
+            ActionPayload(resolution.ValidatedPayload),
             resolution.Result);
     }
 
@@ -382,6 +385,7 @@ internal static class ReplayV2Projection
             value.Tick,
             value.Type,
             value.TeamId,
+            value.UnitId,
             source,
             target,
             value.ProjectileId is long projectileId
@@ -392,14 +396,25 @@ internal static class ReplayV2Projection
             value.FromFacing,
             value.ToFacing,
             value.ProjectileHeading,
-            value.Action is BotAction action ? ActionId(action) : null,
-            value.Action is BotAction actionCode ? (int)actionCode : null,
-            ActionPayload(value.ShotProgram),
+            value.ActionId
+                ?? (value.Action is BotAction action
+                    ? ActionId(action)
+                    : null),
+            value.ActionCode
+                ?? (value.Action is BotAction actionCode
+                    ? (int)actionCode
+                    : null),
+            ActionPayload(value.ActionPayload)
+                ?? ActionPayload(value.ShotProgram),
             value.ActionResult,
             value.Amount,
             value.NewHealth,
             value.LifecycleStatus,
+            value.SpawnReason,
             value.RespawnAtTick,
+            value.UnlockAtTick,
+            value.RebuildReadyAtTick,
+            value.FabricationAtTick,
             value.FromPositionIndex,
             value.ToPositionIndex,
             value.ClaimingTeamId,
@@ -474,6 +489,13 @@ internal static class ReplayV2Projection
                             unit.FormId,
                             unit.LifecycleStatus,
                             unit.RespawnAtTick,
+                            unit.UnlockAtTick,
+                            unit.RebuildReadyAtTick,
+                            unit.FabricationAtTick,
+                            unit.ReservedSpawn,
+                            unit.PendingSpawnReason,
+                            unit.HasSpawned,
+                            unit.NextLifeId,
                             WireInt64(unit.DamageDealt),
                             unit.ActiveLife is { } life
                                 ? new ReplayV2LifeState(
@@ -520,9 +542,21 @@ internal static class ReplayV2Projection
                 .Select(team => new ReplayV2TeamResult(
                     team.TeamId,
                     team.Outcome,
-                    team.FinalHealth,
+                    team.ActiveHealth,
                     WireInt64(team.DamageDealt),
-                    team.FinalLifecycleStatus))
+                    team.Units
+                        .OrderBy(unit => unit.UnitId)
+                        .Select(unit => new ReplayV2UnitResult(
+                            unit.TeamId,
+                            unit.UnitId,
+                            unit.FormId,
+                            unit.LifecycleStatus,
+                            unit.ActiveActorId is { } actorId
+                                ? ActorId(actorId)
+                                : null,
+                            unit.Health,
+                            WireInt64(unit.DamageDealt)))
+                        .ToImmutableArray()))
                 .ToImmutableArray());
     }
 

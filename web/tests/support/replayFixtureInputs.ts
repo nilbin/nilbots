@@ -117,9 +117,11 @@ function resultV1(slot: number) {
 
 export function replayV2FixtureInput(): ReplayV2CompleteDocument {
   const beforeActor: ReplayV2ActorId = { teamId: 0, unitId: 0, lifeId: 0 };
-  const afterActor: ReplayV2ActorId = { teamId: 0, unitId: 0, lifeId: 1 };
-  const before = worldV2(beforeActor, 0);
-  const after = worldV2(afterActor, 1);
+  const otherActor: ReplayV2ActorId = { teamId: 1, unitId: 0, lifeId: 0 };
+  const afterActor = beforeActor;
+  const actors = [beforeActor, otherActor];
+  const before = worldV2(actors, 0);
+  const after = worldV2(actors, 1);
 
   return {
     header: {
@@ -144,9 +146,9 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
           limits: {
             maxTicks: 10,
             faultLimit: 0,
-            teamCount: 1,
-            participantCount: 1,
-            unitSlotCount: 1,
+            teamCount: 2,
+            participantCount: 2,
+            unitSlotCount: 2,
             initialUnitsPerTeam: 1,
             maxUnitsPerTeam: 1,
             destructionEndsMatch: false,
@@ -171,7 +173,7 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
             maxTickTiebreakers: ['objective', 'health', 'damage-dealt'],
           },
           frontlineDefinition: {
-            teamCount: 1,
+            teamCount: 2,
             participantsPerTeam: 1,
             frontlinePositionCount: 1,
             initialUnitsPerTeam: 1,
@@ -184,11 +186,56 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
               decayIntervalTicks: 1,
               redeployPauseTicks: 1,
               pushesToBreach: 1,
+              presence: 'binary-positive-weight-per-team-no-stacking',
+              nonSolePresence: 'decay-existing-claim',
+              counterCapture: 'erode-to-neutral-before-claim',
+            },
+            victory: {
+              initialPosition: 'centre-position-index',
+              teamAdvances: [
+                { teamId: 0, positionIndexDelta: 1 },
+                { teamId: 1, positionIndexDelta: -1 },
+              ],
+              completionPrecedence: 'base-breach-before-max-ticks',
+              timeoutResolution:
+                'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
             },
             lifecycle: {
               primeRespawnTicks: 2,
               childRebuildTicks: 3,
               fabricationUnlockTicks: [],
+            },
+            deployment: {
+              primeDefaultFormId: 'prime',
+              childDefaultFormId: 'child',
+              destructionTransitionClock:
+                'tick-start-at-destroyed-tick-plus-one-plus-delay',
+              primeReturn: 'automatic-at-authored-prime-spawn',
+              childReturn: 'ready-then-explicit-fabrication',
+              newLife:
+                'fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick',
+              primeSpawnReservation: 'permanent-against-own-children',
+              protectedPad:
+                'enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking',
+            },
+            fabrication: {
+              enabled: false,
+              actionId: 'fabricate',
+              fabricatorUnitId: 0,
+              fabricatorFormId: 'prime',
+              targetPolicy: 'own-ready-child-slot',
+              activationRegion: 'own-protected-spawn-pad',
+              consumesTick: true,
+              spawnDelayTicks: 1,
+              capacityEvaluation:
+                'post-movement-during-queue-fabrications',
+              spawnRegion:
+                'own-protected-spawn-pad-excluding-prime-spawn',
+              spawnSelection:
+                'first-unoccupied-unreserved-canonical-y-x',
+              spawnFacing: 'own-prime-spawn-facing',
+              unavailableSpawnResult: 'blocked',
+              requiresExplicitRefabricationAfterRebuild: true,
             },
             anchor: {
               windupTicks: 2,
@@ -198,6 +245,8 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
             alliedCombat: {
               friendlyFireEnabled: false,
               alliedProjectilesBlock: false,
+              projectileAttribution:
+                'exact-firing-life-persists-credits-stable-unit-by-actual-health-removed',
             },
           },
           energy: {
@@ -208,6 +257,20 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
             regenerationAmount: 0,
           },
           forms: [
+            {
+              id: 'child',
+              maxHealth: 3,
+              visionRange: 6,
+              shootCooldownTicks: 2,
+              omnidirectionalVision: false,
+              omnidirectionalShooting: false,
+              movementLayer: 'ground',
+              objectiveWeight: 1,
+              canMove: true,
+              canShoot: true,
+              allowsProgrammedShots: true,
+              allowedActionIds: ['wait'],
+            },
             {
               id: 'prime',
               maxHealth: 5,
@@ -302,7 +365,11 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
           tickResolution: {
             observationsUsePreTickState: true,
             decisionsResolveAsJointStep: true,
-            phases: ['freeze-observations', 'resolve-match-completion'],
+            phases: [
+              'queue-fabrications',
+              'freeze-observations',
+              'resolve-match-completion',
+            ],
           },
         },
         map: {
@@ -314,7 +381,10 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
           width: 3,
           height: 3,
           tileRows: ['...', '...', '...'],
-          spawns: [{ teamId: 0, x: 0, y: 1, facing: 'east' }],
+          spawns: [
+            { teamId: 0, x: 0, y: 1, facing: 'east' },
+            { teamId: 1, x: 2, y: 1, facing: 'west' },
+          ],
           objectiveTiles: [],
           frontline: {
             positions: [{ positionIndex: 0, tiles: [[1, 1]] }],
@@ -324,22 +394,32 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
                 primeSpawn: { x: 0, y: 1, facing: 'east' },
                 protectedSpawnPad: [[0, 1]],
               },
+              {
+                teamId: 1,
+                primeSpawn: { x: 2, y: 1, facing: 'west' },
+                protectedSpawnPad: [[2, 1]],
+              },
             ],
             anchorForbiddenTiles: [],
           },
         },
         topology: {
-          teamCount: 1,
-          participantCount: 1,
-          unitSlotCount: 1,
-          initialLifeCount: 1,
-          teams: [{ teamId: 0 }],
-          participants: [{ participantId: 0, teamId: 0 }],
+          teamCount: 2,
+          participantCount: 2,
+          unitSlotCount: 2,
+          initialLifeCount: 2,
+          teams: [{ teamId: 0 }, { teamId: 1 }],
+          participants: [
+            { participantId: 0, teamId: 0 },
+            { participantId: 1, teamId: 1 },
+          ],
           unitSlots: [
             { teamId: 0, unitId: 0, controllerParticipantId: 0 },
+            { teamId: 1, unitId: 0, controllerParticipantId: 1 },
           ],
           initialLives: [
             { teamId: 0, unitId: 0, lifeId: 0, formId: 'prime' },
+            { teamId: 1, unitId: 0, lifeId: 0, formId: 'prime' },
           ],
         },
       },
@@ -355,6 +435,16 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
           lookId: null,
           projectileLookId: null,
         },
+        {
+          participantId: 1,
+          teamId: 1,
+          name: 'beta',
+          runtimeKind: 'test',
+          artifactHash: 'artifact-beta',
+          accent: '#000000',
+          lookId: null,
+          projectileLookId: null,
+        },
       ],
     },
     ticks: [
@@ -362,96 +452,12 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
         tick: 0,
         tickStart: {
           state: before,
-          activeActors: [beforeActor],
+          activeActors: actors,
           lifecycleEvents: [],
         },
         actors: [
-          {
-            actorId: beforeActor,
-            lifeStart: {
-              schemaVersion: 1,
-              runtimeContractVersion: 1,
-              actorId: beforeActor,
-              participantId: 0,
-              actorRandomSeed: JS_UNSAFE_DECIMAL,
-              spawnReason: 'initial',
-              matchContractFingerprint: 'contract-fingerprint',
-            },
-            observation: {
-              schemaVersion: 1,
-              tick: 0,
-              matchContractFingerprint: 'contract-fingerprint',
-              teamPerception: 'immediate-union',
-              self: observedSelf(beforeActor),
-              teamUnits: [
-                {
-                  teamId: 0,
-                  unitId: 0,
-                  formId: 'prime',
-                  lifecycleStatus: 'active',
-                  activeActorId: beforeActor,
-                  respawnAtTick: null,
-                },
-              ],
-              allies: [],
-              enemies: [],
-              visibleTiles: [],
-              visibleProjectiles: null,
-              visibleEvents: [],
-              heardSounds: [],
-              frontlineObjective: {
-                activePositionIndex: 0,
-                claimingTeamId: null,
-                captureProgress: 0,
-                decayTicksElapsed: 0,
-                controlResumesAtTick: 0,
-              },
-              actions: [
-                {
-                  actionId: 'wait',
-                  actionCode: 0,
-                  parameterKinds: [],
-                  enabled: true,
-                  available: true,
-                  shotProgramAvailable: null,
-                  allowedDirections: null,
-                  allowedUnitTargets: [],
-                  allowedFormTargets: null,
-                },
-              ],
-            },
-            aliases: {
-              enemyLives: [],
-              projectiles: [],
-              events: [],
-            },
-            runtimeReply: {
-              actionId: 'wait',
-              actionCode: 0,
-              payload: null,
-              debugMessage: null,
-              faulted: false,
-              faultMessage: null,
-            },
-            acceptedDecision: {
-              actionId: 'wait',
-              actionCode: 0,
-              payload: null,
-              debugMessage: null,
-              faulted: false,
-              faultMessage: null,
-            },
-            actionResolution: {
-              actorId: beforeActor,
-              chosenActionId: 'wait',
-              chosenActionCode: 0,
-              chosenPayload: null,
-              validatedActionId: 'wait',
-              validatedActionCode: 0,
-              validatedPayload: null,
-              result: 'success',
-            },
-          },
+          actorTurnV2(beforeActor, 0),
+          actorTurnV2(otherActor, 1),
         ],
         resolution: {
           events: [],
@@ -481,9 +487,36 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
         {
           teamId: 0,
           outcome: 'draw',
-          finalHealth: 5,
+          activeHealth: 5,
           damageDealt: JS_UNSAFE_DECIMAL,
-          finalLifecycleStatus: 'active',
+          units: [
+            {
+              teamId: 0,
+              unitId: 0,
+              formId: 'prime',
+              lifecycleStatus: 'active',
+              activeActorId: afterActor,
+              health: 5,
+              damageDealt: JS_UNSAFE_DECIMAL,
+            },
+          ],
+        },
+        {
+          teamId: 1,
+          outcome: 'draw',
+          activeHealth: 5,
+          damageDealt: JS_UNSAFE_DECIMAL,
+          units: [
+            {
+              teamId: 1,
+              unitId: 0,
+              formId: 'prime',
+              lifecycleStatus: 'active',
+              activeActorId: otherActor,
+              health: 5,
+              damageDealt: JS_UNSAFE_DECIMAL,
+            },
+          ],
         },
       ],
     },
@@ -492,12 +525,104 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
   };
 }
 
+function actorTurnV2(actorId: ReplayV2ActorId, participantId: number) {
+  return {
+    actorId,
+    lifeStart: {
+      schemaVersion: 1,
+      runtimeContractVersion: 1,
+      actorId,
+      participantId,
+      actorRandomSeed: JS_UNSAFE_DECIMAL,
+      spawnReason: 'initial' as const,
+      matchContractFingerprint: 'contract-fingerprint',
+    },
+    observation: {
+      schemaVersion: 1,
+      tick: 0,
+      matchContractFingerprint: 'contract-fingerprint',
+      teamPerception: 'immediate-union' as const,
+      self: observedSelf(actorId),
+      teamUnits: [
+        {
+          teamId: actorId.teamId,
+          unitId: 0,
+          formId: 'prime',
+          lifecycleStatus: 'active' as const,
+          activeActorId: actorId,
+          respawnAtTick: null,
+          unlockAtTick: null,
+          rebuildReadyAtTick: null,
+          fabricationAtTick: null,
+        },
+      ],
+      allies: [],
+      enemies: [],
+      visibleTiles: [],
+      visibleProjectiles: null,
+      visibleEvents: [],
+      heardSounds: [],
+      frontlineObjective: {
+        activePositionIndex: 0,
+        claimingTeamId: null,
+        captureProgress: 0,
+        decayTicksElapsed: 0,
+        controlResumesAtTick: 0,
+      },
+      actions: [
+        {
+          actionId: 'wait',
+          actionCode: 0,
+          parameterKinds: [],
+          enabled: true,
+          available: true,
+          shotProgramAvailable: null,
+          allowedDirections: null,
+          allowedUnitTargets: [],
+          allowedFormTargets: null,
+        },
+      ],
+    },
+    aliases: {
+      enemyLives: [],
+      projectiles: [],
+      events: [],
+    },
+    runtimeReply: {
+      actionId: 'wait',
+      actionCode: 0,
+      payload: null,
+      debugMessage: null,
+      faulted: false,
+      faultMessage: null,
+    },
+    acceptedDecision: {
+      actionId: 'wait',
+      actionCode: 0,
+      payload: null,
+      debugMessage: null,
+      faulted: false,
+      faultMessage: null,
+    },
+    actionResolution: {
+      actorId,
+      chosenActionId: 'wait',
+      chosenActionCode: 0,
+      chosenPayload: null,
+      validatedActionId: 'wait',
+      validatedActionCode: 0,
+      validatedPayload: null,
+      result: 'success' as const,
+    },
+  };
+}
+
 function observedSelf(actorId: ReplayV2ActorId) {
   return {
     actorId,
     formId: 'prime',
-    position: { x: 0, y: 1 },
-    facing: 'east' as const,
+    position: actorPosition(actorId.teamId, 0),
+    facing: actorId.teamId === 0 ? ('east' as const) : ('west' as const),
     health: 5,
     cooldown: 0,
     energy: null,
@@ -506,42 +631,49 @@ function observedSelf(actorId: ReplayV2ActorId) {
 }
 
 function worldV2(
-  actorId: ReplayV2ActorId,
+  actorIds: ReplayV2ActorId[],
   nextTick: number,
 ): ReplayV2WorldState {
-  const life: ReplayV2LifeState = {
-    actorId,
-    position: { x: nextTick, y: 1 },
-    facing: 'east',
-    health: 5,
-    cooldown: 0,
-    energy: null,
-    damageDealt: JS_UNSAFE_DECIMAL,
-    previousActionResult: nextTick === 0 ? 'none' : 'success',
-    spawnedAtTick: nextTick,
-  };
   return {
-    teams: [
-      {
-        teamId: 0,
+    teams: actorIds.map((actorId) => {
+      const life: ReplayV2LifeState = {
+        actorId,
+        position: actorPosition(actorId.teamId, nextTick),
+        facing: actorId.teamId === 0 ? 'east' : 'west',
+        health: 5,
+        cooldown: 0,
+        energy: null,
+        damageDealt: JS_UNSAFE_DECIMAL,
+        previousActionResult: nextTick === 0 ? 'none' : 'success',
+        spawnedAtTick: 0,
+      };
+      return {
+        teamId: actorId.teamId,
         damageDealt: JS_UNSAFE_DECIMAL,
         units: [
           {
-            teamId: 0,
+            teamId: actorId.teamId,
             unitId: 0,
             formId: 'prime',
             lifecycleStatus: 'active',
             respawnAtTick: null,
+            unlockAtTick: null,
+            rebuildReadyAtTick: null,
+            fabricationAtTick: null,
+            reservedSpawn: null,
+            pendingSpawnReason: null,
+            hasSpawned: true,
+            nextLifeId: actorId.lifeId + 1,
             damageDealt: JS_UNSAFE_DECIMAL,
             activeLife: life,
           },
         ],
-      },
-    ],
+      };
+    }),
     projectiles: [
       {
         projectileId: JS_UNSAFE_DECIMAL,
-        ownerActorId: actorId,
+        ownerActorId: actorIds[0]!,
         position: { x: 1, y: 1 },
         launchDirection: 'east',
         heading: null,
@@ -554,6 +686,10 @@ function worldV2(
     ],
     objective: controlV2(nextTick),
   };
+}
+
+function actorPosition(teamId: number, nextTick: number) {
+  return { x: teamId === 0 ? nextTick : 2, y: 1 };
 }
 
 function controlV2(nextTick: number): ReplayV2ControlState {

@@ -3,7 +3,7 @@ namespace BotArena.Engine.Tests;
 public class FrontlineRulesManifestTests
 {
     [Fact]
-    public void FrontlineRules_ProjectCompleteDefinitionWithoutInventingActions()
+    public void FrontlineRules_ProjectCompleteDefinitionAndRunnableFabrication()
     {
         FrontlineRules source = new();
 
@@ -25,6 +25,7 @@ public class FrontlineRulesManifestTests
                 PublicTickResolutionPhase.ValidateActions,
                 PublicTickResolutionPhase.Rotate,
                 PublicTickResolutionPhase.Move,
+                PublicTickResolutionPhase.QueueFabrications,
                 PublicTickResolutionPhase.AdvanceExistingProjectiles,
                 PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
                 PublicTickResolutionPhase.QueueDestroyedLives,
@@ -63,25 +64,95 @@ public class FrontlineRulesManifestTests
                 source.CaptureDecayAmount,
                 source.CaptureDecayIntervalTicks,
                 source.RedeployPauseTicks,
-                source.PushesToBreach),
+                source.PushesToBreach,
+                PublicFrontlineCapturePresencePolicy
+                    .BinaryPositiveWeightPerTeamNoStacking,
+                PublicFrontlineNonSolePresencePolicy.DecayExistingClaim,
+                PublicFrontlineCounterCapturePolicy
+                    .ErodeToNeutralBeforeClaim),
             definition.Capture);
+        Assert.Equal(
+            PublicFrontlineInitialPositionPolicy.CentrePositionIndex,
+            definition.Victory.InitialPosition);
+        Assert.Equal(
+            [
+                new PublicFrontlineTeamAdvance(0, 1),
+                new PublicFrontlineTeamAdvance(1, -1),
+            ],
+            definition.Victory.TeamAdvances.ToArray());
+        Assert.Equal(
+            PublicFrontlineCompletionPrecedence.BaseBreachBeforeMaxTicks,
+            definition.Victory.CompletionPrecedence);
+        Assert.Equal(
+            PublicFrontlineTimeoutResolution
+                .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers,
+            definition.Victory.TimeoutResolution);
         Assert.Equal(source.PrimeRespawnTicks, definition.Lifecycle.PrimeRespawnTicks);
         Assert.Equal(source.ChildRebuildTicks, definition.Lifecycle.ChildRebuildTicks);
         Assert.Equal(
             source.FabricationUnlockTicks.ToArray(),
             definition.Lifecycle.FabricationUnlockTicks.ToArray());
         Assert.Equal(
+            new PublicFrontlineDeploymentDefinition(
+                source.PrimeForm.FormId,
+                source.ChildForm.FormId,
+                PublicFrontlineDestructionTransitionClock
+                    .TickStartAtDestroyedTickPlusOnePlusDelay,
+                PublicFrontlinePrimeReturnPolicy
+                    .AutomaticAtAuthoredPrimeSpawn,
+                PublicFrontlineChildReturnPolicy
+                    .ReadyThenExplicitFabrication,
+                PublicFrontlineNewLifePolicy
+                    .FreshRuntimeFormDefaultsHomeFacingCanActOnCreationTick,
+                PublicFrontlinePrimeSpawnReservationPolicy
+                    .PermanentAgainstOwnChildren,
+                PublicFrontlineProtectedPadPolicy
+                    .EnemyGroundEntryBlockedNoDamageImmunityNoProjectileBlocking),
+            definition.Deployment);
+        Assert.Equal(
+            new PublicFrontlineFabricationDefinition(
+                Enabled: true,
+                ActionId: PublicActionIds.Fabricate,
+                FabricatorUnitId: 0,
+                FabricatorFormId: source.PrimeForm.FormId,
+                TargetPolicy:
+                    PublicFrontlineFabricationTargetPolicy.OwnReadyChildSlot,
+                ActivationRegion:
+                    PublicFrontlineFabricationActivationRegion
+                        .OwnProtectedSpawnPad,
+                ConsumesTick: true,
+                SpawnDelayTicks: 1,
+                CapacityEvaluation:
+                    PublicFrontlineFabricationCapacityEvaluation
+                        .PostMovementDuringQueueFabrications,
+                SpawnRegion:
+                    PublicFrontlineFabricationSpawnRegion
+                        .OwnProtectedSpawnPadExcludingPrimeSpawn,
+                SpawnSelection:
+                    PublicFrontlineFabricationSpawnSelection
+                        .FirstUnoccupiedUnreservedCanonicalYThenX,
+                SpawnFacing:
+                    PublicFrontlineFabricationSpawnFacing
+                        .OwnPrimeSpawnFacing,
+                UnavailableSpawnResult:
+                    PublicActionRejectionResult.Blocked,
+                RequiresExplicitRefabricationAfterRebuild: true),
+            definition.Fabrication);
+        Assert.Equal(
             ["child-mobile", "prime-mobile", "turret"],
             manifest.Forms.Select(form => form.Id).ToArray());
         AssertForm(
             source.ChildForm,
-            manifest.Forms.Single(form => form.Id == source.ChildForm.FormId));
+            manifest.Forms.Single(form => form.Id == source.ChildForm.FormId),
+            allowsFabrication: false);
         AssertForm(
             source.PrimeForm,
-            manifest.Forms.Single(form => form.Id == source.PrimeForm.FormId));
+            manifest.Forms.Single(form => form.Id == source.PrimeForm.FormId),
+            allowsFabrication: true);
         AssertForm(
             source.TurretForm,
-            manifest.Forms.Single(form => form.Id == source.TurretForm.FormId));
+            manifest.Forms.Single(form => form.Id == source.TurretForm.FormId),
+            allowsFabrication: false);
         Assert.Equal(
             new PublicFrontlineAnchorDefinition(
                 source.AnchorWindupTicks,
@@ -91,7 +162,9 @@ public class FrontlineRulesManifestTests
         Assert.Equal(
             new PublicFrontlineAlliedCombatDefinition(
                 source.FriendlyFireEnabled,
-                source.AlliedProjectilesBlock),
+                source.AlliedProjectilesBlock,
+                PublicFrontlineProjectileAttributionPolicy
+                    .ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved),
             definition.AlliedCombat);
 
         Assert.Equal(3, manifest.Forms.Length);
@@ -102,9 +175,17 @@ public class FrontlineRulesManifestTests
             ["shoot", "turn-left", "turn-right", "wait"],
             manifest.Forms.Single(form => form.Id == source.TurretForm.FormId)
                 .AllowedActionIds.ToArray());
+        PublicActionDefinition fabrication = manifest.Actions.Single(
+            action => action.Id == PublicActionIds.Fabricate);
+        Assert.Equal(PublicActionCodes.Fabricate, fabrication.Code);
+        Assert.Equal(PublicActionKind.Fabrication, fabrication.Kind);
+        Assert.Equal(
+            [PublicActionParameterKind.UnitTarget],
+            fabrication.ParameterKinds.ToArray());
+        Assert.True(fabrication.Enabled);
         Assert.DoesNotContain(
             manifest.Actions,
-            action => action.Id is "fabricate" or "anchor");
+            action => action.Id == "anchor");
     }
 
     [Fact]
@@ -122,6 +203,37 @@ public class FrontlineRulesManifestTests
         Assert.Equal(
             PublicActionRejectionResult.Rejected,
             manifest.ShotPrograms.InvalidPayloadResult);
+    }
+
+    [Fact]
+    public void FrontlineSemanticFreeze_IsIncludedInRulesFingerprint()
+    {
+        GameRules rules = CreateRules(new FrontlineRules());
+        PublicRulesManifest manifest =
+            PublicRulesManifestFactory.CreateRules(rules);
+        PublicFrontlineDefinition frontline =
+            Assert.IsType<PublicFrontlineDefinition>(manifest.Frontline);
+        PublicRulesManifest changed = manifest with
+        {
+            Frontline = frontline with
+            {
+                Victory = frontline.Victory with
+                {
+                    TeamAdvances =
+                    [
+                        new PublicFrontlineTeamAdvance(0, -1),
+                        new PublicFrontlineTeamAdvance(1, 1),
+                    ],
+                },
+            },
+        };
+
+        Assert.Equal(
+            manifest.RulesFingerprint,
+            MatchContractFingerprint.ComputeRules(manifest, rules));
+        Assert.NotEqual(
+            manifest.RulesFingerprint,
+            MatchContractFingerprint.ComputeRules(changed, rules));
     }
 
     [Fact]
@@ -143,7 +255,7 @@ public class FrontlineRulesManifestTests
 
         Assert.Equal(
             [
-                "move-forward", "shoot", "strafe-left", "strafe-right",
+                "fabricate", "move-forward", "shoot", "strafe-left", "strafe-right",
                 "turn-left", "turn-right", "wait",
             ],
             manifest.Forms.Single(form => form.Id == source.PrimeForm.FormId)
@@ -457,7 +569,8 @@ public class FrontlineRulesManifestTests
 
     private static void AssertForm(
         UnitFormRules expected,
-        PublicFormDefinition actual)
+        PublicFormDefinition actual,
+        bool allowsFabrication)
     {
         Assert.Equal(expected.FormId, actual.Id);
         Assert.Equal(expected.MaxHealth, actual.MaxHealth);
@@ -470,11 +583,14 @@ public class FrontlineRulesManifestTests
         Assert.Equal(expected.CanMove, actual.CanMove);
         Assert.Equal(expected.CanShoot, actual.CanShoot);
         Assert.Equal(expected.AllowsProgrammedShots, actual.AllowsProgrammedShots);
-        Assert.Equal(AllowedActionIds(expected).ToArray(), actual.AllowedActionIds.ToArray());
+        Assert.Equal(
+            AllowedActionIds(expected, allowsFabrication).ToArray(),
+            actual.AllowedActionIds.ToArray());
     }
 
     private static System.Collections.Immutable.ImmutableArray<string> AllowedActionIds(
-        UnitFormRules form)
+        UnitFormRules form,
+        bool allowsFabrication)
     {
         var ids = new List<string>
         {
@@ -486,6 +602,8 @@ public class FrontlineRulesManifestTests
             ids.Add(PublicActionIds.MoveForward);
         if (form.CanShoot)
             ids.Add(PublicActionIds.Shoot);
+        if (allowsFabrication)
+            ids.Add(PublicActionIds.Fabricate);
         return [.. ids.Order(StringComparer.Ordinal)];
     }
 }

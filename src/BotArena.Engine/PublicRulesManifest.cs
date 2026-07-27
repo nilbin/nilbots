@@ -15,9 +15,9 @@ public sealed record PublicRulesManifest
     public required PublicMatchLimits Limits { get; init; }
     public required PublicObjectiveRules Objective { get; init; }
     /// <summary>
-    /// Experimental Frontline definition data. This subtree exposes rules that
-    /// are not yet represented by runnable action-schema entries; in particular,
-    /// its lifecycle timings do not imply that Fabricate or Anchor actions exist.
+    /// Experimental Frontline definition data. Lifecycle timings are paired
+    /// with explicit catalog actions only when that mechanic is runnable.
+    /// Anchor remains definition-only until its separate package lands.
     /// </summary>
     public required PublicFrontlineDefinition? Frontline { get; init; }
     public required PublicEnergyRules Energy { get; init; }
@@ -82,7 +82,7 @@ public sealed record PublicObjectiveOvertimeRules(
 /// <summary>
 /// Typed definition-only contract for the experimental Frontline mode. Unit
 /// capabilities live in the shared <see cref="PublicRulesManifest.Forms"/>
-/// catalog; this subtree owns objective and lifecycle rules.
+/// catalog; this subtree owns objective, lifecycle, and fabrication rules.
 /// </summary>
 public sealed record PublicFrontlineDefinition(
     int TeamCount,
@@ -92,7 +92,10 @@ public sealed record PublicFrontlineDefinition(
     int MaxUnitsPerTeam,
     TeamPerceptionMode TeamPerception,
     PublicFrontlineCaptureDefinition Capture,
+    PublicFrontlineVictoryDefinition Victory,
     PublicFrontlineLifecycleDefinition Lifecycle,
+    PublicFrontlineDeploymentDefinition Deployment,
+    PublicFrontlineFabricationDefinition Fabrication,
     PublicFrontlineAnchorDefinition Anchor,
     PublicFrontlineAlliedCombatDefinition AlliedCombat);
 
@@ -102,7 +105,38 @@ public sealed record PublicFrontlineCaptureDefinition(
     int DecayAmount,
     int DecayIntervalTicks,
     int RedeployPauseTicks,
-    int PushesToBreach);
+    int PushesToBreach,
+    PublicFrontlineCapturePresencePolicy Presence,
+    PublicFrontlineNonSolePresencePolicy NonSolePresence,
+    PublicFrontlineCounterCapturePolicy CounterCapture);
+
+/// <summary>
+/// Any positive form objective weight makes that body eligible. Presence is
+/// binary per team: weight magnitude and additional eligible bodies do not
+/// increase capture or contest strength.
+/// </summary>
+public enum PublicFrontlineCapturePresencePolicy
+{
+    BinaryPositiveWeightPerTeamNoStacking,
+}
+
+/// <summary>
+/// Both empty and contested objective presence decay the existing claim using
+/// the public decay amount and interval.
+/// </summary>
+public enum PublicFrontlineNonSolePresencePolicy
+{
+    DecayExistingClaim,
+}
+
+/// <summary>
+/// Sole opposing presence removes the current team's progress to neutral; it
+/// does not begin the opposing claim on that same tick.
+/// </summary>
+public enum PublicFrontlineCounterCapturePolicy
+{
+    ErodeToNeutralBeforeClaim,
+}
 
 /// <summary>
 /// Lifecycle configuration only. Fabrication unlocks and rebuild timing are
@@ -126,7 +160,8 @@ public sealed record PublicFrontlineAnchorDefinition(
 /// </summary>
 public sealed record PublicFrontlineAlliedCombatDefinition(
     bool FriendlyFireEnabled,
-    bool AlliedProjectilesBlock);
+    bool AlliedProjectilesBlock,
+    PublicFrontlineProjectileAttributionPolicy ProjectileAttribution);
 
 public sealed record PublicEnergyRules(
     bool Enabled,
@@ -160,6 +195,7 @@ public enum PublicActionKind
     Movement,
     Rotation,
     Attack,
+    Fabrication,
 }
 
 public enum PublicActionParameterKind
@@ -295,6 +331,7 @@ public enum PublicTickResolutionPhase
     ResolveMatchCompletion,
     ApplyTickStartLifecycle,
     QueueDestroyedLives,
+    QueueFabrications,
 }
 
 public sealed record PublicTickResolutionRules(

@@ -1,9 +1,8 @@
 namespace BotArena.Engine;
 
 /// <summary>
-/// Temporary Prime-only bridge from the extensible actor action contract to
-/// the Package 3 action enum. Package 5 replaces this with entity-action
-/// validation owned directly by the Frontline session.
+/// Canonicalizes extensible entity actions against the public action catalog.
+/// The historical Prime action adapter remains available for compatibility.
 /// </summary>
 public static class ActorDecisionAdapter
 {
@@ -12,6 +11,11 @@ public static class ActorDecisionAdapter
         PublicMatchContractManifest contract)
     {
         ActorDecision canonical = Normalize(decision, contract);
+        if (!Enum.IsDefined(typeof(BotAction), canonical.ActionCode!.Value))
+        {
+            throw new NotSupportedException(
+                $"Action code {canonical.ActionCode} is not a historical BotAction.");
+        }
         return new BotDecision
         {
             Action = (BotAction)canonical.ActionCode!.Value,
@@ -27,7 +31,8 @@ public static class ActorDecisionAdapter
     /// </summary>
     public static ActorDecision Normalize(
         ActorDecision decision,
-        PublicMatchContractManifest contract)
+        PublicMatchContractManifest contract,
+        ActorIdentity? actorId = null)
     {
         ArgumentNullException.ThrowIfNull(decision);
         ArgumentNullException.ThrowIfNull(contract);
@@ -46,30 +51,37 @@ public static class ActorDecisionAdapter
                 $"Action '{action.Id}' is disabled by this match contract.",
                 nameof(decision));
         }
-        if (!Enum.IsDefined(typeof(BotAction), action.Code))
-        {
-            throw new NotSupportedException(
-                $"Prime-only Frontline cannot execute action code {action.Code}.");
-        }
-
         ActorActionPayload? payload = decision.Payload;
-        if (payload?.Direction is not null
-            || payload?.UnitTarget is not null
-            || payload?.FormTargetId is not null)
+        if (payload?.ShotProgram is not null
+            && !action.ParameterKinds.Contains(
+                PublicActionParameterKind.ShotProgram))
         {
             throw new ArgumentException(
-                "Prime-only Frontline supports only the shot-program payload.",
+                $"Action '{action.Id}' does not accept a shot program.",
                 nameof(decision));
         }
-
-        var botAction = (BotAction)action.Code;
-        if (payload?.ShotProgram is not null
-            && (!action.ParameterKinds.Contains(
-                    PublicActionParameterKind.ShotProgram)
-                || botAction != BotAction.Shoot))
+        if (payload?.Direction is not null
+            && !action.ParameterKinds.Contains(
+                PublicActionParameterKind.Direction))
         {
             throw new ArgumentException(
-                "A shot program may only accompany an action whose active contract declares that parameter.",
+                $"Action '{action.Id}' does not accept a direction.",
+                nameof(decision));
+        }
+        if (payload?.UnitTarget is not null
+            && !action.ParameterKinds.Contains(
+                PublicActionParameterKind.UnitTarget))
+        {
+            throw new ArgumentException(
+                $"Action '{action.Id}' does not accept a unit target.",
+                nameof(decision));
+        }
+        if (payload?.FormTargetId is not null
+            && !action.ParameterKinds.Contains(
+                PublicActionParameterKind.FormTarget))
+        {
+            throw new ArgumentException(
+                $"Action '{action.Id}' does not accept a form target.",
                 nameof(decision));
         }
         if (payload?.ShotProgram is ShotProgram program
@@ -80,12 +92,30 @@ public static class ActorDecisionAdapter
                 "The shot program is outside the active match contract.",
                 nameof(decision));
         }
+        if (action.Kind == PublicActionKind.Fabrication
+            && payload?.UnitTarget is null)
+        {
+            throw new ArgumentException(
+                "Fabrication requires an explicit unit target.",
+                nameof(decision));
+        }
+        if (action.Kind == PublicActionKind.Fabrication
+            && payload?.UnitTarget is ObservedUnitTarget target
+            && (contract.Rules.Frontline is not { } frontline
+                || !contract.Topology.UnitSlots.Any(unit =>
+                    unit.TeamId == target.TeamId
+                    && unit.UnitId == target.UnitId)
+                || target.UnitId
+                    == frontline.Fabrication.FabricatorUnitId
+                || (actorId is not null
+                    && target.TeamId != actorId.TeamId)))
+        {
+            throw new ArgumentException(
+                "Fabrication target must be a child slot owned by the acting team.",
+                nameof(decision));
+        }
 
-        ActorActionPayload? canonicalPayload = payload is not null
-            && (payload.ShotProgram is not null
-                || payload.Direction is not null
-                || payload.UnitTarget is not null
-                || payload.FormTargetId is not null)
+        ActorActionPayload? canonicalPayload = HasAnyParameter(payload)
             ? payload
             : null;
         return decision with
@@ -97,6 +127,13 @@ public static class ActorDecisionAdapter
             FaultMessage = null,
         };
     }
+
+    private static bool HasAnyParameter(ActorActionPayload? payload) =>
+        payload is not null
+        && (payload.ShotProgram is not null
+            || payload.Direction is not null
+            || payload.UnitTarget is not null
+            || payload.FormTargetId is not null);
 
     private static bool IsValidShotProgram(
         ShotProgram program,

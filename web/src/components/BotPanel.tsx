@@ -102,6 +102,18 @@ export default function BotPanel({
 
       {units.map((unit) => {
         const selected = selectedUnitKey === unit.unitKey;
+        const transition =
+          unit.status === 'respawning' && unit.respawnAtTick !== null
+            ? `RESPAWN T${unit.respawnAtTick}`
+            : unit.status === 'locked' && unit.unlockAtTick !== null
+              ? `UNLOCK T${unit.unlockAtTick}`
+              : unit.status === 'rebuilding' &&
+                  unit.rebuildReadyAtTick !== null
+                ? `READY T${unit.rebuildReadyAtTick}`
+                : unit.status === 'fabrication-queued' &&
+                    unit.fabricationAtTick !== null
+                  ? `SPAWN T${unit.fabricationAtTick}`
+                  : null;
         const participant = participantForUnit(replay, unit.unitKey);
         const look = botLook(
           participant?.lookId ?? undefined,
@@ -147,13 +159,15 @@ export default function BotPanel({
                   'text-red-400': unit.status === 'destroyed',
                   'text-amber-400': unit.status === 'disqualified',
                   'text-cyan-300': unit.status === 'respawning',
+                  'text-arena-dim': unit.status === 'locked',
+                  'text-emerald-300': unit.status === 'ready',
+                  'text-violet-300':
+                    unit.status === 'fabrication-queued',
+                  'text-amber-300': unit.status === 'rebuilding',
                 })}
               >
                 {unit.status.toUpperCase()}
-                {unit.status === 'respawning' &&
-                unit.respawnAtTick !== null
-                  ? ` · T${unit.respawnAtTick}`
-                  : ''}
+                {transition ? ` · ${transition}` : ''}
               </span>
             </div>
 

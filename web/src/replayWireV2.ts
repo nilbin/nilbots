@@ -23,7 +23,13 @@ export type ReplayV2ActionResult =
   | 'on-cooldown'
   | 'faulted';
 
-export type ReplayV2LifecycleStatus = 'active' | 'respawning';
+export type ReplayV2LifecycleStatus =
+  | 'active'
+  | 'respawning'
+  | 'locked'
+  | 'ready'
+  | 'fabrication-queued'
+  | 'rebuilding';
 export type ReplayV2TeamPerception = 'individual' | 'immediate-union';
 
 export type ReplayV2EventType =
@@ -36,7 +42,11 @@ export type ReplayV2EventType =
   | 'destroyed'
   | 'frontline-progress-changed'
   | 'frontline-position-advanced'
-  | 'base-breached';
+  | 'base-breached'
+  | 'fabrication-unlocked'
+  | 'fabrication-queued'
+  | 'fabricated'
+  | 'rebuild-ready';
 
 export type ReplayV2ObservedEventType =
   | ReplayV2EventType
@@ -149,6 +159,19 @@ export interface ReplayV2FrontlineCaptureDefinition {
   decayIntervalTicks: number;
   redeployPauseTicks: number;
   pushesToBreach: number;
+  presence: 'binary-positive-weight-per-team-no-stacking';
+  nonSolePresence: 'decay-existing-claim';
+  counterCapture: 'erode-to-neutral-before-claim';
+}
+
+export interface ReplayV2FrontlineVictoryDefinition {
+  initialPosition: 'centre-position-index';
+  teamAdvances: {
+    teamId: number;
+    positionIndexDelta: number;
+  }[];
+  completionPrecedence: 'base-breach-before-max-ticks';
+  timeoutResolution: 'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
 }
 
 export interface ReplayV2FrontlineLifecycleDefinition {
@@ -157,15 +180,44 @@ export interface ReplayV2FrontlineLifecycleDefinition {
   fabricationUnlockTicks: number[];
 }
 
+export interface ReplayV2FrontlineFabricationDefinition {
+  enabled: boolean;
+  actionId: string;
+  fabricatorUnitId: number;
+  fabricatorFormId: string;
+  targetPolicy: 'own-ready-child-slot';
+  activationRegion: 'own-protected-spawn-pad';
+  consumesTick: boolean;
+  spawnDelayTicks: number;
+  capacityEvaluation: 'post-movement-during-queue-fabrications';
+  spawnRegion: 'own-protected-spawn-pad-excluding-prime-spawn';
+  spawnSelection: 'first-unoccupied-unreserved-canonical-y-x';
+  spawnFacing: 'own-prime-spawn-facing';
+  unavailableSpawnResult: 'blocked' | 'faulted' | 'rejected';
+  requiresExplicitRefabricationAfterRebuild: boolean;
+}
+
 export interface ReplayV2FrontlineAnchorDefinition {
   windupTicks: number;
   healthGain: number;
   irreversibleForLife: boolean;
 }
 
+export interface ReplayV2FrontlineDeploymentDefinition {
+  primeDefaultFormId: string;
+  childDefaultFormId: string;
+  destructionTransitionClock: 'tick-start-at-destroyed-tick-plus-one-plus-delay';
+  primeReturn: 'automatic-at-authored-prime-spawn';
+  childReturn: 'ready-then-explicit-fabrication';
+  newLife: 'fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick';
+  primeSpawnReservation: 'permanent-against-own-children';
+  protectedPad: 'enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking';
+}
+
 export interface ReplayV2FrontlineAlliedCombatDefinition {
   friendlyFireEnabled: boolean;
   alliedProjectilesBlock: boolean;
+  projectileAttribution: 'exact-firing-life-persists-credits-stable-unit-by-actual-health-removed';
 }
 
 export interface ReplayV2FrontlineDefinition {
@@ -176,7 +228,10 @@ export interface ReplayV2FrontlineDefinition {
   maxUnitsPerTeam: number;
   teamPerception: ReplayV2TeamPerception;
   capture: ReplayV2FrontlineCaptureDefinition;
+  victory: ReplayV2FrontlineVictoryDefinition;
   lifecycle: ReplayV2FrontlineLifecycleDefinition;
+  deployment: ReplayV2FrontlineDeploymentDefinition;
+  fabrication: ReplayV2FrontlineFabricationDefinition;
   anchor: ReplayV2FrontlineAnchorDefinition;
   alliedCombat: ReplayV2FrontlineAlliedCombatDefinition;
 }
@@ -207,7 +262,7 @@ export interface ReplayV2FormDefinition {
 export interface ReplayV2ActionDefinition {
   id: string;
   code: number;
-  kind: 'wait' | 'movement' | 'rotation' | 'attack';
+  kind: 'wait' | 'movement' | 'rotation' | 'attack' | 'fabrication';
   parameterKinds: ReplayV2ActionParameterKind[];
   enabled: boolean;
 }
@@ -309,7 +364,8 @@ export type ReplayV2TickResolutionPhase =
   | 'update-objective'
   | 'resolve-match-completion'
   | 'apply-tick-start-lifecycle'
-  | 'queue-destroyed-lives';
+  | 'queue-destroyed-lives'
+  | 'queue-fabrications';
 
 export interface ReplayV2TickResolutionRules {
   observationsUsePreTickState: boolean;
@@ -434,6 +490,9 @@ export interface ReplayV2ObservedUnitSlot {
   lifecycleStatus: ReplayV2LifecycleStatus;
   activeActorId: ReplayV2ActorId | null;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
 }
 
 export interface ReplayV2ObservedSelf {
@@ -623,6 +682,7 @@ export interface ReplayV2Event {
   tick: number;
   type: ReplayV2EventType;
   teamId: number | null;
+  unitId: number | null;
   sourceActorId: ReplayV2ActorId | null;
   targetActorId: ReplayV2ActorId | null;
   projectileId: string | null;
@@ -638,7 +698,11 @@ export interface ReplayV2Event {
   amount: number | null;
   newHealth: number | null;
   lifecycleStatus: ReplayV2LifecycleStatus | null;
+  spawnReason: 'initial' | 'respawn' | 'rebuild' | 'fabrication' | null;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
   fromPositionIndex: number | null;
   toPositionIndex: number | null;
   claimingTeamId: number | null;
@@ -681,6 +745,18 @@ export interface ReplayV2UnitState {
   formId: string;
   lifecycleStatus: ReplayV2LifecycleStatus;
   respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+  reservedSpawn: ReplayV2Position | null;
+  pendingSpawnReason:
+    | 'initial'
+    | 'respawn'
+    | 'rebuild'
+    | 'fabrication'
+    | null;
+  hasSpawned: boolean;
+  nextLifeId: number;
   /** Canonical non-negative signed-64 decimal string. */
   damageDealt: string;
   activeLife: ReplayV2LifeState | null;
@@ -739,10 +815,21 @@ export interface ReplayV2Tick {
 export interface ReplayV2TeamResult {
   teamId: number;
   outcome: 'win' | 'loss' | 'draw';
-  finalHealth: number;
+  activeHealth: number;
   /** Canonical non-negative signed-64 decimal string. */
   damageDealt: string;
-  finalLifecycleStatus: ReplayV2LifecycleStatus;
+  units: ReplayV2UnitResult[];
+}
+
+export interface ReplayV2UnitResult {
+  teamId: number;
+  unitId: number;
+  formId: string;
+  lifecycleStatus: ReplayV2LifecycleStatus;
+  activeActorId: ReplayV2ActorId | null;
+  health: number;
+  /** Canonical non-negative signed-64 decimal string. */
+  damageDealt: string;
 }
 
 export interface ReplayV2Result {
