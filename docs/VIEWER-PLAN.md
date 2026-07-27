@@ -140,9 +140,14 @@ called fresh with a time, so state would make the same moment render differently
 on whether it was reached by playing or by scrubbing backwards. Only damage and destruction
 shake; a camera that moves on every shot stops meaning anything.
 
-Canvas2D throughout — no WebGL, no three.js. The scene is two bots on a tile grid;
-rasterisation is not the bottleneck, payload is, and normal maps would double atlas weight
-to fix a problem that does not exist. In rough order of feel per unit of effort:
+Canvas2D throughout for *this* renderer — no WebGL here. The scene is two bots on a tile
+grid; rasterisation is not the bottleneck, payload is, and normal maps would double atlas
+weight to fix a problem that does not exist.
+
+**A second, WebGL renderer now exists beside it** (DECISIONS #122) — opt-in, lazily loaded,
+and stubbed out of the CLI artifact. That is not a reversal of the line above so much as an
+admission of its scope: it was an argument about faking depth, and it says nothing about
+whether real depth is worth having. This renderer stays the default and stays flat. In rough order of feel per unit of effort:
 
 1. additive light from muzzle flashes, projectiles and explosions (`'lighter'` compositing);
 2. contact shadows under bots and projectiles;

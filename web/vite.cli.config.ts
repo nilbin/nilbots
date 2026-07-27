@@ -21,7 +21,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 const THEME = process.env.BOTARENA_CLI_THEME;
 
 export default defineConfig({
-  plugins: [scopeToTheme(THEME), react(), tailwindcss(), viteSingleFile()],
+  plugins: [scopeToTheme(THEME), stubDimensionalRenderer(), react(), tailwindcss(), viteSingleFile()],
   define: {
     // A scoped artifact has no `control-room` to fall back to, so the fallback becomes the
     // theme it does have. Unscoped builds keep the ordinary default.
@@ -31,6 +31,30 @@ export default defineConfig({
     outDir: THEME ? `dist-cli/${THEME}` : 'dist-cli',
   },
 });
+
+/**
+ * Replace the 2.5D renderer with a stub.
+ *
+ * `viteSingleFile` inlines every chunk, so a dynamic import is not a saving here the way it
+ * is on the web — three.js would land inside the artifact whether or not anyone switches
+ * renderer, and `nilbots play` would carry a WebGL engine it can never reach. The Canvas2D
+ * viewer is the only one the CLI offers, and this makes that true of the bytes as well as
+ * the UI.
+ *
+ * A stub rather than an error, so the toggle simply renders nothing if it is ever reached.
+ */
+function stubDimensionalRenderer(): Plugin {
+  return {
+    name: 'nilbots-stub-3d-renderer',
+    enforce: 'pre',
+    resolveId(source) {
+      return source.includes('render3d/ArenaCanvas3D') ? '\0nilbots-no-3d' : null;
+    },
+    load(id) {
+      return id === '\0nilbots-no-3d' ? 'export default function NoRenderer() { return null; }' : null;
+    },
+  };
+}
 
 /**
  * Narrow the theme globs to one directory, at build time.

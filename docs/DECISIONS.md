@@ -1834,3 +1834,43 @@ The migration renames existing duplicates before creating the index, keeping who
 the name first, and loops until none remain: a suffixed name can collide with a name
 already present, and a deploy that renames people and *then* fails on index creation is the
 worst of both outcomes.
+
+
+## 122. A second renderer, in WebGL, beside the Canvas2D one
+
+`docs/VIEWER-PLAN.md` argued "Canvas2D throughout — no WebGL, no three.js", on the grounds
+that rasterisation is not the bottleneck and payload is. That reasoning was about *faking*
+depth. It does not survive wanting real depth: offsets and gradients cannot make a shadow
+fall across another wall, and no amount of Canvas2D produces a wall you can see the side of.
+
+So there are two renderers. **The Canvas2D one remains the default and is not replaced** —
+it is what the CLI ships, what the mobile app loads, and what the golden frames pin. The
+WebGL one is opt-in (`?renderer=3d`, or the toggle in the viewer header).
+
+The payload objection turned out to be answerable rather than fatal:
+
+- three.js is a **lazy chunk** — 504 KB raw, 131 KB gzipped — downloaded only if someone
+  asks for the second renderer;
+- and it is **stubbed out of the CLI artifact entirely** (`vite.cli.config.ts`), because
+  `viteSingleFile` inlines every chunk, so laziness saves nothing there. The artifacts stay
+  5.0 MB and 3.6 MB with zero three.js in them.
+
+Against 3–7 MB of textures, 131 KB was never the deciding number. What the library actually
+buys is the directional shadow map, which is the whole point of building real geometry and
+is a night's work to hand-write badly.
+
+**It uses the shipped textures, not new art.** Wall bodies take the 1024² tiling albedo that
+previously only filled a flat silhouette; the 16-column topology atlas goes on top as a
+transparent cap, in the same order the 2D renderer composites it. Two things had to match
+the 2D renderer exactly to stop it looking like a different game: materials are mapped
+**once across the arena** in world space rather than tiled per tile (`drawTextureField`
+stretches one copy over the whole map and reveals it through geometry — repeating it per
+box was the single biggest reason the first attempt looked wrong), and the palette's
+`floorTint`/`wallTint` are applied as a colour multiply.
+
+Bots and projectiles are quads lying **flat on the floor**, not billboards. The sprites are
+plan views; standing one upright shows a top-down drawing pretending to be a side view,
+which is the exact tell that makes cheap 2.5D look cheap. They are also rasterised through
+a canvas first, because every sprite is an SVG with only a `viewBox` — an unreliable WebGL
+texture source that silently yields a fully transparent texture, which `alphaTest` then
+discards, which is how the first working build had two active bots and nothing on the floor.
