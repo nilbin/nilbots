@@ -21,7 +21,7 @@ const bot = (rank, name, owner, accent, lookId, rating, sets) => ({
 });
 
 const FIXTURES = {
-  '/api/leaderboard': {
+  '^/api/leaderboard': {
     rulesVersion: '0.5', activeRulesVersion: '0.5', ladders: ['0.4', '0.5'],
     entries: [
       bot(1, 'Warden gen-1', 'ada', '#7dd3fc', 'aureate-warden', 1341, 14),
@@ -32,14 +32,41 @@ const FIXTURES = {
       bot(6, 'Murder Roomba', 'you', '#f5a623', 'mantis', 1147, 6),
     ],
   },
-  '/api/me': null,
+  '^/api/me': { id: 'u1', displayName: 'you', email: 'you@example.com' },
+  '^/api/bots/[^/]+$': {
+    id: 'bot-3', slug: 'pincer-gen-10', name: 'Pincer gen-10', owner: 'you',
+    accent: '#22d3ee', lookId: 'vanguard', projectileLookId: null, isOwner: true,
+    currentStanding: { rank: 3, rating: 1284, rulesVersion: '0.5', rankedSets: 11 },
+    versions: [
+      { id: 'v10', versionNumber: 10, status: 'Built', isActive: true,
+        artifactHash: '9f31c0a4b7de51', createdAt: '2026-07-17T10:00:00Z' },
+      { id: 'v9', versionNumber: 9, status: 'Built', isActive: false,
+        artifactHash: '3ab77c1904ee62', createdAt: '2026-07-02T10:00:00Z' },
+      { id: 'v8', versionNumber: 8, status: 'Failed', isActive: false,
+        artifactHash: null, createdAt: '2026-06-24T10:00:00Z' },
+    ],
+  },
+  '^/api/bots/[^/]+/statistics$': {
+    combat: { games: 214, wins: 118, losses: 96, damageDealt: 512, damageTaken: 489 },
+    ranked: { sets: 11, setsWon: 7 },
+  },
+  '^/api/bots/[^/]+/matches': { wins: 118, losses: 96, draws: 0, matches: [] },
+  '^/api/bots$': [],
+  '^/api/matches': [],
 };
 
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: 1180, height: 900 }, deviceScaleFactor: 2 });
+// A blank screenshot is worse than no screenshot: it looks like a design decision.
+const failures = [];
+page.on('pageerror', (e) => failures.push(String(e).split('\n')[0]));
+page.on('console', (m) => { if (m.type() === 'error') failures.push(m.text().slice(0, 200)); });
 await page.route('**/api/**', async (route) => {
   const url = new URL(route.request().url());
-  const key = Object.keys(FIXTURES).find((k) => url.pathname.startsWith(k));
+  // Patterns, not prefixes: components call /api/bots/{id}/statistics with the bot's
+  // id while the page was reached by slug, so a prefix match answers the wrong route
+  // and the page dies on a field that was never there.
+  const key = Object.keys(FIXTURES).find((k) => new RegExp(k).test(url.pathname));
   if (key === undefined) return route.fulfill({ status: 404, body: '{}' });
   const body = FIXTURES[key];
   return route.fulfill({
@@ -51,7 +78,7 @@ await page.route('**/api/**', async (route) => {
 
 // Every page is shot wide and narrow: a redesign that only works on a laptop is half a
 // redesign, and the narrow shot is the one that catches a table nobody can read.
-for (const [name, path] of [['leaderboard', '/leaderboard']]) {
+for (const [name, path] of [['leaderboard', '/leaderboard'], ['bot', '/bots/pincer-gen-10']]) {
   for (const [label, width] of [['wide', 1180], ['narrow', 390]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(BASE + path, { waitUntil: 'networkidle' });
@@ -59,7 +86,15 @@ for (const [name, path] of [['leaderboard', '/leaderboard']]) {
     const overflow = await page.evaluate(() =>
       document.documentElement.scrollWidth - document.documentElement.clientWidth);
     await page.screenshot({ path: `${SHOTS}/${name}-${label}.png`, fullPage: true });
-    console.log(`  ${name}-${label}  overflow ${overflow}px  ${SHOTS}/${name}-${label}.png`);
+    // A page that rendered nothing is the failure this harness exists to catch, so it
+    // is reported as loudly as a crash rather than saved as a black rectangle.
+    const text = (await page.locator('body').innerText()).trim();
+    const bad = failures.splice(0).filter((f) => !/SignalR|negotiation|Failed to start|404/.test(f));
+    console.log(
+      `  ${name}-${label}  overflow ${overflow}px  ${text.length} chars` +
+        (text.length < 40 ? '  ← BLANK' : '') +
+        (bad.length ? `\n      ${bad.slice(0, 2).join('\n      ')}` : ''),
+    );
   }
 }
 await b.close();
