@@ -193,7 +193,17 @@ export default function Viewer({
             'relative min-h-[320px] overflow-hidden bg-arena-bg',
             // Edge to edge while immersive: a border and corner radius are panel styling,
             // and they cost real pixels on a phone where the arena is already letterboxed.
-            immersive.active ? '' : 'rounded-lg border border-arena-edge',
+            immersive.active
+              ? ''
+              // **The arena decides how tall the arena is.** Both cells sit in one
+              // auto-height grid row, so the row is as tall as its tallest cell — and with
+              // the panel free to grow, that was the panel: the board visibly inflated
+              // under the playhead as the event feed filled, more than doubling over a long
+              // match. An aspect ratio gives the row a height that comes from the game
+              // rather than from how much has happened in it. It applies at every width,
+              // not just where the two are columns: stacked, the arena had only its
+              // minimum height to fall back on and came out shorter than it used to be.
+              : 'rounded-lg border border-arena-edge aspect-[16/10]',
           )}
         >
           {dimensional ? (
@@ -267,16 +277,27 @@ export default function Viewer({
           )}
         </main>
 
-        <aside className={clsx('flex min-h-0 flex-col gap-3', immersive.active && 'hidden')}>
-          <BotPanel
-            replay={replay}
-            tick={tick}
-            selectedSlot={selectedSlot}
-            showVisibility={showVisibility}
-            onSelectSlot={setSelectedSlot}
-            onToggleVisibility={() => setShowVisibility((value) => !value)}
-          />
-          <EventFeed replay={replay} tick={tick} />
+        {/* Out of flow beside the arena, in flow beneath it.
+            
+            The inner wrapper is absolute at `lg`, which is where the two become columns:
+            that makes this cell contribute nothing to the row's height, so a growing feed
+            cannot stretch the arena. It is the same reason the arena canvas is absolute
+            inside `main`. Stacked on a narrow screen there is no shared row to distort, and
+            the panel is simply content below the game. */}
+        <aside
+          className={clsx('relative flex min-h-0 flex-col', immersive.active && 'hidden')}
+        >
+          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:absolute lg:inset-0">
+            <BotPanel
+              replay={replay}
+              tick={tick}
+              selectedSlot={selectedSlot}
+              showVisibility={showVisibility}
+              onSelectSlot={setSelectedSlot}
+              onToggleVisibility={() => setShowVisibility((value) => !value)}
+            />
+            <EventFeed replay={replay} tick={tick} />
+          </div>
         </aside>
       </div>
 
