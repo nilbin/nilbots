@@ -1,15 +1,75 @@
 @import 'tailwindcss';
 
+/* Two faces, self-hosted. Archivo carries a width axis, which is what lets one file
+   do the work a second family or a monospace label style usually does. Both are the
+   latin subsets; the OFL licences sit beside the files and must travel with them.
+
+   `viteSingleFile` raises the inline limit for the CLI build, so `nilbots play`'s
+   copied replay carries the fonts rather than falling back to system-ui. */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 75% 125%;
+  font-display: swap;
+  src: url('./assets/fonts/archivo.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('./assets/fonts/mono.woff2') format('woff2');
+}
+
+/* Forge. The palette is the game's own `ember-forge` map theme — canvas #090504,
+   frame #684229, zone #38d9c5 — lifted into chrome, so the interface is made of the
+   material the arena is made of.
+
+   Burnt orange is a *material*, not a signal: it belongs to the ground, inert
+   structure and the mark, and never marks state or ownership. The only chroma that
+   means anything is a player's accent, which is server data (`bot.accent`) and is
+   never one of these tokens. */
 @theme {
-  --color-arena-bg: #0a0e14;
-  --color-arena-panel: #111823;
-  --color-arena-edge: #1d2836;
-  --color-arena-text: #c9d5e3;
-  --color-arena-dim: #64748b;
-  --color-arena-accent: #38bdf8;
+  --color-arena-bg: #0b0705;
+  --color-arena-panel: #191210;
+  --color-arena-raise: #221913;
+  --color-arena-edge: #3b2a20;
+  --color-arena-edge2: #513a2b;
+  --color-arena-text: #e6ddd4;
+  --color-arena-dim: #94806f;
+  --color-arena-accent: #c8763c;
+  /* Rise is the theme's own zone teal rather than a generic green, so it reads as
+     part of the arena. Fall is pushed toward rose: plain red shares the ground's hue
+     family here and stops registering as an alarm. */
+  --color-arena-ok: #38d9c5;
+  --color-arena-hot: #f4526b;
+  --font-sans:
+    'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono:
-    ui-monospace, 'SFMono-Regular', 'Cascadia Mono', 'JetBrains Mono', Menlo,
+    'Geist Mono', ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo,
     monospace;
+}
+
+/* One family, three cuts. Width does the work a second family usually does:
+   condensed names a region of the screen, normal is read, expanded is display.
+   Mono is reserved for values a machine wrote — ratings, deltas, ticks, seeds,
+   hashes, code — and never for a label, a name, a button or a sentence. */
+.type-label {
+  font-family: var(--font-sans);
+  font-stretch: 82%;
+  font-weight: 550;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.type-display {
+  font-family: var(--font-sans);
+  font-stretch: 117%;
+  font-weight: 640;
+  letter-spacing: -0.022em;
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 html,
