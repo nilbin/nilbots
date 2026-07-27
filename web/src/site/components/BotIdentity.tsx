@@ -1,36 +1,14 @@
 import clsx from 'clsx';
-import { botLook } from '../../render/arenaThemes';
+import IdentityChip from '../../components/IdentityChip';
 
 export type BotIdentitySize = 'xs' | 'sm' | 'md' | 'lg';
 
-const sizes: Record<
-  BotIdentitySize,
-  { frame: string; image: string; name: string; gap: string }
-> = {
-  xs: {
-    frame: 'size-6 rounded-md',
-    image: 'size-5',
-    name: 'text-sm',
-    gap: 'gap-1.5',
-  },
-  sm: {
-    frame: 'size-8 rounded-md',
-    image: 'size-7',
-    name: 'text-sm',
-    gap: 'gap-2',
-  },
-  md: {
-    frame: 'size-10 rounded-lg',
-    image: 'size-9',
-    name: 'text-base',
-    gap: 'gap-2.5',
-  },
-  lg: {
-    frame: 'size-12 rounded-lg',
-    image: 'size-11',
-    name: 'text-2xl',
-    gap: 'gap-3',
-  },
+/** Chassis size in pixels per step, with the name size that reads beside it. */
+const sizes: Record<BotIdentitySize, { chassis: number; name: string }> = {
+  xs: { chassis: 18, name: 'text-sm' },
+  sm: { chassis: 24, name: 'text-sm' },
+  md: { chassis: 30, name: 'text-base' },
+  lg: { chassis: 42, name: 'text-2xl' },
 };
 
 interface BotIdentityProps {
@@ -46,6 +24,11 @@ interface BotIdentityProps {
 /**
  * The consistent public identity for a bot: its selected chassis, accent, and name.
  * Match-history callers pass snapshot values so old fights keep their original look.
+ *
+ * The chip itself lives in `components/` so the viewer and the site render one identity
+ * rather than two that drift; this keeps the site's own size vocabulary. The boundary
+ * allows it in that direction only — the site may import the viewer's components, never
+ * the reverse (see `structure.test.ts`).
  */
 export default function BotIdentity({
   name,
@@ -56,35 +39,16 @@ export default function BotIdentity({
   className,
   nameClassName,
 }: BotIdentityProps) {
-  const look = botLook(lookId ?? undefined);
-  const classes = sizes[size];
-
+  const step = sizes[size];
   return (
-    <span className={clsx('inline-flex min-w-0 items-center', classes.gap, className)}>
-      <span
-        className={clsx(
-          'flex shrink-0 items-center justify-center border border-arena-edge bg-arena-panel',
-          classes.frame,
-        )}
-        style={{ boxShadow: accent ? `inset 0 -2px 0 ${accent}66` : undefined }}
-      >
-        <img
-          src={look.imageUrl}
-          alt=""
-          loading="lazy"
-          className={clsx('object-contain', classes.image)}
-        />
-      </span>
-      <span
-        className={clsx(
-          'truncate',
-          classes.name,
-          emphasized && 'font-bold',
-          nameClassName,
-        )}
-      >
-        {name ?? '?'}
-      </span>
-    </span>
+    <IdentityChip
+      name={name}
+      accent={accent}
+      lookId={lookId}
+      size={step.chassis}
+      emphasized={emphasized}
+      className={className}
+      nameClassName={clsx(step.name, nameClassName)}
+    />
   );
 }

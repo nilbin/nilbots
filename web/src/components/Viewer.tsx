@@ -8,6 +8,7 @@ import {
   participantForUnit,
   teamName,
   unitName,
+  visualIndexForUnit,
 } from '../replayParticipants';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
@@ -245,8 +246,9 @@ export default function Viewer({
                 {unitKeys.slice(0, 3).map((unitKey) => (
                   <IdentityChip
                     key={unitKey}
-                    replay={replay}
-                    unitKey={unitKey}
+                    lookId={participantForUnit(replay, unitKey)?.lookId}
+                    visualIndex={visualIndexForUnit(replay, unitKey)}
+                    accent={participantForUnit(replay, unitKey)?.accent}
                     name={unitName(replay, unitKey)}
                     size={22}
                   />
@@ -528,6 +530,7 @@ export default function Viewer({
             'absolute top-0 right-0 z-20 m-2 rounded-md border border-arena-edge bg-arena-panel/80 px-2.5 py-1.5 font-mono text-[11px] text-arena-dim backdrop-blur transition-opacity duration-300 hover:border-arena-accent hover:text-arena-accent',
             chromeVisible ? 'opacity-95' : 'opacity-0',
           )}
+          // The notch is the only reason this is not a class.
           style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
           exit

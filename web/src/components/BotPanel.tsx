@@ -1,5 +1,9 @@
 import clsx from 'clsx';
 import IdentityChip from './IdentityChip';
+import {
+  participantForUnit,
+  visualIndexForUnit,
+} from '../replayParticipants';
 import { useMemo } from 'react';
 import type {
   ReplayModel,
@@ -157,8 +161,9 @@ export default function BotPanel({
           >
             <div className="flex items-center gap-2">
               <IdentityChip
-                replay={replay}
-                unitKey={unit.unitKey}
+                lookId={participantForUnit(replay, unit.unitKey)?.lookId}
+                visualIndex={visualIndexForUnit(replay, unit.unitKey)}
+                accent={unit.accent}
                 name={unit.name}
                 sub={`${unit.lookLabel} · ${
                   unit.legacySlot === null
@@ -198,11 +203,15 @@ export default function BotPanel({
                 {Array.from({ length: unit.maxHealth }, (_, index) => (
                   <span
                     key={index}
-                    className="h-[9px] flex-1 rounded-[2px] border"
+                    className={clsx(
+                      'h-[9px] flex-1 rounded-[2px] border',
+                      index >= unit.health && 'border-arena-edge',
+                    )}
+                    // Again: the colour is the only thing here that is data.
                     style={
                       index < unit.health
                         ? { background: unit.accent, borderColor: unit.accent }
-                        : { borderColor: 'var(--color-arena-edge)' }
+                        : undefined
                     }
                   />
                 ))}

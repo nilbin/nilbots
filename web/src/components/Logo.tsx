@@ -27,7 +27,7 @@ export default function Logo({ size = 22 }: { size?: number }) {
       fill="none"
       role="img"
       aria-label="nilbots"
-      style={{ width: 'auto', display: 'block' }}
+      className="block w-auto"
     >
       <path d={WORDMARK} fill="currentColor" fillRule="evenodd" />
     </svg>

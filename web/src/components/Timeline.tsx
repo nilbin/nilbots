@@ -28,10 +28,13 @@ import type { PlaybackState } from '../playback';
  * inventing one would be the system spending chroma it does not own.
  */
 
-/** Lane geometry in pixels: the playhead has to be sized from it, and a percentage
- *  cannot be (see the Thumb below). */
-const LANE_HEIGHT = 14;
-const LANE_GAP = 6;
+/**
+ * Lane geometry. The classes below are the source of truth for what is drawn —
+ * `h-3.5` and `gap-1.5` — and these two exist only because the playhead's height is
+ * arithmetic over them and cannot be a percentage (see the Thumb).
+ */
+const LANE_HEIGHT = 14; // h-3.5
+const LANE_GAP = 6; //    gap-1.5
 
 /** Marks are ordered by how much they matter, which is also how they stack visually. */
 type MarkKind = 'fired' | 'hit' | 'lost' | 'form';
@@ -154,10 +157,7 @@ export default function Timeline({
       onValueChange={([value]) => playback.seek(value)}
       aria-label="Match timeline — drag to seek"
     >
-      <Slider.Track
-        className="relative flex w-full grow flex-col py-1"
-        style={{ gap: LANE_GAP }}
-      >
+      <Slider.Track className="relative flex w-full grow flex-col gap-1.5 py-1">
         {/* Events belonging to the match cross every lane, because they happened to
             all of them: a position advancing is not one team's mark. */}
         {moments.map((moment) => (
@@ -170,11 +170,7 @@ export default function Timeline({
         ))}
 
         {lanes.map((lane) => (
-          <span
-            key={lane.key}
-            className="relative block"
-            style={{ height: LANE_HEIGHT }}
-          >
+          <span key={lane.key} className="relative block h-3.5">
             <span
               aria-hidden
               className="absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 bg-arena-edge"
