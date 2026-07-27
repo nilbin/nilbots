@@ -12,7 +12,8 @@ public sealed class GenericDeathmatchSession : IDisposable
 {
     private readonly ActorResolvedMatchDefinition _definition;
     private readonly GenericActorMatchHost _host;
-    private readonly DeathmatchModeKernel _mode;
+    private readonly IGenericActorMatchModeDriver _mode;
+    private readonly DeathmatchActorMatchModeDriver _deathmatchMode;
     private readonly SplitReplicationKernel _split;
     private readonly ActorSameLifeTransitionKernel _sameLife;
     private readonly Dictionary<string, ActorFormDefinition> _forms;
@@ -36,7 +37,6 @@ public sealed class GenericDeathmatchSession : IDisposable
         _priorResolvedEvents;
     private GenericDeathmatchTickStart? _preparedTick;
     private GenericActorMatchTickStart? _preparedChronologyTick;
-    private DeathmatchScoreState _scores;
     private long _nextAuthoritativeFactOrdinal;
     private long _nextProjectileId;
 
@@ -77,12 +77,12 @@ public sealed class GenericDeathmatchSession : IDisposable
             participant => participant.ParticipantId,
             participant => participant.TeamId);
         _slots = CreateSlots(definition);
-        _mode = new DeathmatchModeKernel(
+        _deathmatchMode = new DeathmatchActorMatchModeDriver(
             definition.Topology,
             (DeathmatchGameModeDefinition)definition.Rules.GameMode);
+        _mode = _deathmatchMode;
         _split = new SplitReplicationKernel(definition);
         _sameLife = new ActorSameLifeTransitionKernel(definition);
-        _scores = _mode.CreateInitialState();
         _host = new GenericActorMatchHost(
             definition,
             participants,
@@ -146,7 +146,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         get
         {
             ThrowIfOperationInProgress();
-            return _scores;
+            return _deathmatchMode.Scores;
         }
     }
     public GenericActorMatchDescriptor MatchDescriptor
@@ -348,7 +348,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             ref contactOrdinal,
             events,
             projectileTransitions);
-        ImmutableArray<DeathmatchDamageContact> scoredContacts =
+        ImmutableArray<GenericActorModeDamageContact> scoredContacts =
             ApplyDamage(contacts, events);
 
         foreach (GenericActorRuntimeFault fault in runtimeTick.Faults)
@@ -371,24 +371,20 @@ public sealed class GenericDeathmatchSession : IDisposable
         RememberActionResolutions(resolutions);
 
         ImmutableArray<int> eligibleTeams = EligibleTeamIds();
-        GenericDeathmatchResult? terminal = null;
+        GenericActorModeCompletion? terminal = null;
         bool faultEligibilityCompletion = eligibleTeams.Length <= 1;
-        bool killLimitCompletion = false;
+        bool modeObjectiveCompletion = false;
         if (!faultEligibilityCompletion)
         {
             // Resource clocks belong to action resolution, and therefore
             // settle before the later mode update (including a kill-limit
             // completion on this same tick).
             UpdateCooldownsAndEnergy(resolutions);
-            DeathmatchScoreState previousScores = _scores;
-            DeathmatchJointTickResult modeTick = _mode.ApplyJointTick(
-                _scores,
-                scoredContacts,
-                ActiveHealthByTeam(),
-                eligibleTeams);
-            _scores = modeTick.ScoreState;
-            EmitScoreChanges(previousScores, _scores, events);
-            killLimitCompletion = modeTick.KillLimitStandings is not null;
+            GenericActorModeTickResult modeTick = _mode.ApplyJointTick(
+                ModeWorldView(),
+                new GenericActorModeTickInput(Tick, scoredContacts));
+            EmitModeChanges(modeTick, events);
+            modeObjectiveCompletion = modeTick.ModeObjectiveReached;
             CompleteDueSameLifeTransitions(
                 ActorTransitionWindupDefinition.ActorTransitionCompletionKind
                     .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate,
@@ -399,25 +395,12 @@ public sealed class GenericDeathmatchSession : IDisposable
             // Fault eligibility is an earlier terminal phase and therefore
             // skips resources, mode update, and end-clock same-life work.
             terminal = Complete(
-                GenericDeathmatchEndReason.FaultEligibility,
-                _mode.ResolveTimeoutStandings(
-                    _scores,
-                    ActiveHealthByTeam(),
-                    eligibleTeams));
+                GenericActorModeCompletionKind.FaultEligibility);
         }
-        else if (killLimitCompletion)
+        else if (modeObjectiveCompletion)
         {
-            TeamStandings standings = _mode.ApplyJointTick(
-                    _scores,
-                    damageContacts: [],
-                    ActiveHealthByTeam(),
-                    eligibleTeams)
-                .KillLimitStandings
-                ?? throw new InvalidOperationException(
-                    "A reached Deathmatch kill limit disappeared before terminal resolution.");
             terminal = Complete(
-                GenericDeathmatchEndReason.KillLimit,
-                standings);
+                GenericActorModeCompletionKind.ModeObjective);
         }
 
         int executedTick = Tick;
@@ -426,11 +409,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             && nextTick >= _definition.Rules.Limits.MaxTicks)
         {
             terminal = Complete(
-                GenericDeathmatchEndReason.MaxTicks,
-                _mode.ResolveTimeoutStandings(
-                    _scores,
-                    ActiveHealthByTeam(),
-                    eligibleTeams));
+                GenericActorModeCompletionKind.MaxTicks);
         }
         Tick = nextTick;
 
@@ -495,9 +474,11 @@ public sealed class GenericDeathmatchSession : IDisposable
             runtimeTick,
             publicResolutions,
             resolvedEvents,
-            _scores,
+            _deathmatchMode.Scores,
             IsCompleted,
-            terminal);
+            terminal is GenericActorModeCompletion.Deathmatch deathmatch
+                ? deathmatch.CompatibilityResult
+                : null);
     }
 
     /// <summary>Runs until one terminal rule completes and returns its result.</summary>
@@ -1356,11 +1337,12 @@ public sealed class GenericDeathmatchSession : IDisposable
             terminal));
     }
 
-    private ImmutableArray<DeathmatchDamageContact> ApplyDamage(
+    private ImmutableArray<GenericActorModeDamageContact> ApplyDamage(
         IEnumerable<PendingDamageContact> contacts,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
-        var scored = ImmutableArray.CreateBuilder<DeathmatchDamageContact>();
+        var scored =
+            ImmutableArray.CreateBuilder<GenericActorModeDamageContact>();
         foreach (IGrouping<ActorIdentity, PendingDamageContact> targetGroup in
                  contacts
                      .OrderBy(contact => contact.TargetActorId)
@@ -1389,7 +1371,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 bool destroyed = target.Health == 0;
                 if (destroyed && target.DestructionCause is null)
                     target.DestructionCause = contact;
-                scored.Add(new DeathmatchDamageContact(
+                scored.Add(new GenericActorModeDamageContact(
                     contact.SourceTeamId,
                     target.ActorId.TeamId,
                     actual,
@@ -1667,73 +1649,48 @@ public sealed class GenericDeathmatchSession : IDisposable
         }
     }
 
-    private void EmitScoreChanges(
-        DeathmatchScoreState previous,
-        DeathmatchScoreState current,
+    private void EmitModeChanges(
+        GenericActorModeTickResult modeTick,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
-        Dictionary<int, DeathmatchTeamScore> before =
-            previous.Teams.ToDictionary(score => score.TeamId);
-        foreach (DeathmatchTeamScore score in current.Teams)
+        foreach (GenericActorModeScoreChange change
+                 in modeTick.ScoreChanges)
         {
-            DeathmatchTeamScore old = before[score.TeamId];
-            EmitScoreIfChanged(
-                score.TeamId,
-                "kills",
-                old.Kills,
-                score.Kills,
-                events);
-            EmitScoreIfChanged(
-                score.TeamId,
-                "deaths",
-                old.Deaths,
-                score.Deaths,
-                events);
-            EmitScoreIfChanged(
-                score.TeamId,
-                "damage-dealt",
-                old.DamageDealt,
-                score.DamageDealt,
-                events);
+            events.Add(EmitPublic(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.ScoreChanged,
+                new GenericActorRuntimeObservation.EventPayload.ScoreChanged(
+                    change.TeamId,
+                    change.Channel,
+                    change.NewValue)));
         }
-    }
-
-    private void EmitScoreIfChanged(
-        int teamId,
-        string channel,
-        long before,
-        long after,
-        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
-    {
-        if (before == after
-            || !_definition.Rules.GameMode.ScoreCatalog.Any(item =>
-                string.Equals(
-                    ActorContractCanonicalIds.Id(item.Channel),
-                    channel,
-                    StringComparison.Ordinal)))
+        if (modeTick.ModeChange is null)
         {
             return;
         }
         events.Add(EmitPublic(
             Tick,
-            GenericActorRuntimeObservation.EventKind.ScoreChanged,
-            new GenericActorRuntimeObservation.EventPayload.ScoreChanged(
-                teamId,
-                channel,
-                after)));
+            GenericActorRuntimeObservation.EventKind.ModeChanged,
+            new GenericActorRuntimeObservation.EventPayload.ModeChanged(
+                modeTick.ModeChange)));
     }
 
-    private GenericDeathmatchResult Complete(
-        GenericDeathmatchEndReason reason,
-        TeamStandings standings)
+    private GenericActorModeCompletion Complete(
+        GenericActorModeCompletionKind kind)
     {
-        var result = new GenericDeathmatchResult(
-            reason,
-            Tick,
-            _scores,
-            standings);
-        Result = result;
-        return result;
+        GenericActorModeCompletion completion =
+            _mode.ResolveCompletion(
+                kind,
+                Tick,
+                ModeWorldView());
+        Result = completion switch
+        {
+            GenericActorModeCompletion.Deathmatch deathmatch =>
+                deathmatch.CompatibilityResult,
+            _ => throw new InvalidOperationException(
+                "The Deathmatch façade received a non-Deathmatch completion."),
+        };
+        return completion;
     }
 
     private GenericActorRuntimeObservation ProjectObservation(
@@ -1918,6 +1875,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             }
         }
 
+        GenericActorModeProjection modeProjection =
+            _mode.Project(ModeWorldView());
         return new GenericActorRuntimeObservation(
             _definition.CapabilityVersions.ObservationSchemaVersion,
             Tick,
@@ -1943,8 +1902,8 @@ public sealed class GenericDeathmatchSession : IDisposable
             sensors.All(sensor => VisionFor(sensor).HearingRadius == 0)
                 ? null
                 : heardSounds.ToImmutable(),
-            Scoreboard(),
-            DeathmatchModeState(),
+            modeProjection.Scoreboard,
+            modeProjection.Mode,
             ActionLegalities(observer));
     }
 
@@ -2080,51 +2039,6 @@ public sealed class GenericDeathmatchSession : IDisposable
                 descendant.FormId,
                 descendant.Position);
     }
-
-    private GenericActorRuntimeObservation.ScoreboardState Scoreboard()
-    {
-        Dictionary<int, DeathmatchTeamScore> scores =
-            _scores.Teams.ToDictionary(score => score.TeamId);
-        HashSet<int> eligible = EligibleTeamIds().ToHashSet();
-        Dictionary<int, long> health = ActiveHealthByTeam();
-        return new GenericActorRuntimeObservation.ScoreboardState(
-            _definition.Topology.Teams
-                .OrderBy(team => team.TeamId)
-                .Select(team =>
-                    new GenericActorRuntimeObservation.TeamScoreState(
-                        team.TeamId,
-                        eligible.Contains(team.TeamId),
-                        _definition.Rules.GameMode.ScoreCatalog
-                            .Select(channel =>
-                                new GenericActorRuntimeObservation.ScoreValue(
-                                    ActorContractCanonicalIds.Id(
-                                        channel.Channel),
-                                    ScoreValue(
-                                        scores[team.TeamId],
-                                        health[team.TeamId],
-                                        channel.Channel)))
-                            .ToImmutableArray()))
-                .ToImmutableArray());
-    }
-
-    private static long ScoreValue(
-        DeathmatchTeamScore score,
-        long activeHealth,
-        ScoreChannelDefinition.ChannelKind channel) =>
-        channel switch
-        {
-            ScoreChannelDefinition.ChannelKind.Kills => score.Kills,
-            ScoreChannelDefinition.ChannelKind.Deaths => score.Deaths,
-            ScoreChannelDefinition.ChannelKind.DamageDealt =>
-                score.DamageDealt,
-            ScoreChannelDefinition.ChannelKind.ActiveHealth => activeHealth,
-            _ => throw new InvalidOperationException(
-                "Deathmatch cannot project the declared score channel."),
-        };
-
-    private GenericActorRuntimeObservation.ModeObservationState.Deathmatch
-        DeathmatchModeState() =>
-        new(_definition.Rules.GameMode.ModeId);
 
     private ImmutableArray<GenericActorRuntimeActionLegality>
         ActionLegalities(LifeState life)
@@ -2926,6 +2840,19 @@ public sealed class GenericDeathmatchSession : IDisposable
                 .Where(life => life.ActorId.TeamId == team.TeamId)
                 .Sum(life => (long)life.Health));
 
+    private GenericActorModeWorldView ModeWorldView() =>
+        new(
+            ActiveHealthByTeam(),
+            EligibleTeamIds(),
+            _lives.Values
+                .OrderBy(life => life.ActorId)
+                .Select(life => new GenericActorModeActiveLife(
+                    life.ActorId,
+                    life.FormId,
+                    life.Position,
+                    life.Health))
+                .ToImmutableArray());
+
     private GenericActorRuntimeObservation.EventPayload.LifeSpawned
         SpawnPayload(LifeState life)
     {
@@ -3149,6 +3076,8 @@ public sealed class GenericDeathmatchSession : IDisposable
                         projectile.RemainingTiles,
                         projectile.TicksUntilAdvance))
                 .ToImmutableArray();
+        GenericActorModeProjection modeProjection =
+            _mode.Project(ModeWorldView());
         return new GenericActorWorldSnapshot(
             _definition,
             Tick,
@@ -3158,12 +3087,12 @@ public sealed class GenericDeathmatchSession : IDisposable
             lives,
             _splitReservations,
             projectiles,
-            Scoreboard(),
-            DeathmatchModeState());
+            modeProjection.Scoreboard,
+            modeProjection.Mode);
     }
 
     private static GenericActorMatchResult ToGenericResult(
-        GenericDeathmatchResult result,
+        GenericActorModeCompletion result,
         IReadOnlyCollection<int> eligibleTeamIds,
         GenericActorWorldSnapshot finalState)
     {
@@ -3180,26 +3109,13 @@ public sealed class GenericDeathmatchSession : IDisposable
                             (slot.TeamId, slot.UnitId))))
                 .ToImmutableArray();
         return new GenericActorMatchResult(
-            CompletionReasonId(result.Reason),
+            result.CompletionReason,
             result.EndTick,
             result.Standings,
             eligibleTeamIds,
             units,
-            new GenericActorMatchModeResult.Deathmatch(
-                result.Reason,
-                result.Scores));
+            result.ModeResult);
     }
-
-    private static string CompletionReasonId(
-        GenericDeathmatchEndReason reason) =>
-        reason switch
-        {
-            GenericDeathmatchEndReason.FaultEligibility =>
-                "fault-eligibility",
-            GenericDeathmatchEndReason.KillLimit => "kill-limit",
-            GenericDeathmatchEndReason.MaxTicks => "max-ticks",
-            _ => throw new ArgumentOutOfRangeException(nameof(reason)),
-        };
 
     private static Dictionary<(int TeamId, int UnitId), SlotState>
         CreateSlots(ActorResolvedMatchDefinition definition)
