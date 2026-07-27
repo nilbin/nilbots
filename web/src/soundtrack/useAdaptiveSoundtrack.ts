@@ -21,6 +21,12 @@ import type { SoundtrackStatus } from './types';
 
 const VOLUME_KEY = 'nilbots.soundtrack.volume.v1';
 const DEFAULT_VOLUME = 0.62;
+const REPLAY_TICKS_PER_SECOND = 5;
+
+interface SoundtrackPlanningGrid {
+  bpm: number;
+  beatsPerBar: number;
+}
 
 export interface AdaptiveSoundtrackInput {
   available: boolean;
@@ -30,6 +36,8 @@ export interface AdaptiveSoundtrackInput {
   session: ArenaAudioSession;
   /** Stable across live-prefix updates and the completed replay handoff. */
   presentationId?: string;
+  /** The server clock owns presentation, so future replay ticks stay private. */
+  followingLive?: boolean;
   /** Allow a finite resolution cue after transport reaches the end on its own. */
   playResolveTail?: boolean;
   soundtrackId?: string;
@@ -49,11 +57,29 @@ export function useAdaptiveSoundtrack({
   playing,
   session,
   presentationId,
+  followingLive = false,
   playResolveTail = false,
   soundtrackId,
   transportRevision = 0,
 }: AdaptiveSoundtrackInput): SoundtrackController {
-  const timeline = useMemo(() => buildAdaptiveTimeline(replay), [replay]);
+  const [planningGrid, setPlanningGrid] =
+    useState<SoundtrackPlanningGrid | null>(null);
+  const timeline = useMemo(
+    () =>
+      buildAdaptiveTimeline(replay, {
+        followingLive,
+        ...(planningGrid === null
+          ? {}
+          : {
+              planner: {
+                ticksPerSecond: REPLAY_TICKS_PER_SECOND,
+                bpm: planningGrid.bpm,
+                beatsPerBar: planningGrid.beatsPerBar,
+              },
+            }),
+      }),
+    [followingLive, planningGrid, replay],
+  );
   const frame = useMemo(
     () => sampleAdaptiveTimeline(timeline, time),
     [timeline, time],
@@ -76,6 +102,9 @@ export function useAdaptiveSoundtrack({
   const soundtrackIdRef = useRef(soundtrackId);
   const triggerCursorRef = useRef(createSoundtrackTriggerCursor());
   const latestRef = useRef({
+    replay,
+    time,
+    followingLive,
     frame,
     timeline,
     replayPresentationId,
@@ -92,6 +121,9 @@ export function useAdaptiveSoundtrack({
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolumeState] = useState(readStoredVolume);
   latestRef.current = {
+    replay,
+    time,
+    followingLive,
     frame,
     timeline,
     replayPresentationId,
@@ -111,6 +143,7 @@ export function useAdaptiveSoundtrack({
     engineRef.current = null;
     readyEngineRef.current = null;
     triggerCursorRef.current = createSoundtrackTriggerCursor();
+    setPlanningGrid(null);
     if (engine) void engine.dispose();
     setEnabled(false);
     setTitle(null);
@@ -152,6 +185,28 @@ export function useAdaptiveSoundtrack({
     ])
       .then(async ([loaded]) => {
         if (serial !== activationRef.current) return;
+        const loadedPlanningGrid = {
+          bpm: loaded.manifest.bpm,
+          beatsPerBar: loaded.manifest.beatsPerBar,
+        };
+        setPlanningGrid(loadedPlanningGrid);
+        const alignToLoadedGrid = (
+          snapshot: typeof latestRef.current,
+        ): typeof latestRef.current => {
+          const alignedTimeline = buildAdaptiveTimeline(snapshot.replay, {
+            followingLive: snapshot.followingLive,
+            planner: {
+              ticksPerSecond: REPLAY_TICKS_PER_SECOND,
+              bpm: loadedPlanningGrid.bpm,
+              beatsPerBar: loadedPlanningGrid.beatsPerBar,
+            },
+          });
+          return {
+            ...snapshot,
+            timeline: alignedTimeline,
+            frame: sampleAdaptiveTimeline(alignedTimeline, snapshot.time),
+          };
+        };
         const engine = new SoundtrackEngine(
           loaded,
           graph.context,
@@ -175,7 +230,7 @@ export function useAdaptiveSoundtrack({
         );
         if (abortRef.current === abort) abortRef.current = null;
         engineRef.current = engine;
-        const current = latestRef.current;
+        const current = alignToLoadedGrid(latestRef.current);
         engine.setVolume(current.volume);
         resetSoundtrackTriggerCursor(
           triggerCursorRef.current,
@@ -197,8 +252,12 @@ export function useAdaptiveSoundtrack({
           await engine.dispose();
           return;
         }
-        const latest = latestRef.current;
-        engine.resetForDiscontinuity();
+        const latest = alignToLoadedGrid(latestRef.current);
+        const startupDiscontinuity =
+          latest.replayPresentationId !== current.replayPresentationId ||
+          latest.transportRevision !== current.transportRevision ||
+          latest.frame.sourceTick < current.frame.sourceTick;
+        if (startupDiscontinuity) engine.resetForDiscontinuity();
         resetSoundtrackTriggerCursor(
           triggerCursorRef.current,
           latest.replayPresentationId,

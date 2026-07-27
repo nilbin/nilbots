@@ -39,6 +39,20 @@ test('the generated soundtrack catalog satisfies the runtime contract', async ()
   }
 });
 
+test('Neon Protocol adaptive cuts use full-bar overlaps', async () => {
+  const manifest = await manifestDocument('neon-protocol');
+  const adaptiveCuts = manifest.transitions.filter(
+    (transition) =>
+      transition.timing === 'next-quantum' &&
+      transition.crossfadeBars > 0,
+  );
+
+  assert.ok(adaptiveCuts.length > 0);
+  assert.ok(
+    adaptiveCuts.every((transition) => transition.crossfadeBars === 1),
+  );
+});
+
 test('build provenance and manifest URL must agree on one content version', async () => {
   const manifest = await defaultManifestDocument();
   const catalog = JSON.parse(
@@ -257,11 +271,17 @@ function routeTransition(from, to, timing) {
 }
 
 async function defaultManifestDocument() {
+  return manifestDocument();
+}
+
+async function manifestDocument(id) {
   const catalog = JSON.parse(
     await readFile(new URL('index.json', soundtrackRoot), 'utf8'),
   );
-  const entry = catalog.tracks.find(
-    (candidate) => candidate.id === catalog.defaultId,
+  const entry = catalog.tracks.find((candidate) =>
+    id === undefined
+      ? candidate.id === catalog.defaultId
+      : candidate.id === id,
   );
   assert.ok(entry);
   return JSON.parse(

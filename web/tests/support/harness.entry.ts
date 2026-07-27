@@ -16,6 +16,7 @@ export {
   buildAdaptiveTimeline,
   sampleAdaptiveTimeline,
 } from '../../src/soundtrack/director';
+export { buildRetrospectiveMusicPlan } from '../../src/soundtrack/planner';
 export {
   loadReplayJson,
   loadReplayObject,

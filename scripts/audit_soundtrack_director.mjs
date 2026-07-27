@@ -151,7 +151,13 @@ export function auditReplayDocuments(entries, options = {}) {
     let timeline;
     try {
       const replay = normalizeReplayForAudit(entry.replay);
-      timeline = buildAdaptiveTimeline(replay);
+      timeline = buildAdaptiveTimeline(replay, {
+        planner: {
+          ticksPerSecond: resolved.ticksPerSecond,
+          bpm: resolved.phraseBarBpm,
+          beatsPerBar: resolved.phraseBarBeats,
+        },
+      });
     } catch (reason) {
       throw new Error(
         `Could not direct soundtrack for ${entry.path}: ${errorMessage(reason)}`,
@@ -159,7 +165,7 @@ export function auditReplayDocuments(entries, options = {}) {
     }
     return summarizeFrames(
       entry.path,
-      timeline.frames,
+      timeline,
       resolved.ticksPerSecond,
       resolved.phraseBarTicks,
     );
@@ -195,7 +201,7 @@ export function auditReplayDocuments(entries, options = {}) {
 
   const tickCounts = replays.map((replay) => replay.tickCount).sort(numberSort);
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     options: {
       ticksPerSecond: resolved.ticksPerSecond,
       shortSeconds: resolved.shortSeconds,
@@ -225,6 +231,10 @@ export function formatAuditText(report) {
   const lines = [
     `Soundtrack director audit: ${report.replayCount} replay${report.replayCount === 1 ? '' : 's'} @ ${formatNumber(ticksPerSecond)} TPS`,
     `Tick range min/median/max: ${formatNumber(report.tickRange.minimum)} / ${formatNumber(report.tickRange.median)} / ${formatNumber(report.tickRange.maximum)}`,
+    `Planning modes: ${formatModeCounts(report.overall.modeCounts)}; ` +
+      `selected highlights: ${report.overall.selectedHighlightCount}; ` +
+      `nonterminal gameplay transitions: ` +
+      `${report.overall.nonterminalGameplayTransitionCount}`,
     `Overall occupancy: ${formatOccupancy(report.overall.stateOccupancy)}`,
     `One-bar runs (≥${formatNumber(phraseBarTicks)} ticks): ${formatPhraseRuns(report.overall.stateRuns)}`,
     `Non-acute climax: ${formatNonAcuteClimax(report.overall, ticksPerSecond)}`,
@@ -241,9 +251,12 @@ export function formatAuditText(report) {
       `${bucket.id} (${bucket.label}): ${bucket.replayCount} replays, ` +
         `${formatNumber(bucket.averageTicks, 1)} ticks / ` +
         `${formatNumber(bucket.averageSeconds, 2)}s avg`,
+      `  planning: ${formatModeCounts(bucket.modeCounts)}; ` +
+        `selected highlights: ${bucket.selectedHighlightCount}`,
       `  occupancy: ${formatOccupancy(bucket.stateOccupancy)}`,
       `  transitions: ${bucket.transitionCount} total / ` +
         `${formatNumber(bucket.transitionsPerReplay, 1)} per replay; ` +
+        `${bucket.nonterminalGameplayTransitionCount} nonterminal gameplay; ` +
         `skipped-rank leaps: ${bucket.skippedRankLeapCount}`,
       `  one-bar runs: ${formatPhraseRuns(bucket.stateRuns)}`,
       `  max dwell: ${maxDwell.ticks} ticks / ` +
@@ -345,15 +358,17 @@ async function replayFilesBelow(directory) {
 
 function summarizeFrames(
   replayPath,
-  frames,
+  timeline,
   ticksPerSecond,
   phraseBarTicks,
 ) {
+  const { frames, mode, highlights } = timeline;
   const stateTicks = Object.fromEntries(SCORE_STATES.map((state) => [state, 0]));
   const runLengths = Object.fromEntries(
     SCORE_STATES.map((state) => [state, []]),
   );
   let transitionCount = 0;
+  let nonterminalGameplayTransitionCount = 0;
   let skippedRankLeapCount = 0;
   let runState = null;
   let runTicks = 0;
@@ -380,6 +395,9 @@ function summarizeFrames(
       }
       if (runState !== null) {
         transitionCount += 1;
+        if (runState !== 'resolve' && frame.state !== 'resolve') {
+          nonterminalGameplayTransitionCount += 1;
+        }
         if (Math.abs(STATE_RANK[frame.state] - STATE_RANK[runState]) > 1) {
           skippedRankLeapCount += 1;
         }
@@ -421,11 +439,15 @@ function summarizeFrames(
 
   const summary = {
     path: replayPath,
+    mode,
+    highlights,
+    selectedHighlightCount: highlights.length,
     tickCount: frames.length,
     durationSeconds: round(frames.length / ticksPerSecond, 4),
     stateTicks,
     stateRuns: summarizeStateRuns(runLengths, phraseBarTicks),
     transitionCount,
+    nonterminalGameplayTransitionCount,
     skippedRankLeapCount,
     maxDwell: {
       state: maxDwellState,
@@ -479,6 +501,21 @@ function summarizeGroup(replays, phraseBarTicks) {
   );
   return {
     replayCount: replays.length,
+    modeCounts: {
+      causal: replays.filter((replay) => replay.mode === 'causal').length,
+      retrospective: replays.filter(
+        (replay) => replay.mode === 'retrospective',
+      ).length,
+    },
+    selectedHighlightCount: replays.reduce(
+      (total, replay) => total + replay.selectedHighlightCount,
+      0,
+    ),
+    nonterminalGameplayTransitionCount: replays.reduce(
+      (total, replay) =>
+        total + replay.nonterminalGameplayTransitionCount,
+      0,
+    ),
     totalTicks,
     totalSeconds: round(
       replays.reduce((total, replay) => total + replay.durationSeconds, 0),
@@ -690,6 +727,13 @@ function formatNonAcuteClimax(summary, ticksPerSecond) {
   return (
     `${summary.nonAcuteClimaxTicks} ticks; max run ${maximum.ticks} ticks / ` +
     `${formatNumber(maximum.ticks / ticksPerSecond, 2)}s${location}`
+  );
+}
+
+function formatModeCounts(modeCounts) {
+  return (
+    `causal ${modeCounts.causal}, ` +
+    `retrospective ${modeCounts.retrospective}`
   );
 }
 

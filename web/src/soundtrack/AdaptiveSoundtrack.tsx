@@ -11,6 +11,7 @@ export interface AdaptiveSoundtrackProps {
   transportRevision: number;
   session: ArenaAudioSession;
   presentationId?: string;
+  followingLive?: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export default function AdaptiveSoundtrack({
   transportRevision,
   session,
   presentationId,
+  followingLive = false,
 }: AdaptiveSoundtrackProps) {
   const requestedId =
     new URLSearchParams(window.location.search).get('soundtrack') ??
@@ -39,6 +41,7 @@ export default function AdaptiveSoundtrack({
     transportRevision,
     session,
     presentationId,
+    followingLive,
   });
 
   return <SoundtrackControl controller={controller} />;

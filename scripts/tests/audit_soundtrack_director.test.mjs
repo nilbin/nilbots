@@ -109,6 +109,7 @@ test('audits replay directories with normalized pacing and dwell metrics', async
       cwd: temporary,
       ticksPerSecond: 5,
     });
+    assert.equal(report.schemaVersion, 3);
     assert.equal(report.replayCount, 2);
     assert.deepEqual(report.tickRange, {
       minimum: 2,
@@ -131,7 +132,23 @@ test('audits replay directories with normalized pacing and dwell metrics', async
       maximumTicks: 10,
     });
     assert.equal(report.overall.transitionCount, 1);
+    assert.equal(report.overall.nonterminalGameplayTransitionCount, 0);
     assert.equal(report.overall.skippedRankLeapCount, 1);
+    assert.deepEqual(report.overall.modeCounts, {
+      causal: 2,
+      retrospective: 0,
+    });
+    assert.equal(report.overall.selectedHighlightCount, 0);
+    assert.deepEqual(
+      report.replays.map(({ mode, highlights }) => ({
+        mode,
+        highlights,
+      })),
+      [
+        { mode: 'causal', highlights: [] },
+        { mode: 'causal', highlights: [] },
+      ],
+    );
     assert.deepEqual(report.overall.maxDwell, {
       state: 'sparse',
       ticks: 10,
@@ -146,6 +163,11 @@ test('audits replay directories with normalized pacing and dwell metrics', async
       path: null,
     });
     assert.match(formatAuditText(report), /short \(≤10s\): 2 replays/);
+    assert.match(
+      formatAuditText(report),
+      /Planning modes: causal 2, retrospective 0; selected highlights: 0;/,
+    );
+    assert.match(formatAuditText(report), /0 nonterminal gameplay/);
     assert.match(formatAuditText(report), /skipped-rank leaps: 1/);
     assert.match(formatAuditText(report), /sparse 1\/2 \(median 5.5t\)/);
   } finally {
@@ -222,6 +244,14 @@ test('normalizes replay-v1, replay-v2, and an existing ReplayModel', async () =>
   ]);
   assert.equal(wireReport.replayCount, 2);
   assert.deepEqual(wireReport.replays.map(({ tickCount }) => tickCount), [1, 12]);
+  assert.deepEqual(
+    wireReport.replays.map(({ mode }) => mode),
+    ['causal', 'retrospective'],
+  );
+  assert.deepEqual(wireReport.overall.modeCounts, {
+    causal: 1,
+    retrospective: 1,
+  });
 
   const harness = await import(
     pathToFileURL(
@@ -242,29 +272,56 @@ test('normalizes replay-v1, replay-v2, and an existing ReplayModel', async () =>
   assert.equal(modelReport.replays[0].tickCount, 1);
 });
 
-test('reports non-acute climax ticks and their longest causal run', () => {
-  const projectiles = Array.from({ length: 3 }, (_, index) => ({
-    x: index + 2,
-    y: 4,
-    direction: 'East',
-    ownerSlot: 0,
-  }));
-  const ticks = Array.from({ length: 30 }, (_, tick) =>
-    replayTick(tick, {
-      health: [1, 3],
-      projectiles: tick <= 12 ? projectiles : undefined,
-    }),
+test('reports non-acute climax ticks in a retrospective decisive pre-roll', () => {
+  const finalTick = 40;
+  const ticks = Array.from({ length: finalTick + 1 }, (_, tick) =>
+    replayTick(
+      tick,
+      tick === finalTick
+        ? {
+            events: [
+              {
+                type: 'Damage',
+                slot: 0,
+                targetSlot: 1,
+                amount: 3,
+                newHealth: 0,
+              },
+              { type: 'Destroyed', slot: 1 },
+            ],
+            statuses: ['Active', 'Destroyed'],
+            health: [3, 0],
+          }
+        : {},
+    ),
   );
 
   const report = auditReplayDocuments([
-    { path: 'climax/replay.json', replay: replay(ticks) },
+    {
+      path: 'climax/replay.json',
+      replay: finalizedReplay(ticks),
+    },
   ]);
   const summary = report.overall;
+  const replaySummary = report.replays[0];
 
+  assert.equal(replaySummary.mode, 'retrospective');
+  assert.equal(replaySummary.highlights.length, 1);
+  assert.equal(replaySummary.highlights[0].kind, 'decisive');
+  assert.equal(replaySummary.highlights[0].peakTick, finalTick);
+  assert.equal(replaySummary.highlights[0].requestTick, 10);
+  assert.equal(replaySummary.highlights[0].buildStartTick, 0);
+  assert.equal(replaySummary.selectedHighlightCount, 1);
+  assert.deepEqual(summary.modeCounts, {
+    causal: 0,
+    retrospective: 1,
+  });
+  assert.equal(summary.selectedHighlightCount, 1);
+  assert.equal(summary.nonterminalGameplayTransitionCount, 1);
   assert.ok(summary.stateRuns.climax.runCount >= 1);
   assert.ok(summary.stateRuns.climax.runsReachingOneBar >= 1);
-  assert.ok(summary.nonAcuteClimaxTicks > 0);
-  assert.ok(summary.maxNonAcuteClimaxRun.ticks > 0);
+  assert.equal(summary.nonAcuteClimaxTicks, 30);
+  assert.equal(summary.maxNonAcuteClimaxRun.ticks, 30);
   assert.equal(summary.maxNonAcuteClimaxRun.path, 'climax/replay.json');
   assert.match(formatAuditText(report), /Non-acute climax: [1-9]\d* ticks/);
 });
@@ -274,6 +331,39 @@ function replay(ticks) {
     header,
     ticks,
     partial: true,
+  };
+}
+
+function finalizedReplay(ticks) {
+  const endTick = ticks.at(-1)?.tick ?? 0;
+  return {
+    header,
+    ticks,
+    result: {
+      winnerSlot: 0,
+      reason: 'Elimination',
+      endTick,
+      bots: [
+        {
+          slot: 0,
+          outcome: 'Win',
+          finalHealth: 3,
+          damageDealt: 3,
+          faults: 0,
+          finalStatus: 'Active',
+        },
+        {
+          slot: 1,
+          outcome: 'Loss',
+          finalHealth: 0,
+          damageDealt: 0,
+          faults: 0,
+          finalStatus: 'Destroyed',
+        },
+      ],
+      controlPressure: 0,
+    },
+    replayHash: '0'.repeat(64),
   };
 }
 

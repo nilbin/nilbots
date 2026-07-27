@@ -20,6 +20,7 @@ import type {
   ReplayV1GameEvent,
   ReplayV1Header,
   ReplayV1MatchResult,
+  ReplayV1PartialDocument,
   ReplayV1Position,
   ReplayV1Projectile,
   ReplayV1ProjectileTraversal,
@@ -64,6 +65,12 @@ const FRONTLINE_COMPLETE_WIRE = JSON.parse(
     'utf8',
   ),
 ) as ReplayV2CompleteDocument;
+const ARENA_COMPLETE_WIRE = JSON.parse(
+  readFileSync(
+    new URL('./fixtures/golden-replay.json', import.meta.url),
+    'utf8',
+  ),
+) as ReplayV1CompleteDocument;
 
 interface V1ReplayOptions {
   header?: Partial<ReplayV1Header>;
@@ -124,8 +131,12 @@ test('every v1 prefix is byte-equivalent to the same full causal prefix', () => 
     }),
   );
   const result = v1Result(ticks, 7, 'Elimination', 0);
-  const full = buildAdaptiveTimeline(v1Replay(ticks, { result }));
-  const repeated = buildAdaptiveTimeline(v1Replay(ticks, { result }));
+  const full = buildAdaptiveTimeline(v1Replay(ticks, { result }), {
+    planningMode: 'causal',
+  });
+  const repeated = buildAdaptiveTimeline(v1Replay(ticks, { result }), {
+    planningMode: 'causal',
+  });
 
   assert.deepEqual(full, repeated);
   for (let count = 0; count <= ticks.length; count += 1) {
@@ -138,6 +149,109 @@ test('every v1 prefix is byte-equivalent to the same full causal prefix', () => 
   }
   assert.ok(full.frames.slice(0, 7).every((frame) => frame.state !== 'resolve'));
   assert.equal(full.frames[7]?.state, 'resolve');
+});
+
+test('finalized Arena replay gets one relative primary arc without moving evidence', () => {
+  const replay = loadReplayObject(
+    structuredClone(ARENA_COMPLETE_WIRE),
+  ).replay;
+  const planned = buildAdaptiveTimeline(replay);
+  const causal = buildAdaptiveTimeline(replay, {
+    planningMode: 'causal',
+  });
+
+  assert.equal(planned.mode, 'retrospective');
+  assert.deepEqual(planned, buildAdaptiveTimeline(replay));
+  assert.equal(planned.planningBarTicks, 10);
+  assert.equal(planned.highlights.length, 1);
+  assert.deepEqual(
+    {
+      startTick: planned.highlights[0]?.startTick,
+      peakTick: planned.highlights[0]?.peakTick,
+      endTick: planned.highlights[0]?.endTick,
+      kind: planned.highlights[0]?.kind,
+      primary: planned.highlights[0]?.primary,
+      requestTick: planned.highlights[0]?.requestTick,
+      buildStartTick: planned.highlights[0]?.buildStartTick,
+    },
+    {
+      startTick: 65,
+      peakTick: 96,
+      endTick: 96,
+      kind: 'decisive',
+      primary: true,
+      requestTick: 60,
+      buildStartTick: 40,
+    },
+  );
+
+  const gameplayTransitions = planned.frames.filter(
+    (frame, index) =>
+      index > 0 &&
+      frame.state !== 'resolve' &&
+      frame.state !== planned.frames[index - 1]?.state,
+  );
+  assert.deepEqual(
+    gameplayTransitions.map((frame) => [frame.tick, frame.state]),
+    [[60, 'climax']],
+  );
+  assert.ok(
+    planned.frames.slice(0, 5).every((frame) => frame.intensity === 0.08),
+  );
+  assert.equal(planned.frames[6]?.state, 'sparse');
+  assert.ok((planned.frames[6]?.intensity ?? 0) > 0.08);
+  assert.ok((planned.frames[6]?.intensity ?? 1) < 0.14);
+  assert.ok(
+    (planned.frames[65]?.intensity ?? 1) <
+      (causal.frames[65]?.intensity ?? 0),
+  );
+  assert.ok((causal.frames[65]?.intensity ?? 0) >= 0.62);
+  assert.ok(
+    Math.abs(
+      (planned.frames[65]?.intensity ?? 0) -
+        (planned.frames[64]?.intensity ?? 0),
+    ) < 0.04,
+  );
+  assert.equal(planned.frames[96]?.state, 'resolve');
+
+  assert.deepEqual(
+    planned.frames.map((frame) => frame.features),
+    causal.frames.map((frame) => frame.features),
+  );
+  assert.deepEqual(
+    planned.frames.map((frame) => frame.triggers),
+    causal.frames.map((frame) => frame.triggers),
+  );
+});
+
+test('partial documents and live followers stay forced causal', () => {
+  const completeReplay = loadReplayObject(
+    structuredClone(ARENA_COMPLETE_WIRE),
+  ).replay;
+  const partialWire: ReplayV1PartialDocument = {
+    header: structuredClone(ARENA_COMPLETE_WIRE.header),
+    ticks: structuredClone(ARENA_COMPLETE_WIRE.ticks),
+    result: null,
+    replayHash: null,
+    partial: true,
+  };
+  const partialReplay = loadReplayObject(partialWire).replay;
+  const forced = buildAdaptiveTimeline(completeReplay, {
+    planningMode: 'causal',
+  });
+  const following = buildAdaptiveTimeline(completeReplay, {
+    followingLive: true,
+  });
+  const partial = buildAdaptiveTimeline(partialReplay, {
+    planningMode: 'retrospective',
+  });
+
+  assert.equal(following.mode, 'causal');
+  assert.equal(partial.mode, 'causal');
+  assert.deepEqual(following.frames, forced.frames);
+  assert.deepEqual(partial.frames, forced.frames);
+  assert.deepEqual(following.highlights, []);
+  assert.deepEqual(partial.highlights, []);
 });
 
 test('v1 prefix causality does not depend on a future inferred max health', () => {
@@ -163,7 +277,7 @@ test('v1 prefix causality does not depend on a future inferred max health', () =
   }
 });
 
-test('unseen sustained approach raises causal pressure and climbs one phrase at a time', () => {
+test('unseen approach stays quiet at range and raises causal pressure only nearby', () => {
   const positions: readonly (readonly [
     ReplayV1Position,
     ReplayV1Position,
@@ -189,13 +303,16 @@ test('unseen sustained approach raises causal pressure and climbs one phrase at 
   const full = buildAdaptiveTimeline(v1Replay(ticks));
 
   assert.equal(full.frames[0]?.features.approach, 0);
-  assert.ok((full.frames[1]?.features.approach ?? 0) > 0);
+  assert.equal(full.frames[1]?.features.approach, 0);
+  assert.equal(full.frames[2]?.features.approach, 0);
+  assert.ok((full.frames[3]?.features.approach ?? 0) > 0);
   assert.ok(
-    (full.frames[4]?.features.closingPressure ?? 0) >
-      (full.frames[2]?.features.closingPressure ?? 1),
+    (full.frames[5]?.features.closingPressure ?? 0) >
+      (full.frames[3]?.features.closingPressure ?? 1),
   );
-  assert.equal(full.frames[3]?.state, 'tension');
-  assert.equal(full.frames[7]?.state, 'pursuit');
+  assert.equal(full.frames[4]?.state, 'sparse');
+  assert.equal(full.frames[5]?.state, 'tension');
+  assert.ok(full.frames.every((frame) => frame.state !== 'pursuit'));
   assert.ok(
     full.frames.every(
       (frame) =>
@@ -221,9 +338,138 @@ test('unseen sustained approach raises causal pressure and climbs one phrase at 
   }
 });
 
+test('movement and distant approach cannot seed a retrospective highlight', () => {
+  const ticks = Array.from({ length: 40 }, (_, tick) =>
+    v1Tick(tick, {
+      positions: [
+        [0, 0],
+        [Math.max(11, 20 - tick), 0],
+      ],
+      actions: tick < 10
+        ? ['Wait', 'MoveForward']
+        : ['Wait', 'Wait'],
+    }),
+  );
+  const replay = v1Replay(ticks, {
+    header: { maxTicks: 40 },
+    result: v1Result(ticks, 39, 'MaxTicks'),
+  });
+  const timeline = buildAdaptiveTimeline(replay);
+
+  assert.equal(timeline.mode, 'retrospective');
+  assert.deepEqual(timeline.highlights, []);
+  assert.ok(
+    timeline.frames
+      .slice(0, -1)
+      .every(
+        (frame) =>
+          frame.state === 'sparse' &&
+          frame.intensity === timeline.config.stateIntensity.sparse,
+      ),
+  );
+  assert.equal(timeline.frames.at(-1)?.state, 'resolve');
+});
+
+test('a short replay keeps an opening hold instead of snapping its peak request to tick zero', () => {
+  const ticks = Array.from({ length: 35 }, (_, tick) =>
+    v1Tick(tick, {
+      events: tick === 34 ? [{ type: 'Destroyed', slot: 1 }] : [],
+      health: tick === 34 ? [3, 0] : [3, 3],
+      statuses:
+        tick === 34 ? ['Active', 'Destroyed'] : ['Active', 'Active'],
+    }),
+  );
+  const timeline = buildAdaptiveTimeline(
+    v1Replay(ticks, {
+      header: { maxTicks: 35 },
+      result: v1Result(ticks, 34, 'Elimination', 0),
+    }),
+  );
+
+  assert.equal(timeline.highlights.length, 1);
+  assert.equal(timeline.highlights[0]?.requestTick, null);
+  assert.ok(
+    timeline.frames
+      .slice(0, -1)
+      .every((frame) => frame.state === 'sparse'),
+  );
+  assert.equal(timeline.frames.at(-1)?.state, 'resolve');
+});
+
+test('retrospective highlights are relatively ranked, capped, and separated', () => {
+  const ticks = Array.from({ length: 150 }, (_, tick) => {
+    const events: ReplayV1GameEvent[] =
+      tick === 10
+        ? [{ type: 'Shot', slot: 0 }]
+        : tick === 75
+          ? [
+              {
+                type: 'Damage',
+                slot: 0,
+                targetSlot: 1,
+                amount: 1,
+                newHealth: 2,
+              },
+            ]
+          : tick === 149
+            ? [{ type: 'Destroyed', slot: 1 }]
+            : [];
+    return v1Tick(tick, {
+      events,
+      health: tick >= 149
+        ? [3, 0]
+        : tick >= 75
+          ? [3, 2]
+          : [3, 3],
+      statuses:
+        tick === 149 ? ['Active', 'Destroyed'] : ['Active', 'Active'],
+    });
+  });
+  const timeline = buildAdaptiveTimeline(
+    v1Replay(ticks, {
+      header: { maxTicks: 150 },
+      result: v1Result(ticks, 149, 'Elimination', 0),
+    }),
+  );
+
+  assert.equal(timeline.mode, 'retrospective');
+  assert.equal(timeline.highlights.length, 2);
+  assert.deepEqual(
+    timeline.highlights.map((highlight) => ({
+      peakTick: highlight.peakTick,
+      kind: highlight.kind,
+      rank: highlight.relativeRank,
+      primary: highlight.primary,
+    })),
+    [
+      { peakTick: 75, kind: 'damage', rank: 1, primary: false },
+      { peakTick: 149, kind: 'decisive', rank: 0, primary: true },
+    ],
+  );
+  assert.ok(
+    Math.abs(
+      timeline.highlights[1]!.peakTick -
+        timeline.highlights[0]!.peakTick,
+    ) >= 6 * timeline.planningBarTicks!,
+  );
+  assert.deepEqual(
+    timeline.frames
+      .filter(
+        (frame, index) =>
+          index > 0 &&
+          frame.state !== 'resolve' &&
+          frame.state !== timeline.frames[index - 1]?.state,
+      )
+      .map((frame) => [frame.tick, frame.state]),
+    [[110, 'climax']],
+  );
+});
+
 test('every v2 prefix is byte-equivalent to the same full causal prefix', () => {
   const complete = structuredClone(FRONTLINE_COMPLETE_WIRE);
-  const full = buildAdaptiveTimeline(loadReplayObject(complete).replay);
+  const full = buildAdaptiveTimeline(loadReplayObject(complete).replay, {
+    planningMode: 'causal',
+  });
 
   for (let count = 0; count <= complete.ticks.length; count += 1) {
     const prefixWire: ReplayV2PartialDocument = {
@@ -304,10 +550,11 @@ test('v2 approach sees a closing engagement when the nearest pair opens', () => 
   }
 
   const full = buildAdaptiveTimeline(replay);
-  assert.ok((full.frames[1]?.features.approach ?? 0) > 0);
+  assert.equal(full.frames[1]?.features.approach, 0);
+  assert.ok((full.frames[2]?.features.approach ?? 0) > 0);
   assert.ok(
     (full.frames[3]?.features.closingPressure ?? 0) >
-      (full.frames[1]?.features.closingPressure ?? 1),
+      (full.frames[2]?.features.closingPressure ?? 1),
   );
   for (let count = 0; count <= replay.ticks.length; count += 1) {
     const prefix = buildAdaptiveTimeline({
@@ -326,7 +573,9 @@ test('v2 approach sees a closing engagement when the nearest pair opens', () => 
 test('a complete result is ignored until its authoritative end tick', () => {
   const ticks = Array.from({ length: 5 }, (_, index) => v1Tick(index));
   const result = v1Result(ticks, 4, 'MaxTicks');
-  const complete = buildAdaptiveTimeline(v1Replay(ticks, { result }));
+  const complete = buildAdaptiveTimeline(v1Replay(ticks, { result }), {
+    planningMode: 'causal',
+  });
   const withheld = buildAdaptiveTimeline(v1Replay(ticks));
 
   assert.deepEqual(complete.frames.slice(0, 4), withheld.frames.slice(0, 4));

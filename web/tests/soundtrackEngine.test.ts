@@ -25,8 +25,8 @@ test(
       await flushAsync();
       assertPending(engine, 'combat-loop', true);
 
-      // The latest state in this audio bar is committed at the next bar. The
-      // combat exit is two-bar quantized, leaving time to retarget safely.
+      // The latest state is held until the two-bar phrase gate, leaving time
+      // to retarget the two-bar-quantized combat exit safely.
       engine.setDirection(direction('tension'));
       assert.equal(engine.direction.state, 'combat');
       advanceHorizontalCommit(engine, context);
@@ -107,6 +107,22 @@ test(
         (rearmedRotation.when - entry.startedAt) % entry.durationSeconds,
         0,
       );
+    });
+  },
+);
+
+test(
+  'same-state variety rotation stays on holds instead of entering a finite bridge',
+  { concurrency: false },
+  async () => {
+    await withEngine(rotationManifest(), async ({ context, engine }) => {
+      await engine.start(direction('sparse'));
+      const entry = activeVoice(engine);
+
+      context.advanceTo(entry.decisionTimer.stopTime);
+      await flushAsync();
+
+      assertPending(engine, 'loop-b', false);
     });
   },
 );
@@ -264,13 +280,13 @@ test(
 
       context.advanceTo(engine.accentReleaseUntil + 0.001);
       engine.setDirection(direction('sparse', 0.25, 0.25));
-      assert.equal(lastTargetCall(drums).timeConstant, 0.7);
+      assert.equal(lastTargetCall(drums).timeConstant, 1.2);
     });
   },
 );
 
 test(
-  'ordinary vertical mix changes rise within a beat and settle gently',
+  'ordinary vertical mix changes take a beat to rise and multiple beats to settle',
   { concurrency: false },
   async () => {
     const manifest = makeManifest({
@@ -285,16 +301,13 @@ test(
       engine.setDirection(direction('sparse', 0.8, 0.8));
       const rise = lastTargetCall(drums);
       assert.equal(rise.when, context.currentTime);
-      assert.equal(rise.timeConstant, 0.12);
+      assert.equal(rise.timeConstant, 0.5);
       assert.equal(lastHoldCall(drums).when, context.currentTime);
-      assert.ok(
-        rise.timeConstant < BAR_SECONDS / 4,
-        'the layer must respond audibly before the next beat',
-      );
+      assert.equal(rise.timeConstant, BAR_SECONDS / 4);
 
       engine.setDirection(direction('sparse', 0.3, 0.3));
       const settle = lastTargetCall(drums);
-      assert.equal(settle.timeConstant, 0.7);
+      assert.equal(settle.timeConstant, 1.2);
       assert.ok(settle.value < rise.value);
 
       // The compatibility path still schedules a continuous target on Web
@@ -346,7 +359,7 @@ test(
 );
 
 test(
-  'a distinctive stinger requires a major trigger, obeys cooldown, and resets for a new presentation segment',
+  'a distinctive stinger requires overtime or destruction, obeys cooldown, and resets for a new presentation segment',
   { concurrency: false },
   async () => {
     const manifest = stingerManifest();
@@ -362,6 +375,14 @@ test(
         trigger('damage', 2),
       ]);
       await flushAsync();
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.equal(engine.stingerArmedUntil, 0);
+
+      engine.setDirection(direction('climax', 0.8, 0.7), [
+        trigger('overtime', 3),
+      ]);
+      await flushAsync();
       const first = assertPending(engine, 'impact-stinger', false);
       assert.equal(
         engine.stingerCooldownUntil.get('impact-stinger'),
@@ -374,7 +395,7 @@ test(
       assert.equal(activeVoice(engine).section.id, 'climax-b');
 
       engine.setDirection(direction('climax', 0.8, 0.7), [
-        trigger('destruction', 3),
+        trigger('destruction', 4),
       ]);
       await flushAsync();
       assert.equal(engine.pending, null, 'cooldown blocks an immediate repeat');
@@ -382,7 +403,7 @@ test(
       engine.resetForDiscontinuity();
       assert.equal(engine.stingerCooldownUntil.size, 0);
       engine.setDirection(direction('climax', 0.8, 0.7), [
-        trigger('destruction', 4),
+        trigger('destruction', 5),
       ]);
       await flushAsync();
       assertPending(engine, 'impact-stinger', false);
@@ -391,7 +412,7 @@ test(
 );
 
 test(
-  'a major trigger during a matching-state crossfade retries its live stinger arm after unlock',
+  'a destruction during a matching-state crossfade retries its live stinger arm after unlock',
   { concurrency: false },
   async () => {
     const manifest = stingerAfterTransitionManifest();
@@ -407,7 +428,7 @@ test(
       assert.ok(context.currentTime < engine.transitionLockedUntil);
 
       engine.setDirection(direction('combat', 0.85, 0.72), [
-        trigger('damage', 12),
+        trigger('destruction', 12),
       ]);
       await flushAsync();
       assert.equal(engine.pending, null);
@@ -503,7 +524,7 @@ test(
 );
 
 test(
-  'horizontal calls commit once per audio bar and coalesce to the latest state',
+  'horizontal calls wait two audio bars and coalesce to the latest state',
   { concurrency: false },
   async () => {
     const manifest = directStatesManifest();
@@ -516,6 +537,10 @@ test(
 
       assert.equal(engine.direction.state, 'sparse');
       assert.deepEqual([...context.decodedSectionIds], ['entry']);
+      assert.equal(
+        engine.horizontalTimer.stopTime,
+        engine.horizontalAnchor + BAR_SECONDS * 2,
+      );
       advanceHorizontalCommit(engine, context);
       await flushAsync();
       assert.equal(engine.direction.state, 'pursuit');
@@ -526,6 +551,13 @@ test(
       engine.setDirection(direction('combat'));
       engine.setDirection(direction('tension'));
       assert.equal(engine.direction.state, 'pursuit');
+      assert.ok(
+        Math.abs(
+          engine.horizontalTimer.stopTime -
+            context.currentTime -
+            BAR_SECONDS * 2,
+        ) < 1e-9,
+      );
       advanceHorizontalCommit(engine, context);
       await flushAsync();
 
@@ -648,10 +680,13 @@ function rotationManifest() {
     sections: [
       section('loop-a', 'sparse', true),
       section('loop-b', 'sparse', true),
+      section('loop-bridge', 'sparse', false, { role: 'bridge' }),
       section('tension-loop', 'tension', true),
     ],
     transitions: [
       transition('loop-a', 'loop-b', 'next-quantum'),
+      transition('loop-a', 'loop-bridge', 'next-quantum', { weight: 2 }),
+      transition('loop-bridge', 'loop-b', 'section-end'),
       transition('loop-a', 'tension-loop', 'next-quantum'),
     ],
   });

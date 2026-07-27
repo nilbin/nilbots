@@ -139,6 +139,9 @@ adaptive cuts use `timing: "next-quantum"`, normally with a one-bar quantum and
 an equal-power transition crossfade. Every directed edge is compatibility
 scored. For `next-quantum` edges the compiler evaluates every eligible cut
 point in the source section, records the range, and validates the worst case.
+Neon Protocol uses a full-bar (two-second) overlap for these adaptive cuts;
+the earlier quarter-bar overlap was too abrupt in gameplay even when its edit
+point was valid.
 Same-state rotation edges out of loopable holds are also `next-quantum`: the
 runtime applies the hold's `repeat.minimumBars` dwell and starts the
 destination on an exact full-cycle boundary, where the old loop has wrapped

@@ -15,6 +15,16 @@ export type {
   ResolvedMusicDirectorConfig,
 } from './director';
 
+export { buildRetrospectiveMusicPlan } from './planner';
+
+export type {
+  AdaptiveMusicHighlight,
+  AdaptiveMusicHighlightKind,
+  AdaptiveMusicTimelineMode,
+  RetrospectiveMusicPlan,
+  RetrospectiveMusicPlannerOptions,
+} from './planner';
+
 export {
   collectCrossedSoundtrackTriggers,
   createSoundtrackTriggerCursor,

@@ -197,6 +197,7 @@ export default function Viewer({
               transportRevision={isLive ? 0 : playback.transportRevision}
               session={audioSession}
               presentationId={soundtrackPresentationId}
+              followingLive={isLive}
             />
           </Suspense>
         )}

@@ -62,6 +62,7 @@ interface LoadingTransition {
 }
 
 const MIN_START_LEAD_SECONDS = 0.06;
+const MIN_HORIZONTAL_COMMIT_BARS = 2;
 const TRANSITION_CURVE_STEPS = 32;
 const RESOLVE_CURVE_STEPS = 64;
 const STINGER_ARM_BARS = 2;
@@ -80,7 +81,7 @@ const TRIGGER_IMPULSES: Readonly<
         holdSeconds: number;
         attackSeconds: number;
         releaseSeconds: number;
-        major: boolean;
+        armsStinger: boolean;
       }
     >
   >
@@ -90,35 +91,35 @@ const TRIGGER_IMPULSES: Readonly<
     holdSeconds: 0.1,
     attackSeconds: 0.05,
     releaseSeconds: 0.7,
-    major: false,
+    armsStinger: false,
   },
   shot: {
     boost: 0.18,
     holdSeconds: 0.14,
     attackSeconds: 0.045,
     releaseSeconds: 0.82,
-    major: false,
+    armsStinger: false,
   },
   damage: {
     boost: 0.34,
     holdSeconds: 0.2,
     attackSeconds: 0.035,
     releaseSeconds: 1,
-    major: true,
+    armsStinger: false,
   },
   overtime: {
     boost: 0.42,
     holdSeconds: 0.32,
     attackSeconds: 0.04,
     releaseSeconds: 1.15,
-    major: true,
+    armsStinger: true,
   },
   destruction: {
     boost: 0.56,
     holdSeconds: 0.3,
     attackSeconds: 0.03,
     releaseSeconds: 1.3,
-    major: true,
+    armsStinger: true,
   },
 };
 
@@ -234,7 +235,7 @@ export class SoundtrackEngine {
       targetIntensity: normalized.targetIntensity,
       momentum: normalized.momentum,
     };
-    const majorTrigger = this.registerTriggers(triggers);
+    const stingerTrigger = this.registerTriggers(triggers);
     for (const voice of this.voices) {
       this.updateStemGains(
         voice,
@@ -243,7 +244,7 @@ export class SoundtrackEngine {
       );
     }
     this.requestHorizontalState(normalized.state);
-    if (majorTrigger && this.direction.state === normalized.state) {
+    if (stingerTrigger && this.direction.state === normalized.state) {
       this.tryScheduleArmedStinger();
     }
   }
@@ -275,7 +276,8 @@ export class SoundtrackEngine {
     this.clearAccentEnvelope();
     this.queuedHorizontalState = null;
     this.cancelHorizontalTimer();
-    this.lastHorizontalCommitBar = this.currentHorizontalBar() - 1;
+    this.lastHorizontalCommitBar =
+      this.currentHorizontalBar() - MIN_HORIZONTAL_COMMIT_BARS;
   }
 
   private registerTriggers(
@@ -284,7 +286,7 @@ export class SoundtrackEngine {
     let strongest:
       | (typeof TRIGGER_IMPULSES)[Exclude<SoundtrackTrigger, 'resolve'>]
       | undefined;
-    let major = false;
+    let armsStinger = false;
     for (const trigger of triggers) {
       const key = `${trigger.sourceTick}:${trigger.type}`;
       if (this.receivedTriggerKeys.has(key)) continue;
@@ -292,18 +294,18 @@ export class SoundtrackEngine {
       const impulse = TRIGGER_IMPULSES[trigger.type];
       if (!impulse) continue;
       if (!strongest || impulse.boost > strongest.boost) strongest = impulse;
-      major ||= impulse.major;
+      armsStinger ||= impulse.armsStinger;
     }
 
     if (strongest) this.beginAccentImpulse(strongest);
-    if (major) {
+    if (armsStinger) {
       const barSeconds = this.manifest.barFrames / this.manifest.sampleRate;
       this.stingerArmedUntil = Math.max(
         this.stingerArmedUntil,
         this.context.currentTime + STINGER_ARM_BARS * barSeconds,
       );
     }
-    return major;
+    return armsStinger;
   }
 
   private beginAccentImpulse(
@@ -407,7 +409,9 @@ export class SoundtrackEngine {
       this.commitHorizontalState(state);
       return;
     }
-    if (bar > this.lastHorizontalCommitBar) {
+    const nextCommitBar =
+      this.lastHorizontalCommitBar + MIN_HORIZONTAL_COMMIT_BARS;
+    if (bar >= nextCommitBar) {
       this.queuedHorizontalState = null;
       this.cancelHorizontalTimer();
       this.lastHorizontalCommitBar = bar;
@@ -417,15 +421,18 @@ export class SoundtrackEngine {
     this.queuedHorizontalState = state;
     if (this.horizontalTimer) return;
     const barSeconds = this.manifest.barFrames / this.manifest.sampleRate;
-    const boundary = this.horizontalAnchor + (bar + 1) * barSeconds;
+    const boundary =
+      this.horizontalAnchor + Math.max(bar + 1, nextCommitBar) * barSeconds;
     let timer: ConstantSourceNode;
     timer = this.atAudioTime(boundary, () => {
       if (this.horizontalTimer !== timer || this.disposed) return;
       this.horizontalTimer = null;
       const queued = this.queuedHorizontalState;
       this.queuedHorizontalState = null;
-      this.lastHorizontalCommitBar = this.currentHorizontalBar();
-      if (queued !== null) this.commitHorizontalState(queued);
+      if (queued !== null) {
+        this.lastHorizontalCommitBar = this.currentHorizontalBar();
+        this.commitHorizontalState(queued);
+      }
     });
     this.horizontalTimer = timer;
   }
@@ -808,7 +815,7 @@ export class SoundtrackEngine {
     ) {
       return;
     }
-    // A major trigger can arrive while a matching transition is loading,
+    // A distinctive trigger can arrive while a matching transition is loading,
     // pending, or crossfading. Re-check its short-lived arm before concluding
     // that an already-matching active classification needs no work.
     if (this.tryScheduleArmedStinger()) return;
@@ -874,7 +881,7 @@ export class SoundtrackEngine {
           return (
             transition.to !== voice.section.id &&
             transition.timing === 'next-quantum' &&
-            destination?.role !== 'stinger' &&
+            destination?.role === 'hold' &&
             destination?.classification === voice.section.classification
           );
         })
@@ -1193,8 +1200,8 @@ export class SoundtrackEngine {
       this.manifest.sampleRate /
       this.manifest.beatsPerBar;
     return attacking
-      ? Math.max(0.09, Math.min(0.16, beatSeconds * 0.24))
-      : Math.max(0.55, Math.min(0.9, beatSeconds * 1.4));
+      ? Math.max(0.35, Math.min(0.8, beatSeconds))
+      : Math.max(0.9, Math.min(1.8, beatSeconds * 2.4));
   }
 
   private effectiveStemIntensity(stemId: string, intensity: number): number {

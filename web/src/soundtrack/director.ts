@@ -7,6 +7,12 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
+import {
+  buildRetrospectiveMusicPlan,
+  type AdaptiveMusicHighlight,
+  type AdaptiveMusicTimelineMode,
+  type RetrospectiveMusicPlannerOptions,
+} from './planner';
 import type { AdaptiveScoreState } from './types';
 
 export type MusicMomentumTrend = 'rising' | 'steady' | 'falling';
@@ -111,6 +117,15 @@ export interface ResolvedMusicDirectorConfig {
 
 export interface MusicDirectorOptions {
   /**
+   * Finalized, non-live replay documents use the whole match by default.
+   * Causal mode remains available for live playback, diagnostics, and prefix
+   * equivalence tests.
+   */
+  planningMode?: 'auto' | AdaptiveMusicTimelineMode;
+  /** A live clock always forces causal direction, even if its document is final. */
+  followingLive?: boolean;
+  planner?: RetrospectiveMusicPlannerOptions;
+  /**
    * Replay headers currently omit max health. Rules 0.1-0.5 and the viewer use
    * three; a future ruleset can override this without changing replay data.
    */
@@ -145,12 +160,15 @@ export interface MusicDirectorOptions {
 
 export interface AdaptiveMusicTimeline {
   /**
-   * One frame per revealed replay tick. A full replay and any partial prefix
+   * One frame per replay tick. Causal timelines and every partial prefix
    * produce byte-for-byte-equivalent frames for their shared prefix.
    */
   frames: readonly AdaptiveMusicKeyframe[];
   initialFrame: AdaptiveMusicKeyframe;
   config: ResolvedMusicDirectorConfig;
+  mode: AdaptiveMusicTimelineMode;
+  highlights: readonly AdaptiveMusicHighlight[];
+  planningBarTicks: number | null;
 }
 
 const STATE_RANK: Readonly<Record<AdaptiveScoreState, number>> = {
@@ -307,21 +325,45 @@ interface StateMemory {
 }
 
 /**
- * Build the complete plan for the ticks currently present in a replay document.
+ * Build the score plan for the ticks currently present in a replay document.
+ * Partial documents and live followers use the causal director. A finalized,
+ * non-live replay is deliberately replanned against its complete narrative.
  *
  * Schema assumptions:
  * - `ticks` are an ordered, strictly increasing revealed prefix.
  * - `events` and `bots` describe that tick; `state`, projectiles and control
  *   pressure are authoritative post-tick presentation data.
  * - header limits/overtime are public from tick zero.
- * - `result` may already exist in an offline replay, but is ignored until its
- *   own `endTick`; partial live documents may omit it entirely.
+ * - `result` may already exist in an offline replay; the causal pass ignores it
+ *   until its own `endTick`, while the retrospective pass uses finalization as
+ *   permission to rank the complete match.
  *
- * Nothing in a frame reads a later tick, replay length, winner, or replay hash.
+ * Causal frames never read a later tick, replay length, winner, or replay hash.
  */
 export function buildAdaptiveTimeline(
   replay: ReplayModel,
   options: MusicDirectorOptions = {},
+): AdaptiveMusicTimeline {
+  const causal = buildCausalAdaptiveTimeline(replay, options);
+  if (!shouldUseRetrospectivePlan(replay, options)) return causal;
+  const plan = buildRetrospectiveMusicPlan(
+    replay,
+    causal.frames,
+    causal.config,
+    options.planner,
+  );
+  return {
+    ...causal,
+    frames: plan.frames,
+    mode: 'retrospective',
+    highlights: plan.highlights,
+    planningBarTicks: plan.barTicks,
+  };
+}
+
+function buildCausalAdaptiveTimeline(
+  replay: ReplayModel,
+  options: MusicDirectorOptions,
 ): AdaptiveMusicTimeline {
   const presenter = createPresenter(replay);
   const config = resolveConfig({
@@ -490,7 +532,30 @@ export function buildAdaptiveTimeline(
     memory.previousFrame = frame;
   }
 
-  return { frames, initialFrame, config };
+  return {
+    frames,
+    initialFrame,
+    config,
+    mode: 'causal',
+    highlights: [],
+    planningBarTicks: null,
+  };
+}
+
+function shouldUseRetrospectivePlan(
+  replay: ReplayModel,
+  options: MusicDirectorOptions,
+): boolean {
+  if (options.planningMode === 'causal' || options.followingLive === true) {
+    return false;
+  }
+  const finalTick = replay.ticks.at(-1)?.tick;
+  return (
+    replay.partial === false &&
+    replay.result !== null &&
+    finalTick !== undefined &&
+    replay.result.endTick === finalTick
+  );
 }
 
 /**
@@ -1227,9 +1292,10 @@ function calculateApproachEvidence(
         closedTiles / (2 * Math.max(1, deltaTicks)),
       );
       const pairProximity = proximityLevel(replay, distance);
-      closingScores.push(
-        closingRate * (0.45 + pairProximity * 0.55),
-      );
+      // Far-away motion is not an encounter. In particular, a unit walking
+      // vaguely closer on the other side of the arena must not accumulate
+      // pressure before the pair enters the public proximity horizon.
+      closingScores.push(closingRate * pairProximity);
     }
   }
   const distance = Number.isFinite(nearest) ? nearest : null;
