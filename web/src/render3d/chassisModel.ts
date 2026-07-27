@@ -38,17 +38,22 @@ const cache = new Map<string, Promise<THREE.Group | null>>();
  * a model that took one would not be the same bot in a different renderer. It was tried:
  * a trace of accent as emission, which on hull greys this dark is not a trace but the
  * entire colour, and every chassis arrived as a solid lozenge of team colour.
+ *
+ * `paint` is the exception, and projectiles are why: the flat renderer *does* recolour a
+ * bolt, wholesale, keeping only its silhouette. Passing it here says "this is a bolt", and
+ * the rule stays one rule — match the flat renderer, whichever way it goes.
  */
-export function chassisModel(url: string): Promise<THREE.Group | null> {
-  const existing = cache.get(url);
+export function chassisModel(url: string, paint?: THREE.Color): Promise<THREE.Group | null> {
+  const key = paint ? `${url}|${paint.getHexString()}` : url;
+  const existing = cache.get(key);
   if (existing) return existing;
 
-  const built = load(url).catch(() => null);
-  cache.set(url, built);
+  const built = load(url, paint).catch(() => null);
+  cache.set(key, built);
   return built;
 }
 
-async function load(url: string): Promise<THREE.Group | null> {
+async function load(url: string, paint?: THREE.Color): Promise<THREE.Group | null> {
   const response = await fetch(url);
   if (!response.ok) return null;
   const markup = await response.text();
@@ -91,8 +96,24 @@ async function load(url: string): Promise<THREE.Group | null> {
 
   // One material per fill colour rather than per path: a chassis draws the same dozen
   // greys over and over, and there is no reason for twenty-eight copies of each.
+  // A painted model throws its own colours away and becomes one glowing silhouette. This
+  // is not a simplification for the sake of it — it is what the flat renderer does to a
+  // bolt: `source-in` over the sprite, which keeps the alpha and replaces every pixel with
+  // the owner's accent. A projectile is a bolt of that player's energy, not a little
+  // painted object, and it reads as one in both renderers or in neither.
+  const painted =
+    paint &&
+    new THREE.MeshStandardMaterial({
+      color: paint,
+      emissive: paint,
+      emissiveIntensity: 1.8,
+      roughness: 0.35,
+      metalness: 0.1,
+    });
+
   const palette = new Map<string, THREE.MeshStandardMaterial>();
   const materialFor = (fill: string, colour: THREE.Color) => {
+    if (painted) return painted;
     const existing = palette.get(fill);
     if (existing) return existing;
     // A layer lights itself in proportion to how bright it was drawn. Every one of these

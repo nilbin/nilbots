@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
 import { botLook, projectileLook, presentationAccent } from '../render/arenaThemes';
-import { posesAt } from '../render/interpolate';
+import { boltsAt, headingAngle, posesAt } from '../render/interpolate';
 import { chassisModel } from './chassisModel';
 
 /**
@@ -21,6 +21,16 @@ import { chassisModel } from './chassisModel';
 /** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
 const BOT_HEIGHT = 0.26;
 const PROJECTILE_HOVER = 0.2;
+
+/**
+ * Share of the remaining turn a bolt takes each frame.
+ *
+ * Frame-rate dependent, deliberately. The honest form is `1 - exp(-dt/τ)`, and it is not
+ * worth it: this is a cosmetic bank through a corner lasting a few frames, the renderer
+ * runs on `requestAnimationFrame` in a narrow band of refresh rates, and a bolt that banks
+ * marginally faster on a 120 Hz screen is not something anyone can see.
+ */
+const BOLT_TURN_RATE = 0.22;
 
 export interface ArenaActors {
   group: THREE.Group;
@@ -131,41 +141,109 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     return { chassis };
   });
 
-  // Projectiles are pooled: a replay can fire many, but few are in the air at once, and
-  // creating a mesh per shot would allocate during playback.
-  const pool: THREE.Mesh[] = [];
-  const projectileMaterial = (slot: number) => {
-    const participant = participants[slot];
+  // A bolt is a rig, not a sprite: a glowing silhouette of the owner's projectile look, a
+  // tracer stretched out behind it, and a pool of its own light on the floor under it.
+  //
+  // Pooled **per owner** rather than globally. Each slot fires a different look in a
+  // different colour, so one shared pool would mean swapping a mesh's geometry *and*
+  // material every frame a bolt changed hands — and there are only ever a handful in the
+  // air, so the saving from sharing is smaller than the cost of the churn.
+  const tracerGeometry = new THREE.PlaneGeometry(1, 0.34);
+  tracerGeometry.rotateX(-Math.PI / 2);
+  tracerGeometry.translate(-0.5, 0, 0);
+  const glowDisc = new THREE.PlaneGeometry(1.5, 1.5);
+  glowDisc.rotateX(-Math.PI / 2);
+  disposables.push(tracerGeometry, glowDisc);
+
+  const arsenals = participants.map((participant, slot) => {
     const look = projectileLook(participant?.projectileLookId);
-    const accent = presentationAccent(botLook(participant?.lookId, slot), participant?.accent ?? '#38bdf8');
-    return new THREE.MeshStandardMaterial({
-      map: spriteTexture(look.image),
-      color: 0xffffff,
+    const accent = new THREE.Color(
+      presentationAccent(botLook(participant?.lookId, slot), participant?.accent ?? '#38bdf8'),
+    );
+    const tracerMaterial = new THREE.MeshBasicMaterial({
+      map: tracerTexture(accent),
       transparent: true,
-      alphaTest: 0.2,
-      emissive: new THREE.Color(accent),
-      // Bright: a bolt is a light source in every other renderer here, and dimming it to
-      // match a lit surface would lose the one thing that makes shots readable at a glance.
-      emissiveIntensity: 1.6,
-      roughness: 0.4,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
     });
-  };
-  const materials = participants.map((_, slot) => projectileMaterial(slot));
-  for (const material of materials) disposables.push(material);
+    const wash = new THREE.MeshBasicMaterial({
+      map: radialGlow(accent),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.45,
+    });
+    // Until the silhouette has been parsed, a bolt is a bright speck. It is in flight for
+    // a fraction of a second and the model is usually cached before the first shot, so
+    // this is a seam nobody sees rather than a fallback anybody relies on.
+    const spark = new THREE.OctahedronGeometry(0.16);
+    const sparkMaterial = new THREE.MeshBasicMaterial({ color: accent });
+    disposables.push(tracerMaterial, wash, spark, sparkMaterial);
 
-  const projectileGeometry = new THREE.PlaneGeometry(0.6, 0.6);
-  projectileGeometry.rotateX(-Math.PI / 2);
-  disposables.push(projectileGeometry);
+    const arsenal = {
+      look,
+      accent,
+      rigs: [] as { group: THREE.Group; head: THREE.Group }[],
+      model: null as THREE.Group | null,
+      tracerMaterial,
+      wash,
+      spark,
+      sparkMaterial,
+    };
 
-  const borrow = (index: number): THREE.Mesh => {
-    while (pool.length <= index) {
-      const mesh = new THREE.Mesh(projectileGeometry, materials[0]);
-      mesh.visible = false;
-      group.add(mesh);
-      pool.push(mesh);
+    void chassisModel(look.imageUrl, accent).then((model) => {
+      if (!live || !model) return;
+      arsenal.model = model;
+      // Rigs already built are retrofitted; ones built later pick it up on creation.
+      for (const rig of arsenal.rigs) dressHead(arsenal, rig.head);
+    });
+    return arsenal;
+  });
+
+  type Arsenal = (typeof arsenals)[number];
+
+  // Facing carried between frames, keyed by the bolt's replay identity rather than its pool
+  // slot — a pool index is reassigned the moment another bolt despawns, which would hand one
+  // bolt's turn-in-progress to an unrelated one.
+  const heading = new Map<string, number>();
+  let lastTime = Number.NaN;
+
+  function dressHead(arsenal: Arsenal, head: THREE.Group): void {
+    head.clear();
+    const model = arsenal.model;
+    if (model) {
+      const body = model.clone();
+      body.scale.setScalar(arsenal.look.scale * 0.72);
+      head.add(body);
+    } else {
+      head.add(new THREE.Mesh(arsenal.spark, arsenal.sparkMaterial));
     }
-    return pool[index];
-  };
+  }
+
+  function borrow(slot: number, index: number): { group: THREE.Group; head: THREE.Group } {
+    const arsenal = arsenals[slot] ?? arsenals[0];
+    while (arsenal.rigs.length <= index) {
+      const rig = new THREE.Group();
+      const head = new THREE.Group();
+      head.position.y = PROJECTILE_HOVER;
+      dressHead(arsenal, head);
+
+      // The tracer trails *behind* the head — geometry is pre-translated so the quad hangs
+      // off the origin's −x, which is backwards along the heading once the rig turns.
+      const tracer = new THREE.Mesh(tracerGeometry, arsenal.tracerMaterial);
+      tracer.position.set(0, PROJECTILE_HOVER - 0.02, 0);
+      tracer.scale.x = 1.35;
+
+      const wash = new THREE.Mesh(glowDisc, arsenal.wash);
+      wash.position.y = 0.016;
+
+      rig.add(head, tracer, wash);
+      rig.visible = false;
+      group.add(rig);
+      arsenal.rigs.push({ group: rig, head });
+    }
+    return arsenal.rigs[index];
+  }
 
   const update = (time: number) => {
     for (const pose of posesAt(replay, time)) {
@@ -179,16 +257,53 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       bot.chassis.rotation.y = -pose.angle;
     }
 
-    const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
-    const projectiles = replay.ticks[tick]?.projectiles ?? [];
-    projectiles.forEach((projectile, index) => {
-      const mesh = borrow(index);
-      mesh.material = materials[projectile.ownerSlot] ?? materials[0];
-      mesh.visible = true;
-      mesh.position.set(projectile.x + 0.5, PROJECTILE_HOVER, projectile.y + 0.5);
+    // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
+    // authoritative substeps, so a bolt flies rather than teleporting between tiles the way
+    // reading `ticks[tick].projectiles` straight made it.
+    //
+    // A scrub is not motion. Dragging the playhead across half a match would otherwise have
+    // every bolt easing through the turns it "made" on the way, so a jump snaps instead.
+    const jumped = Math.abs(time - lastTime) > 1.5;
+    lastTime = time;
+
+    const flying = arsenals.map(() => 0);
+    const alive = new Set<string>();
+    for (const bolt of boltsAt(replay, time)) {
+      const slot = arsenals[bolt.ownerSlot] ? bolt.ownerSlot : 0;
+      const rig = borrow(slot, flying[slot]++);
+      rig.group.visible = true;
+      rig.group.position.set(bolt.x + 0.5, 0, bolt.y + 0.5);
+
+      // Bolts turn, they do not pivot. The engine's headings are eight discrete octants, so
+      // a programmed arc changes facing by 45° between one substep and the next — correct,
+      // and it reads as the bolt blinking into a new orientation. Easing towards the
+      // authoritative heading lets it bank through the corner instead. Position is never
+      // eased, only facing: where a bolt *is* stays exactly what the replay recorded.
+      const key = `${slot}:${bolt.id}`;
+      alive.add(key);
+      const target = -headingAngle[bolt.heading];
+      const memory = heading.get(key);
+      const turned =
+        memory === undefined || jumped
+          ? target
+          : memory + shortestTurn(memory, target) * BOLT_TURN_RATE;
+      heading.set(key, turned);
+      rig.group.rotation.y = turned;
+
+      // And a bolt in flight is not on rails. A small bob and roll, out of phase per bolt so
+      // two in the air never move as one, which is what makes a pair read as two objects.
+      const phase = bolt.id * 2.399;
+      rig.head.position.y = PROJECTILE_HOVER + Math.sin(time * 8.5 + phase) * 0.032;
+      rig.head.rotation.x = Math.sin(time * 6.1 + phase) * 0.22;
+      rig.head.rotation.z = Math.sin(time * 4.7 + phase * 1.7) * 0.12;
+    }
+    // Forget bolts that have landed, or the map grows for the length of the replay.
+    for (const key of heading.keys()) if (!alive.has(key)) heading.delete(key);
+    // Everything not claimed this frame goes back in the pool rather than being destroyed.
+    arsenals.forEach((arsenal, slot) => {
+      for (let index = flying[slot]; index < arsenal.rigs.length; index++)
+        arsenal.rigs[index].group.visible = false;
     });
-    for (let index = projectiles.length; index < pool.length; index++)
-      pool[index].visible = false;
   };
 
   return {
@@ -202,6 +317,14 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // them would leave the next match holding disposed buffers.
     },
   };
+}
+
+/** The signed angle to turn through, taking the short way round. */
+function shortestTurn(from: number, to: number): number {
+  let delta = to - from;
+  while (delta > Math.PI) delta -= 2 * Math.PI;
+  while (delta < -Math.PI) delta += 2 * Math.PI;
+  return delta;
 }
 
 /**
@@ -232,11 +355,53 @@ function radialGlow(accent: THREE.Color): THREE.Texture | null {
   return texture;
 }
 
+/**
+ * The streak a bolt drags behind it: bright at the head, gone by the tail.
+ *
+ * The flat renderer draws this with two additive strokes and a shadow blur. Here it is one
+ * quad with a gradient, which is the same picture for one draw call — and unlike the
+ * strokes it does not have to be rebuilt per frame, which is the thing currently making
+ * fullscreen playback stutter in the other renderer.
+ */
+function tracerTexture(accent: THREE.Color): THREE.Texture | null {
+  if (typeof document === 'undefined') return null;
+  const width = 128;
+  const height = 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  const rgb = `${Math.round(accent.r * 255)}, ${Math.round(accent.g * 255)}, ${Math.round(accent.b * 255)}`;
+  // Left edge is the tail, right edge the head, because the quad is laid out along −x and
+  // read back to front.
+  const along = context.createLinearGradient(0, 0, width, 0);
+  along.addColorStop(0, `rgba(${rgb}, 0)`);
+  along.addColorStop(0.65, `rgba(${rgb}, 0.32)`);
+  along.addColorStop(1, `rgba(${rgb}, 0.85)`);
+  context.fillStyle = along;
+  context.fillRect(0, 0, width, height);
+
+  // Soften the long edges so the streak is a beam rather than a ribbon with corners.
+  const across = context.createLinearGradient(0, 0, 0, height);
+  across.addColorStop(0, 'rgba(0, 0, 0, 1)');
+  across.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
+  across.addColorStop(1, 'rgba(0, 0, 0, 1)');
+  context.globalCompositeOperation = 'destination-out';
+  context.fillStyle = across;
+  context.fillRect(0, 0, width, height);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 /** Rasterised sprite size. Generous: these are read close-up under a perspective camera. */
 const SPRITE_PIXELS = 256;
 
 /**
- * Rasterise a chassis or bolt sprite into a texture.
+ * Rasterise a chassis sprite into a texture, for the placeholder lid.
  *
  * **Via a canvas, not straight from the image.** Every sprite here is an SVG carrying only
  * a `viewBox` and no intrinsic width or height, which makes it an unreliable WebGL texture

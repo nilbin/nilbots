@@ -1,4 +1,4 @@
-import type { Direction, ProjectileHeading, ReplayDocument } from '../types';
+import type { ProjectileHeading, ReplayDocument } from '../types';
 import {
   arenaTheme,
   botLook,
@@ -11,17 +11,10 @@ import {
   sampleCanvasLuminance,
 } from './adaptiveAccent';
 import { replayMaxHealth } from '../replayMetadata';
-import { posesAt, type BotPose } from './interpolate';
+import { boltsAt, headingAngle, headingStep, posesAt, type BotPose } from './interpolate';
 import { wallAtlasDestination } from './wallAtlasGeometry';
 import { drawFogMask } from './fogMask';
 import { drawLightSpill, type LightKind, type LightSource } from './lightSpill';
-
-const directionStep: Record<Direction, [number, number]> = {
-  North: [0, -1],
-  East: [1, 0],
-  South: [0, 1],
-  West: [-1, 0],
-};
 
 const wallNeighbourStep: readonly [number, number][] = [
   [0, -1],
@@ -33,29 +26,6 @@ const wallNeighbourStep: readonly [number, number][] = [
   [-1, 0],
   [-1, -1],
 ];
-
-const directionAngle: Record<Direction, number> = {
-  North: -Math.PI / 2,
-  East: 0,
-  South: Math.PI / 2,
-  West: Math.PI,
-};
-
-const projectileStep: Record<ProjectileHeading, [number, number]> = {
-  ...directionStep,
-  NorthEast: [1, -1],
-  SouthEast: [1, 1],
-  SouthWest: [-1, 1],
-  NorthWest: [-1, -1],
-};
-
-const projectileAngle: Record<ProjectileHeading, number> = {
-  ...directionAngle,
-  NorthEast: -Math.PI / 4,
-  SouthEast: Math.PI / 4,
-  SouthWest: (3 * Math.PI) / 4,
-  NorthWest: (-3 * Math.PI) / 4,
-};
 
 const tintedProjectileSprites = new Map<string, HTMLCanvasElement>();
 const maxTintedProjectileSprites = 32;
@@ -567,38 +537,24 @@ export function drawArena(
   }
 
   function drawProjectiles(): void {
-    // Replay traversals are authoritative ordered substeps. Interpolating across the
-    // path makes speed-two travel read A→B in the first half of the visual tick and
-    // B→C in the second; a first-substep hit naturally ends at B.
-    const traversals = currentTick.projectileTraversals ?? [];
-    const bolts = currentTick.projectiles ?? [];
-    if (bolts.length === 0 && traversals.length === 0) return;
+    // Where a bolt *is* comes from `boltsAt`, shared with the 2.5D renderer; everything
+    // below is only how this one paints it.
+    const poses = boltsAt(replay, time);
+    if (poses.length === 0) return;
     // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
     // (an unseen bolt is precisely the threat it doesn't know about).
     const seen =
       fogSource !== undefined
         ? new Set(fogSource.visibleTiles.map(([x, y]) => `${x},${y}`))
         : null;
-    const movingIds = new Set(traversals.map((move) => move.id));
 
     // Omniscient spectators see the locked future arc. A selected defender
     // sees only physically manifested segments; the owner authored the plan.
-    const programmed = new Map<number, { ownerSlot: number; path: number[][] }>();
-    for (const move of traversals)
-      if (move.programmedPath)
-        programmed.set(move.id, {
-          ownerSlot: move.ownerSlot,
-          path: move.programmedPath,
-        });
-    for (const bolt of bolts)
-      if (bolt.programmedPath)
-        programmed.set(bolt.id ?? 0, {
-          ownerSlot: bolt.ownerSlot,
-          path: bolt.programmedPath,
-        });
-    for (const plan of programmed.values()) {
+    for (const plan of poses) {
+      if (!plan.programmedPath) continue;
       if (fogSource !== undefined && selectedSlot !== plan.ownerSlot) continue;
-      const sample = plan.path[Math.floor(plan.path.length / 2)];
+      const path = plan.programmedPath;
+      const sample = path[Math.floor(path.length / 2)];
       const accent = sample
         ? accentAt(
             accentFor(plan.ownerSlot),
@@ -610,7 +566,7 @@ export function drawArena(
       ctx.lineWidth = Math.max(1, tile * 0.045);
       ctx.setLineDash([Math.max(2, tile * 0.12), Math.max(2, tile * 0.1)]);
       ctx.beginPath();
-      plan.path.forEach(([x, y], index) => {
+      path.forEach(([x, y], index) => {
         const cx = px(x) + tile / 2;
         const cy = py(y) + tile / 2;
         if (index === 0) ctx.moveTo(cx, cy);
@@ -620,33 +576,15 @@ export function drawArena(
       ctx.setLineDash([]);
     }
 
-    for (const move of traversals) {
-      if (move.path.length === 0) continue;
-      const points = [[move.fromX, move.fromY], ...move.path];
-      const progress = fraction * move.path.length;
-      const segment = Math.min(Math.floor(progress), move.path.length - 1);
-      const local = Math.min(1, progress - segment);
-      const [fromX, fromY] = points[segment];
-      const [toX, toY] = points[segment + 1];
+    for (const pose of poses)
       drawBolt(
-        fromX + (toX - fromX) * local,
-        fromY + (toY - fromY) * local,
-        headingBetween(fromX, fromY, toX, toY),
-        move.ownerSlot,
-        false,
-        1,
+        pose.x,
+        pose.y,
+        pose.heading,
+        pose.ownerSlot,
+        pose.imminent,
+        pose.tilesPerAdvance,
       );
-    }
-    for (const bolt of bolts)
-      if (!movingIds.has(bolt.id ?? 0))
-        drawBolt(
-          bolt.x,
-          bolt.y,
-          bolt.heading ?? bolt.direction,
-          bolt.ownerSlot,
-          bolt.ticksUntilAdvance === 1,
-          bolt.tilesPerAdvance ?? 1,
-        );
 
     function drawBolt(
       x: number,
@@ -660,10 +598,10 @@ export function drawArena(
       const cx = px(x) + tile / 2;
       const cy = py(y) + tile / 2;
       const accent = accentAt(accentFor(ownerSlot), cx, cy);
-      const angle = projectileAngle[direction];
+      const angle = headingAngle[direction];
       const pulse = 0.75 + 0.25 * Math.sin(fraction * Math.PI);
       if (imminent) {
-        const [dx, dy] = projectileStep[direction];
+        const [dx, dy] = headingStep[direction];
         for (let step = 1; step <= tilesPerAdvance; step++) {
           ctx.fillStyle = hexWithAlpha(accent, step === 1 ? 0.18 : 0.1);
           ctx.fillRect(px(x + dx * step), py(y + dy * step), tile, tile);
@@ -692,24 +630,6 @@ export function drawArena(
       ctx.stroke();
       ctx.restore();
       drawProjectileHead(cx, cy, angle, ownerSlot, accent, 0.95 * pulse);
-    }
-
-    function headingBetween(
-      fromX: number,
-      fromY: number,
-      toX: number,
-      toY: number,
-    ): ProjectileHeading {
-      const dx = Math.sign(toX - fromX);
-      const dy = Math.sign(toY - fromY);
-      if (dx === 0 && dy < 0) return 'North';
-      if (dx > 0 && dy < 0) return 'NorthEast';
-      if (dx > 0 && dy === 0) return 'East';
-      if (dx > 0 && dy > 0) return 'SouthEast';
-      if (dx === 0 && dy > 0) return 'South';
-      if (dx < 0 && dy > 0) return 'SouthWest';
-      if (dx < 0 && dy === 0) return 'West';
-      return 'NorthWest';
     }
   }
 

@@ -2,27 +2,33 @@ import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
 import { arenaTheme, type ArenaTheme } from '../render/arenaThemes';
 import { WallLayout } from '../render/wallTopology';
+import { wallShapes } from './wallSolids';
 
 /**
  * The arena as actual geometry.
  *
  * The Canvas2D renderer draws a plan view and fakes depth with offsets and gradients; this
- * one builds the room and points a camera at it. Walls are boxes with height, the floor is
- * a plane, and the shadows are cast rather than painted — which is the whole reason it
- * exists, because a painted shadow cannot fall across another wall or shorten as a light
- * moves.
+ * one builds the room and points a camera at it. Walls are chamfered solids traced from the
+ * tile grid, the floor is a plane, and the shadows are cast rather than painted — which is
+ * the whole reason it exists, because a painted shadow cannot fall across another wall or
+ * shorten as a light moves.
  *
  * **It uses the textures that are already shipped**, which is what makes it affordable.
  * Wall tops take their sprite from the same 16-column topology atlas the 2D renderer
  * indexes, so every baked rivet and panel edge is preserved; the sides take the 1024²
  * tiling albedo that until now only filled a flat silhouette. Nothing new had to be drawn.
+ *
+ * Those same albedos are also used as **bump maps**, which is the cheapest honest trick
+ * here: the art already contains its own relief, drawn as light and shade by whoever baked
+ * it, so reading its luminance as height makes a plate edge catch this scene's key light
+ * rather than carrying a highlight from a light that was never in this room.
  */
 
 /** Wall height, in tiles. Tall enough to read as a room, low enough to see over. */
 const WALL_HEIGHT = 0.62;
 
-/** How far the floor plane extends past the map, so the horizon is not a cliff edge. */
-const FLOOR_MARGIN = 6;
+/** The chamfer along a wall's top edge, in tiles. */
+const WALL_CHAMFER = 0.055;
 
 export interface ArenaScene {
   scene: THREE.Scene;
@@ -102,16 +108,22 @@ function lights(
   return [key, key.target, ambient, fill];
 }
 
+/**
+ * The arena floor, and **only** the arena floor.
+ *
+ * It used to overhang the map by six tiles so the horizon was not a cliff edge. That is a
+ * real problem and this is not the fix: the overhang read as arena — same texture, same
+ * lighting — so the room appeared to have no walls at its edge, just floor continuing into
+ * the dark past the boundary. The map is the world here; outside it is background, and the
+ * fog reaches the edge before the eye does.
+ */
 function floor(
   theme: ArenaTheme,
   mapWidth: number,
   mapHeight: number,
   disposables: { dispose: () => void }[],
 ): THREE.Mesh {
-  const geometry = new THREE.PlaneGeometry(
-    mapWidth + FLOOR_MARGIN * 2,
-    mapHeight + FLOOR_MARGIN * 2,
-  );
+  const geometry = new THREE.PlaneGeometry(mapWidth, mapHeight);
   geometry.rotateX(-Math.PI / 2);
   geometry.translate(mapWidth / 2, 0, mapHeight / 2);
 
@@ -120,22 +132,15 @@ function floor(
   // never slicing it per tile. Repeating it here was the single biggest reason this did
   // not look like the flat viewer: same texture, completely different texel density and no
   // continuity from one tile to the next.
-  //
-  // The plane overhangs the map, so the repeat is the overhang ratio and the offset pulls
-  // the arena's copy back into place.
-  const span = mapWidth + FLOOR_MARGIN * 2;
   const texture = fromImage(theme.floorTexture);
-  if (texture) {
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(span / mapWidth, (mapHeight + FLOOR_MARGIN * 2) / mapHeight);
-    texture.offset.set(
-      -FLOOR_MARGIN / mapWidth,
-      -FLOOR_MARGIN / mapHeight,
-    );
-  }
   const material = new THREE.MeshStandardMaterial({
     map: texture,
+    // The albedo doubles as relief. Every one of these textures is a photographed or baked
+    // metal surface whose plates, rivets and grime are already *drawn* as light and shade —
+    // so reading its luminance as height gives the real thing back a shape that responds to
+    // the key light, instead of a photograph of shading lying flat under a different one.
+    bumpMap: texture,
+    bumpScale: 1.6,
     color: tintMultiplier(theme.palette.floorTint),
     roughness: 0.86,
     metalness: 0.12,
@@ -149,12 +154,15 @@ function floor(
 }
 
 /**
- * Every wall, merged into one geometry per family.
+ * Every wall, as one extruded solid per family.
  *
- * Merged rather than instanced because the top faces need per-tile UVs into the topology
- * atlas, and instancing that means patching a shader with a per-instance attribute. A few
- * hundred boxes is nothing as geometry, so baking the UVs into one buffer costs a loop and
- * saves a custom material — and it still ends up as one draw call per family.
+ * The tiles are traced into outlines by `wallShapes` rather than stamped as a box each, so
+ * a run of wall is a single chamfered block instead of a row of cubes with hidden faces
+ * pressed together. One extrusion per family is also one draw call per family.
+ *
+ * The topology caps stay per tile and stay merged. They need per-tile UVs into the 16-column
+ * atlas, and instancing that means patching a shader with a per-instance attribute — so
+ * baking the UVs into one buffer costs a loop and saves a custom material.
  */
 function walls(
   replay: ReplayDocument,
@@ -167,19 +175,20 @@ function walls(
     validFamily(replay.header.presentation?.interiorWall, theme, theme.walls.defaults.interior),
   );
 
-  const byFamily = new Map<string, THREE.BufferGeometry[]>();
+  const byFamily = new Map<string, { x: number; y: number }[]>();
   const capsByFamily = new Map<string, THREE.BufferGeometry[]>();
   for (const wall of layout.walls()) {
-    const box = new THREE.BoxGeometry(1, WALL_HEIGHT, 1);
-    box.translate(wall.x + 0.5, WALL_HEIGHT / 2, wall.y + 0.5);
-    projectWorldUvs(box, replay.header.mapWidth, replay.header.mapHeight);
-    (byFamily.get(wall.family) ?? byFamily.set(wall.family, []).get(wall.family)!).push(box);
+    (byFamily.get(wall.family) ?? byFamily.set(wall.family, []).get(wall.family)!)
+      .push({ x: wall.x, y: wall.y });
 
-    // The overlay quad. Deliberately wider than its tile: the atlas art overhangs its
-    // logical cell by the manifest's gutter, which is what lets a wall's edge trim sit over
-    // its neighbour — the same reason the 2D renderer draws it oversized.
+    // The overlay quad. Wider than its tile by the manifest's gutter, which is what lets a
+    // wall's edge trim sit over its neighbour — the same reason the 2D renderer draws it
+    // oversized — and then pulled back in by the chamfer, because the surface it is lying on
+    // is no longer the full tile. Without that second term the cap keeps its square corners
+    // out past the rounded ones beneath it, and a wall reads as a block with a lid resting
+    // askew on top of it.
     const gutter = theme.walls.atlas.gutterPixels / theme.walls.atlas.contentPixels;
-    const span = 1 + gutter * 2;
+    const span = 1 + gutter * 2 - WALL_CHAMFER * 2;
     const cap = new THREE.PlaneGeometry(span, span);
     cap.rotateX(-Math.PI / 2);
     applyAtlasUvs(cap, wall.mask, theme.walls.atlas.columns);
@@ -189,17 +198,38 @@ function walls(
   }
 
   const meshes: THREE.Mesh[] = [];
-  for (const [familyId, parts] of byFamily) {
+  for (const [familyId, tiles] of byFamily) {
     const family = theme.walls.families.get(familyId);
-    const geometry = mergeGeometries(parts);
-    for (const part of parts) part.dispose();
+    const shapes = wallShapes(tiles);
+    if (shapes.length === 0) continue;
 
+    // Extruded from the traced outline rather than assembled from cubes, with a chamfer
+    // along the top edge. `curveSegments` is what the corner arcs are drawn with; three is
+    // enough to round a corner at this scale and cheap enough to spend on every wall.
+    const geometry = new THREE.ExtrudeGeometry(shapes, {
+      depth: WALL_HEIGHT - WALL_CHAMFER,
+      bevelEnabled: true,
+      bevelThickness: WALL_CHAMFER,
+      bevelSize: WALL_CHAMFER,
+      bevelSegments: 2,
+      curveSegments: 3,
+    });
+    // Stand it up: the shape's Y became −Z when it was traced, so this lands each wall on
+    // the tile it came from, with the extrusion axis vertical and the top at WALL_HEIGHT.
+    geometry.rotateX(-Math.PI / 2);
+    projectWorldUvs(geometry, replay.header.mapWidth, replay.header.mapHeight);
+
+    const texture = sprite(family?.materialTexture ?? null, THREE.RepeatWrapping);
     // Albedo on every face, including the top. The topology atlas is *not* a standalone
     // texture — the 2D renderer fills with the material and then draws the atlas over it as
     // a transparent overlay — so using it alone here produced dark outlines floating on
     // nothing. It goes on as a cap below, in the same order.
     const body = new THREE.MeshStandardMaterial({
-      map: sprite(family?.materialTexture ?? null, THREE.RepeatWrapping),
+      map: texture,
+      // Same trick as the floor: the wall material's own plates and seams become relief,
+      // so the surface has form under the light instead of a picture of form.
+      bumpMap: texture,
+      bumpScale: 2.2,
       color: tintMultiplier(theme.palette.wallTint),
       roughness: 0.88,
       metalness: 0.2,
@@ -242,10 +272,14 @@ function walls(
  * that: horizontal faces take the material's arena-wide coordinates, vertical faces take
  * the horizontal axis they run along plus height, at the same texels per world unit.
  */
-function projectWorldUvs(box: THREE.BoxGeometry, mapWidth: number, mapHeight: number): void {
-  const position = box.attributes.position as THREE.BufferAttribute;
-  const normal = box.attributes.normal as THREE.BufferAttribute;
-  const uv = box.attributes.uv as THREE.BufferAttribute;
+function projectWorldUvs(
+  geometry: THREE.BufferGeometry,
+  mapWidth: number,
+  mapHeight: number,
+): void {
+  const position = geometry.attributes.position as THREE.BufferAttribute;
+  const normal = geometry.attributes.normal as THREE.BufferAttribute;
+  const uv = geometry.attributes.uv as THREE.BufferAttribute;
 
   for (let vertex = 0; vertex < position.count; vertex++) {
     const x = position.getX(vertex);
