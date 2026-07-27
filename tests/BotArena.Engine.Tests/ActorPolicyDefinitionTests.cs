@@ -15,9 +15,20 @@ public sealed class ActorPolicyDefinitionTests
             ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion,
             perception.Kind);
         Assert.Equal(
+            ActorTeamPerceptionDefinition.SameTickDecisionSharingKind.None,
+            perception.SameTickDecisionSharing);
+        Assert.Equal(
             ActorCollisionDefinition.AlliedProjectileContactKind
                 .BlockWithoutDamage,
             collisions.AlliedProjectileContact);
+        Assert.Equal(
+            ActorCollisionDefinition.MovementDestinationProjectileResultKind
+                .NonPassingContactBlocksAtOriginConsumesProjectileByIdAndQueuesDamage,
+            collisions.MovementDestinationProjectileResult);
+        Assert.Equal(
+            ActorCollisionDefinition.AlliedMovementDestinationOverrideKind
+                .PassThroughDoesNotBlockOrConsumeOtherwiseUseContactPolicy,
+            collisions.AlliedMovementDestinationOverride);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new ActorTeamPerceptionDefinition(
                 (ActorTeamPerceptionDefinition.PerceptionKind)99));
@@ -62,6 +73,25 @@ public sealed class ActorPolicyDefinitionTests
         Assert.Equal(
             ActorTickResolutionPhase.ResolveMatchCompletion,
             definition.Phases[^1]);
+        Assert.Equal(
+            ActorTickResolutionDefinition.MovementActionResolutionKind
+                .SubmittedAbsoluteCardinalOneTileFacingUnchanged,
+            definition.MovementActionResolution);
+        Assert.Equal(
+            ActorTickResolutionDefinition.RotationActionResolutionKind
+                .SetFacingToSubmittedAbsoluteCardinalPositionUnchanged,
+            definition.RotationActionResolution);
+        Assert.Equal(
+            ActorTickResolutionDefinition.ActionFaultCountingKind
+                .OnlyFaultedOutcomeIncrementsParticipantCounter,
+            definition.ActionFaultCounting);
+        Assert.Equal(
+            ActorTickResolutionDefinition.MatchCompletionPrecedenceKind
+                .FaultEligibilityShortCircuitThenModeEarlyThenEligibleTimeout,
+            definition.MatchCompletionPrecedence);
+        Assert.Contains(
+            ActorTickResolutionPhase.ResolveFaultEligibilityCompletion,
+            definition.Phases);
         Assert.Throws<ArgumentException>(() =>
             new ActorTickResolutionDefinition(
                 observationsUsePreTickState: true,

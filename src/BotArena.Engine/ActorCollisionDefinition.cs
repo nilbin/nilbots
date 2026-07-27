@@ -81,6 +81,14 @@ public sealed record ActorCollisionDefinition
     public ActorProjectileContactTimingKind ActorProjectileContactTiming =>
         ActorProjectileContactTimingKind
             .MovementDestinationContactsThenExistingTraversalThenLaunchPath;
+    public MovementDestinationProjectileResultKind
+        MovementDestinationProjectileResult =>
+            MovementDestinationProjectileResultKind
+                .NonPassingContactBlocksAtOriginConsumesProjectileByIdAndQueuesDamage;
+    public AlliedMovementDestinationOverrideKind
+        AlliedMovementDestinationOverride =>
+            AlliedMovementDestinationOverrideKind
+                .PassThroughDoesNotBlockOrConsumeOtherwiseUseContactPolicy;
 
     public enum AlliedProjectileContactKind
     {
@@ -117,5 +125,29 @@ public sealed record ActorCollisionDefinition
         /// last. All resulting damage enters the shared joint batch.
         /// </summary>
         MovementDestinationContactsThenExistingTraversalThenLaunchPath = 0,
+    }
+
+    public enum MovementDestinationProjectileResultKind
+    {
+        /// <summary>
+        /// Resolve every projectile already on an attempted destination in
+        /// projectile-ID order. A hostile or non-passing allied contact blocks
+        /// the move, so the actor remains at its pre-move position, consumes
+        /// that projectile, and queues damage when the allied-contact policy
+        /// permits it. All queued damage joins the immutable joint batch.
+        /// </summary>
+        NonPassingContactBlocksAtOriginConsumesProjectileByIdAndQueuesDamage = 0,
+    }
+
+    public enum AlliedMovementDestinationOverrideKind
+    {
+        /// <summary>
+        /// Allied PassThrough overrides ProjectilesBlockMovement: the actor
+        /// is not blocked by that projectile, which remains and queues no
+        /// contact. The move succeeds only if no other contact or claim blocks
+        /// it. BlockWithoutDamage and DamageAndBlock use the normal
+        /// blocking/consumption rule; only DamageAndBlock queues damage.
+        /// </summary>
+        PassThroughDoesNotBlockOrConsumeOtherwiseUseContactPolicy = 0,
     }
 }

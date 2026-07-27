@@ -24,6 +24,10 @@ public sealed class FrontlineCaptureDefinitionTests
                 .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers,
             enabled.TimeoutPolicy);
         Assert.Equal(
+            FrontlineCaptureDefinition.TerritorialProgressFormulaKind
+                .PerTeamAdvanceDeltaTimesIndexOffsetTimesThresholdPlusSignedClaim,
+            enabled.TerritorialProgressFormula);
+        Assert.Equal(
             FrontlineCaptureDefinition.CompletionPolicyKind
                 .BaseBreachBeforeMaxTicks,
             enabled.CompletionPolicy);
@@ -33,7 +37,7 @@ public sealed class FrontlineCaptureDefinitionTests
             enabled.InitialPosition);
         Assert.Equal(
             FrontlineCaptureDefinition.CaptureArithmeticKind
-                .CheckedAddThresholdCompletesOnePushAndDiscardsOvershoot,
+                .CheckedInt64AddCompareThresholdCompletesOnePushAndDiscardsOvershoot,
             enabled.CaptureArithmetic);
         Assert.Equal(
             FrontlineCaptureDefinition.DecayClockKind
@@ -43,6 +47,14 @@ public sealed class FrontlineCaptureDefinitionTests
             FrontlineCaptureDefinition.DisabledDecayKind
                 .ZeroPairPreservesClaimAndKeepsClockZero,
             disabled.DisabledDecay);
+        Assert.Equal(
+            FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause,
+            enabled.RedeployPolicy);
+        Assert.Equal(
+            FrontlineCaptureDefinition.RedeployTickArithmeticKind
+                .CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32,
+            enabled.RedeployTickArithmetic);
         Assert.Equal(0, disabled.DecayAmount);
         Assert.Equal(0, disabled.DecayIntervalTicks);
     }

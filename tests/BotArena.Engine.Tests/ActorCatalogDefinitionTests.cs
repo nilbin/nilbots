@@ -144,11 +144,48 @@ public class ActorCatalogDefinitionTests
             ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages,
             limits.RuntimeFaults.AccumulationScope);
+        Assert.Equal(1, limits.RuntimeFaults.DisqualificationFaultCount);
+        Assert.Equal(
+            2_147_483_648L,
+            new ActorRuntimeFaultDefinition(int.MaxValue)
+                .DisqualificationFaultCount);
+        Assert.Equal(
+            ActorRuntimeFaultDefinition.FaultCounterArithmeticKind
+                .SignedInt64SaturatingAtAllowedPlusOne,
+            limits.RuntimeFaults.FaultCounterArithmetic);
+        Assert.Equal(
+            ActorRuntimeFaultDefinition.RuntimeStageRecoveryKind
+                .CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick,
+            limits.RuntimeFaults.RuntimeStageRecovery);
+        Assert.Equal(
+            ActorRuntimeFaultDefinition.FaultBatchEventOrderKind
+                .ParticipantThenActorIdentityThenCreateStartTickValidationStage,
+            limits.RuntimeFaults.FaultBatchEventOrder);
+        Assert.Equal(
+            ActorRuntimeFaultDefinition.PendingWorkDispositionKind
+                .CancelAllOwnedClocksBundlesAndTransitionsReleaseEveryClaim,
+            limits.RuntimeFaults.PendingWorkDisposition);
+        Assert.Equal(
+            ActorRuntimeFaultDefinition.OwnedProjectileDispositionKind
+                .RemoveAfterJointDamageByProjectileIdWithoutContactOrScore,
+            limits.RuntimeFaults.OwnedProjectileDisposition);
         Assert.Equal(ActorMovementLayer.Ground, movement.MovementLayer);
         Assert.Equal(ActorVisionShape.FacingQuadrant, vision.Shape);
+        Assert.Equal(
+            ActorVisionProfileDefinition.HearingDistanceBandModelKind
+                .ChebyshevInclusiveOrderedUpperBoundsThenFinalRadiusBand,
+            vision.HearingDistanceBandModel);
         Assert.Equal(2, projectile.TilesPerAdvance);
         Assert.True(shotProgram.Enabled);
         Assert.Equal(5, attack.AttackEnergyCost);
+        Assert.Equal(
+            ActorAttackProfileDefinition.AimInterpretationKind
+                .CurrentFacingPlusRelativeEightWayShotProgram,
+            attack.AimInterpretation);
+        Assert.Equal(
+            ActorAttackProfileDefinition.EnergyArithmeticKind
+                .CheckedInt64ThenClampToMaximum,
+            attack.EnergyArithmetic);
         Assert.Equal(ActorActionKind.Replication, split.Kind);
         Assert.Equal(ActorActionKind.Fabrication, fabricate.Kind);
         Assert.Equal("bolt", form.AttackProfileId);

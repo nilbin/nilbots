@@ -20,11 +20,25 @@ public sealed record ActorRuntimeFaultDefinition
     }
 
     public int FaultsAllowedBeforeDisqualification { get; }
+    public long DisqualificationFaultCount =>
+        (long)FaultsAllowedBeforeDisqualification + 1;
     public AccumulationScopeKind AccumulationScope =>
         AccumulationScopeKind
             .ParticipantAcrossAllSlotsLivesAndRuntimeStages;
+    public FaultCounterArithmeticKind FaultCounterArithmetic =>
+        FaultCounterArithmeticKind
+            .SignedInt64SaturatingAtAllowedPlusOne;
     public FaultingDecisionKind FaultingDecision =>
         FaultingDecisionKind.ReplaceExactActorDecisionWithWait;
+    public RuntimeStageRecoveryKind RuntimeStageRecovery =>
+        RuntimeStageRecoveryKind
+            .CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick;
+    public ReplayFaultRepresentationKind ReplayFaultRepresentation =>
+        ReplayFaultRepresentationKind
+            .StageTaggedHostFaultNoRuntimeReplyAcceptedSyntheticWait;
+    public FaultBatchEventOrderKind FaultBatchEventOrder =>
+        FaultBatchEventOrderKind
+            .ParticipantThenActorIdentityThenCreateStartTickValidationStage;
     public ApplicationTimingKind ApplicationTiming =>
         ApplicationTimingKind
             .AfterDamageBeforeModeUpdateUsingCompleteJointFaultBatch;
@@ -34,6 +48,15 @@ public sealed record ActorRuntimeFaultDefinition
     public ParticipantDispositionKind ParticipantDisposition =>
         ParticipantDispositionKind
             .RetireAllActiveLivesAndPermanentlyDormantAllOwnedSlots;
+    public PendingWorkDispositionKind PendingWorkDisposition =>
+        PendingWorkDispositionKind
+            .CancelAllOwnedClocksBundlesAndTransitionsReleaseEveryClaim;
+    public CancellationEventOrderKind CancellationEventOrder =>
+        CancellationEventOrderKind
+            .ClocksByTargetSlotThenBundlesByFamilySourceTransitionAndTarget;
+    public OwnedProjectileDispositionKind OwnedProjectileDisposition =>
+        OwnedProjectileDispositionKind
+            .RemoveAfterJointDamageByProjectileIdWithoutContactOrScore;
     public ScoreDispositionKind ScoreDisposition =>
         ScoreDispositionKind.RetirementAddsNoKillOrDeath;
     public ScoringTeamEligibilityKind ScoringTeamEligibility =>
@@ -56,9 +79,55 @@ public sealed record ActorRuntimeFaultDefinition
         ParticipantAcrossAllSlotsLivesAndRuntimeStages = 0,
     }
 
+    public enum FaultCounterArithmeticKind
+    {
+        /// <summary>
+        /// Count in signed 64-bit arithmetic and stop at
+        /// FaultsAllowedBeforeDisqualification + 1. This remains representable
+        /// even when the configured allowance is Int32.MaxValue.
+        /// </summary>
+        SignedInt64SaturatingAtAllowedPlusOne = 0,
+    }
+
     public enum FaultingDecisionKind
     {
         ReplaceExactActorDecisionWithWait = 0,
+    }
+
+    public enum RuntimeStageRecoveryKind
+    {
+        /// <summary>
+        /// A creation or StartLife failure discards any partial runtime. The
+        /// authoritative life stays active and submits a synthetic Wait for
+        /// that tick. If still eligible, the host makes exactly one fresh
+        /// create-and-start attempt before that life's next active decision
+        /// opportunity, using the original life start and deterministic seed.
+        /// No partial runtime memory survives.
+        /// </summary>
+        CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick
+            = 0,
+    }
+
+    public enum ReplayFaultRepresentationKind
+    {
+        /// <summary>
+        /// Create/start failures have no fabricated runtime reply. Replay
+        /// records a stage-tagged host fault and the accepted synthetic Wait.
+        /// Tick/validation failures retain the submitted fault metadata and
+        /// likewise record Wait as the accepted decision.
+        /// </summary>
+        StageTaggedHostFaultNoRuntimeReplyAcceptedSyntheticWait = 0,
+    }
+
+    public enum FaultBatchEventOrderKind
+    {
+        /// <summary>
+        /// Sort the complete joint batch by participant ID, then actor
+        /// team/unit/life identity, then the fixed stage order runtime-create,
+        /// StartLife, tick-execution, decision-validation. Host callback or
+        /// collection arrival order is never replay order.
+        /// </summary>
+        ParticipantThenActorIdentityThenCreateStartTickValidationStage = 0,
     }
 
     public enum ApplicationTimingKind
@@ -84,9 +153,47 @@ public sealed record ActorRuntimeFaultDefinition
         /// <summary>
         /// All active lives owned by the participant retire without
         /// destruction and every owned stable slot becomes permanently
-        /// dormant. Other participants on the scoring team may continue.
+        /// dormant. A life already reduced to zero by the completed damage
+        /// batch still receives its attributed damage-destruction facts, but
+        /// no automatic return is scheduled for its now-dormant slot. Other
+        /// participants on the scoring team may continue.
         /// </summary>
         RetireAllActiveLivesAndPermanentlyDormantAllOwnedSlots = 0,
+    }
+
+    public enum PendingWorkDispositionKind
+    {
+        /// <summary>
+        /// Cancel every owned initial-unlock, automatic-return, rebuild,
+        /// fabrication, replication, and same-life transition before later
+        /// lifecycle phases can run. Each cancellation releases all target
+        /// slot and tile claims. No cancelled operation may recreate an owned
+        /// life after disqualification.
+        /// </summary>
+        CancelAllOwnedClocksBundlesAndTransitionsReleaseEveryClaim = 0,
+    }
+
+    public enum CancellationEventOrderKind
+    {
+        /// <summary>
+        /// Emit clock cancellations by target team/unit. Then emit
+        /// fabrication, replication, and same-life cancellations in that
+        /// family order, each by source team/unit/life, transition ID, and
+        /// target unit where present. Release claims with their cancellation,
+        /// then retire active lives in actor-identity order.
+        /// </summary>
+        ClocksByTargetSlotThenBundlesByFamilySourceTransitionAndTarget = 0,
+    }
+
+    public enum OwnedProjectileDispositionKind
+    {
+        /// <summary>
+        /// Contacts already collected in the joint damage batch remain valid.
+        /// After that damage and owned-life retirement, remove every surviving
+        /// projectile fired by the participant in projectile-ID order. Removal
+        /// creates no contact, damage, kill, or death.
+        /// </summary>
+        RemoveAfterJointDamageByProjectileIdWithoutContactOrScore = 0,
     }
 
     public enum ScoreDispositionKind
@@ -108,8 +215,10 @@ public sealed record ActorRuntimeFaultDefinition
     {
         /// <summary>
         /// After the joint fault phase, exactly one eligible scoring team wins
-        /// immediately; zero eligible teams draw. With two or more eligible
-        /// teams, normal mode play continues.
+        /// immediately; zero eligible teams draw. This result short-circuits
+        /// every later tick phase. With two or more eligible teams, normal
+        /// mode play continues and every mode terminal or timeout comparison
+        /// considers eligible teams only.
         /// </summary>
         AfterFaultPhaseOneEligibleTeamWinsZeroEligibleTeamsDraw = 0,
     }
@@ -118,8 +227,8 @@ public sealed record ActorRuntimeFaultDefinition
     {
         /// <summary>
         /// A fully disqualified team cannot win by retaining an earlier score.
-        /// Eligible teams are ranked by the mode; ineligible teams are placed
-        /// below all of them.
+        /// Eligible teams alone are ranked by the mode; ineligible teams are
+        /// placed below all of them and tie with one another at bottom.
         /// </summary>
         IneligibleTeamsRankBelowEveryEligibleTeamAndTieAtBottom = 0,
     }

@@ -40,8 +40,9 @@ public abstract record VictoryDefinition
 
     /// <summary>
     /// Ordered score comparisons used only when the common match tick limit
-    /// ends regulation. Early terminal conditions may produce different
-    /// standings from this score order.
+    /// ends regulation. Only eligible scoring teams enter these comparisons;
+    /// fully disqualified teams are appended tied at bottom. Early terminal
+    /// conditions may produce different standings from this score order.
     /// </summary>
     public ImmutableArray<ScoreRankingDefinition> TimeoutRanking { get; }
 

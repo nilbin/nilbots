@@ -88,6 +88,9 @@ public sealed record ActorVisionProfileDefinition
     public ActorHearingBearingModel HearingBearingModel { get; }
     public ImmutableArray<int> HearingDistanceBandUpperBounds { get; }
     public ImmutableArray<ActorAudibleEventKind> LoudEventKinds { get; }
+    public HearingDistanceBandModelKind HearingDistanceBandModel =>
+        HearingDistanceBandModelKind
+            .ChebyshevInclusiveOrderedUpperBoundsThenFinalRadiusBand;
 
     private static void ValidateHearing(
         int hearingRadius,
@@ -157,5 +160,15 @@ public sealed record ActorVisionProfileDefinition
             }
             previous = upperBound;
         }
+    }
+
+    public enum HearingDistanceBandModelKind
+    {
+        /// <summary>
+        /// Return the first zero-based band whose inclusive upper bound
+        /// contains the Chebyshev distance; distances above every authored
+        /// bound and at most HearingRadius use the final band.
+        /// </summary>
+        ChebyshevInclusiveOrderedUpperBoundsThenFinalRadiusBand = 0,
     }
 }

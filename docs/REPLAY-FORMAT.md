@@ -65,8 +65,11 @@ excluded); `botarena verify <replay.json>` recomputes it. Any change to this
 shape is a replay-format version change.
 
 The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
-`GameEvent.cs` and `MatchResult.cs`; the TypeScript mirror the viewer uses is
-`web/src/types.ts`. Summary:
+`GameEvent.cs` and `MatchResult.cs`. The viewer's version-specific wire mirror
+is `web/src/replayWireV1.ts`; `replayWireV2.ts` preserves the separate
+Frontline-alpha generation, and both normalize into `web/src/replayModel.ts`.
+A future generic generation receives its own `replayWireV3.ts` rather than
+widening this frozen v1 shape. Summary:
 
 ## `header`
 

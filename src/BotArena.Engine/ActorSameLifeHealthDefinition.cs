@@ -40,6 +40,9 @@ public sealed record ActorSameLifeHealthDefinition
         EvaluationKind.CompletionTimePreTransitionHealth;
     public ArithmeticKind Arithmetic =>
         ArithmeticKind.CheckedInt64ThenClampToTargetMaximum;
+    public PreserveRatioFormulaKind PreserveRatioFormula =>
+        PreserveRatioFormulaKind
+            .FloorCurrentTimesTargetMaximumDividedBySourceMaximumThenMinimumOne;
 
     public enum HealthPolicyKind
     {
@@ -57,5 +60,18 @@ public sealed record ActorSameLifeHealthDefinition
     public enum ArithmeticKind
     {
         CheckedInt64ThenClampToTargetMaximum = 0,
+    }
+
+    public enum PreserveRatioFormulaKind
+    {
+        /// <summary>
+        /// For PreserveRatio, compute
+        /// floor(currentHealth * targetMaximum / sourceMaximum) with the
+        /// multiplication performed first in checked signed 64-bit arithmetic,
+        /// then clamp to at least one and at most targetMaximum. Source and
+        /// target maxima are the completion-time forms' positive maxima.
+        /// Other policies ignore this formula tag.
+        /// </summary>
+        FloorCurrentTimesTargetMaximumDividedBySourceMaximumThenMinimumOne = 0,
     }
 }

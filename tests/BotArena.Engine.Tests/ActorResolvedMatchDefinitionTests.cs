@@ -35,6 +35,12 @@ public sealed class ActorResolvedMatchDefinitionTests
         Assert.Same(map, headToHead.Map);
         Assert.Same(map, freeForAll.Map);
         Assert.Same(map, twoByTwo.Map);
+        Assert.Equal(
+            ActorResolvedMatchDefinition.CurrentSchemaVersion,
+            headToHead.SchemaVersion);
+        Assert.Same(
+            ActorMatchCapabilityVersions.Current,
+            headToHead.CapabilityVersions);
         Assert.Equal([2, 4, 4],
             new[]
             {

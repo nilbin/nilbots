@@ -48,8 +48,13 @@ public sealed record ActorSeedMechanicsDefinition
     public enum SeedDerivationKind
     {
         /// <summary>
-        /// Domain-separated mix of the match seed, declared seed profile, and
-        /// team/unit/life identity.
+        /// Let H be unsigned FNV-1a-64 over UTF-8("actors:" +
+        /// SeedProfileId), STEP be 0x9E3779B97F4A7C15, and Mix be the
+        /// SplitMix64 finalizer with constants 0xBF58476D1CE4E5B9 and
+        /// 0x94D049BB133111EB. In unchecked UInt64 arithmetic compute
+        /// x=Mix(matchSeed XOR H), then successively
+        /// x=Mix(x+STEP*(teamId+1)), x=Mix(x+STEP*(unitId+1)), and
+        /// x=Mix(x+STEP*(lifeId+1)). IDs are non-negative Int32 values.
         /// </summary>
         MatchSeedProfileTeamUnitLifeMix64V1 = 0,
     }

@@ -92,12 +92,22 @@ public sealed record ActorAttackProfileDefinition
     public EnergyUpdateOrderKind EnergyUpdateOrder =>
         EnergyUpdateOrderKind
             .AttackCostThenCadenceRegenerationCappedToMaximum;
+    public EnergyArithmeticKind EnergyArithmetic =>
+        EnergyArithmeticKind.CheckedInt64ThenClampToMaximum;
     public AttackAvailabilityKind AttackAvailability =>
         AttackAvailabilityKind
             .PreTickCooldownZeroAndEnergyAtLeastCost;
     public CooldownUpdateKind CooldownUpdate =>
         CooldownUpdateKind
             .SuccessfulAttackSetsConfiguredTicksOtherwiseSubtractOneFloorZero;
+    public AimInterpretationKind AimInterpretation =>
+        OmnidirectionalAim
+            ? AimInterpretationKind
+                .AbsoluteSubmittedEightWayHeadingFacingUnchanged
+            : ShotProgram.Enabled
+                ? AimInterpretationKind
+                    .CurrentFacingPlusRelativeEightWayShotProgram
+                : AimInterpretationKind.CurrentFacingStraight;
     public ActorShotProgramDefinition ShotProgram { get; }
 
     public enum EnergyRegenerationClockKind
@@ -119,6 +129,16 @@ public sealed record ActorAttackProfileDefinition
         AttackCostThenCadenceRegenerationCappedToMaximum = 0,
     }
 
+    public enum EnergyArithmeticKind
+    {
+        /// <summary>
+        /// Subtraction and regeneration addition use a checked signed 64-bit
+        /// intermediary before the result is clamped to [0, MaxEnergy] and
+        /// represented as an Int32 value.
+        /// </summary>
+        CheckedInt64ThenClampToMaximum = 0,
+    }
+
     public enum AttackAvailabilityKind
     {
         PreTickCooldownZeroAndEnergyAtLeastCost = 0,
@@ -132,5 +152,12 @@ public sealed record ActorAttackProfileDefinition
         /// active tick subtracts one, floored at zero.
         /// </summary>
         SuccessfulAttackSetsConfiguredTicksOtherwiseSubtractOneFloorZero = 0,
+    }
+
+    public enum AimInterpretationKind
+    {
+        CurrentFacingStraight = 0,
+        CurrentFacingPlusRelativeEightWayShotProgram = 1,
+        AbsoluteSubmittedEightWayHeadingFacingUnchanged = 2,
     }
 }

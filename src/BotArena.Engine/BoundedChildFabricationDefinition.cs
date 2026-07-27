@@ -111,7 +111,7 @@ public sealed record BoundedChildFabricationDefinition
 
     public TargetSlotKind TargetSlot =>
         TargetSlotKind
-            .ExplicitReadyDormantSameParticipantNeverSpawnedOrRebuilt;
+            .ExplicitReadyDormantSameParticipant;
     public ActorFabricationCandidateSnapshotKind CandidateSnapshot =>
         ActorFabricationCandidateSnapshotKind
             .PostMovementPreLifecycleQueueSnapshot;
@@ -150,7 +150,7 @@ public sealed record BoundedChildFabricationDefinition
         /// team and controller participant, made ready either by its initial
         /// unlock or by completion of its rebuild delay.
         /// </summary>
-        ExplicitReadyDormantSameParticipantNeverSpawnedOrRebuilt = 0,
+        ExplicitReadyDormantSameParticipant = 0,
     }
 
     public enum ActorFabricationCandidateSnapshotKind

@@ -137,9 +137,11 @@ public sealed record DeathmatchScoringDefinition
     {
         /// <summary>
         /// Apply every destruction and score increment from the joint tick
-        /// before checking the optional limit. If the highest raw Kill count
-        /// meets it, a unique top team wins; teams tied at top draw. Lower
-        /// teams lose. TimeoutRanking is not used for this early result.
+        /// before checking the optional limit. Only eligible teams are
+        /// compared. If their highest raw Kill count meets it, a unique top
+        /// team wins; eligible teams tied at top draw. Lower eligible teams
+        /// lose and ineligible teams remain tied below them. TimeoutRanking is
+        /// not used for this early result.
         /// </summary>
         CompleteJointTickThenHighestRawKillsWinTiedTopDraw = 0,
     }

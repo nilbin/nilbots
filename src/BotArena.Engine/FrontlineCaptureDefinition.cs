@@ -55,6 +55,9 @@ public sealed record FrontlineCaptureDefinition
     public TimeoutPolicyKind TimeoutPolicy =>
         TimeoutPolicyKind
             .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers;
+    public TerritorialProgressFormulaKind TerritorialProgressFormula =>
+        TerritorialProgressFormulaKind
+            .PerTeamAdvanceDeltaTimesIndexOffsetTimesThresholdPlusSignedClaim;
 
     public CompletionPolicyKind CompletionPolicy =>
         CompletionPolicyKind.BaseBreachBeforeMaxTicks;
@@ -63,7 +66,7 @@ public sealed record FrontlineCaptureDefinition
         FrontlineInitialPositionKind.CentreObjectiveIndex;
     public CaptureArithmeticKind CaptureArithmetic =>
         CaptureArithmeticKind
-            .CheckedAddThresholdCompletesOnePushAndDiscardsOvershoot;
+            .CheckedInt64AddCompareThresholdCompletesOnePushAndDiscardsOvershoot;
     public OppositionArithmeticKind OppositionArithmetic =>
         OppositionArithmeticKind
             .ErodeTowardZeroWithoutCarryingOvershootIntoOwnClaim;
@@ -72,6 +75,12 @@ public sealed record FrontlineCaptureDefinition
             .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl;
     public DisabledDecayKind DisabledDecay =>
         DisabledDecayKind.ZeroPairPreservesClaimAndKeepsClockZero;
+    public RedeployPolicyKind RedeployPolicy =>
+        RedeployPolicyKind
+            .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause;
+    public RedeployTickArithmeticKind RedeployTickArithmetic =>
+        RedeployTickArithmeticKind
+            .CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32;
 
     public enum ControlPolicyKind
     {
@@ -88,6 +97,19 @@ public sealed record FrontlineCaptureDefinition
         SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers = 0,
     }
 
+    public enum TerritorialProgressFormulaKind
+    {
+        /// <summary>
+        /// Score each eligible team independently as:
+        /// teamAdvanceDelta * (activeObjectiveIndex - centreIndex) * Threshold
+        /// plus Claim when that team owns the claim, minus Claim when another
+        /// team owns it, or zero when neutral. Claim is a positive magnitude.
+        /// Multiplication and addition use checked signed 64-bit arithmetic.
+        /// Higher is always progress toward that team's opposing base.
+        /// </summary>
+        PerTeamAdvanceDeltaTimesIndexOffsetTimesThresholdPlusSignedClaim = 0,
+    }
+
     public enum CompletionPolicyKind
     {
         BaseBreachBeforeMaxTicks = 0,
@@ -100,7 +122,13 @@ public sealed record FrontlineCaptureDefinition
 
     public enum CaptureArithmeticKind
     {
-        CheckedAddThresholdCompletesOnePushAndDiscardsOvershoot = 0,
+        /// <summary>
+        /// Add current claim and gain in checked signed 64-bit arithmetic,
+        /// compare that value to the Int32 threshold, and either store the
+        /// still-in-range claim or complete exactly one push. A completed push
+        /// resets claim to zero and discards all overshoot.
+        /// </summary>
+        CheckedInt64AddCompareThresholdCompletesOnePushAndDiscardsOvershoot = 0,
     }
 
     public enum OppositionArithmeticKind
@@ -122,5 +150,29 @@ public sealed record FrontlineCaptureDefinition
     public enum DisabledDecayKind
     {
         ZeroPairPreservesClaimAndKeepsClockZero = 0,
+    }
+
+    public enum RedeployPolicyKind
+    {
+        /// <summary>
+        /// A non-breaching capture advances the active objective immediately,
+        /// resets claimant, claim, and decay clock, and leaves every actor and
+        /// projectile unchanged. Ignore objective control through tick
+        /// captureTick + RedeployPauseTicks; control resumes at
+        /// captureTick + 1 + RedeployPauseTicks. A base breach ends immediately
+        /// and never enters redeploy pause.
+        /// </summary>
+        AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause
+            = 0,
+    }
+
+    public enum RedeployTickArithmeticKind
+    {
+        /// <summary>
+        /// Compute captureTick + 1 + RedeployPauseTicks in checked signed
+        /// 64-bit arithmetic and require the result to fit the engine's signed
+        /// 32-bit tick representation before admitting the ruleset.
+        /// </summary>
+        CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32 = 0,
     }
 }

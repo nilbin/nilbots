@@ -9,6 +9,8 @@ namespace BotArena.Engine;
 /// </summary>
 public sealed record ActorResolvedMatchDefinition
 {
+    public const int CurrentSchemaVersion = 2;
+
     public ActorResolvedMatchDefinition(
         ActorRulesDefinition rules,
         ActorMapDefinition map,
@@ -19,7 +21,8 @@ public sealed record ActorResolvedMatchDefinition
             lifecycleAssignments,
         IEnumerable<ActorParticipantRegionAssignmentDefinition>
             participantRegionAssignments,
-        ActorModeMapBindingDefinition modeMapBinding)
+        ActorModeMapBindingDefinition modeMapBinding,
+        ActorMatchCapabilityVersions? capabilityVersions = null)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(map);
@@ -29,6 +32,7 @@ public sealed record ActorResolvedMatchDefinition
         ArgumentNullException.ThrowIfNull(lifecycleAssignments);
         ArgumentNullException.ThrowIfNull(participantRegionAssignments);
         ArgumentNullException.ThrowIfNull(modeMapBinding);
+        capabilityVersions ??= ActorMatchCapabilityVersions.Current;
 
         ActorUnitSlotLifecycleAssignmentDefinition[] lifecycleSnapshot =
             [.. lifecycleAssignments];
@@ -46,6 +50,7 @@ public sealed record ActorResolvedMatchDefinition
             modeMapBinding);
 
         Rules = rules;
+        CapabilityVersions = capabilityVersions;
         Map = map;
         Format = format;
         Topology = Canonicalize(topology);
@@ -66,6 +71,8 @@ public sealed record ActorResolvedMatchDefinition
         ModeMapBinding = modeMapBinding;
     }
 
+    public int SchemaVersion => CurrentSchemaVersion;
+    public ActorMatchCapabilityVersions CapabilityVersions { get; }
     public ActorRulesDefinition Rules { get; }
     public ActorMapDefinition Map { get; }
     public MatchFormatDefinition Format { get; }

@@ -72,6 +72,9 @@ public sealed record ActorLifecycleDefinition
     public TickStartLifecycleOrderKind TickStartLifecycleOrder =>
         TickStartLifecycleOrderKind
             .DueTickThenReturnsAndReadinessThenFabricationThenReplicationCanonicalActorOrder;
+    public OutputTileProjectileKind OutputTileProjectile =>
+        OutputTileProjectileKind
+            .DueCreationConsumesOccupantsByProjectileIdWithoutDamageBeforeSpawn;
 
     public enum DestructionClockKind
     {
@@ -140,11 +143,32 @@ public sealed record ActorLifecycleDefinition
         /// <summary>
         /// All due operations already own disjoint reserved slots and tiles.
         /// Apply automatic returns/readiness first, fabrication completions
-        /// second, and replication retirements/spawns third; within a family
-        /// use source or target team/unit/life identity and semantic event
-        /// order. This orders state and replay facts without granting claims.
+        /// second, and replication retirements/spawns third. Order returns and
+        /// readiness by target team/unit. Order fabrication by source
+        /// team/unit/life, transition ID using ordinal comparison, then target
+        /// team/unit. Order replication by source team/unit/life then
+        /// transition ID using ordinal comparison; its descendant events use
+        /// the declared slot-to-position assignment order. Projectile
+        /// consumption immediately precedes its corresponding life-spawn
+        /// event in numeric projectile-ID order. This total order controls
+        /// state and replay facts without granting claims.
         /// </summary>
         DueTickThenReturnsAndReadinessThenFabricationThenReplicationCanonicalActorOrder
             = 0,
+    }
+
+    public enum OutputTileProjectileKind
+    {
+        /// <summary>
+        /// Projectiles may traverse or wait on reserved lifecycle output tiles
+        /// before the due tick. Immediately before an automatic return,
+        /// fabrication, or replication descendant is created, consume every
+        /// projectile occupying that output tile in projectile-ID order,
+        /// without contact, damage, or score, then create the life. This occurs
+        /// before observations, so a due life and projectile never begin a
+        /// decision phase on the same tile. Readiness and unlock clocks create
+        /// no life and consume nothing.
+        /// </summary>
+        DueCreationConsumesOccupantsByProjectileIdWithoutDamageBeforeSpawn = 0,
     }
 }

@@ -144,6 +144,10 @@ public sealed class ActorTransitionDefinitionTests
         Assert.Equal("prime-turret", anchor.TargetFormId);
         Assert.Equal(2, anchor.Health.FlatHealthGain);
         Assert.Equal(
+            ActorSameLifeHealthDefinition.PreserveRatioFormulaKind
+                .FloorCurrentTimesTargetMaximumDividedBySourceMaximumThenMinimumOne,
+            anchor.Health.PreserveRatioFormula);
+        Assert.Equal(
             ActorSameLifeCombatStateDefinition.CooldownContinuityKind
                 .PreserveRemainingTicks,
             anchor.CombatState.CooldownContinuity);
@@ -199,7 +203,7 @@ public sealed class ActorTransitionDefinitionTests
             fabrication.Kind);
         Assert.Equal(
             BoundedChildFabricationDefinition.TargetSlotKind
-                .ExplicitReadyDormantSameParticipantNeverSpawnedOrRebuilt,
+                .ExplicitReadyDormantSameParticipant,
             fabrication.TargetSlot);
         Assert.Equal(
             BoundedChildFabricationDefinition.SourceDispositionKind
@@ -218,6 +222,10 @@ public sealed class ActorTransitionDefinitionTests
             ActorFabricationDelayDefinition.SourceDeathKind
                 .DoesNotCancelQueuedFabrication,
             fabrication.Delay.SourceDeath);
+        Assert.Equal(
+            ActorFabricationDelayDefinition.SourceRetirementKind
+                .DoesNotCancelQueuedFabricationExceptParticipantDisqualification,
+            fabrication.Delay.SourceRetirement);
         Assert.Equal(
             BoundedChildFabricationDefinition.OutputFacingKind
                 .ParticipantOutputRegionAssignmentFacing,

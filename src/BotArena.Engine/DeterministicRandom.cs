@@ -59,6 +59,8 @@ public static class SeedDerivation
     /// Independent stream for one entity life. The actor domain is deliberately
     /// distinct from historical slot streams, and every team/unit/life
     /// coordinate participates so replicated instances never share randomness.
+    /// The exact formula is the behavior named by
+    /// <see cref="ActorSeedMechanicsDefinition.SeedDerivationKind.MatchSeedProfileTeamUnitLifeMix64V1"/>.
     /// </summary>
     public static ulong DeriveActorSeed(
         ulong matchSeed,

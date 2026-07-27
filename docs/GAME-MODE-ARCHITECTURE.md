@@ -25,10 +25,12 @@ Implementation checkpoint:
 - Package C's isolated map-generation model, resolved actor-rules catalog,
   lifecycle profiles, three transition families, and generic standings
   component are implemented but still unused. The cross-component resolved
-  match aggregate now accepts head-to-head, FFA-4, and 2v2 Deathmatch through
-  the same rules and rejects invalid capacity, placement, respawn, and mode-map
-  combinations before hashing. Canonical contract writers are the remaining
-  Package C work.
+  match aggregate accepts head-to-head, FFA-4, and 2v2 Deathmatch through the
+  same rules and rejects invalid capacity, placement, respawn, arithmetic, and
+  mode-map combinations before hashing. Separate rules/map/format/topology and
+  aggregate match writers now use explicit canonical wire IDs, provenance
+  separation, captured capability versions, and literal golden fingerprints.
+  Package C is complete.
 - No new definition is routed into a session, API, ladder, SDK, replay, or
   viewer.
 
@@ -147,11 +149,21 @@ teamId + scoreChannelId + exact integer value
 
 Frontline form objective weight is binary (`0` or `1`); positive bodies do not
 stack. Sole-team gain reaching or exceeding the threshold completes exactly
-one push and discards overshoot. Opposing gain erodes a claim to zero without
-starting its own claim on the same tick. Empty/contested decay uses consecutive
-ticks, resets after each applied interval and on any sole-control tick, floors
-at zero, and the disabled `(0, 0)` pair preserves the claim with a zero clock.
-Base breach on the final allowed tick precedes timeout.
+one push and discards overshoot, using signed-64-bit addition before the
+threshold comparison. Opposing gain erodes a claim to zero without starting
+its own claim on the same tick. Empty/contested decay uses consecutive ticks,
+resets after each applied interval and on any sole-control tick, floors at
+zero, and the disabled `(0, 0)` pair preserves the claim with a zero clock.
+
+`TerritorialProgress` is computed per team as its advance-direction delta
+times `(active objective index - centre index)` times the threshold, plus its
+own positive claim or minus an opponent's claim. Checked signed-64-bit
+arithmetic makes higher values mean progress toward the opposing base for
+either direction. A non-breaching capture advances immediately, clears claim
+and decay state, leaves actors and projectiles in place, and ignores objective
+control through the configured redeploy pause. Control resumes at
+`captureTick + 1 + pause`; breach skips the pause. Base breach on the final
+allowed tick precedes timeout.
 
 Terminal results use canonical team standings:
 
@@ -283,9 +295,12 @@ Schema 3 admits one reproducible grid-combat kernel rather than arbitrary
 boolean combinations: exclusive Ground occupancy, connected conflicting moves
 all block, ordered projectile tile substeps cannot tunnel, walls precede actor
 contact, and all contacts enter one canonical damage batch. Allied projectile
-contact remains a closed selectable policy. Instant rays use canonical inert
-traversal fields; discrete projectiles do not receive a second launch-tick
-advance.
+contact remains a closed selectable policy. Moving into a non-passing
+projectile blocks the actor at its origin, consumes contacts in projectile-ID
+order, and queues any permitted damage into the joint batch. Allied
+pass-through does not itself block or consume. Instant rays use canonical
+inert traversal fields; discrete projectiles do not receive a second
+launch-tick advance.
 
 Programmed attacks use an explicit eight-heading clockwise-modulo model,
 one-octant bends, unique initial offsets in `[-4, 3]`, and bend directions from
@@ -299,12 +314,18 @@ successful attack sets the configured cooldown at end of tick without
 decrementing it immediately; other active ticks subtract one to zero. Energy
 cost is paid before same-tick regeneration, and regeneration follows global
 completed-match-tick modulo cadence rather than life age or time since spend.
+Energy arithmetic uses a signed-64-bit intermediary before clamping.
 
 Actions keep stable string IDs and numeric codes. Arguments use a bounded
 tagged union with structural descriptors and per-tick legality masks. Do not
 introduce arbitrary JSON/object bags. Unknown action or parameter semantics
-make an artifact explicitly ineligible or produce a typed unsupported result;
-they never silently become `Wait`.
+make an artifact explicitly ineligible or produce a typed unsupported result.
+Within schema 3, movement is one absolute cardinal tile without changing
+facing, and rotation sets an absolute cardinal facing without translating.
+Unknown/malformed actions are `Faulted`, catalog actions outside the current
+form mask are `Rejected`, and valid actions stopped by authoritative state are
+`Blocked`; only `Faulted` increments the participant fault counter. Explicit
+typed action-variant outcomes override this generic state result.
 
 Three lifecycle-action families are distinct:
 
@@ -331,7 +352,10 @@ Every newly created life has a monotonically increasing slot-local life ID,
 fresh runtime and empty memory, deterministic seed, target-form maximum health,
 zero cooldown, target-profile maximum energy, and no previous action result.
 It may act on its creation tick and joins the normal global resource cadence
-at that tick's end.
+at that tick's end. A projectile may enter a reserved lifecycle output tile
+before its due tick; immediately before a return, fabrication, or replication
+spawn, every occupying projectile is consumed in projectile-ID order without
+damage, then the new life is created before observations.
 The first Air movement profile remains a localized new engine capability with
 explicit wall, projectile, landing, vision, objective, and occupancy
 semantics. Once it exists, additional flying forms and their
@@ -361,6 +385,10 @@ Lethal damage cancels the pending replication. On completion, the source
 runtime is disposed before each descendant receives a new life ID, isolated
 runtime instance, private memory, and deterministic life seed. Descendants
 share the participant artifact and normal team information, never WASM memory.
+An earlier source-preserving fabrication bundle survives this non-destructive
+Split retirement and completes from its reserved slot/tile and recorded parent
+identity. Participant disqualification is the explicit override that cancels
+all owned pending work.
 
 Simultaneous replication bundles that claim a common tile or slot all block.
 Resolution never awards a reservation to whichever actor happened to appear
@@ -389,15 +417,29 @@ The common actor host owns:
 - replay chronology.
 
 Runtime faults are participant-scoped across every controlled slot, life, and
-runtime stage. A faulting life contributes `Wait` for that joint tick. After
-damage and before the mode update, a participant exceeding its declared
-tolerance is disqualified: all owned lives retire without kill/death credit and
-all owned slots become permanently dormant. A multi-participant scoring team
-remains eligible while any participant remains; fully disqualified teams rank
-below every eligible team and tie at the bottom. One remaining eligible team
-wins immediately, while zero eligible teams draw. Thus an FFA leader cannot
-fault out and retain a timeout win, and one faulted member does not erase a 2v2
-teammate.
+runtime stage. Fault events are ordered by participant, actor identity, then
+create/start/tick/validation stage rather than host callback order. A runtime
+creation or start failure discards any partial instance, contributes a
+synthetic `Wait`, and—if still eligible—gets one fresh retry before that
+life's next decision. The counter uses signed-64-bit arithmetic saturated at
+the configured allowance plus one.
+
+After joint damage and before the mode update, a participant exceeding its
+tolerance is disqualified. All owned pending clocks, fabrication,
+replication, and same-life work are cancelled in canonical order; claims are
+released; surviving projectiles are removed after already-collected damage;
+active lives retire without retirement kill/death credit; and owned slots
+become permanently dormant. Damage-caused zero-health destruction still
+finalizes, but cannot schedule a return for a disqualified slot.
+
+Post-damage destruction finalization precedes fault-based match completion. A
+multi-participant scoring team remains eligible while any participant remains;
+fully disqualified teams rank below every eligible team and tie at the bottom.
+One remaining eligible team wins immediately, while zero eligible teams draw;
+this short-circuits mode update. With multiple eligible teams, early mode
+completion precedes max-tick timeout and both compare eligible teams only.
+Thus an FFA leader cannot fault out and retain a timeout win, and one faulted
+member does not erase a 2v2 teammate.
 
 A typed mode session owns:
 

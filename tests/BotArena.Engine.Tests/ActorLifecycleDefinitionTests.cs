@@ -87,6 +87,10 @@ public sealed class ActorLifecycleDefinitionTests
                 .UsesMatchGlobalProfileCadenceStartingAfterCreationTickActions,
             lifecycle.NewLifeResourceClock);
         Assert.Equal(
+            ActorLifecycleDefinition.OutputTileProjectileKind
+                .DueCreationConsumesOccupantsByProjectileIdWithoutDamageBeforeSpawn,
+            lifecycle.OutputTileProjectile);
+        Assert.Equal(
             ["mobile", "turret"],
             activeSlot.AllowedFormIds.ToArray());
         Assert.Equal(0, activeSlot.InitialGeneration);

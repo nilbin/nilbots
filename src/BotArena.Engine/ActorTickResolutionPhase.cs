@@ -17,8 +17,9 @@ public enum ActorTickResolutionPhase
     LaunchAttacksAndApplyDamage = 8,
     ApplyRuntimeFaults = 9,
     ResolvePostDamageLifecycle = 10,
-    UpdateCooldownsAndResources = 11,
-    UpdateMode = 12,
-    CompleteDueSameLifeTransitions = 13,
-    ResolveMatchCompletion = 14,
+    ResolveFaultEligibilityCompletion = 11,
+    UpdateCooldownsAndResources = 12,
+    UpdateMode = 13,
+    CompleteDueSameLifeTransitions = 14,
+    ResolveMatchCompletion = 15,
 }

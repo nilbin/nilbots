@@ -20,6 +20,9 @@ public sealed record ActorFabricationDelayDefinition
         SourceBehaviorKind.UnchangedActiveLifeCanAct;
     public SourceDeathKind SourceDeath =>
         SourceDeathKind.DoesNotCancelQueuedFabrication;
+    public SourceRetirementKind SourceRetirement =>
+        SourceRetirementKind
+            .DoesNotCancelQueuedFabricationExceptParticipantDisqualification;
     public ReservationKind Reservation =>
         ReservationKind.TargetSlotAndTileBlockUntilCompletion;
     public ActorFabricationCompletionKind Completion =>
@@ -35,6 +38,18 @@ public sealed record ActorFabricationDelayDefinition
     public enum SourceDeathKind
     {
         DoesNotCancelQueuedFabrication = 0,
+    }
+
+    public enum SourceRetirementKind
+    {
+        /// <summary>
+        /// A later successful replication may retire the fabricating source
+        /// life without cancelling its already reserved fabrication bundles.
+        /// They retain the retired parent identity and complete normally.
+        /// Participant disqualification is the sole override and cancels all
+        /// participant-owned pending work.
+        /// </summary>
+        DoesNotCancelQueuedFabricationExceptParticipantDisqualification = 0,
     }
 
     public enum ReservationKind

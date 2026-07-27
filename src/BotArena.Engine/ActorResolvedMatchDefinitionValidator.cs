@@ -1460,7 +1460,7 @@ public static class ActorResolvedMatchDefinitionValidator
         if (maximumTotalDamage > long.MaxValue)
         {
             errors.Add(
-                "MaxTicks, stable-slot count, and damage per hit can overflow " +
+                "MaxTicks, stable-slot count, and maximum life health can overflow " +
                 "the signed 64-bit damage/score accumulator.");
         }
     }

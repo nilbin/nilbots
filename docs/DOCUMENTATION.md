@@ -37,10 +37,10 @@ wrong; it changes which document is the current entry point.
   player/bot contract and local CLI instructions for the frozen experiment.
   It is not the shipped player guide or a ranked/server availability claim.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
-  canonical actor observations, replay v2, datasets, and bounded model assets.
-  Its local experimental Frontline observation/replay seam is implemented;
-  dataset,
-  corpus, model-asset, inference, and public-product packages remain planned.
+  canonical actor observations, generic replay 3, datasets, and bounded model
+  assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor
+  delivery, dataset, corpus, model-asset, inference, and public-product
+  packages remain planned.
 - [`EVALUATION-METHODOLOGY.md`](EVALUATION-METHODOLOGY.md) — required evidence
   policy before any rules experiment is promoted.
 
