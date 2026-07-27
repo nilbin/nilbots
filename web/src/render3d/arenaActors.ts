@@ -31,16 +31,20 @@ const PIP_HEIGHT = 0.72;
 const PIP_SETBACK = 0.55;
 
 /**
- * The selection ring, as a fraction of the chassis it encircles.
+ * The selection ring, as a fraction of the chassis it marks.
  *
- * It has to clear the bot and stay under the pips, and both bounds are tighter than they
- * look. Chassis scales run 1.2–1.34, so a bot's own half-span is already ~0.6 tiles; the
- * ring started at 0.82–0.9 of that scale, which put it nearly twice the bot's radius out
- * and straight through the pips. Just outside the silhouette reads as "this one" without
- * becoming the brightest thing in the arena.
+ * **It is a mark on the floor that the bot stands over, not a hoop around it.** That is the
+ * whole reason it can be this tight: it sits at floor level and depth-tests, so the chassis
+ * occludes the arc behind it and the ring is simply interrupted where the bot is. There is
+ * no clearance to negotiate — a ring that "overlaps" the bot is a ring the bot is standing
+ * on, which is what a selection marker should look like.
+ *
+ * Sized out from there instead. It started at 0.82–0.9 of the chassis scale, and with scales
+ * running 1.2–1.34 that is nearly twice the bot's own half-span: a halo wide enough to reach
+ * the health pips and bright enough to be the loudest thing in the arena.
  */
-const RING_INNER = 0.68;
-const RING_OUTER = 0.74;
+const RING_INNER = 0.5;
+const RING_OUTER = 0.56;
 
 /**
  * Share of the remaining turn a bolt takes each frame.
