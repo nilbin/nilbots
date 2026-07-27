@@ -19,7 +19,7 @@ Worth stating, because it decides against a rewrite. Themes, bot chassis and pro
 looks are manifest-driven through `import.meta.glob`, and `drawArena` contains **zero**
 references to any theme or look id. Adding content is a folder with a `manifest.json`,
 not a code change — which is how there are 4 themes, 12 chassis, 11 projectile looks and
-4 audio packs without the renderer knowing about any of them. A v2 would put that at risk
+one approved audio pack without the renderer knowing about any of them. A v2 would put that at risk
 to fix problems that are local to one function and one build config.
 
 ## 1. Payload and atlas resolution — DONE
@@ -176,20 +176,16 @@ In rough order of feel per unit of effort:
   Cues send post-pan, so reflections inherit the cue's position instead of collapsing to
   the centre.
 
-**Blocked on assets that do not exist:**
+Obsidian Foundry is now the sole approved runtime SFX pack. Its three combat cues total
+roughly 75 KB, arm with the first trusted viewer interaction, and remain in the
+self-contained CLI artifact. The entitlement-unlock review cue is not reused for a match
+result.
 
-- duck music under impacts;
-- adaptive music layered on health, control pressure and overtime.
-
-There is no music in the repository. Audio candidates carry four cues each — `projectile`,
-`impact`, `destroyed`, `unlock` — and nothing else, so both of these describe mixing a
-signal that has never been authored. They are not code-blocked; they are waiting on a
-soundtrack. Building the ducking bus before there is anything to duck would be scaffolding
-for a decision nobody has made yet.
-
-**Keep music out of the CLI artifact** when it does arrive. Cues are efficient (584 KB for
-16), but loops are where audio payload explodes, and every `nilbots play` would carry a
-soundtrack.
+Neon Protocol supplies the website soundtrack through content-addressed HTTP assets.
+Straight-through playback is the default; adaptive scoring remains an explicit
+experiment. Music stays out of the CLI artifact because loops would materially increase
+every copied `nilbots play` viewer. Ducking the score under impacts remains a future
+mixing decision, not a prerequisite for shipping the approved effects.
 
 ## Verifying
 

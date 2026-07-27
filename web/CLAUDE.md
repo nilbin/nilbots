@@ -191,8 +191,9 @@ so every visitor and every cold WebView parsed ~15 MB inline before anything ren
 paying for a constraint neither of them has.
 
 **And it is built once per theme, because a replay draws exactly one.** Themes are
-effectively the entire artifact — 14 MB against 236 KB for every chassis, projectile look
-and audio cue combined — so an unscoped viewer paid for four and grew with the library.
+effectively the entire artifact — roughly 14 MB each against the much smaller combined
+chassis, projectile-look and approved SFX library — so an unscoped viewer paid for four
+and grew with the library.
 `ReplayOutput` picks by the replay's `ThemeId`, falling back rather than failing when an
 install does not ship the theme a replay names.
 

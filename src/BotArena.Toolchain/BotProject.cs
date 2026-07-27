@@ -32,9 +32,11 @@ public static class ToolchainInfo
     /// `submit` refuses against a server the installed tool cannot match, so a player
     /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.6.x carries SDK 0.9.0
     /// and build pipeline 3; it also carries the generated HTTP contracts used by
-    /// CLI server commands. Keep in lockstep with BotArena.Cli.csproj's Version —
-    /// PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.6.0";
+    /// CLI server commands. 0.6.1 adds the approved Obsidian Foundry effects to
+    /// self-contained replay viewers. Keep in lockstep with
+    /// BotArena.Cli.csproj's Version — PackagedCliVersionTests pins them
+    /// together.</summary>
+    public const string CliVersion = "0.6.1";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

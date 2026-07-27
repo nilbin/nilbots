@@ -9,21 +9,16 @@ const root = join(
   'src',
   'assets',
   'audio',
-  'candidates',
+  'effects',
 );
-const expectedCues = ['destroyed', 'impact', 'projectile', 'unlock'];
+const expectedCues = ['destroyed', 'impact', 'projectile'];
 
-test('audio review candidates have complete matched AAC packages', () => {
+test('the approved Obsidian Foundry runtime pack is complete and rights-cleared', () => {
   const directories = readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  assert.deepEqual(directories, [
-    'aegis-systems',
-    'aurora-core',
-    'nilbots-signature',
-    'obsidian-foundry',
-  ]);
+  assert.deepEqual(directories, ['obsidian-foundry']);
 
   let totalBytes = 0;
   for (const id of directories) {
@@ -33,18 +28,28 @@ test('audio review candidates have complete matched AAC packages', () => {
     ) as {
       version: number;
       id: string;
-      reviewOnly: boolean;
+      approval: string;
       format: string;
       sampleRate: number;
       channels: number;
+      provenance: {
+        generatedBy: string;
+        rightsStatus: string;
+        shipApproval: string;
+      };
       cues: Record<string, string>;
     };
     assert.equal(manifest.version, 1);
     assert.equal(manifest.id, id);
-    assert.equal(manifest.reviewOnly, true);
+    assert.equal(manifest.approval, 'approved');
     assert.equal(manifest.format, 'aac-lc-m4a');
     assert.equal(manifest.sampleRate, 48_000);
     assert.equal(manifest.channels, 2);
+    assert.deepEqual(manifest.provenance, {
+      generatedBy: 'scripts/generate-audio-v2-candidates.mjs',
+      rightsStatus: 'rights-cleared',
+      shipApproval: 'approved',
+    });
     assert.deepEqual(Object.keys(manifest.cues).sort(), expectedCues);
 
     for (const cue of expectedCues) {
@@ -56,5 +61,5 @@ test('audio review candidates have complete matched AAC packages', () => {
       totalBytes += statSync(join(directory, manifest.cues[cue])).size;
     }
   }
-  assert.ok(totalBytes < 700_000, `review audio is ${totalBytes} bytes`);
+  assert.ok(totalBytes < 100_000, `runtime sound effects are ${totalBytes} bytes`);
 });

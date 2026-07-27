@@ -2116,6 +2116,31 @@ listening on representative phones and headphones. Neon Protocol remains
 `analysis-reviewed` until every adaptive loop has completed human audition; its source
 rights are cleared and shipment is approved.
 
+## 131. Obsidian Foundry is the approved default combat sound-effect pack
+
+Obsidian Foundry is promoted from the four-direction sound lab as the sole compressed
+runtime SFX pack. Its lossless 48 kHz stereo masters are deterministically synthesized by
+the repository's V2 generator without sampled or third-party material; the runtime
+manifest records cleared rights and explicit shipment approval. The other three
+directions remain lossless review references under `art/audio` but no longer add bytes or
+selection state to a shipped viewer.
+
+The initial runtime contract is deliberately honest and small: authoritative Shot,
+Damage, and Destroyed/Disqualified replay events schedule projectile, impact, and
+destruction cues. The entitlement-unlock showcase is not relabelled as a match-win sound;
+match results and durable reward notifications will receive their own mappings when those
+cues are selected.
+
+Effects are opted in by default, with independent persisted mute and volume. Browser
+autoplay policy still wins: constructing a viewer does not create an AudioContext, and the
+first trusted click or non-modifier key resumes one viewer-owned session shared with the
+soundtrack. Enabled music and effects then arm together without a second prompt or replay
+restart, establishing the current replay tick as their cursor so activation never
+backfills old combat. The full web viewer and self-contained CLI viewer ship this path.
+The native HostedViewer remains unchanged until its host bridge owns an explicit audio
+activation and control contract. Because the approved cues change every self-contained
+replay viewer, the CLI package advances to 0.6.1 under the existing release-order guard.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

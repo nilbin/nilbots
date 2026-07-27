@@ -1,8 +1,9 @@
 # Audio design and asset workflow
 
-Status: high-fidelity in-game review. Four complete candidate directions are
-temporarily active in the web and standalone replay viewer behind an explicit
-audio-enable action. No direction has been selected for the product.
+Status: Obsidian Foundry is the approved runtime sound-effect direction.
+Projectile launch, armor impact, and bot destruction cues ship in the web and
+self-contained standalone replay viewers. Effects are enabled by default after
+the browser's first trusted user interaction.
 
 ## Product principles
 
@@ -16,9 +17,8 @@ audio-enable action. No direction has been selected for the product.
    longer, but ranked sets must not become ten minutes of repeated fanfare.
 4. The replay is the schedule. Playback derives audio from authoritative tick
    transitions and replay events, not from canvas animation timing.
-5. Lossless candidate masters stay under `art/audio`. Normally only selected
-   and compressed runtime assets enter the self-contained viewer; the
-   temporary review build carries all four V2 packs for same-replay A/B tests.
+5. Lossless candidate masters stay under `art/audio`. Only approved,
+   compressed runtime assets enter the viewer.
 
 ## Candidate sets
 
@@ -69,54 +69,54 @@ The soundboard at `art/audio/sound-lab/index.html` works from a static host and
 supports direct A/B/C comparison, full-pack demo sequences, volume control,
 keyboard shortcuts, and a browser-local favorite marker.
 
-## Temporary in-game review package
+## Approved runtime package
 
 Run:
 
 ```bash
-node scripts/export-runtime-audio-candidates.mjs
+node scripts/export-runtime-sound-effects.mjs
 ```
 
-This exports every complete V2 pack to
-`web/src/assets/audio/candidates/<id>/` as 48 kHz stereo AAC-LC. The 16
-delivery files total roughly 0.54 MiB; the production single-file viewer
-inlines them. The lossless WAVs remain the source of truth.
+This exports Obsidian Foundry's projectile, impact, and destruction masters to
+`web/src/assets/audio/effects/obsidian-foundry/` as 48 kHz stereo AAC-LC. The
+three delivery files total roughly 0.07 MiB. The production manifest records
+the deterministic generator, cleared rights, and shipment approval; automated
+tests reject any additional or unapproved runtime pack. The lossless WAVs
+remain the source of truth, and all four candidate directions remain in the
+sound lab for future reference.
 
 The viewer derives projectile, impact, and destruction cues from authoritative
-`Shot`, `Damage`, and `Destroyed`/`Disqualified` replay events. Its fourth
-candidate cue is played after a winning terminal tick solely to audition the
-unlock sound in UI context. It is labelled `REVIEW ONLY`; the final match
-result needs a distinct cue. Seeking is silent, switching packs clears active
-voices, playback above 2× suspends audio, and mute/volume/candidate selection
-persist locally. Browser autoplay rules require `ENABLE AUDIO`.
-Enabling audio and changing packs restart a completed replay automatically so
-every direction is heard against the same timeline from tick zero.
+`Shot`, `Damage`, and `Destroyed`/`Disqualified` replay events. Seeking is
+silent, playback above 2× suspends effects, and mute/volume persist locally
+under production keys so old review choices cannot alter the shipped default.
+The entitlement-unlock master is not reused as a match-result cue; those are
+separate product events and need separately approved mappings.
 
-The CLI continues to receive the normal self-contained `npm run build`
-artifact. Hosted review deployments use `npm run build:review`, which emits
-separate hashed atlases, JavaScript, and audio files. This avoids making mobile
-browsers parse the complete viewer payload as one large inline HTML document.
+Browser autoplay policy still requires a user gesture. The first trusted click
+or non-modifier key resumes the viewer's shared audio session and arms enabled
+music and effects together; there is no second sound-effects prompt. A compact
+control exposes independent SFX mute and volume, and `?audio=off` remains an
+explicit diagnostic opt-out. The CLI includes the small approved SFX package
+but continues to omit the network-fetched soundtrack.
 
-This review UI is intentionally absent from the native hosted viewer. It
-should not cross the mobile bridge until a product direction and native
-controls have been selected.
+The native hosted viewer remains silent. Giving its WebView a trusted
+activation through native controls requires a deliberate mobile bridge change
+and is separate from approving the web/standalone pack.
 
-## Runtime package shape after selection
+## Runtime package shape
 
-Once a direction is selected:
-
-1. Keep the selected WAV files as lossless source masters under `art/audio`.
-2. Remove the three rejected runtime candidate directories, rename the chosen
-   IDs from review terminology, and measure actual decoded and transferred
-   size.
-3. Put shared gameplay/UI cues in one runtime audio manifest.
+1. Keep all candidate WAV files as lossless source masters under `art/audio`.
+2. Ship only Obsidian Foundry's approved compressed combat cues.
+3. Keep shared gameplay cues in one rights- and approval-bearing runtime
+   manifest.
 4. Let a projectile-look manifest optionally reference a stable sound-profile
    ID. Projectile visuals and sounds remain independently replaceable assets;
    neither stores gameplay values.
 5. Give map-theme manifests only subtle ambience references. A map selects its
    theme and ambience; the viewer does not.
-6. Validate every manifest reference, file format, duration, peak, and package
-   size in automated tests.
+6. Validate every runtime manifest reference, file format, approval, rights
+   status, and package-size ceiling in automated tests; validate the lossless
+   masters with the sound-lab validator.
 
 A future manifest should use stable IDs rather than file paths in replays. The
 viewer resolves IDs to local assets and falls back to the default profile when

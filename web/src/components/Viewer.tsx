@@ -10,13 +10,13 @@ import {
 } from '../replayParticipants';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
-import { useReplayAudio } from '../audio/useReplayAudio';
+import { useReplaySoundEffects } from '../audio/useReplaySoundEffects';
 import { useAssetReadiness } from '../render/useAssetReadiness';
 import { readSoundtrackEnabledPreference } from '../soundtrack/preferences';
 import { useImmersive } from './useImmersive';
 import ArenaCanvas from './ArenaCanvas';
 
-import AudioReviewControls from './AudioReviewControls';
+import SoundEffectsControl from './SoundEffectsControl';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
@@ -55,8 +55,8 @@ export default function Viewer({
   const shell = useRef<HTMLDivElement>(null);
   const isLive = live !== undefined;
   const audioSession = useMemo(() => new ArenaAudioSession(), []);
-  const soundtrackActivationInFlight = useRef(false);
-  const [soundtrackActivationGranted, setSoundtrackActivationGranted] =
+  const audioActivationInFlight = useRef(false);
+  const [audioActivationGranted, setAudioActivationGranted] =
     useState(false);
   // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
   const [chromeVisible, setChromeVisible] = useState(true);
@@ -75,54 +75,46 @@ export default function Viewer({
         '3d',
   );
 
-  const audioReviewEnabled =
+  const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
   const time = isLive ? liveTime : playback.time;
   const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
-  const audio = useReplayAudio({
+  const soundEffects = useReplaySoundEffects({
     replay,
     time,
     playing: isLive || playback.playing,
     speed: isLive ? 1 : playback.speed,
     atEnd: !isLive && playback.atEnd,
     following: isLive,
-    reviewEnabled: audioReviewEnabled,
+    available: soundEffectsAvailable,
+    activationGranted: audioActivationGranted,
     session: audioSession,
   });
 
   useEffect(() => audioSession.retainOwner(), [audioSession]);
 
   useEffect(() => {
-    if (
-      !EXTERNAL_SOUNDTRACK_AVAILABLE ||
-      soundtrackActivationGranted
-    ) {
-      return;
-    }
+    if (audioActivationGranted) return;
+    const soundtrackWantsAudio =
+      EXTERNAL_SOUNDTRACK_AVAILABLE &&
+      readSoundtrackEnabledPreference();
+    if (!soundEffectsAvailable && !soundtrackWantsAudio) return;
 
     const requestActivation = () => {
-      if (
-        soundtrackActivationInFlight.current ||
-        !readSoundtrackEnabledPreference()
-      ) {
-        return;
-      }
-      soundtrackActivationInFlight.current = true;
+      if (audioActivationInFlight.current) return;
+      audioActivationInFlight.current = true;
       void audioSession.resume().then(
         () => {
-          setSoundtrackActivationGranted(true);
+          setAudioActivationGranted(true);
         },
         () => {
           // Keep the gate open so a later trusted interaction can retry.
-          soundtrackActivationInFlight.current = false;
+          audioActivationInFlight.current = false;
         },
       );
     };
-    const targetsSoundtrackControl = (target: EventTarget | null) =>
-      target instanceof Element &&
-      target.closest('[data-soundtrack-control]') !== null;
     const onClick = (event: MouseEvent) => {
-      if (!event.isTrusted || targetsSoundtrackControl(event.target)) return;
+      if (!event.isTrusted) return;
       requestActivation();
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -133,8 +125,7 @@ export default function Viewer({
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
-        targetsSoundtrackControl(event.target) ||
-        NON_ACTIVATING_SOUNDTRACK_KEYS.has(event.key)
+        NON_ACTIVATING_AUDIO_KEYS.has(event.key)
       ) {
         return;
       }
@@ -147,7 +138,11 @@ export default function Viewer({
       window.removeEventListener('click', onClick, true);
       window.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [audioSession, soundtrackActivationGranted]);
+  }, [
+    audioActivationGranted,
+    audioSession,
+    soundEffectsAvailable,
+  ]);
 
   useEffect(() => {
     if (isLive) return; // No seeking during a live broadcast — viewers stay synchronized.
@@ -258,11 +253,14 @@ export default function Viewer({
               playbackSpeed={isLive ? 1 : playback.speed}
               transportRevision={isLive ? 0 : playback.transportRevision}
               session={audioSession}
-              activationGranted={soundtrackActivationGranted}
+              activationGranted={audioActivationGranted}
               presentationId={soundtrackPresentationId}
               followingLive={isLive}
             />
           </Suspense>
+        )}
+        {soundEffectsAvailable && (
+          <SoundEffectsControl effects={soundEffects} />
         )}
         {/* Which renderer. The CLI artifact intentionally stubs the dynamic module to
             keep three.js out of every copied replay, so it must not offer a blank mode. */}
@@ -291,13 +289,6 @@ export default function Viewer({
           </button>
         )}
       </header>
-
-      {audioReviewEnabled && !immersive.active && (
-        <AudioReviewControls
-          audio={audio}
-          onRestart={isLive ? undefined : playback.restart}
-        />
-      )}
 
       <div
         className={clsx(
@@ -490,7 +481,7 @@ export default function Viewer({
   );
 }
 
-const NON_ACTIVATING_SOUNDTRACK_KEYS = new Set([
+const NON_ACTIVATING_AUDIO_KEYS = new Set([
   'Alt',
   'CapsLock',
   'Control',

@@ -9,7 +9,7 @@ node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
-node scripts/export-runtime-audio-candidates.mjs
+node scripts/export-runtime-sound-effects.mjs
 ```
 
 Then open `sound-lab/index.html` or serve `art/audio/sound-lab` from any static
@@ -41,11 +41,14 @@ debris, stereo movement, feedback-delay diffusion, and dynamics processing.
 projectile, impact, destruction, and unlock sample set. V1 remains in the
 sound lab as a collapsed reference archive.
 
-The lossless candidate masters stay under `art/`. The temporary in-game review
-build exports all four V2 directions to
-`web/src/assets/audio/candidates/<id>/` as 48 kHz stereo AAC-LC, using
-`scripts/export-runtime-audio-candidates.mjs`. Those checked-in delivery
-assets total roughly 0.54 MiB and let one replay switch between complete packs.
-The export requires macOS `afconvert`; the generated assets keep normal builds
-platform-independent. Once a direction is selected, remove the rejected
-runtime candidates and retain their lossless sources here.
+The lossless masters for every direction stay under `art/`. Obsidian Foundry
+is the approved runtime direction; `scripts/export-runtime-sound-effects.mjs`
+exports only its projectile, impact, and destruction cues to
+`web/src/assets/audio/effects/obsidian-foundry/` as 48 kHz stereo AAC-LC. The
+three checked-in delivery assets total roughly 0.07 MiB. The entitlement cue
+remains a sound-lab master until a real entitlement notification owns it; it
+is not a match-result sound.
+
+The export requires macOS `afconvert`. Checked-in delivery assets keep normal
+builds platform-independent, while their production manifest records the
+generator, cleared rights, and explicit shipment approval.

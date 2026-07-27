@@ -108,9 +108,9 @@ test('an effect cleanup/setup replay retains the session until the final owner l
   assert.throws(() => session.ensureGraph(), /disposed/);
 });
 
-test('the compatibility audio hook leases its fallback session', async () => {
+test('the sound-effects hook leases its fallback session', async () => {
   const source = await readFile(
-    new URL('../src/audio/useReplayAudio.ts', import.meta.url),
+    new URL('../src/audio/useReplaySoundEffects.ts', import.meta.url),
     'utf8',
   );
   assert.match(source, /ownsSession \? audioSession\.retainOwner\(\) : undefined/);

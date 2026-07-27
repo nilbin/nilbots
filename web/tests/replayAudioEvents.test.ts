@@ -17,7 +17,7 @@ test('authoritative combat events schedule their matching presentation cues', ()
   );
 });
 
-test('the review build trails match completion with the unlock candidate', () => {
+test('match completion does not reuse the entitlement-unlock review cue', () => {
   const wire = replayV1FixtureInput();
   wire.ticks[0]!.events = [{ type: 'Destroyed', slot: 9 }];
   wire.result.winnerSlot = 3;
@@ -28,9 +28,8 @@ test('the review build trails match completion with the unlock candidate', () =>
 
   assert.deepEqual(
     events.map((event) => event.cue),
-    ['destroyed', 'unlock'],
+    ['destroyed'],
   );
-  assert.ok(events[1]!.tickOffset > 1);
 });
 
 test('draws and non-events do not invent audio from replay state', () => {

@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReplayModel } from '../replayModel';
 import {
-  audioCandidate,
-  audioCandidates,
-  type AudioCandidateId,
-  type AudioCueId,
-} from './audioCandidates';
+  soundEffectPack,
+  type SoundEffectCueId,
+} from './soundEffects';
 import { ArenaAudioSession } from './ArenaAudioSession';
 import { createArenaImpulse, ROOM_MIX } from './arenaRoom';
 import { replayAudioEventsAt } from './replayAudioEvents';
-import { readLocalSetting, writeLocalSetting } from './localSettings';
+import {
+  readSoundEffectsMutedPreference,
+  readSoundEffectsVolumePreference,
+  writeSoundEffectsMutedPreference,
+  writeSoundEffectsVolumePreference,
+} from './soundEffectsPreferences';
 
 const BASE_TICKS_PER_SECOND = 5;
 const MAX_ACTIVE_VOICES = 8;
@@ -20,21 +23,16 @@ const MAX_CROSSED_TICKS = 3;
  * straight at; this keeps the arena wide but coherent.
  */
 const PAN_WIDTH = 0.7;
-const candidateStorageKey = 'nilbots.audio.review.candidate';
-const volumeStorageKey = 'nilbots.audio.review.volume';
-const muteStorageKey = 'nilbots.audio.review.muted';
 
-const cueGain: Record<AudioCueId, number> = {
+const cueGain: Record<SoundEffectCueId, number> = {
   projectile: 0.36,
   impact: 0.48,
   destroyed: 0.56,
-  unlock: 0.52,
 };
-const cueVoiceLimit: Record<AudioCueId, number> = {
+const cueVoiceLimit: Record<SoundEffectCueId, number> = {
   projectile: 3,
   impact: 2,
   destroyed: 1,
-  unlock: 1,
 };
 
 interface AudioGraph {
@@ -51,32 +49,33 @@ interface AudioGraph {
 
 interface Voice {
   source: AudioBufferSourceNode;
-  cue: AudioCueId;
+  cue: SoundEffectCueId;
   priority: number;
   startedAt: number;
 }
 
-export interface ReplayAudioController {
-  candidateId: AudioCandidateId;
+export interface ReplaySoundEffectsController {
+  packLabel: string;
   enabled: boolean;
+  activating: boolean;
   muted: boolean;
   volume: number;
+  error: string | null;
   suspendedForSpeed: boolean;
   enable: () => Promise<void>;
-  setCandidate: (candidate: AudioCandidateId) => void;
   setMuted: (muted: boolean) => void;
   setVolume: (volume: number) => void;
-  previewUnlock: () => Promise<void>;
 }
 
-export function useReplayAudio({
+export function useReplaySoundEffects({
   replay,
   time,
   playing,
   speed,
   atEnd,
   following,
-  reviewEnabled = true,
+  available = true,
+  activationGranted = false,
   session,
 }: {
   replay: ReplayModel;
@@ -85,13 +84,15 @@ export function useReplayAudio({
   speed: number;
   atEnd: boolean;
   following: boolean;
-  reviewEnabled?: boolean;
+  available?: boolean;
+  /** The shared arena audio session has resumed from a trusted interaction. */
+  activationGranted?: boolean;
   /**
    * Stable, viewer-owned session shared with other arena audio. Omitted only
    * for compatibility with callers that have not yet moved ownership upward.
    */
   session?: ArenaAudioSession;
-}): ReplayAudioController {
+}): ReplaySoundEffectsController {
   const fallbackSession = useRef<ArenaAudioSession | null>(null);
   if (!session && fallbackSession.current === null) {
     fallbackSession.current = new ArenaAudioSession();
@@ -102,16 +103,15 @@ export function useReplayAudio({
     () => (ownsSession ? audioSession.retainOwner() : undefined),
     [audioSession, ownsSession],
   );
-  const [candidateId, setCandidateState] = useState<AudioCandidateId>(
-    () => (reviewEnabled ? readCandidate() : 'nilbots-signature'),
-  );
-  const [volume, setVolumeState] = useState(() =>
-    reviewEnabled ? readVolume() : 0.72,
+  const [volume, setVolumeState] = useState(
+    readSoundEffectsVolumePreference,
   );
   const [muted, setMutedState] = useState(
-    () => reviewEnabled && readLocalSetting(muteStorageKey) === 'true',
+    readSoundEffectsMutedPreference,
   );
   const [enabled, setEnabled] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const graph = useRef<AudioGraph | null>(null);
   const buffers = useRef(new Map<string, Promise<AudioBuffer>>());
   const voices = useRef<Voice[]>([]);
@@ -119,14 +119,15 @@ export function useReplayAudio({
   const panners = useRef(new Map<AudioBufferSourceNode, StereoPannerNode>());
   const generation = useRef(0);
   const previousTick = useRef<number | null>(null);
-  const candidateRef = useRef(candidateId);
+  const activation = useRef<Promise<void> | null>(null);
+  const enabledRef = useRef(enabled);
   const currentTick = Math.max(
     0,
     Math.min(Math.floor(time), replay.ticks.length - 1),
   );
   const currentTickRef = useRef(currentTick);
   currentTickRef.current = currentTick;
-  candidateRef.current = candidateId;
+  enabledRef.current = enabled;
 
   const ensureGraph = useCallback((): AudioGraph => {
     if (graph.current && graph.current.context.state !== 'closed') {
@@ -173,12 +174,12 @@ export function useReplayAudio({
   }, []);
 
   const loadCue = useCallback(
-    (selected: AudioCandidateId, cue: AudioCueId): Promise<AudioBuffer> => {
-      const key = `${selected}/${cue}`;
+    (cue: SoundEffectCueId): Promise<AudioBuffer> => {
+      const key = `${soundEffectPack.id}/${cue}`;
       const cached = buffers.current.get(key);
       if (cached) return cached;
       const { context } = ensureGraph();
-      const url = audioCandidate(selected).cues[cue];
+      const url = soundEffectPack.cues[cue];
       const loading = fetch(url)
         .then((response) => {
           if (!response.ok) throw new Error(`Audio asset returned ${response.status}.`);
@@ -192,11 +193,11 @@ export function useReplayAudio({
     [ensureGraph],
   );
 
-  const preloadCandidate = useCallback(
-    (selected: AudioCandidateId) =>
+  const preloadEffects = useCallback(
+    () =>
       Promise.all(
-        (['projectile', 'impact', 'destroyed', 'unlock'] as const).map((cue) =>
-          loadCue(selected, cue),
+        (['projectile', 'impact', 'destroyed'] as const).map((cue) =>
+          loadCue(cue),
         ),
       ),
     [loadCue],
@@ -204,15 +205,14 @@ export function useReplayAudio({
 
   const scheduleCue = useCallback(
     (
-      cue: AudioCueId,
+      cue: SoundEffectCueId,
       delayMilliseconds: number,
       priority: number,
       pan: number | null = null,
       expectedGeneration = generation.current,
     ) => {
-      const selected = candidateRef.current;
       const requestedAt = performance.now();
-      void loadCue(selected, cue).then((buffer) => {
+      void loadCue(cue).then((buffer) => {
         if (
           expectedGeneration !== generation.current ||
           !graph.current ||
@@ -286,43 +286,57 @@ export function useReplayAudio({
     [loadCue],
   );
 
-  const enable = useCallback(async () => {
-    const current = ensureGraph();
-    await audioSession.resume();
-    current.master.gain.setValueAtTime(
-      muted ? 0 : volume,
-      current.context.currentTime,
-    );
-    setEnabled(true);
-    previousTick.current = currentTickRef.current;
-    await preloadCandidate(candidateRef.current);
-  }, [audioSession, ensureGraph, muted, preloadCandidate, volume]);
+  const enable = useCallback((): Promise<void> => {
+    if (!available || enabledRef.current) return Promise.resolve();
+    if (activation.current) return activation.current;
 
-  const previewUnlock = useCallback(async () => {
-    await enable();
-    scheduleCue('unlock', 0, 3);
-  }, [enable, scheduleCue]);
-
-  const setCandidate = useCallback(
-    (selected: AudioCandidateId) => {
-      setCandidateState(selected);
-      writeLocalSetting(candidateStorageKey, selected);
-      stopAll();
+    setActivating(true);
+    setError(null);
+    let operation: Promise<void>;
+    operation = (async () => {
+      const current = ensureGraph();
+      await audioSession.resume();
+      current.master.gain.setValueAtTime(
+        muted ? 0 : volume,
+        current.context.currentTime,
+      );
+      await preloadEffects();
       previousTick.current = currentTickRef.current;
-      if (enabled) void preloadCandidate(selected);
-    },
-    [enabled, preloadCandidate, stopAll],
-  );
+      enabledRef.current = true;
+      setEnabled(true);
+    })()
+      .catch((reason: unknown) => {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'Sound effects could not start in this browser.',
+        );
+        throw reason;
+      })
+      .finally(() => {
+        if (activation.current === operation) activation.current = null;
+        setActivating(false);
+      });
+    activation.current = operation;
+    return operation;
+  }, [
+    audioSession,
+    available,
+    ensureGraph,
+    muted,
+    preloadEffects,
+    volume,
+  ]);
 
   const setVolume = useCallback((next: number) => {
     const clamped = Math.max(0, Math.min(1, next));
     setVolumeState(clamped);
-    writeLocalSetting(volumeStorageKey, String(clamped));
+    writeSoundEffectsVolumePreference(clamped);
   }, []);
 
   const setMuted = useCallback((next: boolean) => {
     setMutedState(next);
-    writeLocalSetting(muteStorageKey, String(next));
+    writeSoundEffectsMutedPreference(next);
   }, []);
 
   useEffect(() => {
@@ -335,7 +349,7 @@ export function useReplayAudio({
   }, [muted, volume]);
 
   useEffect(() => {
-    if (!reviewEnabled || !enabled) {
+    if (!available || !enabled) {
       previousTick.current = currentTick;
       return;
     }
@@ -404,12 +418,19 @@ export function useReplayAudio({
     following,
     playing,
     replay,
-    reviewEnabled,
+    available,
     scheduleCue,
     speed,
     stopAll,
     time,
   ]);
+
+  useEffect(() => {
+    if (!activationGranted || !available || enabled) return;
+    void enable().catch(() => {
+      // The compact control exposes the error and gives the user an explicit retry.
+    });
+  }, [activationGranted, available, enable, enabled]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -433,16 +454,16 @@ export function useReplayAudio({
   );
 
   return {
-    candidateId,
+    packLabel: soundEffectPack.label,
     enabled,
+    activating,
     muted,
     volume,
+    error,
     suspendedForSpeed: speed > 2,
     enable,
-    setCandidate,
     setMuted,
     setVolume,
-    previewUnlock,
   };
 
   function stopVoice(voice: Voice) {
@@ -453,17 +474,4 @@ export function useReplayAudio({
       // The voice ended while being evicted.
     }
   }
-}
-
-function readCandidate(): AudioCandidateId {
-  const stored = readLocalSetting(candidateStorageKey);
-  const match = audioCandidates.find((candidate) => candidate.id === stored);
-  return match?.id ?? 'nilbots-signature';
-}
-
-function readVolume(): number {
-  const value = readLocalSetting(volumeStorageKey);
-  if (value === null) return 0.72;
-  const stored = Number(value);
-  return Number.isFinite(stored) && stored >= 0 && stored <= 1 ? stored : 0.72;
 }
