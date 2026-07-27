@@ -316,6 +316,9 @@ internal static class ActorMatchCanonicalWriter
     {
         writer.WriteStartObject();
         writer.WriteString(
+            "contractProfileId",
+            capabilities.ContractProfileId);
+        writer.WriteString(
             "runtimeProtocolVersion",
             capabilities.RuntimeProtocolVersion);
         writer.WriteString(
@@ -333,6 +336,9 @@ internal static class ActorMatchCanonicalWriter
         writer.WriteNumber(
             "decisionSchemaVersion",
             capabilities.DecisionSchemaVersion);
+        writer.WriteNumber(
+            "matchContractSchemaVersion",
+            capabilities.MatchContractSchemaVersion);
         writer.WriteEndObject();
     }
 

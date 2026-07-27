@@ -77,6 +77,38 @@ public sealed class ActorSdkContractTests
             Sdk.ActorContractVersions.MatchContractSchemaVersion);
     }
 
+    [Fact]
+    public void GenericActorContractVersions_MatchEngineProfile()
+    {
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorContractProfileId,
+            Sdk.GenericActorContractVersions.ContractProfileId);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorRuntimeProtocolVersion,
+            Sdk.GenericActorContractVersions.RuntimeProtocolVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorRuntimeContractVersion,
+            Sdk.GenericActorContractVersions.RuntimeContractVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorMatchStartSchemaVersion,
+            Sdk.GenericActorContractVersions.MatchStartSchemaVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorObservationSchemaVersion,
+            Sdk.GenericActorContractVersions.ObservationSchemaVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorDecisionSchemaVersion,
+            Sdk.GenericActorContractVersions.DecisionSchemaVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorMatchContractSchemaVersion,
+            Sdk.GenericActorContractVersions.MatchContractSchemaVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorReplayFormatVersion,
+            Sdk.GenericActorContractVersions.ReplayFormatVersion);
+        Assert.Equal(
+            Sdk.GenericActorContractVersions.ContractProfileId,
+            Sdk.ActorContractProfile.GenericV2.ProfileId);
+    }
+
     private static IReadOnlyDictionary<string, Type> PublicEnums(
         Assembly assembly) =>
         assembly.GetExportedTypes()

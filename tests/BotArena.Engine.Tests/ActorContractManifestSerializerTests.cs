@@ -460,21 +460,30 @@ public sealed class ActorContractManifestSerializerTests
             format,
             topology,
             ["west", "east"]);
-        string actual = string.Join(
-            ",",
+        string[] actual =
+        [
             ActorContractFingerprint.ComputeRules(rules),
             ActorContractFingerprint.ComputeMap(map),
             ActorContractFingerprint.ComputeFormat(format),
             ActorContractFingerprint.ComputeTopology(topology),
-            ActorContractFingerprint.ComputeMatch(match));
+            ActorContractFingerprint.ComputeMatch(match),
+        ];
 
         Assert.Equal(
-            "0254de191bfe1e271557bd92f388b7460e1741a19595b60901f75da2f3e54c4b,"
-            + "cf00b71f9074627bb4c4d972667e6d4d384674ebe3a109cdf27f439c3ea5d4e0,"
-            + "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463,"
-            + "a83214570e1989e3bc170b80744a26b82d69abc272c6d0997789a11f26acd58a,"
-            + "d12cefe463556b6028dcbcbfc395f9cef5b963aa8b16549568240ce2cedc74d5",
-            actual);
+            "0254de191bfe1e271557bd92f388b7460e1741a19595b60901f75da2f3e54c4b",
+            actual[0]);
+        Assert.Equal(
+            "cf00b71f9074627bb4c4d972667e6d4d384674ebe3a109cdf27f439c3ea5d4e0",
+            actual[1]);
+        Assert.Equal(
+            "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+            actual[2]);
+        Assert.Equal(
+            "a83214570e1989e3bc170b80744a26b82d69abc272c6d0997789a11f26acd58a",
+            actual[3]);
+        Assert.Equal(
+            "36bdf86be25132f75d93987a412d57a02299a10c379b07d51c74f3c8dd35c417",
+            actual[4]);
     }
 
     [Fact]
@@ -485,12 +494,14 @@ public sealed class ActorContractManifestSerializerTests
         var format = new HeadToHeadMatchFormatDefinition();
         PublicMatchTopology topology = CreateTopology([[10], [20]]);
         var capabilities = new ActorMatchCapabilityVersions(
+            "test-profile-11",
             "9.1",
             "9.2",
             runtimeContractVersion: 7,
             matchStartSchemaVersion: 8,
             observationSchemaVersion: 9,
-            decisionSchemaVersion: 10);
+            decisionSchemaVersion: 10,
+            matchContractSchemaVersion: 11);
         ActorResolvedMatchDefinition match = Resolve(
             rules,
             map,
@@ -535,6 +546,11 @@ public sealed class ActorContractManifestSerializerTests
         JsonElement writtenCapabilities =
             root.GetProperty("capabilityVersions");
         Assert.Equal(
+            "test-profile-11",
+            writtenCapabilities
+                .GetProperty("contractProfileId")
+                .GetString());
+        Assert.Equal(
             "9.1",
             writtenCapabilities
                 .GetProperty("runtimeProtocolVersion")
@@ -543,6 +559,11 @@ public sealed class ActorContractManifestSerializerTests
             10,
             writtenCapabilities
                 .GetProperty("decisionSchemaVersion")
+                .GetInt32());
+        Assert.Equal(
+            11,
+            writtenCapabilities
+                .GetProperty("matchContractSchemaVersion")
                 .GetInt32());
     }
 

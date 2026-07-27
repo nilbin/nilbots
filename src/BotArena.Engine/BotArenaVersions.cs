@@ -39,6 +39,20 @@ public static class BotArenaVersions
     public const int ActorDecisionSchemaVersion = 1;
     public const int ActorHostFaultSchemaVersion = 1;
     /// <summary>
+    /// Negotiated contract profile for generation-3 generic actor matches.
+    /// Actor protocol framing/configuration 1.0 remain unchanged.
+    /// </summary>
+    public const string GenericActorContractProfileId =
+        "generic-actor-match-2";
+    public const string GenericActorRuntimeProtocolVersion = "1.0";
+    public const string GenericActorRuntimeConfigurationVersion = "1.0";
+    public const int GenericActorRuntimeContractVersion = 2;
+    public const int GenericActorMatchStartSchemaVersion = 2;
+    public const int GenericActorObservationSchemaVersion = 2;
+    public const int GenericActorDecisionSchemaVersion = 2;
+    public const int GenericActorMatchContractSchemaVersion = 2;
+    public const int GenericActorReplayFormatVersion = 3;
+    /// <summary>
     /// Additive entity replay contract. Legacy <see cref="ReplayFormatVersion"/>
     /// remains 1 and is still the only publicly emitted replay.
     /// </summary>
