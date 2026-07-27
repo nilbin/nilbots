@@ -17,6 +17,11 @@ wrong; it changes which document is the current entry point.
 
 ## Active Frontline and ML work
 
+- [`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md) — active
+  compatibility-first implementation plan for typed game modes, match formats,
+  resolved contracts, Split/replication, Deathmatch/FFA proof cases, immutable
+  playlists, and opaque ladders. It preserves official replay v1 and the
+  opened Frontline-alpha replay v2 as separate contract generations.
 - [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) —
   package order and current code boundary. Packages 0–7 plus Package 8's
   local runner/evaluator slice are implemented: canonical per-life

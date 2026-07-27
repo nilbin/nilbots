@@ -134,6 +134,16 @@ Project boundaries that must not be violated:
   carries that directory only for the explicit experiment, while current App
   and ordinary `maps` catalogs enumerate top-level format-v1 maps. Legacy
   `MatchEngine` still rejects a Frontline definition defensively.
+- The follow-on parallel-mode architecture is also unshipped and currently
+  unused. Additive Engine definitions model typed Frontline/Deathmatch modes,
+  breach/kill victory rules, head-to-head/FFA-N/equal-team formats, exact
+  topology/deployment validation, and gameplay-only map generation 3 with
+  named spawns and typed regions/tags. Persistence-free App definitions model
+  immutable playlist versions, opaque season ladders, tied team series
+  results, and an exact-compatible `DuelEloV1`. They do not yet route through
+  sessions, actor contracts, APIs, EF, matchmaking, ratings, replays, SDKs, or
+  viewers. The compatibility generations and dependency order are frozen in
+  `docs/GAME-MODE-ARCHITECTURE.md`.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,

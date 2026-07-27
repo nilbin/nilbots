@@ -1,5 +1,12 @@
 # Frontline rewrite — implementation workload
 
+> Follow-on architecture: parallel modes, match formats, generic results,
+> Split/replication, playlists, and ladders now live in
+> [`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). This document
+> remains the implementation/evidence record for the frozen
+> `frontline-alpha-1` generation and must not be rewritten as though that
+> opened contract used the later generic schemas.
+
 Status: **active experiment / implementation in progress**, 2026-07-27. This
 document turns
 [`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) into an

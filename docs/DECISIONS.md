@@ -2230,6 +2230,42 @@ Package 8 therefore establishes a runnable local authoring and measurement
 loop, not a balance or ship decision. The remaining gates are an independently
 authored cohort, frozen same-cohort/holdout runs, outcome-blind entertainment
 review, and a deliberate hosted/admission decision.
+## 135. Parallel modes use new typed contract generations, curated playlists, and opaque ladders
+
+Official duel replay v1 and the opened `frontline-alpha-1` rules-schema-2 /
+match-contract-schema-1 / replay-v2 evidence remain compatibility generations.
+The parallel-mode architecture begins under new experimental rules schema 3,
+match contract schema 2, and eventually replay 3; old writers branch on their
+stored schema and stay byte-exact. A generic Frontline arm is a new named
+experiment, never a reinterpretation of alpha-1.
+
+Product terms are fixed. A **game mode** owns objective/scoring semantics; a
+**ruleset** is one immutable mechanic/tuning revision; a **match format** maps
+participants onto teams and unit capacity; a **playlist version** pins a
+ruleset, format, map pool, scheduler, matchmaking, and admission policy; a
+**ladder** is an opaque season/rating population for one playlist version; and
+the **match contract** is their fully resolved exact tick-zero input.
+FFA Deathmatch is Deathmatch mode plus an FFA format, not another mode.
+
+Forms, actions, same-life form transitions, and one-to-many replication are
+closed typed catalogs. Existing typed mechanics are data-tunable; the first
+new physical semantic adds one tagged capability, not a rules DSL or
+imperative map callback. The initial Split proof retires one surviving source
+at the next tick start into bounded fresh descendant lives with isolated
+runtimes and explicit lineage. It is not destruction and awards no kill.
+
+Results become canonical tied team standings plus keyed score channels and a
+typed mode result. Winner-slot fields remain compatibility projections.
+Ratings key by opaque ladder ID rather than rules version. The current duel
+ladder first passes through a `DuelEloV1` adapter with exact K=32/floor=100
+behavior; an FFA rating policy is a later explicit product decision, not
+pairwise Elo in a loop.
+
+The dependency order, schemas, proof fixtures, persistence migration, viewer
+boundary, and substantial-change pre-registration are in
+[`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). No Split,
+Deathmatch, FFA, or numeric starting arm is a balance or ship decision.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

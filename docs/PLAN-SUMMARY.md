@@ -180,6 +180,14 @@ remain unchanged. The frozen experimental contract is
 path remains
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md).
 
+The next architecture wave is
+[`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). It introduces new
+contract generations for typed game modes, match formats, generic
+score/results, bounded one-to-many Split, Deathmatch/FFA proof fixtures,
+immutable playlists, and opaque ladders. It does not mutate official replay
+v1 or the opened `frontline-alpha-1` replay-v2 evidence. Numeric proof values
+remain explicitly unbalanced experimental inputs.
+
 ## Next session pointers
 
 1. ~~Fast inner loop~~ **DONE** (DECISIONS #44): `--runtime in-process` runs
