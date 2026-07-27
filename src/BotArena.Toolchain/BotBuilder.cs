@@ -456,7 +456,9 @@ public static class BotBuilder
             ToolchainInfo.GuestAdapterVersion,
             ToolchainInfo.BuildPipelineVersion,
             BotArenaVersions.RuntimeProtocolVersion,
-            BotArenaVersions.RuntimeConfigurationVersion)));
+            BotArenaVersions.RuntimeConfigurationVersion,
+            BotArenaVersions.ActorRuntimeProtocolVersion,
+            BotArenaVersions.ActorRuntimeConfigurationVersion)));
         // The two staged assemblies are compiled into the artifact, so they belong in
         // its identity. Version strings alone were a promise the code did not keep: an
         // Sdk edit without a GuestAdapterVersion bump kept serving the old artifact, and

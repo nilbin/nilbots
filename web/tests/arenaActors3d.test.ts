@@ -89,6 +89,10 @@ function formPart(
 test('a destroyed bot collapses across the tick it dies in', () => {
   const actors = buildActors(replay);
   const chassis = chassisOf(actors.group, DEAD_UNIT);
+  const deathPosition = replay.ticks[DEATH_TICK].before.actors.find(
+    (actor) => actor.unitKey === DEAD_UNIT,
+  )?.position;
+  assert.ok(deathPosition);
 
   // Early in the tick it is still standing, upright and full size.
   actors.update(DEATH_TICK + 0.2, null, false);
@@ -99,11 +103,51 @@ test('a destroyed bot collapses across the tick it dies in', () => {
   // By the end of it, it has gone over, sunk and shrunk.
   actors.update(DEATH_TICK + 0.98, null, false);
   assert.equal(chassis.visible, true, 'the collapse is visible, not skipped');
+  assert.equal(
+    chassis.position.x,
+    deathPosition.x + 0.5,
+    'collapses at its authoritative final column',
+  );
+  assert.equal(
+    chassis.position.z,
+    deathPosition.y + 0.5,
+    'collapses at its authoritative final row',
+  );
   assert.ok(chassis.rotation.z > 0.3, `nosed over (${chassis.rotation.z})`);
   assert.ok(chassis.position.y < -0.05, `settled into the floor (${chassis.position.y})`);
   assert.ok(chassis.scale.x < 0.9, `shrunk (${chassis.scale.x})`);
 
   actors.dispose();
+});
+
+test('legacy damage and destruction flash at their normalized impact tile', () => {
+  const impact = replay.ticks[DEATH_TICK].events.find(
+    (event) => event.type === 'damage',
+  );
+  assert.ok(impact?.from);
+  assert.equal(
+    impact.to,
+    null,
+    'the replay-v1 fixture keeps its impact tile in from',
+  );
+
+  const overlays = buildOverlays(replay);
+  overlays.update(DEATH_TICK + 0.1, null, false);
+  let flash: THREE.Object3D | null = null;
+  overlays.group.traverse((node) => {
+    if (
+      node.visible &&
+      node.userData.cue === 'event-flash' &&
+      node.userData.eventType === 'damage'
+    ) {
+      flash = node;
+    }
+  });
+
+  assert.ok(flash, 'the 2.5D renderer emits the legacy impact flare');
+  assert.equal(flash.position.x, impact.from.x + 0.5);
+  assert.equal(flash.position.z, impact.from.y + 0.5);
+  overlays.dispose();
 });
 
 test('a firing bot recoils, and only while its shot is in progress', () => {

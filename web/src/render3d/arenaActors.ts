@@ -706,12 +706,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      * through the same arc, and the tile a bot is *on* is never in question — this only
      * changes the path taken between two tiles the replay already recorded.
      */
-    const glideAt = (actorKey: ReplayActorLifeKey) => {
+    const glideAt = (
+      actorKey: ReplayActorLifeKey,
+      fallback: { readonly x: number; readonly y: number },
+    ) => {
       const at = (state: typeof opening) =>
         state?.actors.find((actor) => actor.actorKey === actorKey);
       const p1 = at(opening);
       const p2 = at(closing);
-      if (!p1 || !p2) return { x: 0, y: 0 };
+      if (!p1) return fallback;
+      // A destroyed life is absent from the authoritative closing state, but
+      // its collapse belongs where that life stood. It must not fall back to
+      // the map origin or inherit a later life occupying the stable slot.
+      if (!p2) return p1.position;
       const p0 = at(previous) ?? p1;
       const p3 = at(next) ?? p2;
       return {
@@ -779,7 +786,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         form?.omnidirectionalShooting === true;
       bot.body.visible = !stationary;
       bot.turret.visible = stationary;
-      const glide = glideAt(pose.actorKey);
+      const glide = glideAt(pose.actorKey, pose);
       bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
       bot.highlight(
         pose.unitKey === selectedUnitKey && pose.status === 'active',

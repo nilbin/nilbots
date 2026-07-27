@@ -89,15 +89,20 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   replay + SHA-256 hash, plus the experimental multi-life
   `FrontlineMatchSession`, canonical actor observation/runtime seam, and
   internal observation-complete replay v2. No web/DB/WASM dependencies.
-- `src/BotArena.Sdk` — developer API (`IBot`, `BotContext`, `Actions`,
-  `IBotRandom`, `IBotDebug`); engine-independent.
-- `src/BotArena.Bots.BuiltIn` — Idle/Wander/Hunter/Coward against the SDK only.
-- `src/BotArena.Runtime` — in-process `IBotRuntime` (diagnostic).
+- `src/BotArena.Sdk` — engine-independent developer API: the shipped
+  `IBot`/`BotContext` duel contract plus the internal typed
+  `IActorBot`/`ActorContext` Frontline contract and shared actor wire codec.
+- `src/BotArena.Bots.BuiltIn` — Idle/Wander/Hunter/Coward plus the internal
+  Frontline actor probe, against SDK contracts only.
+- `src/BotArena.Runtime` — in-process duel and actor runtimes (diagnostic).
 - `src/BotArena.Runtime.Wasm` — canonical runtime: Wasmtime 44 host, fuel +
-  memory limits, trap isolation, runtime protocol 0.1.
+  memory/table/epoch limits and trap isolation; shipped duel protocol 0.1 plus
+  internal actor protocol/configuration 1.0 with one compiled artifact Module
+  and isolated Store/Instance per life.
 - `src/BotArena.WasmGuest` — guest program (built-ins as WASM;
   `scripts/build-wasm-guest.sh` → `artifacts/wasm/builtin-bots.wasm`).
-- `src/BotArena.Guest` — reusable guest loop (`GuestHost.Run`) + protocol.
+- `src/BotArena.Guest` — reusable legacy and actor guest loops/protocol
+  adapters.
 - `src/BotArena.Cli` — `new` / `build` (cached) / `play` / `watch` / `replay` /
   `verify` / `doctor` / `cache` / `bots` / `maps`.
 - `templates/botarena-bot` — the player project template.
@@ -113,7 +118,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   private multi-zone layout.
 - `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into. One normalized model
-  preserves replay v1 and can present internal Frontline replay v2.
+  preserves replay v1 and presents internal Frontline replay v2 through the
+  default Canvas2D renderer or an optional lazy WebGL 2.5D renderer. The CLI
+  artifact excludes Three.js.
 - `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
   and replay-viewer suites, including DocDrift tests that pin mechanical
   docs/mirrors to the engine.
@@ -133,13 +140,15 @@ as deterministic public inputs. This keeps future player counts, maps,
 seasons, and forms representable without fixing bots or ML models to today's
 body count.
 
-Packages 0–6 of
+Packages 0–7 of
 [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) are
 implemented on the internal experimental path. The historical shield and
 public fingerprints, explicit team/participant/unit/life topology,
 map-format-2 definition, objective kernel, independently instantiated
 same-artifact runtimes, canonical team observations, replication/fabrication,
-per-life Anchor/turret forms, and strict replay v2 are executable and tested.
+per-life Anchor/turret forms, strict replay v2, engine-independent actor
+SDK/Guest types, actor protocol/configuration 1.0, and canonical isolated WASM
+life instances are executable and tested.
 
 `PrepareTick()` freezes exact life-qualified actor keys and observations before
 any runtime acts. `StepActors()` resolves the keyed joint action, including
@@ -149,12 +158,14 @@ absolute eight-way turret fire. Replay v2 snapshots those exact observations,
 decisions, masks, lifecycle facts, post-state, and terminal stable-unit rows.
 The web viewer and mobile bridge consume the same version-neutral normalized
 model and visualize the five-position objective, lifecycle, Anchor windup, and
-turret state.
+turret state. Canvas2D remains the default; the optional WebGL 2.5D renderer
+shares those derivations, loads lazily, and still requires manual GPU/mobile
+QA.
 
-This is still not a shipped gameplay path. SDK/guest types, protocol vNext,
-canonical WASM life instances, CLI/App selection, server admission, dataset
-tools, and any ladder remain Packages 7–8 or replay-native follow-ons. Official
-rules 0.5, protocol 0.1, replay v1, and their hashes remain unchanged. The
+This is still not a shipped gameplay path. Public CLI/App selection, server
+eligibility/admission, dataset/corpus/model tooling, evaluation, rollout, and
+any ladder remain Package 8 or replay-native follow-ons. Official rules 0.5,
+protocol/configuration 0.1, replay v1, and their hashes remain unchanged. The
 frozen internal contract is
 [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md); the shared ML/data
 path remains
@@ -215,7 +226,8 @@ path remains
     [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). The engine-rewrite
     seam is now implemented for internal Frontline: one canonical public
     observation per `PrepareTick` actor is passed to its life runtime and
-    snapshotted with the keyed joint step into strict replay v2. Dataset
+    snapshotted with the keyed joint step into strict replay v2, and actor
+    protocol 1.0 delivers it to canonical per-life WASM instances. Dataset
     export, public corpus access, bounded model assets, starter inference, and
-    protocol/public-product delivery remain sequenced follow-ons; no
+    public-product delivery remain sequenced follow-ons; no ML-driven
     sandbox-limit change is proposed.

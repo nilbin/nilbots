@@ -447,6 +447,7 @@ function buildFlashes(
       // Cloned so each flash carries its own colour and opacity while sharing one texture.
       const mesh = new THREE.Mesh(geometry, material.clone());
       mesh.visible = false;
+      mesh.userData.cue = 'event-flash';
       group.add(mesh);
       pool.push(mesh);
     }
@@ -471,9 +472,11 @@ function buildFlashes(
             }
           : (event.type === 'damage' ||
                 event.type === 'destroyed') &&
-              event.to
+              (event.to ?? event.from)
             ? {
-                position: event.to,
+                // Replay-v2 carries the impact tile in `to`; normalized replay-v1
+                // historically carries the same authoritative tile in `from`.
+                position: event.to ?? event.from!,
                 colour: impact,
                 size: 2.4,
                 life: 0.8,
@@ -488,6 +491,7 @@ function buildFlashes(
 
       const mesh = borrow(used++);
       mesh.visible = true;
+      mesh.userData.eventType = event.type;
       mesh.position.set(
         flash.position.x + 0.5,
         0.05,

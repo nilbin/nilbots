@@ -4,8 +4,8 @@ namespace BotArena.Engine;
 
 /// <summary>
 /// Immutable, runtime-neutral description of the rules a bot may reason about.
-/// It is not the engine's mutable configuration surface and is not yet delivered
-/// through runtime protocol 0.1.
+/// It is not the engine's mutable configuration surface. Actor protocol 1.0
+/// delivers it to entity-life bots; historical duel protocol 0.1 does not.
 /// </summary>
 public sealed record PublicRulesManifest
 {
@@ -16,8 +16,8 @@ public sealed record PublicRulesManifest
     public required PublicObjectiveRules Objective { get; init; }
     /// <summary>
     /// Runnable experimental Frontline lifecycle, fabrication, Anchor, and
-    /// turret-fire contract for the internal headless match and replay path.
-    /// Delivery through the public App/protocol boundary remains deferred.
+    /// turret-fire contract for the internal headless, actor-runtime, and
+    /// replay paths. Public App admission and matchmaking remain deferred.
     /// </summary>
     public required PublicFrontlineDefinition? Frontline { get; init; }
     public required PublicEnergyRules Energy { get; init; }
@@ -47,17 +47,17 @@ public sealed record PublicMatchLimits(
 
 public enum PublicObjectiveMode
 {
-    None,
-    ZoneTicks,
-    SharedPressure,
-    Frontline,
+    None = 0,
+    ZoneTicks = 1,
+    SharedPressure = 2,
+    Frontline = 3,
 }
 
 public enum PublicScoreMetric
 {
-    Objective,
-    Health,
-    DamageDealt,
+    Objective = 0,
+    Health = 1,
+    DamageDealt = 2,
 }
 
 public sealed record PublicObjectiveRules(
@@ -122,7 +122,7 @@ public sealed record PublicFrontlineCaptureDefinition(
 /// </summary>
 public enum PublicFrontlineCapturePresencePolicy
 {
-    BinaryPositiveWeightPerTeamNoStacking,
+    BinaryPositiveWeightPerTeamNoStacking = 0,
 }
 
 /// <summary>
@@ -131,7 +131,7 @@ public enum PublicFrontlineCapturePresencePolicy
 /// </summary>
 public enum PublicFrontlineNonSolePresencePolicy
 {
-    DecayExistingClaim,
+    DecayExistingClaim = 0,
 }
 
 /// <summary>
@@ -140,7 +140,7 @@ public enum PublicFrontlineNonSolePresencePolicy
 /// </summary>
 public enum PublicFrontlineCounterCapturePolicy
 {
-    ErodeToNeutralBeforeClaim,
+    ErodeToNeutralBeforeClaim = 0,
 }
 
 /// <summary>
@@ -238,7 +238,7 @@ public sealed record PublicEnergyRules(
 
 public enum PublicMovementLayer
 {
-    Ground,
+    Ground = 0,
 }
 
 public sealed record PublicFormDefinition(
@@ -283,8 +283,8 @@ public sealed record PublicActionDefinition(
 
 public enum PublicProjectileMode
 {
-    InstantRay,
-    Discrete,
+    InstantRay = 0,
+    Discrete = 1,
 }
 
 public sealed record PublicProjectileRules(
@@ -334,25 +334,25 @@ public readonly record struct PublicShotProgramValue(
 
 public enum PublicActionRejectionResult
 {
-    Blocked,
-    Faulted,
-    Rejected,
+    Blocked = 0,
+    Faulted = 1,
+    Rejected = 2,
 }
 
 public enum PublicDistanceMetric
 {
-    Chebyshev,
+    Chebyshev = 0,
 }
 
 public enum PublicVisionShape
 {
-    Omnidirectional,
-    FacingQuadrant,
+    Omnidirectional = 0,
+    FacingQuadrant = 1,
 }
 
 public enum PublicLineOfSightModel
 {
-    CornerStrictSupercover,
+    CornerStrictSupercover = 0,
 }
 
 public sealed record PublicVisionRules(
@@ -386,20 +386,20 @@ public sealed record PublicCollisionRules(
 
 public enum PublicTickResolutionPhase
 {
-    FreezeObservations,
-    CollectJointDecisions,
-    ValidateActions,
-    Rotate,
-    Move,
-    AdvanceExistingProjectiles,
-    LaunchShotsAndApplyDamage,
-    UpdateCooldownsAndEnergy,
-    ApplyRuntimeFaults,
-    UpdateObjective,
-    ResolveMatchCompletion,
-    ApplyTickStartLifecycle,
-    QueueDestroyedLives,
-    QueueFabrications,
+    FreezeObservations = 0,
+    CollectJointDecisions = 1,
+    ValidateActions = 2,
+    Rotate = 3,
+    Move = 4,
+    AdvanceExistingProjectiles = 5,
+    LaunchShotsAndApplyDamage = 6,
+    UpdateCooldownsAndEnergy = 7,
+    ApplyRuntimeFaults = 8,
+    UpdateObjective = 9,
+    ResolveMatchCompletion = 10,
+    ApplyTickStartLifecycle = 11,
+    QueueDestroyedLives = 12,
+    QueueFabrications = 13,
     StartFormTransitions = 14,
     CompleteFormTransitions = 15,
 }

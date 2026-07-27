@@ -30,11 +30,11 @@ public static class ToolchainInfo
     /// <summary>The published `Nilbots` tool version. MUST be bumped whenever
     /// SdkVersion or BuildPipelineVersion changes: those decide artifact bytes, and
     /// `submit` refuses against a server the installed tool cannot match, so a player
-    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.5.x carries SDK 0.8.1
-    /// and build pipeline 3; 0.5.5 also carries the generated HTTP contracts used by
+    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.6.x carries SDK 0.9.0
+    /// and build pipeline 3; it also carries the generated HTTP contracts used by
     /// CLI server commands. Keep in lockstep with BotArena.Cli.csproj's Version —
     /// PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.5.6";
+    public const string CliVersion = "0.6.0";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -54,9 +54,12 @@ public static class ToolchainInfo
     // members that are inert outside the research arms (strafe actions, Energy) are
     // marked [Obsolete] + [EditorBrowsable(Never)] so they no longer read as playable
     // API. Compile-surface change for player projects, hence a version bump.
-    public const string SdkVersion = "0.8.1";
+    // 0.9.0: independent entity-life API, typed Frontline manifest and
+    // observations/actions, plus actor protocol 1.0's shared tagged codec.
+    // Legacy IBot and line protocol 0.1 remain byte-for-byte compatible.
+    public const string SdkVersion = "0.9.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.8.0";
+    public const string GuestAdapterVersion = "0.9.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

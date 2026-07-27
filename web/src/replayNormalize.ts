@@ -1187,6 +1187,8 @@ const v2Header = strictObject({
   gameRulesVersion: stringValue,
   actorRuntime: strictObject({
     family: stringValue,
+    protocolVersion: stringValue,
+    configurationVersion: stringValue,
     version: integerValue,
     matchStartSchemaVersion: integerValue,
     observationSchemaVersion: integerValue,

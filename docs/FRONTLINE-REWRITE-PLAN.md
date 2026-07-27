@@ -11,12 +11,13 @@ versus one body into a territorial contest between two submitted
 intelligences that may each replicate into several independent runtime
 instances.
 
-Implementation checkpoint: Packages 0–6 are implemented on an internal
+Implementation checkpoint: Packages 0–7 are implemented on an internal
 experimental path: deterministic multi-life runtime/session, canonical team
 observation, strict replay v2, replication/fabrication, per-life Anchor/turret,
-and version-neutral web/mobile presentation. It is not exposed through the
-shipped SDK, protocol, replay-v1 emitter, CLI/App match path, canonical WASM
-runner, server admission, or ladder.
+engine-independent actor SDK/Guest types, actor protocol/configuration 1.0,
+canonical isolated WASM life instances, and version-neutral web/mobile
+presentation. It is not exposed through the public CLI/App match path,
+replay-v1 emitter, server admission, evaluation program, or ladder.
 
 ## Relationship to current plans
 
@@ -409,8 +410,8 @@ stable while `Rebuilding` and `Ready` are body-absent states.
 The current closed enum will not scale cleanly to transformations and
 form-dependent directional fire.
 
-Protocol vNext should carry a stable action ID plus typed parameters. The SDK
-may continue offering ergonomic typed helpers:
+Actor protocol 1.0 carries a stable action ID plus typed parameters. The SDK
+offers ergonomic typed helpers:
 
 ```csharp
 Actions.MoveForward()
@@ -468,8 +469,9 @@ keeps the same instance and memory.
 
 ### 7.1 Implemented internal runtime contract
 
-Packages 3–6 now freeze lifecycle, joint-action identity, observation,
-replication, and form causality. `PrepareTick()` applies due tick-start
+Packages 3–7 now freeze lifecycle, joint-action identity, observation,
+replication, form causality, SDK/Guest delivery, and the canonical WASM
+boundary. `PrepareTick()` applies due tick-start
 transitions once and returns active keys in canonical
 `(teamId, unitId, lifeId)` order. Repeated calls before a successful step are
 idempotent. One canonical `ActorObservation` is built for every exact key
@@ -524,25 +526,45 @@ and applies the clamped health gain. Turret fire uses a separate absolute
 eight-heading action, never changes body facing, and launches one straight
 non-programmed projectile.
 
-### 7.2 Protocol vNext
+### 7.2 Actor protocol 1.0
 
 The current line protocol 0.1 remains the historical duel path. Frontline's
 team identity, manifest, variable entities, action parameters, and legality
-masks require a separate protocol major rather than additive reinterpretation.
+masks use separate actor protocol/configuration 1.0 rather than additive
+reinterpretation.
 
-Use framed messages with explicit message and field identities:
+The selected dependency-free `NBV2` codec uses a 12-byte frame header and
+tagged, length-delimited binary fields. Its exchange is:
 
-- `MatchStart`, including manifest and unit identity;
-- `ObservationFrame`;
-- `DecisionFrame`;
-- `MatchEnd`.
+```text
+Hello -> HelloAck -> MatchStart -> Ready
+      -> Observation -> Decision ...
+      -> MatchEnd
+```
 
-Unknown tagged fields must be skippable. Structural breaking changes bump the
-protocol major version. The controlled guest adapter continues hiding wire
-details from ordinary bot authors.
+`Ready` attests the exact actor runtime, MatchStart, observation, and decision
+schemas compiled into the guest. Each released request accepts exactly one
+correlated reply. `Fault` reports a terminal negotiation/codec/bot failure;
+`Unsupported` names a capability that the artifact cannot implement. Unknown
+tagged fields are skipped, while missing required, duplicate, malformed,
+truncated, invalid-UTF-8, and undefined-enum values fail closed. Host frames
+are capped at 1 MiB, guest replies at 64 KiB, semantic action/form IDs at 64
+UTF-8 bytes, and bot selectors/opaque handles at 256 bytes.
 
-Choose the concrete encoding only after a NativeAOT/WASI spike measuring guest
-size, allocations, throughput, code generation, and forward-field skipping.
+The NativeAOT JSON candidate measured 21.2–21.5 MiB and exceeded the 16 MiB
+artifact ceiling. The custom codec kept the rebuilt tracked guest at
+3,341,998 bytes, so it became the actor 1.0 contract (DECISIONS #129). The
+controlled guest adapter hides wire details from ordinary bot authors; the
+shared codec lives in BotArena.Sdk so Guest and Runtime.Wasm do not maintain
+independent field definitions.
+
+One submitted artifact factory compiles one Wasmtime Engine/Module. Every
+life owns an isolated Store/Instance/thread/memory and preserves it through a
+form transition; destruction disposes it and a later life starts fresh.
+Configuration 1.0 pins fuel, epoch/wall-clock interruption, deterministic
+clock/random shims, 64 MiB memory, 16,384 table elements, and one
+memory/table/instance per Store. The complete contract is
+[`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md).
 
 ## 8. Replay-native ML seam
 
@@ -664,12 +686,15 @@ effects:
 - focus-fire and destruction attribution;
 - phase/unlock announcements.
 
-The renderer currently serves four consumers: the site, the CLI's
-self-contained viewer, hosted review, and the mobile app's WebView. The mobile
-WebView renders the canvas while native controls/cards consume
-`web/src/replayPresentation.ts` through the hosted-viewer bridge. Frontline
-therefore needs one replay-version normalization and presentation layer, not
-a second native replay interpreter.
+Canvas2D remains the default renderer for the site, CLI's self-contained
+viewer, hosted review, and the mobile app's WebView. An optional WebGL 2.5D
+renderer consumes the same normalized replay/presentation model and loads
+Three.js only when selected; the CLI build stubs it out and contains no
+Three.js. The mobile WebView renders the arena while native controls/cards
+consume `web/src/replayPresentation.ts` through the hosted-viewer bridge.
+Frontline therefore has one replay-version normalization and presentation
+layer, not a second native replay interpreter. Manual GPU/mobile QA remains
+before the optional renderer has a release claim.
 
 Any hosted-viewer bridge change requires matching protocol/native changes
 under `mobile/src/components/arena/` in the same integration commit and a
@@ -718,14 +743,15 @@ redesigned product.
 
 ## 13. Scripted acceptance before balance
 
-Packages 3–6 pass the deterministic mechanics subset: exact prepared keys and
-runtime instances, combat/projectile parity, repeated respawn,
+Packages 3–7 pass the deterministic mechanics/runtime subset: exact prepared
+keys and runtime instances, combat/projectile parity, repeated respawn,
 replication/refabrication, simultaneous destruction, old-life projectile
 persistence, actual-damage overkill, post-damage objective presence,
 early/final-tick breach, territorial timeout, Anchor timing/cancellation,
 current/default form state, absolute turret fire, observation masks, and
-strict replay causality. Native-bot dynamics and entertainment gates below
-remain future work.
+strict replay causality, plus actor wire validation, exact guest attestation,
+legacy-artifact eligibility, per-life WASM isolation, and in-process/WASM
+parity. Native-bot dynamics and entertainment gates below remain future work.
 
 - An unopposed sweep wins before the first fabrication unlock but not
   implausibly close to tick zero.

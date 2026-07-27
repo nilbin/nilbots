@@ -234,6 +234,7 @@ export default function Viewer({
                 selectedUnitKey={selectedUnitKey}
                 showVisibility={showVisibility}
                 onSelectUnit={setSelectedUnitKey}
+                onUnavailable={() => setDimensional(false)}
               />
             </Suspense>
           ) : (

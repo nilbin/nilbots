@@ -106,6 +106,8 @@ export interface ReplayV2Presentation {
 
 export interface ReplayV2ActorRuntimeContract {
   family: string;
+  protocolVersion: string;
+  configurationVersion: string;
   version: number;
   matchStartSchemaVersion: number;
   observationSchemaVersion: number;

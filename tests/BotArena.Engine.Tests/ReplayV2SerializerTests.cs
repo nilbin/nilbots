@@ -24,7 +24,7 @@ public sealed class ReplayV2SerializerTests
             Encoding.UTF8.GetBytes(forwardPayload)));
         Assert.Equal(forwardPayload, reversePayload);
         Assert.Equal(
-            "cb5b2ded89f3785e46f596746fd51066997d21ce32a5e31f702153ac83df0866",
+            "076fe25609904d75672d9df8c17b88cb3493a248036b44b1206b9bc1ea7e5596",
             ReplayV2Serializer.ComputeHash(forward));
         Assert.Equal(expectedHash, ReplayV2Serializer.ComputeHash(forward));
         Assert.Equal(

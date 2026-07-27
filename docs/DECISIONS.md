@@ -2037,6 +2037,48 @@ code. Projectile traversal is one shared normalized derivation with all eight he
 exact decimal-string identity. Canvas2D remains the default, and the self-contained CLI
 build neither includes three.js nor offers its deliberately stubbed renderer as a toggle.
 
+## 129. Frontline uses a bounded tagged binary actor protocol and one isolated WASM instance per life
+
+Protocol/configuration 0.1 remains the exact shipped line-oriented duel path. Frontline
+gets separate actor protocol/configuration 1.0 rather than reinterpreting unused legacy
+fields. Its dependency-free `NBV2` codec has a fixed 12-byte frame header and
+length-delimited tagged fields: unknown fields are skipped, while duplicate, missing
+required, malformed, truncated, invalid-UTF-8 and undefined-enum values fail closed. Host
+frames are capped at 1 MiB, guest replies at 64 KiB, semantic action/form IDs at 64 UTF-8
+bytes, bot selectors and opaque handles at 256 bytes, collection counts at 4,096 and
+nesting at 64.
+
+That encoding is an artifact-size decision, not aesthetic preference. A
+System.Text.Json NativeAOT spike produced 21.2–21.5 MiB guests and violated the existing
+16 MiB artifact ceiling. The custom codec's final tracked built-in guest is 3,341,998
+bytes with SHA-256
+`9f081e17723a9d155800c258a0613cdba319762dfff598ca35ed82241baff9e4` and input
+stamp `52e88112007186066d337ac7e7a6567044b149a7`: 785,134 bytes of growth over the
+2,556,864-byte legacy artifact, still below 1 MiB. The shared field codec lives in
+BotArena.Sdk so Guest and Runtime.Wasm cannot evolve separate wire definitions.
+
+Negotiation is active. `Hello` identifies actor-capable guests without trusting artifact
+metadata; a protocol-0.1 artifact is explicitly executable but Frontline-ineligible.
+`Ready` attests the runtime, MatchStart, observation and decision schemas compiled into
+the guest rather than echoing the host. Every released host request accepts exactly one
+correlated reply. `Fault` terminates a broken negotiation/codec/bot session, while
+`Unsupported` names a capability the artifact cannot implement so eligibility never
+silently becomes `Wait`.
+
+One submitted-artifact factory owns one Wasmtime Engine and compiled Module. Every active
+`(teamId, unitId, lifeId)` owns an independent Store, Instance, guest thread, memory,
+globals, deterministic clock/random shims and bot object. A form change keeps that exact
+life; destruction disposes it, and respawn or refabrication starts fresh private memory.
+Configuration 1.0 pins 64 MiB linear memory, 16,384 table elements, one
+memory/table/instance per Store, startup and tick fuel, epoch/wall-clock interruption and
+immediate `NOSYS` for `poll_oneoff`; modules with a WebAssembly start section are rejected
+so `_start`, ticks and MatchEnd retain an interruption path.
+
+Package 7 coordinates SDK 0.9.0, guest adapter 0.9.0, actor
+protocol/configuration 1.0, controlled build-cache provenance, the rebuilt artifact and
+CLI package 0.6.0. This is an internal canonical Frontline runtime, not a public shipment:
+CLI/App selection, server admission, evaluation and ladders remain Package 8.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -61,6 +61,8 @@ internal sealed record ReplayV2Presentation(
 
 internal sealed record ReplayV2ActorRuntimeContract(
     string Family,
+    string ProtocolVersion,
+    string ConfigurationVersion,
     int Version,
     int MatchStartSchemaVersion,
     int ObservationSchemaVersion,

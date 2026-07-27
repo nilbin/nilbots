@@ -23,17 +23,17 @@ public sealed record PublicFrontlineFabricationDefinition(
 
 public enum PublicFrontlineFabricationTargetPolicy
 {
-    OwnReadyChildSlot,
+    OwnReadyChildSlot = 0,
 }
 
 public enum PublicFrontlineFabricationActivationRegion
 {
-    OwnProtectedSpawnPad,
+    OwnProtectedSpawnPad = 0,
 }
 
 public enum PublicFrontlineFabricationSpawnRegion
 {
-    OwnProtectedSpawnPadExcludingPrimeSpawn,
+    OwnProtectedSpawnPadExcludingPrimeSpawn = 0,
 }
 
 /// <summary>
@@ -44,15 +44,15 @@ public enum PublicFrontlineFabricationSpawnRegion
 /// </summary>
 public enum PublicFrontlineFabricationCapacityEvaluation
 {
-    PostMovementDuringQueueFabrications,
+    PostMovementDuringQueueFabrications = 0,
 }
 
 public enum PublicFrontlineFabricationSpawnSelection
 {
-    FirstUnoccupiedUnreservedCanonicalYThenX,
+    FirstUnoccupiedUnreservedCanonicalYThenX = 0,
 }
 
 public enum PublicFrontlineFabricationSpawnFacing
 {
-    OwnPrimeSpawnFacing,
+    OwnPrimeSpawnFacing = 0,
 }

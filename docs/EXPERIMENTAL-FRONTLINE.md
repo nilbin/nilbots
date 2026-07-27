@@ -1,8 +1,10 @@
 # Experimental Frontline contract
 
 Status: **implemented internal experiment; not a shipped ruleset**, 2026-07-27.
-Official rules 0.5, replay v1, runtime protocol 0.1, and the current ladder are
-unchanged. Frontline is not yet selectable through the shipped SDK, CLI, App,
+Official rules 0.5, replay v1, runtime protocol/configuration 0.1, and the
+current ladder are unchanged. Its engine-independent actor SDK/Guest,
+protocol/configuration 1.0, and canonical per-life WASM runtime exist
+internally, but Frontline is not yet selectable through the public CLI, App,
 or server match path.
 
 This document is the concise player and bot-author contract for the frozen
@@ -140,6 +142,13 @@ state and the frozen union of what allied sensors can see, with exact
 `observedBy` provenance. A runtime never receives an ally's same-tick action;
 all observations are frozen before any decision is executed.
 
+`IActorBot.StartLife` receives the immutable contract and life identity once;
+`IActorBot.Tick` receives each observation and returns one typed decision.
+Actor protocol 1.0 delivers that contract through the bounded `NBV2` tagged
+binary codec. One submitted artifact is compiled once, while every active life
+owns an isolated WASM Store/Instance and private memory. See
+[`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md).
+
 The observation includes:
 
 - exact self identity, current form, state, and pending transition;
@@ -184,16 +193,19 @@ transformation, and terminal unit rows. Competitive behavior at those counts
 still requires suitable training data.
 
 Dataset export, public replay corpora, model-asset packaging, starter
-inference, SDK/protocol vNext, canonical WASM execution, CLI selection, App
-admission, and ranked use remain follow-on work in
+inference, CLI selection, App/server admission, evaluation, and ranked use
+remain follow-on work in
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) and
 [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md).
 
 ## Evidence status
 
-Engine, observation, replay, viewer, and mobile-bridge tests establish
-determinism and mechanical causality. They do not establish fun, duration, or
-balance. The strong-turret defaults remain starting arms.
+Engine, observation, replay, actor SDK/protocol/WASM, viewer, and mobile-bridge
+tests establish determinism and mechanical causality. They do not establish
+fun, duration, or balance. The strong-turret defaults remain starting arms.
+Canvas2D remains the viewer default; the optional lazy WebGL 2.5D renderer
+shares normalized replay state, is absent from the CLI artifact, and still
+needs manual GPU/mobile QA.
 
 Before any product verdict, Frontline still requires fixed all-WASM candidate
 artifacts, at least four independently authored Frontline-native doctrines

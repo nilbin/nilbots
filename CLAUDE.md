@@ -114,23 +114,27 @@ Project boundaries that must not be violated:
   Shipped protocol 0.1 and replay v1 do not deliver or embed it; the internal
   Frontline replay v2 embeds it for the experimental runtime and viewer.
 - Frontline is an unshipped experiment implemented internally through
-  Package 6. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
+  Package 7. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
   continue through legacy `MatchSession`, runtime protocol 0.1, replay v1, and
   map format 1. Experimental map format 2, exact rules/map/topology
   fingerprints, `FrontlineMatchSession`, independently instantiated per-life
   `ActorRuntime`s, canonical team observations, replication/fabrication,
-  per-life Anchor/turret forms, and internal replay v2 exist. Web/mobile can
-  present that v2 through their version-neutral replay model; the web viewer's
-  default Canvas2D and optional lazy WebGL renderers share those derivations. The shipped
-  SDK/guest, protocol, CLI/App match path, canonical WASM runner, server
-  admission, and ladders do not expose Frontline yet. Format-v2 assets live
-  under `maps/experimental/`; current App and CLI catalogs/package inputs
-  enumerate only top-level format-v1 maps, and legacy `MatchEngine` still
-  rejects a Frontline definition defensively.
+  per-life Anchor/turret forms, internal replay v2, engine-independent actor
+  SDK/Guest adapters, actor protocol/configuration 1.0, and canonical isolated
+  WASM life instances exist. Web/mobile can present v2 through their
+  version-neutral replay model; the web viewer's default Canvas2D and optional
+  lazy WebGL 2.5D renderers share those derivations. The self-contained CLI
+  viewer excludes Three.js. Manual GPU/mobile QA remains for the optional
+  renderer. The public CLI/App match path, server admission, evaluation
+  corpus, and ladders do not expose Frontline yet. Format-v2 assets live under
+  `maps/experimental/`; current App and CLI catalogs/package inputs enumerate
+  only top-level format-v1 maps, and legacy `MatchEngine` still rejects a
+  Frontline definition defensively.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
-  two have deliberately duplicated types, mapped by adapters in
-  BotArena.Runtime (in-process, diagnostic only) and BotArena.Guest (the
-  guest-side tick loop compiled into every bot artifact).
+  two have deliberately duplicated legacy and actor types, mapped by adapters
+  in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,
+  and BotArena.Guest (the guest-side tick loop compiled into every bot
+  artifact).
 - **BotArena.Toolchain** is the ONE controlled-build path: the CLI's
   `botarena build` and the server's submission pipeline call the same
   `BotBuilder.BuildFromSources`. Player csproj files are never trusted; the
@@ -173,10 +177,14 @@ Project boundaries that must not be violated:
   the manual release workflow both derive workers from that validated
   inventory; do not reintroduce per-worker GitHub variables.
 
-Runtime protocol 0.1 is a line-oriented text protocol over two wasm imports
-(`botarena::next_observation` / `post_decision`). Host and guest halves live in
-`Runtime.Wasm/WasmProtocol.cs` and `Guest/GuestProtocol.cs` — **they must be
-edited in lockstep**.
+Two runtime contracts coexist over
+`botarena::next_observation` / `post_decision`. Protocol/configuration 0.1 is
+the shipped line-oriented duel path; its host and guest twins live in
+`Runtime.Wasm/WasmProtocol.cs` and `Guest/GuestProtocol.cs` and **must be
+edited in lockstep**. Internal actor protocol/configuration 1.0 uses the
+dependency-free `NBV2` tagged binary codec shared from BotArena.Sdk, exact
+compile-contract attestation, correlated request/reply exchange, and typed
+unsupported-capability failures. See `docs/RUNTIME-PROTOCOL.md`.
 
 Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 `main.tsx`: the site (router) or the standalone replay viewer (when
@@ -213,6 +221,11 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   refabrication creates a fresh `lifeId` and runtime. Stable slots retain an
   immutable default form while the active life carries its effective form and
   pending transition.
+- One WASM actor factory compiles one Wasmtime Engine/Module per submitted
+  artifact. Each active life owns an isolated Store/Instance/thread/memory;
+  startup, every tick, and shutdown retain fuel, epoch, wall-clock, memory,
+  table, and instance limits. Guest `Ready` attests the exact actor runtime,
+  MatchStart, observation, and decision schemas compiled into the artifact.
 - Frontline protected pads block opposing ground entry only: they grant no
   damage immunity and do not stop projectiles. The authored `PrimeSpawn` is
   permanently reserved against own children; fabrication selects another free
@@ -242,8 +255,9 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   provenance. Historical official rules/map/match goldens must remain exact.
 - Broadcast secrecy: API endpoints must never reveal winners/outcomes/ratings
   before `Match.BroadcastComplete(now)` — new endpoints must follow this.
-- Version axes (SDK / runtime protocol / runtime config / game rules) are in
-  `BotArenaVersions` + `ToolchainInfo`; all of them feed the build-cache key.
+- Version axes (SDK / legacy and actor runtime protocols / legacy and actor
+  runtime configurations / game rules) are in `BotArenaVersions` +
+  `ToolchainInfo`; all of them feed the build-cache key.
 - **A server may not ship ahead of its CLI compatibility surface.** `/api/meta` advertises
   `sdkVersion` + `buildPipelineVersion`, and `nilbots submit` refuses to build
   against a server it cannot byte-match (DECISIONS #93). So changing

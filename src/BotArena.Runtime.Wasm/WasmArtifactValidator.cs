@@ -38,20 +38,25 @@ public static class WasmArtifactValidator
 
     public static WasmArtifactValidation Validate(string path)
     {
-        var file = new FileInfo(path);
-        if (!file.Exists)
-            throw new FileNotFoundException("WASM artifact does not exist.", path);
-        if (file.Length is <= 0 or > MaxArtifactBytes)
-            throw new InvalidDataException(
-                $"WASM artifact must be between 1 byte and {MaxArtifactBytes / 1024 / 1024} MiB.");
+        byte[] bytes = ReadArtifact(path);
+        ValidateBinaryEnvelope(bytes);
 
         using var engine = new WasmtimeEngine(new Config().WithFuelConsumption(true));
-        using var module = Module.FromFile(engine, path);
-        return Validate(module, file.Length);
+        using var module = Module.FromBytes(
+            engine,
+            Path.GetFileName(path),
+            bytes);
+        return Validate(module, bytes);
     }
 
     public static WasmArtifactValidation Validate(Module module, long sizeBytes)
     {
+        if (sizeBytes is <= 0 or > MaxArtifactBytes)
+        {
+            throw new InvalidDataException(
+                $"WASM artifact must be between 1 byte and {MaxArtifactBytes / 1024 / 1024} MiB.");
+        }
+
         var imports = new List<string>();
         bool nextObservation = false;
         bool postDecision = false;
@@ -105,6 +110,109 @@ public static class WasmArtifactValidator
                 $"WASM initial memory exceeds {MaxInitialMemoryBytes / 1024 / 1024} MiB.");
 
         return new WasmArtifactValidation(sizeBytes, initialMemoryBytes, imports);
+    }
+
+    internal static WasmArtifactValidation Validate(
+        Module module,
+        ReadOnlySpan<byte> bytes)
+    {
+        ValidateBinaryEnvelope(bytes);
+        return Validate(module, bytes.Length);
+    }
+
+    internal static byte[] ReadArtifact(string path)
+    {
+        FileStream stream;
+        try
+        {
+            stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+        }
+        catch (FileNotFoundException)
+        {
+            throw new FileNotFoundException("WASM artifact does not exist.", path);
+        }
+
+        using (stream)
+        {
+            if (stream.Length is <= 0 or > MaxArtifactBytes)
+            {
+                throw new InvalidDataException(
+                    $"WASM artifact must be between 1 byte and {MaxArtifactBytes / 1024 / 1024} MiB.");
+            }
+
+            byte[] bytes = new byte[checked((int)stream.Length)];
+            stream.ReadExactly(bytes);
+            if (stream.ReadByte() != -1)
+            {
+                throw new InvalidDataException(
+                    "WASM artifact changed while it was being read.");
+            }
+            return bytes;
+        }
+    }
+
+    internal static void ValidateBinaryEnvelope(ReadOnlySpan<byte> bytes)
+    {
+        ReadOnlySpan<byte> header =
+        [
+            0x00, 0x61, 0x73, 0x6d,
+            0x01, 0x00, 0x00, 0x00,
+        ];
+        if (bytes.Length < header.Length
+            || !bytes[..header.Length].SequenceEqual(header))
+        {
+            throw new InvalidDataException("WASM artifact header is invalid.");
+        }
+
+        int offset = header.Length;
+        while (offset < bytes.Length)
+        {
+            byte sectionId = bytes[offset++];
+            uint sectionLength = ReadUnsignedLeb32(bytes, ref offset);
+            if (sectionLength > bytes.Length - offset)
+            {
+                throw new InvalidDataException(
+                    "WASM artifact contains a truncated section.");
+            }
+            if (sectionId == 8)
+            {
+                throw new InvalidDataException(
+                    "WASM start sections are not allowed; export _start instead.");
+            }
+            offset += checked((int)sectionLength);
+        }
+    }
+
+    private static uint ReadUnsignedLeb32(
+        ReadOnlySpan<byte> bytes,
+        ref int offset)
+    {
+        uint value = 0;
+        for (int index = 0; index < 5; index++)
+        {
+            if (offset >= bytes.Length)
+            {
+                throw new InvalidDataException(
+                    "WASM artifact contains a truncated section length.");
+            }
+
+            byte current = bytes[offset++];
+            if (index == 4 && (current & 0xF0) != 0)
+            {
+                throw new InvalidDataException(
+                    "WASM artifact section length overflows uint32.");
+            }
+            value |= (uint)(current & 0x7F) << (index * 7);
+            if ((current & 0x80) == 0)
+                return value;
+        }
+
+        throw new InvalidDataException(
+            "WASM artifact section length is malformed.");
     }
 
     private static bool Signature(

@@ -4,8 +4,7 @@ Status: shared ML/data plan, 2026-07-26; reconciled with the Frontline
 public-contract foundation and internal replay-v2 implementation on
 2026-07-27. Work package A's canonical observation/replay seam is implemented
 for the internal Frontline path. Dataset export, corpus access, model assets,
-starter inference, protocol delivery, and public replay-v2 product decisions
-remain planned.
+starter inference, and public replay-v2 product decisions remain planned.
 
 Frontline does not create a second ML stack. Where older examples below say
 `slot`, that is the legacy-duel actor identity. The common v2 design must also
@@ -17,9 +16,10 @@ The implemented Frontline checkpoint now does exactly that: it constructs one
 canonical public observation per active life, supplies that observation to the
 life runtime, snapshots the same projection into internal replay v2, and
 records variable topology, lifecycle, fabrication, form transitions, dynamic
-legality masks, and authoritative result facts. This is an engine/replay
-foundation, not a claim that the shipped SDK/protocol or dataset tooling can
-consume it yet.
+legality masks, and authoritative result facts. Actor SDK/Guest 0.9.0 and
+protocol/configuration 1.0 now deliver the same contract to isolated per-life
+WASM instances. This remains an internal foundation, not a claim that public
+CLI/App/server admission or dataset tooling can consume it yet.
 
 ## Executive conclusion
 
@@ -121,9 +121,9 @@ boundary should already be public-only.
 The separate Frontline path closes both gaps internally with
 `ActorObservation`, `FrontlineObservationProjector`, `ActorRuntime`, and
 replay v2. It deliberately leaves the shipped duel `BotObservation`,
-protocol 0.1, and replay-v1 bytes untouched. Protocol vNext and later product
-integration should consume the new public-only path rather than reconstructing
-inputs from omniscient state.
+protocol 0.1, and replay-v1 bytes untouched. Internal actor protocol 1.0 now
+consumes the new public-only path rather than reconstructing inputs from
+omniscient state; later product integration must preserve that boundary.
 
 ## Rewrite inclusion boundary
 
@@ -344,11 +344,11 @@ Recommended axes:
 | Axis | Change |
 | --- | --- |
 | Game rules | no change |
-| Runtime protocol | no change if the wire observation is unchanged |
-| Runtime configuration | no change |
+| Runtime protocol | no change for replay-only duel work; internal Frontline delivery uses separate actor 1.0 |
+| Runtime configuration | no change for replay-only duel work; internal Frontline actor limits are configuration 1.0 |
 | Replay format | `1 -> 2` |
 | Engine version | minor bump |
-| SDK | no change for engine/replay work alone |
+| SDK | no change for replay-only engine work; internal Frontline actor types are SDK 0.9.0 |
 | CLI | bump because the replay viewer/CLI compatibility surface changes |
 
 Requirements:
@@ -372,24 +372,34 @@ than pretending reconstruction is exact.
 ## Work package A — observation and replay foundation
 
 Status: **implemented for the internal Frontline path**. The remaining work is
-SDK/protocol-vNext delivery, public version dispatch/admission, and any later
+public version dispatch/admission, dataset/product delivery, and any later
 decision to generalize the shipped duel runtime onto the same model. Replay v1
-remains a dedicated historical reader/verifier.
+remains a dedicated historical reader/verifier; actor protocol 1.0 is the
+canonical internal Frontline delivery path.
 
 ### Implementation
 
-- replace authoritative `GameEvent` exposure inside `BotObservation` with an
-  observed/redacted event type;
-- centralize the public observation projection;
+- define an observed/redacted actor event without changing legacy
+  `BotObservation` or replay v1;
+- centralize the Frontline public observation projection;
 - define replay v2 observation DTOs;
 - snapshot observations immediately before runtime execution;
 - retain post-tick authoritative replay sections;
-- implement v1/v2 serializer dispatch and hash verification;
+- implement strict v2 serialization/validation beside unchanged v1 hash
+  verification;
 - update the TypeScript replay mirror and all viewer consumers;
-- document the format and timing rules.
+- deliver the same typed observation through actor SDK/Guest and canonical
+  per-life WASM;
+- document the format, timing, and runtime protocol rules.
 
-### Primary current surfaces
+### Primary current and later-generalization surfaces
 
+- `src/BotArena.Engine/ActorObservation.cs`
+- `src/BotArena.Engine/ActorRuntime.cs`
+- `src/BotArena.Engine/FrontlineObservationProjector.cs`
+- `src/BotArena.Engine/ReplayV2.cs`
+- `src/BotArena.Engine/ReplayV2Serializer.cs`
+- `src/BotArena.Sdk/IActorBot.cs`
 - `src/BotArena.Engine/BotObservation.cs`
 - `src/BotArena.Engine/MatchSession.cs`
 - `src/BotArena.Engine/MatchEngine.cs`
@@ -398,6 +408,10 @@ remains a dedicated historical reader/verifier.
 - `src/BotArena.Runtime/InProcessBotRuntime.cs`
 - `src/BotArena.Runtime.Wasm/WasmProtocol.cs`
 - `src/BotArena.Guest/GuestProtocol.cs`
+- `src/BotArena.Runtime/InProcessActorRuntime.cs`
+- `src/BotArena.Runtime.Wasm/WasmActorRuntime.cs`
+- `src/BotArena.Guest/ActorGuestProtocol.cs`
+- `src/BotArena.Sdk/ActorWireProtocol.cs`
 - `web/src/types.ts`
 - web and mobile replay playback adapters
 - `docs/REPLAY-FORMAT.md`
@@ -408,7 +422,7 @@ remains a dedicated historical reader/verifier.
 - the runtime input is a lossless projection of the replay observation plus
   static header inputs, with tick and explicit actor identity supplied by their
   replay parents;
-- in-process and WASM behavior parity remains;
+- legacy and actor in-process/WASM behavior parity remains;
 - same inputs still produce byte-identical v2 replays;
 - v1 fixture verification remains byte-identical;
 - actor observations pass the leakage audit;
@@ -419,8 +433,8 @@ The internal Frontline implementation meets these engine/replay criteria with
 deterministic fixtures, strict Engine and TypeScript semantic validators, a
 version-neutral viewer model, and frozen replay-v1 compatibility shields. This
 does not complete the end-to-end ML-friendly gate: dataset/corpus commands,
-model packaging, starter inference, canonical WASM protocol vNext, and public
-release remain Work packages B–E and Frontline Packages 7–8.
+model packaging, starter inference, and public release remain Work packages
+B–E and Frontline Package 8.
 
 ## Work package B — replay-only dataset CLI
 
@@ -704,9 +718,11 @@ This gate proves accessibility and integrity, not championship strength.
 
 ## Proposed delivery order
 
-1. **Engine rewrite integration:** canonical observation, direct replay
-   snapshot, v2 schema, v1 compatibility, parity/leakage tests.
-2. **Replay-only dataset CLI:** inspect/export and clean-environment proof.
+1. **Engine/runtime integration — implemented internally for Frontline:**
+   canonical observation, direct replay snapshot, v2 schema, v1
+   compatibility, actor protocol/WASM delivery, and parity/leakage tests.
+2. **Replay-only dataset CLI — next ML slice:** inspect/export and
+   clean-environment proof.
 3. **Public corpus access:** cursor API, generated clients, dataset pull.
 4. **Model-asset spike and pipeline:** local/server/resource/provenance path.
 5. **Starter ML bot and rollout:** replay-only trainer, exporter, inference,

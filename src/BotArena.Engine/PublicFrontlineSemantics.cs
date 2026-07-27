@@ -6,7 +6,7 @@ namespace BotArena.Engine;
 /// </summary>
 public enum PublicFrontlineDestructionTransitionClock
 {
-    TickStartAtDestroyedTickPlusOnePlusDelay,
+    TickStartAtDestroyedTickPlusOnePlusDelay = 0,
 }
 
 /// <summary>
@@ -15,7 +15,7 @@ public enum PublicFrontlineDestructionTransitionClock
 /// </summary>
 public enum PublicFrontlinePrimeReturnPolicy
 {
-    AutomaticAtAuthoredPrimeSpawn,
+    AutomaticAtAuthoredPrimeSpawn = 0,
 }
 
 /// <summary>
@@ -24,7 +24,7 @@ public enum PublicFrontlinePrimeReturnPolicy
 /// </summary>
 public enum PublicFrontlineChildReturnPolicy
 {
-    ReadyThenExplicitFabrication,
+    ReadyThenExplicitFabrication = 0,
 }
 
 /// <summary>
@@ -35,7 +35,7 @@ public enum PublicFrontlineChildReturnPolicy
 /// </summary>
 public enum PublicFrontlineNewLifePolicy
 {
-    FreshRuntimeFormDefaultsHomeFacingCanActOnCreationTick,
+    FreshRuntimeFormDefaultsHomeFacingCanActOnCreationTick = 0,
 }
 
 /// <summary>
@@ -44,7 +44,7 @@ public enum PublicFrontlineNewLifePolicy
 /// </summary>
 public enum PublicFrontlinePrimeSpawnReservationPolicy
 {
-    PermanentAgainstOwnChildren,
+    PermanentAgainstOwnChildren = 0,
 }
 
 /// <summary>
@@ -53,12 +53,12 @@ public enum PublicFrontlinePrimeSpawnReservationPolicy
 /// </summary>
 public enum PublicFrontlineProtectedPadPolicy
 {
-    EnemyGroundEntryBlockedNoDamageImmunityNoProjectileBlocking,
+    EnemyGroundEntryBlockedNoDamageImmunityNoProjectileBlocking = 0,
 }
 
 public enum PublicFrontlineInitialPositionPolicy
 {
-    CentrePositionIndex,
+    CentrePositionIndex = 0,
 }
 
 public readonly record struct PublicFrontlineTeamAdvance(
@@ -71,7 +71,7 @@ public readonly record struct PublicFrontlineTeamAdvance(
 /// </summary>
 public enum PublicFrontlineCompletionPrecedence
 {
-    BaseBreachBeforeMaxTicks,
+    BaseBreachBeforeMaxTicks = 0,
 }
 
 /// <summary>
@@ -83,7 +83,7 @@ public enum PublicFrontlineCompletionPrecedence
 /// </summary>
 public enum PublicFrontlineTimeoutResolution
 {
-    SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers,
+    SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers = 0,
 }
 
 /// <summary>
@@ -93,7 +93,7 @@ public enum PublicFrontlineTimeoutResolution
 /// </summary>
 public enum PublicFrontlineProjectileAttributionPolicy
 {
-    ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved,
+    ExactFiringLifePersistsCreditsStableUnitByActualHealthRemoved = 0,
 }
 
 /// <summary>
@@ -102,75 +102,75 @@ public enum PublicFrontlineProjectileAttributionPolicy
 /// </summary>
 public enum PublicFrontlineAnchorCompletionPolicy
 {
-    EndOfStartedTickPlusWindupMinusOneAfterObjective,
+    EndOfStartedTickPlusWindupMinusOneAfterObjective = 0,
 }
 
 public enum PublicFrontlineAnchorHealthPolicy
 {
-    MinimumTargetMaximumAndCurrentPlusGain,
+    MinimumTargetMaximumAndCurrentPlusGain = 0,
 }
 
 public enum PublicFrontlineAnchorPendingActionPolicy
 {
-    WaitOnly,
+    WaitOnly = 0,
 }
 
 public enum PublicFrontlineAnchorSurvivingDamagePolicy
 {
-    DoesNotCancel,
+    DoesNotCancel = 0,
 }
 
 public enum PublicFrontlineAnchorDeathPolicy
 {
-    CancelsWithExplicitEvent,
+    CancelsWithExplicitEvent = 0,
 }
 
 public enum PublicFrontlineAnchorForbiddenTilePolicy
 {
-    AllMapAnchorForbiddenTilesIllegal,
+    AllMapAnchorForbiddenTilesIllegal = 0,
 }
 
 public enum PublicFrontlineAnchorPendingFormPolicy
 {
-    SourceFormUntilCompletion,
+    SourceFormUntilCompletion = 0,
 }
 
 public enum PublicFrontlineAnchorStateContinuityPolicy
 {
-    SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage,
+    SameLifeRuntimeMemoryPositionFacingCooldownEnergyAndDamage = 0,
 }
 
 public enum PublicFrontlineAnchorTerminalPolicy
 {
-    PreserveFuturePendingWithoutSyntheticCancellation,
+    PreserveFuturePendingWithoutSyntheticCancellation = 0,
 }
 
 public enum PublicFrontlineTurretFireAimPolicy
 {
-    AbsoluteEightWayLaunchHeading,
+    AbsoluteEightWayLaunchHeading = 0,
 }
 
 public enum PublicFrontlineTurretFireProjectilePolicy
 {
-    OneStraightNonProgrammedProjectile,
+    OneStraightNonProgrammedProjectile = 0,
 }
 
 public enum PublicFrontlineTurretFireFacingPolicy
 {
-    BodyFacingUnchanged,
+    BodyFacingUnchanged = 0,
 }
 
 public enum PublicFrontlineTurretFireRangePolicy
 {
-    GlobalProjectileRange,
+    GlobalProjectileRange = 0,
 }
 
 public enum PublicFrontlineTurretFireResourcePolicy
 {
-    StandardEnergyCooldownAndDamage,
+    StandardEnergyCooldownAndDamage = 0,
 }
 
 public enum PublicFrontlineTurretFireTraversalPolicy
 {
-    StandardTraversalStrictDiagonalCorners,
+    StandardTraversalStrictDiagonalCorners = 0,
 }

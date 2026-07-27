@@ -176,6 +176,12 @@ internal static class ReplayV2Serializer
         writer.WritePropertyName("actorRuntime");
         writer.WriteStartObject();
         writer.WriteString("family", header.ActorRuntime.Family);
+        writer.WriteString(
+            "protocolVersion",
+            header.ActorRuntime.ProtocolVersion);
+        writer.WriteString(
+            "configurationVersion",
+            header.ActorRuntime.ConfigurationVersion);
         writer.WriteNumber("version", header.ActorRuntime.Version);
         writer.WriteNumber(
             "matchStartSchemaVersion",
@@ -1474,6 +1480,14 @@ internal static class ReplayV2Serializer
         if (!string.Equals(
                 header.ActorRuntime.Family,
                 "nilbots-actor",
+                StringComparison.Ordinal)
+            || !string.Equals(
+                header.ActorRuntime.ProtocolVersion,
+                BotArenaVersions.ActorRuntimeProtocolVersion,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                header.ActorRuntime.ConfigurationVersion,
+                BotArenaVersions.ActorRuntimeConfigurationVersion,
                 StringComparison.Ordinal)
             || header.ActorRuntime.Version
                 != BotArenaVersions.ActorRuntimeContractVersion

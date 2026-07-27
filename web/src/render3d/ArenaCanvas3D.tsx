@@ -23,12 +23,14 @@ export default function ArenaCanvas3D({
   selectedUnitKey,
   showVisibility,
   onSelectUnit,
+  onUnavailable,
 }: {
   replay: ReplayModel;
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
+  onUnavailable: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // All three go through refs for the same reason `time` does: they change while a replay
@@ -39,22 +41,32 @@ export default function ArenaCanvas3D({
     selectedUnitKey,
     showVisibility,
     onSelectUnit,
+    onUnavailable,
   });
   frameState.current = {
     time,
     selectedUnitKey,
     showVisibility,
     onSelectUnit,
+    onUnavailable,
   };
 
   useEffect(() => {
     const container = host.current;
     if (!container) return;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+    } catch {
+      // WebGL can be disabled, blocked, or out of contexts. The dimensional renderer is
+      // optional, so failure must restore the always-available Canvas2D viewer.
+      frameState.current.onUnavailable();
+      return;
+    }
     // Capped at 2: beyond that the shadow map and fill rate cost more than the sharpness
     // is worth, and a 3× phone would otherwise render nine times the pixels of a 1×.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -152,6 +164,14 @@ export default function ArenaCanvas3D({
     };
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      frameState.current.onUnavailable();
+    };
+    renderer.domElement.addEventListener(
+      'webglcontextlost',
+      onContextLost,
+    );
 
     let animation = 0;
     const draw = () => {
@@ -181,6 +201,10 @@ export default function ArenaCanvas3D({
       observer.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onDown);
       renderer.domElement.removeEventListener('pointerup', onUp);
+      renderer.domElement.removeEventListener(
+        'webglcontextlost',
+        onContextLost,
+      );
       actors.dispose();
       overlays.dispose();
       arena.dispose();

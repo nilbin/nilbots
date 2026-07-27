@@ -26,6 +26,8 @@ internal static class ReplayV2Projection
             contract.Rules.RulesetId,
             new ReplayV2ActorRuntimeContract(
                 "nilbots-actor",
+                BotArenaVersions.ActorRuntimeProtocolVersion,
+                BotArenaVersions.ActorRuntimeConfigurationVersion,
                 BotArenaVersions.ActorRuntimeContractVersion,
                 BotArenaVersions.ActorMatchStartSchemaVersion,
                 BotArenaVersions.ActorObservationSchemaVersion,
