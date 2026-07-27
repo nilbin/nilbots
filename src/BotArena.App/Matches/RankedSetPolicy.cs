@@ -1,3 +1,4 @@
+using BotArena.App.Shared;
 using BotArena.App.Store;
 
 namespace BotArena.App.Matches;
@@ -24,8 +25,8 @@ public sealed record RankedSetLimits(int AccountDailyLimit, int AccountConcurren
     /// </para>
     /// </summary>
     public static RankedSetLimits FromConfiguration(IConfiguration configuration) => new(
-        Read(configuration, "BOTARENA_RANKED_ACCOUNT_DAILY", 10, 1, 500),
-        Read(configuration, "BOTARENA_RANKED_ACCOUNT_CONCURRENT", 2, 1, 50));
+        AdmissionSupport.ReadLimit(configuration, "BOTARENA_RANKED_ACCOUNT_DAILY", 10, 1, 500),
+        AdmissionSupport.ReadLimit(configuration, "BOTARENA_RANKED_ACCOUNT_CONCURRENT", 2, 1, 50));
 
     /// <summary>These limits as they apply to one account, after anything it has bought.</summary>
     /// <remarks>
@@ -40,11 +41,26 @@ public sealed record RankedSetLimits(int AccountDailyLimit, int AccountConcurren
                 AccountDailyLimit + AccountCapacity.ExtraDailyRankedSetsFor(entitlementKeys),
         };
 
-    private static int Read(IConfiguration configuration, string name, int fallback, int min, int max)
-    {
-        int value = configuration.GetValue<int?>(name) ?? fallback;
-        return Math.Clamp(value, min, max);
-    }
+}
+
+/// <summary>
+/// How many unranked challenges an account may start per day.
+/// <para>
+/// Cheaper than a ranked set — one match rather than six — and it had the same problem: no
+/// durable ceiling at all, only the in-memory limiter's twenty a minute. Protecting the
+/// expensive path and leaving the cheap one open would have made the cheap one the way to
+/// occupy the match worker.
+/// </para>
+/// <para>
+/// Not sold. An unranked match changes nothing about anyone's standing, so a limit on it is
+/// there to protect the machine rather than to be relieved for money — and selling relief
+/// from a limit that only exists to stop abuse reads badly whatever the intent.
+/// </para>
+/// </summary>
+public sealed record UnrankedMatchLimits(int AccountDailyLimit)
+{
+    public static UnrankedMatchLimits FromConfiguration(IConfiguration configuration) => new(
+        AdmissionSupport.ReadLimit(configuration, "BOTARENA_UNRANKED_ACCOUNT_DAILY", 60, 1, 5000));
 }
 
 public sealed record RankedSetSnapshot(int AccountDailyCount, int AccountUnfinishedCount);

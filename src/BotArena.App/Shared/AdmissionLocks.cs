@@ -23,6 +23,7 @@ public static class AdmissionLocks
     private const long CompilationTag = 0x436F6D70_00000000; // "Comp"
     private const long RankedTag = 0x52616E6B_00000000;      // "Rank"
     private const long AuthTag = 0x41757468_00000000;        // "Auth"
+    private const long UnrankedTag = 0x556E726B_00000000;     // "Unrk"
 
     /// <summary>Serialises everything competing for the shared compiler queue.</summary>
     public const long CompilerQueue = 0x4e494c424f545301;
@@ -30,6 +31,8 @@ public static class AdmissionLocks
     public static long Compilation(Guid userId) => Account(CompilationTag, userId);
 
     public static long Ranked(Guid userId) => Account(RankedTag, userId);
+
+    public static long Unranked(Guid userId) => Account(UnrankedTag, userId);
 
     /// <summary>Keyed by identifier rather than account: a failed login has no account yet.</summary>
     public static long Auth(string identifier) => Key(AuthTag, identifier.GetHashCode());

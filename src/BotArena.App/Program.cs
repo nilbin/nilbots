@@ -156,6 +156,8 @@ if (mode.RunsWeb)
     builder.Services.AddSingleton(new SubmissionNetwork(networkHashKey));
     builder.Services.AddScoped<ApplicationActorFactory>();
     builder.Services.AddScoped<ExternalSignInService>();
+    builder.Services.AddSingleton(LoginThrottleLimits.FromConfiguration(builder.Configuration));
+    builder.Services.AddScoped<LoginThrottle>();
     builder.Services.AddScoped<StorePurchaseService>();
     // No provider is configured yet: the store reports itself closed and renders nothing.
     // Adding Paddle is registering a different IStorePaymentProvider here — see
@@ -168,6 +170,7 @@ if (mode.RunsWeb)
     builder.Services.AddScoped<SubmitBotVersionUseCase>();
     builder.Services.AddBotArenaRateLimiting();
     builder.Services.AddSingleton(RankedSetLimits.FromConfiguration(builder.Configuration));
+    builder.Services.AddSingleton(UnrankedMatchLimits.FromConfiguration(builder.Configuration));
 
     if (trustForwardedHeaders)
     {

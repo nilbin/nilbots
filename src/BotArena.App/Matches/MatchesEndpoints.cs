@@ -23,11 +23,36 @@ public static class MatchesEndpoints
             MatchAdmissionService admission,
             MatchParticipantSnapshotFactory snapshots,
             MatchChallengeAnnouncer challenges,
+            UnrankedMatchLimits unrankedLimits,
+            TimeProvider timeProvider,
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
+
+            // Durable, for the same reason ranked is: the HTTP limiter is per web process
+            // and forgotten on restart, and this creates a real WASM match. Counting the
+            // matches themselves rather than a synthetic tally means the number cannot
+            // drift from what actually ran.
+            await using var admissionScope =
+                await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.TakeAdmissionLockAsync(
+                AdmissionLocks.Unranked(userId), cancellationToken);
+
+            DateTime dayAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-24);
+            int startedToday = await db.Matches.CountAsync(
+                candidate => candidate.InitiatedByUserId == userId
+                    && candidate.MatchSetId == null
+                    && candidate.CreatedAt >= dayAgo,
+                cancellationToken);
+            if (startedToday >= unrankedLimits.AccountDailyLimit)
+            {
+                return Results.Problem(
+                    $"Accounts may start at most {unrankedLimits.AccountDailyLimit} unranked " +
+                    "matches per 24 hours.",
+                    statusCode: 429);
+            }
             ApplicationResult<AdmittedMatchBot> challenger =
                 await admission.AdmitAsync(
                     request.BotId,
@@ -62,6 +87,7 @@ public static class MatchesEndpoints
             // would tell someone to go and watch a match that a failed save then left
             // nonexistent. This way the worse failure is a missing challenge notification,
             // and the result announcement still arrives.
+            await admissionScope.CommitAsync(cancellationToken);
             await challenges.AnnounceAsync(match, cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
         }).Produces<CreatedMatchResponse>().RequireAuthorization().RequireRateLimiting(RateLimitPolicies.Challenge);

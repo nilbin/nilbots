@@ -37,12 +37,12 @@ public sealed record CompilerSubmissionLimits(
         };
 
     public static CompilerSubmissionLimits FromConfiguration(IConfiguration configuration) => new(
-        Read(configuration, "BOTARENA_COMPILE_ACCOUNT_10M", 6, 1, 100),
-        Read(configuration, "BOTARENA_COMPILE_ACCOUNT_DAILY", 30, 1, 1000),
-        Read(configuration, "BOTARENA_COMPILE_NETWORK_10M", 12, 1, 500),
-        Read(configuration, "BOTARENA_COMPILE_NETWORK_DAILY", 60, 1, 5000),
-        Read(configuration, "BOTARENA_COMPILE_ACCOUNT_QUEUED", 2, 1, 20),
-        Read(configuration, "BOTARENA_COMPILE_GLOBAL_QUEUED", 20, 1, 1000));
+        Shared.AdmissionSupport.ReadLimit(configuration, "BOTARENA_COMPILE_ACCOUNT_10M", 6, 1, 100),
+        Shared.AdmissionSupport.ReadLimit(configuration, "BOTARENA_COMPILE_ACCOUNT_DAILY", 30, 1, 1000),
+        Shared.AdmissionSupport.ReadLimit(configuration, "BOTARENA_COMPILE_NETWORK_10M", 12, 1, 500),
+        Shared.AdmissionSupport.ReadLimit(configuration, "BOTARENA_COMPILE_NETWORK_DAILY", 60, 1, 5000),
+        Shared.AdmissionSupport.ReadLimit(configuration, "BOTARENA_COMPILE_ACCOUNT_QUEUED", 2, 1, 20),
+        Shared.AdmissionSupport.ReadLimit(configuration, "BOTARENA_COMPILE_GLOBAL_QUEUED", 20, 1, 1000));
 
     private static int Read(
         IConfiguration configuration,

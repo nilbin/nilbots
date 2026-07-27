@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<DeviceRegistration> DeviceRegistrations => Set<DeviceRegistration>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
@@ -117,6 +118,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(notification => notification.DedupeKey).HasMaxLength(200);
             entity.Property(notification => notification.PayloadJson).HasColumnType("jsonb");
             entity.HasOne<User>().WithMany().HasForeignKey(notification => notification.UserId);
+        });
+
+        modelBuilder.Entity<LoginAttempt>(entity =>
+        {
+            // Both counted per window, so both are indexed with the timestamp.
+            entity.HasIndex(attempt => new { attempt.Identifier, attempt.OccurredAt });
+            entity.HasIndex(attempt => new { attempt.NetworkHash, attempt.OccurredAt });
+            entity.Property(attempt => attempt.Identifier).HasMaxLength(200);
+            entity.Property(attempt => attempt.NetworkHash).HasMaxLength(128);
+            // No foreign key: the whole point is recording attempts against addresses that
+            // may not be accounts at all.
         });
 
         modelBuilder.Entity<Purchase>(entity =>
