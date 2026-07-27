@@ -19,6 +19,45 @@ const replay = loadReplayJson(
   ),
 ).replay;
 
+test('generic replay-v3 presents exact stable units and actor lives', () => {
+  const generic = loadReplayJson(
+    readFileSync(
+      new URL(
+        '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ).replay;
+  const presenter = createPresenter(generic);
+  const opening = presenter.at(0);
+
+  assert.equal(presenter.tickCount, 2);
+  assert.equal(presenter.maxHealth, 3);
+  assert.deepEqual(
+    opening.units.map((unit) => ({
+      unitKey: unit.unitKey,
+      actorKey: unit.actorKey,
+      participantId: unit.participantId,
+      actionId: unit.actionId,
+    })),
+    [
+      {
+        unitKey: 'generic:0:unit:0',
+        actorKey: 'generic:0:unit:0:life:0',
+        participantId: 10,
+        actionId: 'shoot',
+      },
+      {
+        unitKey: 'generic:1:unit:0',
+        actorKey: 'generic:1:unit:0:life:0',
+        participantId: 20,
+        actionId: 'shoot',
+      },
+    ],
+  );
+});
+
 test('actor-life interpolation adds fabricated lives without morphing primes', () => {
   assert.deepEqual(
     posesAt(replay, 0.5).map((pose) => pose.actorKey),

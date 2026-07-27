@@ -245,7 +245,7 @@ export default function App() {
 
 function decodeEmbeddedReplay(
   hosted: boolean,
-  bridgeVersion: 1 | 2,
+  bridgeVersion: ReturnType<typeof hostedBridgeVersion>,
 ): InitialReplay {
   const embedded = window.__BOTARENA_REPLAY__;
   if (embedded === undefined) {

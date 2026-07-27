@@ -21,8 +21,8 @@ test('strict dispatch rejects malformed and unknown replay versions', () => {
     /replayVersion: missing required property/,
   );
   assert.throws(
-    () => decodeReplay({ header: { replayVersion: 3 } }),
-    /unsupported replay version 3/,
+    () => decodeReplay({ header: { replayVersion: 4 } }),
+    /unsupported replay version 4/,
   );
 
   const malformed = structuredClone(replayV2FixtureInput()) as unknown as {
@@ -808,9 +808,303 @@ test('replay-v2 requires explicit nullable keys instead of treating omission as 
   );
 });
 
+test('replay-v3 normalizes the Engine golden without collapsing unit and life identity', () => {
+  const raw = replayV3FixtureText();
+  const decoded = decodeReplayJson(raw);
+  const replay = decoded.replay;
+
+  assert.equal(decoded.replayVersion, 3);
+  assert.equal(replay.sourceVersion, 3);
+  assert.equal(JSON.stringify(decoded.wire), raw);
+  assert.equal(decoded.rawJson, raw);
+  assert.deepEqual(
+    replay.units.map((unit) => unit.unitKey),
+    ['generic:0:unit:0', 'generic:1:unit:0'],
+  );
+  assert.deepEqual(
+    replay.initialWorld?.actors.map((actor) => actor.actorKey),
+    [
+      'generic:0:unit:0:life:0',
+      'generic:1:unit:0:life:0',
+    ],
+  );
+  assert.deepEqual(
+    replay.initialLifeStarts?.map((start) => ({
+      actorKey: start.actor.actorKey,
+      participantId: start.participantId,
+      generation: start.generation,
+    })),
+    [
+      {
+        actorKey: 'generic:0:unit:0:life:0',
+        participantId: 10,
+        generation: 0,
+      },
+      {
+        actorKey: 'generic:1:unit:0:life:0',
+        participantId: 20,
+        generation: 0,
+      },
+    ],
+  );
+  assert.deepEqual(
+    replay.initialWorld?.scoreboard?.teams[0]?.scores,
+    [
+      { channel: 'kills', value: '0' },
+      { channel: 'deaths', value: '0' },
+      { channel: 'damage-dealt', value: '0' },
+      { channel: 'active-health', value: '3' },
+    ],
+  );
+  assert.deepEqual(replay.result?.mode, {
+    kind: 'deathmatch',
+    reason: 'max-ticks',
+    scores: [
+      {
+        teamKey: 'team:0',
+        teamId: 0,
+        kills: '0',
+        deaths: '0',
+        damageDealt: '1',
+      },
+      {
+        teamKey: 'team:1',
+        teamId: 1,
+        kills: '0',
+        deaths: '0',
+        damageDealt: '1',
+      },
+    ],
+  });
+  assert.equal(replay.contract.kind, 'v3-generic');
+  if (replay.contract.kind === 'v3-generic') {
+    assert.equal(replay.contract.modeKind, 'deathmatch');
+    assert.equal(replay.contract.rawContract.format.participantCount, 2);
+  }
+});
+
+test('replay-v3 mirrors emitted map region and tile-tag fields exactly', () => {
+  const input = JSON.parse(replayV3FixtureText()) as {
+    header: {
+      contract: {
+        map: {
+          regions: unknown[];
+          tileTags: unknown[];
+        };
+      };
+    };
+  };
+  input.header.contract.map.regions.push({
+    regionId: 'center-objective',
+    kind: 'objective',
+    tiles: [[4, 3]],
+  });
+  input.header.contract.map.tileTags.push({
+    tagId: 'center-anchor-policy',
+    kind: 'transition-placement-forbidden',
+    tiles: [[4, 3]],
+  });
+
+  assert.doesNotThrow(() => decodeReplay(input));
+
+  const legacyTagField = structuredClone(input) as typeof input;
+  legacyTagField.header.contract.map.tileTags[0] = {
+    tag: 'center-anchor-policy',
+    kind: 'transition-placement-forbidden',
+    tiles: [[4, 3]],
+  };
+  assert.throws(
+    () => decodeReplay(legacyTagField),
+    /map\.tileTags\[0\]\.tag: unknown property/,
+  );
+
+  const missingRegionKind = structuredClone(input) as typeof input;
+  missingRegionKind.header.contract.map.regions[0] = {
+    regionId: 'center-objective',
+    tiles: [[4, 3]],
+  };
+  assert.throws(
+    () => decodeReplay(missingRegionKind),
+    /map\.regions\[0\]\.kind: missing required property/,
+  );
+});
+
+test('replay-v3 accepts backend-grouped event tags without collapsing payload kinds', () => {
+  const input = JSON.parse(replayV3FixtureText()) as {
+    ticks: {
+      events: unknown[];
+      actorTurns: {
+        observation: { visibleEvents: unknown[] };
+      }[];
+    }[];
+  };
+  const actorId = { teamId: 0, unitId: 0, lifeId: 0 };
+  const grouped = [
+    {
+      kind: 'participant-disqualified',
+      payload: { kind: 'participant', participantId: 10, teamId: 0 },
+    },
+    {
+      kind: 'lifecycle-queued',
+      payload: {
+        kind: 'lifecycle',
+        transitionId: 'split',
+        operationId: 'split:queued',
+        sourceActorId: actorId,
+        targetTeamId: 0,
+        targetUnitId: 0,
+        dueTick: 1,
+        cancellationReason: null,
+      },
+    },
+    {
+      kind: 'lifecycle-cancelled',
+      payload: {
+        kind: 'lifecycle',
+        transitionId: 'split',
+        operationId: 'split:cancelled',
+        sourceActorId: actorId,
+        targetTeamId: 0,
+        targetUnitId: 0,
+        dueTick: null,
+        cancellationReason: 'superseded',
+      },
+    },
+    {
+      kind: 'lifecycle-completed',
+      payload: {
+        kind: 'lifecycle',
+        transitionId: 'split',
+        operationId: 'split:completed',
+        sourceActorId: actorId,
+        targetTeamId: 0,
+        targetUnitId: 0,
+        dueTick: null,
+        cancellationReason: null,
+      },
+    },
+    ...[
+      'form-transition-started',
+      'form-transition-completed',
+      'form-transition-cancelled',
+    ].map((kind, index) => ({
+      kind,
+      payload: {
+        kind: 'form-transition',
+        actorId,
+        transitionId: 'deploy',
+        operationId: `deploy:${index}`,
+        fromFormId: 'mobile',
+        toFormId: 'turret',
+        startedTick: 0,
+        dueTick: 1,
+      },
+    })),
+  ];
+  input.ticks[0]!.events.push(
+    ...grouped.map((event, index) => ({
+      eventHandle: `synthetic-grouped:${index}`,
+      tick: 0,
+      globalOrdinal: String(100 + index),
+      sourceOrdinal: 4 + index,
+      ...event,
+      audience: { kind: 'public' },
+    })),
+  );
+  input.ticks[0]!.actorTurns[0]!.observation.visibleEvents.push({
+    eventHandle: 'synthetic-observed-disqualification',
+    sourceTick: 0,
+    sourceOrdinal: 99,
+    kind: 'participant-disqualified',
+    payload: { kind: 'participant', participantId: 10, teamId: 0 },
+    observedBy: [actorId],
+  });
+
+  const replay = decodeReplay(input).replay;
+  assert.deepEqual(
+    replay.ticks[0]!.events.slice(-grouped.length).map((event) => [
+      event.type,
+      event.payloadKind,
+    ]),
+    grouped.map((event) => [event.kind, event.payload.kind]),
+  );
+  const observed =
+    replay.ticks[0]!.actorTurns[0]!.observation.visibleEvents.at(-1);
+  assert.equal(observed?.type, 'participant-disqualified');
+  assert.equal(observed?.payloadKind, 'participant');
+
+  const mismatched = structuredClone(input) as typeof input;
+  (
+    mismatched.ticks[0]!.events.at(-1) as {
+      payload: unknown;
+    }
+  ).payload = { kind: 'participant', participantId: 10, teamId: 0 };
+  assert.throws(
+    () => decodeReplay(mismatched),
+    /must use payload kind form-transition/,
+  );
+});
+
+test('replay-v3 strictly rejects unknown fields and cross-frame identity drift', () => {
+  const duplicate = replayV3FixtureText().replace(
+    '"partial":false',
+    '"partial":true,"partial":false',
+  );
+  assert.throws(
+    () => decodeReplayJson(duplicate),
+    /replay\.partial: duplicate property/,
+  );
+
+  const unknown = JSON.parse(replayV3FixtureText()) as {
+    initialFrame: { extra?: boolean };
+  };
+  unknown.initialFrame.extra = true;
+  assert.throws(
+    () => decodeReplay(unknown),
+    /initialFrame\.extra: unknown property/,
+  );
+
+  const fingerprintDrift = JSON.parse(replayV3FixtureText()) as {
+    ticks: {
+      actorTurns: {
+        observation: { matchContractFingerprint: string };
+      }[];
+    }[];
+  };
+  fingerprintDrift.ticks[0]!.actorTurns[0]!.observation
+    .matchContractFingerprint = 'wrong';
+  assert.throws(
+    () => decodeReplay(fingerprintDrift),
+    /turn identity, tick, or observation contract is inconsistent/,
+  );
+
+  const lifeDrift = JSON.parse(replayV3FixtureText()) as {
+    ticks: {
+      postState: {
+        activeLives: { actorId: { lifeId: number } }[];
+      };
+    }[];
+  };
+  lifeDrift.ticks[0]!.postState.activeLives[0]!.actorId.lifeId = 7;
+  assert.throws(
+    () => decodeReplay(lifeDrift),
+    /active slot must match exactly one active life/,
+  );
+});
+
 function replayFixtureText(name: string): string {
   return readFileSync(
     new URL(`./fixtures/${name}`, import.meta.url),
+    'utf8',
+  );
+}
+
+function replayV3FixtureText(): string {
+  return readFileSync(
+    new URL(
+      '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+      import.meta.url,
+    ),
     'utf8',
   );
 }

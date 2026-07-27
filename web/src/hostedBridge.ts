@@ -1,13 +1,14 @@
 import type {
   ReplayModel,
   ReplayStableUnitKey,
+  ReplayWorldSnapshot,
 } from './replayModel';
 import type {
   TickPresentation,
   UnitPresentation,
 } from './replayPresentation';
 
-export type HostedBridgeVersion = 1 | 2;
+export type HostedBridgeVersion = 1 | 2 | 3;
 
 export interface HostedTransportState {
   playing: boolean;
@@ -21,25 +22,30 @@ export interface HostedTransportState {
 }
 
 export function hostedBridgeVersion(search: string): HostedBridgeVersion {
-  return new URLSearchParams(search).get('bridge') === '2' ? 2 : 1;
+  const requested = new URLSearchParams(search).get('bridge');
+  return requested === '3' ? 3 : requested === '2' ? 2 : 1;
 }
 
 export function bridgeSupportsReplay(
   bridgeVersion: HostedBridgeVersion,
   replay: ReplayModel,
 ): boolean {
-  return bridgeVersion === 2 || replay.sourceVersion === 1;
+  return (
+    bridgeVersion === 3 ||
+    (bridgeVersion === 2 && replay.sourceVersion <= 2) ||
+    replay.sourceVersion === 1
+  );
 }
 
 export function readyBridgeMessage(version: HostedBridgeVersion) {
-  return version === 2
-    ? { type: 'ready' as const, bridgeVersion: 2 as const }
+  return version > 1
+    ? { type: 'ready' as const, bridgeVersion: version }
     : { type: 'ready' as const };
 }
 
 export function loadedBridgeMessage(version: HostedBridgeVersion) {
-  return version === 2
-    ? { type: 'loaded' as const, bridgeVersion: 2 as const }
+  return version > 1
+    ? { type: 'loaded' as const, bridgeVersion: version }
     : { type: 'loaded' as const };
 }
 
@@ -47,10 +53,10 @@ export function errorBridgeMessage(
   version: HostedBridgeVersion,
   reason: string,
 ) {
-  return version === 2
+  return version > 1
     ? {
         type: 'error' as const,
-        bridgeVersion: 2 as const,
+        bridgeVersion: version,
         reason,
       }
     : { type: 'error' as const, reason };
@@ -95,9 +101,8 @@ export function replayBridgeMessage(
     };
   }
 
-  return {
+  const stable = {
     type: 'replay' as const,
-    bridgeVersion: 2 as const,
     header: {
       replayVersion: replay.sourceVersion,
       mapId: replay.map.mapId,
@@ -168,11 +173,53 @@ export function replayBridgeMessage(
         }
       : null,
   };
+  if (version === 2) {
+    return {
+      ...stable,
+      bridgeVersion: 2 as const,
+    };
+  }
+  return {
+    ...stable,
+    bridgeVersion: 3 as const,
+    header: {
+      ...stable.header,
+      mode: {
+        kind:
+          replay.contract.kind === 'v3-generic'
+            ? replay.contract.modeKind
+            : replay.contract.rules.objective.mode,
+        id:
+          replay.contract.kind === 'v3-generic'
+            ? replay.contract.modeId
+            : replay.contract.rules.rulesetId,
+      },
+    },
+    result: replay.result
+      ? {
+          ...stable.result!,
+          reportedEndTick:
+            replay.result.reportedEndTick === undefined
+              ? replay.result.endTick
+              : replay.result.reportedEndTick,
+          eligibleTeamIds: replay.result.eligibleTeamIds ?? [],
+          mode: replay.result.mode ?? null,
+          teams: replay.result.teams.map((team) => ({
+            ...stable.result!.teams.find(
+              (candidate) => candidate.teamId === team.teamId,
+            )!,
+            rank: team.rank ?? null,
+            scores: team.scores ?? [],
+          })),
+        }
+      : null,
+  };
 }
 
 export function tickBridgeMessage(
   version: HostedBridgeVersion,
   presentation: TickPresentation,
+  world?: ReplayWorldSnapshot,
 ) {
   if (version === 1) {
     return {
@@ -193,10 +240,16 @@ export function tickBridgeMessage(
   }
   return {
     type: 'tick' as const,
-    bridgeVersion: 2 as const,
+    bridgeVersion: version,
     tick: presentation.tick,
     objective: presentation.objective,
     units: presentation.units,
+    ...(version === 3
+      ? {
+          scoreboard: world?.scoreboard ?? null,
+          mode: world?.mode ?? null,
+        }
+      : {}),
   };
 }
 
@@ -204,10 +257,10 @@ export function transportBridgeMessage(
   version: HostedBridgeVersion,
   state: HostedTransportState,
 ) {
-  return version === 2
+  return version > 1
     ? {
         type: 'transport' as const,
-        bridgeVersion: 2 as const,
+        bridgeVersion: version,
         ...state,
       }
     : { type: 'transport' as const, ...state };
@@ -218,10 +271,10 @@ export function selectedBridgeMessage(
   replay: ReplayModel,
   unitKey: ReplayStableUnitKey | null,
 ) {
-  if (version === 2) {
+  if (version > 1) {
     return {
       type: 'selected' as const,
-      bridgeVersion: 2 as const,
+      bridgeVersion: version,
       unitKey,
     };
   }

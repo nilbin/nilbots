@@ -9,7 +9,7 @@ import { Arena, Mono, Radius, Space } from '@/theme/arena';
 /**
  * The team result, without projecting a participant winner onto a team game.
  *
- * Exact aggregate values arrive over bridge v2. The app labels health as a team aggregate
+ * Exact aggregate values arrive over bridge v3. The app labels health as a team aggregate
  * and keeps canonical decimal damage as text rather than coercing it through a number.
  */
 export function ArenaOutcome({
@@ -65,7 +65,7 @@ export function ArenaOutcome({
                   <Text key={unit.unitKey} style={styles.unit}>
                     U{unit.unitId} · {unit.formId} ·{' '}
                     {unit.lifecycleStatus.replaceAll('-', ' ')} · HP{' '}
-                    {unit.health} · damage {unit.damageDealt}
+                    {unit.health} · damage {unit.damageDealt ?? '—'}
                     {unit.pendingFormTransition
                       ? ` · anchoring → ${unit.pendingFormTransition.toFormId} T${unit.pendingFormTransition.completesAtTick}`
                       : ''}

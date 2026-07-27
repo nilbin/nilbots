@@ -21,8 +21,9 @@ import ArenaCanvas from './ArenaCanvas';
 
 /**
  * Canvas-only viewer for an embedding host. Bridge 1 is the historical mobile
- * protocol and remains replay-v1/slot-only. Bridge 2 is explicit in the query
- * string and speaks stable units over the version-neutral ReplayModel.
+ * protocol and remains replay-v1/slot-only. Bridges 2 and 3 speak stable units
+ * over the version-neutral ReplayModel; bridge 3 adds generic mode state and
+ * scoreboards.
  */
 export default function HostedViewer({
   replay,
@@ -111,8 +112,14 @@ export default function HostedViewer({
   useEffect(() => {
     if (lastSent.current === tick) return;
     lastSent.current = tick;
-    post(tickBridgeMessage(bridgeVersion, presenter.at(tick)));
-  }, [bridgeVersion, tick, presenter, post]);
+    post(
+      tickBridgeMessage(
+        bridgeVersion,
+        presenter.at(tick),
+        replay.ticks[tick]?.after,
+      ),
+    );
+  }, [bridgeVersion, tick, presenter, post, replay.ticks]);
 
   useEffect(() => {
     post(
