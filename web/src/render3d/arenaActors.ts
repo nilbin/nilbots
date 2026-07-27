@@ -26,17 +26,21 @@ import { CAMERA_PITCH } from './arenaScene';
 const BOT_HEIGHT = 0.26;
 const PROJECTILE_HOVER = 0.2;
 
-/** Where health pips hang above the floor. */
+/** Where health pips hang: above the floor, and back along Z to clear the bot on screen. */
 const PIP_HEIGHT = 0.72;
+const PIP_SETBACK = 0.55;
 
 /**
- * Clearance between the selection ring's outer edge and the pips above it.
+ * The selection ring, as a fraction of the chassis it encircles.
  *
- * The setback is derived from the ring rather than fixed, because the ring is sized from the
- * chassis and the chassis are not all one size. A constant put the pips on top of the ring
- * for a bot of average scale and would have been wrong in the other direction for the rest.
+ * It has to clear the bot and stay under the pips, and both bounds are tighter than they
+ * look. Chassis scales run 1.2–1.34, so a bot's own half-span is already ~0.6 tiles; the
+ * ring started at 0.82–0.9 of that scale, which put it nearly twice the bot's radius out
+ * and straight through the pips. Just outside the silhouette reads as "this one" without
+ * becoming the brightest thing in the arena.
  */
-const PIP_CLEARANCE = 0.3;
+const RING_INNER = 0.55;
+const RING_OUTER = 0.61;
 
 /**
  * Share of the remaining turn a bolt takes each frame.
@@ -175,8 +179,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     // A ring on the floor for the bot the panel is following. The flat renderer draws a
     // dashed circle around the sprite; a ring lying on the floor is the same statement in a
     // scene, and it survives the bot being behind a wall because it is drawn additively.
-    const ringOuter = size * 0.9;
-    const ringGeometry = new THREE.RingGeometry(size * 0.82, ringOuter, 40);
+    const ringGeometry = new THREE.RingGeometry(size * RING_INNER, size * RING_OUTER, 48);
     ringGeometry.rotateX(-Math.PI / 2);
     const ringMaterial = new THREE.MeshBasicMaterial({
       color: accent,
@@ -250,7 +253,6 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       chassis,
       ring,
       pips,
-      pipSetback: ringOuter + PIP_CLEARANCE,
       pipMeshes,
       litPip,
       lostPip,
@@ -388,7 +390,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // raised camera projects height towards the viewer, so lifting them alone would drop
       // them onto the hull rather than above it.
       bot.pips.visible = bot.chassis.visible;
-      bot.pips.position.set(pose.x + 0.5, PIP_HEIGHT, pose.y + 0.5 - bot.pipSetback);
+      bot.pips.position.set(pose.x + 0.5, PIP_HEIGHT, pose.y + 0.5 - PIP_SETBACK);
       for (const [index, pip] of bot.pipMeshes.entries())
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
 
