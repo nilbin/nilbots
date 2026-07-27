@@ -17,8 +17,9 @@ import { posesAt } from '../render/interpolate';
  * from it, and so they catch the key light rather than z-fighting with their own shadow.
  */
 
-const BOT_HOVER = 0.035;
-const PROJECTILE_HOVER = 0.14;
+/** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
+const BOT_HEIGHT = 0.26;
+const PROJECTILE_HOVER = 0.2;
 
 export interface ArenaActors {
   group: THREE.Group;
@@ -34,31 +35,70 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
 
   const bots = participants.map((participant, slot) => {
     const look = botLook(participant?.lookId, slot);
-    const accent = presentationAccent(look, participant?.accent ?? '#38bdf8');
-    const size = Math.max(0.7, look.scale * 0.78);
+    const accent = new THREE.Color(
+      presentationAccent(look, participant?.accent ?? '#38bdf8'),
+    );
+    const size = Math.max(0.82, look.scale * 0.9);
 
-    const geometry = new THREE.PlaneGeometry(size, size);
-    geometry.rotateX(-Math.PI / 2);
-    const material = new THREE.MeshStandardMaterial({
+    // A bot is an object standing on the floor, so it gets a body. Laying the sprite flat
+    // was correct about the *sprite* — it is a plan view and should be seen as one — but
+    // wrong about the bot: a decal on the ground has no silhouette, casts a shadow the
+    // shape of a postage stamp, and disappears against a dark floor. The plan view belongs
+    // on the lid of a hull, which is where a plan view of a hull comes from.
+    const chassis = new THREE.Group();
+
+    const hullGeometry = new THREE.CylinderGeometry(size * 0.42, size * 0.46, BOT_HEIGHT, 18);
+    const hullMaterial = new THREE.MeshStandardMaterial({
+      color: accent.clone().multiplyScalar(0.42),
+      roughness: 0.42,
+      metalness: 0.65,
+      emissive: accent,
+      // The sides are what make a bot findable at a glance on a dark floor, so they carry
+      // the accent rather than reflecting it — the arena is deliberately unlit underfoot.
+      emissiveIntensity: 0.5,
+    });
+    const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+    hull.position.y = BOT_HEIGHT / 2;
+    hull.castShadow = true;
+    hull.receiveShadow = true;
+    chassis.add(hull);
+
+    const lidGeometry = new THREE.PlaneGeometry(size, size);
+    lidGeometry.rotateX(-Math.PI / 2);
+    const lidMaterial = new THREE.MeshStandardMaterial({
       map: spriteTexture(look.image),
-      color: 0xffffff,
       transparent: true,
       // Sprites have hard alpha edges; testing rather than blending keeps them from
       // sorting against each other and the floor.
       alphaTest: 0.35,
-      roughness: 0.55,
-      metalness: 0.3,
-      emissive: new THREE.Color(accent),
-      // A little self-illumination so a bot reads against a dark floor without needing a
-      // light of its own, which would multiply the shadow cost per bot.
-      emissiveIntensity: 0.22,
+      roughness: 0.5,
+      metalness: 0.35,
+      emissive: accent,
+      emissiveIntensity: 0.35,
     });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
-    mesh.visible = false;
-    group.add(mesh);
-    disposables.push(geometry, material);
-    return mesh;
+    const lid = new THREE.Mesh(lidGeometry, lidMaterial);
+    lid.position.y = BOT_HEIGHT + 0.004;
+    chassis.add(lid);
+
+    // A pool of accent light under the bot. The arena floor is near black, and a shadow
+    // alone tells you where a bot is not — this tells you where it is.
+    const glowGeometry = new THREE.PlaneGeometry(size * 2.1, size * 2.1);
+    glowGeometry.rotateX(-Math.PI / 2);
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      map: radialGlow(accent),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.5,
+    });
+    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+    glow.position.y = 0.012;
+    chassis.add(glow);
+
+    chassis.visible = false;
+    group.add(chassis);
+    disposables.push(hullGeometry, hullMaterial, lidGeometry, lidMaterial, glowGeometry, glowMaterial);
+    return { chassis, lid };
   });
 
   // Projectiles are pooled: a replay can fire many, but few are in the air at once, and
@@ -83,7 +123,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
   const materials = participants.map((_, slot) => projectileMaterial(slot));
   for (const material of materials) disposables.push(material);
 
-  const projectileGeometry = new THREE.PlaneGeometry(0.5, 0.5);
+  const projectileGeometry = new THREE.PlaneGeometry(0.6, 0.6);
   projectileGeometry.rotateX(-Math.PI / 2);
   disposables.push(projectileGeometry);
 
@@ -99,14 +139,15 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
 
   const update = (time: number) => {
     for (const pose of posesAt(replay, time)) {
-      const mesh = bots[pose.slot];
-      if (!mesh) continue;
-      mesh.visible = pose.status === 'Active';
-      mesh.position.set(pose.x + 0.5, BOT_HOVER, pose.y + 0.5);
-      // `angle` is already the interpolated screen-space rotation the 2D renderer uses, so
-      // the two viewers turn a bot through exactly the same arc. Negated because the plane
-      // lies face-up: its local +y ran north before the rotateX, and now runs south.
-      mesh.rotation.y = -pose.angle;
+      const bot = bots[pose.slot];
+      if (!bot) continue;
+      bot.chassis.visible = pose.status === 'Active';
+      bot.chassis.position.set(pose.x + 0.5, 0, pose.y + 0.5);
+      // Only the lid turns. The hull is a cylinder and the glow is a disc, so rotating the
+      // whole chassis would spend transforms on two things that look identical either way —
+      // and `angle` is the same interpolated rotation the 2D renderer uses, so both viewers
+      // swing a bot through the same arc.
+      bot.lid.rotation.y = -pose.angle;
     }
 
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
@@ -128,6 +169,34 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       for (const item of disposables) item.dispose();
     },
   };
+}
+
+/**
+ * A soft radial pool of colour, drawn once per bot.
+ *
+ * Generated rather than shipped: it is a gradient, and adding an asset for something a
+ * canvas can draw in six lines would be a download for every player to save this.
+ */
+function radialGlow(accent: THREE.Color): THREE.Texture | null {
+  if (typeof document === 'undefined') return null;
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  const rgb = `${Math.round(accent.r * 255)}, ${Math.round(accent.g * 255)}, ${Math.round(accent.b * 255)}`;
+  gradient.addColorStop(0, `rgba(${rgb}, 0.85)`);
+  gradient.addColorStop(0.45, `rgba(${rgb}, 0.22)`);
+  gradient.addColorStop(1, `rgba(${rgb}, 0)`);
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 
 /** Rasterised sprite size. Generous: these are read close-up under a perspective camera. */
