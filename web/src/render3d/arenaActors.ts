@@ -13,20 +13,30 @@ import { CAMERA_PITCH } from './arenaScene';
  * a Vanguard's silhouette from any angle, casts a Vanguard-shaped shadow, and reads as a
  * machine standing on the floor.
  *
- * **Projectiles are quads lying flat**, and that is not an oversight. The bolt sprites are
- * a plan view; laid flat they are a plan view seen at an angle, which is what they are.
- * Standing one upright would be a top-down drawing pretending to be a side view, which is
- * the exact tell that makes cheap 2.5D look wrong. They hover a hair above the floor so the
- * depth buffer has something to separate them from it.
+ * **A projectile is a rig**: the same extruded silhouette, painted in the owner's accent
+ * because the flat renderer paints it too, plus a tracer stretched out behind and a pool of
+ * its own light on the floor below. It hovers, banks through its turns and wobbles, so a
+ * bolt reads as a thing in the air rather than a mark sliding across the ground.
+ *
+ * Everything else here is what the arena needs to *say*: which bot is being followed, how
+ * much health each has left, and which of them can be seen from where.
  */
 
 /** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
 const BOT_HEIGHT = 0.26;
 const PROJECTILE_HOVER = 0.2;
 
-/** Where health pips hang, and how far behind the bot they sit to clear its hull on screen. */
+/** Where health pips hang above the floor. */
 const PIP_HEIGHT = 0.72;
-const PIP_SETBACK = 0.55;
+
+/**
+ * Clearance between the selection ring's outer edge and the pips above it.
+ *
+ * The setback is derived from the ring rather than fixed, because the ring is sized from the
+ * chassis and the chassis are not all one size. A constant put the pips on top of the ring
+ * for a bot of average scale and would have been wrong in the other direction for the rest.
+ */
+const PIP_CLEARANCE = 0.3;
 
 /**
  * Share of the remaining turn a bolt takes each frame.
@@ -165,7 +175,8 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     // A ring on the floor for the bot the panel is following. The flat renderer draws a
     // dashed circle around the sprite; a ring lying on the floor is the same statement in a
     // scene, and it survives the bot being behind a wall because it is drawn additively.
-    const ringGeometry = new THREE.RingGeometry(size * 0.82, size * 0.9, 40);
+    const ringOuter = size * 0.9;
+    const ringGeometry = new THREE.RingGeometry(size * 0.82, ringOuter, 40);
     ringGeometry.rotateX(-Math.PI / 2);
     const ringMaterial = new THREE.MeshBasicMaterial({
       color: accent,
@@ -235,7 +246,17 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       }
     };
 
-    return { chassis, ring, pips, pipMeshes, litPip, lostPip, fading, fade };
+    return {
+      chassis,
+      ring,
+      pips,
+      pipSetback: ringOuter + PIP_CLEARANCE,
+      pipMeshes,
+      litPip,
+      lostPip,
+      fading,
+      fade,
+    };
   });
 
   // A bolt is a rig, not a sprite: a glowing silhouette of the owner's projectile look, a
@@ -367,7 +388,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // raised camera projects height towards the viewer, so lifting them alone would drop
       // them onto the hull rather than above it.
       bot.pips.visible = bot.chassis.visible;
-      bot.pips.position.set(pose.x + 0.5, PIP_HEIGHT, pose.y + 0.5 - PIP_SETBACK);
+      bot.pips.position.set(pose.x + 0.5, PIP_HEIGHT, pose.y + 0.5 - bot.pipSetback);
       for (const [index, pip] of bot.pipMeshes.entries())
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
 
