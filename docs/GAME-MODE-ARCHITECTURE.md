@@ -579,7 +579,12 @@ is queued and never resolve “whatever is current” at execution time.
 - Add playlist/ladder/series normalization and dual-write legacy duel data.
 - Route the current official ladder through `DuelMirrored6V1` and
   `DuelEloV1` without changing outcomes or APIs.
+- Defer rating mutation, achievements, notifications, and result deltas until
+  reveal-time settlement; simulation completion alone is not publication.
 - Add generic read APIs before admitting multiplayer ranked creation.
+- Follow the additive schema, ordered settlement state machine, compatibility
+  adapters, and secrecy gates in
+  [`COMPETITION-PERSISTENCE-PLAN.md`](COMPETITION-PERSISTENCE-PLAN.md).
 
 ### Package I — presentation and evaluation
 

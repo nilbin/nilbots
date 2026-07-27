@@ -22,6 +22,10 @@ wrong; it changes which document is the current entry point.
   resolved contracts, Split/replication, Deathmatch/FFA proof cases, immutable
   playlists, and opaque ladders. It preserves official replay v1 and the
   opened Frontline-alpha replay v2 as separate contract generations.
+- [`COMPETITION-PERSISTENCE-PLAN.md`](COMPETITION-PERSISTENCE-PLAN.md) —
+  additive playlist/ladder/series migration, pinned Duel compatibility, and
+  reveal-time settlement. It records the existing rating-publication secrecy
+  gap and the tests required to close it before generic ranked admission.
 - [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) —
   package order and current code boundary. Packages 0–7 plus Package 8's
   local runner/evaluator slice are implemented: canonical per-life
