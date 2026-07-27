@@ -16,9 +16,9 @@ export default function Shell() {
           <Logo size={26} />
         </Link>
         <nav className="flex items-center gap-1 text-sm">
-          <TopLink to="/">Arena</TopLink>
+          <TopLink to="/">Season</TopLink>
           <TopLink to="/bots">Bots</TopLink>
-          <TopLink to="/leaderboard">Leaderboard</TopLink>
+          <TopLink to="/watch">Watch</TopLink>
           <TopLink to="/store">Store</TopLink>
           <TopLink to="/docs">Docs</TopLink>
           {user && <TopLink to="/garage">My garage</TopLink>}

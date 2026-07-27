@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes , Navigate } from 'react-router-dom';
 import { ApiError } from './api';
 import { AuthProvider } from './auth';
 import Shell from './Shell';
@@ -12,7 +12,7 @@ import BotDetailPage from './pages/BotDetailPage';
 import GaragePage from './pages/GaragePage';
 import MatchPage from './pages/MatchPage';
 import MatchSetPage from './pages/MatchSetPage';
-import LeaderboardPage from './pages/LeaderboardPage';
+import SeasonPage from './pages/SeasonPage';
 import DocsPage from './pages/DocsPage';
 
 export default function Site() {
@@ -44,14 +44,17 @@ export default function Site() {
       <BrowserRouter>
         <Routes>
           <Route element={<Shell />}>
-            <Route index element={<ArenaPage />} />
+            <Route index element={<SeasonPage />} />
+            <Route path="/watch" element={<ArenaPage />} />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/bots" element={<BotsPage />} />
             <Route path="/bots/:botKey" element={<BotDetailPage />} />
             <Route path="/garage" element={<GaragePage />} />
             <Route path="/matches/:matchId" element={<MatchPage />} />
             <Route path="/sets/:setId" element={<MatchSetPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            {/* The ladder used to live here and be called the leaderboard. Old links
+                and bookmarks still resolve rather than 404. */}
+            <Route path="/leaderboard" element={<Navigate to="/" replace />} />
             <Route path="/store" element={<StorePage />} />
             <Route path="/docs" element={<DocsPage />} />
           </Route>

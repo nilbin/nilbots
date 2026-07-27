@@ -34,7 +34,7 @@ function seasonView(_entryId: string): {
   return { movement: null, history: null };
 }
 
-export default function LeaderboardPage() {
+export default function SeasonPage() {
   const [rules, setRules] = useState<string | null>(null); // null = server default
   const { data: board = null, error, refetch } = useLeaderboard(rules);
   const { data: me = null } = useMe();
