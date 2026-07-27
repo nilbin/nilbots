@@ -136,6 +136,18 @@ public static class MatchDefinitionResolver
             errors.Add("Frontline RedeployPauseTicks cannot be negative.");
         if (rules.PrimeRespawnTicks <= 0)
             errors.Add("Frontline PrimeRespawnTicks must be positive.");
+        if ((long)outerRules.MaxTicks + rules.RedeployPauseTicks > int.MaxValue)
+        {
+            errors.Add(
+                "Frontline MaxTicks plus RedeployPauseTicks must fit in a " +
+                "32-bit absolute tick.");
+        }
+        if ((long)outerRules.MaxTicks + rules.PrimeRespawnTicks > int.MaxValue)
+        {
+            errors.Add(
+                "Frontline MaxTicks plus PrimeRespawnTicks must fit in a " +
+                "32-bit absolute tick.");
+        }
         if (rules.ChildRebuildTicks <= 0)
             errors.Add("Frontline ChildRebuildTicks must be positive.");
         if (rules.AnchorWindupTicks <= 0)

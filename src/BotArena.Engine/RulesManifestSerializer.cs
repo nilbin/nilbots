@@ -680,6 +680,7 @@ public static class RulesManifestSerializer
         {
             PublicActionRejectionResult.Blocked => "blocked",
             PublicActionRejectionResult.Faulted => "faulted",
+            PublicActionRejectionResult.Rejected => "rejected",
             _ => throw new ArgumentOutOfRangeException(nameof(result)),
         };
 
@@ -744,6 +745,10 @@ public static class RulesManifestSerializer
         PublicTickResolutionPhase.ApplyRuntimeFaults => "apply-runtime-faults",
         PublicTickResolutionPhase.UpdateObjective => "update-objective",
         PublicTickResolutionPhase.ResolveMatchCompletion => "resolve-match-completion",
+        PublicTickResolutionPhase.ApplyTickStartLifecycle =>
+            "apply-tick-start-lifecycle",
+        PublicTickResolutionPhase.QueueDestroyedLives =>
+            "queue-destroyed-lives",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
     };
 }

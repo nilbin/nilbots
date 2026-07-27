@@ -11,6 +11,12 @@ versus one body into a territorial contest between two submitted
 intelligences that may each replicate into several independent runtime
 instances.
 
+Implementation checkpoint: Packages 0–3 are implemented through a
+deterministic Prime-only headless match. Package 4's
+runtime/observation/replay-v2 vertical slice is next. The experimental
+checkpoint is not exposed through the current SDK, protocol, replay, CLI, App,
+or viewer.
+
 ## Relationship to current plans
 
 These documents have separate jobs:
@@ -167,9 +173,21 @@ multiplying objective income.
 
 - A destroyed Prime enters its respawn timer; surviving children keep acting.
 - Losing every current body is not terminal while a Prime respawn is queued.
+- A Prime destroyed on executed tick `D` respawns at the start of
+  `D + 1 + PrimeRespawnTicks`, so its unit is absent for exactly
+  `PrimeRespawnTicks` full decision ticks.
+- Respawn retains the stable team/unit, increments `lifeId`, uses only the
+  authored `PrimeSpawn` tile/facing, resets per-life state, and may act on its
+  respawn tick.
 - Fabrication unlocks persist while a Prime is destroyed.
 - A destroyed child or turret makes its fabrication slot unavailable for the
   rebuild interval, then the Prime may instantiate it again.
+- Enemy ground movement cannot enter the opposing protected pad. The pad
+  grants no damage immunity and does not block projectiles; its other tiles
+  are not implicit respawn or fabrication candidates.
+- A projectile remains owned by the exact firing life and survives that life's
+  destruction. Under the initial no-friendly-fire/no-allied-blocking rules it
+  passes through later allied lives but may still hit an enemy.
 - No friendly damage initially, and allied bodies do not absorb allied
   projectiles.
 
@@ -200,6 +218,39 @@ Topology requirements:
 
 The increasingly short defender journey as the front approaches its base is
 the physical comeback mechanism.
+
+### 3.1 Package 3 geometry evidence
+
+The implemented map has now been audited through the actual headless session.
+This is mechanical evidence, not a balance or entertainment verdict. Because
+the default `FrontlineRules` includes the still-unimplemented fabrication
+slots, the executable audit kept its five-position capture, redeploy, and
+respawn values but explicitly selected one Prime per team, no fabrication
+unlocks, and `MaxTicks = 500`.
+
+- `frontline-01` is 23×15 with objective footprints `[4, 4, 6, 4, 4]`.
+- Spawn-to-position BFS distances are `[2, 5, 8, 14, 17]` for team 0 and the
+  exact mirror `[17, 14, 8, 5, 2]` for team 1.
+- Every adjacent pair of objective regions is four steps apart.
+- An exhaustive action search followed by an engine replay found the earliest
+  unopposed breach at the end of tick 61: 62 executed ticks, or 12.4 seconds at
+  five ticks per second. Centre is entered on tick 7 and captured on tick 21;
+  the two later captures complete on ticks 41 and 61. Travel consumes each
+  redeploy window, so the optimal path never waits for it.
+- Four internally vertex-disjoint spawn-to-objective routes exist on both
+  sides, and the authored geometry is mirrored. The full upper and lower
+  routes to centre are nevertheless 16 and 15 steps versus eight through the
+  clear centre. They exceed the proposed three-step alternative-route delta
+  and make central opening contact the natural baseline.
+- Pads are 2×3, objective and pad tiles are Anchor-forbidden, and the static
+  eight-heading safety proof finds no legal default turret anchor that can hit
+  the exact authored Prime spawn at range eight. A mobile attacker may still
+  stand immediately outside a pad and shoot into it, as intended by the
+  no-immunity rule.
+
+The 62-tick lower bound, centre-route advantage, and 18-tick Prime respawn are
+inputs to later native-policy experiments. They do not establish target match
+duration, route diversity, or whether any timing should ship.
 
 ## 4. Public match contract
 
@@ -383,7 +434,7 @@ new ID even if the UI label is similar.
 
 ## 7. Runtime model
 
-Every body runs one independent instance of the same artifact. Under the
+Every body will run one independent instance of the same artifact. Under the
 recommended immediate-union perception arm, each pre-tick observation
 contains:
 
@@ -410,7 +461,48 @@ Destruction disposes that runtime instance. A respawn/rebuild creates a fresh
 instance and private memory for a new `lifeId`. A form transition keeps the
 same instance and memory.
 
-### 7.1 Protocol vNext
+### 7.1 Implemented Prime-only headless contract
+
+Package 3 freezes lifecycle and joint-action identity without inventing an
+observation or replay shape. `PrepareTick()` applies due tick-start respawns
+once and returns active keys in canonical
+`(teamId, unitId, lifeId)` order. Repeated calls before a successful
+`Step()` are idempotent.
+`Step(IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions)` accepts
+exactly that key set: missing, extra, and stale-life keys fail atomically;
+insertion order has no effect. An empty active set requires an empty
+dictionary, while a newly respawned life appears in the due tick's set and may
+act immediately.
+
+Resolution is turn → simultaneous movement → existing projectiles → new shots
+and simultaneous damage → queue destroyed lives → cooldown/energy →
+objective → completion. Objective presence is evaluated from post-damage
+active lives, so a destroyed occupant neither captures nor contests that
+tick. Credited and emitted damage is actual health removed:
+
+```text
+actualDamage = min(DamagePerHit, remainingHealth)
+```
+
+At `MaxTicks`, the implemented objective-only result is:
+
+```text
+centre = FrontlinePositionCount / 2
+position = (ActivePositionIndex - centre) * CaptureThreshold
+claim = +CaptureProgress for team 0, -CaptureProgress for team 1, else 0
+territorialScore = position + claim
+```
+
+Positive wins for team 0, negative for team 1, and zero draws. Health and
+damage are recorded but do not break the tie. Objective resolution checks a
+base breach before `MaxTicks`, so a breach on the final allowed tick wins.
+
+In-flight projectiles are not tied to actor liveness: their owner remains the
+exact firing `FrontlineActorId`, they persist after destruction, and their
+damage continues to accrue to the stable firing unit. A newly respawned allied
+life is not retroactively the projectile owner.
+
+### 7.2 Protocol vNext
 
 The current line protocol 0.1 remains the historical duel path. Frontline's
 team identity, manifest, variable entities, action parameters, and legality
@@ -601,6 +693,13 @@ redesigned product.
 
 ## 13. Scripted acceptance before balance
 
+Package 3 passes the Prime-only deterministic subset: exact prepared keys,
+combat/projectile parity, repeated respawn, simultaneous destruction,
+old-life projectile persistence, actual-damage overkill, post-damage
+objective presence, early/final-tick breach, and territorial max-tick
+completion. Replication, Anchor, and native-bot gates below remain future
+work.
+
 - An unopposed sweep wins before the first fabrication unlock but not
   implausibly close to tick zero.
 - One elimination normally enables meaningful capture progress, not an
@@ -631,9 +730,6 @@ redesigned product.
 - Does a new child begin with empty private memory, an explicit spawn message,
   or a bounded team-state snapshot?
 - Does fabrication occur adjacent to the Prime or at the home pad?
-- Beyond Anchor-forbidden geometry, do protected home pads forbid enemy
-  occupancy, grant temporary respawn immunity, or both, and exactly what ends
-  that protection?
 - Is Anchor irreversible for a life, or may a turret self-destruct to begin
   its rebuild timer?
 - Are mobile child and Prime HP initially identical?

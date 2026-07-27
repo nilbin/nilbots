@@ -113,14 +113,17 @@ Project boundaries that must not be violated:
   into explicitly ordered canonical rules, map, and aggregate fingerprints.
   This contract is engine-only today; protocol 0.1 and replay v1 do not yet
   deliver or embed it.
-- Frontline is an unshipped, definition-only experiment. Official rules
-  0.1–0.5 leave `GameRules.Frontline` null and continue through legacy
-  `MatchSession` and map format 1. Experimental map format 2, the
-  rules/map/topology resolver, and `FrontlineControlSystem` exist, but there is
-  not yet a playable Frontline session, runtime protocol, replay, CLI ruleset,
-  or server ladder. Format-v2 assets live under `maps/experimental/`; current
-  App and CLI catalogs/package inputs enumerate only top-level format-v1 maps,
-  and the legacy `MatchEngine` rejects a Frontline definition defensively.
+- Frontline is an unshipped, engine-only experiment implemented through
+  Package 3. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
+  continue through legacy `MatchSession`, runtime protocol 0.1, replay v1, and
+  map format 1. Experimental map format 2, the rules/map/topology resolver,
+  `FrontlineControlSystem`, and an explicitly constructed Prime-only
+  `FrontlineMatchSession` exist. The session is headless: it owns no bot
+  runtime, canonical observation, replay, CLI ruleset, App match path, viewer,
+  or server ladder. Package 4's runtime/observation/replay-v2 slice is next.
+  Format-v2 assets live under `maps/experimental/`; current App and CLI
+  catalogs/package inputs enumerate only top-level format-v1 maps, and legacy
+  `MatchEngine` still rejects a Frontline definition defensively.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated types, mapped by adapters in
   BotArena.Runtime (in-process, diagnostic only) and BotArena.Guest (the
@@ -193,6 +196,22 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   team, submitted participant, stable team-local unit slot, and runtime life
   are distinct; consumers resolve them by their explicit IDs. Canonical
   collection order is a serialization/fingerprint rule, not an identity rule.
+- The Package 3 Frontline call boundary is
+  `PrepareTick()` → exact keyed `Step(...)`. Preparation applies due lifecycle
+  once, is idempotent until a successful step, and returns canonical
+  `(teamId, unitId, lifeId)` actors. The decision dictionary must contain
+  exactly those keys (empty when no lives are active); missing, extra, or stale
+  lives fail atomically. A destruction on tick `D` respawns at
+  `D + 1 + PrimeRespawnTicks`, and the new life may act immediately.
+- Package 3 protected pads block opposing ground entry only: they grant no
+  damage immunity, do not stop projectiles, and only the authored
+  `PrimeSpawn` is a respawn tile. Old-life projectiles persist with their exact
+  firing-life owner. Damage events/ledgers count
+  `min(DamagePerHit, remainingHealth)`, objective presence uses post-damage
+  active lives, and a final-tick breach precedes max-tick completion. The
+  objective-only max-tick score is
+  `(activePositionIndex - positionCount/2) * captureThreshold + signedCaptureProgress`
+  (positive team 0, negative team 1, zero draw).
 - Rules/map aliases and presentation are outside component content hashes;
   ordered gameplay sequences stay ordered, true sets are canonicalized, and
   the aggregate match fingerprint includes the exact topology and public

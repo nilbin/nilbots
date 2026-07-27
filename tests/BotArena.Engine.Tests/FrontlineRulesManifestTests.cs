@@ -11,7 +11,28 @@ public class FrontlineRulesManifestTests
             PublicRulesManifestFactory.CreateRules(CreateRules(source));
 
         Assert.Equal(PublicObjectiveMode.Frontline, manifest.Objective.Mode);
-        Assert.Empty(manifest.Objective.MaxTickTiebreakers);
+        Assert.Equal(
+            [PublicScoreMetric.Objective],
+            manifest.Objective.MaxTickTiebreakers.ToArray());
+        Assert.Equal(
+            source.PrimeForm.ShootCooldownTicks,
+            manifest.Projectiles.ShootCooldownTicks);
+        Assert.Equal(
+            [
+                PublicTickResolutionPhase.ApplyTickStartLifecycle,
+                PublicTickResolutionPhase.FreezeObservations,
+                PublicTickResolutionPhase.CollectJointDecisions,
+                PublicTickResolutionPhase.ValidateActions,
+                PublicTickResolutionPhase.Rotate,
+                PublicTickResolutionPhase.Move,
+                PublicTickResolutionPhase.AdvanceExistingProjectiles,
+                PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
+                PublicTickResolutionPhase.QueueDestroyedLives,
+                PublicTickResolutionPhase.UpdateCooldownsAndEnergy,
+                PublicTickResolutionPhase.UpdateObjective,
+                PublicTickResolutionPhase.ResolveMatchCompletion,
+            ],
+            manifest.TickResolution.Phases.ToArray());
         Assert.Equal(source.TeamCount, manifest.Limits.TeamCount);
         Assert.Equal(
             source.TeamCount * source.ParticipantsPerTeam,
@@ -23,6 +44,9 @@ public class FrontlineRulesManifestTests
         Assert.Equal(source.MaxUnitsPerTeam, manifest.Limits.MaxUnitsPerTeam);
         Assert.False(manifest.Limits.DestructionEndsMatch);
         Assert.True(manifest.Limits.RespawnsEnabled);
+        Assert.Equal(0, manifest.Limits.FaultLimit);
+        Assert.Null(manifest.ShotPrograms.InvalidPayloadResult);
+        Assert.True(manifest.Collisions.ProjectilesStopOnFirstNonOwnerUnit);
 
         PublicFrontlineDefinition definition = Assert.IsType<PublicFrontlineDefinition>(
             manifest.Frontline);
@@ -64,6 +88,23 @@ public class FrontlineRulesManifestTests
         Assert.DoesNotContain(
             manifest.Actions,
             action => action.Id is "fabricate" or "anchor");
+    }
+
+    [Fact]
+    public void EnabledFrontlineShotPrograms_RejectInvalidPayloadAtHostBoundary()
+    {
+        GameRules rules = CreateRules(new FrontlineRules()) with
+        {
+            AllowProgrammedShots = true,
+            ProjectileTicksPerTile = 1,
+        };
+
+        PublicRulesManifest manifest =
+            PublicRulesManifestFactory.CreateRules(rules);
+
+        Assert.Equal(
+            PublicActionRejectionResult.Rejected,
+            manifest.ShotPrograms.InvalidPayloadResult);
     }
 
     [Fact]

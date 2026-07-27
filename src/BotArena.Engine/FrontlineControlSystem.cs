@@ -179,6 +179,14 @@ public static class FrontlineControlSystem
                     state.ActivePositionIndex));
         }
 
+        long resumesAt = (long)tick + 1 + rules.RedeployPauseTicks;
+        if (resumesAt > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(rules),
+                "Frontline redeploy schedule exceeds the maximum absolute tick.");
+        }
+
         int nextPosition = state.ActivePositionIndex + direction;
         return new FrontlineControlStepResult(
             state with
@@ -188,7 +196,7 @@ public static class FrontlineControlSystem
                 ClaimingTeamId = null,
                 CaptureProgress = 0,
                 DecayTicksElapsed = 0,
-                ControlResumesAtTick = tick + 1 + rules.RedeployPauseTicks,
+                ControlResumesAtTick = (int)resumesAt,
             },
             new FrontlinePositionAdvanced(
                 tick,

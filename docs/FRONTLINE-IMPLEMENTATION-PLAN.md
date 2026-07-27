@@ -6,13 +6,14 @@ document turns
 implementation sequence. It does not mean Frontline has shipped, been
 pre-registered, or replaced rules 0.5.
 
-The frontend refactor is integrated. A replay-v1 identity-normalization slice
-may proceed now; Frontline-specific `web/` and `mobile/` work still waits for
-the replay-v2 contract it will consume.
+The frontend refactor and replay-v1 participant-identity normalization are
+integrated. Frontline-specific `web/` and `mobile/` work still waits for the
+authoritative replay-v2 state it will consume.
 
-Current implementation scope: Packages 0–2 are present in the accompanying
-foundation change. Package 3 is the next active slice; later packages remain
-planned.
+Current implementation scope: Packages 0–3 are implemented through a
+Prime-only headless `FrontlineMatchSession`. Package 4's
+runtime/observation/replay-v2 vertical slice is next; replication, Anchor,
+protocol vNext, and product surfaces remain planned.
 
 ## 1. Recommendation
 
@@ -29,10 +30,10 @@ Give each implementation slice one owner and integrate it before starting
 dependants. Shared contract files are integration choke points, not parallel
 editing targets.
 
-The first code change should be an engine-only public-contract foundation. It
-must not change gameplay, replay-v1 bytes, artifacts, SDK, protocol, CLI, App,
-or frontend. That foundation is independently useful even if the Frontline
-game hypothesis later changes.
+The first completed code changes were an engine-only public-contract
+foundation, historical characterization shield, Frontline definition/kernel,
+and Prime-only headless session. They leave legacy gameplay, replay-v1 bytes,
+artifacts, SDK, protocol, CLI, App, and frontend behavior unchanged.
 
 ## 2. Relationship to replay-native ML work
 
@@ -131,7 +132,7 @@ Freeze these before the package that consumes them, not all at once.
 - A fingerprint covers the canonical payload without its own fingerprint
   field.
 
-### Before entity and lifecycle work
+### Package 3 entity and lifecycle contract
 
 - `teamId`: 0 or 1.
 - `unitId`: stable, team-local identity tied to Prime or fabrication slot.
@@ -139,6 +140,15 @@ Freeze these before the package that consumes them, not all at once.
 - Canonical entity order: `(teamId, unitId, lifeId)`.
 - A form change retains runtime memory; destruction disposes the runtime; a
   respawn/rebuild creates fresh memory and a new `lifeId`.
+- `PrepareTick()` applies due lifecycle transitions once and returns the exact
+  canonical actor keys required by `Step(...)`; repeated preparation before a
+  successful step is idempotent.
+- A Prime destroyed while executing tick `D` respawns at the start of
+  `D + 1 + PrimeRespawnTicks`, leaving exactly `PrimeRespawnTicks` complete
+  ticks with that unit absent.
+- Enemy ground movement cannot enter an opposing protected home pad. The pad
+  grants no damage immunity and does not block projectiles; only the authored
+  `PrimeSpawn` tile is used for Prime respawn.
 - Decide fuel, fault, memory, startup, and debug budgets per body versus per
   team.
 
@@ -173,7 +183,8 @@ Freeze these before the package that consumes them, not all at once.
 
 ### Before ranked or public use
 
-- Max-tick team tiebreak.
+- Decide whether the implemented objective-only max-tick territorial score
+  remains the experimental/ranked rule after replication and Anchor testing.
 - Artifact capability declaration and protocol negotiation.
 - Named season/ruleset identity versus exact contract fingerprint for ladders.
 - Replay/debug/training-data privacy and licensing.
@@ -182,6 +193,8 @@ Freeze these before the package that consumes them, not all at once.
 ## 5. Work packages
 
 ### Package 0 — characterization shield
+
+Status: **implemented**.
 
 Goal: prove the refactor did not silently change historical play.
 
@@ -207,10 +220,12 @@ package.
 
 ### Package 1 — public contract and fingerprints
 
+Status: **implemented**.
+
 Goal: make the complete effective public rules machine-readable without
 changing what bots receive yet.
 
-Likely additions:
+Implemented additions:
 
 - `src/BotArena.Engine/PublicRulesManifest.cs`
 - `src/BotArena.Engine/PublicRulesManifestFactory.cs`
@@ -244,10 +259,12 @@ or `mobile/` in this package.
 
 ### Package 2 — Frontline definition and objective kernel
 
+Status: **implemented**.
+
 Goal: freeze the experimental rules/map input and objective math without
 running full matches.
 
-Likely additions:
+Implemented additions:
 
 - `src/BotArena.Engine/FrontlineRules.cs`
 - `src/BotArena.Engine/UnitFormRules.cs`
@@ -267,8 +284,8 @@ Narrow existing-file changes:
 - keep format-v2 assets under `maps/experimental/`, outside the current
   App/CLI top-level map catalog and CLI package wildcard;
 - resolve map/rules compatibility before queueing and again before legacy
-  execution; `MatchEngine` must reject a Frontline definition until its
-  dedicated session exists.
+  execution; legacy `MatchEngine` continues rejecting a Frontline definition
+  until Package 4 adds explicit runtime routing to `FrontlineMatchSession`.
 
 Acceptance:
 
@@ -278,51 +295,115 @@ Acceptance:
 - exact contested/empty decay and redeploy timing;
 - reversible partial pressure;
 - deterministic three-push base breach from the centre;
-- stable map/rules/match fingerprints.
+- stable map/rules/match fingerprints;
 - eight-way turret launch headings and every enabled programmed path are
   included in the Anchor-to-Prime-spawn safety proof.
 
 ### Package 3 — Prime-only headless Frontline
 
+Status: **implemented headless checkpoint**.
+
 Goal: play a complete two-Prime match with current movement/projectile
 mechanics, respawns, Frontline advancement, and base-breach victory.
 
-Start with a separate `FrontlineMatchSession` rather than rewriting legacy
-`MatchSession`. Extract shared combat helpers only after characterization
-tests prove legacy behavior remains identical.
+A separate `FrontlineMatchSession` implements this slice without rewriting
+legacy `MatchSession`. It owns no bot runtime, observation, replay, CLI, App,
+or viewer integration.
 
 Introduce:
 
-- `TeamId`, `UnitId`, `LifeId`, and `FabricationSlotId`;
-- `TeamState`, `UnitState`, `FrontlineState`, and lifecycle status;
-- a stable-keyed joint-decision step API;
-- explicit reset/step results suitable for a later training wrapper.
+- `FrontlineActorId(teamId, unitId, lifeId)`;
+- `FrontlineTeamState`, `FrontlineUnitState`, `FrontlineLifeState`, and
+  `FrontlineLifecycleStatus`;
+- `FrontlineMatchState`, projectile, event, and result records;
+- `FrontlineTickStart`, `FrontlineResetResult`, and `FrontlineStepResult` for a
+  stable-keyed joint-decision API suitable for a later training wrapper.
 
-Version the Frontline tick order:
+#### Prepared-tick and decision-key contract
 
-1. tick-start unlock, respawn, and rebuild transitions;
-2. build and freeze all observations;
-3. collect the joint decision;
-4. validate actions and dynamic legality;
-5. turn;
-6. simultaneous movement;
-7. advance existing projectiles;
-8. launch new shots and apply simultaneous damage;
-9. queue destruction/lifecycle transitions;
-10. update Frontline pressure and breach;
-11. apply successful fabrication/form transitions;
-12. update cooldowns, faults, and budgets;
-13. resolve max-tick result.
+`Reset()` creates Prime life `0` in stable unit `0` for each team and returns
+the canonical actors `0:0:0`, `1:0:0`. For every later tick:
 
-Gate: early breach, contested Frontline, repeated death/respawn, simultaneous
-destruction, and max-tick fixtures are deterministic.
+1. `PrepareTick()` applies respawns due at that tick start exactly once.
+2. It returns `ActiveActors` sorted by
+   `(teamId, unitId, lifeId)`, plus any respawned actors and lifecycle events.
+3. Repeated `PrepareTick()` calls before `Step()` return the same prepared
+   object.
+4. `Step(IReadOnlyDictionary<FrontlineActorId, BotDecision> decisions)`
+   requires keys **exactly** equal to those life-qualified `ActiveActors`.
+   Missing, extra, or stale-life keys are rejected atomically; dictionary
+   insertion order is irrelevant.
+5. A tick with no active lives requires an empty decision dictionary. A
+   respawned life is in that tick's key set and may act immediately.
 
-### Package 4 — canonical observation and replay v2 foundation
+Package 3 rejects runtime-fault decisions because runtime ownership begins in
+Package 4. Invalid decision sets do not consume or mutate the prepared tick.
 
-Goal: implement the engine/replay seam of replay-native ML Work Package A
-once, while the engine contracts are already being rewritten. Its viewer
+#### Lifecycle, pads, projectiles, and damage
+
+- If life `L` is destroyed while executing tick `D`, its stable unit queues
+  the next life for tick `D + 1 + PrimeRespawnTicks`. It is absent for exactly
+  `PrimeRespawnTicks` full decision ticks. Respawn keeps the same team/unit,
+  increments `lifeId`, restores authored Prime spawn/facing, max health and
+  starting energy, clears cooldown/action/life-damage state, and can act on
+  the respawn tick.
+- Simultaneous destruction of every active Prime does not end the match;
+  empty joint steps continue until lifecycle transitions restore actors.
+- Enemy ground movement cannot enter the opposing protected home pad. There
+  is no spawn or pad damage immunity, projectiles are not blocked, and
+  `PrimeSpawn` is the only Prime respawn tile; other pad tiles are not fallback
+  spawn or fabrication tiles.
+- In-flight projectiles survive their firing life's destruction. Ownership
+  remains the exact old `FrontlineActorId`; with the initial no-friendly-fire,
+  no-allied-blocking rules they pass through a later allied life, may damage
+  an enemy, and credit cumulative damage to the stable firing unit rather than
+  the new life.
+- Simultaneous pending hits are applied in canonical target/impact order.
+  Each hit's credited and emitted amount is capped to remaining health:
+  `actualDamage = min(DamagePerHit, remainingHealth)`. Overkill never inflates
+  damage events or ledgers.
+
+#### Implemented resolution and completion order
+
+1. `PrepareTick`: apply due tick-start lifecycle and freeze actor keys.
+2. Validate the exact joint decision and each action.
+3. Resolve turns, then simultaneous movement.
+4. Advance existing projectiles.
+5. Launch new shots, collect simultaneous hits, apply actual damage, and
+   remove/queue destroyed lives.
+6. Publish action results and update surviving-life cooldown/energy.
+7. Update objective control from **post-damage active lives**; a destroyed
+   occupant neither captures nor contests that tick.
+8. Increment the next-tick counter, then resolve base breach before max ticks.
+
+At max ticks, only territorial state decides:
+
+```text
+centre = FrontlinePositionCount / 2
+position = (ActivePositionIndex - centre) * CaptureThreshold
+claim = +CaptureProgress for team 0, -CaptureProgress for team 1, else 0
+territorialScore = position + claim
+```
+
+A positive score wins for team 0, a negative score for team 1, and zero draws.
+Health and damage are result facts, not Package 3 tiebreakers. A base breach
+created by the final allowed tick takes precedence over `MaxTicks`.
+
+Gate: implemented tests cover keyed/idempotent preparation, deterministic
+insertion-order independence, combat/projectile parity, exact respawn gaps,
+old-life projectiles, actual-damage overkill, post-damage presence, early and
+final-tick breach, max-tick scoring, simultaneous destruction, and
+deterministic lifecycle reruns.
+
+### Package 4 — runtime, canonical observation, and replay v2 foundation
+
+Status: **next**.
+
+Goal: turn the Package 3 headless session into a Prime-only
+runtime/observation/replay-v2 vertical slice while implementing the
+engine/replay seam of replay-native ML Work Package A once. Its viewer
 consumer work completes against the now-open frontend boundary in Package 8,
-after replay v2 supplies the data.
+after replay v2 supplies authoritative data.
 
 Requirements from `REPLAY-NATIVE-ML-PLAN.md`:
 
@@ -344,13 +425,22 @@ Frontline-specific additions:
   fixed three-body fields;
 - team-perception provenance is part of the public observation;
 - lifecycle and Frontline reward facts are authoritative post-tick facts;
-- no same-tick allied action enters another actor's observation.
+- no same-tick allied action enters another actor's observation;
+- runtime orchestration calls `PrepareTick()`, builds every actor observation
+  from the same frozen tick start, obtains one decision for each exact key, and
+  submits that keyed joint action to `Step()`;
+- replay v2 records tick-start lifecycle events and the exact actor-key set so
+  respawn gaps and new lives are reconstructible without simulation;
+- this slice may prove the engine/in-process runtime boundary, but must not
+  pretend protocol 0.1 can carry Frontline; canonical WASM transport remains
+  protocol-vNext work unless it is deliberately pulled forward and versioned.
 
 Primary current surfaces:
 
 - `src/BotArena.Engine/BotObservation.cs`
 - `src/BotArena.Engine/MatchSession.cs`
 - `src/BotArena.Engine/MatchEngine.cs`
+- `src/BotArena.Engine/FrontlineMatchSession.cs`
 - `src/BotArena.Engine/Replay.cs`
 - `src/BotArena.Engine/GameEvent.cs`
 - `src/BotArena.Runtime/InProcessBotRuntime.cs`
@@ -497,7 +587,7 @@ here and are not required to answer whether Frontline is fun.
 
 ## 6. Agent ownership
 
-### First implementation wave
+### First implementation wave — completed
 
 - **Foundation owner:** Packages 0–1, including tests.
 - **Fixture/spec owner:** independently freeze compatibility and
@@ -508,14 +598,14 @@ here and are not required to answer whether Frontline is fun.
 Do not assign a second agent to `GameRules`, `BotArenaVersions`, or manifest
 files during this wave.
 
-### Engine wave
+### Engine wave — completed through Package 3
 
 - One engine owner for Packages 2–3.
 - One independent adversarial-test owner after public types stabilize.
 - The primary integrator owns shared-combat extraction and compatibility
   review.
 
-### Observation/replay wave
+### Observation/replay wave — next
 
 Package 4 has one contract owner spanning engine observation and replay
 serialization. A separate leakage/fixture reviewer may add tests after DTOs
@@ -560,10 +650,10 @@ After SDK, CLI, replay, and the experimental brief are usable:
 
 ## 7. Frontend boundary and staged implementation
 
-The refactor is integrated. The first safe slice is to eliminate replay-v1
-assumptions that participant array position equals stable slot identity, with
-reordered and sparse-slot tests. It must not invent replay-v2 fields or change
-the hosted-viewer bridge.
+The refactor is integrated, and replay-v1 presentation now resolves
+participants by stable slot rather than array position, with reordered and
+sparse-slot coverage. That completed normalization does not invent replay-v2
+fields or change the hosted-viewer bridge.
 
 The remaining Frontline work will touch:
 
@@ -673,27 +763,28 @@ dynamics metrics, and locked outcome-blind viewer notes.
 
 ## 10. Immediate implementation wave
 
-Packages 0–2 now establish the historical shield, exact public contract,
-format-v2 map, rules/map/topology resolver, and pure objective kernel. Official
-rules 0.1–0.5, protocol 0.1, replay v1, and their canonical hashes remain
-unchanged. The experimental map is deliberately absent from current App/CLI
-catalogs and packages, and legacy execution rejects it rather than silently
-running duel mechanics. The web and mobile changes are limited to stable replay-v1
-participant lookup; they add no speculative Frontline payload or visuals.
+Packages 0–3 now establish the historical shield, exact public contract,
+format-v2 map, rules/map/topology resolver, pure objective kernel, and a
+deterministic Prime-only headless match. Official rules 0.1–0.5, protocol 0.1,
+replay v1, and their canonical hashes remain unchanged. The experimental map
+is absent from current App/CLI catalogs and packages, and legacy
+`MatchEngine` still rejects it rather than silently running duel mechanics.
+The completed frontend change is limited to stable replay-v1 participant
+lookup; it adds no speculative Frontline payload or visuals.
 
-The active dependent slice is Package 3:
+The active dependent slice is Package 4:
 
-1. add a separate Prime-only `FrontlineMatchSession` without changing legacy
-   `MatchSession`;
-2. introduce stable team/unit/life identity and a keyed joint-decision API;
-3. resolve current movement/projectile combat, Prime destruction and respawn,
-   binary objective presence, breach, and max-tick completion;
-4. freeze only the spawn/lifecycle semantics this headless slice needs and
-   leave fabrication, Anchor, shared perception, runtimes, protocol, and replay
-   shapes deferred;
-5. prove early breach, contest, repeated respawn, simultaneous destruction,
-   symmetry, and deterministic reruns.
+1. define one canonical public observation for each life-qualified actor in a
+   prepared tick;
+2. drive the Prime-only session through runtimes using exactly the
+   `PrepareTick().ActiveActors` keys;
+3. snapshot those same observations, keyed decisions, lifecycle events,
+   projectile traversals, objective changes, and authoritative post-state into
+   replay v2;
+4. preserve replay-v1 read/verify/view behavior and prevent omniscient state
+   from leaking into actor observations;
+5. keep Frontline viewer work deferred until that authoritative v2 payload is
+   stable.
 
-Package 4 then absorbs the existing replay-native observation seam when the
-engine rewrite reaches observations, avoiding both a throwaway
-Frontline-only data path and a second ML implementation.
+This absorbs the existing replay-native observation seam instead of creating a
+throwaway Frontline-only data path or a second ML implementation.

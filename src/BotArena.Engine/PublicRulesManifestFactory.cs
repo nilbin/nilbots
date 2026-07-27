@@ -49,7 +49,7 @@ public static class PublicRulesManifestFactory
             RulesFingerprint = "",
             Limits = new PublicMatchLimits(
                 rules.MaxTicks,
-                rules.FaultLimit,
+                FaultLimit: frontline is null ? rules.FaultLimit : 0,
                 TeamCount: frontline?.TeamCount ?? 2,
                 ParticipantCount: frontline is null
                     ? 2
@@ -83,7 +83,7 @@ public static class PublicRulesManifestFactory
                     rules.ControlOvertimePressureGain,
                     rules.ControlOvertimeStopsDecay),
                 frontline is not null
-                    ? []
+                    ? [PublicScoreMetric.Objective]
                     : rules.ZoneControl
                         ? [PublicScoreMetric.Objective, PublicScoreMetric.Health, PublicScoreMetric.DamageDealt]
                         : [PublicScoreMetric.Health, PublicScoreMetric.DamageDealt]),
@@ -111,7 +111,8 @@ public static class PublicRulesManifestFactory
                     : PublicProjectileMode.InstantRay,
                 rules.DamagePerHit,
                 rules.ShotRange,
-                rules.ShootCooldownTicks,
+                frontline?.PrimeForm?.ShootCooldownTicks
+                    ?? rules.ShootCooldownTicks,
                 rules.ProjectileTicksPerTile,
                 rules.ProjectileTilesPerAdvance,
                 LaunchTiles: 1,
@@ -144,7 +145,9 @@ public static class PublicRulesManifestFactory
                     ShotProgram.Straight.BendEveryTiles,
                     ShotProgram.Straight.BendCount),
                 InvalidPayloadResult: shotProgramsEnabled
-                    ? PublicActionRejectionResult.Faulted
+                    ? frontline is null
+                        ? PublicActionRejectionResult.Faulted
+                        : PublicActionRejectionResult.Rejected
                     : null,
                 UnsupportedPayloadResult: PublicActionRejectionResult.Blocked,
                 DiagonalCornersMustBeClear: true),
@@ -175,19 +178,7 @@ public static class PublicRulesManifestFactory
             TickResolution = new PublicTickResolutionRules(
                 ObservationsUsePreTickState: true,
                 DecisionsResolveAsJointStep: true,
-                [
-                    PublicTickResolutionPhase.FreezeObservations,
-                    PublicTickResolutionPhase.CollectJointDecisions,
-                    PublicTickResolutionPhase.ValidateActions,
-                    PublicTickResolutionPhase.Rotate,
-                    PublicTickResolutionPhase.Move,
-                    PublicTickResolutionPhase.AdvanceExistingProjectiles,
-                    PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
-                    PublicTickResolutionPhase.UpdateCooldownsAndEnergy,
-                    PublicTickResolutionPhase.ApplyRuntimeFaults,
-                    PublicTickResolutionPhase.UpdateObjective,
-                    PublicTickResolutionPhase.ResolveMatchCompletion,
-                ]),
+                CreateTickResolutionPhases(frontline is not null)),
         };
 
         return manifest with
@@ -195,6 +186,39 @@ public static class PublicRulesManifestFactory
             RulesFingerprint = MatchContractFingerprint.ComputeRules(manifest, rules),
         };
     }
+
+    private static ImmutableArray<PublicTickResolutionPhase>
+        CreateTickResolutionPhases(bool frontline) =>
+        frontline
+            ?
+            [
+                PublicTickResolutionPhase.ApplyTickStartLifecycle,
+                PublicTickResolutionPhase.FreezeObservations,
+                PublicTickResolutionPhase.CollectJointDecisions,
+                PublicTickResolutionPhase.ValidateActions,
+                PublicTickResolutionPhase.Rotate,
+                PublicTickResolutionPhase.Move,
+                PublicTickResolutionPhase.AdvanceExistingProjectiles,
+                PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
+                PublicTickResolutionPhase.QueueDestroyedLives,
+                PublicTickResolutionPhase.UpdateCooldownsAndEnergy,
+                PublicTickResolutionPhase.UpdateObjective,
+                PublicTickResolutionPhase.ResolveMatchCompletion,
+            ]
+            :
+            [
+                PublicTickResolutionPhase.FreezeObservations,
+                PublicTickResolutionPhase.CollectJointDecisions,
+                PublicTickResolutionPhase.ValidateActions,
+                PublicTickResolutionPhase.Rotate,
+                PublicTickResolutionPhase.Move,
+                PublicTickResolutionPhase.AdvanceExistingProjectiles,
+                PublicTickResolutionPhase.LaunchShotsAndApplyDamage,
+                PublicTickResolutionPhase.UpdateCooldownsAndEnergy,
+                PublicTickResolutionPhase.ApplyRuntimeFaults,
+                PublicTickResolutionPhase.UpdateObjective,
+                PublicTickResolutionPhase.ResolveMatchCompletion,
+            ];
 
     public static PublicMapManifest CreateMap(ArenaMap map)
     {

@@ -1800,6 +1800,30 @@ before picking a number.*
      because it supplies the shared canonical-observation, replay-v2, dataset,
      and model-asset path; Frontline must not create a second ML stack.
 
+122. **Frontline lifecycle is a tick-start transaction, while territory reads
+     the post-combat world.** The first playable slice is an explicitly
+     Prime-only headless session; definitions with fabrication slots are
+     rejected rather than partially interpreted. `PrepareTick()` applies every
+     due respawn once and freezes the canonically ordered
+     `(teamId, unitId, lifeId)` keys whose joint decisions `Step(...)` must
+     contain exactly. A Prime destroyed on tick `D` returns at the start of
+     `D + 1 + PrimeRespawnTicks`, after exactly that many complete absent
+     decision ticks, with a fresh life/runtime identity and authored spawn
+     state. Projectiles retain the firing life identity and continue after its
+     destruction. Enemy ground movement cannot enter the opposing protected
+     pad, but the pad grants no damage immunity and does not block projectiles.
+     Turns, movement, existing projectile advances, new shots, simultaneous
+     damage, lifecycle queuing, cooldown/energy, objective control, and match
+     completion resolve in that order. Actual credited aggregate damage is
+     capped at the target's pre-hit health. Only surviving objective-weighted
+     bodies count, so a kill can remove a contest and capture on the same tick.
+     A final-tick base breach takes precedence over timeout; otherwise the
+     signed score is `(active position - centre) × capture threshold`, plus
+     team 0 claim progress or minus team 1 claim progress. Runtime fault
+     policy, fabrication, Anchor, observations, replay v2, and runtime
+     integration remain later contracts rather than guessed behavior in this
+     slice.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

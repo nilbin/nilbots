@@ -32,6 +32,10 @@ public sealed record PublicRulesManifest
 
 public sealed record PublicMatchLimits(
     int MaxTicks,
+    /// <summary>
+    /// Maximum applied runtime faults. Zero means this session rejects runtime
+    /// faults at its host boundary instead of resolving them as gameplay.
+    /// </summary>
     int FaultLimit,
     int TeamCount,
     int ParticipantCount,
@@ -132,6 +136,12 @@ public sealed record PublicFrontlineAnchorDefinition(
     int HealthGain,
     bool IrreversibleForLife);
 
+/// <summary>
+/// Frontline-specific override for allied non-owner projectile contact. Enemy
+/// contact still consumes and damages; the exact firing life is always
+/// ignored. With friendly fire off, allies either consume without damage or
+/// are passed through according to <see cref="AlliedProjectilesBlock"/>.
+/// </summary>
 public sealed record PublicFrontlineAlliedCombatDefinition(
     bool FriendlyFireEnabled,
     bool AlliedProjectilesBlock);
@@ -231,6 +241,7 @@ public enum PublicActionRejectionResult
 {
     Blocked,
     Faulted,
+    Rejected,
 }
 
 public enum PublicDistanceMetric
@@ -260,6 +271,11 @@ public sealed record PublicVisionRules(
     ImmutableArray<int> HearingDistanceBandUpperBounds,
     ImmutableArray<GameEventType> LoudEventTypes);
 
+/// <summary>
+/// Generic collision contract. For Frontline, the more specific
+/// <see cref="PublicFrontlineDefinition.AlliedCombat"/> contract overrides
+/// <see cref="ProjectilesStopOnFirstNonOwnerUnit"/> for allied lives.
+/// </summary>
 public sealed record PublicCollisionRules(
     bool UnitsBlockWalls,
     bool UnitsBlockUnits,
@@ -286,6 +302,8 @@ public enum PublicTickResolutionPhase
     ApplyRuntimeFaults,
     UpdateObjective,
     ResolveMatchCompletion,
+    ApplyTickStartLifecycle,
+    QueueDestroyedLives,
 }
 
 public sealed record PublicTickResolutionRules(
