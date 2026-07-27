@@ -7,6 +7,7 @@ import type {
 import {
   participantForUnit,
   teamName,
+  unitName,
 } from '../replayParticipants';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
@@ -21,6 +22,7 @@ import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
 import Logo from './Logo';
+import IdentityChip from './IdentityChip';
 
 /**
  * The 3D renderer — what the viewer is.
@@ -226,17 +228,37 @@ export default function Viewer({
         {/* Who is fighting, not what the match is made of. The map, the seed, the rules
             version and the hash are provenance — they matter enormously, which is why
             they get a disclosure of their own rather than a byline nobody reads. */}
-        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          {replay.teams.map((team, index) => (
-            <span key={team.teamKey} className="flex items-center gap-3">
-              {index > 0 && (
-                <span className="type-label text-[10px] text-arena-dim">vs</span>
-              )}
-              <span className="text-[15px] font-semibold text-arena-text">
-                {teamName(replay, team.teamId)}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+          {replay.teams.map((team, index) => {
+            // A team's units, not a fixed pair: a duel shows one chip a side and a
+            // Frontline team shows however many it fields.
+            const unitKeys = replay.units
+              .filter((unit) => unit.teamId === team.teamId)
+              .map((unit) => unit.unitKey);
+            return (
+              <span key={team.teamKey} className="flex items-center gap-4">
+                {index > 0 && (
+                  <span className="type-label text-[10px] text-arena-dim">
+                    vs
+                  </span>
+                )}
+                {unitKeys.slice(0, 3).map((unitKey) => (
+                  <IdentityChip
+                    key={unitKey}
+                    replay={replay}
+                    unitKey={unitKey}
+                    name={unitName(replay, unitKey)}
+                    size={22}
+                  />
+                ))}
+                {unitKeys.length > 3 && (
+                  <span className="tabular font-mono text-[11px] text-arena-dim">
+                    +{unitKeys.length - 3}
+                  </span>
+                )}
               </span>
-            </span>
-          ))}
+            );
+          })}
         </span>
         {isLive ? (
           <span className="type-label ml-auto flex items-center gap-1.5 rounded-full border border-arena-hot/50 px-2.5 py-0.5 text-[10px] text-arena-hot">

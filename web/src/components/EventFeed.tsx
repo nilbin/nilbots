@@ -143,7 +143,7 @@ export default function EventFeed({
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-arena-edge bg-arena-panel">
       <div className="flex items-center gap-2 border-b border-arena-edge px-3 py-2">
-        <h2 className="type-label text-[10px] text-arena-dim">
+        <h2 className="type-label text-[10.5px] tracking-[0.15em] text-arena-dim">
           Index · {shown.length} event{shown.length === 1 ? '' : 's'}
         </h2>
         {selectedUnitKey && (
@@ -186,7 +186,7 @@ export default function EventFeed({
               onClick={() => onSeek?.(eventTick)}
               disabled={!onSeek}
               className={clsx(
-                'grid w-full grid-cols-[2.25rem_1fr] items-baseline gap-2.5 rounded px-2 py-1.5 text-left transition-colors',
+                'grid w-full grid-cols-[38px_1fr] items-baseline gap-[10px] rounded px-2 py-[7px] text-left transition-colors',
                 onSeek && 'hover:bg-arena-raise',
                 eventTick === tick && 'bg-arena-raise',
               )}

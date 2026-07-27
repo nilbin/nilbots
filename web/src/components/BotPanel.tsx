@@ -1,15 +1,11 @@
 import clsx from 'clsx';
+import IdentityChip from './IdentityChip';
 import { useMemo } from 'react';
 import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../replayModel';
-import { botLook } from '../render/arenaThemes';
 import { createPresenter } from '../replayPresentation';
-import {
-  participantForUnit,
-  visualIndexForUnit,
-} from '../replayParticipants';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -145,11 +141,6 @@ export default function BotPanel({
                   ? `SPAWN T${unit.fabricationAtTick}`
                   : null;
         const formTransition = unit.pendingFormTransition;
-        const participant = participantForUnit(replay, unit.unitKey);
-        const look = botLook(
-          participant?.lookId ?? undefined,
-          visualIndexForUnit(replay, unit.unitKey),
-        );
         return (
           <button
             key={unit.unitKey}
@@ -165,32 +156,23 @@ export default function BotPanel({
             )}
           >
             <div className="flex items-center gap-2">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-arena-bg/85">
-                {look.image && (
-                  <img
-                    src={look.imageUrl}
-                    alt={`${unit.lookLabel} chassis`}
-                    className="size-9 object-contain"
-                  />
-                )}
-              </span>
-              <span>
-                <span className="block font-semibold">{unit.name}</span>
-                <span className="block font-mono text-[10px] text-arena-dim">
-                  {unit.lookLabel} ·{' '}
-                  {unit.legacySlot === null
+              <IdentityChip
+                replay={replay}
+                unitKey={unit.unitKey}
+                name={unit.name}
+                sub={`${unit.lookLabel} · ${
+                  unit.legacySlot === null
                     ? `team ${unit.teamId} · unit ${unit.unitId}${unit.lifeId === null ? '' : ` · life ${unit.lifeId}`}`
-                    : `slot ${unit.legacySlot}`}{' '}
-                  · {unit.runtimeKind}
-                </span>
-              </span>
+                    : `slot ${unit.legacySlot}`
+                }`}
+              />
               {/* Eight statuses had eight hues, which is eight things competing with the
                   one colour that means something — the player's accent. Out of the game
                   a unit is out; everything else is a state it is passing through, and
                   the word already says which. */}
               <span
                 className={clsx(
-                  'type-label ml-auto text-[10px] whitespace-nowrap',
+                  'type-label ml-auto text-[10.5px] tracking-[0.12em] whitespace-nowrap',
                   unit.status === 'destroyed' ||
                     unit.status === 'disqualified'
                     ? 'text-arena-hot'
@@ -207,8 +189,8 @@ export default function BotPanel({
             {/* Health, cooldown and what it is doing — three rows, one idea each.
                 This was `♥♥♥ · CD 0 · ⬢ idle · → turn-left`: four encodings of state
                 on one line, three of them abbreviations only the author knew. */}
-            <dl className="mt-2.5 grid grid-cols-[4.5rem_1fr_auto] items-center gap-x-3 gap-y-2">
-              <dt className="type-label text-[10px] text-arena-dim">Health</dt>
+            <dl className="mt-[9px] grid grid-cols-[64px_1fr_auto] items-center gap-x-[10px] gap-y-[9px]">
+              <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">Health</dt>
               <dd
                 className="flex gap-[3px]"
                 aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
@@ -216,7 +198,7 @@ export default function BotPanel({
                 {Array.from({ length: unit.maxHealth }, (_, index) => (
                   <span
                     key={index}
-                    className="h-2 flex-1 rounded-[2px] border"
+                    className="h-[9px] flex-1 rounded-[2px] border"
                     style={
                       index < unit.health
                         ? { background: unit.accent, borderColor: unit.accent }
@@ -225,11 +207,11 @@ export default function BotPanel({
                   />
                 ))}
               </dd>
-              <dd className="tabular font-mono text-[11px] text-arena-dim">
+              <dd className="tabular font-mono text-[11.5px] text-arena-dim">
                 {unit.health}/{unit.maxHealth}
               </dd>
 
-              <dt className="type-label text-[10px] text-arena-dim">Weapon</dt>
+              <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">Weapon</dt>
               <dd className="col-span-2 text-[13px] text-arena-text">
                 {unit.cooldown > 0 ? (
                   <>
@@ -251,7 +233,7 @@ export default function BotPanel({
 
               {unit.actionId && (
                 <>
-                  <dt className="type-label text-[10px] text-arena-dim">
+                  <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">
                     Doing
                   </dt>
                   <dd className="col-span-2 text-[13px] text-arena-text">
@@ -266,7 +248,7 @@ export default function BotPanel({
 
               {(objective !== null || unit.zoneTicks !== null) && (
                 <>
-                  <dt className="type-label text-[10px] text-arena-dim">
+                  <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">
                     Objective
                   </dt>
                   <dd className="col-span-2 text-[13px] text-arena-text">
