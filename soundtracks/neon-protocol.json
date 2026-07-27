@@ -121,6 +121,18 @@
       "synth"
     ]
   },
+  "straightThroughCue": {
+    "id": "opening-passage",
+    "startBar": 0,
+    "barCount": 24,
+    "stems": [
+      "drums",
+      "bass",
+      "guitar",
+      "synth",
+      "other"
+    ]
+  },
   "entrySection": "intro",
   "sections": [
     {

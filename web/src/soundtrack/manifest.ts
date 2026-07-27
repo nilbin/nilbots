@@ -299,6 +299,51 @@ export function validateSoundtrackManifest(
     }
   }
 
+  if (typed.straightThroughCue !== undefined) {
+    const cue = typed.straightThroughCue;
+    if (
+      !isRecord(cue) ||
+      !hasOnlyKeys(cue, [
+        'id',
+        'startBar',
+        'barCount',
+        'durationSeconds',
+        'file',
+      ]) ||
+      !isString(cue.id) ||
+      !isNonNegativeInteger(cue.startBar) ||
+      !isPositiveInteger(cue.barCount) ||
+      !isPositiveNumber(cue.durationSeconds) ||
+      !isRelativeAssetPath(cue.file)
+    ) {
+      throw new Error('Soundtrack has malformed straight-through cue metadata.');
+    }
+    const expectedDuration =
+      (cue.barCount * typed.barFrames) / typed.sampleRate;
+    const cueEndFrame =
+      typed.gridOriginFrame +
+      (cue.startBar + cue.barCount) * typed.barFrames;
+    if (
+      Math.abs(cue.durationSeconds - expectedDuration) >
+        1 / typed.sampleRate ||
+      cueEndFrame > typed.sourceEndFrame
+    ) {
+      throw new Error(
+        'Soundtrack straight-through cue does not match the source grid.',
+      );
+    }
+    const asset = typed.assets[cue.file];
+    if (
+      !asset ||
+      !isString(asset.sha256) ||
+      !isPositiveInteger(asset.bytes)
+    ) {
+      throw new Error(
+        'Soundtrack straight-through cue has an invalid premix asset.',
+      );
+    }
+  }
+
   const sectionIds = new Set<string>();
   for (const section of typed.sections) {
     if (

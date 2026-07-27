@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { SoundtrackEngine } from '../src/soundtrack/SoundtrackEngine.ts';
+import {
+  SoundtrackEngine,
+  straightThroughPauseReasonForTransport,
+} from '../src/soundtrack/SoundtrackEngine.ts';
 
 const SAMPLE_RATE = 100;
 const BAR_FRAMES = 200;
@@ -8,6 +11,55 @@ const BAR_SECONDS = BAR_FRAMES / SAMPLE_RATE;
 const SECTION_BARS = 4;
 const SECTION_SECONDS = SECTION_BARS * BAR_SECONDS;
 const STEM_IDS = ['foundation', 'drums', 'guitar'];
+
+test('straight-through transport policy is non-live 1x only', () => {
+  const transport = {
+    enabled: true,
+    followingLive: false,
+    playing: true,
+    playResolveTail: false,
+    playbackSpeed: 1,
+  } as const;
+  assert.equal(straightThroughPauseReasonForTransport(transport), null);
+  assert.equal(
+    straightThroughPauseReasonForTransport({
+      ...transport,
+      playbackSpeed: 2,
+    }),
+    'rate',
+  );
+  assert.equal(
+    straightThroughPauseReasonForTransport({
+      ...transport,
+      playing: false,
+    }),
+    'manual',
+  );
+  assert.equal(
+    straightThroughPauseReasonForTransport({
+      ...transport,
+      playing: false,
+      playResolveTail: true,
+    }),
+    'result',
+  );
+  assert.equal(
+    straightThroughPauseReasonForTransport({
+      ...transport,
+      followingLive: true,
+      playbackSpeed: 2,
+    }),
+    null,
+  );
+  assert.equal(
+    straightThroughPauseReasonForTransport({
+      ...transport,
+      playbackSpeed: 2,
+      enabled: false,
+    }),
+    null,
+  );
+});
 
 test(
   'a finite mandatory retarget and target-back always retain a successor',
@@ -147,6 +199,389 @@ test(
       await engine.dispose();
       assert.equal(context.state, 'running');
       assert.equal(context.closeCalls, 0);
+    });
+  },
+);
+
+test(
+  'straight-through mode uses the post-decode replay clock and bypasses the adaptive stem graph',
+  { concurrency: false },
+  async () => {
+    const manifest = straightThroughManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      let replaySeconds = 0;
+      context.holdDecode('original-mix');
+      const starting = engine.start(
+        direction('sparse', 0.15, 0.2),
+        {
+          straightThrough: {
+            getReplaySeconds: () => replaySeconds,
+          },
+        },
+      );
+      await flushAsync();
+      replaySeconds = 3.2;
+      context.releaseDecode('original-mix');
+      await starting;
+
+      const playback = engine.straightThrough;
+      assert.ok(playback);
+      const voice = playback.voice;
+      assert.equal(engine.active, null);
+      assert.equal(voice.sourceOffsetSeconds, 3.5);
+      assert.equal(voice.source.startedOffset, 3.5);
+      assert.equal(
+        voice.durationSeconds,
+        manifest.straightThroughCue.durationSeconds,
+      );
+      assert.equal(
+        voice.source.startedDuration,
+        manifest.straightThroughCue.durationSeconds -
+          voice.sourceOffsetSeconds,
+      );
+      assert.ok(Math.abs(voice.startedAt - 0.3) < 1e-9);
+      assert.equal(
+        voice.sourceOffsetSeconds / (BAR_SECONDS / 4),
+        Math.round(voice.sourceOffsetSeconds / (BAR_SECONDS / 4)),
+        'the premix starts on a source beat',
+      );
+      assert.equal(
+        context.gainNodes.length,
+        3,
+        'master, pause, and one premix bus are the only gain nodes',
+      );
+      assert.equal(engine.title, 'Engine Test · Straight');
+
+      const fades = voice.bus.gain.calls.filter(
+        (call) => call.method === 'setValueCurveAtTime',
+      );
+      assert.equal(fades.length, 2);
+      const [startFade, endFade] = fades;
+      assert.equal(startFade.when, voice.startedAt);
+      assert.equal(startFade.duration, BAR_SECONDS / 4);
+      assert.equal(startFade.curve[0], 0);
+      assert.equal(startFade.curve.at(-1), 1);
+      assert.equal(endFade.curve[0], 1);
+      assert.equal(endFade.curve.at(-1), 0);
+      assert.ok(
+        Math.abs(
+          endFade.when +
+            endFade.duration -
+            (voice.startedAt +
+              voice.durationSeconds -
+              voice.sourceOffsetSeconds),
+        ) < 1e-9,
+        'the premix fades to silence at its natural source end',
+      );
+
+      engine.setDirection(direction('climax', 1, 1), [
+        trigger('destruction', 12),
+      ]);
+      await flushAsync();
+      assert.equal(engine.receivedTriggerKeys.size, 0);
+      assert.equal(engine.stingerArmedUntil, 0);
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.equal(context.bufferSources.length, 1);
+      assert.equal(playback.voice, voice);
+    });
+  },
+);
+
+test(
+  'one AAC-frame decoder remainder is accepted while authored durations stay authoritative',
+  { concurrency: false },
+  async () => {
+    const straightManifest = straightThroughManifest();
+    await withEngine(
+      straightManifest,
+      async ({ context, engine }) => {
+        context.setDecodedFrameDelta('original-mix', 960);
+        await engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => 2.1,
+          },
+        });
+
+        const voice = engine.straightThrough.voice;
+        assert.equal(
+          voice.source.buffer.length,
+          straightManifest.straightThroughCue.durationSeconds * SAMPLE_RATE +
+            960,
+        );
+        assert.equal(
+          voice.durationSeconds,
+          straightManifest.straightThroughCue.durationSeconds,
+        );
+        assert.equal(
+          voice.source.startedDuration,
+          straightManifest.straightThroughCue.durationSeconds -
+            voice.sourceOffsetSeconds,
+        );
+        assert.equal(
+          voice.endTimer.stopTime,
+          voice.startedAt +
+            straightManifest.straightThroughCue.durationSeconds -
+            voice.sourceOffsetSeconds +
+            0.002,
+        );
+      },
+    );
+
+    const adaptiveManifest = rotationManifest();
+    await withEngine(
+      adaptiveManifest,
+      async ({ context, engine }) => {
+        context.setDecodedFrameDelta('loop-a', 960);
+        await engine.start(direction('sparse'));
+
+        const voice = activeVoice(engine);
+        assert.equal(voice.durationSeconds, SECTION_SECONDS);
+        assert.equal(voice.sources[0].buffer.length, 800 + 960);
+        assert.equal(voice.sources[0].loopEnd, SECTION_SECONDS);
+      },
+    );
+  },
+);
+
+test(
+  'short decodes and padding beyond one AAC frame are rejected',
+  { concurrency: false },
+  async () => {
+    for (const frameDelta of [-1, 1025]) {
+      const manifest = straightThroughManifest();
+      await withEngine(manifest, async ({ context, engine }) => {
+        context.setDecodedFrameDelta('original-mix', frameDelta);
+        const expectedFrames =
+          manifest.straightThroughCue.durationSeconds * SAMPLE_RATE;
+        await assert.rejects(
+          engine.start(direction('sparse'), {
+            straightThrough: {
+              getReplaySeconds: () => 0,
+            },
+          }),
+          new RegExp(
+            `decoded to ${expectedFrames + frameDelta} frames; expected ${expectedFrames} plus at most 1024`,
+          ),
+        );
+      });
+    }
+  },
+);
+
+test(
+  'straight-through pause, resume, and seek rebuild the premix at replay time',
+  { concurrency: false },
+  async () => {
+    await withEngine(
+      straightThroughManifest(),
+      async ({ context, engine }) => {
+        let replaySeconds = 2.1;
+        await engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => replaySeconds,
+          },
+        });
+        const first = engine.straightThrough.voice;
+        assert.equal(first.sourceOffsetSeconds, 2.5);
+
+        await engine.setPaused(true);
+        const pauseFade = lastCurveCall(engine.pauseGain.gain);
+        assert.equal(pauseFade.when, context.currentTime);
+        assert.equal(pauseFade.duration, BAR_SECONDS / 4);
+        assert.equal(pauseFade.curve[0], 1);
+        assert.equal(pauseFade.curve.at(-1), 0);
+        context.advanceTo(context.currentTime + 5);
+        await engine.setPaused(false);
+        const resumed = engine.straightThrough.voice;
+        assert.notEqual(resumed, first);
+        assert.equal(resumed.sourceOffsetSeconds, 2.5);
+        assert.equal(first.stopped, true);
+        assert.ok(first.source.stoppedAt !== null);
+
+        replaySeconds = 8.1;
+        engine.resetForDiscontinuity();
+        await flushAsync();
+        const sought = engine.straightThrough.voice;
+        assert.notEqual(sought, resumed);
+        assert.equal(sought.sourceOffsetSeconds, 8.5);
+        assert.equal(sought.source.startedOffset, 8.5);
+        assert.equal(resumed.stopped, true);
+      },
+    );
+  },
+);
+
+test(
+  'straight-through startup and paused seeks are hard-muted before any rebuild can start',
+  { concurrency: false },
+  async () => {
+    await withEngine(
+      straightThroughManifest(),
+      async ({ context, engine }) => {
+        let replaySeconds = 2.1;
+        let pauseReason: 'manual' | null = 'manual';
+        await engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => replaySeconds,
+            getPauseReason: () => pauseReason,
+          },
+        });
+
+        const initial = engine.straightThrough.voice;
+        assert.equal(engine.paused, true);
+        assert.equal(engine.pauseGain.gain.value, 0);
+        assert.equal(
+          engine.pauseGain.gain.calls.some(
+            (call) =>
+              call.method === 'setValueAtTime' && call.value === 0,
+          ),
+          true,
+        );
+
+        replaySeconds = 8.1;
+        engine.resetForDiscontinuity();
+        await flushAsync();
+        assert.equal(
+          engine.straightThrough.voice,
+          initial,
+          'a paused seek defers its source rebuild until playback resumes',
+        );
+        assert.equal(engine.pauseGain.gain.value, 0);
+
+        pauseReason = null;
+        await engine.setPaused(false);
+        const resumed = engine.straightThrough.voice;
+        assert.notEqual(resumed, initial);
+        assert.equal(resumed.sourceOffsetSeconds, 8.5);
+      },
+    );
+  },
+);
+
+test(
+  'straight-through rate suspension is immediately silent and resyncs at 1x',
+  { concurrency: false },
+  async () => {
+    await withEngine(
+      straightThroughManifest(),
+      async ({ engine }) => {
+        let replaySeconds = 1.1;
+        await engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => replaySeconds,
+          },
+        });
+        const original = engine.straightThrough.voice;
+
+        await engine.setPaused(true, 'rate');
+        assert.equal(engine.pauseGain.gain.value, 0);
+        assert.equal(
+          engine.pauseGain.gain.calls.filter(
+            (call) => call.method === 'setValueCurveAtTime',
+          ).length,
+          0,
+          'non-1x playback must not leak through a musical fade',
+        );
+
+        replaySeconds = 9.1;
+        await engine.setPaused(false);
+        const resynced = engine.straightThrough.voice;
+        assert.notEqual(resynced, original);
+        assert.equal(resynced.sourceOffsetSeconds, 9.5);
+        assert.equal(original.stopped, true);
+      },
+    );
+  },
+);
+
+test(
+  'straight-through result holds one beat before a one-beat fade',
+  { concurrency: false },
+  async () => {
+    await withEngine(
+      straightThroughManifest(),
+      async ({ context, engine }) => {
+        await engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => 1,
+          },
+        });
+
+        await engine.setPaused(true, 'result');
+        const resultFade = lastCurveCall(engine.pauseGain.gain);
+        assert.equal(resultFade.when, context.currentTime + BAR_SECONDS / 4);
+        assert.equal(resultFade.duration, BAR_SECONDS / 4);
+        assert.equal(resultFade.curve[0], 1);
+        assert.equal(resultFade.curve.at(-1), 0);
+
+        const hardMutesBeforeRateChange =
+          engine.pauseGain.gain.calls.filter(
+            (call) =>
+              call.method === 'setValueAtTime' && call.value === 0,
+          ).length;
+        await engine.setPaused(true, 'rate');
+        assert.equal(
+          engine.pauseGain.gain.calls.filter(
+            (call) =>
+              call.method === 'setValueAtTime' && call.value === 0,
+          ).length,
+          hardMutesBeforeRateChange + 1,
+          'changing a held result to non-1x must become silent immediately',
+        );
+      },
+    );
+  },
+);
+
+test(
+  'straight-through rebuild cancels the superseded long-lived end timer',
+  { concurrency: false },
+  async () => {
+    await withEngine(
+      straightThroughManifest(),
+      async ({ context, engine }) => {
+        let replaySeconds = 1;
+        await engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => replaySeconds,
+          },
+        });
+        const original = engine.straightThrough.voice;
+        const originalTimer = original.endTimer;
+        assert.ok(originalTimer);
+        assert.ok(originalTimer.stopTime > context.currentTime + 40);
+
+        replaySeconds = 6;
+        engine.resetForDiscontinuity();
+        await flushAsync();
+
+        assert.equal(original.endTimer, null);
+        assert.ok(
+          originalTimer.stopTime <= context.currentTime + 0.001,
+          'the timer stop is replaced immediately instead of surviving to cue end',
+        );
+        context.advanceTo(context.currentTime + 0.002);
+        assert.equal(originalTimer.ended, true);
+        assert.equal(originalTimer.disconnected, true);
+      },
+    );
+  },
+);
+
+test(
+  'requesting a straight control fails clearly when a pack has no premix',
+  { concurrency: false },
+  async () => {
+    await withEngine(directStatesManifest(), async ({ engine }) => {
+      await assert.rejects(
+        engine.start(direction('sparse'), {
+          straightThrough: {
+            getReplaySeconds: () => 0,
+          },
+        }),
+        /does not provide a straight-through control cue/,
+      );
     });
   },
 );
@@ -1133,6 +1568,19 @@ function retrospectiveManifest() {
   };
 }
 
+function straightThroughManifest() {
+  return {
+    ...directStatesManifest(true),
+    straightThroughCue: {
+      id: 'original-mix',
+      startBar: 0,
+      barCount: 24,
+      durationSeconds: 24 * BAR_SECONDS,
+      file: 'straight-through/original-mix.m4a',
+    },
+  };
+}
+
 function weightedRouteManifest() {
   return makeManifest({
     entrySection: 'entry',
@@ -1276,11 +1724,21 @@ async function withEngine(manifest, run) {
       manifest.retrospectiveCue.durationSeconds,
     );
   }
+  if (manifest.straightThroughCue) {
+    durations.set(
+      manifest.straightThroughCue.id,
+      manifest.straightThroughCue.durationSeconds,
+    );
+  }
   const context = new FakeAudioContext(durations);
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
     const parts = url.pathname.split('/');
-    const sectionId = decodeURIComponent(parts.at(-2));
+    const sectionId =
+      manifest.straightThroughCue &&
+      url.pathname.endsWith(`/${manifest.straightThroughCue.file}`)
+        ? manifest.straightThroughCue.id
+        : decodeURIComponent(parts.at(-2));
     const bytes = new TextEncoder().encode(sectionId);
     return {
       ok: true,
@@ -1426,6 +1884,7 @@ class FakeAudioContext {
     this.nextEventId = 0;
     this.decodeGates = new Map();
     this.decodeFailures = new Map();
+    this.decodeFrameDeltas = new Map();
     this.decodeCalls = [];
     this.decodedSectionIds = new Set();
     this.durations = durations;
@@ -1459,11 +1918,13 @@ class FakeAudioContext {
       loopEnd: 0,
       startedAt: null,
       startedOffset: 0,
+      startedDuration: null,
       stoppedAt: null,
       ended: false,
-      start: (when, offset = 0) => {
+      start: (when, offset = 0, duration = null) => {
         source.startedAt = when;
         source.startedOffset = offset;
+        source.startedDuration = duration;
       },
       stop: (when) => {
         source.stoppedAt = when;
@@ -1474,6 +1935,7 @@ class FakeAudioContext {
   }
 
   createConstantSource() {
+    let stopRevision = 0;
     const timer = connectable({
       offset: audioParam(),
       onended: null,
@@ -1481,8 +1943,10 @@ class FakeAudioContext {
       ended: false,
       start: () => {},
       stop: (when) => {
+        const revision = ++stopRevision;
         timer.stopTime = when;
         this.schedule(when, () => {
+          if (revision !== stopRevision) return;
           timer.ended = true;
           timer.onended?.();
         });
@@ -1509,11 +1973,18 @@ class FakeAudioContext {
     }
     const duration = this.durations.get(sectionId);
     assert.ok(duration, `missing fake duration for ${sectionId}`);
+    const expectedFrames = Math.round(duration * SAMPLE_RATE);
+    const length =
+      expectedFrames + (this.decodeFrameDeltas.get(sectionId) ?? 0);
     return {
-      length: duration * SAMPLE_RATE,
+      length,
       sampleRate: SAMPLE_RATE,
-      duration,
+      duration: length / SAMPLE_RATE,
     };
+  }
+
+  setDecodedFrameDelta(sectionId, frames) {
+    this.decodeFrameDeltas.set(sectionId, frames);
   }
 
   failNextDecodes(sectionId, count) {
@@ -1610,7 +2081,11 @@ class FakeAudioContext {
         source.buffer === null
           ? Number.POSITIVE_INFINITY
           : source.startedAt +
-            Math.max(0, source.buffer.duration - source.startedOffset);
+            Math.max(
+              0,
+              source.startedDuration ??
+                source.buffer.duration - source.startedOffset,
+            );
       if (
         (source.stoppedAt !== null && source.stoppedAt <= target) ||
         (!source.loop && naturalEnd <= target)

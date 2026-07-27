@@ -8,7 +8,11 @@ import {
   buildAdaptiveTimeline,
   sampleAdaptiveTimeline,
 } from './director.ts';
-import { SoundtrackEngine } from './SoundtrackEngine.ts';
+import {
+  SoundtrackEngine,
+  straightThroughPauseReasonForTransport,
+  type StraightThroughPauseReason,
+} from './SoundtrackEngine.ts';
 import { loadSoundtrack } from './manifest.ts';
 import type { SoundtrackController } from './SoundtrackControl';
 import {
@@ -17,7 +21,10 @@ import {
   resetSoundtrackTriggerCursor,
   soundtrackPresentationId,
 } from './transport';
-import type { SoundtrackStatus } from './types';
+import type {
+  SoundtrackPlaybackMode,
+  SoundtrackStatus,
+} from './types';
 
 const VOLUME_KEY = 'nilbots.soundtrack.volume.v1';
 const DEFAULT_VOLUME = 0.62;
@@ -40,7 +47,11 @@ export interface AdaptiveSoundtrackInput {
   followingLive?: boolean;
   /** Allow a finite resolution cue after transport reaches the end on its own. */
   playResolveTail?: boolean;
+  /** Replay transport rate; straight-through comparison audio is 1x-only. */
+  playbackSpeed?: number;
   soundtrackId?: string;
+  /** Explicit A/B control; adaptive highlight alignment remains the default. */
+  scoreMode?: SoundtrackPlaybackMode;
   /** Increments for every explicit seek/step/restart, including forward jumps. */
   transportRevision?: number;
 }
@@ -59,7 +70,9 @@ export function useAdaptiveSoundtrack({
   presentationId,
   followingLive = false,
   playResolveTail = false,
+  playbackSpeed = 1,
   soundtrackId,
+  scoreMode = 'adaptive',
   transportRevision = 0,
 }: AdaptiveSoundtrackInput): SoundtrackController {
   const [planningGrid, setPlanningGrid] =
@@ -100,6 +113,7 @@ export function useAdaptiveSoundtrack({
   const transportRef = useRef(0);
   const faultedRef = useRef(false);
   const soundtrackIdRef = useRef(soundtrackId);
+  const scoreModeRef = useRef(scoreMode);
   const triggerCursorRef = useRef(createSoundtrackTriggerCursor());
   const latestRef = useRef({
     replay,
@@ -111,6 +125,8 @@ export function useAdaptiveSoundtrack({
     transportRevision,
     playing,
     playResolveTail,
+    playbackSpeed,
+    scoreMode,
     volume: DEFAULT_VOLUME,
   });
   const [status, setStatus] = useState<SoundtrackStatus>(
@@ -130,6 +146,8 @@ export function useAdaptiveSoundtrack({
     transportRevision,
     playing,
     playResolveTail,
+    playbackSpeed,
+    scoreMode,
     volume,
   };
 
@@ -239,6 +257,7 @@ export function useAdaptiveSoundtrack({
           current.frame.sourceTick,
         );
         const primaryHighlight =
+          current.scoreMode === 'adaptive' &&
           current.timeline.mode === 'retrospective'
             ? current.timeline.highlights.find(
                 (highlight) => highlight.primary,
@@ -251,7 +270,17 @@ export function useAdaptiveSoundtrack({
             targetIntensity: current.frame.targetIntensity,
             momentum: current.frame.momentum,
           },
-          primaryHighlight
+          current.scoreMode === 'straight'
+            ? {
+                straightThrough: {
+                  getReplaySeconds: () =>
+                    latestRef.current.time /
+                    REPLAY_TICKS_PER_SECOND,
+                  getPauseReason: () =>
+                    straightThroughPauseReason(latestRef.current),
+                },
+              }
+            : primaryHighlight
             ? {
                 retrospective: {
                   primaryPeakSeconds:
@@ -285,14 +314,20 @@ export function useAdaptiveSoundtrack({
           latest.frame.sourceTick,
         );
         readyEngineRef.current = engine;
-        engine.setDirection({
-          state: latest.frame.state,
-          intensity: latest.frame.intensity,
-          targetIntensity: latest.frame.targetIntensity,
-          momentum: latest.frame.momentum,
-        });
+        if (latest.scoreMode === 'adaptive') {
+          engine.setDirection({
+            state: latest.frame.state,
+            intensity: latest.frame.intensity,
+            targetIntensity: latest.frame.targetIntensity,
+            momentum: latest.frame.momentum,
+          });
+        }
+        const straightPauseReason = straightThroughPauseReason(latest);
         const shouldPause = shouldPauseScore(latest);
-        await engine.setPaused(shouldPause);
+        await engine.setPaused(
+          shouldPause,
+          straightPauseReason ?? 'manual',
+        );
         if (
           serial !== activationRef.current ||
           engineRef.current !== engine ||
@@ -316,7 +351,7 @@ export function useAdaptiveSoundtrack({
         setStatus('error');
         setError(reason instanceof Error ? reason.message : 'Could not start soundtrack.');
       });
-  }, [available, session, soundtrackId]);
+  }, [available, scoreMode, session, soundtrackId]);
 
   const toggle = useCallback(() => {
     if (enabled) disable();
@@ -345,6 +380,7 @@ export function useAdaptiveSoundtrack({
       frame.sourceTick,
     );
     if (batch.discontinuity) engine.resetForDiscontinuity();
+    if (scoreMode === 'straight') return;
     engine.setDirection({
       state: frame.state,
       intensity: frame.intensity,
@@ -358,6 +394,7 @@ export function useAdaptiveSoundtrack({
     frame.state,
     frame.targetIntensity,
     replayPresentationId,
+    scoreMode,
     timeline,
     transportRevision,
   ]);
@@ -367,12 +404,22 @@ export function useAdaptiveSoundtrack({
     if (!engine || faultedRef.current) return;
     const shouldPause = shouldPauseScore({
       frame,
+      followingLive,
       playing,
       playResolveTail,
+      playbackSpeed,
+      scoreMode,
+    });
+    const straightPauseReason = straightThroughPauseReason({
+      followingLive,
+      playing,
+      playResolveTail,
+      playbackSpeed,
+      scoreMode,
     });
     const operation = ++transportRef.current;
     void engine
-      .setPaused(shouldPause)
+      .setPaused(shouldPause, straightPauseReason ?? 'manual')
       .then(() => {
         if (
           operation === transportRef.current &&
@@ -393,7 +440,14 @@ export function useAdaptiveSoundtrack({
         setStatus('error');
         setError(reason instanceof Error ? reason.message : 'Audio playback failed.');
       });
-  }, [frame.state, playResolveTail, playing]);
+  }, [
+    followingLive,
+    frame.state,
+    playResolveTail,
+    playbackSpeed,
+    playing,
+    scoreMode,
+  ]);
 
   useEffect(() => {
     if (!available) {
@@ -418,6 +472,13 @@ export function useAdaptiveSoundtrack({
     // selection, preserving autoplay-policy guarantees.
     disable();
   }, [disable, soundtrackId]);
+
+  useEffect(() => {
+    if (scoreModeRef.current === scoreMode) return;
+    scoreModeRef.current = scoreMode;
+    // A/B mode changes replace the playback graph and require a fresh gesture.
+    disable();
+  }, [disable, scoreMode]);
 
   useEffect(
     () => () => {
@@ -444,14 +505,53 @@ export function useAdaptiveSoundtrack({
 
 function shouldPauseScore({
   frame,
+  followingLive,
   playing,
   playResolveTail,
+  playbackSpeed,
+  scoreMode,
 }: {
   frame: { state: string };
+  followingLive: boolean;
   playing: boolean;
   playResolveTail: boolean;
+  playbackSpeed: number;
+  scoreMode: SoundtrackPlaybackMode;
 }): boolean {
+  if (scoreMode === 'straight') {
+    return (
+      straightThroughPauseReason({
+        followingLive,
+        playing,
+        playResolveTail,
+        playbackSpeed,
+        scoreMode,
+      }) !== null
+    );
+  }
   return !playing && !(playResolveTail && frame.state === 'resolve');
+}
+
+function straightThroughPauseReason({
+  followingLive,
+  playing,
+  playResolveTail,
+  playbackSpeed,
+  scoreMode,
+}: {
+  followingLive: boolean;
+  playing: boolean;
+  playResolveTail: boolean;
+  playbackSpeed: number;
+  scoreMode: SoundtrackPlaybackMode;
+}): StraightThroughPauseReason | null {
+  return straightThroughPauseReasonForTransport({
+    enabled: scoreMode === 'straight',
+    followingLive,
+    playing,
+    playResolveTail,
+    playbackSpeed,
+  });
 }
 
 function readStoredVolume(): number {

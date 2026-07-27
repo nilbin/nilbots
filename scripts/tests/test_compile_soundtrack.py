@@ -312,6 +312,65 @@ class CompileSoundtrackTests(unittest.TestCase):
                         raw, self.root / "soundtrack.json"
                     )
 
+    def test_optional_straight_through_cue_is_normalized(self):
+        raw = self.normalization_config()
+        raw["straightThroughCue"] = {
+            "id": "opening-passage",
+            "startBar": 0,
+            "barCount": 6,
+            "stems": ["bed", "drive"],
+        }
+
+        normalized = PIPELINE.normalize_config(
+            raw, self.root / "soundtrack.json"
+        )
+
+        self.assertEqual(
+            raw["straightThroughCue"],
+            normalized["straightThroughCue"],
+        )
+
+    def test_straight_through_cue_rejects_unknown_fields_ranges_and_stems(self):
+        cases = [
+            (
+                "unknown field",
+                {"anchorBar": 2},
+                "contains unknown field",
+            ),
+            (
+                "range past source",
+                {"startBar": 6, "barCount": 3},
+                "range ends at bar 9",
+            ),
+            (
+                "unknown stem",
+                {"stems": ["bed", "missing"]},
+                "names unknown stem",
+            ),
+            (
+                "duplicate stem",
+                {"stems": ["drive", "drive"]},
+                "contains duplicate stem",
+            ),
+        ]
+        base_cue = {
+            "id": "opening-passage",
+            "startBar": 0,
+            "barCount": 6,
+            "stems": ["bed", "drive"],
+        }
+        for label, changes, message in cases:
+            with self.subTest(label):
+                raw = self.normalization_config()
+                raw["straightThroughCue"] = {
+                    **copy.deepcopy(base_cue),
+                    **changes,
+                }
+                with self.assertRaisesRegex(PIPELINE.PipelineError, message):
+                    PIPELINE.normalize_config(
+                        raw, self.root / "soundtrack.json"
+                    )
+
     def test_adaptive_seam_rejects_unknown_policy_and_invalid_ranges(self):
         cases = [
             ("unknown field", {"extra": True}, "contains unknown field"),
@@ -391,6 +450,129 @@ class CompileSoundtrackTests(unittest.TestCase):
         self.assertEqual(["bed", "drive"], internal["stems"])
         self.assertIs(metadata["retrospectiveCue"], cue)
         self.assertEqual(config["adaptiveSeam"], metadata["adaptiveSeam"])
+
+    def test_straight_through_cue_descriptor_and_manifest_metadata(self):
+        config = {
+            "straightThroughCue": {
+                "id": "opening-passage",
+                "startBar": 0,
+                "barCount": 6,
+                "stems": ["bed", "drive"],
+            },
+            "adaptiveSeam": None,
+        }
+        analysis = {
+            "gridOriginFrame": 100,
+            "barFrames": 8000,
+            "sampleRate": 8000,
+            "trimStartFrame": 100,
+            "trimEndFrame": 64100,
+        }
+
+        cue, internal = PIPELINE.prepare_straight_through_cue(
+            config, analysis
+        )
+        metadata = PIPELINE.public_optional_adaptive_metadata(
+            config, None, cue
+        )
+
+        self.assertEqual(
+            {
+                "id": "opening-passage",
+                "startBar": 0,
+                "barCount": 6,
+                "durationSeconds": 6.0,
+                "file": "",
+            },
+            cue,
+        )
+        self.assertEqual(100, internal["startFrame"])
+        self.assertEqual(48100, internal["endFrame"])
+        self.assertEqual(["bed", "drive"], internal["stems"])
+        self.assertIs(metadata["straightThroughCue"], cue)
+        self.assertNotIn("retrospectiveCue", metadata)
+
+    def test_straight_through_mix_bakes_stem_gains_but_not_master_gain(self):
+        bed = self.root / "bed.wav"
+        drive = self.root / "drive.wav"
+        mixed = self.root / "mix.wav"
+        self.write_wav(bed, frames=8000, amplitude=1000)
+        self.write_wav(drive, frames=8000, amplitude=1000)
+        stems = self.stem_config()
+        stems[0]["gainDb"] = -6.0
+        master_gain_db = -12.0
+
+        metrics = PIPELINE.render_straight_through_mix(
+            {"bed": bed, "drive": drive},
+            stems,
+            ["bed", "drive"],
+            0,
+            8000,
+            master_gain_db,
+            destination=mixed,
+        )
+
+        with wave.open(str(bed), "rb") as source, wave.open(
+            str(mixed), "rb"
+        ) as rendered:
+            source.setpos(1)
+            sample = int.from_bytes(
+                source.readframes(1), "little", signed=True
+            )
+            rendered.setpos(1)
+            actual = int.from_bytes(
+                rendered.readframes(1), "little", signed=True
+            )
+        expected = int(round(sample * (10.0 ** (-6.0 / 20.0)) + sample))
+        self.assertEqual(expected, actual)
+        self.assertAlmostEqual(
+            master_gain_db,
+            metrics["postMasterPeakDbfs"] - metrics["rawPeakDbfs"],
+            places=3,
+        )
+
+    def test_straight_through_mix_rejects_pcm_clipping(self):
+        bed = self.root / "bed.wav"
+        drive = self.root / "drive.wav"
+        self.write_wav(bed, frames=8000, amplitude=20000)
+        self.write_wav(drive, frames=8000, amplitude=20000)
+
+        with self.assertRaisesRegex(
+            PIPELINE.PipelineError,
+            "mix clips before the runtime master gain",
+        ):
+            PIPELINE.render_straight_through_mix(
+                {"bed": bed, "drive": drive},
+                self.stem_config(),
+                ["bed", "drive"],
+                0,
+                8000,
+                -3.0,
+            )
+
+    def test_straight_through_mix_rejects_post_master_headroom(self):
+        bed = self.root / "bed.wav"
+        self.write_wav(bed, frames=8000, amplitude=8000)
+        config = {
+            "stems": self.stem_config(),
+            "masterGainDb": 6.0,
+            "analysis": {"targetPeakDbfs": -9.0},
+        }
+
+        with self.assertRaisesRegex(
+            PIPELINE.PipelineError,
+            "after the runtime pack master",
+        ):
+            PIPELINE.validate_straight_through_cue_mix(
+                {"bed": bed},
+                config,
+                {"id": "opening-passage"},
+                {
+                    "startFrame": 0,
+                    "endFrame": 8000,
+                    "stems": ["bed"],
+                },
+            )
 
     def test_raw_retrospective_cue_extraction_preserves_source_samples(self):
         source = self.root / "source.wav"

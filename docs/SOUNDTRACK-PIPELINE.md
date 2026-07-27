@@ -129,6 +129,19 @@ manifest adds exact duration and per-stem file paths; the analysis output and
 asset inventory cover the same files. Neon Protocol's `final-runway` spans
 source bars 72–96 and anchors source bar 88.
 
+An optional `straightThroughCue` is the non-adaptive control path used to
+audition the authored score without runtime graph transitions. Its config
+declares a slug `id`, an integral `startBar`/`barCount` source range, and a
+non-empty set of known stem ids. The compiler sums those sample-aligned stems
+into one continuous mix using each stem's global `gainDb`, checks that the
+integer PCM does not clip, and verifies peak headroom after the runtime
+`masterGainDb`. It deliberately does not bake the pack master into the file.
+The manifest and analysis report expose only `id`, `startBar`, `barCount`,
+`durationSeconds`, and the single `file`; the source stem selection remains a
+compiler concern. Neon Protocol's `opening-passage` spans source bars 0–24 and
+uses Drums, Bass, Guitar, Synth, and Other. Its effectively silent Percussion
+stem is omitted.
+
 For a finalized replay, the runtime maps the relatively ranked primary
 highlight to that anchor and starts the cue on the next source beat. It reads
 the replay clock again after download/decode, so network latency does not move
@@ -234,15 +247,16 @@ web/public/soundtracks/
       analysis.json
       sections/<section-id>/<stem-id>.m4a
       retrospective-cues/<cue-id>/<stem-id>.m4a
+      straight-through-cues/<cue-id>/mix.m4a
 ```
 
 Each manifest includes the timing origin, adaptive stem response metadata,
 section roles and repeat/cooldown policy, latency budgets, section energy and
-optional loop, adaptive-seam, and retrospective-cue metadata, the directed
-transition graph, and an `assets` map with SHA-256 and byte size for every M4A
-and the analysis report. AAC outputs are checked as M4A containers and, when
-`ffprobe` or `afinfo` is available, verified for codec, duration, channel
-count, and sample rate.
+optional loop, adaptive-seam, retrospective-cue, and straight-through-cue
+metadata, the directed transition graph, and an `assets` map with SHA-256 and
+byte size for every M4A and the analysis report. AAC outputs are checked as M4A
+containers and, when `ffprobe` or `afinfo` is available, verified for codec,
+duration, channel count, and sample rate.
 The runtime rejects malformed build provenance, a pipeline/version prefix
 mismatch, an analysis report missing from the asset inventory, or a manifest
 whose content-version directory disagrees with `build.version`. Repository
@@ -281,6 +295,11 @@ the Web Audio source rate. Horizontal gameplay states therefore coalesce to
 the latest request and commit at most once per audio bar; the terminal
 `resolve` state bypasses that latch so its still-quantized transition can meet
 the one-bar resolution budget.
+
+The `score=straight` A/B control is intentionally stricter: it is audible only
+at 1×, where source time can remain identical to replay time without
+pitch-shifting the authored mix. Other replay speeds suspend that cue; returning
+to 1× restarts it from the matching replay position on a source beat.
 
 Immediate director triggers are collected from every newly crossed replay
 tick, deduplicated by source tick and trigger type, and applied on the audio

@@ -53,7 +53,7 @@ test('Neon Protocol adaptive cuts use full-bar overlaps', async () => {
   );
 });
 
-test('optional staged seams and retrospective cues are integrity checked', async () => {
+test('optional staged seams and continuous cues are integrity checked', async () => {
   const manifest = await defaultManifestDocument();
   const source = manifest.sections.find(
     (section) => section.barCount > 1 && Object.keys(section.files).length > 0,
@@ -74,6 +74,13 @@ test('optional staged seams and retrospective cues are integrity checked', async
     durationSeconds: source.durationSeconds,
     files: structuredClone(source.files),
   };
+  manifest.straightThroughCue = {
+    id: 'validator-straight',
+    startBar: source.startBar,
+    barCount: source.barCount,
+    durationSeconds: source.durationSeconds,
+    file: Object.values(source.files)[0],
+  };
 
   assert.doesNotThrow(() => validateSoundtrackManifest(manifest));
 
@@ -91,6 +98,21 @@ test('optional staged seams and retrospective cues are integrity checked', async
   assert.throws(
     () => validateSoundtrackManifest(undeclaredCueAsset),
     /retrospective cue has an invalid stem asset/,
+  );
+
+  const undeclaredPremix = structuredClone(manifest);
+  undeclaredPremix.straightThroughCue.file =
+    'straight-through/missing.m4a';
+  assert.throws(
+    () => validateSoundtrackManifest(undeclaredPremix),
+    /straight-through cue has an invalid premix asset/,
+  );
+
+  const offGridPremix = structuredClone(manifest);
+  offGridPremix.straightThroughCue.durationSeconds += 0.5;
+  assert.throws(
+    () => validateSoundtrackManifest(offGridPremix),
+    /straight-through cue does not match the source grid/,
   );
 });
 

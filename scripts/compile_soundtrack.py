@@ -294,6 +294,7 @@ def normalize_config(raw: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
             "adaptiveSeam",
             "stems",
             "retrospectiveCue",
+            "straightThroughCue",
             "sections",
             "transitions",
             "entrySection",
@@ -677,6 +678,72 @@ def normalize_config(raw: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
             "stems": cue_stems,
         }
 
+    straight_through_cue_raw = raw.get("straightThroughCue")
+    straight_through_cue: Optional[Dict[str, Any]] = None
+    if straight_through_cue_raw is not None:
+        if not isinstance(straight_through_cue_raw, dict):
+            raise PipelineError("straightThroughCue must be an object")
+        ensure_only_keys(
+            straight_through_cue_raw,
+            {"id", "startBar", "barCount", "stems"},
+            "straightThroughCue",
+        )
+        cue_id = require_slug(
+            straight_through_cue_raw.get("id"), "straightThroughCue.id"
+        )
+        total_source_bars = (
+            source_end_frame - grid_origin_frame
+        ) // configured_bar_frames
+        start_bar = require_integer(
+            straight_through_cue_raw.get("startBar"),
+            "straightThroughCue.startBar",
+            0,
+            total_source_bars - 1,
+        )
+        bar_count = require_integer(
+            straight_through_cue_raw.get("barCount"),
+            "straightThroughCue.barCount",
+            1,
+            256,
+        )
+        if start_bar + bar_count > total_source_bars:
+            raise PipelineError(
+                "straightThroughCue range ends at bar {}, after configured "
+                "source end bar {}".format(
+                    start_bar + bar_count, total_source_bars
+                )
+            )
+        cue_stems_raw = straight_through_cue_raw.get("stems")
+        if not isinstance(cue_stems_raw, list) or not cue_stems_raw:
+            raise PipelineError(
+                "straightThroughCue.stems must be a non-empty array"
+            )
+        cue_stems: List[str] = []
+        for index, stem_id_raw in enumerate(cue_stems_raw):
+            stem_id = require_slug(
+                stem_id_raw,
+                "straightThroughCue.stems[{}]".format(index),
+            )
+            if stem_id not in stem_ids:
+                raise PipelineError(
+                    "straightThroughCue.stems names unknown stem: {}".format(
+                        stem_id
+                    )
+                )
+            if stem_id in cue_stems:
+                raise PipelineError(
+                    "straightThroughCue.stems contains duplicate stem: {}".format(
+                        stem_id
+                    )
+                )
+            cue_stems.append(stem_id)
+        straight_through_cue = {
+            "id": cue_id,
+            "startBar": start_bar,
+            "barCount": bar_count,
+            "stems": cue_stems,
+        }
+
     sections_raw = raw.get("sections", [])
     if not isinstance(sections_raw, list):
         raise PipelineError("sections must be an array")
@@ -998,6 +1065,7 @@ def normalize_config(raw: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
         "adaptiveSeam": adaptive_seam,
         "stems": stems,
         "retrospectiveCue": retrospective_cue,
+        "straightThroughCue": straight_through_cue,
         "sections": sections,
         "transitions": transitions,
         "entrySection": entry_section,
@@ -1878,6 +1946,80 @@ def prepare_retrospective_cue(
         "stems": list(configured["stems"]),
     }
     return output, internal
+
+
+def prepare_straight_through_cue(
+    config: Dict[str, Any],
+    analysis: Dict[str, Any],
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    configured = config.get("straightThroughCue")
+    if configured is None:
+        return None, None
+    start_frame = (
+        analysis["gridOriginFrame"]
+        + int(configured["startBar"]) * analysis["barFrames"]
+    )
+    end_frame = start_frame + int(configured["barCount"]) * analysis["barFrames"]
+    if start_frame < analysis["trimStartFrame"]:
+        raise PipelineError(
+            "straightThroughCue starts before the detected playable range "
+            "(bar {})".format(
+                analysis["trimStartFrame"] / analysis["barFrames"]
+            )
+        )
+    if end_frame > analysis["trimEndFrame"]:
+        raise PipelineError(
+            "straightThroughCue ends at bar {}, after the detected playable end "
+            "at bar {:.6f}".format(
+                configured["startBar"] + configured["barCount"],
+                (
+                    analysis["trimEndFrame"] - analysis["gridOriginFrame"]
+                )
+                / analysis["barFrames"],
+            )
+        )
+    duration_seconds = (end_frame - start_frame) / analysis["sampleRate"]
+    output = {
+        "id": configured["id"],
+        "startBar": configured["startBar"],
+        "barCount": configured["barCount"],
+        "durationSeconds": round_float(duration_seconds),
+        "file": "",
+    }
+    internal = {
+        "startFrame": start_frame,
+        "endFrame": end_frame,
+        "stems": list(configured["stems"]),
+    }
+    return output, internal
+
+
+def validate_straight_through_cue_mix(
+    paths: Dict[str, Path],
+    config: Dict[str, Any],
+    cue: Optional[Dict[str, Any]],
+    internal: Optional[Dict[str, Any]],
+) -> None:
+    if cue is None or internal is None:
+        return
+    metrics = render_straight_through_mix(
+        paths,
+        config["stems"],
+        internal["stems"],
+        internal["startFrame"],
+        internal["endFrame"],
+        config["masterGainDb"],
+    )
+    internal["mixHeadroom"] = metrics
+    target = config["analysis"]["targetPeakDbfs"]
+    if metrics["postMasterPeakDbfs"] > target:
+        raise PipelineError(
+            "straightThroughCue {} mix peak is {:.2f} dBFS after the runtime "
+            "pack master, above target {:.2f}; lower a selected stem gain or "
+            "the pack master".format(
+                cue["id"], metrics["postMasterPeakDbfs"], target
+            )
+        )
 
 
 def prepare_sections(
@@ -3174,6 +3316,134 @@ def write_wav_section(
     return verification
 
 
+def render_straight_through_mix(
+    paths: Dict[str, Path],
+    stems: Sequence[Dict[str, Any]],
+    included_stems: Sequence[str],
+    start_frame: int,
+    end_frame: int,
+    master_gain_db: float,
+    destination: Optional[Path] = None,
+) -> Dict[str, float]:
+    included = set(included_stems)
+    selected = [stem for stem in stems if stem["id"] in included]
+    if len(selected) != len(included):
+        raise PipelineError(
+            "cannot render straight-through cue with unknown stems"
+        )
+    if not selected:
+        raise PipelineError(
+            "cannot render straight-through cue with no stems"
+        )
+    frame_count = end_frame - start_frame
+    if frame_count <= 0:
+        raise PipelineError("straight-through cue has no source frames")
+
+    readers: List[Tuple[Dict[str, Any], wave.Wave_read, float]] = []
+    target: Optional[wave.Wave_write] = None
+    channels: Optional[int] = None
+    sample_width: Optional[int] = None
+    sample_rate: Optional[int] = None
+    full_scale: Optional[float] = None
+    peak = 0.0
+    try:
+        for stem in selected:
+            reader = wave.open(str(paths[stem["id"]]), "rb")
+            current = (
+                reader.getnchannels(),
+                reader.getsampwidth(),
+                reader.getframerate(),
+            )
+            if channels is None:
+                channels, sample_width, sample_rate = current
+                full_scale = float(1 << (sample_width * 8 - 1))
+            elif current != (channels, sample_width, sample_rate):
+                reader.close()
+                raise PipelineError(
+                    "straight-through cue stems lost PCM alignment"
+                )
+            if end_frame > reader.getnframes():
+                reader.close()
+                raise PipelineError(
+                    "straight-through cue exceeds stem {} source frames".format(
+                        stem["id"]
+                    )
+                )
+            reader.setpos(start_frame)
+            readers.append(
+                (
+                    stem,
+                    reader,
+                    10.0 ** (float(stem["gainDb"]) / 20.0),
+                )
+            )
+        if (
+            channels is None
+            or sample_width is None
+            or sample_rate is None
+            or full_scale is None
+        ):
+            raise PipelineError(
+                "straight-through cue has no readable PCM stems"
+            )
+        sample_minimum = -(1 << (sample_width * 8 - 1))
+        sample_maximum = (1 << (sample_width * 8 - 1)) - 1
+        if destination is not None:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            target = wave.open(str(destination), "wb")
+            target.setnchannels(channels)
+            target.setsampwidth(sample_width)
+            target.setframerate(sample_rate)
+
+        remaining = frame_count
+        while remaining:
+            requested = min(65536, remaining)
+            mixed = [0.0] * (requested * channels)
+            for stem, reader, gain in readers:
+                samples = decode_pcm(
+                    reader.readframes(requested), sample_width
+                )
+                if len(samples) != len(mixed):
+                    raise PipelineError(
+                        "straight-through cue stem {} ended early".format(
+                            stem["id"]
+                        )
+                    )
+                for index, value in enumerate(samples):
+                    mixed[index] += float(value) * gain
+            rendered: List[int] = []
+            for value in mixed:
+                peak = max(peak, abs(value))
+                sample = int(round(value))
+                if sample < sample_minimum or sample > sample_maximum:
+                    raise PipelineError(
+                        "straight-through cue mix clips before the runtime "
+                        "master gain"
+                    )
+                rendered.append(sample)
+            if target is not None:
+                target.writeframesraw(encode_pcm(rendered, sample_width))
+            remaining -= requested
+        if target is not None:
+            target.writeframes(b"")
+        raw_peak = dbfs(peak, full_scale)
+        return {
+            "rawPeakDbfs": round_float(raw_peak, 3),
+            "postMasterPeakDbfs": round_float(
+                raw_peak + master_gain_db, 3
+            ),
+        }
+    except (OSError, EOFError, wave.Error) as error:
+        raise PipelineError(
+            "failed rendering straight-through cue mix: {}".format(error)
+        ) from error
+    finally:
+        if target is not None:
+            target.close()
+        for _, reader, _ in readers:
+            reader.close()
+
+
 def encode_m4a(
     encoder: Dict[str, Any], input_wav: Path, output_m4a: Path
 ) -> None:
@@ -3425,6 +3695,113 @@ def verify_m4a(
     }
 
 
+def encode_continuous_cue_assets(
+    cue: Dict[str, Any],
+    internal: Dict[str, Any],
+    directory: str,
+    kind: str,
+    paths: Dict[str, Path],
+    staging: Path,
+    chunk_root: Path,
+    encoder: Dict[str, Any],
+    pcm: Dict[str, Any],
+    assets: Dict[str, Dict[str, Any]],
+    output_records: List[Dict[str, Any]],
+) -> int:
+    for stem_id in internal["stems"]:
+        relative_path = "{}/{}/{}.m4a".format(
+            directory, cue["id"], stem_id
+        )
+        output_path = staging / relative_path
+        chunk_wav = chunk_root / "{}-{}-{}-continuous.wav".format(
+            kind, cue["id"], stem_id
+        )
+        write_wav_section(
+            paths[stem_id],
+            chunk_wav,
+            internal["startFrame"],
+            internal["endFrame"],
+        )
+        encode_m4a(encoder, chunk_wav, output_path)
+        verification = verify_m4a(
+            output_path,
+            cue["durationSeconds"],
+            pcm["sampleRate"],
+            pcm["channels"],
+        )
+        digest = sha256_file(output_path)
+        size = output_path.stat().st_size
+        assets[relative_path] = {
+            "sha256": digest,
+            "bytes": size,
+        }
+        output_records.append(
+            {
+                "path": relative_path,
+                "sha256": digest,
+                "bytes": size,
+                "kind": kind,
+                "verification": verification,
+            }
+        )
+        cue["files"][stem_id] = relative_path
+        chunk_wav.unlink()
+    return len(internal["stems"])
+
+
+def encode_straight_through_cue_asset(
+    cue: Dict[str, Any],
+    internal: Dict[str, Any],
+    paths: Dict[str, Path],
+    config: Dict[str, Any],
+    staging: Path,
+    chunk_root: Path,
+    encoder: Dict[str, Any],
+    pcm: Dict[str, Any],
+    assets: Dict[str, Dict[str, Any]],
+    output_records: List[Dict[str, Any]],
+) -> None:
+    relative_path = "straight-through-cues/{}/mix.m4a".format(cue["id"])
+    output_path = staging / relative_path
+    chunk_wav = chunk_root / "{}-straight-through-mix.wav".format(
+        cue["id"]
+    )
+    mix_headroom = render_straight_through_mix(
+        paths,
+        config["stems"],
+        internal["stems"],
+        internal["startFrame"],
+        internal["endFrame"],
+        config["masterGainDb"],
+        destination=chunk_wav,
+    )
+    encode_m4a(encoder, chunk_wav, output_path)
+    verification = verify_m4a(
+        output_path,
+        cue["durationSeconds"],
+        pcm["sampleRate"],
+        pcm["channels"],
+    )
+    digest = sha256_file(output_path)
+    size = output_path.stat().st_size
+    assets[relative_path] = {
+        "sha256": digest,
+        "bytes": size,
+    }
+    output_records.append(
+        {
+            "path": relative_path,
+            "sha256": digest,
+            "bytes": size,
+            "kind": "straight-through-cue",
+            "mixHeadroom": mix_headroom,
+            "verification": verification,
+        }
+    )
+    cue["file"] = relative_path
+    chunk_wav.unlink()
+
+
 def public_stem_descriptor(stem: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": stem["id"],
@@ -3438,12 +3815,15 @@ def public_stem_descriptor(stem: Dict[str, Any]) -> Dict[str, Any]:
 def public_optional_adaptive_metadata(
     config: Dict[str, Any],
     retrospective_cue: Optional[Dict[str, Any]],
+    straight_through_cue: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     output: Dict[str, Any] = {}
     if config.get("adaptiveSeam") is not None:
         output["adaptiveSeam"] = config["adaptiveSeam"]
     if retrospective_cue is not None:
         output["retrospectiveCue"] = retrospective_cue
+    if straight_through_cue is not None:
+        output["straightThroughCue"] = straight_through_cue
     return output
 
 
@@ -3460,6 +3840,7 @@ def build_analysis_report(
     transitions: Sequence[Dict[str, Any]],
     adaptive_routing: Dict[str, Any],
     retrospective_cue: Optional[Dict[str, Any]],
+    straight_through_cue: Optional[Dict[str, Any]],
     warnings: List[str],
     encoder: Optional[Dict[str, Any]] = None,
     outputs: Optional[Sequence[Dict[str, Any]]] = None,
@@ -3574,7 +3955,9 @@ def build_analysis_report(
         "transitionHeadroom": analysis.get("transitionHeadroom", []),
         "adaptiveRouting": adaptive_routing,
         "warnings": list(warnings),
-        **public_optional_adaptive_metadata(config, retrospective_cue),
+        **public_optional_adaptive_metadata(
+            config, retrospective_cue, straight_through_cue
+        ),
     }
     if encoder is not None:
         report["encoding"] = {
@@ -3678,6 +4061,15 @@ def compile_one(
         retrospective_cue, retrospective_cue_internal = (
             prepare_retrospective_cue(config, analysis)
         )
+        straight_through_cue, straight_through_cue_internal = (
+            prepare_straight_through_cue(config, analysis)
+        )
+        validate_straight_through_cue_mix(
+            paths,
+            config,
+            straight_through_cue,
+            straight_through_cue_internal,
+        )
         sections, section_internal = prepare_sections(config, analysis, warnings)
         prepare_section_mix_headroom(
             paths, config, section_internal, warnings
@@ -3710,6 +4102,7 @@ def compile_one(
                 transitions,
                 adaptive_routing,
                 retrospective_cue,
+                straight_through_cue,
                 warnings,
                 encoder=encoder,
             )
@@ -3833,53 +4226,51 @@ def compile_one(
                     retrospective_cue is not None
                     and retrospective_cue_internal is not None
                 ):
-                    cue_id = retrospective_cue["id"]
-                    for stem_id in retrospective_cue_internal["stems"]:
-                        relative_path = (
-                            "retrospective-cues/{}/{}.m4a".format(
-                                cue_id, stem_id
-                            )
-                        )
-                        output_path = staging / relative_path
-                        chunk_wav = chunk_root / "{}-{}-continuous.wav".format(
-                            cue_id, stem_id
-                        )
-                        write_wav_section(
-                            paths[stem_id],
-                            chunk_wav,
-                            retrospective_cue_internal["startFrame"],
-                            retrospective_cue_internal["endFrame"],
-                        )
-                        encode_m4a(encoder, chunk_wav, output_path)
-                        verification = verify_m4a(
-                            output_path,
-                            retrospective_cue["durationSeconds"],
-                            pcm["sampleRate"],
-                            pcm["channels"],
-                        )
-                        digest = sha256_file(output_path)
-                        size = output_path.stat().st_size
-                        assets[relative_path] = {
-                            "sha256": digest,
-                            "bytes": size,
-                        }
-                        output_records.append(
-                            {
-                                "path": relative_path,
-                                "sha256": digest,
-                                "bytes": size,
-                                "kind": "retrospective-cue",
-                                "verification": verification,
-                            }
-                        )
-                        retrospective_cue["files"][stem_id] = relative_path
-                        chunk_wav.unlink()
-            cue_asset_count = (
+                    encode_continuous_cue_assets(
+                        retrospective_cue,
+                        retrospective_cue_internal,
+                        "retrospective-cues",
+                        "retrospective-cue",
+                        paths,
+                        staging,
+                        chunk_root,
+                        encoder,
+                        pcm,
+                        assets,
+                        output_records,
+                    )
+                if (
+                    straight_through_cue is not None
+                    and straight_through_cue_internal is not None
+                ):
+                    encode_straight_through_cue_asset(
+                        straight_through_cue,
+                        straight_through_cue_internal,
+                        paths,
+                        config,
+                        staging,
+                        chunk_root,
+                        encoder,
+                        pcm,
+                        assets,
+                        output_records,
+                    )
+            retrospective_cue_asset_count = (
                 len(retrospective_cue["files"])
                 if retrospective_cue is not None
                 else 0
             )
-            section_asset_count = len(output_records) - cue_asset_count
+            straight_through_cue_asset_count = (
+                1
+                if straight_through_cue is not None
+                and straight_through_cue["file"]
+                else 0
+            )
+            section_asset_count = (
+                len(output_records)
+                - retrospective_cue_asset_count
+                - straight_through_cue_asset_count
+            )
             report = build_analysis_report(
                 config,
                 config_path,
@@ -3893,6 +4284,7 @@ def compile_one(
                 transitions,
                 adaptive_routing,
                 retrospective_cue,
+                straight_through_cue,
                 warnings,
                 encoder=encoder,
                 outputs=output_records,
@@ -3938,7 +4330,7 @@ def compile_one(
                     "adaptiveLatencyBudgetBars"
                 ],
                 **public_optional_adaptive_metadata(
-                    config, retrospective_cue
+                    config, retrospective_cue, straight_through_cue
                 ),
                 "stems": [
                     public_stem_descriptor(stem) for stem in config["stems"]
@@ -3986,11 +4378,12 @@ def compile_one(
                     analysis_out, (final_directory / "analysis.json").read_bytes()
                 )
             print(
-                "{}: built {} section assets and {} retrospective cue assets "
-                "with {} into {} ({})".format(
+                "{}: built {} section assets, {} retrospective cue assets, and "
+                "{} straight-through cue assets with {} into {} ({})".format(
                     config["id"],
                     section_asset_count,
-                    cue_asset_count,
+                    retrospective_cue_asset_count,
+                    straight_through_cue_asset_count,
                     encoder["name"],
                     final_directory,
                     version,

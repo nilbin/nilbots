@@ -5,6 +5,7 @@ import type {
   SoundtrackRetrospectiveCue,
   SoundtrackSection,
   SoundtrackStem,
+  SoundtrackStraightThroughCue,
   SoundtrackTrigger,
   SoundtrackTriggerEvent,
   SoundtrackTransition,
@@ -23,6 +24,27 @@ export interface ScoreDirection {
   momentum: number;
 }
 
+export type StraightThroughPauseReason = 'manual' | 'rate' | 'result';
+
+export function straightThroughPauseReasonForTransport({
+  enabled,
+  followingLive,
+  playing,
+  playResolveTail,
+  playbackSpeed,
+}: {
+  enabled: boolean;
+  followingLive: boolean;
+  playing: boolean;
+  playResolveTail: boolean;
+  playbackSpeed: number;
+}): StraightThroughPauseReason | null {
+  if (!enabled) return null;
+  if (!followingLive && playbackSpeed !== 1) return 'rate';
+  if (!playing) return playResolveTail ? 'result' : 'manual';
+  return null;
+}
+
 export interface ScoreStartOptions {
   /**
    * Whole-replay timing is intentionally supplied as a live getter: cue assets
@@ -31,6 +53,15 @@ export interface ScoreStartOptions {
   retrospective?: {
     primaryPeakSeconds: number;
     getReplaySeconds: () => number;
+  };
+  /** Premixed, non-adaptive A/B control synchronized directly to replay time. */
+  straightThrough?: {
+    getReplaySeconds: () => number;
+    /**
+     * Sampled after asynchronous decode and again before discontinuity rebuilds,
+     * so a paused or non-1x transport is silent before a source is scheduled.
+     */
+    getPauseReason?: () => StraightThroughPauseReason | null;
   };
 }
 
@@ -91,6 +122,23 @@ interface RetrospectivePlayback {
   resolving: boolean;
 }
 
+interface StraightThroughVoice {
+  source: AudioBufferSourceNode;
+  bus: GainNode;
+  startedAt: number;
+  durationSeconds: number;
+  sourceOffsetSeconds: number;
+  stopped: boolean;
+  endTimer: ConstantSourceNode | null;
+}
+
+interface StraightThroughPlayback {
+  cue: SoundtrackStraightThroughCue;
+  getReplaySeconds: () => number;
+  getPauseReason: () => StraightThroughPauseReason | null;
+  voice: StraightThroughVoice;
+}
+
 interface VoiceOptions {
   sourceOffsetSeconds?: number;
   suppressDecision?: boolean;
@@ -113,7 +161,10 @@ const RETROSPECTIVE_START_FADE_BARS = 1;
 const RETROSPECTIVE_RESTART_FADE_SECONDS = 0.12;
 const RETROSPECTIVE_RESOLVE_HOLD_BARS = 0.5;
 const RETROSPECTIVE_RESOLVE_FADE_BARS = 1.5;
-const MIN_RETROSPECTIVE_REMAINDER_SECONDS = 0.05;
+const MIN_CONTINUOUS_CUE_REMAINDER_SECONDS = 0.05;
+const MAX_DECODER_PADDING_FRAMES = 1024;
+const STRAIGHT_THROUGH_FADE_BEATS = 1;
+const STRAIGHT_THROUGH_RESTART_FADE_SECONDS = 0.12;
 const ENERGY_STEM_ROLES = new Set(['rhythm', 'drive', 'texture']);
 const TRIGGER_IMPULSES: Readonly<
   Partial<
@@ -212,6 +263,10 @@ export class SoundtrackEngine {
   private retrospective: RetrospectivePlayback | null = null;
   private retrospectiveSerial = 0;
   private retrospectiveResolveTimer: ConstantSourceNode | null = null;
+  private straightThroughDecoded: Promise<AudioBuffer> | null = null;
+  private straightThrough: StraightThroughPlayback | null = null;
+  private straightThroughSerial = 0;
+  private straightThroughPauseReason: StraightThroughPauseReason | null = null;
   private paused = false;
   private disposed = false;
 
@@ -249,7 +304,9 @@ export class SoundtrackEngine {
   }
 
   get title(): string {
-    return this.manifest.title;
+    return this.straightThrough
+      ? `${this.manifest.title} · Straight`
+      : this.manifest.title;
   }
 
   async start(
@@ -258,6 +315,19 @@ export class SoundtrackEngine {
   ): Promise<void> {
     this.assertActive();
     this.direction = normalizeDirection(direction);
+    const straightThrough = options.straightThrough;
+    if (straightThrough) {
+      const cue = this.manifest.straightThroughCue;
+      if (!cue) {
+        throw new Error(
+          'This soundtrack does not provide a straight-through control cue.',
+        );
+      }
+      const decoded = await this.decodeStraightThroughCue(cue);
+      if (this.disposed) return;
+      this.startStraightThroughPlayback(decoded, cue, straightThrough);
+      return;
+    }
     const cue = this.manifest.retrospectiveCue;
     const retrospective = options.retrospective;
     if (
@@ -298,7 +368,7 @@ export class SoundtrackEngine {
     direction: ScoreDirection,
     triggers: readonly SoundtrackTriggerEvent[] = [],
   ): void {
-    if (this.disposed) return;
+    if (this.disposed || this.straightThrough) return;
     const normalized = normalizeDirection(direction);
     const previousIntensity = this.direction.intensity;
     this.direction = this.retrospective
@@ -337,6 +407,24 @@ export class SoundtrackEngine {
    */
   resetForDiscontinuity(): void {
     if (this.disposed) return;
+    if (this.straightThrough) {
+      this.receivedTriggerKeys.clear();
+      this.stingerArmedUntil = 0;
+      this.stingerCooldownUntil.clear();
+      const currentPauseReason = this.straightThrough.getPauseReason();
+      if (currentPauseReason !== null) {
+        this.paused = true;
+        this.straightThroughPauseReason = currentPauseReason;
+      }
+      if (this.paused) {
+        this.hardMuteStraightThrough();
+        return;
+      }
+      void this.restartStraightThroughPlayback().catch((reason: unknown) =>
+        this.reportError(reason),
+      );
+      return;
+    }
     if (this.retrospective) {
       this.receivedTriggerKeys.clear();
       this.stingerArmedUntil = 0;
@@ -656,13 +744,62 @@ export class SoundtrackEngine {
     this.master.gain.setTargetAtTime(target, this.context.currentTime, 0.035);
   }
 
-  async setPaused(paused: boolean): Promise<void> {
+  async setPaused(
+    paused: boolean,
+    straightThroughReason: StraightThroughPauseReason = 'manual',
+  ): Promise<void> {
     if (this.disposed) return;
     const changed = this.paused !== paused;
     this.paused = paused;
-    if (!paused && changed && this.retrospective) {
-      await this.restartRetrospectivePlayback();
-      if (this.disposed) return;
+    if (this.straightThrough) {
+      if (paused) {
+        const reasonChanged =
+          this.straightThroughPauseReason !== straightThroughReason;
+        this.straightThroughPauseReason = straightThroughReason;
+        if (!changed) {
+          if (reasonChanged && straightThroughReason === 'rate') {
+            this.hardMuteStraightThrough();
+          }
+          return;
+        }
+        const now = this.context.currentTime;
+        if (straightThroughReason === 'rate') {
+          this.hardMuteStraightThrough();
+          return;
+        }
+        const beatSeconds =
+          this.manifest.barFrames /
+          this.manifest.sampleRate /
+          this.manifest.beatsPerBar;
+        holdAutomationAtTime(this.pauseGain.gain, now);
+        applyLinearFade(
+          this.pauseGain.gain,
+          now +
+            (straightThroughReason === 'result'
+              ? STRAIGHT_THROUGH_FADE_BEATS * beatSeconds
+              : 0),
+          STRAIGHT_THROUGH_FADE_BEATS * beatSeconds,
+          false,
+        );
+        return;
+      }
+      this.straightThroughPauseReason = null;
+      if (changed) {
+        await this.restartStraightThroughPlayback();
+        if (this.disposed) return;
+      }
+      const now = this.context.currentTime;
+      const current = this.pauseGain.gain.value;
+      this.pauseGain.gain.cancelScheduledValues(now);
+      this.pauseGain.gain.setValueAtTime(current, now);
+      this.pauseGain.gain.setTargetAtTime(1, now, 0.018);
+      return;
+    }
+    if (!paused && changed) {
+      if (this.retrospective) {
+        await this.restartRetrospectivePlayback();
+        if (this.disposed) return;
+      }
     }
     const now = this.context.currentTime;
     const current = this.pauseGain.gain.value;
@@ -676,6 +813,7 @@ export class SoundtrackEngine {
     this.disposed = true;
     this.transitionSerial += 1;
     this.retrospectiveSerial += 1;
+    this.straightThroughSerial += 1;
     this.fetchAbort.abort();
     this.cancelHorizontalTimer();
     if (this.retrospectiveResolveTimer) {
@@ -689,11 +827,19 @@ export class SoundtrackEngine {
       this.accentTimer = null;
     }
     this.pending = null;
+    if (this.straightThrough) {
+      this.stopStraightThroughVoice(
+        this.straightThrough.voice,
+        this.context.currentTime,
+      );
+    }
     for (const voice of this.voices) this.stopVoice(voice, this.context.currentTime);
     this.voices.clear();
     this.decoded.clear();
     this.retrospectiveDecoded = null;
     this.retrospective = null;
+    this.straightThroughDecoded = null;
+    this.straightThrough = null;
     this.master.disconnect();
     this.compressor.disconnect();
     this.pauseGain.disconnect();
@@ -1117,6 +1263,248 @@ export class SoundtrackEngine {
     return seam;
   }
 
+  private decodeStraightThroughCue(
+    cue: SoundtrackStraightThroughCue,
+  ): Promise<AudioBuffer> {
+    if (!this.straightThroughDecoded) {
+      const pending = (async () => {
+        const url = new URL(cue.file, this.manifestUrl);
+        const response = await fetch(url, {
+          cache: 'force-cache',
+          signal: this.fetchAbort.signal,
+        });
+        if (!response.ok) {
+          throw new Error(
+            `Could not load soundtrack control asset ${url.pathname}.`,
+          );
+        }
+        const buffer = await this.context.decodeAudioData(
+          await response.arrayBuffer(),
+        );
+        assertDecodedFrameCount(
+          `Straight-through cue "${cue.id}"`,
+          buffer,
+          cue.durationSeconds,
+        );
+        return buffer;
+      })();
+      this.straightThroughDecoded = pending;
+      pending.catch(() => {
+        if (this.straightThroughDecoded === pending) {
+          this.straightThroughDecoded = null;
+        }
+      });
+    }
+    return this.straightThroughDecoded;
+  }
+
+  private startStraightThroughPlayback(
+    decoded: AudioBuffer,
+    cue: SoundtrackStraightThroughCue,
+    timing: NonNullable<ScoreStartOptions['straightThrough']>,
+  ): void {
+    const getPauseReason = timing.getPauseReason ?? (() => null);
+    const initialPauseReason = getPauseReason();
+    this.paused = initialPauseReason !== null;
+    this.straightThroughPauseReason = initialPauseReason;
+    if (initialPauseReason !== null) {
+      // Do this before createStraightThroughVoice schedules its source.
+      this.hardMuteStraightThrough();
+    }
+    const { when, offset } = this.straightThroughStartPoint(
+      cue,
+      safeReplaySeconds(timing.getReplaySeconds),
+    );
+    const voice = this.createStraightThroughVoice(
+      decoded,
+      cue.durationSeconds,
+      when,
+      offset,
+    );
+    this.horizontalAnchor = when;
+    this.lastHorizontalCommitBar = 0;
+    this.queuedHorizontalState = null;
+    this.active = null;
+    this.straightThrough = {
+      cue,
+      getReplaySeconds: timing.getReplaySeconds,
+      getPauseReason,
+      voice,
+    };
+  }
+
+  private async restartStraightThroughPlayback(): Promise<void> {
+    const playback = this.straightThrough;
+    if (!playback) return;
+    const serial = ++this.straightThroughSerial;
+    const decoded = await this.decodeStraightThroughCue(playback.cue);
+    if (
+      this.disposed ||
+      serial !== this.straightThroughSerial ||
+      this.straightThrough !== playback
+    ) {
+      return;
+    }
+    const { when, offset } = this.straightThroughStartPoint(
+      playback.cue,
+      safeReplaySeconds(playback.getReplaySeconds),
+    );
+    const previous = playback.voice;
+    const next = this.createStraightThroughVoice(
+      decoded,
+      playback.cue.durationSeconds,
+      when,
+      offset,
+    );
+    if (!previous.stopped) {
+      const fadeAt = this.context.currentTime;
+      holdAutomationAtTime(previous.bus.gain, fadeAt);
+      applyLinearFade(
+        previous.bus.gain,
+        fadeAt,
+        STRAIGHT_THROUGH_RESTART_FADE_SECONDS,
+        false,
+      );
+      this.stopStraightThroughVoice(
+        previous,
+        fadeAt + STRAIGHT_THROUGH_RESTART_FADE_SECONDS + 0.002,
+      );
+    }
+    playback.voice = next;
+  }
+
+  private createStraightThroughVoice(
+    decoded: AudioBuffer,
+    durationSeconds: number,
+    when: number,
+    sourceOffsetSeconds: number,
+  ): StraightThroughVoice {
+    const source = this.context.createBufferSource();
+    const bus = this.context.createGain();
+    bus.gain.setValueAtTime(0, when);
+    bus.connect(this.master);
+    source.buffer = decoded;
+    source.loop = false;
+    source.connect(bus);
+
+    const remainingSeconds = Math.max(
+      MIN_CONTINUOUS_CUE_REMAINDER_SECONDS,
+      durationSeconds - sourceOffsetSeconds,
+    );
+    // Explicit duration keeps AAC priming/remainder samples outside the score.
+    source.start(when, sourceOffsetSeconds, remainingSeconds);
+    const beatSeconds =
+      this.manifest.barFrames /
+      this.manifest.sampleRate /
+      this.manifest.beatsPerBar;
+    const fadeSeconds = Math.max(
+      0.001,
+      Math.min(
+        STRAIGHT_THROUGH_FADE_BEATS * beatSeconds,
+        remainingSeconds / 2,
+      ),
+    );
+    applyLinearFade(bus.gain, when, fadeSeconds, true);
+    applyLinearFade(
+      bus.gain,
+      when + remainingSeconds - fadeSeconds,
+      fadeSeconds,
+      false,
+    );
+
+    const voice: StraightThroughVoice = {
+      source,
+      bus,
+      startedAt: when,
+      durationSeconds,
+      sourceOffsetSeconds,
+      stopped: false,
+      endTimer: null,
+    };
+    let timer: ConstantSourceNode;
+    timer = this.atAudioTime(when + remainingSeconds + 0.002, () => {
+      if (voice.endTimer !== timer || voice.stopped) return;
+      voice.stopped = true;
+      voice.endTimer = null;
+      source.disconnect();
+      bus.disconnect();
+    });
+    voice.endTimer = timer;
+    return voice;
+  }
+
+  private stopStraightThroughVoice(
+    voice: StraightThroughVoice,
+    when: number,
+  ): void {
+    if (voice.stopped) return;
+    voice.stopped = true;
+    if (voice.endTimer) {
+      const timer = voice.endTimer;
+      this.cancelAudioTimer(timer);
+      voice.endTimer = null;
+    }
+    try {
+      voice.source.stop(when);
+    } catch {
+      // A cue may have reached its natural end before a delayed transport edit.
+    }
+    this.atAudioTime(when + 0.002, () => {
+      voice.source.disconnect();
+      voice.bus.disconnect();
+    });
+  }
+
+  private hardMuteStraightThrough(): void {
+    const now = this.context.currentTime;
+    this.pauseGain.gain.cancelScheduledValues(now);
+    this.pauseGain.gain.setValueAtTime(0, now);
+  }
+
+  private cancelAudioTimer(timer: ConstantSourceNode): void {
+    timer.onended = () => timer.disconnect();
+    try {
+      // AudioScheduledSourceNode.stop() is replaceable until the node ends.
+      timer.stop(this.context.currentTime + 0.001);
+    } catch {
+      timer.disconnect();
+    }
+  }
+
+  private straightThroughStartPoint(
+    cue: SoundtrackStraightThroughCue,
+    replaySeconds: number,
+  ): { when: number; offset: number } {
+    const now = this.context.currentTime;
+    const maximumOffset = Math.max(
+      0,
+      cue.durationSeconds - MIN_CONTINUOUS_CUE_REMAINDER_SECONDS,
+    );
+    const baseOffset = Math.max(
+      0,
+      Math.min(maximumOffset, replaySeconds),
+    );
+    const beatSeconds =
+      this.manifest.barFrames /
+      this.manifest.sampleRate /
+      this.manifest.beatsPerBar;
+    const earliestOffset = baseOffset + MIN_START_LEAD_SECONDS;
+    const beatOffset =
+      Math.ceil((earliestOffset - 1e-9) / beatSeconds) * beatSeconds;
+    const offset = Math.max(0, Math.min(maximumOffset, beatOffset));
+    return {
+      // The source starts on the next matching source beat at the audio time
+      // when replay playback reaches that beat.
+      when:
+        now +
+        Math.max(
+          MIN_START_LEAD_SECONDS,
+          offset - baseOffset,
+        ),
+      offset,
+    };
+  }
+
   private decodeRetrospectiveCue(
     cue: SoundtrackRetrospectiveCue,
   ): Promise<DecodedSection> {
@@ -1322,7 +1710,7 @@ export class SoundtrackEngine {
     const offset = Math.max(
       0,
       Math.min(
-        cue.durationSeconds - MIN_RETROSPECTIVE_REMAINDER_SECONDS,
+        cue.durationSeconds - MIN_CONTINUOUS_CUE_REMAINDER_SECONDS,
         beatOffset,
       ),
     );
@@ -1373,12 +1761,11 @@ export class SoundtrackEngine {
     const durationSeconds =
       (section.barCount * this.manifest.barFrames) / this.manifest.sampleRate;
     for (const [, buffer] of entries) {
-      const expectedFrames = Math.round(durationSeconds * buffer.sampleRate);
-      if (buffer.length !== expectedFrames) {
-        throw new Error(
-          `Section "${section.id}" decoded to ${buffer.length} frames; expected ${expectedFrames}.`,
-        );
-      }
+      assertDecodedFrameCount(
+        `Section "${section.id}"`,
+        buffer,
+        durationSeconds,
+      );
     }
     return { section, buffers, durationSeconds };
   }
@@ -1394,7 +1781,7 @@ export class SoundtrackEngine {
     const sourceOffsetSeconds = Math.max(
       0,
       Math.min(
-        decoded.durationSeconds - MIN_RETROSPECTIVE_REMAINDER_SECONDS,
+        decoded.durationSeconds - MIN_CONTINUOUS_CUE_REMAINDER_SECONDS,
         options.sourceOffsetSeconds ?? 0,
       ),
     );
@@ -1817,6 +2204,23 @@ function responseAt(stem: SoundtrackStem, intensity: number): number {
 
 function dbToGain(db: number): number {
   return 10 ** (db / 20);
+}
+
+function assertDecodedFrameCount(
+  label: string,
+  buffer: AudioBuffer,
+  durationSeconds: number,
+): void {
+  const expectedFrames = Math.round(durationSeconds * buffer.sampleRate);
+  const decoderPaddingFrames = buffer.length - expectedFrames;
+  if (
+    decoderPaddingFrames < 0 ||
+    decoderPaddingFrames > MAX_DECODER_PADDING_FRAMES
+  ) {
+    throw new Error(
+      `${label} decoded to ${buffer.length} frames; expected ${expectedFrames} plus at most ${MAX_DECODER_PADDING_FRAMES} trailing decoder-padding frames.`,
+    );
+  }
 }
 
 function holdAutomationAtTime(parameter: AudioParam, when: number): void {

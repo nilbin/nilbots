@@ -8,6 +8,7 @@ export interface AdaptiveSoundtrackProps {
   time: number;
   playing: boolean;
   playResolveTail: boolean;
+  playbackSpeed: number;
   transportRevision: number;
   session: ArenaAudioSession;
   presentationId?: string;
@@ -23,21 +24,26 @@ export default function AdaptiveSoundtrack({
   time,
   playing,
   playResolveTail,
+  playbackSpeed,
   transportRevision,
   session,
   presentationId,
   followingLive = false,
 }: AdaptiveSoundtrackProps) {
+  const query = new URLSearchParams(window.location.search);
   const requestedId =
-    new URLSearchParams(window.location.search).get('soundtrack') ??
-    undefined;
+    query.get('soundtrack') ?? undefined;
+  const scoreMode =
+    query.get('score') === 'straight' ? 'straight' : 'adaptive';
   const controller = useAdaptiveSoundtrack({
     available: true,
     replay,
     time,
     playing,
     playResolveTail,
+    playbackSpeed,
     soundtrackId: requestedId,
+    scoreMode,
     transportRevision,
     session,
     presentationId,

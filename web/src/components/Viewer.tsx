@@ -194,6 +194,7 @@ export default function Viewer({
               time={time}
               playing={isLive || playback.playing}
               playResolveTail={!isLive && playback.endedNaturally}
+              playbackSpeed={isLive ? 1 : playback.speed}
               transportRevision={isLive ? 0 : playback.transportRevision}
               session={audioSession}
               presentationId={soundtrackPresentationId}
