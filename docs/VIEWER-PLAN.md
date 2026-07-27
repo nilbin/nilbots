@@ -117,7 +117,7 @@ DECISIONS #11), deliberately chosen and pinned by tests. Widening it changes wha
 perceive: a `GameRules` bump, a new ladder, invalidated replay hashes and a balance
 evaluation. It is a rules project and must not ride along with viewer work.
 
-## 5. 2.5D depth cues — DONE, and narrower than written
+## 5. 3D depth cues — DONE, and narrower than written
 
 The renderer already had more depth than this plan assumed: additive `lighter`
 compositing on projectiles and impacts, accent bloom on bots via `shadowBlur`, and wall

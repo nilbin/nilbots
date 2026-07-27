@@ -122,10 +122,12 @@ Project boundaries that must not be violated:
   per-life Anchor/turret forms, internal replay v2, engine-independent actor
   SDK/Guest adapters, actor protocol/configuration 1.0, and canonical isolated
   WASM life instances exist. Web/mobile can present v2 through their
-  version-neutral replay model; the web viewer's default Canvas2D and optional
-  lazy WebGL 2.5D renderers share those derivations. The self-contained CLI
-  viewer excludes Three.js. Manual GPU/mobile QA remains for the optional
-  renderer. The public CLI/App match path, server admission, evaluation
+  version-neutral replay model; the web viewer's lazy WebGL 3D renderer and the
+  Canvas2D one it replaced share those derivations. **3D is the web viewer**, with
+  no mode to choose: Canvas2D is retained only as the floor for the self-contained
+  CLI viewer, which excludes Three.js, and for a device that gives no WebGL
+  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains.
+  The public CLI/App match path, server admission, evaluation
   corpus, and ladders do not expose Frontline yet. Format-v2 assets live under
   `maps/experimental/`; current App and CLI catalogs/package inputs enumerate
   only top-level format-v1 maps, and legacy `MatchEngine` still rejects a

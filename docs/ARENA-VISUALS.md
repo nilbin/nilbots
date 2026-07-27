@@ -251,7 +251,7 @@ that override and move the package under `web/src/assets/themes` only when a
 map intentionally ships the theme.
 Do not raise that budget merely to make a build pass: inspect the output and
 compare the relevant theme-scoped CLI viewer size first. Keep the generated
-source prompt with the change/PR. If a future 2.5D renderer is adopted, feed
+source prompt with the change/PR. If a future 3D renderer is adopted, feed
 the checked-in albedo/normal/height/roughness/AO maps to the DCC; do not
 regenerate the material merely to change camera or lighting.
 

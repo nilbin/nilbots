@@ -63,9 +63,9 @@ shipped duel contract.
   colour and type policy, the Forge ground, the logotype, and redesigns of
   the viewer, bot page, first run and CLI output. Open `design/climb.html`
   from disk. **Specification, not shipped state** — its Open section lists
-  what is undecided, and two recorded decisions (2.5D as the default
-  renderer, a shared three.js renderer replacing the mobile WebView) are not
-  implemented.
+  what is undecided. 3D as the only web renderer has since landed; replacing
+  the mobile WebView with a shared native renderer is deferred — the app keeps
+  the shared web viewer for now, and the web redesign goes first.
 - [`USER-NOTIFICATIONS.md`](USER-NOTIFICATIONS.md) — shipped entitlement
   notification behavior.
 

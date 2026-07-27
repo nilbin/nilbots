@@ -133,7 +133,7 @@ export function drawArena(
   /**
    * How far a wall's top is displaced per tile of distance from the arena centre.
    *
-   * The whole of the 2.5D wall effect, and it is deliberately tiny: at 0.012 a wall in the
+   * The whole of the flat renderer's wall effect, and it is deliberately tiny: at 0.012 a wall in the
    * far corner of a 24x18 map moves about a sixth of a tile. Enough to read as height,
    * small enough that the grid still looks like a grid — and the tile a bot occupies must
    * remain unambiguous, because players reason about cover in tile coordinates.

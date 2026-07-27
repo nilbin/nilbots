@@ -2141,6 +2141,36 @@ The native HostedViewer remains unchanged until its host bridge owns an explicit
 activation and control contract. Because the approved cues change every self-contained
 replay viewer, the CLI package advances to 0.6.1 under the existing release-order guard.
 
+## 132. 3D is the viewer, and Canvas2D is a floor rather than a mode
+
+The 2D/2.5D toggle is gone. It asked a player to choose between a fidelity and a
+dimension count, which is not a decision anyone wanted to make, and the flat renderer
+was only ever the safer default rather than the better one. Extending #127 and #128, the
+WebGL renderer under `web/src/render3d/` is simply what the web viewer draws with, and
+the name in prose is **3D** — "2.5D" described how it was built, not what it is.
+
+Canvas2D is not deleted. It is demoted from a mode to a floor for the two cases where
+3D cannot draw at all, both of which fall back without asking:
+
+- the CLI's self-contained artifact, where `vite.cli.config.ts` stubs the dynamic import
+  and sets `__BOTARENA_DIMENSIONAL_RENDERER__` false so Three.js never enters a copied
+  replay — verified by every `dist-cli/<theme>` containing zero `WebGLRenderer`;
+- a device that yields no WebGL context, which `ArenaCanvas3D`'s `onUnavailable` already
+  catches.
+
+So Canvas2D can only be removed once Three.js is allowed into the CLI artifact, which is
+a size decision about `nilbots play`, not a rendering one.
+
+Two things this deliberately does not change. `HostedViewer`, the mobile WebView path,
+still renders Canvas2D unconditionally: switching it alters mobile rendering with no
+device QA behind it, and the web redesign goes first. And the golden frames are not
+exposed to any of this — `goldenFrames.test.ts` imports `drawArena` from the SSR harness
+and calls it directly, never passing through the viewer's renderer choice, so no harness
+pin was needed.
+
+Replacing the WebView with a shared native renderer (expo-gl) is **deferred**: the app
+keeps the shared web viewer for now.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

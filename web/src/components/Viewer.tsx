@@ -23,11 +23,12 @@ import EventFeed from './EventFeed';
 import Logo from './Logo';
 
 /**
- * The 2.5D renderer, loaded only if asked for.
+ * The 3D renderer — what the viewer is.
  *
- * `lazy` rather than a plain import so three.js lands in its own chunk: the Canvas2D
- * viewer is the default and must not pay for a renderer it does not use, and the CLI's
- * single-file artifact stubs this module out entirely (see vite.cli.config.ts).
+ * Still `lazy` rather than a plain import, for two reasons that outlived it being
+ * optional: three.js stays in its own chunk so a cold WebView is not made to parse it
+ * before anything renders, and the CLI's single-file artifact stubs this module out
+ * entirely (see vite.cli.config.ts) so a copied replay never carries it.
  */
 const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
 const AdaptiveSoundtrack = lazy(
@@ -65,7 +66,7 @@ export default function Viewer({
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
-  // The 2.5D renderer is the viewer now, and there is no way to ask for the flat one:
+  // The 3D renderer is the viewer now, and there is no way to ask for the flat one:
   // a dimension count was never a choice a player wanted to make.
   //
   // Canvas2D is not dead, it is just no longer a mode. It stays as the floor for the two
