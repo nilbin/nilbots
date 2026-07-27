@@ -32,7 +32,7 @@ public sealed record ActorRuntimeFaultDefinition
         FaultingDecisionKind.ReplaceExactActorDecisionWithWait;
     public RuntimeStageRecoveryKind RuntimeStageRecovery =>
         RuntimeStageRecoveryKind
-            .CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick;
+            .CreateStartOrExecuteFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick;
     public ReplayFaultRepresentationKind ReplayFaultRepresentation =>
         ReplayFaultRepresentationKind
             .StageTaggedHostFaultNoRuntimeReplyAcceptedSyntheticWait;
@@ -97,14 +97,15 @@ public sealed record ActorRuntimeFaultDefinition
     public enum RuntimeStageRecoveryKind
     {
         /// <summary>
-        /// A creation or StartLife failure discards any partial runtime. The
-        /// authoritative life stays active and submits a synthetic Wait for
-        /// that tick. If still eligible, the host makes exactly one fresh
-        /// create-and-start attempt before that life's next active decision
-        /// opportunity, using the original life start and deterministic seed.
-        /// No partial runtime memory survives.
+        /// A creation, StartLife, or tick-execution failure discards the
+        /// runtime. The authoritative life stays active and submits a
+        /// synthetic Wait for that tick. If still eligible, the host makes
+        /// exactly one fresh create-and-start attempt before that life's next
+        /// active decision opportunity, using the original life start and
+        /// deterministic seed. No partial runtime memory survives. A
+        /// decision-validation fault retains the otherwise healthy instance.
         /// </summary>
-        CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick
+        CreateStartOrExecuteFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick
             = 0,
     }
 
@@ -113,8 +114,9 @@ public sealed record ActorRuntimeFaultDefinition
         /// <summary>
         /// Create/start failures have no fabricated runtime reply. Replay
         /// records a stage-tagged host fault and the accepted synthetic Wait.
-        /// Tick/validation failures retain the submitted fault metadata and
-        /// likewise record Wait as the accepted decision.
+        /// Tick-execution failures likewise have no accepted runtime reply;
+        /// validation failures retain the malformed submitted reply. Both
+        /// record Wait as the accepted decision.
         /// </summary>
         StageTaggedHostFaultNoRuntimeReplyAcceptedSyntheticWait = 0,
     }

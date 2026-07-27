@@ -2266,6 +2266,37 @@ boundary, and substantial-change pre-registration are in
 [`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). No Split,
 Deathmatch, FFA, or numeric starting arm is a balance or ship decision.
 
+## 136. Generic actor contracts negotiate one exact profile and move the controlled toolchain
+
+Actor framing protocol/configuration 1.0 is retained, but its object contract
+is no longer inferred from whatever payload arrives next. An absent profile
+selects the frozen Frontline-alpha actor generation. New generic matches
+require exact profile `generic-actor-match-2`: runtime contract 2, MatchStart
+2, observation 2, decision 2, and resolved match contract 2. `HelloAck` and
+`Ready` attest the selected profile; unsupported, missing, contradictory, or
+late generation switches fail terminally before gameplay. There is no
+downgrade or payload sniffing.
+
+The generic SDK boundary mirrors the canonical rules-schema-3,
+map-format-3, and match-contract-schema-2 graph, plus variable life-qualified
+observations, participant/lifecycle state, nullable sensor capabilities,
+generic score/mode state, typed actions and legality, runtime faults, and
+event/transition lineage. The Engine remains the full semantic authority.
+The dependency-free guest independently enforces canonical syntax,
+fingerprints, identity consistency, and explicit byte/node/container limits.
+One artifact may implement several bot interfaces, but its negotiated session
+invokes exactly one.
+
+This is a player compile-surface and generated-source change. SDK and Guest
+adapter move from 0.9.0 to 0.10.0. `BotBuilder` now calls closed-type
+`RunDetected<T>` so it can expose all implemented interfaces without creating
+a throwaway bot; because that changes generated artifact bytes, controlled
+build pipeline moves 3 → 4. The CLI/package moves 0.7.0 → 0.8.0 under the
+existing release guard. Historical protocol 0.1, Frontline-alpha contract
+objects, replay 1/2, and their fingerprints/hashes remain exact. Generic
+gameplay hosting and replay 3 are subsequent packages, not implied shipped
+features.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

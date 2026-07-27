@@ -90,6 +90,59 @@ public sealed class ActorWireProtocolTests
             ready.SelectedProfile);
     }
 
+    [Fact]
+    public void Ready_RejectsTopLevelVersionsThatContradictSelectedProfile()
+    {
+        byte[] ready = ActorWireProtocol.EncodeReady(
+            ActorWireProtocol.MajorVersion,
+            GenericActorContractVersions.RuntimeContractVersion,
+            GenericActorContractVersions.MatchStartSchemaVersion,
+            GenericActorContractVersions.ObservationSchemaVersion,
+            GenericActorContractVersions.DecisionSchemaVersion,
+            ActorContractProfile.GenericV2);
+        byte[] contradictory = ChangeByte(
+            ready,
+            ActorWireProtocol.HeaderSize + 16,
+            GenericActorContractVersions.RuntimeContractVersion - 1);
+
+        Assert.Throws<FormatException>(
+            () => ActorWireProtocol.DecodeReady(contradictory));
+    }
+
+    [Fact]
+    public void LegacyHost_RejectsProfileSelectingHelloAck()
+    {
+        byte[] ack = ActorWireProtocol.EncodeHelloAck(
+            ActorWireProtocol.MajorVersion,
+            ActorContractProfile.GenericV2);
+
+        Assert.Throws<FormatException>(
+            () => ActorWasmProtocol.ParseHelloAck(ack));
+    }
+
+    [Fact]
+    public void MatchEnd_RequiresOneBoundedReason()
+    {
+        byte[] valid = ActorWireProtocol.EncodeMatchEnd("life-ended");
+
+        Assert.Equal(
+            "life-ended",
+            ActorWireProtocol.DecodeMatchEnd(valid));
+        Assert.Throws<FormatException>(
+            () => ActorWireProtocol.DecodeMatchEnd(
+                AppendField(
+                    valid,
+                    1,
+                    ActorWireValue.String("duplicate", 256))));
+
+        byte[] missing = valid[..ActorWireProtocol.HeaderSize];
+        BinaryPrimitives.WriteInt32LittleEndian(
+            missing.AsSpan(8, 4),
+            0);
+        Assert.Throws<FormatException>(
+            () => ActorWireProtocol.DecodeMatchEnd(missing));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

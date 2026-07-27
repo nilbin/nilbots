@@ -35,13 +35,20 @@ public static class ActorWasmProtocol
         }
         ThrowIfUnsupported(frame);
         ThrowIfFault(frame);
-        int selected = Sdk.ActorWireProtocol.DecodeHelloAck(frame);
-        if (selected != MajorVersion)
+        Sdk.ActorWireHelloAck ack =
+            Sdk.ActorWireProtocol.DecodeHelloAckContract(frame);
+        if (ack.SelectedMajor != MajorVersion)
         {
             throw new FormatException(
-                $"Guest selected unsupported actor protocol major {selected}.");
+                $"Guest selected unsupported actor protocol major " +
+                $"{ack.SelectedMajor}.");
         }
-        return selected;
+        if (ack.SelectedProfile is not null)
+        {
+            throw new FormatException(
+                "Legacy actor host received a generation-profile HelloAck.");
+        }
+        return ack.SelectedMajor;
     }
 
     public static byte[] FormatMatchStart(
@@ -61,6 +68,7 @@ public static class ActorWasmProtocol
         Sdk.ActorWireReady ready =
             Sdk.ActorWireProtocol.DecodeReady(frame);
         if (ready.SelectedMajor != MajorVersion
+            || ready.SelectedProfile is not null
             || ready.RuntimeContractVersion != start.RuntimeContractVersion
             || ready.MatchStartSchemaVersion != start.SchemaVersion
             || ready.ObservationSchemaVersion

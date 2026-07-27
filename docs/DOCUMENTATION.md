@@ -39,8 +39,9 @@ wrong; it changes which document is the current entry point.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, generic replay 3, datasets, and bounded model
   assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor
-  delivery, dataset, corpus, model-asset, inference, and public-product
-  packages remain planned.
+  SDK/Guest delivery is implemented, while its neutral gameplay host, replay
+  3, dataset, corpus, model-asset, inference, and public-product packages
+  remain in progress or planned.
 - [`EVALUATION-METHODOLOGY.md`](EVALUATION-METHODOLOGY.md) — required evidence
   policy before any rules experiment is promoted.
 
@@ -48,6 +49,8 @@ Frontline remains unshipped despite having an experimental contract and
 viewer.
 The actor SDK/Guest, protocol/configuration 1.0, canonical per-life WASM
 runner, local experimental CLI, and descriptive evaluator are implemented.
+The additional generic actor-match profile and SDK/Guest boundary are also
+implemented, but no generic mode is yet routed into that runner.
 Historical `play`, App/server admission, independently authored product
 evaluation, and ranked ladders still expose only the supported historical
 product paths. Protocol/configuration 0.1 remains the exact shipped duel

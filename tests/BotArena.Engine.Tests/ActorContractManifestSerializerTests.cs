@@ -470,7 +470,7 @@ public sealed class ActorContractManifestSerializerTests
         ];
 
         Assert.Equal(
-            "0254de191bfe1e271557bd92f388b7460e1741a19595b60901f75da2f3e54c4b",
+            "95b203b1966d7d7ccec38d4b6c1c51561bae2527ddcccb2e1249e744bef7f1c1",
             actual[0]);
         Assert.Equal(
             "cf00b71f9074627bb4c4d972667e6d4d384674ebe3a109cdf27f439c3ea5d4e0",
@@ -482,7 +482,7 @@ public sealed class ActorContractManifestSerializerTests
             "a83214570e1989e3bc170b80744a26b82d69abc272c6d0997789a11f26acd58a",
             actual[3]);
         Assert.Equal(
-            "36bdf86be25132f75d93987a412d57a02299a10c379b07d51c74f3c8dd35c417",
+            "74eae450caceb0cc83851686fc277a300785d48c501c6824cc36dbbf1d44e218",
             actual[4]);
     }
 

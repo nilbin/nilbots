@@ -134,14 +134,25 @@ BOTARENA_WASM_BUILD_MODE=docker botarena build .
 `--native` deliberately fails outside Linux x64. `--docker` is also useful on a
 Linux workstation whose system toolchain differs from the deployment builder.
 
-## Experimental Frontline actor runtime
+## Experimental actor runtimes
 
-The tracked guest now supports two independent contracts. The shipped duel
-path remains line-oriented protocol/configuration 0.1. Experimental
-Frontline uses the engine-independent `IActorBot` contract, SDK/Guest 0.9.0,
-and actor protocol/configuration 1.0. The explicit local
+The tracked guest supports the shipped duel contract plus two exact actor
+generations. The shipped duel path remains line-oriented
+protocol/configuration 0.1. Experimental Frontline-alpha uses the
+engine-independent `IActorBot` contract introduced by SDK/Guest 0.9.0 and
+actor protocol/configuration 1.0. The explicit local
 `nilbots experiment frontline` command selects it; historical `play`,
 App/server admission, and ladders do not.
+
+SDK/Guest 0.10.0 adds the separately negotiated
+`generic-actor-match-2` profile and `IGenericActorBot`. Its static match
+contract, variable entity observations, generic scores/mode state, typed
+actions/events/lineage, and exact profile attestation do not widen the
+Frontline-alpha objects. One bot type may implement several programming
+interfaces; controlled-build pipeline 4 detects those interfaces from the
+closed entry type without constructing a throwaway instance. The generic
+Engine host and gameplay sessions are still under active implementation and
+are not selected by the historical Frontline command.
 
 Actor 1.0 negotiates and then exchanges:
 
@@ -215,10 +226,12 @@ bash scripts/e2e.sh
 tests cannot accidentally exercise an old tracked artifact. Legacy contract
 tests compare in-process and WASM replay hashes, including active control,
 speed-two projectile observations, and the SDK/guest arc-program round trip.
-Actor SDK/guest 0.9 tests additionally pin malformed and forward-compatible
-frames, exact compile-contract attestation, old-artifact eligibility,
-request/reply correlation, typed unsupported capabilities, startup/tick/end
-interruption, observation/replay parity, and isolated per-life memory.
+Actor SDK/Guest tests additionally pin malformed and forward-compatible
+frames, exact compile-contract/profile attestation, no-downgrade generation
+selection, old-artifact eligibility, request/reply correlation, typed
+unsupported capabilities, startup/tick/end interruption, canonical static
+contract limits, variable dynamic observations, and isolated per-life
+memory.
 
 `e2e.sh` additionally scaffolds a player bot, performs a cold build and cache
 hit, runs it in Wasmtime, verifies the replay, and builds the viewer.

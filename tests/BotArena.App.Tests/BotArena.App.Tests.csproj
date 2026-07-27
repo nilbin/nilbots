@@ -17,4 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/BotArena.App/BotArena.App.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../BotArena.Engine.Tests/GenericActorContractTestFixture.cs"
+             Link="Support/GenericActorContractTestFixture.cs" />
+  </ItemGroup>
 </Project>

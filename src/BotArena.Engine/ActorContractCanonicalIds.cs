@@ -124,8 +124,8 @@ internal static class ActorContractCanonicalIds
                 .ReplaceExactActorDecisionWithWait =>
             "replace-exact-actor-decision-with-wait",
         ActorRuntimeFaultDefinition.RuntimeStageRecoveryKind
-                .CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick =>
-            "create-or-start-failure-discards-instance-synthetic-wait-retry-fresh-once-next-active-tick",
+                .CreateStartOrExecuteFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick =>
+            "create-start-or-execute-failure-discards-instance-synthetic-wait-retry-fresh-once-next-active-tick",
         ActorRuntimeFaultDefinition.ReplayFaultRepresentationKind
                 .StageTaggedHostFaultNoRuntimeReplyAcceptedSyntheticWait =>
             "stage-tagged-host-fault-no-runtime-reply-accepted-synthetic-wait",

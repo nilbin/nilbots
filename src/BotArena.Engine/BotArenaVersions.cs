@@ -53,6 +53,22 @@ public static class BotArenaVersions
     public const int GenericActorMatchContractSchemaVersion = 2;
     public const int GenericActorReplayFormatVersion = 3;
     /// <summary>
+    /// Canonical static-contract budget after reserving one KiB for the
+    /// enclosing one-MiB MatchStart frame.
+    /// </summary>
+    public const int GenericActorMaxCanonicalContractBytes =
+        1024 * 1024 - 1024;
+    /// <summary>
+    /// Maximum JSON values admitted into one generic static contract. This
+    /// bounds the guest's immutable DOM independently of textual density.
+    /// </summary>
+    public const int GenericActorMaxCanonicalContractNodes = 65_536;
+    /// <summary>
+    /// Maximum direct properties or items in any one canonical JSON
+    /// container.
+    /// </summary>
+    public const int GenericActorMaxCanonicalCollectionCount = 4_096;
+    /// <summary>
     /// Additive entity replay contract. Legacy <see cref="ReplayFormatVersion"/>
     /// remains 1 and is still the only publicly emitted replay.
     /// </summary>

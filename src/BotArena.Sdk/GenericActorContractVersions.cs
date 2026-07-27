@@ -7,12 +7,38 @@ namespace BotArena.Sdk;
 /// </summary>
 public static class GenericActorContractVersions
 {
+    /// <summary>Exact all-or-nothing actor contract profile identifier.</summary>
     public const string ContractProfileId = "generic-actor-match-2";
+    /// <summary>Actor framing protocol version used by this profile.</summary>
     public const string RuntimeProtocolVersion = "1.0";
+    /// <summary>Runtime configuration schema version used by this profile.</summary>
+    public const string RuntimeConfigurationVersion = "1.0";
+    /// <summary>
+    /// Canonical contract budget inside the one-MiB host frame. The reserved
+    /// 1024 bytes conservatively cover the maximum bot name, tagged envelope,
+    /// identity, and two maximum-length lineage handles.
+    /// </summary>
+    public const int MaxCanonicalContractBytes = 1024 * 1024 - 1024;
+    /// <summary>
+    /// Maximum JSON values in one canonical static contract. The Engine
+    /// admission boundary enforces the same profile limit before delivery.
+    /// </summary>
+    public const int MaxCanonicalContractNodes = 65_536;
+    /// <summary>
+    /// Maximum direct properties or items in one canonical JSON container.
+    /// The Engine admission boundary enforces the same profile limit.
+    /// </summary>
+    public const int MaxCanonicalContractCollectionCount = 4096;
+    /// <summary>Generic host/runtime behavior contract version.</summary>
     public const int RuntimeContractVersion = 2;
+    /// <summary>MatchStart payload schema version.</summary>
     public const int MatchStartSchemaVersion = 2;
+    /// <summary>Per-tick observation schema version.</summary>
     public const int ObservationSchemaVersion = 2;
+    /// <summary>Per-tick decision schema version.</summary>
     public const int DecisionSchemaVersion = 2;
+    /// <summary>Resolved static match-contract schema version.</summary>
     public const int MatchContractSchemaVersion = 2;
+    /// <summary>Replay format associated with generic match projection.</summary>
     public const int ReplayFormatVersion = 3;
 }

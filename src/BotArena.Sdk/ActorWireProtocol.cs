@@ -120,6 +120,31 @@ internal static class ActorWireProtocol
                 1));
     }
 
+    public static byte[] EncodeGenericMatchStart(
+        string botName,
+        GenericActorMatchStart start)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.String(botName, 256));
+        writer.Field(
+            2,
+            GenericActorWireContractCodec.EncodeMatchStart(start));
+        return Frame(ActorWireMessageType.MatchStart, writer.ToArray());
+    }
+
+    public static ActorWireGenericMatchStart DecodeGenericMatchStart(
+        byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.MatchStart);
+        var reader = new ActorWireObjectReader(decoded.Payload, 0);
+        return new ActorWireGenericMatchStart(
+            ActorWireValue.String(reader.Required(1), 256),
+            GenericActorWireContractCodec.DecodeMatchStart(
+                reader.Required(2),
+                1));
+    }
+
     public static byte[] EncodeReady(
         int selectedMajor,
         int runtimeContractVersion,
@@ -174,7 +199,7 @@ internal static class ActorWireProtocol
         Require(decoded, ActorWireMessageType.Ready);
         var reader = new ActorWireObjectReader(decoded.Payload, 0);
         byte[]? selectedProfile = reader.Optional(6);
-        return new ActorWireReady(
+        var ready = new ActorWireReady(
             ActorWireValue.Int32(reader.Required(1)),
             ActorWireValue.Int32(reader.Required(2)),
             ActorWireValue.Int32(reader.Required(3)),
@@ -183,6 +208,20 @@ internal static class ActorWireProtocol
             selectedProfile is null
                 ? null
                 : DecodeContractProfile(selectedProfile, 1));
+        if (ready.SelectedProfile is { } profile
+            && (profile.RuntimeContractVersion
+                    != ready.RuntimeContractVersion
+                || profile.MatchStartSchemaVersion
+                    != ready.MatchStartSchemaVersion
+                || profile.ObservationSchemaVersion
+                    != ready.ObservationSchemaVersion
+                || profile.DecisionSchemaVersion
+                    != ready.DecisionSchemaVersion))
+        {
+            throw new FormatException(
+                "Actor Ready versions do not match its selected contract profile.");
+        }
+        return ready;
     }
 
     public static byte[] EncodeObservation(ActorContext observation) =>
@@ -207,6 +246,32 @@ internal static class ActorWireProtocol
         ActorWireFrame decoded = DecodeGuestFrame(frame);
         Require(decoded, ActorWireMessageType.Decision);
         return ActorWireDecisionCodec.Decode(decoded.Payload);
+    }
+
+    public static byte[] EncodeGenericObservation(
+        GenericActorContext observation) =>
+        Frame(
+            ActorWireMessageType.Observation,
+            GenericActorWireObservationCodec.Encode(observation));
+
+    public static GenericActorContext DecodeGenericObservation(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.Observation);
+        return GenericActorWireObservationCodec.Decode(decoded.Payload);
+    }
+
+    public static byte[] EncodeGenericDecision(
+        GenericActorDecision decision) =>
+        Frame(
+            ActorWireMessageType.Decision,
+            GenericActorWireDecisionCodec.Encode(decision));
+
+    public static GenericActorDecision DecodeGenericDecision(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeGuestFrame(frame);
+        Require(decoded, ActorWireMessageType.Decision);
+        return GenericActorWireDecisionCodec.Decode(decoded.Payload);
     }
 
     public static byte[] EncodeFault(string message)
@@ -255,6 +320,14 @@ internal static class ActorWireProtocol
         var writer = new ActorWireObjectWriter();
         writer.Field(1, ActorWireValue.String(reason, 256));
         return Frame(ActorWireMessageType.MatchEnd, writer.ToArray());
+    }
+
+    public static string DecodeMatchEnd(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.MatchEnd);
+        var reader = new ActorWireObjectReader(decoded.Payload, 0);
+        return ActorWireValue.String(reader.Required(1), 256);
     }
 
     public static ActorWireMessageType PeekHostMessageType(byte[] frame) =>
@@ -424,6 +497,10 @@ internal readonly record struct ActorWireHello(
 internal readonly record struct ActorWireMatchStart(
     string BotName,
     ActorMatchStart Start);
+
+internal readonly record struct ActorWireGenericMatchStart(
+    string BotName,
+    GenericActorMatchStart Start);
 
 internal readonly record struct ActorWireReady(
     int SelectedMajor,

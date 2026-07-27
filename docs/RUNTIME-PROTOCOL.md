@@ -1,9 +1,12 @@
 # Runtime protocols
 
-Nilbots currently preserves two independent runtime contracts. Protocol 0.1
-is the shipped duel path. Actor protocol 1.0 is the experimental Frontline
-path; only the explicit local `nilbots experiment frontline` command selects
-it. Historical `play`, App/server admission, and ladders do not.
+Nilbots preserves the shipped duel runtime and two exact actor-contract
+generations. Protocol 0.1 is the shipped duel path. Actor framing protocol 1.0
+first carried the experimental Frontline-alpha contract and now also carries a
+separately negotiated generic actor-match profile. Only the explicit local
+Frontline command selects the alpha path; the generic path is under active
+implementation and is not admitted by historical `play`, App/server queues, or
+ladders.
 
 ## Duel protocol 0.1
 
@@ -28,6 +31,14 @@ Hello -> HelloAck -> MatchStart -> Ready
       -> Observation -> Decision ...
       -> MatchEnd
 ```
+
+`Hello` may require one exact actor-contract profile. An absent profile selects
+the frozen Frontline-alpha actor contract. The current generic generation
+requires `generic-actor-match-2`. `HelloAck` and `Ready` attest that same exact
+selection; a guest cannot downgrade, retry with another generation, or infer a
+generation from later payload bytes. Unknown or unavailable profiles produce a
+typed terminal `Unsupported("actor-contract-profile", ...)` reply before
+`MatchStart`.
 
 `Fault` is a guest-to-host terminal reply for negotiation, contract, bot, or
 codec failure. `Unsupported` is a typed guest-to-host reply naming a capability
@@ -75,9 +86,39 @@ Protocol 1.0 limits are:
 - the bot selector and opaque match/runtime handles: at most 256 UTF-8 bytes;
 - debug and fault text: 4 KiB UTF-8.
 
-The 1 MiB host cap is sized for a 32×32 map with five allied sensors, union
-provenance, projectiles, and events. Legacy-only guests keep their historical
-128 KiB buffer and allocate the larger actor buffer only after negotiation.
+The 1 MiB host cap is sized for a 32×32 map with multiple allied sensors,
+union provenance, projectiles, and events. Legacy-only guests keep their
+historical 128 KiB buffer and allocate the larger actor buffer only after
+negotiation.
+
+### Generic actor-match profile 2
+
+The generic profile is an all-or-nothing tuple: runtime contract 2,
+MatchStart 2, observation 2, decision 2, and resolved match contract 2. It
+does not widen or reinterpret Frontline-alpha's schema-1 objects.
+
+MatchStart carries the exact canonical rules-schema-3/map-format-3/match-
+contract-schema-2 JSON plus its independently recomputed fingerprints,
+topology, life identity, deterministic seed, and lifecycle origin. Admission
+bounds the canonical contract before any guest receives it:
+
+- at most `1 MiB - 1 KiB` of canonical UTF-8;
+- at most 65,536 JSON values;
+- at most 4,096 direct items or properties in one container.
+
+Per-tick observations use variable, canonically ordered entity collections;
+exact `teamId + unitId + lifeId` identity; participant and lifecycle state;
+nullable capability collections whose `null` and empty meanings differ;
+generic score channels; a tagged mode state; typed events and lineage; and
+per-action legality masks. Decisions use stable action ID/code pairs and a
+bounded tagged argument union. Signed 64-bit projectile and score values keep
+their exact integer meaning across the wire.
+
+The SDK parses static canonical contracts without `System.Text.Json`, keeping
+controlled NativeAOT guests below the existing 16 MiB ceiling. Full semantic
+cross-catalog validation remains the trusted Engine admission boundary; the
+guest independently checks syntax, profile identity, fingerprints, bounds,
+and view consistency.
 
 ## Actor life and sandbox ownership
 
@@ -104,7 +145,9 @@ for `MatchEnd`, so startup, ticks, and shutdown all retain a termination path.
 The shared tagged codec lives in `BotArena.Sdk`; Guest and Runtime.Wasm use the
 same implementation so host/guest field definitions cannot drift. Engine/SDK
 object graphs remain deliberately separate and are checked for contract
-parity.
+parity. One controlled artifact may implement legacy duel, Frontline-alpha,
+and generic actor bot interfaces; generated capability detection exposes every
+implemented interface without constructing a throwaway bot.
 
 ## Versioning
 
@@ -114,8 +157,9 @@ separate axes. Additive unknown fields may retain protocol 1.0. Reusing a
 field ID, changing its meaning, or requiring a contract an old guest cannot
 attest requires a new version and explicit eligibility handling.
 
-The initial actor delivery uses SDK 0.9.0, guest adapter 0.9.0, actor
-protocol/configuration 1.0, and CLI package 0.6.0. Legacy protocol and
-configuration remain 0.1. That is the historical Package 7 checkpoint; the
-current local Package 8 consumer is CLI 0.7.0 with the same SDK/Guest 0.9.0
-and actor protocol/configuration 1.0.
+The Frontline-alpha delivery remains the historical SDK/Guest 0.9.0,
+actor-protocol/configuration 1.0 checkpoint. The generic profile is introduced
+by SDK/Guest 0.10.0 and controlled-build pipeline 4 in CLI 0.8.0. Actor framing
+and sandbox configuration remain 1.0 because profile negotiation changes the
+object contract without changing frame or resource semantics. Legacy duel
+protocol/configuration remain exactly 0.1.

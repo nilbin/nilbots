@@ -25,6 +25,13 @@ format. This is not a claim that App/server admission, general replay
 summary/verification, dataset tooling, or a hosted product can consume it
 yet.
 
+The successor SDK/Guest 0.10.0 boundary also negotiates the exact
+`generic-actor-match-2` profile. It parses the canonical resolved contract and
+exposes variable entity sets, score channels, tagged mode state, typed action
+arguments, and lifecycle lineage without assuming two players. This completes
+the bot-facing half of the generic ML seam; the neutral Engine host and replay
+3 projection remain in progress.
+
 ## Executive conclusion
 
 nilbots does not need different game rules or larger runtime limits to support
@@ -357,7 +364,7 @@ Pinned axes:
 | Runtime configuration | no change for replay-only duel work; experimental Frontline actor limits are configuration 1.0 |
 | Replay format | `1` shipped historical; `2` frozen Frontline-alpha; `3` generic actor match |
 | Engine version | minor bump |
-| SDK | no change for replay-only engine work; experimental Frontline actor types are SDK 0.9.0 |
+| SDK | Frontline-alpha remains SDK 0.9.0; the separate generic actor-match profile is SDK 0.10.0 |
 | CLI | bump because the replay viewer/CLI compatibility surface changes |
 
 Requirements:
@@ -383,10 +390,11 @@ may remain viewable and analyzable, but official tooling labels it
 ## Work package A — observation and replay foundation
 
 Status: **implemented as the frozen local Frontline replay-v2 proof; generic
-replay 3 remains planned**. The remaining work begins with the generic SDK,
-Guest, host, replay-3 envelope, and version-dispatched viewer, followed by
-dataset/product delivery. Replay v1 remains a dedicated historical
-reader/verifier and replay v2 remains a dedicated alpha reader/verifier.
+SDK/Guest input contracts implemented; generic replay 3 remains planned**.
+The remaining work begins with the neutral generic host, replay-3 envelope,
+and version-dispatched viewer, followed by dataset/product delivery. Replay v1
+remains a dedicated historical reader/verifier and replay v2 remains a
+dedicated alpha reader/verifier.
 
 ### Implementation
 
@@ -541,7 +549,7 @@ Proposed project manifest:
 {
   "name": "NeuralBot",
   "entryType": "NeuralBot",
-  "sdkVersion": "0.9.0",
+  "sdkVersion": "0.10.0",
   "assets": ["model.nilmodel"]
 }
 ```

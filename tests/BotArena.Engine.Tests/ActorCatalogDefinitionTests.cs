@@ -155,7 +155,7 @@ public class ActorCatalogDefinitionTests
             limits.RuntimeFaults.FaultCounterArithmetic);
         Assert.Equal(
             ActorRuntimeFaultDefinition.RuntimeStageRecoveryKind
-                .CreateOrStartFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick,
+                .CreateStartOrExecuteFailureDiscardsInstanceSyntheticWaitRetryFreshOnceNextActiveTick,
             limits.RuntimeFaults.RuntimeStageRecovery);
         Assert.Equal(
             ActorRuntimeFaultDefinition.FaultBatchEventOrderKind

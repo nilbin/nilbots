@@ -31,8 +31,13 @@ Implementation checkpoint:
   aggregate match writers now use explicit canonical wire IDs, provenance
   separation, captured capability versions, and literal golden fingerprints.
   Package C is complete.
-- No new definition is routed into a session, API, ladder, SDK, replay, or
-  viewer.
+- Package D's static and dynamic SDK contract, strict tagged codecs, exact
+  `generic-actor-match-2` negotiation, profile-aware Guest state machine, and
+  controlled-build capability detection are implemented and independently
+  reviewed. The common Engine/WASM runtime boundary is in progress; replay 3
+  has not been emitted.
+- No new definition is yet routed into a gameplay session, API, ladder,
+  replay, or viewer.
 
 ## 1. Product terminology
 
@@ -419,10 +424,11 @@ The common actor host owns:
 Runtime faults are participant-scoped across every controlled slot, life, and
 runtime stage. Fault events are ordered by participant, actor identity, then
 create/start/tick/validation stage rather than host callback order. A runtime
-creation or start failure discards any partial instance, contributes a
-synthetic `Wait`, and—if still eligible—gets one fresh retry before that
-life's next decision. The counter uses signed-64-bit arithmetic saturated at
-the configured allowance plus one.
+creation, start, or tick-execution failure discards the instance, contributes
+a synthetic `Wait`, and—if still eligible—gets one fresh create-and-start
+attempt before that life's next decision. Decision-validation faults retain
+the healthy runtime instance. The counter uses signed-64-bit arithmetic
+saturated at the configured allowance plus one.
 
 After joint damage and before the mode update, a participant exceeding its
 tolerance is disqualified. All owned pending clocks, fabrication,

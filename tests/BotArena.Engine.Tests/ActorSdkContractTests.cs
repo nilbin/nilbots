@@ -87,6 +87,9 @@ public sealed class ActorSdkContractTests
             Engine.BotArenaVersions.GenericActorRuntimeProtocolVersion,
             Sdk.GenericActorContractVersions.RuntimeProtocolVersion);
         Assert.Equal(
+            Engine.BotArenaVersions.GenericActorRuntimeConfigurationVersion,
+            Sdk.GenericActorContractVersions.RuntimeConfigurationVersion);
+        Assert.Equal(
             Engine.BotArenaVersions.GenericActorRuntimeContractVersion,
             Sdk.GenericActorContractVersions.RuntimeContractVersion);
         Assert.Equal(
@@ -104,6 +107,16 @@ public sealed class ActorSdkContractTests
         Assert.Equal(
             Engine.BotArenaVersions.GenericActorReplayFormatVersion,
             Sdk.GenericActorContractVersions.ReplayFormatVersion);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorMaxCanonicalContractBytes,
+            Sdk.GenericActorContractVersions.MaxCanonicalContractBytes);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorMaxCanonicalContractNodes,
+            Sdk.GenericActorContractVersions.MaxCanonicalContractNodes);
+        Assert.Equal(
+            Engine.BotArenaVersions.GenericActorMaxCanonicalCollectionCount,
+            Sdk.GenericActorContractVersions
+                .MaxCanonicalContractCollectionCount);
         Assert.Equal(
             Sdk.GenericActorContractVersions.ContractProfileId,
             Sdk.ActorContractProfile.GenericV2.ProfileId);

@@ -186,7 +186,11 @@ contract generations for typed game modes, match formats, generic
 score/results, bounded one-to-many Split, Deathmatch/FFA proof fixtures,
 immutable playlists, and opaque ladders. It does not mutate official replay
 v1 or the opened `frontline-alpha-1` replay-v2 evidence. Numeric proof values
-remain explicitly unbalanced experimental inputs.
+remain explicitly unbalanced experimental inputs. Its compatibility shield,
+typed vocabulary, resolved rules/map/format/topology contracts, and the
+profile-negotiated generic SDK/Guest programming boundary are implemented.
+The neutral runtime/host, runnable Split and Deathmatch sessions, replay 3,
+presentation, and competition routing remain in progress.
 
 ## Next session pointers
 

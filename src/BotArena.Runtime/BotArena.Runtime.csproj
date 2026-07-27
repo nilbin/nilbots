@@ -3,6 +3,5 @@
   <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
-    <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
   </ItemGroup>
 </Project>

@@ -49,9 +49,11 @@ public static class ActorContractManifestSerializer
     public static string ToCanonicalJson(ActorResolvedMatchDefinition match)
     {
         ArgumentNullException.ThrowIfNull(match);
-        return ActorMatchCanonicalWriter.SerializeMatch(
+        string canonical = ActorMatchCanonicalWriter.SerializeMatch(
             match,
             includeFingerprint: true);
+        ActorContractProfileAdmission.ValidateCanonicalMatch(canonical);
+        return canonical;
     }
 
     internal static string SerializeRulesFingerprintPayload(
