@@ -9,17 +9,18 @@ public sealed class LadderDefinitionTests
     {
         LadderId ladderId = LadderId.New();
         PlaylistVersionId playlistVersionId = PlaylistVersionId.New();
+        SeasonId seasonId = SeasonId.New();
 
         var ladder = new LadderDefinition(
             ladderId,
             playlistVersionId,
-            "season-2026-03",
+            seasonId,
             LadderStatus.Open,
             DuelEloV1.Id);
 
         Assert.Equal(ladderId, ladder.Id);
         Assert.Equal(playlistVersionId, ladder.PlaylistVersionId);
-        Assert.Equal("season-2026-03", ladder.SeasonId);
+        Assert.Equal(seasonId, ladder.SeasonId);
         Assert.Equal(LadderStatus.Open, ladder.Status);
         Assert.Equal(DuelEloV1.Id, ladder.RatingPolicyId);
     }
@@ -30,19 +31,25 @@ public sealed class LadderDefinitionTests
         Assert.Throws<ArgumentException>(() => new LadderDefinition(
             default,
             PlaylistVersionId.New(),
-            "season-1",
+            SeasonId.New(),
             LadderStatus.Draft,
             DuelEloV1.Id));
         Assert.Throws<ArgumentException>(() => new LadderDefinition(
             LadderId.New(),
             default,
-            "season-1",
+            SeasonId.New(),
+            LadderStatus.Draft,
+            DuelEloV1.Id));
+        Assert.Throws<ArgumentException>(() => new LadderDefinition(
+            LadderId.New(),
+            PlaylistVersionId.New(),
+            default,
             LadderStatus.Draft,
             DuelEloV1.Id));
         Assert.Throws<ArgumentOutOfRangeException>(() => new LadderDefinition(
             LadderId.New(),
             PlaylistVersionId.New(),
-            "season-1",
+            SeasonId.New(),
             (LadderStatus)999,
             DuelEloV1.Id));
     }

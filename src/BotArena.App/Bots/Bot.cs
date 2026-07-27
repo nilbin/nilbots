@@ -23,6 +23,12 @@ public class BotRating
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid BotId { get; set; }
+    /// <summary>
+    /// Opaque ladder identity for migrated ratings. Null during the additive
+    /// compatibility window so older application images can continue writing
+    /// rules-version keyed rows.
+    /// </summary>
+    public Guid? LadderId { get; set; }
     /// <summary>The resolved rules version string a set was played under ("0.5", "0.4",
     /// "0.4-exp-hill3"…) — experiments get their own ladders instead of polluting
     /// official elo.</summary>

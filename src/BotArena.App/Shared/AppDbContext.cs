@@ -1,5 +1,6 @@
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
@@ -17,6 +18,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Bot> Bots => Set<Bot>();
     public DbSet<BotRating> BotRatings => Set<BotRating>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
+    public DbSet<Playlist> Playlists => Set<Playlist>();
+    public DbSet<PlaylistVersion> PlaylistVersions => Set<PlaylistVersion>();
+    public DbSet<Season> Seasons => Set<Season>();
+    public DbSet<Ladder> Ladders => Set<Ladder>();
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
@@ -67,6 +72,98 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasIndex(r => new { r.RulesVersion, r.Rating }).IsDescending(false, true);
             entity.Property(r => r.RulesVersion).HasMaxLength(40);
             entity.Property(r => r.Rating).HasDefaultValue(1200.0);
+            entity.HasIndex(r => new { r.BotId, r.LadderId })
+                .IsUnique()
+                .HasFilter("\"LadderId\" IS NOT NULL");
+            entity.HasIndex(r => new { r.LadderId, r.Rating, r.BotId })
+                .IsDescending(false, true, false)
+                .HasFilter("\"LadderId\" IS NOT NULL");
+            entity.HasOne<Ladder>()
+                .WithMany()
+                .HasForeignKey(r => r.LadderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Playlist>(entity =>
+        {
+            entity.HasIndex(playlist => playlist.Key).IsUnique();
+            entity.Property(playlist => playlist.Key).HasMaxLength(100);
+            entity.Property(playlist => playlist.DisplayName).HasMaxLength(120);
+            entity.HasMany(playlist => playlist.Versions)
+                .WithOne()
+                .HasForeignKey(version => version.PlaylistId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PlaylistVersion>(entity =>
+        {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_PlaylistVersions_Version_Positive",
+                    "\"Version\" > 0");
+                table.HasCheckConstraint(
+                    "CK_PlaylistVersions_DefinitionFingerprint",
+                    "\"DefinitionFingerprint\" ~ '^[0-9a-f]{64}$'");
+            });
+            entity.HasIndex(version => new
+            {
+                version.PlaylistId,
+                version.Version,
+            }).IsUnique();
+            entity.Property(version => version.GameModeId).HasMaxLength(100);
+            entity.Property(version => version.RulesetId).HasMaxLength(100);
+            entity.Property(version => version.MatchFormatId).HasMaxLength(100);
+            entity.Property(version => version.MapPoolId).HasMaxLength(100);
+            entity.Property(version => version.SeriesPolicyId).HasMaxLength(100);
+            entity.Property(version => version.MatchmakingPolicyId).HasMaxLength(100);
+            entity.Property(version => version.AdmissionPolicyId).HasMaxLength(100);
+            entity.Property(version => version.CanonicalDefinition).HasColumnType("jsonb");
+            entity.Property(version => version.DefinitionFingerprint)
+                .HasMaxLength(64)
+                .IsFixedLength();
+            entity.Property(version => version.Provenance)
+                .HasColumnType("jsonb");
+            entity.Property(version => version.Visibility).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<Season>(entity =>
+        {
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_Seasons_TimeWindow",
+                "\"StartsAt\" IS NULL OR \"EndsAt\" IS NULL OR \"EndsAt\" > \"StartsAt\""));
+            entity.HasIndex(season => season.Key).IsUnique();
+            entity.Property(season => season.Key).HasMaxLength(100);
+            entity.Property(season => season.DisplayName).HasMaxLength(120);
+        });
+
+        modelBuilder.Entity<Ladder>(entity =>
+        {
+            entity.Property(ladder => ladder.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(ladder => ladder.RatingPolicyId).HasMaxLength(100);
+            entity.Property(ladder => ladder.LegacyRulesVersion).HasMaxLength(40);
+            entity.HasIndex(ladder => new
+            {
+                ladder.PlaylistVersionId,
+                ladder.SeasonId,
+            }).IsUnique();
+            entity.HasIndex(ladder => ladder.LegacyRulesVersion)
+                .IsUnique()
+                .HasFilter("\"LegacyRulesVersion\" IS NOT NULL");
+            entity.HasIndex(ladder => ladder.PlaylistVersionId)
+                .IsUnique()
+                .HasFilter("\"Status\" = 'Open'")
+                .HasDatabaseName("IX_Ladders_OneOpenPerPlaylistVersion");
+            entity.HasOne<PlaylistVersion>()
+                .WithMany()
+                .HasForeignKey(ladder => ladder.PlaylistVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Season>()
+                .WithMany()
+                .HasForeignKey(ladder => ladder.SeasonId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<BotVersion>(entity =>
@@ -206,6 +303,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasIndex(m => m.CreatedAt);
             entity.HasIndex(m => m.MatchSetId);
+            entity.HasIndex(m => m.PlaylistVersionId);
             // Feed filtered by map, newest first. Without the CreatedAt column here,
             // filtering to an uncommon map scanned the whole table (DECISIONS #100).
             entity.HasIndex(m => new { m.MapId, m.CreatedAt }).IsDescending(false, true);
@@ -214,12 +312,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .WithMany()
                 .HasForeignKey(m => m.InitiatedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne<PlaylistVersion>()
+                .WithMany()
+                .HasForeignKey(m => m.PlaylistVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<MatchSet>(entity =>
         {
             entity.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(s => s.CreatedAt);
+            entity.HasIndex(s => s.PlaylistVersionId);
+            entity.HasIndex(s => new { s.LadderId, s.CreatedAt });
+            entity.HasOne<PlaylistVersion>()
+                .WithMany()
+                .HasForeignKey(s => s.PlaylistVersionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Ladder>()
+                .WithMany()
+                .HasForeignKey(s => s.LadderId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<MatchParticipant>(entity =>

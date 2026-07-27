@@ -31,6 +31,11 @@ public class Match
     public DateTime? BroadcastStartedAt { get; set; }
     public int PresentationTicksPerSecond { get; set; } = 5;
     public Guid? MatchSetId { get; set; }
+    /// <summary>
+    /// Exact immutable playlist revision pinned for this match. Null only for
+    /// legacy or not-yet-backfilled rows during the expand migration.
+    /// </summary>
+    public Guid? PlaylistVersionId { get; set; }
     /// <summary>The account that explicitly requested this match. Setless matches
     /// with this value are unranked challenge product events; worker-internal matches
     /// and historical rows may leave it null.</summary>

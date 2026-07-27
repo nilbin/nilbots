@@ -9,7 +9,7 @@ public sealed class LadderDefinition
     public LadderDefinition(
         LadderId id,
         PlaylistVersionId playlistVersionId,
-        string seasonId,
+        SeasonId seasonId,
         LadderStatus status,
         string ratingPolicyId)
     {
@@ -21,19 +21,23 @@ public sealed class LadderDefinition
             throw new ArgumentException(
                 "A ladder requires a non-empty playlist-version id.",
                 nameof(playlistVersionId));
+        if (seasonId.IsEmpty)
+            throw new ArgumentException(
+                "A ladder requires a non-empty season id.",
+                nameof(seasonId));
         if (!Enum.IsDefined(status))
             throw new ArgumentOutOfRangeException(nameof(status));
 
         Id = id;
         PlaylistVersionId = playlistVersionId;
-        SeasonId = Required(seasonId, nameof(seasonId));
+        SeasonId = seasonId;
         Status = status;
         RatingPolicyId = Required(ratingPolicyId, nameof(ratingPolicyId));
     }
 
     public LadderId Id { get; }
     public PlaylistVersionId PlaylistVersionId { get; }
-    public string SeasonId { get; }
+    public SeasonId SeasonId { get; }
     public LadderStatus Status { get; }
     public string RatingPolicyId { get; }
 

@@ -28,6 +28,16 @@ public class MatchSet
     public string? RulesName { get; set; }
     public string GameRulesVersion { get; set; } = Engine.BotArenaVersions.GameRulesVersion;
     public string RuntimeConfigurationVersion { get; set; } = Engine.BotArenaVersions.RuntimeConfigurationVersion;
+    /// <summary>
+    /// Exact immutable playlist revision selected when this series was queued.
+    /// Null only for legacy or not-yet-backfilled rows during migration.
+    /// </summary>
+    public Guid? PlaylistVersionId { get; set; }
+    /// <summary>
+    /// Opaque rating population selected when this ranked series was queued.
+    /// Unranked and legacy/not-yet-backfilled series may leave it null.
+    /// </summary>
+    public Guid? LadderId { get; set; }
     public MatchSetStatus Status { get; set; } = MatchSetStatus.Running;
     /// <summary>Set points: 1 per game win, 0.5 per draw.</summary>
     public double ScoreA { get; set; }
