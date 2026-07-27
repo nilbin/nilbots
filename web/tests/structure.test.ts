@@ -37,8 +37,12 @@ test('the standalone viewer never imports site code', () => {
     'render',
     'App.tsx',
     'playback.ts',
+    'replayModel.ts',
+    'replayNormalize.ts',
     'replayParticipants.ts',
     'replayPresentation.ts',
+    'replayWireV1.ts',
+    'replayWireV2.ts',
   ];
   const offenders: string[] = [];
 
