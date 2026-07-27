@@ -2186,7 +2186,50 @@ before a public competition, payments, valuable user-generated history, a
 database move, or whenever losing the primary costs more than recurring backup
 storage. Point-in-time recovery through pgBackRest or WAL-G remains a later RPO
 decision rather than a prerequisite for the current local-dump baseline.
+## 134. Package 8 opens Frontline only as a local experiment and measures dimensions, not “fun”
 
+Frontline enters the CLI through the separate
+`nilbots experiment frontline` command, not through historical `play`, ranked
+rules resolution, ordinary map catalogs, the App, or server admission. Its
+named `frontline-alpha-1` arm stays outside `GameRules.Resolve`,
+`KnownNames`, and `ShippedNames`; format-v2 maps are packaged under the
+explicit `maps/experimental/` boundary. This makes the mechanics playable and
+iterable without accidentally claiming that they are a shipped game mode.
+CLI/toolchain version 0.7.0 owns that new surface.
+
+The command accepts actor built-ins, actor projects, or actor-protocol WASM,
+creates a distinct participant factory and an isolated runtime for every
+life, and emits complete replay v2 plus the self-contained Canvas2D viewer.
+In-process execution is a diagnostic convenience; all-WASM remains the
+canonical local run. A runtime failure produces a typed non-zero result and a
+partial replay instead of silently substituting `Wait`.
+
+Four deterministic reference policies exercise intentionally different
+paths—rush, mobile swarm, Anchor/turret bastion, and defensive
+counterpunch—but they share one author and count only as calibration/smoke
+fixtures. They cannot satisfy the independently authored native-doctrine
+cohort required for a product verdict.
+
+Replay-v2 evaluation is likewise separate from the historical slot-based
+evaluator. It reports duration and contract-derived phase, fabrication,
+Anchor/turret, territorial reversal/comeback, actorless/stagnant, combat, and
+action dimensions with per-match rows and fingerprints. It deliberately
+defines neither a composite “fun” score nor post-hoc pass thresholds.
+Outcome-blind sampling now dispatches between replay versions using header
+metadata only.
+
+Adding the reference policies grows the tracked built-in guest to 4,853,279
+bytes, SHA-256
+`88b6ae1f949dd139fcefcbfc7f144870a27b17a2f98ce58a354738a2908bac5a`,
+with controlled input stamp
+`f93cd92c9d3985fddaf3abc5d1675c39bdc129d5`. This supersedes Package 7's
+artifact as the current development guest without rewriting that package's
+historical evidence.
+
+Package 8 therefore establishes a runnable local authoring and measurement
+loop, not a balance or ship decision. The remaining gates are an independently
+authored cohort, frozen same-cohort/holdout runs, outcome-blind entertainment
+review, and a deliberate hosted/admission decision.
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

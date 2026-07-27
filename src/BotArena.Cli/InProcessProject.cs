@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Security.Cryptography;
+using System.Text;
 using BotArena.Toolchain;
 
 namespace BotArena.Cli;
@@ -17,8 +19,16 @@ namespace BotArena.Cli;
 internal static class InProcessProject
 {
     private sealed record CachedFactory(long SourceStamp, Func<Sdk.IBot> Factory);
+    internal sealed record LoadedActorFactory(
+        Func<Sdk.IActorBot> Factory,
+        string ProvenanceHash);
+    private sealed record CachedActorFactory(
+        long SourceStamp,
+        LoadedActorFactory Loaded);
 
     private static readonly Dictionary<string, CachedFactory> Factories =
+        new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, CachedActorFactory> ActorFactories =
         new(StringComparer.Ordinal);
 
     public static Func<Sdk.IBot> LoadFactory(BotProject project, bool quiet = false)
@@ -46,6 +56,113 @@ internal static class InProcessProject
         Func<Sdk.IBot> factory = () => (Sdk.IBot)Activator.CreateInstance(entryType)!;
         Factories[projectDirectory] = new CachedFactory(sourceStamp, factory);
         return factory;
+    }
+
+    /// <summary>
+    /// Actor equivalent of <see cref="LoadFactory"/>. Every invocation creates
+    /// a new policy object; <c>InProcessActorRuntimeFactory</c> then gives each
+    /// Frontline life an isolated instance and deterministic random stream.
+    /// </summary>
+    public static LoadedActorFactory LoadActorFactory(
+        BotProject project,
+        bool quiet = false)
+    {
+        string projectDirectory = Path.GetFullPath(project.Directory);
+        long sourceStamp = SourceStamp(project, projectDirectory);
+        if (ActorFactories.TryGetValue(
+                projectDirectory,
+                out CachedActorFactory? cached)
+            && cached.SourceStamp == sourceStamp)
+        {
+            return cached.Loaded;
+        }
+
+        string dllPath = Build(project, quiet);
+        var context = new BotLoadContext(dllPath);
+        Assembly assembly = context.LoadFromAssemblyPath(dllPath);
+        Type entryType = FindEntryType(project, dllPath, assembly);
+        if (!typeof(Sdk.IActorBot).IsAssignableFrom(entryType))
+        {
+            throw new InvalidOperationException(
+                $"{entryType.FullName} does not implement " +
+                "BotArena.Sdk.IActorBot (required by Frontline).");
+        }
+
+        var loaded = new LoadedActorFactory(
+            () => (Sdk.IActorBot)Activator.CreateInstance(entryType)!,
+            AssemblyClosureHash(dllPath));
+        ActorFactories[projectDirectory] =
+            new CachedActorFactory(sourceStamp, loaded);
+        return loaded;
+    }
+
+    private static long SourceStamp(
+        BotProject project,
+        string projectDirectory) =>
+        project.SourceFiles
+            .Append(Path.Combine(projectDirectory, "botarena.json"))
+            .Concat(Directory.EnumerateFiles(projectDirectory, "*.csproj"))
+            .Where(File.Exists)
+            .Max(file => File.GetLastWriteTimeUtc(file).Ticks);
+
+    private static Type FindEntryType(
+        BotProject project,
+        string dllPath,
+        Assembly assembly) =>
+        assembly.GetType(project.Manifest.EntryType, throwOnError: false)
+        ?? Array.Find(
+            assembly.GetTypes(),
+            type => type.Name == project.Manifest.EntryType)
+        ?? throw new InvalidOperationException(
+            $"Entry type '{project.Manifest.EntryType}' not found in " +
+            $"{Path.GetFileName(dllPath)}.");
+
+    /// <summary>
+    /// Identifies the bytes the diagnostic runtime actually executes. This is
+    /// intentionally distinct from the controlled-WASM build cache key: a
+    /// player csproj can change references and compile options that the
+    /// submission builder ignores, while the in-process loop honors them.
+    /// </summary>
+    private static string AssemblyClosureHash(string mainAssemblyPath)
+    {
+        string outputDirectory = Path.GetDirectoryName(mainAssemblyPath)
+            ?? throw new InvalidOperationException(
+                $"Assembly '{mainAssemblyPath}' has no output directory.");
+        string dependencyManifest = Path.ChangeExtension(
+            mainAssemblyPath,
+            ".deps.json");
+        string[] files = Directory
+            .EnumerateFiles(
+                outputDirectory,
+                "*.dll",
+                SearchOption.TopDirectoryOnly)
+            .Where(path => !Path.GetFileName(path).Equals(
+                "BotArena.Sdk.dll",
+                StringComparison.OrdinalIgnoreCase))
+            .Append(dependencyManifest)
+            .Where(File.Exists)
+            .OrderBy(Path.GetFileName, StringComparer.Ordinal)
+            .ToArray();
+
+        using SHA256 sha = SHA256.Create();
+        void Add(string label, byte[] content)
+        {
+            byte[] header = Encoding.UTF8.GetBytes(
+                $"\n--{label}--\n");
+            sha.TransformBlock(header, 0, header.Length, null, 0);
+            sha.TransformBlock(content, 0, content.Length, null, 0);
+        }
+
+        foreach (string file in files)
+        {
+            Add(
+                Path.GetFileName(file),
+                File.ReadAllBytes(file));
+        }
+        string sdkPath = typeof(Sdk.IActorBot).Assembly.Location;
+        Add("host/BotArena.Sdk.dll", File.ReadAllBytes(sdkPath));
+        sha.TransformFinalBlock([], 0, 0);
+        return Convert.ToHexStringLower(sha.Hash!);
     }
 
     private static string Build(BotProject project, bool quiet)

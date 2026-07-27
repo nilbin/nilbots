@@ -1,16 +1,75 @@
 # Experimental Frontline contract
 
-Status: **implemented internal experiment; not a shipped ruleset**, 2026-07-27.
+Status: **playable local experiment; not a shipped ruleset**, 2026-07-27.
 Official rules 0.5, replay v1, runtime protocol/configuration 0.1, and the
 current ladder are unchanged. Its engine-independent actor SDK/Guest,
-protocol/configuration 1.0, and canonical per-life WASM runtime exist
-internally, but Frontline is not yet selectable through the public CLI, App,
-or server match path.
+protocol/configuration 1.0, and canonical per-life WASM runtime are selectable
+only through `nilbots experiment frontline`. Historical `play`, App/server
+matches, submissions, and ranked play do not admit Frontline.
 
 This document is the concise player and bot-author contract for the frozen
 Frontline engine arm. The complete machine-readable truth is the
 `PublicMatchContractManifest` embedded in replay v2. Numeric defaults below
 are experiment inputs, not a balance or ship verdict.
+
+## Run the local experiment
+
+```bash
+nilbots experiment frontline \
+  --bot frontline-rusher \
+  --opponent frontline-bastion \
+  --seed 42
+```
+
+The default all-WASM mode creates an independent isolated runtime for every
+body life and writes `replay.json` plus a self-contained Canvas2D
+`viewer.html`. Use `--runtime in-process` for the fast diagnostic loop, then
+confirm behavior in WASM. `--seeds 7,42,1337` preserves a replay per seed;
+`--swap` reverses team assignment. `--bot .` accepts a project whose entry
+type implements `IActorBot`, and a prebuilt actor-protocol `.wasm` is also
+valid. Run `nilbots help experiment` for the complete options.
+
+To start a local policy without changing the shipped template contract, run
+`nilbots new MyFrontliner`, then replace the generated class with an
+`IActorBot`:
+
+```csharp
+using BotArena.Sdk;
+
+public sealed class MyFrontliner : IActorBot
+{
+    public ActorDecision Tick(ActorContext context)
+    {
+        if (context.Action(ActorActionIds.Fabricate) is
+            { Available: true, AllowedUnitTargets: { Length: > 0 } targets })
+            return Actions.Fabricate(targets[0]);
+
+        if (context.Enemies.Length > 0 &&
+            context.Action(ActorActionIds.Shoot) is { Available: true })
+            return Actions.Shoot();
+
+        return context.Action(ActorActionIds.MoveForward) is { Available: true }
+            ? Actions.MoveForward()
+            : Actions.TurnRight();
+    }
+}
+```
+
+Keep the generated `botarena.json` entry type aligned with the class name,
+then iterate with `nilbots experiment frontline --bot . --runtime in-process`.
+The ordinary `nilbots play` path remains the shipped duel.
+
+The included opponents are deterministic calibration fixtures:
+
+- `frontline-rusher` pressures the objective and never builds;
+- `frontline-swarm` fabricates every child and stays mobile;
+- `frontline-bastion` fabricates, Anchors children, and uses turret fire;
+- `frontline-counterpunch` builds one child and holds a defensive line before
+  closing on visible contact;
+- `frontline-probe` exercises typed actions for protocol diagnostics.
+
+They were created together to exercise mechanics. They are not independently
+authored doctrines and cannot satisfy the product-evaluation cohort gate.
 
 ## The game
 
@@ -168,7 +227,7 @@ uncompetitive under a newer contract.
 
 ## Replay and ML status
 
-Internal replay v2 records, for every exact actor and tick:
+Experimental replay v2 records, for every exact actor and tick:
 
 - the immutable public match contract and fingerprints;
 - tick-start state and lifecycle events;
@@ -192,20 +251,32 @@ five concurrent lives per team, including fabrication, observation, replay,
 transformation, and terminal unit rows. Competitive behavior at those counts
 still requires suitable training data.
 
-Dataset export, public replay corpora, model-asset packaging, starter
-inference, CLI selection, App/server admission, evaluation, and ranked use
-remain follow-on work in
+The local CLI can emit and display replay v2. Descriptive evaluation is:
+
+```bash
+python3 scripts/frontline-replay-eval.py \
+  --group calibration=/tmp/frontline/block-1 \
+  --group calibration=/tmp/frontline/block-2 \
+  --json /tmp/frontline/report.json
+```
+
+The report keeps duration/phase, fabrication, Anchor/turret, territorial,
+combat, actorless, stagnation, and action dimensions separate; it deliberately
+has no composite fun score. Dataset export, public replay corpora, model-asset
+packaging, starter inference, App/server admission, general replay-v2
+verification/summary, and ranked use remain follow-on work in
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) and
 [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md).
 
 ## Evidence status
 
-Engine, observation, replay, actor SDK/protocol/WASM, viewer, and mobile-bridge
-tests establish determinism and mechanical causality. They do not establish
-fun, duration, or balance. The strong-turret defaults remain starting arms.
-Canvas2D remains the viewer default; the optional lazy WebGL 2.5D renderer
-shares normalized replay state, is absent from the CLI artifact, and still
-needs manual GPU/mobile QA.
+Engine, observation, replay, actor SDK/protocol/WASM, local CLI, evaluator,
+viewer, and mobile-bridge tests establish determinism, valid mechanics, and
+measurement consistency. They do not establish fun, duration, or balance.
+Small calibration runs are diagnosis only; the strong-turret defaults remain
+starting arms. Canvas2D remains the viewer default; the optional lazy WebGL
+2.5D renderer shares normalized replay state, is absent from the
+self-contained CLI artifact, and still needs manual GPU/mobile QA.
 
 Before any product verdict, Frontline still requires fixed all-WASM candidate
 artifacts, at least four independently authored Frontline-native doctrines

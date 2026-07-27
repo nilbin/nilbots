@@ -1,10 +1,11 @@
 # Replay-native ML support: engine-rewrite integration plan
 
 Status: shared ML/data plan, 2026-07-26; reconciled with the Frontline
-public-contract foundation and internal replay-v2 implementation on
+public-contract foundation and experimental replay-v2 implementation on
 2026-07-27. Work package A's canonical observation/replay seam is implemented
-for the internal Frontline path. Dataset export, corpus access, model assets,
-starter inference, and public replay-v2 product decisions remain planned.
+for the local experimental Frontline path. Dataset export, corpus access,
+model assets, starter inference, and hosted replay-v2 product decisions
+remain planned.
 
 Frontline does not create a second ML stack. Where older examples below say
 `slot`, that is the legacy-duel actor identity. The common v2 design must also
@@ -14,12 +15,14 @@ collections plus masks rather than assuming two bodies.
 
 The implemented Frontline checkpoint now does exactly that: it constructs one
 canonical public observation per active life, supplies that observation to the
-life runtime, snapshots the same projection into internal replay v2, and
+life runtime, snapshots the same projection into experimental replay v2, and
 records variable topology, lifecycle, fabrication, form transitions, dynamic
 legality masks, and authoritative result facts. Actor SDK/Guest 0.9.0 and
 protocol/configuration 1.0 now deliver the same contract to isolated per-life
-WASM instances. This remains an internal foundation, not a claim that public
-CLI/App/server admission or dataset tooling can consume it yet.
+WASM instances. The explicit local CLI can now generate and view that v2
+format. This is not a claim that App/server admission, general replay
+summary/verification, dataset tooling, or a hosted product can consume it
+yet.
 
 ## Executive conclusion
 
@@ -80,7 +83,7 @@ The surrounding fairness rules are:
 This is an information-parity contract, not a promise that all players own the
 same training hardware or use the same technique.
 
-## Shipped replay-v1 gap and internal checkpoint
+## Shipped replay-v1 gap and local experimental checkpoint
 
 The shipped replay v1 has much of the underlying information, but not the
 exact input record a trainer needs. That gap remains for historical duel
@@ -118,11 +121,11 @@ while the WASM and in-process adapters independently reduce them to the
 player-visible kind, acting slot, and primary position. The engine/runtime
 boundary should already be public-only.
 
-The separate Frontline path closes both gaps internally with
+The separate Frontline path closes both gaps on the local experiment with
 `ActorObservation`, `FrontlineObservationProjector`, `ActorRuntime`, and
 replay v2. It deliberately leaves the shipped duel `BotObservation`,
-protocol 0.1, and replay-v1 bytes untouched. Internal actor protocol 1.0 now
-consumes the new public-only path rather than reconstructing inputs from
+protocol 0.1, and replay-v1 bytes untouched. Experimental actor protocol 1.0
+now consumes the new public-only path rather than reconstructing inputs from
 omniscient state; later product integration must preserve that boundary.
 
 ## Rewrite inclusion boundary
@@ -344,11 +347,11 @@ Recommended axes:
 | Axis | Change |
 | --- | --- |
 | Game rules | no change |
-| Runtime protocol | no change for replay-only duel work; internal Frontline delivery uses separate actor 1.0 |
-| Runtime configuration | no change for replay-only duel work; internal Frontline actor limits are configuration 1.0 |
+| Runtime protocol | no change for replay-only duel work; experimental Frontline delivery uses separate actor 1.0 |
+| Runtime configuration | no change for replay-only duel work; experimental Frontline actor limits are configuration 1.0 |
 | Replay format | `1 -> 2` |
 | Engine version | minor bump |
-| SDK | no change for replay-only engine work; internal Frontline actor types are SDK 0.9.0 |
+| SDK | no change for replay-only engine work; experimental Frontline actor types are SDK 0.9.0 |
 | CLI | bump because the replay viewer/CLI compatibility surface changes |
 
 Requirements:
@@ -371,11 +374,12 @@ than pretending reconstruction is exact.
 
 ## Work package A — observation and replay foundation
 
-Status: **implemented for the internal Frontline path**. The remaining work is
-public version dispatch/admission, dataset/product delivery, and any later
-decision to generalize the shipped duel runtime onto the same model. Replay v1
-remains a dedicated historical reader/verifier; actor protocol 1.0 is the
-canonical internal Frontline delivery path.
+Status: **implemented for the local experimental Frontline path**. The
+remaining work is App/server admission, general version-dispatched
+summary/verification, dataset/product delivery, and any later decision to
+generalize the shipped duel runtime onto the same model. Replay v1 remains a
+dedicated historical reader/verifier; actor protocol 1.0 is the canonical
+experimental Frontline delivery path.
 
 ### Implementation
 
@@ -429,12 +433,12 @@ canonical internal Frontline delivery path.
 - no gameplay result changes on frozen artifacts/maps/seeds unless the rewrite
   separately and deliberately versions gameplay.
 
-The internal Frontline implementation meets these engine/replay criteria with
-deterministic fixtures, strict Engine and TypeScript semantic validators, a
-version-neutral viewer model, and frozen replay-v1 compatibility shields. This
-does not complete the end-to-end ML-friendly gate: dataset/corpus commands,
-model packaging, starter inference, and public release remain Work packages
-B–E and Frontline Package 8.
+The local experimental Frontline implementation meets these engine/replay
+criteria with deterministic fixtures, strict Engine and TypeScript semantic
+validators, a version-neutral viewer model, and frozen replay-v1
+compatibility shields. This does not complete the end-to-end ML-friendly gate:
+dataset/corpus commands, model packaging, starter inference, and hosted
+release remain Work packages B–E.
 
 ## Work package B — replay-only dataset CLI
 
@@ -718,9 +722,10 @@ This gate proves accessibility and integrity, not championship strength.
 
 ## Proposed delivery order
 
-1. **Engine/runtime integration — implemented internally for Frontline:**
-   canonical observation, direct replay snapshot, v2 schema, v1
-   compatibility, actor protocol/WASM delivery, and parity/leakage tests.
+1. **Engine/runtime integration — implemented for local experimental
+   Frontline:** canonical observation, direct replay snapshot, v2 schema, v1
+   compatibility, actor protocol/WASM delivery, local CLI generation/viewing,
+   and parity/leakage tests.
 2. **Replay-only dataset CLI — next ML slice:** inspect/export and
    clean-environment proof.
 3. **Public corpus access:** cursor API, generated clients, dataset pull.

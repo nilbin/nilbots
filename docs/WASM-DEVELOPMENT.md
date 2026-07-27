@@ -134,13 +134,14 @@ BOTARENA_WASM_BUILD_MODE=docker botarena build .
 `--native` deliberately fails outside Linux x64. `--docker` is also useful on a
 Linux workstation whose system toolchain differs from the deployment builder.
 
-## Internal Frontline actor runtime
+## Experimental Frontline actor runtime
 
 The tracked guest now supports two independent contracts. The shipped duel
-path remains line-oriented protocol/configuration 0.1. Internal Frontline uses
-the engine-independent `IActorBot` contract, SDK/Guest 0.9.0, and actor
-protocol/configuration 1.0. The public CLI/App/server does not select or admit
-that path yet.
+path remains line-oriented protocol/configuration 0.1. Experimental
+Frontline uses the engine-independent `IActorBot` contract, SDK/Guest 0.9.0,
+and actor protocol/configuration 1.0. The explicit local
+`nilbots experiment frontline` command selects it; historical `play`,
+App/server admission, and ladders do not.
 
 Actor 1.0 negotiates and then exchanges:
 
@@ -175,12 +176,14 @@ rejected; `_start`, every released message, and MatchEnd retain an
 interruption path.
 
 The encoding was selected empirically. A System.Text.Json NativeAOT guest was
-21.2–21.5 MiB and exceeded the 16 MiB artifact ceiling. The custom codec's
-rebuilt tracked guest is 3,341,998 bytes (SHA-256
-`9f081e17723a9d155800c258a0613cdba319762dfff598ca35ed82241baff9e4`),
-785,134 bytes larger than the 2,556,864-byte legacy artifact and still less
-than 1 MiB of growth. This is internal Package 7 evidence, not a public
-Frontline release.
+21.2–21.5 MiB and exceeded the 16 MiB artifact ceiling. The protocol-only
+Package 7 guest was 3,341,998 bytes (DECISIONS #129). After adding Package 8's
+four deterministic reference doctrines, the current tracked guest is
+4,853,279 bytes (SHA-256
+`88b6ae1f949dd139fcefcbfc7f144870a27b17a2f98ce58a354738a2908bac5a`,
+input stamp `f93cd92c9d3985fddaf3abc5d1675c39bdc129d5`). It remains well below the
+16 MiB ceiling. The reference policies are local calibration fixtures, not
+independently authored balance evidence or a Frontline release.
 
 ## What is pinned
 

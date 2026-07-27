@@ -12,8 +12,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
-    <ProjectReference Include="../../src/BotArena.Engine/BotArena.Engine.csproj" />
-    <ProjectReference Include="../../src/BotArena.Runtime/BotArena.Runtime.csproj" />
+    <ProjectReference Include="../../src/BotArena.Cli/BotArena.Cli.csproj" />
   </ItemGroup>
 </Project>
