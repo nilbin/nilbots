@@ -1,0 +1,292 @@
+import * as THREE from 'three';
+import type { ReplayDocument } from '../types';
+import { presentationAccent, botLook } from '../render/arenaThemes';
+
+/**
+ * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
+ * the flash of a shot landing.
+ *
+ * These are the parts of the flat renderer that are *not* objects — it draws them by
+ * compositing over the finished frame, which a scene graph cannot do. Each becomes a thing
+ * in the world instead, which is mostly an improvement (a flash lights the floor it is on)
+ * and in one place a compromise, noted where it happens.
+ */
+
+/** How dark an unseen tile goes. Matches the flat renderer's fog composite. */
+const FOG_STRENGTH = 0.82;
+
+export interface ArenaOverlays {
+  group: THREE.Group;
+  update: (
+    time: number,
+    selectedSlot: number | null,
+    showVisibility: boolean,
+  ) => void;
+  dispose: () => void;
+}
+
+export function buildOverlays(replay: ReplayDocument): ArenaOverlays {
+  const { mapWidth, mapHeight } = replay.header;
+  const group = new THREE.Group();
+  const disposables: { dispose: () => void }[] = [];
+
+  const fog = buildFog(mapWidth, mapHeight, disposables);
+  group.add(fog.mesh);
+
+  const zone = buildZone(replay, disposables);
+  if (zone) group.add(zone);
+
+  const flashes = buildFlashes(replay, disposables);
+  group.add(flashes.group);
+
+  let painted = '';
+
+  const update = (time: number, selectedSlot: number | null, showVisibility: boolean) => {
+    const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    const fraction = Math.max(0, Math.min(time - tick, 1));
+
+    const source =
+      showVisibility && selectedSlot !== null
+        ? replay.ticks[tick]?.bots.find((bot) => bot.slot === selectedSlot)
+        : undefined;
+
+    // Repainting the mask is a loop over every tile on the map, and the playhead crosses
+    // dozens of frames per tick — so it only happens when the answer can have changed.
+    const signature = `${source ? tick : -1}:${selectedSlot}`;
+    if (signature !== painted) {
+      painted = signature;
+      fog.paint(source?.visibleTiles);
+    }
+
+    flashes.update(tick, fraction);
+  };
+
+  return {
+    group,
+    update,
+    dispose: () => {
+      for (const item of disposables) item.dispose();
+    },
+  };
+}
+
+/**
+ * Fog as a mask over the floor.
+ *
+ * One texture with a texel per tile, laid over the arena and resampled smoothly, rather
+ * than a quad per hidden tile — the whole mask is one draw call and one upload per tick,
+ * and the linear filter gives the soft boundary the flat renderer gets from a blur.
+ *
+ * **It darkens the floor, not the walls.** A horizontal plane can only be positioned to
+ * align with one height, and putting it above the walls would slide it off the floor
+ * beneath by most of a tile at this camera pitch. The floor is the right choice: walls are
+ * static terrain that both players have always known about, whereas the floor is where the
+ * information actually is — and unseen *bots* and *bolts* are hidden by the actors
+ * themselves, which is the part that would otherwise be a lie.
+ */
+function buildFog(
+  mapWidth: number,
+  mapHeight: number,
+  disposables: { dispose: () => void }[],
+): { mesh: THREE.Mesh; paint: (visible: number[][] | undefined) => void } {
+  const data = new Uint8Array(mapWidth * mapHeight * 4);
+  const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+
+  const geometry = new THREE.PlaneGeometry(mapWidth, mapHeight);
+  geometry.rotateX(-Math.PI / 2);
+  geometry.translate(mapWidth / 2, 0, mapHeight / 2);
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = 0.03;
+  mesh.visible = false;
+  disposables.push(geometry, material, texture);
+
+  const paint = (visible: number[][] | undefined) => {
+    mesh.visible = visible !== undefined;
+    if (!visible) return;
+
+    const seen = new Set(visible.map(([x, y]) => `${x},${y}`));
+    for (let y = 0; y < mapHeight; y++) {
+      for (let x = 0; x < mapWidth; x++) {
+        // The plane's V axis runs opposite the map's Y, so rows are written bottom-up.
+        const texel = ((mapHeight - 1 - y) * mapWidth + x) * 4;
+        data[texel] = 0;
+        data[texel + 1] = 0;
+        data[texel + 2] = 0;
+        data[texel + 3] = seen.has(`${x},${y}`) ? 0 : Math.round(FOG_STRENGTH * 255);
+      }
+    }
+    texture.needsUpdate = true;
+  };
+
+  return { mesh, paint };
+}
+
+/** The objective zone, where the rules have one. Static for the match. */
+function buildZone(
+  replay: ReplayDocument,
+  disposables: { dispose: () => void }[],
+): THREE.Mesh | null {
+  const tiles = replay.header.zoneTiles;
+  if (!tiles || tiles.length === 0) return null;
+
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(1, 0);
+  shape.lineTo(1, 1);
+  shape.lineTo(0, 1);
+  shape.closePath();
+
+  const parts = tiles.map(([x, y]) => {
+    const quad = new THREE.PlaneGeometry(1, 1);
+    quad.rotateX(-Math.PI / 2);
+    quad.translate(x + 0.5, 0, y + 0.5);
+    return quad;
+  });
+  const geometry = mergeQuads(parts);
+  for (const part of parts) part.dispose();
+
+  const material = new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#22d3ee'),
+    transparent: true,
+    opacity: 0.14,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.y = 0.024;
+  disposables.push(geometry, material);
+  return mesh;
+}
+
+/**
+ * The flash of a shot leaving a barrel and of one landing.
+ *
+ * Pooled and driven by the tick's own events rather than accumulated over time, for the
+ * same reason the flat renderer re-derives its impact knock every frame: playback can be
+ * scrubbed, paused, or replayed from any point, and anything remembered between frames
+ * would survive a jump backwards into a tick where it never happened.
+ */
+function buildFlashes(
+  replay: ReplayDocument,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+  const group = new THREE.Group();
+  const geometry = new THREE.PlaneGeometry(1, 1);
+  geometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry);
+
+  const accents = replay.header.participants.map((participant, slot) =>
+    new THREE.Color(
+      presentationAccent(botLook(participant?.lookId, slot), participant?.accent ?? '#38bdf8'),
+    ),
+  );
+  const impact = new THREE.Color('#ffd9a0');
+
+  const pool: THREE.Mesh[] = [];
+  const material = new THREE.MeshBasicMaterial({
+    map: flare(),
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  disposables.push(material);
+  if (material.map) disposables.push(material.map);
+
+  const borrow = (index: number) => {
+    while (pool.length <= index) {
+      // Cloned so each flash carries its own colour and opacity while sharing one texture.
+      const mesh = new THREE.Mesh(geometry, material.clone());
+      mesh.visible = false;
+      group.add(mesh);
+      pool.push(mesh);
+    }
+    return pool[index];
+  };
+
+  const update = (tick: number, fraction: number) => {
+    const events = replay.ticks[tick]?.events ?? [];
+    let used = 0;
+    for (const event of events) {
+      const flash =
+        event.type === 'Shot'
+          ? { x: event.fromX, y: event.fromY, colour: accents[event.slot ?? 0], size: 1.5, life: 0.45 }
+          : event.type === 'Damage' || event.type === 'Destroyed'
+            ? { x: event.toX, y: event.toY, colour: impact, size: 2.4, life: 0.8 }
+            : null;
+      if (!flash || flash.x === undefined || flash.y === undefined) continue;
+
+      // Bright at the instant it happens and gone by the end of its life, so a shot reads
+      // as an event rather than a lamp that switches on for the tick.
+      const decay = 1 - Math.min(1, fraction / flash.life);
+      if (decay <= 0) continue;
+
+      const mesh = borrow(used++);
+      mesh.visible = true;
+      mesh.position.set(flash.x + 0.5, 0.05, flash.y + 0.5);
+      mesh.scale.setScalar(flash.size * (0.6 + 0.4 * (1 - decay)));
+      const own = mesh.material as THREE.MeshBasicMaterial;
+      own.color.copy(flash.colour ?? impact);
+      own.opacity = decay * decay;
+    }
+    for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/** A soft round flare, drawn rather than shipped. */
+function flare(): THREE.Texture | null {
+  if (typeof document === 'undefined') return null;
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+
+  const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  gradient.addColorStop(0.25, 'rgba(255, 255, 255, 0.55)');
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Concatenate plain position/normal/uv quads into one buffer. */
+function mergeQuads(parts: readonly THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const merged = new THREE.BufferGeometry();
+  for (const name of ['position', 'normal', 'uv'] as const) {
+    const arrays = parts.map((part) => part.attributes[name].array as Float32Array);
+    const combined = new Float32Array(arrays.reduce((sum, array) => sum + array.length, 0));
+    let offset = 0;
+    for (const array of arrays) {
+      combined.set(array, offset);
+      offset += array.length;
+    }
+    merged.setAttribute(
+      name,
+      new THREE.BufferAttribute(combined, parts[0].attributes[name].itemSize),
+    );
+  }
+  const indices: number[] = [];
+  let vertexOffset = 0;
+  for (const part of parts) {
+    const index = part.getIndex()!;
+    for (let i = 0; i < index.count; i++) indices.push(index.getX(i) + vertexOffset);
+    vertexOffset += part.attributes.position.count;
+  }
+  merged.setIndex(indices);
+  return merged;
+}

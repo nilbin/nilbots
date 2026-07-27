@@ -24,6 +24,15 @@ import { wallShapes } from './wallSolids';
  * rather than carrying a highlight from a light that was never in this room.
  */
 
+/**
+ * How far above horizontal the camera sits.
+ *
+ * Exported because it is not only the camera's business: anything that has to face the
+ * viewer squarely — health pips, any future label — needs the same angle, and a second copy
+ * of it is a thing that silently stops matching the day the framing is adjusted.
+ */
+export const CAMERA_PITCH = (58 * Math.PI) / 180;
+
 /** Wall height, in tiles. Tall enough to read as a room, low enough to see over. */
 const WALL_HEIGHT = 0.62;
 

@@ -198,7 +198,12 @@ export default function Viewer({
         >
           {dimensional ? (
             <Suspense fallback={null}>
-              <ArenaCanvas3D replay={replay} time={time} />
+              <ArenaCanvas3D
+                replay={replay}
+                time={time}
+                selectedSlot={selectedSlot}
+                showVisibility={showVisibility}
+              />
             </Suspense>
           ) : (
             <ArenaCanvas

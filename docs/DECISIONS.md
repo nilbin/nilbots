@@ -1868,9 +1868,46 @@ stretches one copy over the whole map and reveals it through geometry — repeat
 box was the single biggest reason the first attempt looked wrong), and the palette's
 `floorTint`/`wallTint` are applied as a colour multiply.
 
-Bots and projectiles are quads lying **flat on the floor**, not billboards. The sprites are
-plan views; standing one upright shows a top-down drawing pretending to be a side view,
-which is the exact tell that makes cheap 2.5D look cheap. They are also rasterised through
-a canvas first, because every sprite is an SVG with only a `viewBox` — an unreliable WebGL
-texture source that silently yields a fully transparent texture, which `alphaTest` then
-discards, which is how the first working build had two active bots and nothing on the floor.
+Bots and projectiles started as quads lying **flat on the floor**, on the reasoning that the
+sprites are plan views and standing one upright shows a top-down drawing pretending to be a
+side view. That reasoning was right about the *sprite* and wrong about the *bot*: a decal on
+the ground has no silhouette, casts a shadow the shape of a postage stamp, and vanishes
+against a dark floor. See #123.
+
+They are also rasterised through a canvas wherever a sprite is still used as a texture,
+because every sprite is an SVG with only a `viewBox` — an unreliable WebGL texture source
+that silently yields a fully transparent texture, which `alphaTest` then discards, which is
+how the first working build had two active bots and nothing on the floor.
+
+## 123. The 2.5D renderer derives its models from the sprites, and copies the flat renderer's rules
+
+A chassis is not authored as a model. `chassisModel` fetches the look's SVG, extrudes every
+filled path, and uses **draw order as height** — a plan-view illustration is layered the way
+the object is built, hull then plating then cockpit, so the artist has already described the
+relief and the extruder only has to believe them. The alternative was twenty-three
+hand-modelled solids to keep in step with twenty-three sprites, obsolete the first time an
+artist adjusted one and the first time a cosmetic pack shipped. Now a new look added as a
+folder and a manifest gets a 3D form the same way it gets a 2D one.
+
+Walls are traced into outlines and extruded, not stamped as a box per tile: a run of wall is
+one chamfered solid rather than a row of cubes with four hidden faces each. Tracing is also
+what gives holes, which the boundary ring needs to not pave the floor. Both wall and floor
+albedos double as bump maps — the art already contains its relief as painted light and
+shade, so reading its luminance as height makes it answer *this* scene's key light.
+
+**Where the two renderers could disagree, the flat one wins**, because they are the same
+game and a player switching between them must not see two:
+
+- The owner's accent does **not** tint a chassis. The flat renderer draws these sprites
+  untinted; accent reaches the screen as health pips, the facing cone, the selection ring
+  and the pool of light on the floor. Emissive accent over hull greys this dark is not a
+  trace but the entire colour, and it made every bot a lozenge of team colour.
+- A projectile *is* recoloured wholesale, because the flat renderer does exactly that —
+  `source-in` over the sprite, keeping the alpha and replacing every pixel.
+- Bolt position comes from `boltsAt`, shared with the flat renderer. Facing is eased so a
+  bolt banks through an octant change instead of blinking; position never is.
+
+One deliberate divergence: fog darkens the **floor**, not the walls. A horizontal mask plane
+can only align at one height, and lifting it above the walls slides it off the floor by most
+of a tile at this camera pitch. Walls are static terrain both players have always known
+about; the information is in where bots and bolts are, and those are hidden by the actors.

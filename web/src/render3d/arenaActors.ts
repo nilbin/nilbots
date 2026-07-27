@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
 import { botLook, projectileLook, presentationAccent } from '../render/arenaThemes';
 import { boltsAt, headingAngle, posesAt } from '../render/interpolate';
+import { replayMaxHealth } from '../replayMetadata';
 import { chassisModel } from './chassisModel';
+import { CAMERA_PITCH } from './arenaScene';
 
 /**
  * The things that move.
@@ -22,6 +24,10 @@ import { chassisModel } from './chassisModel';
 const BOT_HEIGHT = 0.26;
 const PROJECTILE_HOVER = 0.2;
 
+/** Where health pips hang, and how far behind the bot they sit to clear its hull on screen. */
+const PIP_HEIGHT = 0.72;
+const PIP_SETBACK = 0.55;
+
 /**
  * Share of the remaining turn a bolt takes each frame.
  *
@@ -35,7 +41,7 @@ const BOLT_TURN_RATE = 0.22;
 export interface ArenaActors {
   group: THREE.Group;
   /** Move everything to where it should be at this moment of the replay. */
-  update: (time: number) => void;
+  update: (time: number, selectedSlot: number | null, showVisibility: boolean) => void;
   dispose: () => void;
 }
 
@@ -43,6 +49,8 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
   const { participants } = replay.header;
+  // Rules-owned, and read rather than assumed: three-health replays predate the field.
+  const maxHealth = replayMaxHealth(replay);
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
@@ -116,6 +124,14 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     glow.position.y = 0.012;
     chassis.add(glow);
 
+    // Every material this bot is allowed to fade, with the opacity it wants at full
+    // strength — a glow pool at 1.0 is not the same picture as a hull at 1.0.
+    const fading: { material: THREE.Material; base: number }[] = [
+      { material: hullMaterial, base: 1 },
+      { material: lidMaterial, base: 1 },
+      { material: glowMaterial, base: 0.72 },
+    ];
+
     // Swap the box for the real thing once the sprite has been parsed and triangulated.
     //
     // The box is a placeholder, not the design. It is here because the model arrives over a
@@ -126,19 +142,100 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       if (!live || !model) return;
       // Cloned because the parse is cached per look, and a mirror match would otherwise
       // have both bots claiming one Group — three.js reparents rather than shares, so the
-      // second bot would silently steal the first one's body. The clone shares geometry and
-      // materials, which is the point of caching in the first place.
+      // second bot would silently steal the first one's body. The clone shares geometry,
+      // which is the expensive half and the point of caching in the first place.
       const body = model.clone();
       body.scale.setScalar(size);
+      // The materials, though, have to be this bot's own. Fog ghosts a bot by dropping its
+      // opacity, and the cached ones are shared with the other bot wearing the same look
+      // and with every replay opened after this one — so fading through them would dim both
+      // bots at once and leave them dim for the rest of the session.
+      body.traverse((node) => {
+        const mesh = node as THREE.Mesh;
+        if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+        mesh.material = mesh.material.clone();
+        fading.push({ material: mesh.material, base: 1 });
+        disposables.push(mesh.material);
+      });
       chassis.add(body);
       chassis.remove(hull);
       chassis.remove(lid);
     });
 
+    // A ring on the floor for the bot the panel is following. The flat renderer draws a
+    // dashed circle around the sprite; a ring lying on the floor is the same statement in a
+    // scene, and it survives the bot being behind a wall because it is drawn additively.
+    const ringGeometry = new THREE.RingGeometry(size * 0.82, size * 0.9, 40);
+    ringGeometry.rotateX(-Math.PI / 2);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0.6,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.y = 0.02;
+    ring.visible = false;
+    chassis.add(ring);
+
+    // Health, as pips floating over the bot — the one piece of state the flat renderer puts
+    // on the arena rather than in a panel, because it is the thing you need while watching
+    // rather than afterwards.
+    //
+    // **Not a child of the chassis**, which is the obvious place for them and the wrong one.
+    // The chassis turns with the bot, so pips parented to it turn too: edge-on whenever the
+    // bot faced east, and the offset that lifts them clear of the hull swinging round with
+    // the facing. They live in world space and are moved to follow instead.
+    const pips = new THREE.Group();
+    const pipGeometry = new THREE.CircleGeometry(0.06, 12);
+    const litPip = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      depthWrite: false,
+      // Health is information, not scenery: it stays legible over the bot's own hull, which
+      // is exactly where it lands from a raised camera.
+      depthTest: false,
+    });
+    const lostPip = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#64748b'),
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const pipMeshes: THREE.Mesh[] = [];
+    for (let index = 0; index < maxHealth; index++) {
+      const pip = new THREE.Mesh(pipGeometry, litPip);
+      pip.position.x = (index - (maxHealth - 1) / 2) * 0.17;
+      // Square to the camera. It never rolls or orbits, so its pitch is a constant and one
+      // rotation is enough — a billboard would be a per-frame lookAt for a fixed picture.
+      pip.rotation.x = -CAMERA_PITCH;
+      pip.renderOrder = 10;
+      pips.add(pip);
+      pipMeshes.push(pip);
+    }
+    group.add(pips);
+    disposables.push(ringGeometry, ringMaterial, pipGeometry, litPip, lostPip);
+
     chassis.visible = false;
     group.add(chassis);
     disposables.push(hullGeometry, hullMaterial, lidGeometry, lidMaterial, glowGeometry, glowMaterial);
-    return { chassis };
+
+    fading.push(
+      { material: ringMaterial, base: 0.6 },
+      { material: litPip, base: 1 },
+      { material: lostPip, base: 0.35 },
+    );
+    const fade = (factor: number) => {
+      for (const { material, base } of fading) {
+        material.opacity = base * factor;
+        material.transparent = factor < 1 || base < 1;
+      }
+    };
+
+    return { chassis, ring, pips, pipMeshes, litPip, lostPip, fading, fade };
   });
 
   // A bolt is a rig, not a sprite: a glowing silhouette of the owner's projectile look, a
@@ -245,12 +342,36 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     return arsenal.rigs[index];
   }
 
-  const update = (time: number) => {
+  const update = (time: number, selectedSlot: number | null, showVisibility: boolean) => {
+    const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    // What the followed bot could see this tick. The flat renderer ghosts an enemy it has
+    // no line on rather than removing it, because the panel answers "what did this bot
+    // know?" and an unseen opponent drawn at full strength would be lying.
+    const fogSource =
+      showVisibility && selectedSlot !== null
+        ? replay.ticks[tick]?.bots.find((bot) => bot.slot === selectedSlot)
+        : undefined;
+    const hidden = (slot: number) =>
+      fogSource !== undefined &&
+      slot !== selectedSlot &&
+      !fogSource.visibleEnemies.some((enemy) => enemy.slot === slot);
+
     for (const pose of posesAt(replay, time)) {
       const bot = bots[pose.slot];
       if (!bot) continue;
       bot.chassis.visible = pose.status === 'Active';
       bot.chassis.position.set(pose.x + 0.5, 0, pose.y + 0.5);
+      bot.ring.visible = pose.slot === selectedSlot && pose.status === 'Active';
+
+      // Pips follow rather than ride, and sit forward of the bot in *screen* terms — a
+      // raised camera projects height towards the viewer, so lifting them alone would drop
+      // them onto the hull rather than above it.
+      bot.pips.visible = bot.chassis.visible;
+      bot.pips.position.set(pose.x + 0.5, PIP_HEIGHT, pose.y + 0.5 - PIP_SETBACK);
+      for (const [index, pip] of bot.pipMeshes.entries())
+        pip.material = index < pose.health ? bot.litPip : bot.lostPip;
+
+      bot.fade(hidden(pose.slot) ? 0.15 : 1);
       // The whole chassis turns, so the hull's long axis reads as the facing even when the
       // lid art is too small to make out. `angle` is the same interpolated rotation the 2D
       // renderer uses, so both viewers swing a bot through exactly the same arc.
@@ -266,9 +387,18 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     const jumped = Math.abs(time - lastTime) > 1.5;
     lastTime = time;
 
+    // In FOV mode a bolt the followed bot cannot see is not drawn at all, rather than
+    // ghosted the way a bot is. An unseen bolt is precisely the threat it does not know
+    // about, and a faint one on screen would still answer the question.
+    const seen =
+      fogSource !== undefined
+        ? new Set(fogSource.visibleTiles.map(([x, y]) => `${x},${y}`))
+        : null;
+
     const flying = arsenals.map(() => 0);
     const alive = new Set<string>();
     for (const bolt of boltsAt(replay, time)) {
+      if (seen && !seen.has(`${Math.round(bolt.x)},${Math.round(bolt.y)}`)) continue;
       const slot = arsenals[bolt.ownerSlot] ? bolt.ownerSlot : 0;
       const rig = borrow(slot, flying[slot]++);
       rig.group.visible = true;

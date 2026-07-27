@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
-import { buildArena } from './arenaScene';
+import { buildArena, CAMERA_PITCH } from './arenaScene';
 import { buildActors } from './arenaActors';
+import { buildOverlays } from './arenaOverlays';
 
 /**
  * The 2.5D arena.
@@ -19,13 +20,20 @@ import { buildActors } from './arenaActors';
 export default function ArenaCanvas3D({
   replay,
   time,
+  selectedSlot,
+  showVisibility,
 }: {
   replay: ReplayDocument;
   time: number;
+  selectedSlot: number | null;
+  showVisibility: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
-  const timeRef = useRef(time);
-  timeRef.current = time;
+  // All three go through refs for the same reason `time` does: they change while a replay
+  // is open, and putting them in the effect's dependencies would tear down the renderer and
+  // rebuild the entire scene every time someone clicked a bot card.
+  const frameState = useRef({ time, selectedSlot, showVisibility });
+  frameState.current = { time, selectedSlot, showVisibility };
 
   useEffect(() => {
     const container = host.current;
@@ -51,7 +59,9 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay);
     const actors = buildActors(replay);
+    const overlays = buildOverlays(replay);
     arena.scene.add(actors.group);
+    arena.scene.add(overlays.group);
 
     const { mapWidth, mapHeight } = replay.header;
     const centre = new THREE.Vector3(mapWidth / 2, 0, mapHeight / 2);
@@ -76,7 +86,7 @@ export default function ArenaCanvas3D({
       const distance = (span / 2) / Math.tan((arena.camera.fov * Math.PI) / 360);
       // A shallow tilt: steep enough that walls show a face and cast across the floor,
       // shallow enough that the far half of the arena is not hidden behind the near walls.
-      const pitch = THREE.MathUtils.degToRad(58);
+      const pitch = CAMERA_PITCH;
       arena.camera.position.set(
         centre.x,
         centre.y + Math.sin(pitch) * distance * 1.02,
@@ -92,7 +102,9 @@ export default function ArenaCanvas3D({
 
     let animation = 0;
     const draw = () => {
-      actors.update(timeRef.current);
+      const { time: now, selectedSlot: followed, showVisibility: fov } = frameState.current;
+      actors.update(now, followed, fov);
+      overlays.update(now, followed, fov);
       renderer.render(arena.scene, arena.camera);
       animation = requestAnimationFrame(draw);
     };
@@ -102,6 +114,7 @@ export default function ArenaCanvas3D({
       cancelAnimationFrame(animation);
       observer.disconnect();
       actors.dispose();
+      overlays.dispose();
       arena.dispose();
       // The GL context is a real resource and browsers cap how many exist at once; losing
       // one per replay would eventually stop the page rendering anything at all.
