@@ -1,4 +1,5 @@
 import type {
+  ReplayActorIdentity,
   ReplayActorLifeKey,
   ReplayDirection,
   ReplayFormTransition,
@@ -36,6 +37,30 @@ const DIRECTION_ANGLE: Record<ReplayDirection, number> = {
 export function directionAngle(direction: ReplayDirection): number {
   return DIRECTION_ANGLE[direction];
 }
+
+/** Where an absolute projectile heading points, in radians, in screen space. */
+export const headingAngle: Record<ReplayProjectileHeading, number> = {
+  ...DIRECTION_ANGLE,
+  'north-east': -Math.PI / 4,
+  'south-east': Math.PI / 4,
+  'south-west': (3 * Math.PI) / 4,
+  'north-west': (-3 * Math.PI) / 4,
+};
+
+/** One tile step along an absolute projectile heading. */
+export const headingStep: Record<
+  ReplayProjectileHeading,
+  readonly [number, number]
+> = {
+  north: [0, -1],
+  east: [1, 0],
+  south: [0, 1],
+  west: [-1, 0],
+  'north-east': [1, -1],
+  'south-east': [1, 1],
+  'south-west': [-1, 1],
+  'north-west': [-1, -1],
+};
 
 /** Authoritative world immediately before a given tick executes. */
 export function stateBefore(
@@ -154,26 +179,150 @@ function poseFromState(
   };
 }
 
-/** Where a bolt on this heading points, in radians, shared by both renderers. */
-export const headingAngle: Record<ReplayProjectileHeading, number> = {
-  ...DIRECTION_ANGLE,
-  'north-east': -Math.PI / 4,
-  'south-east': Math.PI / 4,
-  'south-west': (3 * Math.PI) / 4,
-  'north-west': (-3 * Math.PI) / 4,
-};
+export interface BoltPose {
+  /** Replay-local projectile identity, kept as exact decimal text for replay-v2. */
+  id: string;
+  ownerActor: ReplayActorIdentity;
+  /** Tile coordinates, interpolated along the authoritative substep path. */
+  x: number;
+  y: number;
+  heading: ReplayProjectileHeading;
+  /** True when the projectile advances on the next tick. */
+  imminent: boolean;
+  /** Substeps the projectile takes per advance, for its lane warning. */
+  tilesPerAdvance: number;
+  /** The authoritative locked future arc, when the shot has one. */
+  programmedPath: readonly ReplayPosition[] | null;
+}
 
-/** One tile step along a heading. */
-export const headingStep: Record<ReplayProjectileHeading, readonly [number, number]> = {
-  north: [0, -1],
-  east: [1, 0],
-  south: [0, 1],
-  west: [-1, 0],
-  'north-east': [1, -1],
-  'south-east': [1, 1],
-  'south-west': [-1, 1],
-  'north-west': [-1, -1],
-};
+/**
+ * Interpolated projectile poses at continuous playhead `time`.
+ *
+ * Replay traversals are authoritative ordered substeps. A speed-two path A→B→C is
+ * shown as A→B in the first half and B→C in the second; straight interpolation from
+ * A to C could put a projectile somewhere the engine never did. This consumes only
+ * the normalized ReplayModel, so replay-v1 and replay-v2 share the same derivation.
+ */
+export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
+  const tickCount = replay.ticks.length;
+  if (tickCount === 0) return [];
+  const clamped = Math.max(0, Math.min(time, tickCount));
+  const tick = Math.min(Math.floor(clamped), tickCount - 1);
+  const fraction = Math.max(0, Math.min(clamped - tick, 1));
+  const current = replay.ticks[tick];
+  const traversals = current.projectileTraversals;
+  const bolts = current.after.projectiles ?? [];
+  const moving = new Set(
+    traversals.map((traversal) => traversal.projectileId),
+  );
+  const poses: BoltPose[] = [];
+
+  for (const traversal of traversals) {
+    if (traversal.path.length === 0) continue;
+    const points = [traversal.from, ...traversal.path];
+    const progress = fraction * traversal.path.length;
+    const segment = Math.min(
+      Math.floor(progress),
+      traversal.path.length - 1,
+    );
+    const local = Math.min(1, progress - segment);
+    const from = points[segment];
+    const to = points[segment + 1];
+    poses.push({
+      id: traversal.projectileId,
+      ownerActor: traversal.ownerActor,
+      x: from.x + (to.x - from.x) * local,
+      y: from.y + (to.y - from.y) * local,
+      heading: headingBetween(from.x, from.y, to.x, to.y),
+      imminent: false,
+      tilesPerAdvance: 1,
+      programmedPath: traversal.programmedPath,
+    });
+  }
+
+  for (const bolt of bolts) {
+    if (moving.has(bolt.projectileId)) continue;
+    poses.push({
+      id: bolt.projectileId,
+      ownerActor: bolt.ownerActor,
+      x: bolt.position.x,
+      y: bolt.position.y,
+      heading: bolt.heading ?? bolt.launchDirection,
+      imminent: bolt.ticksUntilAdvance === 1,
+      tilesPerAdvance: bolt.tilesPerAdvance ?? 1,
+      programmedPath: bolt.programmedPath,
+    });
+  }
+  return poses;
+}
+
+export interface SpentBolt {
+  id: string;
+  ownerActor: ReplayActorIdentity;
+  /** Where the projectile was when it stopped existing. */
+  x: number;
+  y: number;
+  /** 0 at disappearance, 1 when the dissipation is over. */
+  age: number;
+}
+
+/**
+ * Projectiles that disappeared in the preceding authoritative tick.
+ *
+ * This is derived from normalized before/after state plus that tick's traversal,
+ * never accumulated by the renderer, so seeking cannot strand cosmetic effects.
+ */
+export function spentBoltsAt(
+  replay: ReplayModel,
+  time: number,
+): SpentBolt[] {
+  const tickCount = replay.ticks.length;
+  if (tickCount === 0) return [];
+  const clamped = Math.max(0, Math.min(time, tickCount));
+  const tick = Math.min(Math.floor(clamped), tickCount - 1);
+  const fraction = Math.max(0, Math.min(clamped - tick, 1));
+  const deathTick = replay.ticks[tick - 1];
+  if (!deathTick) return [];
+
+  const survived = new Set(
+    (deathTick.after.projectiles ?? []).map(
+      (projectile) => projectile.projectileId,
+    ),
+  );
+  const candidates = new Map<
+    string,
+    {
+      ownerActor: ReplayActorIdentity;
+      position: ReplayPosition;
+    }
+  >();
+  for (const projectile of deathTick.before.projectiles ?? []) {
+    candidates.set(projectile.projectileId, {
+      ownerActor: projectile.ownerActor,
+      position: projectile.position,
+    });
+  }
+  for (const traversal of deathTick.projectileTraversals) {
+    candidates.set(traversal.projectileId, {
+      ownerActor: traversal.ownerActor,
+      position:
+        traversal.path[traversal.path.length - 1] ?? traversal.from,
+    });
+  }
+
+  const spent: SpentBolt[] = [];
+  for (const [id, candidate] of candidates) {
+    if (survived.has(id)) continue;
+    spent.push({
+      id,
+      ownerActor: candidate.ownerActor,
+      x: candidate.position.x,
+      y: candidate.position.y,
+      age: fraction,
+    });
+  }
+  return spent;
+}
 
 export function headingBetween(
   fromX: number,
@@ -191,148 +340,4 @@ export function headingBetween(
   if (dx < 0 && dy > 0) return 'south-west';
   if (dx < 0 && dy === 0) return 'west';
   return 'north-west';
-}
-
-export interface BoltPose {
-  projectileId: string;
-  /** The exact firing life, which outlives the unit that fired it. */
-  ownerActorKey: ReplayActorLifeKey;
-  /** The slot that life belonged to, which is what carries the look and accent. */
-  ownerUnitKey: ReplayStableUnitKey;
-  /** Tile coordinates, interpolated along the authoritative substep path. */
-  x: number;
-  y: number;
-  heading: ReplayProjectileHeading;
-  /** True when the bolt advances on the *next* tick — the lane ahead is about to be hit. */
-  imminent: boolean;
-  /** Substeps this bolt takes per advance, so a warning can show its whole reach. */
-  tilesPerAdvance: number;
-  /** The locked future arc, for replays with programmed shots. */
-  programmedPath: ReplayPosition[] | null;
-}
-
-/**
- * Interpolated projectile poses at continuous playhead `time` — the bolt half of `posesAt`.
- *
- * **Replay traversals are authoritative ordered substeps**, not a start and an end. A
- * speed-two bolt is recorded as A→B→C, and interpolating across the whole path is what
- * makes it read A→B in the first half of the visual tick and B→C in the second, so a hit
- * on the first substep ends at B rather than somewhere the engine never put it. Treating
- * the tick as one straight A→C slide would put the bolt inside a wall it went around.
- *
- * Motion here is deliberately **not eased**, unlike a bot's. A bot accelerating out of a
- * tile and settling into the next reads as a machine deciding to move; a projectile doing
- * it reads as a bug, because a bolt in flight has no reason to slow down at a tile edge.
- */
-export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
-  const tickCount = replay.ticks.length;
-  if (tickCount === 0) return [];
-  const tick = Math.min(Math.floor(Math.max(0, time)), tickCount - 1);
-  const fraction = Math.max(0, Math.min(time - tick, 1));
-  const current = replay.ticks[tick];
-  if (!current) return [];
-
-  const traversals = current.projectileTraversals;
-  const bolts = current.after.projectiles ?? [];
-  const moving = new Set(traversals.map((move) => move.projectileId));
-  const poses: BoltPose[] = [];
-
-  for (const move of traversals) {
-    if (move.path.length === 0) continue;
-    const points = [move.from, ...move.path];
-    const progress = fraction * move.path.length;
-    const segment = Math.min(Math.floor(progress), move.path.length - 1);
-    const local = Math.min(1, progress - segment);
-    const from = points[segment];
-    const to = points[segment + 1];
-    poses.push({
-      projectileId: move.projectileId,
-      ownerActorKey: move.ownerActorKey,
-      ownerUnitKey: move.ownerActor.unitKey,
-      x: from.x + (to.x - from.x) * local,
-      y: from.y + (to.y - from.y) * local,
-      // Derived from the substep actually being travelled rather than the bolt's recorded
-      // heading, so a programmed arc points along the leg it is on, not where it started.
-      heading: headingBetween(from.x, from.y, to.x, to.y),
-      imminent: false,
-      tilesPerAdvance: 1,
-      programmedPath: move.programmedPath,
-    });
-  }
-
-  // A bolt with no traversal this tick is holding position — mid-flight between advances,
-  // which is most of a slow projectile's life.
-  for (const bolt of bolts) {
-    if (moving.has(bolt.projectileId)) continue;
-    poses.push({
-      projectileId: bolt.projectileId,
-      ownerActorKey: bolt.ownerActorKey,
-      ownerUnitKey: bolt.ownerActor.unitKey,
-      x: bolt.position.x,
-      y: bolt.position.y,
-      heading: bolt.heading ?? bolt.launchDirection,
-      imminent: bolt.ticksUntilAdvance === 1,
-      tilesPerAdvance: bolt.tilesPerAdvance ?? 1,
-      programmedPath: bolt.programmedPath,
-    });
-  }
-  return poses;
-}
-
-export interface SpentBolt {
-  projectileId: string;
-  ownerActorKey: ReplayActorLifeKey;
-  ownerUnitKey: ReplayStableUnitKey;
-  /** Where it was when it stopped existing. */
-  x: number;
-  y: number;
-  /** 0 at the instant it went, 1 when the dissipation is over. */
-  age: number;
-}
-
-/**
- * Bolts that stopped existing, and where they were when they did.
- *
- * A projectile reaching the end of its range simply left the replay, and a renderer simply
- * stopped drawing it — a bolt in flight one frame and nothing the next. Whatever it ran out
- * of, it did not run out of it instantaneously.
- *
- * Derived rather than watched for: a bolt is **dead in tick D** if the engine listed it
- * alive after D−1 and not after D. That is a fact about the document, so scrubbing
- * backwards past a despawn does not strand a puff of light in mid-air, and scrubbing
- * forwards over one does not skip it.
- *
- * The burst is drawn in the tick *after* the death, because the bolt itself is still being
- * drawn during D — it travels its last leg and expires at the end of it.
- */
-export function spentBoltsAt(replay: ReplayModel, time: number): SpentBolt[] {
-  const tickCount = replay.ticks.length;
-  if (tickCount === 0) return [];
-  const tick = Math.min(Math.floor(Math.max(0, time)), tickCount - 1);
-  const fraction = Math.max(0, Math.min(time - tick, 1));
-  const before = replay.ticks[tick - 2];
-  const died = replay.ticks[tick - 1];
-  if (!before || !died) return [];
-
-  const survived = new Set(
-    (died.after.projectiles ?? []).map((bolt) => bolt.projectileId),
-  );
-  const spent: SpentBolt[] = [];
-  for (const bolt of before.after.projectiles ?? []) {
-    if (survived.has(bolt.projectileId)) continue;
-    // Its last leg, if it moved before expiring; otherwise it died where it sat.
-    const move = died.projectileTraversals.find(
-      (each) => each.projectileId === bolt.projectileId,
-    );
-    const last = move?.path[move.path.length - 1];
-    spent.push({
-      projectileId: bolt.projectileId,
-      ownerActorKey: bolt.ownerActorKey,
-      ownerUnitKey: bolt.ownerActor.unitKey,
-      x: last ? last.x : bolt.position.x,
-      y: last ? last.y : bolt.position.y,
-      age: fraction,
-    });
-  }
-  return spent;
 }

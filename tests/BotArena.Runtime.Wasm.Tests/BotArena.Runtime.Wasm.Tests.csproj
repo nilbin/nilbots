@@ -20,4 +20,8 @@
   <ItemGroup>
     <None Include="../../maps/*.json" Link="maps/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../BotArena.Engine.Tests/Support/FrontlineTestDefinitions.cs"
+             Link="Support/FrontlineTestDefinitions.cs" />
+  </ItemGroup>
 </Project>

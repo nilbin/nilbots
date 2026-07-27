@@ -12,3 +12,9 @@ declare module '*.md?raw' {
  * Declared rather than defined, so builds that do not set it leave the fallback alone.
  */
 declare const __BOTARENA_DEFAULT_THEME__: string | undefined;
+
+/**
+ * False only in the self-contained CLI build, where the dynamic renderer is stubbed to
+ * keep three.js out of every copied replay.
+ */
+declare const __BOTARENA_DIMENSIONAL_RENDERER__: boolean | undefined;

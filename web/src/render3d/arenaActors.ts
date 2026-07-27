@@ -1,20 +1,21 @@
 import * as THREE from 'three';
 import type {
+  ReplayActorLifeKey,
   ReplayModel,
   ReplayStableUnitKey,
-  ReplayWorldSnapshot,
 } from '../replayModel';
-import { participantForUnit, visualIndexForUnit } from '../replayParticipants';
 import { botLook, projectileLook, presentationAccent } from '../render/arenaThemes';
 import {
-  type BotPose,
   boltsAt,
   directionAngle,
   headingAngle,
   posesAt,
-  stateBefore,
 } from '../render/interpolate';
 import { replayMaxHealth } from '../replayMetadata';
+import {
+  participantForUnit,
+  visualIndexForUnit,
+} from '../replayParticipants';
 import { chassisModel } from './chassisModel';
 import { CAMERA_PITCH } from './arenaScene';
 
@@ -33,6 +34,52 @@ import { CAMERA_PITCH } from './arenaScene';
  * Everything else here is what the arena needs to *say*: which bot is being followed, how
  * much health each has left, and which of them can be seen from where.
  */
+
+/**
+ * The turret: the chassis' forward section, repeated around the axis it turns about.
+ *
+ * The offsets follow from tipping a model that lies in x ∈ ±½ and y ∈ [0, depth] onto its
+ * nose — that leaves it half below the floor and off-centre by half its depth, so the lift
+ * seats it and the shift puts its middle back on the axis.
+ */
+const TURRET_ARMS = 4;
+const TURRET_LIFT = 0.5;
+const TURRET_SHIFT = 0.16;
+const TURRET_SCALE = 0.82;
+const TURRET_SPIN = 0.55;
+
+/**
+ * When the turret takes over from the chassis, as a share of the deploy, and how long the
+ * deploy runs for when the replay does not say.
+ *
+ * **Anchor is Wait-only while it runs**, so a bot that stood still and then swapped for a
+ * turret between two frames threw away the one part of it there was anything to watch. And
+ * the span cannot simply be read from the transition: a form change is free to complete in
+ * the tick it started, which is exactly what Frontline's own fixture does — `started=9
+ * done=9`, with `pendingFormTransition` never set in any snapshot. So the deploy is a fixed
+ * span anchored on the tick the form actually changed, and a real multi-tick windup wins
+ * where the replay describes one.
+ */
+const DEPLOY_TICKS = 1.5;
+
+/** How long the completed windup ring is held, in deploy-lengths, before it fades. */
+const RING_HOLD = 0.25;
+const TURRET_TAKEOVER = 0.6;
+
+/**
+ * The eight tiles around a bot. A wall in any of them cancels the drift outright.
+ *
+ * Damping the parts that reached towards a wall was tried twice and leaked both times: the
+ * slide, then the slide and the yaw. The nose does not swing along either axis — a bot
+ * turning through a corner throws it diagonally, into a tile neither check was looking at.
+ * The blunt rule is the honest one: a bot with a wall beside it has nowhere to drift into,
+ * which is also true of the thing being depicted.
+ */
+const NEIGHBOURS: readonly (readonly [number, number])[] = [
+  [-1, -1], [0, -1], [1, -1],
+  [-1, 0], [1, 0],
+  [-1, 1], [0, 1], [1, 1],
+];
 
 /** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
 const BOT_HEIGHT = 0.26;
@@ -64,72 +111,11 @@ const UNSELECTED_POOL = 0.72;
 const HIT_FLASH = 1.6;
 
 /**
- * What an emplacement looks like, relative to the machine it was.
- *
- * Frontline's turret has no art of its own and does not need any. These models are derived
- * from the sprite rather than authored (DECISIONS #127), so a turret can be a *different
- * derivation of the same drawing* — every chassis in the library, and every one anyone adds
- * later, gets a turret form for free and consistent with itself.
- *
- * **It stands the chassis on end and turns it.** Squashing it flatter and wider was tried
- * first and it was too quiet a change: from the play camera an emplaced bot looked like a
- * bot parked at a slightly odd angle, and it still had a nose, so it still looked like it
- * was pointing somewhere — which is a lie about a form that fires omnidirectionally. Tipped
- * upright the same dart becomes a tower with no front at all, and rotating it about its own
- * height says "watching everything" in the one way a still image also reads.
- *
- * The offsets follow from the tip. Standing a model that lies in x ∈ ±½ and y ∈ [0, depth]
- * on its nose leaves it half below the floor and off-centre by half its depth; the lift
- * seats it and the shift puts its middle back on the axis it spins around, so it turns in
- * place instead of orbiting.
- */
-const TOWER_SCALE = 0.82;
-const TOWER_LIFT = 0.5;
-const TOWER_SHIFT = 0.16;
-const TOWER_SPIN = 0.55;
-
-/** How many times the forward section is repeated around the tower's axis. */
-const TOWER_ARMS = 4;
-
-/** How long the completed windup ring is held, in deploy-lengths, before it fades. */
-const RING_HOLD = 0.25;
-
-/**
- * When the tower takes over from the chassis, as a share of the deploy.
- *
- * The chassis tips up over the first part and the tower unfolds over the rest. They used to
- * overlap the whole way, with the tower scaling up inside the chassis as it rotated — which
- * looked like something growing out of the top of the bot, because that is what it was.
- * Handing over once both are vertical means the two silhouettes are at their most alike at
- * the one frame it matters.
- */
-const TOWER_TAKEOVER = 0.6;
-
-/**
- * How long the deploy takes on screen, in ticks.
- *
- * **Not read from the transition, because there may not be one.** Anchor is specified with
- * a windup, but a form change is free to complete in the tick it started — the Frontline
- * fixture does exactly that, `started=9 done=9`, with `pendingFormTransition` never set in
- * any snapshot. Driving the animation off that span gave nothing to animate and a chassis
- * that swapped for a tower between two frames.
- *
- * So the deploy is a fixed span anchored on the tick the form actually changed. Where a
- * real multi-tick windup does exist it wins, because then the replay is describing
- * something and the renderer should show that rather than its own guess.
- */
-const DEPLOY_TICKS = 1.5;
-
-/**
  * Idle life: what a bot does when it is doing nothing.
  *
- * A machine holding position was perfectly still, which is the one thing nothing powered
- * ever is. Built like the projectile wobble — every axis is a sum of two incommensurate
- * sines, so nothing settles into a loop the eye can catch, and each bot is offset by its
- * slot so two of them never breathe together.
- *
- * Lighter on the vertical than the horizontal: these sit on the floor, and a bot bobbing as
- * freely as a bolt in flight reads as hovering, which is a different machine.
+ * Every axis is a sum of two incommensurate rates, offset by stable unit identity so allied
+ * bodies never breathe together. Vertical motion remains lighter than lateral motion:
+ * these are ground machines, and a bot bobbing like a projectile reads as hovering.
  */
 const IDLE_SWAY = 0.05;
 const IDLE_RISE = 0.022;
@@ -143,38 +129,14 @@ const IDLE_YAW = 0.05;
  * new heading — correct, and lifeless. So the body over-rotates into the corner, banks, and
  * lets its back end step out: a handbrake turn.
  *
- * **The slide has to outlive the rotation**, which the first attempt missed. Driving it
- * straight from the angular rate meant it existed only while the bot was actually turning —
- * one tick, under a fifth of a second at normal speed, gone before it registered as
- * anything. What a car does is build a slip angle during the turn and then hold it,
- * recovering over the next second, and that trailing part is the whole read.
+ * The slide has to outlive the rotation. A one-tick angular-rate spike is technically
+ * correct and visually gone before it registers; a short response curve lets slip build
+ * through a corner and recover over the following tick.
  */
 const DRIFT_YAW = 0.55;
 const DRIFT_LEAN = 0.4;
 const DRIFT_SLIDE = 0.26;
 
-/**
- * The eight tiles around a bot. A wall in any of them cancels the drift outright.
- *
- * Damping the parts that reached towards a wall was tried twice and leaked both times: the
- * slide, then the slide and the yaw. The nose does not swing along either axis — a bot
- * turning through a corner throws it diagonally, into a tile neither check was looking at.
- * The honest rule is the blunt one. A bot in the open drifts; a bot with a wall beside it
- * has nowhere to drift into, which is also true of the thing being depicted.
- */
-const NEIGHBOURS: readonly (readonly [number, number])[] = [
-  [-1, -1], [0, -1], [1, -1],
-  [-1, 0], [1, 0],
-  [-1, 1], [0, 1], [1, 1],
-];
-
-/**
- * How a turn's contribution to the slip angle rises and falls, in ticks since it began.
- *
- * A bump rather than a spike: it peaks just after the turn completes and is spent about a
- * tick and a half later. Summing it over the last few ticks means a bot taking two corners
- * in a row keeps sliding through both, which is what a machine carrying speed does.
- */
 function driftResponse(age: number): number {
   return Math.exp(-(((age - 0.85) / 0.72) ** 2));
 }
@@ -191,46 +153,6 @@ const WHITE = new THREE.Color(0xffffff);
  */
 const BOLT_TURN_RATE = 0.22;
 
-interface Bot {
-  /** The chassis' world size, needed by anything that offsets it in its own units. */
-  size: number;
-  chassis: THREE.Group;
-  spinner: THREE.Group;
-  tilt: THREE.Group;
-  tower: THREE.Group;
-  spokes: THREE.Group[];
-  windup: THREE.Mesh;
-  paintWindup: (progress: number) => void;
-  fadeWindup: (opacity: number) => void;
-  scan: THREE.Mesh;
-  body: THREE.Group;
-  pad: THREE.Mesh;
-  highlight: (on: boolean) => void;
-  flash: (strength: number) => void;
-  pips: THREE.Group;
-  pipMeshes: THREE.Mesh[];
-  litPip: THREE.Material;
-  lostPip: THREE.Material;
-  fading: { material: THREE.Material; base: number }[];
-  fade: (factor: number) => void;
-}
-
-interface BoltRig {
-  group: THREE.Group;
-  head: THREE.Group;
-}
-
-interface Arsenal {
-  look: ReturnType<typeof projectileLook>;
-  accent: THREE.Color;
-  rigs: BoltRig[];
-  model: THREE.Group | null;
-  tracerMaterial: THREE.Material;
-  wash: THREE.Material;
-  spark: THREE.BufferGeometry;
-  sparkMaterial: THREE.Material;
-}
-
 export interface ArenaActors {
   group: THREE.Group;
   /** Move everything to where it should be at this moment of the replay. */
@@ -239,7 +161,7 @@ export interface ArenaActors {
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
   ) => void;
-  /** Which unit, if any, is under a ray cast from the camera. */
+  /** Which bot, if any, is under a ray cast from the camera. */
   pick: (raycaster: THREE.Raycaster) => ReplayStableUnitKey | null;
   dispose: () => void;
 }
@@ -247,65 +169,18 @@ export interface ArenaActors {
 export function buildActors(replay: ReplayModel): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
-  // **Keyed by stable unit, never by array position.** A slot's index is a serialization
-  // detail; a Frontline team owns several units and each of those burns through many lives,
-  // so the thing that persists — and the thing that carries a look and an accent — is the
-  // unit. Rigs are built once per unit and driven by whichever life is currently in it.
-  const units = replay.units;
-  const formById = new Map(replay.forms.map((form) => [form.formId, form]));
-
-  /**
-   * Is this tile solid? Out of bounds counts as solid — the arena is enclosed.
-   *
-   * The drift throws a bot's body a quarter-tile sideways through a corner, which is the
-   * whole effect, and next to a wall it threw it *into* the wall. The engine has the bot on
-   * a legal tile and the renderer was sliding the visible part off it. So the slide asks
-   * first, and gives way to the wall.
-   */
-  const solid = (x: number, y: number) => {
-    const row = replay.map.tileRows[y];
-    return row === undefined || row[x] === undefined || row[x] === '#';
-  };
-
-  /**
-   * When each life deploys into an immobile form, and for how long.
-   *
-   * **One source, computed once.** This was two: the tick's own `pendingFormTransition` for
-   * as long as one existed, and a fixed span from the change event once it did not. They
-   * disagreed about the length — one tick against one and a half — and handed over from the
-   * first to the second in the middle, so the deploy ran to about two thirds, jumped back,
-   * and ran again, losing the windup ring on the way. Anything driven off both is going to
-   * do that; the fix is that there is only one.
-   *
-   * A real multi-tick windup still wins where the replay describes one. Where it does not —
-   * and Frontline's own fixture does not, completing in the tick it started — the deploy
-   * gets a floor so there is something to watch.
-   */
-  const deploys = new Map<string, { at: number; span: number }>();
-  for (const tick of replay.ticks)
-    for (const event of tick.events) {
-      if (!event.sourceActor || !event.toFormId) continue;
-      if (event.type !== 'form-transition-started' && event.type !== 'form-changed') continue;
-      if (formById.get(event.toFormId)?.canMove !== false) continue;
-      const key = event.sourceActor.actorKey;
-      if (deploys.has(key)) continue;
-      const at = event.formTransitionStartedAtTick ?? event.tick;
-      const completes = event.formTransitionCompletesAtTick ?? event.tick;
-      deploys.set(key, { at, span: Math.max(completes - at + 1, DEPLOY_TICKS) });
-    }
-  // Rules-owned, and read rather than assumed: three-health replays predate the field.
+  // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
+  // visibility still uses the effective form's own maximum.
   const maxHealth = replayMaxHealth(replay);
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
 
-  const bots = new Map<ReplayStableUnitKey, Bot>();
-  for (const unit of units) {
+
+  const bots = replay.units.map((unit) => {
     const participant = participantForUnit(replay, unit.unitKey);
-    const look = botLook(
-      participant?.lookId ?? undefined,
-      visualIndexForUnit(replay, unit.unitKey),
-    );
+    const visualIndex = visualIndexForUnit(replay, unit.unitKey);
+    const look = botLook(participant?.lookId ?? undefined, visualIndex);
     const accent = new THREE.Color(
       presentationAccent(look, participant?.accent ?? '#38bdf8'),
     );
@@ -320,13 +195,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // The machine itself, separate from the light it casts on the floor: recoil kicks this
     // and leaves the pool where it is, because a bot's shadow does not jump when it fires.
     const body = new THREE.Group();
+    body.userData.renderForm = 'mobile';
     chassis.add(body);
-    // Two more, so a turret can be tipped upright *and* turned without the two rotations
-    // arguing about Euler order: the spinner turns whatever the tilt has already done.
-    const spinner = new THREE.Group();
-    const tilt = new THREE.Group();
-    body.add(spinner);
-    spinner.add(tilt);
 
     // A hull that points somewhere. A cylinder was the first attempt and it made every
     // chassis read as the same glowing puck — which throws away the one thing the twelve
@@ -346,7 +216,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     hull.position.y = BOT_HEIGHT / 2;
     hull.castShadow = true;
     hull.receiveShadow = true;
-    tilt.add(hull);
+    body.add(hull);
 
     const lidGeometry = new THREE.PlaneGeometry(size, size);
     lidGeometry.rotateX(-Math.PI / 2);
@@ -363,7 +233,101 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     });
     const lid = new THREE.Mesh(lidGeometry, lidMaterial);
     lid.position.y = BOT_HEIGHT + 0.004;
-    tilt.add(lid);
+    body.add(lid);
+
+    // A turret is deliberately a different silhouette, not the mobile chassis with its
+    // movement disabled: it has no privileged facing, which is what a form that sees and
+    // fires in every direction actually looks like.
+    //
+    // **Derived from the sprite rather than built from primitives.** A cylinder with vanes
+    // says "turret" but says nothing about *which* bot it is, and everything else in this
+    // renderer is extruded from the look's own drawing (#127) precisely so a new chassis
+    // needs no new model. So a turret is the chassis' forward section repeated around its
+    // own axis — radially symmetric by construction, and still recognisably the machine it
+    // was. Every look in the library gets one, and so does anything added later.
+    const turret = new THREE.Group();
+    turret.visible = false;
+    turret.userData.renderForm = 'stationary-omnidirectional';
+    const spokes: THREE.Group[] = [];
+
+    void chassisModel(look.imageUrl, undefined, 'front').then((model) => {
+      if (!live || !model) return;
+      for (let arm = 0; arm < TURRET_ARMS; arm++) {
+        const spoke = new THREE.Group();
+        const section = model.clone();
+        section.scale.setScalar(size);
+        // Tipped nose-up inside its spoke, seated on the floor and pulled back onto the
+        // axis it turns about, so it spins in place rather than orbiting.
+        section.rotation.z = Math.PI / 2;
+        section.position.set(TURRET_SHIFT * size, TURRET_LIFT * size, 0);
+        section.traverse((node) => {
+          const mesh = node as THREE.Mesh;
+          if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+          mesh.material = mesh.material.clone();
+          fading.push({ material: mesh.material, base: 1 });
+          tintable(mesh.material as THREE.MeshStandardMaterial);
+          disposables.push(mesh.material);
+        });
+        spoke.add(section);
+        turret.add(spoke);
+        spokes.push(spoke);
+      }
+    });
+    chassis.add(turret);
+
+    // Anchor windup is state, not a guessed animation: the ring appears only while the
+    // normalized actor carries an authoritative pending transition.
+    // The windup cue: a ring that fills as the deploy completes.
+    //
+    // A dial rather than a plain torus, because the thing it reports is *how far through*
+    // an Anchor is, and Anchor is Wait-only while it runs — "busy, and for this much
+    // longer" is the most useful sentence the arena can say about that bot.
+    const anchorGeometry = new THREE.RingGeometry(size * 0.5, size * 0.66, 64);
+    anchorGeometry.rotateX(-Math.PI / 2);
+    const anchorDial = progressRing();
+    const anchorMaterial = new THREE.MeshBasicMaterial({
+      color: accent,
+      map: anchorDial?.texture ?? null,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const anchorRing = new THREE.Mesh(anchorGeometry, anchorMaterial);
+    anchorRing.userData.cue = 'form-transition-pending';
+    anchorRing.position.y = 0.045;
+    anchorRing.visible = false;
+    chassis.add(anchorRing);
+    if (anchorDial) disposables.push(anchorDial.texture);
+
+    // Redrawn only when the arc would visibly move: this is a canvas upload, and a deploy
+    // runs for whole ticks.
+    let dialAt = -1;
+    const paintAnchor = (progress: number) => {
+      if (!anchorDial || Math.abs(progress - dialAt) < 1 / 48) return;
+      dialAt = progress;
+      anchorDial.paint(progress);
+    };
+
+    // And the turret's scan: a wedge that turns forever, because an emplacement watching
+    // every direction at once has no facing to show and needs to say so somehow.
+    const scanGeometry = new THREE.RingGeometry(size * 0.62, size * 1.08, 48, 1, 0, Math.PI * 0.55);
+    scanGeometry.rotateX(-Math.PI / 2);
+    const scanMaterial = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const scan = new THREE.Mesh(scanGeometry, scanMaterial);
+    scan.userData.cue = 'stationary-scan';
+    scan.position.y = 0.022;
+    scan.visible = false;
+    chassis.add(scan);
+    disposables.push(scanGeometry, scanMaterial);
 
     // A pool of accent light under the bot, and the **only** place the owner's colour
     // appears on a bot in this renderer — which makes it load-bearing rather than
@@ -397,6 +361,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     pad.position.y = 0.05;
     pad.userData.unitKey = unit.unitKey;
     chassis.add(pad);
+    chassis.userData.unitKey = unit.unitKey;
+    chassis.userData.defaultFormId = unit.initialFormId;
     disposables.push(padGeometry, padMaterial);
 
     // Every material this bot is allowed to fade, with the opacity it wants at full
@@ -467,9 +433,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         // now that the registry has grown.
         repaint();
       });
-      tilt.add(solid);
-      tilt.remove(hull);
-      tilt.remove(lid);
+      body.add(solid);
+      body.remove(hull);
+      body.remove(lid);
     });
 
     // Following a bot lights *the bot*, not a ring drawn near it.
@@ -519,102 +485,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       repaint();
     };
 
-    // The Anchor windup: a ring that fills as a form transition completes.
-    //
-    // Frontline's Anchor commits a life to becoming a stationary turret over several
-    // ticks, and it is Wait-only while that runs — so "this one is busy and about to stop
-    // being a bot" is the single most important thing the arena can say about it. The flat
-    // renderer draws a spinning dashed ring with a progress arc; this is the same statement
-    // as a ring on the floor, which also survives the bot being behind cover.
-    const windupGeometry = new THREE.RingGeometry(size * 0.8, size * 0.98, 64);
-    windupGeometry.rotateX(-Math.PI / 2);
-    const windupCanvas = progressRing();
-    const windupMaterial = new THREE.MeshBasicMaterial({
-      color: accent,
-      map: windupCanvas?.texture ?? null,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-    });
-    const fadeWindup = (opacity: number) => {
-      windupMaterial.opacity = Math.max(0, Math.min(opacity, 1));
-    };
-    const windup = new THREE.Mesh(windupGeometry, windupMaterial);
-    windup.position.y = 0.026;
-    windup.visible = false;
-    chassis.add(windup);
-    disposables.push(windupGeometry, windupMaterial);
-    if (windupCanvas) disposables.push(windupCanvas.texture);
-
-    // Redrawn only when the arc would visibly move: this is a canvas upload, and a windup
-    // runs for whole ticks.
-    let paintedProgress = -1;
-    const paintWindup = (progress: number) => {
-      if (!windupCanvas || Math.abs(progress - paintedProgress) < 1 / 48) return;
-      paintedProgress = progress;
-      windupCanvas.paint(progress);
-    };
-
-    // The tower: the chassis' forward section, repeated around the axis it spins about.
-    //
-    // Standing the whole dart on end was better than squashing it, and still not right —
-    // a dart on end is a blade, and a blade has two faces and two edges, so it still had a
-    // direction. Four copies of just the business end, at ninety degrees, is radially
-    // symmetric by construction: it reads the same from anywhere, which is the honest
-    // picture of a form that sees and fires in every direction. It also works out the same
-    // for every chassis in the library, where standing the model up flattered the round
-    // ones and made the pointed ones look like shards.
-    const tower = new THREE.Group();
-    const spokes: THREE.Group[] = [];
-    tower.visible = false;
-    body.add(tower);
-
-    void chassisModel(look.imageUrl, undefined, 'front').then((model) => {
-      if (!live || !model) return;
-      for (let arm = 0; arm < TOWER_ARMS; arm++) {
-        const spoke = new THREE.Group();
-        spoke.rotation.y = (arm * Math.PI * 2) / TOWER_ARMS;
-        const section = model.clone();
-        section.scale.setScalar(size);
-        // Tipped nose-up inside its spoke, seated on the floor and pulled back onto the
-        // axis — the same arithmetic as standing one model up, done four times.
-        section.rotation.z = Math.PI / 2;
-        section.position.set(TOWER_SHIFT * size, TOWER_LIFT * size, 0);
-        // Own materials, so fog can ghost a turret without ghosting every turret.
-        section.traverse((node) => {
-          const mesh = node as THREE.Mesh;
-          if (!mesh.isMesh || Array.isArray(mesh.material)) return;
-          mesh.material = mesh.material.clone();
-          fading.push({ material: mesh.material, base: 1 });
-          tintable(mesh.material as THREE.MeshStandardMaterial);
-          disposables.push(mesh.material);
-        });
-        spoke.add(section);
-        tower.add(spoke);
-        spokes.push(spoke);
-      }
-      repaint();
-    });
-
-    // The turret's scan: a ring that turns forever, because an emplacement watching every
-    // direction at once has no facing to show and needs to say so somehow.
-    const scanGeometry = new THREE.RingGeometry(size * 0.62, size * 1.08, 48, 1, 0, Math.PI * 0.55);
-    scanGeometry.rotateX(-Math.PI / 2);
-    const scanMaterial = new THREE.MeshBasicMaterial({
-      color: accent,
-      transparent: true,
-      opacity: 0.34,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-    });
-    const scan = new THREE.Mesh(scanGeometry, scanMaterial);
-    scan.position.y = 0.022;
-    scan.visible = false;
-    chassis.add(scan);
-    disposables.push(scanGeometry, scanMaterial);
-
     // Health, as pips floating over the bot — the one piece of state the flat renderer puts
     // on the arena rather than in a panel, because it is the thing you need while watching
     // rather than afterwards.
@@ -656,7 +526,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
     chassis.visible = false;
     group.add(chassis);
-    disposables.push(hullGeometry, hullMaterial, lidGeometry, lidMaterial, glowGeometry, glowMaterial);
+    disposables.push(
+      hullGeometry,
+      hullMaterial,
+      lidGeometry,
+      lidMaterial,
+      anchorGeometry,
+      anchorMaterial,
+      glowGeometry,
+      glowMaterial,
+    );
 
     fading.push(
       { material: litPip, base: 1, alwaysTransparent: true },
@@ -670,18 +549,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       }
     };
 
-    bots.set(unit.unitKey, {
+    return {
+      unitKey: unit.unitKey,
       size,
+      motionPhase: phaseForIdentity(unit.unitKey),
       chassis,
-      spinner,
-      tilt,
-      tower,
-      spokes,
-      windup,
-      paintWindup,
-      fadeWindup,
-      scan,
       body,
+      turret,
+      spokes,
+      anchorRing,
+      paintAnchor,
+      scan,
+      scanMaterial,
+      anchorMaterial,
       pad,
       highlight,
       flash,
@@ -691,13 +571,45 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       lostPip,
       fading,
       fade,
-    });
-  }
+    };
+  });
+  /**
+   * When each life deploys into an immobile form, and for how long.
+   *
+   * One source, computed once. Driven from both the tick's pending transition and a span
+   * from the change event, the two disagreed about the length and handed over mid-way, so
+   * the deploy ran two thirds, jumped back, and ran again.
+   */
+  /** Is this tile solid? Out of bounds counts as solid — the arena is enclosed. */
+  const solid = (x: number, y: number) => {
+    const row = replay.map.tileRows[y];
+    return row === undefined || row[x] === undefined || row[x] === '#';
+  };
+
+  const deploys = new Map<string, { at: number; span: number }>();
+  for (const tick of replay.ticks)
+    for (const event of tick.events) {
+      if (!event.sourceActor || !event.toFormId) continue;
+      if (event.type !== 'form-transition-started' && event.type !== 'form-changed') continue;
+      const target = replay.forms.find((form) => form.formId === event.toFormId);
+      if (target?.canMove !== false) continue;
+      const key = event.sourceActor.actorKey;
+      if (deploys.has(key)) continue;
+      const at = event.formTransitionStartedAtTick ?? event.tick;
+      const completes = event.formTransitionCompletesAtTick ?? event.tick;
+      deploys.set(key, { at, span: Math.max(completes - at + 1, DEPLOY_TICKS) });
+    }
+
+  const botsByUnit = new Map(
+    bots.map((bot) => [bot.unitKey, bot]),
+  );
 
   // A bolt is a rig, not a sprite: a glowing silhouette of the owner's projectile look, a
   // tracer stretched out behind it, and a pool of its own light on the floor under it.
   //
-  // Pooled **per owner** rather than globally. Each slot fires a different look in a
+  // Pooled **per stable unit** rather than globally. Units can share a participant and
+  // still need independent pools because old-life projectiles retain their exact owner
+  // while a new life occupies the same unit.
   // different colour, so one shared pool would mean swapping a mesh's geometry *and*
   // material every frame a bolt changed hands — and there are only ever a handful in the
   // air, so the saving from sharing is smaller than the cost of the churn.
@@ -708,13 +620,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   glowDisc.rotateX(-Math.PI / 2);
   disposables.push(tracerGeometry, glowDisc);
 
-  const arsenals = new Map<ReplayStableUnitKey, Arsenal>();
-  for (const unit of units) {
+  const arsenalIndexByUnit = new Map(
+    replay.units.map((unit, index) => [unit.unitKey, index]),
+  );
+  const arsenals = replay.units.map((unit) => {
     const participant = participantForUnit(replay, unit.unitKey);
+    const visualIndex = visualIndexForUnit(replay, unit.unitKey);
     const look = projectileLook(participant?.projectileLookId ?? undefined);
     const accent = new THREE.Color(
       presentationAccent(
-        botLook(participant?.lookId ?? undefined, visualIndexForUnit(replay, unit.unitKey)),
+        botLook(participant?.lookId ?? undefined, visualIndex),
         participant?.accent ?? '#38bdf8',
       ),
     );
@@ -739,9 +654,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     disposables.push(tracerMaterial, wash, spark, sparkMaterial);
 
     const arsenal = {
+      unitKey: unit.unitKey,
       look,
       accent,
-      rigs: [] as BoltRig[],
+      rigs: [] as { group: THREE.Group; head: THREE.Group }[],
       model: null as THREE.Group | null,
       tracerMaterial,
       wash,
@@ -755,8 +671,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Rigs already built are retrofitted; ones built later pick it up on creation.
       for (const rig of arsenal.rigs) dressHead(arsenal, rig.head);
     });
-    arsenals.set(unit.unitKey, arsenal);
-  }
+    return arsenal;
+  });
+
+  type Arsenal = (typeof arsenals)[number];
 
   // Facing carried between frames, keyed by the bolt's replay identity rather than its pool
   // slot — a pool index is reassigned the moment another bolt despawns, which would hand one
@@ -776,9 +694,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     }
   }
 
-  function borrow(unitKey: ReplayStableUnitKey, index: number): BoltRig | null {
-    const arsenal = arsenals.get(unitKey);
-    if (!arsenal) return null;
+  function borrow(
+    unitKey: ReplayStableUnitKey,
+    index: number,
+  ): { group: THREE.Group; head: THREE.Group } {
+    const arsenal =
+      arsenals[arsenalIndexByUnit.get(unitKey) ?? 0] ?? arsenals[0];
     while (arsenal.rigs.length <= index) {
       const rig = new THREE.Group();
       const head = new THREE.Group();
@@ -807,51 +728,51 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
   ) => {
-    const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    const tick = Math.max(
+      0,
+      Math.min(Math.floor(time), replay.ticks.length - 1),
+    );
+    const currentTick = replay.ticks[tick];
     // What the followed bot could see this tick. The flat renderer ghosts an enemy it has
     // no line on rather than removing it, because the panel answers "what did this bot
     // know?" and an unseen opponent drawn at full strength would be lying.
     const fogSource =
       showVisibility && selectedUnitKey !== null
-        ? replay.ticks[tick]?.actorTurns.find(
+        ? currentTick?.actorTurns.find(
             (turn) => turn.actor.unitKey === selectedUnitKey,
           )
         : undefined;
-    // Seen-ness is resolved by exact life where the observation gives one, and falls back to
-    // the unit behind it where the enemy was only inferred — the same ladder the flat
-    // renderer walks, because an observation that names a slot but not a life still means
-    // "something of theirs is there".
-    const hidden = (pose: BotPose) =>
+    const hidden = (pose: ReturnType<typeof posesAt>[number]) =>
       fogSource !== undefined &&
       pose.unitKey !== selectedUnitKey &&
       !fogSource.observation.allies.some(
         (ally) =>
-          ally.actor.kind === 'exact' && ally.actor.identity.actorKey === pose.actorKey,
+          ally.actor.kind === 'exact' &&
+          ally.actor.identity.actorKey === pose.actorKey,
       ) &&
       !fogSource.observation.enemies.some((enemy) =>
         enemy.actor.kind === 'exact'
           ? enemy.actor.identity.actorKey === pose.actorKey
-          : enemy.actor.teamId === pose.teamId && enemy.actor.unitId === pose.unitId,
+          : enemy.actor.teamId === pose.teamId &&
+            enemy.actor.unitId === pose.unitId,
       );
 
-    const events = replay.ticks[tick]?.events ?? [];
+    const events = currentTick?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));
     // The facings this tick runs between, so a turn's *rate* can be derived rather than
     // remembered. Frame-to-frame memory would make a scrub read as a violent spin, and
     // would give a paused bot a drift that depended on how the playhead got there.
-    const opening = stateBefore(replay, tick);
-    const closing = stateBefore(replay, tick + 1);
+    const opening = currentTick?.before ?? replay.initialWorld;
+    const closing = currentTick?.after ?? opening;
     // The tiles either side of this tick's, so movement can be splined through them.
-    const previous = stateBefore(replay, tick - 1);
-    const next = stateBefore(replay, tick + 2);
-    // One further back again, so a turn's slip can still be decaying two ticks later.
-    const earlier = stateBefore(replay, tick - 2);
-    const turnedIn: [ReplayWorldSnapshot | null, ReplayWorldSnapshot | null][] = [
+    const previous = replay.ticks[tick - 1]?.before ?? opening;
+    const earlier = replay.ticks[tick - 2]?.before ?? previous;
+    const next = replay.ticks[tick + 1]?.after ?? closing;
+    const turnedIn = [
       [opening, closing],
       [previous, opening],
       [earlier, previous],
-    ];
-
+    ] as const;
     // Beams and impacts land in the second half of the tick, after movement has settled —
     // the same window the flat renderer uses, so a hit lands at the same instant in both.
     const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
@@ -873,173 +794,191 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      * through the same arc, and the tile a bot is *on* is never in question — this only
      * changes the path taken between two tiles the replay already recorded.
      */
-    const glideAt = (pose: BotPose) => {
-      // Sampled by **actor life**, not by unit. A destroyed life and the one that respawns
-      // into the same slot are different objects; splining between them would fly the new
-      // one across the map out of the old one's grave.
-      const at = (world: ReplayWorldSnapshot | null) =>
-        world?.actors.find((actor) => actor.actorKey === pose.actorKey)?.position;
+    const glideAt = (
+      actorKey: ReplayActorLifeKey,
+      fallback: { readonly x: number; readonly y: number },
+    ) => {
+      const at = (state: typeof opening) =>
+        state?.actors.find((actor) => actor.actorKey === actorKey);
       const p1 = at(opening);
       const p2 = at(closing);
-      if (!p1 || !p2) return { x: pose.x, y: pose.y };
+      if (!p1) return fallback;
+      // A destroyed life is absent from the authoritative closing state, but
+      // its collapse belongs where that life stood. It must not fall back to
+      // the map origin or inherit a later life occupying the stable slot.
+      if (!p2) return p1.position;
       const p0 = at(previous) ?? p1;
       const p3 = at(next) ?? p2;
       return {
-        x: catmullRom(p0.x, p1.x, p2.x, p3.x, fraction),
-        y: catmullRom(p0.y, p1.y, p2.y, p3.y, fraction),
+        x: catmullRom(
+          p0.position.x,
+          p1.position.x,
+          p2.position.x,
+          p3.position.x,
+          fraction,
+        ),
+        y: catmullRom(
+          p0.position.y,
+          p1.position.y,
+          p2.position.y,
+          p3.position.y,
+          fraction,
+        ),
       };
     };
 
-    // Which rigs a life actually claimed this frame. A unit between lives — destroyed and
-    // waiting to respawn — has no actor, so it never enters this loop, and anything left
-    // where it was keeps standing there. Health pips are worse than the chassis: they are
-    // built at the origin and start out visible, so an unclaimed rig parked five pips in
-    // the corner of the map, which is what "the turret's pips are misplaced" was.
-    const claimed = new Set<ReplayStableUnitKey>();
+    // Stable slots can be absent while locked, rebuilding, ready, or queued for
+    // fabrication. Hide every reusable rig first so the prior frame cannot leave a
+    // destroyed life behind.
+    for (const bot of bots) {
+      bot.chassis.visible = false;
+      bot.pips.visible = false;
+      bot.anchorRing.visible = false;
+      bot.scan.visible = false;
+      bot.highlight(false);
+      bot.flash(0);
+    }
 
     for (const pose of posesAt(replay, time)) {
-      const bot = bots.get(pose.unitKey);
+      const bot = botsByUnit.get(pose.unitKey);
       if (!bot) continue;
-      claimed.add(pose.unitKey);
 
       const firing = events.some(
-        (event) => event.type === 'shot' && event.sourceActor?.actorKey === pose.actorKey,
+        (event) =>
+          event.type === 'shot' &&
+          event.sourceActor?.actorKey === pose.actorKey,
       );
       const struck = events.some(
-        (event) => event.type === 'damage' && event.targetActor?.actorKey === pose.actorKey,
+        (event) =>
+          event.type === 'damage' &&
+          event.targetActor?.actorKey === pose.actorKey,
       );
-      // A destruction names its **victim** in `targetActor`; `sourceActor` is whoever did
-      // it. Reading the wrong one means the killer plays the death animation.
       const dying = events.some(
         (event) =>
-          event.type === 'destroyed' && event.targetActor?.actorKey === pose.actorKey,
+          event.type === 'destroyed' &&
+          event.targetActor?.actorKey === pose.actorKey,
       );
-      // A bot destroyed this tick plays its collapse and only then goes; one destroyed
-      // earlier is simply absent. `posesAt` flips status at 0.9, which is after the
-      // collapse has already run, so this reads the event rather than the status.
-      const collapse = dying ? Math.max(0, Math.min((fraction - 0.55) / 0.45, 1)) : 0;
+      const collapse = dying
+        ? Math.max(0, Math.min((fraction - 0.55) / 0.45, 1))
+        : 0;
+      const form =
+        replay.forms.find((candidate) => candidate.formId === pose.formId) ??
+        null;
+      const stationary = form?.canMove === false;
 
       bot.chassis.visible = pose.status === 'active' || dying;
-      const glide = glideAt(pose);
-      bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
-      bot.highlight(pose.unitKey === selectedUnitKey && pose.status === 'active');
-
-      // What this bot currently *is*, which several things below need before they can say
-      // anything: a turret neither drifts nor breathes, and a transition into one is the
-      // only animation an Anchor has.
-      const form = formById.get(pose.formId);
-      const mobile = form?.canMove !== false;
-      const emplaced = !mobile && pose.status === 'active';
-
-      // How far through deploying into an emplacement this life is, on one clock that
-      // everything below reads: the tip, the tower, the scan and the windup ring.
+      bot.chassis.userData.actorKey = pose.actorKey;
+      bot.chassis.userData.formId = pose.formId;
+      bot.chassis.userData.stationary = stationary;
+      bot.chassis.userData.omnidirectional =
+        form?.omnidirectionalVision === true ||
+        form?.omnidirectionalShooting === true;
+      // Deploying is two stages, not two things at once: the chassis rears up on its nose,
+      // then the turret takes over and its arms unfold from folded-onto-one out to
+      // quarters. Overlapping them — a turret growing inside a rotating chassis — read as
+      // something extruding out of the bot's head, because that is what it was.
       const deploy = deploys.get(pose.actorKey);
-      // Unclamped, so there is a moment *after* completion to hold the full ring in. Cut
-      // at exactly 1 the circle blinked out a hair before it closed, and never looked like
-      // it finished.
-      const progress = deploy ? (time - deploy.at) / deploy.span : 0;
       const raising = deploy
-        ? Math.max(0, Math.min(progress, 1))
-        // Already an emplacement with nothing on record — a replay joined mid-life, or a
-        // form that started immobile. Nothing to play, so it is simply up.
-        : emplaced
+        ? Math.max(0, Math.min((time - deploy.at) / deploy.span, 1))
+        : stationary
           ? 1
           : 0;
       const upright = easeInOut(raising);
+      const tipping = Math.min(upright / TURRET_TAKEOVER, 1);
+      const unfolding = Math.max(0, (upright - TURRET_TAKEOVER) / (1 - TURRET_TAKEOVER));
 
-      // A hit whitens the bot for a moment, and dying fades it out. Both are read from the
-      // tick's own events rather than remembered between frames, for the reason the flat
-      // renderer gives: scrubbing backwards, or drawing one tick in isolation, must produce
-      // the same picture as arriving there by playing forwards.
-      bot.flash(struck && shotProgress > 0.55 ? (1 - shotProgress) / 0.45 : 0);
-      bot.fade((hidden(pose) ? 0.15 : 1) * (1 - collapse * 0.75));
-
-      // The windup ring runs on the deploy's clock, for exactly as long as the deploy does.
-      // Reading it from `pendingFormTransition` instead meant it vanished the moment the
-      // form flipped, halfway through the animation it was supposed to be counting.
-      bot.windup.visible =
-        deploy !== undefined &&
-        progress > 0 &&
-        progress < 1 + RING_HOLD &&
-        !dying &&
-        pose.status === 'active' &&
-        !hidden(pose);
-      if (bot.windup.visible) {
-        bot.paintWindup(raising);
-        // Full, then gone: it fades over the hold rather than being cut mid-sweep.
-        bot.fadeWindup(progress <= 1 ? 1 : 1 - (progress - 1) / RING_HOLD);
-        // Turning, so it reads as something running rather than a decal.
-        bot.windup.rotation.y = time * Math.PI * 0.45;
-      }
-
-      // The whole chassis turns, so the hull's long axis reads as the facing even when the
-      // lid art is too small to make out. `angle` is the same interpolated rotation the 2D
-      // renderer uses, so both viewers swing a bot through exactly the same arc.
-      bot.chassis.rotation.y = -pose.angle;
-
-      // A turret neither drifts nor breathes. It is a fixed emplacement — the contract says
-      // stationary and non-rotating — and giving it a machine's idle sway would say it is
-      // about to do something, which is the opposite of what it has become.
-      // **The tip is the transition.** Anchor is Wait-only while it runs, so a bot that
-      // stood still and then snapped upright on the last frame threw away the one part of
-      // it there was anything to watch.
-      //
-      // Two stages, not two things at once. The chassis rears up on its nose; then, once it
-      // is vertical, the tower takes its place and its arms swing out. The tower never
-      // changes size — a tower growing while a bot rotates under it is exactly what read as
-      // something extruding out of the bot's head.
-      const tipping = Math.min(upright / TOWER_TAKEOVER, 1);
-      const unfolding = Math.max(0, (upright - TOWER_TAKEOVER) / (1 - TOWER_TAKEOVER));
-
-      bot.tilt.rotation.z = (Math.PI / 2) * tipping;
-      bot.tilt.position.set(
-        TOWER_SHIFT * bot.size * tipping,
-        TOWER_LIFT * bot.size * tipping,
-        0,
-      );
-      bot.spinner.scale.setScalar(1 - (1 - TOWER_SCALE) * tipping);
-      bot.spinner.visible = unfolding <= 0;
-
-      bot.tower.visible = unfolding > 0 && bot.chassis.visible;
-      bot.tower.scale.setScalar(TOWER_SCALE);
-      // Folded onto one arm at the handover — roughly the tipped chassis it replaces — and
-      // splayed to quarters by the end.
+      bot.body.visible = unfolding <= 0;
+      bot.turret.visible = unfolding > 0;
+      bot.body.rotation.z = (Math.PI / 2) * tipping;
+      bot.body.position.y = TURRET_LIFT * bot.size * tipping;
       for (const [arm, spoke] of bot.spokes.entries())
-        spoke.rotation.y = ((arm * Math.PI * 2) / TOWER_ARMS) * easeInOut(unfolding);
+        spoke.rotation.y = ((arm * Math.PI * 2) / TURRET_ARMS) * easeInOut(unfolding);
       // It only turns once it is out; something spinning while it unfolds reads as falling
       // over rather than deploying.
-      bot.tower.rotation.y = upright >= 1 ? time * TOWER_SPIN : 0;
+      bot.turret.rotation.y = raising >= 1 ? time * TURRET_SPIN : 0;
+      const glide = glideAt(pose.actorKey, pose);
+      bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
+      bot.highlight(
+        pose.unitKey === selectedUnitKey && pose.status === 'active',
+      );
 
+      // Pips follow rather than ride, and use the effective form's maximum. A mobile
+      // child must not look wounded merely because its future turret form has more HP.
       bot.pips.visible = bot.chassis.visible;
       bot.pips.position.set(
-        pose.x + 0.5,
-        // Clear of whatever the bot currently is: a tower is most of a tile tall, and pips
-        // at a bot's height would sit inside it.
-        upright > 0.5 ? TOWER_SCALE * bot.size + 0.2 : PIP_HEIGHT,
-        pose.y + 0.5 - PIP_SETBACK,
+        glide.x + 0.5,
+        PIP_HEIGHT,
+        glide.y + 0.5 - PIP_SETBACK,
       );
-      for (const [index, pip] of bot.pipMeshes.entries())
+      const formMaxHealth = form?.maxHealth ?? maxHealth;
+      for (const [index, pip] of bot.pipMeshes.entries()) {
+        pip.visible = index < formMaxHealth;
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
+      }
 
-      bot.scan.visible = upright > 0.6 && bot.chassis.visible && !hidden(pose);
-      // Slowly, and against the tower's direction, so the two read as one machine turning
-      // rather than two things that happen to move.
+      // The windup cue runs on the deploy's clock, for exactly as long as the deploy does.
+      //
+      // Reading `pendingFormTransition` instead — which is what this did — meant it never
+      // appeared at all on a replay whose form change completes in the tick it started, and
+      // Frontline's own fixture is exactly that: `started=9 done=9`, pending never set.
+      // Tracked unclamped past completion so the circle reaches full and holds a moment
+      // rather than blinking out a hair before it closes.
+      const anchorProgress = deploy ? (time - deploy.at) / deploy.span : 0;
+      bot.anchorRing.visible =
+        deploy !== undefined &&
+        anchorProgress > 0 &&
+        anchorProgress < 1 + RING_HOLD &&
+        bot.chassis.visible;
+      if (bot.anchorRing.visible) {
+        bot.paintAnchor(Math.min(anchorProgress, 1));
+        const pulse = 0.78 + Math.sin(time * Math.PI * 4) * 0.16;
+        bot.anchorMaterial.opacity =
+          pulse * (anchorProgress <= 1 ? 1 : 1 - (anchorProgress - 1) / RING_HOLD);
+        bot.anchorRing.rotation.y = time * Math.PI * 0.45;
+      }
+
+      // The scan appears once the turret is most of the way out, and turns against the
+      // ring, so the two read as one machine rather than two things that happen to move.
+      bot.scan.visible = upright > 0.6 && bot.chassis.visible;
       if (bot.scan.visible) bot.scan.rotation.y = -time * Math.PI * 0.22;
 
-      // The slip angle this bot is carrying, as −1…1: every turn it has taken in the last
-      // three ticks, each weighted by how long ago it began.
+      bot.flash(
+        struck && shotProgress > 0.55
+          ? (1 - shotProgress) / 0.45
+          : 0,
+      );
+      const visibility = hidden(pose) ? 0.15 : 1;
+      bot.fade(visibility * (1 - collapse * 0.75));
+      // Fog and death dim the cues too, and this runs after them so it composes rather
+      // than being overwritten.
+      if (bot.anchorRing.visible)
+        bot.anchorMaterial.opacity *= visibility * (1 - collapse);
+      if (bot.scan.visible) bot.scanMaterial.opacity = 0.34 * visibility * (1 - collapse);
+
+      // Circular turret geometry has no privileged facing; keeping the authoritative
+      // body rotation still makes a form change preserve exactly the life state recorded.
+      bot.chassis.rotation.y = -pose.angle;
+
       let slip = 0;
-      for (const [age, [from, to]] of turnedIn.entries()) {
-        const a = from?.actors.find((actor) => actor.actorKey === pose.actorKey);
-        const b = to?.actors.find((actor) => actor.actorKey === pose.actorKey);
-        if (!a || !b) continue;
-        slip +=
-          shortestTurn(directionAngle(a.facing), directionAngle(b.facing)) *
-          driftResponse(fraction + age);
+      if (!stationary) {
+        for (const [age, [fromState, toState]] of turnedIn.entries()) {
+          const from = fromState?.actors.find(
+            (actor) => actor.actorKey === pose.actorKey,
+          );
+          const to = toState?.actors.find(
+            (actor) => actor.actorKey === pose.actorKey,
+          );
+          if (!from || !to) continue;
+          slip +=
+            shortestTurn(
+              directionAngle(from.facing),
+              directionAngle(to.facing),
+            ) * driftResponse(fraction + age);
+        }
       }
-      // Normalised against a single right angle, so one corner is a full drift and two in a
-      // row saturate rather than spinning the body off its chassis.
-      // Room to throw its weight about, or not.
+      // Room to throw its weight about, or not. A wall anywhere around cancels the drift:
+      // the nose swings diagonally through a corner, so damping only the parts that reach
+      // along an axis leaves it going through the wall anyway.
       const tileX = Math.round(glide.x);
       const tileY = Math.round(glide.y);
       const boxedIn = NEIGHBOURS.some(([dx, dy]) => solid(tileX + dx, tileY + dy));
@@ -1047,50 +986,38 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const drift =
         Math.max(-1, Math.min(slip / (Math.PI / 2), 1)) *
         (1 - collapse) *
-        (mobile ? 1 : 0) *
         (boxedIn ? 0 : 1);
-
-      // Idle life, damped out while drifting so the two are not fighting for the same axis,
-      // and while dying so a wreck does not keep breathing.
-      const idle = (1 - Math.abs(drift)) * (1 - collapse) * (mobile ? 1 : 0);
-      const phase = pose.unitId * 2.399 + pose.teamId * 5.117;
+      const idle =
+        (stationary ? 0 : 1) *
+        (1 - Math.abs(drift)) *
+        (1 - collapse);
       const sway =
-        Math.sin(time * 1.9 + phase) + Math.sin(time * 3.1 + phase * 2.3) * 0.55;
+        Math.sin(time * 1.9 + bot.motionPhase) +
+        Math.sin(time * 3.1 + bot.motionPhase * 2.3) * 0.55;
       const rise =
-        Math.sin(time * 2.3 + phase * 1.7) + Math.sin(time * 1.3 + phase) * 0.5;
+        Math.sin(time * 2.3 + bot.motionPhase * 1.7) +
+        Math.sin(time * 1.3 + bot.motionPhase) * 0.5;
+      const kick = firing
+        ? Math.sin(shotProgress * Math.PI) * 0.14
+        : 0;
 
-      // Recoil is a kick *backwards along the facing*, which in the chassis' own frame is
-      // simply −x — one of the things that gets easier once a bot is an object with an
-      // orientation instead of a sprite being rotated about a point.
-      const kick = firing ? Math.sin(shotProgress * Math.PI) * 0.14 : 0;
-      // Going down: nose over, settle into the floor, and shrink a little. A bot that
-      // vanished on the tick it died gave no reason for the hole it left.
       bot.chassis.rotation.z = collapse * 0.5;
       bot.chassis.rotation.x = collapse * 0.22;
       bot.chassis.position.y = -collapse * BOT_HEIGHT * 0.55;
       bot.chassis.scale.setScalar(1 - collapse * 0.16);
+      bot.turret.scale.setScalar(
+        TURRET_SCALE +
+          (firing ? Math.sin(shotProgress * Math.PI) * 0.045 : 0),
+      );
 
-      // Everything the body does relative to the chassis it is bolted into: the recoil kick
-      // backwards, the drift's slide sideways and lean into the corner, and the idle sway.
-      // The chassis keeps the authoritative position and heading; none of this moves the
-      // bot off the tile the replay says it is on.
-      // Pulled back along its own facing when emplaced: the sprites are darts, and a dart
-      // centred on its tile still points somewhere. Recessing it puts the mass over the
-      // tile and leaves the nose no further forward than the rest.
       bot.body.position.x = -kick;
-      bot.body.position.z = drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
+      bot.body.position.z =
+        drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
       bot.body.position.y = idle * rise * IDLE_RISE;
-      bot.body.rotation.y = -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
-      bot.body.rotation.x = drift * DRIFT_LEAN + idle * rise * IDLE_ROLL;
-    }
-
-    for (const [unitKey, bot] of bots) {
-      if (claimed.has(unitKey)) continue;
-      bot.chassis.visible = false;
-      bot.pips.visible = false;
-      bot.scan.visible = false;
-      bot.windup.visible = false;
-      bot.tower.visible = false;
+      bot.body.rotation.y =
+        -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
+      bot.body.rotation.x =
+        drift * DRIFT_LEAN + idle * rise * IDLE_ROLL;
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
@@ -1105,7 +1032,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // In FOV mode a bolt the followed bot cannot see is not drawn at all, rather than
     // ghosted the way a bot is. An unseen bolt is precisely the threat it does not know
     // about, and a faint one on screen would still answer the question.
-    const seen =
+    const seenTiles =
       fogSource !== undefined
         ? new Set(
             fogSource.observation.visibleTiles.map(
@@ -1113,18 +1040,38 @@ export function buildActors(replay: ReplayModel): ArenaActors {
             ),
           )
         : null;
+    const seenProjectileIds =
+      fogSource?.observation.visibleProjectiles === null ||
+      fogSource === undefined
+        ? null
+        : new Set(
+            fogSource.aliases.projectiles
+              .filter((alias) =>
+                fogSource.observation.visibleProjectiles!.some(
+                  (projectile) =>
+                    projectile.projectileHandle ===
+                    alias.projectileHandle,
+                ),
+              )
+              .map((alias) => alias.projectileId),
+          );
 
-    const flying = new Map<ReplayStableUnitKey, number>();
+    const flying = arsenals.map(() => 0);
     const alive = new Set<string>();
     for (const bolt of boltsAt(replay, time)) {
-      if (seen && !seen.has(`${Math.round(bolt.x)},${Math.round(bolt.y)}`)) continue;
-      const owner = bolt.ownerUnitKey;
-      const index = flying.get(owner) ?? 0;
-      flying.set(owner, index + 1);
-      const rig = borrow(owner, index);
-      // A bolt whose firing unit is not in this replay's roster has nothing to draw it
-      // with. That should not happen, and dropping it beats inventing a colour for it.
-      if (!rig) continue;
+      if (
+        seenProjectileIds !== null
+          ? !seenProjectileIds.has(bolt.id)
+          : seenTiles !== null &&
+            !seenTiles.has(`${Math.round(bolt.x)},${Math.round(bolt.y)}`)
+      )
+        continue;
+      const arsenalIndex =
+        arsenalIndexByUnit.get(bolt.ownerActor.unitKey) ?? 0;
+      const rig = borrow(
+        bolt.ownerActor.unitKey,
+        flying[arsenalIndex]++,
+      );
       rig.group.visible = true;
       rig.group.position.set(bolt.x + 0.5, 0, bolt.y + 0.5);
 
@@ -1133,7 +1080,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // and it reads as the bolt blinking into a new orientation. Easing towards the
       // authoritative heading lets it bank through the corner instead. Position is never
       // eased, only facing: where a bolt *is* stays exactly what the replay recorded.
-      const key = bolt.projectileId;
+      const key = `${bolt.ownerActor.actorKey}:${bolt.id}`;
       alive.add(key);
       const target = -headingAngle[bolt.heading];
       const memory = heading.get(key);
@@ -1155,11 +1102,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Shared frequencies make two bolts in the air move as one object with a gap in it —
       // the tell that they are the same code and not two things. Derived rather than random
       // because a replay must look the same every time it is watched.
-      // Phase and rates come from the projectile's own id text, so they are stable for a
-      // given replay and differ between bolts in the air at once.
-      const seedOf = boltSeed(bolt.projectileId);
-      const phase = seedOf * 2.399;
-      const wander = 1 + (seedOf % 23) / 46;
+      const phase = phaseForIdentity(bolt.id);
+      const wander =
+        1 + (Math.floor(phase * 10_000) % 23) / 46;
       rig.head.position.y =
         PROJECTILE_HOVER +
         (Math.sin(time * 9.3 * wander + phase) + Math.sin(time * 5.1 + phase * 2.7) * 0.6) * 0.05;
@@ -1172,10 +1117,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // Forget bolts that have landed, or the map grows for the length of the replay.
     for (const key of heading.keys()) if (!alive.has(key)) heading.delete(key);
     // Everything not claimed this frame goes back in the pool rather than being destroyed.
-    for (const [unitKey, arsenal] of arsenals) {
-      for (let index = flying.get(unitKey) ?? 0; index < arsenal.rigs.length; index++)
+    arsenals.forEach((arsenal, slot) => {
+      for (let index = flying[slot]; index < arsenal.rigs.length; index++)
         arsenal.rigs[index].group.visible = false;
-    }
+    });
   };
 
   /**
@@ -1187,12 +1132,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
    * The pad is a tile-sized disc under each machine, invisible and always facing up, which
    * is both easier to hit and closer to what a player means by "that one".
    */
-  const pick = (raycaster: THREE.Raycaster): ReplayStableUnitKey | null => {
-    const pads = [...bots.values()]
-      .filter((bot) => bot.chassis.visible)
-      .map((bot) => bot.pad);
+  const pick = (
+    raycaster: THREE.Raycaster,
+  ): ReplayStableUnitKey | null => {
+    const pads = bots.filter((bot) => bot.chassis.visible).map((bot) => bot.pad);
     const [nearest] = raycaster.intersectObjects(pads, false);
-    return nearest ? (nearest.object.userData.unitKey as ReplayStableUnitKey) : null;
+    return nearest
+      ? (nearest.object.userData.unitKey as ReplayStableUnitKey)
+      : null;
   };
 
   return {
@@ -1207,6 +1154,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // them would leave the next match holding disposed buffers.
     },
   };
+}
+
+/** Stable cosmetic phase without narrowing replay-v2's decimal-string identities. */
+function phaseForIdentity(identity: string): number {
+  let hash = 2_166_136_261;
+  for (let index = 0; index < identity.length; index++) {
+    hash ^= identity.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return ((hash >>> 0) / 0xffff_ffff) * Math.PI * 2;
 }
 
 /**
@@ -1227,20 +1184,6 @@ function catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): 
     (-2 * t3 + 3 * t2) * p2 +
     (t3 - t2) * m2
   );
-}
-
-/**
- * A small stable number for a projectile id.
- *
- * Ids are text under the new model, and the wobble needs a per-bolt number that is the same
- * every time a replay is watched. Summing char codes is enough: this decides a phase
- * offset, not anything anyone can verify.
- */
-function boltSeed(projectileId: string): number {
-  let seed = 0;
-  for (let index = 0; index < projectileId.length; index++)
-    seed = (seed * 31 + projectileId.charCodeAt(index)) % 100003;
-  return seed;
 }
 
 /**
@@ -1358,14 +1301,12 @@ function tracerTexture(accent: THREE.Color): THREE.Texture | null {
 
   // A capsule as a distance field, in pixels.
   //
-  // Two crossed gradients gave a rectangle, and a rectangle brightest along the edge where
-  // it is cut is a streak that stops dead at the bolt. Tapering only the *width* toward the
-  // nose did not fix it either: the centre line stayed fully opaque to the last texel, so
-  // the streak still ended in a bright sliver with a straight edge across it.
-  //
-  // Distance from a line segment rounds the ends in both dimensions at once, which is the
-  // only way the nose gets no edge at all. The head cap is kept a full radius inside the
-  // canvas so the cap itself cannot be clipped — which is the same mistake one step later.
+  // Two crossed gradients give a rectangle, and a rectangle brightest along the edge where
+  // it is cut is a streak that stops dead at the bolt — the front end looked sliced.
+  // Tapering only the width did not fix it: the centre line stayed fully opaque to the last
+  // texel, so it still ended in a bright sliver. Distance from a line segment rounds both
+  // ends in two dimensions at once. The head cap sits a full radius inside the canvas,
+  // because a cap drawn against the edge is clipped flat and the whole fix undone.
   const headRadius = height * 0.45;
   const tailRadius = height * 0.06;
   const headX = width - headRadius - 1;
@@ -1373,8 +1314,6 @@ function tracerTexture(accent: THREE.Color): THREE.Texture | null {
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      // Where along the streak this pixel is, clamped so beyond either end the nearest
-      // point is the cap centre — which is what makes the ends round rather than square.
       const along = Math.max(0, Math.min((x - tailX) / (headX - tailX), 1));
       const radius = tailRadius + (headRadius - tailRadius) * along ** 0.7;
       const distance = Math.hypot(x - (tailX + (headX - tailX) * along), y - height / 2);
@@ -1384,8 +1323,6 @@ function tracerTexture(accent: THREE.Color): THREE.Texture | null {
       image.data[offset + 1] = green;
       image.data[offset + 2] = blue;
       const edge = distance / radius;
-      // Soft to its own edge, and dimmer at the tail — a streak fading out behind, not a
-      // solid bar with a gradient painted on it.
       const profile = edge >= 1 ? 0 : (1 - edge * edge) ** 1.5;
       image.data[offset + 3] = Math.round(255 * 0.92 * profile * (0.12 + 0.88 * along ** 1.5));
     }

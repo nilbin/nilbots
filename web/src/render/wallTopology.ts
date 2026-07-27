@@ -34,12 +34,16 @@ export class WallLayout {
     private readonly replay: ReplayModel,
     private readonly boundaryFamily: string,
     private readonly interiorFamily: string,
+    normalizeFamily: (family: string) => string = (family) => family,
   ) {
     this.tiles = replay.map.tileRows;
     const overrides = new Map<string, string>();
     for (const group of replay.map.presentation?.wallGroups ?? []) {
       for (const position of group.tiles)
-        overrides.set(`${position.x},${position.y}`, group.family ?? interiorFamily);
+        overrides.set(
+          `${position.x},${position.y}`,
+          normalizeFamily(group.family),
+        );
     }
     this.overrides = overrides;
   }

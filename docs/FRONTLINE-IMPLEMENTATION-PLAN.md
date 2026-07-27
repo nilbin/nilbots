@@ -11,11 +11,13 @@ version-neutral replay presentation are integrated. Web and mobile now mirror
 the authoritative internal Frontline replay-v2 state rather than a
 presentation-only substitute.
 
-Current implementation scope: Packages 0–6 are implemented on the internal
+Current implementation scope: Packages 0–7 are implemented on the internal
 experimental path. That includes independent per-life runtimes, canonical
 team observation, replay v2, replication/fabrication, Anchor/turret forms, and
-viewer/mobile presentation. Package 7's SDK/protocol-vNext delivery and the
-remaining Package 8 CLI/App/WASM/evaluation release path remain planned.
+viewer/mobile presentation, plus the engine-independent actor SDK/Guest
+contract, actor protocol/configuration 1.0, and canonical isolated WASM life
+instances. The remaining Package 8 public Backend/CLI admission, evaluation,
+and product rollout remain planned.
 
 ## 1. Recommendation
 
@@ -34,10 +36,11 @@ editing targets.
 
 The completed internal slices include the public-contract foundation,
 historical characterization shield, Frontline definition/kernel, multi-life
-session, actor runtime/observation/replay seam, replication, Anchor, and
-version-neutral viewers. They leave official gameplay, replay-v1 bytes,
-artifacts, SDK, protocol, CLI/App match selection, and server behavior
-unchanged.
+session, actor runtime/observation/replay seam, replication, Anchor,
+engine-independent SDK/Guest types, protocol/configuration 1.0, canonical WASM
+instances, and version-neutral viewers. They leave official gameplay,
+protocol/configuration 0.1, replay-v1 bytes, CLI/App match selection, and
+server behavior unchanged.
 
 ## 2. Relationship to replay-native ML work
 
@@ -47,7 +50,7 @@ workload.
 
 | Replay-native package | Relationship to Frontline |
 | --- | --- |
-| A — canonical observation and replay v2 | The internal Frontline engine/replay seam and viewer consumer are implemented through Packages 4 and 8. Public delivery and any later duel generalization must reuse this model without changing replay v1. |
+| A — canonical observation and replay v2 | The internal Frontline engine/replay seam, canonical actor WASM delivery, and viewer consumer are implemented through Packages 4, 7, and 8. Public product delivery and any later duel generalization must reuse this model without changing replay v1. |
 | B — replay-only dataset CLI | The internal observation-complete schema is now available, but the exporter remains a product follow-on rather than part of Frontline gameplay. |
 | C — public corpus access | Independent App/CLI product follow-on after replay v2; preserve broadcast secrecy. |
 | D — bounded model assets | Separate toolchain/submission project after its WASM spike; do not overlap protocol/toolchain choke points casually. |
@@ -195,13 +198,15 @@ Freeze these before the package that consumes them, not all at once.
 
 These are implemented and strict on the internal Frontline path. Replay v2 is
 not a public CLI/App/server format yet; public emission still requires the
-Package 7/8 version, compatibility, and release gates.
+remaining Package 8 compatibility, admission, and release gates.
 
 ### Before ranked or public use
 
 - Decide whether the implemented objective-only max-tick territorial score
   remains the experimental/ranked rule after replication and Anchor testing.
-- Artifact capability declaration and protocol negotiation.
+- Public eligibility policy for negotiated unsupported capabilities and
+  future action/schema requirements. Internal protocol negotiation and exact
+  compile-contract attestation are implemented.
 - Named season/ruleset identity versus exact contract fingerprint for ladders.
 - Replay/debug/training-data privacy and licensing.
 - Required CLI and mobile release versions.
@@ -450,9 +455,9 @@ Frontline-specific additions:
   submits that keyed joint action to `StepActors(...)`;
 - replay v2 records tick-start lifecycle events and the exact actor-key set so
   respawn gaps and new lives are reconstructible without simulation;
-- this slice may prove the engine/in-process runtime boundary, but must not
-  pretend protocol 0.1 can carry Frontline; canonical WASM transport remains
-  protocol-vNext work unless it is deliberately pulled forward and versioned.
+- this slice proved the engine/in-process runtime boundary without pretending
+  protocol 0.1 could carry Frontline; Package 7 now supplies its separate
+  versioned actor transport and canonical WASM path.
 
 Primary current surfaces:
 
@@ -480,6 +485,7 @@ Gate:
 - the runtime input is a lossless projection of its replay observation plus
   static header data;
 - in-process/WASM behavior parity remains for protocol 0.1;
+- actor in-process/WASM behavior and replay parity hold for protocol 1.0;
 - identical inputs produce byte-identical replay-v2 documents and hashes;
 - replay-v1 fixtures verify without normalization;
 - the leakage audit passes;
@@ -552,42 +558,60 @@ five-slot state/observation/replay coverage, exact form-transition causality,
 and obsolete-front usefulness diagnostics. These are mechanics diagnostics,
 not a balance verdict.
 
-### Package 7 — SDK and protocol vNext
+### Package 7 — SDK and actor protocol 1.0
+
+Status: **implemented internally**. It is a canonical runtime path, not yet a
+public CLI/App/server selection or admission claim.
 
 Goal: deliver the new contract to independent C# bot instances.
 
 Because SDK must not reference Engine, mirror the public types in SDK and map
 them in Runtime/Guest adapters.
 
-- Keep the manifest once per life after `MatchStart`; do not resend it every
-  tick.
-- Compile/load a WASM module once per submitted artifact, but create an
-  isolated store and instance for each active life.
-- Dispose a life instance on destruction and create a fresh one on Prime
-  respawn or successful child (re)fabrication.
-- Spike binary encodings under NativeAOT/WASI before choosing one.
-- Preserve a small negotiation/bootstrap path so the host identifies
-  protocol 0.1 versus vNext rather than trusting unused metadata.
-- Use framed messages with skippable unknown fields and explicit size limits.
-- Preserve null/empty capability distinctions over both wire directions.
+Implemented result:
+
+- `IActorBot` receives typed per-life `StartLife` and `Tick` calls with the
+  immutable public contract delivered once at MatchStart and variable
+  entity/action collections thereafter.
+- One artifact factory owns one Wasmtime Engine and compiled Module. Every
+  active life owns an isolated Store, Instance, thread, memory, globals,
+  deterministic shims, and bot object; destruction disposes it and respawn or
+  refabrication creates fresh private memory.
+- Actor protocol 1.0 uses the dependency-free custom `NBV2` tagged binary
+  encoding selected after a NativeAOT/WASI spike. Its 12-byte frame header,
+  skippable unknown fields, required/duplicate/truncation checks, null/empty
+  semantics, and hard size/depth/count limits are specified in
+  [`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md).
+- Host frames are bounded at 1 MiB and guest replies at 64 KiB. Semantic
+  action/form IDs are canonical lowercase kebab case and at most 64 UTF-8
+  bytes; the bot selector and opaque handles remain bounded at 256 bytes.
+- `Hello` negotiation distinguishes legacy protocol 0.1 artifacts from actor
+  artifacts. `Ready` attests the exact actor runtime, MatchStart, observation,
+  and decision schemas compiled into the guest. Each released request accepts
+  exactly one correlated reply; `Unsupported` is a typed capability failure.
+- Runtime configuration 1.0 pins fuel, epoch/wall-clock interruption, 64 MiB
+  linear memory, 16,384 table elements, and one memory/table/instance per
+  life Store. WebAssembly start sections are rejected; `_start`, every tick,
+  and MatchEnd retain an interruption path.
 
 Coordinated version bumps:
 
-- SDK;
-- guest adapter and build cache;
-- runtime protocol;
-- runtime configuration if limits change;
-- tracked built-in WASM artifact;
-- CLI/package version under the release guard.
+- SDK 0.9.0;
+- guest adapter 0.9.0 and the controlled-build cache;
+- actor runtime protocol/configuration 1.0 while legacy remains 0.1;
+- rebuilt tracked built-in WASM artifact;
+- CLI/package 0.6.0 under the release guard.
 
-Gate: malformed frames, unknown fields, size limits, old-artifact eligibility,
-WASM/in-process parity, observation/replay parity, and per-life isolation.
+Gate: implemented tests cover malformed/unknown/duplicate/truncated fields,
+size and collection limits, exact attestation, correlated replies, typed
+unsupported capabilities, old-artifact eligibility, startup/tick/shutdown
+limits, WASM/in-process and observation/replay parity, and per-life isolation.
 
 ### Package 8 — consumers, evaluation, and experimental release
 
 Status: **partially implemented**. Internal web/mobile presentation and the
-experimental brief are complete; Backend/CLI/WASM delivery and product
-evaluation remain.
+experimental brief are complete; Backend/CLI admission, product evaluation,
+and rollout remain.
 
 Goal: make Frontline observable and evaluable without claiming it has shipped.
 
@@ -644,18 +668,27 @@ serialization. A separate leakage/fixture reviewer may add tests after DTOs
 stabilize. Do not split observation construction and replay projection between
 agents; their identity is the invariant.
 
-### SDK/protocol and product wave — next
+### SDK/protocol wave — completed internally
 
-The actor/action/replay types are frozen internally. Next:
+The actor/action/replay types are frozen internally. Package 7 now has:
 
-- runtime/protocol owner for runtime-factory and Package 7 work;
-- replay/CLI owner adds public dispatch without changing the canonical
-  observation seam or v1 verification;
-- primary integrator owns shared identity/action types and version axes.
+- one engine-independent SDK/Guest contract and shared wire codec;
+- one runtime factory that compiles per artifact and instantiates per life;
+- independent protocol, sandbox, parity, and eligibility tests;
+- coordinated SDK/Guest/protocol/configuration/cache/artifact/CLI version axes.
 
 `MatchEngine`, `MatchSession`, `Replay.cs`, `BotArenaVersions`, shared identity
 and action types, protocol twins, and version documentation remain choke
 points owned by one person at a time.
+
+### Product wave — next
+
+- replay/CLI owner adds public dispatch without changing the canonical
+  observation seam or v1 verification;
+- Backend owner adds explicit eligibility, admission, and broadcast-safe
+  replay-v2 delivery;
+- primary integrator owns compatibility/release gates and the experimental
+  deployment boundary.
 
 ### Replay-native ML follow-ons
 
@@ -694,6 +727,7 @@ The implemented Frontline consumer work touches:
   version-boundary validation and the shared normalized model;
 - `web/src/replayPresentation.ts` — shared per-tick presentation derivation;
 - viewer components, playback, and Canvas2D renderer under `web/src/`;
+- optional lazy WebGL 2.5D renderer under `web/src/render3d/`;
 - site replay pages;
 - `mobile/src/components/ArenaViewer.tsx`;
 - `mobile/src/components/arena/` native cards, transport, and bridge protocol.
@@ -708,6 +742,11 @@ native controls/cards outside it. The internal consumer slice now:
 - derives health, objective, and timing language from the manifest;
 - groups events by team while retaining unit attribution;
 - extends `HostedViewer` bridge v2 and the native bridge in lockstep.
+
+Canvas2D remains the default. The optional WebGL renderer consumes only the
+normalized replay/presentation model, loads Three.js lazily, and is stubbed
+out of the self-contained CLI build. Manual GPU/mobile QA remains before any
+release claim.
 
 Phone/desktop golden-frame coverage and outcome-blind product review remain
 release gates rather than evidence supplied by the mechanics fixture.
@@ -737,9 +776,9 @@ Do not rewrite historical documents as though Frontline has already shipped.
 - `GAME-DESIGN.md`, `PLAN-SUMMARY.md`, and `DECISIONS.md` identify Frontline
   as the active experiment while retaining rules 0.5 as current.
 - `EXPERIMENTAL-FRONTLINE.md` is now the concise internal bot contract for
-  the implemented headless lifecycle, fabrication, Anchor, turret-fire, and
-  replay-v2 checkpoint. It remains explicitly non-public until the remaining
-  release surfaces and player-facing arms are frozen.
+  lifecycle, fabrication, Anchor, turret-fire, actor WASM, and the replay-v2
+  checkpoint. It remains explicitly non-public until the remaining release
+  surfaces and player-facing arms are frozen.
 - Maintain `DOCUMENTATION.md` as the status index; split replay/protocol guides
   by version when v2 creates simultaneously supported formats.
 - Continue recording only actually frozen decisions, never numeric
@@ -753,8 +792,10 @@ Do not rewrite historical documents as though Frontline has already shipped.
   before commissioning Frontline bots.
 - Preserve replay format 1 verbatim and discoverably; recommended shape is
   `REPLAY-FORMAT.md` as a version index plus version-specific v1/v2 documents.
-- Add equivalent versioned protocol documentation.
-- Update `WASM-DEVELOPMENT.md` after the codec/runtime spike.
+- Maintain [`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md) as the versioned dual
+  protocol contract.
+- Keep `WASM-DEVELOPMENT.md` aligned with the selected actor codec/runtime and
+  rebuilt tracked artifact.
 - Update replay summaries, DocDrift tests, and every mechanical rules-change
   surface in the same package as its contract.
 - Follow `REPLAY-NATIVE-ML-PLAN.md` for dataset, corpus, model-asset, and
@@ -802,24 +843,22 @@ dynamics metrics, and locked outcome-blind viewer notes.
 
 ## 10. Immediate implementation wave
 
-Packages 0–6 now establish the historical shield, exact public contract,
+Packages 0–7 now establish the historical shield, exact public contract,
 format-v2 map, multi-life runtime/session, canonical public team observation,
 replication/fabrication, Anchor/turret forms, strict internal replay v2, and
-version-neutral web/mobile presentation. Official rules 0.1–0.5, protocol
-0.1, replay v1, and their canonical hashes remain unchanged. The experimental
-map is absent from current App/CLI catalogs and packages, and legacy
-`MatchEngine` still rejects it rather than silently running duel mechanics.
+version-neutral web/mobile presentation, engine-independent SDK/Guest types,
+actor protocol/configuration 1.0, and canonical isolated WASM instances.
+Official rules 0.1–0.5, protocol/configuration 0.1, replay v1, and their
+canonical hashes remain unchanged. The experimental map is absent from
+current App/CLI catalogs and packages, and legacy `MatchEngine` still rejects
+it rather than silently running duel mechanics.
 
-The next dependent implementation slice is Package 7 plus the remaining
-Package 8 product path:
+The next dependent implementation slice is the remaining Package 8 product
+path:
 
-1. mirror the frozen manifest, variable observations, and typed actions into
-   SDK/Guest types without introducing an Engine reference;
-2. choose and version a bounded framed protocol through the NativeAOT/WASI
-   spike, then prove independent WASM instances per active life;
-3. add CLI/App/server ruleset dispatch, eligibility/admission, replay
+1. add CLI/App/server ruleset dispatch, eligibility/admission, replay
    verification/summary, and release-version guards without emitting v2 early;
-4. build the replay-only dataset and corpus follow-ons through the shared
+2. build the replay-only dataset and corpus follow-ons through the shared
    `REPLAY-NATIVE-ML-PLAN.md`, not a Frontline-specific exporter;
-5. commission native doctrines, run causal arms and dynamics analysis, and
+3. commission native doctrines, run causal arms and dynamics analysis, and
    complete locked outcome-blind review before any ship decision.

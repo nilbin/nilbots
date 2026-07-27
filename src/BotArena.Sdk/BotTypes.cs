@@ -77,6 +77,38 @@ public static class Actions
     /// <see cref="BotContext.ShotPrograms"/> is null, the host safely blocks it.</summary>
     public static BotAction Shoot(ShotProgram program) => new(BotActionKind.Shoot, program);
 
+    /// <summary>
+    /// Ask this body's Prime controller to create the named Ready allied child
+    /// slot. Availability and valid targets are exposed in
+    /// <see cref="ActorContext.Actions"/>.
+    /// </summary>
+    public static ActorDecision Fabricate(ObservedUnitTarget target) =>
+        ActorDecision.Of(
+            ActorActionIds.Fabricate,
+            ActorActionCodes.Fabricate,
+            new ActorActionPayload { UnitTarget = target });
+
+    /// <summary>
+    /// Begin a typed form transition. The active contract and current action
+    /// mask declare valid target form IDs and transition timing.
+    /// </summary>
+    public static ActorDecision Transform(string formTargetId) =>
+        ActorDecision.Of(
+            ActorActionIds.Transform,
+            ActorActionCodes.Transform,
+            new ActorActionPayload { FormTargetId = formTargetId });
+
+    /// <summary>
+    /// Fire in an absolute eight-way heading without changing body facing.
+    /// This is available only to forms whose action mask advertises it.
+    /// </summary>
+    public static ActorDecision ShootDirection(
+        ProjectileHeading launchHeading) =>
+        ActorDecision.Of(
+            ActorActionIds.ShootDirection,
+            ActorActionCodes.ShootDirection,
+            new ActorActionPayload { LaunchHeading = launchHeading });
+
     /// <summary>NOT AVAILABLE in the shipped game. Move one tile perpendicular to your
     /// facing without rotating — implemented only for the held `strafe` research arm.
     /// Under every shipped ruleset the engine converts this to Wait and reports

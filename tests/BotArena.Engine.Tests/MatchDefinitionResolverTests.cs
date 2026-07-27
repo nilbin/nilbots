@@ -211,6 +211,58 @@ public class MatchDefinitionResolverTests
             error => error.Contains("Prime, child, and turret forms are required"));
     }
 
+    [Theory]
+    [InlineData("Prime-mobile")]
+    [InlineData("prime--mobile")]
+    [InlineData("prime_mobile")]
+    [InlineData("primé-mobile")]
+    public void FrontlineFormIds_MustUseCanonicalLowercaseKebabCase(
+        string formId)
+    {
+        FrontlineRules defaults = new();
+        FrontlineRules malformed = defaults with
+        {
+            PrimeForm = defaults.PrimeForm with { FormId = formId },
+        };
+
+        MatchDefinitionValidationException exception =
+            Assert.Throws<MatchDefinitionValidationException>(() =>
+                MatchDefinitionResolver.Resolve(
+                    FrontlineGameRules(malformed),
+                    FrontlineMap()));
+
+        Assert.Contains(
+            exception.Errors,
+            error => error.Contains(
+                "canonical lowercase kebab case",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FrontlineFormIds_CannotExceedActorProtocolSemanticIdLimit()
+    {
+        FrontlineRules defaults = new();
+        FrontlineRules malformed = defaults with
+        {
+            PrimeForm = defaults.PrimeForm with
+            {
+                FormId = new string('a', 65),
+            },
+        };
+
+        MatchDefinitionValidationException exception =
+            Assert.Throws<MatchDefinitionValidationException>(() =>
+                MatchDefinitionResolver.Resolve(
+                    FrontlineGameRules(malformed),
+                    FrontlineMap()));
+
+        Assert.Contains(
+            exception.Errors,
+            error => error.Contains(
+                "at most 64 UTF-8 bytes",
+                StringComparison.Ordinal));
+    }
+
     [Fact]
     public void DefaultTopologyCollections_AreAggregatedWithoutANullReference()
     {

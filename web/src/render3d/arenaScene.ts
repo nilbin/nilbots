@@ -53,7 +53,8 @@ export interface ArenaScene {
  */
 export function buildArena(replay: ReplayModel): ArenaScene {
   const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
-  const { width: mapWidth, height: mapHeight } = replay.map;
+  const mapWidth = replay.map.width;
+  const mapHeight = replay.map.height;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(theme.palette.canvas);
@@ -180,8 +181,22 @@ function walls(
 ): THREE.Mesh[] {
   const layout = new WallLayout(
     replay,
-    validFamily(replay.map.presentation?.boundaryWall ?? undefined, theme, theme.walls.defaults.boundary),
-    validFamily(replay.map.presentation?.interiorWall ?? undefined, theme, theme.walls.defaults.interior),
+    validFamily(
+      replay.map.presentation?.boundaryWall ?? undefined,
+      theme,
+      theme.walls.defaults.boundary,
+    ),
+    validFamily(
+      replay.map.presentation?.interiorWall ?? undefined,
+      theme,
+      theme.walls.defaults.interior,
+    ),
+    (family) =>
+      validFamily(
+        family,
+        theme,
+        theme.walls.defaults.interior,
+      ),
   );
 
   const byFamily = new Map<string, { x: number; y: number }[]>();

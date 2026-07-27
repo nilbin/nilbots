@@ -149,8 +149,16 @@ double atlas weight to fix a problem that does not exist.
 **A second, WebGL renderer now exists beside it** (DECISIONS #126) — opt-in, lazily loaded,
 and stubbed out of the CLI artifact. That is not a reversal of the line above so much as an
 admission of its scope: it was an argument about faking depth, and it says nothing about
-whether real depth is worth having. This renderer stays the default and stays flat. In
-rough order of feel per unit of effort:
+whether real depth is worth having. This renderer stays the default and stays flat.
+
+The WebGL renderer now consumes only the version-neutral `ReplayModel` and shared
+presentation/interpolation derivations (DECISIONS #128). It handles variable stable-unit
+collections, exact actor lives, absent fabrication/rebuild states, pending and completed
+forms, stationary 360-degree turrets, eight-way absolute projectile headings, and variable
+Frontline position counts without reading either replay wire format itself. Replay-v1 still
+normalizes through its historical one-unit teams and therefore keeps the same behavior.
+
+In rough order of feel per unit of effort:
 
 1. additive light from muzzle flashes, projectiles and explosions (`'lighter'` compositing);
 2. contact shadows under bots and projectiles;

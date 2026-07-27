@@ -130,6 +130,8 @@ export function replayV2FixtureInput(): ReplayV2CompleteDocument {
       gameRulesVersion: 'frontline-test',
       actorRuntime: {
         family: 'nilbots-actor',
+        protocolVersion: '1.0',
+        configurationVersion: '1.0',
         version: 1,
         matchStartSchemaVersion: 1,
         observationSchemaVersion: 1,

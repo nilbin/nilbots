@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text;
 
 namespace BotArena.Engine;
 
@@ -9,6 +10,7 @@ namespace BotArena.Engine;
 public static class MatchDefinitionResolver
 {
     private const string LegacyMobileFormId = "mobile";
+    private const int MaxSemanticIdUtf8Bytes = 64;
 
     public static ResolvedMatchDefinition Resolve(GameRules rules, ArenaMap map)
     {
@@ -235,6 +237,12 @@ public static class MatchDefinitionResolver
         {
             if (string.IsNullOrWhiteSpace(form.FormId))
                 errors.Add("Frontline form IDs cannot be empty.");
+            else if (!IsCanonicalSemanticId(form.FormId))
+            {
+                errors.Add(
+                    $"Frontline form ID '{form.FormId}' must use canonical " +
+                    "lowercase kebab case and be at most 64 UTF-8 bytes.");
+            }
             if (form.MaxHealth <= 0)
                 errors.Add($"Frontline form '{form.FormId}' MaxHealth must be positive.");
             if (form.VisionRange < 0)
@@ -264,6 +272,32 @@ public static class MatchDefinitionResolver
                 "omnidirectional for vision and shooting, objective weight " +
                 "zero, shoot-capable, and unable to use programmed shots.");
         }
+    }
+
+    private static bool IsCanonicalSemanticId(string value)
+    {
+        if (Encoding.UTF8.GetByteCount(value) > MaxSemanticIdUtf8Bytes)
+            return false;
+
+        bool needsSegmentStart = true;
+        foreach (char character in value)
+        {
+            if (character == '-')
+            {
+                if (needsSegmentStart)
+                    return false;
+                needsSegmentStart = true;
+                continue;
+            }
+
+            if ((character < 'a' || character > 'z')
+                && (character < '0' || character > '9'))
+            {
+                return false;
+            }
+            needsSegmentStart = false;
+        }
+        return !needsSegmentStart;
     }
 
     private static void ValidateAnchorSpawnSafety(

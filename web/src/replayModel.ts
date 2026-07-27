@@ -1058,6 +1058,8 @@ export interface ReplayHeaderVersions {
   runtimeConfigurationVersion: string | null;
   actorRuntime: {
     family: string;
+    protocolVersion: string;
+    configurationVersion: string;
     version: number;
     matchStartSchemaVersion: number;
     observationSchemaVersion: number;

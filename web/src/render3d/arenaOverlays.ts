@@ -1,12 +1,20 @@
 import * as THREE from 'three';
 import type {
   ReplayModel,
+  ReplayPosition,
   ReplayStableUnitKey,
 } from '../replayModel';
-import { participantForUnit, visualIndexForUnit } from '../replayParticipants';
 import { spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { presentationAccent, botLook } from '../render/arenaThemes';
+import {
+  participantForUnit,
+  visualIndexForUnit,
+} from '../replayParticipants';
+import {
+  createPresenter,
+  type TickPresentation,
+} from '../replayPresentation';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -38,24 +46,29 @@ export interface ArenaOverlays {
 }
 
 export function buildOverlays(replay: ReplayModel): ArenaOverlays {
-  const { width: mapWidth, height: mapHeight } = replay.map;
+  const mapWidth = replay.map.width;
+  const mapHeight = replay.map.height;
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
+  const presenter = createPresenter(replay);
 
   const fog = buildFog(mapWidth, mapHeight, disposables);
   group.add(fog.mesh);
 
-  const zone = buildZone(replay, disposables);
-  if (zone) group.add(zone);
+  const objective = buildObjective(replay, disposables);
+  group.add(objective.group);
+
+  const lifecycle = buildLifecycleCues(replay, disposables);
+  group.add(lifecycle.group);
 
   const flashes = buildFlashes(replay, disposables);
   group.add(flashes.group);
 
-  const spent = buildSpentBolts(replay, disposables);
-  group.add(spent.group);
-
   const impacts = buildImpacts(replay, disposables);
   group.add(impacts.group);
+
+  const spent = buildSpentBolts(replay, disposables);
+  group.add(spent.group);
 
   let painted = '';
 
@@ -66,6 +79,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   ) => {
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
     const fraction = Math.max(0, Math.min(time - tick, 1));
+    const presentation = presenter.at(tick);
 
     const source =
       showVisibility && selectedUnitKey !== null
@@ -79,12 +93,18 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     const signature = `${source ? tick : -1}:${selectedUnitKey}`;
     if (signature !== painted) {
       painted = signature;
-      fog.paint(source?.observation.visibleTiles);
+      fog.paint(
+        source?.observation.visibleTiles.map(
+          ({ position }) => position,
+        ),
+      );
     }
 
+    objective.update(presentation);
+    lifecycle.update(presentation, time);
     flashes.update(tick, fraction);
-    spent.update(time);
     impacts.update(tick, fraction);
+    spent.update(time);
   };
 
   /**
@@ -102,8 +122,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     const fraction = Math.max(0, Math.min(time - tick, 1));
     let strength = 0;
     for (const event of replay.ticks[tick]?.events ?? []) {
-      if (event.type === 'Destroyed') strength = Math.max(strength, 1);
-      else if (event.type === 'Damage') strength = Math.max(strength, 0.45);
+      if (event.type === 'destroyed') strength = Math.max(strength, 1);
+      else if (event.type === 'damage')
+        strength = Math.max(strength, 0.45);
     }
     // Impacts land late in the tick — the same 0.6 the flash uses — so the knock starts
     // when the hit is seen rather than when the tick begins.
@@ -149,7 +170,7 @@ function buildFog(
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
-  paint: (visible: readonly { position: { x: number; y: number } }[] | undefined) => void;
+  paint: (visible: readonly ReplayPosition[] | undefined) => void;
 } {
   const data = new Uint8Array(mapWidth * mapHeight * 4);
   const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
@@ -170,13 +191,13 @@ function buildFog(
   mesh.visible = false;
   disposables.push(geometry, material, texture);
 
-  const paint = (
-    visible: readonly { position: { x: number; y: number } }[] | undefined,
-  ) => {
+  const paint = (visible: readonly ReplayPosition[] | undefined) => {
     mesh.visible = visible !== undefined;
     if (!visible) return;
 
-    const seen = new Set(visible.map(({ position }) => `${position.x},${position.y}`));
+    const seen = new Set(
+      visible.map((position) => `${position.x},${position.y}`),
+    );
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         // The plane's V axis runs opposite the map's Y, so rows are written bottom-up.
@@ -193,34 +214,207 @@ function buildFog(
   return { mesh, paint };
 }
 
-/** The objective zone, where the rules have one. Static for the match. */
-function buildZone(
+/**
+ * Objective geometry for both normalized formats.
+ *
+ * A duel has one static zone. Frontline keeps every authored position visible as a faint
+ * strategic landmark and promotes only the authoritative active position each tick, so a
+ * five-position map reads as a lane rather than a zone teleporting around the floor.
+ */
+function buildObjective(
   replay: ReplayModel,
   disposables: { dispose: () => void }[],
-): THREE.Mesh | null {
-  const tiles = replay.map.objectiveTiles;
-  if (tiles.length === 0) return null;
+): {
+  group: THREE.Group;
+  update: (presentation: TickPresentation) => void;
+} {
+  const group = new THREE.Group();
+  const frontline = replay.map.frontline;
+  const positions = frontline?.positions ?? [
+    {
+      positionIndex: 0,
+      tiles: replay.map.objectiveTiles,
+    },
+  ];
+  group.userData.positionCount = positions.length;
 
-  const parts = tiles.map((tile) => {
+  const entries = positions
+    .filter((position) => position.tiles.length > 0)
+    .map((position) => {
+      const geometry = tiledGeometry(position.tiles);
+      const material = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#22d3ee'),
+        transparent: true,
+        opacity: frontline ? 0.045 : 0.14,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.y = 0.024;
+      mesh.userData.positionIndex = position.positionIndex;
+      mesh.userData.active = !frontline;
+      group.add(mesh);
+      disposables.push(geometry, material);
+      return { positionIndex: position.positionIndex, mesh, material };
+    });
+
+  const update = (presentation: TickPresentation) => {
+    if (!frontline) return;
+    const objective =
+      presentation.objective?.kind === 'frontline'
+        ? presentation.objective
+        : null;
+    if (!objective) {
+      for (const entry of entries) {
+        entry.mesh.userData.active = false;
+        entry.material.opacity = 0.045;
+        entry.material.color.set('#22d3ee');
+      }
+      return;
+    }
+    const activePositionIndex = objective.activePositionIndex;
+    const claimingAccent =
+      objective?.claimingTeamId === null ||
+      objective?.claimingTeamId === undefined
+        ? null
+        : presentation.units.find(
+            (unit) => unit.teamId === objective.claimingTeamId,
+          )?.accent ?? null;
+
+    for (const entry of entries) {
+      const active = entry.positionIndex === activePositionIndex;
+      entry.mesh.userData.active = active;
+      entry.material.opacity = active ? 0.24 : 0.045;
+      entry.material.color.set(
+        active && claimingAccent ? claimingAccent : '#22d3ee',
+      );
+    }
+  };
+
+  return { group, update };
+}
+
+/**
+ * Exact spawn-pad signals for stable units without an active life.
+ *
+ * Rendering no chassis is the complete truth for Locked, rebuilding and Ready children:
+ * none has a position yet. A ring is safe only for queued fabrication's reserved tile or
+ * the Prime's authored automatic return, where the normalized contract fixes the place.
+ */
+function buildLifecycleCues(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (presentation: TickPresentation, time: number) => void;
+} {
+  const group = new THREE.Group();
+  const geometry = new THREE.RingGeometry(0.23, 0.43, 28);
+  geometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry);
+
+  const cues = new Map<
+    ReplayStableUnitKey,
+    {
+      mesh: THREE.Mesh;
+      material: THREE.MeshBasicMaterial;
+    }
+  >();
+  for (const unit of replay.units) {
+    const material = new THREE.MeshBasicMaterial({
+      color: accentForUnit(replay, unit.unitKey),
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.visible = false;
+    mesh.position.y = 0.038;
+    mesh.userData.unitKey = unit.unitKey;
+    group.add(mesh);
+    cues.set(unit.unitKey, { mesh, material });
+    disposables.push(material);
+  }
+
+  const update = (presentation: TickPresentation, time: number) => {
+    if (replay.initialWorld === null && replay.ticks.length === 0) {
+      for (const cue of cues.values()) cue.mesh.visible = false;
+      return;
+    }
+    for (const unit of presentation.units) {
+      const cue = cues.get(unit.unitKey);
+      if (!cue) continue;
+      const position =
+        unit.reservedSpawn ??
+        lifecyclePadFor(
+          replay,
+          unit.teamId,
+          unit.unitId,
+          unit.status,
+        );
+      const absent = unit.actorKey === null && unit.status !== 'active';
+      cue.mesh.visible = absent && position !== null;
+      cue.mesh.userData.lifecycleStatus = unit.status;
+      if (!cue.mesh.visible || !position) continue;
+
+      cue.mesh.position.x = position.x + 0.5;
+      cue.mesh.position.z = position.y + 0.5;
+      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 3);
+      const baseOpacity =
+        unit.status === 'fabrication-queued'
+          ? 0.5
+          : unit.status === 'ready'
+            ? 0.34
+            : unit.status === 'respawning'
+              ? 0.24
+              : unit.status === 'rebuilding'
+                ? 0.16
+                : 0.08;
+      cue.material.opacity =
+        unit.status === 'fabrication-queued'
+          ? baseOpacity + pulse * 0.28
+          : baseOpacity;
+      cue.mesh.scale.setScalar(
+        unit.status === 'fabrication-queued' ? 0.9 + pulse * 0.24 : 1,
+      );
+    }
+  };
+
+  return { group, update };
+}
+
+function lifecyclePadFor(
+  replay: ReplayModel,
+  teamId: number,
+  unitId: number,
+  status: string,
+): ReplayPosition | null {
+  const home = replay.map.frontline?.teamHomes.find(
+    (candidate) => candidate.teamId === teamId,
+  );
+  if (!home) return null;
+  // Prime return is pinned to its authored spawn. Child rebuild/Ready/Locked states
+  // deliberately have no position until fabrication reserves one, so drawing them on an
+  // arbitrary free pad would invent gameplay state the replay never supplied.
+  return unitId === 0 && status === 'respawning'
+    ? home.primeSpawn
+    : null;
+}
+
+function tiledGeometry(
+  tiles: readonly ReplayPosition[],
+): THREE.BufferGeometry {
+  const parts = tiles.map(({ x, y }) => {
     const quad = new THREE.PlaneGeometry(1, 1);
     quad.rotateX(-Math.PI / 2);
-    quad.translate(tile.x + 0.5, 0, tile.y + 0.5);
+    quad.translate(x + 0.5, 0, y + 0.5);
     return quad;
   });
   const geometry = mergeQuads(parts);
   for (const part of parts) part.dispose();
-
-  const material = new THREE.MeshBasicMaterial({
-    color: new THREE.Color('#22d3ee'),
-    transparent: true,
-    opacity: 0.14,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.y = 0.024;
-  disposables.push(geometry, material);
-  return mesh;
+  return geometry;
 }
 
 /**
@@ -231,88 +425,14 @@ function buildZone(
  * scrubbed, paused, or replayed from any point, and anything remembered between frames
  * would survive a jump backwards into a tick where it never happened.
  */
-function buildFlashes(
-  replay: ReplayModel,
-  disposables: { dispose: () => void }[],
-): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
-  const group = new THREE.Group();
-  const geometry = new THREE.PlaneGeometry(1, 1);
-  geometry.rotateX(-Math.PI / 2);
-  disposables.push(geometry);
-
-  const accents = accentsByUnit(replay);
-  const impact = new THREE.Color('#ffd9a0');
-
-  const pool: THREE.Mesh[] = [];
-  const material = new THREE.MeshBasicMaterial({
-    map: flare(),
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  disposables.push(material);
-  if (material.map) disposables.push(material.map);
-
-  const borrow = (index: number) => {
-    while (pool.length <= index) {
-      // Cloned so each flash carries its own colour and opacity while sharing one texture.
-      const mesh = new THREE.Mesh(geometry, material.clone());
-      mesh.visible = false;
-      group.add(mesh);
-      pool.push(mesh);
-    }
-    return pool[index];
-  };
-
-  const update = (tick: number, fraction: number) => {
-    const events = replay.ticks[tick]?.events ?? [];
-    let used = 0;
-    for (const event of events) {
-      const flash =
-        event.type === 'shot'
-          ? {
-              at: event.from,
-              colour: accents.get(event.sourceActor?.unitKey ?? ('' as ReplayStableUnitKey)),
-              size: 1.5,
-              life: 0.45,
-            }
-          : event.type === 'damage' || event.type === 'destroyed'
-            // `from`, not `to`: on a damage event the model records where the hit *landed*
-            // in `from`, which is what the flat renderer draws its impact at.
-            ? { at: event.from, colour: impact, size: 2.4, life: 0.8 }
-            : null;
-      if (!flash || !flash.at) continue;
-
-      // Bright at the instant it happens and gone by the end of its life, so a shot reads
-      // as an event rather than a lamp that switches on for the tick.
-      const decay = 1 - Math.min(1, fraction / flash.life);
-      if (decay <= 0) continue;
-
-      const mesh = borrow(used++);
-      mesh.visible = true;
-      mesh.position.set(flash.at.x + 0.5, 0.05, flash.at.y + 0.5);
-      mesh.scale.setScalar(flash.size * (0.6 + 0.4 * (1 - decay)));
-      const own = mesh.material as THREE.MeshBasicMaterial;
-      own.color.copy(flash.colour ?? impact);
-      own.opacity = decay * decay;
-    }
-    for (let index = used; index < pool.length; index++) pool[index].visible = false;
-  };
-
-  return { group, update };
-}
-
 /**
  * A bolt arriving on something.
  *
- * The soft flare alone was light, not an event — it said "something is bright here", which
- * is also what a muzzle says, so a hit and a shot read the same. A hit is a shockwave: a
- * hard ring thrown outwards from the point of contact, fast, gone inside the tick. Two of
- * them, offset in time and speed, because a single expanding circle reads as a bubble and
- * two read as something coming apart.
- *
- * A kill throws it further and holds it longer, so the last hit of a match is visibly the
- * one that ended it.
+ * The soft flare alone is light, not an event — it is also what a muzzle produces, so a hit
+ * and a shot read alike. A hit is a shockwave: a hard ring thrown outwards from the point
+ * of contact, fast then slowing, spent inside the tick. A kill throws two, offset in time
+ * and reach, because one expanding circle reads as a bubble and two read as something
+ * coming apart.
  */
 function buildImpacts(
   replay: ReplayModel,
@@ -353,12 +473,13 @@ function buildImpacts(
     for (const event of replay.ticks[tick]?.events ?? []) {
       const killing = event.type === 'destroyed';
       if (event.type !== 'damage' && !killing) continue;
-      // Where the hit landed. The model puts that in `from` for both kinds.
+      // Where the hit landed. The model records that in `from`, which is what the flat
+      // renderer has always drawn its impact at.
       const at = event.from;
       if (!at) continue;
 
-      // Impacts land late in the tick, on the same 0.6 the flash and the camera knock use,
-      // so the whole reaction to a hit happens at one instant.
+      // Impacts land late in the tick, on the same 0.6 the hit flash and the camera knock
+      // use, so the whole reaction to a bolt arriving happens at one instant.
       const since = (fraction - 0.6) / 0.4;
       if (since < 0 || since > 1) continue;
 
@@ -370,12 +491,98 @@ function buildImpacts(
         mesh.position.set(at.x + 0.5, 0.06, at.y + 0.5);
         // Fast at first and slowing, which is what a shockwave does and what a linear
         // expansion conspicuously does not.
-        const reach = (killing ? 2.6 : 1.35) * Math.sqrt(age);
-        mesh.scale.setScalar(0.25 + reach);
+        mesh.scale.setScalar(0.25 + (killing ? 2.6 : 1.35) * Math.sqrt(age));
         const material = mesh.material as THREE.MeshBasicMaterial;
         material.color.copy(killing ? fatal : hot);
         material.opacity = (1 - age) ** 1.8 * (killing ? 0.95 : 0.8);
       }
+    }
+    for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+function buildFlashes(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+  const group = new THREE.Group();
+  const geometry = new THREE.PlaneGeometry(1, 1);
+  geometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry);
+
+  const impact = new THREE.Color('#ffd9a0');
+
+  const pool: THREE.Mesh[] = [];
+  const material = new THREE.MeshBasicMaterial({
+    map: flare(),
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  disposables.push(material);
+  if (material.map) disposables.push(material.map);
+
+  const borrow = (index: number) => {
+    while (pool.length <= index) {
+      // Cloned so each flash carries its own colour and opacity while sharing one texture.
+      const mesh = new THREE.Mesh(geometry, material.clone());
+      mesh.visible = false;
+      mesh.userData.cue = 'event-flash';
+      group.add(mesh);
+      pool.push(mesh);
+    }
+    return pool[index];
+  };
+
+  const update = (tick: number, fraction: number) => {
+    const events = replay.ticks[tick]?.events ?? [];
+    let used = 0;
+    for (const event of events) {
+      const flash =
+        event.type === 'shot' && event.from
+          ? {
+              position: event.from,
+              colour: new THREE.Color(
+                event.sourceActor
+                  ? accentForUnit(replay, event.sourceActor.unitKey)
+                  : '#22d3ee',
+              ),
+              size: 1.5,
+              life: 0.45,
+            }
+          : (event.type === 'damage' ||
+                event.type === 'destroyed') &&
+              (event.to ?? event.from)
+            ? {
+                // Replay-v2 carries the impact tile in `to`; normalized replay-v1
+                // historically carries the same authoritative tile in `from`.
+                position: event.to ?? event.from!,
+                colour: impact,
+                size: 2.4,
+                life: 0.8,
+              }
+            : null;
+      if (!flash) continue;
+
+      // Bright at the instant it happens and gone by the end of its life, so a shot reads
+      // as an event rather than a lamp that switches on for the tick.
+      const decay = 1 - Math.min(1, fraction / flash.life);
+      if (decay <= 0) continue;
+
+      const mesh = borrow(used++);
+      mesh.visible = true;
+      mesh.userData.eventType = event.type;
+      mesh.position.set(
+        flash.position.x + 0.5,
+        0.05,
+        flash.position.y + 0.5,
+      );
+      mesh.scale.setScalar(flash.size * (0.6 + 0.4 * (1 - decay)));
+      const own = mesh.material as THREE.MeshBasicMaterial;
+      own.color.copy(flash.colour ?? impact);
+      own.opacity = decay * decay;
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
   };
@@ -400,8 +607,6 @@ function buildSpentBolts(
   geometry.rotateX(-Math.PI / 2);
   disposables.push(geometry);
 
-  const accents = accentsByUnit(replay);
-
   const pool: THREE.Mesh[] = [];
   const borrow = (index: number) => {
     while (pool.length <= index) {
@@ -412,7 +617,6 @@ function buildSpentBolts(
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.userData.kind = 'dissipation';
       mesh.visible = false;
       group.add(mesh);
       pool.push(mesh);
@@ -429,7 +633,9 @@ function buildSpentBolts(
       mesh.position.set(bolt.x + 0.5, PROJECTILE_HOVER, bolt.y + 0.5);
       mesh.scale.setScalar(0.6 + bolt.age * 2.2);
       const material = mesh.material as THREE.MeshBasicMaterial;
-      material.color.copy(accents.get(bolt.ownerUnitKey) ?? impactWhite);
+      material.color.set(
+        accentForUnit(replay, bolt.ownerActor.unitKey),
+      );
       material.opacity = (1 - bolt.age) ** 2 * 0.9;
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
@@ -438,29 +644,19 @@ function buildSpentBolts(
   return { group, update };
 }
 
-const impactWhite = new THREE.Color('#ffd9a0');
-
-/**
- * Every unit's accent, by stable key.
- *
- * Built once per replay rather than resolved per event: a busy tick can carry a dozen
- * flashes, and each lookup walks the participant roster.
- */
-function accentsByUnit(replay: ReplayModel): Map<ReplayStableUnitKey, THREE.Color> {
-  const accents = new Map<ReplayStableUnitKey, THREE.Color>();
-  for (const unit of replay.units) {
-    const participant = participantForUnit(replay, unit.unitKey);
-    accents.set(
-      unit.unitKey,
-      new THREE.Color(
-        presentationAccent(
-          botLook(participant?.lookId ?? undefined, visualIndexForUnit(replay, unit.unitKey)),
-          participant?.accent ?? '#38bdf8',
-        ),
-      ),
-    );
-  }
-  return accents;
+function accentForUnit(
+  replay: ReplayModel,
+  unitKey: ReplayStableUnitKey,
+): string {
+  const participant = participantForUnit(replay, unitKey);
+  const look = botLook(
+    participant?.lookId ?? undefined,
+    visualIndexForUnit(replay, unitKey),
+  );
+  return presentationAccent(
+    look,
+    participant?.accent ?? '#38bdf8',
+  );
 }
 
 /** A soft round flare, drawn rather than shipped. */

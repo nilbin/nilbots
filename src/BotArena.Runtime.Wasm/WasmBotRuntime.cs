@@ -10,6 +10,8 @@ namespace BotArena.Runtime.Wasm;
 /// of the runtime configuration version.</summary>
 public sealed record WasmRuntimeOptions
 {
+    public const uint DefaultMaxTableElements = 16 * 1024;
+
     public required string ModulePath { get; init; }
 
     /// <summary>Guest-side bot selection passed in the init line (built-in artifacts host
@@ -23,6 +25,13 @@ public sealed record WasmRuntimeOptions
     public ulong StartupFuel { get; init; } = 5_000_000_000;
 
     public long MaxMemoryBytes { get; init; } = 64 * 1024 * 1024;
+
+    /// <summary>
+    /// Actor-path ceiling for indirect-function table growth. Linear-memory
+    /// limits do not account for host allocations backing WebAssembly tables.
+    /// </summary>
+    public uint MaxTableElements { get; init; } =
+        DefaultMaxTableElements;
 
     /// <summary>Wall-clock backstop only; fuel is the deterministic limit. A tick that hits
     /// this without exhausting fuel is treated as a permanent runtime failure.</summary>

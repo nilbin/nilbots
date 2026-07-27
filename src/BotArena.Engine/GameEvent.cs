@@ -3,14 +3,14 @@ namespace BotArena.Engine;
 
 public enum GameEventType
 {
-    Turn,
-    Move,
-    MoveBlocked,
-    Shot,
-    Damage,
-    Destroyed,
-    Fault,
-    Disqualified,
+    Turn = 0,
+    Move = 1,
+    MoveBlocked = 2,
+    Shot = 3,
+    Damage = 4,
+    Destroyed = 5,
+    Fault = 6,
+    Disqualified = 7,
 }
 
 /// <summary>

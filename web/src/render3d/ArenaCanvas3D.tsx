@@ -23,28 +23,50 @@ export default function ArenaCanvas3D({
   selectedUnitKey,
   showVisibility,
   onSelectUnit,
+  onUnavailable,
 }: {
   replay: ReplayModel;
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
+  onUnavailable: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // All three go through refs for the same reason `time` does: they change while a replay
   // is open, and putting them in the effect's dependencies would tear down the renderer and
   // rebuild the entire scene every time someone clicked a bot card.
-  const frameState = useRef({ time, selectedUnitKey, showVisibility, onSelectUnit });
-  frameState.current = { time, selectedUnitKey, showVisibility, onSelectUnit };
+  const frameState = useRef({
+    time,
+    selectedUnitKey,
+    showVisibility,
+    onSelectUnit,
+    onUnavailable,
+  });
+  frameState.current = {
+    time,
+    selectedUnitKey,
+    showVisibility,
+    onSelectUnit,
+    onUnavailable,
+  };
 
   useEffect(() => {
     const container = host.current;
     if (!container) return;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+    } catch {
+      // WebGL can be disabled, blocked, or out of contexts. The dimensional renderer is
+      // optional, so failure must restore the always-available Canvas2D viewer.
+      frameState.current.onUnavailable();
+      return;
+    }
     // Capped at 2: beyond that the shadow map and fill rate cost more than the sharpness
     // is worth, and a 3× phone would otherwise render nine times the pixels of a 1×.
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -65,7 +87,8 @@ export default function ArenaCanvas3D({
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
 
-    const { width: mapWidth, height: mapHeight } = replay.map;
+    const mapWidth = replay.map.width;
+    const mapHeight = replay.map.height;
     const centre = new THREE.Vector3(mapWidth / 2, 0, mapHeight / 2);
     // Where the camera sits with no shake applied. Kept so a knock is an offset from a
     // fixed point; nudging the live position instead lets rounding walk the camera away.
@@ -133,15 +156,30 @@ export default function ArenaCanvas3D({
         arena.camera,
       );
       const hit = actors.pick(raycaster);
-      const { selectedUnitKey: followed, onSelectUnit: select } = frameState.current;
+      const {
+        selectedUnitKey: followed,
+        onSelectUnit: select,
+      } = frameState.current;
       select(hit === null || hit === followed ? null : hit);
     };
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      frameState.current.onUnavailable();
+    };
+    renderer.domElement.addEventListener(
+      'webglcontextlost',
+      onContextLost,
+    );
 
     let animation = 0;
     const draw = () => {
-      const { time: now, selectedUnitKey: followed, showVisibility: fov } = frameState.current;
+      const {
+        time: now,
+        selectedUnitKey: followed,
+        showVisibility: fov,
+      } = frameState.current;
       actors.update(now, followed, fov);
       overlays.update(now, followed, fov);
       // A knock on impact, and a harder one on a kill — nothing else shakes, because a
@@ -163,6 +201,10 @@ export default function ArenaCanvas3D({
       observer.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onDown);
       renderer.domElement.removeEventListener('pointerup', onUp);
+      renderer.domElement.removeEventListener(
+        'webglcontextlost',
+        onContextLost,
+      );
       actors.dispose();
       overlays.dispose();
       arena.dispose();

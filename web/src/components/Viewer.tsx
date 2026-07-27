@@ -28,6 +28,9 @@ import Logo from './Logo';
  * single-file artifact stubs this module out entirely (see vite.cli.config.ts).
  */
 const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
+const DIMENSIONAL_RENDERER_AVAILABLE =
+  typeof __BOTARENA_DIMENSIONAL_RENDERER__ !== 'boolean' ||
+  __BOTARENA_DIMENSIONAL_RENDERER__;
 
 export default function Viewer({
   replay,
@@ -50,7 +53,10 @@ export default function Viewer({
   // query string. The Canvas2D renderer stays the default until this one has been judged
   // on a real screen — it is an alternative, not a replacement.
   const [dimensional, setDimensional] = useState(
-    () => new URLSearchParams(window.location.search).get('renderer') === '3d',
+    () =>
+      DIMENSIONAL_RENDERER_AVAILABLE &&
+      new URLSearchParams(window.location.search).get('renderer') ===
+        '3d',
   );
 
   const isLive = live !== undefined;
@@ -167,17 +173,19 @@ export default function Viewer({
             </span>
           )
         )}
-        {/* Which renderer. Flat is the default and stays it; this is here so the two can
-            be compared on the same replay without reloading. */}
-        <button
-          type="button"
-          onClick={() => setDimensional((on) => !on)}
-          className="rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
-          aria-pressed={dimensional}
-          title="Switch between the flat and the 2.5D renderer"
-        >
-          {dimensional ? '2.5D' : '2D'}
-        </button>
+        {/* Which renderer. The CLI artifact intentionally stubs the dynamic module to
+            keep three.js out of every copied replay, so it must not offer a blank mode. */}
+        {DIMENSIONAL_RENDERER_AVAILABLE && (
+          <button
+            type="button"
+            onClick={() => setDimensional((on) => !on)}
+            className="rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
+            aria-pressed={dimensional}
+            title="Switch between the flat and the 2.5D renderer"
+          >
+            {dimensional ? '2.5D' : '2D'}
+          </button>
+        )}
         {/* Pointer devices only. A phone says what it wants by being turned, and a button
             that duplicated that would either fight the orientation or strand someone in a
             mode their device disagrees with. */}
@@ -236,6 +244,7 @@ export default function Viewer({
                 selectedUnitKey={selectedUnitKey}
                 showVisibility={showVisibility}
                 onSelectUnit={setSelectedUnitKey}
+                onUnavailable={() => setDimensional(false)}
               />
             </Suspense>
           ) : (

@@ -18,10 +18,12 @@ wrong; it changes which document is the current entry point.
 ## Active Frontline and ML work
 
 - [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) —
-  package order and current code boundary. Packages 0–6 are implemented on
+  package order and current code boundary. Packages 0–7 are implemented on
   the internal experimental path: canonical per-life runtime/observation,
-  replay v2, replication, fabrication, Anchor, and viewer/mobile mirrors.
-  SDK/protocol vNext and product admission remain later packages.
+  replay v2, replication, fabrication, Anchor, actor SDK/Guest,
+  protocol/configuration 1.0, canonical WASM life instances, and
+  viewer/mobile mirrors. Public product admission/evaluation remains Package
+  8.
 - [`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) — exploratory
   gameplay and architecture envelope, including the implemented
   runtime/replication/Anchor checkpoint. Numeric values remain experiment
@@ -37,9 +39,11 @@ wrong; it changes which document is the current entry point.
   policy before any rules experiment is promoted.
 
 Frontline remains unshipped despite having an internal contract and viewer.
-Protocol 0.1, the current SDK/guest, CLI/App match selection, server admission,
-canonical WASM execution, and ranked ladders still expose only the supported
-historical product paths.
+The internal actor SDK/Guest, protocol/configuration 1.0, and canonical
+per-life WASM runner are implemented, but CLI/App match selection, server
+admission, evaluation, and ranked ladders still expose only the supported
+historical product paths. Protocol/configuration 0.1 remains the exact
+shipped duel contract.
 
 ## Current technical and product references
 
@@ -48,6 +52,10 @@ historical product paths.
   observation-complete replay-v2 experiment without mutating the v1 contract.
 - [`WASM-DEVELOPMENT.md`](WASM-DEVELOPMENT.md) — current controlled
   NativeAOT/WASM build and runtime workflow.
+- [`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md) — simultaneously supported
+  duel protocol/configuration 0.1 and internal actor
+  protocol/configuration 1.0, including framing, limits, negotiation, and
+  per-life sandbox ownership.
 - [`ARENA-VISUALS.md`](ARENA-VISUALS.md), [`AUDIO-DESIGN.md`](AUDIO-DESIGN.md),
   and [`COSMETICS-ENTITLEMENTS.md`](COSMETICS-ENTITLEMENTS.md) — current
   presentation/content contracts and implementation status.

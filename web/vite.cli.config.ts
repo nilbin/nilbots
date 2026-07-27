@@ -26,6 +26,7 @@ export default defineConfig({
     // A scoped artifact has no `control-room` to fall back to, so the fallback becomes the
     // theme it does have. Unscoped builds keep the ordinary default.
     __BOTARENA_DEFAULT_THEME__: JSON.stringify(THEME ?? 'control-room'),
+    __BOTARENA_DIMENSIONAL_RENDERER__: 'false',
   },
   build: {
     outDir: THEME ? `dist-cli/${THEME}` : 'dist-cli',

@@ -41,6 +41,41 @@ public class WasmArtifactValidatorTests
         Assert.Contains("not allowed", error.Message);
     }
 
+    [Fact]
+    public void Validate_RejectsWasmStartSection()
+    {
+        byte[] bytes = Module.ConvertText(
+            """
+            (module
+              (import "botarena" "next_observation"
+                (func $next (param i32 i32) (result i32)))
+              (import "botarena" "post_decision"
+                (func (param i32 i32)))
+              (memory (export "memory") 1)
+              (func $init
+                (drop (call $next (i32.const 0) (i32.const 0))))
+              (start $init)
+              (func (export "_start")))
+            """);
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-start-section-{Guid.NewGuid():N}.wasm");
+        try
+        {
+            File.WriteAllBytes(path, bytes);
+
+            InvalidDataException error =
+                Assert.Throws<InvalidDataException>(
+                    () => WasmArtifactValidator.Validate(path));
+
+            Assert.Contains("start sections", error.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static string FindArtifact()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

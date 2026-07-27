@@ -14,14 +14,24 @@ public static class BotArenaVersions
     public const string GameRulesVersion = "0.5";
     public const string RuntimeProtocolVersion = "0.1";
     public const string RuntimeConfigurationVersion = "0.1";
+    /// <summary>
+    /// Negotiated framed protocol for independently instantiated entity lives.
+    /// The historical <see cref="RuntimeProtocolVersion"/> remains the exact
+    /// replay-v1/duel protocol and is selected separately.
+    /// </summary>
+    public const string ActorRuntimeProtocolVersion = "1.0";
+    /// <summary>
+    /// Actor-path frame, memory, fuel, and timeout limit profile. Kept
+    /// separate so introducing the new path does not relabel legacy matches.
+    /// </summary>
+    public const string ActorRuntimeConfigurationVersion = "1.0";
     public const int ReplayFormatVersion = 1;
     public const int PublicRulesManifestSchemaVersion = 2;
     public const int PublicMapManifestSchemaVersion = 1;
     public const int PublicMatchContractSchemaVersion = 1;
     /// <summary>
-    /// Logical actor-runtime contract used by the experimental in-process
-    /// Frontline slice. This is not legacy line protocol 0.1 and does not
-    /// claim that a WASM transport exists yet.
+    /// Logical actor-runtime model shared by the experimental in-process and
+    /// WASM Frontline paths. This is independent of legacy line protocol 0.1.
     /// </summary>
     public const int ActorRuntimeContractVersion = 1;
     public const int ActorMatchStartSchemaVersion = 1;

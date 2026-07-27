@@ -1928,16 +1928,6 @@ stack because its observation/replay seam is now implemented here while its prod
 packages are not. No balance value is promoted until Frontline-native all-WASM doctrines,
 causal arms, dynamics analysis and outcome-blind review pass the evaluation policy.
 
-## Deferred decisions
-
-- Numeric limits for submissions (archive size, file counts) — Phase 3.
-- Named RNG streams (`context.Random.Stream("...")`) — not in 0.1.
-- Whether player artifacts embed one bot per artifact (likely) or use the
-  built-in-style multi-bot selector — decide when the project template lands.
-- wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
-  verify when a second platform enters CI.
-
-
 ## 126. A second renderer, in WebGL, beside the Canvas2D one
 
 `docs/VIEWER-PLAN.md` argued "Canvas2D throughout — no WebGL, no three.js", on the grounds
@@ -1951,11 +1941,11 @@ WebGL one is opt-in (`?renderer=3d`, or the toggle in the viewer header).
 
 The payload objection turned out to be answerable rather than fatal:
 
-- three.js is a **lazy chunk** — 504 KB raw, 131 KB gzipped — downloaded only if someone
-  asks for the second renderer;
+- three.js stays in a **lazy renderer chunk** — currently about 609 KB raw and 162 KB
+  gzipped with the arena code — downloaded only if someone asks for the second renderer;
 - and it is **stubbed out of the CLI artifact entirely** (`vite.cli.config.ts`), because
-  `viteSingleFile` inlines every chunk, so laziness saves nothing there. The artifacts stay
-  5.0 MB and 3.6 MB with zero three.js in them.
+  `viteSingleFile` inlines every chunk, so laziness saves nothing there. The current
+  theme-scoped artifacts remain roughly 3.6–6.5 MiB with zero three.js in them.
 
 Against 3–7 MB of textures, 131 KB was never the deciding number. What the library actually
 buys is the directional shadow map, which is the whole point of building real geometry and
@@ -1974,7 +1964,7 @@ Bots and projectiles started as quads lying **flat on the floor**, on the reason
 sprites are plan views and standing one upright shows a top-down drawing pretending to be a
 side view. That reasoning was right about the *sprite* and wrong about the *bot*: a decal on
 the ground has no silhouette, casts a shadow the shape of a postage stamp, and vanishes
-against a dark floor. See #123.
+against a dark floor. See #127.
 
 They are also rasterised through a canvas wherever a sprite is still used as a texture,
 because every sprite is an SVG with only a `viewBox` — an unreliable WebGL texture source
@@ -2022,4 +2012,80 @@ One deliberate divergence: fog darkens the **floor**, not the walls. A horizonta
 can only align at one height, and lifting it above the walls slides it off the floor by most
 of a tile at this camera pitch. Walls are static terrain both players have always known
 about; the information is in where bots and bolts are, and those are hidden by the actors.
+
+## 128. The 2.5D renderer consumes normalized replay identity and represents forms explicitly
+
+The second renderer does not get a replay-v2 parser. It receives the same version-neutral
+`ReplayModel`, `posesAt` interpolation and `replayPresentation` state as Canvas2D and the
+hosted bridge. That keeps replay-v1 behavior on the existing normalized duel identities
+while allowing Frontline to retain separate participant, stable-unit and exact-life
+identity. Bot rigs and selection are keyed by stable unit; damage, destruction and
+projectiles remain keyed by exact life, including an old life's projectile after that unit
+has respawned.
+
+Every stable unit gets a reusable rig, but it is visible only while the normalized world has
+an actor life. Locked, rebuilding and Ready child slots therefore never gain invented bodies
+or positions. A lifecycle ring appears only where the replay has an exact reserved
+fabrication tile, or at the authored automatic Prime return; queued fabrication gets the
+stronger windup. Anchor likewise displays the authoritative pending transition, keeps the
+mobile body through the windup, and switches only when the effective form changes. The
+turret is a separate circular body with eight radial vanes: stationary and 360-degree at a
+glance, without pretending its preserved body facing aims an absolute shot.
+
+Frontline objective geometry renders every authored position and promotes the active one
+from presentation state, so three-, five- and later variable-position maps use the same
+code. Projectile traversal is one shared normalized derivation with all eight headings and
+exact decimal-string identity. Canvas2D remains the default, and the self-contained CLI
+build neither includes three.js nor offers its deliberately stubbed renderer as a toggle.
+
+## 129. Frontline uses a bounded tagged binary actor protocol and one isolated WASM instance per life
+
+Protocol/configuration 0.1 remains the exact shipped line-oriented duel path. Frontline
+gets separate actor protocol/configuration 1.0 rather than reinterpreting unused legacy
+fields. Its dependency-free `NBV2` codec has a fixed 12-byte frame header and
+length-delimited tagged fields: unknown fields are skipped, while duplicate, missing
+required, malformed, truncated, invalid-UTF-8 and undefined-enum values fail closed. Host
+frames are capped at 1 MiB, guest replies at 64 KiB, semantic action/form IDs at 64 UTF-8
+bytes, bot selectors and opaque handles at 256 bytes, collection counts at 4,096 and
+nesting at 64.
+
+That encoding is an artifact-size decision, not aesthetic preference. A
+System.Text.Json NativeAOT spike produced 21.2–21.5 MiB guests and violated the existing
+16 MiB artifact ceiling. The custom codec's final tracked built-in guest is 3,341,998
+bytes with SHA-256
+`9f081e17723a9d155800c258a0613cdba319762dfff598ca35ed82241baff9e4` and input
+stamp `52e88112007186066d337ac7e7a6567044b149a7`: 785,134 bytes of growth over the
+2,556,864-byte legacy artifact, still below 1 MiB. The shared field codec lives in
+BotArena.Sdk so Guest and Runtime.Wasm cannot evolve separate wire definitions.
+
+Negotiation is active. `Hello` identifies actor-capable guests without trusting artifact
+metadata; a protocol-0.1 artifact is explicitly executable but Frontline-ineligible.
+`Ready` attests the runtime, MatchStart, observation and decision schemas compiled into
+the guest rather than echoing the host. Every released host request accepts exactly one
+correlated reply. `Fault` terminates a broken negotiation/codec/bot session, while
+`Unsupported` names a capability the artifact cannot implement so eligibility never
+silently becomes `Wait`.
+
+One submitted-artifact factory owns one Wasmtime Engine and compiled Module. Every active
+`(teamId, unitId, lifeId)` owns an independent Store, Instance, guest thread, memory,
+globals, deterministic clock/random shims and bot object. A form change keeps that exact
+life; destruction disposes it, and respawn or refabrication starts fresh private memory.
+Configuration 1.0 pins 64 MiB linear memory, 16,384 table elements, one
+memory/table/instance per Store, startup and tick fuel, epoch/wall-clock interruption and
+immediate `NOSYS` for `poll_oneoff`; modules with a WebAssembly start section are rejected
+so `_start`, ticks and MatchEnd retain an interruption path.
+
+Package 7 coordinates SDK 0.9.0, guest adapter 0.9.0, actor
+protocol/configuration 1.0, controlled build-cache provenance, the rebuilt artifact and
+CLI package 0.6.0. This is an internal canonical Frontline runtime, not a public shipment:
+CLI/App selection, server admission, evaluation and ladders remain Package 8.
+
+## Deferred decisions
+
+- Numeric limits for submissions (archive size, file counts) — Phase 3.
+- Named RNG streams (`context.Random.Stream("...")`) — not in 0.1.
+- Whether player artifacts embed one bot per artifact (likely) or use the
+  built-in-style multi-bot selector — decide when the project template lands.
+- wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
+  verify when a second platform enters CI.
 

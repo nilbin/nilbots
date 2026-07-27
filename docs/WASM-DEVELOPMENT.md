@@ -134,6 +134,54 @@ BOTARENA_WASM_BUILD_MODE=docker botarena build .
 `--native` deliberately fails outside Linux x64. `--docker` is also useful on a
 Linux workstation whose system toolchain differs from the deployment builder.
 
+## Internal Frontline actor runtime
+
+The tracked guest now supports two independent contracts. The shipped duel
+path remains line-oriented protocol/configuration 0.1. Internal Frontline uses
+the engine-independent `IActorBot` contract, SDK/Guest 0.9.0, and actor
+protocol/configuration 1.0. The public CLI/App/server does not select or admit
+that path yet.
+
+Actor 1.0 negotiates and then exchanges:
+
+```text
+Hello -> HelloAck -> MatchStart -> Ready
+      -> Observation -> Decision ...
+      -> MatchEnd
+```
+
+The dependency-free `NBV2` codec has a 12-byte frame header and
+length-delimited tagged fields. Unknown fields are skipped; duplicate,
+missing-required, malformed, truncated, invalid-UTF-8, and undefined-enum
+values fail closed. Host frames are capped at 1 MiB and guest replies at
+64 KiB. `Ready` attests the exact runtime, MatchStart, observation, and
+decision schemas compiled into the guest. Every released request accepts
+exactly one correlated reply; `Unsupported` is a typed capability response,
+while `Fault` terminates a broken guest session. The complete wire contract is
+[`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md).
+
+One `WasmActorRuntimeFactory` owns one Wasmtime Engine and compiled Module per
+submitted artifact. Every active `(teamId, unitId, lifeId)` creates an
+independent Store, Instance, guest thread, linear memory, globals,
+deterministic shims, and bot object. Form changes preserve that exact life.
+Destruction disposes it; Prime respawn or child refabrication creates fresh
+private memory.
+
+Actor configuration 1.0 enforces 64 MiB linear memory, 16,384 table elements,
+one memory/table/instance per Store, per-tick and startup fuel, epoch and
+wall-clock interruption, deterministic clock/random imports, and immediate
+`NOSYS` for `poll_oneoff`. Modules with a WebAssembly start section are
+rejected; `_start`, every released message, and MatchEnd retain an
+interruption path.
+
+The encoding was selected empirically. A System.Text.Json NativeAOT guest was
+21.2–21.5 MiB and exceeded the 16 MiB artifact ceiling. The custom codec's
+rebuilt tracked guest is 3,341,998 bytes (SHA-256
+`9f081e17723a9d155800c258a0613cdba319762dfff598ca35ed82241baff9e4`),
+785,134 bytes larger than the 2,556,864-byte legacy artifact and still less
+than 1 MiB of growth. This is internal Package 7 evidence, not a public
+Frontline release.
+
 ## What is pinned
 
 - .NET target: `net10.0`
@@ -161,11 +209,13 @@ bash scripts/e2e.sh
 ```
 
 `test.sh` always calls the input-stamped guest build first, so WASM contract
-tests cannot accidentally exercise an old tracked artifact. Contract tests
-compare in-process and WASM replay hashes, including active control and
-speed-two projectile observations. SDK/guest 0.8 also pins an arc-program
-round trip: trailing action limits, exact current eight-way headings, and a
-private programmed `Shoot` must produce the same replay through both runtimes.
+tests cannot accidentally exercise an old tracked artifact. Legacy contract
+tests compare in-process and WASM replay hashes, including active control,
+speed-two projectile observations, and the SDK/guest arc-program round trip.
+Actor SDK/guest 0.9 tests additionally pin malformed and forward-compatible
+frames, exact compile-contract attestation, old-artifact eligibility,
+request/reply correlation, typed unsupported capabilities, startup/tick/end
+interruption, observation/replay parity, and isolated per-life memory.
 
 `e2e.sh` additionally scaffolds a player bot, performs a cold build and cache
 hit, runs it in Wasmtime, verifies the replay, and builds the viewer.
@@ -173,10 +223,14 @@ hit, runs it in Wasmtime, verifies the replay, and builds the viewer.
 When changing `BotArena.Sdk`, `BotArena.Guest`, `BotArena.Bots.BuiltIn`, or
 `BotArena.WasmGuest`:
 
-1. bump `ToolchainInfo.GuestAdapterVersion` when player artifacts must rebuild;
-2. rebuild `artifacts/wasm/builtin-bots.wasm`;
-3. run `scripts/test.sh`;
-4. commit the updated tracked artifact with the source change.
+1. decide which SDK, guest adapter, legacy/actor protocol, and
+   legacy/actor-runtime-configuration axes changed; never relabel protocol
+   0.1 merely because actor 1.0 changed;
+2. bump `ToolchainInfo.GuestAdapterVersion` when player artifacts must rebuild,
+   and the CLI package/version when the enumerated release surface changes;
+3. rebuild `artifacts/wasm/builtin-bots.wasm`;
+4. run `scripts/test.sh`;
+5. commit the updated stamp and tracked artifact with the source change.
 
 ## Troubleshooting
 
