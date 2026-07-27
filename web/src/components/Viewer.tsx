@@ -445,7 +445,11 @@ export default function Viewer({
               Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees this moment.
             </div>
           ) : (
-            <Controls playback={playback} />
+            <Controls
+              playback={playback}
+              replay={replay}
+              selectedUnitKey={selectedUnitKey}
+            />
           )}
         </div>
       </div>

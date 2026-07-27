@@ -1,34 +1,35 @@
-import * as Slider from '@radix-ui/react-slider';
 import clsx from 'clsx';
 import type { PlaybackState } from '../playback';
+import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
+import Timeline from './Timeline';
 
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
 
-export default function Controls({ playback }: { playback: PlaybackState }) {
+export default function Controls({
+  playback,
+  replay,
+  selectedUnitKey,
+}: {
+  playback: PlaybackState;
+  replay: ReplayModel;
+  selectedUnitKey: ReplayStableUnitKey | null;
+}) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4">
       <div className="flex items-center gap-4">
-        <span className="font-mono text-xs text-arena-dim">
-          TICK{' '}
+        <span className="tabular font-mono text-xs text-arena-dim">
           <span className="text-arena-text">
             {String(playback.tick).padStart(3, '0')}
           </span>
           /{String(playback.tickCount - 1).padStart(3, '0')}
         </span>
-        <Slider.Root
-          className="relative flex h-5 flex-1 touch-none items-center select-none"
-          min={0}
-          max={playback.tickCount}
-          step={0.01}
-          value={[Math.min(playback.time, playback.tickCount)]}
-          onValueChange={([value]) => playback.seek(value)}
-          aria-label="Match timeline"
-        >
-          <Slider.Track className="relative h-1.5 grow rounded-full bg-arena-edge">
-            <Slider.Range className="absolute h-full rounded-full bg-arena-accent" />
-          </Slider.Track>
-          <Slider.Thumb className="block size-4 rounded-full border-2 border-arena-accent bg-arena-panel shadow focus:outline-2 focus:outline-arena-accent" />
-        </Slider.Root>
+        <div className="min-w-0 flex-1">
+          <Timeline
+            replay={replay}
+            playback={playback}
+            selectedUnitKey={selectedUnitKey}
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
