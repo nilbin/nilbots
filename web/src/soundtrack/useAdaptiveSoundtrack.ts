@@ -15,8 +15,11 @@ import {
 } from './SoundtrackEngine.ts';
 import { loadSoundtrack } from './manifest.ts';
 import {
+  DEFAULT_SOUNDTRACK_VOLUME,
   readSoundtrackEnabledPreference,
+  readSoundtrackVolumePreference,
   writeSoundtrackEnabledPreference,
+  writeSoundtrackVolumePreference,
 } from './preferences.ts';
 import type { SoundtrackController } from './SoundtrackControl';
 import {
@@ -30,8 +33,6 @@ import type {
   SoundtrackStatus,
 } from './types';
 
-const VOLUME_KEY = 'nilbots.soundtrack.volume.v1';
-const DEFAULT_VOLUME = 0.62;
 const REPLAY_TICKS_PER_SECOND = 5;
 
 interface SoundtrackPlanningGrid {
@@ -142,7 +143,7 @@ export function useAdaptiveSoundtrack({
     playResolveTail,
     playbackSpeed,
     scoreMode,
-    volume: DEFAULT_VOLUME,
+    volume: DEFAULT_SOUNDTRACK_VOLUME,
   });
   const [status, setStatus] = useState<SoundtrackStatus>(
     available
@@ -154,7 +155,9 @@ export function useAdaptiveSoundtrack({
   const [enabled, setEnabled] = useState(initiallyEnabled);
   const [title, setTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [volume, setVolumeState] = useState(readStoredVolume);
+  const [volume, setVolumeState] = useState(
+    readSoundtrackVolumePreference,
+  );
   latestRef.current = {
     replay,
     time,
@@ -409,11 +412,7 @@ export function useAdaptiveSoundtrack({
     const normalized = Math.max(0, Math.min(1, value));
     setVolumeState(normalized);
     engineRef.current?.setVolume(normalized);
-    try {
-      window.localStorage.setItem(VOLUME_KEY, String(normalized));
-    } catch {
-      // Storage can be unavailable in hardened/private browsing contexts.
-    }
+    writeSoundtrackVolumePreference(normalized);
   }, []);
 
   useEffect(() => {
@@ -622,15 +621,4 @@ function straightThroughPauseReason({
     playResolveTail,
     playbackSpeed,
   });
-}
-
-function readStoredVolume(): number {
-  try {
-    const stored = Number(window.localStorage.getItem(VOLUME_KEY));
-    return Number.isFinite(stored) && stored >= 0 && stored <= 1
-      ? stored
-      : DEFAULT_VOLUME;
-  } catch {
-    return DEFAULT_VOLUME;
-  }
 }
