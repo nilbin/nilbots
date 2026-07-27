@@ -71,3 +71,75 @@ test('a firing bot recoils, and only while its shot is in progress', () => {
 
   actors.dispose();
 });
+
+test('a bot drifts through a corner and is never still when it is not', () => {
+  const actors = buildActors(replay);
+  // A tick where a bot turns, found rather than assumed — the fixture is free to change.
+  const turn = replay.ticks.findIndex((tick) =>
+    tick.events.some((event) => event.type === 'Turn'),
+  );
+  assert.ok(turn >= 0, 'the fixture has a bot turning somewhere');
+  const turning = replay.ticks[turn].events.find((event) => event.type === 'Turn')!.slot!;
+  const chassis = chassisOf(actors.group, turning);
+  const body = chassis.children.find((child) => child.type === 'Group')!;
+
+  // Mid-turn is where the ease is steepest, so the drift is at its hardest.
+  actors.update(turn + 0.5, null, false);
+  const lean = Math.abs(body.rotation.x);
+  const slide = Math.abs(body.position.z);
+  assert.ok(lean > 0.05, `banked into the corner (${lean})`);
+  assert.ok(slide > 0.02, `back end stepped out (${slide})`);
+
+  // And the drift recovers by the end of the tick rather than leaving the bot cocked over.
+  actors.update(turn + 1, null, false);
+  assert.ok(Math.abs(body.rotation.x) < lean * 0.5, 'straightened up out of the corner');
+
+  // Idle life: a bot doing nothing still moves, and moves differently a moment later.
+  const still = replay.ticks.findIndex((tick, index) =>
+    index > 0 && tick.events.length === 0,
+  );
+  if (still > 0) {
+    const idle = chassisOf(actors.group, 0).children.find((c) => c.type === 'Group')!;
+    actors.update(still + 0.1, null, false);
+    const first = idle.position.z;
+    actors.update(still + 0.6, null, false);
+    assert.notEqual(idle.position.z, first, 'not frozen between frames');
+  }
+
+  actors.dispose();
+});
+
+test('a bot crossing tiles in a row does not stop at every boundary', () => {
+  const actors = buildActors(replay);
+  // Two consecutive Move ticks for the same bot: the case that used to stop dead between.
+  let run = -1;
+  let mover = -1;
+  for (let tick = 1; tick < replay.ticks.length - 1; tick++) {
+    for (const event of replay.ticks[tick].events) {
+      if (event.type !== 'Move') continue;
+      const again = replay.ticks[tick + 1].events.some(
+        (next) => next.type === 'Move' && next.slot === event.slot,
+      );
+      if (again) {
+        run = tick;
+        mover = event.slot!;
+      }
+    }
+    if (run >= 0) break;
+  }
+  assert.ok(run >= 0, 'the fixture has a bot moving two ticks running');
+
+  const chassis = chassisOf(actors.group, mover);
+  const sample = (t: number) => {
+    actors.update(t, null, false);
+    return chassis.position.clone();
+  };
+
+  // Speed either side of the shared tile boundary. Eased-per-tick, it was zero there.
+  const before = sample(run + 0.97).distanceTo(sample(run + 0.99));
+  const after = sample(run + 1.01).distanceTo(sample(run + 1.03));
+  assert.ok(before > 0.005, `still moving into the boundary (${before})`);
+  assert.ok(after > 0.005, `still moving out of it (${after})`);
+
+  actors.dispose();
+});

@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
 import { botLook, projectileLook, presentationAccent } from '../render/arenaThemes';
-import { boltsAt, headingAngle, posesAt } from '../render/interpolate';
+import {
+  boltsAt,
+  directionAngle,
+  headingAngle,
+  posesAt,
+  stateBefore,
+} from '../render/interpolate';
 import { replayMaxHealth } from '../replayMetadata';
 import { chassisModel } from './chassisModel';
 import { CAMERA_PITCH } from './arenaScene';
@@ -24,7 +30,8 @@ import { CAMERA_PITCH } from './arenaScene';
 
 /** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
 const BOT_HEIGHT = 0.26;
-const PROJECTILE_HOVER = 0.2;
+/** The height bolts fly at. Exported because a bolt's dissipation has to happen there too. */
+export const PROJECTILE_HOVER = 0.2;
 
 /** Where health pips hang: above the floor, and back along Z to clear the bot on screen. */
 const PIP_HEIGHT = 0.72;
@@ -49,6 +56,32 @@ const UNSELECTED_POOL = 0.72;
 
 /** Emission added at the peak of a hit, over whatever the material already emits. */
 const HIT_FLASH = 1.6;
+
+/**
+ * Idle life: what a bot does when it is doing nothing.
+ *
+ * A machine holding position was perfectly still, which is the one thing nothing alive or
+ * powered ever is. Two incommensurate rates so it never settles into a visible loop, and
+ * lateral rather than vertical because these are ground machines — a bot bobbing up and
+ * down reads as hovering, which is a different vehicle.
+ */
+const IDLE_SWAY = 0.028;
+const IDLE_YAW = 0.045;
+
+/**
+ * How hard a bot drifts through a corner.
+ *
+ * A tile grid only ever asks for 90° turns, and taken flat that is a chassis snapping to a
+ * new heading — correct, and lifeless. So the body over-rotates into the corner, banks, and
+ * lets its back end step out, then recovers as the turn finishes: a handbrake turn, which
+ * is what a fast tracked thing pivoting in its own length would actually look like.
+ *
+ * Driven by how fast the *facing* is changing, so it costs nothing when a bot drives
+ * straight, and a bot that turns and moves in the same tick drifts through the corner.
+ */
+const DRIFT_YAW = 0.5;
+const DRIFT_LEAN = 0.32;
+const DRIFT_SLIDE = 0.2;
 
 const WHITE = new THREE.Color(0xffffff);
 
@@ -472,9 +505,50 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
 
     const events = replay.ticks[tick]?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));
+    // The facings this tick runs between, so a turn's *rate* can be derived rather than
+    // remembered. Frame-to-frame memory would make a scrub read as a violent spin, and
+    // would give a paused bot a drift that depended on how the playhead got there.
+    const opening = stateBefore(replay, tick);
+    const closing = stateBefore(replay, tick + 1);
+    // The tiles either side of this tick's, so movement can be splined through them.
+    const previous = stateBefore(replay, tick - 1);
+    const next = stateBefore(replay, tick + 2);
+    // `posesAt` eases rotation with a cubic, so the turn is fastest mid-tick; this is that
+    // ease's slope, normalised so a full 90° swing peaks at 1.
+    const easeSlope = fraction < 0.5 ? 4 * fraction : 4 * (1 - fraction);
     // Beams and impacts land in the second half of the tick, after movement has settled —
     // the same window the flat renderer uses, so a hit lands at the same instant in both.
     const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
+
+    /**
+     * Where a bot is, splined through the tiles either side of the one it is crossing.
+     *
+     * `posesAt` eases each tick independently, which is right for the flat renderer and
+     * wrong here: a bot crossing four tiles in a row accelerates and comes to a **complete
+     * stop** at every tile boundary, four times, which reads as stepping rather than
+     * driving. A Catmull-Rom through the previous and next tiles gives continuous velocity
+     * across a run of moves, and — because a stationary bot's neighbouring tiles are the
+     * same tile — still eases in and out of a stop for free, with no special case.
+     *
+     * It also cuts corners very slightly, which on a grid that only turns 90° is exactly
+     * what a machine carrying speed through a corner does.
+     *
+     * Position only. Facing still comes from `posesAt`, so both renderers swing a bot
+     * through the same arc, and the tile a bot is *on* is never in question — this only
+     * changes the path taken between two tiles the replay already recorded.
+     */
+    const glideAt = (slot: number) => {
+      const at = (states: typeof opening) => states.find((state) => state.slot === slot);
+      const p1 = at(opening);
+      const p2 = at(closing);
+      if (!p1 || !p2) return { x: 0, y: 0 };
+      const p0 = at(previous) ?? p1;
+      const p3 = at(next) ?? p2;
+      return {
+        x: catmullRom(p0.x, p1.x, p2.x, p3.x, fraction),
+        y: catmullRom(p0.y, p1.y, p2.y, p3.y, fraction),
+      };
+    };
 
     for (const pose of posesAt(replay, time)) {
       const bot = bots[pose.slot];
@@ -489,7 +563,8 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       const collapse = dying ? Math.max(0, Math.min((fraction - 0.55) / 0.45, 1)) : 0;
 
       bot.chassis.visible = pose.status === 'Active' || dying;
-      bot.chassis.position.set(pose.x + 0.5, 0, pose.y + 0.5);
+      const glide = glideAt(pose.slot);
+      bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
       bot.highlight(pose.slot === selectedSlot && pose.status === 'Active');
 
       // Pips follow rather than ride, and sit forward of the bot in *screen* terms — a
@@ -512,6 +587,21 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // renderer uses, so both viewers swing a bot through exactly the same arc.
       bot.chassis.rotation.y = -pose.angle;
 
+      // How hard this bot is swinging through a corner right now, as −1…1.
+      const from = opening.find((state) => state.slot === pose.slot);
+      const to = closing.find((state) => state.slot === pose.slot);
+      const swing =
+        from && to
+          ? shortestTurn(directionAngle(from.facing), directionAngle(to.facing)) * easeSlope
+          : 0;
+      const drift = Math.max(-1, Math.min(swing / Math.PI, 1)) * (1 - collapse);
+
+      // Idle life, damped out while drifting so the two are not fighting for the same axis,
+      // and while dying so a wreck does not keep breathing.
+      const idle = (1 - Math.abs(drift)) * (1 - collapse);
+      const sway = Math.sin(time * 1.7 + pose.slot * 2.2) * 0.6
+        + Math.sin(time * 2.9 + pose.slot * 4.1) * 0.4;
+
       // Recoil is a kick *backwards along the facing*, which in the chassis' own frame is
       // simply −x — one of the things that gets easier once a bot is an object with an
       // orientation instead of a sprite being rotated about a point.
@@ -522,7 +612,15 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       bot.chassis.rotation.x = collapse * 0.22;
       bot.chassis.position.y = -collapse * BOT_HEIGHT * 0.55;
       bot.chassis.scale.setScalar(1 - collapse * 0.16);
+
+      // Everything the body does relative to the chassis it is bolted into: the recoil kick
+      // backwards, the drift's slide sideways and lean into the corner, and the idle sway.
+      // The chassis keeps the authoritative position and heading; none of this moves the
+      // bot off the tile the replay says it is on.
       bot.body.position.x = -kick;
+      bot.body.position.z = drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
+      bot.body.rotation.y = -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
+      bot.body.rotation.x = drift * DRIFT_LEAN;
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
@@ -625,6 +723,26 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // them would leave the next match holding disposed buffers.
     },
   };
+}
+
+/**
+ * Catmull-Rom through four samples, evaluated between the middle two.
+ *
+ * Tangents are damped to 0.4 of the standard half-difference. At the full 0.5 a bot leaving
+ * a corner at speed bulges far enough outside it to clip the wall it is driving around;
+ * this keeps the cut small enough to read as carrying speed rather than as a bug.
+ */
+function catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {
+  const m1 = (p2 - p0) * 0.4;
+  const m2 = (p3 - p1) * 0.4;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return (
+    (2 * t3 - 3 * t2 + 1) * p1 +
+    (t3 - 2 * t2 + t) * m1 +
+    (-2 * t3 + 3 * t2) * p2 +
+    (t3 - t2) * m2
+  );
 }
 
 /** The signed angle to turn through, taking the short way round. */

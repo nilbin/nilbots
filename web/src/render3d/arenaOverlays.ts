@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import type { ReplayDocument } from '../types';
+import { spentBoltsAt } from '../render/interpolate';
+import { PROJECTILE_HOVER } from './arenaActors';
 import { presentationAccent, botLook } from '../render/arenaThemes';
 
 /**
@@ -17,6 +19,7 @@ const FOG_STRENGTH = 0.82;
 
 /** How far the camera is thrown by a direct kill, in tiles. */
 const SHAKE_REACH = 0.14;
+
 
 export interface ArenaOverlays {
   group: THREE.Group;
@@ -44,6 +47,9 @@ export function buildOverlays(replay: ReplayDocument): ArenaOverlays {
   const flashes = buildFlashes(replay, disposables);
   group.add(flashes.group);
 
+  const spent = buildSpentBolts(replay, disposables);
+  group.add(spent.group);
+
   let painted = '';
 
   const update = (time: number, selectedSlot: number | null, showVisibility: boolean) => {
@@ -64,6 +70,7 @@ export function buildOverlays(replay: ReplayDocument): ArenaOverlays {
     }
 
     flashes.update(tick, fraction);
+    spent.update(time);
   };
 
   /**
@@ -266,6 +273,64 @@ function buildFlashes(
       const own = mesh.material as THREE.MeshBasicMaterial;
       own.color.copy(flash.colour ?? impact);
       own.opacity = decay * decay;
+    }
+    for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/**
+ * The puff a bolt leaves when it runs out of range.
+ *
+ * A ring rather than a blob: a bolt dissipating outward reads as something coming apart,
+ * where a fading dot reads as the renderer losing track of it. It expands and thins on the
+ * same curve, so it is gone by the end of the tick it is drawn in — long enough to see,
+ * short enough that a busy exchange is not full of ghosts.
+ */
+function buildSpentBolts(
+  replay: ReplayDocument,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (time: number) => void } {
+  const group = new THREE.Group();
+  const geometry = new THREE.RingGeometry(0.12, 0.34, 24);
+  geometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry);
+
+  const accents = replay.header.participants.map((participant, slot) =>
+    new THREE.Color(
+      presentationAccent(botLook(participant?.lookId, slot), participant?.accent ?? '#38bdf8'),
+    ),
+  );
+
+  const pool: THREE.Mesh[] = [];
+  const borrow = (index: number) => {
+    while (pool.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.visible = false;
+      group.add(mesh);
+      pool.push(mesh);
+      disposables.push(material);
+    }
+    return pool[index];
+  };
+
+  const update = (time: number) => {
+    let used = 0;
+    for (const bolt of spentBoltsAt(replay, time)) {
+      const mesh = borrow(used++);
+      mesh.visible = true;
+      mesh.position.set(bolt.x + 0.5, PROJECTILE_HOVER, bolt.y + 0.5);
+      mesh.scale.setScalar(0.6 + bolt.age * 2.2);
+      const material = mesh.material as THREE.MeshBasicMaterial;
+      material.color.copy(accents[bolt.ownerSlot] ?? accents[0]);
+      material.opacity = (1 - bolt.age) ** 2 * 0.9;
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
   };

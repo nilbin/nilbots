@@ -185,6 +185,58 @@ export function boltsAt(replay: ReplayDocument, time: number): BoltPose[] {
   return poses;
 }
 
+export interface SpentBolt {
+  id: number;
+  ownerSlot: number;
+  /** Where it was when it stopped existing. */
+  x: number;
+  y: number;
+  /** 0 at the instant it went, 1 when the dissipation is over. */
+  age: number;
+}
+
+/**
+ * Bolts that stopped existing, and where they were when they did.
+ *
+ * A projectile reaching the end of its range simply left the replay, and the renderer
+ * simply stopped drawing it — a bolt in flight one frame and nothing the next. Whatever it
+ * ran out of, it did not run out of it instantaneously.
+ *
+ * Derived like everything else here rather than watched for: a bolt is **dead in tick D** if
+ * the engine listed it alive after D−1 and not after D. That is a fact about the document,
+ * so scrubbing backwards past a despawn does not strand a puff of light in mid-air, and
+ * scrubbing forwards over one does not skip it.
+ *
+ * The burst is drawn in the tick *after* the death, because the bolt itself is still being
+ * drawn during D — it travels its last leg and expires at the end of it.
+ */
+export function spentBoltsAt(replay: ReplayDocument, time: number): SpentBolt[] {
+  const tickCount = replay.ticks.length;
+  const tick = Math.min(Math.floor(Math.max(0, time)), tickCount - 1);
+  const fraction = Math.max(0, Math.min(time - tick, 1));
+  const before = replay.ticks[tick - 2];
+  const died = replay.ticks[tick - 1];
+  if (!before || !died) return [];
+
+  const survived = new Set((died.projectiles ?? []).map((bolt) => bolt.id ?? 0));
+  const spent: SpentBolt[] = [];
+  for (const bolt of before.projectiles ?? []) {
+    const id = bolt.id ?? 0;
+    if (survived.has(id)) continue;
+    // Its last leg, if it moved before expiring; otherwise it died where it sat.
+    const move = (died.projectileTraversals ?? []).find((each) => each.id === id);
+    const last = move?.path[move.path.length - 1];
+    spent.push({
+      id,
+      ownerSlot: bolt.ownerSlot,
+      x: last ? last[0] : bolt.x,
+      y: last ? last[1] : bolt.y,
+      age: fraction,
+    });
+  }
+  return spent;
+}
+
 export function headingBetween(
   fromX: number,
   fromY: number,
