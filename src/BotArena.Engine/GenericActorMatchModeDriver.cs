@@ -39,6 +39,22 @@ internal abstract record GenericActorModeState
 
         public DeathmatchScoreState Scores { get; }
     }
+
+    internal sealed record Frontline : GenericActorModeState
+    {
+        public Frontline(
+            FrontlineControlState control,
+            FrontlineScoreState scores)
+        {
+            ArgumentNullException.ThrowIfNull(control);
+            ArgumentNullException.ThrowIfNull(scores);
+            Control = control;
+            Scores = scores;
+        }
+
+        public FrontlineControlState Control { get; }
+        public FrontlineScoreState Scores { get; }
+    }
 }
 
 internal sealed record GenericActorModeWorldView
@@ -303,5 +319,27 @@ internal abstract record GenericActorModeCompletion
         }
 
         public GenericDeathmatchResult CompatibilityResult { get; }
+    }
+
+    internal sealed record Frontline : GenericActorModeCompletion
+    {
+        public Frontline(
+            string completionReason,
+            int endTick,
+            TeamStandings standings,
+            GenericFrontlineEndReason reason,
+            GenericActorRuntimeObservation.ModeObservationState.Frontline
+                control,
+            FrontlineScoreState scores)
+            : base(
+                completionReason,
+                endTick,
+                standings,
+                new GenericActorMatchModeResult.Frontline(
+                    reason,
+                    control,
+                    scores))
+        {
+        }
     }
 }

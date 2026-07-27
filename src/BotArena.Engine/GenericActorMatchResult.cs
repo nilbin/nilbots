@@ -144,5 +144,18 @@ public sealed record GenericActorMatchResult
                     nameof(mode));
             }
         }
+        else if (mode is GenericActorMatchModeResult.Frontline frontline)
+        {
+            int[] scoreTeams = frontline.Scores.Teams
+                .Select(score => score.TeamId)
+                .ToArray();
+            if (scoreTeams.Length != standingTeams.Count
+                || !scoreTeams.ToHashSet().SetEquals(standingTeams))
+            {
+                throw new ArgumentException(
+                    "Frontline terminal scores must cover every standing team.",
+                    nameof(mode));
+            }
+        }
     }
 }

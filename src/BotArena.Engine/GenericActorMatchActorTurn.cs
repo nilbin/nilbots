@@ -148,11 +148,13 @@ public sealed record GenericActorMatchActorTurn
             }
         }
 
-        // The current generic Deathmatch resolver preserves the admitted
-        // selector and arguments when gameplay marks it blocked or rejected.
-        // Keeping this mode-owned invariant here prevents a replay from
-        // substituting an unrelated, merely catalog-valid action.
-        if (definition.Rules.GameMode is DeathmatchGameModeDefinition
+        // The generic actor resolver preserves the admitted selector and
+        // arguments when gameplay marks it blocked or rejected. Keeping this
+        // invariant here prevents a replay from substituting an unrelated,
+        // merely catalog-valid action.
+        if (definition.Rules.GameMode
+                is DeathmatchGameModeDefinition
+                    or FrontlineGameModeDefinition
             && !ResolvedActionsSemanticallyEqual(
                 ActionResolution.AcceptedAction,
                 ActionResolution.ValidatedAction))

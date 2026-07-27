@@ -27,4 +27,45 @@ public abstract record GenericActorMatchModeResult
         public GenericDeathmatchEndReason Reason { get; }
         public DeathmatchScoreState Scores { get; }
     }
+
+    public sealed record Frontline : GenericActorMatchModeResult
+    {
+        public Frontline(
+            GenericFrontlineEndReason reason,
+            GenericActorRuntimeObservation.ModeObservationState.Frontline
+                control,
+            FrontlineScoreState scores)
+        {
+            if (!Enum.IsDefined(reason))
+                throw new ArgumentOutOfRangeException(nameof(reason));
+            ArgumentNullException.ThrowIfNull(control);
+            ArgumentNullException.ThrowIfNull(scores);
+            if (!string.Equals(
+                    control.ModeId,
+                    FrontlineGameModeDefinition.Id,
+                    StringComparison.Ordinal)
+                || control.ActivePositionIndex < 0
+                || control.ClaimingTeamId is < 0
+                || control.CaptureProgress < 0
+                || control.DecayTicksElapsed < 0
+                || control.ControlResumesAtTick < 0
+                || (control.ClaimingTeamId is null)
+                    != (control.CaptureProgress == 0))
+            {
+                throw new ArgumentException(
+                    "Frontline terminal control must be a valid public Frontline state.",
+                    nameof(control));
+            }
+
+            Reason = reason;
+            Control = control;
+            Scores = scores;
+        }
+
+        public GenericFrontlineEndReason Reason { get; }
+        public GenericActorRuntimeObservation.ModeObservationState.Frontline
+            Control
+        { get; }
+        public FrontlineScoreState Scores { get; }
+    }
 }

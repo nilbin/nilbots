@@ -18,6 +18,15 @@ internal static class GenericActorMatchModeDriverFactory
             ) => new DeathmatchActorMatchModeDriver(
                 definition.Topology,
                 mode),
+            (
+                FrontlineGameModeDefinition mode,
+                FrontlineActorModeMapBindingDefinition binding
+            ) => new FrontlineActorMatchModeDriver(
+                definition.Topology,
+                definition.Map,
+                definition.Rules.Forms,
+                mode,
+                binding),
             _ => throw new ArgumentException(
                 "GenericActorMatchSession does not support this exact game-mode and map-binding pair.",
                 nameof(definition)),

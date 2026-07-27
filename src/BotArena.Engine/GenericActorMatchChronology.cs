@@ -52,6 +52,15 @@ public sealed record GenericActorMatchChronology
             initialFrame,
             tickSnapshot,
             result);
+        if (descriptor.Definition.Rules.GameMode
+            is FrontlineGameModeDefinition)
+        {
+            GenericFrontlineChronologyEvidence.Validate(
+                descriptor.Definition,
+                initialFrame,
+                tickSnapshot,
+                result);
+        }
         ValidateFactChronology(initialFrame, tickSnapshot);
         if (result is not null)
         {
@@ -290,6 +299,10 @@ public sealed record GenericActorMatchChronology
             new Dictionary<ActorIdentity, HashSet<string>>();
         foreach (GenericActorMatchTickFrame frame in ticks)
         {
+            ValidateConfiguredSameLifeCompletionBoundaries(
+                definition,
+                frame,
+                nameof(ticks));
             ValidateDerivedActiveHealth(
                 definition,
                 frame.TickStart.State,
@@ -321,6 +334,57 @@ public sealed record GenericActorMatchChronology
                 irreversibleReturnForms,
                 nameof(ticks));
             previousState = frame.PostState;
+        }
+    }
+
+    private static void ValidateConfiguredSameLifeCompletionBoundaries(
+        ActorResolvedMatchDefinition definition,
+        GenericActorMatchTickFrame frame,
+        string parameterName)
+    {
+        ValidateConfiguredSameLifeCompletionBoundary(
+            definition,
+            frame.TickStart.Events,
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                .TickStartAfterDuration,
+            parameterName);
+        ValidateConfiguredSameLifeCompletionBoundary(
+            definition,
+            frame.Events,
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate,
+            parameterName);
+    }
+
+    private static void ValidateConfiguredSameLifeCompletionBoundary(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+            expectedCompletion,
+        string parameterName)
+    {
+        foreach (GenericActorAuthoritativeEvent item in events.Where(item =>
+                     item.Kind
+                         == GenericActorRuntimeObservation.EventKind
+                             .FormTransitionCompleted))
+        {
+            var payload =
+                (GenericActorRuntimeObservation.EventPayload.FormTransition)
+                    item.Payload;
+            ActorFormTransitionDefinition? transition = definition.Rules
+                .SameLifeTransitions
+                .OfType<ActorFormTransitionDefinition>()
+                .SingleOrDefault(value => string.Equals(
+                    value.TransitionId,
+                    payload.TransitionId,
+                    StringComparison.Ordinal));
+            if (transition is not null
+                && transition.Windup.Completion != expectedCompletion)
+            {
+                throw new ArgumentException(
+                    "A same-life completion must be recorded at its configured completion boundary.",
+                    parameterName);
+            }
         }
     }
 
@@ -395,11 +459,16 @@ public sealed record GenericActorMatchChronology
         if (overdueStates.Length == 0)
             return;
 
-        bool isFaultTerminal =
-            result?.Mode
-                is GenericActorMatchModeResult.Deathmatch deathmatch
-            && deathmatch.Reason
-                == GenericDeathmatchEndReason.FaultEligibility;
+        bool isFaultTerminal = result?.Mode switch
+        {
+            GenericActorMatchModeResult.Deathmatch deathmatch =>
+                deathmatch.Reason
+                    == GenericDeathmatchEndReason.FaultEligibility,
+            GenericActorMatchModeResult.Frontline frontline =>
+                frontline.Reason
+                    == GenericFrontlineEndReason.FaultEligibility,
+            _ => false,
+        };
         GenericActorWorldSnapshot? finalState =
             ticks.Count == 0
                 ? null
@@ -1030,8 +1099,6 @@ public sealed record GenericActorMatchChronology
         ActorResolvedMatchDefinition definition,
         GenericActorWorldSnapshot postState)
     {
-        if (definition.Rules.GameMode is not DeathmatchGameModeDefinition)
-            return false;
         HashSet<int> disqualified = postState.Participants
             .Where(participant => participant.Disqualified)
             .Select(participant => participant.ParticipantId)
@@ -1515,10 +1582,20 @@ public sealed record GenericActorMatchChronology
                 nameof(result));
         }
 
-        bool isDeathmatch = descriptor.Definition.Rules.GameMode
-            is DeathmatchGameModeDefinition;
-        if (isDeathmatch
-            != (result.Mode is GenericActorMatchModeResult.Deathmatch))
+        bool modeMatches =
+            (descriptor.Definition.Rules.GameMode, result.Mode) switch
+            {
+                (
+                    DeathmatchGameModeDefinition,
+                    GenericActorMatchModeResult.Deathmatch
+                ) => true,
+                (
+                    FrontlineGameModeDefinition,
+                    GenericActorMatchModeResult.Frontline
+                ) => true,
+                _ => false,
+            };
+        if (!modeMatches)
         {
             throw new ArgumentException(
                 "Terminal mode facts must match the resolved game mode.",
@@ -1568,7 +1645,8 @@ public sealed record GenericActorMatchChronology
         }
 
         ValidateTerminalScores(finalState, result);
-        if (isDeathmatch)
+        if (descriptor.Definition.Rules.GameMode
+            is DeathmatchGameModeDefinition)
         {
             GenericDeathmatchResultEvidence.Validate(
                 descriptor.Definition,
@@ -1678,6 +1756,42 @@ public sealed record GenericActorMatchChronology
                     "Terminal standings scores must exactly match the final authoritative scoreboard.",
                     nameof(result));
             }
+        }
+
+        if (result.Mode
+            is GenericActorMatchModeResult.Frontline frontline)
+        {
+            string frontlineCompletionReason = frontline.Reason switch
+            {
+                GenericFrontlineEndReason.FaultEligibility =>
+                    "fault-eligibility",
+                GenericFrontlineEndReason.BaseBreach => "base-breach",
+                GenericFrontlineEndReason.MaxTicks => "max-ticks",
+                _ => throw new ArgumentOutOfRangeException(nameof(result)),
+            };
+            if (!string.Equals(
+                    result.CompletionReason,
+                    frontlineCompletionReason,
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Frontline completion reason must match its typed terminal reason.",
+                    nameof(result));
+            }
+            foreach (FrontlineTeamScore score in frontline.Scores.Teams)
+            {
+                if (!ScoreMatches(
+                        scoreboard[score.TeamId],
+                        ScoreChannelDefinition.ChannelKind
+                            .TerritorialProgress,
+                        score.TerritorialProgress))
+                {
+                    throw new ArgumentException(
+                        "Frontline terminal scores must match every corresponding final scoreboard channel.",
+                        nameof(result));
+                }
+            }
+            return;
         }
 
         if (result.Mode is not
