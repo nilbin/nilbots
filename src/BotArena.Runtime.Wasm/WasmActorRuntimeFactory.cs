@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using BotArena.Engine;
 using Wasmtime;
 using WasmtimeEngine = Wasmtime.Engine;
@@ -17,6 +18,13 @@ public sealed class WasmActorRuntimeFactory : IActorRuntimeFactory
     private Module? _module;
     private int _activeRuntimes;
 
+    /// <summary>
+    /// SHA-256 of the exact bytes captured, validated, and compiled by this
+    /// factory. Replay provenance should use this value rather than rereading
+    /// a path that another process could replace.
+    /// </summary>
+    public string ArtifactHash { get; }
+
     public WasmActorRuntimeFactory(WasmRuntimeOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -24,6 +32,8 @@ public sealed class WasmActorRuntimeFactory : IActorRuntimeFactory
         byte[] artifactBytes =
             WasmArtifactValidator.ReadArtifact(options.ModulePath);
         WasmArtifactValidator.ValidateBinaryEnvelope(artifactBytes);
+        ArtifactHash = Convert.ToHexStringLower(
+            SHA256.HashData(artifactBytes));
         var engine = new WasmtimeEngine(
             new Config()
                 .WithFuelConsumption(true)

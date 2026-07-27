@@ -18,37 +18,40 @@ wrong; it changes which document is the current entry point.
 ## Active Frontline and ML work
 
 - [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) —
-  package order and current code boundary. Packages 0–7 are implemented on
-  the internal experimental path: canonical per-life runtime/observation,
-  replay v2, replication, fabrication, Anchor, actor SDK/Guest,
-  protocol/configuration 1.0, canonical WASM life instances, and
-  viewer/mobile mirrors. Public product admission/evaluation remains Package
-  8.
+  package order and current code boundary. Packages 0–7 plus Package 8's
+  local runner/evaluator slice are implemented: canonical per-life
+  runtime/observation, replay v2, replication, fabrication, Anchor, actor
+  SDK/Guest, protocol/configuration 1.0, canonical WASM life instances,
+  viewer/mobile mirrors, reference doctrines, and descriptive dynamics.
+  Hosted product admission and the independent product verdict remain.
 - [`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) — exploratory
   gameplay and architecture envelope, including the implemented
   runtime/replication/Anchor checkpoint. Numeric values remain experiment
   arms, not balance verdicts.
 - [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md) — concise
-  player/bot contract for the frozen internal experiment. It is not the
-  shipped player guide or an SDK/protocol availability claim.
+  player/bot contract and local CLI instructions for the frozen experiment.
+  It is not the shipped player guide or a ranked/server availability claim.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, replay v2, datasets, and bounded model assets.
-  Its internal Frontline observation/replay seam is implemented; dataset,
+  Its local experimental Frontline observation/replay seam is implemented;
+  dataset,
   corpus, model-asset, inference, and public-product packages remain planned.
 - [`EVALUATION-METHODOLOGY.md`](EVALUATION-METHODOLOGY.md) — required evidence
   policy before any rules experiment is promoted.
 
-Frontline remains unshipped despite having an internal contract and viewer.
-The internal actor SDK/Guest, protocol/configuration 1.0, and canonical
-per-life WASM runner are implemented, but CLI/App match selection, server
-admission, evaluation, and ranked ladders still expose only the supported
-historical product paths. Protocol/configuration 0.1 remains the exact
-shipped duel contract.
+Frontline remains unshipped despite having an experimental contract and
+viewer.
+The actor SDK/Guest, protocol/configuration 1.0, canonical per-life WASM
+runner, local experimental CLI, and descriptive evaluator are implemented.
+Historical `play`, App/server admission, independently authored product
+evaluation, and ranked ladders still expose only the supported historical
+product paths. Protocol/configuration 0.1 remains the exact shipped duel
+contract.
 
 ## Current technical and product references
 
 - [`REPLAY-FORMAT.md`](REPLAY-FORMAT.md) — replay version 1. Preserve its
-  semantics and hashes. Its status note points to the separate internal
+  semantics and hashes. Its status note points to the separate locally emitted
   observation-complete replay-v2 experiment without mutating the v1 contract.
 - [`WASM-DEVELOPMENT.md`](WASM-DEVELOPMENT.md) — current controlled
   NativeAOT/WASM build and runtime workflow.

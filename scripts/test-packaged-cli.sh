@@ -30,8 +30,18 @@ cd "$nilbots_work_dir"
   --opponent hunter \
   --seed 42 \
   --out "$nilbots_work_dir/replay"
+"$nilbots_tool_dir/nilbots" experiment frontline \
+  --bot frontline-rusher \
+  --opponent frontline-bastion \
+  --seed 42 \
+  --out "$nilbots_work_dir/frontline"
 
 test -f "$nilbots_work_dir/PackageSmoke/lib/BotArena.Sdk.dll"
 test -f "$nilbots_work_dir/replay/replay.json"
 test -f "$nilbots_work_dir/replay/viewer.html"
+test -f "$nilbots_work_dir/frontline/replay.json"
+test -f "$nilbots_work_dir/frontline/viewer.html"
+grep -q '"replayVersion":2' "$nilbots_work_dir/frontline/replay.json"
+grep -q '"gameRulesVersion":"frontline-alpha-1"' \
+  "$nilbots_work_dir/frontline/replay.json"
 echo "Packaged CLI smoke test passed."

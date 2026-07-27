@@ -109,6 +109,68 @@ a tense 80-tick game merely because an older instant-ray game ended in 40.
 Long repetitive tails should fail through loop/stall evidence and replay
 review, not through a blanket “new median must be lower” rule.
 
+## Frontline replay-v2 dimensions
+
+Frontline uses `scripts/frontline-replay-eval.py` rather than weakening the
+historical slot-based evaluator with optional v2 fields. It accepts only
+complete replay-version-2 documents with contiguous ticks and emits a
+versioned JSON report containing every per-match row. The report is
+descriptive evidence, not a causal or product verdict.
+
+A repeated group label must resolve to one rules version and fingerprint or
+the analyzer rejects it. Maps, match fingerprints, participant artifacts, and
+runtime kinds remain explicit cohort metadata so a mixed diagnostic/WASM run
+or accidental map mixture cannot hide behind one aggregate label.
+
+Its phase boundary is contract-owned:
+
+- `durationTicks = result.endTick + 1`;
+- `durationSeconds = durationTicks / 5`, matching normal viewer playback;
+- the ending phase index is the count of
+  `frontlineDefinition.lifecycle.fabricationUnlockTicks` at or before the end
+  tick;
+- the current two-unlock contract names phase 0/1/2 early/mid/late; a future
+  unlock count is reported as `phase-N` rather than forced into those names.
+
+Replication and Anchor metrics use authoritative contracts/events:
+
+- fabrication opportunities come from per-actor action masks; attempts from
+  chosen actions; successful queues from `fabrication-queued`; births from
+  tick-start `fabricated`;
+- unlock-to-queue latency is measured against the targeted stable child
+  slot for its initial `fabrication` queue; later `rebuild` queues are counted
+  but do not get falsely measured from the original unlock. Child actor-ticks
+  and peak simultaneous bodies are reported separately;
+- Anchor attempts/starts/completions/cancellations use the contract action and
+  form-transition events;
+- turret actor-ticks use the effective observation form; turret shots use the
+  turret-fire action; damage and kills follow exact projectile identity so an
+  old life retains attribution.
+
+Territorial score is re-derived from every post-state using the public
+contract:
+
+```text
+(activePositionIndex - centreIndex) * captureThreshold
+  + claimingTeamAdvanceDelta * captureProgress
+```
+
+The analyzer reports pushes, opposite-direction push reversals, non-zero lead
+changes, and whether a winner was previously behind by any or at least one
+full capture threshold. A same-rules replay report can describe these facts;
+calling them effects of a turret or tune still requires a frozen paired arm.
+
+An actorless tick has no active life for the named team. A stagnant tick has
+identical tick-start and post-state after removing only
+`objective.nextTick`, no tick-start lifecycle event, and no projectile
+traversal. Run counts, lengths, histograms, and weighted tick shares stay
+visible; no new cutoff is smuggled into the evaluator.
+
+The built-in `frontline-rusher`, `frontline-swarm`, `frontline-bastion`, and
+`frontline-counterpunch` policies are one-author smoke/calibration fixtures.
+They exercise the pipeline but do **not** count toward the four independently
+authored native doctrines required for a substantial product verdict.
+
 ## Baseline holdout guardrails
 
 These thresholds governed the first prospective territorial-v8 holdout and
@@ -172,8 +234,10 @@ Numbers cannot certify entertainment. Before reading aggregate outcomes:
 1. Select at least 12 replays from the native candidate tournament with
    `scripts/replay-review-sample.py`. It uses headers only, balances maps and
    bot pairings, and orders by a recorded deterministic seed.
-2. Convert each selected replay to self-contained HTML:
-   `scripts/botarena replay <replay.json> --out <sample-dir>`.
+2. For replay v1, convert each selected replay to self-contained HTML with
+   `scripts/botarena replay <replay.json> --out <sample-dir>`. For Frontline
+   v2, preserve the `viewer.html` emitted beside each replay by
+   `nilbots experiment frontline`.
 3. Watch at normal five-ticks-per-second presentation, preferably on both
    phone and desktop. Do not reveal winner, reason, damage, or duration first.
 4. Record 1–5 ratings for legibility, sustained tension, visible
@@ -198,6 +262,14 @@ python3 scripts/balance-eval.py --bots a=... b=... \
 python3 scripts/replay-dynamics-eval.py \
   --group current=/tmp/run/block1/<candidate> \
   --group current=/tmp/run/block2/<candidate>
+
+# Run and measure Frontline replay-v2 calibration/holdout blocks.
+nilbots experiment frontline --bot <actor-a> --opponent <actor-b> \
+  --runtime wasm --seeds 101,202,303 --out /tmp/frontline/block-1
+python3 scripts/frontline-replay-eval.py \
+  --group current=/tmp/frontline/block-1 \
+  --group current=/tmp/frontline/block-2 \
+  --json /tmp/frontline/report.json
 
 # Freeze a reproducible header-only review sample.
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \

@@ -28,14 +28,17 @@ envelope. All current numeric values are experiment arms, not conclusions.
 Rules 0.5 remains the shipped design until Frontline passes deterministic,
 native-policy, dynamics, and blind-viewer gates.
 
-The internal mechanics checkpoint is now implemented through replication and
-Anchor: independently executing same-artifact lives, frozen shared team
-perception, fabrication/rebuild, life-scoped mobile-to-turret transformation,
-absolute eight-way turret fire, strict replay v2, and web/mobile presentation.
-That proves architecture and causality only. No native Frontline cohort,
-same-cohort causal balance run, duration distribution, or outcome-blind
-entertainment review has been completed, so the strong-turret values remain
-unpromoted starting arms.
+The mechanics and local authoring checkpoint is now implemented through
+replication and Anchor: independently executing same-artifact lives, frozen
+shared team perception, fabrication/rebuild, life-scoped mobile-to-turret
+transformation, absolute eight-way turret fire, strict replay v2, web/mobile
+presentation, an explicit local experiment command, four reference doctrines,
+and a replay-v2 dynamics analyzer. That proves architecture, causality, and
+that the mechanics are exercisable; the reference doctrines were written
+together and are calibration fixtures, not independent evidence. No native
+Frontline cohort, same-cohort causal balance run, duration distribution, or
+outcome-blind entertainment review has been completed, so the strong-turret
+values remain unpromoted starting arms.
 
 ## Where the game stands (evidence: agent-arena tournament, 2026-07-22)
 

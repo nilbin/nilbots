@@ -111,25 +111,29 @@ Project boundaries that must not be violated:
   `PublicRulesManifestFactory` projects `GameRules`, `ArenaMap`, and exact
   scoring-team/submitted-participant/stable-unit-slot/initial-life topology
   into explicitly ordered canonical rules, map, and aggregate fingerprints.
-  Shipped protocol 0.1 and replay v1 do not deliver or embed it; the internal
-  Frontline replay v2 embeds it for the experimental runtime and viewer.
-- Frontline is an unshipped experiment implemented internally through
-  Package 7. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
-  continue through legacy `MatchSession`, runtime protocol 0.1, replay v1, and
-  map format 1. Experimental map format 2, exact rules/map/topology
-  fingerprints, `FrontlineMatchSession`, independently instantiated per-life
+  Shipped protocol 0.1 and replay v1 do not deliver or embed it; experimental
+  Frontline replay v2 embeds it for the actor runtime and viewer.
+- Frontline is an unshipped experiment whose core is implemented through
+  Packages 0–7, with Package 8's local runner/evaluator slice now present.
+  Official rules 0.1–0.5 leave `GameRules.Frontline` null and continue through
+  legacy `MatchSession`, runtime protocol 0.1, replay v1, and map format 1.
+  Experimental map format 2, exact rules/map/topology fingerprints,
+  `FrontlineMatchSession`, independently instantiated per-life
   `ActorRuntime`s, canonical team observations, replication/fabrication,
-  per-life Anchor/turret forms, internal replay v2, engine-independent actor
-  SDK/Guest adapters, actor protocol/configuration 1.0, and canonical isolated
-  WASM life instances exist. Web/mobile can present v2 through their
+  per-life Anchor/turret forms, experimental replay v2, engine-independent
+  actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
+  isolated WASM life instances exist. Web/mobile can present v2 through their
   version-neutral replay model; the web viewer's default Canvas2D and optional
   lazy WebGL 2.5D renderers share those derivations. The self-contained CLI
   viewer excludes Three.js. Manual GPU/mobile QA remains for the optional
-  renderer. The public CLI/App match path, server admission, evaluation
-  corpus, and ladders do not expose Frontline yet. Format-v2 assets live under
-  `maps/experimental/`; current App and CLI catalogs/package inputs enumerate
-  only top-level format-v1 maps, and legacy `MatchEngine` still rejects a
-  Frontline definition defensively.
+  renderer. Package 8 now exposes this only through the explicit local
+  `nilbots experiment frontline` command, which emits replay v2 and has a
+  separate descriptive evaluation tool. Historical `play`, App/server
+  admission, replay-v1 summary/verification, and ladders still do not select
+  Frontline. Format-v2 assets live under `maps/experimental/`; the CLI package
+  carries that directory only for the explicit experiment, while current App
+  and ordinary `maps` catalogs enumerate top-level format-v1 maps. Legacy
+  `MatchEngine` still rejects a Frontline definition defensively.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,

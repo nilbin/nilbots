@@ -3,21 +3,38 @@
 This remains the exact shipped replay-v1 contract. Its canonical bytes,
 verification, fixtures, and hashes are unchanged.
 
-An observation-complete replay v2 now exists on the **internal Frontline
+An observation-complete replay v2 now exists on the **local Frontline
 experimental path**. It records the immutable public match contract,
 team/unit/life topology, exact per-actor pre-tick observations and legality
 masks, decisions/resolutions, lifecycle/form-transition events, authoritative
 post-state, and terminal stable-unit results. The web viewer has a
-version-neutral normalization layer for v1 and this internal v2. Replay v2 is
-not emitted by the shipped CLI/App/server path and is not yet a public format;
-its architecture and ML use are described in
+version-neutral normalization layer for v1 and this experimental v2.
+`nilbots experiment frontline` writes canonical v2 JSON and directly embeds
+it in a self-contained Canvas2D viewer. Historical `play`, App/server matches,
+and the ladder still emit only v1. Replay v2 is not yet a stable public
+format, and the general `replay --summary` and `verify` commands remain
+v1-only; its architecture and ML use are described in
 [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md) and
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). Do not normalize v1 to
 v2 before verifying a stored v1 hash.
 
-> Quick digest instead of raw JSON: `botarena replay <file> --summary` prints a
-> compact timeline (states, shots, damage, debug lines) built on the
-> conventions below.
+Replay-v2 dynamics are read separately:
+
+```bash
+python3 scripts/frontline-replay-eval.py \
+  --group current=/tmp/frontline/block-1 \
+  --group current=/tmp/frontline/block-2 \
+  --json /tmp/frontline/report.json
+```
+
+That analyzer accepts only complete version-2 documents with contiguous
+`0..result.endTick` frames. It reports raw/descriptive dimensions and does not
+assign a fun score or verify the canonical hash; replay-v2 admission and a
+public verification surface remain hosted-product follow-ons.
+
+> For replay v1, a quick digest instead of raw JSON is available through
+> `botarena replay <file> --summary`. It prints a compact timeline (states,
+> shots, damage, debug lines) built on the conventions below.
 
 ## How to read a replay (the conventions that bite)
 

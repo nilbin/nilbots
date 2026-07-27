@@ -37,6 +37,8 @@ try
         ["leaderboard", .. var rest] => ServerCommands.Leaderboard(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
+        ["experiment", "frontline", .. var rest] =>
+            FrontlineExperimentCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -116,6 +118,14 @@ static int Help(int exitCode = 1)
                                  cone-occupancy-bolt2-arcs|0.5-control|cone|
                                  bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy
                         [--max-ticks <n>] [--out <dir>]
+          nilbots experiment frontline
+                        [--bot <actor-spec>] [--opponent <actor-spec>]
+                        [--map frontline-01] [--rules frontline-alpha-1]
+                        [--seed <n> | --seeds a,b,c] [--swap]
+                        [--runtime wasm|in-process] [--out <dir>] [--open]
+                                                  LOCAL EXPERIMENT: replication,
+                                                  Anchor/turrets, replay v2;
+                                                  never ranked or server-admitted
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]
                                                   ranked mirrored set; preserves each game
@@ -129,6 +139,8 @@ static int Help(int exitCode = 1)
 
         A bot <spec> is a built-in name (hunter, wander, coward, idle), a bot
         project directory, or a path to a .wasm artifact.
+        A Frontline <actor-spec> is an actor built-in (`nilbots help experiment`),
+        an IActorBot project directory, or an actor-protocol .wasm artifact.
         Defaults: --bot hunter --opponent wander --map basic-01 --seed 42
                   --runtime wasm --rules 0.5
         A `"rules"` field in your project's botarena.json pins the default --rules
@@ -166,6 +178,30 @@ static int CommandHelp(string command)
                    [--max-ticks <n>] [--out <dir>]
             Example: nilbots play --bot . --opponent hunter --runtime in-process \
                      --seeds 7,42,1337
+            """,
+        "experiment" => """
+            Usage: nilbots experiment frontline
+                   [--bot <actor-spec>] [--opponent <actor-spec>]
+                   [--map frontline-01] [--rules frontline-alpha-1]
+                   [--seed <n> | --seeds a,b,c] [--swap]
+                   [--runtime wasm|in-process] [--out <dir>] [--open]
+
+            Runs the local-only Frontline experiment: one policy controls a team
+            whose independent lives may fabricate children and Anchor as turrets.
+            It writes canonical replay-v2 JSON plus a self-contained Canvas2D
+            viewer. This path is never ranked, submitted, or server-admitted.
+
+            Actor built-ins:
+              frontline-rusher       objective-first; never Anchors
+              frontline-swarm        fabricates every child; stays mobile
+              frontline-bastion      fabricates, Anchors, and fires turrets
+              frontline-counterpunch defends its half, then advances on contact
+              frontline-probe        protocol/action diagnostic, not a doctrine
+
+            Defaults: frontline-rusher vs frontline-bastion, map frontline-01,
+                      seed 42, runtime wasm, rules frontline-alpha-1.
+            Use --runtime in-process for fast diagnostic iteration, then confirm
+            candidate behavior in the default WASM sandbox.
             """,
         "set" => """
             Usage: nilbots set --bot <spec> --opponent <spec>

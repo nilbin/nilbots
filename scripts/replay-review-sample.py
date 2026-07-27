@@ -29,25 +29,44 @@ def replay_files(roots):
 def candidate(path, selection_seed):
     document = json.loads(path.read_text())
     header = document["header"]
-    participants = sorted(header["participants"], key=lambda item: item["slot"])
+    replay_version = header.get("replayVersion")
+    if replay_version == 1:
+        map_id = header["mapId"]
+        participant_key = "slot"
+    elif replay_version == 2:
+        map_id = header["contract"]["map"]["mapId"]
+        participant_key = "participantId"
+    else:
+        raise ValueError(
+            f"{path}: unsupported replay version {replay_version!r}"
+        )
+    participants = sorted(
+        header["participants"],
+        key=lambda item: item[participant_key],
+    )
     names = [participant["name"] for participant in participants]
     artifacts = [participant["artifactHash"] for participant in participants]
     identity = "|".join(
         [
             str(selection_seed),
+            str(replay_version),
             header["gameRulesVersion"],
-            header["mapId"],
+            map_id,
             str(header["seed"]),
-            *artifacts,
+            *(
+                f"{name}\0{artifact}"
+                for name, artifact in zip(names, artifacts)
+            ),
         ]
     )
     return {
         "source": str(path.resolve()),
+        "replayVersion": replay_version,
         "rules": header["gameRulesVersion"],
-        "map": header["mapId"],
+        "map": map_id,
         "matchSeed": header["seed"],
         "participants": names,
-        "pair": tuple(sorted(names)),
+        "pair": tuple(sorted(zip(names, artifacts))),
         "order": hashlib.sha256(identity.encode()).hexdigest(),
     }
 
@@ -57,7 +76,7 @@ def select(candidates, count):
     for item in candidates:
         by_map[item["map"]].append(item)
     for items in by_map.values():
-        items.sort(key=lambda item: item["order"])
+        items.sort(key=lambda item: (item["order"], item["source"]))
 
     selected = []
     seen_pairs = set()
@@ -97,8 +116,11 @@ def main():
     ]
     chosen = select(candidates, min(args.count, len(candidates)))
     manifest = {
-        "sampleVersion": 1,
-        "selection": "header-only; map-balanced; unseen-pair-first; seeded SHA-256",
+        "sampleVersion": 2,
+        "selection": (
+            "versioned header-only; map-balanced; unseen-pair-first; "
+            "seeded SHA-256"
+        ),
         "selectionSeed": args.seed,
         "outcomeBlind": True,
         "populationSize": len(candidates),
@@ -106,6 +128,7 @@ def main():
             {
                 "id": f"sample-{index + 1:02}",
                 "source": item["source"],
+                "replayVersion": item["replayVersion"],
                 "rules": item["rules"],
                 "map": item["map"],
                 "matchSeed": item["matchSeed"],

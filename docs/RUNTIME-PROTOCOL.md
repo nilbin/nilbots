@@ -1,8 +1,9 @@
 # Runtime protocols
 
 Nilbots currently preserves two independent runtime contracts. Protocol 0.1
-is the shipped duel path. Actor protocol 1.0 is the internal Frontline path;
-the CLI, App, server admission, and ladders do not select it yet.
+is the shipped duel path. Actor protocol 1.0 is the experimental Frontline
+path; only the explicit local `nilbots experiment frontline` command selects
+it. Historical `play`, App/server admission, and ladders do not.
 
 ## Duel protocol 0.1
 
@@ -115,4 +116,6 @@ attest requires a new version and explicit eligibility handling.
 
 The initial actor delivery uses SDK 0.9.0, guest adapter 0.9.0, actor
 protocol/configuration 1.0, and CLI package 0.6.0. Legacy protocol and
-configuration remain 0.1.
+configuration remain 0.1. That is the historical Package 7 checkpoint; the
+current local Package 8 consumer is CLI 0.7.0 with the same SDK/Guest 0.9.0
+and actor protocol/configuration 1.0.
