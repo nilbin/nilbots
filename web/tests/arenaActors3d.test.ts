@@ -86,6 +86,38 @@ function formPart(
   return part;
 }
 
+function healthPipsOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D {
+  let found: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.cue === 'health-pips' &&
+      node.userData.forUnitKey === unitKey
+    ) {
+      found = node;
+    }
+  });
+  assert.ok(found, `no health pips for unit ${unitKey}`);
+  return found;
+}
+
+function assertCenteredPips(
+  pips: THREE.Object3D,
+  expectedCount: number,
+): void {
+  const visible = pips.children.filter((pip) => pip.visible);
+  assert.equal(visible.length, expectedCount);
+  assert.ok(expectedCount > 0);
+  const first = visible[0]!.position.x;
+  const last = visible.at(-1)!.position.x;
+  assert.ok(
+    Math.abs(first + last) < 1e-9,
+    `pip row is not centred (${first} to ${last})`,
+  );
+}
+
 test('a destroyed bot collapses across the tick it dies in', () => {
   const actors = buildActors(replay);
   const chassis = chassisOf(actors.group, DEAD_UNIT);
@@ -335,6 +367,28 @@ test('Frontline rigs follow variable stable-unit lifecycle without leaving old l
     false,
     'locked slots remain absent',
   );
+
+  actors.dispose();
+});
+
+test('3D health pips follow the effective form maximum and remain centred', () => {
+  const actors = buildActors(frontline);
+  const child = healthPipsOf(
+    actors.group,
+    'frontline:0:unit:1',
+  );
+  const prime = healthPipsOf(
+    actors.group,
+    'frontline:0:unit:0',
+  );
+
+  actors.update(2.25, null, false);
+  assertCenteredPips(child, 3);
+  assertCenteredPips(prime, 3);
+
+  actors.update(9.99, null, false);
+  assertCenteredPips(child, 5);
+  assertCenteredPips(prime, 3);
 
   actors.dispose();
 });
