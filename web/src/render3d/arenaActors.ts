@@ -47,15 +47,19 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     // on the lid of a hull, which is where a plan view of a hull comes from.
     const chassis = new THREE.Group();
 
-    const hullGeometry = new THREE.CylinderGeometry(size * 0.42, size * 0.46, BOT_HEIGHT, 18);
+    // A hull that points somewhere. A cylinder was the first attempt and it made every
+    // chassis read as the same glowing puck — which throws away the one thing the twelve
+    // sprites exist to express. Longer than it is wide, and turned with the bot, so the
+    // silhouette says both "machine" and "facing that way" before the lid art is legible.
+    const hullGeometry = new THREE.BoxGeometry(size * 0.78, BOT_HEIGHT, size * 0.56);
     const hullMaterial = new THREE.MeshStandardMaterial({
-      color: accent.clone().multiplyScalar(0.42),
-      roughness: 0.42,
-      metalness: 0.65,
+      color: accent.clone().multiplyScalar(0.3),
+      roughness: 0.4,
+      metalness: 0.7,
       emissive: accent,
-      // The sides are what make a bot findable at a glance on a dark floor, so they carry
-      // the accent rather than reflecting it — the arena is deliberately unlit underfoot.
-      emissiveIntensity: 0.5,
+      // Emission rather than reflection: the arena is deliberately unlit underfoot, so a
+      // hull that only reflected would be as invisible as the decal it replaced.
+      emissiveIntensity: 0.42,
     });
     const hull = new THREE.Mesh(hullGeometry, hullMaterial);
     hull.position.y = BOT_HEIGHT / 2;
@@ -98,7 +102,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     chassis.visible = false;
     group.add(chassis);
     disposables.push(hullGeometry, hullMaterial, lidGeometry, lidMaterial, glowGeometry, glowMaterial);
-    return { chassis, lid };
+    return { chassis };
   });
 
   // Projectiles are pooled: a replay can fire many, but few are in the air at once, and
@@ -143,11 +147,10 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       if (!bot) continue;
       bot.chassis.visible = pose.status === 'Active';
       bot.chassis.position.set(pose.x + 0.5, 0, pose.y + 0.5);
-      // Only the lid turns. The hull is a cylinder and the glow is a disc, so rotating the
-      // whole chassis would spend transforms on two things that look identical either way —
-      // and `angle` is the same interpolated rotation the 2D renderer uses, so both viewers
-      // swing a bot through the same arc.
-      bot.lid.rotation.y = -pose.angle;
+      // The whole chassis turns, so the hull's long axis reads as the facing even when the
+      // lid art is too small to make out. `angle` is the same interpolated rotation the 2D
+      // renderer uses, so both viewers swing a bot through exactly the same arc.
+      bot.chassis.rotation.y = -pose.angle;
     }
 
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
