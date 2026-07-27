@@ -1,6 +1,10 @@
 using System.Collections.Immutable;
 
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Typed, immutable SDK view of an Engine-validated canonical generic match
@@ -8,7 +12,11 @@ namespace BotArena.Sdk;
 /// <see cref="CanonicalJson"/> preserves the host-authored bytes as text and
 /// remains the sole static-contract serialization carried over the actor wire.
 /// </summary>
+#if BOTARENA_ACTOR_CONTRACTS
+internal sealed class GenericActorResolvedMatchContract
+#else
 public sealed class GenericActorResolvedMatchContract
+#endif
 {
     internal GenericActorResolvedMatchContract(
         string canonicalJson,

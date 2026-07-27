@@ -1,6 +1,10 @@
 using System.Buffers.Binary;
 
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Dependency-free SHA-256 for canonical contract verification in NativeAOT

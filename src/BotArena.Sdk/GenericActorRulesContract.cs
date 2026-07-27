@@ -1,13 +1,21 @@
 using System.Collections.Immutable;
 
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Complete immutable SDK view of the generation-3 generic actor rules.
 /// Extensible contract branches are discriminated records; fixed semantic
 /// policy identifiers remain explicit strings so bots can inspect them.
 /// </summary>
+#if BOTARENA_ACTOR_CONTRACTS
+internal sealed class GenericActorRulesContract
+#else
 public sealed class GenericActorRulesContract
+#endif
 {
     internal GenericActorRulesContract(
         int schemaVersion,

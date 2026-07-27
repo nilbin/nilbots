@@ -1,12 +1,20 @@
 using System.Collections.Immutable;
 
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Complete gameplay-only map generation 3 delivered to a generic actor.
 /// Presentation metadata is intentionally outside this contract.
 /// </summary>
+#if BOTARENA_ACTOR_CONTRACTS
+internal sealed class GenericActorMapContract
+#else
 public sealed class GenericActorMapContract
+#endif
 {
     internal GenericActorMapContract(
         int schemaVersion,

@@ -2,7 +2,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Small dependency-free JSON DOM/parser for the bounded canonical actor

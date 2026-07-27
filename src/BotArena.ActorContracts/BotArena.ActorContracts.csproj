@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);BOTARENA_ACTOR_CONTRACTS</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="GenericActorContractPrimitives.cs" />
+    <Compile Include="GenericActorCanonicalContractValidator.cs" />
+    <Compile Include="../BotArena.Sdk/ActorCanonicalContractReader.cs"
+             Link="ActorCanonicalContractReader.cs" />
+    <Compile Include="../BotArena.Sdk/ActorCanonicalJson.cs"
+             Link="ActorCanonicalJson.cs" />
+    <Compile Include="../BotArena.Sdk/ActorSha256.cs"
+             Link="ActorSha256.cs" />
+    <Compile Include="../BotArena.Sdk/GenericActorContractVersions.cs"
+             Link="GenericActorContractVersions.cs" />
+    <Compile Include="../BotArena.Sdk/GenericActorMapContract.cs"
+             Link="GenericActorMapContract.cs" />
+    <Compile Include="../BotArena.Sdk/GenericActorResolvedMatchContract.cs"
+             Link="GenericActorResolvedMatchContract.cs" />
+    <Compile Include="../BotArena.Sdk/GenericActorRulesContract.cs"
+             Link="GenericActorRulesContract.cs" />
+  </ItemGroup>
+</Project>

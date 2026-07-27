@@ -1,12 +1,22 @@
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Contract versions for the generic actor-match programming model. The
 /// framing protocol remains actor protocol 1.0; negotiation selects this
 /// complete tuple before the host sends a version-specific MatchStart.
 /// </summary>
+#if BOTARENA_ACTOR_CONTRACTS
+internal static class GenericActorContractVersions
+#else
 public static class GenericActorContractVersions
+#endif
 {
+    internal const int MaxCanonicalContractDepth = 64;
+    internal const int MaxSemanticIdBytes = 64;
     /// <summary>Exact all-or-nothing actor contract profile identifier.</summary>
     public const string ContractProfileId = "generic-actor-match-2";
     /// <summary>Actor framing protocol version used by this profile.</summary>

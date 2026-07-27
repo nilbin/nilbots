@@ -1,14 +1,29 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
+#if BOTARENA_ACTOR_CONTRACTS
+using JsonElement = BotArena.ActorContracts.ActorCanonicalJson.Node;
+using JsonProperty = BotArena.ActorContracts.ActorCanonicalJson.Property;
+using JsonValueKind = BotArena.ActorContracts.ActorCanonicalJson.Kind;
+using MapContract = BotArena.ActorContracts.GenericActorMapContract;
+using MatchContract = BotArena.ActorContracts.GenericActorResolvedMatchContract;
+using RulesContract = BotArena.ActorContracts.GenericActorRulesContract;
+using ContractDirection = BotArena.ActorContracts.Direction;
+#else
 using JsonElement = BotArena.Sdk.ActorCanonicalJson.Node;
 using JsonProperty = BotArena.Sdk.ActorCanonicalJson.Property;
 using JsonValueKind = BotArena.Sdk.ActorCanonicalJson.Kind;
 using MapContract = BotArena.Sdk.GenericActorMapContract;
 using MatchContract = BotArena.Sdk.GenericActorResolvedMatchContract;
 using RulesContract = BotArena.Sdk.GenericActorRulesContract;
+using ContractDirection = BotArena.Sdk.Direction;
+#endif
 
+#if BOTARENA_ACTOR_CONTRACTS
+namespace BotArena.ActorContracts;
+#else
 namespace BotArena.Sdk;
+#endif
 
 /// <summary>
 /// Strict syntax, profile, and fingerprint reader for the bounded canonical
@@ -16,7 +31,11 @@ namespace BotArena.Sdk;
 /// never rewrites the contract, so fingerprints bind to exactly the same text
 /// exposed through <c>CanonicalJson</c>.
 /// </summary>
+#if BOTARENA_ACTOR_CONTRACTS
+internal static class ActorCanonicalContractReader
+#else
 public static class ActorCanonicalContractReader
+#endif
 {
     private static readonly UTF8Encoding StrictUtf8 =
         new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -29,7 +48,7 @@ public static class ActorCanonicalContractReader
 
         JsonElement root = ActorCanonicalJson.Parse(
             canonicalJson,
-            ActorWireProtocol.MaxDepth,
+            GenericActorContractVersions.MaxCanonicalContractDepth,
             GenericActorContractVersions
                 .MaxCanonicalContractCollectionCount);
         ExactObject(
@@ -1939,7 +1958,8 @@ public static class ActorCanonicalContractReader
     private static string Id(JsonElement element)
     {
         string value = Text(element);
-        if (Utf8ByteCount(value) > ActorWireProtocol.MaxSemanticIdBytes
+        if (Utf8ByteCount(value)
+                > GenericActorContractVersions.MaxSemanticIdBytes
             || !value.All(
                 character =>
                     character is >= 'a' and <= 'z'
@@ -2059,10 +2079,10 @@ public static class ActorCanonicalContractReader
     private static Direction Direction(JsonElement element) =>
         Semantic(element) switch
         {
-            "north" => Sdk.Direction.North,
-            "east" => Sdk.Direction.East,
-            "south" => Sdk.Direction.South,
-            "west" => Sdk.Direction.West,
+            "north" => ContractDirection.North,
+            "east" => ContractDirection.East,
+            "south" => ContractDirection.South,
+            "west" => ContractDirection.West,
             string value => throw Unsupported("direction", value),
         };
 
