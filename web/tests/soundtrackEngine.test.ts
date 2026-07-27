@@ -195,7 +195,7 @@ test(
 );
 
 test(
-  'event impulses open responsive stems immediately, stack by strength, and release on the audio clock',
+  'event impulses ease responsive stems promptly, stack by strength, and retain their musical release',
   { concurrency: false },
   async () => {
     const manifest = makeManifest({
@@ -214,7 +214,7 @@ test(
       ]);
       const contactTarget = lastTargetCall(drums);
       const foundationAfterContact = lastTargetCall(foundation);
-      assert.equal(contactTarget.timeConstant, 0.018);
+      assert.equal(contactTarget.timeConstant, 0.05);
       assert.equal(foundationAfterContact.value, 1);
       assert.equal(engine.direction.state, 'sparse');
       assert.equal(engine.pending, null);
@@ -225,7 +225,7 @@ test(
       const shotTarget = lastTargetCall(drums);
       const shotTimer = engine.accentTimer;
       assert.ok(shotTarget.value > contactTarget.value);
-      assert.equal(shotTarget.timeConstant, 0.012);
+      assert.equal(shotTarget.timeConstant, 0.045);
 
       engine.setDirection(direction('sparse', 0.25, 0.25), [
         trigger('damage', 3),
@@ -234,7 +234,7 @@ test(
       const damageTimer = engine.accentTimer;
       assert.notEqual(damageTimer, shotTimer);
       assert.ok(damageTarget.value > shotTarget.value);
-      assert.equal(damageTarget.timeConstant, 0.008);
+      assert.equal(damageTarget.timeConstant, 0.035);
       assert.equal(lastTargetCall(foundation).value, 1);
 
       // A duplicate delivery is harmless and does not extend the envelope.
@@ -252,8 +252,95 @@ test(
       context.advanceTo(damageTimer.stopTime);
       const released = lastTargetCall(drums);
       assert.equal(engine.accentBoost, 0);
-      assert.equal(released.timeConstant, 0.38);
+      assert.equal(released.timeConstant, 1);
       assert.ok(released.value < damageTarget.value);
+
+      // Direction samples arrive throughout playback. They must preserve the
+      // event's release instead of replacing it with the ordinary response on
+      // the very next frame.
+      engine.setDirection(direction('sparse', 0.25, 0.25));
+      assert.equal(lastTargetCall(drums).timeConstant, 1);
+      assert.ok(engine.accentReleaseUntil > context.currentTime);
+
+      context.advanceTo(engine.accentReleaseUntil + 0.001);
+      engine.setDirection(direction('sparse', 0.25, 0.25));
+      assert.equal(lastTargetCall(drums).timeConstant, 0.7);
+    });
+  },
+);
+
+test(
+  'ordinary vertical mix changes rise within a beat and settle gently',
+  { concurrency: false },
+  async () => {
+    const manifest = makeManifest({
+      entrySection: 'loop',
+      sections: [section('loop', 'sparse', true)],
+      transitions: [],
+    });
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse', 0.2, 0.2));
+      const drums = activeVoice(engine).stemGains.get('drums').gain;
+
+      engine.setDirection(direction('sparse', 0.8, 0.8));
+      const rise = lastTargetCall(drums);
+      assert.equal(rise.when, context.currentTime);
+      assert.equal(rise.timeConstant, 0.12);
+      assert.equal(lastHoldCall(drums).when, context.currentTime);
+      assert.ok(
+        rise.timeConstant < BAR_SECONDS / 4,
+        'the layer must respond audibly before the next beat',
+      );
+
+      engine.setDirection(direction('sparse', 0.3, 0.3));
+      const settle = lastTargetCall(drums);
+      assert.equal(settle.timeConstant, 0.7);
+      assert.ok(settle.value < rise.value);
+
+      // The compatibility path still schedules a continuous target on Web
+      // Audio implementations that predate cancelAndHoldAtTime.
+      drums.cancelAndHoldAtTime = undefined;
+      engine.setDirection(direction('sparse', 0.2, 0.2));
+      assert.equal(lastCancelCall(drums).when, context.currentTime);
+    });
+  },
+);
+
+test(
+  'horizontal changes retain authored bar timing and equal-power headroom',
+  { concurrency: false },
+  async () => {
+    await withEngine(directStatesManifest(), async ({ context, engine }) => {
+      await engine.start(direction('sparse'));
+      const entry = activeVoice(engine);
+
+      engine.setDirection(direction('combat'));
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+
+      const pending = assertPending(engine, 'combat-loop', false);
+      const elapsedBars =
+        (pending.when - entry.startedAt) / BAR_SECONDS;
+      assert.ok(
+        Math.abs(elapsedBars - Math.round(elapsedBars)) < 1e-9,
+        'the destination must still start on its authored quantum',
+      );
+      assert.equal(pending.crossfadeSeconds, BAR_SECONDS * 0.25);
+
+      const fadeOut = lastCurveCall(entry.bus.gain);
+      const fadeIn = lastCurveCall(pending.to.bus.gain);
+      assert.equal(fadeOut.when, pending.when);
+      assert.equal(fadeIn.when, pending.when);
+      assert.equal(fadeOut.duration, pending.crossfadeSeconds);
+      assert.equal(fadeIn.duration, pending.crossfadeSeconds);
+      assert.equal(fadeIn.curve.length, fadeOut.curve.length);
+      for (let index = 0; index < fadeIn.curve.length; index += 1) {
+        assert.ok(
+          Math.abs(
+            fadeIn.curve[index] ** 2 + fadeOut.curve[index] ** 2 - 1,
+          ) < 1e-6,
+        );
+      }
     });
   },
 );
@@ -883,6 +970,30 @@ function lastTargetCall(parameter) {
   return calls.at(-1);
 }
 
+function lastCurveCall(parameter) {
+  const calls = parameter.calls.filter(
+    (candidate) => candidate.method === 'setValueCurveAtTime',
+  );
+  assert.ok(calls.length > 0, 'expected setValueCurveAtTime automation');
+  return calls.at(-1);
+}
+
+function lastHoldCall(parameter) {
+  const calls = parameter.calls.filter(
+    (candidate) => candidate.method === 'cancelAndHoldAtTime',
+  );
+  assert.ok(calls.length > 0, 'expected cancelAndHoldAtTime automation');
+  return calls.at(-1);
+}
+
+function lastCancelCall(parameter) {
+  const calls = parameter.calls.filter(
+    (candidate) => candidate.method === 'cancelScheduledValues',
+  );
+  assert.ok(calls.length > 0, 'expected cancelScheduledValues automation');
+  return calls.at(-1);
+}
+
 function response(intensity) {
   return intensity * intensity * (3 - 2 * intensity);
 }
@@ -1100,6 +1211,9 @@ function audioParam() {
   return {
     value: 1,
     calls: [],
+    cancelAndHoldAtTime(when) {
+      this.calls.push({ method: 'cancelAndHoldAtTime', when });
+    },
     cancelScheduledValues(when) {
       this.calls.push({ method: 'cancelScheduledValues', when });
     },

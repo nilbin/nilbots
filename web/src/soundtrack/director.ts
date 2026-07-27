@@ -27,6 +27,12 @@ export interface MusicDirectorFeatures {
   activity: number;
   pace: number;
   contact: number;
+  /** Current opposing-unit proximity, independent of line-of-sight. */
+  proximity: number;
+  /** Current same-life opposing-pair closing motion from revealed positions. */
+  approach: number;
+  /** Rolling approach evidence; rises only from current and past positions. */
+  closingPressure: number;
   /** Rolling visible chase/closing evidence used for horizontal phrase changes. */
   pursuitPressure: number;
   /** Rolling shot/projectile/damage evidence used for horizontal phrase changes. */
@@ -79,6 +85,8 @@ export interface ResolvedMusicDirectorConfig {
   fallPerTick: number;
   combatMemoryDecay: number;
   contactMemoryDecay: number;
+  closingPressureDecay: number;
+  closingPressureThreshold: number;
   pursuitPressureDecay: number;
   combatPressureDecay: number;
   climaxPressureDecay: number;
@@ -96,6 +104,7 @@ export interface ResolvedMusicDirectorConfig {
   stallStationaryStartTicks: number;
   stallStationaryFullTicks: number;
   releaseTicks: number;
+  stateEntryTicks: Readonly<Record<AdaptiveScoreState, number>>;
   stateIntensity: Readonly<Record<AdaptiveScoreState, number>>;
   minDwellTicks: Readonly<Record<AdaptiveScoreState, number>>;
 }
@@ -110,6 +119,8 @@ export interface MusicDirectorOptions {
   fallPerTick?: number;
   combatMemoryDecay?: number;
   contactMemoryDecay?: number;
+  closingPressureDecay?: number;
+  closingPressureThreshold?: number;
   pursuitPressureDecay?: number;
   combatPressureDecay?: number;
   climaxPressureDecay?: number;
@@ -127,6 +138,7 @@ export interface MusicDirectorOptions {
   stallStationaryStartTicks?: number;
   stallStationaryFullTicks?: number;
   releaseTicks?: number;
+  stateEntryTicks?: Partial<Record<AdaptiveScoreState, number>>;
   stateIntensity?: Partial<Record<AdaptiveScoreState, number>>;
   minDwellTicks?: Partial<Record<AdaptiveScoreState, number>>;
 }
@@ -150,6 +162,15 @@ const STATE_RANK: Readonly<Record<AdaptiveScoreState, number>> = {
   resolve: 5,
 };
 
+const STATE_BY_RANK: readonly AdaptiveScoreState[] = [
+  'sparse',
+  'tension',
+  'pursuit',
+  'combat',
+  'climax',
+  'resolve',
+];
+
 const STATE_RANGE: Readonly<
   Record<AdaptiveScoreState, readonly [minimum: number, maximum: number]>
 > = {
@@ -167,6 +188,8 @@ export const DEFAULT_MUSIC_DIRECTOR_CONFIG: ResolvedMusicDirectorConfig = {
   fallPerTick: 0.14,
   combatMemoryDecay: 0.78,
   contactMemoryDecay: 0.84,
+  closingPressureDecay: 0.84,
+  closingPressureThreshold: 0.1,
   pursuitPressureDecay: 0.82,
   combatPressureDecay: 0.86,
   climaxPressureDecay: 0.65,
@@ -183,7 +206,15 @@ export const DEFAULT_MUSIC_DIRECTOR_CONFIG: ResolvedMusicDirectorConfig = {
   stallQuietFullTicks: 28,
   stallStationaryStartTicks: 5,
   stallStationaryFullTicks: 20,
-  releaseTicks: 4,
+  releaseTicks: 16,
+  stateEntryTicks: {
+    sparse: 0,
+    tension: 2,
+    pursuit: 2,
+    combat: 2,
+    climax: 2,
+    resolve: 0,
+  },
   stateIntensity: {
     sparse: 0.08,
     tension: 0.3,
@@ -205,10 +236,13 @@ export const DEFAULT_MUSIC_DIRECTOR_CONFIG: ResolvedMusicDirectorConfig = {
 interface DirectorMemory {
   state: AdaptiveScoreState;
   dwellTicks: number;
+  pendingRiseState: AdaptiveScoreState | null;
+  pendingRiseTicks: number;
   pendingReleaseState: AdaptiveScoreState | null;
   pendingReleaseTicks: number;
   recentCombat: number;
   recentContact: number;
+  closingPressure: number;
   pursuitPressure: number;
   combatPressure: number;
   climaxPressure: number;
@@ -240,6 +274,9 @@ interface TickSignals {
   motion: number;
   pace: number;
   contact: number;
+  proximity: number;
+  approach: number;
+  closingPressure: number;
   pursuitPressure: number;
   combatPressure: number;
   climaxPressure: number;
@@ -263,6 +300,8 @@ interface TickSignals {
 interface StateMemory {
   state: AdaptiveScoreState;
   dwellTicks: number;
+  pendingRiseState: AdaptiveScoreState | null;
+  pendingRiseTicks: number;
   pendingReleaseState: AdaptiveScoreState | null;
   pendingReleaseTicks: number;
 }
@@ -299,10 +338,13 @@ export function buildAdaptiveTimeline(
   const memory: DirectorMemory = {
     state: 'sparse',
     dwellTicks: 0,
+    pendingRiseState: null,
+    pendingRiseTicks: 0,
     pendingReleaseState: null,
     pendingReleaseTicks: 0,
     recentCombat: 0,
     recentContact: 0,
+    closingPressure: 0,
     pursuitPressure: 0,
     combatPressure: 0,
     climaxPressure: 0,
@@ -359,6 +401,8 @@ export function buildAdaptiveTimeline(
       {
         state: memory.state,
         dwellTicks: memory.dwellTicks,
+        pendingRiseState: memory.pendingRiseState,
+        pendingRiseTicks: memory.pendingRiseTicks,
         pendingReleaseState: memory.pendingReleaseState,
         pendingReleaseTicks: memory.pendingReleaseTicks,
       },
@@ -401,6 +445,9 @@ export function buildAdaptiveTimeline(
         activity: signals.activity,
         pace: signals.pace,
         contact: signals.contact,
+        proximity: signals.proximity,
+        approach: signals.approach,
+        closingPressure: signals.closingPressure,
         pursuitPressure: signals.pursuitPressure,
         combatPressure: signals.combatPressure,
         climaxPressure: signals.climaxPressure,
@@ -423,10 +470,13 @@ export function buildAdaptiveTimeline(
 
     memory.state = stateMemory.state;
     memory.dwellTicks = stateMemory.dwellTicks;
+    memory.pendingRiseState = stateMemory.pendingRiseState;
+    memory.pendingRiseTicks = stateMemory.pendingRiseTicks;
     memory.pendingReleaseState = stateMemory.pendingReleaseState;
     memory.pendingReleaseTicks = stateMemory.pendingReleaseTicks;
     memory.recentCombat = signals.recentCombat;
     memory.recentContact = signals.recentContact;
+    memory.closingPressure = signals.closingPressure;
     memory.pursuitPressure = signals.pursuitPressure;
     memory.combatPressure = signals.combatPressure;
     memory.climaxPressure = signals.climaxPressure;
@@ -506,12 +556,13 @@ function analyzeTick(
       (unit) => unit.visibleEnemies.length > 0,
     ) ?? false;
   const contactStarted = visibleContact && !previousVisibleContact;
-  const currentDistance = nearestActiveDistance(tick);
-  const previousDistance = previous === null ? null : nearestActiveDistance(previous);
-  const closing =
-    currentDistance !== null &&
-    previousDistance !== null &&
-    currentDistance < previousDistance;
+  const approachEvidence = calculateApproachEvidence(
+    replay,
+    previous,
+    tick,
+    deltaTicks,
+  );
+  const closing = approachEvidence.approach > 0;
 
   const traversalTiles =
     source.projectileTraversals.reduce(
@@ -559,7 +610,13 @@ function analyzeTick(
   );
 
   const visibleContactLevel = visibleContact ? 1 : 0;
-  const proximity = proximityLevel(replay, currentDistance);
+  const proximity = approachEvidence.proximity;
+  const approach = approachEvidence.approach;
+  const closingPressure = clamp01(
+    memory.closingPressure *
+      Math.pow(config.closingPressureDecay, deltaTicks) +
+      approach * 0.34,
+  );
   const currentContact = Math.max(visibleContactLevel, proximity * 0.72);
   const recentContact = Math.max(
     memory.recentContact *
@@ -579,6 +636,7 @@ function analyzeTick(
       projectileThreat * 0.78,
       visibleContact ? 0.25 + motion * 0.45 : 0,
       motion * 0.52,
+      approach * 0.42,
       objectiveMotion * 0.72,
     ),
   );
@@ -594,16 +652,24 @@ function analyzeTick(
           contactStarted ? 0.16 : 0,
         )
       : 0;
-  const pursuitPressure = clamp01(
-    memory.pursuitPressure *
-      Math.pow(config.pursuitPressureDecay, deltaTicks) +
-      pursuitImpulse,
+  const pursuitPressure = Math.max(
+    closingPressure,
+    clamp01(
+      memory.pursuitPressure *
+        Math.pow(config.pursuitPressureDecay, deltaTicks) +
+        pursuitImpulse,
+    ),
+  );
+  // A newly launched projectile and its shot event describe the same attack.
+  // Use their stronger contribution instead of counting that launch twice.
+  const attackImpulse = Math.max(
+    hasShot ? 0.34 : 0,
+    projectileThreat * 0.65,
   );
   const combatImpulse = clamp01(
     (hasDamage ? 0.48 : 0) +
       (hasDestruction ? 1 : 0) +
-      (hasShot ? 0.34 : 0) +
-      projectileThreat * 0.65,
+      attackImpulse,
   );
   const combatPressure = clamp01(
     memory.combatPressure *
@@ -693,6 +759,9 @@ function analyzeTick(
     motion,
     pace,
     contact: clamp01(Math.max(currentContact, recentContact * 0.75)),
+    proximity,
+    approach,
+    closingPressure,
     pursuitPressure,
     combatPressure,
     climaxPressure,
@@ -763,6 +832,7 @@ function chooseCandidateState(
   if (
     signals.visibleContact ||
     signals.contact >= 0.48 ||
+    signals.closingPressure >= config.closingPressureThreshold ||
     signals.urgency >= 0.36 ||
     signals.objectiveMotion >= 0.08 ||
     signals.recentContact >= 0.3
@@ -784,6 +854,8 @@ function applyStateHysteresis(
     return {
       state: 'resolve',
       dwellTicks: 0,
+      pendingRiseState: null,
+      pendingRiseTicks: 0,
       pendingReleaseState: null,
       pendingReleaseTicks: 0,
     };
@@ -792,18 +864,30 @@ function applyStateHysteresis(
   const currentRank = STATE_RANK[memory.state];
   const candidateRank = STATE_RANK[candidate];
   if (candidateRank > currentRank) {
+    const nextState = STATE_BY_RANK[currentRank + 1] ?? candidate;
     const heldTicks = memory.dwellTicks + deltaTicks;
-    if (heldTicks < config.minDwellTicks[memory.state]) {
+    const pendingRiseTicks =
+      memory.pendingRiseState === nextState
+        ? memory.pendingRiseTicks + deltaTicks
+        : deltaTicks;
+    const canRise =
+      heldTicks >= config.minDwellTicks[memory.state] &&
+      pendingRiseTicks >= config.stateEntryTicks[nextState];
+    if (!canRise) {
       return {
         state: memory.state,
         dwellTicks: heldTicks,
+        pendingRiseState: nextState,
+        pendingRiseTicks,
         pendingReleaseState: null,
         pendingReleaseTicks: 0,
       };
     }
     return {
-      state: candidate,
+      state: nextState,
       dwellTicks: 0,
+      pendingRiseState: null,
+      pendingRiseTicks: 0,
       pendingReleaseState: null,
       pendingReleaseTicks: 0,
     };
@@ -813,6 +897,8 @@ function applyStateHysteresis(
     return {
       state: memory.state,
       dwellTicks: memory.dwellTicks + deltaTicks,
+      pendingRiseState: null,
+      pendingRiseTicks: 0,
       pendingReleaseState: null,
       pendingReleaseTicks: 0,
     };
@@ -829,6 +915,8 @@ function applyStateHysteresis(
     return {
       state: candidate,
       dwellTicks: 0,
+      pendingRiseState: null,
+      pendingRiseTicks: 0,
       pendingReleaseState: null,
       pendingReleaseTicks: 0,
     };
@@ -837,6 +925,8 @@ function applyStateHysteresis(
   return {
     state: memory.state,
     dwellTicks: memory.dwellTicks + deltaTicks,
+    pendingRiseState: null,
+    pendingRiseTicks: 0,
     pendingReleaseState: candidate,
     pendingReleaseTicks,
   };
@@ -854,6 +944,8 @@ function targetForState(
     base +
     signals.activity * 0.1 +
     signals.pace * 0.07 +
+    signals.approach * 0.04 +
+    signals.closingPressure * 0.06 +
     signals.urgency * 0.13 +
     signals.objectiveMotion * 0.04 -
     signals.stall * 0.19;
@@ -895,7 +987,7 @@ function calculateMomentum(
     (signals.hasShot ? 0.16 : 0) +
     (signals.contactStarted ? 0.1 : 0) +
     (signals.overtimeStarted ? 0.14 : 0) +
-    (signals.closing ? 0.06 : 0);
+    signals.approach * 0.08;
   const releaseDrag = signals.stall * 0.16;
   return clampSigned(
     retained + (targetIntensity - intensity) * 1.1 + eventImpulse - releaseDrag,
@@ -1084,12 +1176,37 @@ function isOvertime(presentation: TickPresentation): boolean {
   );
 }
 
-function nearestActiveDistance(tick: DirectorTick): number | null {
-  const active = tick.replay.after.actors.filter(
+interface ApproachEvidence {
+  distance: number | null;
+  proximity: number;
+  approach: number;
+}
+
+/**
+ * Measure only movement between already-revealed snapshots of the same actor
+ * lives. Pairing by actor key prevents a respawn or a nearest-enemy swap from
+ * being mistaken for closing motion, while considering every opposing pair
+ * lets a second engagement register even when the globally-nearest pair opens.
+ */
+function calculateApproachEvidence(
+  replay: ReplayModel,
+  previous: DirectorTick | null,
+  current: DirectorTick,
+  deltaTicks: number,
+): ApproachEvidence {
+  const active = current.replay.after.actors.filter(
     (actor) => actor.status === 'active',
   );
-  if (active.length < 2) return null;
+  if (active.length < 2) {
+    return { distance: null, proximity: 0, approach: 0 };
+  }
+  const previousByActor = new Map(
+    (previous?.replay.after.actors ?? [])
+      .filter((actor) => actor.status === 'active')
+      .map((actor) => [actor.actorKey, actor]),
+  );
   let nearest = Number.POSITIVE_INFINITY;
+  const closingScores: number[] = [];
   for (let left = 0; left < active.length; left += 1) {
     for (let right = left + 1; right < active.length; right += 1) {
       if (
@@ -1098,20 +1215,42 @@ function nearestActiveDistance(tick: DirectorTick): number | null {
       ) {
         continue;
       }
-      nearest = Math.min(
-        nearest,
-        Math.max(
-          Math.abs(
-            active[left].position.x - active[right].position.x,
-          ),
-          Math.abs(
-            active[left].position.y - active[right].position.y,
-          ),
-        ),
+      const distance = actorDistance(active[left], active[right]);
+      nearest = Math.min(nearest, distance);
+      const previousLeft = previousByActor.get(active[left].actorKey);
+      const previousRight = previousByActor.get(active[right].actorKey);
+      if (previousLeft === undefined || previousRight === undefined) continue;
+      const closedTiles =
+        actorDistance(previousLeft, previousRight) - distance;
+      if (closedTiles <= 0) continue;
+      const closingRate = clamp01(
+        closedTiles / (2 * Math.max(1, deltaTicks)),
+      );
+      const pairProximity = proximityLevel(replay, distance);
+      closingScores.push(
+        closingRate * (0.45 + pairProximity * 0.55),
       );
     }
   }
-  return Number.isFinite(nearest) ? nearest : null;
+  const distance = Number.isFinite(nearest) ? nearest : null;
+  closingScores.sort((left, right) => right - left);
+  return {
+    distance,
+    proximity: proximityLevel(replay, distance),
+    approach: clamp01(
+      (closingScores[0] ?? 0) + (closingScores[1] ?? 0) * 0.2,
+    ),
+  };
+}
+
+function actorDistance(
+  left: DirectorTick['replay']['after']['actors'][number],
+  right: DirectorTick['replay']['after']['actors'][number],
+): number {
+  return Math.max(
+    Math.abs(left.position.x - right.position.x),
+    Math.abs(left.position.y - right.position.y),
+  );
 }
 
 function proximityLevel(replay: ReplayModel, distance: number | null): number {
@@ -1233,6 +1372,9 @@ function createInitialFrame(
       activity: 0,
       pace: 0,
       contact: 0,
+      proximity: 0,
+      approach: 0,
+      closingPressure: 0,
       pursuitPressure: 0,
       combatPressure: 0,
       climaxPressure: 0,
@@ -1274,6 +1416,14 @@ function resolveConfig(options: MusicDirectorOptions): ResolvedMusicDirectorConf
     contactMemoryDecay: unitInterval(
       options.contactMemoryDecay,
       defaults.contactMemoryDecay,
+    ),
+    closingPressureDecay: unitInterval(
+      options.closingPressureDecay,
+      defaults.closingPressureDecay,
+    ),
+    closingPressureThreshold: unitInterval(
+      options.closingPressureThreshold,
+      defaults.closingPressureThreshold,
     ),
     pursuitPressureDecay: unitInterval(
       options.pursuitPressureDecay,
@@ -1338,6 +1488,11 @@ function resolveConfig(options: MusicDirectorOptions): ResolvedMusicDirectorConf
     releaseTicks: nonNegativeInteger(
       options.releaseTicks,
       defaults.releaseTicks,
+    ),
+    stateEntryTicks: mergeStateNumbers(
+      defaults.stateEntryTicks,
+      options.stateEntryTicks,
+      (value) => Math.max(0, Math.round(value)),
     ),
     stateIntensity: mergeStateNumbers(
       defaults.stateIntensity,

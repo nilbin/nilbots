@@ -69,6 +69,8 @@ const DEFAULT_STINGER_COOLDOWN_SECONDS = 28;
 const FINITE_RETRY_INITIAL_SECONDS = 0.5;
 const FINITE_RETRY_MAX_SECONDS = 4;
 const FINITE_RETRY_MAX_ATTEMPTS = 4;
+const ACCENT_RELEASE_SETTLE_TIME_CONSTANTS = 3;
+const ACCENT_CLEAR_RELEASE_SECONDS = 0.45;
 const TRIGGER_IMPULSES: Readonly<
   Partial<
     Record<
@@ -86,36 +88,36 @@ const TRIGGER_IMPULSES: Readonly<
   contact: {
     boost: 0.1,
     holdSeconds: 0.1,
-    attackSeconds: 0.018,
-    releaseSeconds: 0.2,
+    attackSeconds: 0.05,
+    releaseSeconds: 0.7,
     major: false,
   },
   shot: {
     boost: 0.18,
     holdSeconds: 0.14,
-    attackSeconds: 0.012,
-    releaseSeconds: 0.26,
+    attackSeconds: 0.045,
+    releaseSeconds: 0.82,
     major: false,
   },
   damage: {
     boost: 0.34,
     holdSeconds: 0.2,
-    attackSeconds: 0.008,
-    releaseSeconds: 0.38,
+    attackSeconds: 0.035,
+    releaseSeconds: 1,
     major: true,
   },
   overtime: {
     boost: 0.42,
     holdSeconds: 0.32,
-    attackSeconds: 0.012,
-    releaseSeconds: 0.5,
+    attackSeconds: 0.04,
+    releaseSeconds: 1.15,
     major: true,
   },
   destruction: {
     boost: 0.56,
     holdSeconds: 0.3,
-    attackSeconds: 0.006,
-    releaseSeconds: 0.58,
+    attackSeconds: 0.03,
+    releaseSeconds: 1.3,
     major: true,
   },
 };
@@ -157,6 +159,7 @@ export class SoundtrackEngine {
   private accentAttackSeconds = 0.02;
   private accentReturnAt = 0;
   private accentReleaseSeconds = 0.2;
+  private accentReleaseUntil = 0;
   private accentTimer: ConstantSourceNode | null = null;
   private stingerArmedUntil = 0;
   private readonly stingerCooldownUntil = new Map<string, number>();
@@ -307,6 +310,7 @@ export class SoundtrackEngine {
     impulse: NonNullable<(typeof TRIGGER_IMPULSES)[SoundtrackTrigger]>,
   ): void {
     const now = this.context.currentTime;
+    this.accentReleaseUntil = 0;
     const continuing = now < this.accentReturnAt;
     this.accentBoost = continuing
       ? Math.max(this.accentBoost, impulse.boost)
@@ -332,6 +336,9 @@ export class SoundtrackEngine {
       this.accentTimer = null;
       this.accentBoost = 0;
       this.accentReturnAt = 0;
+      this.accentReleaseUntil =
+        this.context.currentTime +
+        this.accentReleaseSeconds * ACCENT_RELEASE_SETTLE_TIME_CONSTANTS;
       for (const voice of this.voices) {
         this.updateStemGains(
           voice,
@@ -345,6 +352,9 @@ export class SoundtrackEngine {
   }
 
   private clearAccentEnvelope(): void {
+    const hadAccent =
+      this.accentBoost > 0 ||
+      this.context.currentTime < this.accentReturnAt;
     if (this.accentTimer) {
       const timer = this.accentTimer;
       timer.onended = () => timer.disconnect();
@@ -352,8 +362,22 @@ export class SoundtrackEngine {
     }
     this.accentBoost = 0;
     this.accentReturnAt = 0;
+    if (!hadAccent) {
+      this.accentReleaseUntil = 0;
+      return;
+    }
+    this.accentReleaseSeconds = ACCENT_CLEAR_RELEASE_SECONDS;
+    this.accentReleaseUntil =
+      this.context.currentTime +
+      ACCENT_CLEAR_RELEASE_SECONDS *
+        ACCENT_RELEASE_SETTLE_TIME_CONSTANTS;
     for (const voice of this.voices) {
-      this.updateStemGains(voice, this.direction.intensity, false, 0.04);
+      this.updateStemGains(
+        voice,
+        this.direction.intensity,
+        false,
+        ACCENT_CLEAR_RELEASE_SECONDS,
+      );
     }
   }
 
@@ -1148,17 +1172,29 @@ export class SoundtrackEngine {
       (this.accentBoost > 0
         ? this.accentAttackSeconds
         : attacking
-          ? 0.06
-          : 0.32);
+          ? this.verticalResponseSeconds(true)
+          : now < this.accentReleaseUntil
+            ? this.accentReleaseSeconds
+            : this.verticalResponseSeconds(false));
     for (const [stemId, gain] of voice.stemGains) {
       const target = this.targetStemGain(
         voice.section,
         stemId,
         this.effectiveStemIntensity(stemId, intensity),
       ) * this.stemAccentMultiplier(stemId);
-      gain.gain.cancelScheduledValues(now);
+      holdAutomationAtTime(gain.gain, now);
       gain.gain.setTargetAtTime(target, now, responseSeconds);
     }
+  }
+
+  private verticalResponseSeconds(attacking: boolean): number {
+    const beatSeconds =
+      this.manifest.barFrames /
+      this.manifest.sampleRate /
+      this.manifest.beatsPerBar;
+    return attacking
+      ? Math.max(0.09, Math.min(0.16, beatSeconds * 0.24))
+      : Math.max(0.55, Math.min(0.9, beatSeconds * 1.4));
   }
 
   private effectiveStemIntensity(stemId: string, intensity: number): number {
@@ -1274,6 +1310,16 @@ function responseAt(stem: SoundtrackStem, intensity: number): number {
 
 function dbToGain(db: number): number {
   return 10 ** (db / 20);
+}
+
+function holdAutomationAtTime(parameter: AudioParam, when: number): void {
+  if (typeof parameter.cancelAndHoldAtTime === 'function') {
+    parameter.cancelAndHoldAtTime(when);
+    return;
+  }
+  // Older Web Audio implementations retain automation that began before the
+  // cancellation time, so a following target continues from that value.
+  parameter.cancelScheduledValues(when);
 }
 
 function applyEqualPowerFade(

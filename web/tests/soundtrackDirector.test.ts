@@ -163,6 +163,64 @@ test('v1 prefix causality does not depend on a future inferred max health', () =
   }
 });
 
+test('unseen sustained approach raises causal pressure and climbs one phrase at a time', () => {
+  const positions: readonly (readonly [
+    ReplayV1Position,
+    ReplayV1Position,
+  ])[] = [
+    [[0, 0], [12, 0]],
+    [[1, 0], [11, 0]],
+    [[2, 0], [10, 0]],
+    [[3, 0], [9, 0]],
+    [[4, 0], [8, 0]],
+    [[5, 0], [7, 0]],
+    [[5, 0], [7, 0]],
+    [[5, 0], [7, 0]],
+  ];
+  const ticks = positions.map((position, tick) =>
+    v1Tick(tick, {
+      positions: position,
+      visible: false,
+      actions: tick > 0 && tick < 6
+        ? ['MoveForward', 'MoveForward']
+        : ['Wait', 'Wait'],
+    }),
+  );
+  const full = buildAdaptiveTimeline(v1Replay(ticks));
+
+  assert.equal(full.frames[0]?.features.approach, 0);
+  assert.ok((full.frames[1]?.features.approach ?? 0) > 0);
+  assert.ok(
+    (full.frames[4]?.features.closingPressure ?? 0) >
+      (full.frames[2]?.features.closingPressure ?? 1),
+  );
+  assert.equal(full.frames[3]?.state, 'tension');
+  assert.equal(full.frames[7]?.state, 'pursuit');
+  assert.ok(
+    full.frames.every(
+      (frame) =>
+        frame.features.contact < 1 &&
+        !frame.triggers.includes('contact'),
+    ),
+  );
+  for (let index = 1; index < full.frames.length; index += 1) {
+    assert.ok(
+      stateRank(full.frames[index]!.state) -
+        stateRank(full.frames[index - 1]!.state) <=
+        1,
+      `state skipped upward at tick ${full.frames[index]!.tick}`,
+    );
+  }
+  for (let count = 0; count <= ticks.length; count += 1) {
+    const prefix = buildAdaptiveTimeline(v1Replay(ticks.slice(0, count)));
+    assert.deepEqual(
+      prefix.frames,
+      full.frames.slice(0, count),
+      `approach prefix length ${count}`,
+    );
+  }
+});
+
 test('every v2 prefix is byte-equivalent to the same full causal prefix', () => {
   const complete = structuredClone(FRONTLINE_COMPLETE_WIRE);
   const full = buildAdaptiveTimeline(loadReplayObject(complete).replay);
@@ -180,6 +238,87 @@ test('every v2 prefix is byte-equivalent to the same full causal prefix', () => 
       prefix.frames,
       full.frames.slice(0, count),
       `v2 prefix length ${count}`,
+    );
+  }
+});
+
+test('approach pairs stable v2 actor lives and ignores a respawn position jump', () => {
+  const replay = loadReplayObject(
+    structuredClone(FRONTLINE_COMPLETE_WIRE),
+  ).replay;
+  replay.ticks = replay.ticks.slice(2, 4);
+  replay.result = null;
+
+  const rows = [
+    [[0, 0], [0, 10], [20, 0], [20, 10]],
+    [[0, 0], [0, 10], [20, 0], [1, 10]],
+  ] as const;
+  for (let tickIndex = 0; tickIndex < replay.ticks.length; tickIndex += 1) {
+    const actors = replay.ticks[tickIndex]!.after.actors;
+    for (let actorIndex = 0; actorIndex < actors.length; actorIndex += 1) {
+      actors[actorIndex]!.position = {
+        x: rows[tickIndex]![actorIndex]![0],
+        y: rows[tickIndex]![actorIndex]![1],
+      };
+    }
+  }
+  const respawn = replay.ticks[1]!.after.actors.find(
+    (actor) => actor.identity.teamId === 1 && actor.identity.unitId === 1,
+  )!;
+  assert.equal(respawn.identity.kind, 'frontline');
+  if (respawn.identity.kind !== 'frontline') {
+    throw new Error('expected a Frontline actor');
+  }
+  respawn.identity = {
+    ...respawn.identity,
+    lifeId: 1,
+    actorKey: 'frontline:1:unit:1:life:1',
+  };
+  respawn.actorKey = respawn.identity.actorKey;
+
+  const timeline = buildAdaptiveTimeline(replay);
+  assert.ok((timeline.frames[1]?.features.proximity ?? 0) > 0.8);
+  assert.equal(timeline.frames[1]?.features.approach, 0);
+  assert.equal(timeline.frames[1]?.features.closingPressure, 0);
+});
+
+test('v2 approach sees a closing engagement when the nearest pair opens', () => {
+  const replay = loadReplayObject(
+    structuredClone(FRONTLINE_COMPLETE_WIRE),
+  ).replay;
+  replay.ticks = replay.ticks.slice(2, 7);
+  replay.result = null;
+  const tracks = new Map([
+    ['0:0', [[1, 4], [1, 4], [1, 4], [1, 4], [1, 4]]],
+    ['1:0', [[4, 4], [6, 4], [8, 4], [10, 4], [12, 4]]],
+    ['0:1', [[2, 6], [3, 6], [4, 6], [5, 6], [6, 6]]],
+    ['1:1', [[12, 6], [11, 6], [10, 6], [9, 6], [8, 6]]],
+  ]);
+  for (let tickIndex = 0; tickIndex < replay.ticks.length; tickIndex += 1) {
+    for (const actor of replay.ticks[tickIndex]!.after.actors) {
+      const position = tracks.get(
+        `${actor.identity.teamId}:${actor.identity.unitId}`,
+      )![tickIndex]!;
+      actor.position = { x: position[0], y: position[1] };
+    }
+  }
+
+  const full = buildAdaptiveTimeline(replay);
+  assert.ok((full.frames[1]?.features.approach ?? 0) > 0);
+  assert.ok(
+    (full.frames[3]?.features.closingPressure ?? 0) >
+      (full.frames[1]?.features.closingPressure ?? 1),
+  );
+  for (let count = 0; count <= replay.ticks.length; count += 1) {
+    const prefix = buildAdaptiveTimeline({
+      ...replay,
+      ticks: replay.ticks.slice(0, count),
+      result: null,
+    });
+    assert.deepEqual(
+      prefix.frames,
+      full.frames.slice(0, count),
+      `v2 multi-unit approach prefix length ${count}`,
     );
   }
 });
@@ -224,7 +363,7 @@ test('fractional samples never interpolate toward an unrevealed damage tick', ()
   assert.equal(before.state, 'sparse');
   assert.ok(!before.triggers.includes('damage'));
   assert.equal(impact.sourceTick, 1);
-  assert.equal(impact.state, 'tension');
+  assert.equal(impact.state, 'sparse');
   assert.notEqual(impact.state, 'combat');
   assert.ok(impact.intensity >= 0.84);
   assert.ok(impact.triggers.includes('damage'));
@@ -265,6 +404,39 @@ test('v2 destruction is an accent, not a terminal signal', () => {
   assert.equal(frame.intensity, 1);
 });
 
+test('a shot and its newly spawned projectile count as one launch', () => {
+  const shot = { type: 'Shot', slot: 0 } as const;
+  const bare = buildAdaptiveTimeline(
+    v1Replay([v1Tick(0, { events: [shot] })]),
+  ).frames[0]!;
+  const launched = buildAdaptiveTimeline(
+    v1Replay([
+      v1Tick(0, {
+        events: [shot],
+        projectiles: [
+          { x: 1, y: 0, direction: 'East', ownerSlot: 0 },
+        ],
+        projectileTraversals: [
+          {
+            id: 1,
+            ownerSlot: 0,
+            direction: 'East',
+            fromX: 0,
+            fromY: 0,
+            path: [[1, 0]],
+          },
+        ],
+      }),
+    ]),
+  ).frames[0]!;
+
+  assert.equal(bare.features.combatPressure, 0.34);
+  assert.equal(launched.features.projectileThreat, 0.5);
+  assert.equal(launched.features.combatPressure, bare.features.combatPressure);
+  assert.equal(launched.state, 'sparse');
+  assert.ok(launched.intensity >= 0.62);
+});
+
 test('Frontline base-breach events and authoritative winners are terminal', () => {
   const breached = v2PartialModel();
   const breachTick = breached.ticks[0]!;
@@ -287,7 +459,7 @@ test('Frontline base-breach events and authoritative winners are terminal', () =
 
 test('closing contact and projectile pressure produce stable pursuit then combat phrases', () => {
   const ticks = [v1Tick(0, { positions: [[0, 0], [9, 0]] })];
-  for (let tick = 1; tick <= 15; tick += 1) {
+  for (let tick = 1; tick <= 16; tick += 1) {
     const closing = Math.min(tick, 4);
     ticks.push(
       v1Tick(tick, {
@@ -323,18 +495,19 @@ test('closing contact and projectile pressure produce stable pursuit then combat
   }
   const timeline = buildAdaptiveTimeline(v1Replay(ticks));
 
-  assert.equal(timeline.frames[1]?.state, 'tension');
+  assert.equal(timeline.frames[1]?.state, 'sparse');
   assert.ok(timeline.frames[1]?.triggers.includes('contact'));
-  assert.equal(timeline.frames[5]?.state, 'pursuit');
-  assert.ok((timeline.frames[5]?.features.pursuitPressure ?? 0) > 0.5);
+  assert.equal(timeline.frames[2]?.state, 'tension');
+  assert.equal(timeline.frames[6]?.state, 'pursuit');
+  assert.ok((timeline.frames[6]?.features.pursuitPressure ?? 0) > 0.5);
   assert.ok(
     timeline.frames
-      .slice(5, 15)
+      .slice(6, 16)
       .every((frame) => frame.state === 'pursuit'),
   );
   assert.ok((timeline.frames[6]?.intensity ?? 0) >= 0.58);
-  assert.equal(timeline.frames[15]?.state, 'combat');
-  assert.ok((timeline.frames[15]?.features.combatPressure ?? 0) > 0.56);
+  assert.equal(timeline.frames[16]?.state, 'combat');
+  assert.ok((timeline.frames[16]?.features.combatPressure ?? 0) > 0.56);
 });
 
 test('a shot reacts vertically while sustained shots earn a minimum combat phrase', () => {
@@ -346,16 +519,20 @@ test('a shot reacts vertically while sustained shots earn a minimum combat phras
       v1Tick(3),
       v1Tick(4, { events: [{ type: 'Shot', slot: 0 }] }),
       v1Tick(5, { events: [{ type: 'Shot', slot: 0 }] }),
-      v1Tick(6),
-      v1Tick(7),
-      v1Tick(8),
+      v1Tick(6, { events: [{ type: 'Shot', slot: 0 }] }),
+      v1Tick(7, { events: [{ type: 'Shot', slot: 0 }] }),
+      v1Tick(8, { events: [{ type: 'Shot', slot: 0 }] }),
       v1Tick(9),
       v1Tick(10),
+      v1Tick(11),
+      v1Tick(12),
+      v1Tick(13),
     ]),
     {
       combatPressureDecay: 0.7,
       releaseTicks: 2,
-      minDwellTicks: { combat: 4 },
+      stateEntryTicks: { pursuit: 1, combat: 1 },
+      minDwellTicks: { tension: 0, pursuit: 0, combat: 4 },
     },
   );
 
@@ -363,12 +540,14 @@ test('a shot reacts vertically while sustained shots earn a minimum combat phras
   assert.ok((timeline.frames[0]?.intensity ?? 0) >= 0.62);
   assert.ok(timeline.frames[0]?.triggers.includes('shot'));
   assert.ok(
-    timeline.frames.slice(0, 5).every((frame) => frame.state === 'sparse'),
+    timeline.frames.slice(0, 6).every((frame) => frame.state === 'sparse'),
   );
+  assert.equal(timeline.frames[6]?.state, 'tension');
+  assert.equal(timeline.frames[7]?.state, 'pursuit');
   assert.ok(
-    timeline.frames.slice(5, 10).every((frame) => frame.state === 'combat'),
+    timeline.frames.slice(8, 13).every((frame) => frame.state === 'combat'),
   );
-  assert.equal(timeline.frames[10]?.state, 'sparse');
+  assert.equal(timeline.frames[13]?.state, 'sparse');
 });
 
 test('long stationary quiet runs expose stall, thin sparse, and never invent climax', () => {
@@ -512,6 +691,21 @@ test('sustained critical combat and a fast objective ETA can earn climax', () =>
         }),
       ),
     ),
+    {
+      stateEntryTicks: {
+        tension: 1,
+        pursuit: 1,
+        combat: 1,
+        climax: 1,
+      },
+      minDwellTicks: {
+        sparse: 0,
+        tension: 0,
+        pursuit: 0,
+        combat: 0,
+        climax: 0,
+      },
+    },
   );
   assert.equal(healthTimeline.frames.at(-1)?.state, 'climax');
   assert.ok(
@@ -523,6 +717,9 @@ test('sustained critical combat and a fast objective ETA can earn climax', () =>
       [
         v1Tick(4, { controlPressure: 2 }),
         v1Tick(5, { controlPressure: 8 }),
+        v1Tick(6, { controlPressure: 8 }),
+        v1Tick(7, { controlPressure: 8 }),
+        v1Tick(8, { controlPressure: 8 }),
       ],
       {
         header: {
@@ -533,9 +730,25 @@ test('sustained critical combat and a fast objective ETA can earn climax', () =>
         },
       },
     ),
+    {
+      stateEntryTicks: {
+        tension: 1,
+        pursuit: 1,
+        combat: 1,
+        climax: 1,
+      },
+      minDwellTicks: {
+        sparse: 0,
+        tension: 0,
+        pursuit: 0,
+        combat: 0,
+        climax: 0,
+      },
+    },
   );
   const overtime = controlTimeline.frames[1]!;
-  assert.equal(overtime.state, 'climax');
+  assert.equal(overtime.state, 'tension');
+  assert.equal(controlTimeline.frames.at(-1)?.state, 'climax');
   assert.equal(overtime.features.overtime, true);
   assert.equal(overtime.features.controlUrgency, 0.8);
   assert.ok(overtime.features.objectiveImminence > 0);
@@ -772,4 +985,9 @@ function causalEvent(tick: ReplayTick, type: string): ReplayCausalEvent {
     controlResumesAtTick: null,
     completeness: 'exact',
   };
+}
+
+function stateRank(state: string): number {
+  return ['sparse', 'tension', 'pursuit', 'combat', 'climax', 'resolve']
+    .indexOf(state);
 }
