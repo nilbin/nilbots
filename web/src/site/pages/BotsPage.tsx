@@ -29,7 +29,7 @@ export default function BotsPage() {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h2 className="font-mono text-xs tracking-widest text-arena-dim">ALL BOTS</h2>
+        <h2 className="type-label text-[10.5px] text-arena-dim">All bots</h2>
         <input
           type="search"
           value={query}

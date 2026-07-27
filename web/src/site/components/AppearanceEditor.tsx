@@ -82,7 +82,7 @@ export default function AppearanceEditor({
 
   return (
     <section className="max-w-2xl rounded-xl border border-arena-edge bg-arena-panel p-5">
-      <h2 className="mb-4 font-mono text-xs tracking-widest text-arena-dim">
+      <h2 className="mb-4 type-label text-[10.5px] text-arena-dim">
         APPEARANCE
       </h2>
       <form

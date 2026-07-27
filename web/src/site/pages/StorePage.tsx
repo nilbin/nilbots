@@ -24,7 +24,7 @@ export default function StorePage() {
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-xl border border-arena-edge bg-arena-panel p-6">
-        <h1 className="text-2xl font-black tracking-wide">Store</h1>
+        <h1 className="type-display text-[26px]">Store</h1>
         <p className="mt-2 max-w-xl text-sm text-arena-dim">
           Chassis and their matching shot, sold together. Everything here is cosmetic or
           capacity — nothing sold changes how a bot fights, and every ladder cosmetic
@@ -39,7 +39,7 @@ export default function StorePage() {
 
       {store.categories.map((category) => (
         <section key={category.id}>
-          <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
+          <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">
             {category.label.toUpperCase()}
           </h2>
           <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">

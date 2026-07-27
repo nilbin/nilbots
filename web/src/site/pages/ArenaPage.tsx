@@ -33,7 +33,7 @@ export default function ArenaPage() {
   return (
     <div className="flex flex-col gap-8">
       <section className="rounded-xl border border-arena-edge bg-arena-panel p-8">
-        <h1 className="text-3xl font-black tracking-wide">
+        <h1 className="type-display text-[32px]">
           Write a bot. <span className="text-arena-accent">Watch it fight.</span>
         </h1>
         <p className="mt-2 max-w-xl text-sm text-arena-dim">
@@ -59,7 +59,7 @@ export default function ArenaPage() {
 
       <section>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <h2 className="font-mono text-xs tracking-widest text-arena-dim">
+          <h2 className="type-label text-[10.5px] text-arena-dim">
             {filtered ? 'MATCHES' : 'RECENT MATCHES'}
           </h2>
           <select

@@ -18,7 +18,7 @@ export default function CosmeticUnlocks({
 
   return (
     <section className="max-w-2xl rounded-xl border border-arena-edge bg-arena-panel p-5">
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
+      <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">
         UNLOCKS
       </h2>
       {!catalog && !error && (

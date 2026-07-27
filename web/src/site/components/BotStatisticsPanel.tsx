@@ -7,7 +7,7 @@ export default function BotStatisticsPanel({ botId }: { botId: string }) {
 
   return (
     <section>
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
+      <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">
         PERFORMANCE
       </h2>
       {isPending ? (

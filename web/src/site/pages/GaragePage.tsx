@@ -23,7 +23,7 @@ import CosmeticUnlocks from '../components/CosmeticUnlocks';
 function CliAccess() {
   return (
     <section className="max-w-xl rounded-xl border border-arena-edge bg-arena-panel p-5">
-      <h2 className="mb-2 font-mono text-xs tracking-widest text-arena-dim">CLI ACCESS</h2>
+      <h2 className="mb-2 type-label text-[10.5px] text-arena-dim">Cli access</h2>
       <p className="text-xs text-arena-dim">
         Develop locally and submit from your terminal:{' '}
         <code className="font-mono">nilbots register</code> opens this site in your browser to
@@ -83,7 +83,7 @@ export default function GaragePage() {
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">MY BOTS</h2>
+        <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">My bots</h2>
         {bots === null ? (
           <p className="text-sm text-arena-dim">Loading…</p>
         ) : bots.length === 0 ? (
@@ -134,7 +134,7 @@ export default function GaragePage() {
       <CliAccess />
 
       <section className="max-w-md rounded-xl border border-arena-edge bg-arena-panel p-5">
-        <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">NEW BOT</h2>
+        <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">New bot</h2>
         <form onSubmit={create} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-xs text-arena-dim">
             Name

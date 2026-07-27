@@ -21,7 +21,7 @@ export default function MatchSetPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="rounded-xl border border-arena-edge bg-arena-panel p-6">
-        <p className="mb-2 font-mono text-xs tracking-widest text-arena-dim">
+        <p className="mb-2 type-label text-[10.5px] text-arena-dim">
           RANKED MATCH SET · 6 GAMES · MIRRORED STARTS
         </p>
         <div className="flex flex-wrap items-center gap-4 text-2xl font-black">
@@ -78,7 +78,7 @@ export default function MatchSetPage() {
 
       <section>
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-mono text-xs tracking-widest text-arena-dim">
+          <h2 className="type-label text-[10.5px] text-arena-dim">
             GAMES
           </h2>
           <p className="text-xs text-arena-dim">

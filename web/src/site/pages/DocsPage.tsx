@@ -15,7 +15,7 @@ export default function DocsPage() {
   return (
     <div className="prose-invert mx-auto flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
       <section>
-        <h1 className="mb-2 text-2xl font-black tracking-wide">How to play</h1>
+        <h1 className="mb-2 type-display text-[26px]">How to play</h1>
         <p className="text-arena-dim">
           Write a C# bot, submit it, and watch it fight. Matches are deterministic:
           the same bots, map and seed always produce the same battle — so when your
@@ -156,7 +156,7 @@ nilbots submit .                                   # creates bot + official buil
 function Doc({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-arena-edge bg-arena-panel/60 p-5">
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim uppercase">{title}</h2>
+      <h2 className="mb-3 type-label text-[10.5px] text-arena-dim uppercase">{title}</h2>
       {children}
     </section>
   );

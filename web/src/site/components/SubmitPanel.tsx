@@ -42,7 +42,7 @@ export default function SubmitPanel({ bot, botKey }: { bot: BotDetail; botKey: s
 
   return (
     <section className="rounded-xl border border-arena-edge bg-arena-panel p-5">
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
+      <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">
         SUBMIT NEW VERSION
       </h2>
       <p className="mb-3 text-xs text-arena-dim">

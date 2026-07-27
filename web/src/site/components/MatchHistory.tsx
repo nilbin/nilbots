@@ -10,7 +10,7 @@ export default function MatchHistory({ botId, botSlug }: { botId: string; botSlu
 
   return (
     <section>
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
+      <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">
         LATEST GAMES
         <Link to={`/?bot=${botSlug}`} className="ml-2 font-normal text-arena-accent hover:underline">
           every match →

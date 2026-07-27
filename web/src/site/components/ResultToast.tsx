@@ -70,7 +70,7 @@ export default function ResultToast({
           <p className={`font-mono text-[10px] font-bold tracking-[0.22em] ${tone.eyebrow}`}>
             {challenged ? 'CHALLENGE' : ranked ? 'RANKED SET' : 'MATCH COMPLETE'}
           </p>
-          <h2 className="mt-1 truncate text-lg font-black tracking-wide text-arena-text">
+          <h2 className="type-display mt-1 truncate text-[19px] text-arena-text">
             {challenged
               ? `${payload.botName} was challenged`
               : `${payload.botName} ${VERBS[payload.outcome] ?? 'drew'}`}
