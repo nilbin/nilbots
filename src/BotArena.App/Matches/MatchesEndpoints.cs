@@ -4,6 +4,7 @@ using BotArena.App.Jobs;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
+using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Matches;
@@ -23,6 +24,7 @@ public static class MatchesEndpoints
             MatchAdmissionService admission,
             MatchParticipantSnapshotFactory snapshots,
             MatchChallengeAnnouncer challenges,
+            MatchExecutionSettings matchSettings,
             UnrankedMatchLimits unrankedLimits,
             TimeProvider timeProvider,
             HttpContext http,
@@ -30,6 +32,21 @@ public static class MatchesEndpoints
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
+            string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
+            try
+            {
+                _ = ArenaMapLoader.Load(mapId, matchSettings.MatchRules);
+            }
+            catch (Exception exception) when (
+                exception is InvalidOperationException
+                    or MatchDefinitionValidationException
+                    or NotSupportedException)
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Map is not available for the current rules.",
+                    detail: $"Map '{mapId}' cannot be selected.");
+            }
 
             // Durable, for the same reason ranked is: the HTTP limiter is per web process
             // and forgotten on restart, and this creates a real WASM match. Counting the
@@ -53,6 +70,7 @@ public static class MatchesEndpoints
                     "matches per 24 hours.",
                     statusCode: 429);
             }
+
             ApplicationResult<AdmittedMatchBot> challenger =
                 await admission.AdmitAsync(
                     request.BotId,
@@ -68,7 +86,6 @@ public static class MatchesEndpoints
             if (!opponent.Succeeded)
                 return opponent.Error!.ToProblemDetails(http);
 
-            string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
             long seed = request.Seed ?? Random.Shared.NextInt64();
 
             var match = new Match

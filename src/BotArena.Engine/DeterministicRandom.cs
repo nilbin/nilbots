@@ -55,6 +55,34 @@ public static class SeedDerivation
         return x;
     }
 
+    /// <summary>
+    /// Independent stream for one entity life. The actor domain is deliberately
+    /// distinct from historical slot streams, and every team/unit/life
+    /// coordinate participates so replicated instances never share randomness.
+    /// </summary>
+    public static ulong DeriveActorSeed(
+        ulong matchSeed,
+        ActorIdentity actorId,
+        string seedProfile)
+    {
+        ArgumentNullException.ThrowIfNull(actorId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(seedProfile);
+
+        unchecked
+        {
+            const ulong step = 0x9E3779B97F4A7C15UL;
+            ulong x = DeterministicRandom.Mix(
+                matchSeed ^ Fnv1a64("actors:" + seedProfile));
+            x = DeterministicRandom.Mix(
+                x + step * ((ulong)actorId.TeamId + 1));
+            x = DeterministicRandom.Mix(
+                x + step * ((ulong)actorId.UnitId + 1));
+            x = DeterministicRandom.Mix(
+                x + step * ((ulong)actorId.LifeId + 1));
+            return x;
+        }
+    }
+
     /// <summary>Independent stream for seed-spawn variation — labeled so it can never
     /// collide with a bot's own stream (same shape as DeriveBotSeed, distinct domain).</summary>
     public static ulong DeriveSpawnSeed(ulong matchSeed, string gameRulesVersion) =>

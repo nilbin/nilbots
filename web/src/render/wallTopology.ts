@@ -1,4 +1,4 @@
-import type { ReplayDocument } from '../types';
+import type { ReplayModel } from '../replayModel';
 
 /**
  * Which neighbour each bit of a wall's topology mask refers to, clockwise from north.
@@ -31,13 +31,13 @@ export class WallLayout {
   private readonly overrides: ReadonlyMap<string, string>;
 
   constructor(
-    private readonly replay: ReplayDocument,
+    private readonly replay: ReplayModel,
     private readonly boundaryFamily: string,
     private readonly interiorFamily: string,
   ) {
-    this.tiles = replay.header.mapTiles;
+    this.tiles = replay.map.tileRows;
     const overrides = new Map<string, string>();
-    for (const group of replay.header.presentation?.wallGroups ?? []) {
+    for (const group of replay.map.presentation?.wallGroups ?? []) {
       for (const position of group.tiles)
         overrides.set(`${position.x},${position.y}`, group.family ?? interiorFamily);
     }
@@ -45,11 +45,11 @@ export class WallLayout {
   }
 
   get width(): number {
-    return this.replay.header.mapWidth;
+    return this.replay.map.width;
   }
 
   get height(): number {
-    return this.replay.header.mapHeight;
+    return this.replay.map.height;
   }
 
   /**

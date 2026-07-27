@@ -24,9 +24,19 @@ export function ArenaPanels({
   showVisibility: boolean;
   onToggleVisibility: (next: boolean) => void;
 }) {
-  const { header, result, tick, transport, selectedSlot, failed, selectSlot } = bridge;
-  const lookFor = (slot: number) =>
-    header?.participants.find((participant) => participant.slot === slot)?.lookId;
+  const {
+    header,
+    result,
+    tick,
+    transport,
+    selectedUnitKey,
+    failed,
+    selectUnit,
+  } = bridge;
+  const lookFor = (participantId: number) =>
+    header?.participants.find(
+      (participant) => participant.participantId === participantId,
+    )?.lookId ?? undefined;
 
   return (
     <ScrollView style={styles.panels} contentContainerStyle={styles.body}>
@@ -36,20 +46,35 @@ export function ArenaPanels({
         </Text>
       ) : null}
 
+      {transport?.loading ? (
+        <Text style={styles.loading}>
+          Loading arena assets
+          {transport.pendingAssets > 0
+            ? ` · ${transport.pendingAssets} remaining`
+            : '…'}
+        </Text>
+      ) : null}
+
       {result && transport?.atEnd ? <ArenaOutcome result={result} header={header} /> : null}
 
-      {tick?.control ? <ArenaControlBar control={tick.control} /> : null}
+      {tick?.objective ? (
+        <ArenaControlBar objective={tick.objective} />
+      ) : null}
 
-      {tick?.bots.map((bot) => (
+      {tick?.units.map((unit) => (
         <ArenaBotCard
-          key={bot.slot}
-          bot={bot}
-          lookId={lookFor(bot.slot)}
-          // A control-mode match has a zone but no per-bot tally, so the tally alone
+          key={unit.unitKey}
+          unit={unit}
+          lookId={lookFor(unit.participantId)}
+          // A pressure-mode match can have an objective without a per-unit tally, so
           // cannot decide whether the marker belongs on the card.
-          showZone={tick.control !== null || bot.zoneTicks !== null}
-          selected={selectedSlot === bot.slot}
-          onPress={() => selectSlot(bot.slot)}
+          showObjective={
+            tick.objective !== null ||
+            unit.zoneTicks !== null ||
+            unit.holdingObjective
+          }
+          selected={selectedUnitKey === unit.unitKey}
+          onPress={() => selectUnit(unit.unitKey)}
         />
       ))}
 
@@ -59,14 +84,24 @@ export function ArenaPanels({
           onValueChange={onToggleVisibility}
           trackColor={{ true: Arena.accent, false: Arena.edge }}
         />
-        <Text style={styles.toggleLabel}>Show selected bot&apos;s field of view</Text>
+        <Text style={styles.toggleLabel}>
+          Show selected unit&apos;s field of view
+        </Text>
       </View>
 
       {header ? (
-        <Text style={styles.provenance} numberOfLines={2}>
-          seed {header.seed}
-          {header.replayHash ? ` · #${header.replayHash.slice(0, 12)}` : ''}
-        </Text>
+        <View style={styles.provenance}>
+          <Text style={styles.provenanceLine} numberOfLines={1}>
+            seed {header.seed}
+            {header.seedExact ? '' : ' · inexact legacy value'}
+          </Text>
+          <Text style={styles.provenanceLine} numberOfLines={1}>
+            replay v{header.replayVersion}
+            {header.replayHash
+              ? ` · #${header.replayHash.slice(0, 12)}`
+              : ''}
+          </Text>
+        </View>
       ) : null}
     </ScrollView>
   );
@@ -76,7 +111,9 @@ const styles = StyleSheet.create({
   panels: { flex: 1 },
   body: { gap: Space.sm, padding: Space.lg, paddingBottom: Space.xxl },
   error: { color: Arena.dim, fontSize: 13 },
+  loading: { ...Mono, color: Arena.accent, fontSize: 11 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, paddingTop: Space.xs },
   toggleLabel: { color: Arena.dim, fontSize: 12, flexShrink: 1 },
-  provenance: { ...Mono, color: Arena.dim, fontSize: 10, paddingTop: Space.xs },
+  provenance: { gap: 2, paddingTop: Space.xs },
+  provenanceLine: { ...Mono, color: Arena.dim, fontSize: 10 },
 });

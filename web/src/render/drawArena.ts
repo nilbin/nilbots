@@ -1,4 +1,11 @@
-import type { ProjectileHeading, ReplayDocument } from '../types';
+import type {
+  ReplayActorIdentity,
+  ReplayCausalEvent,
+  ReplayDirection,
+  ReplayModel,
+  ReplayProjectileHeading,
+  ReplayStableUnitKey,
+} from '../replayModel';
 import {
   arenaTheme,
   botLook,
@@ -10,11 +17,23 @@ import {
   adjustAccentForLuminance,
   sampleCanvasLuminance,
 } from './adaptiveAccent';
-import { replayMaxHealth } from '../replayMetadata';
-import { boltsAt, headingAngle, headingStep, posesAt, type BotPose } from './interpolate';
+import { maxHealthForActor } from '../replayMetadata';
+import {
+  participantForActor,
+  participantForUnit,
+  visualIndexForUnit,
+} from '../replayParticipants';
+import { posesAt, type BotPose } from './interpolate';
 import { wallAtlasDestination } from './wallAtlasGeometry';
 import { drawFogMask } from './fogMask';
 import { drawLightSpill, type LightKind, type LightSource } from './lightSpill';
+
+const directionStep: Record<ReplayDirection, [number, number]> = {
+  north: [0, -1],
+  east: [1, 0],
+  south: [0, 1],
+  west: [-1, 0],
+};
 
 const wallNeighbourStep: readonly [number, number][] = [
   [0, -1],
@@ -26,6 +45,29 @@ const wallNeighbourStep: readonly [number, number][] = [
   [-1, 0],
   [-1, -1],
 ];
+
+const directionAngle: Record<ReplayDirection, number> = {
+  north: -Math.PI / 2,
+  east: 0,
+  south: Math.PI / 2,
+  west: Math.PI,
+};
+
+const projectileStep: Record<ReplayProjectileHeading, [number, number]> = {
+  ...directionStep,
+  'north-east': [1, -1],
+  'south-east': [1, 1],
+  'south-west': [-1, 1],
+  'north-west': [-1, -1],
+};
+
+const projectileAngle: Record<ReplayProjectileHeading, number> = {
+  ...directionAngle,
+  'north-east': -Math.PI / 4,
+  'south-east': Math.PI / 4,
+  'south-west': (3 * Math.PI) / 4,
+  'north-west': (-3 * Math.PI) / 4,
+};
 
 const tintedProjectileSprites = new Map<string, HTMLCanvasElement>();
 const maxTintedProjectileSprites = 32;
@@ -68,19 +110,23 @@ function tintedProjectileSprite(
 
 export interface DrawOptions {
   time: number;
-  selectedSlot: number | null;
+  selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
 }
 
 /** Pure canvas renderer: consumes replay data, never computes game rules (plan §32). */
 export function drawArena(
   ctx: CanvasRenderingContext2D,
-  replay: ReplayDocument,
-  { time, selectedSlot, showVisibility }: DrawOptions,
+  replay: ReplayModel,
+  { time, selectedUnitKey, showVisibility }: DrawOptions,
   width: number,
   height: number,
 ): void {
-  const { mapWidth, mapHeight, mapTiles, participants } = replay.header;
+  const {
+    width: mapWidth,
+    height: mapHeight,
+    tileRows: mapTiles,
+  } = replay.map;
   // A margin so edge walls are not flush with the canvas. Fractional rather than a whole
   // tile: at 24x18 a full tile is 4% of width and 5.5% of height given away to black, and
   // on a letterboxed phone every pixel of arena is already scarce. Must match
@@ -119,32 +165,41 @@ export function drawArena(
   ctx.clearRect(0, 0, width, height);
 
   const tickCount = replay.ticks.length;
-  const tick = Math.min(Math.floor(Math.max(0, time)), tickCount - 1);
-  const fraction = Math.max(0, Math.min(time - tick, 1));
+  const tick =
+    tickCount === 0
+      ? 0
+      : Math.min(Math.floor(Math.max(0, time)), tickCount - 1);
+  const fraction =
+    tickCount === 0 ? 0 : Math.max(0, Math.min(time - tick, 1));
   const currentTick = replay.ticks[tick];
   const poses = posesAt(replay, time);
-  const maxHealth = replayMaxHealth(replay);
-  const theme = arenaTheme(replay.header.themeId);
+  const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const boundaryWall = validWallFamily(
-    replay.header.presentation?.boundaryWall,
+    replay.map.presentation?.boundaryWall ?? undefined,
     theme.walls.defaults.boundary,
   );
   const interiorWall = validWallFamily(
-    replay.header.presentation?.interiorWall,
+    replay.map.presentation?.interiorWall ?? undefined,
     theme.walls.defaults.interior,
   );
   const wallOverrides = new Map<string, string>();
-  for (const group of replay.header.presentation?.wallGroups ?? []) {
+  for (const group of replay.map.presentation?.wallGroups ?? []) {
     const family = validWallFamily(group.family, interiorWall);
     for (const position of group.tiles)
       wallOverrides.set(`${position.x},${position.y}`, family);
   }
-  const lookFor = (slot: number) =>
-    botLook(participants[slot]?.lookId, slot);
-  const accentFor = (slot: number): string => {
-    const participant = participants[slot];
+  const lookFor = (unitKey: ReplayStableUnitKey) => {
+    const participant = participantForUnit(replay, unitKey);
+    return botLook(
+      participant?.lookId ?? undefined,
+      visualIndexForUnit(replay, unitKey),
+    );
+  };
+  const accentFor = (unitKey: ReplayStableUnitKey | null): string => {
+    if (unitKey === null) return '#ffffff';
+    const participant = participantForUnit(replay, unitKey);
     return presentationAccent(
-      lookFor(slot),
+      lookFor(unitKey),
       participant?.accent ?? '#38bdf8',
     );
   };
@@ -159,13 +214,25 @@ export function drawArena(
   // sight of — the panel view answers "what did this bot know?", so an unseen
   // opponent rendered at full strength would be lying.
   const fogSource =
-    showVisibility && selectedSlot !== null
-      ? currentTick.bots.find((b) => b.slot === selectedSlot)
+    showVisibility && selectedUnitKey !== null
+      ? currentTick?.actorTurns.find(
+          (turn) => turn.actor.unitKey === selectedUnitKey,
+        )
       : undefined;
-  const hiddenByFog = (slot: number): boolean =>
+  const hiddenByFog = (pose: BotPose): boolean =>
     fogSource !== undefined &&
-    slot !== selectedSlot &&
-    !fogSource.visibleEnemies.some((e) => e.slot === slot);
+    pose.unitKey !== selectedUnitKey &&
+    !fogSource.observation.allies.some(
+      (ally) =>
+        ally.actor.kind === 'exact' &&
+        ally.actor.identity.actorKey === pose.actorKey,
+    ) &&
+    !fogSource.observation.enemies.some((enemy) =>
+      enemy.actor.kind === 'exact'
+        ? enemy.actor.identity.actorKey === pose.actorKey
+        : enemy.actor.teamId === pose.teamId &&
+          enemy.actor.unitId === pose.unitId,
+    );
 
   // A knock on impact, decaying across the tick it happened in.
   //
@@ -182,10 +249,11 @@ export function drawArena(
 
   drawFloor();
   drawZone();
-  if (replay.header.visionCone) drawVisionCones();
+  drawVision();
   drawWalls();
   drawSpill();
-  if (showVisibility && selectedSlot !== null) drawFog(selectedSlot);
+  if (showVisibility && selectedUnitKey !== null)
+    drawFog(selectedUnitKey);
   drawProjectiles();
   drawHeardSounds();
   drawShadowsAndBots();
@@ -196,9 +264,10 @@ export function drawArena(
 
   function shakeOffset(): { x: number; y: number } | null {
     let strength = 0;
-    for (const event of currentTick.events) {
-      if (event.type === 'Destroyed') strength = Math.max(strength, 1);
-      else if (event.type === 'Damage') strength = Math.max(strength, 0.45);
+    for (const event of currentTick?.events ?? []) {
+      if (event.type === 'destroyed') strength = Math.max(strength, 1);
+      else if (event.type === 'damage')
+        strength = Math.max(strength, 0.45);
     }
     if (strength === 0) return null;
 
@@ -236,13 +305,95 @@ export function drawArena(
   }
 
   function drawZone(): void {
-    if (!replay.header.zoneTiles) return;
+    if (replay.map.frontline) {
+      drawFrontlinePositions();
+      return;
+    }
+    if (replay.map.objectiveTiles.length === 0) return;
+    drawZoneTiles(replay.map.objectiveTiles);
+  }
+
+  function drawFrontlinePositions(): void {
+    const frontline = replay.map.frontline;
+    if (!frontline) return;
+    const objective =
+      currentTick?.after.objective ?? replay.initialWorld?.objective;
+    const activePositionIndex =
+      objective?.kind === 'frontline'
+        ? objective.activePositionIndex
+        : Math.floor(frontline.positions.length / 2);
+
+    ctx.save();
+    ctx.lineWidth = Math.max(1, tile * 0.025);
+    for (const position of frontline.positions) {
+      if (position.positionIndex === activePositionIndex) continue;
+      const distance = Math.abs(
+        position.positionIndex - activePositionIndex,
+      );
+      ctx.fillStyle = hexWithAlpha(theme.palette.zone, 0.025);
+      ctx.strokeStyle = hexWithAlpha(
+        theme.palette.zone,
+        Math.max(0.12, 0.3 - distance * 0.045),
+      );
+      for (const point of position.tiles) {
+        ctx.fillRect(px(point.x), py(point.y), tile, tile);
+        ctx.strokeRect(px(point.x), py(point.y), tile, tile);
+      }
+    }
+
+    for (const home of frontline.teamHomes) {
+      const homeUnit = replay.units.find(
+        (unit) => unit.teamId === home.teamId,
+      );
+      const color = accentFor(homeUnit?.unitKey ?? null);
+      ctx.fillStyle = hexWithAlpha(color, 0.04);
+      ctx.strokeStyle = hexWithAlpha(color, 0.28);
+      for (const point of home.protectedSpawnPad) {
+        ctx.fillRect(px(point.x), py(point.y), tile, tile);
+        ctx.strokeRect(px(point.x), py(point.y), tile, tile);
+      }
+    }
+
+    const world = currentTick?.after ?? replay.initialWorld;
+    for (const unit of world?.units ?? []) {
+      if (!unit.reservedSpawn) continue;
+      const color = accentFor(unit.unitKey);
+      const centreX = px(unit.reservedSpawn.x) + tile / 2;
+      const centreY = py(unit.reservedSpawn.y) + tile / 2;
+      const pulse = 0.82 + 0.12 * Math.sin(time * Math.PI * 2);
+      ctx.fillStyle = hexWithAlpha(color, 0.12);
+      ctx.strokeStyle = hexWithAlpha(color, 0.9);
+      ctx.lineWidth = Math.max(2, tile * 0.045);
+      ctx.setLineDash([tile * 0.11, tile * 0.07]);
+      ctx.beginPath();
+      ctx.arc(
+        centreX,
+        centreY,
+        tile * 0.31 * pulse,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.restore();
+
+    const active = frontline.positions.find(
+      (position) => position.positionIndex === activePositionIndex,
+    );
+    if (active) drawZoneTiles(active.tiles);
+  }
+
+  function drawZoneTiles(
+    tiles: readonly { x: number; y: number }[],
+  ): void {
     const pulse = 0.88 + Math.sin(time * Math.PI * 2) * 0.12;
     const zoneTiles = new Set(
-      replay.header.zoneTiles.map(([x, y]) => `${x},${y}`),
+      tiles.map(({ x, y }) => `${x},${y}`),
     );
     const zoneShape = new Path2D();
-    for (const [x, y] of replay.header.zoneTiles)
+    for (const { x, y } of tiles)
       zoneShape.rect(px(x), py(y), tile, tile);
 
     if (theme.zoneTexture?.complete && theme.zoneTexture.naturalWidth > 0) {
@@ -291,7 +442,7 @@ export function drawArena(
       ctx.lineTo(toX, toY);
       ctx.stroke();
     };
-    for (const [x, y] of replay.header.zoneTiles) {
+    for (const { x, y } of tiles) {
       const left = px(x);
       const top = py(y);
       if (!zoneTiles.has(`${x},${y - 1}`))
@@ -312,30 +463,35 @@ export function drawArena(
    */
   function drawSpill(): void {
     const sources: LightSource[] = [];
-    const accentFor = (slot: number | undefined) =>
-      participants.find((p) => p.slot === slot)?.accent ?? '#ffffff';
+    const eventAccent = (event: ReplayCausalEvent) =>
+      event.sourceActor ?? event.targetActor
+        ? (participantForActor(
+            replay,
+            (event.sourceActor ?? event.targetActor)!,
+          )?.accent ??
+          '#ffffff')
+        : '#ffffff';
 
     const collect = (index: number, age: number) => {
       const at = replay.ticks[index];
       if (!at) return;
       for (const event of at.events) {
         const kind: LightKind | null =
-          event.type === 'Shot'
+          event.type === 'shot'
             ? 'shot'
-            : event.type === 'Damage'
+            : event.type === 'damage'
               ? 'impact'
-              : event.type === 'Destroyed'
+              : event.type === 'destroyed'
                 ? 'destroyed'
                 : null;
         if (!kind) continue;
-        const source = event as unknown as { fromX?: number; fromY?: number; slot?: number };
-        if (typeof source.fromX !== 'number' || typeof source.fromY !== 'number') continue;
+        if (!event.from) continue;
         sources.push({
           kind,
-          x: source.fromX,
-          y: source.fromY,
+          x: event.from.x,
+          y: event.from.y,
           age,
-          color: accentFor(source.slot),
+          color: eventAccent(event),
         });
       }
     };
@@ -346,13 +502,19 @@ export function drawArena(
     drawLightSpill(ctx, sources, { px, py, tile });
   }
 
-  function drawFog(slot: number): void {
+  function drawFog(unitKey: ReplayStableUnitKey): void {
     // Show the selected bot's field of view by FOGGING what it can NOT see.
     // Vision range 6 spans most of a small map, so tinting the visible tiles
     // read as "everything highlighted"; darkening the blind area reads at any size.
-    const botTick = currentTick.bots.find((b) => b.slot === slot);
-    if (!botTick) return;
-    const visible = new Set(botTick.visibleTiles.map(([x, y]) => `${x},${y}`));
+    const turn = currentTick?.actorTurns.find(
+      (candidate) => candidate.actor.unitKey === unitKey,
+    );
+    if (!turn) return;
+    const visible = new Set(
+      turn.observation.visibleTiles.map(
+        ({ position }) => `${position.x},${position.y}`,
+      ),
+    );
 
     // Walls overhang their tile by a gutter, so a visible wall is cleared at its drawn
     // extent — otherwise the tile grid cuts the sprite in half.
@@ -506,15 +668,22 @@ export function drawArena(
     return true;
   }
 
-  function drawVisionCones(): void {
+  function drawVision(): void {
     // Directional sight (rules with cone vision): a faint 90° wedge in each active
     // bot's facing direction, in its accent — so "who is looking where, and who is in
     // whose blind arc" reads at a glance. The exact per-tile cone (wall-accurate) is
     // still available by selecting a bot with the field-of-view toggle.
-    const radius = replay.header.visionRange * tile;
     for (const pose of poses) {
-      if (pose.status !== 'Active') continue;
-      const accent = accentFor(pose.slot);
+      if (pose.status !== 'active') continue;
+      const form = replay.forms.find(
+        (candidate) => candidate.formId === pose.formId,
+      );
+      if (!form) continue;
+      // Legacy omnidirectional replays did not draw a range halo. Preserve
+      // their pixels while making new explicit 360-degree forms readable.
+      if (form.omnidirectionalVision && replay.sourceVersion === 1) continue;
+      const radius = form.visionRange * tile;
+      const accent = accentFor(pose.unitKey);
       const cx = px(pose.x) + tile / 2;
       const cy = py(pose.y) + tile / 2;
       const gradient = ctx.createRadialGradient(cx, cy, tile * 0.4, cx, cy, radius);
@@ -522,10 +691,28 @@ export function drawArena(
       gradient.addColorStop(1, hexWithAlpha(accent, 0));
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, radius, pose.angle - Math.PI / 4, pose.angle + Math.PI / 4);
-      ctx.closePath();
+      if (form.omnidirectionalVision) {
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      } else {
+        ctx.moveTo(cx, cy);
+        ctx.arc(
+          cx,
+          cy,
+          radius,
+          pose.angle - Math.PI / 4,
+          pose.angle + Math.PI / 4,
+        );
+        ctx.closePath();
+      }
       ctx.fill();
+      if (form.omnidirectionalVision) {
+        ctx.strokeStyle = hexWithAlpha(accent, 0.14);
+        ctx.lineWidth = Math.max(1, tile * 0.025);
+        ctx.setLineDash([Math.max(3, tile * 0.12), Math.max(3, tile * 0.12)]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        continue;
+      }
       // The omnidirectional Chebyshev-1 proximity ring: the 8 adjacent tiles are
       // always visible, even directly behind — without this the glyph understates
       // real vision (owner finding).
@@ -537,38 +724,83 @@ export function drawArena(
   }
 
   function drawProjectiles(): void {
-    // Where a bolt *is* comes from `boltsAt`, shared with the 2.5D renderer; everything
-    // below is only how this one paints it.
-    const poses = boltsAt(replay, time);
-    if (poses.length === 0) return;
+    // Replay traversals are authoritative ordered substeps. Interpolating across the
+    // path makes speed-two travel read A→B in the first half of the visual tick and
+    // B→C in the second; a first-substep hit naturally ends at B.
+    const traversals = currentTick?.projectileTraversals ?? [];
+    const bolts = currentTick?.after.projectiles ?? [];
+    if (bolts.length === 0 && traversals.length === 0) return;
     // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
     // (an unseen bolt is precisely the threat it doesn't know about).
-    const seen =
+    const seenTiles =
       fogSource !== undefined
-        ? new Set(fogSource.visibleTiles.map(([x, y]) => `${x},${y}`))
+        ? new Set(
+            fogSource.observation.visibleTiles.map(
+              ({ position }) => `${position.x},${position.y}`,
+            ),
+          )
         : null;
+    const seenProjectileIds =
+      fogSource?.observation.visibleProjectiles === null ||
+      fogSource === undefined
+        ? null
+        : new Set(
+            fogSource.aliases.projectiles
+              .filter((alias) =>
+                fogSource.observation.visibleProjectiles!.some(
+                  (projectile) =>
+                    projectile.projectileHandle ===
+                    alias.projectileHandle,
+                ),
+              )
+              .map((alias) => alias.projectileId),
+          );
+    const movingIds = new Set(
+      traversals.map((move) => move.projectileId),
+    );
 
     // Omniscient spectators see the locked future arc. A selected defender
     // sees only physically manifested segments; the owner authored the plan.
-    for (const plan of poses) {
-      if (!plan.programmedPath) continue;
-      if (fogSource !== undefined && selectedSlot !== plan.ownerSlot) continue;
-      const path = plan.programmedPath;
-      const sample = path[Math.floor(path.length / 2)];
+    const programmed = new Map<
+      string,
+      {
+        ownerActor: ReplayActorIdentity;
+        path: readonly { x: number; y: number }[];
+      }
+    >();
+    for (const move of traversals)
+      if (move.programmedPath)
+        programmed.set(move.projectileId, {
+          ownerActor: move.ownerActor,
+          path: move.programmedPath,
+        });
+    for (const bolt of bolts)
+      if (bolt.programmedPath)
+        programmed.set(bolt.projectileId, {
+          ownerActor: bolt.ownerActor,
+          path: bolt.programmedPath,
+        });
+    for (const plan of programmed.values()) {
+      if (
+        fogSource !== undefined &&
+        selectedUnitKey !== plan.ownerActor.unitKey
+      )
+        continue;
+      const sample = plan.path[Math.floor(plan.path.length / 2)];
       const accent = sample
         ? accentAt(
-            accentFor(plan.ownerSlot),
-            px(sample[0]) + tile / 2,
-            py(sample[1]) + tile / 2,
+            accentFor(plan.ownerActor.unitKey),
+            px(sample.x) + tile / 2,
+            py(sample.y) + tile / 2,
           )
-        : accentFor(plan.ownerSlot);
+        : accentFor(plan.ownerActor.unitKey);
       ctx.strokeStyle = hexWithAlpha(accent, 0.22);
       ctx.lineWidth = Math.max(1, tile * 0.045);
       ctx.setLineDash([Math.max(2, tile * 0.12), Math.max(2, tile * 0.1)]);
       ctx.beginPath();
-      path.forEach(([x, y], index) => {
-        const cx = px(x) + tile / 2;
-        const cy = py(y) + tile / 2;
+      plan.path.forEach((point, index) => {
+        const cx = px(point.x) + tile / 2;
+        const cy = py(point.y) + tile / 2;
         if (index === 0) ctx.moveTo(cx, cy);
         else ctx.lineTo(cx, cy);
       });
@@ -576,32 +808,59 @@ export function drawArena(
       ctx.setLineDash([]);
     }
 
-    for (const pose of poses)
+    for (const move of traversals) {
+      if (move.path.length === 0) continue;
+      const points = [move.from, ...move.path];
+      const progress = fraction * move.path.length;
+      const segment = Math.min(Math.floor(progress), move.path.length - 1);
+      const local = Math.min(1, progress - segment);
+      const from = points[segment];
+      const to = points[segment + 1];
       drawBolt(
-        pose.x,
-        pose.y,
-        pose.heading,
-        pose.ownerSlot,
-        pose.imminent,
-        pose.tilesPerAdvance,
+        from.x + (to.x - from.x) * local,
+        from.y + (to.y - from.y) * local,
+        headingBetween(from.x, from.y, to.x, to.y),
+        move.projectileId,
+        move.ownerActor,
+        false,
+        1,
       );
+    }
+    for (const bolt of bolts)
+      if (!movingIds.has(bolt.projectileId))
+        drawBolt(
+          bolt.position.x,
+          bolt.position.y,
+          bolt.heading ?? bolt.launchDirection,
+          bolt.projectileId,
+          bolt.ownerActor,
+          bolt.ticksUntilAdvance === 1,
+          bolt.tilesPerAdvance ?? 1,
+        );
 
     function drawBolt(
       x: number,
       y: number,
-      direction: ProjectileHeading,
-      ownerSlot: number,
+      direction: ReplayProjectileHeading,
+      projectileId: string,
+      ownerActor: ReplayActorIdentity,
       imminent: boolean,
       tilesPerAdvance: number,
     ): void {
-      if (seen !== null && !seen.has(`${Math.round(x)},${Math.round(y)}`)) return;
+      if (
+        seenProjectileIds !== null
+          ? !seenProjectileIds.has(projectileId)
+          : seenTiles !== null &&
+            !seenTiles.has(`${Math.round(x)},${Math.round(y)}`)
+      )
+        return;
       const cx = px(x) + tile / 2;
       const cy = py(y) + tile / 2;
-      const accent = accentAt(accentFor(ownerSlot), cx, cy);
-      const angle = headingAngle[direction];
+      const accent = accentAt(accentFor(ownerActor.unitKey), cx, cy);
+      const angle = projectileAngle[direction];
       const pulse = 0.75 + 0.25 * Math.sin(fraction * Math.PI);
       if (imminent) {
-        const [dx, dy] = headingStep[direction];
+        const [dx, dy] = projectileStep[direction];
         for (let step = 1; step <= tilesPerAdvance; step++) {
           ctx.fillStyle = hexWithAlpha(accent, step === 1 ? 0.18 : 0.1);
           ctx.fillRect(px(x + dx * step), py(y + dy * step), tile, tile);
@@ -629,7 +888,32 @@ export function drawArena(
       ctx.lineTo(tile * 0.08, 0);
       ctx.stroke();
       ctx.restore();
-      drawProjectileHead(cx, cy, angle, ownerSlot, accent, 0.95 * pulse);
+      drawProjectileHead(
+        cx,
+        cy,
+        angle,
+        ownerActor.unitKey,
+        accent,
+        0.95 * pulse,
+      );
+    }
+
+    function headingBetween(
+      fromX: number,
+      fromY: number,
+      toX: number,
+      toY: number,
+    ): ReplayProjectileHeading {
+      const dx = Math.sign(toX - fromX);
+      const dy = Math.sign(toY - fromY);
+      if (dx === 0 && dy < 0) return 'north';
+      if (dx > 0 && dy < 0) return 'north-east';
+      if (dx > 0 && dy === 0) return 'east';
+      if (dx > 0 && dy > 0) return 'south-east';
+      if (dx === 0 && dy > 0) return 'south';
+      if (dx < 0 && dy > 0) return 'south-west';
+      if (dx < 0 && dy === 0) return 'west';
+      return 'north-west';
     }
   }
 
@@ -637,11 +921,16 @@ export function drawArena(
     cx: number,
     cy: number,
     angle: number,
-    ownerSlot: number,
+    ownerUnitKey: ReplayStableUnitKey | null,
     accent: string,
     alpha: number,
   ): void {
-    const look = projectileLook(participants[ownerSlot]?.projectileLookId);
+    const look = projectileLook(
+      ownerUnitKey
+        ? (participantForUnit(replay, ownerUnitKey)?.projectileLookId ??
+          undefined)
+        : undefined,
+    );
     const sprite = tintedProjectileSprite(look, accent);
     const size = tile * look.scale;
 
@@ -682,9 +971,11 @@ export function drawArena(
     // neutral arcs on the bearing octant, at a radius keyed to the distance band.
     // Deliberately identity-free and coordinate-free — exactly what the bot knows.
     if (fogSource === undefined) return;
-    const sounds = fogSource.heardSounds;
+    const sounds = fogSource.observation.heardSounds;
     if (!sounds || sounds.length === 0) return;
-    const me = poses.find((p) => p.slot === fogSource.slot);
+    const me = poses.find(
+      (pose) => pose.actorKey === fogSource.actorKey,
+    );
     if (!me) return;
     const cx = px(me.x) + tile / 2;
     const cy = py(me.y) + tile / 2;
@@ -703,8 +994,13 @@ export function drawArena(
 
   function drawShadowsAndBots(): void {
     for (const pose of poses) {
-      if (pose.status !== 'Active' && time > (replay.result?.endTick ?? replay.ticks.length - 1) + 0.9) continue;
-      if (hiddenByFog(pose.slot)) continue;
+      if (
+        pose.status !== 'active' &&
+        time >
+          (replay.result?.endTick ?? replay.ticks.length - 1) + 0.9
+      )
+        continue;
+      if (hiddenByFog(pose)) continue;
       drawShadow(pose);
     }
     for (const pose of poses) {
@@ -715,9 +1011,16 @@ export function drawArena(
   function drawShadow(pose: BotPose): void {
     const cx = px(pose.x) + tile / 2;
     const cy = py(pose.y) + tile / 2 + tile * 0.2;
-    const hover = pose.status === 'Active'
-      ? Math.sin((time + pose.slot * 0.31) * Math.PI * 2) * tile * 0.018
-      : 0;
+    const form = replay.forms.find(
+      (candidate) => candidate.formId === pose.formId,
+    );
+    const visualIndex = visualIndexForUnit(replay, pose.unitKey);
+    const hover =
+      pose.status === 'active' && form?.canMove !== false
+        ? Math.sin((time + visualIndex * 0.31) * Math.PI * 2) *
+          tile *
+          0.018
+        : 0;
     ctx.save();
     ctx.filter = `blur(${Math.max(1, tile * 0.045)}px)`;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.52)';
@@ -736,25 +1039,38 @@ export function drawArena(
   }
 
   function drawBot(pose: BotPose): void {
-    const participant = participants[pose.slot];
-    const accent = accentFor(pose.slot);
-    const look = botLook(participant?.lookId, pose.slot);
+    const participant = participantForUnit(replay, pose.unitKey);
+    const accent = accentFor(pose.unitKey);
+    const visualIndex = visualIndexForUnit(replay, pose.unitKey);
+    const look = botLook(participant?.lookId ?? undefined, visualIndex);
+    const form = replay.forms.find(
+      (candidate) => candidate.formId === pose.formId,
+    );
     const cx = px(pose.x) + tile / 2;
-    const hover = pose.status === 'Active'
-      ? Math.sin((time + pose.slot * 0.31) * Math.PI * 2) * tile * 0.022
-      : 0;
+    const hover =
+      pose.status === 'active' && form?.canMove !== false
+        ? Math.sin((time + visualIndex * 0.31) * Math.PI * 2) *
+          tile *
+          0.022
+        : 0;
     const cy = py(pose.y) + tile / 2 + hover;
     const radius = tile * 0.38;
-    const destroyedNow = currentTick.events.some(
-      (event) => event.type === 'Destroyed' && event.slot === pose.slot,
+    const destroyedNow = (currentTick?.events ?? []).some(
+      (event) =>
+        event.type === 'destroyed' &&
+        event.targetActor?.actorKey === pose.actorKey,
     );
-    const destroyed = pose.status !== 'Active' || destroyedNow;
-    const ghosted = hiddenByFog(pose.slot);
-    const fired = currentTick.events.some(
-      (event) => event.type === 'Shot' && event.slot === pose.slot,
+    const destroyed = pose.status !== 'active' || destroyedNow;
+    const ghosted = hiddenByFog(pose);
+    const fired = (currentTick?.events ?? []).some(
+      (event) =>
+        event.type === 'shot' &&
+        event.sourceActor?.actorKey === pose.actorKey,
     );
-    const damaged = currentTick.events.some(
-      (event) => event.type === 'Damage' && event.targetSlot === pose.slot,
+    const damaged = (currentTick?.events ?? []).some(
+      (event) =>
+        event.type === 'damage' &&
+        event.targetActor?.actorKey === pose.actorKey,
     );
     const recoil =
       fired && shotProgress() > 0
@@ -769,6 +1085,80 @@ export function drawArena(
     ctx.save();
     ctx.translate(cx, cy);
 
+    if (!destroyed && !ghosted && pose.pendingFormTransition) {
+      const transition = pose.pendingFormTransition;
+      const duration = Math.max(
+        1,
+        transition.completesAtTick - transition.startedAtTick + 1,
+      );
+      const progress = Math.max(
+          0,
+          Math.min(
+            1,
+            (time - transition.startedAtTick) / duration,
+          ),
+      );
+      const windupRadius = radius + tile * 0.16;
+      ctx.save();
+      ctx.rotate(time * Math.PI * 0.45);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.24);
+      ctx.lineWidth = Math.max(2, tile * 0.045);
+      ctx.setLineDash([tile * 0.08, tile * 0.07]);
+      ctx.beginPath();
+      ctx.arc(0, 0, windupRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.92);
+      ctx.lineWidth = Math.max(2.5, tile * 0.06);
+      ctx.beginPath();
+      ctx.arc(
+        0,
+        0,
+        windupRadius,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * progress,
+      );
+      ctx.stroke();
+      for (let index = 0; index < 4; index++) {
+        const angle = index * (Math.PI / 2);
+        ctx.fillStyle = hexWithAlpha(accent, 0.78);
+        ctx.fillRect(
+          Math.cos(angle) * (windupRadius + tile * 0.035) -
+            tile * 0.025,
+          Math.sin(angle) * (windupRadius + tile * 0.035) -
+            tile * 0.025,
+          tile * 0.05,
+          tile * 0.05,
+        );
+      }
+      ctx.restore();
+    }
+
+    if (!destroyed && form?.canMove === false) {
+      ctx.save();
+      ctx.strokeStyle = hexWithAlpha(accent, 0.58);
+      ctx.fillStyle = hexWithAlpha(accent, 0.08);
+      ctx.lineWidth = Math.max(2, tile * 0.055);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + tile * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      for (let index = 0; index < 4; index++) {
+        const angle = index * (Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(
+          Math.cos(angle) * (radius + tile * 0.02),
+          Math.sin(angle) * (radius + tile * 0.02),
+        );
+        ctx.lineTo(
+          Math.cos(angle) * (radius + tile * 0.18),
+          Math.sin(angle) * (radius + tile * 0.18),
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     if (destroyed) {
       ctx.globalAlpha = 0.56 - destructionProgress * 0.2;
       ctx.rotate(pose.angle + destructionProgress * 0.55);
@@ -779,7 +1169,7 @@ export function drawArena(
     }
     if (ghosted) ctx.globalAlpha = 0.15; // true position, but the selected bot can't see it
 
-    if (pose.slot === selectedSlot) {
+    if (pose.unitKey === selectedUnitKey) {
       ctx.strokeStyle = hexWithAlpha(accent, 0.9);
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 3]);
@@ -803,7 +1193,16 @@ export function drawArena(
     ctx.restore();
 
     if (!destroyed && !ghosted)
-      drawHealthPips(pose, cx, cy - radius - tile * 0.22, accent);
+      drawHealthPips(
+        pose,
+        cx,
+        cy - radius - tile * 0.22,
+        accent,
+        maxHealthForActor(replay, {
+          formId: pose.formId,
+          health: pose.health,
+        }),
+      );
   }
 
   function drawFallbackChassis(
@@ -845,19 +1244,26 @@ export function drawArena(
     ctx.fill();
   }
 
-  function drawHealthPips(pose: BotPose, cx: number, cy: number, accent: string): void {
+  function drawHealthPips(
+    pose: BotPose,
+    cx: number,
+    cy: number,
+    accent: string,
+    actorMaxHealth: number,
+  ): void {
     const basePip = Math.max(3, tile * 0.10);
     const pip = Math.max(
       2,
       Math.min(
         basePip,
-        (tile * 0.85) / Math.max(1, 1 + (maxHealth - 1) * 1.6),
+        (tile * 0.85) /
+          Math.max(1, 1 + (actorMaxHealth - 1) * 1.6),
       ),
     );
     const gap = pip * 1.6;
-    const startX = cx - ((maxHealth - 1) * gap) / 2;
+    const startX = cx - ((actorMaxHealth - 1) * gap) / 2;
     const readableAccent = accentAt(accent, cx, cy);
-    for (let i = 0; i < maxHealth; i++) {
+    for (let i = 0; i < actorMaxHealth; i++) {
       ctx.fillStyle =
         i < pose.health ? readableAccent : 'rgba(100,116,139,0.35)';
       ctx.beginPath();
@@ -874,12 +1280,13 @@ export function drawArena(
   function drawShots(): void {
     const progress = shotProgress();
     if (progress <= 0) return;
-    for (const event of currentTick.events) {
-      if (event.type !== 'Shot') continue;
-      const from = eventPoint(event.fromX, event.fromY);
-      const to = eventPoint(event.toX, event.toY);
+    for (const event of currentTick?.events ?? []) {
+      if (event.type !== 'shot') continue;
+      const from = eventPoint(event.from);
+      const to = eventPoint(event.to);
       if (!from || !to) continue;
-      const authoredAccent = accentFor(event.slot ?? 0);
+      const ownerUnitKey = event.sourceActor?.unitKey ?? null;
+      const authoredAccent = accentFor(ownerUnitKey);
       const alpha = progress < 0.7 ? 0.95 : 0.95 * (1 - (progress - 0.7) / 0.3);
       const tipX = from.x + (to.x - from.x) * Math.min(progress / 0.7, 1);
       const tipY = from.y + (to.y - from.y) * Math.min(progress / 0.7, 1);
@@ -926,7 +1333,7 @@ export function drawArena(
         tipX,
         tipY,
         Math.atan2(to.y - from.y, to.x - from.x),
-        event.slot ?? 0,
+        ownerUnitKey,
         accentAt(authoredAccent, tipX, tipY),
         alpha,
       );
@@ -944,11 +1351,13 @@ export function drawArena(
     const progress = shotProgress();
     if (progress < 0.6) return;
     const flash = (progress - 0.6) / 0.4;
-    for (const event of currentTick.events) {
-      if (event.type === 'Damage') {
-        const at = eventPoint(event.fromX, event.fromY);
+    for (const event of currentTick?.events ?? []) {
+      if (event.type === 'damage') {
+        const at = eventPoint(event.from);
         if (!at) continue;
-        const ownerAccent = accentFor(event.slot ?? 0);
+        const ownerAccent = accentFor(
+          event.sourceActor?.unitKey ?? null,
+        );
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.shadowColor = ownerAccent;
@@ -961,8 +1370,8 @@ export function drawArena(
         drawSparks(at.x, at.y, flash, ownerAccent, 7);
         ctx.restore();
       }
-      if (event.type === 'Destroyed') {
-        const at = eventPoint(event.fromX, event.fromY);
+      if (event.type === 'destroyed') {
+        const at = eventPoint(event.from);
         if (!at) continue;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -1006,9 +1415,14 @@ export function drawArena(
     }
   }
 
-  function eventPoint(x?: number, y?: number): { x: number; y: number } | null {
-    if (x === undefined || y === undefined) return null;
-    return { x: px(x) + tile / 2, y: py(y) + tile / 2 };
+  function eventPoint(
+    point: { x: number; y: number } | null,
+  ): { x: number; y: number } | null {
+    if (!point) return null;
+    return {
+      x: px(point.x) + tile / 2,
+      y: py(point.y) + tile / 2,
+    };
   }
 }
 

@@ -103,9 +103,10 @@ web/src/render/
 
 `art/themes` holds production sources and derived PBR maps; it is not bundled
 into the viewer. `web/src/assets` holds optimized runtime output. Vite
-discovers the runtime manifests with `import.meta.glob` and inlines their
-referenced assets into the self-contained replay viewer. Adding a valid package
-requires no TypeScript registry edit.
+discovers the runtime manifests with `import.meta.glob`. The hosted `dist/`
+build emits referenced images as cacheable assets; theme-scoped CLI builds
+inline only their selected theme into a self-contained viewer. Adding a valid
+package requires no TypeScript registry edit.
 
 ## Theme asset contract
 
@@ -249,10 +250,10 @@ without making Vite eagerly embed it in every site and replay viewer. Remove
 that override and move the package under `web/src/assets/themes` only when a
 map intentionally ships the theme.
 Do not raise that budget merely to make a build pass: inspect the output and
-compare the self-contained viewer size first. Keep the generated source prompt
-with the change/PR. If a future 2.5D renderer is adopted, feed the checked-in
-albedo/normal/height/roughness/AO maps to the DCC; do not regenerate the
-material merely to change camera or lighting.
+compare the relevant theme-scoped CLI viewer size first. Keep the generated
+source prompt with the change/PR. If a future 2.5D renderer is adopted, feed
+the checked-in albedo/normal/height/roughness/AO maps to the DCC; do not
+regenerate the material merely to change camera or lighting.
 
 Check the theme on the smallest and largest shipped maps, plus a synthetic
 32×32 map when changing world-scale floor treatment. Dense wall maps must
@@ -413,6 +414,10 @@ Animations describe recorded events; they do not create events.
 | Damage | `Damage` event | Short brightness flash, ring, and radial sparks |
 | Destruction | `Destroyed` event | Collapse/rotation plus expanding sparks |
 | Zone activity | Recorded zone tiles/control state | Optional theme-owned floor material, continuous tint, and pulsing exterior perimeter |
+| Frontline | Recorded active position/claim/redeploy state | Five-position route, signed progress, claiming-team color, and redeploy timing |
+| Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
+| Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
+| Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
 | Fog/vision | Recorded visible tiles/enemies | Existing truthful visibility masks |
 
 Animation timing is expressed inside the current replay tick window. Do not
@@ -473,9 +478,12 @@ gameplay scale.
 
 ## Release checklist
 
-1. `npm run build` produces one self-contained viewer.
+1. `npm run build` produces the hashed hosted `dist/` build and one
+   self-contained `dist-cli/<theme>/index.html` viewer per active theme.
 2. Real replays exercise movement, turns, every changed bot look, projectiles,
-   hits, destruction, fog, and zone visuals.
+   hits, destruction, fog, and zone visuals. Internal Frontline changes also
+   exercise fabrication, lifecycle absence, Anchor start/change/cancel,
+   stationary turret state, and all absolute shot headings.
 3. The viewer remains readable at desktop and phone widths.
 4. Replay theme, bot-look, and projectile-look IDs round-trip and are included
    in replay hashes for new matches; map presentation round-trips; legacy null

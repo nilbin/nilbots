@@ -1,25 +1,29 @@
 import { useEffect, useRef } from 'react';
-import type { ReplayDocument } from '../types';
+import type {
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../replayModel';
 import { drawArena } from '../render/drawArena';
+import { posesAt } from '../render/interpolate';
 
 interface ArenaCanvasProps {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   time: number;
-  selectedSlot: number | null;
+  selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
-  onSelectSlot: (slot: number | null) => void;
+  onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
 }
 
 export default function ArenaCanvas({
   replay,
   time,
-  selectedSlot,
+  selectedUnitKey,
   showVisibility,
-  onSelectSlot,
+  onSelectUnit,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef({ time, selectedSlot, showVisibility });
-  stateRef.current = { time, selectedSlot, showVisibility };
+  const stateRef = useRef({ time, selectedUnitKey, showVisibility });
+  stateRef.current = { time, selectedUnitKey, showVisibility };
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -50,7 +54,8 @@ export default function ArenaCanvas({
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
-    const { mapWidth, mapHeight } = replay.header;
+    const mapWidth = replay.map.width;
+    const mapHeight = replay.map.height;
     const tile = Math.floor(
       // Mirrors drawArena's MARGIN_TILES; if they disagree, clicks land on the wrong bot.
       Math.min(rect.width / (mapWidth + 0.4), rect.height / (mapHeight + 0.4)),
@@ -58,21 +63,17 @@ export default function ArenaCanvas({
     const originX = Math.floor((rect.width - tile * mapWidth) / 2);
     const originY = Math.floor((rect.height - tile * mapHeight) / 2);
 
-    const tickCount = replay.ticks.length;
-    const tick = Math.min(Math.floor(stateRef.current.time), tickCount - 1);
-    const states = tick <= 0
-      ? replay.header.participants.map((p) => ({ slot: p.slot, x: p.spawnX, y: p.spawnY }))
-      : replay.ticks[tick - 1 >= 0 ? tick - 1 : 0].state;
-
-    for (const state of states) {
-      const cx = originX + state.x * tile + tile / 2;
-      const cy = originY + state.y * tile + tile / 2;
+    for (const pose of posesAt(replay, stateRef.current.time)) {
+      const cx = originX + pose.x * tile + tile / 2;
+      const cy = originY + pose.y * tile + tile / 2;
       if (Math.hypot(clickX - cx, clickY - cy) < tile * 0.5) {
-        onSelectSlot(selectedSlot === state.slot ? null : state.slot);
+        onSelectUnit(
+          selectedUnitKey === pose.unitKey ? null : pose.unitKey,
+        );
         return;
       }
     }
-    onSelectSlot(null);
+    onSelectUnit(null);
   };
 
   return (

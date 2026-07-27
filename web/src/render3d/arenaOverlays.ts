@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import type { ReplayDocument } from '../types';
+import type {
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../replayModel';
+import { participantForUnit, visualIndexForUnit } from '../replayParticipants';
 import { spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { presentationAccent, botLook } from '../render/arenaThemes';
@@ -25,7 +29,7 @@ export interface ArenaOverlays {
   group: THREE.Group;
   update: (
     time: number,
-    selectedSlot: number | null,
+    selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
   ) => void;
   /** Camera offset for the knock of an impact at this instant. */
@@ -33,8 +37,8 @@ export interface ArenaOverlays {
   dispose: () => void;
 }
 
-export function buildOverlays(replay: ReplayDocument): ArenaOverlays {
-  const { mapWidth, mapHeight } = replay.header;
+export function buildOverlays(replay: ReplayModel): ArenaOverlays {
+  const { width: mapWidth, height: mapHeight } = replay.map;
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
 
@@ -52,21 +56,27 @@ export function buildOverlays(replay: ReplayDocument): ArenaOverlays {
 
   let painted = '';
 
-  const update = (time: number, selectedSlot: number | null, showVisibility: boolean) => {
+  const update = (
+    time: number,
+    selectedUnitKey: ReplayStableUnitKey | null,
+    showVisibility: boolean,
+  ) => {
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
     const fraction = Math.max(0, Math.min(time - tick, 1));
 
     const source =
-      showVisibility && selectedSlot !== null
-        ? replay.ticks[tick]?.bots.find((bot) => bot.slot === selectedSlot)
+      showVisibility && selectedUnitKey !== null
+        ? replay.ticks[tick]?.actorTurns.find(
+            (turn) => turn.actor.unitKey === selectedUnitKey,
+          )
         : undefined;
 
     // Repainting the mask is a loop over every tile on the map, and the playhead crosses
     // dozens of frames per tick — so it only happens when the answer can have changed.
-    const signature = `${source ? tick : -1}:${selectedSlot}`;
+    const signature = `${source ? tick : -1}:${selectedUnitKey}`;
     if (signature !== painted) {
       painted = signature;
-      fog.paint(source?.visibleTiles);
+      fog.paint(source?.observation.visibleTiles);
     }
 
     flashes.update(tick, fraction);
@@ -133,7 +143,10 @@ function buildFog(
   mapWidth: number,
   mapHeight: number,
   disposables: { dispose: () => void }[],
-): { mesh: THREE.Mesh; paint: (visible: number[][] | undefined) => void } {
+): {
+  mesh: THREE.Mesh;
+  paint: (visible: readonly { position: { x: number; y: number } }[] | undefined) => void;
+} {
   const data = new Uint8Array(mapWidth * mapHeight * 4);
   const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
   texture.minFilter = THREE.LinearFilter;
@@ -153,11 +166,13 @@ function buildFog(
   mesh.visible = false;
   disposables.push(geometry, material, texture);
 
-  const paint = (visible: number[][] | undefined) => {
+  const paint = (
+    visible: readonly { position: { x: number; y: number } }[] | undefined,
+  ) => {
     mesh.visible = visible !== undefined;
     if (!visible) return;
 
-    const seen = new Set(visible.map(([x, y]) => `${x},${y}`));
+    const seen = new Set(visible.map(({ position }) => `${position.x},${position.y}`));
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         // The plane's V axis runs opposite the map's Y, so rows are written bottom-up.
@@ -176,16 +191,16 @@ function buildFog(
 
 /** The objective zone, where the rules have one. Static for the match. */
 function buildZone(
-  replay: ReplayDocument,
+  replay: ReplayModel,
   disposables: { dispose: () => void }[],
 ): THREE.Mesh | null {
-  const tiles = replay.header.zoneTiles;
-  if (!tiles || tiles.length === 0) return null;
+  const tiles = replay.map.objectiveTiles;
+  if (tiles.length === 0) return null;
 
-  const parts = tiles.map(([x, y]) => {
+  const parts = tiles.map((tile) => {
     const quad = new THREE.PlaneGeometry(1, 1);
     quad.rotateX(-Math.PI / 2);
-    quad.translate(x + 0.5, 0, y + 0.5);
+    quad.translate(tile.x + 0.5, 0, tile.y + 0.5);
     return quad;
   });
   const geometry = mergeQuads(parts);
@@ -213,7 +228,7 @@ function buildZone(
  * would survive a jump backwards into a tick where it never happened.
  */
 function buildFlashes(
-  replay: ReplayDocument,
+  replay: ReplayModel,
   disposables: { dispose: () => void }[],
 ): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
   const group = new THREE.Group();
@@ -221,11 +236,7 @@ function buildFlashes(
   geometry.rotateX(-Math.PI / 2);
   disposables.push(geometry);
 
-  const accents = replay.header.participants.map((participant, slot) =>
-    new THREE.Color(
-      presentationAccent(botLook(participant?.lookId, slot), participant?.accent ?? '#38bdf8'),
-    ),
-  );
+  const accents = accentsByUnit(replay);
   const impact = new THREE.Color('#ffd9a0');
 
   const pool: THREE.Mesh[] = [];
@@ -254,12 +265,17 @@ function buildFlashes(
     let used = 0;
     for (const event of events) {
       const flash =
-        event.type === 'Shot'
-          ? { x: event.fromX, y: event.fromY, colour: accents[event.slot ?? 0], size: 1.5, life: 0.45 }
-          : event.type === 'Damage' || event.type === 'Destroyed'
-            ? { x: event.toX, y: event.toY, colour: impact, size: 2.4, life: 0.8 }
+        event.type === 'shot'
+          ? {
+              at: event.from,
+              colour: accents.get(event.sourceActor?.unitKey ?? ('' as ReplayStableUnitKey)),
+              size: 1.5,
+              life: 0.45,
+            }
+          : event.type === 'damage' || event.type === 'destroyed'
+            ? { at: event.to, colour: impact, size: 2.4, life: 0.8 }
             : null;
-      if (!flash || flash.x === undefined || flash.y === undefined) continue;
+      if (!flash || !flash.at) continue;
 
       // Bright at the instant it happens and gone by the end of its life, so a shot reads
       // as an event rather than a lamp that switches on for the tick.
@@ -268,7 +284,7 @@ function buildFlashes(
 
       const mesh = borrow(used++);
       mesh.visible = true;
-      mesh.position.set(flash.x + 0.5, 0.05, flash.y + 0.5);
+      mesh.position.set(flash.at.x + 0.5, 0.05, flash.at.y + 0.5);
       mesh.scale.setScalar(flash.size * (0.6 + 0.4 * (1 - decay)));
       const own = mesh.material as THREE.MeshBasicMaterial;
       own.color.copy(flash.colour ?? impact);
@@ -289,7 +305,7 @@ function buildFlashes(
  * short enough that a busy exchange is not full of ghosts.
  */
 function buildSpentBolts(
-  replay: ReplayDocument,
+  replay: ReplayModel,
   disposables: { dispose: () => void }[],
 ): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
@@ -297,11 +313,7 @@ function buildSpentBolts(
   geometry.rotateX(-Math.PI / 2);
   disposables.push(geometry);
 
-  const accents = replay.header.participants.map((participant, slot) =>
-    new THREE.Color(
-      presentationAccent(botLook(participant?.lookId, slot), participant?.accent ?? '#38bdf8'),
-    ),
-  );
+  const accents = accentsByUnit(replay);
 
   const pool: THREE.Mesh[] = [];
   const borrow = (index: number) => {
@@ -329,13 +341,38 @@ function buildSpentBolts(
       mesh.position.set(bolt.x + 0.5, PROJECTILE_HOVER, bolt.y + 0.5);
       mesh.scale.setScalar(0.6 + bolt.age * 2.2);
       const material = mesh.material as THREE.MeshBasicMaterial;
-      material.color.copy(accents[bolt.ownerSlot] ?? accents[0]);
+      material.color.copy(accents.get(bolt.ownerUnitKey) ?? impactWhite);
       material.opacity = (1 - bolt.age) ** 2 * 0.9;
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
   };
 
   return { group, update };
+}
+
+const impactWhite = new THREE.Color('#ffd9a0');
+
+/**
+ * Every unit's accent, by stable key.
+ *
+ * Built once per replay rather than resolved per event: a busy tick can carry a dozen
+ * flashes, and each lookup walks the participant roster.
+ */
+function accentsByUnit(replay: ReplayModel): Map<ReplayStableUnitKey, THREE.Color> {
+  const accents = new Map<ReplayStableUnitKey, THREE.Color>();
+  for (const unit of replay.units) {
+    const participant = participantForUnit(replay, unit.unitKey);
+    accents.set(
+      unit.unitKey,
+      new THREE.Color(
+        presentationAccent(
+          botLook(participant?.lookId ?? undefined, visualIndexForUnit(replay, unit.unitKey)),
+          participant?.accent ?? '#38bdf8',
+        ),
+      ),
+    );
+  }
+  return accents;
 }
 
 /** A soft round flare, drawn rather than shipped. */

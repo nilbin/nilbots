@@ -162,7 +162,7 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
         <View style={landscape ? styles.canvasFull : styles.canvas}>
           <WebView
             ref={bridge.webViewRef}
-            source={{ uri: `${API_BASE_URL}/?standalone` }}
+            source={{ uri: `${API_BASE_URL}/?standalone&bridge=2` }}
             onMessage={bridge.onMessage}
             style={styles.web}
             containerStyle={styles.web}

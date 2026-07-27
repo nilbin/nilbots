@@ -1,5 +1,20 @@
 # Replay format (replay version 1)
 
+This remains the exact shipped replay-v1 contract. Its canonical bytes,
+verification, fixtures, and hashes are unchanged.
+
+An observation-complete replay v2 now exists on the **internal Frontline
+experimental path**. It records the immutable public match contract,
+team/unit/life topology, exact per-actor pre-tick observations and legality
+masks, decisions/resolutions, lifecycle/form-transition events, authoritative
+post-state, and terminal stable-unit results. The web viewer has a
+version-neutral normalization layer for v1 and this internal v2. Replay v2 is
+not emitted by the shipped CLI/App/server path and is not yet a public format;
+its architecture and ML use are described in
+[`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md) and
+[`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). Do not normalize v1 to
+v2 before verifying a stored v1 hash.
+
 > Quick digest instead of raw JSON: `botarena replay <file> --summary` prints a
 > compact timeline (states, shots, damage, debug lines) built on the
 > conventions below.

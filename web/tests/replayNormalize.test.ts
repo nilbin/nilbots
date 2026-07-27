@@ -1,0 +1,956 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import {
+  decodeReplay,
+  decodeReplayJson,
+  ReplayDecodeError,
+} from '../src/replayNormalize.ts';
+import {
+  JS_UNSAFE_DECIMAL,
+  replayV1FixtureInput,
+  replayV1LivePartialFixtureInput,
+  replayV2FixtureInput,
+  replayV2ZeroTickPartialFixtureInput,
+} from './support/replayFixtureInputs.ts';
+
+test('strict dispatch rejects malformed and unknown replay versions', () => {
+  assert.throws(() => decodeReplay(null), ReplayDecodeError);
+  assert.throws(
+    () => decodeReplay({ header: {} }),
+    /replayVersion: missing required property/,
+  );
+  assert.throws(
+    () => decodeReplay({ header: { replayVersion: 3 } }),
+    /unsupported replay version 3/,
+  );
+
+  const malformed = structuredClone(replayV2FixtureInput()) as unknown as {
+    header: { seed?: string };
+  };
+  delete malformed.header.seed;
+  assert.throws(
+    () => decodeReplay(malformed),
+    /header\.seed: missing required property/,
+  );
+});
+
+test('decoder retains the untouched wire object for upstream hash verification', () => {
+  const input = replayV2FixtureInput();
+  const decoded = decodeReplay(input);
+
+  assert.strictEqual(decoded.wire, input);
+  assert.equal(decoded.replayVersion, 2);
+});
+
+test('raw JSON decoding preserves an unsafe replay-v1 seed lexically', () => {
+  const raw = replayFixtureText('golden-replay.json');
+  const exact = decodeReplayJson(raw);
+  const objectOnly = decodeReplay(JSON.parse(raw) as unknown);
+
+  assert.equal(exact.replay.seed, '3004873239773946906');
+  assert.equal(exact.replay.seedExact, true);
+  assert.equal(exact.replay.seedEncoding, 'legacy-json-number');
+  assert.equal(exact.rawJson, raw);
+  assert.equal(objectOnly.replay.seedExact, false);
+  assert.notEqual(objectOnly.replay.seed, exact.replay.seed);
+});
+
+test('raw JSON decoding rejects duplicate header or seed properties', () => {
+  const fixture = replayV1FixtureInput();
+  const serialized = JSON.stringify(fixture);
+  const duplicateSeed = serialized.replace(
+    '"seed":7',
+    '"seed":6,"seed":7',
+  );
+  assert.throws(
+    () => decodeReplayJson(duplicateSeed),
+    /header\.seed: duplicate property/,
+  );
+
+  const duplicateHeader = `{"header":${JSON.stringify(
+    fixture.header,
+  )},${serialized.slice(1)}`;
+  assert.throws(
+    () => decodeReplayJson(duplicateHeader),
+    /replay\.header: duplicate property/,
+  );
+});
+
+test('replay-v1 creates canonical virtual teams, units, and lives by sparse slot', () => {
+  const decoded = decodeReplay(replayV1FixtureInput());
+  const replay = decoded.replay;
+
+  assert.equal(replay.sourceVersion, 1);
+  assert.deepEqual(
+    replay.participants.map((participant) => participant.participantId),
+    [3, 9],
+  );
+  assert.deepEqual(
+    replay.teams.map((team) => team.teamId),
+    [3, 9],
+  );
+  assert.deepEqual(
+    replay.units.map((unit) => unit.unitKey),
+    ['duel:3:unit:0', 'duel:9:unit:0'],
+  );
+  assert.deepEqual(
+    replay.ticks[0]?.after.actors.map((actor) => actor.actorKey),
+    ['duel:3:unit:0:life:0', 'duel:9:unit:0:life:0'],
+  );
+  assert.ok(
+    replay.ticks[0]?.actorTurns.every(
+      (turn) => turn.observation.completeness === 'legacy-partial',
+    ),
+  );
+  assert.equal(replay.contract.kind, 'legacy-partial');
+  if (replay.contract.kind === 'legacy-partial') {
+    assert.equal(replay.contract.schemaVersion, null);
+    assert.equal(replay.contract.rules.rulesFingerprint, null);
+    assert.equal(replay.contract.rules.limits.maxTicks, 10);
+    assert.equal(replay.contract.rules.vision.range, 4);
+    assert.equal(replay.contract.rules.energy, null);
+    assert.equal(replay.contract.map.mapFingerprint, null);
+    assert.deepEqual(
+      replay.contract.topology.unitSlots.map((unit) => unit.unitKey),
+      ['duel:3:unit:0', 'duel:9:unit:0'],
+    );
+  }
+});
+
+test('replay-v1 accepts the live endpoint shape with omitted null result and hash', () => {
+  const input = replayV1LivePartialFixtureInput();
+
+  assert.equal(Object.hasOwn(input, 'result'), false);
+  assert.equal(Object.hasOwn(input, 'replayHash'), false);
+  assert.equal(input.partial, true);
+
+  const decoded = decodeReplay(input);
+
+  assert.strictEqual(decoded.wire, input);
+  assert.equal(decoded.replay.partial, true);
+  assert.equal(decoded.replay.result, null);
+  assert.equal(decoded.replay.replayHash, null);
+});
+
+test('replay-v1 destroyed units do not retain an active actor key', () => {
+  const input = replayV1FixtureInput();
+  input.ticks[0]!.state[0]!.status = 'Destroyed';
+
+  const unit = decodeReplay(input).replay.ticks[0]!.after.units.find(
+    (candidate) => candidate.teamId === input.ticks[0]!.state[0]!.slot,
+  );
+
+  assert.equal(unit?.lifecycleStatus, 'destroyed');
+  assert.equal(unit?.activeActorKey, null);
+});
+
+test('replay-v1 requires an explicit partial discriminator when final fields are absent', () => {
+  const input = replayV1LivePartialFixtureInput() as {
+    partial?: true;
+  };
+  delete input.partial;
+
+  assert.throws(
+    () => decodeReplay(input),
+    /result: missing required property/,
+  );
+});
+
+test('finalized replay-v1 still requires its result and replay hash', () => {
+  const missingResult = replayV1FixtureInput() as unknown as {
+    result?: unknown;
+  };
+  delete missingResult.result;
+  assert.throws(
+    () => decodeReplay(missingResult),
+    /result: missing required property/,
+  );
+
+  const missingHash = replayV1FixtureInput() as unknown as {
+    replayHash?: unknown;
+  };
+  delete missingHash.replayHash;
+  assert.throws(
+    () => decodeReplay(missingHash),
+    /replayHash: missing required property/,
+  );
+
+  const explicitCompleteFlag = {
+    ...replayV1FixtureInput(),
+    partial: false,
+  };
+  assert.throws(
+    () => decodeReplay(explicitCompleteFlag),
+    /complete documents omit the partial property/,
+  );
+});
+
+test('replay-v2 keeps stable units while adding exact fabricated lives', () => {
+  const replay = decodeReplayJson(
+    replayFixtureText('frontline-replay-v2.json'),
+  ).replay;
+  const opening = replay.ticks[0];
+  const fabricated = replay.ticks[2];
+  const nextTurn = replay.ticks[3];
+
+  assert.equal(
+    opening?.before.actors[0]?.actorKey,
+    'frontline:0:unit:0:life:0',
+  );
+  assert.equal(
+    fabricated?.before.actors.find(
+      (actor) =>
+        actor.identity.teamId === 0 &&
+        actor.identity.unitId === 1,
+    )?.actorKey,
+    'frontline:0:unit:1:life:0',
+  );
+  assert.equal(
+    fabricated?.before.actors.find(
+      (actor) =>
+        actor.identity.teamId === 0 &&
+        actor.identity.unitId === 1,
+    )?.unitKey,
+    nextTurn?.before.actors.find(
+      (actor) =>
+        actor.identity.teamId === 0 &&
+        actor.identity.unitId === 1,
+    )?.unitKey,
+  );
+  assert.equal(
+    replay.units.find(
+      (unit) => unit.teamId === 0 && unit.unitId === 1,
+    )?.initialActorKey,
+    null,
+  );
+});
+
+test('replay-v2 keeps opaque observation handles separate from exact event identities', () => {
+  const replay = decodeReplayJson(
+    replayFixtureText('frontline-replay-v2.json'),
+  ).replay;
+  const normalized = replay.ticks[11]!.actorTurns.find(
+    (turn) => turn.actor.teamId === 0,
+  )!;
+  const event = normalized.observation.visibleEvents.find(
+    (candidate) => candidate.type === 'shot',
+  )!;
+
+  assert.equal(event.eventHandle, 'event-11');
+  assert.equal(event.projectileHandle, 'projectile-0');
+  assert.equal(
+    normalized.aliases.events.find(
+      (alias) => alias.eventHandle === event.eventHandle,
+    )?.eventId,
+    'resolution:10:0',
+  );
+  assert.equal(
+    normalized.aliases.projectiles.find(
+      (alias) =>
+        alias.projectileHandle === event.projectileHandle,
+    )?.projectileId,
+    '0',
+  );
+});
+
+test('replay-v2 keeps unsafe seed, projectile, score, and damage totals exact', () => {
+  const replay = decodeReplay(replayV2FixtureInput()).replay;
+
+  assert.equal(replay.seed, JS_UNSAFE_DECIMAL);
+  assert.equal(
+    replay.ticks[0]?.actorTurns[0]?.lifeStart?.actorRandomSeed,
+    JS_UNSAFE_DECIMAL,
+  );
+  assert.equal(
+    replay.ticks[0]?.before.projectiles?.[0]?.projectileId,
+    JS_UNSAFE_DECIMAL,
+  );
+  assert.equal(
+    replay.ticks[0]?.before.teams[0]?.damageDealt,
+    JS_UNSAFE_DECIMAL,
+  );
+  assert.equal(replay.result?.teams[0]?.damageDealt, JS_UNSAFE_DECIMAL);
+  assert.equal(replay.result?.territorialScore, `-${JS_UNSAFE_DECIMAL}`);
+});
+
+test('replay-v2 preserves exact terminal unit rows and rejects final-world drift', () => {
+  const replay = decodeReplay(replayV2FixtureInput()).replay;
+
+  assert.deepEqual(replay.result?.teams[0]?.units, [
+    {
+      unitKey: 'frontline:0:unit:0',
+      teamId: 0,
+      unitId: 0,
+      defaultFormId: 'prime',
+      formId: 'prime',
+      lifecycleStatus: 'active',
+      activeActor: {
+        kind: 'frontline',
+        teamId: 0,
+        unitId: 0,
+        lifeId: 0,
+        unitKey: 'frontline:0:unit:0',
+        actorKey: 'frontline:0:unit:0:life:0',
+      },
+      activeActorKey: 'frontline:0:unit:0:life:0',
+      health: 5,
+      damageDealt: JS_UNSAFE_DECIMAL,
+      pendingFormTransition: null,
+    },
+  ]);
+
+  const missingUnit = replayV2FixtureInput();
+  missingUnit.result.teams[0]!.units = [];
+  assert.throws(
+    () => decodeReplay(missingUnit),
+    /must cover exactly the topology units/,
+  );
+
+  const staleHealth = replayV2FixtureInput();
+  staleHealth.result.teams[0]!.units[0]!.health = 4;
+  assert.throws(
+    () => decodeReplay(staleHealth),
+    /unit 0:0 differs from the final world/,
+  );
+});
+
+test('replay-v2 carries fabrication masks, queue state, and causal timing exactly', () => {
+  const input = replayV2FabricationFixtureInput();
+  const replay = decodeReplay(input).replay;
+  const turn = replay.ticks[0]!.actorTurns[0]!;
+  const fabrication = turn.observation.actions?.find(
+    (action) => action.actionId === 'fabricate',
+  );
+  const child = replay.ticks[0]!.after.units.find(
+    (unit) => unit.unitId === 1,
+  );
+  const queued = replay.ticks[0]!.events.find(
+    (event) => event.type === 'fabrication-queued',
+  );
+
+  assert.deepEqual(fabrication?.allowedUnitKeys, [
+    'frontline:0:unit:1',
+  ]);
+  assert.equal(child?.lifecycleStatus, 'fabrication-queued');
+  assert.deepEqual(child?.reservedSpawn, { x: 0, y: 2 });
+  assert.equal(child?.pendingSpawnReason, 'fabrication');
+  assert.equal(child?.fabricationAtTick, 1);
+  assert.equal(queued?.unitId, 1);
+  assert.equal(queued?.sourceActor?.actorKey, 'frontline:0:unit:0:life:0');
+  assert.equal(queued?.actionPayload?.unitKey, 'frontline:0:unit:1');
+
+  // The exact mask is gated by the Prime's authoritative home-pad position.
+  const unavailable = replayV2FabricationFixtureInput();
+  unavailable.ticks[0]!.tickStart.state.teams[0]!.units[0]!.activeLife!
+    .position = { x: 1, y: 2 };
+  unavailable.ticks[0]!.actors[0]!.observation.self.position = {
+    x: 1,
+    y: 2,
+  };
+  const unavailableAction =
+    unavailable.ticks[0]!.actors[0]!.observation.actions.find(
+      (action) => action.actionId === 'fabricate',
+    )!;
+  unavailableAction.available = false;
+  unavailableAction.allowedUnitTargets = [];
+  assert.doesNotThrow(() => decodeReplay(unavailable));
+
+  const activeTarget = replayV2FabricationFixtureInput();
+  const invalidAction =
+    activeTarget.ticks[0]!.actors[0]!.observation.actions.find(
+      (action) => action.actionId === 'fabricate',
+    )!;
+  invalidAction.allowedUnitTargets = [{ teamId: 0, unitId: 0 }];
+  assert.throws(
+    () => decodeReplay(activeTarget),
+    /fabrication mask must exactly match/,
+  );
+
+  const unavailableDespiteReadyTarget = replayV2FabricationFixtureInput();
+  unavailableDespiteReadyTarget.ticks[0]!.actors[0]!.observation.actions.find(
+    (action) => action.actionId === 'fabricate',
+  )!.available = false;
+  assert.throws(
+    () => decodeReplay(unavailableDespiteReadyTarget),
+    /fabrication mask must exactly match/,
+  );
+
+  const wrongQueueTiming = replayV2FabricationFixtureInput();
+  wrongQueueTiming.ticks[0]!.resolution.events.find(
+    (event) => event.type === 'fabrication-queued',
+  )!.fabricationAtTick = 2;
+  assert.throws(
+    () => decodeReplay(wrongQueueTiming),
+    /invalid fabrication-queued lifecycle payload/,
+  );
+
+  const extraQueueParameter = replayV2FabricationFixtureInput();
+  extraQueueParameter.ticks[0]!.resolution.events.find(
+    (event) => event.type === 'fabrication-queued',
+  )!.actionPayload!.direction = 'north';
+  assert.throws(
+    () => decodeReplay(extraQueueParameter),
+    /inconsistent with action fabricate/,
+  );
+
+  const missingQueueSource = replayV2FabricationFixtureInput();
+  missingQueueSource.ticks[0]!.resolution.events.find(
+    (event) => event.type === 'fabrication-queued',
+  )!.sourceActorId = null;
+  assert.throws(
+    () => decodeReplay(missingQueueSource),
+    /invalid fabrication-queued lifecycle payload/,
+  );
+
+  const incompleteQueueSelector = replayV2FabricationFixtureInput();
+  incompleteQueueSelector.ticks[0]!.resolution.events.find(
+    (event) => event.type === 'fabrication-queued',
+  )!.actionCode = null;
+  assert.throws(
+    () => decodeReplay(incompleteQueueSelector),
+    /action selector must contain both ID and code/,
+  );
+});
+
+test('replay-v2 rejects frozen Frontline advance and deployment-form drift', () => {
+  const duplicateAdvanceDirection = replayV2FixtureInput();
+  duplicateAdvanceDirection.header.contract.rules.frontlineDefinition!
+    .victory.teamAdvances[1]!.positionIndexDelta = 1;
+  assert.throws(
+    () => decodeReplay(duplicateAdvanceDirection),
+    /map the two topology teams uniquely to -1 and \+1/,
+  );
+
+  const wrongPrimeForm = replayV2FixtureInput();
+  wrongPrimeForm.ticks[0]!.tickStart.state.teams[0]!.units[0]!
+    .defaultFormId = 'child';
+  assert.throws(
+    () => decodeReplay(wrongPrimeForm),
+    /must equal the deployment default/,
+  );
+});
+
+test('replay-v2 rejects noncanonical Frontline control states', () => {
+  const progressWithoutClaim = replayV2FixtureInput();
+  progressWithoutClaim.ticks[0]!.tickStart.state.objective.captureProgress =
+    1;
+  assert.throws(
+    () => decodeReplay(progressWithoutClaim),
+    /Frontline control state violates canonical invariants/,
+  );
+
+  const winnerWithFutureResume = replayV2FixtureInput();
+  winnerWithFutureResume.ticks[0]!.tickStart.state.objective.winnerTeamId =
+    0;
+  winnerWithFutureResume.ticks[0]!.tickStart.state.objective
+    .controlResumesAtTick = 1;
+  assert.throws(
+    () => decodeReplay(winnerWithFutureResume),
+    /Frontline control state violates canonical invariants/,
+  );
+});
+
+test('replay-v2 freezes transform and turret-fire contract semantics', () => {
+  const wrongTransformCode = replayV2FixtureInput();
+  wrongTransformCode.header.contract.rules.actions.find(
+    (action) => action.id === 'transform',
+  )!.code = 100;
+  assert.throws(
+    () => decodeReplay(wrongTransformCode),
+    /canonical enabled Transform\/101/,
+  );
+
+  const missingHeading = replayV2FixtureInput();
+  missingHeading.header.contract.rules.frontlineDefinition!
+    .turretFire.allowedProjectileHeadings.pop();
+  assert.throws(
+    () => decodeReplay(missingHeading),
+    /all eight canonical headings/,
+  );
+
+  const weightedTurret = replayV2FixtureInput();
+  weightedTurret.header.contract.rules.forms.find(
+    (form) => form.id === 'turret',
+  )!.objectiveWeight = 1;
+  assert.throws(
+    () => decodeReplay(weightedTurret),
+    /zero-objective-weight target form/,
+  );
+
+  const mobileTurret = replayV2FixtureInput();
+  mobileTurret.header.contract.rules.forms
+    .find((form) => form.id === 'turret')!
+    .allowedActionIds.push('transform');
+  assert.throws(
+    () => decodeReplay(mobileTurret),
+    /exactly ShootDirection and Wait/,
+  );
+
+  const completionBeforeObjective = replayV2FixtureInput();
+  const phases =
+    completionBeforeObjective.header.contract.rules.tickResolution
+      .phases;
+  const completion = phases.indexOf('complete-form-transitions');
+  const objective = phases.indexOf('update-objective');
+  [phases[completion], phases[objective]] = [
+    phases[objective]!,
+    phases[completion]!,
+  ];
+  assert.throws(
+    () => decodeReplay(completionBeforeObjective),
+    /complete them after objective resolution/,
+  );
+});
+
+test('replay-v2 exposes a complete normalized public match contract', () => {
+  const replay = decodeReplay(replayV2FixtureInput()).replay;
+
+  assert.equal(replay.contract.kind, 'v2-full');
+  if (replay.contract.kind !== 'v2-full') return;
+  const { rules, map, topology } = replay.contract;
+
+  assert.equal(replay.contract.schemaVersion, 1);
+  assert.equal(
+    replay.contract.matchContractFingerprint,
+    'contract-fingerprint',
+  );
+  assert.equal(rules.rulesFingerprint, 'rules-fingerprint');
+  assert.equal(rules.limits.maxUnitsPerTeam, 1);
+  assert.deepEqual(rules.objective.maxTickTiebreakers, [
+    'objective',
+    'health',
+    'damage-dealt',
+  ]);
+  assert.equal(rules.frontlineDefinition?.teamPerception, 'immediate-union');
+  assert.equal(rules.frontlineDefinition?.capture.threshold, 3);
+  assert.equal(
+    rules.frontlineDefinition?.capture.presence,
+    'binary-positive-weight-per-team-no-stacking',
+  );
+  assert.equal(
+    rules.frontlineDefinition?.victory.timeoutResolution,
+    'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
+  );
+  assert.equal(rules.frontlineDefinition?.lifecycle.primeRespawnTicks, 2);
+  assert.equal(
+    rules.frontlineDefinition?.deployment.childReturn,
+    'ready-then-explicit-fabrication',
+  );
+  assert.equal(
+    rules.frontlineDefinition?.deployment.primeDefaultFormId,
+    'prime',
+  );
+  assert.equal(rules.frontlineDefinition?.fabrication.enabled, false);
+  assert.equal(
+    rules.frontlineDefinition?.fabrication.capacityEvaluation,
+    'post-movement-during-queue-fabrications',
+  );
+  assert.equal(rules.frontlineDefinition?.anchor.windupTicks, 2);
+  assert.equal(
+    rules.frontlineDefinition?.anchor.death,
+    'cancels-with-explicit-event',
+  );
+  assert.equal(
+    rules.frontlineDefinition?.anchor.pendingForm,
+    'source-form-until-completion',
+  );
+  assert.deepEqual(
+    rules.frontlineDefinition?.turretFire.allowedProjectileHeadings,
+    [
+      'north',
+      'north-east',
+      'east',
+      'south-east',
+      'south',
+      'south-west',
+      'west',
+      'north-west',
+    ],
+  );
+  assert.equal(
+    rules.frontlineDefinition?.turretFire.facing,
+    'body-facing-unchanged',
+  );
+  assert.equal(
+    rules.frontlineDefinition?.alliedCombat.friendlyFireEnabled,
+    false,
+  );
+  assert.equal(rules.energy.enabled, false);
+  assert.deepEqual(rules.forms[0]?.allowedActionIds, [
+    'transform',
+    'wait',
+  ]);
+  assert.deepEqual(rules.actions[0]?.parameterKinds, []);
+  assert.equal(rules.projectiles.mode, 'discrete');
+  assert.equal(rules.shotPrograms.maxBendCount, 2);
+  assert.equal(rules.vision.lineOfSight, 'corner-strict-supercover');
+  assert.equal(rules.collisions.unitsBlockUnits, true);
+  assert.deepEqual(rules.tickResolution.phases, [
+    'queue-fabrications',
+    'freeze-observations',
+    'start-form-transitions',
+    'launch-shots-and-apply-damage',
+    'update-objective',
+    'complete-form-transitions',
+    'resolve-match-completion',
+  ]);
+  assert.equal(map.mapFingerprint, 'map-fingerprint');
+  assert.deepEqual(map.spawns[0], {
+    teamId: 0,
+    position: { x: 0, y: 1 },
+    facing: 'east',
+  });
+  assert.deepEqual(map.frontline?.positions[0]?.tiles, [{ x: 1, y: 1 }]);
+  assert.equal(topology.teamCount, 2);
+  assert.equal(topology.unitSlots[0]?.unitKey, 'frontline:0:unit:0');
+  assert.equal(
+    topology.initialLives[0]?.actorKey,
+    'frontline:0:unit:0:life:0',
+  );
+});
+
+test('replay-v2 canonicalizes numeric string IDs without mutating wire order', () => {
+  const input = replayV2FixtureInput();
+  const template = input.ticks[0]!.tickStart.state.projectiles[0]!;
+  input.ticks[0]!.tickStart.state.projectiles = [
+    { ...template, projectileId: '10' },
+    { ...template, projectileId: '2' },
+    template,
+  ];
+  const wireOrder = input.ticks[0]!.tickStart.state.projectiles.map(
+    (projectile) => projectile.projectileId,
+  );
+
+  const decoded = decodeReplay(input);
+
+  assert.deepEqual(wireOrder, ['10', '2', JS_UNSAFE_DECIMAL]);
+  assert.deepEqual(
+    decoded.replay.ticks[0]?.before.projectiles?.map(
+      (projectile) => projectile.projectileId,
+    ),
+    ['2', '10', JS_UNSAFE_DECIMAL],
+  );
+  assert.deepEqual(
+    input.ticks[0]!.tickStart.state.projectiles.map(
+      (projectile) => projectile.projectileId,
+    ),
+    wireOrder,
+  );
+});
+
+test('replay-v2 preserves null separately from supported-but-empty arrays', () => {
+  const observation =
+    decodeReplay(replayV2FixtureInput()).replay.ticks[0]?.actorTurns[0]
+      ?.observation;
+  const action = observation?.actions?.[0];
+
+  assert.equal(observation?.visibleProjectiles, null);
+  assert.deepEqual(observation?.heardSounds, []);
+  assert.equal(action?.allowedDirections, null);
+  assert.deepEqual(action?.allowedUnitKeys, []);
+  assert.equal(action?.allowedFormTargets, null);
+  assert.deepEqual(
+    decodeReplay(replayV2FixtureInput()).replay.ticks[0]?.actorTurns[0]
+      ?.runtimeReply.payload,
+    null,
+  );
+});
+
+test('replay-v2 preserves runtime, accepted, and resolved generic payloads independently', () => {
+  const input = replayV2FixtureInput();
+  input.header.contract.rules.forms.push({
+    ...input.header.contract.rules.forms[0]!,
+    id: 'flight',
+    allowedActionIds: ['future-flight'],
+  });
+  input.header.contract.rules.actions.push({
+    id: 'future-flight',
+    code: 9_007,
+    kind: 'attack',
+    parameterKinds: ['direction', 'unit-target', 'form-target'],
+    enabled: true,
+  });
+  input.header.contract.rules.forms
+    .find((form) => form.id === 'prime')!
+    .allowedActionIds.push('future-flight');
+  for (const actor of input.ticks[0]!.actors) {
+    actor.observation.actions.push({
+      actionId: 'future-flight',
+      actionCode: 9_007,
+      parameterKinds: ['direction', 'unit-target', 'form-target'],
+      enabled: true,
+      available: true,
+      shotProgramAvailable: null,
+      allowedDirections: ['north'],
+      allowedProjectileHeadings: null,
+      allowedUnitTargets: [{ teamId: 0, unitId: 0 }],
+      allowedFormTargets: ['flight'],
+    });
+  }
+  const turn = input.ticks[0]!.actors[0]!;
+  turn.runtimeReply = {
+    actionId: 'future-flight',
+    actionCode: 9_007,
+    payload: {
+      shotProgram: null,
+      direction: 'north',
+      launchHeading: null,
+      unitTarget: null,
+      formTargetId: 'flight',
+    },
+    debugMessage: 'raw runtime reply',
+    faulted: false,
+    faultMessage: null,
+  };
+  turn.acceptedDecision = {
+    actionId: 'wait',
+    actionCode: 0,
+    payload: null,
+    debugMessage: null,
+    faulted: false,
+    faultMessage: null,
+  };
+  input.ticks[0]!.resolution.events = [
+    {
+      eventId: 'resolution:0:0',
+      tick: 0,
+      type: 'shot',
+      teamId: 0,
+      unitId: null,
+      sourceActorId: turn.actorId,
+      targetActorId: null,
+      projectileId: JS_UNSAFE_DECIMAL,
+      from: { x: 0, y: 1 },
+      to: { x: 1, y: 1 },
+      fromFacing: 'east',
+      toFacing: null,
+      projectileHeading: 'east',
+      actionId: 'future-flight',
+      actionCode: 9_007,
+      actionPayload: {
+        shotProgram: null,
+        direction: 'north',
+        launchHeading: null,
+        unitTarget: { teamId: 0, unitId: 0 },
+        formTargetId: 'flight',
+      },
+      actionResult: 'success',
+      fromFormId: null,
+      toFormId: null,
+      formTransitionStartedAtTick: null,
+      formTransitionCompletesAtTick: null,
+      amount: null,
+      newHealth: null,
+      lifecycleStatus: null,
+      spawnReason: null,
+      respawnAtTick: null,
+      unlockAtTick: null,
+      rebuildReadyAtTick: null,
+      fabricationAtTick: null,
+      fromPositionIndex: null,
+      toPositionIndex: null,
+      claimingTeamId: null,
+      captureProgress: null,
+      controlResumesAtTick: null,
+    },
+  ];
+
+  const normalized = decodeReplay(input).replay.ticks[0]!;
+
+  assert.equal(normalized.actorTurns[0]?.runtimeReply.actionId, 'future-flight');
+  assert.equal(normalized.actorTurns[0]?.acceptedDecision.actionId, 'wait');
+  assert.equal(normalized.actorTurns[0]?.acceptedDecision.payload, null);
+  assert.deepEqual(normalized.events[0]?.actionPayload, {
+    shotProgram: null,
+    direction: 'north',
+    launchHeading: null,
+    unitKey: 'frontline:0:unit:0',
+    formTargetId: 'flight',
+  });
+});
+
+test('replay-v2 exposes authoritative before and after snapshots', () => {
+  const tick = decodeReplay(replayV2FixtureInput()).replay.ticks[0];
+
+  assert.equal(tick?.before.completeness, 'exact');
+  assert.equal(tick?.after.completeness, 'exact');
+  assert.deepEqual(tick?.before.actors[0]?.position, { x: 0, y: 1 });
+  assert.deepEqual(tick?.after.actors[0]?.position, { x: 1, y: 1 });
+  assert.notStrictEqual(tick?.before, tick?.after);
+});
+
+test('zero-tick replay-v2 partial retains topology without inventing world state', () => {
+  const replay = decodeReplay(replayV2ZeroTickPartialFixtureInput()).replay;
+
+  assert.equal(replay.partial, true);
+  assert.equal(replay.replayHash, null);
+  assert.equal(replay.result, null);
+  assert.equal(replay.initialWorld, null);
+  assert.deepEqual(replay.ticks, []);
+  assert.equal(replay.teams.length, 2);
+  assert.equal(replay.units.length, 2);
+});
+
+test('replay-v2 requires explicit nullable keys instead of treating omission as null', () => {
+  const input = structuredClone(replayV2FixtureInput()) as unknown as {
+    ticks: {
+      actors: {
+        observation: { visibleProjectiles?: unknown };
+      }[];
+    }[];
+  };
+  delete input.ticks[0]!.actors[0]!.observation.visibleProjectiles;
+
+  assert.throws(
+    () => decodeReplay(input),
+    /visibleProjectiles: missing required property/,
+  );
+});
+
+function replayFixtureText(name: string): string {
+  return readFileSync(
+    new URL(`./fixtures/${name}`, import.meta.url),
+    'utf8',
+  );
+}
+
+function replayV2FabricationFixtureInput() {
+  const input = replayV2FixtureInput();
+  const contract = input.header.contract;
+  const frontline = contract.rules.frontlineDefinition!;
+  const topology = contract.topology;
+  const tick = input.ticks[0]!;
+  const turn = tick.actors[0]!;
+
+  contract.rules.limits.unitSlotCount = 3;
+  contract.rules.limits.maxUnitsPerTeam = 2;
+  frontline.maxUnitsPerTeam = 2;
+  frontline.lifecycle.fabricationUnlockTicks = [0];
+  frontline.fabrication.enabled = true;
+  contract.rules.forms
+    .find((form) => form.id === 'prime')!
+    .allowedActionIds.push('fabricate');
+  contract.rules.actions.push({
+    id: 'fabricate',
+    code: 7,
+    kind: 'fabrication',
+    parameterKinds: ['unit-target'],
+    enabled: true,
+  });
+  topology.unitSlotCount = 3;
+  topology.unitSlots.push({
+    teamId: 0,
+    unitId: 1,
+    controllerParticipantId: 0,
+  });
+  contract.map.frontline!.teamHomes[0]!.protectedSpawnPad.push([0, 2]);
+
+  const readyChild = {
+    teamId: 0,
+    unitId: 1,
+    defaultFormId: 'child',
+    lifecycleStatus: 'ready' as const,
+    respawnAtTick: null,
+    unlockAtTick: 0,
+    rebuildReadyAtTick: null,
+    fabricationAtTick: null,
+    reservedSpawn: null,
+    pendingSpawnReason: null,
+    hasSpawned: false,
+    nextLifeId: 0,
+    damageDealt: '0',
+    activeLife: null,
+  };
+  tick.tickStart.state.teams[0]!.units.push(readyChild);
+  tick.postState.teams[0]!.units.push({
+    ...readyChild,
+    lifecycleStatus: 'fabrication-queued',
+    fabricationAtTick: 1,
+    reservedSpawn: { x: 0, y: 2 },
+    pendingSpawnReason: 'fabrication',
+  });
+  turn.observation.teamUnits.push({
+    teamId: 0,
+    unitId: 1,
+    formId: 'child',
+    lifecycleStatus: 'ready',
+    activeActorId: null,
+    respawnAtTick: null,
+    unlockAtTick: 0,
+    rebuildReadyAtTick: null,
+    fabricationAtTick: null,
+  });
+  for (const actorTurn of tick.actors) {
+    actorTurn.observation.actions.push({
+      actionId: 'fabricate',
+      actionCode: 7,
+      parameterKinds: ['unit-target'],
+      enabled: true,
+      available: actorTurn.actorId.teamId === 0,
+      shotProgramAvailable: null,
+      allowedDirections: null,
+      allowedProjectileHeadings: null,
+      allowedUnitTargets:
+        actorTurn.actorId.teamId === 0
+          ? [{ teamId: 0, unitId: 1 }]
+          : [],
+      allowedFormTargets: null,
+    });
+  }
+  tick.resolution.events.push({
+    eventId: 'resolution:0:fabrication',
+    tick: 0,
+    type: 'fabrication-queued',
+    teamId: 0,
+    unitId: 1,
+    sourceActorId: turn.actorId,
+    targetActorId: null,
+    projectileId: null,
+    from: null,
+    to: { x: 0, y: 2 },
+    fromFacing: null,
+    toFacing: null,
+    projectileHeading: null,
+    actionPayload: {
+      shotProgram: null,
+      direction: null,
+      launchHeading: null,
+      unitTarget: { teamId: 0, unitId: 1 },
+      formTargetId: null,
+    },
+    actionId: 'fabricate',
+    actionCode: 7,
+    actionResult: 'success',
+    fromFormId: null,
+    toFormId: null,
+    formTransitionStartedAtTick: null,
+    formTransitionCompletesAtTick: null,
+    amount: null,
+    newHealth: null,
+    lifecycleStatus: 'fabrication-queued',
+    spawnReason: 'fabrication',
+    respawnAtTick: null,
+    unlockAtTick: null,
+    rebuildReadyAtTick: null,
+    fabricationAtTick: 1,
+    fromPositionIndex: null,
+    toPositionIndex: null,
+    claimingTeamId: null,
+    captureProgress: null,
+    controlResumesAtTick: null,
+  });
+  input.result.teams[0]!.units.push({
+    teamId: 0,
+    unitId: 1,
+    defaultFormId: 'child',
+    formId: 'child',
+    pendingFormTransition: null,
+    lifecycleStatus: 'fabrication-queued',
+    activeActorId: null,
+    health: 0,
+    damageDealt: '0',
+  });
+
+  return input;
+}

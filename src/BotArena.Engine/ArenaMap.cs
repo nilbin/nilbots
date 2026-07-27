@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -31,6 +32,7 @@ public sealed class ArenaMap
 
     public string Id { get; }
     public int Version { get; }
+    public int FormatVersion { get; }
     public int Width { get; }
     public int Height { get; }
     /// <summary>Presentation theme selected by the map package. It never affects
@@ -43,25 +45,31 @@ public sealed class ArenaMap
     /// <summary>Declared zone-control tiles (RULES-0.3-DESIGN §C); empty when the map
     /// declares none — <see cref="EffectiveZone"/> falls back to the open center.</summary>
     public IReadOnlyList<Position> Zone { get; }
+    /// <summary>Format-v2 Frontline geometry; null for every format-v1 map.</summary>
+    public FrontlineMapProfile? Frontline { get; }
 
     private readonly bool[] _walls;
 
     private ArenaMap(
         string id,
         int version,
+        int formatVersion,
         string[] tileRows,
         Spawn[] spawns,
         Position[]? zone = null,
         string? themeId = null,
-        MapPresentation? presentation = null)
+        MapPresentation? presentation = null,
+        FrontlineMapProfile? frontline = null)
     {
         Id = id;
         Version = version;
+        FormatVersion = formatVersion;
         ThemeId = themeId;
         Presentation = presentation;
         TileRows = tileRows;
         Spawns = spawns;
         Zone = zone ?? [];
+        Frontline = frontline;
         Height = tileRows.Length;
         Width = tileRows.Length > 0 ? tileRows[0].Length : 0;
         _walls = new bool[Width * Height];
@@ -85,7 +93,15 @@ public sealed class ArenaMap
         string? themeId = null,
         MapPresentation? presentation = null)
     {
-        var map = new ArenaMap(id, version, tileRows, spawns, zone, themeId, presentation);
+        var map = new ArenaMap(
+            id,
+            version,
+            1,
+            tileRows,
+            spawns,
+            zone,
+            themeId,
+            presentation);
         map.Validate();
         return map;
     }
@@ -110,7 +126,7 @@ public sealed class ArenaMap
         var dto = JsonSerializer.Deserialize<MapDto>(json, JsonOptions)
                   ?? throw new MapValidationException(["Empty map document."]);
         var errors = new List<string>();
-        if (dto.FormatVersion != 1)
+        if (dto.FormatVersion is not (1 or 2))
             errors.Add($"Unsupported map formatVersion {dto.FormatVersion}.");
         if (string.IsNullOrWhiteSpace(dto.Id))
             errors.Add("Map id is required.");
@@ -128,7 +144,7 @@ public sealed class ArenaMap
                        $"{dto.Tiles[0].Length}x{dto.Tiles.Length}.");
         if (dto.Width > MaxWidth || dto.Height > MaxHeight)
             errors.Add($"Map must be at most {MaxWidth}x{MaxHeight}.");
-        var spawns = new List<Spawn>();
+        var parsedSpawns = new List<ParsedSpawn>();
         foreach (var s in dto.Spawns!)
         {
             if (!Enum.TryParse<Direction>(s.Facing, ignoreCase: false, out var facing))
@@ -136,12 +152,21 @@ public sealed class ArenaMap
                 errors.Add($"Invalid spawn facing '{s.Facing}'.");
                 continue;
             }
-            spawns.Add(new Spawn(s.X, s.Y, facing));
+            parsedSpawns.Add(new ParsedSpawn(
+                s.TeamId,
+                new Spawn(s.X, s.Y, facing)));
         }
+
+        if (dto.FormatVersion == 2)
+            ValidateAndOrderFrontlineSpawns(parsedSpawns, errors);
+
         if (errors.Count > 0)
             throw new MapValidationException(errors);
 
         var zone = ReadPositions(dto.Zone, "zone", errors);
+        if (dto.FormatVersion == 2 && zone.Length > 0)
+            errors.Add("Format-v2 Frontline maps cannot declare a legacy zone.");
+
         MapPresentation? presentation = null;
         if (dto.Presentation is not null)
         {
@@ -167,10 +192,37 @@ public sealed class ArenaMap
                 && IsPresentationId(boundary) && IsPresentationId(interior))
                 presentation = new MapPresentation(boundary, interior, groups);
         }
+
+        FrontlineMapProfile? frontline = null;
+        if (dto.FormatVersion == 2)
+        {
+            if (dto.Frontline is null)
+            {
+                errors.Add("Format-v2 maps require a frontline profile.");
+            }
+            else
+            {
+                frontline = ReadFrontlineProfile(
+                    dto.Frontline,
+                    parsedSpawns,
+                    errors);
+            }
+        }
+
         if (errors.Count > 0)
             throw new MapValidationException(errors);
+
+        Spawn[] spawns = parsedSpawns.Select(parsed => parsed.Spawn).ToArray();
         var map = new ArenaMap(
-            dto.Id!, dto.Version, dto.Tiles, spawns.ToArray(), zone, dto.Theme, presentation);
+            dto.Id!,
+            dto.Version,
+            dto.FormatVersion,
+            dto.Tiles,
+            spawns,
+            zone,
+            dto.Theme,
+            presentation,
+            frontline);
         map.Validate();
         return map;
     }
@@ -227,11 +279,221 @@ public sealed class ArenaMap
                 }
             }
         }
-        if (errors.Count == 0 && Zone.Count > 0 && Spawns.Count == 2
-            && !AreConnected(new Position(Spawns[0].X, Spawns[0].Y), Zone[0]))
-            errors.Add("Zone is not reachable from the spawns.");
+        if (FormatVersion == 1)
+        {
+            if (Frontline is not null)
+                errors.Add("Format-v1 maps cannot contain a Frontline profile.");
+            if (errors.Count == 0 && Zone.Count > 0 && Spawns.Count == 2
+                && !AreConnected(new Position(Spawns[0].X, Spawns[0].Y), Zone[0]))
+            {
+                errors.Add("Zone is not reachable from the spawns.");
+            }
+        }
+        else if (FormatVersion == 2)
+        {
+            if (Version < 1)
+                errors.Add("Format-v2 map version must be positive.");
+            if (Zone.Count > 0)
+                errors.Add("Format-v2 Frontline maps cannot declare a legacy zone.");
+            ValidateFrontlineProfile(errors);
+        }
+        else
+        {
+            errors.Add($"Unsupported map formatVersion {FormatVersion}.");
+        }
+
         if (errors.Count > 0)
             throw new MapValidationException(errors);
+    }
+
+    private void ValidateFrontlineProfile(List<string> errors)
+    {
+        if (Frontline is null)
+        {
+            errors.Add("Format-v2 maps require a Frontline profile.");
+            return;
+        }
+
+        if (Frontline.Positions.Length < 3
+            || Frontline.Positions.Length % 2 == 0)
+        {
+            errors.Add(
+                "Frontline maps require an odd ordered position count of at least 3.");
+        }
+
+        var objectiveTiles = new HashSet<Position>();
+        for (int index = 0; index < Frontline.Positions.Length; index++)
+        {
+            FrontlineRegion region = Frontline.Positions[index];
+            if (region.PositionIndex != index)
+            {
+                errors.Add(
+                    $"Frontline position at sequence index {index} declares index " +
+                    $"{region.PositionIndex}.");
+            }
+            if (region.Tiles.IsDefaultOrEmpty)
+            {
+                errors.Add($"Frontline position {index} must contain at least one tile.");
+                continue;
+            }
+
+            ValidateCanonicalTileSet(
+                region.Tiles,
+                $"Frontline position {index}",
+                errors);
+            if (!IsCardinallyConnected(region.Tiles))
+                errors.Add($"Frontline position {index} must be cardinally connected.");
+            foreach (Position tile in region.Tiles)
+            {
+                if (!objectiveTiles.Add(tile))
+                {
+                    errors.Add(
+                        $"Frontline objective tile ({tile.X},{tile.Y}) appears in more " +
+                        "than one position.");
+                }
+            }
+        }
+
+        int[] teamIds = Frontline.TeamHomes
+            .Select(home => home.TeamId)
+            .Order()
+            .ToArray();
+        if (!teamIds.SequenceEqual([0, 1]))
+        {
+            errors.Add(
+                "Frontline maps require exactly one team home for team 0 and team 1.");
+        }
+
+        var protectedTiles = new HashSet<Position>();
+        foreach (FrontlineTeamHome home in Frontline.TeamHomes.OrderBy(home => home.TeamId))
+        {
+            if (home.TeamId is not (0 or 1))
+                continue;
+
+            if (home.ProtectedSpawnPad.IsDefaultOrEmpty)
+            {
+                errors.Add(
+                    $"Team {home.TeamId} protected spawn pad must contain at least one tile.");
+                continue;
+            }
+
+            ValidateCanonicalTileSet(
+                home.ProtectedSpawnPad,
+                $"Team {home.TeamId} protected spawn pad",
+                errors);
+            if (!IsCardinallyConnected(home.ProtectedSpawnPad))
+            {
+                errors.Add(
+                    $"Team {home.TeamId} protected spawn pad must be cardinally connected.");
+            }
+
+            Position primePosition = new(home.PrimeSpawn.X, home.PrimeSpawn.Y);
+            if (!home.ProtectedSpawnPad.Contains(primePosition))
+            {
+                errors.Add(
+                    $"Team {home.TeamId} Prime spawn {primePosition} must be inside its " +
+                    "protected spawn pad.");
+            }
+
+            if (home.TeamId < Spawns.Count && home.PrimeSpawn != Spawns[home.TeamId])
+            {
+                errors.Add(
+                    $"Team {home.TeamId} home Prime spawn does not match the map spawn.");
+            }
+
+            foreach (Position tile in home.ProtectedSpawnPad)
+            {
+                if (!protectedTiles.Add(tile))
+                {
+                    errors.Add(
+                        $"Protected spawn tile ({tile.X},{tile.Y}) belongs to more than " +
+                        "one team.");
+                }
+                if (objectiveTiles.Contains(tile))
+                {
+                    errors.Add(
+                        $"Protected spawn tile ({tile.X},{tile.Y}) overlaps a Frontline " +
+                        "position.");
+                }
+            }
+        }
+
+        ValidateCanonicalTileSet(
+            Frontline.AnchorForbiddenTiles,
+            "Anchor-forbidden tiles",
+            errors);
+        var anchorForbidden = Frontline.AnchorForbiddenTiles.ToHashSet();
+        foreach (Position requiredTile in objectiveTiles
+                     .Concat(protectedTiles)
+                     .OrderBy(tile => tile.Y)
+                     .ThenBy(tile => tile.X))
+        {
+            if (!anchorForbidden.Contains(requiredTile))
+            {
+                errors.Add(
+                    $"Anchor-forbidden tiles must include gameplay tile " +
+                    $"({requiredTile.X},{requiredTile.Y}).");
+            }
+        }
+
+        if (Spawns.Count == 2 && Spawns.All(spawn => !IsWall(spawn.X, spawn.Y)))
+        {
+            Position origin = new(Spawns[0].X, Spawns[0].Y);
+            IEnumerable<Position> gameplayTiles = objectiveTiles
+                .Concat(protectedTiles)
+                .Where(tile => !IsWall(tile))
+                .OrderBy(tile => tile.Y)
+                .ThenBy(tile => tile.X);
+            foreach (Position tile in gameplayTiles)
+            {
+                if (AreConnected(origin, tile))
+                    continue;
+                errors.Add(
+                    $"Frontline gameplay tile ({tile.X},{tile.Y}) is not reachable " +
+                    "from both team homes.");
+                break;
+            }
+        }
+    }
+
+    private void ValidateCanonicalTileSet(
+        ImmutableArray<Position> tiles,
+        string owner,
+        List<string> errors)
+    {
+        Position? previous = null;
+        foreach (Position tile in tiles)
+        {
+            if (IsWall(tile))
+                errors.Add($"{owner} tile ({tile.X},{tile.Y}) is on a wall or outside the map.");
+            if (previous is Position prior
+                && (tile.Y < prior.Y || tile.Y == prior.Y && tile.X <= prior.X))
+            {
+                errors.Add($"{owner} tiles must be unique and ordered by Y then X.");
+            }
+            previous = tile;
+        }
+    }
+
+    private static bool IsCardinallyConnected(ImmutableArray<Position> tiles)
+    {
+        if (tiles.IsDefaultOrEmpty)
+            return false;
+
+        var remaining = tiles.ToHashSet();
+        var queue = new Queue<Position>();
+        queue.Enqueue(tiles[0]);
+        remaining.Remove(tiles[0]);
+        while (queue.TryDequeue(out Position tile))
+        {
+            foreach (var (dx, dy) in CardinalOffsets)
+            {
+                Position adjacent = tile.Offset(dx, dy);
+                if (remaining.Remove(adjacent))
+                    queue.Enqueue(adjacent);
+            }
+        }
+        return remaining.Count == 0;
     }
 
     private static readonly (int Dx, int Dy)[] CardinalOffsets = [(0, -1), (1, 0), (0, 1), (-1, 0)];
@@ -260,6 +522,123 @@ public sealed class ArenaMap
         return false;
     }
 
+    private static void ValidateAndOrderFrontlineSpawns(
+        List<ParsedSpawn> spawns,
+        List<string> errors)
+    {
+        if (spawns.Count != 2)
+            errors.Add($"Format-v2 maps require exactly 2 Prime spawns, found {spawns.Count}.");
+
+        var teamIds = new HashSet<int>();
+        foreach (ParsedSpawn spawn in spawns)
+        {
+            if (spawn.TeamId is not (0 or 1))
+            {
+                errors.Add(
+                    "Every format-v2 Prime spawn requires teamId 0 or teamId 1.");
+                continue;
+            }
+            if (!teamIds.Add(spawn.TeamId.Value))
+                errors.Add($"Team {spawn.TeamId.Value} declares more than one Prime spawn.");
+        }
+        if (!teamIds.SetEquals([0, 1]))
+            errors.Add("Format-v2 maps require one Prime spawn for team 0 and team 1.");
+
+        spawns.Sort((left, right) =>
+            Nullable.Compare(left.TeamId, right.TeamId));
+    }
+
+    private static FrontlineMapProfile ReadFrontlineProfile(
+        FrontlineDto dto,
+        IReadOnlyList<ParsedSpawn> parsedSpawns,
+        List<string> errors)
+    {
+        var positions = ImmutableArray.CreateBuilder<FrontlineRegion>();
+        FrontlinePositionDto?[] authoredPositions = dto.Positions ?? [];
+        for (int index = 0; index < authoredPositions.Length; index++)
+        {
+            FrontlinePositionDto? authoredPosition = authoredPositions[index];
+            if (authoredPosition is null)
+            {
+                errors.Add($"Frontline position {index} cannot be null.");
+                positions.Add(new FrontlineRegion(index, []));
+                continue;
+            }
+            positions.Add(new FrontlineRegion(
+                index,
+                ReadCanonicalPositionSet(
+                    authoredPosition.Tiles,
+                    $"Frontline position {index}",
+                    errors)));
+        }
+
+        Dictionary<int, Spawn> spawnsByTeam = parsedSpawns
+            .Where(spawn => spawn.TeamId is 0 or 1)
+            .ToDictionary(spawn => spawn.TeamId!.Value, spawn => spawn.Spawn);
+        var homes = ImmutableArray.CreateBuilder<FrontlineTeamHome>();
+        var seenHomeTeams = new HashSet<int>();
+        foreach (FrontlineHomePadDto? home in dto.HomePads ?? [])
+        {
+            if (home is null)
+            {
+                errors.Add("Frontline home pads cannot contain null entries.");
+                continue;
+            }
+            if (home.TeamId is not (0 or 1))
+            {
+                errors.Add(
+                    "Every Frontline home pad requires teamId 0 or teamId 1.");
+                continue;
+            }
+            int teamId = home.TeamId.Value;
+            if (!seenHomeTeams.Add(teamId))
+            {
+                errors.Add($"Team {teamId} declares more than one protected spawn pad.");
+                continue;
+            }
+            if (!spawnsByTeam.TryGetValue(teamId, out Spawn primeSpawn))
+            {
+                errors.Add($"Team {teamId} home has no matching Prime spawn.");
+                continue;
+            }
+            homes.Add(new FrontlineTeamHome(
+                teamId,
+                primeSpawn,
+                ReadCanonicalPositionSet(
+                    home.Tiles,
+                    $"Team {teamId} protected spawn pad",
+                    errors)));
+        }
+
+        return new FrontlineMapProfile(
+            positions.ToImmutable(),
+            homes
+                .OrderBy(home => home.TeamId)
+                .ToImmutableArray(),
+            ReadCanonicalPositionSet(
+                dto.AnchorForbiddenTiles,
+                "Anchor-forbidden tiles",
+                errors));
+    }
+
+    private static ImmutableArray<Position> ReadCanonicalPositionSet(
+        int[][]? values,
+        string owner,
+        List<string> errors)
+    {
+        Position[] positions = ReadPositions(values, owner, errors);
+        var unique = new HashSet<Position>();
+        foreach (Position tile in positions)
+        {
+            if (!unique.Add(tile))
+                errors.Add($"{owner} contains duplicate tile ({tile.X},{tile.Y}).");
+        }
+        return unique
+            .OrderBy(tile => tile.Y)
+            .ThenBy(tile => tile.X)
+            .ToImmutableArray();
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -278,6 +657,7 @@ public sealed class ArenaMap
         [JsonPropertyName("tiles")] public string[]? Tiles { get; set; }
         [JsonPropertyName("spawns")] public SpawnDto[]? Spawns { get; set; }
         [JsonPropertyName("zone")] public int[][]? Zone { get; set; }
+        [JsonPropertyName("frontline")] public FrontlineDto? Frontline { get; set; }
     }
 
     private sealed class MapPresentationDto
@@ -295,10 +675,31 @@ public sealed class ArenaMap
 
     private sealed class SpawnDto
     {
+        [JsonPropertyName("teamId")] public int? TeamId { get; set; }
         [JsonPropertyName("x")] public int X { get; set; }
         [JsonPropertyName("y")] public int Y { get; set; }
         [JsonPropertyName("facing")] public string? Facing { get; set; }
     }
+
+    private sealed class FrontlineDto
+    {
+        [JsonPropertyName("positions")] public FrontlinePositionDto?[]? Positions { get; set; }
+        [JsonPropertyName("homePads")] public FrontlineHomePadDto?[]? HomePads { get; set; }
+        [JsonPropertyName("anchorForbiddenTiles")] public int[][]? AnchorForbiddenTiles { get; set; }
+    }
+
+    private sealed class FrontlinePositionDto
+    {
+        [JsonPropertyName("tiles")] public int[][]? Tiles { get; set; }
+    }
+
+    private sealed class FrontlineHomePadDto
+    {
+        [JsonPropertyName("teamId")] public int? TeamId { get; set; }
+        [JsonPropertyName("tiles")] public int[][]? Tiles { get; set; }
+    }
+
+    private readonly record struct ParsedSpawn(int? TeamId, Spawn Spawn);
 
     private static bool IsPresentationId(string value) =>
         value.Length is > 0 and <= 64 &&

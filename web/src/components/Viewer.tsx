@@ -1,6 +1,13 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
-import type { ReplayDocument } from '../types';
+import type {
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../replayModel';
+import {
+  participantForUnit,
+  teamName,
+} from '../replayParticipants';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplayAudio } from '../audio/useReplayAudio';
 import { useAssetReadiness } from '../render/useAssetReadiness';
@@ -26,7 +33,7 @@ export default function Viewer({
   replay,
   live,
 }: {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   live?: LiveFollow;
 }) {
   const assets = useAssetReadiness();
@@ -36,7 +43,8 @@ export default function Viewer({
   const [chromeVisible, setChromeVisible] = useState(true);
   const playback = usePlayback(replay, assets.ready);
   const liveTime = useLiveFollower(replay, live);
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [selectedUnitKey, setSelectedUnitKey] =
+    useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
   // Opt-in, and sticky for the session so a reviewer comparing the two is not retyping a
   // query string. The Canvas2D renderer stays the default until this one has been judged
@@ -92,9 +100,20 @@ export default function Viewer({
     return () => window.clearTimeout(timer);
   }, [immersive.active, chromeVisible, playback.playing]);
 
-  const { header, result } = replay;
-  const winner =
-    result && result.winnerSlot !== null ? header.participants[result.winnerSlot] : null;
+  const { result } = replay;
+  const winnerTeam =
+    result?.winnerTeamId === null || result?.winnerTeamId === undefined
+      ? null
+      : replay.teams.find(
+          (team) => team.teamId === result.winnerTeamId,
+        ) ?? null;
+  const winnerUnit = winnerTeam
+    ? replay.units.find((unit) => unit.teamId === winnerTeam.teamId) ??
+      null
+    : null;
+  const winnerParticipant = winnerUnit
+    ? participantForUnit(replay, winnerUnit.unitKey)
+    : null;
 
   return (
     <div
@@ -127,8 +146,11 @@ export default function Viewer({
       >
         <h1 className="text-xl"><Logo size={24} /></h1>
         <span className="font-mono text-xs text-arena-dim">
-          {header.mapId} · seed {header.seed} · rules {header.gameRulesVersion} ·{' '}
-          {header.participants.map((p) => p.name).join(' vs ')}
+          {replay.map.mapId} · seed {replay.seed} · rules{' '}
+          {replay.versions.gameRulesVersion} ·{' '}
+          {replay.teams
+            .map((team) => teamName(replay, team.teamId))
+            .join(' vs ')}
         </span>
         {isLive ? (
           <span className="ml-auto flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-0.5 font-mono text-[11px] font-bold text-red-400">
@@ -211,18 +233,18 @@ export default function Viewer({
               <ArenaCanvas3D
                 replay={replay}
                 time={time}
-                selectedSlot={selectedSlot}
+                selectedUnitKey={selectedUnitKey}
                 showVisibility={showVisibility}
-                onSelectSlot={setSelectedSlot}
+                onSelectUnit={setSelectedUnitKey}
               />
             </Suspense>
           ) : (
             <ArenaCanvas
               replay={replay}
               time={time}
-              selectedSlot={selectedSlot}
+              selectedUnitKey={selectedUnitKey}
               showVisibility={showVisibility}
-              onSelectSlot={setSelectedSlot}
+              onSelectUnit={setSelectedUnitKey}
             />
           )}
           {!assets.ready && (
@@ -239,31 +261,48 @@ export default function Viewer({
                   MATCH COMPLETE — {result.reason.toUpperCase()} · TICK {result.endTick}
                 </p>
                 <p className="mt-2 text-2xl font-black tracking-wide">
-                  {winner ? (
+                  {winnerTeam ? (
                     <>
-                      <span style={{ color: winner.accent }}>{winner.name}</span> WINS
+                      <span
+                        style={{
+                          color: winnerParticipant?.accent ?? '#38bdf8',
+                        }}
+                      >
+                        {teamName(replay, winnerTeam.teamId)}
+                      </span>{' '}
+                      WINS
                     </>
                   ) : (
                     'DRAW'
                   )}
                 </p>
-                {result.bots.some((b) => b.zoneTicks !== undefined) && (
+                {result.teams.some((team) => team.zoneTicks !== null) && (
                   <p className="mt-1 font-mono text-xs text-arena-dim">
                     zone{' '}
-                    {[...result.bots]
-                      .sort((a, b) => a.slot - b.slot)
-                      .map((b) => `${header.participants[b.slot]?.name ?? `s${b.slot}`} ${b.zoneTicks ?? 0}`)
+                    {[...result.teams]
+                      .sort((left, right) => left.teamId - right.teamId)
+                      .map(
+                        (team) =>
+                          `${teamName(replay, team.teamId)} ${team.zoneTicks ?? 0}`,
+                      )
                       .join(' · ')}
                   </p>
                 )}
-                {result.controlPressure !== undefined && (
+                {result.objective.kind === 'legacy' &&
+                  result.objective.controlPressure !== null && (
                   <p className="mt-1 font-mono text-xs text-arena-dim">
-                    final control {result.controlPressure > 0 ? '+' : ''}
-                    {result.controlPressure} / ±
-                    {header.controlOvertimeStartTick !== undefined &&
-                    result.endTick >= header.controlOvertimeStartTick
-                      ? header.controlOvertimePressureLimit
-                      : header.controlPressureLimit}
+                    final control{' '}
+                    {result.objective.controlPressure > 0 ? '+' : ''}
+                    {result.objective.controlPressure}
+                  </p>
+                )}
+                {result.objective.kind === 'frontline' && (
+                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                    final position{' '}
+                    {result.objective.activePositionIndex + 1}
+                    {result.territorialScore === null
+                      ? ''
+                      : ` · territory ${result.territorialScore}`}
                   </p>
                 )}
                 <button
@@ -278,7 +317,7 @@ export default function Viewer({
         </main>
 
         {/* Out of flow beside the arena, in flow beneath it.
-            
+
             The inner wrapper is absolute at `lg`, which is where the two become columns:
             that makes this cell contribute nothing to the row's height, so a growing feed
             cannot stretch the arena. It is the same reason the arena canvas is absolute
@@ -291,9 +330,9 @@ export default function Viewer({
             <BotPanel
               replay={replay}
               tick={tick}
-              selectedSlot={selectedSlot}
+              selectedUnitKey={selectedUnitKey}
               showVisibility={showVisibility}
-              onSelectSlot={setSelectedSlot}
+              onSelectUnit={setSelectedUnitKey}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
             />
             <EventFeed replay={replay} tick={tick} />

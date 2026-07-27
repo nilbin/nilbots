@@ -85,4 +85,40 @@ public class RandomTests
             SeedDerivation.DeriveBotSeed(42, 0, "0.1"),
             SeedDerivation.DeriveBotSeed(43, 0, "0.1"));
     }
+
+    [Fact]
+    public void ActorSeedDerivation_IsDomainSeparatedAndUsesEveryIdentityCoordinate()
+    {
+        var baseline = new ActorIdentity(0, 0, 0);
+        ulong seed = SeedDerivation.DeriveActorSeed(42, baseline, "frontline");
+
+        Assert.Equal(17818462576779120251UL, seed);
+        Assert.NotEqual(
+            SeedDerivation.DeriveBotSeed(42, 0, "frontline"),
+            seed);
+        Assert.NotEqual(
+            seed,
+            SeedDerivation.DeriveActorSeed(
+                42,
+                new ActorIdentity(1, 0, 0),
+                "frontline"));
+        Assert.NotEqual(
+            seed,
+            SeedDerivation.DeriveActorSeed(
+                42,
+                new ActorIdentity(0, 1, 0),
+                "frontline"));
+        Assert.NotEqual(
+            seed,
+            SeedDerivation.DeriveActorSeed(
+                42,
+                new ActorIdentity(0, 0, 1),
+                "frontline"));
+        Assert.NotEqual(
+            seed,
+            SeedDerivation.DeriveActorSeed(42, baseline, "next-season"));
+        Assert.NotEqual(
+            seed,
+            SeedDerivation.DeriveActorSeed(43, baseline, "frontline"));
+    }
 }

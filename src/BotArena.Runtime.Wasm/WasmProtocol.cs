@@ -46,16 +46,12 @@ public static class WasmProtocol
                 .Append(':').Append(enemy.Health);
 
         builder.Append(" NV ").Append(observation.VisibleEvents.Count);
-        foreach (var gameEvent in observation.VisibleEvents)
+        foreach (var observedEvent in observation.VisibleEvents)
         {
-            Position position = default;
-            foreach (var p in gameEvent.ReferencePositions())
-            {
-                position = p;
-                break;
-            }
-            builder.Append(' ').Append((int)gameEvent.Type).Append(':')
-                .Append(gameEvent.Slot ?? -1).Append(':').Append(position.X).Append(':').Append(position.Y);
+            builder.Append(' ').Append((int)observedEvent.Type).Append(':')
+                .Append(observedEvent.Slot ?? -1).Append(':')
+                .Append(observedEvent.Position.X).Append(':')
+                .Append(observedEvent.Position.Y);
         }
         // Optional trailing sections, in fixed order (E, M, Z, ZT, C, P, H, SP, PH).
         // Appended LAST

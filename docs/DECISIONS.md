@@ -1771,16 +1771,60 @@ before picking a number.*
      entitlements-only, because both surfaces read the same durable records and
      giving them different news would be a bug in every reading.
 
-## Deferred decisions
+120. **Frontline is the active successor experiment; rules 0.5 remains the
+     shipped game.** The experiment keeps the deterministic tile-combat core
+     and tests one moving five-position frontline, respawns, timed replication,
+     and one stationary turret transformation. It is deliberately not a broad
+     MOBA economy or free-for-all rules bundle. Early, middle, and late phases
+     should emerge from escalation while an outplaying team can still breach
+     early. None of the current capture, timing, health, map-size, or turret
+     values is a balance verdict: they are isolated-arm starting hypotheses.
+     Frontline cannot become the default or a ranked ruleset until its
+     deterministic session exists, independently authored Frontline-native
+     policies have played the frozen arms, and outcome-blind replay review
+     shows that the games are both legible and worth watching.
 
-- Numeric limits for submissions (archive size, file counts) — Phase 3.
-- Named RNG streams (`context.Random.Stream("...")`) — not in 0.1.
-- Whether player artifacts embed one bot per artifact (likely) or use the
-  built-in-style multi-bot selector — decide when the project template lands.
-- wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
-  verify when a second platform enters CI.
+121. **A submission, a scoring team, and a body are separate identities.**
+     Frontline begins with one submitted policy per team, instantiated as
+     independent same-artifact runtime lives in the Prime and unlocked unit
+     slots. The exact match contract therefore identifies scoring teams,
+     submitted participants, stable team-local unit slots, and initial lives;
+     it reports actual team, participant, and unit counts explicitly rather
+     than asking a bot or model to infer them from currently visible allies.
+     Variable allies, enemies, projectiles, objectives, and future player
+     counts remain ordered collections with presence/legality masks, so a
+     model is not architecturally fixed to three bodies. A form transition
+     keeps one runtime's memory; destruction and rebuild create a fresh life.
+     Exact team-perception sharing, runtime-budget scope, and later action/form
+     eligibility remain separate decisions. The replay-native ML plan stays
+     because it supplies the shared canonical-observation, replay-v2, dataset,
+     and model-asset path; Frontline must not create a second ML stack.
 
-## 120. Google sign-in through OpenIddict's client, linked on verified email only
+122. **Frontline lifecycle is a tick-start transaction, while territory reads
+     the post-combat world.** The first playable slice is an explicitly
+     Prime-only headless session; definitions with fabrication slots are
+     rejected rather than partially interpreted. `PrepareTick()` applies every
+     due respawn once and freezes the canonically ordered
+     `(teamId, unitId, lifeId)` keys whose joint decisions `Step(...)` must
+     contain exactly. A Prime destroyed on tick `D` returns at the start of
+     `D + 1 + PrimeRespawnTicks`, after exactly that many complete absent
+     decision ticks, with a fresh life/runtime identity and authored spawn
+     state. Projectiles retain the firing life identity and continue after its
+     destruction. Enemy ground movement cannot enter the opposing protected
+     pad, but the pad grants no damage immunity and does not block projectiles.
+     Turns, movement, existing projectile advances, new shots, simultaneous
+     damage, lifecycle queuing, cooldown/energy, objective control, and match
+     completion resolve in that order. Actual credited aggregate damage is
+     capped at the target's pre-hit health. Only surviving objective-weighted
+     bodies count, so a kill can remove a contest and capture on the same tick.
+     A final-tick base breach takes precedence over timeout; otherwise the
+     signed score is `(active position - centre) × capture threshold`, plus
+     team 0 claim progress or minus team 1 claim progress. Runtime fault
+     policy, fabrication, Anchor, observations, replay v2, and runtime
+     integration remain later contracts rather than guessed behavior in this
+     slice.
+
+## 123. Google sign-in through OpenIddict's client, linked on verified email only
 
 External identity is an OpenIddict *client* registration beside the server we already run,
 not `Microsoft.AspNetCore.Authentication.Google`. One OAuth library in the process instead
@@ -1811,7 +1855,7 @@ endpoint refuses null before reaching the verifier — with the same message a w
 gets, so it is not an account-enumeration oracle.
 
 
-## 121. Display names are unique, rejected on a form and suffixed from a provider
+## 124. Display names are unique, rejected on a form and suffixed from a provider
 
 Display names identify people everywhere it matters — the ladder, every match row, every
 bot card — so they are unique, **case-insensitively**. "Pincer" and "pincer" beside each
@@ -1836,7 +1880,65 @@ already present, and a deploy that renames people and *then* fails on index crea
 worst of both outcomes.
 
 
-## 122. A second renderer, in WebGL, beside the Canvas2D one
+## 125. Frontline's internal contract is per-life, replay-native, and form-extensible
+
+This completes the later contracts deliberately left open by #122 without rewriting that
+historical Prime-only checkpoint. One submitted participant remains one policy/artifact,
+but a team owns stable Prime/child slots and the host creates an independent runtime for
+every active `(teamId, unitId, lifeId)`. Every new life starts with fresh private memory;
+a form transition keeps the exact runtime and memory. Counts, topology, forms, actions,
+parameter bounds and all gameplay rules are immutable public match inputs, while variable
+allies, enemies, projectiles and objectives remain ordered collections with masks. A later
+four- or five-body map therefore changes data volume and training distribution, not the
+policy's one-action-per-life interface.
+
+Fabrication is explicit action `fabricate`/100. The Prime must be on its own protected pad
+and target one Ready child slot. Capacity is resolved after movement; success reserves the
+first free non-Prime pad tile in canonical Y-then-X order and creates the child next tick.
+A full pad is a valid attempt that resolves Blocked. Destruction starts the child rebuild
+timer; becoming Ready does not auto-spawn it, and explicit refabrication creates a fresh
+life in the slot's default mobile form. Old-life projectiles retain exact ownership and
+continue crediting actual health removed to the stable firing unit.
+
+Anchor is explicit action `transform`/101 from `child-mobile` to `turret`, irreversible for
+that life and illegal on every map-authored Anchor-forbidden tile. A start on tick `T`
+completes after objective at `T + windupTicks - 1`; the source form remains Wait-only and
+objective-weighted through that tick. Nonlethal damage continues the channel. Lethal
+damage emits Destroyed then FormTransitionCancelled; a match ending before a future due
+tick leaves the transition pending. Completion preserves actor/runtime/memory, position,
+facing, cooldown, energy and damage, and applies
+`min(turret.maxHealth, currentHealth + anchor.healthGain)`. The initial turret cannot move,
+rotate, capture or contest, has 360-degree perception, and uses separate action
+`shoot-direction`/102: one absolute eight-way straight non-programmed projectile with
+unchanged body facing and the ordinary global range/resource/collision rules.
+
+One canonical public team observation is frozen for every active life before any runtime
+executes; allies share the visible union with exact provenance but never same-tick
+decisions. Internal replay v2 stores that exact observation, legality masks, runtime reply,
+accepted decision, ordered lifecycle/form events, authoritative post-state and terminal
+stable-unit results. Engine and TypeScript validators reject impossible but
+self-consistent histories. Web and mobile normalize/present v1 and this internal v2
+without changing bridge v1.
+
+This is still an experimental implementation, not a release decision. Official rules
+0.1–0.5, replay v1 and protocol 0.1 remain exact; SDK/Guest protocol vNext, canonical WASM
+life instances, CLI/App/server admission, datasets/corpus/model assets and ranked use are
+later work. [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) remains the shared ML
+stack because its observation/replay seam is now implemented here while its product
+packages are not. No balance value is promoted until Frontline-native all-WASM doctrines,
+causal arms, dynamics analysis and outcome-blind review pass the evaluation policy.
+
+## Deferred decisions
+
+- Numeric limits for submissions (archive size, file counts) — Phase 3.
+- Named RNG streams (`context.Random.Stream("...")`) — not in 0.1.
+- Whether player artifacts embed one bot per artifact (likely) or use the
+  built-in-style multi-bot selector — decide when the project template lands.
+- wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
+  verify when a second platform enters CI.
+
+
+## 126. A second renderer, in WebGL, beside the Canvas2D one
 
 `docs/VIEWER-PLAN.md` argued "Canvas2D throughout — no WebGL, no three.js", on the grounds
 that rasterisation is not the bottleneck and payload is. That reasoning was about *faking*
@@ -1879,7 +1981,7 @@ because every sprite is an SVG with only a `viewBox` — an unreliable WebGL tex
 that silently yields a fully transparent texture, which `alphaTest` then discards, which is
 how the first working build had two active bots and nothing on the floor.
 
-## 123. The 2.5D renderer derives its models from the sprites, and copies the flat renderer's rules
+## 127. The 2.5D renderer derives its models from the sprites, and copies the flat renderer's rules
 
 A chassis is not authored as a model. `chassisModel` fetches the look's SVG, extrudes every
 filled path, and uses **draw order as height** — a plan-view illustration is layered the way
@@ -1920,3 +2022,4 @@ One deliberate divergence: fog darkens the **floor**, not the walls. A horizonta
 can only align at one height, and lifting it above the walls slides it off the floor by most
 of a tile at this camera pitch. Walls are static terrain both players have always known
 about; the information is in where bots and bolts are, and those are hidden by the actors.
+

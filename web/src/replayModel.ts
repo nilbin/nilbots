@@ -1,0 +1,1095 @@
+/**
+ * Version-neutral replay domain consumed by future viewer integrations.
+ *
+ * This model deliberately separates a stable unit from an exact actor life.
+ * UI selection can follow a unit through respawns while projectiles, events,
+ * decisions, and observations retain causal ownership by the exact life.
+ */
+
+export type ReplaySourceVersion = 1 | 2;
+export type ReplayObservationCompleteness = 'exact' | 'legacy-partial';
+export type ReplayStateCompleteness = 'exact' | 'legacy-derived';
+
+export type ReplayDirection = 'north' | 'east' | 'south' | 'west';
+export type ReplayProjectileHeading =
+  | ReplayDirection
+  | 'north-east'
+  | 'south-east'
+  | 'south-west'
+  | 'north-west';
+
+export type ReplayActionResult =
+  | 'none'
+  | 'success'
+  | 'blocked'
+  | 'on-cooldown'
+  | 'faulted';
+
+export type ReplayStableUnitKey =
+  | `duel:${number}:unit:0`
+  | `frontline:${number}:unit:${number}`;
+
+export type ReplayActorLifeKey =
+  | `duel:${number}:unit:0:life:0`
+  | `frontline:${number}:unit:${number}:life:${number}`;
+
+export type ReplayTeamKey = `team:${number}`;
+export type ReplayParticipantKey = `participant:${number}`;
+
+export interface ReplayDuelActorIdentity {
+  kind: 'duel';
+  slot: number;
+  teamId: number;
+  unitId: 0;
+  lifeId: 0;
+  unitKey: ReplayStableUnitKey;
+  actorKey: ReplayActorLifeKey;
+}
+
+export interface ReplayFrontlineActorIdentity {
+  kind: 'frontline';
+  teamId: number;
+  unitId: number;
+  lifeId: number;
+  unitKey: ReplayStableUnitKey;
+  actorKey: ReplayActorLifeKey;
+}
+
+export type ReplayActorIdentity =
+  | ReplayDuelActorIdentity
+  | ReplayFrontlineActorIdentity;
+
+export function replayTeamKey(teamId: number): ReplayTeamKey {
+  return `team:${teamId}`;
+}
+
+export function replayParticipantKey(
+  participantId: number,
+): ReplayParticipantKey {
+  return `participant:${participantId}`;
+}
+
+export function replayDuelIdentity(slot: number): ReplayDuelActorIdentity {
+  return {
+    kind: 'duel',
+    slot,
+    teamId: slot,
+    unitId: 0,
+    lifeId: 0,
+    unitKey: `duel:${slot}:unit:0`,
+    actorKey: `duel:${slot}:unit:0:life:0`,
+  };
+}
+
+export function replayFrontlineIdentity(
+  teamId: number,
+  unitId: number,
+  lifeId: number,
+): ReplayFrontlineActorIdentity {
+  return {
+    kind: 'frontline',
+    teamId,
+    unitId,
+    lifeId,
+    unitKey: `frontline:${teamId}:unit:${unitId}`,
+    actorKey: `frontline:${teamId}:unit:${unitId}:life:${lifeId}`,
+  };
+}
+
+export interface ReplayPosition {
+  x: number;
+  y: number;
+}
+
+export interface ReplayFormTransition {
+  fromFormId: string;
+  toFormId: string;
+  startedAtTick: number;
+  completesAtTick: number;
+}
+
+export type ReplayObjectiveMode =
+  | 'none'
+  | 'zone-ticks'
+  | 'shared-pressure'
+  | 'frontline';
+export type ReplayScoreMetric = 'objective' | 'health' | 'damage-dealt';
+export type ReplayTeamPerception = 'individual' | 'immediate-union';
+export type ReplayActionParameterKind =
+  | 'shot-program'
+  | 'direction'
+  | 'unit-target'
+  | 'form-target'
+  | 'projectile-heading';
+export type ReplayActionKind =
+  | 'wait'
+  | 'movement'
+  | 'rotation'
+  | 'attack'
+  | 'fabrication'
+  | 'transformation'
+  | (string & {});
+export type ReplayTickResolutionPhase =
+  | 'freeze-observations'
+  | 'collect-joint-decisions'
+  | 'validate-actions'
+  | 'rotate'
+  | 'move'
+  | 'advance-existing-projectiles'
+  | 'launch-shots-and-apply-damage'
+  | 'update-cooldowns-and-energy'
+  | 'apply-runtime-faults'
+  | 'update-objective'
+  | 'resolve-match-completion'
+  | 'apply-tick-start-lifecycle'
+  | 'queue-destroyed-lives'
+  | 'queue-fabrications'
+  | 'start-form-transitions'
+  | 'complete-form-transitions';
+
+export interface ReplayContractLimits {
+  maxTicks: number;
+  faultLimit: number;
+  teamCount: number;
+  participantCount: number;
+  unitSlotCount: number;
+  initialUnitsPerTeam: number;
+  maxUnitsPerTeam: number;
+  destructionEndsMatch: boolean;
+  respawnsEnabled: boolean;
+}
+
+export interface ReplayContractObjective {
+  mode: ReplayObjectiveMode;
+  zoneControlEnabled: boolean;
+  zoneDominationTicks: number;
+  zoneExclusiveAccrual: boolean;
+  sharedPressureEnabled: boolean;
+  controlBySoleOccupancy: boolean;
+  controlPressureLimit: number;
+  controlPressureGain: number;
+  controlPressureDecayInterval: number;
+  overtime: {
+    startTick: number;
+    pressureLimit: number;
+    pressureGain: number;
+    stopsDecay: boolean;
+  };
+  maxTickTiebreakers: ReplayScoreMetric[];
+}
+
+export interface ReplayContractFrontlineDefinition {
+  teamCount: number;
+  participantsPerTeam: number;
+  frontlinePositionCount: number;
+  initialUnitsPerTeam: number;
+  maxUnitsPerTeam: number;
+  teamPerception: ReplayTeamPerception;
+  capture: {
+    threshold: number;
+    gainPerSoleTeamTick: number;
+    decayAmount: number;
+    decayIntervalTicks: number;
+    redeployPauseTicks: number;
+    pushesToBreach: number;
+    presence: 'binary-positive-weight-per-team-no-stacking';
+    nonSolePresence: 'decay-existing-claim';
+    counterCapture: 'erode-to-neutral-before-claim';
+  };
+  victory: {
+    initialPosition: 'centre-position-index';
+    teamAdvances: {
+      teamId: number;
+      positionIndexDelta: number;
+    }[];
+    completionPrecedence: 'base-breach-before-max-ticks';
+    timeoutResolution: 'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
+  };
+  lifecycle: {
+    primeRespawnTicks: number;
+    childRebuildTicks: number;
+    fabricationUnlockTicks: number[];
+  };
+  deployment: {
+    primeDefaultFormId: string;
+    childDefaultFormId: string;
+    destructionTransitionClock: 'tick-start-at-destroyed-tick-plus-one-plus-delay';
+    primeReturn: 'automatic-at-authored-prime-spawn';
+    childReturn: 'ready-then-explicit-fabrication';
+    newLife: 'fresh-runtime-form-defaults-home-facing-can-act-on-creation-tick';
+    primeSpawnReservation: 'permanent-against-own-children';
+    protectedPad: 'enemy-ground-entry-blocked-no-damage-immunity-no-projectile-blocking';
+  };
+  fabrication: {
+    enabled: boolean;
+    actionId: string;
+    fabricatorUnitId: number;
+    fabricatorFormId: string;
+    targetPolicy: 'own-ready-child-slot';
+    activationRegion: 'own-protected-spawn-pad';
+    consumesTick: boolean;
+    spawnDelayTicks: number;
+    capacityEvaluation: 'post-movement-during-queue-fabrications';
+    spawnRegion: 'own-protected-spawn-pad-excluding-prime-spawn';
+    spawnSelection: 'first-unoccupied-unreserved-canonical-y-x';
+    spawnFacing: 'own-prime-spawn-facing';
+    unavailableSpawnResult: 'blocked' | 'faulted' | 'rejected';
+    requiresExplicitRefabricationAfterRebuild: boolean;
+  };
+  anchor: {
+    actionId: string;
+    sourceFormId: string;
+    targetFormId: string;
+    windupTicks: number;
+    consumesTick: boolean;
+    completion: 'end-of-started-tick-plus-windup-minus-one-after-objective';
+    pendingActions: 'wait-only';
+    survivingDamage: 'does-not-cancel';
+    death: 'cancels-with-explicit-event';
+    forbiddenTiles: 'all-map-anchor-forbidden-tiles-illegal';
+    pendingForm: 'source-form-until-completion';
+    healthGain: number;
+    healthTransition: 'minimum-target-maximum-and-current-plus-gain';
+    stateContinuity: 'same-life-runtime-memory-position-facing-cooldown-energy-and-damage';
+    terminal: 'preserve-future-pending-without-synthetic-cancellation';
+    irreversibleForLife: boolean;
+  };
+  turretFire: {
+    actionId: string;
+    formId: string;
+    allowedProjectileHeadings: ReplayProjectileHeading[];
+    aim: 'absolute-eight-way-launch-heading';
+    projectile: 'one-straight-non-programmed-projectile';
+    facing: 'body-facing-unchanged';
+    range: 'global-projectile-range';
+    resources: 'standard-energy-cooldown-and-damage';
+    traversal: 'standard-traversal-strict-diagonal-corners';
+  };
+  alliedCombat: {
+    friendlyFireEnabled: boolean;
+    alliedProjectilesBlock: boolean;
+    projectileAttribution: 'exact-firing-life-persists-credits-stable-unit-by-actual-health-removed';
+  };
+}
+
+export interface ReplayContractEnergyRules {
+  enabled: boolean;
+  maxEnergy: number;
+  shotEnergyCost: number;
+  regenerationIntervalTicks: number;
+  regenerationAmount: number;
+}
+
+export interface ReplayContractForm {
+  id: string;
+  maxHealth: number;
+  visionRange: number;
+  shootCooldownTicks: number;
+  omnidirectionalVision: boolean;
+  omnidirectionalShooting: boolean;
+  movementLayer: 'ground';
+  objectiveWeight: number;
+  canMove: boolean;
+  canShoot: boolean;
+  allowsProgrammedShots: boolean;
+  allowedActionIds: string[];
+}
+
+export interface ReplayContractAction {
+  id: string;
+  code: number;
+  kind: ReplayActionKind;
+  parameterKinds: ReplayActionParameterKind[];
+  enabled: boolean;
+}
+
+export interface ReplayContractProjectileRules {
+  mode: 'instant-ray' | 'discrete';
+  damagePerHit: number;
+  maxTravelTiles: number;
+  shootCooldownTicks: number;
+  ticksPerAdvance: number;
+  tilesPerAdvance: number;
+  launchTiles: number;
+  advancesOnLaunchTick: boolean;
+  damageAppliedSimultaneously: boolean;
+}
+
+export interface ReplayContractShotProgramRules {
+  enabled: boolean;
+  headingSectors: number;
+  bendStepOctants: number;
+  minInitialAimOctants: number;
+  maxInitialAimOctants: number;
+  aimOnlyProgram: Omit<ReplayShotProgram, 'initialAimOffset'>;
+  allowedCurvedBendDirections: number[];
+  minBendAfterTiles: number;
+  maxBendAfterTiles: number;
+  minBendEveryTiles: number;
+  maxBendEveryTiles: number;
+  minBendCount: number;
+  maxBendCount: number;
+  launchTiles: number;
+  payloadOptional: boolean;
+  defaultProgram: ReplayShotProgram;
+  invalidPayloadResult: 'blocked' | 'faulted' | 'rejected' | null;
+  unsupportedPayloadResult: 'blocked' | 'faulted' | 'rejected';
+  diagonalCornersMustBeClear: boolean;
+}
+
+export interface ReplayContractVisionRules {
+  range: number;
+  distanceMetric: 'chebyshev';
+  shape: 'omnidirectional' | 'facing-quadrant';
+  omnidirectionalProximityRange: number;
+  lineOfSight: 'corner-strict-supercover';
+  hearingRadius: number;
+  hearingBearingSectors: number;
+  hearingDistanceBandUpperBounds: number[];
+  loudEventTypes: string[];
+}
+
+export interface ReplayContractCollisionRules {
+  unitsBlockWalls: boolean;
+  unitsBlockUnits: boolean;
+  sameDestinationMovesBlockAll: boolean;
+  swapMovesBlocked: boolean;
+  followingVacatedUnitAllowed: boolean;
+  projectilesBlockMovement: boolean;
+  movingOntoProjectileCausesHit: boolean;
+  wallsConsumeProjectiles: boolean;
+  projectilesIgnoreOwner: boolean;
+  projectilesStopOnFirstNonOwnerUnit: boolean;
+  projectilesCollideWithProjectiles: boolean;
+}
+
+export interface ReplayContractTickResolutionRules {
+  observationsUsePreTickState: boolean;
+  decisionsResolveAsJointStep: boolean;
+  phases: ReplayTickResolutionPhase[];
+}
+
+export interface ReplayExactRulesContract {
+  schemaVersion: number;
+  rulesetId: string;
+  rulesFingerprint: string;
+  limits: ReplayContractLimits;
+  objective: ReplayContractObjective;
+  frontlineDefinition: ReplayContractFrontlineDefinition | null;
+  energy: ReplayContractEnergyRules;
+  forms: ReplayContractForm[];
+  actions: ReplayContractAction[];
+  projectiles: ReplayContractProjectileRules;
+  shotPrograms: ReplayContractShotProgramRules;
+  vision: ReplayContractVisionRules;
+  collisions: ReplayContractCollisionRules;
+  tickResolution: ReplayContractTickResolutionRules;
+}
+
+export interface ReplayContractMapSpawn {
+  teamId: number;
+  position: ReplayPosition;
+  facing: ReplayDirection;
+}
+
+export interface ReplayContractMap {
+  schemaVersion: number;
+  mapId: string;
+  mapVersion: number;
+  mapFingerprint: string;
+  formatVersion: number;
+  width: number;
+  height: number;
+  tileRows: string[];
+  spawns: ReplayContractMapSpawn[];
+  objectiveTiles: ReplayPosition[];
+  frontline: ReplayFrontlineMap | null;
+}
+
+export interface ReplayContractTopology {
+  teamCount: number;
+  participantCount: number;
+  unitSlotCount: number;
+  initialLifeCount: number;
+  teams: {
+    teamId: number;
+    teamKey: ReplayTeamKey;
+  }[];
+  participants: {
+    participantId: number;
+    participantKey: ReplayParticipantKey;
+    teamId: number;
+    teamKey: ReplayTeamKey;
+  }[];
+  unitSlots: {
+    teamId: number;
+    teamKey: ReplayTeamKey;
+    unitId: number;
+    unitKey: ReplayStableUnitKey;
+    controllerParticipantId: number;
+    controllerParticipantKey: ReplayParticipantKey;
+  }[];
+  initialLives: {
+    teamId: number;
+    unitId: number;
+    lifeId: number;
+    actorKey: ReplayActorLifeKey;
+    unitKey: ReplayStableUnitKey;
+    formId: string;
+  }[];
+}
+
+export interface ReplayExactMatchContract {
+  kind: 'v2-full';
+  completeness: 'exact';
+  schemaVersion: number;
+  matchContractFingerprint: string;
+  rules: ReplayExactRulesContract;
+  map: ReplayContractMap;
+  topology: ReplayContractTopology;
+}
+
+export interface ReplayLegacyPartialRulesContract {
+  schemaVersion: null;
+  rulesetId: string;
+  rulesFingerprint: null;
+  limits: {
+    maxTicks: number;
+    faultLimit: null;
+    teamCount: number;
+    participantCount: number;
+    unitSlotCount: number;
+    initialUnitsPerTeam: number;
+    maxUnitsPerTeam: number;
+    destructionEndsMatch: null;
+    respawnsEnabled: null;
+  };
+  objective: {
+    mode: Exclude<ReplayObjectiveMode, 'frontline'>;
+    zoneTiles: ReplayPosition[] | null;
+    zoneDominationTicks: null;
+    zoneExclusiveAccrual: null;
+    sharedPressureEnabled: boolean;
+    controlBySoleOccupancy: boolean | null;
+    controlPressureLimit: number | null;
+    controlPressureGain: null;
+    controlPressureDecayInterval: null;
+    overtime: {
+      startTick: number | null;
+      pressureLimit: number | null;
+      pressureGain: number | null;
+      stopsDecay: boolean | null;
+    };
+    maxTickTiebreakers: null;
+  };
+  frontlineDefinition: null;
+  energy: null;
+  forms: null;
+  actions: null;
+  projectiles: null;
+  shotPrograms: {
+    enabled: boolean | null;
+    limits: {
+      maxInitialAimOctants: number;
+      maxBendAfterTiles: number;
+      maxBendEveryTiles: number;
+      maxBendCount: number;
+      maxPathTiles: number;
+      launchTiles: number;
+      tilesPerAdvance: number;
+    } | null;
+  };
+  vision: {
+    range: number;
+    shape: 'omnidirectional' | 'facing-quadrant' | null;
+    distanceMetric: null;
+    omnidirectionalProximityRange: null;
+    lineOfSight: null;
+    hearingRadius: null;
+    hearingBearingSectors: null;
+    hearingDistanceBandUpperBounds: null;
+    loudEventTypes: null;
+  };
+  collisions: null;
+  tickResolution: null;
+  legacyMaxHealth: number | null;
+}
+
+export interface ReplayLegacyPartialMapContract {
+  schemaVersion: null;
+  mapId: string;
+  mapVersion: number;
+  mapFingerprint: null;
+  formatVersion: null;
+  width: number;
+  height: number;
+  tileRows: string[];
+  spawns: ReplayContractMapSpawn[];
+  objectiveTiles: ReplayPosition[] | null;
+  frontline: null;
+}
+
+export interface ReplayLegacyPartialMatchContract {
+  kind: 'legacy-partial';
+  completeness: 'legacy-partial';
+  schemaVersion: null;
+  matchContractFingerprint: null;
+  rules: ReplayLegacyPartialRulesContract;
+  map: ReplayLegacyPartialMapContract;
+  topology: ReplayContractTopology;
+}
+
+export type ReplayMatchContract =
+  | ReplayExactMatchContract
+  | ReplayLegacyPartialMatchContract;
+
+export interface ReplayParticipantController {
+  participantKey: ReplayParticipantKey;
+  participantId: number;
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  name: string;
+  runtimeKind: string;
+  artifactHash: string;
+  accent: string;
+  lookId: string | null;
+  projectileLookId: string | null;
+}
+
+export interface ReplayTeam {
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  participantKeys: ReplayParticipantKey[];
+  unitKeys: ReplayStableUnitKey[];
+}
+
+export interface ReplayStableUnit {
+  unitKey: ReplayStableUnitKey;
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  unitId: number;
+  controllerParticipantKey: ReplayParticipantKey;
+  controllerParticipantId: number;
+  initialActorKey: ReplayActorLifeKey | null;
+  initialLifeId: number | null;
+  initialFormId: string | null;
+}
+
+export interface ReplayForm {
+  formId: string;
+  maxHealth: number;
+  visionRange: number;
+  shootCooldownTicks: number | null;
+  omnidirectionalVision: boolean;
+  omnidirectionalShooting: boolean;
+  movementLayer: string;
+  objectiveWeight: number;
+  canMove: boolean;
+  canShoot: boolean;
+  allowsProgrammedShots: boolean;
+  allowedActionIds: string[] | null;
+  completeness: ReplayStateCompleteness;
+}
+
+export interface ReplayMapPresentation {
+  themeId: string | null;
+  boundaryWall: string | null;
+  interiorWall: string | null;
+  wallGroups:
+    | {
+        family: string;
+        tiles: ReplayPosition[];
+      }[]
+    | null;
+}
+
+export interface ReplayFrontlineMap {
+  positions: {
+    positionIndex: number;
+    tiles: ReplayPosition[];
+  }[];
+  teamHomes: {
+    teamId: number;
+    primeSpawn: ReplayPosition & { facing: ReplayDirection };
+    protectedSpawnPad: ReplayPosition[];
+  }[];
+  anchorForbiddenTiles: ReplayPosition[];
+}
+
+export interface ReplayMap {
+  mapId: string;
+  mapVersion: number;
+  formatVersion: number;
+  width: number;
+  height: number;
+  tileRows: string[];
+  objectiveTiles: ReplayPosition[];
+  frontline: ReplayFrontlineMap | null;
+  presentation: ReplayMapPresentation | null;
+}
+
+export type ReplayUnitLifecycleStatus =
+  | 'active'
+  | 'respawning'
+  | 'locked'
+  | 'ready'
+  | 'fabrication-queued'
+  | 'rebuilding'
+  | 'destroyed'
+  | 'disqualified'
+  | (string & {});
+
+export type ReplayActorSpawnReason =
+  | 'initial'
+  | 'respawn'
+  | 'rebuild'
+  | 'fabrication'
+  | 'legacy';
+
+export interface ReplayActorState {
+  identity: ReplayActorIdentity;
+  actorKey: ReplayActorLifeKey;
+  unitKey: ReplayStableUnitKey;
+  formId: string;
+  position: ReplayPosition;
+  facing: ReplayDirection;
+  health: number;
+  cooldown: number;
+  energy: number | null;
+  /** Exact canonical decimal total, or null when replay-v1 did not expose it. */
+  damageDealt: string | null;
+  previousActionResult: ReplayActionResult;
+  spawnedAtTick: number | null;
+  pendingFormTransition: ReplayFormTransition | null;
+  status: ReplayUnitLifecycleStatus;
+}
+
+export interface ReplayUnitState {
+  unitKey: ReplayStableUnitKey;
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  unitId: number;
+  defaultFormId: string;
+  /** Effective form: the active life's current form, or the slot default. */
+  formId: string;
+  lifecycleStatus: ReplayUnitLifecycleStatus;
+  respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+  reservedSpawn: ReplayPosition | null;
+  pendingSpawnReason: ReplayActorSpawnReason | null;
+  hasSpawned: boolean;
+  nextLifeId: number | null;
+  /** Exact canonical decimal total, or null when replay-v1 did not expose it. */
+  damageDealt: string | null;
+  activeActorKey: ReplayActorLifeKey | null;
+}
+
+export interface ReplayTeamState {
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  /** Exact canonical decimal total, or null when replay-v1 did not expose it. */
+  damageDealt: string | null;
+  unitKeys: ReplayStableUnitKey[];
+}
+
+export interface ReplayProjectileState {
+  projectileId: string;
+  ownerActor: ReplayActorIdentity;
+  ownerActorKey: ReplayActorLifeKey;
+  position: ReplayPosition;
+  launchDirection: ReplayDirection;
+  heading: ReplayProjectileHeading | null;
+  shotProgram: ReplayShotProgram | null;
+  programmedPath: ReplayPosition[] | null;
+  ticksUntilAdvance: number | null;
+  remainingTiles: number | null;
+  tilesPerAdvance: number | null;
+  nextProgrammedPathIndex: number | null;
+  tilesTraveled: number | null;
+  phase: number | null;
+}
+
+export interface ReplayLegacyObjectiveState {
+  kind: 'legacy';
+  mode: 'none' | 'zone-ticks' | 'shared-pressure';
+  controlPressure: number | null;
+  zoneTicks: {
+    unitKey: ReplayStableUnitKey;
+    ticks: number;
+  }[];
+  completeness: 'legacy-derived';
+}
+
+export interface ReplayFrontlineObjectiveState {
+  kind: 'frontline';
+  nextTick: number;
+  activePositionIndex: number;
+  claimingTeamId: number | null;
+  captureProgress: number;
+  decayTicksElapsed: number;
+  controlResumesAtTick: number;
+  winnerTeamId: number | null;
+  completeness: 'exact';
+}
+
+export type ReplayObjectiveState =
+  | ReplayLegacyObjectiveState
+  | ReplayFrontlineObjectiveState;
+
+export interface ReplayWorldSnapshot {
+  completeness: ReplayStateCompleteness;
+  teams: ReplayTeamState[];
+  units: ReplayUnitState[];
+  actors: ReplayActorState[];
+  projectiles: ReplayProjectileState[] | null;
+  objective: ReplayObjectiveState;
+}
+
+export interface ReplayShotProgram {
+  initialAimOffset: number;
+  bendDirection: number;
+  bendAfterTiles: number;
+  bendEveryTiles: number;
+  bendCount: number;
+}
+
+export interface ReplayObservedUnit {
+  unitKey: ReplayStableUnitKey;
+  teamId: number;
+  unitId: number;
+  formId: string;
+  lifecycleStatus: ReplayUnitLifecycleStatus;
+  activeActor: ReplayActorIdentity | null;
+  respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+}
+
+export interface ReplayOpaqueEnemyActorRef {
+  kind: 'opaque-enemy';
+  teamId: number;
+  unitId: number;
+  lifeHandle: string;
+}
+
+export interface ReplayExactObservedActorRef {
+  kind: 'exact';
+  identity: ReplayActorIdentity;
+}
+
+export type ReplayObservedActorRef =
+  | ReplayExactObservedActorRef
+  | ReplayOpaqueEnemyActorRef;
+
+export interface ReplayObservedActor {
+  actor: ReplayObservedActorRef;
+  formId: string;
+  position: ReplayPosition;
+  facing: ReplayDirection;
+  health: number;
+  cooldown: number | null;
+  energy: number | null;
+  previousActionResult: ReplayActionResult | null;
+  pendingFormTransition: ReplayFormTransition | null;
+  observedBy: ReplayActorLifeKey[];
+}
+
+export interface ReplayObservedTile {
+  position: ReplayPosition;
+  isWall: boolean | null;
+  observedBy: ReplayActorLifeKey[];
+}
+
+export interface ReplayObservedProjectile {
+  /** Opaque match-local observation handle; null only for replay-v1. */
+  projectileHandle: string | null;
+  ownerTeamId: number;
+  alliedOwnerActor: ReplayActorIdentity | null;
+  visibleEnemyOwner: ReplayOpaqueEnemyActorRef | null;
+  position: ReplayPosition;
+  heading: ReplayProjectileHeading;
+  tilesPerAdvance: number;
+  ticksUntilAdvance: number;
+  remainingTiles: number;
+  observedBy: ReplayActorLifeKey[];
+}
+
+export interface ReplayObservedEvent {
+  /** Opaque observation handle; authoritative IDs live in the alias sidecar. */
+  eventHandle: string | null;
+  sourceTick: number;
+  type: string;
+  teamId: number | null;
+  alliedActor: ReplayActorIdentity | null;
+  enemyActor: ReplayOpaqueEnemyActorRef | null;
+  projectileHandle: string | null;
+  position: ReplayPosition | null;
+  facing: ReplayDirection | null;
+  projectileHeading: ReplayProjectileHeading | null;
+  fromFormId: string | null;
+  toFormId: string | null;
+  formTransitionStartedAtTick: number | null;
+  formTransitionCompletesAtTick: number | null;
+  actionId: string | null;
+  actionCode: number | null;
+  formTargetId: string | null;
+  actionResult: ReplayActionResult | null;
+  amount: number | null;
+  newHealth: number | null;
+  observedBy: ReplayActorLifeKey[];
+}
+
+export interface ReplayObservedSound {
+  eventHandle: string | null;
+  sourceTick: number | null;
+  observerActor: ReplayActorIdentity;
+  type: string;
+  bearing: number;
+  distance: number;
+}
+
+export interface ReplayObservedActionAvailability {
+  actionId: string;
+  actionCode: number;
+  parameterKinds: string[];
+  enabled: boolean;
+  available: boolean;
+  shotProgramAvailable: boolean | null;
+  allowedDirections: ReplayDirection[] | null;
+  allowedProjectileHeadings: ReplayProjectileHeading[] | null;
+  allowedUnitKeys: ReplayStableUnitKey[] | null;
+  allowedFormTargets: string[] | null;
+}
+
+export interface ReplayObservedFrontlineObjective {
+  activePositionIndex: number;
+  claimingTeamId: number | null;
+  captureProgress: number;
+  decayTicksElapsed: number;
+  controlResumesAtTick: number;
+}
+
+export interface ReplayActorObservation {
+  completeness: ReplayObservationCompleteness;
+  schemaVersion: number | null;
+  tick: number;
+  matchContractFingerprint: string | null;
+  teamPerception: string | null;
+  self: ReplayObservedActor | null;
+  teamUnits: ReplayObservedUnit[];
+  allies: ReplayObservedActor[];
+  enemies: ReplayObservedActor[];
+  visibleTiles: ReplayObservedTile[];
+  visibleProjectiles: ReplayObservedProjectile[] | null;
+  visibleEvents: ReplayObservedEvent[];
+  heardSounds: ReplayObservedSound[] | null;
+  frontlineObjective: ReplayObservedFrontlineObjective | null;
+  actions: ReplayObservedActionAvailability[] | null;
+}
+
+export interface ReplayActionPayload {
+  shotProgram: ReplayShotProgram | null;
+  direction: ReplayDirection | null;
+  launchHeading: ReplayProjectileHeading | null;
+  unitKey: ReplayStableUnitKey | null;
+  formTargetId: string | null;
+}
+
+export interface ReplayActorDecision {
+  actionId: string | null;
+  actionCode: number | null;
+  payload: ReplayActionPayload | null;
+  debugMessage: string | null;
+  faulted: boolean;
+  faultMessage: string | null;
+}
+
+export interface ReplayActionResolution {
+  chosenActionId: string;
+  chosenActionCode: number | null;
+  chosenPayload: ReplayActionPayload | null;
+  validatedActionId: string;
+  validatedActionCode: number | null;
+  validatedPayload: ReplayActionPayload | null;
+  result: ReplayActionResult;
+}
+
+export interface ReplayActorLifeStart {
+  completeness: ReplayObservationCompleteness;
+  schemaVersion: number | null;
+  runtimeContractVersion: number | null;
+  actor: ReplayActorIdentity;
+  participantId: number;
+  actorRandomSeed: string | null;
+  spawnReason: ReplayActorSpawnReason;
+  matchContractFingerprint: string | null;
+}
+
+export interface ReplayObservationAliases {
+  completeness: ReplayObservationCompleteness;
+  enemyLives: {
+    lifeHandle: string;
+    actor: ReplayActorIdentity;
+  }[];
+  projectiles: {
+    projectileHandle: string;
+    projectileId: string;
+  }[];
+  events: {
+    eventHandle: string;
+    eventId: string;
+  }[];
+}
+
+export interface ReplayActorTurn {
+  actor: ReplayActorIdentity;
+  actorKey: ReplayActorLifeKey;
+  lifeStart: ReplayActorLifeStart | null;
+  observation: ReplayActorObservation;
+  aliases: ReplayObservationAliases;
+  runtimeReply: ReplayActorDecision;
+  acceptedDecision: ReplayActorDecision;
+  actionResolution: ReplayActionResolution;
+}
+
+export interface ReplayCausalEvent {
+  eventId: string;
+  tick: number;
+  ordinal: number;
+  type: string;
+  teamId: number | null;
+  unitId: number | null;
+  sourceActor: ReplayActorIdentity | null;
+  targetActor: ReplayActorIdentity | null;
+  projectileId: string | null;
+  from: ReplayPosition | null;
+  to: ReplayPosition | null;
+  fromFacing: ReplayDirection | null;
+  toFacing: ReplayDirection | null;
+  projectileHeading: ReplayProjectileHeading | null;
+  fromFormId: string | null;
+  toFormId: string | null;
+  formTransitionStartedAtTick: number | null;
+  formTransitionCompletesAtTick: number | null;
+  actionPayload: ReplayActionPayload | null;
+  actionId: string | null;
+  actionCode: number | null;
+  actionResult: ReplayActionResult | null;
+  amount: number | null;
+  newHealth: number | null;
+  lifecycleStatus: ReplayUnitLifecycleStatus | null;
+  spawnReason: ReplayActorSpawnReason | null;
+  respawnAtTick: number | null;
+  unlockAtTick: number | null;
+  rebuildReadyAtTick: number | null;
+  fabricationAtTick: number | null;
+  fromPositionIndex: number | null;
+  toPositionIndex: number | null;
+  claimingTeamId: number | null;
+  captureProgress: number | null;
+  controlResumesAtTick: number | null;
+  completeness: ReplayObservationCompleteness;
+}
+
+export interface ReplayProjectileTraversal {
+  projectileId: string;
+  ownerActor: ReplayActorIdentity;
+  ownerActorKey: ReplayActorLifeKey;
+  launchDirection: ReplayDirection;
+  from: ReplayPosition;
+  path: ReplayPosition[];
+  heading: ReplayProjectileHeading | null;
+  shotProgram: ReplayShotProgram | null;
+  programmedPath: ReplayPosition[] | null;
+}
+
+export interface ReplayTick {
+  tick: number;
+  before: ReplayWorldSnapshot;
+  activeActorKeys: ReplayActorLifeKey[];
+  lifecycleEvents: ReplayCausalEvent[];
+  actorTurns: ReplayActorTurn[];
+  events: ReplayCausalEvent[];
+  projectileTraversals: ReplayProjectileTraversal[];
+  after: ReplayWorldSnapshot;
+}
+
+export interface ReplayTeamResult {
+  teamKey: ReplayTeamKey;
+  teamId: number;
+  outcome: 'win' | 'loss' | 'draw';
+  activeHealth: number;
+  damageDealt: string;
+  units: ReplayUnitResult[];
+  faults: number | null;
+  zoneTicks: number | null;
+}
+
+export interface ReplayUnitResult {
+  unitKey: ReplayStableUnitKey;
+  teamId: number;
+  unitId: number;
+  defaultFormId: string;
+  formId: string;
+  lifecycleStatus: ReplayUnitLifecycleStatus;
+  activeActor: ReplayActorIdentity | null;
+  activeActorKey: ReplayActorLifeKey | null;
+  health: number;
+  damageDealt: string;
+  pendingFormTransition: ReplayFormTransition | null;
+}
+
+export interface ReplayTerminalResult {
+  winnerTeamId: number | null;
+  reason: string;
+  endTick: number;
+  territorialScore: string | null;
+  objective: ReplayObjectiveState;
+  teams: ReplayTeamResult[];
+}
+
+export interface ReplayHeaderVersions {
+  engineVersion: string;
+  gameRulesVersion: string;
+  runtimeProtocolVersion: string | null;
+  runtimeConfigurationVersion: string | null;
+  actorRuntime: {
+    family: string;
+    version: number;
+    matchStartSchemaVersion: number;
+    observationSchemaVersion: number;
+    decisionSchemaVersion: number;
+  } | null;
+}
+
+export interface ReplayModel {
+  sourceVersion: ReplaySourceVersion;
+  versions: ReplayHeaderVersions;
+  /**
+   * Decimal seed text. Exact for replay-v2 and for replay-v1 decoded from raw
+   * JSON through decodeReplayJson. Object-only replay-v1 decoding can only
+   * preserve the already-rounded JavaScript number; consult seedExact.
+   */
+  seed: string;
+  seedExact: boolean;
+  seedEncoding: 'legacy-json-number' | 'decimal-string';
+  partial: boolean;
+  replayHash: string | null;
+  matchContractFingerprint: string | null;
+  contract: ReplayMatchContract;
+  map: ReplayMap;
+  forms: ReplayForm[];
+  participants: ReplayParticipantController[];
+  teams: ReplayTeam[];
+  units: ReplayStableUnit[];
+  /**
+   * Null when a partial replay has no authoritative world snapshot yet.
+   * Topology, map, forms, and participants remain available.
+   */
+  initialWorld: ReplayWorldSnapshot | null;
+  ticks: ReplayTick[];
+  result: ReplayTerminalResult | null;
+}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ReplayDocument } from '../types';
+import type { ReplayModel } from '../replayModel';
 import { arenaTheme, type ArenaTheme } from '../render/arenaThemes';
 import { WallLayout } from '../render/wallTopology';
 import { wallShapes } from './wallSolids';
@@ -51,9 +51,9 @@ export interface ArenaScene {
  * Static for the life of a replay — the map does not change — so this runs once and the
  * per-frame work is only moving bots and projectiles.
  */
-export function buildArena(replay: ReplayDocument): ArenaScene {
-  const theme = arenaTheme(replay.header.themeId);
-  const { mapWidth, mapHeight } = replay.header;
+export function buildArena(replay: ReplayModel): ArenaScene {
+  const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
+  const { width: mapWidth, height: mapHeight } = replay.map;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(theme.palette.canvas);
@@ -174,14 +174,14 @@ function floor(
  * baking the UVs into one buffer costs a loop and saves a custom material.
  */
 function walls(
-  replay: ReplayDocument,
+  replay: ReplayModel,
   theme: ArenaTheme,
   disposables: { dispose: () => void }[],
 ): THREE.Mesh[] {
   const layout = new WallLayout(
     replay,
-    validFamily(replay.header.presentation?.boundaryWall, theme, theme.walls.defaults.boundary),
-    validFamily(replay.header.presentation?.interiorWall, theme, theme.walls.defaults.interior),
+    validFamily(replay.map.presentation?.boundaryWall ?? undefined, theme, theme.walls.defaults.boundary),
+    validFamily(replay.map.presentation?.interiorWall ?? undefined, theme, theme.walls.defaults.interior),
   );
 
   const byFamily = new Map<string, { x: number; y: number }[]>();
@@ -226,7 +226,7 @@ function walls(
     // Stand it up: the shape's Y became −Z when it was traced, so this lands each wall on
     // the tile it came from, with the extrusion axis vertical and the top at WALL_HEIGHT.
     geometry.rotateX(-Math.PI / 2);
-    projectWorldUvs(geometry, replay.header.mapWidth, replay.header.mapHeight);
+    projectWorldUvs(geometry, replay.map.width, replay.map.height);
 
     const texture = sprite(family?.materialTexture ?? null, THREE.RepeatWrapping);
     // Albedo on every face, including the top. The topology atlas is *not* a standalone

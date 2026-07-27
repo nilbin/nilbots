@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import type { ReplayDocument } from '../types';
+import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
 import { buildArena, CAMERA_PITCH } from './arenaScene';
 import { buildActors } from './arenaActors';
 import { buildOverlays } from './arenaOverlays';
@@ -20,22 +20,22 @@ import { buildOverlays } from './arenaOverlays';
 export default function ArenaCanvas3D({
   replay,
   time,
-  selectedSlot,
+  selectedUnitKey,
   showVisibility,
-  onSelectSlot,
+  onSelectUnit,
 }: {
-  replay: ReplayDocument;
+  replay: ReplayModel;
   time: number;
-  selectedSlot: number | null;
+  selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
-  onSelectSlot: (slot: number | null) => void;
+  onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // All three go through refs for the same reason `time` does: they change while a replay
   // is open, and putting them in the effect's dependencies would tear down the renderer and
   // rebuild the entire scene every time someone clicked a bot card.
-  const frameState = useRef({ time, selectedSlot, showVisibility, onSelectSlot });
-  frameState.current = { time, selectedSlot, showVisibility, onSelectSlot };
+  const frameState = useRef({ time, selectedUnitKey, showVisibility, onSelectUnit });
+  frameState.current = { time, selectedUnitKey, showVisibility, onSelectUnit };
 
   useEffect(() => {
     const container = host.current;
@@ -65,7 +65,7 @@ export default function ArenaCanvas3D({
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
 
-    const { mapWidth, mapHeight } = replay.header;
+    const { width: mapWidth, height: mapHeight } = replay.map;
     const centre = new THREE.Vector3(mapWidth / 2, 0, mapHeight / 2);
     // Where the camera sits with no shake applied. Kept so a knock is an offset from a
     // fixed point; nudging the live position instead lets rounding walk the camera away.
@@ -133,7 +133,7 @@ export default function ArenaCanvas3D({
         arena.camera,
       );
       const hit = actors.pick(raycaster);
-      const { selectedSlot: followed, onSelectSlot: select } = frameState.current;
+      const { selectedUnitKey: followed, onSelectUnit: select } = frameState.current;
       select(hit === null || hit === followed ? null : hit);
     };
     renderer.domElement.addEventListener('pointerdown', onDown);
@@ -141,7 +141,7 @@ export default function ArenaCanvas3D({
 
     let animation = 0;
     const draw = () => {
-      const { time: now, selectedSlot: followed, showVisibility: fov } = frameState.current;
+      const { time: now, selectedUnitKey: followed, showVisibility: fov } = frameState.current;
       actors.update(now, followed, fov);
       overlays.update(now, followed, fov);
       // A knock on impact, and a harder one on a kill — nothing else shakes, because a

@@ -9,6 +9,24 @@ public static class ProgrammedProjectilePath
         Position origin,
         Direction facing,
         ShotProgram program,
+        GameRules rules) =>
+        Trace(
+            map,
+            origin,
+            facing.ToProjectileHeading(),
+            program,
+            rules);
+
+    /// <summary>
+    /// Traces from an explicit eight-way launch heading. This is the
+    /// authoritative path seam for forms that may aim independently of their
+    /// cardinal body facing.
+    /// </summary>
+    public static IReadOnlyList<Position> Trace(
+        ArenaMap map,
+        Position origin,
+        ProjectileHeading launchHeading,
+        ShotProgram program,
         GameRules rules)
     {
         if (!rules.IsValidShotProgram(program))
@@ -16,7 +34,7 @@ public static class ProgrammedProjectilePath
 
         var path = new List<Position>();
         var position = origin;
-        var heading = facing.ToProjectileHeading().Turned(program.InitialAimOffset);
+        var heading = launchHeading.Turned(program.InitialAimOffset);
         int turns = 0;
         int range = Math.Max(0, rules.ShotRange);
         for (int tilesMoved = 0; tilesMoved < range; tilesMoved++)

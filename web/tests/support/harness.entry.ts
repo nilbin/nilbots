@@ -6,4 +6,6 @@
  * resolves the globs, producing a bundle a test can import directly.
  */
 export { drawArena } from '../../src/render/drawArena';
+export { posesAt } from '../../src/render/interpolate';
+export { createPresenter } from '../../src/replayPresentation';
 export { buildActors } from '../../src/render3d/arenaActors';

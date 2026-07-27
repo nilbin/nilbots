@@ -10,6 +10,12 @@ public sealed record GameRules
 
     public int MaxTicks { get; init; } = 500;
 
+    /// <summary>
+    /// Optional experimental Frontline configuration. Null keeps the legacy
+    /// duel objective and lifecycle; every shipped 0.1-0.5 ruleset leaves it null.
+    /// </summary>
+    public FrontlineRules? Frontline { get; init; }
+
     public int MaxHealth { get; init; } = 3;
 
     /// <summary>Vision range measured in Chebyshev distance (see docs/DECISIONS.md).</summary>

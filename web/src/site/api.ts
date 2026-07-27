@@ -1,5 +1,5 @@
-import type { ReplayDocument } from '../types';
 import type { components } from '../api/schema';
+import { loadReplayJson, type LoadedReplay } from '../replayIngress';
 
 /**
  * Every response type here is an alias onto the server's generated OpenAPI schema
@@ -19,6 +19,21 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const response = await responseFor(method, url, body);
+  if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
+}
+
+async function requestText(method: string, url: string): Promise<string> {
+  const response = await responseFor(method, url);
+  return response.text();
+}
+
+async function responseFor(
+  method: string,
+  url: string,
+  body?: unknown,
+): Promise<Response> {
   const response = await fetch(url, {
     method,
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
@@ -35,8 +50,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     }
     throw new ApiError(response.status, message);
   }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  return response;
 }
 
 /**
@@ -45,6 +59,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
  */
 export const api = {
   get: <T>(url: string) => request<T>('GET', url),
+  getText: (url: string) => requestText('GET', url),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, body),
   put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body),
 };
@@ -148,7 +163,10 @@ export const endpoints = {
   matches: (query: string) => api.get<MatchSummary[]>(query),
   match: (matchId: string) => api.get<MatchDetail>(`/api/matches/${matchId}`),
   matchLive: (matchId: string) => api.get<MatchLive>(`/api/matches/${matchId}/live`),
-  matchReplay: (matchId: string) => api.get<ReplayDocument>(`/api/matches/${matchId}/replay`),
+  matchReplay: async (matchId: string): Promise<LoadedReplay> =>
+    loadReplayJson(
+      await api.getText(`/api/matches/${matchId}/replay`),
+    ),
   matchSet: (setId: string) => api.get<MatchSetDetail>(`/api/matchsets/${setId}`),
   myBots: () => api.get<MyBot[]>('/api/bots/mine'),
   cosmetics: () => api.get<CosmeticCatalog>('/api/cosmetics'),

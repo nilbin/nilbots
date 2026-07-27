@@ -1,5 +1,6 @@
 // TypeScript mirror of the canonical replay document (BotArena.Engine/Replay.cs).
 // The C# canonical serializer is the source of truth; keep this file in sync.
+import type { ReplayStableUnitKey } from './replayModel';
 
 export type Direction = 'North' | 'East' | 'South' | 'West';
 export type ProjectileHeading =
@@ -251,7 +252,11 @@ export interface ReplayDocument {
 
 declare global {
   interface Window {
-    __BOTARENA_REPLAY__?: ReplayDocument;
+    /**
+     * CLI builds historically inject the parsed replay object. A string is also
+     * accepted so future injectors can retain replay-v1 integer lexemes.
+     */
+    __BOTARENA_REPLAY__?: unknown;
     /**
      * Load a replay into an already-running viewer, by URL or inline document.
      *
@@ -262,10 +267,11 @@ declare global {
      * not per replay.
      */
     __BOTARENA_LOAD__?: (
-      source: ({ url: string } | { replay: ReplayDocument }) & {
+      source:
+        | (({ url: string } | { replay: unknown } | { json: string }) & {
         /** Follow a broadcast instead of playing: the server's clock drives the tick. */
-        live?: { tick: number; ticksPerSecond: number };
-      },
+            live?: { tick: number; ticksPerSecond: number };
+          }),
     ) => void;
     /**
      * Playback commands for an embedding host, present only while a hosted replay is
@@ -280,7 +286,10 @@ declare global {
       step: (delta: number) => void;
       seek: (tick: number) => void;
       setSpeed: (speed: number) => void;
-      selectSlot: (slot: number | null) => void;
+      /** Bridge 1 only. */
+      selectSlot?: (slot: number | null) => void;
+      /** Bridge 2 only. */
+      selectUnit?: (unitKey: ReplayStableUnitKey | null) => void;
       setVisibility: (visible: boolean) => void;
     };
     /** Injected by react-native-webview when the page is embedded in the mobile app. */

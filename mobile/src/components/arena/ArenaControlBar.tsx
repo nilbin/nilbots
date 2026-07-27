@@ -1,34 +1,90 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import type { ArenaControl } from '@/components/arena/protocol';
+import type { ArenaObjective } from '@/components/arena/protocol';
 import { Arena, Mono, Radius, Space } from '@/theme/arena';
 
 /**
- * Zone-control pressure: a centred bar leaning toward whichever bot is gaining.
+ * The match objective, already reduced to presentation data by the WebView.
  *
- * Every number and the phase wording arrive already derived from the replay — which
- * limit applies in overtime, whether a hold counts, why pressure is decaying. None of
- * that is recomputed here; this draws what it is given.
+ * Legacy pressure uses a centred signed marker. Frontline uses ordinary
+ * zero-to-threshold progress and also exposes its current authored position.
+ * No capture or winner rule is implemented here; this draws the values and
+ * phase wording sent over bridge v2.
  */
-export function ArenaControlBar({ control }: { control: ArenaControl }) {
+export function ArenaControlBar({ objective }: { objective: ArenaObjective }) {
+  if (objective.kind === 'frontline') {
+    const offset = Math.max(
+      0,
+      Math.min(
+        100,
+        (100 * objective.captureProgress) /
+          Math.max(1, objective.captureThreshold),
+      ),
+    );
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.frontlineHeader}>
+          <Text style={styles.frontlineTitle}>
+            FRONTLINE {objective.activePositionIndex + 1}/{objective.positionCount}
+          </Text>
+          <Text style={styles.reading}>
+            {objective.claimingTeamId === null
+              ? 'NEUTRAL'
+              : `TEAM ${objective.claimingTeamId}`}
+            {' · '}
+            {objective.captureProgress} / {objective.captureThreshold}
+          </Text>
+        </View>
+
+        <View style={styles.positions}>
+          {Array.from(
+            { length: objective.positionCount },
+            (_, positionIndex) => (
+              <View
+                key={positionIndex}
+                style={[
+                  styles.position,
+                  positionIndex === objective.activePositionIndex &&
+                    styles.positionActive,
+                ]}
+              />
+            ),
+          )}
+        </View>
+
+        <View style={styles.track}>
+          <View style={[styles.marker, { left: `${offset}%` }]} />
+        </View>
+
+        <Text style={styles.phase} numberOfLines={2}>
+          {objective.phase}
+        </Text>
+      </View>
+    );
+  }
+
   const offset = Math.max(
     0,
-    Math.min(100, 50 + (50 * control.pressure) / Math.max(1, control.limit)),
+    Math.min(
+      100,
+      50 + (50 * objective.pressure) / Math.max(1, objective.limit),
+    ),
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.labels}>
         <Text style={styles.name} numberOfLines={1}>
-          {control.names[0]}
+          {objective.names[0]}
         </Text>
         <Text style={styles.reading}>
-          {control.overtime ? 'OVERTIME ' : ''}
-          {control.pressure > 0 ? '+' : ''}
-          {control.pressure} / ±{control.limit}
+          {objective.overtime ? 'OVERTIME ' : ''}
+          {objective.pressure > 0 ? '+' : ''}
+          {objective.pressure} / ±{objective.limit}
         </Text>
         <Text style={[styles.name, styles.nameRight]} numberOfLines={1}>
-          {control.names[1]}
+          {objective.names[1]}
         </Text>
       </View>
 
@@ -37,9 +93,9 @@ export function ArenaControlBar({ control }: { control: ArenaControl }) {
         <View style={[styles.marker, { left: `${offset}%` }]} />
       </View>
 
-      {control.phase ? (
+      {objective.phase ? (
         <Text style={styles.phase} numberOfLines={1}>
-          {control.phase}
+          {objective.phase}
         </Text>
       ) : null}
     </View>
@@ -55,6 +111,30 @@ const styles = StyleSheet.create({
     padding: Space.md,
     gap: Space.sm,
   },
+  frontlineHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Space.sm,
+  },
+  frontlineTitle: {
+    ...Mono,
+    color: Arena.zone,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  positions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+  },
+  position: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Arena.edge,
+  },
+  positionActive: { backgroundColor: Arena.zone },
   labels: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
   name: { ...Mono, color: Arena.dim, fontSize: 10, flex: 1 },
   nameRight: { textAlign: 'right' },

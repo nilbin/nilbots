@@ -7,7 +7,12 @@ import { createCanvas } from '@napi-rs/canvas';
 // Built by `npm run harness` through Vite's SSR pipeline: the renderer uses
 // import.meta.glob, which only exists inside Vite, so bare Node cannot import it directly.
 import { drawArena } from './.harness/harness.entry.js';
-import type { ReplayDocument } from '../src/types.ts';
+import { loadReplayJson } from '../src/replayIngress.ts';
+import { replayDuelIdentity } from '../src/replayModel.ts';
+import type {
+  ReplayModel,
+  ReplayStableUnitKey,
+} from '../src/replayModel.ts';
 
 /**
  * Pixel-level regression cover for the renderer.
@@ -29,35 +34,53 @@ import type { ReplayDocument } from '../src/types.ts';
  */
 
 const here = import.meta.dirname;
-const replay = JSON.parse(
+const replay = loadReplayJson(
   readFileSync(join(here, 'fixtures', 'golden-replay.json'), 'utf8'),
-) as ReplayDocument;
+).replay;
 const goldenPath = join(here, 'fixtures', 'golden-frames.json');
 
 /** Opening, mid-match, and the final tick — spawn layout, combat, and the end state. */
 const FRAMES = [
-  { name: 'tick 0', time: 0, selectedSlot: null, showVisibility: false },
-  { name: 'tick 40', time: 40, selectedSlot: null, showVisibility: false },
+  { name: 'tick 0', time: 0, selectedUnitKey: null, showVisibility: false },
+  { name: 'tick 40', time: 40, selectedUnitKey: null, showVisibility: false },
   // Ticks 95 and 96 are the only ones carrying light-emitting events in this replay —
   // 95 has a shot and an impact, 96 adds the destruction. Without both, the light pass
   // would be covered by a single frame.
-  { name: 'tick 95', time: 95, selectedSlot: null, showVisibility: false },
-  { name: 'tick 96', time: 96, selectedSlot: null, showVisibility: false },
+  { name: 'tick 95', time: 95, selectedUnitKey: null, showVisibility: false },
+  { name: 'tick 96', time: 96, selectedUnitKey: null, showVisibility: false },
   // Fog is compositing rather than plain drawing, so it gets its own frames.
-  { name: 'fog slot 0 @ 20', time: 20, selectedSlot: 0, showVisibility: true },
-  { name: 'fog slot 1 @ 60', time: 60, selectedSlot: 1, showVisibility: true },
+  {
+    name: 'fog slot 0 @ 20',
+    time: 20,
+    selectedUnitKey: replayDuelIdentity(0).unitKey,
+    showVisibility: true,
+  },
+  {
+    name: 'fog slot 1 @ 60',
+    time: 60,
+    selectedUnitKey: replayDuelIdentity(1).unitKey,
+    showVisibility: true,
+  },
 ];
 
 const WIDTH = 640;
 const HEIGHT = 480;
 
-function frameHash(frame: (typeof FRAMES)[number]): string {
+function frameHash(
+  frame: (typeof FRAMES)[number],
+  source: ReplayModel = replay,
+): string {
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext('2d');
   drawArena(
     ctx as unknown as CanvasRenderingContext2D,
-    replay,
-    { time: frame.time, selectedSlot: frame.selectedSlot, showVisibility: frame.showVisibility },
+    source,
+    {
+      time: frame.time,
+      selectedUnitKey:
+        frame.selectedUnitKey as ReplayStableUnitKey | null,
+      showVisibility: frame.showVisibility,
+    },
     WIDTH,
     HEIGHT,
   );
@@ -96,5 +119,18 @@ test('every frame renders something', () => {
     .slice(0, 16);
   for (const frame of FRAMES) {
     assert.notEqual(actual[frame.name], blank, `Frame "${frame.name}" is empty.`);
+  }
+});
+
+test('participant collection order does not change rendered identity', () => {
+  const reordered = structuredClone(replay);
+  reordered.participants.reverse();
+
+  for (const frame of FRAMES) {
+    assert.equal(
+      frameHash(frame, reordered),
+      actual[frame.name],
+      `Frame "${frame.name}" tied participant identity to array order.`,
+    );
   }
 });

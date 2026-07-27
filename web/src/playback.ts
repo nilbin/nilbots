@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ReplayDocument } from './types';
+import type { ReplayModel } from './replayModel';
 
 export interface PlaybackState {
   /** Continuous playhead: floor(t) is the tick being animated, frac(t) its progress. */
@@ -25,7 +25,7 @@ const BASE_TICKS_PER_SECOND = 5;
  * @param ready Hold at tick 0 until the arena's images have decoded. Without this the
  * clock runs behind a loading screen, and the match is already underway when it lifts.
  */
-export function usePlayback(replay: ReplayDocument, ready = true): PlaybackState {
+export function usePlayback(replay: ReplayModel, ready = true): PlaybackState {
   const tickCount = replay.ticks.length;
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -104,7 +104,7 @@ export interface LiveFollow {
 
 /// Follows the server's presentation clock: re-anchors on every update from the
 /// server and advances smoothly between polls, never running past received ticks.
-export function useLiveFollower(replay: ReplayDocument, live?: LiveFollow): number {
+export function useLiveFollower(replay: ReplayModel, live?: LiveFollow): number {
   const [time, setTime] = useState(0);
   const anchor = useRef<{ tick: number; at: number } | null>(null);
 

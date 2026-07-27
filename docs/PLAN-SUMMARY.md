@@ -3,6 +3,8 @@
 Condensed from the full product/implementation plan (drafted with Sol, 2026-07).
 This file exists so a fresh working session can continue without the original
 document. `docs/DECISIONS.md` records where open choices were pinned.
+[`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
+plans, and historical evidence.
 
 ## Product
 
@@ -81,10 +83,12 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
 
-## What exists in this repo (2026-07-24)
+## What exists in this repo (2026-07-27)
 
 - `src/BotArena.Engine` — pure engine: rules, maps, FOV, RNG, tick resolution,
-  replay + SHA-256 hash. No web/DB/WASM dependencies.
+  replay + SHA-256 hash, plus the experimental multi-life
+  `FrontlineMatchSession`, canonical actor observation/runtime seam, and
+  internal observation-complete replay v2. No web/DB/WASM dependencies.
 - `src/BotArena.Sdk` — developer API (`IBot`, `BotContext`, `Actions`,
   `IBotRandom`, `IBotDebug`); engine-independent.
 - `src/BotArena.Bots.BuiltIn` — Idle/Wander/Hunter/Coward against the SDK only.
@@ -108,12 +112,53 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   Garage replicas remain co-located until additional VPS nodes justify a
   private multi-zone layout.
 - `web/` — one React build, two modes: the nilbots site (router) and the
-  standalone replay viewer the CLI embeds replays into.
-- `tests/` — engine, determinism, and WASM contract suites (195 tests, incl.
-  DocDriftTests pinning docs/mirrors to the engine).
+  standalone replay viewer the CLI embeds replays into. One normalized model
+  preserves replay v1 and can present internal Frontline replay v2.
+- `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
+  and replay-viewer suites, including DocDrift tests that pin mechanical
+  docs/mirrors to the engine.
 - `scripts/` — setup.sh (fresh container → working), setup-wasi-sdk.sh,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
   balance/dynamics/control/arc/replay-review evaluation tools.
+
+## Active experimental program (2026-07-27)
+
+Frontline is now the active successor experiment; official rules 0.5 remains
+the current game and ladder. The deliberately small game hypothesis is a
+moving five-position frontline, Prime respawns, two fixed-time fabrication
+unlocks, and one child-to-turret transformation. The target architecture runs
+each submitted policy as independent same-artifact instances, with exact
+team/participant/unit/life topology and the complete effective rules exposed
+as deterministic public inputs. This keeps future player counts, maps,
+seasons, and forms representable without fixing bots or ML models to today's
+body count.
+
+Packages 0–6 of
+[`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) are
+implemented on the internal experimental path. The historical shield and
+public fingerprints, explicit team/participant/unit/life topology,
+map-format-2 definition, objective kernel, independently instantiated
+same-artifact runtimes, canonical team observations, replication/fabrication,
+per-life Anchor/turret forms, and strict replay v2 are executable and tested.
+
+`PrepareTick()` freezes exact life-qualified actor keys and observations before
+any runtime acts. `StepActors()` resolves the keyed joint action, including
+Prime respawn, child rebuild/refabrication, persistent old-life projectiles,
+post-damage objective control, form-transition start/change/cancel, and
+absolute eight-way turret fire. Replay v2 snapshots those exact observations,
+decisions, masks, lifecycle facts, post-state, and terminal stable-unit rows.
+The web viewer and mobile bridge consume the same version-neutral normalized
+model and visualize the five-position objective, lifecycle, Anchor windup, and
+turret state.
+
+This is still not a shipped gameplay path. SDK/guest types, protocol vNext,
+canonical WASM life instances, CLI/App selection, server admission, dataset
+tools, and any ladder remain Packages 7–8 or replay-native follow-ons. Official
+rules 0.5, protocol 0.1, replay v1, and their hashes remain unchanged. The
+frozen internal contract is
+[`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md); the shared ML/data
+path remains
+[`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md).
 
 ## Next session pointers
 
@@ -126,9 +171,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
    version bump. Cross-process cache-key locks and named Docker timeout cleanup
    now prevent CLI/server builds from corrupting one workspace (#70).
 2. ~~Game design: anti-draw + skill-shot program~~ **SHIPPED through rules
-   0.5** (DECISIONS #49/#53/#75). Pincer gen-10 is the launch champion. Next
-   improve delayed-projectile visual causality without changing simulation,
-   then let future challengers test the 45% diversity policy on the 0.5 ladder.
+   0.5** (DECISIONS #49/#53/#75). Pincer gen-10 is the launch champion.
+   Separate 0.5 follow-up work may improve delayed-projectile visual causality
+   without changing simulation and let future challengers test the 45%
+   diversity policy on that ladder.
 3. ~~Sprites/appearances (§33)~~ **DONE** — four active map-owned themes plus
    three complete staged theme kits, eleven SVG bot chassis, ten SVG projectile
    looks, mutable bot appearance with immutable match snapshots, plus the
@@ -165,3 +211,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
     is transactionally safe under concurrent workers. Next is source-owned
     progression/competition work as product needs appear. This is an
     incremental modular-monolith plan, not a rewrite.
+11. Replay-native ML support is proposed in
+    [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). The engine-rewrite
+    seam is now implemented for internal Frontline: one canonical public
+    observation per `PrepareTick` actor is passed to its life runtime and
+    snapshotted with the keyed joint step into strict replay v2. Dataset
+    export, public corpus access, bounded model assets, starter inference, and
+    protocol/public-product delivery remain sequenced follow-ons; no
+    sandbox-limit change is proposed.

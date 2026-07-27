@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import * as THREE from 'three';
-import type { ReplayDocument } from '../src/types';
+import { loadReplayJson } from '../src/replayIngress.ts';
+import type { ReplayStableUnitKey } from '../src/replayModel.ts';
 import { buildActors } from './.harness/harness.entry.js';
 
 /**
@@ -16,27 +17,37 @@ import { buildActors } from './.harness/harness.entry.js';
  * playhead, though, so they can simply be asked.
  */
 
-const replay = JSON.parse(
+const replay = loadReplayJson(
   readFileSync(join(import.meta.dirname, 'fixtures', 'golden-replay.json'), 'utf8'),
-) as ReplayDocument;
+).replay;
 
-/** The tick this fixture's loser dies on, and who it is. */
+/** The tick this fixture's loser dies on. */
 const DEATH_TICK = 96;
-const DEAD_SLOT = 1;
 
 /** Chassis are found by the pick pad they carry, which is the only stable handle. */
-function chassisOf(group: THREE.Object3D, slot: number): THREE.Object3D {
+function chassisOf(group: THREE.Object3D, unitKey: ReplayStableUnitKey): THREE.Object3D {
   let found: THREE.Object3D | null = null;
   group.traverse((node) => {
-    if (node.userData.slot === slot && node.parent) found = node.parent;
+    if (node.userData.unitKey === unitKey && node.parent) found = node.parent;
   });
-  assert.ok(found, `no chassis for slot ${slot}`);
+  assert.ok(found, `no chassis for ${unitKey}`);
   return found;
+}
+
+/** The unit an event's actor belongs to, since events name a life rather than a slot. */
+function unitOf(actor: { unitKey: ReplayStableUnitKey } | null) {
+  assert.ok(actor, 'event names an actor');
+  return actor.unitKey;
 }
 
 test('a destroyed bot collapses across the tick it dies in', () => {
   const actors = buildActors(replay);
-  const chassis = chassisOf(actors.group, DEAD_SLOT);
+  const destroyed = replay.ticks[DEATH_TICK].events.find(
+    (event) => event.type === 'destroyed',
+  );
+  assert.ok(destroyed, 'the fixture has a destruction on the tick it claims');
+  // The victim, not the killer: a destruction names the loser in `targetActor`.
+  const chassis = chassisOf(actors.group, unitOf(destroyed.targetActor));
 
   // Early in the tick it is still standing, upright and full size.
   actors.update(DEATH_TICK + 0.2, null, false);
@@ -56,8 +67,8 @@ test('a destroyed bot collapses across the tick it dies in', () => {
 
 test('a firing bot recoils, and only while its shot is in progress', () => {
   const actors = buildActors(replay);
-  const shooter = replay.ticks[DEATH_TICK].events.find((event) => event.type === 'Shot')!;
-  const chassis = chassisOf(actors.group, shooter.slot!);
+  const shooter = replay.ticks[DEATH_TICK].events.find((event) => event.type === 'shot')!;
+  const chassis = chassisOf(actors.group, unitOf(shooter.sourceActor));
   // The body kicks inside the chassis, so the pool of light on the floor stays put.
   const body = chassis.children.find((child) => child.type === 'Group')!;
 
@@ -78,23 +89,24 @@ test('a bot drifts through a corner and is never still when it is not', () => {
   // A bot spinning several ticks running holds full slip throughout — correctly, and it
   // never recovers inside the window this test is about.
   let turn = -1;
-  let turning = -1;
+  let turning: ReplayStableUnitKey | null = null;
   for (let index = 0; index < replay.ticks.length - 3 && turn < 0; index++) {
     for (const event of replay.ticks[index].events) {
-      if (event.type !== 'Turn') continue;
+      if (event.type !== 'turn' || !event.sourceActor) continue;
+      const actorKey = event.sourceActor.actorKey;
       const spinning = [1, 2, 3].some((ahead) =>
         replay.ticks[index + ahead]?.events.some(
-          (later) => later.type === 'Turn' && later.slot === event.slot,
+          (later) => later.type === 'turn' && later.sourceActor?.actorKey === actorKey,
         ),
       );
       if (!spinning) {
         turn = index;
-        turning = event.slot!;
+        turning = event.sourceActor.unitKey;
         break;
       }
     }
   }
-  assert.ok(turn >= 0, 'the fixture has a bot taking a corner on its own');
+  assert.ok(turn >= 0 && turning, 'the fixture has a bot taking a corner on its own');
   const chassis = chassisOf(actors.group, turning);
   const body = chassis.children.find((child) => child.type === 'Group')!;
 
@@ -120,7 +132,8 @@ test('a bot drifts through a corner and is never still when it is not', () => {
     index > 0 && tick.events.length === 0,
   );
   if (still > 0) {
-    const idle = chassisOf(actors.group, 0).children.find((c) => c.type === 'Group')!;
+    const idle = chassisOf(actors.group, replay.units[0].unitKey)
+      .children.find((c) => c.type === 'Group')!;
     actors.update(still + 0.1, null, false);
     const first = idle.position.z;
     actors.update(still + 0.6, null, false);
@@ -134,21 +147,22 @@ test('a bot crossing tiles in a row does not stop at every boundary', () => {
   const actors = buildActors(replay);
   // Two consecutive Move ticks for the same bot: the case that used to stop dead between.
   let run = -1;
-  let mover = -1;
+  let mover: ReplayStableUnitKey | null = null;
   for (let tick = 1; tick < replay.ticks.length - 1; tick++) {
     for (const event of replay.ticks[tick].events) {
-      if (event.type !== 'Move') continue;
+      if (event.type !== 'move' || !event.sourceActor) continue;
+      const actorKey = event.sourceActor.actorKey;
       const again = replay.ticks[tick + 1].events.some(
-        (next) => next.type === 'Move' && next.slot === event.slot,
+        (next) => next.type === 'move' && next.sourceActor?.actorKey === actorKey,
       );
       if (again) {
         run = tick;
-        mover = event.slot!;
+        mover = event.sourceActor.unitKey;
       }
     }
     if (run >= 0) break;
   }
-  assert.ok(run >= 0, 'the fixture has a bot moving two ticks running');
+  assert.ok(run >= 0 && mover, 'the fixture has a bot moving two ticks running');
 
   const chassis = chassisOf(actors.group, mover);
   const sample = (t: number) => {

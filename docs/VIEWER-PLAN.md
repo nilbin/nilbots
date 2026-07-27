@@ -3,6 +3,10 @@
 Ordered work for the replay viewer: payload, correctness, then depth. Written after an
 audit of `web/src/render/` and the review build, and after measuring rather than guessing.
 
+Status: payload splitting, adaptive atlases, asset-readiness gating, composited fog, and
+the planned depth/audio foundations are implemented. The meaningful remaining items are
+the deferred renderer-maintainability extraction and soundtrack-dependent mixing work.
+
 The renderer is shared by four consumers — the site, the CLI's single-file artifact, the
 hosted review build, and the mobile app's WebView — so every item here lands in all four
 unless noted. Each also touches the replay viewer, which is a CLI compatibility surface:
@@ -18,12 +22,12 @@ not a code change — which is how there are 4 themes, 12 chassis, 11 projectile
 4 audio packs without the renderer knowing about any of them. A v2 would put that at risk
 to fix problems that are local to one function and one build config.
 
-## 1. Payload and atlas resolution
+## 1. Payload and atlas resolution — DONE
 
-**The scaling cliff is bundling, not code.** Every glob is `eager: true`, so all themes,
-chassis and projectile looks are inlined into the 15.2 MB single-file artifact, while a
-replay uses one theme, two chassis and two projectile looks. It grows linearly with
-content: ten themes puts that single HTML file past 30 MB.
+**The scaling cliff was bundling, not code.** The original build inlined every eager
+theme, chassis, and projectile look into a 15.2 MB single-file artifact while a replay
+used one theme, two chassis, and two projectile looks. That would have grown linearly
+with content; theme-scoped CLI builds and the hashed hosted build remove that shape.
 
 **Atlas resolution should follow the device.** Measured, for a 24×18 map with 16-column
 atlases of 192-content + 2×32-gutter cells:
@@ -43,30 +47,29 @@ But **1024 is undersampled on any desktop** (48 px against 84–126), which read
 Neither single number is right; the variant should be chosen at load from
 `devicePixelRatio` and viewport.
 
-Work:
-- generate atlas variants at build time (1024 / 2048), keeping 4096 as the source master;
-- pick the variant at load, not at build, so one artifact serves every device;
-- make theme globs lazy so an unrendered theme is never fetched;
-- for the CLI artifact, scope assets to the replay being injected — it cannot lazy-load,
-  so it must instead carry only what that replay draws;
-- serve the mobile app a non-inlined build. It currently loads `?standalone` from the App,
-  which is the single-file artifact — precisely the "make mobile browsers parse one large
-  inline document" case the review build exists to avoid.
+Implemented:
+
+- build-time 1024/2048 variants retain 4096 as the source master;
+- `preferredAtlasWidth` selects the variant from viewport and device pixel ratio;
+- the site and mobile `?standalone` viewer use the ordinary hashed `dist/` build, so image
+  URLs load and cache independently rather than arriving in one inline document;
+- the CLI alone uses theme-scoped `dist-cli/<theme>/index.html` self-contained artifacts,
+  with a build-time guard that fails if the scoping transform no longer matches.
 
 Placement already survives rebaking: `wallAtlasDestination` derives destination from the
 manifest's core:gutter ratio rather than the baked pixel size. That fix is a prerequisite
 for variants, not an optional tidy-up.
 
-## 2. Asset readiness and a loader
+## 2. Asset readiness and a loader — DONE
 
-`loadImage` fires `new Image()` and returns it. **Nothing awaits it and nothing gates
-playback**, so a replay starts at tick 0 while atlases are still decoding and the arena
-pops in mid-match. This is a correctness bug, not polish.
+Originally `loadImage` fired `new Image()` and returned it. **Nothing awaited it and
+nothing gated playback**, so a replay started at tick 0 while atlases were still decoding
+and the arena popped in mid-match. That was a correctness bug, not polish.
 
-Work: track outstanding decodes, hold playback at tick 0 until the current theme's atlases
-are ready, show progress. The mobile app renders only the canvas, so readiness must also
-cross the bridge as a message — a loader built into `Viewer`'s chrome reaches the site,
-the CLI and review, and never reaches the app.
+`assetReadiness.ts` tracks outstanding decodes, `usePlayback` holds tick 0 until they
+settle, and the viewer shows progress. Hosted bridge state carries `loading` and
+`pendingAssets`, so the native mobile chrome receives the same readiness truth even though
+the WebView renders only the canvas.
 
 ## 3. Split `drawArena` into passes — DEFERRED, and why
 
@@ -97,17 +100,16 @@ at fixed ticks and hash the canvas. Write those against current output *before*
 refactoring, so any unintended pixel change is caught immediately. This is strictly better
 than keeping a parallel v1 around: no fork, no double maintenance.
 
-## 4. Fog as a composited mask
+## 4. Fog as a composited mask — DONE
 
-Two symptoms, one cause. `drawFog` paints flat `tile × tile` rects after `drawWalls`, but
-walls are drawn with cover and perimeter sprites that **overhang their logical tile**. So
-the fog grid slices across wall art: a visible wall whose overhang reaches a fogged
-neighbour is half-darkened, and a fogged wall whose overhang reaches a visible neighbour
-keeps a bright sliver. Hence *inconsistent* rather than uniformly wrong.
+The original two symptoms had one cause. `drawFog` painted flat `tile × tile` rects after
+`drawWalls`, while cover and perimeter sprites **overhang their logical tile**. The fog
+grid therefore sliced across wall art: a visible wall reaching a fogged neighbour was
+half-darkened, while a fogged wall reaching a visible neighbour kept a bright sliver.
 
-Work: render the scene to an offscreen layer, build fog as a mask, blur the mask, and
-composite. Once fog is applied to composited pixels it cannot disagree with wall geometry,
-and the blur is the "too sharp" complaint fixed by the same change.
+`fogMask.ts` now builds, blurs, and composites an offscreen mask over rendered pixels,
+with a deterministic rectangle fallback where the platform cannot provide the required
+surface/filter support. Fog therefore no longer disagrees with wall overhang geometry.
 
 **Not in scope here:** the *shape* of wall occlusion. That a tile diagonally behind a wall
 is visible is the engine's corner-strict supercover rule (`Visibility.HasLineOfSight`,
@@ -115,7 +117,7 @@ DECISIONS #11), deliberately chosen and pinned by tests. Widening it changes wha
 perceive: a `GameRules` bump, a new ladder, invalidated replay hashes and a balance
 evaluation. It is a rules project and must not ride along with viewer work.
 
-## 5. 2.5D depth cues — PARTLY DONE, and narrower than written
+## 5. 2.5D depth cues — DONE, and narrower than written
 
 The renderer already had more depth than this plan assumed: additive `lighter`
 compositing on projectiles and impacts, accent bloom on bots via `shadowBlur`, and wall
@@ -140,18 +142,19 @@ called fresh with a time, so state would make the same moment render differently
 on whether it was reached by playing or by scrubbing backwards. Only damage and destruction
 shake; a camera that moves on every shot stops meaning anything.
 
-Canvas2D throughout for *this* renderer — no WebGL here. The scene is two bots on a tile
-grid; rasterisation is not the bottleneck, payload is, and normal maps would double atlas
-weight to fix a problem that does not exist.
+Canvas2D throughout for *this* renderer — no WebGL here. The scene is a bounded set of bots
+on a tile grid; rasterisation is not the bottleneck, payload is, and normal maps would
+double atlas weight to fix a problem that does not exist.
 
-**A second, WebGL renderer now exists beside it** (DECISIONS #122) — opt-in, lazily loaded,
+**A second, WebGL renderer now exists beside it** (DECISIONS #126) — opt-in, lazily loaded,
 and stubbed out of the CLI artifact. That is not a reversal of the line above so much as an
 admission of its scope: it was an argument about faking depth, and it says nothing about
-whether real depth is worth having. This renderer stays the default and stays flat. In rough order of feel per unit of effort:
+whether real depth is worth having. This renderer stays the default and stays flat. In
+rough order of feel per unit of effort:
 
 1. additive light from muzzle flashes, projectiles and explosions (`'lighter'` compositing);
 2. contact shadows under bots and projectiles;
-3. wall height — offset cover tops toward the camera centre and darken their faces
+3. wall height — offset cover tops outward from the arena centre and darken their faces
    (the `wall-cover-edges` / `wall-perimeter-edges` atlases already exist for this);
 4. camera easing and a small shake on impact.
 
