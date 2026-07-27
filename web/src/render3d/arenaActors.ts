@@ -39,8 +39,8 @@ const PIP_SETBACK = 0.55;
  * and straight through the pips. Just outside the silhouette reads as "this one" without
  * becoming the brightest thing in the arena.
  */
-const RING_INNER = 0.55;
-const RING_OUTER = 0.61;
+const RING_INNER = 0.68;
+const RING_OUTER = 0.74;
 
 /**
  * Share of the remaining turn a bolt takes each frame.
