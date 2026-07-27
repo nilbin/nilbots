@@ -22,6 +22,7 @@ env:
   REGISTRY: ghcr.io
   RUNTIME_IMAGE: ghcr.io/${{ github.repository_owner }}/nilbots-runtime
   COMPILER_IMAGE: ghcr.io/${{ github.repository_owner }}/nilbots-compiler
+  PGBOUNCER_IMAGE: ghcr.io/${{ github.repository_owner }}/nilbots-pgbouncer
 
 jobs:
   verify:
@@ -106,6 +107,7 @@ jobs:
     outputs:
       runtime-ref: ${{ steps.refs.outputs.runtime-ref }}
       compiler-ref: ${{ steps.refs.outputs.compiler-ref }}
+      pgbouncer-ref: ${{ steps.refs.outputs.pgbouncer-ref }}
     steps:
       - name: Check out selected revision
         uses: actions/checkout@v6
@@ -152,6 +154,22 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Build and publish PgBouncer image
+        id: pgbouncer
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: pgbouncer
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.PGBOUNCER_IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+
       - name: Attest runtime image provenance
         uses: actions/attest@v4
         with:
@@ -166,17 +184,26 @@ jobs:
           subject-digest: ${{ steps.compiler.outputs.digest }}
           push-to-registry: true
 
+      - name: Attest PgBouncer image provenance
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ env.PGBOUNCER_IMAGE }}
+          subject-digest: ${{ steps.pgbouncer.outputs.digest }}
+          push-to-registry: true
+
       - name: Record immutable image references
         id: refs
         shell: bash
         run: |
           echo "runtime-ref=${RUNTIME_IMAGE}@${{ steps.runtime.outputs.digest }}" >> "$GITHUB_OUTPUT"
           echo "compiler-ref=${COMPILER_IMAGE}@${{ steps.compiler.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "pgbouncer-ref=${PGBOUNCER_IMAGE}@${{ steps.pgbouncer.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
       - name: Write release summary
         env:
           RUNTIME_REF: ${{ steps.refs.outputs.runtime-ref }}
           COMPILER_REF: ${{ steps.refs.outputs.compiler-ref }}
+          PGBOUNCER_REF: ${{ steps.refs.outputs.pgbouncer-ref }}
         run: |
           {
             echo "## nilbots release"
@@ -184,6 +211,7 @@ jobs:
             echo "- Git: \`${GITHUB_SHA}\`"
             echo "- Runtime: \`${RUNTIME_REF}\`"
             echo "- Compiler: \`${COMPILER_REF}\`"
+            echo "- PgBouncer: \`${PGBOUNCER_REF}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   publish-cli:
@@ -268,6 +296,7 @@ jobs:
           DEPLOY_PATH: ${{ vars.NILBOTS_DEPLOY_PATH }}
           RUNTIME_REF: ${{ needs.publish.outputs.runtime-ref }}
           COMPILER_REF: ${{ needs.publish.outputs.compiler-ref }}
+          PGBOUNCER_REF: ${{ needs.publish.outputs.pgbouncer-ref }}
         run: |
           deploy_node() {
             local install_operation="$1"
@@ -290,7 +319,7 @@ jobs:
               -o BatchMode=yes \
               "$user@$host" \
               "bash '$incoming/install-release.sh' '$install_operation' \
-                '$path' '$GITHUB_SHA' '$RUNTIME_REF' '$COMPILER_REF' \
+                '$path' '$GITHUB_SHA' '$RUNTIME_REF' '$COMPILER_REF' '$PGBOUNCER_REF' \
                 '$incoming/$(basename "$bundle")' '$bundle_sha'"
           }
 

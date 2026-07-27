@@ -108,9 +108,16 @@ for key in \
 done
 
 printf 'BOTARENA_DB_HOST=%s\n' "$primary_private_ip"
+printf 'BOTARENA_PGBOUNCER_HOST=%s\n' "$primary_private_ip"
+printf 'BOTARENA_DB_PORT=6432\n'
+printf 'BOTARENA_DB_NAME=botarena\n'
+printf 'BOTARENA_NOTIFICATION_DB_NAME=botarena_session\n'
+printf 'BOTARENA_DB_MAX_POOL_SIZE=20\n'
+printf 'BOTARENA_NOTIFICATION_DB_MAX_POOL_SIZE=2\n'
 printf 'BOTARENA_S3_ENDPOINT=http://%s:3900\n' "$primary_private_ip"
 printf 'BOTARENA_WEB_BIND_ADDRESS=%s\n' "$worker_private_ip"
 printf 'BOTARENA_WEB_PORT=8080\n'
+printf 'BOTARENA_WEB_INSTANCE_ID=web-%s\n' "$instance_id"
 printf 'BOTARENA_COMPILE_INSTANCE_ID=%s\n' "$instance_id"
 printf 'BOTARENA_COMPILE_WORKERS=1\n'
 

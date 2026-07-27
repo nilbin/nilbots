@@ -34,7 +34,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ca-certificates curl git unattended-upgrades ufw
+apt-get install -y ca-certificates curl git postgresql-client unattended-upgrades ufw
 
 if ! id "$operator" >/dev/null 2>&1; then
   useradd --create-home --shell /bin/bash "$operator"
