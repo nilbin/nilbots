@@ -47,6 +47,11 @@ const SELECTED_TINT = 0.12;
 const SELECTED_POOL = 1;
 const UNSELECTED_POOL = 0.72;
 
+/** Emission added at the peak of a hit, over whatever the material already emits. */
+const HIT_FLASH = 1.6;
+
+const WHITE = new THREE.Color(0xffffff);
+
 /**
  * Share of the remaining turn a bolt takes each frame.
  *
@@ -61,6 +66,8 @@ export interface ArenaActors {
   group: THREE.Group;
   /** Move everything to where it should be at this moment of the replay. */
   update: (time: number, selectedSlot: number | null, showVisibility: boolean) => void;
+  /** Which bot, if any, is under a ray cast from the camera. */
+  pick: (raycaster: THREE.Raycaster) => number | null;
   dispose: () => void;
 }
 
@@ -87,6 +94,10 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     // shape of a postage stamp, and disappears against a dark floor. The plan view belongs
     // on the lid of a hull, which is where a plan view of a hull comes from.
     const chassis = new THREE.Group();
+    // The machine itself, separate from the light it casts on the floor: recoil kicks this
+    // and leaves the pool where it is, because a bot's shadow does not jump when it fires.
+    const body = new THREE.Group();
+    chassis.add(body);
 
     // A hull that points somewhere. A cylinder was the first attempt and it made every
     // chassis read as the same glowing puck — which throws away the one thing the twelve
@@ -106,7 +117,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     hull.position.y = BOT_HEIGHT / 2;
     hull.castShadow = true;
     hull.receiveShadow = true;
-    chassis.add(hull);
+    body.add(hull);
 
     const lidGeometry = new THREE.PlaneGeometry(size, size);
     lidGeometry.rotateX(-Math.PI / 2);
@@ -123,7 +134,7 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     });
     const lid = new THREE.Mesh(lidGeometry, lidMaterial);
     lid.position.y = BOT_HEIGHT + 0.004;
-    chassis.add(lid);
+    body.add(lid);
 
     // A pool of accent light under the bot, and the **only** place the owner's colour
     // appears on a bot in this renderer — which makes it load-bearing rather than
@@ -143,6 +154,22 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     glow.position.y = 0.012;
     chassis.add(glow);
 
+    // A generous invisible target for taps. `visible = false` would take it out of
+    // raycasting too, so it is transparent with no colour written instead.
+    const padGeometry = new THREE.CircleGeometry(0.62, 16);
+    padGeometry.rotateX(-Math.PI / 2);
+    const padMaterial = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      colorWrite: false,
+    });
+    const pad = new THREE.Mesh(padGeometry, padMaterial);
+    pad.position.y = 0.05;
+    pad.userData.slot = slot;
+    chassis.add(pad);
+    disposables.push(padGeometry, padMaterial);
+
     // Every material this bot is allowed to fade, with the opacity it wants at full
     // strength — a glow pool at 1.0 is not the same picture as a hull at 1.0.
     // The pool's base opacity is not a constant: following a bot brightens it, and fog can
@@ -160,12 +187,14 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     const tinting: {
       material: THREE.MeshStandardMaterial;
       baseColour: THREE.Color;
+      baseEmissive: THREE.Color;
       baseIntensity: number;
     }[] = [];
     const tintable = (material: THREE.MeshStandardMaterial) =>
       tinting.push({
         material,
         baseColour: material.color.clone(),
+        baseEmissive: material.emissive.clone(),
         baseIntensity: material.emissiveIntensity,
       });
     tintable(hullMaterial);
@@ -183,28 +212,27 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       // have both bots claiming one Group — three.js reparents rather than shares, so the
       // second bot would silently steal the first one's body. The clone shares geometry,
       // which is the expensive half and the point of caching in the first place.
-      const body = model.clone();
-      body.scale.setScalar(size);
+      const solid = model.clone();
+      solid.scale.setScalar(size);
       // The materials, though, have to be this bot's own. Fog ghosts a bot by dropping its
       // opacity, and the cached ones are shared with the other bot wearing the same look
       // and with every replay opened after this one — so fading through them would dim both
       // bots at once and leave them dim for the rest of the session.
-      body.traverse((node) => {
+      solid.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh || Array.isArray(mesh.material)) return;
         mesh.material = mesh.material.clone();
         fading.push({ material: mesh.material, base: 1 });
         tintable(mesh.material as THREE.MeshStandardMaterial);
         disposables.push(mesh.material);
-        // A bot already being followed when its model lands has to arrive lit, not plain.
-        if (highlighted) {
-          highlighted = false;
-          highlight(true);
-        }
+        // A model that lands mid-highlight or mid-flash has to arrive wearing it, not
+        // plain — `repaint` is over the whole registry, so this is simply running it again
+        // now that the registry has grown.
+        repaint();
       });
-      chassis.add(body);
-      chassis.remove(hull);
-      chassis.remove(lid);
+      body.add(solid);
+      body.remove(hull);
+      body.remove(lid);
     });
 
     // Following a bot lights *the bot*, not a ring drawn near it.
@@ -221,17 +249,37 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     // at a time, and it is deliberately weak: enough to lift the followed bot off the floor
     // and no further, so the chassis is still the chassis you picked.
     let highlighted = false;
+    let flashing = 0;
+
+    // Selection and a hit both repaint the same materials, so they are applied together
+    // from one place. Written as two independent passes they would take turns clobbering
+    // each other, and a followed bot would stop flashing when it was shot.
+    const repaint = () => {
+      for (const { material, baseColour, baseEmissive, baseIntensity } of tinting) {
+        material.color
+          .copy(baseColour)
+          .lerp(accent, highlighted ? SELECTED_TINT : 0)
+          .lerp(WHITE, flashing * 0.55);
+        material.emissive.copy(baseEmissive).lerp(WHITE, flashing);
+        material.emissiveIntensity =
+          baseIntensity * (highlighted ? SELECTED_TRIM_GAIN : 1) + flashing * HIT_FLASH;
+      }
+    };
+
+    // Both guard on change. They run per frame per bot, and re-deriving a dozen colours
+    // sixty times a second to arrive at the answer already on screen is work for nothing.
     const highlight = (on: boolean) => {
-      // Only on change. This runs per frame per bot, and re-deriving a dozen colours sixty
-      // times a second to arrive at the answer already on screen is work for nothing.
       if (on === highlighted) return;
       highlighted = on;
-      for (const { material, baseColour, baseIntensity } of tinting) {
-        material.color.copy(baseColour).lerp(accent, on ? SELECTED_TINT : 0);
-        material.emissiveIntensity = baseIntensity * (on ? SELECTED_TRIM_GAIN : 1);
-      }
       glowFade.base = on ? SELECTED_POOL : UNSELECTED_POOL;
+      repaint();
       fade(lastFactor);
+    };
+    const flash = (strength: number) => {
+      const clamped = Math.max(0, Math.min(strength, 1));
+      if (clamped === flashing) return;
+      flashing = clamped;
+      repaint();
     };
 
     // Health, as pips floating over the bot — the one piece of state the flat renderer puts
@@ -291,7 +339,10 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
 
     return {
       chassis,
+      body,
+      pad,
       highlight,
+      flash,
       pips,
       pipMeshes,
       litPip,
@@ -419,10 +470,25 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       slot !== selectedSlot &&
       !fogSource.visibleEnemies.some((enemy) => enemy.slot === slot);
 
+    const events = replay.ticks[tick]?.events ?? [];
+    const fraction = Math.max(0, Math.min(time - tick, 1));
+    // Beams and impacts land in the second half of the tick, after movement has settled —
+    // the same window the flat renderer uses, so a hit lands at the same instant in both.
+    const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
+
     for (const pose of posesAt(replay, time)) {
       const bot = bots[pose.slot];
       if (!bot) continue;
-      bot.chassis.visible = pose.status === 'Active';
+
+      const firing = events.some((e) => e.type === 'Shot' && e.slot === pose.slot);
+      const struck = events.some((e) => e.type === 'Damage' && e.targetSlot === pose.slot);
+      const dying = events.some((e) => e.type === 'Destroyed' && e.slot === pose.slot);
+      // A bot destroyed this tick plays its collapse and only then goes; one destroyed
+      // earlier is simply absent. `posesAt` flips status at 0.9, which is after the
+      // collapse has already run, so this reads the event rather than the status.
+      const collapse = dying ? Math.max(0, Math.min((fraction - 0.55) / 0.45, 1)) : 0;
+
+      bot.chassis.visible = pose.status === 'Active' || dying;
       bot.chassis.position.set(pose.x + 0.5, 0, pose.y + 0.5);
       bot.highlight(pose.slot === selectedSlot && pose.status === 'Active');
 
@@ -434,11 +500,29 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       for (const [index, pip] of bot.pipMeshes.entries())
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
 
-      bot.fade(hidden(pose.slot) ? 0.15 : 1);
+      // A hit whitens the bot for a moment, and dying fades it out. Both are read from the
+      // tick's own events rather than remembered between frames, for the reason the flat
+      // renderer gives: scrubbing backwards, or drawing one tick in isolation, must produce
+      // the same picture as arriving there by playing forwards.
+      bot.flash(struck && shotProgress > 0.55 ? (1 - shotProgress) / 0.45 : 0);
+      bot.fade((hidden(pose.slot) ? 0.15 : 1) * (1 - collapse * 0.75));
+
       // The whole chassis turns, so the hull's long axis reads as the facing even when the
       // lid art is too small to make out. `angle` is the same interpolated rotation the 2D
       // renderer uses, so both viewers swing a bot through exactly the same arc.
       bot.chassis.rotation.y = -pose.angle;
+
+      // Recoil is a kick *backwards along the facing*, which in the chassis' own frame is
+      // simply −x — one of the things that gets easier once a bot is an object with an
+      // orientation instead of a sprite being rotated about a point.
+      const kick = firing ? Math.sin(shotProgress * Math.PI) * 0.14 : 0;
+      // Going down: nose over, settle into the floor, and shrink a little. A bot that
+      // vanished on the tick it died gave no reason for the hole it left.
+      bot.chassis.rotation.z = collapse * 0.5;
+      bot.chassis.rotation.x = collapse * 0.22;
+      bot.chassis.position.y = -collapse * BOT_HEIGHT * 0.55;
+      bot.chassis.scale.setScalar(1 - collapse * 0.16);
+      bot.body.position.x = -kick;
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
@@ -483,12 +567,27 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
       heading.set(key, turned);
       rig.group.rotation.y = turned;
 
-      // And a bolt in flight is not on rails. A small bob and roll, out of phase per bolt so
-      // two in the air never move as one, which is what makes a pair read as two objects.
+      // And a bolt in flight is not on rails — it drifts, up and across, and rolls as it
+      // goes. Three things keep it from reading as a machine part on a cam:
+      //
+      // The **sideways** drift matters as much as the vertical one. Bobbing alone reads as
+      // a bolt on a rail that happens to be springy; adding lateral wander makes it a thing
+      // finding its way through air.
+      //
+      // Every bolt gets its own **phase and its own rates**, derived from its replay id.
+      // Shared frequencies make two bolts in the air move as one object with a gap in it —
+      // the tell that they are the same code and not two things. Derived rather than random
+      // because a replay must look the same every time it is watched.
       const phase = bolt.id * 2.399;
-      rig.head.position.y = PROJECTILE_HOVER + Math.sin(time * 8.5 + phase) * 0.032;
-      rig.head.rotation.x = Math.sin(time * 6.1 + phase) * 0.22;
-      rig.head.rotation.z = Math.sin(time * 4.7 + phase * 1.7) * 0.12;
+      const wander = 1 + ((bolt.id * 7919) % 23) / 46;
+      rig.head.position.y =
+        PROJECTILE_HOVER +
+        (Math.sin(time * 9.3 * wander + phase) + Math.sin(time * 5.1 + phase * 2.7) * 0.6) * 0.05;
+      // Local −z is across the heading, since the rig is turned to face along +x.
+      rig.head.position.z =
+        (Math.sin(time * 6.7 * wander + phase * 1.9) + Math.sin(time * 3.9 + phase) * 0.5) * 0.055;
+      rig.head.rotation.x = Math.sin(time * 6.1 * wander + phase) * 0.35;
+      rig.head.rotation.z = Math.sin(time * 4.7 + phase * 1.7) * 0.18;
     }
     // Forget bolts that have landed, or the map grows for the length of the replay.
     for (const key of heading.keys()) if (!alive.has(key)) heading.delete(key);
@@ -499,9 +598,25 @@ export function buildActors(replay: ReplayDocument): ArenaActors {
     });
   };
 
+  /**
+   * Hit-test the bots.
+   *
+   * Against a **pad on the floor**, not against the chassis. A bot here is a few hundred
+   * triangles of dart with gaps between its fins, and raycasting that would make selecting
+   * one a test of aim — worse on a touch screen, where the finger is bigger than the bot.
+   * The pad is a tile-sized disc under each machine, invisible and always facing up, which
+   * is both easier to hit and closer to what a player means by "that one".
+   */
+  const pick = (raycaster: THREE.Raycaster): number | null => {
+    const pads = bots.filter((bot) => bot.chassis.visible).map((bot) => bot.pad);
+    const [nearest] = raycaster.intersectObjects(pads, false);
+    return nearest ? (nearest.object.userData.slot as number) : null;
+  };
+
   return {
     group,
     update,
+    pick,
     dispose: () => {
       live = false;
       for (const item of disposables) item.dispose();

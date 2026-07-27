@@ -15,6 +15,9 @@ import { presentationAccent, botLook } from '../render/arenaThemes';
 /** How dark an unseen tile goes. Matches the flat renderer's fog composite. */
 const FOG_STRENGTH = 0.82;
 
+/** How far the camera is thrown by a direct kill, in tiles. */
+const SHAKE_REACH = 0.14;
+
 export interface ArenaOverlays {
   group: THREE.Group;
   update: (
@@ -22,6 +25,8 @@ export interface ArenaOverlays {
     selectedSlot: number | null,
     showVisibility: boolean,
   ) => void;
+  /** Camera offset for the knock of an impact at this instant. */
+  shake: (time: number) => { x: number; y: number };
   dispose: () => void;
 }
 
@@ -61,9 +66,42 @@ export function buildOverlays(replay: ReplayDocument): ArenaOverlays {
     flashes.update(tick, fraction);
   };
 
+  /**
+   * How hard the arena is knocked at this instant.
+   *
+   * Derived from the tick rather than accumulated, like everything else here: playback can
+   * be scrubbed backwards into a tick where nothing was hit, and a decaying variable would
+   * still be ringing from a kill that has not happened yet.
+   *
+   * **Only impacts shake, and a kill shakes harder.** A camera that jolts on every shot
+   * stops distinguishing anything, which is the same reasoning the flat renderer records.
+   */
+  const shake = (time: number) => {
+    const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    const fraction = Math.max(0, Math.min(time - tick, 1));
+    let strength = 0;
+    for (const event of replay.ticks[tick]?.events ?? []) {
+      if (event.type === 'Destroyed') strength = Math.max(strength, 1);
+      else if (event.type === 'Damage') strength = Math.max(strength, 0.45);
+    }
+    // Impacts land late in the tick — the same 0.6 the flash uses — so the knock starts
+    // when the hit is seen rather than when the tick begins.
+    const since = (fraction - 0.6) / 0.4;
+    if (strength === 0 || since < 0 || since > 1) return { x: 0, y: 0 };
+
+    const decay = (1 - since) ** 2;
+    const amplitude = SHAKE_REACH * strength * decay;
+    // Two incommensurate frequencies, so it reads as a knock rather than a wobble.
+    return {
+      x: Math.sin(since * Math.PI * 7.3) * amplitude,
+      y: Math.cos(since * Math.PI * 5.1) * amplitude * 0.7,
+    };
+  };
+
   return {
     group,
     update,
+    shake,
     dispose: () => {
       for (const item of disposables) item.dispose();
     },
@@ -136,13 +174,6 @@ function buildZone(
 ): THREE.Mesh | null {
   const tiles = replay.header.zoneTiles;
   if (!tiles || tiles.length === 0) return null;
-
-  const shape = new THREE.Shape();
-  shape.moveTo(0, 0);
-  shape.lineTo(1, 0);
-  shape.lineTo(1, 1);
-  shape.lineTo(0, 1);
-  shape.closePath();
 
   const parts = tiles.map(([x, y]) => {
     const quad = new THREE.PlaneGeometry(1, 1);

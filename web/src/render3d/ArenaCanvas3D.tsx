@@ -22,18 +22,20 @@ export default function ArenaCanvas3D({
   time,
   selectedSlot,
   showVisibility,
+  onSelectSlot,
 }: {
   replay: ReplayDocument;
   time: number;
   selectedSlot: number | null;
   showVisibility: boolean;
+  onSelectSlot: (slot: number | null) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // All three go through refs for the same reason `time` does: they change while a replay
   // is open, and putting them in the effect's dependencies would tear down the renderer and
   // rebuild the entire scene every time someone clicked a bot card.
-  const frameState = useRef({ time, selectedSlot, showVisibility });
-  frameState.current = { time, selectedSlot, showVisibility };
+  const frameState = useRef({ time, selectedSlot, showVisibility, onSelectSlot });
+  frameState.current = { time, selectedSlot, showVisibility, onSelectSlot };
 
   useEffect(() => {
     const container = host.current;
@@ -65,6 +67,9 @@ export default function ArenaCanvas3D({
 
     const { mapWidth, mapHeight } = replay.header;
     const centre = new THREE.Vector3(mapWidth / 2, 0, mapHeight / 2);
+    // Where the camera sits with no shake applied. Kept so a knock is an offset from a
+    // fixed point; nudging the live position instead lets rounding walk the camera away.
+    const framed = new THREE.Vector3();
 
     /**
      * Frame the whole map, from behind and above.
@@ -94,17 +99,60 @@ export default function ArenaCanvas3D({
       );
       arena.camera.lookAt(centre);
       arena.camera.updateProjectionMatrix();
+      framed.copy(arena.camera.position);
     };
 
     frame();
     const observer = new ResizeObserver(frame);
     observer.observe(container);
 
+    /**
+     * Tap a bot to follow it, tap it again or tap the floor to stop — the same contract the
+     * flat renderer's canvas offers, so the arena behaves the same whichever is on screen.
+     *
+     * On `pointerup` rather than `pointerdown`, and only when the pointer barely moved: on a
+     * phone the arena is also what you drag to scroll the page, and selecting a bot every
+     * time a scroll started would make the panel unusable.
+     */
+    const raycaster = new THREE.Raycaster();
+    let pressed: { x: number; y: number } | null = null;
+    const onDown = (event: PointerEvent) => {
+      pressed = { x: event.clientX, y: event.clientY };
+    };
+    const onUp = (event: PointerEvent) => {
+      const start = pressed;
+      pressed = null;
+      if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) return;
+
+      const bounds = renderer.domElement.getBoundingClientRect();
+      raycaster.setFromCamera(
+        new THREE.Vector2(
+          ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+          -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+        ),
+        arena.camera,
+      );
+      const hit = actors.pick(raycaster);
+      const { selectedSlot: followed, onSelectSlot: select } = frameState.current;
+      select(hit === null || hit === followed ? null : hit);
+    };
+    renderer.domElement.addEventListener('pointerdown', onDown);
+    renderer.domElement.addEventListener('pointerup', onUp);
+
     let animation = 0;
     const draw = () => {
       const { time: now, selectedSlot: followed, showVisibility: fov } = frameState.current;
       actors.update(now, followed, fov);
       overlays.update(now, followed, fov);
+      // A knock on impact, and a harder one on a kill — nothing else shakes, because a
+      // camera that moves on every shot stops meaning anything. Applied as an offset from
+      // the framed position rather than by moving the camera, so it cannot accumulate.
+      const knock = overlays.shake(now);
+      arena.camera.position.set(
+        framed.x + knock.x,
+        framed.y + knock.y,
+        framed.z + knock.x * 0.6,
+      );
       renderer.render(arena.scene, arena.camera);
       animation = requestAnimationFrame(draw);
     };
@@ -113,6 +161,8 @@ export default function ArenaCanvas3D({
     return () => {
       cancelAnimationFrame(animation);
       observer.disconnect();
+      renderer.domElement.removeEventListener('pointerdown', onDown);
+      renderer.domElement.removeEventListener('pointerup', onUp);
       actors.dispose();
       overlays.dispose();
       arena.dispose();
@@ -124,5 +174,12 @@ export default function ArenaCanvas3D({
     };
   }, [replay]);
 
-  return <div ref={host} className="absolute inset-0" role="img" aria-label="nilbots match playback" />;
+  return (
+    <div
+      ref={host}
+      className="absolute inset-0 cursor-pointer"
+      role="img"
+      aria-label="nilbots match playback"
+    />
+  );
 }

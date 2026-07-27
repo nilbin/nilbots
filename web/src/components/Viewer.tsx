@@ -203,6 +203,7 @@ export default function Viewer({
                 time={time}
                 selectedSlot={selectedSlot}
                 showVisibility={showVisibility}
+                onSelectSlot={setSelectedSlot}
               />
             </Suspense>
           ) : (
