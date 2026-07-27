@@ -65,12 +65,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         modelBuilder.Entity<BotRating>(entity =>
         {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_BotRatings_SeasonOpeningRank_Positive",
+                    "\"SeasonOpeningRank\" IS NULL OR \"SeasonOpeningRank\" > 0");
+                table.HasCheckConstraint(
+                    "CK_BotRatings_SeasonOpeningRank_RequiresLadder",
+                    "\"SeasonOpeningRank\" IS NULL OR \"LadderId\" IS NOT NULL");
+            });
             entity.HasIndex(r => new { r.BotId, r.RulesVersion }).IsUnique();
             // The leaderboard reads one ladder ordered by rating; the unique index above
             // leads with BotId and cannot serve that, so it was a seq scan over every
             // ladder plus a sort (DECISIONS #100).
             entity.HasIndex(r => new { r.RulesVersion, r.Rating }).IsDescending(false, true);
-            entity.Property(r => r.RulesVersion).HasMaxLength(40);
+            entity.Property(r => r.RulesVersion).HasMaxLength(100);
             entity.Property(r => r.Rating).HasDefaultValue(1200.0);
             entity.HasIndex(r => new { r.BotId, r.LadderId })
                 .IsUnique()
@@ -143,7 +152,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasConversion<string>()
                 .HasMaxLength(20);
             entity.Property(ladder => ladder.RatingPolicyId).HasMaxLength(100);
-            entity.Property(ladder => ladder.LegacyRulesVersion).HasMaxLength(40);
+            entity.Property(ladder => ladder.LegacyRulesVersion).HasMaxLength(100);
             entity.HasIndex(ladder => new
             {
                 ladder.PlaylistVersionId,
@@ -320,6 +329,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         modelBuilder.Entity<MatchSet>(entity =>
         {
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_MatchSets_CompetitionIdentity_Paired",
+                "(\"PlaylistVersionId\" IS NULL AND \"LadderId\" IS NULL) OR " +
+                "(\"PlaylistVersionId\" IS NOT NULL AND \"LadderId\" IS NOT NULL)"));
             entity.Property(s => s.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(s => s.CreatedAt);
             entity.HasIndex(s => s.PlaylistVersionId);

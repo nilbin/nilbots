@@ -1,6 +1,7 @@
 using System.Data;
 using System.Diagnostics;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Shared;
 using BotArena.App.Jobs;
@@ -17,6 +18,7 @@ namespace BotArena.App.Matches;
 /// </summary>
 public sealed class RankedMatchSetFinalizer(
     AppDbContext db,
+    LegacyCompetitionIdentityResolver identityResolver,
     CosmeticAchievementService achievements,
     TimeProvider timeProvider)
 {
@@ -69,15 +71,6 @@ public sealed class RankedMatchSetFinalizer(
                     $"Ranked set {matchSetId} contains {games.Count} games; expected {MatchSet.Games}.");
             }
 
-            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
-            if (games.Any(match => match.Status == MatchStatus.Failed))
-            {
-                set.Status = MatchSetStatus.Failed;
-                set.CompletedAt = now;
-                await db.SaveChangesAsync(cancellationToken);
-                return await FinishAsync(RankedSetFinalizationOutcome.FailedSet);
-            }
-
             string[] ladders = games
                 .Select(match => match.GameRulesVersion)
                 .Distinct(StringComparer.Ordinal)
@@ -87,21 +80,41 @@ public sealed class RankedMatchSetFinalizer(
                 throw new InvalidOperationException(
                     $"Ranked set {matchSetId} did not execute entirely on one rules ladder.");
             }
+            string rulesVersion = ladders[0];
+            LegacyCompetitionIdentity identity =
+                await identityResolver.ResolveExistingAsync(
+                    rulesVersion,
+                    cancellationToken);
+            RepairIdentity(set, games, identity);
+            // Executed games are the legacy authority for this mirror. New work
+            // is pinned at admission, while this retains the historical finalizer
+            // behavior for rows queued before exact identity existed.
+            set.GameRulesVersion = rulesVersion;
+
+            DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+            if (games.Any(match => match.Status == MatchStatus.Failed))
+            {
+                set.Status = MatchSetStatus.Failed;
+                set.CompletedAt = now;
+                await db.SaveChangesAsync(cancellationToken);
+                return await FinishAsync(RankedSetFinalizationOutcome.FailedSet);
+            }
 
             await LockBotsAsync(set.BotAId, set.BotBId, cancellationToken);
 
             double scoreA = ScoreForBotA(set, games);
             set.ScoreA = scoreA;
             set.ScoreB = MatchSet.Games - scoreA;
-            set.GameRulesVersion = ladders[0];
 
             BotRating ratingA = await GetOrCreateRatingAsync(
                 set.BotAId,
-                ladders[0],
+                rulesVersion,
+                identity,
                 cancellationToken);
             BotRating ratingB = await GetOrCreateRatingAsync(
                 set.BotBId,
-                ladders[0],
+                rulesVersion,
+                identity,
                 cancellationToken);
             set.RatingABefore = ratingA.Rating;
             set.RatingBBefore = ratingB.Rating;
@@ -204,6 +217,7 @@ public sealed class RankedMatchSetFinalizer(
     private async Task<BotRating> GetOrCreateRatingAsync(
         Guid botId,
         string rulesVersion,
+        LegacyCompetitionIdentity identity,
         CancellationToken cancellationToken)
     {
         BotRating? rating = await db.BotRatings.SingleOrDefaultAsync(
@@ -212,15 +226,83 @@ public sealed class RankedMatchSetFinalizer(
                 candidate.RulesVersion == rulesVersion,
             cancellationToken);
         if (rating is not null)
+        {
+            RepairIdentity(
+                rating.LadderId,
+                identity.LadderId,
+                value => rating.LadderId = value,
+                nameof(BotRating),
+                rating.Id,
+                nameof(BotRating.LadderId),
+                rulesVersion);
             return rating;
+        }
 
         rating = new BotRating
         {
             BotId = botId,
             RulesVersion = rulesVersion,
+            LadderId = identity.LadderId,
         };
         db.BotRatings.Add(rating);
         return rating;
+    }
+
+    private static void RepairIdentity(
+        MatchSet set,
+        IReadOnlyList<Match> games,
+        LegacyCompetitionIdentity identity)
+    {
+        RepairIdentity(
+            set.PlaylistVersionId,
+            identity.PlaylistVersionId,
+            value => set.PlaylistVersionId = value,
+            nameof(MatchSet),
+            set.Id,
+            nameof(MatchSet.PlaylistVersionId),
+            identity.RulesVersion);
+        RepairIdentity(
+            set.LadderId,
+            identity.LadderId,
+            value => set.LadderId = value,
+            nameof(MatchSet),
+            set.Id,
+            nameof(MatchSet.LadderId),
+            identity.RulesVersion);
+        foreach (Match game in games)
+        {
+            RepairIdentity(
+                game.PlaylistVersionId,
+                identity.PlaylistVersionId,
+                value => game.PlaylistVersionId = value,
+                nameof(Match),
+                game.Id,
+                nameof(Match.PlaylistVersionId),
+                identity.RulesVersion);
+        }
+    }
+
+    private static void RepairIdentity(
+        Guid? actual,
+        Guid expected,
+        Action<Guid> fill,
+        string rowKind,
+        Guid rowId,
+        string field,
+        string rulesVersion)
+    {
+        if (actual is null)
+        {
+            fill(expected);
+            return;
+        }
+        if (actual.Value != expected)
+        {
+            throw new InvalidOperationException(
+                $"Competition identity contradiction for {rowKind} {rowId} " +
+                $"on rules version '{rulesVersion}': {field} is " +
+                $"{actual.Value:D}, expected {expected:D}.");
+        }
     }
 
     private static double ScoreForBotA(MatchSet set, IReadOnlyList<Match> games)

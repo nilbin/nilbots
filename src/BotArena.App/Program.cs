@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
@@ -99,6 +100,8 @@ else
 }
 builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
+builder.Services.AddScoped<LegacyCompetitionIdentityResolver>();
+builder.Services.AddScoped<LegacyCompetitionIdentityBackfiller>();
 
 if (mode.RunsWeb)
 {

@@ -1,5 +1,6 @@
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
@@ -141,6 +142,10 @@ public class CosmeticEntitlementServiceIntegrationTests
         };
         db.Users.Add(user);
         db.Bots.AddRange(bot, opponent);
+        await db.SaveChangesAsync();
+        LegacyCompetitionIdentity identity =
+            await new LegacyCompetitionIdentityResolver(db)
+                .ResolveOrCreateAsync("0.5", "0.5");
 
         var matches = Enumerable.Range(
                 1,
@@ -151,6 +156,8 @@ public class CosmeticEntitlementServiceIntegrationTests
                 BotBId = opponent.Id,
                 BotAVersionId = Guid.NewGuid(),
                 BotBVersionId = Guid.NewGuid(),
+                PlaylistVersionId = identity.PlaylistVersionId,
+                LadderId = identity.LadderId,
                 Status = MatchSetStatus.Completed,
                 CompletedAt = DateTime.UtcNow,
             })
@@ -194,5 +201,77 @@ public class CosmeticEntitlementServiceIntegrationTests
             UserNotificationContracts.ToResponse(notification);
         var payload = Assert.IsType<EntitlementEarnedPayload>(response.Payload);
         Assert.Equal(2, payload.Items.Count);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task NonAwardingLadderDoesNotContributeOrMintAchievements()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using var db = await database.CreateMigratedContextAsync();
+
+        string suffix = Guid.NewGuid().ToString("N");
+        var user = new User
+        {
+            DisplayName = "non-awarding-ladder",
+            Email = $"non-awarding-{suffix}@example.test",
+            PasswordHash = "not-used",
+        };
+        var bot = new Bot
+        {
+            OwnerUserId = user.Id,
+            Name = "Non-awarding Bot",
+            Slug = $"non-awarding-bot-{suffix}",
+        };
+        var opponent = new Bot
+        {
+            OwnerUserId = user.Id,
+            Name = "Non-awarding Opponent",
+            Slug = $"non-awarding-opponent-{suffix}",
+        };
+        db.AddRange(user, bot, opponent);
+        await db.SaveChangesAsync();
+
+        const string rulesVersion = "cosmetic-policy-no-marker";
+        LegacyCompetitionIdentity identity =
+            await new LegacyCompetitionIdentityResolver(db)
+                .ResolveOrCreateAsync(rulesVersion, rulesVersion);
+        Ladder ladder = await db.Ladders.SingleAsync(
+            candidate => candidate.Id == identity.LadderId);
+        ladder.AwardsAchievements = false;
+
+        var set = new MatchSet
+        {
+            BotAId = bot.Id,
+            BotBId = opponent.Id,
+            BotAVersionId = Guid.NewGuid(),
+            BotBVersionId = Guid.NewGuid(),
+            GameRulesVersion = rulesVersion,
+            PlaylistVersionId = identity.PlaylistVersionId,
+            LadderId = identity.LadderId,
+            Status = MatchSetStatus.Completed,
+            CompletedAt = DateTime.UtcNow,
+        };
+        db.MatchSets.Add(set);
+        db.BotRatings.Add(new BotRating
+        {
+            BotId = bot.Id,
+            RulesVersion = rulesVersion,
+            LadderId = identity.LadderId,
+            Rating = CosmeticAchievementService.PeakRatingTarget + 100,
+        });
+        await db.SaveChangesAsync();
+
+        var entitlements = new CosmeticEntitlementService(
+            db,
+            CosmeticCatalog.LoadDefault());
+        var achievements = new CosmeticAchievementService(db, entitlements);
+
+        Assert.Equal(0, await achievements.CountRankedMatchesAsync(user.Id));
+        Assert.Equal(0, await achievements.BestOfficialRatingAsync(user.Id));
+        Assert.Equal(
+            0,
+            await achievements.AwardForCompletedRankedSetAsync(set.Id));
+        Assert.Empty(await db.EntitlementGrants.ToArrayAsync());
     }
 }

@@ -11,6 +11,16 @@ namespace BotArena.App.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterColumn<string>(
+                name: "RulesVersion",
+                table: "BotRatings",
+                type: "character varying(100)",
+                maxLength: 100,
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "character varying(40)",
+                oldMaxLength: 40);
+
             migrationBuilder.AddColumn<Guid>(
                 name: "PlaylistVersionId",
                 table: "Matches",
@@ -34,6 +44,27 @@ namespace BotArena.App.Migrations
                 table: "BotRatings",
                 type: "uuid",
                 nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "SeasonOpeningRank",
+                table: "BotRatings",
+                type: "integer",
+                nullable: true);
+
+            migrationBuilder.AddCheckConstraint(
+                name: "CK_BotRatings_SeasonOpeningRank_Positive",
+                table: "BotRatings",
+                sql: "\"SeasonOpeningRank\" IS NULL OR \"SeasonOpeningRank\" > 0");
+
+            migrationBuilder.AddCheckConstraint(
+                name: "CK_BotRatings_SeasonOpeningRank_RequiresLadder",
+                table: "BotRatings",
+                sql: "\"SeasonOpeningRank\" IS NULL OR \"LadderId\" IS NOT NULL");
+
+            migrationBuilder.AddCheckConstraint(
+                name: "CK_MatchSets_CompetitionIdentity_Paired",
+                table: "MatchSets",
+                sql: "(\"PlaylistVersionId\" IS NULL AND \"LadderId\" IS NULL) OR (\"PlaylistVersionId\" IS NOT NULL AND \"LadderId\" IS NOT NULL)");
 
             migrationBuilder.CreateTable(
                 name: "Playlists",
@@ -108,7 +139,7 @@ namespace BotArena.App.Migrations
                     SeasonId = table.Column<Guid>(type: "uuid", nullable: false),
                     Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     RatingPolicyId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    LegacyRulesVersion = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: true),
+                    LegacyRulesVersion = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     IsListed = table.Column<bool>(type: "boolean", nullable: false),
                     AwardsAchievements = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -311,6 +342,18 @@ namespace BotArena.App.Migrations
                 name: "IX_BotRatings_LadderId_Rating_BotId",
                 table: "BotRatings");
 
+            migrationBuilder.DropCheckConstraint(
+                name: "CK_BotRatings_SeasonOpeningRank_Positive",
+                table: "BotRatings");
+
+            migrationBuilder.DropCheckConstraint(
+                name: "CK_BotRatings_SeasonOpeningRank_RequiresLadder",
+                table: "BotRatings");
+
+            migrationBuilder.DropCheckConstraint(
+                name: "CK_MatchSets_CompetitionIdentity_Paired",
+                table: "MatchSets");
+
             migrationBuilder.DropColumn(
                 name: "PlaylistVersionId",
                 table: "Matches");
@@ -326,6 +369,20 @@ namespace BotArena.App.Migrations
             migrationBuilder.DropColumn(
                 name: "LadderId",
                 table: "BotRatings");
+
+            migrationBuilder.DropColumn(
+                name: "SeasonOpeningRank",
+                table: "BotRatings");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "RulesVersion",
+                table: "BotRatings",
+                type: "character varying(40)",
+                maxLength: 40,
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "character varying(100)",
+                oldMaxLength: 100);
         }
     }
 }

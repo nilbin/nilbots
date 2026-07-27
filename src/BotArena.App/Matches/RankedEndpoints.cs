@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,7 @@ public static class RankedEndpoints
                    MatchAdmissionService admission,
                    MatchParticipantSnapshotFactory snapshots,
                    MatchExecutionSettings matchSettings,
+                   LegacyCompetitionIdentityResolver identityResolver,
                    RankedSetLimits rankedLimits,
                    TimeProvider timeProvider,
                    HttpContext http,
@@ -153,6 +155,11 @@ public static class RankedEndpoints
                 return admittedB.Error!.ToProblemDetails(http);
             AdmittedMatchBot participantB = admittedB.Value!;
             Bot botB = participantB.Bot;
+            LegacyCompetitionIdentity identity =
+                await identityResolver.ResolveOrCreateAsync(
+                    setRules.RulesVersion,
+                    matchSettings.MatchRules.RulesVersion,
+                    cancellationToken);
 
             var set = new MatchSet
             {
@@ -162,6 +169,8 @@ public static class RankedEndpoints
                 BotBVersionId = participantB.Version.Id,
                 RulesName = request.Rules is { Length: > 0 } ? request.Rules : null,
                 GameRulesVersion = setRules.RulesVersion,
+                PlaylistVersionId = identity.PlaylistVersionId,
+                LadderId = identity.LadderId,
                 RatingABefore = await LadderRating(
                     db,
                     botA.Id,
@@ -190,6 +199,7 @@ public static class RankedEndpoints
                         MatchSetId = set.Id,
                         SetGame = game,
                         GameRulesVersion = setRules.RulesVersion,
+                        PlaylistVersionId = identity.PlaylistVersionId,
                         RuntimeConfigurationVersion =
                             set.RuntimeConfigurationVersion,
                     };

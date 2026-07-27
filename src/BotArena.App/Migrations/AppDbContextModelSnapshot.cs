@@ -194,8 +194,11 @@ namespace BotArena.App.Migrations
 
                     b.Property<string>("RulesVersion")
                         .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("SeasonOpeningRank")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -213,7 +216,12 @@ namespace BotArena.App.Migrations
                         .IsDescending(false, true, false)
                         .HasFilter("\"LadderId\" IS NOT NULL");
 
-                    b.ToTable("BotRatings");
+                    b.ToTable("BotRatings", t =>
+                        {
+                            t.HasCheckConstraint("CK_BotRatings_SeasonOpeningRank_Positive", "\"SeasonOpeningRank\" IS NULL OR \"SeasonOpeningRank\" > 0");
+
+                            t.HasCheckConstraint("CK_BotRatings_SeasonOpeningRank_RequiresLadder", "\"SeasonOpeningRank\" IS NULL OR \"LadderId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Bots.BotVersion", b =>
@@ -311,8 +319,8 @@ namespace BotArena.App.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("LegacyRulesVersion")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<Guid>("PlaylistVersionId")
                         .HasColumnType("uuid");
@@ -816,7 +824,10 @@ namespace BotArena.App.Migrations
 
                     b.HasIndex("LadderId", "CreatedAt");
 
-                    b.ToTable("MatchSets");
+                    b.ToTable("MatchSets", t =>
+                        {
+                            t.HasCheckConstraint("CK_MatchSets_CompetitionIdentity_Paired", "(\"PlaylistVersionId\" IS NULL AND \"LadderId\" IS NULL) OR (\"PlaylistVersionId\" IS NOT NULL AND \"LadderId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Notifications.DeviceRegistration", b =>

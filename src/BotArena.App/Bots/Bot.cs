@@ -38,6 +38,12 @@ public class BotRating
     public const double DefaultRating = 1200;
     public double Rating { get; set; } = DefaultRating;
     public int RankedSets { get; set; }
+    /// <summary>
+    /// Competition rank captured in the ladder's season-opening snapshot. Null
+    /// covers legacy ratings, ladders without that snapshot, and bots entering
+    /// after the season opened; it is not a mid-season entry rank.
+    /// </summary>
+    public int? SeasonOpeningRank { get; set; }
 }
 
 public enum BuildStatus

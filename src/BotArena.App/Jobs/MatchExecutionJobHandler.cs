@@ -1,4 +1,5 @@
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
@@ -14,6 +15,7 @@ public sealed class MatchExecutionJobHandler(
     IObjectStore objectStore,
     MatchReplayWriter replayWriter,
     RankedMatchSetFinalizer setFinalizer,
+    LegacyCompetitionIdentityResolver identityResolver,
     CosmeticEntitlementService entitlements,
     MatchExecutionSettings settings,
     TimeProvider timeProvider)
@@ -50,14 +52,81 @@ public sealed class MatchExecutionJobHandler(
                     cancellationToken));
             }
 
-            GameRules rules = settings.MatchRules;
-            if (match.MatchSetId is Guid rulesSetId &&
-                await db.MatchSets
-                    .Where(set => set.Id == rulesSetId)
-                    .Select(set => set.RulesName)
-                    .SingleAsync(cancellationToken) is { Length: > 0 } pinned)
+            string? pinnedRulesName = null;
+            MatchSet? owningSet = null;
+            if (match.MatchSetId is Guid rulesSetId)
             {
-                rules = GameRules.Resolve(pinned);
+                owningSet = await db.MatchSets.SingleAsync(
+                    set => set.Id == rulesSetId,
+                    cancellationToken);
+                pinnedRulesName = owningSet.RulesName;
+            }
+
+            GameRules rules;
+            if (match.PlaylistVersionId is Guid playlistVersionId)
+            {
+                PlaylistVersion playlistVersion =
+                    await db.PlaylistVersions
+                        .AsNoTracking()
+                        .SingleAsync(
+                            candidate =>
+                                candidate.Id == playlistVersionId,
+                            cancellationToken);
+                if (!string.Equals(
+                        playlistVersion.RulesetId,
+                        match.GameRulesVersion,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Match {match.Id} playlist rules " +
+                        $"'{playlistVersion.RulesetId}' contradict stored rules " +
+                        $"'{match.GameRulesVersion}'.");
+                }
+                if (owningSet is not null &&
+                    (owningSet.PlaylistVersionId != playlistVersionId ||
+                     !string.Equals(
+                         owningSet.GameRulesVersion,
+                         match.GameRulesVersion,
+                         StringComparison.Ordinal)))
+                {
+                    throw new InvalidOperationException(
+                        $"Match {match.Id} competition identity contradicts " +
+                        $"MatchSet {owningSet.Id}.");
+                }
+
+                rules = pinnedRulesName is { Length: > 0 }
+                    ? GameRules.Resolve(pinnedRulesName)
+                    : ResolveStoredRulesVersion(match.GameRulesVersion);
+                if (!string.Equals(
+                        rules.RulesVersion,
+                        match.GameRulesVersion,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Match {match.Id} resolved rules " +
+                        $"'{rules.RulesVersion}' contradict its pinned playlist " +
+                        $"rules '{match.GameRulesVersion}'.");
+                }
+            }
+            else
+            {
+                // Compatibility path for work inserted by an old image during
+                // the additive migration window. Resolve its historical
+                // execution behavior first, then repair the nullable mirrors
+                // before it can reach settlement.
+                rules = pinnedRulesName is { Length: > 0 }
+                    ? GameRules.Resolve(pinnedRulesName)
+                    : settings.MatchRules;
+                LegacyCompetitionIdentity identity =
+                    await identityResolver.ResolveOrCreateAsync(
+                        rules.RulesVersion,
+                        settings.MatchRules.RulesVersion,
+                        cancellationToken);
+                RepairCompetitionIdentity(
+                    match,
+                    owningSet,
+                    rules.RulesVersion,
+                    identity);
             }
 
             List<string> modulePaths = [];
@@ -195,5 +264,84 @@ public sealed class MatchExecutionJobHandler(
         }
         if (match.MatchSetId is Guid setId)
             await setFinalizer.TryFinalizeAsync(setId, cancellationToken);
+    }
+
+    private static GameRules ResolveStoredRulesVersion(string rulesVersion)
+    {
+        foreach (string name in GameRules.KnownNames)
+        {
+            GameRules candidate = GameRules.Resolve(name);
+            if (string.Equals(
+                    candidate.RulesVersion,
+                    rulesVersion,
+                    StringComparison.Ordinal))
+            {
+                return candidate;
+            }
+        }
+        throw new InvalidOperationException(
+            $"Stored rules version '{rulesVersion}' is not executable by this image.");
+    }
+
+    private static void RepairCompetitionIdentity(
+        Match match,
+        MatchSet? set,
+        string executedRulesVersion,
+        LegacyCompetitionIdentity identity)
+    {
+        match.GameRulesVersion = executedRulesVersion;
+        Repair(
+            match.PlaylistVersionId,
+            identity.PlaylistVersionId,
+            value => match.PlaylistVersionId = value,
+            nameof(Match),
+            match.Id,
+            nameof(Match.PlaylistVersionId));
+        if (set is null)
+            return;
+        if (!string.Equals(
+                set.GameRulesVersion,
+                executedRulesVersion,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"MatchSet {set.Id} rules '{set.GameRulesVersion}' contradict " +
+                $"executed legacy rules '{executedRulesVersion}'.");
+        }
+        Repair(
+            set.PlaylistVersionId,
+            identity.PlaylistVersionId,
+            value => set.PlaylistVersionId = value,
+            nameof(MatchSet),
+            set.Id,
+            nameof(MatchSet.PlaylistVersionId));
+        Repair(
+            set.LadderId,
+            identity.LadderId,
+            value => set.LadderId = value,
+            nameof(MatchSet),
+            set.Id,
+            nameof(MatchSet.LadderId));
+    }
+
+    private static void Repair(
+        Guid? actual,
+        Guid expected,
+        Action<Guid> fill,
+        string rowKind,
+        Guid rowId,
+        string field)
+    {
+        if (actual is null)
+        {
+            fill(expected);
+            return;
+        }
+        if (actual.Value != expected)
+        {
+            throw new InvalidOperationException(
+                $"Competition identity contradiction for {rowKind} {rowId}: " +
+                $"{field} is {actual.Value:D}, expected {expected:D}.");
+        }
     }
 }

@@ -22,9 +22,10 @@ public class MatchSet
     public Guid BotBId { get; set; }
     public Guid BotAVersionId { get; set; }
     public Guid BotBVersionId { get; set; }
-    /// <summary>The rules NAME the challenger pinned (null = server default at execution
-    /// time). The worker resolves this when running each game; GameRulesVersion below is
-    /// the resolved version string and the elo ladder the set moves (DECISIONS #54).</summary>
+    /// <summary>The legacy rules NAME the challenger supplied. Identity-bearing
+    /// sets execute the exact playlist/rules version pinned below; only rows
+    /// written by an old image with no playlist identity retain the historical
+    /// null-means-server-default execution behavior.</summary>
     public string? RulesName { get; set; }
     public string GameRulesVersion { get; set; } = Engine.BotArenaVersions.GameRulesVersion;
     public string RuntimeConfigurationVersion { get; set; } = Engine.BotArenaVersions.RuntimeConfigurationVersion;

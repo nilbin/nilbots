@@ -4,6 +4,7 @@ using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Npgsql;
 
@@ -29,6 +30,21 @@ public sealed class CompetitionPersistenceTests
         Assert.Equal(
             typeof(Guid?),
             Property<BotRating>(db, nameof(BotRating.LadderId)).ClrType);
+        Assert.Equal(
+            100,
+            Property<BotRating>(
+                db,
+                nameof(BotRating.RulesVersion)).GetMaxLength());
+        Assert.Equal(
+            100,
+            Property<Ladder>(
+                db,
+                nameof(Ladder.LegacyRulesVersion)).GetMaxLength());
+        Assert.Equal(
+            typeof(int?),
+            Property<BotRating>(
+                db,
+                nameof(BotRating.SeasonOpeningRank)).ClrType);
     }
 
     [Fact]
@@ -60,6 +76,56 @@ public sealed class CompetitionPersistenceTests
                         nameof(BotRating.Rating),
                         nameof(BotRating.BotId),
                     ]));
+    }
+
+    [Fact]
+    public void SeasonOpeningRankIsPositiveWhenPresent()
+    {
+        using AppDbContext db = CreateModelContext();
+        IModel designTimeModel = db.GetService<IDesignTimeModel>().Model;
+        IEntityType rating =
+            designTimeModel.FindEntityType(typeof(BotRating))
+            ?? throw new InvalidOperationException(
+                $"{nameof(BotRating)} is not in the EF design-time model.");
+        ICheckConstraint constraint = Assert.Single(
+            rating.GetCheckConstraints(),
+            candidate =>
+                candidate.Name ==
+                "CK_BotRatings_SeasonOpeningRank_Positive");
+
+        Assert.Equal(
+            "\"SeasonOpeningRank\" IS NULL OR \"SeasonOpeningRank\" > 0",
+            constraint.Sql);
+
+        ICheckConstraint ladderConstraint = Assert.Single(
+            rating.GetCheckConstraints(),
+            candidate =>
+                candidate.Name ==
+                "CK_BotRatings_SeasonOpeningRank_RequiresLadder");
+        Assert.Equal(
+            "\"SeasonOpeningRank\" IS NULL OR \"LadderId\" IS NOT NULL",
+            ladderConstraint.Sql);
+    }
+
+    [Fact]
+    public void MatchSetCompetitionIdentityIsAllOrNothing()
+    {
+        using AppDbContext db = CreateModelContext();
+        IModel designTimeModel = db.GetService<IDesignTimeModel>().Model;
+        IEntityType set =
+            designTimeModel.FindEntityType(typeof(MatchSet))
+            ?? throw new InvalidOperationException(
+                $"{nameof(MatchSet)} is not in the EF design-time model.");
+        ICheckConstraint constraint = Assert.Single(
+            set.GetCheckConstraints(),
+            candidate =>
+                candidate.Name ==
+                "CK_MatchSets_CompetitionIdentity_Paired");
+
+        Assert.Equal(
+            "(\"PlaylistVersionId\" IS NULL AND \"LadderId\" IS NULL) OR " +
+            "(\"PlaylistVersionId\" IS NOT NULL AND \"LadderId\" IS NOT NULL)",
+            constraint.Sql);
     }
 
     [Fact]
@@ -163,9 +229,139 @@ public sealed class CompetitionPersistenceTests
         await db.SaveChangesAsync();
 
         Assert.Null(rating.LadderId);
+        Assert.Null(rating.SeasonOpeningRank);
         Assert.Null(set.PlaylistVersionId);
         Assert.Null(set.LadderId);
         Assert.Null(match.PlaylistVersionId);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task MigratedDatabaseRejectsInvalidSeasonOpeningRank()
+    {
+        await using var database =
+            await PostgreSqlDatabaseFixture.CreateAsync();
+        await using AppDbContext db =
+            await database.CreateMigratedContextAsync();
+        var user = new User
+        {
+            DisplayName = "season-opening-rank",
+            Email = $"season-opening-rank-{Guid.NewGuid():N}@example.test",
+            PasswordHash = "not-used",
+        };
+        var bot = new Bot
+        {
+            OwnerUserId = user.Id,
+            Name = "Season rank",
+            Slug = $"season-rank-{Guid.NewGuid():N}",
+        };
+        db.AddRange(user, bot);
+        await db.SaveChangesAsync();
+        LegacyCompetitionIdentity validIdentity =
+            await new LegacyCompetitionIdentityResolver(db)
+                .ResolveOrCreateAsync(
+                    "season-rank-valid",
+                    "season-rank-valid");
+
+        var valid = new BotRating
+        {
+            BotId = bot.Id,
+            RulesVersion = "season-rank-valid",
+            LadderId = validIdentity.LadderId,
+            SeasonOpeningRank = 1,
+        };
+        db.Add(valid);
+        await db.SaveChangesAsync();
+
+        LegacyCompetitionIdentity invalidIdentity =
+            await new LegacyCompetitionIdentityResolver(db)
+                .ResolveOrCreateAsync(
+                    "season-rank-invalid",
+                    "season-rank-valid");
+        var invalid = new BotRating
+        {
+            BotId = bot.Id,
+            RulesVersion = "season-rank-invalid",
+            LadderId = invalidIdentity.LadderId,
+            SeasonOpeningRank = 0,
+        };
+        db.Add(invalid);
+
+        DbUpdateException exception =
+            await Assert.ThrowsAsync<DbUpdateException>(
+                () => db.SaveChangesAsync());
+        var databaseException =
+            Assert.IsType<PostgresException>(exception.InnerException);
+        Assert.Equal(PostgresErrorCodes.CheckViolation, databaseException.SqlState);
+        Assert.Equal(
+            "CK_BotRatings_SeasonOpeningRank_Positive",
+            databaseException.ConstraintName);
+
+        db.Entry(invalid).State = EntityState.Detached;
+        var missingLadder = new BotRating
+        {
+            BotId = bot.Id,
+            RulesVersion = "season-rank-no-ladder",
+            SeasonOpeningRank = 1,
+        };
+        db.Add(missingLadder);
+
+        exception = await Assert.ThrowsAsync<DbUpdateException>(
+            () => db.SaveChangesAsync());
+        databaseException =
+            Assert.IsType<PostgresException>(exception.InnerException);
+        Assert.Equal(PostgresErrorCodes.CheckViolation, databaseException.SqlState);
+        Assert.Equal(
+            "CK_BotRatings_SeasonOpeningRank_RequiresLadder",
+            databaseException.ConstraintName);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task MigratedDatabaseRejectsPartialMatchSetIdentity()
+    {
+        await using var database =
+            await PostgreSqlDatabaseFixture.CreateAsync();
+        await using AppDbContext db =
+            await database.CreateMigratedContextAsync();
+        LegacyCompetitionIdentity identity =
+            await new LegacyCompetitionIdentityResolver(db)
+                .ResolveOrCreateAsync("paired-identity", "paired-identity");
+
+        MatchSet playlistOnly = CreateSet();
+        playlistOnly.PlaylistVersionId = identity.PlaylistVersionId;
+        db.Add(playlistOnly);
+        await AssertPairedIdentityViolationAsync(db);
+        db.Entry(playlistOnly).State = EntityState.Detached;
+
+        MatchSet ladderOnly = CreateSet();
+        ladderOnly.LadderId = identity.LadderId;
+        db.Add(ladderOnly);
+        await AssertPairedIdentityViolationAsync(db);
+
+        static MatchSet CreateSet() =>
+            new()
+            {
+                BotAId = Guid.NewGuid(),
+                BotBId = Guid.NewGuid(),
+                BotAVersionId = Guid.NewGuid(),
+                BotBVersionId = Guid.NewGuid(),
+            };
+
+        static async Task AssertPairedIdentityViolationAsync(AppDbContext db)
+        {
+            DbUpdateException exception =
+                await Assert.ThrowsAsync<DbUpdateException>(
+                    () => db.SaveChangesAsync());
+            var databaseException =
+                Assert.IsType<PostgresException>(exception.InnerException);
+            Assert.Equal(
+                PostgresErrorCodes.CheckViolation,
+                databaseException.SqlState);
+            Assert.Equal(
+                "CK_MatchSets_CompetitionIdentity_Paired",
+                databaseException.ConstraintName);
+        }
     }
 
     [SkippableFact]
@@ -201,11 +397,11 @@ public sealed class CompetitionPersistenceTests
         await db.SaveChangesAsync();
 
         version.GameModeId = "changed";
-        DbUpdateException exception =
-            await Assert.ThrowsAsync<DbUpdateException>(
+        Exception exception =
+            await Assert.ThrowsAnyAsync<Exception>(
                 () => db.SaveChangesAsync());
-        var databaseException =
-            Assert.IsType<PostgresException>(exception.InnerException);
+        PostgresException databaseException =
+            InnerException<PostgresException>(exception);
         Assert.Equal("55000", databaseException.SqlState);
     }
 
@@ -237,4 +433,20 @@ public sealed class CompetitionPersistenceTests
 
     private static IEnumerable<string> PropertyNames(IIndex index) =>
         index.Properties.Select(property => property.Name);
+
+    private static TException InnerException<TException>(
+        Exception exception)
+        where TException : Exception
+    {
+        for (Exception? candidate = exception;
+             candidate is not null;
+             candidate = candidate.InnerException)
+        {
+            if (candidate is TException typed)
+                return typed;
+        }
+        throw new Xunit.Sdk.XunitException(
+            $"Expected {typeof(TException).Name} in the exception chain, " +
+            $"but received {exception}.");
+    }
 }
