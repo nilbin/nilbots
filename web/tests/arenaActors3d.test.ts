@@ -83,62 +83,53 @@ test('a firing bot recoils, and only while its shot is in progress', () => {
   actors.dispose();
 });
 
-test('a bot drifts through a corner and is never still when it is not', () => {
+test('a bot drifts through a corner in the open, and not beside a wall', () => {
   const actors = buildActors(replay);
-  // An *isolated* corner: a bot that turns and then does not turn again for two ticks.
-  // A bot spinning several ticks running holds full slip throughout — correctly, and it
-  // never recovers inside the window this test is about.
-  let turn = -1;
-  let turning: ReplayStableUnitKey | null = null;
-  for (let index = 0; index < replay.ticks.length - 3 && turn < 0; index++) {
-    for (const event of replay.ticks[index].events) {
+  const solid = (x: number, y: number) => {
+    const row = replay.map.tileRows[y];
+    return row === undefined || row[x] === undefined || row[x] === '#';
+  };
+  const boxedIn = (x: number, y: number) =>
+    [-1, 0, 1].some((dx) => [-1, 0, 1].some((dy) => (dx || dy) && solid(x + dx, y + dy)));
+
+  // Every turn in the fixture, split by whether the bot had room to throw its weight about.
+  const turns: { tick: number; unitKey: ReplayStableUnitKey; open: boolean }[] = [];
+  for (const [index, tick] of replay.ticks.entries())
+    for (const event of tick.events) {
       if (event.type !== 'turn' || !event.sourceActor) continue;
-      const actorKey = event.sourceActor.actorKey;
-      const spinning = [1, 2, 3].some((ahead) =>
-        replay.ticks[index + ahead]?.events.some(
-          (later) => later.type === 'turn' && later.sourceActor?.actorKey === actorKey,
-        ),
+      const actor = tick.after.actors.find(
+        (candidate) => candidate.actorKey === event.sourceActor!.actorKey,
       );
-      if (!spinning) {
-        turn = index;
-        turning = event.sourceActor.unitKey;
-        break;
-      }
+      if (!actor) continue;
+      turns.push({
+        tick: index,
+        unitKey: event.sourceActor.unitKey,
+        open: !boxedIn(actor.position.x, actor.position.y),
+      });
     }
-  }
-  assert.ok(turn >= 0 && turning, 'the fixture has a bot taking a corner on its own');
-  const chassis = chassisOf(actors.group, turning);
-  const body = chassis.children.find((child) => child.type === 'Group')!;
 
-  // The slip peaks a little *after* the rotation finishes, and that is the whole point:
-  // driven straight from the angular rate it existed only while the bot was turning, which
-  // is one tick — gone before it read as anything.
-  actors.update(turn + 0.75, null, false);
-  const lean = Math.abs(body.rotation.x);
-  const slide = Math.abs(body.position.z);
-  assert.ok(lean > 0.25, `banked hard into the corner (${lean})`);
-  assert.ok(slide > 0.15, `back end stepped out (${slide})`);
+  const leanAt = (unitKey: ReplayStableUnitKey, at: number) => {
+    actors.update(at, null, false);
+    const body = chassisOf(actors.group, unitKey).children.find((c) => c.type === 'Group')!;
+    return { lean: Math.abs(body.rotation.x), slide: Math.abs(body.position.z) };
+  };
 
-  // Still sliding a whole tick after the turn completed…
-  actors.update(turn + 1.4, null, false);
-  assert.ok(Math.abs(body.position.z) > slide * 0.4, 'the slide outlives the rotation');
+  // In the open it banks hard, a little after the rotation finishes.
+  const open = turns.find((turn) => turn.open);
+  assert.ok(open, 'the fixture takes at least one corner away from a wall');
+  const drifting = leanAt(open.unitKey, open.tick + 0.75);
+  assert.ok(drifting.lean > 0.25, `banked into the open corner (${drifting.lean})`);
+  assert.ok(drifting.slide > 0.15, `back end stepped out (${drifting.slide})`);
 
-  // …and unwound a tick after that, rather than left cocked over for the rest of the match.
-  actors.update(turn + 2.6, null, false);
-  assert.ok(Math.abs(body.rotation.x) < lean * 0.3, 'recovers out of the corner');
-
-  // Idle life: a bot doing nothing still moves, and moves differently a moment later.
-  const still = replay.ticks.findIndex((tick, index) =>
-    index > 0 && tick.events.length === 0,
-  );
-  if (still > 0) {
-    const idle = chassisOf(actors.group, replay.units[0].unitKey)
-      .children.find((c) => c.type === 'Group')!;
-    actors.update(still + 0.1, null, false);
-    const first = idle.position.z;
-    actors.update(still + 0.6, null, false);
-    assert.notEqual(idle.position.z, first, 'not frozen between frames');
-  }
+  // Beside a wall it does not, at all. Damping the parts that reached towards the wall was
+  // tried twice and leaked both times — the nose swings diagonally, into a tile neither
+  // check was looking at — so a bot with a wall anywhere around it simply does not drift.
+  const walled = turns.find((turn) => !turn.open);
+  assert.ok(walled, 'the fixture also turns beside a wall');
+  const held = leanAt(walled.unitKey, walled.tick + 0.75);
+  // Only the idle sway is left, which is an order of magnitude smaller than a drift.
+  assert.ok(held.lean < 0.1, `no bank against the wall (${held.lean})`);
+  assert.ok(held.slide < 0.1, `no slide into the wall (${held.slide})`);
 
   actors.dispose();
 });
@@ -208,4 +199,42 @@ test('a hit throws a shockwave, and only at the instant it lands', () => {
   assert.equal(showing(), 0, 'spent by the following tick');
 
   overlays.dispose();
+});
+
+test('deploying into an emplacement never runs backwards', () => {
+  // The bug this pins: the tip was driven by the tick's own pending transition while one
+  // existed and by a fixed span from the change event once it did not. The two disagreed
+  // about the length and handed over mid-animation, so the deploy ran two thirds of the
+  // way, jumped back, and ran again.
+  const frontline = loadReplayJson(
+    readFileSync(join(import.meta.dirname, 'fixtures', 'frontline-replay-v2.json'), 'utf8'),
+  ).replay;
+  const emplacing = frontline.ticks
+    .flatMap((tick) => tick.events)
+    .find(
+      (event) =>
+        event.type === 'form-changed' &&
+        frontline.forms.find((form) => form.formId === event.toFormId)?.canMove === false,
+    );
+  assert.ok(emplacing?.sourceActor, 'the fixture deploys something into an emplacement');
+
+  const actors = buildActors(frontline);
+  const chassis = chassisOf(actors.group, emplacing.sourceActor.unitKey);
+  const body = chassis.children.find((child) => child.type === 'Group')!;
+  const tilt = body.children[0].children[0];
+
+  let previous = -Infinity;
+  for (let t = emplacing.tick - 1; t <= emplacing.tick + 3; t += 0.1) {
+    actors.update(t, null, false);
+    const angle = tilt.rotation.z;
+    assert.ok(
+      angle + 1e-6 >= previous,
+      `deploy reversed at t=${t.toFixed(2)}: ${previous.toFixed(3)} -> ${angle.toFixed(3)}`,
+    );
+    previous = angle;
+  }
+  // And it actually got somewhere, rather than passing by never moving at all.
+  assert.ok(previous > 1.5, `finished upright (${previous.toFixed(2)} rad)`);
+
+  actors.dispose();
 });

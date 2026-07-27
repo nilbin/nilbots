@@ -43,17 +43,25 @@ const cache = new Map<string, Promise<THREE.Group | null>>();
  * bolt, wholesale, keeping only its silhouette. Passing it here says "this is a bolt", and
  * the rule stays one rule — match the flat renderer, whichever way it goes.
  */
-export function chassisModel(url: string, paint?: THREE.Color): Promise<THREE.Group | null> {
-  const key = paint ? `${url}|${paint.getHexString()}` : url;
+export function chassisModel(
+  url: string,
+  paint?: THREE.Color,
+  sector?: 'front',
+): Promise<THREE.Group | null> {
+  const key = `${url}|${paint ? paint.getHexString() : ''}|${sector ?? 'whole'}`;
   const existing = cache.get(key);
   if (existing) return existing;
 
-  const built = load(url, paint).catch(() => null);
+  const built = load(url, paint, sector).catch(() => null);
   cache.set(key, built);
   return built;
 }
 
-async function load(url: string, paint?: THREE.Color): Promise<THREE.Group | null> {
+async function load(
+  url: string,
+  paint?: THREE.Color,
+  sector?: 'front',
+): Promise<THREE.Group | null> {
   const response = await fetch(url);
   if (!response.ok) return null;
   const markup = await response.text();
@@ -87,6 +95,37 @@ async function load(url: string, paint?: THREE.Color): Promise<THREE.Group | nul
     for (const shape of path.toShapes()) cutouts.push({ shape, fill, colour, rise });
   }
   if (cutouts.length === 0) return null;
+
+  // **The forward half only, when asked for it.** A turret is built by repeating one
+  // section of the chassis around an axis, and repeating the *whole* silhouette four times
+  // just gives four overlapping darts. The front is the part that reads as a business end,
+  // and four of those around a circle is a shape with no front at all — which is the point,
+  // for a form that fires in every direction.
+  //
+  // Sprites are drawn pointing east, so "front" is simply the greater half of x. The
+  // midline is taken from the silhouette rather than the viewBox, because a sprite is not
+  // obliged to fill the box it was drawn in.
+  if (sector === 'front') {
+    let minimum = Infinity;
+    let maximum = -Infinity;
+    for (const { shape } of cutouts)
+      for (const point of shape.getPoints()) {
+        minimum = Math.min(minimum, point.x);
+        maximum = Math.max(maximum, point.x);
+      }
+    const midline = minimum + (maximum - minimum) * 0.42;
+    const forward = cutouts.filter(({ shape }) => {
+      const points = shape.getPoints();
+      const centre = points.reduce((sum, point) => sum + point.x, 0) / Math.max(1, points.length);
+      return centre >= midline;
+    });
+    // A sprite whose forward half carries nothing keeps its whole self rather than
+    // vanishing — better a turret that looks like its bot than one that is not there.
+    if (forward.length > 0) {
+      cutouts.length = 0;
+      cutouts.push(...forward);
+    }
+  }
 
   // The bevel has to be a proportion of the drawing, not a constant. Authored as one it was
   // 0.02 against a 385-unit-wide sprite — arithmetically present, invisible on screen — and
