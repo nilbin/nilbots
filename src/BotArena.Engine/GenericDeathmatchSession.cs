@@ -11,13 +11,9 @@ namespace BotArena.Engine;
 public sealed class GenericDeathmatchSession : IDisposable
 {
     private readonly ActorResolvedMatchDefinition _definition;
-    private readonly GenericActorMatchDescriptor _matchDescriptor;
-    private readonly InMemoryGenericActorMatchChronologyRecorder _chronology =
-        new();
-    private readonly GenericActorRuntimeCoordinator _runtimes;
+    private readonly GenericActorMatchHost _host;
     private readonly DeathmatchModeKernel _mode;
     private readonly SplitReplicationKernel _split;
-    private readonly ulong _matchSeed;
     private readonly Dictionary<string, ActorFormDefinition> _forms;
     private readonly Dictionary<string, ActorVisionProfileDefinition>
         _visionProfiles;
@@ -42,8 +38,6 @@ public sealed class GenericDeathmatchSession : IDisposable
     private DeathmatchScoreState _scores;
     private long _nextAuthoritativeFactOrdinal;
     private long _nextProjectileId;
-    private int _operationGate;
-    private bool _disposed;
 
     /// <summary>
     /// Creates a match-scoped session and takes ownership of participant
@@ -56,16 +50,9 @@ public sealed class GenericDeathmatchSession : IDisposable
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(participants);
-        GenericActorParticipantConfiguration[] participantSnapshot =
-            [.. participants];
         ValidateSupportedDefinition(definition);
 
         _definition = definition;
-        _matchDescriptor = GenericActorMatchDescriptor.Create(
-            definition,
-            matchSeed,
-            participantSnapshot);
-        _matchSeed = matchSeed;
         _forms = definition.Rules.Forms.ToDictionary(
             form => form.Id,
             StringComparer.Ordinal);
@@ -94,9 +81,10 @@ public sealed class GenericDeathmatchSession : IDisposable
             (DeathmatchGameModeDefinition)definition.Rules.GameMode);
         _split = new SplitReplicationKernel(definition);
         _scores = _mode.CreateInitialState();
-        _runtimes = new GenericActorRuntimeCoordinator(
+        _host = new GenericActorMatchHost(
             definition,
-            participantSnapshot);
+            participants,
+            matchSeed);
 
         var initialEvents =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
@@ -135,13 +123,12 @@ public sealed class GenericDeathmatchSession : IDisposable
         }
         catch
         {
-            _runtimes.Dispose();
+            _host.Dispose();
             throw;
         }
 
         _priorResolvedEvents = initialEvents.ToImmutable();
-        _chronology.RecordInitial(
-            _matchDescriptor,
+        _host.RecordInitial(
             new GenericActorMatchInitialFrame(
                 SnapshotWorld(),
                 initialStarts.ToImmutable(),
@@ -164,12 +151,8 @@ public sealed class GenericDeathmatchSession : IDisposable
     {
         get
         {
-            // The descriptor carries the match seed. Generic runtimes receive
-            // only their derived actor-life seed, so exposing this object
-            // during an in-process callback would give that adapter more
-            // information than an isolated WASM runtime.
             ThrowIfOperationInProgress();
-            return _matchDescriptor;
+            return _host.Descriptor;
         }
     }
     public GenericActorMatchChronology Chronology
@@ -177,7 +160,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         get
         {
             ThrowIfOperationInProgress();
-            return _chronology.Snapshot;
+            return _host.Chronology;
         }
     }
 
@@ -331,7 +314,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         ValidateFrozenObservationBatch(tickStart, supplied);
 
         GenericActorRuntimeTickResult runtimeTick =
-            _runtimes.CollectTickDecisions(Tick, supplied);
+            _host.CollectTickDecisions(Tick, supplied);
         var resolutions = CreateActionResolutions(runtimeTick);
         var events =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
@@ -466,7 +449,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                         resolutions[turn.ActorId].ToPublic()))
                 .ToImmutableArray();
         GenericActorWorldSnapshot postState = SnapshotWorld();
-        _chronology.RecordResolvedTick(
+        _host.RecordResolvedTick(
             new GenericActorMatchTickFrame(
                 chronologyTick,
                 actorTurns,
@@ -475,7 +458,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 postState));
         if (terminal is not null)
         {
-            _chronology.RecordCompleted(
+            _host.RecordCompleted(
                 ToGenericResult(
                     terminal,
                     eligibleTeams,
@@ -512,12 +495,11 @@ public sealed class GenericDeathmatchSession : IDisposable
     public void Dispose()
     {
         using SessionOperation operation = EnterOperation(nameof(Dispose));
-        if (_disposed)
+        if (_host.IsDisposed)
             return;
-        _disposed = true;
         try
         {
-            _runtimes.Dispose();
+            _host.DisposeWithinOperation();
         }
         finally
         {
@@ -661,7 +643,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                     spawn.Position,
                     traversals);
             }
-            _runtimes.RetireLife(source.ActorId);
+            _host.RetireLife(source.ActorId);
             _lives.Remove(source.ActorId);
             _slots[(source.ActorId.TeamId, source.ActorId.UnitId)]
                 .ActiveLife = null;
@@ -718,7 +700,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             LifeState life = _lives[turn.ActorId];
             GenericActorRuntimeActionResolution.ResolvedAction accepted =
                 ToResolved(turn.AcceptedDecision);
-            _runtimes.TryProjectSubmittedAction(
+            _host.TryProjectSubmittedAction(
                 turn.SubmittedDecision,
                 out GenericActorRuntimeActionResolution.ResolvedAction?
                     submitted);
@@ -1307,7 +1289,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
         ActorIdentity[] retiredActors = participantBatch
             .SelectMany(participantId =>
-                _runtimes.ApplyDisqualification(participantId))
+                _host.ApplyDisqualification(participantId))
             .Order()
             .ToArray();
         foreach (ActorIdentity actorId in retiredActors)
@@ -1396,7 +1378,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             if (newlyDisqualified.Contains(life.ParticipantId))
                 continue;
             CancelSourceSplit(life.ActorId, "source-destroyed", events);
-            _runtimes.RetireLife(life.ActorId);
+            _host.RetireLife(life.ActorId);
             _lives.Remove(life.ActorId);
             SlotState slot = _slots[
                 (life.ActorId.TeamId, life.ActorId.UnitId)];
@@ -1788,7 +1770,7 @@ public sealed class GenericDeathmatchSession : IDisposable
         return new GenericActorRuntimeObservation(
             _definition.CapabilityVersions.ObservationSchemaVersion,
             Tick,
-            _runtimes.MatchContractFingerprint,
+            _host.MatchContractFingerprint,
             new GenericActorRuntimeObservation.ObservedSelfState(
                 observer.ActorId,
                 observer.Generation,
@@ -1801,7 +1783,7 @@ public sealed class GenericDeathmatchSession : IDisposable
                 observer.PreviousActionResolution,
                 PendingSameLifeTransition: null),
             TeamUnitObservations(observer.ActorId.TeamId),
-            _runtimes.ParticipantStatuses,
+            _host.ParticipantStatuses,
             allies,
             enemies,
             visibleTiles,
@@ -2494,28 +2476,15 @@ public sealed class GenericDeathmatchSession : IDisposable
         int? energy = attack is { MaxEnergy: > 0 }
             ? attack.MaxEnergy
             : null;
-        var runtimeStart = new GenericActorRuntimeStart
-        {
-            SchemaVersion =
-                _definition.CapabilityVersions.MatchStartSchemaVersion,
-            RuntimeContractVersion =
-                _definition.CapabilityVersions.RuntimeContractVersion,
-            ActorId = actorId,
-            ParticipantId = slot.ParticipantId,
-            ActorRandomSeed = SeedDerivation.DeriveActorSeed(
-                _matchSeed,
-                actorId,
-                _definition.Rules.SeedMechanics.SeedProfileId),
-            Origin = new GenericActorRuntimeStart.LifeOrigin(
+        GenericActorLifeStart lifeStart = _host.StartLife(
+            actorId,
+            slot.ParticipantId,
+            new GenericActorRuntimeStart.LifeOrigin(
                 reason,
                 generation,
                 parentActorId,
                 sourceTransitionId,
-                sourceOperationId),
-            Contract = _definition,
-        };
-        GenericActorLifeStart lifeStart =
-            GenericActorLifeStart.FromRuntimeStart(runtimeStart);
+                sourceOperationId));
         var life = new LifeState(
             actorId,
             slot.ParticipantId,
@@ -2531,7 +2500,6 @@ public sealed class GenericDeathmatchSession : IDisposable
             parentActorId,
             sourceTransitionId,
             sourceOperationId);
-        _runtimes.StartLife(runtimeStart);
         slot.NextLifeId = nextLifeId;
         slot.ActiveLife = life;
         slot.Kind = SlotKind.Active;
@@ -2697,7 +2665,7 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private ImmutableArray<int> EligibleTeamIds()
     {
-        HashSet<int> disqualified = _runtimes.ParticipantStatuses
+        HashSet<int> disqualified = _host.ParticipantStatuses
             .Where(status => status.Disqualified)
             .Select(status => status.ParticipantId)
             .ToHashSet();
@@ -2921,7 +2889,7 @@ public sealed class GenericDeathmatchSession : IDisposable
             _definition,
             Tick,
             _nextProjectileId,
-            _runtimes.ParticipantStatuses,
+            _host.ParticipantStatuses,
             slots,
             lives,
             _splitReservations,
@@ -3048,35 +3016,13 @@ public sealed class GenericDeathmatchSession : IDisposable
         }
     }
 
-    private void ThrowIfDisposed() =>
-        ObjectDisposedException.ThrowIf(_disposed, this);
+    private void ThrowIfDisposed() => _host.ThrowIfDisposed();
 
-    private void ThrowIfOperationInProgress()
-    {
-        if (Volatile.Read(ref _operationGate) != 0)
-        {
-            throw new InvalidOperationException(
-                "Authoritative session state cannot be inspected from inside a runtime callback.");
-        }
-    }
+    private void ThrowIfOperationInProgress() =>
+        _host.ThrowIfOperationInProgress();
 
-    private SessionOperation EnterOperation(string operationName)
-    {
-        if (Interlocked.CompareExchange(
-                ref _operationGate,
-                value: 1,
-                comparand: 0) != 0)
-        {
-            throw new InvalidOperationException(
-                $"GenericDeathmatchSession cannot enter '{operationName}' while another session operation is in progress.");
-        }
-        return new SessionOperation(this);
-    }
-
-    private void ExitOperation()
-    {
-        Volatile.Write(ref _operationGate, 0);
-    }
+    private SessionOperation EnterOperation(string operationName) =>
+        new(_host.EnterOperation(operationName));
 
     private readonly record struct ObservationAudienceKey(
         int TeamId,
@@ -3127,16 +3073,17 @@ public sealed class GenericDeathmatchSession : IDisposable
 
     private readonly struct SessionOperation : IDisposable
     {
-        private readonly GenericDeathmatchSession _owner;
+        private readonly GenericActorMatchHost.HostOperation _operation;
 
-        public SessionOperation(GenericDeathmatchSession owner)
+        public SessionOperation(
+            GenericActorMatchHost.HostOperation operation)
         {
-            _owner = owner;
+            _operation = operation;
         }
 
         public void Dispose()
         {
-            _owner.ExitOperation();
+            _operation.Dispose();
         }
     }
 
