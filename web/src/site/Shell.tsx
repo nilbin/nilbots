@@ -19,6 +19,7 @@ export default function Shell() {
           <TopLink to="/">Arena</TopLink>
           <TopLink to="/bots">Bots</TopLink>
           <TopLink to="/leaderboard">Leaderboard</TopLink>
+          <TopLink to="/store">Store</TopLink>
           <TopLink to="/docs">Docs</TopLink>
           {user && <TopLink to="/garage">My garage</TopLink>}
         </nav>

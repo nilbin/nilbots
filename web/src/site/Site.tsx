@@ -6,6 +6,7 @@ import { AuthProvider } from './auth';
 import Shell from './Shell';
 import ArenaPage from './pages/ArenaPage';
 import AuthPage from './pages/AuthPage';
+import StorePage from './pages/StorePage';
 import BotsPage from './pages/BotsPage';
 import BotDetailPage from './pages/BotDetailPage';
 import GaragePage from './pages/GaragePage';
@@ -51,6 +52,7 @@ export default function Site() {
             <Route path="/matches/:matchId" element={<MatchPage />} />
             <Route path="/sets/:setId" element={<MatchSetPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/store" element={<StorePage />} />
             <Route path="/docs" element={<DocsPage />} />
           </Route>
         </Routes>
