@@ -1,6 +1,8 @@
 import type {
   AdaptiveScoreState,
+  SoundtrackAdaptiveSeam,
   SoundtrackManifest,
+  SoundtrackRetrospectiveCue,
   SoundtrackSection,
   SoundtrackStem,
   SoundtrackTrigger,
@@ -21,6 +23,17 @@ export interface ScoreDirection {
   momentum: number;
 }
 
+export interface ScoreStartOptions {
+  /**
+   * Whole-replay timing is intentionally supplied as a live getter: cue assets
+   * may take seconds to download and decode while the replay keeps advancing.
+   */
+  retrospective?: {
+    primaryPeakSeconds: number;
+    getReplaySeconds: () => number;
+  };
+}
+
 interface DecodedSection {
   section: SoundtrackSection;
   buffers: Map<string, AudioBuffer>;
@@ -31,6 +44,8 @@ interface SectionVoice {
   section: SoundtrackSection;
   bus: GainNode;
   stemGains: Map<string, GainNode>;
+  /** Transition-only gain layer; ordinary intensity updates never touch it. */
+  seamGains: Map<string, GainNode>;
   sources: AudioBufferSourceNode[];
   startedAt: number;
   durationSeconds: number;
@@ -38,6 +53,9 @@ interface SectionVoice {
   decisionTimer: ConstantSourceNode | null;
   prefetchedSectionId: string | null;
   successorRetryAttempts: number;
+  /** Offset into a source-contiguous retrospective cue, otherwise zero. */
+  sourceOffsetSeconds: number;
+  retrospective: boolean;
 }
 
 interface PendingTransition {
@@ -45,6 +63,10 @@ interface PendingTransition {
   to: SectionVoice;
   when: number;
   crossfadeSeconds: number;
+  stagedSeam?: {
+    retreatAt: number;
+    settledAt: number;
+  };
   mandatory: boolean;
   timer: ConstantSourceNode;
   stingerCooldown?: {
@@ -61,6 +83,20 @@ interface LoadingTransition {
   mandatory: boolean;
 }
 
+interface RetrospectivePlayback {
+  cue: SoundtrackRetrospectiveCue;
+  primaryPeakSeconds: number;
+  getReplaySeconds: () => number;
+  voice: SectionVoice;
+  resolving: boolean;
+}
+
+interface VoiceOptions {
+  sourceOffsetSeconds?: number;
+  suppressDecision?: boolean;
+  retrospective?: boolean;
+}
+
 const MIN_START_LEAD_SECONDS = 0.06;
 const MIN_HORIZONTAL_COMMIT_BARS = 2;
 const TRANSITION_CURVE_STEPS = 32;
@@ -72,6 +108,13 @@ const FINITE_RETRY_MAX_SECONDS = 4;
 const FINITE_RETRY_MAX_ATTEMPTS = 4;
 const ACCENT_RELEASE_SETTLE_TIME_CONSTANTS = 3;
 const ACCENT_CLEAR_RELEASE_SECONDS = 0.45;
+const SEAM_CANCEL_RESTORE_BEATS = 0.5;
+const RETROSPECTIVE_START_FADE_BARS = 1;
+const RETROSPECTIVE_RESTART_FADE_SECONDS = 0.12;
+const RETROSPECTIVE_RESOLVE_HOLD_BARS = 0.5;
+const RETROSPECTIVE_RESOLVE_FADE_BARS = 1.5;
+const MIN_RETROSPECTIVE_REMAINDER_SECONDS = 0.05;
+const ENERGY_STEM_ROLES = new Set(['rhythm', 'drive', 'texture']);
 const TRIGGER_IMPULSES: Readonly<
   Partial<
     Record<
@@ -165,6 +208,11 @@ export class SoundtrackEngine {
   private stingerArmedUntil = 0;
   private readonly stingerCooldownUntil = new Map<string, number>();
   private readonly receivedTriggerKeys = new Set<string>();
+  private retrospectiveDecoded: Promise<DecodedSection> | null = null;
+  private retrospective: RetrospectivePlayback | null = null;
+  private retrospectiveSerial = 0;
+  private retrospectiveResolveTimer: ConstantSourceNode | null = null;
+  private paused = false;
   private disposed = false;
 
   constructor(
@@ -204,9 +252,33 @@ export class SoundtrackEngine {
     return this.manifest.title;
   }
 
-  async start(direction: ScoreDirection): Promise<void> {
+  async start(
+    direction: ScoreDirection,
+    options: ScoreStartOptions = {},
+  ): Promise<void> {
     this.assertActive();
     this.direction = normalizeDirection(direction);
+    const cue = this.manifest.retrospectiveCue;
+    const retrospective = options.retrospective;
+    if (
+      cue &&
+      retrospective &&
+      Number.isFinite(retrospective.primaryPeakSeconds)
+    ) {
+      const initialOffset = this.retrospectiveOffsetFor(
+        cue,
+        retrospective.primaryPeakSeconds,
+        safeReplaySeconds(retrospective.getReplaySeconds),
+      );
+      // A soundtrack can author a longer runway later. Until then, matches
+      // whose known peak lies beyond this cue retain the causal/live graph.
+      if (initialOffset >= 0) {
+        const decoded = await this.decodeRetrospectiveCue(cue);
+        if (this.disposed) return;
+        this.startRetrospectivePlayback(decoded, retrospective);
+        return;
+      }
+    }
     const entry = this.sections.get(this.manifest.entrySection);
     if (!entry) throw new Error('Soundtrack entry section is missing.');
     const decoded = await this.decodeSection(entry);
@@ -229,12 +301,14 @@ export class SoundtrackEngine {
     if (this.disposed) return;
     const normalized = normalizeDirection(direction);
     const previousIntensity = this.direction.intensity;
-    this.direction = {
-      ...this.direction,
-      intensity: normalized.intensity,
-      targetIntensity: normalized.targetIntensity,
-      momentum: normalized.momentum,
-    };
+    this.direction = this.retrospective
+      ? normalized
+      : {
+          ...this.direction,
+          intensity: normalized.intensity,
+          targetIntensity: normalized.targetIntensity,
+          momentum: normalized.momentum,
+        };
     const stingerTrigger = this.registerTriggers(triggers);
     for (const voice of this.voices) {
       this.updateStemGains(
@@ -242,6 +316,13 @@ export class SoundtrackEngine {
         this.direction.intensity,
         this.direction.intensity > previousIntensity,
       );
+    }
+    if (this.retrospective) {
+      this.stingerArmedUntil = 0;
+      if (normalized.state === 'resolve') {
+        this.beginRetrospectiveResolve();
+      }
+      return;
     }
     this.requestHorizontalState(normalized.state);
     if (stingerTrigger && this.direction.state === normalized.state) {
@@ -256,6 +337,19 @@ export class SoundtrackEngine {
    */
   resetForDiscontinuity(): void {
     if (this.disposed) return;
+    if (this.retrospective) {
+      this.receivedTriggerKeys.clear();
+      this.stingerArmedUntil = 0;
+      this.stingerCooldownUntil.clear();
+      this.clearAccentEnvelope();
+      this.queuedHorizontalState = null;
+      this.cancelHorizontalTimer();
+      this.cancelRetrospectiveResolve();
+      void this.restartRetrospectivePlayback().catch((reason: unknown) =>
+        this.reportError(reason),
+      );
+      return;
+    }
     if (
       this.pending &&
       !this.pending.mandatory &&
@@ -564,6 +658,12 @@ export class SoundtrackEngine {
 
   async setPaused(paused: boolean): Promise<void> {
     if (this.disposed) return;
+    const changed = this.paused !== paused;
+    this.paused = paused;
+    if (!paused && changed && this.retrospective) {
+      await this.restartRetrospectivePlayback();
+      if (this.disposed) return;
+    }
     const now = this.context.currentTime;
     const current = this.pauseGain.gain.value;
     this.pauseGain.gain.cancelScheduledValues(now);
@@ -575,8 +675,14 @@ export class SoundtrackEngine {
     if (this.disposed) return;
     this.disposed = true;
     this.transitionSerial += 1;
+    this.retrospectiveSerial += 1;
     this.fetchAbort.abort();
     this.cancelHorizontalTimer();
+    if (this.retrospectiveResolveTimer) {
+      const timer = this.retrospectiveResolveTimer;
+      timer.onended = () => timer.disconnect();
+      this.retrospectiveResolveTimer = null;
+    }
     if (this.accentTimer) {
       const timer = this.accentTimer;
       timer.onended = () => timer.disconnect();
@@ -586,6 +692,8 @@ export class SoundtrackEngine {
     for (const voice of this.voices) this.stopVoice(voice, this.context.currentTime);
     this.voices.clear();
     this.decoded.clear();
+    this.retrospectiveDecoded = null;
+    this.retrospective = null;
     this.master.disconnect();
     this.compressor.disconnect();
     this.pauseGain.disconnect();
@@ -667,26 +775,51 @@ export class SoundtrackEngine {
     const barSeconds = this.manifest.barFrames / this.manifest.sampleRate;
     const quantum = Math.max(1, transition.quantizeBars) * barSeconds;
     const elapsed = Math.max(0, this.context.currentTime - active.startedAt);
-    const crossfadeSeconds = Math.min(
+    const authoredCrossfadeSeconds = Math.min(
       transition.crossfadeBars * barSeconds,
       decoded.durationSeconds / 2,
       active.durationSeconds / 2,
     );
+    const adaptiveSeam = this.stagedSeamFor(
+      active,
+      destination,
+      transition,
+    );
+    const crossfadeSeconds = adaptiveSeam
+      ? Math.min(
+          adaptiveSeam.overlapBars * barSeconds,
+          authoredCrossfadeSeconds,
+        )
+      : authoredCrossfadeSeconds;
     let when: number;
     if (transition.timing === 'section-end') {
-      const cycles = active.section.loopable
-        ? Math.max(
-            1,
-            Math.ceil(
-              (elapsed + MIN_START_LEAD_SECONDS + crossfadeSeconds) /
-                active.durationSeconds,
-            ),
-          )
-        : 1;
-      when =
-        active.startedAt +
-        cycles * active.durationSeconds -
-        crossfadeSeconds;
+      if (adaptiveSeam) {
+        const cycles = Math.max(
+          1,
+          Math.ceil(
+            (elapsed + MIN_START_LEAD_SECONDS) /
+              active.durationSeconds,
+          ),
+        );
+        // A staged edit treats the natural section end as the handoff
+        // boundary. Pulling the destination head earlier would undo the
+        // retreat by layering two unrelated phrases before the edit.
+        when = active.startedAt + cycles * active.durationSeconds;
+      } else {
+        const cycles = active.section.loopable
+          ? Math.max(
+              1,
+              Math.ceil(
+                (elapsed + MIN_START_LEAD_SECONDS + crossfadeSeconds) /
+                  active.durationSeconds,
+              ),
+            )
+          : 1;
+        when =
+          active.startedAt +
+          cycles * active.durationSeconds -
+          crossfadeSeconds;
+      }
       when = Math.max(this.context.currentTime + MIN_START_LEAD_SECONDS, when);
     } else {
       const boundary = Math.ceil(
@@ -729,13 +862,72 @@ export class SoundtrackEngine {
       );
     }
 
+    let stagedSeam:
+      | {
+          retreatAt: number;
+          settledAt: number;
+        }
+      | undefined;
+    if (adaptiveSeam) {
+      const desiredRetreatSeconds =
+        adaptiveSeam.retreatBars * barSeconds;
+      if (destination.role === 'hold') {
+        const available = when - this.context.currentTime;
+        if (available + 1e-6 < desiredRetreatSeconds) {
+          const boundaryStep =
+            rotation || transition.timing === 'section-end'
+              ? active.durationSeconds
+              : quantum;
+          when +=
+            Math.ceil(
+              (desiredRetreatSeconds - available) / boundaryStep,
+            ) * boundaryStep;
+        }
+      }
+      // Resolve should remain prompt. It uses as much of the requested retreat
+      // as the already-selected boundary leaves available, whereas a stable
+      // hold-to-hold edit may wait for the next boundary to get the full bar.
+      const retreatSeconds =
+        destination.role === 'resolve'
+          ? Math.min(
+              desiredRetreatSeconds,
+              Math.max(0, when - this.context.currentTime),
+            )
+          : desiredRetreatSeconds;
+      stagedSeam = {
+        retreatAt: when - retreatSeconds,
+        settledAt:
+          when +
+          Math.max(
+            crossfadeSeconds,
+            adaptiveSeam.riseBars * barSeconds,
+          ),
+      };
+    }
+
     const next = this.createVoice(
       decoded,
       when,
       crossfadeSeconds > 0 ? 0 : 1,
       this.direction.intensity,
+      adaptiveSeam ? 0 : 1,
     );
-    if (crossfadeSeconds > 0) {
+    if (adaptiveSeam && stagedSeam) {
+      this.applyEnergySeamFade(
+        active,
+        stagedSeam.retreatAt,
+        when - stagedSeam.retreatAt,
+        false,
+      );
+      this.applyEnergySeamFade(
+        next,
+        when,
+        adaptiveSeam.riseBars * barSeconds,
+        true,
+      );
+      applyLinearFade(next.bus.gain, when, crossfadeSeconds, true);
+      applyLinearFade(active.bus.gain, when, crossfadeSeconds, false);
+    } else if (crossfadeSeconds > 0) {
       applyEqualPowerFade(next.bus.gain, when, crossfadeSeconds, true);
       applyEqualPowerFade(active.bus.gain, when, crossfadeSeconds, false);
     } else {
@@ -769,9 +961,10 @@ export class SoundtrackEngine {
       }
       this.pending = null;
       this.active = next;
-      this.transitionLockedUntil = when + crossfadeSeconds;
+      const settledAt = stagedSeam?.settledAt ?? when + crossfadeSeconds;
+      this.transitionLockedUntil = settledAt;
       this.stopVoice(active, when + crossfadeSeconds + 0.002);
-      this.atAudioTime(when + crossfadeSeconds + 0.004, () => {
+      this.atAudioTime(settledAt + 0.004, () => {
         if (this.disposed) return;
         this.transitionLockedUntil = 0;
         this.pruneDecoded();
@@ -798,6 +991,7 @@ export class SoundtrackEngine {
       to: next,
       when,
       crossfadeSeconds,
+      stagedSeam,
       mandatory,
       timer,
       stingerCooldown,
@@ -808,6 +1002,7 @@ export class SoundtrackEngine {
   private reconcileDirection(): void {
     if (
       this.disposed ||
+      this.retrospective ||
       this.pending ||
       this.loading ||
       !this.active ||
@@ -848,6 +1043,21 @@ export class SoundtrackEngine {
     pending.from.bus.gain.setValueAtTime(1, now);
     pending.to.bus.gain.cancelScheduledValues(now);
     pending.to.bus.gain.setValueAtTime(0, now);
+    if (pending.stagedSeam) {
+      const beatSeconds =
+        this.manifest.barFrames /
+        this.manifest.sampleRate /
+        this.manifest.beatsPerBar;
+      for (const [stemId, gain] of pending.from.seamGains) {
+        if (!this.isEnergyStem(stemId)) continue;
+        holdAutomationAtTime(gain.gain, now);
+        gain.gain.setTargetAtTime(
+          1,
+          now,
+          Math.max(0.05, beatSeconds * SEAM_CANCEL_RESTORE_BEATS),
+        );
+      }
+    }
     this.stopVoice(pending.to, now + 0.002);
     if (pending.from.section.loopable) {
       this.scheduleNextLoopDecision(pending.from);
@@ -887,6 +1097,246 @@ export class SoundtrackEngine {
         })
         .sort((left, right) => this.compareTransitions(left, right))[0] ?? null
     );
+  }
+
+  private stagedSeamFor(
+    active: SectionVoice,
+    destination: SoundtrackSection,
+    transition: SoundtrackTransition,
+  ): SoundtrackAdaptiveSeam | null {
+    const seam = this.manifest.adaptiveSeam;
+    if (
+      seam?.strategy !== 'staged' ||
+      seam.curve !== 'linear' ||
+      transition.crossfadeBars <= 0 ||
+      active.section.role !== 'hold' ||
+      (destination.role !== 'hold' && destination.role !== 'resolve')
+    ) {
+      return null;
+    }
+    return seam;
+  }
+
+  private decodeRetrospectiveCue(
+    cue: SoundtrackRetrospectiveCue,
+  ): Promise<DecodedSection> {
+    if (!this.retrospectiveDecoded) {
+      const section: SoundtrackSection = {
+        id: `retrospective-${cue.id}`,
+        label: `Retrospective ${cue.id}`,
+        classification: 'climax',
+        role: 'bridge',
+        startBar: cue.startBar,
+        barCount: cue.barCount,
+        durationSeconds: cue.durationSeconds,
+        energy: 1,
+        loopable: false,
+        files: cue.files,
+      };
+      const pending = this.fetchAndDecode(section);
+      this.retrospectiveDecoded = pending;
+      pending.catch(() => {
+        if (this.retrospectiveDecoded === pending) {
+          this.retrospectiveDecoded = null;
+        }
+      });
+    }
+    return this.retrospectiveDecoded;
+  }
+
+  private startRetrospectivePlayback(
+    decoded: DecodedSection,
+    timing: NonNullable<ScoreStartOptions['retrospective']>,
+  ): void {
+    const { when, offset } = this.retrospectiveStartPoint(
+      this.manifest.retrospectiveCue!,
+      timing.primaryPeakSeconds,
+      safeReplaySeconds(timing.getReplaySeconds),
+    );
+    const voice = this.createVoice(
+      decoded,
+      when,
+      0,
+      this.direction.intensity,
+      1,
+      {
+        sourceOffsetSeconds: offset,
+        suppressDecision: true,
+        retrospective: true,
+      },
+    );
+    const barSeconds = this.manifest.barFrames / this.manifest.sampleRate;
+    applyLinearFade(
+      voice.bus.gain,
+      when,
+      RETROSPECTIVE_START_FADE_BARS * barSeconds,
+      true,
+    );
+    this.horizontalAnchor = when;
+    this.lastHorizontalCommitBar = 0;
+    this.queuedHorizontalState = null;
+    this.active = voice;
+    this.retrospective = {
+      cue: this.manifest.retrospectiveCue!,
+      primaryPeakSeconds: timing.primaryPeakSeconds,
+      getReplaySeconds: timing.getReplaySeconds,
+      voice,
+      resolving: false,
+    };
+    if (this.direction.state === 'resolve') {
+      this.beginRetrospectiveResolve();
+    }
+  }
+
+  private async restartRetrospectivePlayback(): Promise<void> {
+    const playback = this.retrospective;
+    if (!playback) return;
+    const serial = ++this.retrospectiveSerial;
+    const resumeResolve = playback.resolving;
+    this.cancelRetrospectiveResolve();
+    const decoded = await this.decodeRetrospectiveCue(playback.cue);
+    if (
+      this.disposed ||
+      serial !== this.retrospectiveSerial ||
+      this.retrospective !== playback
+    ) {
+      return;
+    }
+    const { when, offset } = this.retrospectiveStartPoint(
+      playback.cue,
+      playback.primaryPeakSeconds,
+      safeReplaySeconds(playback.getReplaySeconds),
+    );
+    const previous = playback.voice;
+    const next = this.createVoice(
+      decoded,
+      when,
+      0,
+      this.direction.intensity,
+      1,
+      {
+        sourceOffsetSeconds: offset,
+        suppressDecision: true,
+        retrospective: true,
+      },
+    );
+    applyLinearFade(
+      next.bus.gain,
+      when,
+      RETROSPECTIVE_RESTART_FADE_SECONDS,
+      true,
+    );
+    holdAutomationAtTime(previous.bus.gain, when);
+    applyLinearFade(
+      previous.bus.gain,
+      when,
+      RETROSPECTIVE_RESTART_FADE_SECONDS,
+      false,
+    );
+    this.stopVoice(
+      previous,
+      when + RETROSPECTIVE_RESTART_FADE_SECONDS + 0.002,
+    );
+    playback.voice = next;
+    this.active = next;
+    if (resumeResolve || this.direction.state === 'resolve') {
+      this.beginRetrospectiveResolve();
+    }
+  }
+
+  private beginRetrospectiveResolve(): void {
+    const playback = this.retrospective;
+    if (!playback || playback.resolving || playback.voice.stopped) return;
+    playback.resolving = true;
+    const voice = playback.voice;
+    const barSeconds = this.manifest.barFrames / this.manifest.sampleRate;
+    const fadeAt = Math.max(
+      this.context.currentTime +
+        RETROSPECTIVE_RESOLVE_HOLD_BARS * barSeconds,
+      voice.startedAt + RETROSPECTIVE_START_FADE_BARS * barSeconds,
+    );
+    const fadeSeconds = RETROSPECTIVE_RESOLVE_FADE_BARS * barSeconds;
+    applyLinearFade(voice.bus.gain, fadeAt, fadeSeconds, false);
+    let timer: ConstantSourceNode;
+    timer = this.atAudioTime(fadeAt + fadeSeconds + 0.002, () => {
+      if (
+        this.retrospectiveResolveTimer !== timer ||
+        this.disposed ||
+        this.retrospective !== playback ||
+        playback.voice !== voice ||
+        !playback.resolving
+      ) {
+        return;
+      }
+      this.retrospectiveResolveTimer = null;
+      this.stopVoice(voice, this.context.currentTime + 0.002);
+    });
+    this.retrospectiveResolveTimer = timer;
+  }
+
+  private cancelRetrospectiveResolve(): void {
+    const playback = this.retrospective;
+    if (this.retrospectiveResolveTimer) {
+      const timer = this.retrospectiveResolveTimer;
+      timer.onended = () => timer.disconnect();
+      this.retrospectiveResolveTimer = null;
+    }
+    if (!playback) return;
+    playback.resolving = false;
+    if (playback.voice.stopped) return;
+    const now = this.context.currentTime;
+    holdAutomationAtTime(playback.voice.bus.gain, now);
+    playback.voice.bus.gain.setTargetAtTime(1, now, 0.04);
+  }
+
+  private retrospectiveOffsetFor(
+    cue: SoundtrackRetrospectiveCue,
+    primaryPeakSeconds: number,
+    replaySeconds: number,
+  ): number {
+    const barSeconds = this.manifest.barFrames / this.manifest.sampleRate;
+    return (
+      cue.anchorBar * barSeconds -
+      (primaryPeakSeconds - replaySeconds)
+    );
+  }
+
+  private retrospectiveStartPoint(
+    cue: SoundtrackRetrospectiveCue,
+    primaryPeakSeconds: number,
+    replaySeconds: number,
+  ): { when: number; offset: number } {
+    const now = this.context.currentTime;
+    const baseOffset = this.retrospectiveOffsetFor(
+      cue,
+      primaryPeakSeconds,
+      replaySeconds,
+    );
+    const beatSeconds =
+      this.manifest.barFrames /
+      this.manifest.sampleRate /
+      this.manifest.beatsPerBar;
+    const earliestOffset = baseOffset + MIN_START_LEAD_SECONDS;
+    const beatOffset =
+      Math.ceil((earliestOffset - 1e-9) / beatSeconds) * beatSeconds;
+    const offset = Math.max(
+      0,
+      Math.min(
+        cue.durationSeconds - MIN_RETROSPECTIVE_REMAINDER_SECONDS,
+        beatOffset,
+      ),
+    );
+    return {
+      // Waiting for the matching source beat preserves exact highlight
+      // alignment without fading up halfway through a beat or sustained note.
+      when:
+        now +
+        Math.max(
+          MIN_START_LEAD_SECONDS,
+          offset - baseOffset,
+        ),
+      offset,
+    };
   }
 
   private async decodeSection(section: SoundtrackSection): Promise<DecodedSection> {
@@ -938,7 +1388,16 @@ export class SoundtrackEngine {
     when: number,
     initialBusGain: number,
     intensity: number,
+    initialEnergySeamGain = 1,
+    options: VoiceOptions = {},
   ): SectionVoice {
+    const sourceOffsetSeconds = Math.max(
+      0,
+      Math.min(
+        decoded.durationSeconds - MIN_RETROSPECTIVE_REMAINDER_SECONDS,
+        options.sourceOffsetSeconds ?? 0,
+      ),
+    );
     const bus = this.context.createGain();
     bus.gain.setValueAtTime(initialBusGain, when);
     bus.connect(this.master);
@@ -946,6 +1405,7 @@ export class SoundtrackEngine {
       section: decoded.section,
       bus,
       stemGains: new Map(),
+      seamGains: new Map(),
       sources: [],
       startedAt: when,
       durationSeconds: decoded.durationSeconds,
@@ -953,16 +1413,22 @@ export class SoundtrackEngine {
       decisionTimer: null,
       prefetchedSectionId: null,
       successorRetryAttempts: 0,
+      sourceOffsetSeconds,
+      retrospective: options.retrospective === true,
     };
 
     for (const [stemId, buffer] of decoded.buffers) {
       const source = this.context.createBufferSource();
       const gain = this.context.createGain();
+      const seamGain = this.context.createGain();
       gain.gain.value = this.targetStemGain(
         decoded.section,
         stemId,
         this.effectiveStemIntensity(stemId, intensity),
       ) * this.stemAccentMultiplier(stemId);
+      seamGain.gain.value = this.isEnergyStem(stemId)
+        ? initialEnergySeamGain
+        : 1;
       if (decoded.section.role === 'resolve') {
         applyResolveEnvelope(
           gain.gain,
@@ -981,12 +1447,19 @@ export class SoundtrackEngine {
       source.loop = decoded.section.loopable;
       source.loopEnd = decoded.durationSeconds;
       source.connect(gain);
-      gain.connect(bus);
-      source.start(when);
+      gain.connect(seamGain);
+      seamGain.connect(bus);
+      if (sourceOffsetSeconds > 0) {
+        source.start(when, sourceOffsetSeconds);
+      } else {
+        source.start(when);
+      }
       voice.sources.push(source);
       voice.stemGains.set(stemId, gain);
+      voice.seamGains.set(stemId, seamGain);
     }
     this.voices.add(voice);
+    if (options.suppressDecision) return voice;
     if (!decoded.section.loopable) {
       const natural = transitionsFrom(
         this.manifest.transitions,
@@ -1194,6 +1667,23 @@ export class SoundtrackEngine {
     }
   }
 
+  private applyEnergySeamFade(
+    voice: SectionVoice,
+    when: number,
+    duration: number,
+    fadeIn: boolean,
+  ): void {
+    for (const [stemId, gain] of voice.seamGains) {
+      if (!this.isEnergyStem(stemId)) continue;
+      applyLinearFade(gain.gain, when, duration, fadeIn);
+    }
+  }
+
+  private isEnergyStem(stemId: string): boolean {
+    const role = this.stems.get(stemId)?.role;
+    return role !== undefined && ENERGY_STEM_ROLES.has(role);
+  }
+
   private verticalResponseSeconds(attacking: boolean): number {
     const beatSeconds =
       this.manifest.barFrames /
@@ -1248,6 +1738,7 @@ export class SoundtrackEngine {
     this.atAudioTime(when + 0.002, () => {
       for (const source of voice.sources) source.disconnect();
       for (const gain of voice.stemGains.values()) gain.disconnect();
+      for (const gain of voice.seamGains.values()) gain.disconnect();
       voice.bus.disconnect();
       this.voices.delete(voice);
     });
@@ -1308,6 +1799,15 @@ function normalizeDirection(direction: ScoreDirection): ScoreDirection {
   };
 }
 
+function safeReplaySeconds(getReplaySeconds: () => number): number {
+  try {
+    const seconds = getReplaySeconds();
+    return Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function responseAt(stem: SoundtrackStem, intensity: number): number {
   const { minimum, full } = stem.response;
   if (full <= minimum) return intensity >= full ? 1 : 0;
@@ -1341,6 +1841,21 @@ function applyEqualPowerFade(
     curve[index] = fadeIn
       ? Math.sin(progress * Math.PI * 0.5)
       : Math.cos(progress * Math.PI * 0.5);
+  }
+  parameter.cancelScheduledValues(when);
+  parameter.setValueCurveAtTime(curve, when, Math.max(0.001, duration));
+}
+
+function applyLinearFade(
+  parameter: AudioParam,
+  when: number,
+  duration: number,
+  fadeIn: boolean,
+): void {
+  const curve = new Float32Array(TRANSITION_CURVE_STEPS);
+  for (let index = 0; index < curve.length; index += 1) {
+    const progress = index / (curve.length - 1);
+    curve[index] = fadeIn ? progress : 1 - progress;
   }
   parameter.cancelScheduledValues(when);
   parameter.setValueCurveAtTime(curve, when, Math.max(0.001, duration));

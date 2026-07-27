@@ -238,12 +238,32 @@ export function useAdaptiveSoundtrack({
           current.transportRevision,
           current.frame.sourceTick,
         );
-        await engine.start({
-          state: current.frame.state,
-          intensity: current.frame.intensity,
-          targetIntensity: current.frame.targetIntensity,
-          momentum: current.frame.momentum,
-        });
+        const primaryHighlight =
+          current.timeline.mode === 'retrospective'
+            ? current.timeline.highlights.find(
+                (highlight) => highlight.primary,
+              )
+            : undefined;
+        await engine.start(
+          {
+            state: current.frame.state,
+            intensity: current.frame.intensity,
+            targetIntensity: current.frame.targetIntensity,
+            momentum: current.frame.momentum,
+          },
+          primaryHighlight
+            ? {
+                retrospective: {
+                  primaryPeakSeconds:
+                    primaryHighlight.peakTick /
+                    REPLAY_TICKS_PER_SECOND,
+                  getReplaySeconds: () =>
+                    latestRef.current.time /
+                    REPLAY_TICKS_PER_SECOND,
+                },
+              }
+            : {},
+        );
         if (
           serial !== activationRef.current ||
           faultedRef.current ||

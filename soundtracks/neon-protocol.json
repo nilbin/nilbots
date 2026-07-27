@@ -16,6 +16,13 @@
     "gameplay": 2,
     "resolve": 1
   },
+  "adaptiveSeam": {
+    "strategy": "staged",
+    "retreatBars": 1,
+    "overlapBars": 0.25,
+    "riseBars": 1,
+    "curve": "linear"
+  },
   "gridOriginFrame": 23079,
   "barFrames": 96000,
   "sourceEndFrame": 9527079,
@@ -102,6 +109,18 @@
       }
     }
   ],
+  "retrospectiveCue": {
+    "id": "final-runway",
+    "startBar": 72,
+    "barCount": 24,
+    "anchorBar": 16,
+    "stems": [
+      "drums",
+      "bass",
+      "guitar",
+      "synth"
+    ]
+  },
   "entrySection": "intro",
   "sections": [
     {

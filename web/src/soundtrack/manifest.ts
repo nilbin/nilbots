@@ -150,6 +150,34 @@ export function validateSoundtrackManifest(
   if (Math.abs(expectedBarFrames - manifest.barFrames) > 1) {
     throw new Error('Soundtrack BPM and sample grid disagree.');
   }
+  if (
+    manifest.adaptiveSeam !== undefined &&
+    (!isRecord(manifest.adaptiveSeam) ||
+      !hasOnlyKeys(manifest.adaptiveSeam, [
+        'strategy',
+        'retreatBars',
+        'overlapBars',
+        'riseBars',
+        'curve',
+      ]) ||
+      manifest.adaptiveSeam.strategy !== 'staged' ||
+      !isFiniteNumber(manifest.adaptiveSeam.retreatBars) ||
+      manifest.adaptiveSeam.retreatBars < 0.25 ||
+      manifest.adaptiveSeam.retreatBars > 64 ||
+      !isFiniteNumber(manifest.adaptiveSeam.overlapBars) ||
+      manifest.adaptiveSeam.overlapBars < 0 ||
+      manifest.adaptiveSeam.overlapBars > 64 ||
+      !isFiniteNumber(manifest.adaptiveSeam.riseBars) ||
+      manifest.adaptiveSeam.riseBars < 0.25 ||
+      manifest.adaptiveSeam.riseBars > 64 ||
+      manifest.adaptiveSeam.overlapBars >
+        manifest.adaptiveSeam.retreatBars ||
+      manifest.adaptiveSeam.overlapBars >
+        manifest.adaptiveSeam.riseBars ||
+      manifest.adaptiveSeam.curve !== 'linear')
+  ) {
+    throw new Error('Soundtrack has malformed adaptive seam metadata.');
+  }
 
   // The pipeline owns detailed validation. Runtime checks the references that
   // would otherwise fail as mysterious fetch or graph errors.
@@ -220,6 +248,55 @@ export function validateSoundtrackManifest(
       throw new Error(`Malformed or duplicate soundtrack stem "${stem.id}".`);
     }
     stemIds.add(stem.id);
+  }
+
+  if (typed.retrospectiveCue !== undefined) {
+    const cue = typed.retrospectiveCue;
+    if (
+      !isRecord(cue) ||
+      !hasOnlyKeys(cue, [
+        'id',
+        'startBar',
+        'barCount',
+        'anchorBar',
+        'durationSeconds',
+        'files',
+      ]) ||
+      !isString(cue.id) ||
+      !isNonNegativeInteger(cue.startBar) ||
+      !isPositiveInteger(cue.barCount) ||
+      !isNonNegativeInteger(cue.anchorBar) ||
+      cue.anchorBar >= cue.barCount ||
+      !isPositiveNumber(cue.durationSeconds) ||
+      !isRecord(cue.files)
+    ) {
+      throw new Error('Soundtrack has malformed retrospective cue metadata.');
+    }
+    const expectedDuration =
+      (cue.barCount * typed.barFrames) / typed.sampleRate;
+    const cueEndFrame =
+      typed.gridOriginFrame +
+      (cue.startBar + cue.barCount) * typed.barFrames;
+    if (
+      Math.abs(cue.durationSeconds - expectedDuration) >
+        1 / typed.sampleRate ||
+      cueEndFrame > typed.sourceEndFrame ||
+      Object.keys(cue.files).length === 0
+    ) {
+      throw new Error('Soundtrack retrospective cue does not match the source grid.');
+    }
+    for (const [stemId, path] of Object.entries(cue.files)) {
+      const asset = typed.assets[path];
+      if (
+        !stemIds.has(stemId) ||
+        !isRelativeAssetPath(path) ||
+        !asset ||
+        !isString(asset.sha256) ||
+        !isPositiveInteger(asset.bytes)
+      ) {
+        throw new Error('Soundtrack retrospective cue has an invalid stem asset.');
+      }
+    }
   }
 
   const sectionIds = new Set<string>();
@@ -601,6 +678,14 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(
+  value: Record<string, unknown>,
+  allowed: readonly string[],
+): boolean {
+  const keys = new Set(allowed);
+  return Object.keys(value).every((key) => keys.has(key));
 }
 
 function isString(value: unknown): value is string {

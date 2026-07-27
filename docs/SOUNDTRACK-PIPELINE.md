@@ -118,6 +118,28 @@ material without changing section duration, the musical grid, or relative
 stem timing. A loop is rejected when the source has insufficient continuation
 audio.
 
+An optional `retrospectiveCue` gives completed replays one continuous authored
+runway instead of assembling a climax from graph jumps. It declares a slug
+`id`, an integral `startBar`/`barCount` source range, a zero-based
+cue-relative `anchorBar`, and a non-empty set of known stem ids. The anchor is
+the musical landmark that the whole-replay planner aligns to its primary
+highlight. Every selected stem is extracted across the entire range and
+encoded once without loop-head rewriting or internal section boundaries. The
+manifest adds exact duration and per-stem file paths; the analysis output and
+asset inventory cover the same files. Neon Protocol's `final-runway` spans
+source bars 72–96 and anchors source bar 88.
+
+For a finalized replay, the runtime maps the relatively ranked primary
+highlight to that anchor and starts the cue on the next source beat. It reads
+the replay clock again after download/decode, so network latency does not move
+the musical landmark. While the runway is active, gameplay changes automate
+stems and event accents but cannot request horizontal section jumps. Pause,
+resume, and seek rebuild the cue at the replay-owned source offset; resolution
+holds the landed peak briefly and fades the same continuous cue instead of
+splicing to an unrelated outro. If a match's primary highlight lies beyond the
+authored runway, playback deliberately falls back to the ordinary adaptive
+graph rather than starting the cue too early.
+
 The compiler uses an equal-power blend when its summed pack peak, including
 stem/section gains and `masterGainDb`, retains the configured headroom. If
 equal-power would exceed that ceiling, it reports and uses a linear blend
@@ -139,9 +161,20 @@ adaptive cuts use `timing: "next-quantum"`, normally with a one-bar quantum and
 an equal-power transition crossfade. Every directed edge is compatibility
 scored. For `next-quantum` edges the compiler evaluates every eligible cut
 point in the source section, records the range, and validates the worst case.
-Neon Protocol uses a full-bar (two-second) overlap for these adaptive cuts;
-the earlier quarter-bar overlap was too abrupt in gameplay even when its edit
-point was valid.
+Neon Protocol retains a full-bar (two-second) authored overlap as the
+headroom-checked legacy ceiling for these adaptive cuts. Its staged runtime
+policy below replaces that exposed full-mix overlap with a longer
+retreat/handoff/rise gesture. A bare quarter-bar cut was too abrupt; the same
+short bus handoff is useful only when surrounded by the stem retreat and rise.
+
+`adaptiveSeam` describes the pack's fallback for discontinuities that a
+continuous runway cannot avoid. The supported policy is `strategy: "staged"`
+with a linear curve: responsive layers retreat over `retreatBars`, the section
+buses use only the short `overlapBars` crossover, and destination layers
+return over `riseBars`. The compiler validates and passes this policy to both
+manifest and analysis output. It does not bake the staging into source audio;
+the runtime applies it consistently across stem roles.
+
 Same-state rotation edges out of loopable holds are also `next-quantum`: the
 runtime applies the hold's `repeat.minimumBars` dwell and starts the
 destination on an exact full-cycle boundary, where the old loop has wrapped
@@ -200,14 +233,16 @@ web/public/soundtracks/
       manifest.json
       analysis.json
       sections/<section-id>/<stem-id>.m4a
+      retrospective-cues/<cue-id>/<stem-id>.m4a
 ```
 
 Each manifest includes the timing origin, adaptive stem response metadata,
 section roles and repeat/cooldown policy, latency budgets, section energy and
-optional loop metadata, the directed transition graph, and an `assets` map
-with SHA-256 and byte size for every M4A and the analysis report. AAC outputs
-are checked as M4A containers and, when `ffprobe` or `afinfo` is available,
-verified for codec, duration, channel count, and sample rate.
+optional loop, adaptive-seam, and retrospective-cue metadata, the directed
+transition graph, and an `assets` map with SHA-256 and byte size for every M4A
+and the analysis report. AAC outputs are checked as M4A containers and, when
+`ffprobe` or `afinfo` is available, verified for codec, duration, channel
+count, and sample rate.
 The runtime rejects malformed build provenance, a pipeline/version prefix
 mismatch, an analysis report missing from the asset inventory, or a manifest
 whose content-version directory disagrees with `build.version`. Repository

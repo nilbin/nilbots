@@ -152,6 +152,136 @@ test(
 );
 
 test(
+  'a retrospective cue uses the post-decode replay clock and reaches its authored peak without horizontal jumps',
+  { concurrency: false },
+  async () => {
+    const manifest = retrospectiveManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      let replaySeconds = 0;
+      context.holdDecode('final-runway');
+      const starting = engine.start(
+        direction('sparse', 0.28, 0.35),
+        {
+          retrospective: {
+            primaryPeakSeconds: 19.2,
+            getReplaySeconds: () => replaySeconds,
+          },
+        },
+      );
+      await flushAsync();
+      replaySeconds = 3;
+      context.releaseDecode('final-runway');
+      await starting;
+
+      const runway = activeVoice(engine);
+      assert.equal(runway.retrospective, true);
+      assert.equal(runway.decisionTimer, null);
+      assert.equal(runway.sourceOffsetSeconds, 16);
+      assert.ok(
+        runway.sources.every((source) => source.startedOffset === 16),
+      );
+      assert.ok(
+        Math.abs(
+          runway.sourceOffsetSeconds +
+            (19.2 - replaySeconds - runway.startedAt) -
+            manifest.retrospectiveCue.anchorBar * BAR_SECONDS,
+        ) < 1e-9,
+        'the source peak marker must land on the replay highlight',
+      );
+
+      engine.setDirection(direction('combat', 0.72, 0.8));
+      engine.setDirection(direction('climax', 0.9, 0.92));
+      await flushAsync();
+      assert.equal(engine.pending, null);
+      assert.equal(engine.loading, null);
+      assert.equal(engine.horizontalTimer, null);
+      assert.equal(activeVoice(engine), runway);
+    });
+  },
+);
+
+test(
+  'retrospective pause, resume, and seek rebuild the cue at the replay-owned source offset',
+  { concurrency: false },
+  async () => {
+    const manifest = retrospectiveManifest();
+    await withEngine(manifest, async ({ context, engine }) => {
+      let replaySeconds = 0;
+      await engine.start(direction('sparse'), {
+        retrospective: {
+          primaryPeakSeconds: 19.2,
+          getReplaySeconds: () => replaySeconds,
+        },
+      });
+      const first = activeVoice(engine);
+      assert.equal(first.sourceOffsetSeconds, 13);
+
+      await engine.setPaused(true);
+      context.advanceTo(context.currentTime + 5);
+      await engine.setPaused(false);
+      const resumed = activeVoice(engine);
+      assert.notEqual(resumed, first);
+      assert.equal(resumed.sourceOffsetSeconds, 13);
+      assert.ok(first.sources.every((source) => source.stoppedAt !== null));
+
+      replaySeconds = 8;
+      engine.resetForDiscontinuity();
+      await flushAsync();
+      const sought = activeVoice(engine);
+      assert.notEqual(sought, resumed);
+      assert.equal(sought.sourceOffsetSeconds, 21);
+      assert.ok(
+        sought.sources.every((source) => source.startedOffset === 21),
+      );
+    });
+  },
+);
+
+test(
+  'retrospective resolution holds the landed peak and fades instead of cutting to an outro',
+  { concurrency: false },
+  async () => {
+    await withEngine(retrospectiveManifest(), async ({ context, engine }) => {
+      await engine.start(direction('climax', 0.92, 0.2), {
+        retrospective: {
+          primaryPeakSeconds: 19.2,
+          getReplaySeconds: () => 19.2,
+        },
+      });
+      const runway = activeVoice(engine);
+
+      engine.setDirection(direction('resolve', 0.95, 0.2), [
+        trigger('destruction', 96),
+      ]);
+
+      assert.equal(engine.pending, null);
+      const resolveFade = lastCurveCall(runway.bus.gain);
+      assert.equal(
+        resolveFade.when,
+        Math.max(
+          context.currentTime + BAR_SECONDS * 0.5,
+          runway.startedAt + BAR_SECONDS,
+        ),
+      );
+      assert.equal(resolveFade.duration, BAR_SECONDS * 1.5);
+      assert.equal(resolveFade.curve[0], 1);
+      assert.equal(resolveFade.curve.at(-1), 0);
+      assert.ok(engine.retrospectiveResolveTimer);
+
+      context.advanceTo(
+        resolveFade.when + resolveFade.duration + 0.01,
+      );
+      assert.ok(runway.sources.every((source) => source.stoppedAt !== null));
+      assert.equal(
+        context.decodedSectionIds.has('resolve'),
+        false,
+        'the graph outro must not be fetched for a continuous runway',
+      );
+    });
+  },
+);
+
+test(
   'a finite resolve cue ends naturally without creating an automatic loop',
   { concurrency: false },
   async () => {
@@ -354,6 +484,191 @@ test(
           ) < 1e-6,
         );
       }
+    });
+  },
+);
+
+test(
+  'a staged seam retreats energy stems, makes a short linear handoff, and rises without losing intensity automation',
+  { concurrency: false },
+  async () => {
+    await withEngine(stagedRetargetManifest(), async ({ context, engine }) => {
+      await engine.start(direction('sparse', 0.7, 0.7));
+      const entry = activeVoice(engine);
+
+      engine.setDirection(direction('combat', 0.78, 0.78));
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+
+      const pending = assertPending(engine, 'combat-loop', false);
+      assert.ok(pending.stagedSeam);
+      assert.equal(pending.crossfadeSeconds, BAR_SECONDS * 0.25);
+      assert.ok(
+        Math.abs(
+          pending.when - pending.stagedSeam.retreatAt - BAR_SECONDS,
+        ) < 1e-9,
+      );
+      assert.ok(
+        Math.abs(
+          pending.stagedSeam.settledAt - pending.when - BAR_SECONDS,
+        ) < 1e-9,
+      );
+      assert.equal(
+        (pending.when - entry.startedAt) % BAR_SECONDS,
+        0,
+        'the handoff remains on the soundtrack grid',
+      );
+
+      const outgoingBus = lastCurveCall(entry.bus.gain);
+      const incomingBus = lastCurveCall(pending.to.bus.gain);
+      assert.equal(outgoingBus.when, pending.when);
+      assert.equal(incomingBus.when, pending.when);
+      assert.equal(outgoingBus.duration, BAR_SECONDS * 0.25);
+      for (let index = 0; index < incomingBus.curve.length; index += 1) {
+        assert.ok(
+          Math.abs(
+            incomingBus.curve[index] + outgoingBus.curve[index] - 1,
+          ) < 1e-6,
+          'linear handoff must not create transition gain overshoot',
+        );
+      }
+
+      const outgoingDrums = entry.seamGains.get('drums').gain;
+      const incomingDrums = pending.to.seamGains.get('drums').gain;
+      const retreat = lastCurveCall(outgoingDrums);
+      const rise = lastCurveCall(incomingDrums);
+      assert.equal(retreat.when, pending.stagedSeam.retreatAt);
+      assert.equal(retreat.duration, BAR_SECONDS);
+      assert.equal(retreat.curve[0], 1);
+      assert.equal(retreat.curve.at(-1), 0);
+      assert.equal(rise.when, pending.when);
+      assert.equal(rise.duration, BAR_SECONDS);
+      assert.equal(rise.curve[0], 0);
+      assert.equal(rise.curve.at(-1), 1);
+      assert.equal(
+        entry.seamGains
+          .get('foundation')
+          .gain.calls.some((call) => call.method === 'setValueCurveAtTime'),
+        false,
+        'the tonal anchor stays present until the short bus handoff',
+      );
+
+      const seamCallCount = incomingDrums.calls.length;
+      engine.setDirection(direction('combat', 0.32, 0.32));
+      assert.equal(
+        incomingDrums.calls.length,
+        seamCallCount,
+        'ordinary intensity frames must not cancel the seam envelope',
+      );
+      assert.equal(
+        lastTargetCall(pending.to.stemGains.get('drums').gain).when,
+        context.currentTime,
+      );
+
+      context.advanceTo(pending.when + 0.01);
+      assert.equal(activeVoice(engine).section.id, 'combat-loop');
+      assert.equal(engine.transitionLockedUntil, pending.stagedSeam.settledAt);
+
+      engine.setDirection(direction('tension', 0.45, 0.45));
+      context.advanceTo(pending.stagedSeam.settledAt - 0.01);
+      await flushAsync();
+      assert.equal(engine.pending, null, 'retarget stays queued while rising');
+
+      context.advanceTo(pending.stagedSeam.settledAt + 0.005);
+      await flushAsync();
+      assertPending(engine, 'tension-loop', false);
+    });
+  },
+);
+
+test(
+  'canceling during a staged retreat restores energy stems smoothly',
+  { concurrency: false },
+  async () => {
+    await withEngine(stagedRetargetManifest(), async ({ context, engine }) => {
+      await engine.start(direction('sparse', 0.75, 0.75));
+      const entry = activeVoice(engine);
+      engine.setDirection(direction('combat', 0.8, 0.8));
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+
+      const pending = assertPending(engine, 'combat-loop', false);
+      assert.ok(pending.stagedSeam);
+      context.advanceTo(pending.stagedSeam.retreatAt + BAR_SECONDS * 0.25);
+      const seamGain = entry.seamGains.get('drums').gain;
+      const setValueCallsBefore = seamGain.calls.filter(
+        (call) => call.method === 'setValueAtTime',
+      ).length;
+
+      engine.resetForDiscontinuity();
+
+      assert.equal(engine.pending, null);
+      const restore = lastTargetCall(seamGain);
+      assert.equal(restore.value, 1);
+      assert.equal(restore.when, context.currentTime);
+      assert.equal(restore.timeConstant, BAR_SECONDS / 8);
+      assert.equal(lastHoldCall(seamGain).when, context.currentTime);
+      assert.equal(
+        seamGain.calls.filter((call) => call.method === 'setValueAtTime')
+          .length,
+        setValueCallsBefore,
+        'restoration must not snap the energy layer back to full gain',
+      );
+      assert.ok(pending.to.sources.every((source) => source.stoppedAt !== null));
+    });
+  },
+);
+
+test(
+  'hold-to-resolve uses the retreat available before the prompt boundary',
+  { concurrency: false },
+  async () => {
+    await withEngine(stagedRetargetManifest(), async ({ context, engine }) => {
+      await engine.start(direction('sparse', 0.7, 0.2));
+      const entry = activeVoice(engine);
+      context.advanceTo(entry.startedAt + BAR_SECONDS * 0.75);
+
+      engine.setDirection(direction('resolve', 0.9, 0.2));
+      await flushAsync();
+
+      const pending = assertPending(engine, 'resolve', false);
+      assert.ok(pending.stagedSeam);
+      assert.ok(
+        pending.when - context.currentTime < BAR_SECONDS,
+        'resolve must not wait another bar to obtain a full retreat',
+      );
+      assert.ok(
+        pending.stagedSeam.retreatAt >= context.currentTime - 1e-9,
+      );
+      assert.ok(
+        pending.when - pending.stagedSeam.retreatAt < BAR_SECONDS,
+      );
+      assert.equal(pending.crossfadeSeconds, BAR_SECONDS * 0.25);
+    });
+  },
+);
+
+test(
+  'adaptive seam metadata leaves zero-overlap joins on the legacy cut path',
+  { concurrency: false },
+  async () => {
+    const manifest = stagedRetargetManifest();
+    manifest.transitions[0].crossfadeBars = 0;
+    await withEngine(manifest, async ({ context, engine }) => {
+      await engine.start(direction('sparse'));
+      engine.setDirection(direction('combat'));
+      advanceHorizontalCommit(engine, context);
+      await flushAsync();
+
+      const pending = assertPending(engine, 'combat-loop', false);
+      assert.equal(pending.stagedSeam, undefined);
+      assert.equal(pending.crossfadeSeconds, 0);
+      assert.equal(
+        activeVoice(engine)
+          .seamGains.get('drums')
+          .gain.calls.some((call) => call.method === 'setValueCurveAtTime'),
+        false,
+      );
     });
   },
 );
@@ -654,7 +969,7 @@ test(
 );
 
 function finiteRoutingManifest() {
-  return makeManifest({
+  return withAdaptiveSeam(makeManifest({
     entrySection: 'entry',
     sections: [
       section('entry', 'sparse', true),
@@ -671,7 +986,7 @@ function finiteRoutingManifest() {
       }),
       transition('finite', 'resolve', 'next-quantum'),
     ],
-  });
+  }));
 }
 
 function rotationManifest() {
@@ -693,7 +1008,7 @@ function rotationManifest() {
 }
 
 function stingerManifest() {
-  return makeManifest({
+  return withAdaptiveSeam(makeManifest({
     entrySection: 'climax-a',
     sections: [
       section('climax-a', 'climax', true),
@@ -709,7 +1024,7 @@ function stingerManifest() {
       transition('impact-stinger', 'climax-b', 'section-end'),
       transition('climax-b', 'impact-stinger', 'next-quantum'),
     ],
-  });
+  }));
 }
 
 function stingerAfterTransitionManifest() {
@@ -761,6 +1076,61 @@ function directStatesManifest(includeResolve = false) {
     transitions.push(transition('entry', 'resolve', 'next-quantum'));
   }
   return makeManifest({ entrySection: 'entry', sections, transitions });
+}
+
+function stagedRetargetManifest() {
+  return withAdaptiveSeam(makeManifest({
+    entrySection: 'entry',
+    sections: [
+      section('entry', 'sparse', true),
+      section('combat-loop', 'combat', true),
+      section('tension-loop', 'tension', true),
+      section('resolve', 'resolve', false, { bars: 3, role: 'resolve' }),
+    ],
+    transitions: [
+      transition('entry', 'combat-loop', 'next-quantum', {
+        crossfadeBars: 1,
+      }),
+      transition('entry', 'resolve', 'next-quantum', {
+        crossfadeBars: 1,
+      }),
+      transition('combat-loop', 'tension-loop', 'next-quantum', {
+        crossfadeBars: 1,
+      }),
+    ],
+  }));
+}
+
+function withAdaptiveSeam(manifest) {
+  return {
+    ...manifest,
+    adaptiveSeam: {
+      strategy: 'staged',
+      retreatBars: 1,
+      overlapBars: 0.25,
+      riseBars: 1,
+      curve: 'linear',
+    },
+  };
+}
+
+function retrospectiveManifest() {
+  return {
+    ...directStatesManifest(true),
+    retrospectiveCue: {
+      id: 'final-runway',
+      startBar: 0,
+      barCount: 24,
+      anchorBar: 16,
+      durationSeconds: 24 * BAR_SECONDS,
+      files: Object.fromEntries(
+        STEM_IDS.map((stemId) => [
+          stemId,
+          `retrospective-cues/final-runway/${stemId}.m4a`,
+        ]),
+      ),
+    },
+  };
 }
 
 function weightedRouteManifest() {
@@ -900,6 +1270,12 @@ async function withEngine(manifest, run) {
       candidate.durationSeconds,
     ]),
   );
+  if (manifest.retrospectiveCue) {
+    durations.set(
+      manifest.retrospectiveCue.id,
+      manifest.retrospectiveCue.durationSeconds,
+    );
+  }
   const context = new FakeAudioContext(durations);
   globalThis.fetch = async (input) => {
     const url = new URL(String(input));
@@ -1082,10 +1458,12 @@ class FakeAudioContext {
       loop: false,
       loopEnd: 0,
       startedAt: null,
+      startedOffset: 0,
       stoppedAt: null,
       ended: false,
-      start: (when) => {
+      start: (when, offset = 0) => {
         source.startedAt = when;
+        source.startedOffset = offset;
       },
       stop: (when) => {
         source.stoppedAt = when;
@@ -1231,7 +1609,8 @@ class FakeAudioContext {
       const naturalEnd =
         source.buffer === null
           ? Number.POSITIVE_INFINITY
-          : source.startedAt + source.buffer.duration;
+          : source.startedAt +
+            Math.max(0, source.buffer.duration - source.startedOffset);
       if (
         (source.stoppedAt !== null && source.stoppedAt <= target) ||
         (!source.loop && naturalEnd <= target)

@@ -1,3 +1,4 @@
+import copy
 import importlib.util
 import math
 import stat
@@ -63,6 +64,28 @@ class CompileSoundtrackTests(unittest.TestCase):
                 "response": {"minimum": 0.4, "full": 0.8},
             },
         ]
+
+    def normalization_config(self):
+        return {
+            "schemaVersion": 1,
+            "id": "test-score",
+            "title": "Test Score",
+            "default": False,
+            "provenance": {
+                "sourceTool": "Test",
+                "rightsStatus": "user-supplied-unverified",
+                "shipApproval": "pending",
+            },
+            "sourceArchive": "stems.zip",
+            "bpm": 120,
+            "beatsPerBar": 4,
+            "segmentBars": 4,
+            "gridOriginFrame": 0,
+            "barFrames": 8000,
+            "sourceEndFrame": 64000,
+            "masterGainDb": -3,
+            "stems": self.stem_config(),
+        }
 
     def make_archive(self, members):
         path = self.root / "stems.zip"
@@ -208,6 +231,196 @@ class CompileSoundtrackTests(unittest.TestCase):
             PIPELINE.validate_wav_alignment(
                 {"bed": bed, "drive": drive}, self.stem_config()
             )
+
+    def test_optional_retrospective_cue_and_adaptive_seam_are_normalized(self):
+        raw = self.normalization_config()
+        raw["retrospectiveCue"] = {
+            "id": "final-runway",
+            "startBar": 2,
+            "barCount": 4,
+            "anchorBar": 2,
+            "stems": ["bed", "drive"],
+        }
+        raw["adaptiveSeam"] = {
+            "strategy": "staged",
+            "retreatBars": 1,
+            "overlapBars": 0.25,
+            "riseBars": 1,
+            "curve": "linear",
+        }
+
+        normalized = PIPELINE.normalize_config(
+            raw, self.root / "soundtrack.json"
+        )
+
+        self.assertEqual(raw["retrospectiveCue"], normalized["retrospectiveCue"])
+        self.assertEqual(
+            {
+                "strategy": "staged",
+                "retreatBars": 1.0,
+                "overlapBars": 0.25,
+                "riseBars": 1.0,
+                "curve": "linear",
+            },
+            normalized["adaptiveSeam"],
+        )
+
+    def test_retrospective_cue_rejects_unknown_fields_ranges_and_stems(self):
+        cases = [
+            (
+                "unknown field",
+                {"extra": True},
+                "contains unknown field",
+            ),
+            (
+                "range past source",
+                {"startBar": 6, "barCount": 3},
+                "range ends at bar 9",
+            ),
+            (
+                "anchor outside cue",
+                {"anchorBar": 4},
+                "anchorBar must be at most 3",
+            ),
+            (
+                "unknown stem",
+                {"stems": ["bed", "missing"]},
+                "names unknown stem",
+            ),
+            (
+                "duplicate stem",
+                {"stems": ["bed", "bed"]},
+                "contains duplicate stem",
+            ),
+        ]
+        base_cue = {
+            "id": "final-runway",
+            "startBar": 2,
+            "barCount": 4,
+            "anchorBar": 2,
+            "stems": ["bed", "drive"],
+        }
+        for label, changes, message in cases:
+            with self.subTest(label):
+                raw = self.normalization_config()
+                raw["retrospectiveCue"] = {
+                    **copy.deepcopy(base_cue),
+                    **changes,
+                }
+                with self.assertRaisesRegex(PIPELINE.PipelineError, message):
+                    PIPELINE.normalize_config(
+                        raw, self.root / "soundtrack.json"
+                    )
+
+    def test_adaptive_seam_rejects_unknown_policy_and_invalid_ranges(self):
+        cases = [
+            ("unknown field", {"extra": True}, "contains unknown field"),
+            ("strategy", {"strategy": "crossfade"}, "strategy must be staged"),
+            ("curve", {"curve": "equal-power"}, "curve must be linear"),
+            (
+                "overlap exceeds retreat",
+                {"retreatBars": 0.25, "overlapBars": 0.5},
+                "must not exceed retreatBars",
+            ),
+            (
+                "nonpositive rise",
+                {"riseBars": 0},
+                "riseBars must be at least 0.25",
+            ),
+        ]
+        base_seam = {
+            "strategy": "staged",
+            "retreatBars": 1,
+            "overlapBars": 0.25,
+            "riseBars": 1,
+            "curve": "linear",
+        }
+        for label, changes, message in cases:
+            with self.subTest(label):
+                raw = self.normalization_config()
+                raw["adaptiveSeam"] = {
+                    **copy.deepcopy(base_seam),
+                    **changes,
+                }
+                with self.assertRaisesRegex(PIPELINE.PipelineError, message):
+                    PIPELINE.normalize_config(
+                        raw, self.root / "soundtrack.json"
+                    )
+
+    def test_retrospective_cue_descriptor_and_optional_manifest_metadata(self):
+        config = {
+            "retrospectiveCue": {
+                "id": "final-runway",
+                "startBar": 2,
+                "barCount": 4,
+                "anchorBar": 2,
+                "stems": ["bed", "drive"],
+            },
+            "adaptiveSeam": {
+                "strategy": "staged",
+                "retreatBars": 1.0,
+                "overlapBars": 0.25,
+                "riseBars": 1.0,
+                "curve": "linear",
+            },
+        }
+        analysis = {
+            "gridOriginFrame": 100,
+            "barFrames": 8000,
+            "sampleRate": 8000,
+            "trimStartFrame": 100,
+            "trimEndFrame": 64100,
+        }
+
+        cue, internal = PIPELINE.prepare_retrospective_cue(config, analysis)
+        metadata = PIPELINE.public_optional_adaptive_metadata(config, cue)
+
+        self.assertEqual(
+            {
+                "id": "final-runway",
+                "startBar": 2,
+                "barCount": 4,
+                "anchorBar": 2,
+                "durationSeconds": 4.0,
+                "files": {},
+            },
+            cue,
+        )
+        self.assertEqual(16100, internal["startFrame"])
+        self.assertEqual(48100, internal["endFrame"])
+        self.assertEqual(["bed", "drive"], internal["stems"])
+        self.assertIs(metadata["retrospectiveCue"], cue)
+        self.assertEqual(config["adaptiveSeam"], metadata["adaptiveSeam"])
+
+    def test_raw_retrospective_cue_extraction_preserves_source_samples(self):
+        source = self.root / "source.wav"
+        rendered = self.root / "continuous.wav"
+        self.write_wav(source, frames=40000)
+        start_frame = 123
+        end_frame = 32123
+
+        verification = PIPELINE.write_wav_section(
+            source,
+            rendered,
+            start_frame,
+            end_frame,
+        )
+
+        self.assertEqual(0.0, verification["boundarySimilarity"])
+        self.assertEqual(0, verification["continuationFrames"])
+        with wave.open(str(source), "rb") as original, wave.open(
+            str(rendered), "rb"
+        ) as cue:
+            original.setpos(start_frame)
+            expected_first = original.readframes(1)
+            original.setpos(end_frame - 1)
+            expected_last = original.readframes(1)
+            actual_first = cue.readframes(1)
+            cue.setpos(cue.getnframes() - 1)
+            actual_last = cue.readframes(1)
+            self.assertEqual(end_frame - start_frame, cue.getnframes())
+        self.assertEqual(expected_first, actual_first)
+        self.assertEqual(expected_last, actual_last)
 
     def test_adaptive_route_prefers_bounded_bridge_over_slow_direct_edge(self):
         sections = {

@@ -53,6 +53,47 @@ test('Neon Protocol adaptive cuts use full-bar overlaps', async () => {
   );
 });
 
+test('optional staged seams and retrospective cues are integrity checked', async () => {
+  const manifest = await defaultManifestDocument();
+  const source = manifest.sections.find(
+    (section) => section.barCount > 1 && Object.keys(section.files).length > 0,
+  );
+  assert.ok(source);
+  manifest.adaptiveSeam = {
+    strategy: 'staged',
+    retreatBars: 1,
+    overlapBars: 0.25,
+    riseBars: 1,
+    curve: 'linear',
+  };
+  manifest.retrospectiveCue = {
+    id: 'validator-runway',
+    startBar: source.startBar,
+    barCount: source.barCount,
+    anchorBar: 1,
+    durationSeconds: source.durationSeconds,
+    files: structuredClone(source.files),
+  };
+
+  assert.doesNotThrow(() => validateSoundtrackManifest(manifest));
+
+  const unknownSeamKey = structuredClone(manifest);
+  unknownSeamKey.adaptiveSeam.unreviewedMode = true;
+  assert.throws(
+    () => validateSoundtrackManifest(unknownSeamKey),
+    /malformed adaptive seam metadata/,
+  );
+
+  const undeclaredCueAsset = structuredClone(manifest);
+  undeclaredCueAsset.retrospectiveCue.files[
+    Object.keys(undeclaredCueAsset.retrospectiveCue.files)[0]
+  ] = 'retrospective-cues/missing.m4a';
+  assert.throws(
+    () => validateSoundtrackManifest(undeclaredCueAsset),
+    /retrospective cue has an invalid stem asset/,
+  );
+});
+
 test('build provenance and manifest URL must agree on one content version', async () => {
   const manifest = await defaultManifestDocument();
   const catalog = JSON.parse(

@@ -291,7 +291,9 @@ def normalize_config(raw: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
             "encoding",
             "analysis",
             "adaptiveLatencyBudgetBars",
+            "adaptiveSeam",
             "stems",
+            "retrospectiveCue",
             "sections",
             "transitions",
             "entrySection",
@@ -544,6 +546,136 @@ def normalize_config(raw: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
                 },
             }
         )
+
+    adaptive_seam_raw = raw.get("adaptiveSeam")
+    adaptive_seam: Optional[Dict[str, Any]] = None
+    if adaptive_seam_raw is not None:
+        if not isinstance(adaptive_seam_raw, dict):
+            raise PipelineError("adaptiveSeam must be an object")
+        ensure_only_keys(
+            adaptive_seam_raw,
+            {
+                "strategy",
+                "retreatBars",
+                "overlapBars",
+                "riseBars",
+                "curve",
+            },
+            "adaptiveSeam",
+        )
+        strategy = require_string(
+            adaptive_seam_raw.get("strategy"), "adaptiveSeam.strategy"
+        )
+        if strategy != "staged":
+            raise PipelineError("adaptiveSeam.strategy must be staged")
+        curve = require_string(
+            adaptive_seam_raw.get("curve"), "adaptiveSeam.curve"
+        )
+        if curve != "linear":
+            raise PipelineError("adaptiveSeam.curve must be linear")
+        retreat_bars = require_number(
+            adaptive_seam_raw.get("retreatBars"),
+            "adaptiveSeam.retreatBars",
+            0.25,
+            64.0,
+        )
+        overlap_bars = require_number(
+            adaptive_seam_raw.get("overlapBars"),
+            "adaptiveSeam.overlapBars",
+            0.0,
+            64.0,
+        )
+        rise_bars = require_number(
+            adaptive_seam_raw.get("riseBars"),
+            "adaptiveSeam.riseBars",
+            0.25,
+            64.0,
+        )
+        if overlap_bars > retreat_bars or overlap_bars > rise_bars:
+            raise PipelineError(
+                "adaptiveSeam.overlapBars must not exceed retreatBars or "
+                "riseBars"
+            )
+        adaptive_seam = {
+            "strategy": strategy,
+            "retreatBars": retreat_bars,
+            "overlapBars": overlap_bars,
+            "riseBars": rise_bars,
+            "curve": curve,
+        }
+
+    retrospective_cue_raw = raw.get("retrospectiveCue")
+    retrospective_cue: Optional[Dict[str, Any]] = None
+    if retrospective_cue_raw is not None:
+        if not isinstance(retrospective_cue_raw, dict):
+            raise PipelineError("retrospectiveCue must be an object")
+        ensure_only_keys(
+            retrospective_cue_raw,
+            {"id", "startBar", "barCount", "anchorBar", "stems"},
+            "retrospectiveCue",
+        )
+        cue_id = require_slug(
+            retrospective_cue_raw.get("id"), "retrospectiveCue.id"
+        )
+        total_source_bars = (
+            source_end_frame - grid_origin_frame
+        ) // configured_bar_frames
+        start_bar = require_integer(
+            retrospective_cue_raw.get("startBar"),
+            "retrospectiveCue.startBar",
+            0,
+            total_source_bars - 1,
+        )
+        bar_count = require_integer(
+            retrospective_cue_raw.get("barCount"),
+            "retrospectiveCue.barCount",
+            1,
+            256,
+        )
+        if start_bar + bar_count > total_source_bars:
+            raise PipelineError(
+                "retrospectiveCue range ends at bar {}, after configured "
+                "source end bar {}".format(
+                    start_bar + bar_count, total_source_bars
+                )
+            )
+        anchor_bar = require_integer(
+            retrospective_cue_raw.get("anchorBar"),
+            "retrospectiveCue.anchorBar",
+            0,
+            bar_count - 1,
+        )
+        cue_stems_raw = retrospective_cue_raw.get("stems")
+        if not isinstance(cue_stems_raw, list) or not cue_stems_raw:
+            raise PipelineError(
+                "retrospectiveCue.stems must be a non-empty array"
+            )
+        cue_stems: List[str] = []
+        for index, stem_id_raw in enumerate(cue_stems_raw):
+            stem_id = require_slug(
+                stem_id_raw,
+                "retrospectiveCue.stems[{}]".format(index),
+            )
+            if stem_id not in stem_ids:
+                raise PipelineError(
+                    "retrospectiveCue.stems names unknown stem: {}".format(
+                        stem_id
+                    )
+                )
+            if stem_id in cue_stems:
+                raise PipelineError(
+                    "retrospectiveCue.stems contains duplicate stem: {}".format(
+                        stem_id
+                    )
+                )
+            cue_stems.append(stem_id)
+        retrospective_cue = {
+            "id": cue_id,
+            "startBar": start_bar,
+            "barCount": bar_count,
+            "anchorBar": anchor_bar,
+            "stems": cue_stems,
+        }
 
     sections_raw = raw.get("sections", [])
     if not isinstance(sections_raw, list):
@@ -863,7 +995,9 @@ def normalize_config(raw: Dict[str, Any], config_path: Path) -> Dict[str, Any]:
         "encoding": encoding,
         "analysis": analysis,
         "adaptiveLatencyBudgetBars": adaptive_latency_budget_bars,
+        "adaptiveSeam": adaptive_seam,
         "stems": stems,
+        "retrospectiveCue": retrospective_cue,
         "sections": sections,
         "transitions": transitions,
         "entrySection": entry_section,
@@ -1697,6 +1831,53 @@ def section_energy(
             weighted += float(bar["energy"]) * overlap
             seconds += overlap
     return round_float(weighted / max(1.0, seconds), 4)
+
+
+def prepare_retrospective_cue(
+    config: Dict[str, Any],
+    analysis: Dict[str, Any],
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    configured = config.get("retrospectiveCue")
+    if configured is None:
+        return None, None
+    start_frame = (
+        analysis["gridOriginFrame"]
+        + int(configured["startBar"]) * analysis["barFrames"]
+    )
+    end_frame = start_frame + int(configured["barCount"]) * analysis["barFrames"]
+    if start_frame < analysis["trimStartFrame"]:
+        raise PipelineError(
+            "retrospectiveCue starts before the detected playable range "
+            "(bar {})".format(
+                analysis["trimStartFrame"] / analysis["barFrames"]
+            )
+        )
+    if end_frame > analysis["trimEndFrame"]:
+        raise PipelineError(
+            "retrospectiveCue ends at bar {}, after the detected playable end "
+            "at bar {:.6f}".format(
+                configured["startBar"] + configured["barCount"],
+                (
+                    analysis["trimEndFrame"] - analysis["gridOriginFrame"]
+                )
+                / analysis["barFrames"],
+            )
+        )
+    duration_seconds = (end_frame - start_frame) / analysis["sampleRate"]
+    output = {
+        "id": configured["id"],
+        "startBar": configured["startBar"],
+        "barCount": configured["barCount"],
+        "anchorBar": configured["anchorBar"],
+        "durationSeconds": round_float(duration_seconds),
+        "files": {},
+    }
+    internal = {
+        "startFrame": start_frame,
+        "endFrame": end_frame,
+        "stems": list(configured["stems"]),
+    }
+    return output, internal
 
 
 def prepare_sections(
@@ -3254,6 +3435,18 @@ def public_stem_descriptor(stem: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def public_optional_adaptive_metadata(
+    config: Dict[str, Any],
+    retrospective_cue: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    output: Dict[str, Any] = {}
+    if config.get("adaptiveSeam") is not None:
+        output["adaptiveSeam"] = config["adaptiveSeam"]
+    if retrospective_cue is not None:
+        output["retrospectiveCue"] = retrospective_cue
+    return output
+
+
 def build_analysis_report(
     config: Dict[str, Any],
     config_path: Path,
@@ -3266,6 +3459,7 @@ def build_analysis_report(
     section_internal: Dict[str, Dict[str, Any]],
     transitions: Sequence[Dict[str, Any]],
     adaptive_routing: Dict[str, Any],
+    retrospective_cue: Optional[Dict[str, Any]],
     warnings: List[str],
     encoder: Optional[Dict[str, Any]] = None,
     outputs: Optional[Sequence[Dict[str, Any]]] = None,
@@ -3380,6 +3574,7 @@ def build_analysis_report(
         "transitionHeadroom": analysis.get("transitionHeadroom", []),
         "adaptiveRouting": adaptive_routing,
         "warnings": list(warnings),
+        **public_optional_adaptive_metadata(config, retrospective_cue),
     }
     if encoder is not None:
         report["encoding"] = {
@@ -3480,6 +3675,9 @@ def compile_one(
         )
         pcm = validate_wav_alignment(paths, config["stems"])
         analysis = analyze_pack(paths, config, pcm)
+        retrospective_cue, retrospective_cue_internal = (
+            prepare_retrospective_cue(config, analysis)
+        )
         sections, section_internal = prepare_sections(config, analysis, warnings)
         prepare_section_mix_headroom(
             paths, config, section_internal, warnings
@@ -3511,6 +3709,7 @@ def compile_one(
                 section_internal,
                 transitions,
                 adaptive_routing,
+                retrospective_cue,
                 warnings,
                 encoder=encoder,
             )
@@ -3630,6 +3829,57 @@ def compile_one(
                                     ],
                                 )
                             )
+                if (
+                    retrospective_cue is not None
+                    and retrospective_cue_internal is not None
+                ):
+                    cue_id = retrospective_cue["id"]
+                    for stem_id in retrospective_cue_internal["stems"]:
+                        relative_path = (
+                            "retrospective-cues/{}/{}.m4a".format(
+                                cue_id, stem_id
+                            )
+                        )
+                        output_path = staging / relative_path
+                        chunk_wav = chunk_root / "{}-{}-continuous.wav".format(
+                            cue_id, stem_id
+                        )
+                        write_wav_section(
+                            paths[stem_id],
+                            chunk_wav,
+                            retrospective_cue_internal["startFrame"],
+                            retrospective_cue_internal["endFrame"],
+                        )
+                        encode_m4a(encoder, chunk_wav, output_path)
+                        verification = verify_m4a(
+                            output_path,
+                            retrospective_cue["durationSeconds"],
+                            pcm["sampleRate"],
+                            pcm["channels"],
+                        )
+                        digest = sha256_file(output_path)
+                        size = output_path.stat().st_size
+                        assets[relative_path] = {
+                            "sha256": digest,
+                            "bytes": size,
+                        }
+                        output_records.append(
+                            {
+                                "path": relative_path,
+                                "sha256": digest,
+                                "bytes": size,
+                                "kind": "retrospective-cue",
+                                "verification": verification,
+                            }
+                        )
+                        retrospective_cue["files"][stem_id] = relative_path
+                        chunk_wav.unlink()
+            cue_asset_count = (
+                len(retrospective_cue["files"])
+                if retrospective_cue is not None
+                else 0
+            )
+            section_asset_count = len(output_records) - cue_asset_count
             report = build_analysis_report(
                 config,
                 config_path,
@@ -3642,6 +3892,7 @@ def compile_one(
                 section_internal,
                 transitions,
                 adaptive_routing,
+                retrospective_cue,
                 warnings,
                 encoder=encoder,
                 outputs=output_records,
@@ -3686,6 +3937,9 @@ def compile_one(
                 "adaptiveLatencyBudgetBars": config[
                     "adaptiveLatencyBudgetBars"
                 ],
+                **public_optional_adaptive_metadata(
+                    config, retrospective_cue
+                ),
                 "stems": [
                     public_stem_descriptor(stem) for stem in config["stems"]
                 ],
@@ -3732,9 +3986,11 @@ def compile_one(
                     analysis_out, (final_directory / "analysis.json").read_bytes()
                 )
             print(
-                "{}: built {} section assets with {} into {} ({})".format(
+                "{}: built {} section assets and {} retrospective cue assets "
+                "with {} into {} ({})".format(
                     config["id"],
-                    len(output_records),
+                    section_asset_count,
+                    cue_asset_count,
                     encoder["name"],
                     final_directory,
                     version,

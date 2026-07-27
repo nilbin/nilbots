@@ -100,6 +100,32 @@ export interface SoundtrackAsset {
   bytes: number;
 }
 
+export interface SoundtrackAdaptiveSeam {
+  strategy: 'staged';
+  /** Bars spent withdrawing high-energy stems before the edit point. */
+  retreatBars: number;
+  /** Brief full-mix handoff at the edit point. */
+  overlapBars: number;
+  /** Bars spent restoring the incoming section's high-energy stems. */
+  riseBars: number;
+  curve: 'linear';
+}
+
+/**
+ * One source-contiguous cue used when a completed replay can be planned around
+ * its known primary highlight. `anchorBar` is the musical peak marker relative
+ * to the start of this cue.
+ */
+export interface SoundtrackRetrospectiveCue {
+  id: string;
+  startBar: number;
+  barCount: number;
+  anchorBar: number;
+  durationSeconds: number;
+  /** Stem ids map to paths relative to the manifest. */
+  files: Record<string, string>;
+}
+
 export interface SoundtrackProvenance {
   sourceTool: string;
   rightsStatus: 'user-supplied-unverified' | 'rights-cleared';
@@ -141,6 +167,10 @@ export interface SoundtrackManifest {
     gameplay: number;
     resolve: number;
   };
+  /** Optional slower treatment for non-contiguous live/fallback edits. */
+  adaptiveSeam?: SoundtrackAdaptiveSeam;
+  /** Optional continuous cue for whole-replay narrative planning. */
+  retrospectiveCue?: SoundtrackRetrospectiveCue;
   entrySection: string;
   stems: SoundtrackStem[];
   sections: SoundtrackSection[];
