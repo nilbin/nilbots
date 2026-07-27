@@ -145,6 +145,87 @@
         }
       }
     },
+    "/api/accounts/providers": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthProvidersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/external/google": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "returnUrl",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/callback/login/google": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/store": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meta": {
       "get": {
         "tags": [
@@ -900,6 +981,17 @@
   },
   "components": {
     "schemas": {
+      "AuthProvidersResponse": {
+        "required": [
+          "google"
+        ],
+        "type": "object",
+        "properties": {
+          "google": {
+            "type": "boolean"
+          }
+        }
+      },
       "BotActiveVersionResponse": {
         "required": [
           "id",
@@ -2628,6 +2720,103 @@
           },
           "content": {
             "type": "string"
+          }
+        }
+      },
+      "StoreCategoryResponse": {
+        "required": [
+          "id",
+          "label",
+          "packs"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "packs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorePackResponse"
+            }
+          }
+        }
+      },
+      "StorePackItemResponse": {
+        "required": [
+          "key",
+          "kind",
+          "id",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "StorePackResponse": {
+        "required": [
+          "id",
+          "label",
+          "description",
+          "items",
+          "owned",
+          "repeatable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorePackItemResponse"
+            }
+          },
+          "owned": {
+            "type": "boolean"
+          },
+          "repeatable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StoreResponse": {
+        "required": [
+          "open",
+          "categories"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoreCategoryResponse"
+            }
           }
         }
       },

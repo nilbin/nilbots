@@ -78,8 +78,12 @@ Three things that are easy to get wrong here:
   would be a cycle. Refreshes are deduplicated — OpenIddict rotates refresh tokens, so
   two concurrent refreshes sign the user out.
 
-`expo-secure-store` and `expo-web-browser` are native modules with config plugins. Their
-`app.json` entries do nothing until `npx expo prebuild` and a rebuild.
+`expo-secure-store`, `expo-web-browser` and `expo-notifications` are native modules with
+config plugins. Their `app.json` entries do nothing until `npx expo prebuild` and a rebuild
+— `tsc` passing proves nothing about them, because the JavaScript compiles perfectly
+against a native module that is not linked. `expo-notifications` also generates the
+`aps-environment` entitlement, so a build without the prebuild has no push capability at
+all.
 
 ## Control bars are one line
 
@@ -166,6 +170,11 @@ The app is a **delivery channel, not a second inbox**. Notifications are durable
 on the server, reaching the app over the same SignalR hub the site uses, with unread
 reloaded on resume. Do not invent app-local notification state.
 
+**The simulator cannot test push.** `Device.isDevice` is false there, so registration
+returns before ever asking for a token — which is correct, since a simulator has none, but
+it means the whole path is unexercised until it runs on hardware. Failures are logged
+rather than surfaced, deliberately, so check the console rather than expecting a banner.
+
 **Push registration follows the session, not the app.** `usePushRegistration` registers on
 sign-in and deletes on sign-out, because two people sharing a phone must not inherit each
 other's results. It re-registers on every launch: Expo rotates push tokens and a stale one
@@ -178,6 +187,35 @@ the game pays the player back, and it should feel like it. Result toasts reuse
 `OutcomeText` and `BotRecord`'s colours — `Arena.ok` for a gain, `Arena.live` for a loss —
 rather than inventing a third vocabulary for the same thing. Never toast over the arena
 viewer, and never toast a result for the match currently on screen.
+
+## Getting it onto a phone
+
+Three routes, and which one you need is decided by Apple rather than by preference.
+
+| | cost | push | lasts |
+|---|---|---|---|
+| `npx expo run:ios --device` over USB | free | **no** | 7 days |
+| EAS `preview` → iOS | Apple Developer Program, $99/yr | yes | until the profile expires |
+| EAS `preview` → Android APK | free | yes | indefinitely |
+
+**A free Apple ID cannot do push.** Xcode gives an unpaid account a "Personal Team", and
+personal teams cannot use entitlements at all — including `aps-environment`, which
+`expo-notifications` generates. The app installs and everything else works; registration
+simply never gets a token. So the cheapest way to actually exercise `ExpoPushTransport` and
+`usePushRegistration` is an **Android** build, which needs no paid account.
+
+`eas.json` profiles:
+
+- **development** — a dev client, and an iOS *simulator* build. What `expo run:ios`
+  produces locally, but built in the cloud.
+- **preview** — internal distribution: an APK on Android, an ad-hoc build on iOS. Pins
+  `EXPO_PUBLIC_NILBOTS_API` to `https://nilbots.com`, because a build on someone else's
+  phone cannot reach the Metro host that `api/config.ts` falls back to in development.
+- **production** — an app bundle, versions auto-incremented by EAS
+  (`appVersionSource: remote`, so the number lives with the build rather than in git).
+
+Over USB the API needs no override: `api/config.ts` resolves the Metro host's LAN address,
+so a phone on the same Wi-Fi reaches the Mac's `:8080` on its own.
 
 ## Verifying
 

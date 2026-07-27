@@ -20,13 +20,36 @@ public class PublicPayloadPrivacyTests
         nameof(LoginRequest),
     ];
 
+    /// <summary>
+    /// Types that hold an email server-side and are never serialized to a client.
+    /// <para>
+    /// Kept separate from <see cref="SelfScopedResponses"/> on purpose. That list answers
+    /// "which responses may show someone their own address"; this one answers "which
+    /// internal types are allowed to know one at all". Collapsing them would let a new
+    /// *response* type be waved through by adding a name to a list about storage.
+    /// </para>
+    /// <para>
+    /// A type only belongs here if no endpoint can return it, directly or as a member of
+    /// something returned. Check that before adding to it.
+    /// </para>
+    /// </summary>
+    private static readonly HashSet<string> InternalEmailHolders =
+    [
+        nameof(User),
+        // The provider link: rows recording which Google account maps to which local one.
+        nameof(ExternalLogin),
+        // What a provider told us during sign-in, consumed only by ExternalSignInService.
+        nameof(ExternalIdentity),
+    ];
+
     [Fact]
     public void OnlySelfScopedResponsesCarryAnEmail()
     {
         var candidates = typeof(UserResponse).Assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && t.Namespace?.StartsWith("BotArena.App") == true)
             .Where(t => !SelfScopedResponses.Contains(t.Name))
-            .Where(t => t != typeof(User) && !t.Name.Contains("DbContext") && !t.Name.Contains("Seeder"))
+            .Where(t => !InternalEmailHolders.Contains(t.Name))
+            .Where(t => !t.Name.Contains("DbContext") && !t.Name.Contains("Seeder"))
             .ToList();
 
         // Without this the test would pass just as happily on an empty scan.

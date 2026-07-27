@@ -24,8 +24,15 @@ public class CosmeticCatalogTests
             catalog,
             manifestKeys);
 
+        // Appearance kinds only. A capacity entitlement raises a limit and draws nothing,
+        // so requiring a sprite manifest for it would be asking the web assets to describe
+        // something that has no appearance at all.
         Assert.Equal(
-            catalog.Items.Select(item => item.Key).Order(),
+            catalog.Items
+                .Where(item => item.Kind is CosmeticCatalog.BotLookKind
+                    or CosmeticCatalog.ProjectileLookKind)
+                .Select(item => item.Key)
+                .Order(),
             manifestKeys.Order());
     }
 
@@ -74,10 +81,16 @@ public class CosmeticCatalogTests
         Assert.Equal(CosmeticUnlockEvents.Achievement, mantis.Unlock.SourceKind);
         Assert.Equal(mantis.Unlock, talon.Unlock);
 
+        // Six earned by playing, six sold as appearance packs, two sold as capacity.
         Assert.Equal(
-            12,
+            14,
             catalog.Items.Count(item =>
                 item.Availability == CosmeticCatalog.EntitlementAvailability));
+        Assert.Equal(
+            6,
+            catalog.Items.Count(item =>
+                item.Unlock?.SourceKind is CosmeticUnlockEvents.Achievement
+                    or CosmeticUnlockEvents.Challenge));
     }
 
     private static void ReadManifests(

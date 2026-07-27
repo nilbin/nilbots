@@ -50,6 +50,11 @@ export const api = {
 };
 
 export type Me = Schemas['UserResponse'];
+export type AuthProviders = Schemas['AuthProvidersResponse'];
+export type StorePackItem = Schemas['StorePackItemResponse'];
+export type StorePack = Schemas['StorePackResponse'];
+export type StoreCategory = Schemas['StoreCategoryResponse'];
+export type Store = Schemas['StoreResponse'];
 
 export type EntitlementNotificationItem = Schemas['EntitlementNotificationItem'];
 /**
@@ -130,6 +135,8 @@ export const endpoints = {
     }
   },
   logout: () => api.post<unknown>('/api/accounts/logout'),
+  /** Which external sign-ins this deployment can offer. Unconfigured ones must not render. */
+  authProviders: () => api.get<AuthProviders>('/api/accounts/providers'),
   bots: () => api.get<BotSummary[]>('/api/bots'),
   bot: (key: string) => api.get<BotDetail>(`/api/bots/${key}`),
   botMatches: (botId: string) => api.get<BotMatchHistory>(`/api/bots/${botId}/matches`),
@@ -145,6 +152,7 @@ export const endpoints = {
   matchSet: (setId: string) => api.get<MatchSetDetail>(`/api/matchsets/${setId}`),
   myBots: () => api.get<MyBot[]>('/api/bots/mine'),
   cosmetics: () => api.get<CosmeticCatalog>('/api/cosmetics'),
+  store: () => api.get<Store>('/api/store'),
   notifications: () => api.get<UserNotification[]>('/api/notifications?take=20'),
 
   // Writes, bound the same way and for the same reason. The request bodies are generated

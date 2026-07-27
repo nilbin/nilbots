@@ -3,5 +3,6 @@
   "label": "Scrap Jackal",
   "sprite": "sprite.svg",
   "suggestedAccent": "#fb7185",
-  "scale": 1.25
+  "scale": 1.25,
+  "defaultProjectileLookId": "gravity-knot"
 }

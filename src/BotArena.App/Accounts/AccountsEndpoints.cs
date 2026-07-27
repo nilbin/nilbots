@@ -29,26 +29,58 @@ public static class AccountsEndpoints
                 return Results.Problem("Password must be at least 8 characters.", statusCode: 400);
             if (await db.Users.AnyAsync(u => u.Email == email))
                 return Results.Problem("An account with this email already exists.", statusCode: 409);
+            // Rejected rather than silently altered. A name typed into a form is a choice,
+            // and quietly handing back "Pincer2" is how someone ends up on the ladder under
+            // a name they did not pick. The external-provider path suffixes instead,
+            // because there is no form and no one to ask (DECISIONS #121).
+            if (await DisplayNames.IsTakenAsync(db, displayName, default))
+                return Results.Problem("That display name is taken.", statusCode: 409);
 
-            var user = new User { DisplayName = displayName, Email = email, PasswordHash = "" };
+            var user = new User { DisplayName = displayName, Email = email };
             user.PasswordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
             db.Users.Add(user);
             await db.SaveChangesAsync();
-            await SignIn(http, user);
+            await SignInAsync(http, user);
             return Results.Ok(ToResponse(user));
-        }).Produces<UserResponse>().RequireRateLimiting("auth");
+        }).Produces<UserResponse>().RequireRateLimiting(RateLimitPolicies.Auth);
 
-        group.MapPost("/login", async (LoginRequest request, AppDbContext db, HttpContext http) =>
+        group.MapPost("/login", async (
+            LoginRequest request,
+            AppDbContext db,
+            LoginThrottle throttle,
+            HttpContext http,
+            CancellationToken cancellationToken) =>
         {
             string email = request.Email.Trim().ToLowerInvariant();
+            System.Net.IPAddress? origin = http.Connection.RemoteIpAddress;
+
+            // Checked before the password is, so a guessing run costs a count rather than a
+            // password hash — and durably, because the HTTP limiter's ten a minute is ten
+            // per web process and forgotten on the next deploy.
+            if (!await throttle.IsAllowedAsync(email, origin, cancellationToken))
+            {
+                return Results.Problem(
+                    "Too many sign-in attempts. Wait a few minutes and try again.",
+                    statusCode: 429);
+            }
+
             var user = await db.Users.SingleOrDefaultAsync(u => u.Email == email);
-            if (user is null ||
-                new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password)
+            // A passwordless account — one that has only ever signed in through Google —
+            // is refused before the verifier sees it. The message stays deliberately
+            // identical to a wrong password: telling an anonymous caller "that address
+            // exists but uses Google" is an account-enumeration oracle, and the person it
+            // would help most is the one guessing.
+            if (user?.PasswordHash is not { Length: > 0 } hash ||
+                new PasswordHasher<User>().VerifyHashedPassword(user, hash, request.Password)
                     == PasswordVerificationResult.Failed)
+            {
+                await throttle.RecordFailureAsync(email, origin, cancellationToken);
                 return Results.Problem("Invalid email or password.", statusCode: 401);
-            await SignIn(http, user);
+            }
+            await throttle.ClearAsync(email, cancellationToken);
+            await SignInAsync(http, user);
             return Results.Ok(ToResponse(user));
-        }).Produces<UserResponse>().RequireRateLimiting("auth");
+        }).Produces<UserResponse>().RequireRateLimiting(RateLimitPolicies.Auth);
 
         group.MapPost("/logout", async (HttpContext http) =>
         {
@@ -63,7 +95,12 @@ public static class AccountsEndpoints
         }).Produces<UserResponse>();
     }
 
-    private static async Task SignIn(HttpContext http, User user)
+    /// <summary>
+    /// Issue the session cookie. Shared rather than private, because an external provider
+    /// must produce exactly the same session a password login does — anything else would
+    /// make "signed in" mean two different things to everything downstream.
+    /// </summary>
+    public static async Task SignInAsync(HttpContext http, User user)
     {
         var identity = new ClaimsIdentity(
             [

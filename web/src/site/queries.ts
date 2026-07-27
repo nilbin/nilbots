@@ -40,10 +40,38 @@ const keys = {
   matchLive: (id: string) => ['match', id, 'live'] as const,
   matchSet: (id: string) => ['set', id] as const,
   cosmetics: (revision: number) => ['cosmetics', revision] as const,
+  store: ['store'] as const,
+  authProviders: ['auth-providers'] as const,
   me: ['me'] as const,
   myBots: ['my-bots'] as const,
   notifications: ['notifications'] as const,
 };
+
+/**
+ * Which external sign-ins to offer.
+ *
+ * Server-driven rather than a build flag: whether Google works depends on credentials
+ * being present in *that* deployment, and a button rendered from a compile-time constant
+ * would be wrong on any environment configured differently from the one that built it.
+ */
+export function useAuthProviders() {
+  return useQuery({
+    queryKey: keys.authProviders,
+    queryFn: endpoints.authProviders,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/**
+ * What is for sale, and what this account already owns.
+ *
+ * Keyed without the account, and invalidated by `useLogout` clearing the cache — ownership
+ * comes back with the response rather than being derived client-side, so a signed-out
+ * visitor simply sees everything as unowned.
+ */
+export function useStore() {
+  return useQuery({ queryKey: keys.store, queryFn: endpoints.store, staleTime: 60_000 });
+}
 
 /** The signed-in account. `data === null` means anonymous, which is not an error. */
 export function useMe() {

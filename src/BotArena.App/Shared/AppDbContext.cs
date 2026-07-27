@@ -4,6 +4,7 @@ using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
+using BotArena.App.Store;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BotRating> BotRatings => Set<BotRating>();
     public DbSet<BotVersion> BotVersions => Set<BotVersion>();
     public DbSet<EntitlementGrant> EntitlementGrants => Set<EntitlementGrant>();
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+    public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<DeviceRegistration> DeviceRegistrations => Set<DeviceRegistration>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
@@ -32,6 +36,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(u => u.Email).IsUnique();
+            // Display names are unique, case-insensitively — the index is a functional one
+            // on lower("DisplayName"), created in the AccountDisplayNames migration because
+            // EF cannot express an expression index. Case-insensitive on purpose: "Pincer"
+            // and "pincer" in the same ladder are indistinguishable at a glance, which is
+            // the whole of an impersonation.
             entity.Property(u => u.DisplayName).HasMaxLength(60);
             entity.Property(u => u.Email).HasMaxLength(200);
         });
@@ -109,6 +118,52 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(notification => notification.DedupeKey).HasMaxLength(200);
             entity.Property(notification => notification.PayloadJson).HasColumnType("jsonb");
             entity.HasOne<User>().WithMany().HasForeignKey(notification => notification.UserId);
+        });
+
+        modelBuilder.Entity<LoginAttempt>(entity =>
+        {
+            // Both counted per window, so both are indexed with the timestamp.
+            entity.HasIndex(attempt => new { attempt.Identifier, attempt.OccurredAt });
+            entity.HasIndex(attempt => new { attempt.NetworkHash, attempt.OccurredAt });
+            entity.Property(attempt => attempt.Identifier).HasMaxLength(200);
+            entity.Property(attempt => attempt.NetworkHash).HasMaxLength(128);
+            // No foreign key: the whole point is recording attempts against addresses that
+            // may not be accounts at all.
+        });
+
+        modelBuilder.Entity<Purchase>(entity =>
+        {
+            // The idempotence key for webhooks: providers retry, and replay by hand.
+            entity.HasIndex(purchase => new { purchase.Provider, purchase.ProviderReference })
+                .IsUnique();
+            entity.HasIndex(purchase => new { purchase.UserId, purchase.PackId });
+            entity.Property(purchase => purchase.PackId).HasMaxLength(80);
+            entity.Property(purchase => purchase.Provider).HasMaxLength(30);
+            entity.Property(purchase => purchase.ProviderReference).HasMaxLength(200);
+            entity.Property(purchase => purchase.State).HasMaxLength(20);
+            entity.Property(purchase => purchase.Currency).HasMaxLength(3);
+            // Restrict, not cascade: a purchase is a financial record and must outlive
+            // tidying up an account.
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(purchase => purchase.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ExternalLogin>(entity =>
+        {
+            // One local account per provider identity. Unique on (provider, subject) rather
+            // than including the user, so a second account cannot claim an identity that is
+            // already linked — which is what would let someone attach their Google login to
+            // a victim's account and then sign in as them.
+            entity.HasIndex(login => new { login.Provider, login.Subject }).IsUnique();
+            entity.Property(login => login.Provider).HasMaxLength(30);
+            entity.Property(login => login.Subject).HasMaxLength(200);
+            entity.Property(login => login.Email).HasMaxLength(200);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(login => login.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<DeviceRegistration>(entity =>
