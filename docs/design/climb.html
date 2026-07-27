@@ -1151,9 +1151,11 @@
       dimensional renderer <em>where it exists</em>”, not “default to it”. Three things follow.
       The CLI's single-file artifact stubs three.js out entirely in
       <code>vite.cli.config.ts</code>, so <code>DIMENSIONAL_RENDERER_AVAILABLE</code> is false
-      there and that build must stay flat. The golden-frame tests hash the Canvas2D canvas, so
-      the harness has to be pinned to the flat renderer in the same commit or the regression
-      guard turns itself off silently. And the viewer is on the CLI compatibility surface:
+      there and that build must stay flat — which also means Canvas2D can only be demoted,
+      not deleted, until three.js is allowed into the single-file artifact. The golden-frame
+      tests turned out <em>not</em> to be exposed: they import <code>drawArena</code> from the
+      SSR harness and call it directly, so they never go through the viewer's renderer choice
+      and need no pin. And the viewer is on the CLI compatibility surface:
       <code>CliVersion</code> gets bumped and <code>publish-cli</code> runs before
       <code>publish-and-deploy</code>, or <code>assert-cli-release.sh</code> refuses the deploy.
     </p>
