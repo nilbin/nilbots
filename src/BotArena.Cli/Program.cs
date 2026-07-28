@@ -222,6 +222,7 @@ static int CommandHelp(string command)
                    --bot <generic-spec> --opponent <generic-spec>
                    [--seed <n> | --seeds a,b,c] [--swap]
                    [--capture-threshold <positive-n>]
+                   [--capture-gain-phase <start-tick>:<gain>]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -229,6 +230,8 @@ static int CommandHelp(string command)
             without App authentication, queues, or quotas. It is unranked.
             --capture-threshold creates a local-only ruleset with a distinct,
             content-descriptive ruleset ID; it never reinterprets hosted v1.
+            --capture-gain-phase does the same while publishing a deterministic
+            tick-phase schedule that bots can resolve from context.Tick.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             """,

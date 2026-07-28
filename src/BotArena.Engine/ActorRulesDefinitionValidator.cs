@@ -56,6 +56,23 @@ public static class ActorRulesDefinitionValidator
             "Seed profile ID",
             errors);
         ValidateCanonicalId(gameMode.ModeId, "Game mode ID", errors);
+        if (gameMode is FrontlineGameModeDefinition frontline)
+        {
+            foreach (
+                FrontlineCaptureGainPhaseDefinition phase
+                in frontline.Capture.GainSchedule)
+            {
+                ValidateCanonicalId(
+                    phase.PhaseId,
+                    "Frontline capture gain phase ID",
+                    errors);
+                if (phase.StartsAtTick >= limits.MaxTicks)
+                {
+                    errors.Add(
+                        $"Frontline capture gain phase '{phase.PhaseId}' must start before MaxTicks.");
+                }
+            }
+        }
 
         Dictionary<string, ActorFormDefinition> formsById = IndexCatalog(
             forms,

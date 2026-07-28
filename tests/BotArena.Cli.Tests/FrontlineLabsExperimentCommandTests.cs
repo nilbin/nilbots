@@ -106,6 +106,28 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "--capture-threshold",
                     "0",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--capture-gain-phase",
+                    "300",
+                ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--capture-threshold",
+                    "12",
+                    "--capture-gain-phase",
+                    "300:2",
+                ]));
     }
 
     [Fact]
@@ -144,11 +166,60 @@ public sealed class FrontlineLabsExperimentCommandTests
         }
     }
 
+    [Fact]
+    public void CaptureGainPhaseArm_WritesScheduleAndDistinctIdentity()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-gain-arm-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "gain-t300-2");
+
+            Assert.Equal(
+                0,
+                Run(
+                    alpha,
+                    beta,
+                    output,
+                    captureGainPhase: "300:2"));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement header = document.RootElement.GetProperty("header");
+            Assert.Equal(
+                "frontline-labs-1-experiment-gain-t300-2",
+                header.GetProperty("gameRulesVersion").GetString());
+            JsonElement schedule = header.GetProperty("contract")
+                .GetProperty("rules")
+                .GetProperty("gameMode")
+                .GetProperty("capture")
+                .GetProperty("gainSchedule");
+            Assert.Equal(2, schedule.GetArrayLength());
+            Assert.Equal(
+                ("late-escalation", 300, 2),
+                (
+                    schedule[1].GetProperty("phaseId").GetString(),
+                    schedule[1].GetProperty("startsAtTick").GetInt32(),
+                    schedule[1]
+                        .GetProperty("gainPerSoleTeamTick")
+                        .GetInt32()));
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
     private static int Run(
         string bot,
         string opponent,
         string output,
-        string? captureThreshold = null)
+        string? captureThreshold = null,
+        string? captureGainPhase = null)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -173,6 +244,11 @@ public sealed class FrontlineLabsExperimentCommandTests
             {
                 arguments.Add("--capture-threshold");
                 arguments.Add(captureThreshold);
+            }
+            if (captureGainPhase is not null)
+            {
+                arguments.Add("--capture-gain-phase");
+                arguments.Add(captureGainPhase);
             }
             return FrontlineLabsExperimentCommand.Run(arguments);
         }
@@ -249,7 +325,7 @@ public sealed class FrontlineLabsExperimentCommandTests
               {
                 "name": "{{name}}",
                 "entryType": "{{name}}",
-                "sdkVersion": "0.10.2"
+                "sdkVersion": "0.10.3"
               }
               """);
         return directory;

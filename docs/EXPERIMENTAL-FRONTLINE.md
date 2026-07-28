@@ -119,6 +119,13 @@ override. It creates a separate ruleset identity such as
 `frontline-labs-1-experiment-capture-12`, changes the rules and match
 fingerprints, and leaves immutable hosted `frontline-labs-1` untouched.
 
+`--capture-gain-phase <start-tick>:<gain>` registers a phased pacing arm. For
+example, `300:2` preserves the v1 gain through tick 299, then applies gain 2
+from tick 300. Its complete ordered `gainSchedule` is contract data, not
+engine folklore: bots can call
+`frontlineMode.Capture.GainPhaseAtTick(context.Tick)`, and replay v3 embeds the
+same schedule for deterministic reconstruction and ML feature extraction.
+
 At the action boundary, select from the contract-delivered catalog rather
 than hard-coding the action code:
 

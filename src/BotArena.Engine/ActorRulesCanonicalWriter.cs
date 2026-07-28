@@ -246,6 +246,24 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteNumber(
             "gainPerSoleTeamTick",
             capture.GainPerSoleTeamTick);
+        if (!capture.GainSchedule.IsDefaultOrEmpty)
+        {
+            writer.WritePropertyName("gainSchedule");
+            writer.WriteStartArray();
+            foreach (
+                FrontlineCaptureGainPhaseDefinition phase
+                in capture.GainSchedule)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("phaseId", phase.PhaseId);
+                writer.WriteNumber("startsAtTick", phase.StartsAtTick);
+                writer.WriteNumber(
+                    "gainPerSoleTeamTick",
+                    phase.GainPerSoleTeamTick);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
         writer.WriteNumber("decayAmount", capture.DecayAmount);
         writer.WriteNumber(
             "decayIntervalTicks",

@@ -226,7 +226,9 @@ public sealed class FrontlineModeKernel
     {
         int? claimant = state.ClaimingTeamId;
         int progress = state.CaptureProgress;
-        int gain = _gameMode.Capture.GainPerSoleTeamTick;
+        int gain = _gameMode.Capture
+            .GainPhaseAtTick(tick)
+            .GainPerSoleTeamTick;
 
         if (claimant is null)
         {

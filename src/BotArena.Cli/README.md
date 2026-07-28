@@ -43,7 +43,7 @@ self-hosted development.
 
 ## Local Frontline experiment
 
-CLI 0.9.3 includes the explicitly separate, unranked Frontline authoring loop:
+CLI 0.9.4 includes the explicitly separate, unranked Frontline authoring loop:
 
 ```bash
 nilbots experiment frontline \
@@ -90,6 +90,12 @@ a distinct ruleset such as
 `frontline-labs-1-experiment-capture-12`. Its changed rules and match
 fingerprints are embedded in replay v3; the option never changes or aliases
 hosted `frontline-labs-1`.
+
+For a phased pacing arm, `--capture-gain-phase 300:2` retains gain 1 through
+tick 299 and uses gain 2 from tick 300. The complete ordered `gainSchedule` is
+embedded in the contract, gets a distinct ruleset/fingerprint identity, and is
+available to bots through
+`frontlineMode.Capture.GainPhaseAtTick(context.Tick)`.
 
 Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`

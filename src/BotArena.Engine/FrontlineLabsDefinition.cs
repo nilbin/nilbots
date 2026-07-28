@@ -33,7 +33,10 @@ public static class FrontlineLabsDefinition
         "fabrication-output";
 
     public static ActorResolvedMatchDefinition Create() =>
-        CreateResolved(RulesetId, captureThreshold: 15);
+        CreateResolved(
+            RulesetId,
+            captureThreshold: 15,
+            captureGainSchedule: null);
 
     /// <summary>
     /// Creates a local-only, content-identified capture-threshold arm without
@@ -52,16 +55,60 @@ public static class FrontlineLabsDefinition
 
         return CreateResolved(
             $"{RulesetId}-experiment-capture-{captureThreshold}",
-            captureThreshold);
+            captureThreshold,
+            captureGainSchedule: null);
+    }
+
+    /// <summary>
+    /// Creates a local-only capture-gain phase arm. Hosted v1 remains static;
+    /// the candidate publishes its complete schedule in the resolved contract.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateCaptureGainPhaseExperiment(
+            int startsAtTick,
+            int gainPerSoleTeamTick)
+    {
+        if (startsAtTick <= 0 || startsAtTick >= 500)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(startsAtTick),
+                startsAtTick,
+                "The phase must start after tick zero and before MaxTicks.");
+        }
+        if (gainPerSoleTeamTick <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(gainPerSoleTeamTick),
+                gainPerSoleTeamTick,
+                "Capture gain must be positive.");
+        }
+
+        return CreateResolved(
+            $"{RulesetId}-experiment-gain-t{startsAtTick}-{gainPerSoleTeamTick}",
+            captureThreshold: 15,
+            captureGainSchedule:
+            [
+                new(
+                    "opening",
+                    startsAtTick: 0,
+                    gainPerSoleTeamTick: 1),
+                new(
+                    "late-escalation",
+                    startsAtTick,
+                    gainPerSoleTeamTick),
+            ]);
     }
 
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
-        int captureThreshold)
+        int captureThreshold,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            captureGainSchedule)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
-            captureThreshold);
+            captureThreshold,
+            captureGainSchedule);
         ActorMapDefinition map = CreateMap();
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
@@ -109,7 +156,9 @@ public static class FrontlineLabsDefinition
 
     private static ActorRulesDefinition CreateRules(
         string rulesetId,
-        int captureThreshold)
+        int captureThreshold,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            captureGainSchedule)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -195,7 +244,8 @@ public static class FrontlineLabsDefinition
                     gainPerSoleTeamTick: 1,
                     decayAmount: 1,
                     decayIntervalTicks: 2,
-                    redeployPauseTicks: 5)),
+                    redeployPauseTicks: 5,
+                    gainSchedule: captureGainSchedule)),
             new ActorLifecycleDefinition(
                 [
                     new ActorLifecycleProfileDefinition(

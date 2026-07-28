@@ -2508,6 +2508,26 @@ faults. Public replay faults remain stable/redacted. The next balance evidence
 must rebuild probes and entrants against 0.10.2, use a shorter two-seed mirrored
 cohort, and demonstrate lifecycle coverage before any one-variable numeric arm.
 
+## 143. Phased Frontline pacing is optional canonical contract data
+
+Static capture tuning did not remove the repetitive late tail in the first
+Frontline Labs population. A phased candidate therefore needs to be legible to
+hand-authored bots, ML policies, replay tooling, and fingerprints without
+changing immutable hosted `frontline-labs-1`.
+
+`FrontlineCaptureDefinition` now supports an ordered, data-defined gain
+schedule. A scheduled contract includes every phase ID, start tick, and gain;
+the engine and SDK resolve the active phase from the authoritative tick. A
+static definition omits the optional property, preserving its exact canonical
+bytes and fingerprints. The first candidate keeps gain 1 through tick 299 and
+uses gain 2 from tick 300 under its own ruleset ID.
+
+The additive reader and bot-facing helper change embedded SDK/Guest bytes, so
+SDK/Guest move to 0.10.3 and CLI/package to 0.9.4. Actor framing,
+generic-actor profile/schema numbers, replay v3, and controlled-build pipeline
+4 remain unchanged: older artifacts still run unchanged on contracts that omit
+the schedule, while schedule-aware rules require a rebuilt artifact.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

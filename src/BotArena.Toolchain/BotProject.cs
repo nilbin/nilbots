@@ -35,14 +35,14 @@ public static class ToolchainInfo
     /// actor/replay-v2 experiment, and the negotiated generic actor-match
     /// programming model. 0.9.1 adds the exact local Frontline Labs runner,
     /// generic-actor scaffold, and replay-v3 verification without changing
-    /// SDK/Guest bytes. 0.9.3 carries SDK/Guest 0.10.2, whose generic event
-    /// decoder accepts canonical same-tick form-transition completions and
-    /// privacy-redacted transition-spawn lineage. It
+    /// SDK/Guest bytes. 0.9.4 carries SDK/Guest 0.10.3, whose generic
+    /// Frontline contract can expose optional capture-gain schedules while
+    /// retaining the exact static hosted-v1 bytes. It
     /// also carries the approved Obsidian Foundry effects
     /// in self-contained replay viewers and the generated HTTP contracts used
     /// by CLI server commands. Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.3";
+    public const string CliVersion = "0.9.4";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -74,9 +74,11 @@ public static class ToolchainInfo
     // state remains strictly future-due.
     // 0.10.2: transition-created LifeSpawned observations accept intentionally
     // redacted parent/operation lineage while retaining the public transition ID.
-    public const string SdkVersion = "0.10.2";
+    // 0.10.3: optional Frontline capture-gain schedules are parsed from the
+    // canonical contract and resolvable against the authoritative tick.
+    public const string SdkVersion = "0.10.3";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.2";
+    public const string GuestAdapterVersion = "0.10.3";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

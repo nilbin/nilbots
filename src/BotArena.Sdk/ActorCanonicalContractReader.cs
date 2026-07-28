@@ -773,24 +773,50 @@ public static class ActorCanonicalContractReader
     private static RulesContract.FrontlineCapture ReadFrontlineCapture(
         JsonElement element)
     {
+        bool hasGainSchedule =
+            element.TryGetProperty("gainSchedule", out JsonElement schedule);
         ExactObject(
             element,
-            "threshold",
-            "gainPerSoleTeamTick",
-            "decayAmount",
-            "decayIntervalTicks",
-            "redeployPauseTicks",
-            "controlPolicy",
-            "timeoutPolicy",
-            "territorialProgressFormula",
-            "completionPolicy",
-            "initialPosition",
-            "captureArithmetic",
-            "oppositionArithmetic",
-            "decayClock",
-            "disabledDecay",
-            "redeployPolicy",
-            "redeployTickArithmetic");
+            hasGainSchedule
+                ?
+                [
+                    "threshold",
+                    "gainPerSoleTeamTick",
+                    "gainSchedule",
+                    "decayAmount",
+                    "decayIntervalTicks",
+                    "redeployPauseTicks",
+                    "controlPolicy",
+                    "timeoutPolicy",
+                    "territorialProgressFormula",
+                    "completionPolicy",
+                    "initialPosition",
+                    "captureArithmetic",
+                    "oppositionArithmetic",
+                    "decayClock",
+                    "disabledDecay",
+                    "redeployPolicy",
+                    "redeployTickArithmetic",
+                ]
+                :
+                [
+                    "threshold",
+                    "gainPerSoleTeamTick",
+                    "decayAmount",
+                    "decayIntervalTicks",
+                    "redeployPauseTicks",
+                    "controlPolicy",
+                    "timeoutPolicy",
+                    "territorialProgressFormula",
+                    "completionPolicy",
+                    "initialPosition",
+                    "captureArithmetic",
+                    "oppositionArithmetic",
+                    "decayClock",
+                    "disabledDecay",
+                    "redeployPolicy",
+                    "redeployTickArithmetic",
+                ]);
         return new RulesContract.FrontlineCapture(
             Int(element, "threshold"),
             Int(element, "gainPerSoleTeamTick"),
@@ -807,7 +833,26 @@ public static class ActorCanonicalContractReader
             Semantic(element, "decayClock"),
             Semantic(element, "disabledDecay"),
             Semantic(element, "redeployPolicy"),
-            Semantic(element, "redeployTickArithmetic"));
+            Semantic(element, "redeployTickArithmetic"))
+        {
+            GainSchedule = hasGainSchedule
+                ? Array(schedule, ReadFrontlineCaptureGainPhase)
+                : [],
+        };
+    }
+
+    private static RulesContract.FrontlineCaptureGainPhase
+        ReadFrontlineCaptureGainPhase(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "phaseId",
+            "startsAtTick",
+            "gainPerSoleTeamTick");
+        return new RulesContract.FrontlineCaptureGainPhase(
+            Id(element, "phaseId"),
+            Int(element, "startsAtTick"),
+            Int(element, "gainPerSoleTeamTick"));
     }
 
     private static RulesContract.LifecycleDefinition ReadLifecycle(
@@ -1662,11 +1707,52 @@ public static class ActorCanonicalContractReader
                     throw new FormatException(
                         "Frontline mode-map binding is inconsistent.");
                 }
+                ValidateFrontlineCapture(frontline.Capture);
                 break;
 
             default:
                 throw new FormatException(
                     "Game mode and mode-map binding variants disagree.");
+        }
+    }
+
+    private static void ValidateFrontlineCapture(
+        RulesContract.FrontlineCapture capture)
+    {
+        if (capture.Threshold <= 0
+            || capture.GainPerSoleTeamTick <= 0
+            || capture.DecayAmount < 0
+            || capture.DecayIntervalTicks < 0
+            || capture.RedeployPauseTicks < 0)
+        {
+            throw new FormatException(
+                "Frontline capture values are outside the supported domain.");
+        }
+        if (capture.GainSchedule.IsDefaultOrEmpty)
+            return;
+        if (capture.GainSchedule[0].StartsAtTick != 0
+            || capture.GainSchedule[0].GainPerSoleTeamTick
+                != capture.GainPerSoleTeamTick
+            || capture.GainSchedule.Any(phase =>
+                phase.StartsAtTick < 0
+                || phase.GainPerSoleTeamTick <= 0)
+            || capture.GainSchedule
+                .Select(phase => phase.PhaseId)
+                .Distinct(StringComparer.Ordinal)
+                .Count()
+                != capture.GainSchedule.Length)
+        {
+            throw new FormatException(
+                "Frontline capture gain schedule is inconsistent.");
+        }
+        for (int index = 1; index < capture.GainSchedule.Length; index++)
+        {
+            if (capture.GainSchedule[index - 1].StartsAtTick
+                >= capture.GainSchedule[index].StartsAtTick)
+            {
+                throw new FormatException(
+                    "Frontline capture gain schedule must be strictly ordered.");
+            }
         }
     }
 

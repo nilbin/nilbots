@@ -1,4 +1,37 @@
+using System.Collections.Immutable;
+
 namespace BotArena.Engine;
+
+/// <summary>
+/// One deterministic point in a Frontline capture-gain schedule. The first
+/// phase starts at tick zero; later phases replace the gain from their start
+/// tick onward.
+/// </summary>
+public sealed record FrontlineCaptureGainPhaseDefinition
+{
+    public FrontlineCaptureGainPhaseDefinition(
+        string phaseId,
+        int startsAtTick,
+        int gainPerSoleTeamTick)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(phaseId);
+        if (startsAtTick < 0)
+            throw new ArgumentOutOfRangeException(nameof(startsAtTick));
+        if (gainPerSoleTeamTick <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(gainPerSoleTeamTick));
+        }
+
+        PhaseId = phaseId;
+        StartsAtTick = startsAtTick;
+        GainPerSoleTeamTick = gainPerSoleTeamTick;
+    }
+
+    public string PhaseId { get; }
+    public int StartsAtTick { get; }
+    public int GainPerSoleTeamTick { get; }
+}
 
 /// <summary>
 /// Rules-owned Frontline pressure, decay, and redeploy tuning. Its typed fixed
@@ -12,7 +45,8 @@ public sealed record FrontlineCaptureDefinition
         int gainPerSoleTeamTick,
         int decayAmount,
         int decayIntervalTicks,
-        int redeployPauseTicks)
+        int redeployPauseTicks,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>? gainSchedule = null)
     {
         if (threshold <= 0)
             throw new ArgumentOutOfRangeException(nameof(threshold));
@@ -34,19 +68,91 @@ public sealed record FrontlineCaptureDefinition
             throw new ArgumentOutOfRangeException(
                 nameof(redeployPauseTicks));
         }
+        FrontlineCaptureGainPhaseDefinition[] schedule =
+            gainSchedule?.ToArray() ?? [];
+        if (schedule.Any(phase => phase is null))
+        {
+            throw new ArgumentException(
+                "Frontline capture gain schedule cannot contain null phases.",
+                nameof(gainSchedule));
+        }
+        schedule = schedule
+            .OrderBy(phase => phase.StartsAtTick)
+            .ThenBy(phase => phase.PhaseId, StringComparer.Ordinal)
+            .ToArray();
+        if (schedule.Length > 0
+            && (schedule[0].StartsAtTick != 0
+                || schedule[0].GainPerSoleTeamTick != gainPerSoleTeamTick))
+        {
+            throw new ArgumentException(
+                "A Frontline capture gain schedule must begin at tick zero with the declared base gain.",
+                nameof(gainSchedule));
+        }
+        if (schedule
+                .Select(phase => phase.PhaseId)
+                .Distinct(StringComparer.Ordinal)
+                .Count()
+            != schedule.Length)
+        {
+            throw new ArgumentException(
+                "Frontline capture gain phase IDs must be unique.",
+                nameof(gainSchedule));
+        }
+        if (schedule
+                .Select(phase => phase.StartsAtTick)
+                .Distinct()
+                .Count()
+            != schedule.Length)
+        {
+            throw new ArgumentException(
+                "Frontline capture gain phase start ticks must be unique.",
+                nameof(gainSchedule));
+        }
 
         Threshold = threshold;
         GainPerSoleTeamTick = gainPerSoleTeamTick;
         DecayAmount = decayAmount;
         DecayIntervalTicks = decayIntervalTicks;
         RedeployPauseTicks = redeployPauseTicks;
+        GainSchedule = schedule.ToImmutableArray();
     }
 
     public int Threshold { get; }
     public int GainPerSoleTeamTick { get; }
+    public ImmutableArray<FrontlineCaptureGainPhaseDefinition> GainSchedule
+    {
+        get;
+    }
     public int DecayAmount { get; }
     public int DecayIntervalTicks { get; }
     public int RedeployPauseTicks { get; }
+
+    /// <summary>
+    /// Resolves the phase visible at one authoritative tick. Static rulesets
+    /// expose a synthetic <c>default</c> phase without changing their
+    /// canonical contract bytes.
+    /// </summary>
+    public FrontlineCaptureGainPhaseDefinition GainPhaseAtTick(int tick)
+    {
+        if (tick < 0)
+            throw new ArgumentOutOfRangeException(nameof(tick));
+        if (GainSchedule.IsDefaultOrEmpty)
+        {
+            return new FrontlineCaptureGainPhaseDefinition(
+                "default",
+                startsAtTick: 0,
+                GainPerSoleTeamTick);
+        }
+
+        FrontlineCaptureGainPhaseDefinition active = GainSchedule[0];
+        foreach (FrontlineCaptureGainPhaseDefinition phase in GainSchedule)
+        {
+            if (phase.StartsAtTick > tick)
+                break;
+            active = phase;
+        }
+        return active;
+    }
 
     public ControlPolicyKind ControlPolicy =>
         ControlPolicyKind

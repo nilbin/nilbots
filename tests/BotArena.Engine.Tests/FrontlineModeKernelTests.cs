@@ -145,6 +145,31 @@ public sealed class FrontlineModeKernelTests
     }
 
     [Fact]
+    public void CaptureGainPhaseBeginsOnItsDeclaredTick()
+    {
+        FrontlineModeKernel kernel = Kernel(
+            threshold: 20,
+            gain: 1,
+            decayAmount: 0,
+            decayInterval: 0,
+            pause: 0,
+            gainSchedule:
+            [
+                new("opening", startsAtTick: 0, gainPerSoleTeamTick: 1),
+                new("late", startsAtTick: 300, gainPerSoleTeamTick: 2),
+            ]);
+        FrontlineControlState before = kernel.CreateInitialState(299);
+
+        FrontlineControlStepResult opening =
+            kernel.ApplyJointTick(before, tick: 299, [HigherTeam]);
+        FrontlineControlStepResult late =
+            kernel.ApplyJointTick(opening.State, tick: 300, [HigherTeam]);
+
+        Assert.Equal(1, opening.State.CaptureProgress);
+        Assert.Equal(3, late.State.CaptureProgress);
+    }
+
+    [Fact]
     public void EdgeCaptureBreachesAndProducesCanonicalStandings()
     {
         FrontlineModeKernel kernel = Kernel(
@@ -263,7 +288,9 @@ public sealed class FrontlineModeKernelTests
         int gain = 2,
         int decayAmount = 1,
         int decayInterval = 2,
-        int pause = 0) =>
+        int pause = 0,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            gainSchedule = null) =>
         new(
             Topology(),
             Mode(
@@ -271,7 +298,8 @@ public sealed class FrontlineModeKernelTests
                 gain,
                 decayAmount,
                 decayInterval,
-                pause),
+                pause,
+                gainSchedule),
             new FrontlineActorModeMapBindingDefinition(
                 ObjectiveIds(),
                 [
@@ -303,7 +331,9 @@ public sealed class FrontlineModeKernelTests
         int gain = 2,
         int decayAmount = 1,
         int decayInterval = 2,
-        int pause = 0) =>
+        int pause = 0,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            gainSchedule = null) =>
         new(
             new FrontlineVictoryDefinition(
                 pushesToBreach: 3,
@@ -324,7 +354,8 @@ public sealed class FrontlineModeKernelTests
                 gain,
                 decayAmount,
                 decayInterval,
-                pause));
+                pause,
+                gainSchedule));
 
     private static string[] ObjectiveIds() =>
         ["front-0", "front-1", "front-2", "front-3", "front-4"];

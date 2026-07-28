@@ -144,7 +144,7 @@ actor protocol/configuration 1.0. The explicit local
 `nilbots experiment frontline` command selects it; historical `play`,
 App/server admission, and ladders do not.
 
-SDK/Guest 0.10.2 carries the separately negotiated
+SDK/Guest 0.10.3 carries the separately negotiated
 `generic-actor-match-2` profile and `IGenericActorBot`. Its static match
 contract, variable entity observations, generic scores/mode state, typed
 actions/events/lineage, and exact profile attestation do not widen the
@@ -188,6 +188,12 @@ intentionally no generic built-in fallback. `--runtime in-process` is the fast
 diagnostic loop, while the default `wasm` path uses
 `WasmGenericActorRuntimeFactory` exactly as the hosted generic match executor
 does.
+
+`--capture-gain-phase 300:2` is the schedule-shaped numeric arm: gain remains
+1 through tick 299 and becomes 2 at tick 300. The optional `gainSchedule` is
+part of canonical MatchStart contract data. Generic bots resolve the current
+phase with `frontlineMode.Capture.GainPhaseAtTick(context.Tick)`, so the same
+rules input works for hand-authored policies and ML preprocessing.
 
 Actor 1.0 negotiates and then exchanges:
 

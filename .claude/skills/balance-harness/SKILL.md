@@ -11,7 +11,8 @@ Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/replay-review-sample.py`, the CLI's historical `--rules` flag, the
 frozen replay-v2 `nilbots experiment frontline` path, and the generic
 replay-v3 `nilbots experiment frontline-labs` path. Labs capture-threshold
-arms use its local-only `--capture-threshold <positive-n>` option.
+arms use its local-only `--capture-threshold <positive-n>` option; phased
+capture-gain arms use `--capture-gain-phase <start-tick>:<gain>`.
 
 ## 1. Classify and pre-register the experiment
 
@@ -89,6 +90,10 @@ nilbots experiment frontline-labs \
   --bot <bot.wasm> --opponent <opponent.wasm> \
   --capture-threshold 12 --seed 104729
 
+nilbots experiment frontline-labs \
+  --bot <bot.wasm> --opponent <opponent.wasm> \
+  --capture-gain-phase 300:2 --seed 104729
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
@@ -100,6 +105,9 @@ For a Labs capture-threshold arm, the CLI creates a distinct
 `frontline-labs-1-experiment-capture-<n>` ruleset and fingerprints. Put those
 exact values in the cohort manifest and include the same option in
 `--runner-command`; never relabel changed values as `frontline-labs-1`.
+The same identity rule applies to capture-gain phases. The schedule is
+canonical contract data, and candidate-aware bots resolve it with
+`frontlineMode.Capture.GainPhaseAtTick(context.Tick)`.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and

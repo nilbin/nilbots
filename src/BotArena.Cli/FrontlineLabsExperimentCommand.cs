@@ -25,7 +25,8 @@ public static class FrontlineLabsExperimentCommand
             "runtime",
             "out",
             "open",
-            "capture-threshold");
+            "capture-threshold",
+            "capture-gain-phase");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
@@ -57,11 +58,25 @@ public static class FrontlineLabsExperimentCommand
         int? captureThreshold = OptionalPositiveInt(
             options,
             "capture-threshold");
-        ActorResolvedMatchDefinition definition = captureThreshold is int value
-            ? FrontlineLabsDefinition.CreateCaptureThresholdExperiment(value)
-            : FrontlineLabsDefinition.Create();
+        (int StartsAtTick, int Gain)? captureGainPhase =
+            OptionalCaptureGainPhase(options);
+        if (captureThreshold is not null && captureGainPhase is not null)
+        {
+            throw new InvalidOperationException(
+                "Use one numeric Frontline Labs experiment option at a time.");
+        }
+        ActorResolvedMatchDefinition definition =
+            captureThreshold is int threshold
+                ? FrontlineLabsDefinition
+                    .CreateCaptureThresholdExperiment(threshold)
+                : captureGainPhase is { } phase
+                    ? FrontlineLabsDefinition
+                        .CreateCaptureGainPhaseExperiment(
+                            phase.StartsAtTick,
+                            phase.Gain)
+                    : FrontlineLabsDefinition.Create();
         Console.WriteLine(
-            captureThreshold is null
+            captureThreshold is null && captureGainPhase is null
                 ? "LOCAL LABS: exact hosted Frontline Labs v1 contract; " +
                   "unranked and quota-free."
                 : "LOCAL LABS: content-identified numeric experiment; " +
@@ -247,6 +262,35 @@ public static class FrontlineLabsExperimentCommand
                 $"--{name} must be a positive integer.");
         }
         return value;
+    }
+
+    private static (int StartsAtTick, int Gain)?
+        OptionalCaptureGainPhase(
+            IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("capture-gain-phase", out string? raw))
+            return null;
+        string[] parts = raw.Split(
+            ':',
+            StringSplitOptions.TrimEntries);
+        if (parts.Length != 2
+            || !int.TryParse(
+                parts[0],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int startsAtTick)
+            || !int.TryParse(
+                parts[1],
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int gain)
+            || startsAtTick <= 0
+            || gain <= 0)
+        {
+            throw new InvalidOperationException(
+                "--capture-gain-phase must be <positive-start-tick>:<positive-gain>.");
+        }
+        return (startsAtTick, gain);
     }
 
     private static ulong[] ParseSeeds(

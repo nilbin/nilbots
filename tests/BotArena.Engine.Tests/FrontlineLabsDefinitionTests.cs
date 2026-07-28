@@ -144,6 +144,47 @@ public sealed class FrontlineLabsDefinitionTests
     }
 
     [Fact]
+    public void CaptureGainPhaseExperimentPublishesAResolvableSchedule()
+    {
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition candidate =
+            FrontlineLabsDefinition.CreateCaptureGainPhaseExperiment(
+                startsAtTick: 300,
+                gainPerSoleTeamTick: 2);
+        FrontlineCaptureDefinition capture =
+            Assert.IsType<FrontlineGameModeDefinition>(
+                candidate.Rules.GameMode).Capture;
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-gain-t300-2",
+            candidate.Rules.RulesetId);
+        Assert.Equal(
+            [("opening", 0, 1), ("late-escalation", 300, 2)],
+            capture.GainSchedule
+                .Select(phase => (
+                    phase.PhaseId,
+                    phase.StartsAtTick,
+                    phase.GainPerSoleTeamTick)));
+        Assert.Equal(1, capture.GainPhaseAtTick(299).GainPerSoleTeamTick);
+        Assert.Equal(2, capture.GainPhaseAtTick(300).GainPerSoleTeamTick);
+        Assert.Empty(
+            Assert.IsType<FrontlineGameModeDefinition>(
+                baseline.Rules.GameMode).Capture.GainSchedule);
+        Assert.Equal(RulesFingerprint, ActorContractFingerprint.ComputeRules(
+            baseline.Rules));
+        Assert.Equal(MatchFingerprint, ActorContractFingerprint.ComputeMatch(
+            baseline));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(baseline.Rules),
+            ActorContractFingerprint.ComputeRules(candidate.Rules));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            FrontlineLabsDefinition.CreateCaptureGainPhaseExperiment(0, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            FrontlineLabsDefinition.CreateCaptureGainPhaseExperiment(300, 0));
+    }
+
+    [Fact]
     public void SplitOutputCannotAnchorAndPrimeSlotStaysObjectiveCapable()
     {
         ActorResolvedMatchDefinition definition =
