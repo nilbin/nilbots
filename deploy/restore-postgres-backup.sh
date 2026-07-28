@@ -61,14 +61,18 @@ docker run -d \
   -e POSTGRES_DB=botarena_restore \
   "$postgres_image" >/dev/null
 for _ in {1..60}; do
+  # The official image briefly accepts connections from its initialization
+  # server before POSTGRES_DB exists, then restarts PostgreSQL. Wait for a real
+  # query against the final database so pg_restore cannot collide with that
+  # expected restart on a fast fresh-image host.
   if docker exec "$container" \
-    pg_isready -U botarena -d botarena_restore >/dev/null 2>&1; then
+    psql -U botarena -d botarena_restore -Atqc 'select 1' >/dev/null 2>&1; then
     break
   fi
   sleep 0.5
 done
 docker exec "$container" \
-  pg_isready -U botarena -d botarena_restore >/dev/null
+  psql -U botarena -d botarena_restore -Atqc 'select 1' >/dev/null
 docker exec -i "$container" \
   pg_restore \
     --username botarena \
