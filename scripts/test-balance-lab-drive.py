@@ -556,6 +556,113 @@ target.mkdir(parents=True, exist_ok=True)
         self.assertIsNone(fairness["decisiveWinDelta"])
         self.assertIsNone(fairness["assignmentSensitivePairShare"])
 
+    def test_doctrine_redundancy_counts_behavior_not_artifacts(self) -> None:
+        population = {
+            "entrants": [
+                {
+                    "id": "alpha",
+                    "doctrineId": "alpha-doctrine",
+                },
+                {
+                    "id": "beta",
+                    "doctrineId": "beta-doctrine",
+                },
+                {
+                    "id": "gamma",
+                    "doctrineId": "gamma-doctrine",
+                },
+                {
+                    "id": "delta",
+                    "doctrineId": "delta-doctrine",
+                },
+            ],
+        }
+        signatures = {
+            "alpha": {
+                "turns": 100,
+                "actionKindCounts": {"movement": 50, "attack": 50},
+                "formTurnCounts": {"prime-mobile": 100},
+                "objectiveTurns": 40,
+                "damageDealt": 10,
+                "damageTaken": 8,
+            },
+            "beta": {
+                "turns": 100,
+                "actionKindCounts": {"movement": 48, "attack": 52},
+                "formTurnCounts": {"prime-mobile": 100},
+                "objectiveTurns": 42,
+                "damageDealt": 11,
+                "damageTaken": 8,
+            },
+            "gamma": {
+                "turns": 100,
+                "actionKindCounts": {"movement": 90, "attack": 10},
+                "formTurnCounts": {"prime-mobile": 100},
+                "objectiveTurns": 5,
+                "damageDealt": 2,
+                "damageTaken": 12,
+            },
+            "delta": {
+                "turns": 100,
+                "actionKindCounts": {"wait": 100},
+                "formTurnCounts": {"turret": 100},
+                "objectiveTurns": 100,
+                "damageDealt": 20,
+                "damageTaken": 2,
+            },
+        }
+        payoff = {
+            "alpha": {
+                "alpha": None,
+                "beta": 0.0,
+                "gamma": 1.0,
+                "delta": -1.0,
+            },
+            "beta": {
+                "alpha": 0.0,
+                "beta": None,
+                "gamma": 1.0,
+                "delta": -1.0,
+            },
+            "gamma": {
+                "alpha": -1.0,
+                "beta": -1.0,
+                "gamma": None,
+                "delta": 1.0,
+            },
+            "delta": {
+                "alpha": 1.0,
+                "beta": 1.0,
+                "gamma": -1.0,
+                "delta": None,
+            },
+        }
+
+        result = DRIVER._doctrine_redundancy(
+            [
+                {
+                    "status": "verified",
+                    "entrantBehavior": signatures,
+                },
+            ],
+            population,
+            payoff,
+        )
+
+        self.assertEqual(4, result["artifactCount"])
+        self.assertEqual(3, result["effectiveDoctrineEstimate"])
+        self.assertIn(
+            ["alpha", "beta"],
+            result["redundancyComponents"],
+        )
+        alpha_beta = next(
+            pair
+            for pair in result["pairwiseEvidence"]
+            if pair["first"] == "alpha" and pair["second"] == "beta"
+        )
+        self.assertTrue(alpha_beta["diagnosticallyRedundant"])
+        self.assertEqual("measured-v1", alpha_beta["basis"])
+
     def test_trajectory_fingerprint_ignores_seed_attestation_not_actions(
         self,
     ) -> None:

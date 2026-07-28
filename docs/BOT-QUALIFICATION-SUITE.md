@@ -3,9 +3,11 @@
 Status: implementation contract for turning the T1–T8/C0–C5 framework into
 balance-grade evidence. Immutable suite 1 retains the mirrored
 `entry-initiative` T4 component. Suite 2 begins a new profile-scoped,
-WASM-only cumulative foundation with the implemented
-`contract-auto-determinism` T1 component. The cumulative profile remains
-incomplete, awards no tier, and cannot produce balance-grade evidence.
+WASM-only foundation with the historical `contract-auto-determinism`
+component. Immutable suite 3 implements the complete cumulative
+`frontline-duel-depth-union-t2-v1` profile. A suite-3 pass awards T2 for that
+profile, but T2 remains authoring/fun-floor evidence rather than a numeric
+balance vote.
 
 ## Purpose
 
@@ -45,7 +47,7 @@ Recommended CLI shape:
 ```text
 nilbots experiment frontline-labs qualify \
   --bot path/to/bot.wasm \
-  --suite frontline-qualification-2 \
+  --suite frontline-qualification-3 \
   --out path/to/evidence
 ```
 
@@ -65,6 +67,35 @@ a clean failure, while `profileComplete` is false, `tierAwarded` remains null,
 and
 `balanceEvidenceEligible` remains false.
 
+`frontline-qualification-3` is the current cumulative T2 profile. It requires
+canonical WASM and runs every probe from both assignments:
+
+- `contract-matrix` uses non-default participant IDs, all three stable unit
+  slots per team, accelerated declared automatic activation, and a repeated
+  replay-hash check;
+- `automatic-life-cycle` requires both independently instantiated children
+  to take useful mode-directed action;
+- `objective-path` requires prompt objective entry and five consecutive
+  effective capture ticks from mirrored approaches;
+- `direct-fire` requires a legal clear-lane shot and damage;
+- `straight-evade` requires successful movement while an observed straight
+  projectile can sweep the body within two projectile advances, with no
+  damage;
+- `manual-fabrication` requires explicit activation and a functioning child
+  life under the manual progression policy.
+
+The report pins probe-specific rules, map, format, topology, match,
+controller, analyzer, predicate, artifact, and replay identities. It returns
+`0` only for a complete T2 pass, `3` for a clean capability failure, and `2`
+for invalid contract/runtime/controller evidence. `balanceEvidenceEligible`
+remains false because the first numeric-balance voting floor is cumulative
+T4, not because suite 3 is incomplete.
+
+The first retained passing reference is
+`arena-bots/frontline-labs/qualification-instruments-v1-2026-07-28/house-apprentice`.
+It is T2-qualified with its source, WASM, report, and replay-byte manifest
+retained. Its exact-boundary status remains pending until cumulative T3 exists.
+
 The report should be deterministic JSON plus a short text summary. The CLI
 must not mutate a ladder, season, playlist, or submitted bot.
 
@@ -83,11 +114,13 @@ legal tuning values so passing cannot depend on coordinates or probe names.
 | `rules-values` | Reads range, speed, cooldown, health, forms, objectives, topology, and action legality from the resolved contract. |
 | `runtime-determinism` | Same artifact/contract/seed produces the same decisions and replay hash with no faults. |
 
-The implemented v2 `contract-auto-determinism` probe covers one portion of
+The frozen v2 `contract-auto-determinism` probe covers one portion of
 `contract-counts`, declared lifecycle values, and `runtime-determinism` on a
 two-team, one-controller-per-team, two-slot topology. It does not yet prove
 non-default identities, true team lineups, three slots, or varied rules
-values, so it is a component rather than T1.
+values, so it remains a historical component rather than T1. Suite 3's
+contract matrix plus the varied T2 micro-contracts supersede it for current
+cumulative qualification.
 
 Static source inspection is not a qualification requirement; behavior on
 holdouts is. A legacy bot may intentionally fail a new rules generation
@@ -236,20 +269,19 @@ range-four matrix, exact speed-2 parity, current map last-mile counts, the
 entry choke discontinuity, the perpendicular objective-strip candidate, and
 the two-projectile crossfire union.
 
-`FrontlineLabsQualificationDefinition` and
-`FrontlineLabsQualificationCommand` now run the ordinary-contract,
+`FrontlineLabsQualificationDefinition` and the qualification commands run the
+ordinary-contract,
 opening-only entry probe from both teams against a deterministic public-SDK
 straight-pressure sentinel. It records verified replay hashes, eligibility,
 sentinel attacks, action counts, first-life health/entry, objective residence,
 and initial-objective capture progress. Passing requires entry with no more
 than one damage taken before it and at least five ticks of effective capture
 progress, so touching the region during a blind run-through is insufficient.
-The next implementation package completes the v2 foundation with mirrored
-and reflected/translated holdouts for contract identities/counts,
-`objective-path`, `direct-fire`, `straight-evade`, and fresh automatic-life
-return/reorientation. Only the complete prerequisite set may award
-`T2/frontline-h2h-one-bend-auto-v1`. T3 and the T5 three-policy matrix remain
-later packages.
+
+Suite 3 now supplies the cumulative T2 union profile described above. The next
+immutable packages add T3 projectile/cadence/local-commitment probes and T4
+entry/rotation holdouts; they must reference the exact suite-3 prerequisite
+fingerprints. T5's three-policy matrix remains a later package.
 
 ## Qualification profile boundary
 
@@ -274,13 +306,17 @@ but may be intentionally ineligible for a new season.
 - T1/T2 one-pass artifacts vote on authoring quality and the fun floor.
 - T4 probes may diagnose map entry and obvious positional loops.
 - The first internal Frontline pilot may vote with at least four independent
-  cumulative T4+ lineages; include T5-capable policies where available and
-  report their exact tier rather than merging them into one band.
-- Balance Population v1 targets at least four independent lineages at each of
-  T2, T3, T4, and T5. Retained revisions measure adjacent-tier progression but
-  do not increase independent-lineage counts.
-- A later ranked/public balance population should be centered on T5–T6 after
-  the pilot has calibrated those probes.
+  effective cumulative T4+ doctrines; if four artifacts collapse to fewer
+  payoff/dynamics clusters, author more rather than treating aliases as votes.
+- T1/T2 and most T3 entrants are boundary instruments. Keep a small canonical
+  archetype set that passes Tn and demonstrably fails T(n+1); do not manufacture
+  four reimplementations of the same obvious policy.
+- A ranked/public balance verdict should be centered on independently authored
+  T5–T6 doctrines. Balance Population v1 targets at least six effective
+  verdict-band doctrines spanning predeclared strategy cells, then continues
+  authoring until redundancy and leave-one-doctrine-out checks stabilize.
+- Retained revisions measure adjacent-tier progression but do not increase
+  independent-lineage or effective-doctrine counts.
 - 2v2 primary balance needs T6/C3 or better.
 - 3v3 primary balance needs T6/C4 or better.
 - T7–T8/C5 are ceiling and anti-degeneracy evidence, explicitly deferred

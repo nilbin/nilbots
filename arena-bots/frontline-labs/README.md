@@ -9,11 +9,19 @@ The current population/pacing verdict and five preserved causal arms are in
 v2 remains the calibration control; no candidate in that iteration mutates or
 relabels immutable `frontline-labs-1`.
 
-Authors receive the common
-[`FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`](../../docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md)
-and player contract
+The current qualification population starts at
+[`qualification-instruments-v1-2026-07-28/`](qualification-instruments-v1-2026-07-28/).
+Its first retained source/artifact pair, HouseApprentice, passes the cumulative
+T2 union profile. It remains a provisional low-tier instrument until the
+future T3 profile demonstrates its upper boundary.
+
+New population authors receive
+[`FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`](../../docs/FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md)
+and the player contract
 [`FRONTLINE-LABS-RULES.md`](../../docs/FRONTLINE-LABS-RULES.md), plus only
-their assigned doctrine sentence.
+their assigned tier role, budget, and doctrine brief. The historical
+[`FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`](../../docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md)
+remains frozen for reproducing the first four-doctrine sprint.
 
 Each generation lives at `<cohort-id>/` and retains every entrant, including
 losers and every mechanically repaired revision. Each entrant directory
@@ -21,6 +29,19 @@ contains source, project metadata, `botarena.json`, README, `DX.md`, the final
 `bot.wasm`, and its local manifest. `DX.md` is frozen after source authorship
 and before standings, opponent source, or replays are disclosed; it may report
 mechanical repairs but must not become an extra strategy iteration.
+
+The immutable archive unit is a source/artifact pair, not a WASM file:
+authored source and project metadata, the exact author packet/hash, build
+identity, source-tree hash, compiled WASM/hash, qualification report/hash, DX
+notes, and every meaningful revision. A missing source snapshot makes an
+artifact reproducible for play but unusable as an auditable population
+lineage.
+
+Some retained revisions may later be named explicitly in a separate official
+population manifest. That promotion references the exact archived bytes after
+qualification and entertainment review; it never edits or silently publishes
+all Lab entrants. Restricted variants and adversarial sentinels are never
+normal launch opponents.
 
 The cohort root contains a `cohort.json` conforming to
 [`cohort.schema.json`](cohort.schema.json). Start from

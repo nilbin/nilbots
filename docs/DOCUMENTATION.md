@@ -83,6 +83,10 @@ wrong; it changes which document is the current entry point.
   remain planned.
 - [`EVALUATION-METHODOLOGY.md`](EVALUATION-METHODOLOGY.md) — required evidence
   policy before any rules experiment is promoted.
+- [`FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`](FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md)
+  — current player-facing constraints, qualification sequence, immutable
+  source/WASM archive contract, and tier-specific authoring roles for future
+  calibration and verdict populations.
 
 Frontline remains unshipped despite having an experimental contract and
 viewer.

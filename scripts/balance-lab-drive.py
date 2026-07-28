@@ -1646,6 +1646,97 @@ def _trajectory_fingerprint(document: dict[str, Any]) -> str:
     )
 
 
+def _entrant_behavior(
+    document: dict[str, Any],
+    team_assignments: dict[str, str],
+) -> dict[str, dict[str, Any]]:
+    """Extract deterministic per-entrant action and positional signatures."""
+
+    contract = document.get("header", {}).get("contract", {})
+    action_kinds = {
+        str(action.get("id")): str(action.get("kind"))
+        for action in contract.get("rules", {}).get("actions", [])
+    }
+    regions = {
+        str(region.get("regionId")): {
+            (int(tile[0]), int(tile[1]))
+            for tile in region.get("tiles", [])
+            if isinstance(tile, list) and len(tile) == 2
+        }
+        for region in contract.get("map", {}).get("regions", [])
+    }
+    objective_ids = contract.get("modeMapBinding", {}).get(
+        "orderedObjectiveRegionIds",
+        [],
+    )
+    totals: dict[str, dict[str, Any]] = {
+        entrant: {
+            "turns": 0,
+            "actionKindCounts": {},
+            "formTurnCounts": {},
+            "objectiveTurns": 0,
+            "damageDealt": 0,
+            "damageTaken": 0,
+        }
+        for entrant in team_assignments.values()
+    }
+    for tick in document.get("ticks", []):
+        for turn in tick.get("actorTurns", []):
+            actor_id = turn.get("actorId", {})
+            entrant = team_assignments.get(str(actor_id.get("teamId")))
+            if entrant not in totals:
+                continue
+            item = totals[entrant]
+            item["turns"] += 1
+            observation = turn.get("observation", {})
+            self_state = observation.get("self", {})
+            form_id = str(self_state.get("formId", "unknown"))
+            item["formTurnCounts"][form_id] = (
+                item["formTurnCounts"].get(form_id, 0) + 1
+            )
+            mode = observation.get("mode", {})
+            active_index = mode.get("activePositionIndex")
+            position = self_state.get("position", {})
+            if (
+                isinstance(active_index, int)
+                and 0 <= active_index < len(objective_ids)
+                and (
+                    position.get("x"),
+                    position.get("y"),
+                ) in regions.get(str(objective_ids[active_index]), set())
+            ):
+                item["objectiveTurns"] += 1
+
+            accepted = turn.get("actionResolution", {}).get(
+                "acceptedAction"
+            )
+            if isinstance(accepted, dict):
+                action_id = str(accepted.get("actionId"))
+                kind = action_kinds.get(action_id, f"unknown:{action_id}")
+                item["actionKindCounts"][kind] = (
+                    item["actionKindCounts"].get(kind, 0) + 1
+                )
+
+        for event in tick.get("events", []):
+            if event.get("kind") != "damage":
+                continue
+            payload = event.get("payload", {})
+            amount = int(payload.get("amount", 0))
+            source = team_assignments.get(
+                str(payload.get("sourceTeamId"))
+            )
+            target = team_assignments.get(
+                str(
+                    payload.get("targetActorId", {}).get("teamId")
+                )
+            )
+            if source in totals:
+                totals[source]["damageDealt"] += amount
+            if target in totals:
+                totals[target]["damageTaken"] += amount
+    return totals
+
+
 def _result_row(
     execution: dict[str, Any],
     candidate: dict[str, Any],
@@ -1730,6 +1821,10 @@ def _result_row(
             else 0,
         "replayHash": document.get("replayHash"),
         "trajectoryFingerprint": _trajectory_fingerprint(document),
+        "entrantBehavior": _entrant_behavior(
+            document,
+            plan["teamAssignments"],
+        ),
     }
 
 
@@ -1758,6 +1853,227 @@ def _payoff_matrix(
             for second in entrant_ids
         }
         for first in entrant_ids
+    }
+
+
+def _normalized_distribution(
+    counts: dict[str, int],
+    total: int,
+) -> dict[str, float]:
+    if total <= 0:
+        return {}
+    return {
+        key: value / total
+        for key, value in counts.items()
+    }
+
+
+def _total_variation(
+    first: dict[str, float],
+    second: dict[str, float],
+) -> float:
+    keys = set(first) | set(second)
+    return 0.5 * sum(
+        abs(first.get(key, 0.0) - second.get(key, 0.0))
+        for key in keys
+    )
+
+
+def _doctrine_redundancy(
+    rows: list[dict[str, Any]],
+    population: dict[str, Any],
+    payoff_matrix: dict[str, dict[str, float | None]],
+) -> dict[str, Any]:
+    """Estimate effective doctrines without discarding any entrant.
+
+    The v1 thresholds are intentionally global and diagnostic. Candidate
+    promotion cannot depend on them until calibrated against known
+    exact-boundary and deliberately redundant populations.
+    """
+
+    entrants = [item["id"] for item in population["entrants"]]
+    doctrines = {
+        item["id"]: item.get("doctrineId", item["id"])
+        for item in population["entrants"]
+    }
+    totals: dict[str, dict[str, Any]] = {
+        entrant: {
+            "turns": 0,
+            "actionKindCounts": Counter(),
+            "formTurnCounts": Counter(),
+            "objectiveTurns": 0,
+            "damageDealt": 0,
+            "damageTaken": 0,
+        }
+        for entrant in entrants
+    }
+    for row in rows:
+        if row.get("status") != "verified":
+            continue
+        for entrant, signature in row.get(
+            "entrantBehavior",
+            {},
+        ).items():
+            if entrant not in totals:
+                continue
+            item = totals[entrant]
+            item["turns"] += int(signature.get("turns", 0))
+            item["actionKindCounts"].update(
+                signature.get("actionKindCounts", {})
+            )
+            item["formTurnCounts"].update(
+                signature.get("formTurnCounts", {})
+            )
+            item["objectiveTurns"] += int(
+                signature.get("objectiveTurns", 0)
+            )
+            item["damageDealt"] += int(
+                signature.get("damageDealt", 0)
+            )
+            item["damageTaken"] += int(
+                signature.get("damageTaken", 0)
+            )
+
+    signatures = {}
+    for entrant, item in totals.items():
+        turns = item["turns"]
+        signatures[entrant] = {
+            "turns": turns,
+            "actionKindDistribution": _normalized_distribution(
+                dict(item["actionKindCounts"]),
+                turns,
+            ),
+            "formDistribution": _normalized_distribution(
+                dict(item["formTurnCounts"]),
+                turns,
+            ),
+            "objectiveTurnShare":
+                item["objectiveTurns"] / turns if turns else None,
+            "damageDealtPer100Turns":
+                item["damageDealt"] * 100 / turns if turns else None,
+            "damageTakenPer100Turns":
+                item["damageTaken"] * 100 / turns if turns else None,
+        }
+
+    thresholds = {
+        "minimumCommonOpponents": 2,
+        "maximumNormalizedPayoffRowDistance": 0.10,
+        "maximumActionDistributionDistance": 0.10,
+        "maximumFormDistributionDistance": 0.10,
+        "maximumObjectiveTurnShareDistance": 0.10,
+    }
+    pairs = []
+    redundant_edges: set[tuple[str, str]] = set()
+    for first, second in itertools.combinations(entrants, 2):
+        opponents = [
+            opponent
+            for opponent in entrants
+            if opponent not in {first, second}
+            and payoff_matrix[first].get(opponent) is not None
+            and payoff_matrix[second].get(opponent) is not None
+        ]
+        payoff_distance = (
+            statistics.fmean(
+                abs(
+                    float(payoff_matrix[first][opponent])
+                    - float(payoff_matrix[second][opponent])
+                )
+                / 2.0
+                for opponent in opponents
+            )
+            if opponents
+            else None
+        )
+        first_signature = signatures[first]
+        second_signature = signatures[second]
+        action_distance = _total_variation(
+            first_signature["actionKindDistribution"],
+            second_signature["actionKindDistribution"],
+        )
+        form_distance = _total_variation(
+            first_signature["formDistribution"],
+            second_signature["formDistribution"],
+        )
+        first_objective = first_signature["objectiveTurnShare"]
+        second_objective = second_signature["objectiveTurnShare"]
+        objective_distance = (
+            abs(first_objective - second_objective)
+            if first_objective is not None
+            and second_objective is not None
+            else None
+        )
+        declared_same = doctrines[first] == doctrines[second]
+        measured = (
+            len(opponents) >= thresholds["minimumCommonOpponents"]
+            and payoff_distance is not None
+            and payoff_distance
+                <= thresholds["maximumNormalizedPayoffRowDistance"]
+            and action_distance
+                <= thresholds["maximumActionDistributionDistance"]
+            and form_distance
+                <= thresholds["maximumFormDistributionDistance"]
+            and objective_distance is not None
+            and objective_distance
+                <= thresholds["maximumObjectiveTurnShareDistance"]
+        )
+        redundant = declared_same or measured
+        if redundant:
+            redundant_edges.add((first, second))
+        pairs.append(
+            {
+                "first": first,
+                "second": second,
+                "declaredSameDoctrine": declared_same,
+                "commonOpponentCount": len(opponents),
+                "normalizedPayoffRowDistance": payoff_distance,
+                "actionDistributionDistance": action_distance,
+                "formDistributionDistance": form_distance,
+                "objectiveTurnShareDistance": objective_distance,
+                "diagnosticallyRedundant": redundant,
+                "basis":
+                    "declared-doctrine"
+                    if declared_same
+                    else "measured-v1"
+                    if measured
+                    else "distinct-or-insufficient-evidence",
+            }
+        )
+
+    parent = {entrant: entrant for entrant in entrants}
+
+    def find(value: str) -> str:
+        while parent[value] != value:
+            parent[value] = parent[parent[value]]
+            value = parent[value]
+        return value
+
+    def union(first: str, second: str) -> None:
+        left = find(first)
+        right = find(second)
+        if left != right:
+            parent[max(left, right)] = min(left, right)
+
+    for first, second in sorted(redundant_edges):
+        union(first, second)
+    groups: dict[str, list[str]] = defaultdict(list)
+    for entrant in entrants:
+        groups[find(entrant)].append(entrant)
+    components = [
+        sorted(component)
+        for component in groups.values()
+    ]
+    components.sort()
+    return {
+        "status": "diagnostic-versioned-thresholds",
+        "profileId": "payoff-action-form-objective-redundancy-v1",
+        "artifactCount": len(entrants),
+        "declaredDoctrineCount": len(set(doctrines.values())),
+        "effectiveDoctrineEstimate": len(components),
+        "redundancyComponents": components,
+        "thresholds": thresholds,
+        "entrantSignatures": signatures,
+        "pairwiseEvidence": pairs,
+        "eligibilityUse": "diagnostic-only-until-calibrated",
     }
 
 
@@ -2102,6 +2418,12 @@ def _cell_report(
         population,
         "team0Payoff",
     )
+    payoff_matrix = _payoff_matrix(valid, entrant_ids)
+    doctrine_redundancy = _doctrine_redundancy(
+        valid,
+        population,
+        payoff_matrix,
+    )
     report = {
         "studyBlockId": (
             study_block["id"] if study_block is not None else "unspecified"
@@ -2146,7 +2468,7 @@ def _cell_report(
         },
         "plannedMatches": len(rows),
         "validMatches": len(valid),
-        "payoffMatrix": _payoff_matrix(valid, entrant_ids),
+        "payoffMatrix": payoff_matrix,
         "balanceVector": {
             "sideSpawnFairness": {
                 "status": (
@@ -2167,8 +2489,9 @@ def _cell_report(
                 "reason": "best-response search is not yet implemented",
             },
             "strategicDiversity": {
-                "status": "descriptive-payoff-matrix-only",
+                "status": "diagnostic-redundancy-estimate",
                 "equilibriumSupport": None,
+                "doctrineRedundancy": doctrine_redundancy,
             },
             "skillGradient": {
                 "status": "not-measured-within-one-tier-cell",
@@ -2430,8 +2753,8 @@ def _write_report(output: Path, report: dict[str, Any]) -> None:
             f"`{str(report['candidatePromotionEligible']).lower()}`."
         ),
         "",
-        "| Study | Candidate | Population | Valid | Side effect | Median ticks |",
-        "| --- | --- | --- | ---: | ---: | ---: |",
+        "| Study | Candidate | Population | Valid | Effective doctrines | Side effect | Median ticks |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: |",
     ]
     for cell in report["cells"]:
         vector = cell["balanceVector"]
@@ -2445,6 +2768,8 @@ def _write_report(output: Path, report: dict[str, Any]) -> None:
             f"| {cell['studyBlockId']} | {cell['candidateId']} | "
             f"{cell['populationId']} | "
             f"{cell['validMatches']}/{cell['plannedMatches']} | "
+            f"{vector['strategicDiversity']['doctrineRedundancy']['effectiveDoctrineEstimate']}"
+            f"/{vector['strategicDiversity']['doctrineRedundancy']['artifactCount']} | "
             f"{side_delta_text} | "
             f"{vector['matchDuration'].get('medianTicks')} |"
         )

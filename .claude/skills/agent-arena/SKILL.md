@@ -68,10 +68,18 @@ minimum T/C grade before authoring or selecting entrants. The first Frontline
 pilot targets at least four independent cumulative T4+ lineages, including
 T5-capable policies where available. T7/T8, automated best-response search,
 and equilibrium estimation are explicitly deferred until that credible
-population exists. The durable Balance Population v1 target is at least four
-independent lineages at each of T2, T3, T4, and T5. Preserve intermediate
-passing revisions for adjacent-tier calibration, but never count one lineage's
-revisions as independent policies. Never infer a tier from tournament wins.
+population exists.
+
+Population targets are tier-dependent. T1/T2 and most T3 artifacts are
+calibration instruments: retain a small canonical set of behaviorally distinct
+archetypes that passes Tn and demonstrably fails T(n+1). At the T5/T6 verdict
+band, commission independently authored doctrine briefs and continue until
+there are at least six effective doctrines, the declared strategy cells are
+covered, and leave-one-doctrine-out conclusions are stable. Similar payoff
+rows plus similar dynamics/action signatures count as redundancy evidence;
+artifact count alone is never population breadth. Preserve intermediate
+passing revisions, but never count revisions of one lineage as independent
+policies. Never infer a tier from tournament wins.
 
 Two separately versioned dynamic components now exist:
 
@@ -82,10 +90,16 @@ nilbots experiment frontline-labs qualify \
   --suite frontline-qualification-1 \
   --out <evidence-dir>
 
-# Current WASM-only foundation component:
+# Frozen WASM-only foundation component:
 nilbots experiment frontline-labs qualify \
   --bot <generic-wasm> \
   --suite frontline-qualification-2 \
+  --out <evidence-dir>
+
+# Current cumulative T2 union profile:
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-3 \
   --out <evidence-dir>
 ```
 
@@ -97,7 +111,15 @@ child life. Its current report has `profileComplete: false`, deliberately
 awards no tier, and is not balance-evidence eligible. Use it to separate
 current-toolchain contract competence from strategy, not as T1/T2 proof.
 
-When the cumulative suite is complete, a Balance Lab voting entrant must pin
+Suite 3 is the current prerequisite for population work. It exercises
+non-default participant identities and all three unit slots per team, useful
+automatic child lives, objective navigation/holding, direct fire,
+straight-projectile evasion, and explicit fabrication under both assignments.
+A clean pass awards T2 under
+`frontline-duel-depth-union-t2-v1`; it remains authoring/fun-floor evidence,
+not a numeric balance vote.
+
+Every Balance Lab entrant must pin
 the exact suite/version, qualification profile and contract fingerprint,
 evidence-file SHA-256, artifact hash, and awarded T/C values. Never copy a
 tier label between profiles or seasons. A new strategically necessary
@@ -129,12 +151,13 @@ by content-identified map fingerprints. Do not treat a map win table as
 balance evidence until the voting artifacts pass the relevant qualification
 probes.
 
-Pre-register the run in `docs/FRONTLINE-LABS-COHORT-BASELINE.md`. Give each of
-four independent agents the identical
-`docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`, the player rules in
-`docs/FRONTLINE-LABS-RULES.md`, and exactly one doctrine sentence: pressure,
-fabricator, bastion, or adapter. Authors may inspect only the player-facing
-material permitted by the packet. They create projects with
+For new retained population work, give every independent author
+`docs/FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`, the player rules, an
+explicit target tier/role/budget, and a deliberately distinct doctrine brief.
+The historical `docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md` and
+`docs/FRONTLINE-LABS-COHORT-BASELINE.md` remain frozen inputs only when
+reproducing the original four-doctrine sprint. Authors may inspect only the
+player-facing material permitted by the selected packet. They create projects with
 `nilbots new <Name> --profile generic-actor`, receive one implementation pass,
 and do not see another entrant, standings, or replay evidence before freeze.
 
@@ -157,6 +180,11 @@ and never under `champions/`. Preserve source, project metadata,
 and its SHA-256. Fill the cohort manifest described by
 `arena-bots/frontline-labs/README.md`; freeze all hashes before the first
 match.
+
+Treat source plus WASM as one immutable population revision. A mechanically
+qualified, entertaining revision may later be explicitly promoted as a
+system-owned playlist opponent. Do not publish Lab-only ablations or
+adversarial sentinels, and do not edit an archived revision during promotion.
 
 ```bash
 python3 scripts/labs-cohort-drive.py \

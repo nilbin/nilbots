@@ -234,6 +234,160 @@ public sealed class FrontlineLabsQualificationCommandTests
                     "--suite",
                     "frontline-qualification-2",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsQualificationCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--runtime",
+                    "in-process",
+                    "--suite",
+                    "frontline-qualification-3",
+                ]));
+    }
+
+    [Fact]
+    public void FundamentalsProfile_AwardsT1ButNotT2ForIdleAutomaticChild()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-qualification-fundamentals-{Guid.NewGuid():N}");
+        try
+        {
+            string bot = Path.Combine(
+                FindRepoRoot(),
+                "arena-bots",
+                "frontline-labs",
+                "duel-depth-v1-2026-07-28",
+                "initiative-planner",
+                "bot-balance-lab-v1.wasm");
+
+            Assert.Equal(3, RunFundamentals(bot, temporary));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(
+                    Path.Combine(temporary, "qualification.json")));
+            JsonElement root = document.RootElement;
+            Assert.Equal(3, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(
+                "frontline-duel-depth-union-t2-v1",
+                root.GetProperty("qualificationProfileId").GetString());
+            Assert.False(root.GetProperty("passed").GetBoolean());
+            Assert.True(
+                root.GetProperty("profileComplete").GetBoolean());
+            Assert.Equal(
+                "T1",
+                root.GetProperty("tierAwarded").GetString());
+            Assert.False(
+                root.GetProperty("balanceEvidenceEligible").GetBoolean());
+
+            JsonElement[] probes =
+            [
+                .. root.GetProperty("probes").EnumerateArray(),
+            ];
+            Assert.Equal(6, probes.Length);
+            Assert.Single(
+                probes,
+                probe =>
+                    !probe.GetProperty("passed").GetBoolean()
+                    && probe.GetProperty("probeId").GetString()
+                        == "automatic-life-cycle");
+            foreach (JsonElement assignment in probes.SelectMany(probe =>
+                         probe.GetProperty("assignments").EnumerateArray()))
+            {
+                AssertReplayVerifies(
+                    temporary,
+                    assignment.GetProperty("primary"));
+                JsonElement repeat =
+                    assignment.GetProperty("determinismRepeat");
+                if (repeat.ValueKind != JsonValueKind.Null)
+                {
+                    Assert.True(
+                        assignment.GetProperty("replayHashMatched")
+                            .GetBoolean());
+                    AssertReplayVerifies(temporary, repeat);
+                }
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void FundamentalsProfile_ArchivedHouseApprenticeQualifiesT2()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-qualification-apprentice-{Guid.NewGuid():N}");
+        try
+        {
+            string bot = Path.Combine(
+                FindRepoRoot(),
+                "arena-bots",
+                "frontline-labs",
+                "qualification-instruments-v1-2026-07-28",
+                "house-apprentice",
+                "bot.wasm");
+
+            Assert.Equal(0, RunFundamentals(bot, temporary));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(
+                    Path.Combine(temporary, "qualification.json")));
+            JsonElement root = document.RootElement;
+            Assert.True(root.GetProperty("passed").GetBoolean());
+            Assert.True(root.GetProperty("profileComplete").GetBoolean());
+            Assert.Equal(
+                "T2",
+                root.GetProperty("tierAwarded").GetString());
+            Assert.Equal(
+                "8aa12a82144e314e0b215a57a60729be68131cc6a3330e68593e178c95f1b873",
+                root.GetProperty("artifactHash").GetString());
+            Assert.False(
+                root.GetProperty("balanceEvidenceEligible").GetBoolean());
+            JsonElement[] probes =
+            [
+                .. root.GetProperty("probes").EnumerateArray(),
+            ];
+            Assert.Equal(6, probes.Length);
+            Assert.All(
+                probes,
+                probe =>
+                    Assert.True(
+                        probe.GetProperty("passed").GetBoolean(),
+                        probe.GetProperty("probeId").GetString()));
+
+            JsonElement evade = Assert.Single(
+                probes,
+                probe =>
+                    probe.GetProperty("probeId").GetString()
+                        == "straight-evade");
+            Assert.All(
+                evade.GetProperty("assignments").EnumerateArray(),
+                assignment =>
+                {
+                    JsonElement evidence =
+                        assignment.GetProperty("primary");
+                    Assert.True(
+                        evidence.GetProperty("threatenedTurnCount")
+                            .GetInt32() > 0);
+                    Assert.True(
+                        evidence.GetProperty(
+                                "successfulThreatMoveCount")
+                            .GetInt32() > 0);
+                    Assert.Equal(
+                        0,
+                        evidence.GetProperty("damageTaken").GetInt32());
+                });
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
     }
 
     [Fact]
@@ -357,6 +511,33 @@ public sealed class FrontlineLabsQualificationCommandTests
                     "wasm",
                     "--suite",
                     "frontline-qualification-2",
+                    "--out",
+                    output,
+                ]);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+    }
+
+    private static int RunFundamentals(string bot, string output)
+    {
+        TextWriter originalOut = Console.Out;
+        TextWriter originalError = Console.Error;
+        try
+        {
+            Console.SetOut(TextWriter.Null);
+            Console.SetError(TextWriter.Null);
+            return FrontlineLabsQualificationCommand.Run(
+                [
+                    "--bot",
+                    bot,
+                    "--runtime",
+                    "wasm",
+                    "--suite",
+                    "frontline-qualification-3",
                     "--out",
                     output,
                 ]);

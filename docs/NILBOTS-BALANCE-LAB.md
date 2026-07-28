@@ -34,8 +34,8 @@ to program.
 | Static/map analysis | Exact map model; deterministic map validators; duel map enumeration in `FrontlineLabsDuelTheoryTests`; one-bend route/fork scripts | Mode-neutral map feature extractor, symmetry/fairness report, generated-map rejection |
 | Exact tactics | Engine chronology validation; projectile and collision kernels; `shot-theory-lab.py`; bounded duel proofs | General microstate DSL, dominance solver, turret-standoff and objective-suppression catalog |
 | Restricted play | Action legality and data-driven rules make restrictions representable; checked-in ablation-debt registry | Versioned ablation definitions and equivalent restricted bot wrappers |
-| Bot tiers | T1–T8 and C0–C5 definitions; profile-scoped qualification provenance; immutable suite-1 T4 component; suite-2 WASM determinism/automatic-life component; retained source/WASM/reference evidence | Complete cumulative T1/T2 and higher probes, multiple independently competent bots per tier, planning-budget declarations |
-| Population execution | Study-scoped mirrored cohort runner; optional self-play; all-bot retention; replay verification; frozen executable bundle; no champion-only pruning; hard balance-verdict eligibility gate | Qualified multi-tier population and cross-tier blocks |
+| Bot tiers | T1–T8 and C0–C5 definitions; profile-scoped qualification provenance; immutable suite-1 T4 component; suite-2 WASM foundation component; suite-3 cumulative T2 union profile; retained source/WASM/reference evidence | Immutable cumulative T3/T4 and higher probes, exact-boundary instruments, diverse verdict-band doctrines, planning-budget declarations |
+| Population execution | Study-scoped mirrored cohort runner; optional self-play; all-bot retention; replay verification; frozen executable bundle; no champion-only pruning; hard balance-verdict eligibility gate; diagnostic effective-doctrine estimate from payoff/action/form/objective signatures | Calibrated redundancy thresholds, qualified multi-tier population, and cross-tier blocks |
 | Replay metrics | Rich generic Frontline dynamics report; activity, combat, population, objectives, phases, deadlocks; finite-population paired contrasts and lineage sensitivity | Mode adapters for deathmatch/FFA and coordinated-play classifiers |
 | Game theory | Exact local payoff examples and full empirical match rows | Deferred: payoff-tensor analysis, equilibrium support, best-response search, exploitability |
 | Candidate search | Immutable numeric/map experiment factories | Constrained/Bayesian/evolutionary search with cheap-layer promotion |
@@ -113,6 +113,15 @@ generalization axis, so reports expose authoring lineages and
 leave-one-lineage-out sensitivity. A voting pilot requires at least four
 independent lineages; the two-lineage threshold is diagnostic plumbing only.
 
+Reports also separate artifact count from a versioned diagnostic
+effective-doctrine estimate. For every entrant pair, the Lab records common
+opponents, normalized payoff-row distance, action-distribution distance,
+form-distribution distance, and objective-residence distance. Declared-same
+doctrines or pairs passing every conservative v1 threshold form reported
+redundancy components. This never deletes an entrant and is not yet a
+promotion gate: the thresholds must first be calibrated against known
+exact-boundary and deliberately duplicated populations.
+
 ## Implemented slices
 
 [`scripts/balance-lab-drive.py`](../scripts/balance-lab-drive.py) implements
@@ -146,7 +155,12 @@ Slice 2 adds:
 - the WASM-only `frontline-qualification-2`
   `contract-auto-determinism` component, which repeats both assignments and
   requires identical replay hashes, zero faults, and the declared automatic
-  child life. It awards no tier while the cumulative profile is incomplete.
+  child life. It remains frozen component evidence and awards no tier;
+- the WASM-only `frontline-qualification-3` cumulative T2 union profile, which
+  covers non-default participant identities, six stable unit slots, useful
+  automatic lives, objective path/hold, direct fire, straight evasion, and
+  explicit fabrication in both assignments. T2 is complete fun-floor
+  evidence but remains below the numeric-balance voting floor.
 
 Slice 3 closes the correctness seams needed before population work:
 
@@ -248,14 +262,43 @@ contracts so the same bots can run in every factorial cell. Native manual and
 native automatic product populations remain separate study blocks when
 rules-aware adaptation is being judged.
 
-The four-lineage T4 floor starts a pilot; it is not the durable calibration
-population. Balance Population v1 targets at least four independent lineages
-at each of T2, T3, T4, and T5. Preserve each lineage's passing revisions as
-skill-gradient checkpoints, but do not count revisions of one lineage as
-independent policies. Add T6 only after the first pilot calibrates the cheaper
-tiers. Run complete within-tier and adjacent-tier cross-play; do not multiply
-every artifact across every ruleset, season, and format when that block does
-not answer the registered hypothesis.
+The four-effective-doctrine T4 floor starts a directional pilot; it is not the
+launch balance population. At T1/T2 and most of T3, retain a small enumerated
+set of exact-boundary calibration instruments that pass Tn and fail T(n+1).
+Balance Population v1 concentrates authoring effort at T5/T6: at least six
+independently authored effective doctrines spanning declared strategy cells,
+with further entrants required when coverage or leave-one-doctrine-out
+stability remains weak.
+
+Preserve each lineage's passing revisions as skill-gradient checkpoints, but
+do not count revisions as independent policies. Payoff-row similarity plus
+dynamics/action and restricted-play similarity produces an explicit
+redundancy report: “six artifacts, two effective doctrines” is not a
+six-doctrine population. Run complete within-tier and adjacent-tier cross-play;
+do not multiply every artifact across every ruleset, season, and format when
+that block does not answer the registered hypothesis.
+
+## From evaluation population to launch population
+
+Qualified evaluation bots are permanent product assets. A retained revision
+may advance from `lab-only` to `official-population` only when it also passes
+the playlist's outcome-blind entertainment, presentation, safety, and
+author-DX gates. Promotion never mutates the source or WASM; it references the
+same immutable revision.
+
+Official bots are visibly system-owned and versioned per playlist:
+
+- T2 provides welcoming first opponents and starter examples;
+- T3/T4 supplies varied ordinary matchmaking opponents;
+- T5/T6 provides aspirational opponents and rating anchors;
+- restricted variants, metric attackers, and pathological sentinels remain
+  Lab-only.
+
+At launch, official bots may backfill a sparse playlist queue. They are
+excluded from human prizes and champion claims, and their rating/history is
+separate per playlist/ruleset. A later population seeder should consume an
+explicit promotion manifest containing the source/WASM/qualification hashes;
+it must not scan every Lab entrant and publish it implicitly.
 
 ## Automation guardrails
 
@@ -295,13 +338,16 @@ Further Lab hardening is paused. The critical path is:
 
 1. finish cumulative, deterministic T1–T4 qualification;
 2. retain every independently authored bot and revision;
-3. qualify the four-lineage T4+ pilot floor, then continue building the
-   four-per-tier T2–T5 population pyramid;
-4. run tier calibration and the registered six-cell causal block with
+3. freeze exact-boundary lower-tier instruments and qualify at least four
+   effective T4+ doctrines for the directional pilot;
+4. build the independently authored T5/T6 verdict population until at least
+   six effective doctrines, declared strategy coverage, and
+   leave-one-doctrine-out stability are present;
+5. run tier calibration and the registered six-cell causal block with
    adequate paired seeds plus
    separate rules-native product blocks;
-5. lock the outcome-blind replay sample and author-DX notes;
-6. decide what to tune from that evidence.
+6. lock the outcome-blind replay sample and author-DX notes;
+7. decide what to tune from that evidence.
 
 All duel conclusions are provisional for 2v2 and 3v3. Duel competence
 transfers; team-information, assignment, crossfire, reinforcement, and map

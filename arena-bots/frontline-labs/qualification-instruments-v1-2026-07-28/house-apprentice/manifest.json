@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "house-apprentice-t2-v1",
+  "name": "HouseApprentice",
+  "authoringLineageId": "house-apprentice-template-v1",
+  "doctrineId": "contract-driven-apprentice",
+  "role": "boundary-instrument",
+  "targetTier": "T2",
+  "status": "t2-qualified-t3-boundary-pending",
+  "launchPopulationStatus": "eligible-for-later-entertainment-review",
+  "authoringBudgetId": "starter-mechanical-competency-v1",
+  "authorPacketSha256": "e292185ab35778acec549bb06b119cfea31a69e493d13ce1eae7695f62d99d1d",
+  "sourceFiles": {
+    "HouseApprentice.cs": "195de6e347e0fe6063b6dad85a3816449ffcd6a4946aecd9fc69e01b8f20a148",
+    "ArenaBasics.cs": "3b524fe7f1258a7ab546b6c4c1497e16b54bc2144d104a72fe935d16f2dcf80a"
+  },
+  "builder": {
+    "protocol": "controlled-docker-wasi-publish-v1",
+    "engineHead": "6346505103e5c3ac516805d39151d15eecb00439",
+    "engineWorktreeDirty": true,
+    "sdkVersion": "0.10.3",
+    "stabilityFlags": [
+      "--disable-build-servers",
+      "-m:1",
+      "-p:UseSharedCompilation=false"
+    ]
+  },
+  "artifact": {
+    "path": "bot.wasm",
+    "sha256": "8aa12a82144e314e0b215a57a60729be68131cc6a3330e68593e178c95f1b873"
+  },
+  "qualification": {
+    "suiteId": "frontline-qualification-3",
+    "suiteVersion": 1,
+    "qualificationProfileId": "frontline-duel-depth-union-t2-v1",
+    "qualificationContractFingerprint": "bbeb5e2a4d0fc87b1f4019722c182341a45adb82acec2c9417a50589e0199b77",
+    "report": "qualification-frontline-3.json",
+    "reportSha256": "88e6a7162e65b10f549dbba16a9f080700f6d074deda3db05a96f3dd45de3cc5",
+    "passed": true,
+    "tierAwarded": "T2",
+    "coordinationGradeAwarded": null,
+    "balanceEvidenceEligible": false
+  }
+}
+

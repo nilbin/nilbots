@@ -23,10 +23,10 @@ nilbots experiment frontline-labs \
   --opponent ../AnotherGenericBot/out/bot.wasm \
   --seed 104729
 
-# Deterministic contract/lifecycle component (not yet a tier award):
+# Cumulative WASM-only fundamentals qualification:
 nilbots experiment frontline-labs qualify \
   --bot out/bot.wasm \
-  --suite frontline-qualification-2
+  --suite frontline-qualification-3
 ```
 
 The command always selects the immutable `frontline-labs-1` definition and
@@ -43,10 +43,13 @@ scores, objective state, and exact action legality for that body.
 
 The generated bot is a competent apprentice rather than a blank or solved
 policy. Its short `Tick` priority list promptly activates an available
-companion, leaves an obvious one-advance projectile path, takes a clear direct
-shot, and pathfinds around walls toward the active objective. Those
-contract-driven building blocks live in `ArenaBasics.cs`; keep or replace them
-as your policy develops.
+companion, leaves an imminent straight-projectile path, takes a clear direct
+shot, and pathfinds around walls toward the active objective. Its dodge helper
+projects a visible projectile's current heading across two advances, and each
+life avoids its just-vacated dodge tile for one further tick so objective
+pathing cannot immediately step back into the same shot. Those contract-driven
+building blocks live in `ArenaBasics.cs`; keep or replace them as your policy
+develops.
 
 The immediate evasion is intentionally baseline boilerplate. The interesting
 work starts with deciding when moving costs too much territory or firing
@@ -59,12 +62,13 @@ its doctrine. `BOTNAME.cs` is the intended first editing surface: reorder its
 priorities, add conditions, and use actor/unit identity plus shared
 observations to make the independent lives cooperate.
 
-The qualification command is local and unranked. Its current suite-2
-foundation component repeats both assignments in WASM, verifies deterministic
-replay hashes, and checks fault-free handling of an automatically activated
-child. A passing result is useful compatibility evidence, but the report
-keeps `profileComplete: false`, `tierAwarded: null`, and
-`balanceEvidenceEligible: false` until the remaining cumulative probes exist.
+The qualification command is local and unranked. Current suite 3 runs both
+assignments in WASM and checks contract/count handling, deterministic replay
+hashes, useful automatic children, objective movement/holding, direct fire,
+straight-projectile evasion, and explicit Fabricate. A complete pass awards
+T2 under the pinned duel-depth union profile. It remains authoring/fun-floor
+evidence (`balanceEvidenceEligible: false`); numeric balance voting starts at
+the separately qualified T4 floor.
 
 `ArenaBasics` demonstrates the important authoring pattern: select actions by
 their contract kind or stable ID, use the negotiated numeric code, and obey

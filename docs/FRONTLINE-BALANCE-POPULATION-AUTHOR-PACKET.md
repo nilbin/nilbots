@@ -1,0 +1,134 @@
+# Frontline Balance Population author packet
+
+Status: current common input for retained Frontline calibration instruments,
+verdict-band doctrines, and potential system-owned launch opponents. The
+historical first-cohort packet remains frozen separately.
+
+## Assignment supplied by the orchestrator
+
+Every author receives the same packet plus these explicit values:
+
+- population and authoring-lineage IDs;
+- one doctrine brief;
+- target qualification profile and tier;
+- role: `boundary-instrument` or `verdict-doctrine`;
+- implementation, mechanical-repair, and improvement budgets;
+- permitted player-facing rules/map addenda;
+- exact output directory.
+
+Running the same unconstrained prompt several times is not independent
+authorship. Doctrine briefs must demand different resource, route, positional,
+or opponent-model priorities.
+
+## Product and evidence role
+
+Every submitted revision is retained as source plus compiled WASM. A
+mechanically qualified and entertaining revision may later be promoted,
+unchanged, as a visibly system-owned playlist opponent. Promotion is not
+automatic: Lab-only sentinels, ablations, metric attackers, deliberately
+crippled instruments, and confusing policies remain internal.
+
+A `boundary-instrument` should pass Tn and demonstrably fail T(n+1). Its job is
+to calibrate the fun floor and adjacent-tier gradient, not to maximize wins.
+A `verdict-doctrine` targets T5/T6 and should express its assigned strategic
+idea as strongly as the equal authoring budget allows. Tournament standing
+never awards a tier.
+
+## Permitted material
+
+Use only:
+
+- this packet and the assigned doctrine/target fields;
+- the generated `nilbots new <Name> --profile generic-actor` project and its
+  README/helper;
+- [`FRONTLINE-LABS-RULES.md`](FRONTLINE-LABS-RULES.md);
+- explicitly assigned public experiment addenda, such as
+  [`EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md`](EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md);
+- [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md);
+- [`WASM-DEVELOPMENT.md`](WASM-DEVELOPMENT.md);
+- public SDK types and XML documentation;
+- the public qualification summary and the author's own qualification
+  report/replays after its first source freeze.
+
+Do not inspect Engine/App implementation, private probes or holdouts, another
+entrant's source, standings, aggregate balance reports, or non-assigned
+replays. Mechanical probe feedback may repair contract handling; strategic
+improvement consumes the declared equal improvement budget.
+
+## Non-negotiable implementation requirements
+
+- Implement `IGenericActorBot` and treat `StartLife.Contract` plus current
+  action legalities as authoritative.
+- Never assume participant IDs are `0/1`, that participant ID equals team ID,
+  that one participant owns every team body, or that IDs/counts are dense.
+- Read participants, teams, unit slots, controller ownership, forms, health,
+  actions, transitions, lifecycle, map regions, objectives, projectile values,
+  and mode victory data from the contract.
+- Resolve numeric action codes and argument domains from current legality.
+  Stable semantic IDs may recognize optional capabilities, but the bot must
+  fall back safely when one is absent.
+- Expect one fresh bot instance and empty private memory for every new body
+  life. Use observations and declared team perception for coordination.
+- Handle both explicit Fabricate and declared automatic activation/return when
+  the assigned qualification profile requires their union.
+- Use deterministic contract, observation, identity, and `context.Random`
+  inputs only. Return one bounded action on every tick and never deliberately
+  fault.
+- Keep all gameplay logic in ordinary submitted `.cs` source. A prebuilt WASM
+  without its exact source/build inputs is not a population revision.
+
+## Current qualification sequence
+
+Build once through the controlled toolchain, then run:
+
+```bash
+nilbots experiment frontline-labs qualify \
+  --bot out/bot.wasm \
+  --suite frontline-qualification-3 \
+  --out evidence/t2
+```
+
+Suite 3 is the immutable
+`frontline-duel-depth-union-t2-v1` profile. It runs both assignments and checks
+non-default participant identities, all three stable unit slots per team,
+deterministic replay hashes, useful automatic child lives, objective
+movement/holding, direct fire, straight-projectile evasion, and explicit
+Fabricate. Exit `0` awards T2; `3` is a clean capability failure; `2` means
+invalid runtime/contract evidence.
+
+Higher-tier packets must name their immutable suite, profile, prerequisite
+qualification report, and holdout policy once implemented. Never copy a tier
+label between profiles, rules generations, or seasons.
+
+## Freeze and archive
+
+For every meaningful revision preserve:
+
+- all submitted `.cs` files and project metadata;
+- `botarena.json` and player-facing README;
+- authoring lineage, doctrine, target tier, role, and exact budget;
+- author packet identity/hash;
+- deterministic source-tree hash;
+- controlled builder/toolchain identity;
+- canonical `bot.wasm` and SHA-256;
+- qualification JSON, its SHA-256, and every verified probe replay;
+- `DX.md`, including documentation gaps, hardcoding temptations, confusing
+  terminology, build/qualification time, repairs, and strategy passes.
+
+Write initial DX notes before seeing opponents or aggregate results. Archive
+failed and intermediate revisions instead of overwriting them. A later
+official-population manifest references the frozen source/WASM/qualification
+identities; it never copies an informal “latest” directory.
+
+## Population stopping rule
+
+At T1/T2 and most of T3, author only enough canonical exact-boundary
+archetypes to enumerate materially different behavior. A reimplementation
+with the same payoff and dynamics signature adds no calibration value.
+
+At T5/T6, continue independently briefed authorship until there are at least
+six effective doctrines spanning the preregistered strategy cells and
+leave-one-doctrine-out conclusions are stable. Balance Lab's current
+payoff/action/form/objective redundancy estimate is diagnostic until
+calibrated; it can request more breadth but cannot delete a revision or
+promote a candidate automatically.

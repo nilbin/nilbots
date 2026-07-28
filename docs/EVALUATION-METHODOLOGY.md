@@ -247,12 +247,28 @@ equilibrium-grade evaluation, empirical equilibrium estimation, automated
 best-response training, or candidate search. Those are explicitly deferred
 until the population can feed them.
 
-The durable Balance Population v1 target is at least four independent
-lineages at each of T2, T3, T4, and T5. Retain lower-tier and intermediate
-revisions instead of replacing them with a champion. They calibrate the fun
-floor, adjacent-tier gradient, and where a mechanic begins to matter. Run full
-within-tier and adjacent-tier cross-play; only expand to distant-tier or
-all-candidate products when a registered hypothesis needs them.
+Population size is measured in effective doctrines, not artifact files. At
+T1/T2 and most of T3, keep a small canonical set of exact-boundary instruments:
+each passes Tn, fails T(n+1), and represents a genuinely different elementary
+archetype. Retain lower-tier and intermediate revisions instead of replacing
+them with a champion; they calibrate the fun floor, adjacent-tier gradient,
+and where a mechanic begins to matter.
+
+At the T5/T6 verdict band, target at least six independently authored effective
+doctrines spanning predeclared strategy cells. Continue authoring when payoff
+rows, dynamics/action signatures, and restricted-play response show missing
+coverage; stop counting new artifacts when those signals show redundancy and
+leave-one-doctrine-out conclusions are stable. Run full within-tier and
+adjacent-tier cross-play; only expand to distant-tier or all-candidate products
+when a registered hypothesis needs them.
+
+Balance Lab currently reports a diagnostic
+`payoff-action-form-objective-redundancy-v1` estimate per candidate cell. It
+uses normalized payoff-row, accepted-action, form-occupancy, and
+objective-residence distances and retains all pairwise evidence. Its fixed
+thresholds are not a promotion gate until calibrated on known redundant and
+known distinct boundary instruments; until then, use the estimate to request
+more doctrines, never to prune archived bots.
 
 Duel results establish duel behavior only. They may guide 2v2/3v3 hypotheses,
 but map and rule promotion for team formats requires team-native coordination

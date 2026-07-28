@@ -2673,6 +2673,56 @@ topology-by-progression experiment, and outcome-blind replay/DX review. Duel
 conclusions remain provisional for 2v2/3v3, and FFA retains its separate
 general-sum evaluation profile and ladder.
 
+## 148. Qualified evaluation bots become explicit launch-population assets
+
+Frontline evaluation cohorts are permanent source/artifact lineages, not
+disposable tournament inputs. Lower-tier exact-boundary instruments and every
+meaningful passing revision are retained for calibration; independently
+authored T5/T6 doctrines supply the eventual verdict population.
+
+A revision may advance from `lab-only` to `official-population` only through
+an explicit future promotion manifest that pins its source tree, author
+packet, build identity, WASM, qualification evidence, playlist profile, and
+entertainment-review result. Promotion references unchanged archived bytes;
+the server must never publish every Lab directory implicitly.
+
+Official bots are visibly system-owned launch opponents: T2 for onboarding,
+T3/T4 for ordinary population depth, and T5/T6 for aspirational play and
+rating anchors. They may backfill sparse playlist queues, have independent
+rating/history per playlist, and cannot win human prizes or champion claims.
+Restricted variants, metric attackers, and pathological sentinels remain
+Lab-only.
+
+## 149. Count effective doctrines, not artifacts, and specialize population by tier
+
+One fixed artifact quota at every tier is rejected. T1/T2 and most T3 bots are
+calibration instruments in a small behavior space: keep a canonical set of
+distinct archetypes that passes Tn and demonstrably fails T(n+1). Repeated
+implementations of the same objective/shoot/dodge policy do not add evidence.
+
+The first directional pilot still requires at least four independently
+authored effective T4+ doctrines. Launch-balance evidence concentrates effort
+at T5/T6, where Balance Population v1 targets at least six effective doctrines
+spanning predeclared strategy cells and continues authoring until
+leave-one-doctrine-out conclusions stabilize. T7/T8 shifts to bounded
+best-response/search attacks rather than manual enumeration.
+
+The Lab reports artifact count separately from a diagnostic
+effective-doctrine estimate. Versioned v1 pair evidence combines normalized
+payoff-row, accepted-action, form-occupancy, and objective-residence distances;
+its fixed thresholds remain non-gating until calibrated against known
+redundant and distinct populations. No clustering score may silently merge
+entrants or discard their immutable records. Same-model authoring uses
+different doctrine briefs and equal budgets rather than repeated identical
+prompts.
+
+Exact-tier instruments and public launch opponents are related but not
+identical roles. A natural, entertaining retained revision may be promoted as
+a system-owned opponent, while deliberately crippled instruments, ablations,
+and sentinels remain Lab-only. Qualification reuse is profile-scoped: new
+verbs, topology, or strategically material contract changes may require new
+instruments.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

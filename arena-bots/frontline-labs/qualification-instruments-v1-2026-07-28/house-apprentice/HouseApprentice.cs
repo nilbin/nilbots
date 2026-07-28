@@ -4,7 +4,7 @@ using BotArena.Sdk;
 /// A competent apprentice: useful immediately, deliberately unsolved.
 /// Nilbots creates one independent instance for every active body life.
 /// </summary>
-public sealed class BOTNAME : IGenericActorBot
+public sealed class HouseApprentice : IGenericActorBot
 {
     private GenericActorResolvedMatchContract? _contract;
     private Position? _recentDodgeOrigin;

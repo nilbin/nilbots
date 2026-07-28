@@ -106,4 +106,129 @@ public sealed class FrontlineLabsQualificationDefinitionTests
                 FrontlineLabsQualificationDefinition
                     .CreateContractAutoDeterminismProbe()));
     }
+
+    [Fact]
+    public void FundamentalsContractMatrix_UsesNonDefaultIdsAndBothChildren()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsQualificationDefinition
+                .CreateContractMatrixProbe();
+        var mode = Assert.IsType<FrontlineGameModeDefinition>(
+            definition.Rules.GameMode);
+
+        Assert.Equal(
+            "frontline-qualification-3-contract-matrix",
+            definition.Rules.RulesetId);
+        Assert.Equal(24, definition.Rules.Limits.MaxTicks);
+        Assert.Equal(1000, mode.Capture.Threshold);
+        Assert.Equal(
+            [7, 19],
+            definition.Topology.Participants
+                .Select(participant => participant.ParticipantId)
+                .ToArray());
+        Assert.Equal(6, definition.Topology.UnitSlots.Length);
+        Assert.Equal(
+            [4, 4, 8, 8],
+            definition.LifecycleAssignments
+                .Where(assignment => assignment.UnitId != 0)
+                .OrderBy(assignment => assignment.UnlockTick)
+                .Select(assignment => assignment.UnlockTick)
+                .ToArray());
+        Assert.Equal(
+            [7, 19],
+            definition.Topology.UnitSlots
+                .Select(slot => slot.ControllerParticipantId)
+                .Distinct()
+                .Order()
+                .ToArray());
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMatch(definition),
+            ActorContractFingerprint.ComputeMatch(
+                FrontlineLabsQualificationDefinition
+                    .CreateContractMatrixProbe()));
+    }
+
+    [Fact]
+    public void FundamentalsPrimeOnlyProbes_AreShortOrdinaryContracts()
+    {
+        ActorResolvedMatchDefinition objective0 =
+            FrontlineLabsQualificationDefinition
+                .CreateObjectivePathProbe(0);
+        ActorResolvedMatchDefinition objective1 =
+            FrontlineLabsQualificationDefinition
+                .CreateObjectivePathProbe(1);
+        ActorResolvedMatchDefinition direct =
+            FrontlineLabsQualificationDefinition
+                .CreateDirectFireProbe();
+        ActorResolvedMatchDefinition evade =
+            FrontlineLabsQualificationDefinition
+                .CreateStraightEvadeProbe();
+
+        Assert.Equal(24, objective0.Rules.Limits.MaxTicks);
+        Assert.Equal(20, direct.Rules.Limits.MaxTicks);
+        Assert.Equal(12, evade.Rules.Limits.MaxTicks);
+        foreach (ActorResolvedMatchDefinition definition
+                 in new[] { objective0, objective1, direct, evade })
+        {
+            var mode = Assert.IsType<FrontlineGameModeDefinition>(
+                definition.Rules.GameMode);
+            Assert.Equal(1000, mode.Capture.Threshold);
+            Assert.Equal(2, definition.Topology.UnitSlots.Length);
+            Assert.All(
+                definition.Topology.UnitSlots,
+                slot => Assert.Equal(0, slot.UnitId));
+            Assert.DoesNotContain(
+                definition.Rules.Actions,
+                action => action.Id is "fabricate" or "split");
+            Assert.Equal(
+                ActorContractFingerprint.ComputeMatch(definition),
+                ActorContractFingerprint.ComputeMatch(
+                    definition.Rules.RulesetId.EndsWith(
+                        FrontlineLabsQualificationDefinition
+                            .ObjectivePathProbeId,
+                        StringComparison.Ordinal)
+                        ? FrontlineLabsQualificationDefinition
+                            .CreateObjectivePathProbe(
+                                definition == objective0 ? 0 : 1)
+                        : definition.Rules.RulesetId.EndsWith(
+                            FrontlineLabsQualificationDefinition
+                                .DirectFireProbeId,
+                            StringComparison.Ordinal)
+                            ? FrontlineLabsQualificationDefinition
+                                .CreateDirectFireProbe()
+                            : FrontlineLabsQualificationDefinition
+                                .CreateStraightEvadeProbe()));
+        }
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMap(objective0.Map),
+            ActorContractFingerprint.ComputeMap(objective1.Map));
+    }
+
+    [Fact]
+    public void ManualFabricationProbe_MakesOneChildReadyAtTickZero()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsQualificationDefinition
+                .CreateManualFabricationProbe();
+        var mode = Assert.IsType<FrontlineGameModeDefinition>(
+            definition.Rules.GameMode);
+
+        Assert.Equal(20, definition.Rules.Limits.MaxTicks);
+        Assert.Equal(1000, mode.Capture.Threshold);
+        Assert.Contains(
+            definition.Rules.Actions,
+            action => action.Id == "fabricate");
+        Assert.Equal(4, definition.Topology.UnitSlots.Length);
+        Assert.DoesNotContain(
+            definition.Topology.UnitSlots,
+            slot => slot.UnitId == 2);
+        Assert.Equal(
+            2,
+            definition.LifecycleAssignments.Count(assignment =>
+                assignment.UnitId == 1
+                && assignment.UnlockTick == 0
+                && assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind.DormantUnlockAtTick));
+    }
 }

@@ -133,7 +133,7 @@ python3 scripts/frontline-balance-candidates.py \
 
 nilbots experiment frontline-labs qualify \
   --bot <candidate-bot.wasm> \
-  --suite frontline-qualification-2 \
+  --suite frontline-qualification-3 \
   --out /tmp/qualification/<bot>
 
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
@@ -180,11 +180,19 @@ frozen finite population; inspect lineage diversity and leave-one-lineage-out
 sensitivity before making population claims.
 
 Frozen `frontline-qualification-1` is only the historical T4
-`entry-initiative` component. The WASM-only suite 2 currently implements
-`contract-auto-determinism`: mirrored repeated hashes, zero faults, and the
-declared automatic child life. A pass still has `profileComplete: false`,
-`tierAwarded: null`, and `balanceEvidenceEligible: false`; do not put it into
-a voting population until the cumulative profile is complete.
+`entry-initiative` component. WASM-only suite 2 retains the incomplete
+`contract-auto-determinism` foundation. Current suite 3 is the complete
+`frontline-duel-depth-union-t2-v1` profile: contract/count handling, useful
+automatic lives, objective path/hold, direct fire, straight evasion, and
+explicit Fabricate in both assignments. A suite-3 pass awards T2 but remains
+fun-floor evidence rather than a numeric balance vote.
+
+Read the cell's `strategicDiversity.doctrineRedundancy` block before claiming
+population breadth. It reports artifacts, declared doctrines, effective
+doctrine estimate, signatures, pairwise distances, and redundancy components.
+The current v1 thresholds are diagnostic until calibrated; use them to request
+missing doctrine briefs, never to delete archived entrants or promote a
+candidate automatically.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and

@@ -249,12 +249,19 @@ matrices, vector reports, and factorial contrasts without inventing one
 balance score. Unqualified populations are hard-blocked from balance verdicts,
 and missing layers block candidate promotion.
 
-The separate WASM-only `frontline-qualification-2` foundation has its first
-deterministic component: both assignments repeat with exact replay hashes,
-zero faults, and declared automatic child activation. It intentionally
-reports an incomplete profile, no tier, and no balance eligibility. Static
-generalization, the remaining T1–T4 probes, restricted-play wrappers, and
-structured human review remain later layers. Empirical
+The frozen WASM-only `frontline-qualification-2` foundation retains its
+deterministic automatic-life component. The separate immutable
+`frontline-qualification-3` profile now completes cumulative T2 across
+contract/count handling, useful automatic lives, objective movement/holding,
+direct fire, straight evasion, and explicit fabrication in both assignments.
+T2 remains fun-floor evidence rather than a numeric balance vote. Cumulative
+T3/T4 probes, restricted-play wrappers, calibrated doctrine-redundancy
+thresholds, and structured human review remain later layers. The Lab now emits
+a diagnostic effective-doctrine estimate from payoff, action, form, and
+objective signatures; it cannot gate promotion until calibrated. The first
+source-retained reference, HouseApprentice, passes cumulative T2 and is marked
+T3-boundary-pending rather than overclaimed as an exact-boundary instrument.
+Empirical
 equilibrium/best-response analysis and automated candidate search are
 explicitly deferred until a credible qualified population exists.
 
@@ -264,8 +271,9 @@ separately fingerprinted local contract—children activate at ticks 120/260
 with fresh runtimes and distinct `automatic-activation` lineage; hosted Labs
 remains manual. Its 12-match unqualified population run validates the
 frozen infrastructure and shared private RNG profile, not a map-policy
-conclusion or balance winner. The next critical path is cumulative T1–T4
-qualification, four independent T4+ lineages, and the six-cell run.
+conclusion or balance winner. The next critical path is cumulative T3/T4
+qualification, four effective T4+ doctrines for the directional pilot, and
+the six-cell run; T5/T6 doctrine breadth gates a later launch verdict.
 
 ## Next session pointers
 

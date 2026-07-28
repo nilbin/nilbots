@@ -14,9 +14,20 @@ public static class FrontlineLabsQualificationDefinition
     public const int FoundationSuiteVersion = 2;
     public const string FoundationProfileId =
         "frontline-h2h-one-bend-auto-foundation-1";
+    public const string FundamentalsSuiteId = "frontline-qualification-3";
+    public const int FundamentalsSuiteVersion = 1;
+    public const string FundamentalsProfileId =
+        "frontline-duel-depth-union-t2-v1";
     public const string EntryProbeId = "entry-initiative";
     public const string ContractAutoDeterminismProbeId =
         "contract-auto-determinism";
+    public const string ContractMatrixProbeId = "contract-matrix";
+    public const string AutomaticLifeCycleProbeId =
+        "automatic-life-cycle";
+    public const string ObjectivePathProbeId = "objective-path";
+    public const string DirectFireProbeId = "direct-fire";
+    public const string StraightEvadeProbeId = "straight-evade";
+    public const string ManualFabricationProbeId = "manual-fabrication";
 
     private const string Team0SpawnId =
         "qualification-team-0-prime";
@@ -184,6 +195,338 @@ public static class FrontlineLabsQualificationDefinition
             source.ParticipantRegionAssignments,
             source.ModeMapBinding,
             source.CapabilityVersions);
+    }
+
+    /// <summary>
+    /// T1 contract/count/identity probe for the union profile. It uses
+    /// non-default participant IDs and exposes all three stable unit slots,
+    /// with automatic children accelerated only for this local contract.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateContractMatrixProbe()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateAutomaticCompanionsExperiment();
+        ActorRulesDefinition rules = WithProbeMode(
+            source.Rules,
+            $"{FundamentalsSuiteId}-{ContractMatrixProbeId}",
+            maxTicks: 24,
+            captureThreshold: 1000,
+            removePopulationActions: false);
+        IReadOnlyDictionary<int, int> participantIds =
+            new Dictionary<int, int>
+            {
+                [0] = 7,
+                [1] = 19,
+            };
+        var topology = source.Topology with
+        {
+            Participants = source.Topology.Participants
+                .Select(participant => new PublicParticipant(
+                    participantIds[participant.ParticipantId],
+                    participant.TeamId))
+                .ToImmutableArray(),
+            UnitSlots = source.Topology.UnitSlots
+                .Select(slot => new PublicUnitSlot(
+                    slot.TeamId,
+                    slot.UnitId,
+                    participantIds[slot.ControllerParticipantId]))
+                .ToImmutableArray(),
+        };
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            .. source.LifecycleAssignments.Select(assignment =>
+            {
+                if (assignment.UnitId == 0)
+                    return assignment;
+                int unlockTick = assignment.UnitId == 1 ? 4 : 8;
+                return new ActorUnitSlotLifecycleAssignmentDefinition(
+                    assignment.TeamId,
+                    assignment.UnitId,
+                    assignment.LifecycleProfileId,
+                    assignment.InitialGeneration,
+                    assignment.AllowedFormIds,
+                    assignment.InitialAvailability,
+                    unlockTick,
+                    assignment.AssignedRespawnSpawnId);
+            }),
+        ];
+        ActorParticipantRegionAssignmentDefinition[] regions =
+        [
+            .. source.ParticipantRegionAssignments.Select(assignment =>
+                new ActorParticipantRegionAssignmentDefinition(
+                    participantIds[assignment.ParticipantId],
+                    assignment.RegionRoleId,
+                    assignment.MapRegionId,
+                    assignment.Facing)),
+        ];
+        return new ActorResolvedMatchDefinition(
+            rules,
+            source.Map,
+            source.Format,
+            topology,
+            source.InitialDeployment,
+            assignments,
+            regions,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    /// <summary>
+    /// T2 objective-path micro-scenario. The tested team starts at the
+    /// two-step central approach while the passive controller is placed in a
+    /// distant map corner. The active objective and every route fact remain
+    /// ordinary contract data.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateObjectivePathProbe(
+        int testedTeamId)
+    {
+        if (testedTeamId is not (0 or 1))
+            throw new ArgumentOutOfRangeException(nameof(testedTeamId));
+        Position team0 = testedTeamId == 0
+            ? new Position(8, 7)
+            : new Position(2, 1);
+        Position team1 = testedTeamId == 1
+            ? new Position(14, 7)
+            : new Position(20, 1);
+        return CreatePrimeOnlyProbe(
+            ObjectivePathProbeId,
+            maxTicks: 24,
+            team0,
+            testedTeamId == 0 ? Direction.East : Direction.South,
+            team1,
+            testedTeamId == 1 ? Direction.West : Direction.South);
+    }
+
+    /// <summary>
+    /// T2 clear-lane attack micro-scenario. Both assignments see the same
+    /// open range-six line and an inert target.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateDirectFireProbe() =>
+        CreatePrimeOnlyProbe(
+            DirectFireProbeId,
+            maxTicks: 20,
+            new Position(8, 7),
+            Direction.East,
+            new Position(14, 7),
+            Direction.West);
+
+    /// <summary>
+    /// T2 straight-projectile evasion micro-scenario. A framework controller
+    /// fires once down the open central line and then waits.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateStraightEvadeProbe() =>
+        CreatePrimeOnlyProbe(
+            StraightEvadeProbeId,
+            maxTicks: 12,
+            new Position(8, 7),
+            Direction.East,
+            new Position(14, 7),
+            Direction.West);
+
+    /// <summary>
+    /// T2 explicit lifecycle half of the union profile. One child slot is
+    /// Ready at tick zero while each Prime is still on its declared local
+    /// fabrication source. The passive opponent cannot interfere.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateManualFabricationProbe()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        ActorRulesDefinition rules = WithProbeMode(
+            source.Rules,
+            $"{FundamentalsSuiteId}-{ManualFabricationProbeId}",
+            maxTicks: 20,
+            captureThreshold: 1000,
+            removePopulationActions: false);
+        PublicMatchTopology topology = source.Topology with
+        {
+            UnitSlots = source.Topology.UnitSlots
+                .Where(slot => slot.UnitId != 2)
+                .ToImmutableArray(),
+        };
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            .. source.LifecycleAssignments
+                .Where(assignment => assignment.UnitId != 2)
+                .Select(assignment =>
+                {
+                    if (assignment.UnitId != 1)
+                        return assignment;
+                    return new ActorUnitSlotLifecycleAssignmentDefinition(
+                        assignment.TeamId,
+                        assignment.UnitId,
+                        assignment.LifecycleProfileId,
+                        initialGeneration: null,
+                        assignment.AllowedFormIds,
+                        ActorUnitSlotLifecycleAssignmentDefinition
+                            .InitialAvailabilityKind.DormantUnlockAtTick,
+                        unlockTick: 0,
+                        assignedRespawnSpawnId: null);
+                }),
+        ];
+        return new ActorResolvedMatchDefinition(
+            rules,
+            source.Map,
+            source.Format,
+            topology,
+            source.InitialDeployment,
+            assignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static ActorResolvedMatchDefinition CreatePrimeOnlyProbe(
+        string probeId,
+        int maxTicks,
+        Position team0Position,
+        Direction team0Facing,
+        Position team1Position,
+        Direction team1Facing)
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        ActorRulesDefinition rules = WithProbeMode(
+            source.Rules,
+            $"{FundamentalsSuiteId}-{probeId}",
+            maxTicks,
+            captureThreshold: 1000,
+            removePopulationActions: true);
+        string team0SpawnId =
+            $"{FundamentalsSuiteId}-{probeId}-team-0";
+        string team1SpawnId =
+            $"{FundamentalsSuiteId}-{probeId}-team-1";
+        var map = new ActorMapDefinition(
+            $"{FundamentalsSuiteId}-{probeId}-map",
+            version: 1,
+            source.Map.TileRows,
+            [
+                Spawn(team0SpawnId, team0Position, team0Facing),
+                Spawn(team1SpawnId, team1Position, team1Facing),
+            ],
+            source.Map.Regions,
+            source.Map.TileTags);
+        var deployment = new InitialDeploymentDefinition(
+            [
+                new InitialSpawnDefinition(
+                    team0SpawnId,
+                    team0Position,
+                    team0Facing),
+                new InitialSpawnDefinition(
+                    team1SpawnId,
+                    team1Position,
+                    team1Facing),
+            ],
+            [
+                new InitialLifeDeployment(
+                    0,
+                    0,
+                    0,
+                    "prime-mobile",
+                    team0SpawnId),
+                new InitialLifeDeployment(
+                    1,
+                    0,
+                    0,
+                    "prime-mobile",
+                    team1SpawnId),
+            ]);
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            .. source.LifecycleAssignments
+                .Where(assignment => assignment.UnitId == 0)
+                .Select(assignment =>
+                    new ActorUnitSlotLifecycleAssignmentDefinition(
+                        assignment.TeamId,
+                        assignment.UnitId,
+                        assignment.LifecycleProfileId,
+                        assignment.InitialGeneration,
+                        assignment.AllowedFormIds,
+                        assignment.InitialAvailability,
+                        assignment.UnlockTick,
+                        assignment.TeamId == 0
+                            ? team0SpawnId
+                            : team1SpawnId)),
+        ];
+        PublicMatchTopology topology = source.Topology with
+        {
+            UnitSlots = source.Topology.UnitSlots
+                .Where(slot => slot.UnitId == 0)
+                .ToImmutableArray(),
+            InitialLives = source.Topology.InitialLives
+                .Where(life => life.UnitId == 0)
+                .ToImmutableArray(),
+        };
+        return new ActorResolvedMatchDefinition(
+            rules,
+            map,
+            source.Format,
+            topology,
+            deployment,
+            assignments,
+            [],
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static ActorRulesDefinition WithProbeMode(
+        ActorRulesDefinition source,
+        string rulesetId,
+        int maxTicks,
+        int captureThreshold,
+        bool removePopulationActions)
+    {
+        var frontline = (FrontlineGameModeDefinition)source.GameMode;
+        FrontlineCaptureDefinition capture = frontline.Capture;
+        var mode = new FrontlineGameModeDefinition(
+            frontline.FrontlineVictory,
+            frontline.ScoreCatalog,
+            frontline.FrontlinePositionCount,
+            new FrontlineCaptureDefinition(
+                captureThreshold,
+                capture.GainPerSoleTeamTick,
+                capture.DecayAmount,
+                capture.DecayIntervalTicks,
+                capture.RedeployPauseTicks,
+                capture.GainSchedule,
+                capture.ControlPolicy));
+        HashSet<string> removedActionIds = removePopulationActions
+            ? ["fabricate", "split"]
+            : [];
+        return new ActorRulesDefinition(
+            rulesetId,
+            new ActorRulesLimits(maxTicks, source.Limits.RuntimeFaults),
+            source.SeedMechanics,
+            mode,
+            source.Lifecycle,
+            source.Forms.Select(form =>
+                removedActionIds.Count == 0
+                    ? form
+                    : new ActorFormDefinition(
+                        form.Id,
+                        form.MaxHealth,
+                        form.MovementProfileId,
+                        form.VisionProfileId,
+                        form.AttackProfileId,
+                        form.ObjectiveWeight,
+                        form.AllowedActionIds.Where(actionId =>
+                            !removedActionIds.Contains(actionId)))),
+            source.MovementProfiles,
+            source.VisionProfiles,
+            source.AttackProfiles,
+            source.Actions.Where(action =>
+                !removedActionIds.Contains(action.Id)),
+            removePopulationActions
+                ? []
+                : source.FabricationTransitions,
+            source.SameLifeTransitions,
+            removePopulationActions
+                ? []
+                : source.ReplicationTransitions,
+            source.TeamPerception,
+            source.Collisions,
+            source.TickResolution);
     }
 
     private static ActorRulesDefinition WithProbeLimits(
