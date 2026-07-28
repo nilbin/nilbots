@@ -238,3 +238,14 @@ nilbots verify <replay.json>
 
 Use in-process execution only for fast mechanical diagnosis. Frozen cohort
 outcomes use the controlled WASM runtime.
+
+### Local candidate contracts
+
+The CLI may expose separately identified local experiments without changing
+this hosted v1 contract. `--capture-threshold`, `--capture-gain-phase`, and
+`--mobilize-turrets` each produce a content-descriptive experimental ruleset
+and new fingerprints embedded in replay v3. In the Mobilize arm, a turret can
+return to `child-mobile` with the same actor/runtime memory and capped health,
+then cannot Anchor again during that life. That arm proved the generic
+same-life transition architecture but failed its initial pacing gate; it is
+not a hosted v1 rule.

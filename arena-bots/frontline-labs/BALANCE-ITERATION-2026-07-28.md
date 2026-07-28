@@ -7,8 +7,8 @@ Status: architecture accepted; no gameplay candidate promoted into immutable
 
 Keep baseline v2 as the frozen calibration population. The engine, generic
 contracts, WASM runtime, lifecycle mechanics, replay v3, and evidence tooling
-are reliable enough for continued tuning: all 84 matches across v2 and the
-five 12-game arms verified with zero faults or disqualifications.
+are reliable enough for continued tuning: all 96 matches across v2 and the
+six 12-game arms verified with zero faults or disqualifications.
 
 Do not change the map yet. Do not lower the hosted capture threshold yet.
 Pressure's bootstrap, Bastion's exact fire control, Fabricator's forward post,
@@ -30,6 +30,7 @@ the 12-game slice is the non-duplicated control.
 | v5 Fabricator forward post | 7 | 5 | 0 | 409.5 | 80.0% | 6 | 6 | 4 | 0.585 |
 | v6 capture threshold 12 | 8 | 4 | 1 | 414.0 | 80.1% | 6 | 6 | 4 | 0.564 |
 | v7 late gain `300:2` | 8 | 4 | 1 | 416.5 | 80.5% | 6 | 6 | 4 | 0.589 |
+| v8 one-way Mobilize | 6 | 6 | 0 | 474.0 | 80.8% | 6 | 6 | 4 | 0.558 |
 
 ### v3 — Pressure bootstrap: rejected
 
@@ -102,13 +103,14 @@ it does not help a doctrine disengage, relocate, or break a positioning loop.
 - Fabricator v5 is the best candidate revision for a later native population,
   but needs a pacing mechanic before promotion can be judged fairly.
 - Bastion's problem is not a turret-vs-turret deadlock: no arm produced a
-  60-tick both-turret deadlock. It is a doctrine-level failure to turn area
-  denial into the next objective.
+  60-tick both-turret deadlock. Mobilize removed even the short dual-turret
+  runs, but Bastion still failed to turn area denial into reliable forward
+  pressure.
 - Pressure shows that Split's real cost is meaningful. Its next authoring pass
   should decide when the two fragile bodies create a positional payoff, rather
   than Split whenever legality appears.
 
-## Recommended next arm
+## V8 arm: one-way remobilization
 
 Stop changing universal capture numbers. The remaining repetitive tail is
 concentrated in Bastion pairings and survives exact fire control and phased
@@ -165,6 +167,34 @@ six to at most three without increasing the full cohort's MaxTicks count above
 five or reducing its breach count below seven. Duration and outcome balance
 remain diagnostics; a numeric pass still requires human replay review before
 any rules promotion.
+
+### Result
+
+All 12 WASM matches verified with zero faults or disqualifications. The six
+non-Bastion matches were spectator-trajectory-identical to the baseline-v2
+seed-`104729` control after removing only contract identity. Every Bastion
+match was identical through the tick before its first Mobilize submission;
+the first divergence was exactly that submission tick (`145`, `155`, or
+`156`, depending on assignment and opponent).
+
+The cohort completed 15 Anchors and 15 Mobilizes. Every Mobilize preserved the
+actor identity, capped post-transition health at `3`, and no mobilized life
+Anchored again. Contract-aware replay analysis reports zero dual-turret
+no-progress ticks, so the action solves the literal Mexican-standoff state.
+
+The watchability gate nevertheless failed. Bastion-centred stalled and looped
+games stayed at six, full-cohort breaches fell from seven to six, MaxTicks rose
+from five to six, median duration rose from `430.5` to `474`, and median action
+entropy fell from `0.565` to `0.558`. The specific "leave as soon as the active
+objective changes" policy converts a permanent fortification into movement,
+but does not create better positioning or more decisive objective play.
+
+Verdict: retain the generic same-life transition architecture and the isolated
+local experiment as an extensibility proof. Reject this Bastion trigger as a
+pacing fix, and do not promote Mobilize into immutable hosted v1 from this
+screen. A future native-rules generation may revisit a reversible turret only
+as one tool in independently authored doctrines, with its own holdout and
+outcome-blind replay review.
 
 ## Replay review
 

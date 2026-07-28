@@ -126,6 +126,14 @@ engine folklore: bots can call
 `frontlineMode.Capture.GainPhaseAtTick(context.Tick)`, and replay v3 embeds the
 same schedule for deterministic reconstruction and ML feature extraction.
 
+`--mobilize-turrets` registers the isolated action-contract arm. It adds a
+declared no-argument `mobilize` action and a one-way
+`turret -> child-mobile` same-life route under
+`frontline-labs-1-experiment-mobilize`. Actor/runtime memory, position,
+facing, cooldown, and energy persist; health is capped to the mobile maximum.
+The life cannot Anchor again, preventing a transform-based healing loop.
+Immutable hosted v1 remains unchanged.
+
 At the action boundary, select from the contract-delivered catalog rather
 than hard-coding the action code:
 

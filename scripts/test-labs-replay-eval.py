@@ -94,6 +94,67 @@ class LabsReplayEvalTests(unittest.TestCase):
                 [first, changed_runtime],
             )
 
+    def test_same_life_transitions_are_classified_by_objective_role(
+        self,
+    ) -> None:
+        candidate = copy.deepcopy(self.document)
+        rules = candidate["header"]["contract"]["rules"]
+        rules["forms"].append(
+            {
+                "id": "turret",
+                "maxHealth": 5,
+                "movementProfileId": "ground",
+                "visionProfileId": "turret-vision",
+                "attackProfileId": "turret-bolt",
+                "objectiveWeight": 0,
+                "allowedActionIds": ["mobilize", "wait"],
+            }
+        )
+        rules["actions"].extend(
+            [
+                {
+                    "id": "transform",
+                    "code": 103,
+                    "kind": "same-life-transition",
+                },
+                {
+                    "id": "mobilize",
+                    "code": 104,
+                    "kind": "same-life-transition",
+                },
+            ]
+        )
+        rules["sameLifeTransitions"] = [
+            {
+                "transitionId": "anchor-mobile",
+                "actionId": "transform",
+                "sourceFormId": "mobile",
+                "targetFormId": "turret",
+            },
+            {
+                "transitionId": "mobilize-mobile",
+                "actionId": "mobilize",
+                "sourceFormId": "turret",
+                "targetFormId": "mobile",
+            },
+        ]
+
+        row = EVALUATOR.analyze_replay(candidate)
+
+        self.assertEqual(["turret"], row["mechanics"]["anchor"]["targetFormIds"])
+        self.assertEqual(
+            ["mobile"],
+            row["mechanics"]["mobilize"]["targetFormIds"],
+        )
+        summary = EVALUATOR.summarize_group("candidate", [row])
+        self.assertEqual(0, summary["mechanics"]["mobilize"]["completions"])
+
+        form_weights = {
+            form["id"]: form["objectiveWeight"] for form in rules["forms"]
+        }
+        catalog = EVALUATOR._transition_catalog(rules, form_weights)
+        self.assertEqual({"turret"}, catalog[6])
+
     def test_faulted_turn_without_submitted_decision_is_counted_safely(
         self,
     ) -> None:

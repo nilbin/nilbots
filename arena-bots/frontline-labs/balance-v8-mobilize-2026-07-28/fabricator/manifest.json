@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "Fabricator",
+  "doctrine": "Fabricator: value additional active bodies and coordinated mobile crossfire when the contract makes fabrication worthwhile.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 1,
+  "balancePassCount": 0,
+  "cohort": "balance-v8-mobilize-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": true,
+  "sdkVersion": "0.10.3",
+  "sourceSha256": "30afefc6898ed95d6de8d6db7443aa1d849d81610c7c0792bb96f8ef21cd06ed",
+  "artifactSha256": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+  "previousArtifactSha256": "a7adb15943d0a23f4f44ec8b9c22c92e385ec0f476fed086b57536fb4d84d2ee"
+}

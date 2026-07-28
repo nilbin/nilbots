@@ -23,7 +23,7 @@ from typing import Any, Iterable
 
 
 REPORT_SCHEMA_VERSION = 1
-METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-1"
+METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-2"
 PRESENTATION_TICKS_PER_SECOND = 5
 STALL_TICKS = 20
 RECENT_FRAME_WINDOW = 20
@@ -157,38 +157,111 @@ def _normalized_entropy(counts: Counter[str]) -> float:
 
 def _transition_catalog(
     rules: dict[str, Any],
-) -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, set[str]]]:
-    attempts: dict[str, set[str]] = {
+    form_weights: dict[str, int],
+) -> tuple[
+    dict[str, set[str]],
+    dict[str, str],
+    dict[tuple[str, str, str], str],
+    dict[tuple[str, str], set[str]],
+    dict[str, set[str]],
+    dict[str, set[str]],
+    set[str],
+]:
+    actions: dict[str, set[str]] = {
         "fabrication": set(),
-        "replication": set(),
-        "sameLife": set(),
+        "split": set(),
+        "anchor": set(),
     }
-    transitions: dict[str, set[str]] = {
-        "fabrication": set(),
-        "replication": set(),
-        "sameLife": set(),
-    }
+    transition_mechanics: dict[str, str] = {}
+    route_mechanics: dict[tuple[str, str, str], str] = {}
+    source_action_mechanics: dict[tuple[str, str], set[str]] = defaultdict(set)
+    action_mechanics: dict[str, set[str]] = defaultdict(set)
     target_forms: dict[str, set[str]] = {
         "fabrication": set(),
-        "replication": set(),
-        "sameLife": set(),
+        "split": set(),
+        "anchor": set(),
     }
-    for key, family in (
+    fortified_forms: set[str] = set()
+
+    for key, fixed_name in (
         ("fabricationTransitions", "fabrication"),
-        ("replicationTransitions", "replication"),
-        ("sameLifeTransitions", "sameLife"),
+        ("replicationTransitions", "split"),
+        ("sameLifeTransitions", None),
     ):
         for raw in _array(rules.get(key), f"rules.{key}"):
             transition = _object(raw, f"rules.{key}[]")
-            attempts[family].add(str(transition.get("actionId")))
-            transitions[family].add(str(transition.get("transitionId")))
+            action_id = str(transition.get("actionId"))
+            transition_id = str(transition.get("transitionId"))
             target = transition.get(
                 "targetFormId",
                 transition.get("outputFormId"),
             )
+            source_forms = transition.get("sourceFormIds")
+            if source_forms is None:
+                raw_source = transition.get("sourceFormId")
+                source_forms = [] if raw_source is None else [raw_source]
+            source_form_ids = {
+                str(value)
+                for value in _array(
+                    source_forms,
+                    f"rules.{key}[].sourceFormIds",
+                )
+            }
+
+            public_name = fixed_name
+            if public_name is None:
+                target_form_id = None if target is None else str(target)
+                source_weights = {
+                    form_weights.get(source_form_id)
+                    for source_form_id in source_form_ids
+                }
+                target_weight = (
+                    None
+                    if target_form_id is None
+                    else form_weights.get(target_form_id)
+                )
+                if (
+                    source_weights
+                    and None not in source_weights
+                    and target_weight is not None
+                    and all(weight > 0 for weight in source_weights)
+                    and target_weight == 0
+                ):
+                    public_name = "anchor"
+                    fortified_forms.add(target_form_id)
+                elif (
+                    source_weights
+                    and None not in source_weights
+                    and target_weight is not None
+                    and all(weight == 0 for weight in source_weights)
+                    and target_weight > 0
+                ):
+                    public_name = "mobilize"
+                else:
+                    public_name = action_id
+
+            actions.setdefault(public_name, set()).add(action_id)
+            transition_mechanics[transition_id] = public_name
+            action_mechanics[action_id].add(public_name)
+            for source_form_id in source_form_ids:
+                source_action_mechanics[
+                    (source_form_id, action_id)
+                ].add(public_name)
+                if target is not None:
+                    route_mechanics[
+                        (source_form_id, action_id, str(target))
+                    ] = public_name
             if target is not None:
-                target_forms[family].add(str(target))
-    return attempts, transitions, target_forms
+                target_forms.setdefault(public_name, set()).add(str(target))
+    return (
+        actions,
+        transition_mechanics,
+        route_mechanics,
+        source_action_mechanics,
+        action_mechanics,
+        target_forms,
+        fortified_forms,
+    )
 
 
 def _region_tiles(
@@ -271,7 +344,6 @@ def analyze_replay(
     for raw in _array(rules.get("actions"), "rules.actions"):
         action = _object(raw, "rules action")
         action_kinds[str(action.get("id"))] = str(action.get("kind"))
-    attempts, transition_ids, target_forms = _transition_catalog(rules)
     form_weights = {
         str(form.get("id")): _integer(
             form.get("objectiveWeight"),
@@ -282,6 +354,15 @@ def analyze_replay(
             for raw in _array(rules.get("forms"), "rules.forms")
         )
     }
+    (
+        mechanic_actions,
+        transition_mechanics,
+        route_mechanics,
+        source_action_mechanics,
+        action_mechanics,
+        target_forms,
+        fortified_forms,
+    ) = _transition_catalog(rules, form_weights)
 
     provenance = []
     participant_team: dict[int, int] = {}
@@ -410,19 +491,35 @@ def analyze_replay(
             }:
                 meaningful = True
             payload = _object(event.get("payload"), "event.payload")
-            transition_id = payload.get("transitionId")
-            for family in ("fabrication", "replication", "sameLife"):
-                if transition_id in transition_ids[family]:
-                    if kind in {
-                        "lifecycle-completed",
-                        "form-transition-completed",
-                    }:
-                        completion_counts[family] += 1
-                    if kind in {
-                        "lifecycle-cancelled",
-                        "form-transition-cancelled",
-                    }:
-                        cancellation_counts[family] += 1
+            transition_id = str(payload.get("transitionId"))
+            mechanic = transition_mechanics.get(transition_id)
+            if mechanic is not None:
+                if kind in {
+                    "lifecycle-completed",
+                    "form-transition-completed",
+                }:
+                    completion_counts[mechanic] += 1
+                if kind in {
+                    "lifecycle-cancelled",
+                    "form-transition-cancelled",
+                }:
+                    cancellation_counts[mechanic] += 1
+
+        start_form_by_actor = {
+            (
+                _integer(actor_id.get("teamId"), "life teamId"),
+                _integer(actor_id.get("unitId"), "life unitId"),
+                _integer(actor_id.get("lifeId"), "life lifeId"),
+            ): str(life.get("formId"))
+            for life in (
+                _object(raw, "tick-start active life")
+                for raw in _array(
+                    start_state.get("activeLives"),
+                    "tickStart.state.activeLives",
+                )
+            )
+            for actor_id in [_object(life.get("actorId"), "life.actorId")]
+        }
 
         for raw_turn in _array(tick.get("actorTurns"), "tick.actorTurns"):
             turn = _object(raw_turn, "actor turn")
@@ -451,11 +548,43 @@ def analyze_replay(
             actions_by_actor[actor_key].append(family)
             if resolution.get("outcome") == "success":
                 successful_actions[action_id] += 1
-            for mechanic in ("fabrication", "replication", "sameLife"):
-                if action_id in attempts[mechanic]:
-                    mechanic_attempts[mechanic] += 1
-                    if resolution.get("outcome") == "success":
-                        mechanic_successes[mechanic] += 1
+            source_form_id = start_form_by_actor.get(actor_key, "")
+            target_form_id = next(
+                (
+                    str(argument.get("formId"))
+                    for raw_argument in _array(
+                        decision.get("arguments"),
+                        "submittedDecision.arguments",
+                    )
+                    for argument in [
+                        _object(raw_argument, "decision argument")
+                    ]
+                    if argument.get("kind") == "form-target"
+                ),
+                None,
+            )
+            mechanic = (
+                route_mechanics.get(
+                    (source_form_id, action_id, target_form_id)
+                )
+                if target_form_id is not None
+                else None
+            )
+            if mechanic is None:
+                candidates = source_action_mechanics.get(
+                    (source_form_id, action_id),
+                    set(),
+                )
+                if len(candidates) == 1:
+                    mechanic = next(iter(candidates))
+            if mechanic is None:
+                candidates = action_mechanics.get(action_id, set())
+                if len(candidates) == 1:
+                    mechanic = next(iter(candidates))
+            if mechanic is not None:
+                mechanic_attempts[mechanic] += 1
+                if resolution.get("outcome") == "success":
+                    mechanic_successes[mechanic] += 1
 
         active_lives = [
             _object(raw, "active life")
@@ -577,14 +706,13 @@ def analyze_replay(
         if len(frame_window) > RECENT_FRAME_WINDOW:
             frame_window.pop(0)
 
-        turret_forms = target_forms["sameLife"]
         turret_teams = {
             _integer(
                 _object(life.get("actorId"), "life.actorId").get("teamId"),
                 "life teamId",
             )
             for life in active_lives
-            if str(life.get("formId")) in turret_forms
+            if str(life.get("formId")) in fortified_forms
         }
         made_progress = _score_values(start_state) != scores
         both_turret_no_progress_flags.append(
@@ -661,22 +789,20 @@ def analyze_replay(
         for left, right in zip(push_directions, push_directions[1:])
     )
     mechanic_rows = {}
-    for family, public_name in (
-        ("fabrication", "fabrication"),
-        ("replication", "split"),
-        ("sameLife", "anchor"),
-    ):
+    for public_name in mechanic_actions:
         actor_ticks = sum(
             form_actor_ticks[form_id]
-            for form_id in target_forms[family]
+            for form_id in target_forms.get(public_name, set())
         )
         mechanic_rows[public_name] = {
-            "attempts": mechanic_attempts[family],
-            "successfulActions": mechanic_successes[family],
-            "completions": completion_counts[family],
-            "cancellations": cancellation_counts[family],
+            "attempts": mechanic_attempts[public_name],
+            "successfulActions": mechanic_successes[public_name],
+            "completions": completion_counts[public_name],
+            "cancellations": cancellation_counts[public_name],
             "targetFormActorTicks": actor_ticks,
-            "targetFormIds": sorted(target_forms[family]),
+            "targetFormIds": sorted(
+                target_forms.get(public_name, set())
+            ),
         }
 
     return {
@@ -814,9 +940,25 @@ def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         str(row["result"]["completionReason"]) for row in rows
     )
     mechanics = {}
-    for family in ("fabrication", "split", "anchor"):
-        mechanics[family] = {
-            key: sum(row["mechanics"][family][key] for row in rows)
+    mechanic_names = sorted(
+        {
+            mechanic
+            for row in rows
+            for mechanic in row["mechanics"]
+        },
+        key=lambda value: (
+            ["fabrication", "split", "anchor", "mobilize"].index(value)
+            if value in {"fabrication", "split", "anchor", "mobilize"}
+            else 4,
+            value,
+        ),
+    )
+    for mechanic in mechanic_names:
+        mechanics[mechanic] = {
+            key: sum(
+                row["mechanics"].get(mechanic, {}).get(key, 0)
+                for row in rows
+            )
             for key in (
                 "attempts",
                 "successfulActions",
@@ -1018,9 +1160,10 @@ def _print_report(groups: list[dict[str, Any]]) -> None:
         )
         print(
             "  mechanics "
-            f"fabricate={mechanics['fabrication']['completions']} "
-            f"split={mechanics['split']['completions']} "
-            f"anchor={mechanics['anchor']['completions']}"
+            + " ".join(
+                f"{mechanic}={values['completions']}"
+                for mechanic, values in mechanics.items()
+            )
         )
         print(
             "  activity  "

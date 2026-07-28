@@ -2528,6 +2528,32 @@ generic-actor profile/schema numbers, replay v3, and controlled-build pipeline
 4 remain unchanged: older artifacts still run unchanged on contracts that omit
 the schedule, while schedule-aware rules require a rebuilt artifact.
 
+## 144. Turret remobilization proves the transform architecture but misses its pacing gate
+
+A local-only `frontline-labs-1-experiment-mobilize` definition adds the
+declared `mobilize` action and a `turret -> child-mobile` same-life route using
+the existing generic action/transition contracts. Actor identity, runtime
+memory, position, facing, cooldown, and energy persist; health is preserved
+but capped to the mobile maximum. Anchor is reversible only in this candidate,
+while Mobilize is irreversible for that life, so an Anchor/Mobilize healing
+cycle is impossible. Immutable hosted `frontline-labs-1` and its fingerprints
+remain byte-identical.
+
+The pre-registered 12-match WASM screen verified 15 Anchors and 15 Mobilizes
+with zero faults, no same-life re-Anchor, exact non-Bastion control
+trajectories, and no Bastion drift before its first Mobilize tick. Mobilize
+eliminated all dual-turret no-progress ticks, but the candidate policy left all
+six Bastion games classified stalled and looped, reduced breaches from seven
+to six, and increased MaxTicks from five to six. The action and generic
+architecture are retained as an isolated extensibility proof; neither the
+mechanic nor this policy is promoted into hosted v1.
+
+Replay-v3 dynamics now classifies same-life routes from contract-declared
+source/target objective weights. Weighted-to-zero routes are Anchor,
+zero-to-weighted routes are Mobilize, and only Anchor target forms count as
+fortified for turret-deadlock detection. This prevents a mobile target of a
+future transition from being mislabeled as a turret.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

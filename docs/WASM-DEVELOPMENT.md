@@ -195,6 +195,13 @@ part of canonical MatchStart contract data. Generic bots resolve the current
 phase with `frontlineMode.Capture.GainPhaseAtTick(context.Tick)`, so the same
 rules input works for hand-authored policies and ML preprocessing.
 
+`--mobilize-turrets` is the isolated action-contract arm. It resolves
+`frontline-labs-1-experiment-mobilize`, adds a declared no-argument
+`mobilize` action, and permits `turret -> child-mobile` while preserving the
+same life/runtime memory and capping health to the mobile maximum. Mobilize is
+one-way for that life to prevent Anchor/Mobilize healing cycles. This is a
+local experiment, not part of immutable hosted v1.
+
 Actor 1.0 negotiates and then exchanges:
 
 ```text

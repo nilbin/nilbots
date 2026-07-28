@@ -12,7 +12,8 @@ Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 frozen replay-v2 `nilbots experiment frontline` path, and the generic
 replay-v3 `nilbots experiment frontline-labs` path. Labs capture-threshold
 arms use its local-only `--capture-threshold <positive-n>` option; phased
-capture-gain arms use `--capture-gain-phase <start-tick>:<gain>`.
+capture-gain arms use `--capture-gain-phase <start-tick>:<gain>`; the isolated
+turret-exit arm uses `--mobilize-turrets`.
 
 ## 1. Classify and pre-register the experiment
 
@@ -94,6 +95,10 @@ nilbots experiment frontline-labs \
   --bot <bot.wasm> --opponent <opponent.wasm> \
   --capture-gain-phase 300:2 --seed 104729
 
+nilbots experiment frontline-labs \
+  --bot <candidate-bot.wasm> --opponent <opponent.wasm> \
+  --mobilize-turrets --seed 104729
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
@@ -108,6 +113,9 @@ exact values in the cohort manifest and include the same option in
 The same identity rule applies to capture-gain phases. The schedule is
 canonical contract data, and candidate-aware bots resolve it with
 `frontlineMode.Capture.GainPhaseAtTick(context.Tick)`.
+It also applies to the Mobilize arm: that flag exposes a new action under
+`frontline-labs-1-experiment-mobilize`; rules-unaware bots are compatibility
+sentinels, not product-balance evidence.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and

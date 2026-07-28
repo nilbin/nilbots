@@ -147,6 +147,13 @@ Replication and Anchor metrics use authoritative contracts/events:
   turret-fire action; damage and kills follow exact projectile identity so an
   old life retains attribution.
 
+The generic replay-v3 analyzer classifies same-life routes from their declared
+source/target objective weights: weighted mobile to weight-zero is `anchor`,
+and weight-zero to weighted mobile is `mobilize`. Other routes retain their
+contract action ID. Only Anchor targets count as fortified forms for the
+dual-turret no-progress metric; a Mobilize target must never make ordinary
+mobile actor-ticks look like turret occupancy.
+
 Territorial score is re-derived from every post-state using the public
 contract:
 
