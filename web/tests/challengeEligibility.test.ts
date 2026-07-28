@@ -9,7 +9,6 @@ import {
   detailBotSupportsLegacyDuel,
   explicitlySupportsContractProfile,
   LEGACY_DUEL_CONTRACT_PROFILE,
-  ownedLegacyDuelBots,
   rosterBotSupportsLegacyDuel,
   supportsLegacyDuel,
 } from '../src/site/botContractProfiles';
@@ -73,23 +72,6 @@ test('an owned generic-only bot can enter Labs without appearing Duel-compatible
   assert.equal(
     eligibleLabsPlaylist(bot, catalog)?.key,
     'frontline-labs',
-  );
-});
-
-test('Arena ownership choices exclude a generic-only active artifact', () => {
-  const legacy = botSummary(null);
-  const generic = {
-    ...botSummary([GENERIC_PROFILE]),
-    id: '40000000-0000-0000-0000-000000000002',
-    name: 'Generic entrant',
-  };
-
-  assert.deepEqual(
-    ownedLegacyDuelBots(
-      [legacy, generic],
-      [{ id: legacy.id }, { id: generic.id }],
-    ).map((bot) => bot.id),
-    [legacy.id],
   );
 });
 

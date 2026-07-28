@@ -217,7 +217,6 @@ export default function MatchPage() {
               accent: ownedParticipant.accentSnapshot,
               lookId: ownedParticipant.lookIdSnapshot,
               isOwner: true,
-              ready: true,
             }}
             modes={nextFight.modes}
             initialMode={nextFight.modes[0]}

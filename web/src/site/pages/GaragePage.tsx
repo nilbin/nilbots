@@ -10,11 +10,15 @@ import BotIdentity from '../components/BotIdentity';
 import FirstRun from '../components/FirstRun';
 import { ErrorState, LoadingState } from '../components/StateView';
 import { useAuth } from '../auth';
-import { rosterBotSupportsLegacyDuel } from '../botContractProfiles';
-import { useBots, useCreateBot, useMyBots } from '../queries';
+import {
+  useArenaCapabilities,
+  useCreateBot,
+  useMyBots,
+} from '../queries';
 import { errorMessage } from '../errorMessage';
 import { useCosmeticCatalog } from '../cosmetics';
 import CosmeticUnlocks from '../components/CosmeticUnlocks';
+import { ownedPlayableArenaBotIds } from '../arenaCapabilities';
 
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
@@ -43,10 +47,10 @@ export default function GaragePage() {
     refetch: refetchBots,
   } = useMyBots(Boolean(user));
   const {
-    data: roster = null,
-    error: rosterError,
-    refetch: refetchRoster,
-  } = useBots(Boolean(user));
+    data: arena = null,
+    error: arenaError,
+    refetch: refetchArena,
+  } = useArenaCapabilities(Boolean(user));
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('vanguard');
@@ -83,18 +87,19 @@ export default function GaragePage() {
     lookId,
     projectileLookId,
   );
-  const duelReadyIds = new Set(
-    (roster ?? [])
-      .filter(rosterBotSupportsLegacyDuel)
-      .map((bot) => bot.id),
-  );
+  const duelReadyIds = ownedPlayableArenaBotIds(arena);
 
   return (
     <div className="flex flex-col gap-8">
       <h1 className="type-display text-[30px]">Garage</h1>
       <section>
         <h2 className="lab mb-3">My bots</h2>
-        {rosterError && (
+        {arena === null && arenaError === null && (
+          <p className="t-meta mb-3" role="status">
+            Checking Arena availability…
+          </p>
+        )}
+        {arenaError && (
           <div
             className="panel-quiet pad mb-3 flex flex-wrap items-center gap-2"
             role="alert"
@@ -105,7 +110,7 @@ export default function GaragePage() {
             </p>
             <button
               type="button"
-              onClick={() => void refetchRoster()}
+              onClick={() => void refetchArena()}
               className="btn"
             >
               Try again
@@ -116,10 +121,7 @@ export default function GaragePage() {
           {bots.map((bot) => {
             const look = botLook(bot.lookId);
             const projectile = projectileLook(bot.projectileLookId);
-            const ready =
-              bot.latestVersion?.isActive === true &&
-              bot.latestVersion.status === 'Built' &&
-              duelReadyIds.has(bot.id);
+            const ready = duelReadyIds.has(bot.id);
             return (
               <li
                 key={bot.id}
@@ -161,7 +163,6 @@ export default function GaragePage() {
                       accent: bot.accent,
                       lookId: bot.lookId,
                       isOwner: true,
-                      ready,
                     }}
                     triggerLabel="Play"
                     className="shrink-0"

@@ -94,7 +94,7 @@ catalogue, and the former `/looks` URL redirects there. Player accents are adjus
 presentation boundary when necessary, so a stored colour cannot erase its identity ring
 or status rail against the current surface.
 
-### Arena action — global + contextual overlay — **done (current API)**
+### Arena action — global + contextual overlay — **done (server-authoritative)**
 
 The primary play journey is a reusable multi-action control rather than a destination.
 One provider owns the single native-dialog composer, lazy queries, mutations, error state,
@@ -103,10 +103,11 @@ Garage, Bots directory, and Match/Set continuation without mounting a form per r
 Ranked and one-off play remain separate choices because they are separate server
 contracts:
 
-- **Ranked set** explains the six-game mirrored format and removes opponent/map controls
-  that the server ignores.
+- **Ranked set** renders the server-supplied game count, pair count, mirroring and
+  matchmaking pool, and removes opponent/map controls that the server ignores.
 - **One-off challenge** selects an owned challenger or a public opponent plus an optional
-  map, and preserves that setup when returning from a result.
+  map, names the server's fixed default map, and preserves that setup when returning from
+  a result.
 
 The global control first asks which ready owned bot should play. Contextual controls
 already know the bot; unranked result controls also preserve the previous opponent and
@@ -118,10 +119,18 @@ admission-failure states all keep an explicit next action. Match and set pages r
 Watch, link their bot identities, and offer another challenge or another matchmade set
 when the current account owns a participant.
 
-Remaining allowance is deliberately not shown: the current API does not project it, and
-its defaults are server-configurable. The proposed paid scheduler and the projection it
-needs are specified in [Automatic Arena](AUTO_ARENA.md); no production fixture or Shop
-package is hard-coded before those contracts exist.
+`GET /api/arena` is now the shared authority for bot admission/ownership and for both
+allowances. The overlay shows remaining/limit and rolling-window length, plus ranked
+in-progress/concurrency and the next daily slot when one is known. The submit action for
+an exhausted mode is disabled without hiding the other mode, and a blocked composer can
+refresh in place when a rolling slot opens or a running set completes. Mutations
+invalidate and refetch this projection, while the POST endpoints still enforce the same
+durable policy under account locks. The projection batches roster admission, and both
+application and transport rate-limit failures return the generated problem envelope.
+
+The proposed paid scheduler is specified separately in
+[Automatic Arena](AUTO_ARENA.md). The manual Arena projection is its foundation, not an
+implemented schedule or permission to hard-code a production Shop package.
 
 ## Verifying
 

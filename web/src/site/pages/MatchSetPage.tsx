@@ -268,7 +268,6 @@ export default function MatchSetPage() {
               accent: ownedSide.accent,
               lookId: ownedSide.lookId,
               isOwner: true,
-              ready: true,
             }}
             modes={['ranked']}
             initialMode="ranked"

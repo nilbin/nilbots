@@ -25,13 +25,30 @@ public static class ApplicationProblemDetails
         }
 
         string traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
-        return Results.Problem(
-            detail: error.Detail,
+        int? retryAfterSeconds = error.RetryAfter is TimeSpan retry
+            ? Math.Max(1, (int)Math.Ceiling(retry.TotalSeconds))
+            : null;
+        return Results.Json(
+            new ApplicationProblemResponse(
+                "about:blank",
+                Title(status),
+                status,
+                error.Detail,
+                error.Code,
+                traceId,
+                retryAfterSeconds),
             statusCode: status,
-            extensions: new Dictionary<string, object?>
-            {
-                ["code"] = error.Code,
-                ["traceId"] = traceId,
-            });
+            contentType: "application/problem+json");
     }
+
+    private static string Title(int status) => status switch
+    {
+        StatusCodes.Status400BadRequest => "Bad Request",
+        StatusCodes.Status401Unauthorized => "Unauthorized",
+        StatusCodes.Status403Forbidden => "Forbidden",
+        StatusCodes.Status404NotFound => "Not Found",
+        StatusCodes.Status409Conflict => "Conflict",
+        StatusCodes.Status429TooManyRequests => "Too Many Requests",
+        _ => "Request Failed",
+    };
 }

@@ -75,6 +75,8 @@ builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
 builder.Services.AddScoped<BotAppearancePolicy>();
 builder.Services.AddScoped<MatchAdmissionService>();
+builder.Services.AddScoped<ArenaAllowanceService>();
+builder.Services.AddScoped<MatchPlayabilityService>();
 builder.Services.AddSingleton<SubmissionContractProfileProbe>();
 builder.Services.AddSingleton<MatchParticipantSnapshotFactory>();
 builder.Services.AddScoped<BackgroundJobLeaseStore>();
@@ -274,6 +276,7 @@ if (mode.RunsWeb)
     app.MapBots();
     app.MapCosmetics();
     app.MapMatches();
+    app.MapArenaCapabilities();
     app.MapFrontlineLabs();
     app.MapRanked();
     app.MapUserNotifications();

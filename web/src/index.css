@@ -204,6 +204,7 @@ html[data-arena-mode='viewer'] #root {
   .arena-dialog {
     position: fixed;
     margin: auto;
+    max-height: min(680px, calc(100dvh - 32px));
     overscroll-behavior: contain;
   }
   .arena-dialog::backdrop {

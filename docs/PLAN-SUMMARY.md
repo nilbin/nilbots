@@ -110,7 +110,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   bots/submissions/challenges, PostgreSQL-backed compile and match jobs,
   stable artifact/replay object keys, and the SPA. It also owns the
   off-by-default Frontline Labs playlist/admission/execution path, exact bot
-  contract-profile attestations, and normalized match-team results. Explicit
+  contract-profile attestations, normalized match-team results, and an
+  authenticated Arena projection for the official Duel format, effective
+  allowances, concurrency and batch playability. Explicit
   web, compile, match, and migration roles share the same model without
   becoming services.
 - `deploy/` — the scale-ready multi-VPS baseline: primary Caddy/stateful
@@ -130,7 +132,10 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   and hosted generic replay 3 through the lazy WebGL 3D renderer, with
   Canvas2D retained as the floor where 3D cannot draw. An isolated bot-detail
   Labs panel can create a direct unranked match when the server advertises the
-  feature. The CLI artifact excludes Three.js.
+  feature. The Climb-derived site uses one global/contextual Arena composer
+  driven by the generated server capability contract, a Shop plus per-bot rich
+  appearance picker, and closed Match/Set continuation flows. The CLI artifact
+  excludes Three.js.
 - `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
   and replay-viewer suites, including DocDrift tests that pin mechanical
   docs/mirrors to the engine.

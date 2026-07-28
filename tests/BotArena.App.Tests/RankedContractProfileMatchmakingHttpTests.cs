@@ -14,7 +14,7 @@ public sealed class RankedContractProfileMatchmakingHttpTests
 {
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task RankedMatchmakingSkipsGenericOnlyActiveBots()
+    public async Task RankedMatchmakingSkipsIneligibleActiveBots()
     {
         await using var database =
             await PostgreSqlDatabaseFixture.CreateAsync();
@@ -88,6 +88,30 @@ public sealed class RankedContractProfileMatchmakingHttpTests
                 db.BotRatings.Add(new BotRating
                 {
                     BotId = genericOnly.Id,
+                    RulesVersion = GameRules.Current.RulesVersion,
+                    Rating = BotRating.DefaultRating + index,
+                });
+
+                var lockedOwner = new User
+                {
+                    DisplayName = $"Locked Ranked Owner {index}",
+                    Email = $"locked-ranked-{index}@example.test",
+                    PasswordHash = "not-used",
+                };
+                Bot lockedAppearance = Bot(
+                    lockedOwner.Id,
+                    $"Locked Ranked Decoy {index}",
+                    $"locked-ranked-decoy-{index}");
+                lockedAppearance.LookId = "helio-kite";
+                db.AddRange(lockedOwner, lockedAppearance);
+                db.BotVersions.Add(
+                    Version(
+                        lockedAppearance.Id,
+                        $"locked-ranked-artifact-{index}",
+                        BotContractProfiles.LegacyDuel));
+                db.BotRatings.Add(new BotRating
+                {
+                    BotId = lockedAppearance.Id,
                     RulesVersion = GameRules.Current.RulesVersion,
                     Rating = BotRating.DefaultRating + index,
                 });

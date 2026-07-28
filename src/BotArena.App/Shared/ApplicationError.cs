@@ -34,6 +34,23 @@ public static class ApplicationErrorCodes
     public const string MatchActiveVersionRequired = "matches.active_version_required";
     public const string MatchContractProfileRequired =
         "matches.contract_profile_required";
+    public const string MatchSelfChallenge = "matches.self_challenge";
+    public const string MatchMapUnavailable = "matches.map_unavailable";
+    public const string MatchUnrankedDailyLimit =
+        "matches.unranked_daily_limit";
+    public const string MatchRankedDailyLimit =
+        "matches.ranked_daily_limit";
+    public const string MatchRankedConcurrentLimit =
+        "matches.ranked_concurrent_limit";
+    public const string MatchRankedRulesUnknown =
+        "matches.ranked_rules_unknown";
+    public const string MatchRankedLadderClosed =
+        "matches.ranked_ladder_closed";
+    public const string MatchRankedOpponentSelectionForbidden =
+        "matches.ranked_opponent_selection_forbidden";
+    public const string MatchRankedOpponentUnavailable =
+        "matches.ranked_opponent_unavailable";
+    public const string RequestRateLimited = "requests.rate_limited";
     public const string SubmissionInvalid = "submissions.invalid";
     public const string SubmissionRateLimited = "submissions.rate_limited";
 }

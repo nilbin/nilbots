@@ -1,15 +1,16 @@
 # Design reference
 
-Three self-contained pages. **Open them straight from disk** — everything they need is
-inlined, which is also why `climb.html` is 680 KB.
+Three self-contained visual pages plus the implementation notes below. **Open the HTML
+pages straight from disk** — everything they need is inlined, which is also why
+`climb.html` is 680 KB.
 
 | page | what it is |
 |---|---|
 | `climb.html` | The specification. Colour policy, type system, ground, logotype, viewer, full-screen chrome, bot page, first run, CLI. This is the one to read. |
 | `logotype.html` | The mark on its own: the construction, the alphabet, four finishes, size tests. |
 | `directions.html` | The nine directions Climb was chosen from. Kept as provenance — it predates the Forge ground and the type system, so its palettes and typography are **not** current. |
-| `AUTO_ARENA.md` | Product and frontend contract for the proposed daily ranked-set scheduler, including Shop semantics, quota behavior, and the backend projection it will require. |
-| `UX_FLOW_REVIEW.md` | End-to-end review of the main player jobs, route closure, Arena entry/continuation, and the frontend/backend gaps that remain. |
+| `AUTO_ARENA.md` | Product and frontend contract for the proposed daily ranked-set scheduler, including Shop semantics, quota behavior, and how it will reuse the landed manual Arena authority. |
+| `UX_FLOW_REVIEW.md` | End-to-end review of the main player jobs, route closure, Arena entry/continuation, and the remaining product/backend gaps. |
 
 Published copies, for sharing without a checkout:
 [Climb](https://claude.ai/code/artifact/8d87e1eb-0014-4339-a6df-a823b532da7c) ·

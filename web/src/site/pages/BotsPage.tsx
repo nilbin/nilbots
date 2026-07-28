@@ -8,8 +8,17 @@ import { ErrorState, LoadingState } from '../components/StateView';
 import Th from '../components/TableHeader';
 import Control from '../../components/ToggleButton';
 import { useAuth } from '../auth';
-import { useBots, useMeta, useMyBots } from '../queries';
+import {
+  useArenaCapabilities,
+  useBots,
+  useMeta,
+  useMyBots,
+} from '../queries';
 import { rosterBotSupportsLegacyDuel } from '../botContractProfiles';
+import {
+  ownedArenaBotIds,
+  playableArenaBotIds,
+} from '../arenaCapabilities';
 import { playerAccent } from '../../presentation/playerAccent';
 import { styleVariables } from '../../presentation/styleVariables';
 
@@ -80,6 +89,11 @@ export default function BotsPage() {
   const { data: meta = null } = useMeta();
   const { user, loading: authLoading } = useAuth();
   const { data: myBots = null } = useMyBots(Boolean(user));
+  const {
+    data: arena = null,
+    error: arenaError,
+    refetch: refetchArena,
+  } = useArenaCapabilities(Boolean(user));
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('rank');
   const [fightableOnly, setFightableOnly] = useState(false);
@@ -87,16 +101,24 @@ export default function BotsPage() {
 
   const rules = meta?.gameRulesVersion ?? null;
 
-  // Ownership joins on ids, not display names: `/api/bots` has no `isOwner`, and two
-  // accounts can share a display name — so a name match would mark somebody else's rows
-  // as yours. `useMyBots` is the only exact answer the API offers.
-  const myIds = useMemo(
+  // Ownership joins on ids, never display names. Once Arena authority arrives it wins;
+  // `/api/bots/mine` remains only a pre-capability fallback for page presentation.
+  const fallbackMyIds = useMemo(
     () => new Set((myBots ?? []).map((bot) => bot.id)),
     [myBots],
   );
+  const serverOwnedIds = useMemo(
+    () => ownedArenaBotIds(arena),
+    [arena],
+  );
+  const myIds = arena === null ? fallbackMyIds : serverOwnedIds;
   const ownedOnRoster = useMemo(
     () => (bots ?? []).filter((bot) => myIds.has(bot.id)).length,
     [bots, myIds],
+  );
+  const serverPlayableIds = useMemo(
+    () => playableArenaBotIds(arena),
+    [arena],
   );
   // A filter left pressed over an empty selection is a table nobody can get back out of.
   // It stops applying with the control that sets it (the ladder's guard).
@@ -105,7 +127,11 @@ export default function BotsPage() {
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return (bots ?? []).filter((bot) => {
-      if (fightableOnly && !rosterBotSupportsLegacyDuel(bot)) return false;
+      const fightable =
+        arena !== null
+          ? serverPlayableIds.has(bot.id)
+          : rosterBotSupportsLegacyDuel(bot);
+      if (fightableOnly && !fightable) return false;
       if (mineActive && !myIds.has(bot.id)) return false;
       if (needle === '') return true;
       return (
@@ -113,7 +139,15 @@ export default function BotsPage() {
         bot.owner.toLowerCase().includes(needle)
       );
     });
-  }, [bots, fightableOnly, mineActive, myIds, query]);
+  }, [
+    arena,
+    bots,
+    fightableOnly,
+    mineActive,
+    myIds,
+    query,
+    serverPlayableIds,
+  ]);
 
   // `rank` is standings ascending, then the unranked by newest-created. Ties break by
   // name in every mode: competition ranking means equal ratings share a rank, so payload
@@ -167,7 +201,13 @@ export default function BotsPage() {
           </span>{' '}
           ranked ·{' '}
           <span className="val text-arena-text">
-            {bots.filter(rosterBotSupportsLegacyDuel).length}
+            {
+              bots.filter((bot) =>
+                arena !== null
+                  ? serverPlayableIds.has(bot.id)
+                  : rosterBotSupportsLegacyDuel(bot),
+              ).length
+            }
           </span>
           <span className="hidden sm:inline"> ready for Duel</span>
           <span className="sm:hidden"> Duel-ready</span>
@@ -183,6 +223,24 @@ export default function BotsPage() {
 
       {error !== null && <ErrorState error={error} onRetry={() => void refetch()} />}
       {error === null && bots === null && <LoadingState label="Loading the roster…" />}
+      {user && arenaError && (
+        <div
+          className="panel-quiet pad mb-3 flex flex-wrap items-center gap-2"
+          role="alert"
+        >
+          <p className="t-meta min-w-0 grow text-arena-hot">
+            Personal Arena availability could not be loaded. Public roster hints
+            remain visible; Play will verify access before submitting.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refetchArena()}
+            className="btn"
+          >
+            Try again
+          </button>
+        </div>
+      )}
       {/* Which of the two empty sentences is true depends on the session, so it waits for
           it: showing the visitor's copy for a beat and then swapping it is a page that
           appears to change its mind about who you are. */}
@@ -288,7 +346,11 @@ export default function BotsPage() {
                     mine && bot.accent
                       ? playerAccent(bot.accent, 'panel')
                       : null;
-                  const arenaBot = rosterBotSupportsLegacyDuel(bot)
+                  const fightable =
+                    arena !== null
+                      ? serverPlayableIds.has(bot.id)
+                      : rosterBotSupportsLegacyDuel(bot);
+                  const arenaBot = fightable
                     ? {
                         id: bot.id,
                         slug: bot.slug,
@@ -296,9 +358,12 @@ export default function BotsPage() {
                         accent: bot.accent,
                         lookId: bot.lookId,
                         isOwner: mine,
-                        ready: true,
                       }
                     : null;
+                  const arenaModes = [
+                    'ranked',
+                    'challenge',
+                  ] as const;
                   return (
                     <Fragment key={bot.id}>
                       {index === bandAt && (
@@ -372,6 +437,8 @@ export default function BotsPage() {
                           {arenaBot && (
                             <ArenaAction
                               bot={arenaBot}
+                              modes={arenaModes}
+                              initialMode={mine ? 'ranked' : 'challenge'}
                               triggerLabel={mine ? 'Play' : 'Challenge'}
                               className="mt-2 sm:hidden"
                             />
@@ -423,6 +490,8 @@ export default function BotsPage() {
                           {arenaBot && (
                             <ArenaAction
                               bot={arenaBot}
+                              modes={arenaModes}
+                              initialMode={mine ? 'ranked' : 'challenge'}
                               triggerLabel={mine ? 'Play' : 'Challenge'}
                             />
                           )}

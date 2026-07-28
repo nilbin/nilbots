@@ -30,6 +30,7 @@ import {
 const keys = {
   meta: ['meta'] as const,
   bots: ['bots'] as const,
+  arena: ['arena'] as const,
   labs: ['labs'] as const,
   bot: (key: string) => ['bot', key] as const,
   botMatches: (botId: string) => ['bot', botId, 'matches'] as const,
@@ -126,6 +127,21 @@ export function useMeta(enabled = true) {
 
 export function useBots(enabled = true) {
   return useQuery({ queryKey: keys.bots, queryFn: endpoints.bots, enabled });
+}
+
+/**
+ * The signed-in player's Arena authority: format, effective allowances and batch bot
+ * admission. A short freshness window lets a page and the composer share one request;
+ * focus, explicit refreshes and successful Arena writes still revalidate it.
+ */
+export function useArenaCapabilities(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.arena,
+    queryFn: endpoints.arena,
+    enabled,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+  });
 }
 
 /** Hosted experiments available on this deployment; disabled deployments return an empty catalog. */
@@ -351,6 +367,7 @@ export function useCreateBot() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.myBots });
       void client.invalidateQueries({ queryKey: keys.bots });
+      void client.invalidateQueries({ queryKey: keys.arena });
     },
   });
 }
@@ -363,7 +380,10 @@ export function useSubmitVersion(botKey: string, botId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: SubmitVersionRequest) => endpoints.submitVersion(botId, body),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.bot(botKey) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.bot(botKey) });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
   });
 }
 
@@ -376,6 +396,7 @@ export function useUpdateAppearance(botKey: string, botId: string) {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.bot(botKey) });
       void client.invalidateQueries({ queryKey: keys.myBots });
+      void client.invalidateQueries({ queryKey: keys.arena });
     },
   });
 }
@@ -384,7 +405,12 @@ export function useChallenge() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.challenge,
-    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
+    onError: () =>
+      client.invalidateQueries({ queryKey: keys.arena }),
   });
 }
 
@@ -393,7 +419,12 @@ export function useRankedChallenge() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.rankedChallenge,
-    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
+    onError: () =>
+      client.invalidateQueries({ queryKey: keys.arena }),
   });
 }
 
@@ -401,7 +432,13 @@ export function useCreateLabsMatch() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.createLabsMatch,
-    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      // Labs consumes the same durable unranked allowance as one-off Duel.
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
+    onError: () =>
+      client.invalidateQueries({ queryKey: keys.arena }),
   });
 }
 

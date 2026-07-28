@@ -9,18 +9,24 @@ import {
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { type BotSummary } from '../api';
-import { useAuth } from '../auth';
 import {
-  ownedLegacyDuelBots,
-  rosterBotSupportsLegacyDuel,
-} from '../botContractProfiles';
+  type ArenaCapabilities,
+  type BotSummary,
+  type MatchPlayability,
+} from '../api';
+import {
+  arenaOpponents,
+  indexArenaPlayability,
+  ownedPlayableArenaRoster,
+  playableArenaRoster,
+} from '../arenaCapabilities';
+import { useAuth } from '../auth';
 import { errorMessage } from '../errorMessage';
 import {
+  useArenaCapabilities,
   useBots,
   useChallenge,
   useMeta,
-  useMyBots,
   useRankedChallenge,
 } from '../queries';
 import BotIdentity from './BotIdentity';
@@ -34,7 +40,6 @@ export interface ArenaActionBot {
   accent?: string | null;
   lookId?: string | null;
   isOwner: boolean;
-  ready: boolean;
 }
 
 interface ArenaLaunch {
@@ -72,8 +77,8 @@ const ArenaActionContext = createContext<ArenaActions | null>(null);
  *
  * Every trigger sends typed context here. Queries, mutation state, focus restoration and
  * the modal exist once rather than once per roster row; data is enabled only while the
- * composer is open. The roster is also the contract-profile authority, so every launch
- * path gets the same legacy-Duel eligibility check.
+ * composer is open. `/api/arena` is the authority for bot admission, effective
+ * allowances and format; the public roster contributes display identity only.
  */
 export function ArenaActionProvider({ children }: { children: React.ReactNode }) {
   const [launch, setLaunch] = useState<ArenaLaunch | null>(null);
@@ -90,46 +95,68 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   const challenge = useChallenge();
   const rankedChallenge = useRankedChallenge();
 
-  const needsOwnedBots =
-    launch !== null &&
-    Boolean(user) &&
-    (launch.bot === null || !launch.bot.isOwner);
+  const needsArena = launch !== null && Boolean(user);
   const {
-    data: mine = null,
-    error: mineError,
-    refetch: refetchMine,
-  } = useMyBots(needsOwnedBots);
-  const needsRoster = launch !== null && Boolean(user);
+    data: capabilities = null,
+    error: capabilitiesError,
+    isFetching: capabilitiesRefreshing,
+    refetch: refetchCapabilities,
+  } = useArenaCapabilities(needsArena);
+  const needsRoster = needsArena;
   const {
     data: roster = null,
     error: rosterError,
     refetch: refetchRoster,
   } = useBots(needsRoster);
+  const playabilityById = useMemo(
+    () => indexArenaPlayability(capabilities?.bots ?? []),
+    [capabilities],
+  );
   const duelRoster = useMemo(
-    () => (roster ?? []).filter(rosterBotSupportsLegacyDuel),
-    [roster],
+    () =>
+      capabilities === null
+        ? []
+        : playableArenaRoster(roster ?? [], capabilities),
+    [capabilities, roster],
   );
   const readyOwnedBots = useMemo(
-    () => ownedLegacyDuelBots(duelRoster, mine ?? []),
-    [duelRoster, mine],
+    () =>
+      capabilities === null
+        ? []
+        : ownedPlayableArenaRoster(roster ?? [], capabilities),
+    [capabilities, roster],
   );
   const selectedOwnedBot =
     readyOwnedBots.find((candidate) => candidate.id === selectedBotId) ?? null;
-  const bot =
-    launch?.bot ??
-    (selectedOwnedBot
+  const launchPlayability =
+    launch?.bot === null || launch?.bot === undefined
+      ? null
+      : playabilityById.get(launch.bot.id) ?? null;
+  const bot = launch?.bot
+    ? {
+        ...launch.bot,
+        // Caller ownership controls only the pre-open label. Every submitted direction
+        // is resolved from the authenticated Arena projection.
+        isOwner: launchPlayability?.isOwned === true,
+      }
+    : selectedOwnedBot
       ? {
           ...selectedOwnedBot,
           isOwner: true,
-          ready: true,
         }
-      : null);
-
+      : null;
   const launchBotEligible =
     launch?.bot === null ||
-    (launch?.bot !== undefined &&
-      launch.bot.ready &&
-      duelRoster.some((candidate) => candidate.id === launch.bot?.id));
+    launchPlayability?.playable === true;
+  const availableModes = useMemo(
+    () =>
+      launch?.bot &&
+      capabilities !== null &&
+      launchPlayability?.isOwned !== true
+        ? launch.modes.filter((candidate) => candidate !== 'ranked')
+        : launch?.modes ?? [],
+    [capabilities, launch, launchPlayability?.isOwned],
+  );
   const challengeOpen =
     launch !== null && mode === 'challenge' && Boolean(user) && bot !== null;
   const {
@@ -138,8 +165,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     refetch: refetchMeta,
   } = useMeta(challengeOpen);
   const opponents = useMemo(
-    () =>
-      duelRoster.filter((candidate) => candidate.id !== bot?.id),
+    () => arenaOpponents(duelRoster, bot?.id),
     [bot?.id, duelRoster],
   );
 
@@ -155,17 +181,32 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (
       !launch ||
-      launch.bot?.isOwner ||
+      launchPlayability?.isOwned ||
       selectedBotId !== '' ||
       readyOwnedBots.length !== 1
     )
       return;
     setSelectedBotId(readyOwnedBots[0].id);
-  }, [launch, readyOwnedBots, selectedBotId]);
+  }, [
+    launch,
+    launchPlayability?.isOwned,
+    readyOwnedBots,
+    selectedBotId,
+  ]);
 
   useEffect(() => {
     if (bot && opponentId === bot.id) setOpponentId('');
   }, [bot, opponentId]);
+
+  useEffect(() => {
+    if (
+      launch &&
+      availableModes.length > 0 &&
+      !availableModes.includes(mode)
+    ) {
+      setMode(availableModes[0]);
+    }
+  }, [availableModes, launch, mode]);
 
   useEffect(() => {
     if (
@@ -214,7 +255,17 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
 
   const play = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!launch || !bot || !launchBotEligible) return;
+    if (
+      !launch ||
+      !bot ||
+      !launchBotEligible ||
+      !availableModes.includes(mode) ||
+      !capabilities ||
+      !(mode === 'ranked'
+        ? capabilities.rankedAllowance.canStart
+        : capabilities.unrankedAllowance.canStart)
+    )
+      return;
     try {
       if (mode === 'ranked') {
         const set = await rankedChallenge.mutateAsync({ botId: bot.id });
@@ -240,11 +291,10 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   const busy = challenge.isPending || rankedChallenge.isPending;
   const challenger = bot?.isOwner ? bot.id : selectedBotId;
   const opponent = bot?.isOwner ? opponentId : bot?.id ?? '';
-  const globalLoading =
-    launch?.bot === null &&
-    (mine === null || roster === null) &&
-    mineError === null &&
-    rosterError === null;
+  const arenaLoading =
+    needsArena &&
+    capabilities === null &&
+    capabilitiesError === null;
   const rosterLoading =
     needsRoster && roster === null && rosterError === null;
 
@@ -265,7 +315,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         onClick={(event) => {
           if (event.target === event.currentTarget) close();
         }}
-        className="arena-dialog panel max-h-[min(680px,calc(100dvh-32px))] w-[min(420px,calc(100vw-24px))] overflow-y-auto p-0 text-left text-arena-text"
+        className="arena-dialog panel w-[min(420px,calc(100vw-24px))] overflow-y-auto p-0 text-left text-arena-text"
       >
         {launch && (
           <>
@@ -310,15 +360,19 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
               </p>
             ) : !user ? (
               <SignInState returnUrl={returnUrl} onClose={close} />
-            ) : launch.bot && !launch.bot.ready ? (
-              <Unavailable
-                bot={launch.bot}
-                reason="not-ready"
-                onClose={close}
+            ) : arenaLoading ? (
+              <p className="t-meta px-4 py-8 text-center" role="status">
+                Checking Arena eligibility and allowance…
+              </p>
+            ) : capabilitiesError ? (
+              <QueryIssue
+                error={capabilitiesError}
+                fallback="Arena availability could not be loaded."
+                onRetry={() => void refetchCapabilities()}
               />
             ) : rosterLoading ? (
               <p className="t-meta px-4 py-8 text-center" role="status">
-                Checking Arena eligibility…
+                Loading Arena identities…
               </p>
             ) : rosterError ? (
               <QueryIssue
@@ -328,23 +382,17 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
               />
             ) : launch.bot && !launchBotEligible ? (
               <Unavailable
-                bot={launch.bot}
-                reason="not-compatible"
+                bot={bot ?? launch.bot}
+                playability={launchPlayability}
                 onClose={close}
-              />
-            ) : globalLoading ? (
-              <p className="t-meta px-4 py-8 text-center" role="status">
-                Loading your bots…
-              </p>
-            ) : launch.bot === null && mineError ? (
-              <QueryIssue
-                error={mineError}
-                fallback="Your ready bots could not be loaded."
-                onRetry={() => void refetchMine()}
+                onRetry={() => {
+                  void refetchCapabilities();
+                  void refetchRoster();
+                }}
               />
             ) : launch.bot === null && readyOwnedBots.length === 0 ? (
               <NoOwnedBot onClose={close} />
-            ) : (
+            ) : capabilities !== null ? (
               <form onSubmit={play} className="pad flex flex-col gap-4">
                 {launch.bot === null && (
                   <label className="t-meta flex flex-col gap-1">
@@ -364,13 +412,13 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                   </label>
                 )}
 
-                {launch.modes.length > 1 && (
+                {availableModes.length > 1 && (
                   <div
                     className="grid grid-cols-2 gap-1"
                     role="group"
                     aria-label="How to play"
                   >
-                    {launch.modes.map((candidate) => (
+                    {availableModes.map((candidate) => (
                       <button
                         key={candidate}
                         type="button"
@@ -388,15 +436,22 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                 )}
 
                 {mode === 'ranked' ? (
-                  <RankedChoice />
+                  <RankedChoice format={capabilities.format.ranked} />
                 ) : bot === null ? (
                   <>
-                    <ChallengeSummary />
+                    <ChallengeSummary
+                      gamesPerMatch={
+                        capabilities.format.unranked.gamesPerMatch
+                      }
+                      defaultMapId={
+                        capabilities.format.unranked.defaultMapId
+                      }
+                    />
                     <p className="t-meta">
                       Choose the active bot that should enter the arena.
                     </p>
                   </>
-                ) : !bot.isOwner && mineError ? null : (
+                ) : (
                   <ChallengeChoice
                     bot={bot}
                     challengerId={selectedBotId}
@@ -405,11 +460,11 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                     ownedBots={readyOwnedBots}
                     opponents={opponents}
                     maps={meta?.maps ?? []}
-                    loadingMine={
-                      !bot.isOwner && mine === null && mineError === null
+                    defaultMapId={
+                      capabilities.format.unranked.defaultMapId
                     }
-                    loadingRoster={
-                      bot.isOwner && roster === null && rosterError === null
+                    gamesPerMatch={
+                      capabilities.format.unranked.gamesPerMatch
                     }
                     onChallengerChange={setSelectedBotId}
                     onOpponentChange={setOpponentId}
@@ -423,22 +478,20 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                   </p>
                 )}
 
-                {mineError && needsOwnedBots && (
-                  <QueryIssue
-                    error={mineError}
-                    fallback="Your available bots could not be loaded."
-                    onRetry={() => void refetchMine()}
-                    compact
-                  />
-                )}
                 {metaError && mode === 'challenge' && (
                   <QueryIssue
                     error={metaError}
-                    fallback="Map names could not be loaded. Random map remains available."
+                    fallback="Map names could not be loaded. The default map remains available."
                     onRetry={() => void refetchMeta()}
                     compact
                   />
                 )}
+                <ArenaAllowanceStatus
+                  mode={mode}
+                  capabilities={capabilities}
+                  refreshing={capabilitiesRefreshing}
+                  onRefresh={() => void refetchCapabilities()}
+                />
                 {failure && (
                   <p className="t-body text-arena-hot" role="alert">
                     {errorMessage(
@@ -455,9 +508,13 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                       busy ||
                       !bot ||
                       !launchBotEligible ||
+                      !availableModes.includes(mode) ||
                       challenger === '' ||
+                      !(mode === 'ranked'
+                        ? capabilities.rankedAllowance.canStart
+                        : capabilities.unrankedAllowance.canStart) ||
                       (mode === 'challenge' &&
-                        (opponent === '' || mineError !== null))
+                        opponent === '')
                     }
                     className="btn btn-on min-h-10"
                   >
@@ -467,12 +524,9 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                         ? 'Start ranked set'
                         : 'Start challenge'}
                   </button>
-                  <span className="t-micro">
-                    Allowance is checked before anything is queued.
-                  </span>
                 </span>
               </form>
-            )}
+            ) : null}
           </>
         )}
       </dialog>
@@ -627,26 +681,47 @@ function ArenaTriggers({
   );
 }
 
-function RankedChoice() {
+function RankedChoice({
+  format,
+}: {
+  format: ArenaCapabilities['format']['ranked'];
+}) {
+  const games = countLabel(format.gamesPerSet, 'game');
+  const pairs = countLabel(format.mapSeedPairs, 'map-and-seed pair');
+  const pool = countLabel(
+    format.matchmakingPoolSize,
+    'closest-rated bot',
+  );
   return (
     <section className="panel-quiet pad">
-      <h2 className="lab mb-2">Ranked set · 6 games</h2>
+      <h2 className="lab mb-2">Ranked set · {games}</h2>
       <p className="t-meta">
-        The arena matchmakes near the selected bot's current rating, then chooses
-        three map-and-seed pairs and plays each from both starting sides. One set
-        result moves the rating after all six games complete.
+        The arena matchmakes from up to {pool}, then chooses{' '}
+        {pairs}
+        {format.mirroredSlots
+          ? ' and plays each from both starting sides'
+          : ''}
+        . One set result moves the rating after all {games} complete.
       </p>
     </section>
   );
 }
 
-function ChallengeSummary() {
+function ChallengeSummary({
+  gamesPerMatch,
+  defaultMapId,
+}: {
+  gamesPerMatch: number;
+  defaultMapId: string;
+}) {
+  const games = countLabel(gamesPerMatch, 'game');
   return (
     <section className="panel-quiet pad">
-      <h2 className="lab mb-2">One-off challenge · 1 game</h2>
+      <h2 className="lab mb-2">One-off challenge · {games}</h2>
       <p className="t-meta">
-        Choose the matchup and an optional map. The result is unranked and does not
-        move either bot's rating.
+        Choose the matchup and, optionally, a different map. The default is{' '}
+        <span className="val">{defaultMapId}</span>. The result is unranked and
+        does not move either bot's rating.
       </p>
     </section>
   );
@@ -660,8 +735,8 @@ function ChallengeChoice({
   ownedBots,
   opponents,
   maps,
-  loadingMine,
-  loadingRoster,
+  defaultMapId,
+  gamesPerMatch,
   onChallengerChange,
   onOpponentChange,
   onMapChange,
@@ -673,13 +748,13 @@ function ChallengeChoice({
   ownedBots: readonly BotSummary[];
   opponents: readonly { id: string; name: string; owner: string }[];
   maps: readonly { id: string; width: number; height: number }[];
-  loadingMine: boolean;
-  loadingRoster: boolean;
+  defaultMapId: string;
+  gamesPerMatch: number;
   onChallengerChange: (id: string) => void;
   onOpponentChange: (id: string) => void;
   onMapChange: (id: string) => void;
 }) {
-  if (!bot.isOwner && !loadingMine && ownedBots.length === 0) {
+  if (!bot.isOwner && ownedBots.length === 0) {
     return (
       <section className="panel-quiet pad">
         <h2 className="lab mb-2">You need a ready bot</h2>
@@ -694,7 +769,7 @@ function ChallengeChoice({
     );
   }
 
-  if (bot.isOwner && !loadingRoster && opponents.length === 0) {
+  if (bot.isOwner && opponents.length === 0) {
     return (
       <section className="panel-quiet pad">
         <h2 className="lab mb-2">No opponent is ready</h2>
@@ -709,7 +784,10 @@ function ChallengeChoice({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
-        <ChallengeSummary />
+        <ChallengeSummary
+          gamesPerMatch={gamesPerMatch}
+          defaultMapId={defaultMapId}
+        />
       </div>
       {!bot.isOwner && (
         <label className="t-meta flex flex-col gap-1">
@@ -717,12 +795,9 @@ function ChallengeChoice({
           <select
             value={challengerId}
             onChange={(event) => onChallengerChange(event.target.value)}
-            disabled={loadingMine}
             className="field"
           >
-            <option value="">
-              {loadingMine ? 'Loading your bots…' : 'Choose your bot…'}
-            </option>
+            <option value="">Choose your bot…</option>
             {ownedBots.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
                 {candidate.name}
@@ -737,12 +812,9 @@ function ChallengeChoice({
           <select
             value={opponentId}
             onChange={(event) => onOpponentChange(event.target.value)}
-            disabled={loadingRoster}
             className="field"
           >
-            <option value="">
-              {loadingRoster ? 'Loading opponents…' : 'Choose an opponent…'}
-            </option>
+            <option value="">Choose an opponent…</option>
             {opponents.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
                 {candidate.name} · {candidate.owner}
@@ -758,7 +830,7 @@ function ChallengeChoice({
           onChange={(event) => onMapChange(event.target.value)}
           className="field"
         >
-          <option value="">Random map</option>
+          <option value="">Default · {defaultMapId}</option>
           {maps.map((map) => (
             <option key={map.id} value={map.id}>
               {map.id} · {map.width}×{map.height}
@@ -767,6 +839,64 @@ function ChallengeChoice({
         </select>
       </label>
     </div>
+  );
+}
+
+function ArenaAllowanceStatus({
+  mode,
+  capabilities,
+  refreshing,
+  onRefresh,
+}: {
+  mode: ArenaMode;
+  capabilities: ArenaCapabilities;
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const allowance =
+    mode === 'ranked'
+      ? capabilities.rankedAllowance
+      : capabilities.unrankedAllowance;
+  const units = mode === 'ranked' ? 'ranked sets' : 'challenges';
+  const window = `${allowance.rollingWindowHours}h rolling window`;
+
+  return (
+    <section
+      className="border-y border-arena-edge py-2.5"
+      aria-label={`${mode === 'ranked' ? 'Ranked' : 'Challenge'} allowance`}
+    >
+      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="lab">Allowance</span>
+        <span className="val text-arena-text">
+          {allowance.remaining}/{allowance.limit}
+        </span>
+        <span className="t-micro">
+          {units} left · {window}
+        </span>
+      </span>
+      {mode === 'ranked' && (
+        <p className="t-micro mt-1">
+          {capabilities.rankedAllowance.inProgress}/
+          {capabilities.rankedAllowance.concurrencyLimit} ranked sets in
+          progress
+        </p>
+      )}
+      {!allowance.canStart && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <p className="t-meta min-w-0 grow text-arena-hot" role="status">
+            {allowanceRefusalMessage(mode, allowance)}
+          </p>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="btn"
+          >
+            {refreshing ? 'Checking…' : 'Refresh'}
+          </button>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -837,37 +967,66 @@ function NoOwnedBot({ onClose }: { onClose: () => void }) {
 
 function Unavailable({
   bot,
-  reason,
+  playability,
   onClose,
+  onRetry,
 }: {
   bot: ArenaActionBot;
-  reason: 'not-ready' | 'not-compatible';
+  playability: MatchPlayability | null;
   onClose: () => void;
+  onRetry: () => void;
 }) {
-  const incompatible = reason === 'not-compatible';
+  const missingBuild =
+    playability?.refusalCode === 'matches.active_version_required';
+  const incompatible =
+    playability?.refusalCode === 'matches.contract_profile_required';
+  const appearanceIssue =
+    playability?.refusalCode?.startsWith('appearance.') === true;
+  const botKey = bot.slug ?? bot.id;
   return (
     <section className="pad">
       <h2 className="lab mb-2">
-        {incompatible ? 'Not available in Duel' : 'No active generation'}
+        {playability === null
+          ? 'Arena eligibility changed'
+          : incompatible
+          ? 'Not available in Duel'
+          : missingBuild
+            ? 'No active generation'
+            : 'Unavailable in the Arena'}
       </h2>
       <p className="t-meta">
-        {incompatible
-          ? bot.isOwner
-            ? `${bot.name}'s active generation targets another game mode. Use its available Labs action instead.`
-            : `${bot.name}'s active generation targets another game mode and cannot enter the legacy Duel arena.`
-          : bot.isOwner
-            ? 'This bot needs a successful active generation before it can fight.'
-            : `${bot.name} cannot be challenged until its owner activates a successful generation.`}
+        {playability?.refusalDetail ??
+          (playability === null
+            ? `${bot.name} is missing from the current Arena roster. Reload its eligibility before trying again.`
+            : incompatible
+            ? `${bot.name}'s active generation targets another game mode.`
+            : `${bot.name} cannot enter the Arena right now.`)}
       </p>
-      {!incompatible && bot.isOwner && bot.slug && (
-        <Link
-          to={`/bots/${bot.slug}#submit`}
-          onClick={onClose}
-          className="btn mt-3 inline-flex"
-        >
-          Go to submission
-        </Link>
-      )}
+      <span className="mt-3 flex flex-wrap gap-2">
+        {playability === null && (
+          <button type="button" onClick={onRetry} className="btn">
+            Try again
+          </button>
+        )}
+        {missingBuild && bot.isOwner && (
+          <Link
+            to={`/bots/${botKey}#submit`}
+            onClick={onClose}
+            className="btn inline-flex"
+          >
+            Go to submission
+          </Link>
+        )}
+        {appearanceIssue && bot.isOwner && (
+          <Link
+            to={`/bots/${botKey}/appearance`}
+            onClick={onClose}
+            className="btn inline-flex"
+          >
+            Review appearance
+          </Link>
+        )}
+      </span>
     </section>
   );
 }
@@ -880,4 +1039,31 @@ function arenaDialogTitle(bot: ArenaActionBot | null, mode: ArenaMode) {
   }
   if (mode === 'ranked') return `Ranked set with ${bot.name}`;
   return bot.isOwner ? `Challenge with ${bot.name}` : `Challenge ${bot.name}`;
+}
+
+function countLabel(count: number, singular: string) {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+}
+
+function allowanceRefusalMessage(
+  mode: ArenaMode,
+  allowance:
+    | ArenaCapabilities['unrankedAllowance']
+    | ArenaCapabilities['rankedAllowance'],
+) {
+  if (allowance.refusalCode === 'matches.ranked_concurrent_limit') {
+    return 'Wait for one of your ranked sets to finish before starting another.';
+  }
+  if (allowance.nextDailySlotAt) {
+    return `Daily allowance used. The next slot opens ${new Intl.DateTimeFormat(
+      undefined,
+      {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      },
+    ).format(new Date(allowance.nextDailySlotAt))}.`;
+  }
+  return mode === 'ranked'
+    ? 'A ranked set cannot start right now.'
+    : 'A challenge cannot start right now.';
 }

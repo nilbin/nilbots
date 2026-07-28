@@ -2584,6 +2584,35 @@ zero-to-weighted routes are Mobilize, and only Anchor target forms count as
 fortified for turret-deadlock detection. This prevents a mobile target of a
 future transition from being mislabeled as a turret.
 
+## 146. The Arena UI reads one advisory server authority without relabeling legacy Duel
+
+The authenticated `GET /api/arena` projection is the single UI authority for
+the current official Duel format, effective rolling allowances, ranked
+concurrency, and batch bot ownership/playability. Public roster profile data
+may retain a signed-out presentation hint, but it never authorizes a submitted
+match. The generated contract drives the shared Arena composer and signed-in
+Garage/Bots actions. Successful or refused creation refreshes it.
+
+The projection is advisory. Ranked and unranked POST operations retain their
+transactional account locks and re-evaluate quota and participant admission
+before creating work. Deliberate Arena refusals use stable application codes
+inside one named problem response, including burst-limit rejections produced
+before an endpoint runs. Roster and matchmaking admission use bounded batch
+queries rather than one admission query chain per global bot. A one-off request
+with no map selects the existing fixed `arena-01` default; the frontend no
+longer calls that behavior random. Self-challenges are invalid.
+
+`DuelArenaDefinition.Official` and `DuelMirrored6V1` name the already-shipped
+default map, ranked pool and six-game mirrored schedule so creation, scoring
+and presentation project the same policy. They do not mutate
+`LegacyCompetitionDefinition`, register Duel as a hosted generic match, or
+change historical playlist/ladder identity.
+
+Automatic Arena remains a separate package. Durable schedules, local-date
+occurrences, time-zone/DST policy, worker leases, bounded retries, entitlement
+revocation and idempotent creation are not implied by the manual capability
+projection. Match-creation idempotency also remains a required follow-up.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

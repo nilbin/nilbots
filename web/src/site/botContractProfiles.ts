@@ -1,4 +1,4 @@
-import type { BotDetail, BotSummary, MyBot } from './api';
+import type { BotDetail, BotSummary } from './api';
 
 export const LEGACY_DUEL_CONTRACT_PROFILE = 'legacy-duel-0.1';
 
@@ -36,20 +36,5 @@ export function rosterBotSupportsLegacyDuel(bot: BotSummary) {
   return (
     bot.activeVersion !== null &&
     supportsLegacyDuel(bot.activeVersion.supportedContractProfiles)
-  );
-}
-
-/**
- * `/api/bots/mine` is the ownership authority but does not expose contract profiles.
- * `/api/bots` exposes the active artifact's profiles but not ownership. Arena choices
- * therefore have to be the intersection rather than trusting either response alone.
- */
-export function ownedLegacyDuelBots(
-  roster: readonly BotSummary[],
-  mine: readonly Pick<MyBot, 'id'>[],
-) {
-  const ownedIds = new Set(mine.map((bot) => bot.id));
-  return roster.filter(
-    (bot) => ownedIds.has(bot.id) && rosterBotSupportsLegacyDuel(bot),
   );
 }

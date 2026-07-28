@@ -1,10 +1,16 @@
 # Automatic Arena
 
-Status: proposed frontend and product contract
+Status: proposed scheduler and commerce contract; manual Arena authority landed
 
 This document specifies the intended Automatic Arena experience. It is not an
 implementation plan, an assertion that the API already exists, or permission to
 hard-code a Shop product into the web app.
+
+The authenticated manual `GET /api/arena` projection now supplies the current Duel
+format, durable manual allowances, ranked concurrency and authoritative bot playability.
+That removes frontend guesses and establishes policy vocabulary, but it does not create
+an Automatic Arena entitlement, schedule, occurrence, worker or endpoint. Those remain
+the separate package specified below.
 
 Automatic Arena is a purchasable quality-of-life feature that lets a player
 schedule one daily ranked set for an owned bot. A ranked set currently consists

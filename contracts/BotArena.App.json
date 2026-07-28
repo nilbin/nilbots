@@ -58,6 +58,28 @@
         }
       }
     },
+    "/api/arena": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArenaCapabilitiesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
     "/api/matches/ranked": {
       "post": {
         "tags": [
@@ -80,6 +102,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreatedMatchSetResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
                 }
               }
             }
@@ -688,6 +760,56 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationProblemResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1029,6 +1151,175 @@
   },
   "components": {
     "schemas": {
+      "ApplicationProblemResponse": {
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code",
+          "traceId",
+          "retryAfterSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "traceId": {
+            "type": "string"
+          },
+          "retryAfterSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ArenaAllowanceResponse": {
+        "required": [
+          "used",
+          "limit",
+          "remaining",
+          "rollingWindowHours",
+          "nextDailySlotAt",
+          "canStart",
+          "refusalCode",
+          "retryAt"
+        ],
+        "type": "object",
+        "properties": {
+          "used": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rollingWindowHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextDailySlotAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "canStart": {
+            "type": "boolean"
+          },
+          "refusalCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "retryAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ArenaCapabilitiesResponse": {
+        "required": [
+          "format",
+          "unrankedAllowance",
+          "rankedAllowance",
+          "bots"
+        ],
+        "type": "object",
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/DuelArenaFormatResponse"
+          },
+          "unrankedAllowance": {
+            "$ref": "#/components/schemas/ArenaAllowanceResponse"
+          },
+          "rankedAllowance": {
+            "$ref": "#/components/schemas/RankedArenaAllowanceResponse"
+          },
+          "bots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchPlayabilityResponse"
+            }
+          }
+        }
+      },
+      "ArenaRankedFormatResponse": {
+        "required": [
+          "gamesPerSet",
+          "mapSeedPairs",
+          "mirroredSlots",
+          "mapPool",
+          "matchmakingPoolSize"
+        ],
+        "type": "object",
+        "properties": {
+          "gamesPerSet": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mapSeedPairs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mirroredSlots": {
+            "type": "boolean"
+          },
+          "mapPool": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "matchmakingPoolSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ArenaUnrankedFormatResponse": {
+        "required": [
+          "gamesPerMatch",
+          "defaultMapId"
+        ],
+        "type": "object",
+        "properties": {
+          "gamesPerMatch": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "defaultMapId": {
+            "type": "string"
+          }
+        }
+      },
       "AuthProvidersResponse": {
         "required": [
           "google"
@@ -1629,9 +1920,7 @@
       "ChallengeRequest": {
         "required": [
           "botId",
-          "opponentBotId",
-          "mapId",
-          "seed"
+          "opponentBotId"
         ],
         "type": "object",
         "properties": {
@@ -1880,6 +2169,29 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "DuelArenaFormatResponse": {
+        "required": [
+          "rulesVersion",
+          "requiredContractProfileId",
+          "unranked",
+          "ranked"
+        ],
+        "type": "object",
+        "properties": {
+          "rulesVersion": {
+            "type": "string"
+          },
+          "requiredContractProfileId": {
+            "type": "string"
+          },
+          "unranked": {
+            "$ref": "#/components/schemas/ArenaUnrankedFormatResponse"
+          },
+          "ranked": {
+            "$ref": "#/components/schemas/ArenaRankedFormatResponse"
           }
         }
       },
@@ -2354,6 +2666,40 @@
           "countdownMs": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "MatchPlayabilityResponse": {
+        "required": [
+          "botId",
+          "isOwned",
+          "playable",
+          "refusalCode",
+          "refusalDetail"
+        ],
+        "type": "object",
+        "properties": {
+          "botId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isOwned": {
+            "type": "boolean"
+          },
+          "playable": {
+            "type": "boolean"
+          },
+          "refusalCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "refusalDetail": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2876,6 +3222,70 @@
           },
           "pushEnabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "RankedArenaAllowanceResponse": {
+        "required": [
+          "used",
+          "limit",
+          "remaining",
+          "rollingWindowHours",
+          "nextDailySlotAt",
+          "inProgress",
+          "concurrencyLimit",
+          "canStart",
+          "refusalCode",
+          "retryAt"
+        ],
+        "type": "object",
+        "properties": {
+          "used": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rollingWindowHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextDailySlotAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "inProgress": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "concurrencyLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canStart": {
+            "type": "boolean"
+          },
+          "refusalCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "retryAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

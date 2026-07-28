@@ -1,4 +1,5 @@
 import type {
+  ArenaCapabilities,
   AuthProviders,
   BotDetail,
   BotMatchHistory,
@@ -91,21 +92,21 @@ export const reviewSetGameSpecs = [
   {
     id: '30000000-0000-4000-8000-000000000007',
     game: 5,
-    mapId: 'vault-01',
+    mapId: 'gallery-01',
     themeId: 'frost-relay',
     pincerSlot: 0,
     replayHash:
-      'ef876a675cc067030f36a42b3b9cd5970120b4d8a90d1c01e7825b12a229da42',
+      '5165f82f8afc18e4fe9fbdda003c9f3c6e0d3578bcb1c92bfa9d28976ae48daa',
     createdAt: '2026-07-27T21:08:00Z',
   },
   {
     id: '30000000-0000-4000-8000-000000000008',
     game: 6,
-    mapId: 'vault-01',
+    mapId: 'gallery-01',
     themeId: 'frost-relay',
     pincerSlot: 1,
     replayHash:
-      'f2baff4b2e68a3196b7c7e151047880b022ec1bbfcb66b49fa27b898aadfa0b8',
+      'c7289ef0e45e2e58f8b038ac5d85ec095de31547bf1c582f6d6dbb9d3d45c9f1',
     createdAt: '2026-07-27T21:10:00Z',
   },
 ] as const satisfies readonly ReviewSetGameSpec[];
@@ -132,9 +133,16 @@ export const metaFixture = {
   buildPipelineVersion: '0.5.0-review',
   cliVersion: '0.5.0-review',
   maps: [
-    { id: 'bastion-01', width: 24, height: 18, themeId: 'control-room' },
+    { id: 'basic-01', width: 12, height: 8, themeId: 'control-room' },
     { id: 'arena-01', width: 24, height: 18, themeId: 'ember-forge' },
-    { id: 'vault-01', width: 24, height: 18, themeId: 'frost-relay' },
+    {
+      id: 'crossfire-01',
+      width: 16,
+      height: 12,
+      themeId: 'overgrown-lab',
+    },
+    { id: 'bastion-01', width: 24, height: 18, themeId: 'control-room' },
+    { id: 'gallery-01', width: 24, height: 18, themeId: 'frost-relay' },
   ],
 } satisfies Meta;
 
@@ -376,6 +384,93 @@ export const botsFixture = [
     },
   },
 ] satisfies BotSummary[];
+
+export const arenaCapabilitiesFixture = {
+  format: {
+    rulesVersion: metaFixture.gameRulesVersion,
+    requiredContractProfileId: 'legacy-duel-0.1',
+    unranked: {
+      gamesPerMatch: 1,
+      defaultMapId: 'arena-01',
+    },
+    ranked: {
+      gamesPerSet: 6,
+      mapSeedPairs: 3,
+      mirroredSlots: true,
+      mapPool: [
+        'basic-01',
+        'arena-01',
+        'crossfire-01',
+        'bastion-01',
+        'gallery-01',
+      ],
+      matchmakingPoolSize: 5,
+    },
+  },
+  unrankedAllowance: {
+    used: 8,
+    limit: 60,
+    remaining: 52,
+    rollingWindowHours: 24,
+    nextDailySlotAt: null,
+    canStart: true,
+    refusalCode: null,
+    retryAt: null,
+  },
+  rankedAllowance: {
+    used: 3,
+    limit: 15,
+    remaining: 12,
+    rollingWindowHours: 24,
+    nextDailySlotAt: null,
+    inProgress: 1,
+    concurrencyLimit: 2,
+    canStart: true,
+    refusalCode: null,
+    retryAt: null,
+  },
+  bots: botsFixture.map((bot) => ({
+    botId: bot.id,
+    isOwned:
+      bot.id === REVIEW_PINCER_ID || bot.id === REVIEW_MURDER_ID,
+    playable: true,
+    refusalCode: null,
+    refusalDetail: null,
+  })),
+} satisfies ArenaCapabilities;
+
+export const firstRunArenaCapabilitiesFixture = {
+  ...arenaCapabilitiesFixture,
+  unrankedAllowance: {
+    ...arenaCapabilitiesFixture.unrankedAllowance,
+    used: 0,
+    remaining: arenaCapabilitiesFixture.unrankedAllowance.limit,
+  },
+  rankedAllowance: {
+    ...arenaCapabilitiesFixture.rankedAllowance,
+    used: 0,
+    remaining: arenaCapabilitiesFixture.rankedAllowance.limit,
+    inProgress: 0,
+  },
+  bots: arenaCapabilitiesFixture.bots.map((bot) => ({
+    ...bot,
+    isOwned: false,
+  })),
+} satisfies ArenaCapabilities;
+
+export const rankedCappedArenaCapabilitiesFixture = {
+  ...arenaCapabilitiesFixture,
+  rankedAllowance: {
+    ...arenaCapabilitiesFixture.rankedAllowance,
+    used: arenaCapabilitiesFixture.rankedAllowance.limit,
+    remaining: 0,
+    inProgress: 0,
+    canStart: false,
+    refusalCode: 'matches.ranked_daily_limit',
+    nextDailySlotAt: '2026-07-28T12:30:00Z',
+    retryAt: '2026-07-28T12:30:00Z',
+  },
+} satisfies ArenaCapabilities;
 
 export const myBotsFixture = [
   {
@@ -1002,7 +1097,7 @@ const baseMatchSetFixture = {
     {
       id: '30000000-0000-4000-8000-000000000007',
       game: 5,
-      mapId: 'vault-01',
+      mapId: 'gallery-01',
       status: 'Completed',
       broadcasting: false,
       winnerBotId: REVIEW_BASTILLE_ID,
@@ -1015,7 +1110,7 @@ const baseMatchSetFixture = {
     {
       id: '30000000-0000-4000-8000-000000000008',
       game: 6,
-      mapId: 'vault-01',
+      mapId: 'gallery-01',
       status: 'Completed',
       broadcasting: false,
       winnerBotId: REVIEW_PINCER_ID,
@@ -1589,7 +1684,7 @@ export const cosmeticCatalogFixture = {
         sourceId: 'extra-daily-ranked-sets',
         hint: 'Available in the store.',
       },
-      owned: false,
+      owned: true,
       progress: null,
     },
   ],
@@ -1700,7 +1795,7 @@ export const storeFixture = {
               label: 'Extra daily ranked sets',
             },
           ],
-          owned: false,
+          owned: true,
           repeatable: true,
         },
       ],

@@ -32,7 +32,10 @@ const pages = [
   [
     'arena-global',
     '/',
-    (page) => page.getByRole('button', { name: 'Play', exact: true }).click(),
+    async (page) => {
+      await page.getByRole('button', { name: 'Play', exact: true }).click();
+      await page.getByLabel('Ranked allowance').waitFor();
+    },
   ],
   ['bots', '/bots'],
   ['watch', '/watch'],
@@ -44,13 +47,34 @@ const pages = [
   [
     'arena-ranked',
     '/bots/pincer-gen-10',
-    (page) =>
-      page.getByRole('button', { name: 'Ranked set', exact: true }).click(),
+    async (page) => {
+      await page
+        .getByRole('button', { name: 'Ranked set', exact: true })
+        .click();
+      await page.getByLabel('Ranked allowance').waitFor();
+    },
+  ],
+  [
+    'arena-ranked-capped',
+    '/bots/pincer-gen-10?review=ranked-capped',
+    async (page) => {
+      await page
+        .getByRole('button', { name: 'Ranked set', exact: true })
+        .click();
+      await page
+        .getByText('Daily allowance used.', { exact: false })
+        .waitFor();
+    },
   ],
   [
     'arena-challenge',
     '/bots/warden-gen-1',
-    (page) => page.getByRole('button', { name: 'Challenge', exact: true }).click(),
+    async (page) => {
+      await page
+        .getByRole('button', { name: 'Challenge', exact: true })
+        .click();
+      await page.getByLabel('Challenge allowance').waitFor();
+    },
   ],
   ['match-completed', '/matches/30000000-0000-4000-8000-000000000001'],
   ['match-live', '/matches/30000000-0000-4000-8000-000000000002'],

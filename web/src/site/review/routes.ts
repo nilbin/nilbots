@@ -1,4 +1,5 @@
 import type {
+  ArenaCapabilities,
   AuthProviders,
   BotDetail,
   BotMatchHistory,
@@ -22,6 +23,7 @@ import {
   REVIEW_FAILED_MATCH_ID,
   REVIEW_LIVE_MATCH_ID,
   REVIEW_SET_ID,
+  arenaCapabilitiesFixture,
   authProvidersFixture,
   botDetailsFixture,
   botMatchHistoryFixtures,
@@ -36,6 +38,7 @@ import {
   emptyMyBotsFixture,
   failedMatchDetailFixture,
   failedMatchLiveFixture,
+  firstRunArenaCapabilitiesFixture,
   liveMatchFixture,
   liveMatchDetailFixture,
   labsCatalogFixture,
@@ -46,10 +49,12 @@ import {
   myBotsFixture,
   notificationsFixture,
   previousLeaderboardFixture,
+  rankedCappedArenaCapabilitiesFixture,
   storeFixture,
 } from './fixtures';
 
 type SiteReviewBody =
+  | ArenaCapabilities
   | AuthProviders
   | BotDetail
   | BotMatchHistory
@@ -119,6 +124,10 @@ function endpoint<TBody extends SiteReviewBody>(
 
 const exactRoutes = new Map<string, SiteReviewApiResponse>([
   endpoint<Meta>('GET /api/meta', metaFixture),
+  endpoint<ArenaCapabilities>(
+    'GET /api/arena',
+    arenaCapabilitiesFixture,
+  ),
   endpoint<Me>('GET /api/accounts/me', meFixture),
   endpoint<AuthProviders>(
     'GET /api/accounts/providers',
@@ -236,6 +245,28 @@ export function siteReviewApiResponse(
     return ok<MyBot[]>(emptyMyBotsFixture);
   }
 
+  if (
+    verb === 'GET' &&
+    url.pathname === '/api/arena' &&
+    url.search === '' &&
+    isFirstRunReview(context.referer)
+  ) {
+    return ok<ArenaCapabilities>(
+      firstRunArenaCapabilitiesFixture,
+    );
+  }
+
+  if (
+    verb === 'GET' &&
+    url.pathname === '/api/arena' &&
+    url.search === '' &&
+    isRankedCappedReview(context.referer)
+  ) {
+    return ok<ArenaCapabilities>(
+      rankedCappedArenaCapabilitiesFixture,
+    );
+  }
+
   if (verb === 'GET' && url.pathname === '/api/matches') {
     return filteredMatches(url);
   }
@@ -303,6 +334,18 @@ function isFirstRunReview(referer: string | undefined): boolean {
     return (
       page.pathname === '/garage' &&
       page.searchParams.get('review') === 'first-run'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isRankedCappedReview(referer: string | undefined): boolean {
+  if (!referer) return false;
+  try {
+    return (
+      new URL(referer).searchParams.get('review') ===
+      'ranked-capped'
     );
   } catch {
     return false;

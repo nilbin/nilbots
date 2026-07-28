@@ -60,7 +60,6 @@ export default function BotDetailPage() {
   const projectile = projectileLook(bot.projectileLookId);
   const liveVersion = bot.versions.find((version) => version.isActive) ?? null;
   const duelCompatible = detailBotSupportsLegacyDuel(bot);
-  const canPlay = liveVersion?.status === 'Built' && duelCompatible;
   // A built generic-actor bot belongs to Labs, not legacy Duel. Before a build exists,
   // the Arena action remains useful because its unavailable state points to submission.
   const showArenaAction =
@@ -112,7 +111,6 @@ export default function BotDetailPage() {
                 accent: bot.accent,
                 lookId: bot.lookId,
                 isOwner: bot.isOwner,
-                ready: canPlay,
               }}
               variant={bot.isOwner ? 'multi' : 'compact'}
             />

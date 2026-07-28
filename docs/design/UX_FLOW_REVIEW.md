@@ -5,8 +5,9 @@ Scope: routed React web app on `agent/design-overhaul-frontend`
 Design reference: `climb.html`
 
 This review follows player jobs across routes rather than scoring pages in isolation.
-Backend observations are recorded where they constrain the experience, but this design
-branch does not change backend code.
+Backend observations are recorded where they constrain the experience. The follow-up
+Arena authority package is included on this branch so the shipped frontend does not rely
+on review-fixture or client-side admission guesses.
 
 ## Product jobs, in priority order
 
@@ -66,22 +67,23 @@ pass a typed bot/opponent/map intent; they do not manufacture URLs or mount quer
 mutation hooks in every roster row. The global trigger asks which ready owned bot should
 play, while a public-bot trigger already knows the challenge target.
 
-The remaining material blocker is allowance visibility. Ranked and unranked defaults are
-server-configurable and no endpoint projects used, remaining, in-progress, or
-next-available values. The UI therefore explains that admission is checked at start
-without inventing a counter.
+The composer now reads one authenticated Arena projection. It supplies authoritative
+playability and ownership, the current Duel format, the fixed default challenge map,
+effective purchased limits, rolling usage, ranked concurrency, next daily opening, and
+stable refusal codes. Ranked and one-off creation still re-evaluate under their durable
+account locks; the GET is advisory UI state, not authorization.
 
-Backend work required after the active balance work lands:
+Backend follow-up status:
 
-1. Reject unranked self-challenges (`botId === opponentBotId`). A direct API caller can
-   currently create one and later break history/statistics projections that expect one
-   participant per bot.
-2. Expose an authenticated Arena capability projection: authoritative playability,
-   ranked/unranked usage and limits, current concurrency, next availability, and stable
-   refusal codes.
-3. Add idempotency to creation so a retry cannot consume allowance twice.
-4. Keep settlement and unlock publication behind the same reveal boundary as match/set
-   results.
+1. **Done:** unranked self-challenges are rejected with
+   `matches.self_challenge`.
+2. **Done:** `GET /api/arena` projects format, allowances, concurrency and batch
+   playability; the generated web contract drives the composer, Garage and signed-in
+   Bots experience.
+3. **Remaining:** add creation idempotency so a transport retry cannot consume allowance
+   twice.
+4. **Preserve:** keep settlement and unlock publication behind the same reveal boundary
+   as match/set results.
 
 ### 3. Watch, understand, and retry
 

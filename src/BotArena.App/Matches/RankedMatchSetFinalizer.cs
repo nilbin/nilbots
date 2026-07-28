@@ -312,14 +312,14 @@ public sealed class RankedMatchSetFinalizer(
         {
             if (game.WinnerSlot is not int winner)
             {
-                score += 0.5;
+                score += DuelMirrored6V1.DrawSeriesPoints;
                 continue;
             }
 
             MatchParticipant participant = game.Participants.Single(
                 candidate => candidate.Slot == winner);
             if (participant.BotId == set.BotAId)
-                score++;
+                score += DuelMirrored6V1.WinSeriesPoints;
             else if (participant.BotId != set.BotBId)
             {
                 throw new InvalidOperationException(

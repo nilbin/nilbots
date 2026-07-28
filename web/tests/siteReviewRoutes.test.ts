@@ -6,6 +6,7 @@ import {
   REVIEW_FAILED_MATCH_ID,
   REVIEW_PINCER_ID,
   REVIEW_SET_ID,
+  arenaCapabilitiesFixture,
   botMatchHistoryFixture,
   botsFixture,
   completedSetMatchDetailFixtures,
@@ -15,6 +16,8 @@ import {
   matchSetFixture,
   matchesFixture,
   metaFixture,
+  myBotsFixture,
+  rankedCappedArenaCapabilitiesFixture,
   reviewSetGameSpecs,
   storeFixture,
 } from '../src/site/review/fixtures.ts';
@@ -30,6 +33,70 @@ test('serves the hosted Labs catalog used by the owner bot review', () => {
   const response = siteReviewApiResponse('GET', '/api/labs');
   assert.ok(response);
   assert.deepEqual(response.body, labsCatalogFixture);
+});
+
+test('keeps Arena authority coherent with review rules, sets and ownership', () => {
+  const response = siteReviewApiResponse('GET', '/api/arena');
+  assert.ok(response);
+  assert.deepEqual(response.body, arenaCapabilitiesFixture);
+  assert.equal(
+    arenaCapabilitiesFixture.format.rulesVersion,
+    metaFixture.gameRulesVersion,
+  );
+  assert.equal(
+    arenaCapabilitiesFixture.format.ranked.gamesPerSet,
+    reviewSetGameSpecs.length,
+  );
+  assert.ok(
+    reviewSetGameSpecs.every((game) =>
+      arenaCapabilitiesFixture.format.ranked.mapPool.includes(
+        game.mapId,
+      ),
+    ),
+  );
+  assert.ok(
+    arenaCapabilitiesFixture.format.ranked.mapPool.every((mapId) =>
+      metaFixture.maps.some((map) => map.id === mapId),
+    ),
+  );
+  assert.ok(
+    metaFixture.maps.some(
+      (map) =>
+        map.id ===
+        arenaCapabilitiesFixture.format.unranked.defaultMapId,
+    ),
+  );
+  assert.deepEqual(
+    arenaCapabilitiesFixture.bots.map((bot) => bot.botId),
+    botsFixture.map((bot) => bot.id),
+  );
+  assert.deepEqual(
+    arenaCapabilitiesFixture.bots
+      .filter((bot) => bot.isOwned)
+      .map((bot) => bot.botId),
+    myBotsFixture.map((bot) => bot.id),
+  );
+
+  const firstRun = siteReviewApiResponse('GET', '/api/arena', {
+    referer: 'http://127.0.0.1:4181/garage?review=first-run',
+  });
+  assert.ok(firstRun);
+  assert.equal(
+    'bots' in firstRun.body
+      ? firstRun.body.bots.some((bot) => bot.isOwned)
+      : true,
+    false,
+  );
+
+  const capped = siteReviewApiResponse('GET', '/api/arena', {
+    referer:
+      'http://127.0.0.1:4181/bots/pincer-gen-10?review=ranked-capped',
+  });
+  assert.ok(capped);
+  assert.deepEqual(
+    capped.body,
+    rankedCappedArenaCapabilitiesFixture,
+  );
 });
 
 test('keeps review cosmetics aligned with the production catalogue', () => {
@@ -80,6 +147,18 @@ test('keeps review cosmetics aligned with the production catalogue', () => {
       })),
     ),
     production.packs,
+  );
+
+  const rankedCapacityItem = cosmeticCatalogFixture.items.find(
+    (item) => item.key === 'capacity:extra-daily-ranked-sets',
+  );
+  const rankedCapacityPack = storeFixture.categories
+    .flatMap((category) => category.packs)
+    .find((pack) => pack.id === 'extra-daily-ranked-sets');
+  assert.equal(rankedCapacityItem?.owned, rankedCapacityPack?.owned);
+  assert.equal(
+    arenaCapabilitiesFixture.rankedAllowance.limit,
+    rankedCapacityPack?.owned ? 15 : 10,
   );
 });
 
@@ -231,8 +310,21 @@ test('keeps ranked-set records, replays, histories, and map metadata coherent', 
 
     const map = metaFixture.maps.find((candidate) => candidate.id === spec.mapId);
     assert.ok(map, `missing metadata for ${spec.mapId}`);
+    const productionMap = JSON.parse(
+      readFileSync(
+        new URL(`../../maps/${spec.mapId}.json`, import.meta.url),
+        'utf8',
+      ),
+    ) as {
+      width: number;
+      height: number;
+      theme: string;
+    };
+    // Review replays retain the canonical golden Arena topology while varying
+    // only identity/theme; their metadata must describe that replay payload.
     assert.equal(map.width, 24);
     assert.equal(map.height, 18);
+    assert.equal(map.themeId, productionMap.theme);
     assert.equal(map.themeId, spec.themeId);
   }
 
