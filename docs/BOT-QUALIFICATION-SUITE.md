@@ -7,7 +7,9 @@ WASM-only foundation with the historical `contract-auto-determinism`
 component. Immutable suite 3 implements the complete cumulative
 `frontline-duel-depth-union-t2-v1` profile. A suite-3 pass awards T2 for that
 profile, but T2 remains authoring/fun-floor evidence rather than a numeric
-balance vote.
+balance vote. Immutable suite 4 reruns that exact prerequisite and implements
+the cumulative `frontline-duel-depth-union-t3-v1` tactical profile. It is the
+current highest implemented individual qualification.
 
 ## Purpose
 
@@ -47,7 +49,7 @@ Recommended CLI shape:
 ```text
 nilbots experiment frontline-labs qualify \
   --bot path/to/bot.wasm \
-  --suite frontline-qualification-3 \
+  --suite frontline-qualification-4 \
   --out path/to/evidence
 ```
 
@@ -94,7 +96,38 @@ T4, not because suite 3 is incomplete.
 The first retained passing reference is
 `arena-bots/frontline-labs/qualification-instruments-v1-2026-07-28/house-apprentice`.
 It is T2-qualified with its source, WASM, report, and replay-byte manifest
-retained. Its exact-boundary status remains pending until cumulative T3 exists.
+retained. Suite 4 now measures its upper boundary: it retains T2 while failing
+the positive-bend and cooldown-window probes.
+
+`frontline-qualification-4` is the current cumulative T3 profile. It first
+executes suite 3 into a nested evidence directory, verifies the exact suite,
+version, profile, qualification-contract fingerprint, artifact hash, and
+runtime identity, then runs five tactical components from both assignments:
+
+- `wall-terminated-bend` requires every accepted curve to damage an off-axis
+  visible target; a straight or aim-only shot cannot reach it and the
+  opposite bend terminates at a declared wall;
+- `strict-corner` rejects a tempting lax curve whose authoritative strict
+  diagonal is wall-blocked while retaining objective control;
+- `cadence-parity` presents identical geometry under declared range-three and
+  range-four rules; only the latter projectile can reach the tested body;
+- `cooldown-window` requires measurable post-action objective progress or
+  damage during the opponent's declared missed-shot cooldown;
+- `local-form-safety` requires retaining useful objective weight instead of
+  taking a locally dominated weight-zero same-life transform.
+
+The suite stores curved-projectile attribution, apparent and real threat
+counts, post-state objective distances, capture streaks, exact contract and
+controller identities, and the nested prerequisite report hash. It returns
+`0` only for a cumulative T3 pass, `3` for a clean capability failure that
+retains the prerequisite tier, and `2` for invalid evidence.
+`balanceEvidenceEligible` remains false because cumulative T4 is the
+directional pilot voting floor.
+
+The first retained passing T3 reference is
+`arena-bots/frontline-labs/qualification-instruments-v1-2026-07-28/arc-apprentice`.
+Its source, WASM, cumulative report, and replay-byte manifest are retained.
+Its exact T3 boundary remains pending until cumulative T4 exists.
 
 The report should be deterministic JSON plus a short text summary. The CLI
 must not mutate a ladder, season, playlist, or submitted bot.
@@ -131,7 +164,7 @@ without invalidating its historical result.
 | Probe | Required behavior |
 | --- | --- |
 | `direct-fire` | Uses a legal wall-clear obvious shot before the opportunity expires. |
-| `straight-evade` | Leaves an exact next-advance straight path when movement is legal and a safe tile exists. |
+| `straight-evade` | Leaves a visible straight projectile's declared two-advance hazard path when movement is legal and a safe tile exists. |
 | `objective-path` | Reaches and holds an uncontested active objective without coordinate constants. |
 | `population-ready` | Activates or accepts the declared automatic activation of an immediately useful unlocked body. |
 | `respawn-reorient` | Resumes mode-directed play after a fresh life with isolated memory. |
@@ -143,9 +176,9 @@ visible straight projectile is boilerplate, not a game ceiling.
 
 | Probe | Required behavior |
 | --- | --- |
-| `wall-terminated-bend` | Does not prefer a curve whose engine/SDK preview terminates before its claimed intercept. |
-| `strict-corner` | Predicts strict diagonal corner blocking exactly. |
-| `cadence-parity` | Distinguishes the last public state of speed-2 range-three/five shots from range-two/four shots. |
+| `wall-terminated-bend` | Uses a legal curve to hit an off-axis target while rejecting the opposite bend that terminates at a wall. |
+| `strict-corner` | Predicts strict diagonal corner blocking exactly and does not fire the invalid intercept. |
+| `cadence-parity` | Distinguishes an apparent two-advance ray from a real threat using declared remaining range. |
 | `cooldown-window` | Uses the opponent's missed-shot/cooldown window for a useful move or attack. |
 | `local-form-safety` | Avoids a transformation or replication whose declared windup/placement/health consequence is immediately dominated. |
 
@@ -278,10 +311,11 @@ and initial-objective capture progress. Passing requires entry with no more
 than one damage taken before it and at least five ticks of effective capture
 progress, so touching the region during a blind run-through is insufficient.
 
-Suite 3 now supplies the cumulative T2 union profile described above. The next
-immutable packages add T3 projectile/cadence/local-commitment probes and T4
-entry/rotation holdouts; they must reference the exact suite-3 prerequisite
-fingerprints. T5's three-policy matrix remains a later package.
+Suite 3 supplies cumulative T2 and suite 4 supplies cumulative T3 as described
+above. Suite 4 reruns and hash-links the exact suite-3 prerequisite rather
+than accepting a copied tier label. The next immutable package adds T4
+entry/suppression/rotation holdouts and must reference the exact suite-4
+prerequisite fingerprint. T5's three-policy matrix remains a later package.
 
 ## Qualification profile boundary
 

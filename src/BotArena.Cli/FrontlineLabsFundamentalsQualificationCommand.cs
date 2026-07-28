@@ -114,7 +114,8 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         string botSpec,
         string runtimeKind,
         ulong seed,
-        string outputDirectory)
+        string outputDirectory,
+        bool printSummary = true)
     {
         if (runtimeKind != "wasm")
         {
@@ -327,21 +328,24 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 })
             + Environment.NewLine);
 
-        Console.WriteLine($"Qualification suite: {report.SuiteId}");
-        Console.WriteLine(
-            $"Profile:             {report.QualificationProfileId}");
-        Console.WriteLine(
-            $"Artifact:            {resolvedArtifactName} " +
-            $"[{resolvedArtifactHash[..12]}…]");
-        foreach (ProbeEvidence probe in probes)
+        if (printSummary)
         {
+            Console.WriteLine($"Qualification suite: {report.SuiteId}");
             Console.WriteLine(
-                $"{probe.ProbeId,-24} " +
-                $"{(probe.Passed ? "PASS" : "FAIL")}");
+                $"Profile:             {report.QualificationProfileId}");
+            Console.WriteLine(
+                $"Artifact:            {resolvedArtifactName} " +
+                $"[{resolvedArtifactHash[..12]}…]");
+            foreach (ProbeEvidence probe in probes)
+            {
+                Console.WriteLine(
+                    $"{probe.ProbeId,-24} " +
+                    $"{(probe.Passed ? "PASS" : "FAIL")}");
+            }
+            Console.WriteLine($"Report:              {reportPath}");
+            Console.WriteLine(
+                $"Tier awarded:        {tierAwarded ?? "none"}");
         }
-        Console.WriteLine($"Report:              {reportPath}");
-        Console.WriteLine(
-            $"Tier awarded:        {tierAwarded ?? "none"}");
 
         bool invalid = probes
             .SelectMany(probe => probe.Assignments)

@@ -244,6 +244,16 @@ public sealed class FrontlineLabsQualificationCommandTests
                     "--suite",
                     "frontline-qualification-3",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsQualificationCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--runtime",
+                    "in-process",
+                    "--suite",
+                    "frontline-qualification-4",
+                ]));
     }
 
     [Fact]
@@ -381,6 +391,164 @@ public sealed class FrontlineLabsQualificationCommandTests
                     Assert.Equal(
                         0,
                         evidence.GetProperty("damageTaken").GetInt32());
+                });
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TacticalProfile_PreservesT2WhenApprenticeLacksT3Doctrine()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-qualification-tactical-{Guid.NewGuid():N}");
+        try
+        {
+            string bot = Path.Combine(
+                FindRepoRoot(),
+                "arena-bots",
+                "frontline-labs",
+                "qualification-instruments-v1-2026-07-28",
+                "house-apprentice",
+                "bot.wasm");
+
+            Assert.Equal(3, RunTactical(bot, temporary));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(
+                    Path.Combine(temporary, "qualification.json")));
+            JsonElement root = document.RootElement;
+            Assert.Equal(4, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(
+                "frontline-duel-depth-union-t3-v1",
+                root.GetProperty("qualificationProfileId").GetString());
+            Assert.False(root.GetProperty("passed").GetBoolean());
+            Assert.True(root.GetProperty("profileComplete").GetBoolean());
+            Assert.Equal(
+                "T2",
+                root.GetProperty("tierAwarded").GetString());
+            Assert.False(
+                root.GetProperty("balanceEvidenceEligible").GetBoolean());
+
+            JsonElement prerequisite =
+                root.GetProperty("prerequisite");
+            Assert.True(
+                prerequisite.GetProperty("passed").GetBoolean());
+            Assert.Equal(
+                "frontline-qualification-3",
+                prerequisite.GetProperty("suiteId").GetString());
+            Assert.Equal(
+                "T2",
+                prerequisite.GetProperty("tierAwarded").GetString());
+            Assert.Matches(
+                "^[0-9a-f]{64}$",
+                prerequisite.GetProperty("reportSha256").GetString());
+
+            JsonElement[] probes =
+            [
+                .. root.GetProperty("probes").EnumerateArray(),
+            ];
+            Assert.Equal(5, probes.Length);
+            Assert.Equal(
+                [
+                    "cooldown-window",
+                    "wall-terminated-bend",
+                ],
+                probes
+                    .Where(probe =>
+                        !probe.GetProperty("passed").GetBoolean())
+                    .Select(probe =>
+                        probe.GetProperty("probeId").GetString()!)
+                    .Order(StringComparer.Ordinal)
+                    .ToArray());
+            Assert.Equal(
+                4,
+                probes.Single(probe =>
+                        probe.GetProperty("probeId").GetString()
+                            == "cadence-parity")
+                    .GetProperty("cases")
+                    .GetArrayLength());
+            foreach (JsonElement item in probes.SelectMany(probe =>
+                         probe.GetProperty("cases").EnumerateArray()))
+            {
+                AssertReplayVerifies(
+                    temporary,
+                    item.GetProperty("run"));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TacticalProfile_ArchivedArcApprenticeQualifiesT3()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-qualification-arc-{Guid.NewGuid():N}");
+        try
+        {
+            string bot = Path.Combine(
+                FindRepoRoot(),
+                "arena-bots",
+                "frontline-labs",
+                "qualification-instruments-v1-2026-07-28",
+                "arc-apprentice",
+                "bot.wasm");
+
+            Assert.Equal(0, RunTactical(bot, temporary));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(
+                    Path.Combine(temporary, "qualification.json")));
+            JsonElement root = document.RootElement;
+            Assert.True(root.GetProperty("passed").GetBoolean());
+            Assert.True(root.GetProperty("profileComplete").GetBoolean());
+            Assert.Equal(
+                "T3",
+                root.GetProperty("tierAwarded").GetString());
+            Assert.Equal(
+                "956093006ac9b8f31664b49223de7781670f2bfbec9347509b3dc85f5eabad9a",
+                root.GetProperty("artifactHash").GetString());
+            Assert.True(
+                root.GetProperty("prerequisite")
+                    .GetProperty("passed")
+                    .GetBoolean());
+            Assert.All(
+                root.GetProperty("probes").EnumerateArray(),
+                probe =>
+                    Assert.True(
+                        probe.GetProperty("passed").GetBoolean(),
+                        probe.GetProperty("probeId").GetString()));
+
+            JsonElement bend = root.GetProperty("probes")
+                .EnumerateArray()
+                .Single(probe =>
+                    probe.GetProperty("probeId").GetString()
+                        == "wall-terminated-bend");
+            Assert.All(
+                bend.GetProperty("cases").EnumerateArray(),
+                item =>
+                {
+                    JsonElement run = item.GetProperty("run");
+                    int curvedAttackCount = run
+                        .GetProperty("curvedAttackCount")
+                        .GetInt32();
+                    Assert.True(curvedAttackCount > 0);
+                    Assert.Equal(
+                        curvedAttackCount,
+                        run.GetProperty("curvedProjectileHitCount")
+                            .GetInt32());
+                    Assert.True(
+                        run.GetProperty("curvedDamageDealt")
+                            .GetInt32() > 0);
                 });
         }
         finally
@@ -538,6 +706,33 @@ public sealed class FrontlineLabsQualificationCommandTests
                     "wasm",
                     "--suite",
                     "frontline-qualification-3",
+                    "--out",
+                    output,
+                ]);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+    }
+
+    private static int RunTactical(string bot, string output)
+    {
+        TextWriter originalOut = Console.Out;
+        TextWriter originalError = Console.Error;
+        try
+        {
+            Console.SetOut(TextWriter.Null);
+            Console.SetError(TextWriter.Null);
+            return FrontlineLabsQualificationCommand.Run(
+                [
+                    "--bot",
+                    bot,
+                    "--runtime",
+                    "wasm",
+                    "--suite",
+                    "frontline-qualification-4",
                     "--out",
                     output,
                 ]);

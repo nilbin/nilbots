@@ -81,7 +81,7 @@ artifact count alone is never population breadth. Preserve intermediate
 passing revisions, but never count revisions of one lineage as independent
 policies. Never infer a tier from tournament wins.
 
-Two separately versioned dynamic components now exist:
+Four separately versioned dynamic suites now exist:
 
 ```bash
 # Frozen positional component:
@@ -96,10 +96,16 @@ nilbots experiment frontline-labs qualify \
   --suite frontline-qualification-2 \
   --out <evidence-dir>
 
-# Current cumulative T2 union profile:
+# Cumulative T2 union profile:
 nilbots experiment frontline-labs qualify \
   --bot <generic-wasm> \
   --suite frontline-qualification-3 \
+  --out <evidence-dir>
+
+# Current cumulative T3 tactical profile (reruns exact T2):
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-4 \
   --out <evidence-dir>
 ```
 
@@ -118,6 +124,14 @@ straight-projectile evasion, and explicit fabrication under both assignments.
 A clean pass awards T2 under
 `frontline-duel-depth-union-t2-v1`; it remains authoring/fun-floor evidence,
 not a numeric balance vote.
+
+Suite 4 reruns and hash-links the exact suite-3 prerequisite, then tests a
+required legal curve, strict wall termination, declared remaining-range
+cadence, missed-shot cooldown tempo, and local transform safety from both
+assignments. A clean pass awards T3 under
+`frontline-duel-depth-union-t3-v1`; it also remains below the numeric-balance
+voting floor. Run suite 3 directly for an assigned T2 boundary and suite 4 for
+T3 or higher authoring until cumulative T4 exists.
 
 Every Balance Lab entrant must pin
 the exact suite/version, qualification profile and contract fingerprint,

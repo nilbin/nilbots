@@ -18,6 +18,10 @@ public static class FrontlineLabsQualificationDefinition
     public const int FundamentalsSuiteVersion = 1;
     public const string FundamentalsProfileId =
         "frontline-duel-depth-union-t2-v1";
+    public const string TacticalSuiteId = "frontline-qualification-4";
+    public const int TacticalSuiteVersion = 1;
+    public const string TacticalProfileId =
+        "frontline-duel-depth-union-t3-v1";
     public const string EntryProbeId = "entry-initiative";
     public const string ContractAutoDeterminismProbeId =
         "contract-auto-determinism";
@@ -28,6 +32,12 @@ public static class FrontlineLabsQualificationDefinition
     public const string DirectFireProbeId = "direct-fire";
     public const string StraightEvadeProbeId = "straight-evade";
     public const string ManualFabricationProbeId = "manual-fabrication";
+    public const string WallTerminatedBendProbeId =
+        "wall-terminated-bend";
+    public const string StrictCornerProbeId = "strict-corner";
+    public const string CadenceParityProbeId = "cadence-parity";
+    public const string CooldownWindowProbeId = "cooldown-window";
+    public const string LocalFormSafetyProbeId = "local-form-safety";
 
     private const string Team0SpawnId =
         "qualification-team-0-prime";
@@ -377,6 +387,172 @@ public static class FrontlineLabsQualificationDefinition
             source.CapabilityVersions);
     }
 
+    /// <summary>
+    /// T3 positive geometry probe. The tested Prime sees an off-axis target
+    /// that cannot be reached by a legal straight or aim-only shot. A
+    /// one-bend program after the first tile hits; the opposite bend enters
+    /// the central lower pocket and terminates against its declared wall.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateWallTerminatedBendProbe(int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return testedTeamId == 0
+            ? CreateTacticalSingleLifeProbe(
+                WallTerminatedBendProbeId,
+                maxTicks: 12,
+                new Position(8, 7),
+                Direction.East,
+                "prime-mobile",
+                new Position(12, 6),
+                Direction.South,
+                "prime-mobile")
+            : CreateTacticalSingleLifeProbe(
+                WallTerminatedBendProbeId,
+                maxTicks: 12,
+                new Position(10, 6),
+                Direction.South,
+                "prime-mobile",
+                new Position(14, 7),
+                Direction.West,
+                "prime-mobile");
+    }
+
+    /// <summary>
+    /// T3 negative strict-corner probe. The tested Prime holds the central
+    /// objective and sees an off-axis opponent through a clear supercover
+    /// line. A lax one-bend preview appears to hit after three tiles, but the
+    /// authoritative strict diagonal is blocked by the centre-column wall.
+    /// The preceding positive bend probe prevents "never curve" from gaming
+    /// this selective-safety case.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateStrictCornerProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return testedTeamId == 0
+            ? CreateTacticalSingleLifeProbe(
+                StrictCornerProbeId,
+                maxTicks: 8,
+                new Position(10, 7),
+                Direction.North,
+                "prime-mobile",
+                new Position(9, 3),
+                Direction.South,
+                "prime-mobile")
+            : CreateTacticalSingleLifeProbe(
+                StrictCornerProbeId,
+                maxTicks: 8,
+                new Position(13, 3),
+                Direction.South,
+                "prime-mobile",
+                new Position(12, 7),
+                Direction.North,
+                "prime-mobile");
+    }
+
+    /// <summary>
+    /// T3 cadence pair. The geometry is identical while the declared mobile
+    /// projectile range is either three (ends one tile short) or four
+    /// (reaches the objective occupant). The artifact must read the resolved
+    /// remaining-range semantics rather than assume even speed-two steps.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateCadenceParityProbe(
+        int testedTeamId,
+        int projectileRange)
+    {
+        ValidateTestedTeam(testedTeamId);
+        if (projectileRange is not (3 or 4))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(projectileRange));
+        }
+        ActorResolvedMatchDefinition probe = testedTeamId == 0
+            ? CreateTacticalSingleLifeProbe(
+                $"{CadenceParityProbeId}-range-{projectileRange}",
+                maxTicks: 8,
+                new Position(11, 7),
+                Direction.East,
+                "prime-mobile",
+                new Position(15, 7),
+                Direction.West,
+                "prime-mobile",
+                mapIdentityId: CadenceParityProbeId)
+            : CreateTacticalSingleLifeProbe(
+                $"{CadenceParityProbeId}-range-{projectileRange}",
+                maxTicks: 8,
+                new Position(7, 7),
+                Direction.East,
+                "prime-mobile",
+                new Position(11, 7),
+                Direction.West,
+                "prime-mobile",
+                mapIdentityId: CadenceParityProbeId);
+        return WithMobileProjectileRange(probe, projectileRange);
+    }
+
+    /// <summary>
+    /// T3 tempo probe. The tested Prime begins two steps from the central
+    /// objective while the controller commits its one allowed opening shot.
+    /// The declared cooldown creates a bounded window for useful movement or
+    /// damage.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateCooldownWindowProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return testedTeamId == 0
+            ? CreateTacticalSingleLifeProbe(
+                CooldownWindowProbeId,
+                maxTicks: 10,
+                new Position(8, 7),
+                Direction.East,
+                "prime-mobile",
+                new Position(14, 7),
+                Direction.North,
+                "prime-mobile")
+            : CreateTacticalSingleLifeProbe(
+                CooldownWindowProbeId,
+                maxTicks: 10,
+                new Position(8, 7),
+                Direction.North,
+                "prime-mobile",
+                new Position(14, 7),
+                Direction.West,
+                "prime-mobile");
+    }
+
+    /// <summary>
+    /// T3 local commitment probe. The tested child already supplies positive
+    /// weight on the active objective. Transforming into the available
+    /// weight-zero turret is locally dominated by continuing to control it
+    /// against a passive distant opponent.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateLocalFormSafetyProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return testedTeamId == 0
+            ? CreateTacticalSingleLifeProbe(
+                LocalFormSafetyProbeId,
+                maxTicks: 8,
+                new Position(11, 8),
+                Direction.North,
+                "child-mobile",
+                new Position(20, 1),
+                Direction.South,
+                "prime-mobile")
+            : CreateTacticalSingleLifeProbe(
+                LocalFormSafetyProbeId,
+                maxTicks: 8,
+                new Position(2, 1),
+                Direction.South,
+                "prime-mobile",
+                new Position(11, 8),
+                Direction.North,
+                "child-mobile");
+    }
+
     private static ActorResolvedMatchDefinition CreatePrimeOnlyProbe(
         string probeId,
         int maxTicks,
@@ -468,6 +644,194 @@ public static class FrontlineLabsQualificationDefinition
             [],
             source.ModeMapBinding,
             source.CapabilityVersions);
+    }
+
+    private static ActorResolvedMatchDefinition
+        CreateTacticalSingleLifeProbe(
+            string probeId,
+            int maxTicks,
+            Position team0Position,
+            Direction team0Facing,
+            string team0FormId,
+            Position team1Position,
+            Direction team1Facing,
+            string team1FormId,
+            string? mapIdentityId = null)
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        ActorRulesDefinition rules = WithProbeMode(
+            source.Rules,
+            $"{TacticalSuiteId}-{probeId}",
+            maxTicks,
+            captureThreshold: 1000,
+            removePopulationActions: true);
+        string mapIdentity = mapIdentityId ?? probeId;
+        string team0SpawnId =
+            $"{TacticalSuiteId}-{mapIdentity}-team-0";
+        string team1SpawnId =
+            $"{TacticalSuiteId}-{mapIdentity}-team-1";
+        var map = new ActorMapDefinition(
+            $"{TacticalSuiteId}-{mapIdentity}-map",
+            version: 1,
+            source.Map.TileRows,
+            [
+                Spawn(team0SpawnId, team0Position, team0Facing),
+                Spawn(team1SpawnId, team1Position, team1Facing),
+            ],
+            source.Map.Regions,
+            source.Map.TileTags);
+        var deployment = new InitialDeploymentDefinition(
+            [
+                new InitialSpawnDefinition(
+                    team0SpawnId,
+                    team0Position,
+                    team0Facing),
+                new InitialSpawnDefinition(
+                    team1SpawnId,
+                    team1Position,
+                    team1Facing),
+            ],
+            [
+                new InitialLifeDeployment(
+                    0,
+                    0,
+                    0,
+                    team0FormId,
+                    team0SpawnId),
+                new InitialLifeDeployment(
+                    1,
+                    0,
+                    0,
+                    team1FormId,
+                    team1SpawnId),
+            ]);
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            .. source.LifecycleAssignments
+                .Where(assignment => assignment.UnitId == 0)
+                .Select(assignment =>
+                {
+                    string initialForm = assignment.TeamId == 0
+                        ? team0FormId
+                        : team1FormId;
+                    string[] allowedForms = initialForm switch
+                    {
+                        "child-mobile" =>
+                        [
+                            "prime-mobile",
+                            "child-mobile",
+                            "turret",
+                        ],
+                        "turret" =>
+                        [
+                            "prime-mobile",
+                            "turret",
+                        ],
+                        _ => ["prime-mobile"],
+                    };
+                    return new ActorUnitSlotLifecycleAssignmentDefinition(
+                        assignment.TeamId,
+                        assignment.UnitId,
+                        assignment.LifecycleProfileId,
+                        assignment.InitialGeneration,
+                        allowedForms,
+                        assignment.InitialAvailability,
+                        assignment.UnlockTick,
+                        assignment.TeamId == 0
+                            ? team0SpawnId
+                            : team1SpawnId);
+                }),
+        ];
+        var topology = source.Topology with
+        {
+            UnitSlots = source.Topology.UnitSlots
+                .Where(slot => slot.UnitId == 0)
+                .ToImmutableArray(),
+            InitialLives =
+            [
+                new PublicInitialLife(0, 0, 0, team0FormId),
+                new PublicInitialLife(1, 0, 0, team1FormId),
+            ],
+        };
+        return new ActorResolvedMatchDefinition(
+            rules,
+            map,
+            source.Format,
+            topology,
+            deployment,
+            assignments,
+            [],
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static ActorResolvedMatchDefinition WithMobileProjectileRange(
+        ActorResolvedMatchDefinition source,
+        int maxTravelTiles)
+    {
+        ActorAttackProfileDefinition[] attacks =
+        [
+            .. source.Rules.AttackProfiles.Select(profile =>
+            {
+                if (profile.Id != "mobile-bolt")
+                    return profile;
+                ActorProjectileDefinition projectile = profile.Projectile;
+                return new ActorAttackProfileDefinition(
+                    profile.Id,
+                    profile.OmnidirectionalAim,
+                    new ActorProjectileDefinition(
+                        projectile.Mode,
+                        projectile.DamagePerHit,
+                        maxTravelTiles,
+                        projectile.TicksPerAdvance,
+                        projectile.TilesPerAdvance,
+                        projectile.LaunchTiles,
+                        projectile.AdvancesOnLaunchTick,
+                        projectile.DamageAppliedSimultaneously,
+                        projectile.DiagonalCornersMustBeClear),
+                    profile.CooldownTicks,
+                    profile.MaxEnergy,
+                    profile.AttackEnergyCost,
+                    profile.EnergyRegenerationIntervalTicks,
+                    profile.EnergyRegenerationAmount,
+                    profile.ShotProgram);
+            }),
+        ];
+        ActorRulesDefinition rules = source.Rules;
+        var rangedRules = new ActorRulesDefinition(
+            rules.RulesetId,
+            rules.Limits,
+            rules.SeedMechanics,
+            rules.GameMode,
+            rules.Lifecycle,
+            rules.Forms,
+            rules.MovementProfiles,
+            rules.VisionProfiles,
+            attacks,
+            rules.Actions,
+            rules.FabricationTransitions,
+            rules.SameLifeTransitions,
+            rules.ReplicationTransitions,
+            rules.TeamPerception,
+            rules.Collisions,
+            rules.TickResolution);
+        return new ActorResolvedMatchDefinition(
+            rangedRules,
+            source.Map,
+            source.Format,
+            source.Topology,
+            source.InitialDeployment,
+            source.LifecycleAssignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static void ValidateTestedTeam(int testedTeamId)
+    {
+        if (testedTeamId is not (0 or 1))
+            throw new ArgumentOutOfRangeException(nameof(testedTeamId));
     }
 
     private static ActorRulesDefinition WithProbeMode(

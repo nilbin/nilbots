@@ -38,9 +38,10 @@
   by a tracked content manifest, but still needs durable artifact-store upload
   before release use.
 
-## Remaining boundary work
+## Measured upper boundary
 
-The future cumulative T3 profile must decide whether this revision is a clean
-T2 boundary instrument. It must not be relabelled T3 or used for balance
-verdicts based on ordinary match performance.
-
+The cumulative T3 profile retains T2 and cleanly fails the positive-bend and
+cooldown-window components from both assignments. It passes the paired
+strict-corner, cadence, and local-form-safety components. This is now a useful
+exact T2 calibration boundary, but it must not be relabelled T3 or used for
+balance verdicts based on ordinary match performance.

@@ -2723,6 +2723,30 @@ and sentinels remain Lab-only. Qualification reuse is profile-scoped: new
 verbs, topology, or strategically material contract changes may require new
 instruments.
 
+## 150. Cumulative T3 is an immutable tactical boundary, not a match-strength label
+
+`frontline-qualification-4` freezes
+`frontline-duel-depth-union-t3-v1`. It always reruns and hash-links the exact
+suite-3 cumulative T2 prerequisite, then executes mirrored positive-curve,
+strict-corner, remaining-range cadence, missed-shot cooldown, and local
+transform-safety probes. A clean T3 failure retains the prerequisite tier;
+runtime, artifact, contract, controller, or replay invalidity remains exit 2.
+T3 is still below the cumulative T4 numeric-balance voting floor.
+
+The negative curve scenario uses a visible target with an invalid
+wall-terminated intercept. A proposed unseen-projectile version was rejected:
+under the authoritative strict-corner model, the same corner that blocks the
+projectile also blocks its visibility, so the scenario could not fairly
+require a reaction from public observations.
+
+HouseApprentice and ArcApprentice form the first retained adjacent
+qualification pair. HouseApprentice passes T2 and fails the positive-bend and
+cooldown components; ArcApprentice adds only contract-driven legal curve
+preview and objective-first routine tempo, then passes T3. Both preserve
+source, controlled WASM, profile-scoped evidence, and replay-byte manifests.
+ArcApprentice is not called an exact T3 boundary until cumulative T4 measures
+its upper edge.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

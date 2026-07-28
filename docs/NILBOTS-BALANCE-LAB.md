@@ -34,7 +34,7 @@ to program.
 | Static/map analysis | Exact map model; deterministic map validators; duel map enumeration in `FrontlineLabsDuelTheoryTests`; one-bend route/fork scripts | Mode-neutral map feature extractor, symmetry/fairness report, generated-map rejection |
 | Exact tactics | Engine chronology validation; projectile and collision kernels; `shot-theory-lab.py`; bounded duel proofs | General microstate DSL, dominance solver, turret-standoff and objective-suppression catalog |
 | Restricted play | Action legality and data-driven rules make restrictions representable; checked-in ablation-debt registry | Versioned ablation definitions and equivalent restricted bot wrappers |
-| Bot tiers | T1–T8 and C0–C5 definitions; profile-scoped qualification provenance; immutable suite-1 T4 component; suite-2 WASM foundation component; suite-3 cumulative T2 union profile; retained source/WASM/reference evidence | Immutable cumulative T3/T4 and higher probes, exact-boundary instruments, diverse verdict-band doctrines, planning-budget declarations |
+| Bot tiers | T1–T8 and C0–C5 definitions; profile-scoped qualification provenance; immutable suite-1 T4 component; suite-2 WASM foundation component; suite-3 cumulative T2 and suite-4 cumulative T3 profiles; retained adjacent T2/T3 source/WASM/reference pair | Immutable cumulative T4 and higher probes, exact T3 boundary, diverse verdict-band doctrines, planning-budget declarations |
 | Population execution | Study-scoped mirrored cohort runner; optional self-play; all-bot retention; replay verification; frozen executable bundle; no champion-only pruning; hard balance-verdict eligibility gate; diagnostic effective-doctrine estimate from payoff/action/form/objective signatures | Calibrated redundancy thresholds, qualified multi-tier population, and cross-tier blocks |
 | Replay metrics | Rich generic Frontline dynamics report; activity, combat, population, objectives, phases, deadlocks; finite-population paired contrasts and lineage sensitivity | Mode adapters for deathmatch/FFA and coordinated-play classifiers |
 | Game theory | Exact local payoff examples and full empirical match rows | Deferred: payoff-tensor analysis, equilibrium support, best-response search, exploitability |
@@ -160,7 +160,13 @@ Slice 2 adds:
   covers non-default participant identities, six stable unit slots, useful
   automatic lives, objective path/hold, direct fire, straight evasion, and
   explicit fabrication in both assignments. T2 is complete fun-floor
-  evidence but remains below the numeric-balance voting floor.
+  evidence but remains below the numeric-balance voting floor;
+- the WASM-only `frontline-qualification-4` cumulative T3 tactical profile,
+  which reruns and hash-links that exact T2 prerequisite before testing legal
+  curved intercepts, strict wall termination, remaining-range cadence,
+  cooldown tempo, and local transform safety. HouseApprentice and
+  ArcApprentice retain the first measured adjacent T2/T3 pair, while neither
+  may vote on numeric balance before cumulative T4.
 
 Slice 3 closes the correctness seams needed before population work:
 
@@ -336,7 +342,8 @@ product evidence layer remains unmeasured.
 
 Further Lab hardening is paused. The critical path is:
 
-1. finish cumulative, deterministic T1–T4 qualification;
+1. finish cumulative, deterministic T4 qualification on top of the completed
+   T1–T3 profile;
 2. retain every independently authored bot and revision;
 3. freeze exact-boundary lower-tier instruments and qualify at least four
    effective T4+ doctrines for the directional pilot;

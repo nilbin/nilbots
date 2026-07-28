@@ -70,6 +70,12 @@ T2 under the pinned duel-depth union profile. It remains authoring/fun-floor
 evidence (`balanceEvidenceEligible: false`); numeric balance voting starts at
 the separately qualified T4 floor.
 
+After the starter passes suite 3, suite 4 is the next tactical target. It
+automatically reruns that exact T2 prerequisite, then checks legal curved
+intercepts, strict wall termination, declared projectile range/cadence,
+cooldown tempo, and local transform safety. The generated starter is
+intentionally not claimed to pass it.
+
 `ArenaBasics` demonstrates the important authoring pattern: select actions by
 their contract kind or stable ID, use the negotiated numeric code, and obey
 the current typed legality constraints. The host still resolves joint

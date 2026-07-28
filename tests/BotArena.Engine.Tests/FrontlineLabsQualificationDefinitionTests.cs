@@ -231,4 +231,157 @@ public sealed class FrontlineLabsQualificationDefinitionTests
                     == ActorUnitSlotLifecycleAssignmentDefinition
                         .InitialAvailabilityKind.DormantUnlockAtTick));
     }
+
+    [Fact]
+    public void TacticalGeometryProbes_AreMirroredStableOrdinaryContracts()
+    {
+        (ActorResolvedMatchDefinition Definition,
+            ActorResolvedMatchDefinition Repeat)[] definitions =
+        [
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateWallTerminatedBendProbe(0),
+                FrontlineLabsQualificationDefinition
+                    .CreateWallTerminatedBendProbe(0)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateWallTerminatedBendProbe(1),
+                FrontlineLabsQualificationDefinition
+                    .CreateWallTerminatedBendProbe(1)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateStrictCornerProbe(0),
+                FrontlineLabsQualificationDefinition
+                    .CreateStrictCornerProbe(0)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateStrictCornerProbe(1),
+                FrontlineLabsQualificationDefinition
+                    .CreateStrictCornerProbe(1)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateCooldownWindowProbe(0),
+                FrontlineLabsQualificationDefinition
+                    .CreateCooldownWindowProbe(0)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateCooldownWindowProbe(1),
+                FrontlineLabsQualificationDefinition
+                    .CreateCooldownWindowProbe(1)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateLocalFormSafetyProbe(0),
+                FrontlineLabsQualificationDefinition
+                    .CreateLocalFormSafetyProbe(0)
+            ),
+            (
+                FrontlineLabsQualificationDefinition
+                    .CreateLocalFormSafetyProbe(1),
+                FrontlineLabsQualificationDefinition
+                    .CreateLocalFormSafetyProbe(1)
+            ),
+        ];
+
+        foreach ((ActorResolvedMatchDefinition definition,
+                     ActorResolvedMatchDefinition repeat) in definitions)
+        {
+            var mode = Assert.IsType<FrontlineGameModeDefinition>(
+                definition.Rules.GameMode);
+            Assert.StartsWith(
+                "frontline-qualification-4-",
+                definition.Rules.RulesetId,
+                StringComparison.Ordinal);
+            Assert.Equal(1000, mode.Capture.Threshold);
+            Assert.Equal(2, definition.Topology.UnitSlots.Length);
+            Assert.Equal(
+                ActorContractFingerprint.ComputeMatch(definition),
+                ActorContractFingerprint.ComputeMatch(repeat));
+        }
+    }
+
+    [Fact]
+    public void TacticalStrictCorner_ExposesVisibleButInvalidCurvedIntercept()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsQualificationDefinition
+                .CreateStrictCornerProbe(0);
+        InitialSpawnDefinition tested = definition.InitialDeployment.Spawns
+            .Single(spawn => spawn.SpawnId.EndsWith(
+                "team-0",
+                StringComparison.Ordinal));
+        InitialSpawnDefinition controller =
+            definition.InitialDeployment.Spawns.Single(spawn =>
+                spawn.SpawnId.EndsWith(
+                    "team-1",
+                    StringComparison.Ordinal));
+
+        Assert.Equal(new Position(10, 7), tested.Position);
+        Assert.Equal(Direction.North, tested.Facing);
+        Assert.Equal(new Position(9, 3), controller.Position);
+        Assert.True(definition.Map.IsWall(new Position(10, 3)));
+        Assert.Contains(
+            definition.Map.Regions.Single(region =>
+                region.RegionId == "frontline-position-2").Tiles,
+            tile => tile == tested.Position);
+    }
+
+    [Fact]
+    public void TacticalCadencePair_DiffersOnlyByDeclaredOddEvenRange()
+    {
+        ActorResolvedMatchDefinition range3 =
+            FrontlineLabsQualificationDefinition
+                .CreateCadenceParityProbe(0, 3);
+        ActorResolvedMatchDefinition range4 =
+            FrontlineLabsQualificationDefinition
+                .CreateCadenceParityProbe(0, 4);
+
+        ActorAttackProfileDefinition attack3 =
+            range3.Rules.AttackProfiles.Single(profile =>
+                profile.Id == "mobile-bolt");
+        ActorAttackProfileDefinition attack4 =
+            range4.Rules.AttackProfiles.Single(profile =>
+                profile.Id == "mobile-bolt");
+        Assert.Equal(3, attack3.Projectile.MaxTravelTiles);
+        Assert.Equal(4, attack4.Projectile.MaxTravelTiles);
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(range3.Map),
+            ActorContractFingerprint.ComputeMap(range4.Map));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeTopology(range3.Topology),
+            ActorContractFingerprint.ComputeTopology(range4.Topology));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(range3.Rules),
+            ActorContractFingerprint.ComputeRules(range4.Rules));
+    }
+
+    [Fact]
+    public void TacticalLocalFormSafety_StartsAChildWithTurretAvailable()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsQualificationDefinition
+                .CreateLocalFormSafetyProbe(1);
+        PublicInitialLife tested = definition.Topology.InitialLives
+            .Single(life => life.TeamId == 1);
+        ActorFormDefinition child = definition.Rules.Forms.Single(form =>
+            form.Id == "child-mobile");
+        ActorFormDefinition turret = definition.Rules.Forms.Single(form =>
+            form.Id == "turret");
+
+        Assert.Equal("child-mobile", tested.FormId);
+        Assert.Equal(1, child.ObjectiveWeight);
+        Assert.Equal(0, turret.ObjectiveWeight);
+        Assert.Contains("transform", child.AllowedActionIds);
+        Assert.Contains(
+            definition.Rules.SameLifeTransitions,
+            transition =>
+                transition.SourceFormId == "child-mobile"
+                && transition.TargetFormId == "turret");
+    }
+
 }

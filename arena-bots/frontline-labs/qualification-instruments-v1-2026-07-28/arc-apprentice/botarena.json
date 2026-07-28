@@ -1,0 +1,10 @@
+{
+  "name": "ArcApprentice",
+  "entryType": "ArcApprentice",
+  "sdkVersion": "0.10.3",
+  "appearance": {
+    "accent": "#c084fc",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

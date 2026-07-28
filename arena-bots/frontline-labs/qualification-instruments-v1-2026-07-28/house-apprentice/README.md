@@ -1,7 +1,8 @@
 # HouseApprentice
 
-Status: T2-qualified under `frontline-duel-depth-union-t2-v1`; T3 boundary
-pending; not balance-verdict eligible.
+Status: exact T2 boundary measured under
+`frontline-duel-depth-union-t2-v1`/`frontline-duel-depth-union-t3-v1`; not
+balance-verdict eligible.
 
 HouseApprentice is the contract-driven generic-actor starter retained as a
 canonical low-tier instrument and potential friendly launch opponent. It:
@@ -16,8 +17,9 @@ canonical low-tier instrument and potential friendly launch opponent. It:
 It deliberately lacks curve planning, transformations, body roles, focus fire,
 shared-information tactics, opponent modelling, and deeper planning. Passing
 T2 means those basic verbs work; it does not prove that the policy is an
-exact-boundary T2 instrument until it also cleanly fails the future cumulative
-T3 profile.
+exact-boundary T2 instrument by match strength. The cumulative T3 suite now
+measures its upper edge directly: it retains T2 while failing the required
+positive bend and cooldown-window components.
 
 Re-run the frozen qualification:
 
@@ -32,5 +34,6 @@ scripts/botarena experiment frontline-labs qualify \
 The tracked qualification report is `qualification-frontline-3.json`. Its
 replay paths resolve against the cohort's ignored
 `evidence/house-apprentice-t2-v1/` directory; `../evidence-manifest.json`
-records the retained byte hashes.
-
+records the retained byte hashes. The clean T3 boundary failure is tracked as
+`qualification-frontline-4-boundary.json`, with its replay bytes recorded by
+`../house-t3-boundary-evidence-manifest.json`.

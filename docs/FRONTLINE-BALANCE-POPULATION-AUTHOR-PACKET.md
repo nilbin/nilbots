@@ -84,21 +84,23 @@ Build once through the controlled toolchain, then run:
 ```bash
 nilbots experiment frontline-labs qualify \
   --bot out/bot.wasm \
-  --suite frontline-qualification-3 \
-  --out evidence/t2
+  --suite frontline-qualification-4 \
+  --out evidence/t3
 ```
 
-Suite 3 is the immutable
-`frontline-duel-depth-union-t2-v1` profile. It runs both assignments and checks
-non-default participant identities, all three stable unit slots per team,
-deterministic replay hashes, useful automatic child lives, objective
-movement/holding, direct fire, straight-projectile evasion, and explicit
-Fabricate. Exit `0` awards T2; `3` is a clean capability failure; `2` means
-invalid runtime/contract evidence.
+Suite 4 is the immutable
+`frontline-duel-depth-union-t3-v1` profile. It automatically reruns and
+hash-links the exact suite-3 cumulative T2 prerequisite, then checks legal
+positive and wall-terminated curves, strict corners, declared projectile
+range/cadence, missed-shot cooldown tempo, and locally dominated transforms
+from both assignments. Exit `0` awards T3; `3` is a clean capability failure
+that retains any prerequisite tier; `2` means invalid runtime/contract
+evidence.
 
-Higher-tier packets must name their immutable suite, profile, prerequisite
-qualification report, and holdout policy once implemented. Never copy a tier
-label between profiles, rules generations, or seasons.
+Run suite 3 directly when T2 is the assigned boundary. Higher-tier packets
+must name their immutable suite, profile, prerequisite qualification report,
+and holdout policy once implemented. Never copy a tier label between
+profiles, rules generations, or seasons.
 
 ## Freeze and archive
 

@@ -65,8 +65,9 @@ wrong; it changes which document is the current entry point.
 - [`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md) — replay-native
   T/C probe contract and scenario families. Its immutable suite-1 T4 entry
   component and suite-2 WASM determinism/automatic-life T1 component are
-  implemented; cumulative T1–T4 is the pilot critical path, while T7/T8 are
-  explicitly deferred.
+  retained; suite 3 completes cumulative T2 and suite 4 completes cumulative
+  T3. Cumulative T4 is the pilot critical path, while T7/T8 are explicitly
+  deferred.
 - [`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) — executable
   projectile chronology, local payoff matrices, and map-wide one-bend
   last-mile classification for the current duel-depth experiment.

@@ -136,7 +136,8 @@ least five ticks of effective capture progress there. Exit `3` is a clean
 probe failure; exit `2` is runtime/contract invalidity.
 
 This is one T4 positional component. `qualification.json` deliberately awards
-no cumulative tier until T1–T3 prerequisite probes exist.
+no cumulative tier because this frozen historical suite does not rerun or
+hash-link the now-implemented cumulative T1–T3 prerequisite.
 
 ## One-pass micro-cohort
 

@@ -139,7 +139,7 @@ static int Help(int exitCode = 1)
                                                   local/quota-free, replay v3
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
-                        [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3]
+                        [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4]
                         [--out <dir>]
                                                   versioned local capability
                                                   probes; never ranked
@@ -270,7 +270,7 @@ static int CommandHelp(string command)
             Usage: nilbots experiment frontline-labs qualify
                    --bot <generic-spec> [--runtime wasm|in-process]
                    [--seed <n>]
-                   [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3]
+                   [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4]
                    [--out <dir>]
 
             Runs mirrored, versioned capability probes and writes verified

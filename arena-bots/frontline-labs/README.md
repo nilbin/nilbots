@@ -12,8 +12,10 @@ relabels immutable `frontline-labs-1`.
 The current qualification population starts at
 [`qualification-instruments-v1-2026-07-28/`](qualification-instruments-v1-2026-07-28/).
 Its first retained source/artifact pair, HouseApprentice, passes the cumulative
-T2 union profile. It remains a provisional low-tier instrument until the
-future T3 profile demonstrates its upper boundary.
+T2 union profile and now cleanly fails two cumulative T3 components.
+ArcApprentice derives from it, adds narrow contract-driven tactical geometry,
+and passes the cumulative T3 profile. Neither may vote on numeric balance
+before cumulative T4.
 
 New population authors receive
 [`FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`](../../docs/FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md)

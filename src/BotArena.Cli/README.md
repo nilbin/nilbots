@@ -129,20 +129,22 @@ runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract
 fingerprints and payload hash.
 
-The versioned local qualification runner can check the first deterministic
-foundation component:
+The versioned local qualification runner can check the current cumulative
+tactical profile:
 
 ```bash
 nilbots experiment frontline-labs qualify \
   --bot LabsBot/out/bot.wasm \
-  --suite frontline-qualification-2 \
+  --suite frontline-qualification-4 \
   --out out/LabsBot-qualification
 ```
 
-Suite 2 currently requires WASM and checks mirrored automatic-life contract
-handling plus exact repeated replay hashes. It intentionally awards no tier
-and is not balance-evidence eligible until the full cumulative profile is
-implemented. Frozen suite 1 remains available only as the earlier
-`entry-initiative` T4 component.
+Suite 4 requires WASM, reruns the exact cumulative T2 suite-3 prerequisite,
+then checks tactical curve geometry, strict corners, projectile range/cadence,
+cooldown tempo, and local transform safety. A complete pass awards T3 but is
+not numeric-balance eligible; cumulative T4 is the directional pilot floor.
+Run suite 3 directly for T2. Frozen suite 1 remains only the historical
+`entry-initiative` T4 component, while suite 2 remains an incomplete
+automatic-life/determinism foundation.
 
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

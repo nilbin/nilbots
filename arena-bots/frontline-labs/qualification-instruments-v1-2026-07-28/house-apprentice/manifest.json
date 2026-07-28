@@ -6,7 +6,7 @@
   "doctrineId": "contract-driven-apprentice",
   "role": "boundary-instrument",
   "targetTier": "T2",
-  "status": "t2-qualified-t3-boundary-pending",
+  "status": "exact-t2-boundary-measured",
   "launchPopulationStatus": "eligible-for-later-entertainment-review",
   "authoringBudgetId": "starter-mechanical-competency-v1",
   "authorPacketSha256": "e292185ab35778acec549bb06b119cfea31a69e493d13ce1eae7695f62d99d1d",
@@ -40,6 +40,19 @@
     "tierAwarded": "T2",
     "coordinationGradeAwarded": null,
     "balanceEvidenceEligible": false
+  },
+  "upperBoundary": {
+    "suiteId": "frontline-qualification-4",
+    "suiteVersion": 1,
+    "qualificationProfileId": "frontline-duel-depth-union-t3-v1",
+    "qualificationContractFingerprint": "4e77075bd13bbe56485eb29b57c8b916fec9dcd8c9ef9fdaa40fc6fad6944e8e",
+    "report": "qualification-frontline-4-boundary.json",
+    "reportSha256": "a40f23cc5381d64436594e7d6c0e16d05fc8381d0659b0951256df91e0d3ddfb",
+    "passed": false,
+    "tierRetained": "T2",
+    "failedProbeIds": [
+      "wall-terminated-bend",
+      "cooldown-window"
+    ]
   }
 }
-

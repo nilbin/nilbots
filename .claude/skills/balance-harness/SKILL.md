@@ -133,7 +133,7 @@ python3 scripts/frontline-balance-candidates.py \
 
 nilbots experiment frontline-labs qualify \
   --bot <candidate-bot.wasm> \
-  --suite frontline-qualification-3 \
+  --suite frontline-qualification-4 \
   --out /tmp/qualification/<bot>
 
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
@@ -181,11 +181,18 @@ sensitivity before making population claims.
 
 Frozen `frontline-qualification-1` is only the historical T4
 `entry-initiative` component. WASM-only suite 2 retains the incomplete
-`contract-auto-determinism` foundation. Current suite 3 is the complete
+`contract-auto-determinism` foundation. Suite 3 is the complete
 `frontline-duel-depth-union-t2-v1` profile: contract/count handling, useful
 automatic lives, objective path/hold, direct fire, straight evasion, and
 explicit Fabricate in both assignments. A suite-3 pass awards T2 but remains
 fun-floor evidence rather than a numeric balance vote.
+
+Current suite 4 automatically reruns and hash-links that exact prerequisite,
+then tests cumulative T3 legal curves, strict corners, remaining-range
+cadence, cooldown tempo, and local transform safety from both assignments.
+It returns the retained prerequisite tier on a clean capability failure. A
+suite-4 pass awards T3 but also remains below the cumulative T4 directional
+pilot voting floor.
 
 Read the cell's `strategicDiversity.doctrineRedundancy` block before claiming
 population breadth. It reports artifacts, declared doctrines, effective
