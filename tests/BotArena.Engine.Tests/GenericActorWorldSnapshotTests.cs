@@ -100,6 +100,138 @@ public sealed class GenericActorWorldSnapshotTests
     }
 
     [Fact]
+    public void FabricationAndReplicationCannotRetainAnOverlappingTileClaim()
+    {
+        Fixture fixture = CreateFixture();
+        GenericActorWorldSnapshot.LifeSnapshot east =
+            fixture.Lives.Single(life =>
+                life.ActorId == new ActorIdentity(1, 0, 0));
+        var movedEast = new GenericActorWorldSnapshot.LifeSnapshot(
+            east.ActorId,
+            east.ParticipantId,
+            east.Generation,
+            east.FormId,
+            new Position(4, 3),
+            Direction.North,
+            east.Health,
+            east.Cooldown,
+            east.Energy,
+            east.SpawnedAtTick,
+            east.SpawnReason,
+            east.ParentActorId,
+            east.SourceTransitionId,
+            east.SourceOperationId,
+            east.PreviousActionResolution,
+            east.PendingSameLifeTransition);
+        GenericActorWorldSnapshot.LifeSnapshot[] lives = fixture.Lives
+            .Select(life => life.ActorId == east.ActorId
+                ? movedEast
+                : life)
+            .ToArray();
+        SplitReplicationActorSnapshot[] actors = lives
+            .Select(life => new SplitReplicationActorSnapshot(
+                life.ActorId,
+                life.ParticipantId,
+                life.Generation,
+                life.FormId,
+                life.Health,
+                life.Position,
+                life.Facing,
+                HasPriorSameLifeTransition: false,
+                HasPendingSameLifeTransition: false))
+            .ToArray();
+        Dictionary<(int TeamId, int UnitId), ActorIdentity> activeActors =
+            actors.ToDictionary(
+                actor => (
+                    actor.ActorId.TeamId,
+                    actor.ActorId.UnitId),
+                actor => actor.ActorId);
+        SplitReplicationSlotSnapshot[] splitSlots =
+            fixture.Slots.Select(slot =>
+                activeActors.TryGetValue(
+                    (slot.TeamId, slot.UnitId),
+                    out ActorIdentity? actorId)
+                    ? new SplitReplicationSlotSnapshot(
+                        slot.TeamId,
+                        slot.UnitId,
+                        SplitReplicationSlotSnapshot.SplitSlotState.Active,
+                        actorId)
+                    : new SplitReplicationSlotSnapshot(
+                        slot.TeamId,
+                        slot.UnitId,
+                        SplitReplicationSlotSnapshot.SplitSlotState.Ready,
+                        ActiveActorId: null))
+                .ToArray();
+        SplitReplicationReservation replication = Assert.Single(
+            new SplitReplicationKernel(fixture.Definition)
+                .ReserveBatch(
+                    tick: 0,
+                    [
+                        new SplitReplicationRequest(
+                            movedEast.ActorId,
+                            "split-mobile",
+                            "split-east"),
+                    ],
+                    actors,
+                    splitSlots,
+                    existingLifecycleTileClaims: [])
+                .Reservations);
+        Assert.Contains(
+            replication.Descendants,
+            descendant => descendant.Position == new Position(3, 3));
+        SplitReplicationReservedDescendant external =
+            replication.Descendants.Single(descendant =>
+                descendant.TeamId != replication.SourceActorId.TeamId
+                || descendant.UnitId != replication.SourceActorId.UnitId);
+        ActorIdentity fabricationSource = lives.Single(life =>
+            life.ActorId == new ActorIdentity(0, 0, 0)).ActorId;
+
+        GenericActorWorldSnapshot.SlotSnapshot[] slots = fixture.Slots
+            .Select(slot => (slot.TeamId, slot.UnitId) switch
+            {
+                (0, 1) => new GenericActorWorldSnapshot.SlotSnapshot(
+                    slot.TeamId,
+                    slot.UnitId,
+                    slot.ParticipantId,
+                    slot.NextLifeId,
+                    new GenericActorRuntimeObservation.UnitSlotState
+                        .FabricationPending(
+                            dueTick: 1,
+                            fabricationSource,
+                            transitionId: "fabricate-child",
+                            operationId: "fabrication-west",
+                            targetFormId: "child",
+                            reservedPosition: new Position(3, 3)),
+                    pendingParentActorId: null,
+                    splitReservation: null),
+                (1, 1) => new GenericActorWorldSnapshot.SlotSnapshot(
+                    slot.TeamId,
+                    slot.UnitId,
+                    slot.ParticipantId,
+                    slot.NextLifeId,
+                    new GenericActorRuntimeObservation.UnitSlotState
+                        .ReplicationPending(
+                            replication.DueTick,
+                            replication.SourceActorId,
+                            replication.TransitionId,
+                            replication.OperationId,
+                            external.FormId,
+                            external.Position),
+                    pendingParentActorId: null,
+                    replication),
+                _ => slot,
+            })
+            .ToArray();
+
+        Assert.Throws<ArgumentException>(() =>
+            Snapshot(
+                fixture,
+                slots: slots,
+                lives: lives,
+                replications: [replication]));
+    }
+
+    [Fact]
     public void ActiveLifeMustBeTheLatestIssuedSlotLife()
     {
         Fixture fixture = CreateFixture();

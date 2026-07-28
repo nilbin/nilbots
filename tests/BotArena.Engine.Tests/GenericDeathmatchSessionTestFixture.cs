@@ -1110,6 +1110,20 @@ internal static class GenericDeathmatchSessionTestFixture
     public static GenericActorRuntimeDecision Split() =>
         new("split", 103, [], null);
 
+    public static GenericActorRuntimeDecision Fabricate(
+        int teamId,
+        int unitId) =>
+        new(
+            "fabricate",
+            100,
+            [
+                new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                    new GenericActorRuntimeActionArgument.UnitTarget(
+                        teamId,
+                        unitId)),
+            ],
+            null);
+
     public static GenericActorRuntimeDecision Transform(
         string targetFormId = "anchored") =>
         new(

@@ -69,6 +69,31 @@ public sealed class SplitReplicationKernel
         IReadOnlyCollection<SplitReplicationSlotSnapshot> slots,
         IReadOnlyCollection<Position> existingLifecycleTileClaims)
     {
+        ImmutableArray<SplitReplicationReservationOutcome> provisional =
+            BuildProvisionalBatch(
+                tick,
+                requests,
+                activeActors,
+                slots,
+                existingLifecycleTileClaims);
+        ImmutableHashSet<string> blocked =
+            ActorLifecycleReservationArbiter.BlockedOperationIds(
+                provisional
+                    .Where(outcome => outcome.Reservation is not null)
+                    .Select(outcome =>
+                        LifecycleClaim(outcome.Reservation!)));
+        return new SplitReplicationBatchResult(
+            FinalizeBatch(provisional, blocked));
+    }
+
+    internal ImmutableArray<SplitReplicationReservationOutcome>
+        BuildProvisionalBatch(
+            int tick,
+            IReadOnlyCollection<SplitReplicationRequest> requests,
+            IReadOnlyCollection<SplitReplicationActorSnapshot> activeActors,
+            IReadOnlyCollection<SplitReplicationSlotSnapshot> slots,
+            IReadOnlyCollection<Position> existingLifecycleTileClaims)
+    {
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
         ArgumentNullException.ThrowIfNull(requests);
@@ -108,7 +133,7 @@ public sealed class SplitReplicationKernel
                 nameof(existingLifecycleTileClaims));
         }
 
-        Candidate[] candidates = orderedRequests
+        return orderedRequests
             .Select(request => BuildCandidate(
                 tick,
                 request,
@@ -116,40 +141,44 @@ public sealed class SplitReplicationKernel
                 slotsById,
                 occupiedPositions,
                 preclaimedTiles))
-            .ToArray();
+            .Select(candidate => candidate.Outcome)
+            .ToImmutableArray();
+    }
 
-        var conflicted = new HashSet<int>();
-        for (int left = 0; left < candidates.Length; left++)
-        {
-            if (candidates[left].Reservation is null)
-                continue;
-            for (int right = left + 1; right < candidates.Length; right++)
-            {
-                if (candidates[right].Reservation is null)
-                    continue;
-                if (ClaimsIntersect(
-                        candidates[left].Reservation!,
-                        candidates[right].Reservation!))
-                {
-                    conflicted.Add(left);
-                    conflicted.Add(right);
-                }
-            }
-        }
-
-        return new SplitReplicationBatchResult(
-            candidates.Select((candidate, index) =>
-            {
-                if (conflicted.Contains(index))
-                {
-                    return Blocked(
-                        candidate.Request,
+    internal static ImmutableArray<SplitReplicationReservationOutcome>
+        FinalizeBatch(
+            IEnumerable<SplitReplicationReservationOutcome> provisional,
+            IReadOnlySet<string> blockedOperationIds)
+    {
+        ArgumentNullException.ThrowIfNull(provisional);
+        ArgumentNullException.ThrowIfNull(blockedOperationIds);
+        return provisional
+            .Select(outcome =>
+                outcome.Reservation is not null
+                && blockedOperationIds.Contains(
+                    outcome.Reservation.OperationId)
+                    ? Blocked(
+                        outcome.Request,
                         SplitReplicationReservationOutcome
                             .SplitReservationBlockReason
-                            .ConflictingReservation);
-                }
-                return candidate.Outcome;
-            }).ToImmutableArray());
+                            .ConflictingReservation)
+                    : outcome)
+            .ToImmutableArray();
+    }
+
+    internal static ActorLifecycleReservationClaim LifecycleClaim(
+        SplitReplicationReservation reservation)
+    {
+        ArgumentNullException.ThrowIfNull(reservation);
+        return new ActorLifecycleReservationClaim(
+            reservation.OperationId,
+            ActorLifecycleReservationFamily.Replication,
+            reservation.Descendants.Select(descendant =>
+                new ActorLifecycleSlotClaim(
+                    descendant.TeamId,
+                    descendant.UnitId)),
+            reservation.Descendants.Select(descendant =>
+                descendant.Position));
     }
 
     /// <summary>
@@ -601,21 +630,6 @@ public sealed class SplitReplicationKernel
                     .SourceStateChanged);
         }
         return null;
-    }
-
-    private static bool ClaimsIntersect(
-        SplitReplicationReservation left,
-        SplitReplicationReservation right)
-    {
-        var leftSlots = left.Descendants
-            .Select(descendant => (descendant.TeamId, descendant.UnitId))
-            .ToHashSet();
-        var leftTiles = left.Descendants
-            .Select(descendant => descendant.Position)
-            .ToHashSet();
-        return right.Descendants.Any(descendant =>
-            leftSlots.Contains((descendant.TeamId, descendant.UnitId))
-            || leftTiles.Contains(descendant.Position));
     }
 
     private Dictionary<

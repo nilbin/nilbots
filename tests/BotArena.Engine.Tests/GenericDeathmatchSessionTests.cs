@@ -2325,10 +2325,32 @@ public sealed class GenericDeathmatchSessionTests
                 : GenericDeathmatchSessionTestFixture.Wait());
 
     [Fact]
-    public void FabricationTransitionsAreRejectedAtConstruction()
+    public void SupportedFabricationTransitionsAreAcceptedAtConstruction()
     {
         ActorResolvedMatchDefinition definition =
             GenericActorContractTestFixture.WithTransitions();
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(definition);
+
+        using var session = new GenericDeathmatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 8);
+
+        Assert.False(session.IsCompleted);
+    }
+
+    [Fact]
+    public void FaultedFabricationPlacementIsRejectedAtConstruction()
+    {
+        ActorResolvedMatchDefinition definition =
+            GenericActorContractTestFixture.WithTransitions(
+                fabricationUnavailableResult:
+                    ActorActionRejectionResult.Faulted);
         Dictionary<
             int,
             GenericDeathmatchSessionTestFixture.RecordingFactory> factories =

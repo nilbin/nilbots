@@ -60,6 +60,11 @@ public sealed class GenericActorWorldSnapshot
             slotSnapshot,
             lifeSnapshot,
             replicationSnapshot);
+        ValidateLifecycleClaims(
+            definition,
+            slotSnapshot,
+            lifeSnapshot,
+            replicationSnapshot);
         ValidateProjectiles(
             definition,
             slotSnapshot,
@@ -805,6 +810,103 @@ public sealed class GenericActorWorldSnapshot
                     "A retained projectile heading must match its most recently traversed committed-path edge.",
                     nameof(projectiles));
             }
+        }
+    }
+
+    private static void ValidateLifecycleClaims(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<SlotSnapshot> slots,
+        IReadOnlyList<LifeSnapshot> lives,
+        IReadOnlyList<SplitReplicationReservation> replications)
+    {
+        ActorLifecycleReservationClaim[] fabricationClaims = slots
+            .Where(slot => slot.State is
+                GenericActorRuntimeObservation.UnitSlotState
+                    .FabricationPending)
+            .Select(slot =>
+            {
+                var pending =
+                    (GenericActorRuntimeObservation.UnitSlotState
+                        .FabricationPending)slot.State;
+                return new ActorLifecycleReservationClaim(
+                    pending.OperationId,
+                    ActorLifecycleReservationFamily.Fabrication,
+                    [
+                        new ActorLifecycleSlotClaim(
+                            slot.TeamId,
+                            slot.UnitId),
+                    ],
+                    [pending.ReservedPosition]);
+            })
+            .ToArray();
+        ActorLifecycleReservationClaim[] replicationClaims = replications
+            .Select(SplitReplicationKernel.LifecycleClaim)
+            .ToArray();
+        ActorLifecycleReservationClaim[] claims =
+        [
+            .. fabricationClaims,
+            .. replicationClaims,
+        ];
+        if (!ActorLifecycleReservationArbiter
+            .BlockedOperationIds(claims)
+            .IsEmpty)
+        {
+            throw new ArgumentException(
+                "Pending lifecycle bundles cannot intersect another fabrication or replication slot, tile, or operation claim.",
+                nameof(slots));
+        }
+
+        Dictionary<Position, LifeSnapshot> occupied = lives.ToDictionary(
+            life => life.Position);
+        foreach (ActorLifecycleReservationClaim fabrication in
+                 fabricationClaims)
+        {
+            if (fabrication.Tiles.Any(occupied.ContainsKey))
+            {
+                throw new ArgumentException(
+                    "A fabrication output tile cannot overlap an active life.",
+                    nameof(slots));
+            }
+        }
+        foreach (SplitReplicationReservation replication in replications)
+        {
+            if (replication.Descendants.Any(descendant =>
+                    occupied.TryGetValue(
+                        descendant.Position,
+                        out LifeSnapshot? life)
+                    && life.ActorId != replication.SourceActorId))
+            {
+                throw new ArgumentException(
+                    "A replication output tile can overlap only its own active source life.",
+                    nameof(replications));
+            }
+        }
+
+        Dictionary<string, Position> spawnPositions =
+            definition.Map.SpawnAnchors.ToDictionary(
+                anchor => anchor.Spawn.SpawnId,
+                anchor => anchor.Spawn.Position,
+                StringComparer.Ordinal);
+        Dictionary<string, ActorLifecycleProfileDefinition> profiles =
+            definition.Rules.Lifecycle.Profiles.ToDictionary(
+                profile => profile.ProfileId,
+                StringComparer.Ordinal);
+        HashSet<Position> automaticReturnTiles =
+            definition.LifecycleAssignments
+                .Where(assignment =>
+                    profiles[assignment.LifecycleProfileId]
+                        .DestructionPolicy
+                    == ActorLifecycleProfileDefinition
+                        .DestructionPolicyKind.AutomaticRespawn)
+                .Select(assignment =>
+                    spawnPositions[assignment.AssignedRespawnSpawnId!])
+                .ToHashSet();
+        if (claims.SelectMany(claim => claim.Tiles)
+            .Any(automaticReturnTiles.Contains))
+        {
+            throw new ArgumentException(
+                "Lifecycle output claims cannot use a permanently reserved automatic-return tile.",
+                nameof(slots));
         }
     }
 

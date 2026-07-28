@@ -12,6 +12,7 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly ActorResolvedMatchDefinition _definition;
     private readonly GenericActorMatchHost _host;
     private readonly IGenericActorMatchModeDriver _mode;
+    private readonly BoundedChildFabricationKernel _fabrication;
     private readonly SplitReplicationKernel _split;
     private readonly ActorSameLifeTransitionKernel _sameLife;
     private readonly Dictionary<string, ActorFormDefinition> _forms;
@@ -27,6 +28,8 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly Dictionary<(int TeamId, int UnitId), SlotState> _slots;
     private readonly Dictionary<ActorIdentity, LifeState> _lives = [];
     private readonly List<ProjectileState> _projectiles = [];
+    private readonly List<BoundedChildFabricationProvisionalReservation>
+        _fabricationReservations = [];
     private readonly List<SplitReplicationReservation> _splitReservations = [];
     private readonly Dictionary<int, int> _nextEventOrdinalByTick = [];
     private readonly Dictionary<ObservationAudienceKey, EventProjectionState>
@@ -78,6 +81,7 @@ public sealed class GenericActorMatchSession : IDisposable
             participant => participant.TeamId);
         _slots = CreateSlots(definition);
         _mode = mode;
+        _fabrication = new BoundedChildFabricationKernel(definition);
         _split = new SplitReplicationKernel(definition);
         _sameLife = new ActorSameLifeTransitionKernel(definition);
         _host = new GenericActorMatchHost(
@@ -234,6 +238,10 @@ public sealed class GenericActorMatchSession : IDisposable
             tickStartEvents,
             lifeStarts,
             projectileTransitions);
+        CompleteDueFabrications(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
         CompleteDueSplits(
             tickStartEvents,
             lifeStarts,
@@ -322,7 +330,7 @@ public sealed class GenericActorMatchSession : IDisposable
             ref contactOrdinal,
             events,
             projectileTransitions);
-        ReserveSplits(resolutions, events);
+        ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
         AdvanceExistingProjectiles(
             contacts,
@@ -493,6 +501,7 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             _lives.Clear();
             _projectiles.Clear();
+            _fabricationReservations.Clear();
             _splitReservations.Clear();
             _eventProjectionStates.Clear();
             _preparedTick = null;
@@ -568,6 +577,63 @@ public sealed class GenericActorMatchSession : IDisposable
                 slot.Kind = SlotKind.Ready;
                 ClearPendingClock(slot);
             }
+        }
+    }
+
+    private void CompleteDueFabrications(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        BoundedChildFabricationProvisionalReservation[] due =
+            _fabricationReservations
+                .Where(reservation => reservation.DueTick == Tick)
+                .OrderBy(reservation => reservation.SourceActorId)
+                .ThenBy(
+                    reservation => reservation.TransitionId,
+                    StringComparer.Ordinal)
+                .ThenBy(reservation => reservation.TargetTeamId)
+                .ThenBy(reservation => reservation.TargetUnitId)
+                .ThenBy(
+                    reservation => reservation.OperationId,
+                    StringComparer.Ordinal)
+                .ToArray();
+        foreach (BoundedChildFabricationProvisionalReservation reservation
+                 in due)
+        {
+            _fabrication.ValidateReservationEvidence(reservation);
+            _fabricationReservations.Remove(reservation);
+            ReleaseFabricationTarget(reservation);
+            ConsumeProjectilesAt(
+                reservation.ReservedPosition,
+                traversals);
+
+            SlotState slot = _slots[
+                (reservation.TargetTeamId, reservation.TargetUnitId)];
+            LifeState child = CreateLife(
+                slot,
+                reservation.TargetFormId,
+                reservation.TargetGeneration,
+                reservation.ReservedPosition,
+                reservation.OutputFacing,
+                _forms[reservation.TargetFormId].MaxHealth,
+                GenericActorRuntimeStart.SpawnReason.Fabrication,
+                reservation.SourceActorId,
+                reservation.TransitionId,
+                reservation.OperationId);
+            lifeStarts.Add(child.LifeStart);
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.LifeSpawned,
+                SpawnPayload(child),
+                child.Position));
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.LifecycleCompleted,
+                LifecyclePayload(
+                    reservation,
+                    cancellationReason: null),
+                reservation.SourcePosition));
         }
     }
 
@@ -779,7 +845,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 }
                 return;
             case ActorActionKind.Fabrication:
-                Block(state);
+                BoundedChildFabricationDefinition[] fabricationMatches =
+                    MatchingFabricationTransitions(life, action.Id);
+                if (fabricationMatches.Length != 1)
+                    Block(state);
                 return;
             default:
                 throw new InvalidOperationException(
@@ -864,7 +933,7 @@ public sealed class GenericActorMatchSession : IDisposable
             targets.Add(life.ActorId, target);
             if (_definition.Map.IsWall(target)
                 || IsForeignReservedReturnTile(life, target)
-                || IsReservedSplitTile(target)
+                || IsReservedLifecycleTile(target)
                 || occupants.ContainsKey(target))
             {
                 blocked.Add(life.ActorId);
@@ -958,11 +1027,45 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
-    private void ReserveSplits(
+    private void ReserveLifecycleCreations(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
-        SplitReplicationRequest[] requests = resolutions.Values
+        BoundedChildFabricationRequest[] fabricationRequests =
+            resolutions.Values
+                .Where(resolution =>
+                    resolution.Outcome
+                        == GenericActorRuntimeActionResolution
+                            .ActionOutcome.Success
+                    && _actions[resolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Fabrication)
+                .OrderBy(resolution => resolution.ActorId)
+                .Select(resolution =>
+                {
+                    LifeState life = _lives[resolution.ActorId];
+                    BoundedChildFabricationDefinition transition =
+                        MatchingFabricationTransitions(
+                            life,
+                            resolution.ValidatedAction.ActionId)
+                        .Single();
+                    GenericActorRuntimeActionArgument.UnitTarget target =
+                        resolution.ValidatedAction.Arguments
+                            .OfType<GenericActorRuntimeActionArgument
+                                .UnitTargetArgument>()
+                            .Single()
+                            .Value;
+                    return new BoundedChildFabricationRequest(
+                        life.ActorId,
+                        transition.TransitionId,
+                        $"fabrication:{Tick}:{life.ActorId.TeamId}:" +
+                        $"{life.ActorId.UnitId}:{life.ActorId.LifeId}:" +
+                        $"{transition.TransitionId}:{target.TeamId}:" +
+                        $"{target.UnitId}",
+                        target.TeamId,
+                        target.UnitId);
+                })
+                .ToArray();
+        SplitReplicationRequest[] splitRequests = resolutions.Values
             .Where(resolution =>
                 resolution.Outcome
                     == GenericActorRuntimeActionResolution.ActionOutcome.Success
@@ -984,26 +1087,118 @@ public sealed class GenericActorMatchSession : IDisposable
                     $"{life.ActorId.UnitId}:{life.ActorId.LifeId}");
             })
             .ToArray();
-        if (requests.Length == 0)
+        if (fabricationRequests.Length == 0
+            && splitRequests.Length == 0)
+        {
             return;
+        }
 
-        SplitReplicationBatchResult batch = _split.ReserveBatch(
-            Tick,
-            requests,
+        BoundedChildFabricationActorSnapshot[] fabricationActors =
             _lives.Values
                 .OrderBy(life => life.ActorId)
-                .Select(SplitSnapshot)
-                .ToArray(),
+                .Select(FabricationSnapshot)
+                .ToArray();
+        BoundedChildFabricationSlotSnapshot[] fabricationSlots =
             _slots.Values
                 .OrderBy(slot => slot.TeamId)
                 .ThenBy(slot => slot.UnitId)
-                .Select(SplitSlotSnapshot)
-                .ToArray(),
-            _splitReservations
+                .Select(FabricationSlotSnapshot)
+                .ToArray();
+        SplitReplicationActorSnapshot[] splitActors = _lives.Values
+            .OrderBy(life => life.ActorId)
+            .Select(SplitSnapshot)
+            .ToArray();
+        SplitReplicationSlotSnapshot[] splitSlots = _slots.Values
+            .OrderBy(slot => slot.TeamId)
+            .ThenBy(slot => slot.UnitId)
+            .Select(SplitSlotSnapshot)
+            .ToArray();
+        Position[] existingTileClaims =
+        [
+            .. _fabricationReservations
+                .Select(reservation => reservation.ReservedPosition),
+            .. _splitReservations
                 .SelectMany(reservation => reservation.Descendants)
-                .Select(descendant => descendant.Position)
-                .ToArray());
-        foreach (SplitReplicationReservationOutcome outcome in batch.Outcomes)
+                .Select(descendant => descendant.Position),
+        ];
+        ImmutableArray<BoundedChildFabricationReservationOutcome>
+            provisionalFabrications =
+            _fabrication.BuildProvisionalBatch(
+                Tick,
+                fabricationRequests,
+                fabricationActors,
+                fabricationSlots,
+                existingTileClaims);
+        ImmutableArray<SplitReplicationReservationOutcome>
+            provisionalSplits = _split.BuildProvisionalBatch(
+            Tick,
+            splitRequests,
+            splitActors,
+            splitSlots,
+            existingTileClaims);
+        ImmutableHashSet<string> blockedOperationIds =
+            ActorLifecycleReservationArbiter.BlockedOperationIds(
+            [
+                .. provisionalFabrications
+                    .Where(outcome => outcome.Reservation is not null)
+                    .Select(outcome =>
+                        BoundedChildFabricationKernel.LifecycleClaim(
+                            outcome.Reservation!)),
+                .. provisionalSplits
+                    .Where(outcome => outcome.Reservation is not null)
+                    .Select(outcome =>
+                        SplitReplicationKernel.LifecycleClaim(
+                            outcome.Reservation!)),
+            ]);
+        ImmutableArray<BoundedChildFabricationReservationOutcome>
+            fabrications = BoundedChildFabricationKernel.FinalizeBatch(
+                provisionalFabrications,
+                blockedOperationIds);
+        ImmutableArray<SplitReplicationReservationOutcome> splits =
+            SplitReplicationKernel.FinalizeBatch(
+                provisionalSplits,
+                blockedOperationIds);
+
+        foreach (BoundedChildFabricationReservationOutcome outcome in
+                 fabrications)
+        {
+            ActionState resolution =
+                resolutions[outcome.Request.SourceActorId];
+            if (outcome.Reservation is not
+                BoundedChildFabricationProvisionalReservation reservation)
+            {
+                resolution.Outcome = outcome.Outcome switch
+                {
+                    BoundedChildFabricationReservationOutcome
+                            .FabricationReservationOutcomeKind.Rejected =>
+                        GenericActorRuntimeActionResolution.ActionOutcome
+                            .Rejected,
+                    BoundedChildFabricationReservationOutcome
+                            .FabricationReservationOutcomeKind.Faulted =>
+                        GenericActorRuntimeActionResolution.ActionOutcome
+                            .Faulted,
+                    _ =>
+                        GenericActorRuntimeActionResolution.ActionOutcome
+                            .Blocked,
+                };
+                continue;
+            }
+
+            _fabricationReservations.Add(reservation);
+            SlotState slot = _slots[
+                (reservation.TargetTeamId, reservation.TargetUnitId)];
+            slot.Kind = SlotKind.FabricationPending;
+            slot.FabricationReservation = reservation;
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.LifecycleQueued,
+                LifecyclePayload(
+                    reservation,
+                    cancellationReason: null),
+                reservation.SourcePosition));
+        }
+
+        foreach (SplitReplicationReservationOutcome outcome in splits)
         {
             ActionState resolution = resolutions[
                 outcome.Request.SourceActorId];
@@ -1394,9 +1589,10 @@ public sealed class GenericActorMatchSession : IDisposable
 
         // Cancellation ordering is one complete joint-fault batch, never one
         // participant transaction at a time: every target-slot clock, then
-        // every replication bundle, then same-life work, then every
-        // active-life retirement.
+        // every fabrication bundle, every replication bundle, same-life work,
+        // then every active-life retirement.
         CancelParticipantClocks(participantSet, events);
+        CancelParticipantFabrications(participantSet, events);
         CancelParticipantSplits(participantSet, events);
         CancelParticipantSameLifeTransitions(
             participantSet,
@@ -1450,6 +1646,7 @@ public sealed class GenericActorMatchSession : IDisposable
             slot.Kind = SlotKind.PermanentlyDormant;
             slot.ActiveLife = null;
             ClearPendingClock(slot);
+            slot.FabricationReservation = null;
             slot.SplitReservation = null;
         }
         foreach (ProjectileState projectile in _projectiles
@@ -1986,6 +2183,8 @@ public sealed class GenericActorMatchSession : IDisposable
                         slot.PendingGeneration!.Value),
             SlotKind.Ready =>
                 new GenericActorRuntimeObservation.UnitSlotState.Ready(),
+            SlotKind.FabricationPending =>
+                FabricationPendingState(slot),
             SlotKind.ReplicationPending =>
                 ReplicationPendingState(slot),
             SlotKind.PermanentlyDormant =>
@@ -1994,6 +2193,23 @@ public sealed class GenericActorMatchSession : IDisposable
             _ => throw new InvalidOperationException(
                 "Unknown stable-slot state."),
         };
+
+    private static GenericActorRuntimeObservation.UnitSlotState
+        FabricationPendingState(SlotState slot)
+    {
+        BoundedChildFabricationProvisionalReservation reservation =
+            slot.FabricationReservation
+            ?? throw new InvalidOperationException(
+                "Pending fabrication slot has no reservation.");
+        return new GenericActorRuntimeObservation.UnitSlotState
+            .FabricationPending(
+                reservation.DueTick,
+                reservation.SourceActorId,
+                reservation.TransitionId,
+                reservation.OperationId,
+                reservation.TargetFormId,
+                reservation.ReservedPosition);
+    }
 
     private static GenericActorRuntimeObservation.UnitSlotState
         ReplicationPendingState(SlotState slot)
@@ -2058,6 +2274,9 @@ public sealed class GenericActorMatchSession : IDisposable
                     || life.Energy >= attack.AttackEnergyCost),
             ActorActionKind.Replication =>
                 MatchingSplitTransitions(life, action.Id).Length == 1,
+            ActorActionKind.Fabrication =>
+                MatchingFabricationTransitions(life, action.Id).Length == 1
+                && FabricationTargets(life, action).Length > 0,
             ActorActionKind.SameLifeTransition =>
                 _sameLife.MatchRoutes(life.FormId, action.Id)
                     .Any(transition => _sameLife.CanQueue(
@@ -2090,15 +2309,17 @@ public sealed class GenericActorMatchSession : IDisposable
                 ActorActionParameterKind.UnitTarget =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .UnitTargetConstraint(
-                            _definition.Topology.UnitSlots
-                                .OrderBy(slot => slot.TeamId)
-                                .ThenBy(slot => slot.UnitId)
-                                .Select(slot =>
-                                    new GenericActorRuntimeActionArgument
-                                        .UnitTarget(
-                                            slot.TeamId,
-                                            slot.UnitId))
-                                .ToImmutableArray()),
+                            action.Kind == ActorActionKind.Fabrication
+                                ? FabricationTargets(life, action)
+                                : _definition.Topology.UnitSlots
+                                    .OrderBy(slot => slot.TeamId)
+                                    .ThenBy(slot => slot.UnitId)
+                                    .Select(slot =>
+                                        new GenericActorRuntimeActionArgument
+                                            .UnitTarget(
+                                                slot.TeamId,
+                                                slot.UnitId))
+                                    .ToImmutableArray()),
                 ActorActionParameterKind.FormTarget =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .FormTargetConstraint(
@@ -2299,6 +2520,54 @@ public sealed class GenericActorMatchSession : IDisposable
         return attackId is null ? null : _attackProfiles[attackId];
     }
 
+    private BoundedChildFabricationDefinition[]
+        MatchingFabricationTransitions(
+            LifeState life,
+            string actionId) =>
+        _definition.Rules.FabricationTransitions
+            .OfType<BoundedChildFabricationDefinition>()
+            .Where(transition =>
+                string.Equals(
+                    transition.ActionId,
+                    actionId,
+                    StringComparison.Ordinal)
+                && transition.SourceFormIds.Contains(
+                    life.FormId,
+                    StringComparer.Ordinal))
+            .OrderBy(
+                transition => transition.TransitionId,
+                StringComparer.Ordinal)
+            .ToArray();
+
+    private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+        FabricationTargets(
+            LifeState life,
+            ActorActionDefinition action)
+    {
+        BoundedChildFabricationDefinition? transition =
+            MatchingFabricationTransitions(life, action.Id)
+                .SingleOrDefault();
+        if (transition is null)
+            return [];
+        return _slots.Values
+            .Where(slot =>
+                slot.Kind == SlotKind.Ready
+                && slot.TeamId == life.ActorId.TeamId
+                && slot.ParticipantId == life.ParticipantId
+                && (slot.TeamId, slot.UnitId)
+                    != (life.ActorId.TeamId, life.ActorId.UnitId)
+                && slot.Assignment.AllowedFormIds.Contains(
+                    transition.OutputFormId,
+                    StringComparer.Ordinal))
+            .OrderBy(slot => slot.TeamId)
+            .ThenBy(slot => slot.UnitId)
+            .Select(slot =>
+                new GenericActorRuntimeActionArgument.UnitTarget(
+                    slot.TeamId,
+                    slot.UnitId))
+            .ToImmutableArray();
+    }
+
     private SplitReplicationTransitionDefinition[]
         MatchingSplitTransitions(
             LifeState life,
@@ -2470,8 +2739,10 @@ public sealed class GenericActorMatchSession : IDisposable
         return false;
     }
 
-    private bool IsReservedSplitTile(Position position) =>
-        _splitReservations.Any(reservation =>
+    private bool IsReservedLifecycleTile(Position position) =>
+        _fabricationReservations.Any(reservation =>
+            reservation.ReservedPosition == position)
+        || _splitReservations.Any(reservation =>
             reservation.Descendants.Any(descendant =>
                 descendant.Position == position));
 
@@ -2611,6 +2882,21 @@ public sealed class GenericActorMatchSession : IDisposable
         slot.PendingParentActorId = null;
     }
 
+    private void ReleaseFabricationTarget(
+        BoundedChildFabricationProvisionalReservation reservation)
+    {
+        SlotState slot = _slots[
+            (reservation.TargetTeamId, reservation.TargetUnitId)];
+        if (slot.Kind == SlotKind.FabricationPending
+            && ReferenceEquals(
+                slot.FabricationReservation,
+                reservation))
+        {
+            slot.Kind = SlotKind.Ready;
+            slot.FabricationReservation = null;
+        }
+    }
+
     private void ReleaseSplitTargets(
         SplitReplicationReservation reservation)
     {
@@ -2694,6 +2980,37 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
+    private void CancelParticipantFabrications(
+        IReadOnlySet<int> participantIds,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (BoundedChildFabricationProvisionalReservation reservation
+                 in _fabricationReservations
+                     .Where(item =>
+                         participantIds.Contains(item.ParticipantId))
+                     .OrderBy(item => item.SourceActorId)
+                     .ThenBy(
+                         item => item.TransitionId,
+                         StringComparer.Ordinal)
+                     .ThenBy(item => item.TargetTeamId)
+                     .ThenBy(item => item.TargetUnitId)
+                     .ThenBy(
+                         item => item.OperationId,
+                         StringComparer.Ordinal)
+                     .ToArray())
+        {
+            _fabricationReservations.Remove(reservation);
+            ReleaseFabricationTarget(reservation);
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.LifecycleCancelled,
+                LifecyclePayload(
+                    reservation,
+                    "participant-disqualified"),
+                reservation.SourcePosition));
+        }
+    }
+
     private void CancelParticipantSplits(
         IReadOnlySet<int> participantIds,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
@@ -2740,6 +3057,41 @@ public sealed class GenericActorMatchSession : IDisposable
             life.HasPriorSameLifeTransition,
             life.PendingSameLifeTransition is not null);
 
+    private static BoundedChildFabricationActorSnapshot
+        FabricationSnapshot(LifeState life) =>
+        new(
+            life.ActorId,
+            life.ParticipantId,
+            life.Generation,
+            life.FormId,
+            life.Position,
+            life.Facing);
+
+    private static BoundedChildFabricationSlotSnapshot
+        FabricationSlotSnapshot(SlotState slot) =>
+        new(
+            slot.TeamId,
+            slot.UnitId,
+            slot.Kind switch
+            {
+                SlotKind.Active =>
+                    BoundedChildFabricationSlotSnapshot
+                        .FabricationSlotState.Active,
+                SlotKind.Ready =>
+                    BoundedChildFabricationSlotSnapshot
+                        .FabricationSlotState.Ready,
+                SlotKind.FabricationPending
+                    or SlotKind.ReplicationPending =>
+                    BoundedChildFabricationSlotSnapshot
+                        .FabricationSlotState.Reserved,
+                SlotKind.PermanentlyDormant =>
+                    BoundedChildFabricationSlotSnapshot
+                        .FabricationSlotState.PermanentlyDormant,
+                _ => BoundedChildFabricationSlotSnapshot
+                    .FabricationSlotState.Unavailable,
+            },
+            slot.ActiveLife?.ActorId);
+
     private SplitReplicationSlotSnapshot SplitSlotSnapshot(
         SlotState slot) =>
         new(
@@ -2751,7 +3103,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     SplitReplicationSlotSnapshot.SplitSlotState.Active,
                 SlotKind.Ready =>
                     SplitReplicationSlotSnapshot.SplitSlotState.Ready,
-                SlotKind.ReplicationPending =>
+                SlotKind.FabricationPending
+                    or SlotKind.ReplicationPending =>
                     SplitReplicationSlotSnapshot.SplitSlotState.Reserved,
                 SlotKind.PermanentlyDormant =>
                     SplitReplicationSlotSnapshot.SplitSlotState
@@ -2843,6 +3196,19 @@ public sealed class GenericActorMatchSession : IDisposable
             life.SourceTransitionId,
             life.SourceOperationId);
     }
+
+    private static GenericActorRuntimeObservation.EventPayload.Lifecycle
+        LifecyclePayload(
+            BoundedChildFabricationProvisionalReservation reservation,
+            string? cancellationReason) =>
+        new(
+            reservation.TransitionId,
+            reservation.OperationId,
+            reservation.SourceActorId,
+            reservation.TargetTeamId,
+            reservation.TargetUnitId,
+            reservation.DueTick,
+            cancellationReason);
 
     private static GenericActorRuntimeObservation.EventPayload.Lifecycle
         LifecyclePayload(
@@ -3127,10 +3493,14 @@ public sealed class GenericActorMatchSession : IDisposable
     private static void ValidateWorldCapabilities(
         ActorResolvedMatchDefinition definition)
     {
-        if (!definition.Rules.FabricationTransitions.IsEmpty)
+        if (definition.Rules.FabricationTransitions
+            .OfType<BoundedChildFabricationDefinition>()
+            .Any(transition =>
+                transition.UnavailablePlacementResult
+                    == ActorActionRejectionResult.Faulted))
         {
             throw new NotSupportedException(
-                "The generic actor match session does not yet execute fabrication transitions.");
+                "The generic actor match session does not support fabrication placement outcomes that fault a participant.");
         }
         if (definition.Topology.InitialLives.Any(life =>
                 life.LifeId != 0)
@@ -3234,8 +3604,9 @@ public sealed class GenericActorMatchSession : IDisposable
         AvailabilityPending = 1,
         AutomaticReturnPending = 2,
         Ready = 3,
-        ReplicationPending = 4,
-        PermanentlyDormant = 5,
+        FabricationPending = 4,
+        ReplicationPending = 5,
+        PermanentlyDormant = 6,
     }
 
     private sealed class SlotState
@@ -3266,6 +3637,9 @@ public sealed class GenericActorMatchSession : IDisposable
         public string? PendingFormId { get; set; }
         public int? PendingGeneration { get; set; }
         public ActorIdentity? PendingParentActorId { get; set; }
+        public BoundedChildFabricationProvisionalReservation?
+            FabricationReservation
+        { get; set; }
         public SplitReplicationReservation? SplitReservation { get; set; }
     }
 

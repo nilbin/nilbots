@@ -82,10 +82,25 @@ internal static class GenericActorContractTestFixture
     }
 
     public static ActorResolvedMatchDefinition WithTransitions(
-        string replicationTransitionId = "split-mobile")
+        string replicationTransitionId = "split-mobile",
+        IReadOnlyList<ActorRelativePositionOffset>?
+            fabricationCandidateOffsets = null,
+        int fabricationDelayTicks = 1,
+        ActorActionRejectionResult fabricationUnavailableResult =
+            ActorActionRejectionResult.Blocked,
+        int mobileMaxHealth = 6,
+        int childMaxHealth = 2,
+        bool includeMovement = false)
     {
         ActorRulesDefinition rules =
-            TransitionRules(replicationTransitionId);
+            TransitionRules(
+                replicationTransitionId,
+                fabricationCandidateOffsets,
+                fabricationDelayTicks,
+                fabricationUnavailableResult,
+                mobileMaxHealth,
+                childMaxHealth,
+                includeMovement);
         ActorMapDefinition map = TransitionMap();
         var topology = new PublicMatchTopology
         {
@@ -309,7 +324,14 @@ internal static class GenericActorContractTestFixture
     }
 
     private static ActorRulesDefinition TransitionRules(
-        string replicationTransitionId)
+        string replicationTransitionId,
+        IReadOnlyList<ActorRelativePositionOffset>?
+            fabricationCandidateOffsets,
+        int fabricationDelayTicks,
+        ActorActionRejectionResult fabricationUnavailableResult,
+        int mobileMaxHealth,
+        int childMaxHealth,
+        bool includeMovement)
     {
         ActorRulesDefinition baseline = Rules(frontline: false);
         var windup = new ActorTransitionWindupDefinition(
@@ -342,20 +364,24 @@ internal static class GenericActorContractTestFixture
             [
                 new ActorFormDefinition(
                     "mobile",
-                    maxHealth: 6,
+                    maxHealth: mobileMaxHealth,
                     "ground",
                     "mobile-vision",
                     "mobile-bolt",
                     objectiveWeight: 0,
-                    ["wait", "shoot", "fabricate", "split"]),
+                    includeMovement
+                        ? ["wait", "move", "shoot", "fabricate", "split"]
+                        : ["wait", "shoot", "fabricate", "split"]),
                 new ActorFormDefinition(
                     "child",
-                    maxHealth: 2,
+                    maxHealth: childMaxHealth,
                     "ground",
                     "mobile-vision",
                     "mobile-bolt",
                     objectiveWeight: 0,
-                    ["wait", "shoot", "anchor"]),
+                    includeMovement
+                        ? ["wait", "move", "shoot", "anchor"]
+                        : ["wait", "shoot", "anchor"]),
                 new ActorFormDefinition(
                     "turret",
                     maxHealth: 5,
@@ -370,6 +396,16 @@ internal static class GenericActorContractTestFixture
             baseline.AttackProfiles,
             [
                 .. baseline.Actions,
+                .. includeMovement
+                    ?
+                    [
+                        new ActorActionDefinition(
+                            "move",
+                            1,
+                            ActorActionKind.Movement,
+                            [ActorActionParameterKind.Direction]),
+                    ]
+                    : Array.Empty<ActorActionDefinition>(),
                 new ActorActionDefinition(
                     "fabricate",
                     100,
@@ -397,9 +433,11 @@ internal static class GenericActorContractTestFixture
                     requiredSourceTileTags: [],
                     requiredOutputTileTags: [],
                     forbiddenOutputTileTags: [],
-                    candidateOffsets: [new(1, 0)],
-                    new ActorFabricationDelayDefinition(1),
-                    ActorActionRejectionResult.Blocked),
+                    candidateOffsets:
+                        fabricationCandidateOffsets ?? [new(1, 0)],
+                    new ActorFabricationDelayDefinition(
+                        fabricationDelayTicks),
+                    fabricationUnavailableResult),
             ],
             [
                 new ActorFormTransitionDefinition(
