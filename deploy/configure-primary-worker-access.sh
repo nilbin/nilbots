@@ -155,8 +155,21 @@ cleanup() {
   rm -f -- "$temporary"
 }
 trap cleanup EXIT
-awk '
-  !($0 ~ /# nilbots-worker$/)
+# Absorb the exact untagged rules written by the original worker bootstrap as
+# well as rules managed by this script. Otherwise the first migration leaves
+# two equivalent entries and cannot prove that its allowlist is exact.
+managed_cidrs=,
+for address in "$@"; do
+  managed_cidrs+="${address}/32,"
+done
+awk -v managed_cidrs="$managed_cidrs" '
+  /# nilbots-worker$/ { next }
+  $1 == "host" &&
+    $2 == "all" &&
+    $3 == "all" &&
+    $5 == "scram-sha-256" &&
+    index(managed_cidrs, "," $4 ",") { next }
+  { print }
 ' "$hba_file" >"$temporary"
 for address in "$@"; do
   printf 'host all all %s/32 scram-sha-256 # nilbots-worker\n' \
