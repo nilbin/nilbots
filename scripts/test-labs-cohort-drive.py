@@ -91,6 +91,16 @@ class LabsCohortDriveTests(unittest.TestCase):
                 )
                 artifact = entrant_root / "built.wasm"
                 artifact.write_bytes(entrant_id.encode("utf-8"))
+                (entrant_root / "smoke").mkdir()
+                (entrant_root / "smoke" / "viewer.html").write_text(
+                    "generated smoke output\n",
+                    encoding="utf-8",
+                )
+                (entrant_root / "evidence").mkdir()
+                (entrant_root / "evidence" / "replay.json").write_text(
+                    "generated evidence\n",
+                    encoding="utf-8",
+                )
                 source_revision = DRIVER._source_tree_sha256(entrant_root)
                 entrants.append(
                     {
@@ -144,6 +154,12 @@ class LabsCohortDriveTests(unittest.TestCase):
             self.assertTrue(
                 (output / "entrants" / "bastion" / "DX.md").is_file()
             )
+            self.assertFalse(
+                (output / "entrants" / "bastion" / "smoke").exists()
+            )
+            self.assertFalse(
+                (output / "entrants" / "bastion" / "evidence").exists()
+            )
             self.assertTrue((output / "run.json").is_file())
             run = json.loads(
                 (output / "run.json").read_text(encoding="utf-8")
@@ -165,6 +181,15 @@ class LabsCohortDriveTests(unittest.TestCase):
             source = entrant_root / "Bot.cs"
             source.write_text("// frozen\n", encoding="utf-8")
             revision = DRIVER._source_tree_sha256(entrant_root)
+            (entrant_root / "smoke").mkdir()
+            (entrant_root / "smoke" / "replay.json").write_text(
+                "generated\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                revision,
+                DRIVER._source_tree_sha256(entrant_root),
+            )
             source.write_text("// changed\n", encoding="utf-8")
 
             self.assertNotEqual(

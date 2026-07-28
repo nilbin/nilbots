@@ -60,8 +60,10 @@ SOURCE_EXCLUDED_DIRS = {
     ".git",
     "__pycache__",
     "bin",
+    "evidence",
     "obj",
     "out",
+    "smoke",
 }
 
 
@@ -110,7 +112,10 @@ def _source_files(root: Path) -> list[Path]:
             for path in root.rglob("*")
             if path.is_file()
             and path.suffix != ".wasm"
-            and not any(part in SOURCE_EXCLUDED_DIRS for part in path.parts)
+            and not any(
+                part in SOURCE_EXCLUDED_DIRS
+                for part in path.relative_to(root).parts
+            )
             and path.name != ".DS_Store"
         ),
         key=lambda path: path.relative_to(root).as_posix(),
@@ -364,8 +369,10 @@ def _copy_entrant(entrant: dict[str, Any], destination: Path) -> Path:
             ".git",
             ".DS_Store",
             "bin",
+            "evidence",
             "obj",
             "out",
+            "smoke",
             "__pycache__",
         ),
     )

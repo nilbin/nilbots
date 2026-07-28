@@ -24,10 +24,11 @@ replace every placeholder, and record the exact checked-out engine commit and
 contract fingerprints, WASM SHA-256 values, and deterministic source-tree
 identities. `sourceTreeSha256` is `sha256:` plus the driver hash of every
 non-WASM authored file's relative path, executable bit, length, and bytes;
-`.git`, compiler outputs, and caches are excluded. `sourceRevision` retains the
-authoring-time revision identity independently. Entrant `root`, `artifact`, and
-`dxReport` paths are relative to that cohort's `cohort.json`; for example, use
-`pressure`, `pressure/bot.wasm`, and `pressure/DX.md`.
+`.git`, compiler outputs, caches, and generated `smoke/` or `evidence/`
+directories are excluded. `sourceRevision` retains the authoring-time revision
+identity independently. Entrant `root`, `artifact`, and `dxReport` paths are
+relative to that cohort's `cohort.json`; for example, use `pressure`,
+`pressure/bot.wasm`, and `pressure/DX.md`.
 
 Canonical evidence belongs under
 `<cohort-id>/evidence/<run-id>/`. The cohort driver copies every source,
