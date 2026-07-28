@@ -6,7 +6,9 @@ test_root="$(mktemp -d)"
 trap 'rm -rf "$test_root"' EXIT
 deploy_root="$test_root/deployment"
 source_root="$test_root/source"
-mkdir -p "$deploy_root/shared/secrets" "$source_root/deploy"
+mkdir -p \
+  "$deploy_root/shared/secrets" \
+  "$source_root/deploy/pgbouncer"
 printf 'BOTARENA_DOMAIN=nilbots.test\n' >"$deploy_root/shared/.env"
 touch \
   "$deploy_root/shared/secrets/openiddict-signing.pfx" \
@@ -16,8 +18,13 @@ cp deploy/install-release.sh "$source_root/deploy/install-release.sh"
 touch \
   "$source_root/deploy/Caddyfile" \
   "$source_root/deploy/compose.production.yml" \
+  "$source_root/deploy/configure-database-env.sh" \
+  "$source_root/deploy/configure-pgbouncer.sh" \
   "$source_root/deploy/init-garage.sh" \
+  "$source_root/deploy/install-primary-maintenance.sh" \
+  "$source_root/deploy/restore-postgres-backup.sh" \
   "$source_root/deploy/worker-inventory.sh"
+touch "$source_root/deploy/pgbouncer/pgbouncer.ini"
 test_log="$test_root/activations"
 export TEST_RELEASE_ACTIVATION_LOG="$test_log"
 
@@ -53,6 +60,7 @@ install_fake_release() {
     "$release_sha" \
     "ghcr.io/nilbin/nilbots-runtime@sha256:$(printf '1%.0s' {1..64})" \
     "ghcr.io/nilbin/nilbots-compiler@sha256:$(printf '2%.0s' {1..64})" \
+    "ghcr.io/nilbin/nilbots-pgbouncer@sha256:$(printf '3%.0s' {1..64})" \
     "$bundle" \
     "$bundle_sha"
 }

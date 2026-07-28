@@ -3,19 +3,22 @@
 This directory is the public-beta production shape from
 [`docs/DEPLOYMENT-SCALING-PLAN.md`](../docs/DEPLOYMENT-SCALING-PLAN.md):
 Caddy, horizontally repeatable web roles, one match worker, compilation
-coordinators, co-located networkless compiler runners, PostgreSQL, and a
-private S3-compatible Garage cluster.
+coordinators, co-located networkless compiler runners, PostgreSQL, a
+primary-only PgBouncer connection pool, and a private S3-compatible Garage
+cluster.
 The application roles remain separate processes of the same modular monolith.
 
 Production currently has one **primary** node and may have any number of
 **worker** nodes:
 
-- the primary is the sole owner of PostgreSQL, Garage, migrations, web ingress,
-  the sole match worker, one web replica, and initial compiler capacity;
+- the primary is the sole owner of PostgreSQL, PgBouncer, Garage, migrations,
+  web ingress, the sole match worker, one web replica, and initial compiler
+  capacity;
 - a worker runs one web replica plus the compilation coordinator and its
   co-located, networkless compiler runner;
-- workers reach PostgreSQL and the S3 gateway on the primary's private HostUp
-  network. They never create their own database or object-store volumes.
+- workers reach PgBouncer and the S3 gateway on the primary's private HostUp
+  network. They never create their own database, pooler, or object-store
+  volumes.
 
 Garage is intentionally not coupled to every compute worker. A later
 high-availability phase will introduce a distinct storage-node role and place
@@ -32,13 +35,14 @@ release installer records
 `primary` or `worker` under `shared/role` and rejects later role changes,
 including during rollback.
 
-Production uses two custom images:
+Production uses three custom images:
 
 - `nilbots-runtime`: web, migrations, match worker, and compilation
   coordinator;
 - `nilbots-compiler`: the unprivileged, offline compiler runner.
+- `nilbots-pgbouncer`: the pinned, unprivileged database connection pooler.
 
-GitHub Actions publishes both to GHCR by immutable digest. It is deliberately
+GitHub Actions publishes all three to GHCR by immutable digest. It is deliberately
 manual-only: no push or pull-request event consumes Actions minutes.
 
 ## Host prerequisites
@@ -51,10 +55,11 @@ manual-only: no push or pull-request event consumes Actions minutes.
 - SSH-key access through a non-root operator account
 
 Docker-published ports can bypass uncomplicated host firewall rules. This
-Compose file publishes Caddy publicly and PostgreSQL on
-`BOTARENA_POSTGRES_BIND_ADDRESS` plus Garage's S3 API on
-`BOTARENA_GARAGE_BIND_ADDRESS`; both default to loopback. Never set either
-value to `0.0.0.0`, `::`, or a public interface. Verify the effective listeners
+Compose file publishes Caddy publicly, PgBouncer on
+`BOTARENA_PGBOUNCER_BIND_ADDRESS`, PostgreSQL on
+`BOTARENA_POSTGRES_BIND_ADDRESS`, and Garage's S3 API on
+`BOTARENA_GARAGE_BIND_ADDRESS`; private services default to loopback. Never set
+one to `0.0.0.0`, `::`, or a public interface. Verify the effective listeners
 and `iptables`/`DOCKER-USER` policy on the VPS.
 
 On a fresh matching VPS, `deploy/provision-host.sh` installs Docker from its
@@ -99,15 +104,15 @@ printf 'GK%s\n' "$(openssl rand -hex 16)" # BOTARENA_S3_ACCESS_KEY
 openssl rand -hex 32 # BOTARENA_S3_SECRET_KEY
 ```
 
-For a multi-host deployment, set `BOTARENA_POSTGRES_BIND_ADDRESS` to the
-database host's private-interface address and set
-`BOTARENA_GARAGE_BIND_ADDRESS` to that host's private address for remote S3
-clients. Permit TCP 5432 and 3900 only from the exact private addresses of
-application nodes and verify that the public address refuses both connections.
-Remote roles use the same database name, database credentials, and S3
-credentials with those stable private endpoints; never route them over the
-public interface. Garage's admin and RPC interfaces stay unpublished until a
-deliberate cross-host storage expansion needs them.
+For a multi-host deployment, set `BOTARENA_PGBOUNCER_BIND_ADDRESS` to the
+primary's private-interface address. Keep
+`BOTARENA_POSTGRES_BIND_ADDRESS` there only during the direct-connection
+rollback window, and set `BOTARENA_GARAGE_BIND_ADDRESS` to the private address
+for remote S3 clients. Permit TCP 6432 (and temporarily 5432) plus 3900 only
+from exact registered-worker addresses. Remote roles use the `botarena`
+transaction alias and `botarena_session` notification alias with the same
+credentials; never route them over the public interface. Garage's admin and
+RPC interfaces stay unpublished until a deliberate storage expansion.
 
 ## Adding a worker VPS
 
@@ -161,9 +166,10 @@ The bootstrap performs the full host and fleet setup:
   writing them to the invoking workstation;
 - binds Kestrel only to the new worker's private address and permits port 8080
   only from the primary private address;
-- proves PostgreSQL and Garage connectivity over the private network;
-- installs one exact `/32` SCRAM PostgreSQL rule for the worker and validates
-  PostgreSQL's parsed rule view after reloading it;
+- proves PgBouncer and Garage connectivity over the private network;
+- installs a reboot-persistent exact `/32` Docker firewall admission for
+  PgBouncer and the temporary PostgreSQL rollback port, plus a matching SCRAM
+  PostgreSQL HBA rule;
 - disables root SSH only after operator access works; and
 - records the verified SSH host key, deployment target, and private endpoint in
   the primary's non-secret `shared/workers.tsv`.
@@ -178,7 +184,7 @@ known-host secret.
 already-provisioned passwordless-sudo operator without reinstalling the OS
 packages. The HostUp wrapper uses it when resuming a drained node.
 `--no-register` prepares and verifies a disposable node without granting
-PostgreSQL access or placing it behind Caddy or future releases.
+database access or placing it behind Caddy or future releases.
 
 The `xs-smoke` size profile is for cheaply rehearsing provisioning, networking,
 web startup, release installation, and removal. It is not evidence that a
@@ -195,8 +201,8 @@ bash deploy/unregister-worker.sh \
 
 This removes the node from the inventory, immediately recreates Caddy without
 its upstream, gracefully stops its web/compiler containers, and revokes its
-exact PostgreSQL rule. The VPS, Docker volumes, cached images, release files,
-private-network interface, and disk remain intact.
+exact database firewall/HBA rules. The VPS, Docker volumes, cached images,
+release files, private-network interface, and disk remain intact.
 
 For a HostUp PAYG worker, power it off only after that drain:
 
@@ -226,7 +232,7 @@ unset HOSTUP_API_KEY
 ```
 
 The adopted path revalidates SSH, networking, secrets, and firewalls, restores
-the exact PostgreSQL grant and inventory entry, starts the already-cached
+the exact database grant and inventory entry, starts the already-cached
 current release, waits for health, and only then refreshes Caddy. If a provider
 ever changes the public address, the stable VPS ID resolves its current public
 IP and the inventory upsert records the replacement SSH target and host key.
@@ -328,8 +334,10 @@ change is therefore a two-run release on the same commit: `publish-cli`, then
 the already-published compatible CLI.
 
 The bundle installer validates the bundle hash and immutable GHCR digests.
-The primary deploy script then starts PostgreSQL, takes and validates a local
-pre-release database dump, drains its workers, runs the one-shot
+The primary deploy script then starts PostgreSQL, installs
+`pg_stat_statements`, derives PgBouncer's SCRAM file without exposing the
+password, synchronizes exact worker firewall rules, starts PgBouncer, takes
+and validates a local pre-release database dump, drains its workers, runs the one-shot
 migration/seeding role, waits for the compiler runner, web, and workers, and
 then starts Caddy. Worker deployments activate the web replica and compiler
 roles while preserving the deliberate single match-worker production default.
@@ -375,15 +383,22 @@ documents a safe downgrade.
 Create a PostgreSQL custom-format backup in an absolute directory:
 
 ```bash
-bash deploy/backup-postgres.sh /absolute/path/synced-off-this-vps
+bash deploy/backup-postgres.sh /absolute/local/path
 ```
 
-The command only creates and validates the local dump. A scheduled job must
-copy it to another provider/location and alert on failure. Garage's four
-persistent volumes, including LMDB metadata snapshots, also need an off-host
-backup. The three storage nodes are co-located and therefore do not protect
-against loss of the VPS. Run a restore rehearsal into a disposable deployment
-at least quarterly.
+Primary releases install a persistent systemd timer for nightly dumps and a
+weekly disposable restore rehearsal. Pre-deploy and scheduled dumps share a
+bounded retention count (`BOTARENA_LOCAL_BACKUPS`, default 32). Rehearse a
+specific dump manually with:
+
+```bash
+bash deploy/restore-postgres-backup.sh /absolute/local/path/botarena-TIMESTAMP.dump
+```
+
+These local recovery points help with bad migrations and operator mistakes.
+The owner has explicitly accepted that loss of the primary VPS may lose
+PostgreSQL, the dumps, and co-located Garage together; off-site backup remains
+a later value-triggered upgrade.
 
 The legacy `objectdata` volume remains mounted during the first S3 release as
 the idempotent migration source and an immediate rollback aid. New writes after
@@ -397,6 +412,7 @@ release=/srv/nilbots/deployment/current/deploy
 docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 web
 docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 match-worker
 docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 compile-worker
+docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 pgbouncer
 docker compose --env-file "$release/.env" -f "$release/compose.production.yml" logs --tail=200 garage-gateway
 docker compose --env-file "$release/.env" -f "$release/compose.production.yml" exec garage-gateway \
   /garage bucket info nilbots

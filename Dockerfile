@@ -1,6 +1,35 @@
 # nilbots images. `runtime` serves web/match/migrate/coordinator roles without
 # a compiler; `compiler` adds the pinned C#→WASM toolchain and runs entirely as
-# the unprivileged botbuild account.
+# the unprivileged botbuild account. `pgbouncer` builds the official, checksummed
+# PgBouncer source into the small proxy image used by the primary node.
+
+FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40 AS pgbouncer-build
+ARG PGBOUNCER_VERSION=1.25.2
+ARG PGBOUNCER_SHA256=924ad35113fd0a71c8e2dbe85b5d03445532e2b7b37a9f8a48983beea238b332
+RUN apk add --no-cache \
+      build-base ca-certificates c-ares-dev curl libevent-dev linux-headers \
+      openssl-dev pkgconf \
+    && curl -fsSLo /tmp/pgbouncer.tar.gz \
+      "https://www.pgbouncer.org/downloads/files/${PGBOUNCER_VERSION}/pgbouncer-${PGBOUNCER_VERSION}.tar.gz" \
+    && echo "${PGBOUNCER_SHA256}  /tmp/pgbouncer.tar.gz" | sha256sum -c - \
+    && mkdir /tmp/pgbouncer \
+    && tar -xzf /tmp/pgbouncer.tar.gz -C /tmp/pgbouncer --strip-components=1 \
+    && cd /tmp/pgbouncer \
+    && ./configure --prefix=/usr --with-cares --with-openssl \
+    && make -j"$(getconf _NPROCESSORS_ONLN)" pgbouncer \
+    && install -D -m 755 pgbouncer /out/usr/bin/pgbouncer
+
+FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40 AS pgbouncer
+RUN apk add --no-cache ca-certificates c-ares libevent openssl postgresql-client tini \
+    && addgroup -S -g 1654 pgbouncer \
+    && adduser -S -D -H -u 1654 -G pgbouncer pgbouncer \
+    && mkdir -p /etc/pgbouncer \
+    && chown pgbouncer:pgbouncer /etc/pgbouncer
+COPY --from=pgbouncer-build /out/usr/bin/pgbouncer /usr/bin/pgbouncer
+USER pgbouncer
+EXPOSE 6432
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/usr/bin/pgbouncer", "/etc/pgbouncer/pgbouncer.ini"]
 
 FROM ubuntu:24.04 AS web
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates gnupg \

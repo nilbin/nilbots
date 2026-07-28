@@ -120,8 +120,13 @@ bash deploy/render-worker-env.sh \
   xs-smoke >"$xs_env"
 
 grep -qx 'BOTARENA_DB_HOST=10.201.128.10' "$standard_env"
+grep -qx 'BOTARENA_PGBOUNCER_HOST=10.201.128.10' "$standard_env"
+grep -qx 'BOTARENA_DB_PORT=6432' "$standard_env"
+grep -qx 'BOTARENA_DB_NAME=botarena' "$standard_env"
+grep -qx 'BOTARENA_NOTIFICATION_DB_NAME=botarena_session' "$standard_env"
 grep -qx 'BOTARENA_S3_ENDPOINT=http://10.201.128.10:3900' "$standard_env"
 grep -qx 'BOTARENA_WEB_BIND_ADDRESS=10.201.128.12' "$standard_env"
+grep -qx 'BOTARENA_WEB_INSTANCE_ID=web-compile-worker-3' "$standard_env"
 grep -qx 'BOTARENA_COMPILE_CPUS=1.25' "$standard_env"
 grep -qx 'BOTARENA_NETWORK_HASH_KEY=certificate-secret' "$standard_env"
 grep -qx 'BOTARENA_COMPILE_MEMORY=1g' "$xs_env"
@@ -140,6 +145,31 @@ if bash deploy/render-worker-env.sh \
   echo "public primary application address unexpectedly passed validation" >&2
   exit 1
 fi
+
+legacy_primary_env="$test_root/legacy-primary.env"
+printf '%s\n' \
+  'POSTGRES_PASSWORD=test' \
+  'BOTARENA_DB_HOST=db' \
+  'BOTARENA_POSTGRES_BIND_ADDRESS=10.201.128.10' \
+  >"$legacy_primary_env"
+chmod 600 "$legacy_primary_env"
+bash deploy/configure-database-env.sh primary "$legacy_primary_env" >/dev/null
+grep -qx 'BOTARENA_DB_HOST=db' "$legacy_primary_env"
+grep -qx 'BOTARENA_PGBOUNCER_HOST=pgbouncer' "$legacy_primary_env"
+grep -qx 'BOTARENA_PGBOUNCER_BIND_ADDRESS=10.201.128.10' "$legacy_primary_env"
+grep -qx 'BOTARENA_DB_PORT=6432' "$legacy_primary_env"
+grep -qx 'BOTARENA_NOTIFICATION_DB_NAME=botarena_session' "$legacy_primary_env"
+
+legacy_worker_env="$test_root/legacy-worker.env"
+printf '%s\n' \
+  'POSTGRES_PASSWORD=test' \
+  'BOTARENA_DB_HOST=10.201.128.10' \
+  >"$legacy_worker_env"
+chmod 600 "$legacy_worker_env"
+bash deploy/configure-database-env.sh worker "$legacy_worker_env" >/dev/null
+grep -qx 'BOTARENA_DB_HOST=10.201.128.10' "$legacy_worker_env"
+grep -qx 'BOTARENA_PGBOUNCER_HOST=10.201.128.10' "$legacy_worker_env"
+grep -qx 'BOTARENA_DB_PORT=6432' "$legacy_worker_env"
 
 for script in \
   deploy/bootstrap-hostup-worker.sh \

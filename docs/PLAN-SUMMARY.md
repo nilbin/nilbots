@@ -110,12 +110,17 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   bots/submissions/challenges, PostgreSQL-backed compile and match jobs,
   stable artifact/replay object keys, and the SPA. Explicit web, compile,
   match, and migration roles share the same model without becoming services.
-- `deploy/` — the scale-ready single-VPS baseline: Caddy, role-separated
-  Docker Compose, commit-tagged images, provisioned certificates, a one-shot
+- `deploy/` — the scale-ready multi-VPS baseline: primary Caddy/stateful
+  services, inventory-driven web/compile workers, role-separated Docker
+  Compose, commit-tagged images, provisioned certificates, a one-shot
   migration, private Garage S3 storage at replication factor 3, and
   repository-free versioned deployment bundles plus backup/deploy runbooks.
-  Garage replicas remain co-located until additional VPS nodes justify a
-  private multi-zone layout.
+  Garage replicas remain co-located until additional physical failure domains
+  justify a private multi-zone layout. Primary-only PgBouncer provides bounded
+  transaction and notification-session pools, PostgreSQL loads
+  `pg_stat_statements`, and nightly local dumps are restored weekly into a
+  disposable database. Off-site recovery is deliberately deferred; follow
+  [`POSTGRESQL-OPERATIONS-PLAN.md`](POSTGRESQL-OPERATIONS-PLAN.md).
 - `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into. One normalized model
   preserves replay v1 and presents internal Frontline replay v2 through the

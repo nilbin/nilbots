@@ -157,6 +157,11 @@ fi
 
 echo "Verifying operator SSH before root access is disabled..."
 ssh "${new_host_ssh_options[@]}" "$worker_target" true
+ssh "${new_host_ssh_options[@]}" "$worker_target" \
+  "if ! command -v psql >/dev/null 2>&1; then
+     sudo env DEBIAN_FRONTEND=noninteractive apt-get update
+     sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client
+   fi"
 
 echo "Synchronizing the primary's operator and GitHub deployment public keys..."
 ssh "${ssh_options[@]}" "$primary_target" \
@@ -252,6 +257,23 @@ run_worker_root_script \
   "$operator" \
   8080
 
+if [[ "$register" == "1" ]]; then
+  echo "Granting exact-address PgBouncer and PostgreSQL access on the primary..."
+  primary_access_added=0
+  cleanup_primary_access() {
+    if [[ "$primary_access_added" == "1" ]]; then
+      ssh "${ssh_options[@]}" "$primary_target" \
+        "$(remote_command sudo bash -s -- remove "$worker_private_ip")" \
+        <"$deploy_dir/configure-primary-worker-access.sh" || true
+    fi
+  }
+  trap cleanup_primary_access EXIT
+  ssh "${ssh_options[@]}" "$primary_target" \
+    "$(remote_command sudo bash -s -- add "$worker_private_ip")" \
+    <"$deploy_dir/configure-primary-worker-access.sh"
+  primary_access_added=1
+fi
+
 echo "Running worker hardening, secret-boundary, and private-network preflight..."
 verify_command="$(
   remote_command \
@@ -272,21 +294,6 @@ if ssh "${ssh_options[@]}" "root@$worker_host" true 2>/dev/null; then
 fi
 
 if [[ "$register" == "1" ]]; then
-  echo "Granting exact-address PostgreSQL access on the primary..."
-  primary_access_added=0
-  cleanup_primary_access() {
-    if [[ "$primary_access_added" == "1" ]]; then
-      ssh "${ssh_options[@]}" "$primary_target" \
-        "$(remote_command sudo bash -s -- remove "$worker_private_ip")" \
-        <"$deploy_dir/configure-primary-worker-access.sh" || true
-    fi
-  }
-  trap cleanup_primary_access EXIT
-  ssh "${ssh_options[@]}" "$primary_target" \
-    "$(remote_command sudo bash -s -- add "$worker_private_ip")" \
-    <"$deploy_dir/configure-primary-worker-access.sh"
-  primary_access_added=1
-
   echo "Registering the verified worker in the primary's non-secret fleet inventory..."
   read -r host_key_type host_key_base64 _ < <(
     ssh "${new_host_ssh_options[@]}" "$worker_target" \

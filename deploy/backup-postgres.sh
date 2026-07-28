@@ -3,7 +3,7 @@ set -euo pipefail
 
 deploy_dir="$(cd "$(dirname "$0")" && pwd)"
 if [[ $# -ne 1 || "$1" != /* ]]; then
-  echo "usage: $0 /absolute/off-host-synced/backup/directory" >&2
+  echo "usage: $0 /absolute/local/backup/directory" >&2
   exit 2
 fi
 if [[ ! -f "$deploy_dir/.env" ]]; then
@@ -27,4 +27,29 @@ if [[ ! -s "$temporary" ]]; then
 fi
 mv "$temporary" "$backup"
 chmod 600 "$backup"
+touch "$backup_dir/latest-success"
+chmod 600 "$backup_dir/latest-success"
+
+configured_keep="$(
+  awk -F= '$1 == "BOTARENA_LOCAL_BACKUPS" {
+    sub(/^[^=]*=/, "")
+    print
+    exit
+  }' "$deploy_dir/.env"
+)"
+keep="${BOTARENA_LOCAL_BACKUPS:-${configured_keep:-32}}"
+[[ "$keep" =~ ^[1-9][0-9]{0,3}$ ]] ||
+  { echo "BOTARENA_LOCAL_BACKUPS must be between 1 and 9999" >&2; exit 1; }
+backups=()
+while IFS= read -r backup_name; do
+  [[ -z "$backup_name" ]] || backups+=("$backup_name")
+done < <(
+  find "$backup_dir" -maxdepth 1 -type f \
+    -name 'botarena-????????T??????Z.dump' -printf '%f\n' |
+    sort -r
+)
+for ((index = keep; index < ${#backups[@]}; index++)); do
+  rm -- "$backup_dir/${backups[$index]}"
+done
+
 echo "$backup"

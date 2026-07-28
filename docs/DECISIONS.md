@@ -2141,6 +2141,49 @@ The native HostedViewer remains unchanged until its host bridge owns an explicit
 activation and control contract. Because the approved cues change every self-contained
 replay viewer, the CLI package advances to 0.6.1 under the existing release-order guard.
 
+## 132. PgBouncer is the private application connection boundary, with a separate session alias for notifications
+
+Every application process owns an independent Npgsql pool, so adding otherwise
+stateless web and worker nodes can multiply potential PostgreSQL connections
+past the primary's fixed budget. PgBouncer runs beside PostgreSQL on the
+primary and expose only private port 6432 to exact registered-worker addresses.
+Ordinary EF Core, compile, and match traffic uses a bounded transaction-pooled
+`botarena` alias. The one PostgreSQL notification listener in each web process
+uses a `botarena_session` alias mapped to the same database in session mode,
+because transaction pooling cannot preserve `LISTEN`.
+
+Migrations, backups, and administration remain direct inside the primary's
+Compose network. A mixed-version deployment keeps exact-address worker access
+to 5432 only for the compatibility and rollback window; after every active
+release uses PgBouncer, raw PostgreSQL is closed to workers and their direct HBA
+rules are removed. This adds connection fan-in and backpressure, not database
+high availability. PostgreSQL stays a single primary until measured recovery,
+contention, or availability requirements justify moving it.
+
+`pg_stat_statements` is the only PostgreSQL extension adopted with this work.
+Audit logging, database cron, partition management, PITR tooling, exporters,
+and a full metrics stack remain explicit measured promotions. Backup
+correctness and a restore rehearsal outrank those deferred additions; paid
+off-site storage remains a separately triggered promotion. The executable
+rollout and rollback checklist lives in
+`docs/POSTGRESQL-OPERATIONS-PLAN.md`.
+
+## 133. Off-site backups are a value-triggered promotion, with primary-host loss accepted during the hobby phase
+
+Nilbots keeps scheduled, capacity-bounded local PostgreSQL dumps
+and rehearse restoring them, but will not yet pay for off-site backup storage.
+This protects against bad migrations and accidental logical deletion; it does
+not protect against loss or corruption of the primary VPS or disk. PostgreSQL,
+the local dumps, and the currently co-located Garage replicas may therefore be
+lost together, and that risk is explicitly accepted while production history
+is cheap to recreate.
+
+Encrypted backups in a different provider or failure domain become required
+before a public competition, payments, valuable user-generated history, a
+database move, or whenever losing the primary costs more than recurring backup
+storage. Point-in-time recovery through pgBackRest or WAL-G remains a later RPO
+decision rather than a prerequisite for the current local-dump baseline.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
