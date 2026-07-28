@@ -45,7 +45,7 @@ test('an eligible Labs panel opens match setup through the shared Play composer'
     ],
   });
 
-  assert.match(markup, /Labs · unranked/);
+  assert.match(markup, /Labs experiments · unranked/);
   assert.match(markup, /Frontline Labs/);
   assert.match(markup, /Run lab match/);
   assert.doesNotMatch(markup, /Ranked set|FIGHT FOR RATING/);

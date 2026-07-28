@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { botLook } from '../../render/arenaThemes';
 import type { StoreCategory, StorePack } from '../api';
 import { useAuth } from '../auth';
@@ -6,6 +6,7 @@ import { BOT_LOOK_KIND, PROJECTILE_LOOK_KIND } from '../cosmetics';
 import { useStore } from '../queries';
 import { LookMark } from '../components/CosmeticUnlocks';
 import { ErrorState, LoadingState } from '../components/StateView';
+import { internalReturnTarget, type ReturnTarget } from '../returnTarget';
 
 /**
  * The commercial catalogue.
@@ -16,7 +17,15 @@ import { ErrorState, LoadingState } from '../components/StateView';
  */
 export default function ShopPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const store = useStore();
+  const returnTarget = internalReturnTarget(location.state, {
+    to: '/garage',
+    label: 'Garage',
+  });
+  const appearanceReturn = returnTarget.to.endsWith('/appearance')
+    ? returnTarget
+    : null;
 
   if (store.isPending) return <LoadingState label="Loading the shop…" />;
   if (store.isError)
@@ -36,7 +45,14 @@ export default function ShopPage() {
             inside a fight.
           </p>
         </div>
-        {!store.data.open && <span className="pill">Checkout coming soon</span>}
+        <span className="flex flex-wrap items-center gap-2">
+          {appearanceReturn && (
+            <Link to={appearanceReturn.to} className="btn">
+              ← {appearanceReturn.label} appearance
+            </Link>
+          )}
+          {!store.data.open && <span className="pill">Checkout coming soon</span>}
+        </span>
       </header>
 
       {!store.data.open && (
@@ -47,12 +63,18 @@ export default function ShopPage() {
           <Link
             to={
               user
-                ? '/garage'
-                : `/login?returnUrl=${encodeURIComponent('/garage')}`
+                ? returnTarget.to
+                : `/login?returnUrl=${encodeURIComponent(returnTarget.to)}`
             }
             className="text-link"
           >
-            {user ? 'Choose a bot in your Garage' : 'Sign in to open your Garage'}
+            {user
+              ? appearanceReturn
+                ? `Return to ${appearanceReturn.label}'s appearance`
+                : 'Choose a bot in your Garage'
+              : appearanceReturn
+                ? `Sign in to return to ${appearanceReturn.label}'s appearance`
+                : 'Sign in to open your Garage'}
           </Link>
           .
         </p>
@@ -70,6 +92,7 @@ export default function ShopPage() {
             category={category}
             open={store.data.open}
             signedIn={Boolean(user)}
+            appearanceReturn={appearanceReturn}
           />
         ))
       )}
@@ -81,10 +104,12 @@ function Shelf({
   category,
   open,
   signedIn,
+  appearanceReturn,
 }: {
   category: StoreCategory;
   open: boolean;
   signedIn: boolean;
+  appearanceReturn: ReturnTarget | null;
 }) {
   if (category.packs.length === 0) return null;
 
@@ -101,6 +126,7 @@ function Shelf({
             pack={pack}
             open={open}
             signedIn={signedIn}
+            appearanceReturn={appearanceReturn}
           />
         ))}
       </ul>
@@ -112,10 +138,12 @@ function Pack({
   pack,
   open,
   signedIn,
+  appearanceReturn,
 }: {
   pack: StorePack;
   open: boolean;
   signedIn: boolean;
+  appearanceReturn: ReturnTarget | null;
 }) {
   const settled = pack.owned && !pack.repeatable;
   const canEquip =
@@ -155,11 +183,16 @@ function Pack({
       </span>
       <span className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
         {canEquip ? (
-          <Link to="/garage" className="btn w-full sm:w-auto">
-            Choose a bot
+          <Link
+            to={appearanceReturn?.to ?? '/garage'}
+            className="btn w-full sm:w-auto"
+          >
+            {appearanceReturn
+              ? `Equip on ${appearanceReturn.label}`
+              : 'Choose a bot'}
           </Link>
         ) : checkout ? (
-          <a href={checkout.href} className="btn btn-on w-full sm:w-auto">
+          <a href={checkout.href} className="btn btn-strong w-full sm:w-auto">
             Buy
           </a>
         ) : open && !signedIn ? (

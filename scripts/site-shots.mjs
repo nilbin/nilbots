@@ -37,6 +37,23 @@ const pages = [
       await page.getByLabel('Ranked set allowance').waitFor();
     },
   ],
+  [
+    'arena-global-challenge',
+    '/',
+    async (page) => {
+      await page.getByRole('button', { name: 'Play', exact: true }).click();
+      await page
+        .locator('label.choice-card')
+        .filter({ hasText: 'Pincer gen-10' })
+        .click();
+      await page
+        .getByRole('button', { name: /^Challenge/ })
+        .click();
+      await page
+        .getByRole('group', { name: 'Choose opponent' })
+        .waitFor();
+    },
+  ],
   ['bots', '/bots'],
   ['watch', '/watch'],
   [
@@ -49,7 +66,7 @@ const pages = [
     '/bots/pincer-gen-10',
     async (page) => {
       await page
-        .getByRole('button', { name: 'Ranked set', exact: true })
+        .getByRole('button', { name: /^Ranked set with / })
         .click();
       await page.getByLabel('Ranked set allowance').waitFor();
     },
@@ -59,7 +76,7 @@ const pages = [
     '/bots/pincer-gen-10?review=ranked-capped',
     async (page) => {
       await page
-        .getByRole('button', { name: 'Ranked set', exact: true })
+        .getByRole('button', { name: /^Ranked set with / })
         .click();
       await page
         .getByText('Daily allowance used.', { exact: false })
@@ -71,17 +88,58 @@ const pages = [
     '/bots/warden-gen-1',
     async (page) => {
       await page
-        .getByRole('button', { name: 'Challenge', exact: true })
+        .getByRole('button', { name: /^Challenge / })
         .click();
       await page.getByLabel('Challenge allowance').waitFor();
+    },
+  ],
+  [
+    'arena-challenge-ready',
+    '/bots/warden-gen-1',
+    async (page) => {
+      await page
+        .getByRole('button', { name: /^Challenge / })
+        .click();
+      await page
+        .locator('label.choice-card')
+        .filter({ hasText: 'Pincer gen-10' })
+        .click();
+      await page
+        .getByRole('button', {
+          name: 'Start Pincer gen-10 vs Warden gen-1',
+        })
+        .waitFor();
     },
   ],
   ['match-completed', '/matches/30000000-0000-4000-8000-000000000001'],
   ['match-live', '/matches/30000000-0000-4000-8000-000000000002'],
   ['match-failed', '/matches/30000000-0000-4000-8000-000000000003'],
   ['ranked-set', '/sets/40000000-0000-4000-8000-000000000001'],
+  ['garage', '/garage'],
   ['firstrun', '/garage?review=first-run'],
   ['bot-appearance', '/bots/pincer-gen-10/appearance'],
+  [
+    'bot-appearance-dirty',
+    '/bots/pincer-gen-10/appearance',
+    async (page) => {
+      await page
+        .getByRole('button', { name: 'Ion Orb, unlocked' })
+        .click();
+    },
+  ],
+  [
+    'shop-from-appearance',
+    '/bots/pincer-gen-10/appearance',
+    async (page) => {
+      await page
+        .getByRole('link', { name: /Helio Kite pack/ })
+        .first()
+        .click();
+      await page
+        .getByRole('link', { name: /Pincer gen-10 appearance/ })
+        .waitFor();
+    },
+  ],
   ['shop', '/store'],
   ['docs', '/docs'],
   ['not-found', '/not-a-real-route'],

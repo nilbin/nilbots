@@ -13,7 +13,7 @@ export default function CurrentLadderStanding({
         (standing ? 'border-arena-edge2 bg-arena-raise' : '')
       }
     >
-      <h2 className="lab">Current ladder</h2>
+      <h2 className="lab">Duel standing</h2>
       {standing ? (
         <>
           <strong className="type-display tabular text-[22px] text-arena-text">
@@ -37,12 +37,12 @@ export default function CurrentLadderStanding({
         <>
           <strong className="t-body font-semibold text-arena-text">Unranked</strong>
           <span className="t-meta">
-            No completed ranked set on the current ladder yet.
+            No completed ranked set on the live Duel ladder yet.
           </span>
         </>
       )}
       <Link to="/" className="t-meta ml-auto text-link">
-        View rankings
+        View Duel rankings
       </Link>
     </section>
   );

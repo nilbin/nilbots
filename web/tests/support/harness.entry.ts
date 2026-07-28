@@ -24,4 +24,9 @@ export {
 export { buildActors } from '../../src/render3d/arenaActors';
 export { buildOverlays } from '../../src/render3d/arenaOverlays';
 export { default as LabsPanel } from '../../src/site/components/LabsPanel';
-export { ArenaActionProvider } from '../../src/site/components/ArenaAction';
+export {
+  arenaModeParticipantsReady,
+  ArenaActionProvider,
+  defaultChallengeContextRole,
+  resolveChallengeParticipants,
+} from '../../src/site/components/ArenaAction';

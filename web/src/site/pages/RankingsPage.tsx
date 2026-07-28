@@ -21,9 +21,9 @@ import { styleVariables } from '../../presentation/styleVariables';
  * on every row, so the eye has to re-find each one. Tabular figures let a column be
  * scanned instead of read.
  *
- * Season dates, movement, history and per-ladder records are absent because the generated
- * leaderboard response does not own them. They should arrive as typed data rather than
- * dormant presentation branches or review-only properties.
+ * A season may contain several playlist-specific ladders. The compatibility response only
+ * exposes one flat family of legacy Duel standings, so this screen scopes itself to Duel
+ * rather than pretending it can render the missing season hierarchy.
  */
 
 export default function RankingsPage() {
@@ -73,25 +73,25 @@ export default function RankingsPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <p className="lab mb-2">
-        Ranked arena · {closed ? 'Archived ladder' : 'Current ladder'}
+        Ranked Duel · {closed ? 'Archived standings' : 'Live ladder'}
       </p>
       <h1 className="type-display mb-2 text-[30px]">Rankings</h1>
       <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
-        Ranked sets move each bot&apos;s rating on the current ladder. Run several bots
-        side by side, compare where they settle, or open an archived ladder to revisit
-        earlier standings.
+        These are the Duel standings. Ranked sets move each bot&apos;s rating on this
+        ladder; other competitive playlists can have their own ladder within the same
+        season.
       </p>
 
       {closed && (
         <p className="panel-quiet t-body mb-4 max-w-[62ch] border-l-2 border-l-arena-edge2 px-3 py-2 text-arena-dim">
-          This ladder is <b className="text-arena-text">closed</b>. Its standings are
-          final; new ranked sets enter the current ladder.
+          These Duel standings are <b className="text-arena-text">closed</b>. Their
+          positions are final; new Duel sets enter the live ladder.
         </p>
       )}
 
       {board !== null && board.ladders.length > 1 && (
         <label className="lab mb-4 flex max-w-xs flex-col gap-1.5">
-          Standings
+          Duel ladder
           <select
             value={board.rulesVersion}
             onChange={(event) =>
@@ -189,7 +189,7 @@ export default function RankingsPage() {
 
           <section className="panel">
             <div className="pad flex flex-wrap items-center justify-between gap-2.5 pb-0">
-              <h2 className="lab">Ranked ladder · {entries.length} bots</h2>
+              <h2 className="lab">Duel ladder · {entries.length} bots</h2>
               <div className="flex flex-wrap items-center gap-1.5">
                 {fleet.length > 0 && (
                   <Control pressed={mineActive} onClick={() => setMineOnly(!mineActive)}>
@@ -301,29 +301,31 @@ export default function RankingsPage() {
 /**
  * The line above the fleet.
  *
- * Competition metadata does not reach this endpoint yet, so the heading says only what the
- * payload proves: whether these standings are live or archived, and how many are yours.
+ * Competition metadata does not reach this endpoint yet, so the heading says only what
+ * the payload proves: whether these Duel standings are live or archived, and how many are
+ * yours.
  */
 function headerLine(
   archived: boolean,
   owned: number,
 ) {
   const yours = `your ${owned} ranked ${owned === 1 ? 'bot' : 'bots'}`;
-  return `${archived ? 'Archived ladder' : 'Current ladder'} · ${yours}`;
+  return `${archived ? 'Archived Duel standings' : 'Live Duel ladder'} · ${yours}`;
 }
 
 /**
- * The compatibility endpoint exposes opaque-to-players rules strings instead of season
- * names. Give the controls stable, useful labels without pretending those strings are
- * product names. Real season labels replace this adapter when the ladder API lands.
+ * The compatibility endpoint exposes opaque-to-players rules strings without season or
+ * playlist identity. Give the controls useful Duel-scoped labels without pretending the
+ * values describe a season. Real season and ladder names replace this adapter when the
+ * competition API lands.
  */
 function ladderChoiceLabel(
   ladder: string,
   active: string,
   ladders: readonly string[],
 ) {
-  if (ladder === active) return 'Current ladder';
+  if (ladder === active) return 'Live Duel ladder';
   const archives = ladders.filter((candidate) => candidate !== active);
-  if (archives.length === 1) return 'Previous ladder';
-  return `Archive ${archives.indexOf(ladder) + 1}`;
+  if (archives.length === 1) return 'Archived Duel standings';
+  return `Archived Duel standings ${archives.indexOf(ladder) + 1}`;
 }

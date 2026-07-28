@@ -205,7 +205,39 @@ html[data-arena-mode='viewer'] #root {
     position: fixed;
     margin: auto;
     max-height: min(680px, calc(100dvh - 32px));
+    overflow: hidden;
     overscroll-behavior: contain;
+  }
+  .arena-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .arena-dialog > header {
+    flex: none;
+  }
+  .arena-form {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+  .arena-form-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .arena-form-body > * {
+    flex: none;
+  }
+  .arena-form-submit {
+    flex: none;
+    border-top: 1px solid var(--color-arena-edge);
+    background: var(--color-arena-panel);
+    padding: 10px 14px 12px;
   }
   .arena-dialog::backdrop {
     background: rgb(0 0 0 / 0.7);
@@ -217,6 +249,16 @@ html[data-arena-mode='viewer'] #root {
       width: auto;
       max-height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
       margin: 0;
+    }
+    .appearance-save-dock {
+      position: fixed;
+      inset: auto 12px calc(3.5rem + env(safe-area-inset-bottom) + 8px);
+      z-index: 30;
+    }
+  }
+  @media (min-width: 640px) {
+    .appearance-save-dock {
+      display: none;
     }
   }
   .pad {
@@ -257,10 +299,21 @@ html[data-arena-mode='viewer'] #root {
     color: var(--color-arena-text);
     border-radius: 3px;
     padding: 5px 11px;
-    transition: border-color 150ms, color 150ms;
+    transition:
+      border-color 150ms,
+      color 150ms,
+      background-color 150ms,
+      transform 120ms;
   }
   .btn:hover:not(:disabled) {
     border-color: var(--color-arena-edge2);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--color-arena-text);
+    outline-offset: 2px;
   }
   .btn:disabled {
     color: var(--color-arena-dim);
@@ -269,6 +322,146 @@ html[data-arena-mode='viewer'] #root {
   .btn-on {
     border-color: var(--color-arena-edge2);
     background: var(--color-arena-raise);
+  }
+
+  /* Actions should not read like document controls. These surfaces are reserved for
+     choosing, deploying and buying; records and navigation keep the quieter `.btn`.
+     A bright achromatic edge and shallow lift make the target feel tactile without
+     spending the forge material or a player's colour as system state. */
+  .btn-strong,
+  .play-trigger {
+    border-color: color-mix(
+      in oklab,
+      var(--color-arena-text) 38%,
+      var(--color-arena-edge2)
+    );
+    background: var(--color-arena-raise);
+    font-weight: 600;
+  }
+  .btn-strong:hover:not(:disabled),
+  .play-trigger:hover:not(:disabled) {
+    border-color: var(--color-arena-text);
+    background: color-mix(
+      in oklab,
+      var(--color-arena-text) 5%,
+      var(--color-arena-raise)
+    );
+    transform: translateY(-1px);
+  }
+  .btn-strong:active:not(:disabled),
+  .play-trigger:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-strong:disabled,
+  .play-trigger:disabled {
+    border-color: var(--color-arena-edge);
+    background: var(--color-arena-panel);
+  }
+  .play-trigger::before {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid currentColor;
+    opacity: 0.9;
+  }
+
+  /* A reusable interactive tile. Selected state is expressed by the native ARIA
+     attributes used by radio-like and tab-like controls, so visual and assistive state
+     cannot drift. */
+  .choice-card {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-arena-edge);
+    border-radius: 4px;
+    background: var(--color-arena-panel);
+    color: var(--color-arena-text);
+    padding: 10px 11px;
+    cursor: pointer;
+    text-align: left;
+    transition:
+      border-color 150ms,
+      background-color 150ms,
+      transform 120ms;
+  }
+  .choice-card:hover:not(:disabled) {
+    border-color: var(--color-arena-edge2);
+    transform: translateY(-1px);
+  }
+  .choice-card:focus-visible {
+    outline: 2px solid var(--color-arena-text);
+    outline-offset: 2px;
+  }
+  .choice-card:has(input:focus-visible) {
+    outline: 2px solid var(--color-arena-text);
+    outline-offset: 2px;
+  }
+  .choice-card[aria-pressed='true'],
+  .choice-card[data-selected='true'] {
+    border-color: color-mix(
+      in oklab,
+      var(--player-accent, var(--color-arena-text)) 64%,
+      var(--color-arena-edge2)
+    );
+    background: var(--color-arena-raise);
+    box-shadow:
+      inset 3px 0 0
+        color-mix(
+          in oklab,
+          var(--player-accent, var(--color-arena-text)) 78%,
+          var(--color-arena-text)
+        );
+  }
+  .choice-card:disabled {
+    color: var(--color-arena-dim);
+    cursor: not-allowed;
+    opacity: 0.58;
+  }
+
+  /* Owned-bot cards are work surfaces, not directory rows. A bot's chosen accent gives
+     each bay identity without being reused as a success/error colour. */
+  .bot-workbench {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-arena-panel);
+    border-color: color-mix(
+      in oklab,
+      var(--player-accent, var(--color-arena-edge2)) 28%,
+      var(--color-arena-edge)
+    );
+    box-shadow: inset 3px 0 0
+      color-mix(
+        in oklab,
+        var(--player-accent, var(--color-arena-edge2)) 72%,
+        var(--color-arena-text)
+      );
+    transition:
+      border-color 150ms,
+      transform 150ms;
+  }
+  .bot-workbench:hover {
+    border-color: color-mix(
+      in oklab,
+      var(--player-accent, var(--color-arena-edge2)) 48%,
+      var(--color-arena-edge2)
+    );
+    transform: translateY(-1px);
+    box-shadow: inset 3px 0 0
+      color-mix(
+        in oklab,
+        var(--player-accent, var(--color-arena-edge2)) 78%,
+        var(--color-arena-text)
+      );
+  }
+  .arena-card-play {
+    display: flex;
+    width: 100%;
+  }
+  .arena-card-play > button {
+    flex: 1;
+    justify-content: center;
   }
 
   .text-link {

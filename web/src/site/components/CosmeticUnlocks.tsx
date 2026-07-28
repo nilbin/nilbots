@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import AccentRing from '../../components/AccentRing';
 import ProjectilePreview from '../../components/ProjectilePreview';
+import { playerAccent } from '../../presentation/playerAccent';
 import { styleVariables } from '../../presentation/styleVariables';
 import { botLook, projectileLook } from '../../render/arenaThemes';
 import type { CosmeticCatalog, CosmeticCatalogItem } from '../api';
@@ -9,7 +10,8 @@ import { BOT_LOOK_KIND, PROJECTILE_LOOK_KIND } from '../cosmetics';
 import Th from './TableHeader';
 
 /**
- * The look library: one table per pick, your wardrobe on top, the catalogue below a band.
+ * The look library: a tactile wardrobe grid when choosing for one bot, and a compact
+ * progress table when the same catalogue is shown read-only elsewhere.
  *
  * Two things were wrong with the list this replaces and both were the same mistake —
  * rendering an entitlement without asking what kind of thing it is. It filtered on
@@ -23,8 +25,8 @@ import Th from './TableHeader';
  *
  * There are no state pills here. Owned is a quiet achromatic inset rule; player colour
  * stays inside the identity artwork instead of being reused as a system-state signal.
- * Locked is the absence of that rule plus the sentence in *Where it comes from*, which
- * already says everything a `LOCKED` pill would — on twelve rows.
+ * Locked choices remain fully previewable and say where they come from; selected state
+ * uses only the wearer's accent rail.
  */
 
 /**
@@ -77,14 +79,16 @@ export function LookMark({
   kind,
   id,
   accent,
+  large = false,
 }: {
   kind: string;
   id: string;
   accent: string;
+  large?: boolean;
 }) {
   if (kind === BOT_LOOK_KIND) {
     return (
-      <AccentRing accent={accent} size={24}>
+      <AccentRing accent={accent} size={large ? 42 : 24}>
         <img
           src={botLook(id).imageUrl}
           alt=""
@@ -96,7 +100,12 @@ export function LookMark({
   }
   if (kind === PROJECTILE_LOOK_KIND) {
     return (
-      <span className="flex size-[31px] shrink-0 items-center justify-center rounded-full border border-arena-edge bg-arena-bg">
+      <span
+        className={clsx(
+          'flex shrink-0 items-center justify-center rounded-full border border-arena-edge bg-arena-bg',
+          large ? 'size-[55px]' : 'size-[31px]',
+        )}
+      >
         <ProjectilePreview
           look={projectileLook(id)}
           accent={accent}
@@ -150,6 +159,8 @@ export interface LookLibraryProps {
   packLabel?: (item: CosmeticCatalogItem) => string | null;
   /** Where this item's pack is sold, when the caller has loaded the shop catalogue. */
   packHref?: (item: CosmeticCatalogItem) => string | null;
+  /** Optional context the Shop can use to return to the bot being dressed. */
+  packState?: { returnTo: string; returnLabel: string };
   selectedId?: string | null;
   onSelect?: (item: CosmeticCatalogItem) => void;
 }
@@ -161,6 +172,7 @@ export function LookLibrary({
   wornBy,
   packLabel,
   packHref,
+  packState,
   selectedId = null,
   onSelect,
 }: LookLibraryProps) {
@@ -169,6 +181,21 @@ export function LookLibrary({
   const rows = ordered(items);
   const owned = items.filter((item) => item.owned).length;
   const band = `${owned} of ${items.length} unlocked`;
+  if (onSelect) {
+    return (
+      <LookPicker
+        title={title}
+        band={band}
+        items={rows}
+        accent={accent}
+        packLabel={packLabel}
+        packHref={packHref}
+        packState={packState}
+        selectedId={selectedId}
+        onSelect={onSelect}
+      />
+    );
+  }
   // The band is a boundary between two blocks, so it exists only when there are two.
   const bandAfter = owned > 0 && owned < items.length ? owned : -1;
 
@@ -203,6 +230,7 @@ export function LookLibrary({
                   worn={wornBy?.(item) ?? []}
                   pack={packLabel?.(item) ?? null}
                   packHref={packHref?.(item) ?? undefined}
+                  packState={packState}
                   selected={item.id === selectedId}
                   onSelect={onSelect}
                   band={index + 1 === bandAfter ? band : null}
@@ -221,6 +249,7 @@ export function LookLibrary({
               worn={wornBy?.(item) ?? []}
               pack={packLabel?.(item) ?? null}
               packHref={packHref?.(item) ?? undefined}
+              packState={packState}
               selected={item.id === selectedId}
               onSelect={onSelect}
               band={index + 1 === bandAfter ? band : null}
@@ -232,12 +261,96 @@ export function LookLibrary({
   );
 }
 
+function LookPicker({
+  title,
+  band,
+  items,
+  accent,
+  packLabel,
+  packHref,
+  packState,
+  selectedId,
+  onSelect,
+}: {
+  title: string;
+  band: string;
+  items: readonly CosmeticCatalogItem[];
+  accent: string;
+  packLabel?: (item: CosmeticCatalogItem) => string | null;
+  packHref?: (item: CosmeticCatalogItem) => string | null;
+  packState?: { returnTo: string; returnLabel: string };
+  selectedId: string | null;
+  onSelect: (item: CosmeticCatalogItem) => void;
+}) {
+  return (
+    <section>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <h2 className="lab">{title}</h2>
+        <span className="t-micro">{band}</span>
+      </div>
+      <ul
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+        style={styleVariables({
+          '--player-accent': playerAccent(accent, 'panel'),
+        })}
+      >
+        {items.map((item) => {
+          const selected = item.id === selectedId;
+          return (
+            <li
+              key={item.key}
+              data-selected={selected}
+              className="choice-card flex min-h-0 cursor-default flex-col p-0"
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(item)}
+                aria-pressed={selected}
+                aria-label={`${item.label}, ${item.owned ? 'unlocked' : 'locked'}`}
+                className="flex min-h-[132px] w-full flex-1 flex-col items-start gap-2.5 p-3 text-left focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-arena-text"
+              >
+                <LookMark
+                  kind={item.kind}
+                  id={item.id}
+                  accent={accent}
+                  large
+                />
+                <span className="t-body line-clamp-2 font-semibold">
+                  {item.label}
+                </span>
+                <span className="t-micro mt-auto">
+                  {selected
+                    ? 'Selected preview'
+                    : item.owned
+                      ? 'Unlocked'
+                      : 'Locked · preview'}
+                </span>
+              </button>
+              <div className="t-micro flex min-h-[52px] flex-col justify-center gap-2 border-t border-arena-edge px-3 py-2.5">
+                <Source
+                  item={item}
+                  pack={packLabel?.(item) ?? null}
+                  packHref={packHref?.(item) ?? undefined}
+                  packState={packState}
+                  linkClassName="-mx-3 -my-2.5 flex min-h-11 items-center px-3 py-2.5"
+                />
+                <Progress item={item} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 interface RowProps {
   item: CosmeticCatalogItem;
   accent: string;
   worn: readonly string[];
   pack: string | null;
   packHref?: string;
+  packState?: { returnTo: string; returnLabel: string };
   selected: boolean;
   onSelect?: (item: CosmeticCatalogItem) => void;
   /** The dashed count rule, when this row is the last of the owned block. */
@@ -250,6 +363,7 @@ function Row({
   worn,
   pack,
   packHref,
+  packState,
   selected,
   onSelect,
   band,
@@ -271,7 +385,12 @@ function Row({
           <Face item={item} accent={accent} selected={selected} onSelect={onSelect} />
         </td>
         <td className="t-meta p-2 align-middle">
-          <Source item={item} pack={pack} packHref={packHref} />
+          <Source
+            item={item}
+            pack={pack}
+            packHref={packHref}
+            packState={packState}
+          />
         </td>
         <td className="p-2 align-middle">
           <Progress item={item} />
@@ -299,6 +418,7 @@ function PhoneRow({
   worn,
   pack,
   packHref,
+  packState,
   selected,
   onSelect,
   band,
@@ -319,7 +439,12 @@ function PhoneRow({
           </span>
         </div>
         <span className="t-micro">
-          <Source item={item} pack={pack} packHref={packHref} />
+          <Source
+            item={item}
+            pack={pack}
+            packHref={packHref}
+            packState={packState}
+          />
         </span>
         <Progress item={item} />
       </li>
@@ -380,16 +505,24 @@ function Source({
   item,
   pack,
   packHref,
+  packState,
+  linkClassName,
 }: {
   item: CosmeticCatalogItem;
   pack: string | null;
   packHref?: string;
+  packState?: { returnTo: string; returnLabel: string };
+  linkClassName?: string;
 }) {
   if (item.availability === 'starter') return <>Starter</>;
   if (item.unlock?.sourceKind === 'purchase') {
     if (pack === null) return <>{item.unlock.hint}</>;
     return packHref ? (
-      <Link to={packHref} className="text-link">
+      <Link
+        to={packHref}
+        state={packState}
+        className={clsx('text-link', linkClassName)}
+      >
         {pack} pack ↑
       </Link>
     ) : (

@@ -96,7 +96,7 @@ export default function MatchPage() {
           }
         : {
             modes: ['challenge', 'labs'] as readonly ArenaMode[],
-            label: 'Play again',
+            label: 'Play another',
           };
 
   // A mistyped id is an answer, not an alarm — so it renders as an empty shape with a way
@@ -108,7 +108,7 @@ export default function MatchPage() {
         <p className="t-micro mt-1">
           This match id does not exist.{' '}
           <Link to={watchReturn.to} className="text-link">
-            Back to Watch
+            Back to {watchReturn.label}
           </Link>
           .
         </p>
@@ -218,11 +218,13 @@ export default function MatchPage() {
       <section className="panel-quiet pad flex flex-wrap items-center gap-2">
         <span className="t-meta mr-auto">
           {nextFight
-            ? 'Keep this bot moving, or return to the public feed.'
-            : 'Follow another fight from the public feed.'}
+            ? `Keep this bot moving, or return to ${watchReturn.label}.`
+            : `Return to ${watchReturn.label}.`}
         </span>
         <Link to={watchReturn.to} className="btn">
-          Watch more
+          {watchReturn.to === '/watch'
+            ? 'Watch more'
+            : `Return to ${watchReturn.label}`}
         </Link>
         {nextFight && ownedParticipant && (
           <ArenaAction
@@ -238,6 +240,7 @@ export default function MatchPage() {
             initialOpponentId={opponent?.botId}
             initialMapId={detail?.mapId}
             triggerLabel={nextFight.label}
+            challengeContextRole="entrant"
           />
         )}
       </section>

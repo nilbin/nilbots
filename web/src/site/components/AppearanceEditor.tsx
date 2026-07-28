@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
 import IdentityChip from '../../components/IdentityChip';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
@@ -128,9 +129,23 @@ export default function AppearanceEditor({
     const pack = packByItemKey.get(item.key);
     return pack ? `/store#pack-${pack.id}` : null;
   };
+  const shopReturnState = {
+    returnTo: `/bots/${encodeURIComponent(botKey)}/appearance`,
+    returnLabel: bot.name,
+  };
+  const selectedPurchasePack =
+    locked
+      .map((item) => packHref(item))
+      .find((href): href is string => href !== null) ?? null;
 
   return (
-    <form onSubmit={save} className="flex flex-col gap-5">
+    <form
+      onSubmit={save}
+      className={clsx(
+        'flex flex-col gap-5',
+        dirty && 'pb-20 sm:pb-0',
+      )}
+    >
       <section className="panel pad">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex min-h-28 shrink-0 items-center gap-4 rounded-[3px] border border-arena-edge bg-arena-bg px-4 py-3 sm:min-w-64">
@@ -157,7 +172,7 @@ export default function AppearanceEditor({
               className="max-w-full"
               nameClassName="type-display text-base"
             />
-            <label className="t-meta mt-3 flex flex-wrap items-center gap-2">
+            <label className="t-meta mt-3 flex min-h-11 flex-wrap items-center gap-2">
               Accent
               <input
                 type="color"
@@ -167,7 +182,7 @@ export default function AppearanceEditor({
                   setAccent(event.target.value);
                 }}
                 aria-label={`Accent for ${bot.name}`}
-                className="h-8 w-12 cursor-pointer rounded-[3px] border border-arena-edge bg-arena-bg p-0.5"
+                className="h-11 w-14 cursor-pointer rounded-[3px] border border-arena-edge bg-arena-bg p-0.5"
               />
               <span className="val">{accent}</span>
             </label>
@@ -185,7 +200,11 @@ export default function AppearanceEditor({
               {locked.some(
                 (item) => item.unlock?.sourceKind === 'purchase',
               ) ? (
-                <Link to="/store" className="text-link">
+                <Link
+                  to={selectedPurchasePack ?? '/store'}
+                  state={shopReturnState}
+                  className="text-link"
+                >
                   Find its pack in the Shop
                 </Link>
               ) : (
@@ -218,7 +237,7 @@ export default function AppearanceEditor({
             type="submit"
             disabled={!dirty || appearance.isPending || !selectionOwned}
             aria-describedby={!selectionOwned ? 'appearance-save-note' : undefined}
-            className="btn btn-on mt-3 w-full disabled:opacity-40 sm:w-auto"
+            className="btn btn-strong mt-3 min-h-11 w-full disabled:opacity-40 sm:w-auto"
           >
             {appearance.isPending ? 'Saving…' : `Save for ${bot.name}`}
           </button>
@@ -231,6 +250,7 @@ export default function AppearanceEditor({
         accent={accent}
         packLabel={packLabel}
         packHref={packHref}
+        packState={shopReturnState}
         selectedId={lookId}
         onSelect={select}
       />
@@ -240,9 +260,44 @@ export default function AppearanceEditor({
         accent={accent}
         packLabel={packLabel}
         packHref={packHref}
+        packState={shopReturnState}
         selectedId={projectileLookId}
         onSelect={select}
       />
+      {dirty && (
+        <section
+          className="appearance-save-dock panel flex items-center gap-3 p-2.5"
+          aria-live="polite"
+        >
+          <span className="min-w-0 grow">
+            <span className="lab block">
+              {selectionOwned ? 'Ready to equip' : 'Locked preview'}
+            </span>
+            <span className="t-micro mt-0.5 block truncate">
+              {chassis.label} · {projectile.label}
+            </span>
+          </span>
+          {selectionOwned ? (
+            <button
+              type="submit"
+              disabled={appearance.isPending}
+              className="btn btn-strong min-h-11 shrink-0"
+            >
+              {appearance.isPending ? 'Saving…' : 'Save'}
+            </button>
+          ) : selectedPurchasePack ? (
+            <Link
+              to={selectedPurchasePack}
+              state={shopReturnState}
+              className="btn inline-flex min-h-11 shrink-0 items-center"
+            >
+              Find pack
+            </Link>
+          ) : (
+            <span className="pill shrink-0">Locked</span>
+          )}
+        </section>
+      )}
     </form>
   );
 }

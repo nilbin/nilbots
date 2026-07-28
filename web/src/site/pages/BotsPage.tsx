@@ -438,6 +438,9 @@ export default function BotsPage() {
                               modes={arenaModes}
                               initialMode={mine ? 'ranked' : 'challenge'}
                               triggerLabel={mine ? 'Play' : 'Challenge'}
+                              challengeContextRole={
+                                mine ? 'entrant' : 'opponent'
+                              }
                               className="mt-2 sm:hidden"
                             />
                           )}
@@ -491,6 +494,9 @@ export default function BotsPage() {
                               modes={arenaModes}
                               initialMode={mine ? 'ranked' : 'challenge'}
                               triggerLabel={mine ? 'Play' : 'Challenge'}
+                              challengeContextRole={
+                                mine ? 'entrant' : 'opponent'
+                              }
                             />
                           )}
                         </td>

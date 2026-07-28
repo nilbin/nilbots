@@ -84,7 +84,7 @@ export default function LabsPanel({ bot }: { bot: BotDetail }) {
       className="panel pad flex flex-col gap-3"
     >
       <header>
-        <p className="lab mb-1 text-arena-material">Labs · unranked</p>
+        <p className="lab mb-1">Labs experiments · unranked</p>
         <h2 id={headingId} className="t-body font-semibold text-arena-text">
           {playlists.length === 1
             ? playlists[0].displayName
@@ -145,7 +145,7 @@ function LabsState({
       className="panel pad flex flex-col gap-3"
     >
       <header>
-        <p className="lab mb-1 text-arena-material">Labs · unranked</p>
+        <p className="lab mb-1">Labs experiments · unranked</p>
         <h2 id={headingId} className="t-body font-semibold text-arena-text">
           {title}
         </h2>

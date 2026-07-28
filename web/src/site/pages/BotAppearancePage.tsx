@@ -1,13 +1,15 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import AppearanceEditor from '../components/AppearanceEditor';
 import BotIdentity from '../components/BotIdentity';
 import { ErrorState, LoadingState } from '../components/StateView';
 import { ApiError } from '../api';
 import { useAuth } from '../auth';
 import { useBot } from '../queries';
+import { internalReturnTarget } from '../returnTarget';
 
 export default function BotAppearancePage() {
   const { botKey } = useParams<{ botKey: string }>();
+  const location = useLocation();
   const { data: bot, error, refetch } = useBot(botKey);
   const { user, loading: authLoading } = useAuth();
   const missing = error instanceof ApiError && error.status === 404;
@@ -46,7 +48,7 @@ export default function BotAppearancePage() {
           {!user && (
             <Link
               to={`/login?returnUrl=${encodeURIComponent(returnUrl)}`}
-              className="btn btn-on"
+              className="btn btn-strong"
             >
               Sign in and return
             </Link>
@@ -58,6 +60,11 @@ export default function BotAppearancePage() {
       </section>
     );
   }
+  const botPath = `/bots/${bot.slug}`;
+  const returnTarget = internalReturnTarget(location.state, {
+    to: botPath,
+    label: bot.name,
+  });
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-5">
@@ -79,9 +86,30 @@ export default function BotAppearancePage() {
             the way to earn or buy them.
           </p>
         </div>
-        <Link to={`/bots/${bot.slug}`} className="btn">
-          Back to bot
-        </Link>
+        <span className="flex flex-wrap gap-2">
+          <Link
+            to={returnTarget.to}
+            className="btn inline-flex min-h-11 items-center"
+          >
+            ← {returnTarget.label}
+          </Link>
+          {returnTarget.to !== botPath && (
+            <Link
+              to={botPath}
+              className="btn inline-flex min-h-11 items-center"
+            >
+              Bot page
+            </Link>
+          )}
+          {returnTarget.to !== '/garage' && (
+            <Link
+              to="/garage"
+              className="btn inline-flex min-h-11 items-center"
+            >
+              Garage
+            </Link>
+          )}
+        </span>
       </header>
 
       <AppearanceEditor

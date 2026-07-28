@@ -118,12 +118,20 @@ export default function BotDetailPage() {
               modes={arenaModes}
               initialMode={arenaModes[0]}
               variant={bot.isOwner ? 'multi' : 'compact'}
+              challengeContextRole="opponent"
             />
           )}
           {bot.isOwner && (
-            <Link to={`/bots/${bot.slug}/appearance`} className="btn">
-              Appearance
-            </Link>
+            <>
+              {returnTarget.to !== '/garage' && (
+                <Link to="/garage" className="btn">
+                  Garage
+                </Link>
+              )}
+              <Link to={`/bots/${bot.slug}/appearance`} className="btn">
+                Appearance
+              </Link>
+            </>
           )}
         </span>
       </header>
@@ -254,7 +262,7 @@ export default function BotDetailPage() {
             for the bot you are looking at rather than to reproduce the CLI in HTML. */}
         <aside className="order-first flex flex-col gap-3.5 min-[900px]:order-none">
           {bot.isOwner && <LabsPanel bot={bot} />}
-          <WorkOnThisBot />
+          <WorkOnThisBot isOwner={bot.isOwner} />
         </aside>
       </div>
 
@@ -269,7 +277,26 @@ export default function BotDetailPage() {
 }
 
 /** The three commands that move a bot forward, in the order you use them. */
-function WorkOnThisBot() {
+function WorkOnThisBot({ isOwner }: { isOwner: boolean }) {
+  if (!isOwner) {
+    return (
+      <section className="panel pad">
+        <h2 className="lab mb-2">Build a challenger</h2>
+        <p className="t-meta">
+          Learn the bot contract, develop your own contender, then bring it to
+          the Arena.
+        </p>
+        <span className="mt-3 flex flex-wrap gap-2">
+          <Link to="/docs" className="btn">
+            Read the bot guide
+          </Link>
+          <Link to="/garage" className="btn">
+            Open Garage
+          </Link>
+        </span>
+      </section>
+    );
+  }
   return (
     <section className="panel pad">
       <h2 className="lab mb-2">Work on this bot</h2>

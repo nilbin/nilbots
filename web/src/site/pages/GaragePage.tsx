@@ -27,20 +27,28 @@ import {
   useCosmeticCatalog,
 } from '../cosmetics';
 import CosmeticUnlocks from '../components/CosmeticUnlocks';
+import type { MyBot } from '../api';
+import { playerAccent } from '../../presentation/playerAccent';
+import { styleVariables } from '../../presentation/styleVariables';
 
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
   return (
-    <section className="panel pad max-w-xl">
-      <h2 className="lab mb-2">Cli access</h2>
-      <p className="t-meta">
-        Develop locally and submit from your terminal:{' '}
-        <code className="val">nilbots register</code> opens this site in your browser to
-        create an account and sign you in securely (OAuth + PKCE), then{' '}
-        <code className="val">nilbots submit</code> creates your bot and uploads it for the official
-        server build and reports whether your local artifact matches it bit-for-bit.
+    <details className="panel-quiet max-w-2xl">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
+        <span className="lab">CLI access</span>
+        <span className="t-meta ml-auto">Develop and submit locally</span>
+        <span aria-hidden className="text-arena-material">
+          +
+        </span>
+      </summary>
+      <p className="t-meta border-t border-arena-edge px-4 py-3">
+        <code className="val">nilbots register</code> opens this site to create an
+        account and sign you in securely. Then{' '}
+        <code className="val">nilbots submit</code> uploads an official server build
+        and verifies that it matches your local artifact bit-for-bit.
       </p>
-    </section>
+    </details>
   );
 }
 
@@ -113,80 +121,92 @@ export default function GaragePage() {
     projectileLookId,
   );
   return (
-    <div className="flex flex-col gap-8">
-      <h1 className="type-display text-[30px]">Garage</h1>
+    <div className="mx-auto flex max-w-5xl flex-col gap-7">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="lab mb-2">Your workbench</p>
+          <h1 className="type-display text-[30px]">Garage</h1>
+          <p className="t-body mt-2 max-w-[58ch] text-arena-dim">
+            Build, equip, and deploy your bots. The public directory is for
+            comparison; this is where your fleet gets ready.
+          </p>
+        </div>
+        <span className="flex flex-wrap gap-2">
+          <Link
+            to="/bots"
+            className="btn inline-flex min-h-11 items-center"
+          >
+            Browse all bots
+          </Link>
+          <Link
+            to="/store"
+            className="btn inline-flex min-h-11 items-center"
+          >
+            Shop
+          </Link>
+        </span>
+      </header>
+
       <section>
-        <h2 className="lab mb-3">My bots</h2>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {bots.map((bot) => {
-            const look = botLook(bot.lookId);
-            const projectile = projectileLook(bot.projectileLookId);
-            return (
-              <li
-                key={bot.id}
-                className="panel-quiet pad flex flex-wrap items-center gap-3"
-              >
-                <Link
-                  to={`/bots/${bot.slug}`}
-                  state={{ returnTo: '/garage', returnLabel: 'Garage' }}
-                  className="flex min-w-0 grow items-center gap-3 transition-opacity hover:opacity-80"
-                >
-                  <BotIdentity
-                    name={bot.name}
-                    accent={bot.accent}
-                    lookId={bot.lookId}
-                    size="md"
-                    emphasized
-                  />
-                  <ProjectilePreview
-                    look={projectile}
-                    accent={bot.accent}
-                    className="h-6 w-10"
-                  />
-                  {/* Chassis and projectile are names a player chose, not values a
-                      machine wrote, so they are sans — mono is reserved. */}
-                  <span className="t-micro">
-                    {look.label} · {projectile.label}
-                  </span>
-                  <span className="val ml-auto">
-                    {bot.latestVersion
-                      ? `v${bot.latestVersion.versionNumber} ${bot.latestVersion.status.toLowerCase()}`
-                      : 'no versions'}
-                  </span>
-                </Link>
-                <span className="flex shrink-0 flex-wrap gap-1.5">
-                  <ArenaAction
-                    bot={{
-                      id: bot.id,
-                      slug: bot.slug,
-                      name: bot.name,
-                      accent: bot.accent,
-                      lookId: bot.lookId,
-                      isOwner: true,
-                    }}
-                    triggerLabel="Play"
-                  />
-                  <Link
-                    to={`/bots/${bot.slug}/appearance`}
-                    className="btn"
-                    aria-label={`Change ${bot.name}'s appearance`}
-                  >
-                    Appearance
-                  </Link>
-                </span>
-              </li>
-            );
-          })}
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="lab">Fleet bays</h2>
+          <p className="t-micro">Play, inspect, or change a loadout directly.</p>
+        </div>
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {bots.map((bot) => (
+            <OwnedBotCard key={bot.id} bot={bot} />
+          ))}
         </ul>
       </section>
 
-      <CosmeticUnlocks catalog={catalog} accent={accent} error={catalogError} />
+      <details className="panel">
+        <summary className="choice-card flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-none border-0 px-4 py-3">
+          <span>
+            <span className="t-body block font-semibold text-arena-text">
+              Unlock progress
+            </span>
+            <span className="t-micro block">
+              Track what&apos;s close; browse every locked look from a bot&apos;s
+              appearance picker.
+            </span>
+          </span>
+          <span
+            aria-hidden
+            className="type-display ml-auto text-[24px] text-arena-material"
+          >
+            +
+          </span>
+        </summary>
+        <div className="border-t border-arena-edge p-4">
+          <CosmeticUnlocks
+            catalog={catalog}
+            accent={accent}
+            error={catalogError}
+          />
+        </div>
+      </details>
 
-      <CliAccess />
-
-      <section className="panel pad max-w-md">
-        <h2 className="lab mb-3">New bot</h2>
-        <form onSubmit={create} className="flex flex-col gap-3">
+      <details className="panel max-w-2xl">
+        <summary className="choice-card flex cursor-pointer list-none items-center gap-3 rounded-none border-0 px-4 py-3">
+          <span>
+            <span className="t-body block font-semibold text-arena-text">
+              Create another bot
+            </span>
+            <span className="t-meta block">
+              Name it and choose its first chassis and projectile.
+            </span>
+          </span>
+          <span
+            aria-hidden
+            className="type-display ml-auto text-[24px] text-arena-material"
+          >
+            +
+          </span>
+        </summary>
+        <form
+          onSubmit={create}
+          className="flex max-w-md flex-col gap-3 border-t border-arena-edge px-4 py-4"
+        >
           <label className="t-meta flex flex-col gap-1">
             Name
             <input
@@ -242,12 +262,96 @@ export default function GaragePage() {
               !catalog ||
               !selectionOwned
             }
-            className="btn btn-on mt-1 self-start disabled:opacity-40"
+            className="btn btn-strong mt-1 min-h-11 self-start disabled:opacity-40"
           >
             {creation.isPending ? 'Creating…' : 'Create bot'}
           </button>
         </form>
-      </section>
+      </details>
+
+      <CliAccess />
     </div>
   );
+}
+
+function OwnedBotCard({ bot }: { bot: MyBot }) {
+  const look = botLook(bot.lookId);
+  const projectile = projectileLook(bot.projectileLookId);
+  const cardAccent = playerAccent(bot.accent, 'panel');
+
+  return (
+    <li
+      className="bot-workbench panel flex min-w-0 flex-col gap-4 p-4"
+      style={styleVariables({ '--player-accent': cardAccent })}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <Link
+          to={`/bots/${bot.slug}`}
+          state={{ returnTo: '/garage', returnLabel: 'Garage' }}
+          className="min-w-0 grow transition-opacity hover:opacity-80"
+        >
+          <BotIdentity
+            name={bot.name}
+            accent={bot.accent}
+            lookId={bot.lookId}
+            size="lg"
+            emphasized
+          />
+        </Link>
+        <span className="pill shrink-0">{generationStatus(bot)}</span>
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-y border-arena-edge py-3">
+        <span className="min-w-0">
+          <span className="lab block">Loadout</span>
+          <span className="t-meta mt-1 block truncate">
+            {look.label} · {projectile.label}
+          </span>
+        </span>
+        <ProjectilePreview
+          look={projectile}
+          accent={bot.accent}
+          className="h-9 w-20"
+        />
+      </div>
+
+      <div className="mt-auto grid grid-cols-2 gap-2">
+        <ArenaAction
+          bot={{
+            id: bot.id,
+            slug: bot.slug,
+            name: bot.name,
+            accent: bot.accent,
+            lookId: bot.lookId,
+            isOwner: true,
+          }}
+          triggerLabel="Play"
+          challengeContextRole="entrant"
+          className="arena-card-play col-span-2"
+        />
+        <Link
+          to={`/bots/${bot.slug}`}
+          state={{ returnTo: '/garage', returnLabel: 'Garage' }}
+          className="btn inline-flex min-h-11 items-center justify-center text-center"
+        >
+          Open bot
+        </Link>
+        <Link
+          to={`/bots/${bot.slug}/appearance`}
+          state={{ returnTo: '/garage', returnLabel: 'Garage' }}
+          className="btn inline-flex min-h-11 items-center justify-center text-center"
+          aria-label={`Change ${bot.name}'s appearance`}
+        >
+          Appearance
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+function generationStatus(bot: MyBot): string {
+  const latest = bot.latestVersion;
+  if (latest === null) return 'No generation';
+  if (latest.isActive) return `Active · gen ${latest.versionNumber}`;
+  return `${latest.status} · gen ${latest.versionNumber}`;
 }

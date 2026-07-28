@@ -40,8 +40,11 @@ import {
   useRankedChallenge,
 } from '../queries';
 import BotIdentity from './BotIdentity';
+import { playerAccent } from '../../presentation/playerAccent';
+import { styleVariables } from '../../presentation/styleVariables';
 
 export type ArenaMode = 'ranked' | 'challenge' | 'labs';
+export type ChallengeContextRole = 'entrant' | 'opponent';
 
 export interface ArenaActionBot {
   id: string;
@@ -55,6 +58,7 @@ export interface ArenaActionBot {
 interface ArenaLaunch {
   bot: ArenaActionBot | null;
   modes: readonly ArenaMode[];
+  challengeContextRole: ChallengeContextRole;
   initialOpponentId: string;
   initialMapId: string;
 }
@@ -68,6 +72,12 @@ interface ArenaActionProps {
   initialMapId?: string;
   /** `multi` exposes both jobs; `compact` saves room in cards and table rows. */
   variant?: 'multi' | 'compact';
+  /**
+   * Whether the contextual bot enters a one-off challenge or is its fixed target.
+   * Challenge defaults to targeting the contextual bot. Play/replay callers that keep
+   * an owned bot as the entrant must say so explicitly.
+   */
+  challengeContextRole?: ChallengeContextRole;
   triggerLabel?: string;
   className?: string;
 }
@@ -81,6 +91,7 @@ interface ArenaActions {
 }
 
 const ArenaActionContext = createContext<ArenaActions | null>(null);
+const MAX_BOT_CHOICES = 8;
 
 /**
  * The one Arena composer for the whole app.
@@ -95,6 +106,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   const [launch, setLaunch] = useState<ArenaLaunch | null>(null);
   const [mode, setMode] = useState<ArenaMode>('ranked');
   const [selectedBotId, setSelectedBotId] = useState('');
+  const [choosingBot, setChoosingBot] = useState(false);
   const [opponentId, setOpponentId] = useState('');
   const [mapId, setMapId] = useState('');
   const [playlistId, setPlaylistId] = useState('');
@@ -254,10 +266,20 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     () => arenaOpponents(duelRoster, bot?.id),
     [bot?.id, duelRoster],
   );
-  const selectableOwnedBots =
-    launch?.bot && launchPlayability?.isOwned !== true
-      ? readyOwnedBots
-      : ownedPlayBots;
+  const challengeTargetsContextBot =
+    launch?.bot !== null &&
+    launch?.bot !== undefined &&
+    launch.challengeContextRole === 'opponent';
+  const challengeEntrants = useMemo(
+    () =>
+      challengeTargetsContextBot && bot
+        ? readyOwnedBots.filter((candidate) => candidate.id !== bot.id)
+        : readyOwnedBots,
+    [bot, challengeTargetsContextBot, readyOwnedBots],
+  );
+  const selectableOwnedBots = challengeTargetsContextBot
+    ? challengeEntrants
+    : ownedPlayBots;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -266,21 +288,46 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     if (!launch && dialog.open) dialog.close();
   }, [launch]);
 
-  // A public target needs one of mine; a global launch needs the bot to play as. Remove
+  // A fixed target needs one of mine; a global launch needs the bot to play as. Remove
   // the select only when there is genuinely one answer.
   useEffect(() => {
     if (
       !launch ||
-      launchPlayability?.isOwned ||
+      !challengeTargetsContextBot ||
       selectedBotId !== '' ||
       selectableOwnedBots.length !== 1
     )
       return;
     setSelectedBotId(selectableOwnedBots[0].id);
   }, [
+    challengeTargetsContextBot,
     launch,
-    launchPlayability?.isOwned,
     selectableOwnedBots,
+    selectedBotId,
+  ]);
+
+  // Eligibility can change while the composer is open. Never leave an invisible,
+  // previously valid bot selected after a capabilities refresh.
+  useEffect(() => {
+    if (!launch || selectedBotId === '') return;
+    const candidates =
+      launch.bot === null
+        ? ownedPlayBots
+        : challengeTargetsContextBot
+          ? challengeEntrants
+          : null;
+    if (
+      candidates !== null &&
+      !candidates.some((candidate) => candidate.id === selectedBotId)
+    ) {
+      setSelectedBotId('');
+      if (launch.bot === null) setChoosingBot(true);
+    }
+  }, [
+    challengeEntrants,
+    challengeTargetsContextBot,
+    launch,
+    ownedPlayBots,
     selectedBotId,
   ]);
 
@@ -301,13 +348,19 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (
       mode === 'challenge' &&
-      bot?.isOwner &&
+      !challengeTargetsContextBot &&
       roster !== null &&
       opponentId !== '' &&
       !opponents.some((candidate) => candidate.id === opponentId)
     )
       setOpponentId('');
-  }, [bot?.isOwner, mode, opponentId, opponents, roster]);
+  }, [
+    challengeTargetsContextBot,
+    mode,
+    opponentId,
+    opponents,
+    roster,
+  ]);
 
   useEffect(() => {
     if (
@@ -344,6 +397,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         setLaunch(request);
         setMode(nextMode);
         setSelectedBotId('');
+        setChoosingBot(request.bot === null);
         setOpponentId(request.initialOpponentId);
         setMapId(request.initialMapId);
         setPlaylistId('');
@@ -381,7 +435,11 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         return;
       }
       if (mode === 'labs') {
-        if (playlist === null || opponentId === '') return;
+        if (
+          playlist === null ||
+          !labsOpponents.some((candidate) => candidate.id === opponentId)
+        )
+          return;
         const match = await labsMatch.mutateAsync(
           createLabsMatchRequest(
             playlist.playlistVersionId,
@@ -393,9 +451,25 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         navigate(`/matches/${match.id}`);
         return;
       }
+      const participants = resolveChallengeParticipants(
+        bot.id,
+        launch.challengeContextRole,
+        selectedBotId,
+        opponentId,
+      );
+      const participantsAreValid =
+        launch.challengeContextRole === 'opponent'
+          ? challengeEntrants.some(
+              (candidate) => candidate.id === participants.botId,
+            ) && participants.opponentBotId === bot.id
+          : participants.botId === bot.id &&
+            opponents.some(
+              (candidate) => candidate.id === participants.opponentBotId,
+            );
+      if (!participantsAreValid) return;
       const match = await challenge.mutateAsync({
-        botId: bot.isOwner ? bot.id : selectedBotId,
-        opponentBotId: bot.isOwner ? opponentId : bot.id,
+        botId: participants.botId,
+        opponentBotId: participants.opponentBotId,
         mapId: mapId === '' ? null : mapId,
         seed: null,
       });
@@ -413,8 +487,41 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     challenge.isPending ||
     rankedChallenge.isPending ||
     labsMatch.isPending;
-  const challenger = bot?.isOwner ? bot.id : selectedBotId;
-  const opponent = bot?.isOwner ? opponentId : bot?.id ?? '';
+  const challengeParticipants =
+    bot === null
+      ? { botId: '', opponentBotId: '' }
+      : resolveChallengeParticipants(
+          bot.id,
+          launch?.challengeContextRole ?? 'opponent',
+          selectedBotId,
+          opponentId,
+        );
+  const challenger = challengeParticipants.botId;
+  const opponent = challengeParticipants.opponentBotId;
+  const challengeParticipantsValid =
+    bot !== null &&
+    launch !== null &&
+    (launch.challengeContextRole === 'opponent'
+      ? challengeEntrants.some(
+          (candidate) => candidate.id === challengeParticipants.botId,
+        ) && challengeParticipants.opponentBotId === bot.id
+      : challengeParticipants.botId === bot.id &&
+        opponents.some(
+          (candidate) =>
+            candidate.id === challengeParticipants.opponentBotId,
+        ));
+  const labsParticipantsValid =
+    bot !== null &&
+    playlist !== null &&
+    labsOpponents.some((candidate) => candidate.id === opponentId);
+  const entrantName =
+    challenger === bot?.id
+      ? bot.name
+      : (roster ?? []).find((candidate) => candidate.id === challenger)?.name;
+  const opponentName =
+    opponent === bot?.id
+      ? bot.name
+      : (roster ?? []).find((candidate) => candidate.id === opponent)?.name;
   const arenaLoading =
     needsArena &&
     capabilities === null &&
@@ -441,39 +548,43 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         onClick={(event) => {
           if (event.target === event.currentTarget) close();
         }}
-        className="arena-dialog panel w-[min(420px,calc(100vw-24px))] overflow-y-auto p-0 text-left text-arena-text"
+        className="arena-dialog panel w-[min(560px,calc(100vw-24px))] p-0 text-left text-arena-text"
       >
         {launch && (
           <>
             <header className="flex items-start gap-3 border-b border-arena-edge px-4 py-3.5">
-              <span className="min-w-0 grow">
+              <div className="min-w-0 grow">
                 <span className="lab mb-1 block">Arena</span>
-                <span id={titleId} className="sr-only">
-                  {arenaDialogTitle(bot, mode)}
-                </span>
-                <span
-                  className="flex min-w-0 items-center gap-2"
-                  aria-hidden="true"
+                <h2
+                  id={titleId}
+                  className="type-display text-[20px] leading-tight text-arena-text"
                 >
-                  {bot ? (
-                    <BotIdentity
-                      name={bot.name}
-                      accent={bot.accent}
-                      lookId={bot.lookId}
-                      size="sm"
-                      emphasized
-                    />
-                  ) : (
-                    <span className="t-body font-semibold text-arena-text">
-                      Choose how to play
+                  {arenaDialogTitle(
+                    bot,
+                    mode,
+                    launch.challengeContextRole,
+                  )}
+                </h2>
+                {bot &&
+                  launch.bot !== null &&
+                  !(
+                    mode === 'challenge' &&
+                    launch.challengeContextRole === 'opponent'
+                  ) && (
+                    <span className="mt-2 flex min-w-0 items-center gap-2">
+                      <BotIdentity
+                        name={bot.name}
+                        accent={bot.accent}
+                        lookId={bot.lookId}
+                        size="xs"
+                      />
                     </span>
                   )}
-                </span>
-              </span>
+              </div>
               <button
                 type="button"
                 onClick={close}
-                className="btn min-h-10 shrink-0"
+                className="btn min-h-11 shrink-0"
                 aria-label="Close Arena choices"
               >
                 Close
@@ -532,39 +643,77 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
             ) : launch.bot === null && ownedPlayBots.length === 0 ? (
               <NoOwnedBot onClose={close} />
             ) : capabilities !== null ? (
-              <form onSubmit={play} className="pad flex flex-col gap-4">
-                {launch.bot === null && (
-                  <label className="t-meta flex flex-col gap-1">
-                    Play with
-                    <select
-                      value={selectedBotId}
-                      onChange={(event) => {
-                        setSelectedBotId(event.target.value);
+              <form onSubmit={play} className="arena-form">
+                <div className="arena-form-body pad">
+                  {launch.bot === null && bot !== null && !choosingBot ? (
+                    <section
+                      className="bot-workbench panel flex min-w-0 items-center gap-3 p-3"
+                      style={
+                        bot.accent
+                          ? styleVariables({
+                              '--player-accent': playerAccent(
+                                bot.accent,
+                                'panel',
+                              ),
+                            })
+                          : undefined
+                      }
+                    >
+                      <span className="min-w-0 grow">
+                        <span className="lab mb-1 block">
+                          Your bot · selected
+                        </span>
+                        <BotIdentity
+                          name={bot.name}
+                          accent={bot.accent}
+                          lookId={bot.lookId}
+                          size="sm"
+                          emphasized
+                        />
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setChoosingBot(true)}
+                        className="btn min-h-11 shrink-0"
+                      >
+                        Change
+                      </button>
+                    </section>
+                  ) : launch.bot === null ? (
+                    <BotChoiceTiles
+                      label="Choose your bot"
+                      candidates={ownedPlayBots}
+                      selectedId={selectedBotId}
+                      onChange={(nextBotId) => {
+                        setSelectedBotId(nextBotId);
+                        setChoosingBot(false);
                         setOpponentId('');
                         setPlaylistId('');
                         challenge.reset();
                         rankedChallenge.reset();
                         labsMatch.reset();
                       }}
-                      className="field"
-                    >
-                      <option value="">Choose your bot…</option>
-                      {ownedPlayBots.map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          {candidate.name}
-                          {playabilityById.get(candidate.id)?.playable !== true
-                            ? ' · Labs'
-                            : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+                      detail={(candidate) => {
+                        const duel =
+                          playabilityById.get(candidate.id)?.playable === true;
+                        const labs = labsOwnedBots.some(
+                          (entry) => entry.id === candidate.id,
+                        );
+                        const modes =
+                          duel && labs
+                            ? 'Duel + Labs'
+                            : duel
+                              ? 'Duel'
+                              : 'Labs';
+                        return `gen ${candidate.activeVersion?.versionNumber ?? '—'} · ${modes}`;
+                      }}
+                    />
+                  ) : null}
 
                 {availableModes.length > 1 && (
                   <div
                     className={clsx(
-                      'grid gap-1',
+                      'grid gap-2',
                       availableModes.length === 3
                         ? 'grid-cols-3'
                         : 'grid-cols-2',
@@ -578,12 +727,17 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                         type="button"
                         aria-pressed={mode === candidate}
                         onClick={() => chooseMode(candidate)}
-                        className={clsx(
-                          'btn min-h-11',
-                          mode === candidate && 'btn-on',
-                        )}
+                        className="choice-card min-h-[84px] px-2.5"
                       >
-                        {arenaModeLabel(candidate)}
+                        <span className="t-body block font-semibold">
+                          {arenaModeLabel(candidate)}
+                        </span>
+                        <span className="t-micro mt-1 block">
+                          {arenaModeDescription(
+                            candidate,
+                            challengeTargetsContextBot,
+                          )}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -630,10 +784,11 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                 ) : (
                   <ChallengeChoice
                     bot={bot}
+                    contextRole={launch.challengeContextRole}
                     challengerId={selectedBotId}
                     opponentId={opponentId}
                     mapId={mapId}
-                    ownedBots={readyOwnedBots}
+                    ownedBots={challengeEntrants}
                     opponents={opponents}
                     maps={meta?.maps ?? []}
                     defaultMapId={
@@ -645,6 +800,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                     onChallengerChange={setSelectedBotId}
                     onOpponentChange={setOpponentId}
                     onMapChange={setMapId}
+                    onClose={close}
                   />
                 )}
 
@@ -678,22 +834,26 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                       compact
                     />
                   )}
-                <ArenaAllowanceStatus
-                  mode={mode}
-                  capabilities={capabilities}
-                  refreshing={capabilitiesRefreshing}
-                  onRefresh={() => void refetchCapabilities()}
-                />
-                {failure && (
-                  <p className="t-body text-arena-hot" role="alert">
-                    {errorMessage(
-                      failure,
-                      'The match could not be started.',
-                    )}
-                  </p>
-                )}
+                </div>
 
-                <span className="flex flex-wrap items-center gap-2">
+                <div className="arena-form-submit">
+                  <ArenaAllowanceStatus
+                    mode={mode}
+                    capabilities={capabilities}
+                    refreshing={capabilitiesRefreshing}
+                    onRefresh={() => void refetchCapabilities()}
+                  />
+                  {failure && (
+                    <p
+                      className="t-body mb-2.5 text-arena-hot"
+                      role="alert"
+                    >
+                      {errorMessage(
+                        failure,
+                        'The match could not be started.',
+                      )}
+                    </p>
+                  )}
                   <button
                     type="submit"
                     disabled={
@@ -701,16 +861,16 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                       !bot ||
                       !selectedModeEligible ||
                       !availableModes.includes(mode) ||
-                      challenger === '' ||
                       !(mode === 'ranked'
                         ? capabilities.rankedAllowance.canStart
                         : capabilities.unrankedAllowance.canStart) ||
-                      (mode === 'challenge' &&
-                        opponent === '') ||
-                      (mode === 'labs' &&
-                        (playlist === null || opponent === ''))
+                      !arenaModeParticipantsReady(
+                        mode,
+                        challengeParticipantsValid,
+                        labsParticipantsValid,
+                      )
                     }
-                    className="btn btn-on min-h-10"
+                    className="btn btn-strong min-h-12 w-full truncate justify-center px-3"
                   >
                     {busy
                       ? 'Starting…'
@@ -718,9 +878,11 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                         ? 'Start ranked set'
                         : mode === 'labs'
                           ? 'Run lab match'
-                          : 'Start challenge'}
+                          : entrantName && opponentName
+                            ? `Start ${entrantName} vs ${opponentName}`
+                            : 'Start challenge'}
                   </button>
-                </span>
+                </div>
               </form>
             ) : null}
           </>
@@ -743,6 +905,7 @@ export default function ArenaAction({
   initialOpponentId = '',
   initialMapId = '',
   variant = 'compact',
+  challengeContextRole: requestedChallengeContextRole,
   triggerLabel,
   className,
 }: ArenaActionProps) {
@@ -755,9 +918,13 @@ export default function ArenaAction({
     initialMode && normalizedModes.includes(initialMode)
       ? initialMode
       : normalizedModes[0] ?? 'challenge';
+  const challengeContextRole =
+    requestedChallengeContextRole ??
+    defaultChallengeContextRole();
   const launch: ArenaLaunch = {
     bot,
     modes: normalizedModes,
+    challengeContextRole,
     initialOpponentId,
     initialMapId,
   };
@@ -769,6 +936,7 @@ export default function ArenaAction({
         modes={normalizedModes}
         defaultMode={firstMode}
         variant={variant}
+        challengeContextRole={challengeContextRole}
         triggerLabel={triggerLabel}
         onOpen={(mode, trigger) => actions.launch(launch, mode, trigger)}
       />
@@ -787,6 +955,7 @@ export function GlobalArenaAction({
   const launch: ArenaLaunch = {
     bot: null,
     modes,
+    challengeContextRole: 'entrant',
     initialOpponentId: '',
     initialMapId: '',
   };
@@ -796,7 +965,7 @@ export function GlobalArenaAction({
       aria-haspopup="dialog"
       onClick={(event) => actions.launch(launch, 'ranked', event.currentTarget)}
       className={clsx(
-        'btn btn-on inline-flex min-h-9 shrink-0 items-center gap-1.5',
+        'btn play-trigger inline-flex min-h-11 shrink-0 items-center gap-1.5',
         className,
       )}
     >
@@ -820,6 +989,7 @@ function ArenaTriggers({
   modes,
   defaultMode,
   variant,
+  challengeContextRole,
   triggerLabel,
   onOpen,
 }: {
@@ -827,6 +997,7 @@ function ArenaTriggers({
   modes: readonly ArenaMode[];
   defaultMode: ArenaMode;
   variant: 'multi' | 'compact';
+  challengeContextRole: ChallengeContextRole;
   triggerLabel?: string;
   onOpen: (mode: ArenaMode, trigger: HTMLButtonElement) => void;
 }) {
@@ -834,7 +1005,7 @@ function ArenaTriggers({
     return (
       <span
         role="group"
-        aria-label={`Play with ${botName}`}
+        aria-label={`Arena actions for ${botName}`}
         className="inline-flex"
       >
         {modes.map((mode, index) => (
@@ -842,9 +1013,15 @@ function ArenaTriggers({
             key={mode}
             type="button"
             aria-haspopup="dialog"
+            aria-label={
+              mode === 'challenge' &&
+              challengeContextRole === 'opponent'
+                ? `Challenge ${botName}`
+                : `${arenaModeLabel(mode)} with ${botName}`
+            }
             onClick={(event) => onOpen(mode, event.currentTarget)}
             className={clsx(
-              'btn btn-on min-h-10',
+              'btn btn-strong min-h-11',
               index === 0
                 ? 'rounded-r-none'
                 : index === modes.length - 1
@@ -869,8 +1046,13 @@ function ArenaTriggers({
     <button
       type="button"
       aria-haspopup="dialog"
+      aria-label={
+        mode === 'challenge' && challengeContextRole === 'opponent'
+          ? `Challenge ${botName}`
+          : `${label} with ${botName}`
+      }
       onClick={(event) => onOpen(mode, event.currentTarget)}
-      className="btn btn-on inline-flex min-h-10 items-center gap-1.5"
+      className="btn play-trigger inline-flex min-h-11 items-center gap-1.5"
     >
       {label}
       <span aria-hidden="true" className="text-arena-dim">
@@ -885,22 +1067,20 @@ function RankedChoice({
 }: {
   format: ArenaCapabilities['format']['ranked'];
 }) {
-  const games = countLabel(format.gamesPerSet, 'game');
-  const pairs = countLabel(format.mapSeedPairs, 'map-and-seed pair');
-  const pool = countLabel(
-    format.matchmakingPoolSize,
-    'closest-rated bot',
-  );
   return (
     <section className="panel-quiet pad">
-      <h2 className="lab mb-2">Ranked set · {games}</h2>
-      <p className="t-meta">
-        The arena matchmakes from up to {pool}, then chooses{' '}
-        {pairs}
-        {format.mirroredSlots
-          ? ' and plays each from both starting sides'
-          : ''}
-        . One set result moves the rating after all {games} complete.
+      <h2 className="lab mb-2.5">Ranked set</h2>
+      <span className="grid grid-cols-3 gap-3">
+        <ArenaFormatStat value={format.gamesPerSet} label="games" />
+        <ArenaFormatStat value={format.mapSeedPairs} label="map pairs" />
+        <ArenaFormatStat
+          value={format.matchmakingPoolSize}
+          label="rival pool"
+        />
+      </span>
+      <p className="t-micro mt-2.5">
+        {format.mirroredSlots ? 'Both starting sides · ' : ''}
+        rating moves once after the full set.
       </p>
     </section>
   );
@@ -913,14 +1093,15 @@ function ChallengeSummary({
   gamesPerMatch: number;
   defaultMapId: string;
 }) {
-  const games = countLabel(gamesPerMatch, 'game');
   return (
     <section className="panel-quiet pad">
-      <h2 className="lab mb-2">One-off challenge · {games}</h2>
-      <p className="t-meta">
-        Choose the matchup and, optionally, a different map. The default is{' '}
-        <span className="val">{defaultMapId}</span>. The result is unranked and
-        does not move either bot's rating.
+      <h2 className="lab mb-2.5">One-off challenge</h2>
+      <span className="grid grid-cols-2 gap-3">
+        <ArenaFormatStat value={gamesPerMatch} label="games" />
+        <ArenaFormatStat value={defaultMapId} label="default map" />
+      </span>
+      <p className="t-micro mt-2.5">
+        Unranked · no rating change.
       </p>
     </section>
   );
@@ -932,11 +1113,25 @@ function LabsSummary({ name }: { name?: string }) {
       <h2 className="lab mb-2">
         {name ? `${name} · unranked` : 'Labs · unranked'}
       </h2>
-      <p className="t-meta">
-        Run an experimental two-bot game. Results do not move either bot&apos;s
-        rating.
+      <p className="t-micro">
+        Experimental two-bot game · no rating change.
       </p>
     </section>
+  );
+}
+
+function ArenaFormatStat({
+  value,
+  label,
+}: {
+  value: number | string;
+  label: string;
+}) {
+  return (
+    <span>
+      <span className="val block text-[17px] text-arena-text">{value}</span>
+      <span className="t-micro mt-0.5 block">{label}</span>
+    </span>
   );
 }
 
@@ -970,44 +1165,44 @@ function LabsChoice({
     <div className="flex flex-col gap-3">
       <LabsSummary name={playlist.displayName} />
       {playlists.length > 1 && (
-        <label className="t-meta flex flex-col gap-1">
-          Experiment
-          <select
-            value={playlist.playlistVersionId}
-            onChange={(event) => onPlaylistChange(event.target.value)}
-            className="field"
-          >
+        <fieldset>
+          <legend className="lab mb-2">Choose experiment</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
             {playlists.map((candidate) => (
-              <option
+              <button
                 key={candidate.playlistVersionId}
-                value={candidate.playlistVersionId}
+                type="button"
+                aria-pressed={
+                  candidate.playlistVersionId === playlist.playlistVersionId
+                }
+                onClick={() =>
+                  onPlaylistChange(candidate.playlistVersionId)
+                }
+                className="choice-card"
               >
-                {candidate.displayName}
-              </option>
+                <span className="t-body block font-semibold">
+                  {candidate.displayName}
+                </span>
+                <span className="t-micro mt-1 block">
+                  Experimental · unranked
+                </span>
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
       )}
       {opponents.length === 0 ? (
         <p className="t-meta">
           No compatible opponent is active yet.
         </p>
       ) : (
-        <label className="t-meta flex flex-col gap-1">
-          Opponent
-          <select
-            value={opponentId}
-            onChange={(event) => onOpponentChange(event.target.value)}
-            className="field"
-          >
-            <option value="">Choose a bot…</option>
-            {opponents.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.name} · {candidate.owner}
-              </option>
-            ))}
-          </select>
-        </label>
+        <BotChoiceTiles
+          label="Choose opponent"
+          candidates={opponents}
+          selectedId={opponentId}
+          onChange={onOpponentChange}
+          showOwner
+        />
       )}
     </div>
   );
@@ -1015,6 +1210,7 @@ function LabsChoice({
 
 function ChallengeChoice({
   bot,
+  contextRole,
   challengerId,
   opponentId,
   mapId,
@@ -1026,27 +1222,33 @@ function ChallengeChoice({
   onChallengerChange,
   onOpponentChange,
   onMapChange,
+  onClose,
 }: {
   bot: ArenaActionBot;
+  contextRole: ChallengeContextRole;
   challengerId: string;
   opponentId: string;
   mapId: string;
   ownedBots: readonly BotSummary[];
-  opponents: readonly { id: string; name: string; owner: string }[];
+  opponents: readonly BotSummary[];
   maps: readonly { id: string; width: number; height: number }[];
   defaultMapId: string;
   gamesPerMatch: number;
   onChallengerChange: (id: string) => void;
   onOpponentChange: (id: string) => void;
   onMapChange: (id: string) => void;
+  onClose: () => void;
 }) {
-  if (!bot.isOwner && ownedBots.length === 0) {
+  const targetsContextBot = contextRole === 'opponent';
+
+  if (targetsContextBot && ownedBots.length === 0) {
     return (
       <section className="panel-quiet pad">
         <h2 className="lab mb-2">You need a ready bot</h2>
         <p className="t-meta">
-          Submit and activate a successful build before challenging {bot.name}.{' '}
-          <Link to="/garage" className="text-link">
+          Submit and activate {bot.isOwner ? 'another' : 'a'} successful build
+          before challenging {bot.name}.{' '}
+          <Link to="/garage" onClick={onClose} className="text-link">
             Open your Garage
           </Link>
           .
@@ -1055,7 +1257,7 @@ function ChallengeChoice({
     );
   }
 
-  if (bot.isOwner && opponents.length === 0) {
+  if (!targetsContextBot && opponents.length === 0) {
     return (
       <section className="panel-quiet pad">
         <h2 className="lab mb-2">No opponent is ready</h2>
@@ -1075,56 +1277,184 @@ function ChallengeChoice({
           defaultMapId={defaultMapId}
         />
       </div>
-      {!bot.isOwner && (
-        <label className="t-meta flex flex-col gap-1">
-          Challenge with
-          <select
-            value={challengerId}
-            onChange={(event) => onChallengerChange(event.target.value)}
-            className="field"
-          >
-            <option value="">Choose your bot…</option>
-            {ownedBots.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {bot.isOwner && (
-        <label className="t-meta flex flex-col gap-1">
-          Opponent
-          <select
-            value={opponentId}
-            onChange={(event) => onOpponentChange(event.target.value)}
-            className="field"
-          >
-            <option value="">Choose an opponent…</option>
-            {opponents.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {candidate.name} · {candidate.owner}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      <label className="t-meta flex flex-col gap-1">
-        Map
-        <select
-          value={mapId}
-          onChange={(event) => onMapChange(event.target.value)}
-          className="field"
+      {targetsContextBot && (
+        <section
+          className="panel-quiet flex min-w-0 items-center justify-between gap-3 p-3 sm:col-span-2"
+          aria-label={`Fixed opponent: ${bot.name}`}
         >
-          <option value="">Default · {defaultMapId}</option>
-          {maps.map((map) => (
-            <option key={map.id} value={map.id}>
-              {map.id} · {map.width}×{map.height}
-            </option>
-          ))}
-        </select>
-      </label>
+          <span className="min-w-0">
+            <span className="lab mb-1 block">Opponent · selected</span>
+            <BotIdentity
+              name={bot.name}
+              accent={bot.accent}
+              lookId={bot.lookId}
+              size="sm"
+              emphasized
+            />
+          </span>
+          <span className="pill shrink-0">Locked</span>
+        </section>
+      )}
+      {targetsContextBot && (
+        <BotChoiceTiles
+          label="Your bot"
+          candidates={ownedBots}
+          selectedId={challengerId}
+          onChange={onChallengerChange}
+          className="sm:col-span-2"
+          detail={(candidate) =>
+            `gen ${candidate.activeVersion?.versionNumber ?? '—'}`
+          }
+        />
+      )}
+      {!targetsContextBot && (
+        <BotChoiceTiles
+          label="Choose opponent"
+          candidates={opponents}
+          selectedId={opponentId}
+          onChange={onOpponentChange}
+          showOwner
+          className="sm:col-span-2"
+        />
+      )}
+      <details className="panel-quiet sm:col-span-2">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5">
+          <span className="lab">Match options</span>
+          <span className="val ml-auto">
+            {mapId === '' ? defaultMapId : mapId}
+          </span>
+          <span aria-hidden className="text-arena-material">
+            +
+          </span>
+        </summary>
+        <label className="t-meta flex flex-col gap-1 border-t border-arena-edge p-3">
+          Map
+          <select
+            value={mapId}
+            onChange={(event) => onMapChange(event.target.value)}
+            className="field"
+          >
+            <option value="">Default · {defaultMapId}</option>
+            {maps.map((map) => (
+              <option key={map.id} value={map.id}>
+                {map.id} · {map.width}×{map.height}
+              </option>
+            ))}
+          </select>
+        </label>
+      </details>
     </div>
+  );
+}
+
+function BotChoiceTiles({
+  label,
+  candidates,
+  selectedId,
+  onChange,
+  showOwner = false,
+  detail,
+  className,
+}: {
+  label: string;
+  candidates: readonly BotSummary[];
+  selectedId: string;
+  onChange: (id: string) => void;
+  showOwner?: boolean;
+  detail?: (bot: BotSummary) => string;
+  className?: string;
+}) {
+  const groupName = useId();
+  const [query, setQuery] = useState('');
+  const showSearch = candidates.length > MAX_BOT_CHOICES;
+  const normalizedQuery = showSearch
+    ? query.trim().toLocaleLowerCase()
+    : '';
+  const matches =
+    normalizedQuery === ''
+      ? candidates
+      : candidates.filter((candidate) =>
+          [candidate.name, candidate.owner]
+            .filter(Boolean)
+            .some((value) =>
+              value.toLocaleLowerCase().includes(normalizedQuery),
+            ),
+        );
+  const firstMatches = matches.slice(0, MAX_BOT_CHOICES);
+  const selectedCandidate =
+    candidates.find((candidate) => candidate.id === selectedId) ?? null;
+  const visibleCandidates =
+    selectedCandidate !== null &&
+    !firstMatches.some((candidate) => candidate.id === selectedCandidate.id)
+      ? [selectedCandidate, ...firstMatches.slice(0, MAX_BOT_CHOICES - 1)]
+      : firstMatches;
+  const visibleMatchCount = visibleCandidates.filter((candidate) =>
+    matches.some((match) => match.id === candidate.id),
+  ).length;
+  const selectedIsPinned =
+    selectedCandidate !== null &&
+    !matches.some((candidate) => candidate.id === selectedCandidate.id);
+
+  return (
+    <fieldset className={className}>
+      <legend className="lab mb-2">{label}</legend>
+      {showSearch && (
+        <label className="mb-2.5 block">
+          <span className="sr-only">Find a bot in {label.toLowerCase()}</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Find by bot or player"
+            className="field min-h-11 w-full"
+          />
+        </label>
+      )}
+      {showSearch && (
+        <p className="t-micro mb-2" aria-live="polite">
+          {matches.length === 0
+            ? selectedCandidate
+              ? 'No other bots match. Keeping your selection visible.'
+              : 'No bots match that search.'
+            : `Showing ${visibleMatchCount} of ${matches.length} matching ${matches.length === 1 ? 'bot' : 'bots'}.${selectedIsPinned ? ' Your selection stays visible.' : ''}`}
+        </p>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        {visibleCandidates.map((candidate) => (
+          <label
+            key={candidate.id}
+            data-selected={selectedId === candidate.id}
+            className="choice-card"
+            style={styleVariables({
+              '--player-accent': playerAccent(candidate.accent, 'panel'),
+            })}
+          >
+            <input
+              type="radio"
+              name={groupName}
+              value={candidate.id}
+              checked={selectedId === candidate.id}
+              onChange={() => onChange(candidate.id)}
+              className="sr-only"
+            />
+            <BotIdentity
+              name={candidate.name}
+              accent={candidate.accent}
+              lookId={candidate.lookId}
+              size="sm"
+              emphasized={selectedId === candidate.id}
+            />
+            {(showOwner || detail) && (
+              <span className="t-micro mt-1.5 block truncate pl-8">
+                {[showOwner ? candidate.owner : null, detail?.(candidate)]
+                  .filter((part) => part)
+                  .join(' · ')}
+              </span>
+            )}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -1153,7 +1483,7 @@ function ArenaAllowanceStatus({
 
   return (
     <section
-      className="border-y border-arena-edge py-2.5"
+      className="pb-2.5"
       aria-label={`${arenaModeLabel(mode)} allowance`}
     >
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -1216,7 +1546,7 @@ function SignInState({
       <Link
         to={`/login?returnUrl=${encodeURIComponent(returnUrl)}`}
         onClick={onClose}
-        className="btn btn-on inline-flex"
+        className="btn btn-strong inline-flex"
       >
         Sign in and return
       </Link>
@@ -1338,7 +1668,11 @@ function Unavailable({
   );
 }
 
-function arenaDialogTitle(bot: ArenaActionBot | null, mode: ArenaMode) {
+function arenaDialogTitle(
+  bot: ArenaActionBot | null,
+  mode: ArenaMode,
+  challengeContextRole: ChallengeContextRole,
+) {
   if (!bot) {
     return mode === 'ranked'
       ? 'Choose a bot for a ranked set'
@@ -1348,7 +1682,9 @@ function arenaDialogTitle(bot: ArenaActionBot | null, mode: ArenaMode) {
   }
   if (mode === 'ranked') return `Ranked set with ${bot.name}`;
   if (mode === 'labs') return `Lab match with ${bot.name}`;
-  return bot.isOwner ? `Challenge with ${bot.name}` : `Challenge ${bot.name}`;
+  return challengeContextRole === 'opponent'
+    ? `Challenge ${bot.name}`
+    : `Challenge with ${bot.name}`;
 }
 
 function arenaModeLabel(mode: ArenaMode) {
@@ -1357,8 +1693,50 @@ function arenaModeLabel(mode: ArenaMode) {
   return 'Challenge';
 }
 
-function countLabel(count: number, singular: string) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+function arenaModeDescription(
+  mode: ArenaMode,
+  challengeTargetsContextBot = false,
+) {
+  if (mode === 'ranked') return 'Matchmade · rated';
+  if (mode === 'labs') return 'Experimental · unranked';
+  return challengeTargetsContextBot
+    ? 'Choose your bot · unranked'
+    : 'Choose rival · unranked';
+}
+
+/**
+ * Challenge is target-first unless a caller explicitly says that its contextual bot
+ * should enter. Presentation variants must never be able to reverse participants.
+ */
+export function defaultChallengeContextRole(): ChallengeContextRole {
+  return 'opponent';
+}
+
+export function resolveChallengeParticipants(
+  contextBotId: string,
+  contextRole: ChallengeContextRole,
+  selectedBotId: string,
+  selectedOpponentId: string,
+) {
+  return contextRole === 'opponent'
+    ? {
+        botId: selectedBotId,
+        opponentBotId: contextBotId,
+      }
+    : {
+        botId: contextBotId,
+        opponentBotId: selectedOpponentId,
+      };
+}
+
+export function arenaModeParticipantsReady(
+  mode: ArenaMode,
+  challengeParticipantsValid: boolean,
+  labsParticipantsValid: boolean,
+) {
+  if (mode === 'challenge') return challengeParticipantsValid;
+  if (mode === 'labs') return labsParticipantsValid;
+  return true;
 }
 
 function allowanceRefusalMessage(

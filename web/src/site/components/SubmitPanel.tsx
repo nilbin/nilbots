@@ -77,7 +77,7 @@ export default function SubmitPanel({ bot, botKey }: { bot: BotDetail; botKey: s
         type="button"
         onClick={submit}
         disabled={submission.isPending || building}
-        className="btn btn-on mt-3 disabled:opacity-50"
+        className="btn btn-strong mt-3 min-h-11 disabled:opacity-50"
       >
         {building
           ? 'Build in progress…'
