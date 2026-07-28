@@ -20,7 +20,8 @@ MAP_VALUES = {
 def _contract(
     cli: Path,
     map_topology: str,
-    companion_policy: str,
+    companion_policy: str | None,
+    class_pair: str | None,
 ) -> dict[str, Any]:
     command = [
         str(cli),
@@ -30,7 +31,14 @@ def _contract(
         "--duel-map",
         MAP_VALUES[map_topology],
     ]
-    if companion_policy == "automatic-activation":
+    if class_pair is not None:
+        if companion_policy is not None:
+            raise ValueError(
+                "class-pair candidates declare fabrication economics through "
+                "the class, not a companion-policy factor"
+            )
+        command.extend(["--classes", class_pair])
+    elif companion_policy == "automatic-activation":
         command.append("--auto-companions")
     elif companion_policy != "manual-fabrication":
         raise ValueError(
@@ -69,6 +77,7 @@ def generate(spec_path: Path, cli: Path) -> tuple[dict[str, Any], bool]:
             raise ValueError("candidate factors must be an object")
         map_topology = factors.get("map-topology")
         companion_policy = factors.get("companion-policy")
+        class_pair = factors.get("class-pair")
         if map_topology not in MAP_VALUES:
             raise ValueError(
                 f"unsupported map topology {map_topology!r}"
@@ -77,6 +86,7 @@ def generate(spec_path: Path, cli: Path) -> tuple[dict[str, Any], bool]:
             cli,
             map_topology,
             companion_policy,
+            class_pair,
         )
         if candidate.get("contract") != generated:
             candidate["contract"] = generated
