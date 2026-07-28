@@ -8,9 +8,11 @@ import {
   drawArena,
   posesAt,
 } from './.harness/harness.entry.js';
-import { loadReplayJson } from '../src/replayIngress.ts';
+import { loadReplayJson, loadReplayObject } from '../src/replayIngress.ts';
 import { participantForActor } from '../src/replayParticipants.ts';
 import type { ReplayModel } from '../src/replayModel.ts';
+import type { ReplayV3Document } from '../src/replayWireV3.ts';
+import { adaptReplayV3ToFrontline } from './support/replayFixtureInputs.ts';
 
 const replay = loadReplayJson(
   readFileSync(
@@ -56,6 +58,34 @@ test('generic replay-v3 presents exact stable units and actor lives', () => {
       },
     ],
   );
+});
+
+test('generic Frontline replay-v3 presents contract tuning and the derived breach winner', () => {
+  const source = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ) as ReplayV3Document;
+  const frontline = loadReplayObject(
+    adaptReplayV3ToFrontline(source, 'base-breach'),
+  ).replay;
+  const final = createPresenter(frontline).at(frontline.ticks.length - 1);
+
+  assert.deepEqual(final.objective, {
+    kind: 'frontline',
+    activePositionIndex: 2,
+    positionCount: 3,
+    claimingTeamId: null,
+    captureProgress: 0,
+    captureThreshold: 3,
+    controlResumesAtTick: 0,
+    winnerTeamId: 0,
+    phase: 'participant-10 BREACHES',
+  });
 });
 
 test('actor-life interpolation adds fabricated lives without morphing primes', () => {

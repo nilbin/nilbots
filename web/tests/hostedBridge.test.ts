@@ -13,7 +13,11 @@ import {
 } from '../src/hostedBridge.ts';
 import { loadReplayJson, loadReplayObject } from '../src/replayIngress.ts';
 import type { TickPresentation } from '../src/replayPresentation.ts';
-import { replayV1FixtureInput } from './support/replayFixtureInputs.ts';
+import type { ReplayV3Document } from '../src/replayWireV3.ts';
+import {
+  adaptReplayV3ToFrontline,
+  replayV1FixtureInput,
+} from './support/replayFixtureInputs.ts';
 
 const replayV1 = loadReplayObject(replayV1FixtureInput()).replay;
 const replayV2 = loadReplayJson(
@@ -22,13 +26,18 @@ const replayV2 = loadReplayJson(
     'utf8',
   ),
 ).replay;
-const replayV3 = loadReplayJson(
-  readFileSync(
-    new URL(
-      '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
-      import.meta.url,
-    ),
-    'utf8',
+const replayV3Text = readFileSync(
+  new URL(
+    '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+    import.meta.url,
+  ),
+  'utf8',
+);
+const replayV3 = loadReplayJson(replayV3Text).replay;
+const frontlineReplayV3 = loadReplayObject(
+  adaptReplayV3ToFrontline(
+    JSON.parse(replayV3Text) as ReplayV3Document,
+    'base-breach',
   ),
 ).replay;
 
@@ -217,6 +226,56 @@ test('bridge-v3 carries generic source identity, mode, scores, and tick state', 
     channel: 'kills',
     value: '0',
   });
+});
+
+test('bridge-v3 carries typed Frontline terminal control and signed scores', () => {
+  const message = replayBridgeMessage(3, frontlineReplayV3, 2, 3);
+
+  assert.deepEqual(message.header.mode, {
+    kind: 'frontline',
+    id: 'frontline',
+  });
+  assert.deepEqual(message.result?.mode, {
+    kind: 'frontline',
+    reason: 'base-breach',
+    control: {
+      kind: 'frontline',
+      modeId: 'frontline',
+      activePositionIndex: 2,
+      claimingTeamId: null,
+      captureProgress: 0,
+      decayTicksElapsed: 0,
+      controlResumesAtTick: 0,
+    },
+    scores: [
+      {
+        teamKey: 'team:0',
+        teamId: 0,
+        territorialProgress: '3',
+      },
+      {
+        teamKey: 'team:1',
+        teamId: 1,
+        territorialProgress: '-3',
+      },
+    ],
+  });
+  assert.equal(message.result?.winnerTeamId, 0);
+
+  const finalWorld = frontlineReplayV3.ticks.at(-1)!.after;
+  const tick = tickBridgeMessage(3, legacyPresentation(), finalWorld);
+  assert.deepEqual(tick.mode, {
+    kind: 'frontline',
+    modeId: 'frontline',
+    activePositionIndex: 2,
+    claimingTeamId: null,
+    captureProgress: 0,
+    decayTicksElapsed: 0,
+    controlResumesAtTick: 0,
+  });
+  assert.deepEqual(tick.scoreboard?.teams[1]?.scores, [
+    { channel: 'territorial-progress', value: '-3' },
+  ]);
 });
 
 function legacyPresentation(): TickPresentation {

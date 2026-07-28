@@ -153,7 +153,39 @@ export interface ReplayV3DeathmatchModeDefinition extends ReplayV3JsonObject {
 export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
   kind: 'frontline';
   modeId: string;
+  victory: {
+    kind: 'frontline';
+    timeoutRanking: ReplayV3RankingRule[];
+    pushesToBreach: number;
+  };
   scoreCatalog: ReplayV3ScoreCatalogEntry[];
+  frontlinePositionCount: number;
+  capture: {
+    threshold: number;
+    gainPerSoleTeamTick: number;
+    decayAmount: number;
+    decayIntervalTicks: number;
+    redeployPauseTicks: number;
+    controlPolicy:
+      'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral';
+    timeoutPolicy:
+      'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
+    territorialProgressFormula:
+      'per-team-advance-delta-times-index-offset-times-threshold-plus-signed-claim';
+    completionPolicy: 'base-breach-before-max-ticks';
+    initialPosition: 'centre-objective-index';
+    captureArithmetic:
+      'checked-int64-add-compare-threshold-completes-one-push-and-discards-overshoot';
+    oppositionArithmetic:
+      'erode-toward-zero-without-carrying-overshoot-into-own-claim';
+    decayClock:
+      'consecutive-empty-or-contested-ticks-reset-by-any-sole-control';
+    disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero';
+    redeployPolicy:
+      'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause';
+    redeployTickArithmetic:
+      'checked-int64-capture-tick-plus-one-plus-pause-require-int32';
+  };
 }
 
 export type ReplayV3GameModeDefinition =
@@ -280,17 +312,23 @@ export interface ReplayV3LifecycleAssignment extends ReplayV3JsonObject {
   assignedRespawnSpawnId: string | null;
 }
 
+export interface ReplayV3DeathmatchModeMapBinding {
+  kind: 'deathmatch';
+}
+
+export interface ReplayV3FrontlineModeMapBinding {
+  kind: 'frontline';
+  orderedObjectiveRegionIds: string[];
+  teamAdvances: {
+    teamId: number;
+    direction: 'toward-lower-index' | 'toward-higher-index';
+    objectiveIndexDelta: number;
+  }[];
+}
+
 export type ReplayV3ModeMapBinding =
-  | { kind: 'deathmatch' }
-  | {
-      kind: 'frontline';
-      orderedObjectiveRegionIds: string[];
-      teamAdvances: {
-        teamId: number;
-        direction: 'toward-lower-index' | 'toward-higher-index';
-        objectiveIndexDelta: number;
-      }[];
-    };
+  | ReplayV3DeathmatchModeMapBinding
+  | ReplayV3FrontlineModeMapBinding;
 
 export interface ReplayV3ResolvedContract {
   schemaVersion: number;
@@ -903,17 +941,43 @@ export interface ReplayV3Result {
     slot: ReplayV3SlotState;
     activeLife: ReplayV3LifeState | null;
   }[];
-  mode: {
-    kind: 'deathmatch';
-    reason: string;
-    scores: {
-      teamId: number;
-      kills: string;
-      deaths: string;
-      damageDealt: string;
-    }[];
-  };
+  mode: ReplayV3ModeResult;
 }
+
+export type ReplayV3DeathmatchEndReason =
+  | 'fault-eligibility'
+  | 'kill-limit'
+  | 'max-ticks';
+
+export interface ReplayV3DeathmatchResult {
+  kind: 'deathmatch';
+  reason: ReplayV3DeathmatchEndReason;
+  scores: {
+    teamId: number;
+    kills: string;
+    deaths: string;
+    damageDealt: string;
+  }[];
+}
+
+export type ReplayV3FrontlineEndReason =
+  | 'fault-eligibility'
+  | 'base-breach'
+  | 'max-ticks';
+
+export interface ReplayV3FrontlineResult {
+  kind: 'frontline';
+  reason: ReplayV3FrontlineEndReason;
+  control: Extract<ReplayV3ModeState, { kind: 'frontline' }>;
+  scores: {
+    teamId: number;
+    territorialProgress: string;
+  }[];
+}
+
+export type ReplayV3ModeResult =
+  | ReplayV3DeathmatchResult
+  | ReplayV3FrontlineResult;
 
 export interface ReplayV3Document {
   header: ReplayV3Header;

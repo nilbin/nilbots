@@ -9,6 +9,12 @@ import type {
   ReplayV2LifeState,
   ReplayV2WorldState,
 } from '../../src/replayWireV2.ts';
+import type {
+  ReplayV3Document,
+  ReplayV3FrontlineEndReason,
+  ReplayV3ModeState,
+  ReplayV3WorldState,
+} from '../../src/replayWireV3.ts';
 
 export const JS_UNSAFE_DECIMAL = '9007199254740993';
 
@@ -818,4 +824,193 @@ export function replayV2ZeroTickPartialFixtureInput() {
     replayHash: null,
     partial: true,
   } as const;
+}
+
+/**
+ * Adapts the checked-in replay-v3 Deathmatch golden into the frozen Frontline
+ * arm without duplicating its large actor/world fixture. The consumer tests
+ * intentionally do not claim this is a second Engine golden.
+ */
+export function adaptReplayV3ToFrontline(
+  source: ReplayV3Document,
+  reason: ReplayV3FrontlineEndReason = 'max-ticks',
+): ReplayV3Document {
+  const input = structuredClone(source);
+  const { contract } = input.header;
+  const captureThreshold = 3;
+  contract.rules.gameMode = {
+    kind: 'frontline',
+    modeId: 'frontline',
+    victory: {
+      kind: 'frontline',
+      timeoutRanking: [
+        { channel: 'territorial-progress', direction: 'higher-wins' },
+      ],
+      pushesToBreach: 2,
+    },
+    scoreCatalog: [
+      { channel: 'territorial-progress', domain: 'signed' },
+    ],
+    frontlinePositionCount: 3,
+    capture: {
+      threshold: captureThreshold,
+      gainPerSoleTeamTick: 1,
+      decayAmount: 1,
+      decayIntervalTicks: 2,
+      redeployPauseTicks: 1,
+      controlPolicy:
+        'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
+      timeoutPolicy:
+        'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
+      territorialProgressFormula:
+        'per-team-advance-delta-times-index-offset-times-threshold-plus-signed-claim',
+      completionPolicy: 'base-breach-before-max-ticks',
+      initialPosition: 'centre-objective-index',
+      captureArithmetic:
+        'checked-int64-add-compare-threshold-completes-one-push-and-discards-overshoot',
+      oppositionArithmetic:
+        'erode-toward-zero-without-carrying-overshoot-into-own-claim',
+      decayClock:
+        'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
+      disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero',
+      redeployPolicy:
+        'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause',
+      redeployTickArithmetic:
+        'checked-int64-capture-tick-plus-one-plus-pause-require-int32',
+    },
+  };
+  contract.map.regions = [
+    {
+      regionId: 'frontline-low',
+      kind: 'objective',
+      tiles: [[3, 3]],
+    },
+    {
+      regionId: 'frontline-centre',
+      kind: 'objective',
+      tiles: [[4, 3]],
+    },
+    {
+      regionId: 'frontline-high',
+      kind: 'objective',
+      tiles: [[5, 3]],
+    },
+  ];
+  contract.modeMapBinding = {
+    kind: 'frontline',
+    orderedObjectiveRegionIds: [
+      'frontline-low',
+      'frontline-centre',
+      'frontline-high',
+    ],
+    teamAdvances: [
+      {
+        teamId: 0,
+        direction: 'toward-higher-index',
+        objectiveIndexDelta: 1,
+      },
+      {
+        teamId: 1,
+        direction: 'toward-lower-index',
+        objectiveIndexDelta: -1,
+      },
+    ],
+  };
+
+  const neutralControl = (
+    activePositionIndex: number,
+  ): Extract<ReplayV3ModeState, { kind: 'frontline' }> => ({
+    kind: 'frontline',
+    modeId: 'frontline',
+    activePositionIndex,
+    claimingTeamId: null,
+    captureProgress: 0,
+    decayTicksElapsed: 0,
+    controlResumesAtTick: 0,
+  });
+  const setWorld = (
+    world: ReplayV3WorldState,
+    control = neutralControl(1),
+  ) => {
+    world.mode = { ...control };
+    world.scoreboard.teams.forEach((team) => {
+      const delta = team.teamId === 0 ? 1 : -1;
+      const territorialProgress = String(
+        delta *
+          (control.activePositionIndex - 1) *
+          captureThreshold,
+      );
+      team.scores = [
+        { channel: 'territorial-progress', value: territorialProgress },
+      ];
+    });
+  };
+  setWorld(input.initialFrame.state);
+  input.ticks.forEach((tick) => {
+    setWorld(tick.tickStart.state);
+    setWorld(tick.postState);
+    tick.actorTurns.forEach((turn) => {
+      turn.observation.mode = { ...tick.tickStart.state.mode };
+      turn.observation.scoreboard = structuredClone(
+        tick.tickStart.state.scoreboard,
+      );
+    });
+  });
+
+  if (input.result === null) {
+    throw new Error('Frontline fixture adaptation requires a complete replay');
+  }
+  const finalWorld =
+    input.ticks.at(-1)?.postState ?? input.initialFrame.state;
+  if (reason === 'base-breach') {
+    setWorld(finalWorld, neutralControl(2));
+  } else if (reason === 'fault-eligibility') {
+    finalWorld.scoreboard.teams.find((team) => team.teamId === 1)!.eligible =
+      false;
+  }
+  const eligibleTeamIds = finalWorld.scoreboard.teams
+    .filter((team) => team.eligible)
+    .map((team) => team.teamId);
+  input.result.completionReason = reason;
+  input.result.eligibleTeamIds = eligibleTeamIds;
+  input.result.mode = {
+    kind: 'frontline',
+    reason,
+    control: { ...finalWorld.mode } as Extract<
+      ReplayV3ModeState,
+      { kind: 'frontline' }
+    >,
+    scores: finalWorld.scoreboard.teams.map((team) => ({
+      teamId: team.teamId,
+      territorialProgress: team.scores[0]!.value,
+    })),
+  };
+  input.result.standings.teams = finalWorld.scoreboard.teams
+    .map((team) => {
+      const rank =
+        reason === 'base-breach'
+          ? team.teamId === 0
+            ? 1
+            : 2
+          : reason === 'fault-eligibility'
+            ? team.eligible
+              ? 1
+              : eligibleTeamIds.length + 1
+            : 1;
+      return {
+        teamId: team.teamId,
+        rank,
+        outcome:
+          rank === 1
+            ? reason === 'max-ticks'
+              ? ('draw' as const)
+              : ('win' as const)
+            : ('loss' as const),
+        scores: team.scores.map((score) => ({ ...score })),
+      };
+    })
+    .sort((left, right) => left.rank - right.rank || left.teamId - right.teamId);
+  input.result.standings.winnerTeamId =
+    reason === 'max-ticks' ? null : 0;
+  return input;
 }

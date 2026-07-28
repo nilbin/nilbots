@@ -140,8 +140,8 @@ export function ArenaBotCard({
           </Text>
         ) : null}
         {formTransition ? (
-          <Text style={[styles.stat, styles.anchoring]}>
-            ANCHOR{' '}
+          <Text style={[styles.stat, styles.transforming]}>
+            TRANSFORM{' '}
             <Text style={styles.statValue}>
               {formTransition.fromFormId}→{formTransition.toFormId} · T
               {formTransition.completesAtTick}
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   stat: { ...Mono, color: Arena.dim, fontSize: 11 },
   statValue: { color: Arena.text },
   holding: { color: Arena.zone },
-  anchoring: { color: Arena.zone },
+  transforming: { color: Arena.zone },
   signals: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.xs },
   signal: {
     ...Mono,

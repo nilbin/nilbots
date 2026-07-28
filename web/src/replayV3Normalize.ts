@@ -217,6 +217,28 @@ function jsonValue(value: unknown, path: string, fail: ReplayV3Fail): void {
   }
 }
 
+function validateRankings(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  array(value, path, fail).forEach((entry, index) => {
+    const ranking = exact(
+      entry,
+      `${path}[${index}]`,
+      ['channel', 'direction'],
+      fail,
+    );
+    nonEmpty(ranking.channel, `${path}[${index}].channel`, fail);
+    if (
+      ranking.direction !== 'higher-wins' &&
+      ranking.direction !== 'lower-wins'
+    ) {
+      fail(`${path}[${index}].direction`, 'unknown ranking direction');
+    }
+  });
+}
+
 function validateContract(
   value: unknown,
   path: string,
@@ -309,7 +331,6 @@ function validateContract(
   for (const key of [
     'limits',
     'seedMechanics',
-    'gameMode',
     'lifecycle',
     'teamPerception',
     'collisions',
@@ -319,26 +340,337 @@ function validateContract(
   }
   const limits = object(rules.limits, `${path}.rules.limits`, fail);
   integer(limits.maxTicks, `${path}.rules.limits.maxTicks`, fail);
-  const mode = object(rules.gameMode, `${path}.rules.gameMode`, fail);
-  nonEmpty(mode.kind, `${path}.rules.gameMode.kind`, fail);
-  nonEmpty(mode.modeId, `${path}.rules.gameMode.modeId`, fail);
+  const modePath = `${path}.rules.gameMode`;
+  const mode = object(rules.gameMode, modePath, fail);
+  string(mode.kind, `${modePath}.kind`, fail);
+  const modeKeys =
+    mode.kind === 'deathmatch'
+      ? ['kind', 'modeId', 'victory', 'scoreCatalog', 'scoring']
+      : mode.kind === 'frontline'
+        ? [
+            'kind',
+            'modeId',
+            'victory',
+            'scoreCatalog',
+            'frontlinePositionCount',
+            'capture',
+          ]
+        : null;
+  if (modeKeys === null) {
+    fail(`${modePath}.kind`, `unknown game mode ${String(mode.kind)}`);
+  }
+  exact(mode, modePath, modeKeys, fail);
+  nonEmpty(mode.modeId, `${modePath}.modeId`, fail);
+  if (mode.modeId !== mode.kind) {
+    fail(
+      `${modePath}.modeId`,
+      'must match the supported game-mode kind',
+    );
+  }
   const scoreCatalog = array(
     mode.scoreCatalog,
-    `${path}.rules.gameMode.scoreCatalog`,
+    `${modePath}.scoreCatalog`,
     fail,
   );
   scoreCatalog.forEach((entry, index) => {
-    const score = object(
+    const score = exact(
       entry,
-      `${path}.rules.gameMode.scoreCatalog[${index}]`,
+      `${modePath}.scoreCatalog[${index}]`,
+      ['channel', 'domain'],
       fail,
     );
     nonEmpty(
       score.channel,
-      `${path}.rules.gameMode.scoreCatalog[${index}].channel`,
+      `${modePath}.scoreCatalog[${index}].channel`,
       fail,
     );
+    if (score.domain !== 'non-negative' && score.domain !== 'signed') {
+      fail(
+        `${modePath}.scoreCatalog[${index}].domain`,
+        'unknown score value domain',
+      );
+    }
   });
+  const victoryPath = `${modePath}.victory`;
+  if (mode.kind === 'deathmatch') {
+    const deathmatchChannels = [
+      'kills',
+      'deaths',
+      'damage-dealt',
+      'active-health',
+    ] as const;
+    if (scoreCatalog.length === 0) {
+      fail(
+        `${modePath}.scoreCatalog`,
+        'Deathmatch requires a non-empty score catalog',
+      );
+    }
+    scoreCatalog.forEach((entry, index) => {
+      const score = entry as Record<string, unknown>;
+      const channelIndex = deathmatchChannels.indexOf(
+        score.channel as (typeof deathmatchChannels)[number],
+      );
+      if (
+        channelIndex < 0 ||
+        score.domain !== 'non-negative' ||
+        (index > 0 &&
+          channelIndex <= deathmatchChannels.indexOf(
+            (scoreCatalog[index - 1] as Record<string, unknown>)
+              .channel as (typeof deathmatchChannels)[number],
+          ))
+      ) {
+        fail(
+          `${modePath}.scoreCatalog[${index}]`,
+          'Deathmatch score channels must be a unique canonical-order subset of kills, deaths, damage-dealt, and active-health with non-negative domains',
+        );
+      }
+    });
+    const victory = exact(
+      mode.victory,
+      victoryPath,
+      [
+        'kind',
+        'timeoutRanking',
+        'killsToWin',
+        'terminalTickPrecedence',
+      ],
+      fail,
+    );
+    if (victory.kind !== 'deathmatch') {
+      fail(`${victoryPath}.kind`, 'must match the deathmatch mode');
+    }
+    validateRankings(
+      victory.timeoutRanking,
+      `${victoryPath}.timeoutRanking`,
+      fail,
+    );
+    const timeoutRankings = array(
+      victory.timeoutRanking,
+      `${victoryPath}.timeoutRanking`,
+      fail,
+    ).map((ranking) => ranking as Record<string, unknown>);
+    if (
+      timeoutRankings.length === 0 ||
+      timeoutRankings[0]!.channel !== 'kills' ||
+      timeoutRankings[0]!.direction !== 'higher-wins'
+    ) {
+      fail(
+        `${victoryPath}.timeoutRanking`,
+        'Deathmatch timeout ranking must begin with higher kills',
+      );
+    }
+    const rankedChannels = new Set<string>();
+    timeoutRankings.forEach((ranking, index) => {
+      const channel = ranking.channel as string;
+      if (
+        rankedChannels.has(channel) ||
+        !scoreCatalog.some(
+          (score) =>
+            (score as Record<string, unknown>).channel === channel,
+        )
+      ) {
+        fail(
+          `${victoryPath}.timeoutRanking[${index}].channel`,
+          'must be unique and reference a declared Deathmatch score channel',
+        );
+      }
+      rankedChannels.add(channel);
+    });
+    nullable(victory.killsToWin, `${victoryPath}.killsToWin`, integer, fail);
+    if (
+      typeof victory.killsToWin === 'number' &&
+      victory.killsToWin <= 0
+    ) {
+      fail(`${victoryPath}.killsToWin`, 'must be positive when present');
+    }
+    nonEmpty(
+      victory.terminalTickPrecedence,
+      `${victoryPath}.terminalTickPrecedence`,
+      fail,
+    );
+    if (
+      victory.terminalTickPrecedence !==
+      'kill-limit-after-complete-joint-tick-before-max-tick-timeout'
+    ) {
+      fail(
+        `${victoryPath}.terminalTickPrecedence`,
+        'does not match the supported Deathmatch completion precedence',
+      );
+    }
+    const scoring = exact(
+      mode.scoring,
+      `${modePath}.scoring`,
+      [
+        'deathIncrement',
+        'killIncrement',
+        'alliedFinalDamage',
+        'damageDealtIncrement',
+        'activeHealthSnapshot',
+        'nonDamageRetirement',
+        'earlyKillLimitResolution',
+      ],
+      fail,
+    );
+    for (const key of Object.keys(scoring)) {
+      nonEmpty(scoring[key], `${modePath}.scoring.${key}`, fail);
+    }
+    const fixedScoring = {
+      deathIncrement:
+        'one-raw-death-to-destroyed-actor-team-per-damage-caused-destruction',
+      killIncrement:
+        'one-raw-kill-to-exact-hostile-health-to-zero-damage-source-team',
+      alliedFinalDamage: 'victim-team-death-no-kill',
+      damageDealtIncrement:
+        'hostile-actual-health-removed-to-exact-source-team',
+      activeHealthSnapshot: 'terminal-sum-across-active-team-lives',
+      nonDamageRetirement:
+        'replication-retirement-adds-neither-death-nor-kill',
+      earlyKillLimitResolution:
+        'complete-joint-tick-then-highest-raw-kills-win-tied-top-draw',
+    } as const;
+    for (const [key, expected] of Object.entries(fixedScoring)) {
+      if (scoring[key] !== expected) {
+        fail(
+          `${modePath}.scoring.${key}`,
+          `expected ${expected}`,
+        );
+      }
+    }
+  } else {
+    const victory = exact(
+      mode.victory,
+      victoryPath,
+      ['kind', 'timeoutRanking', 'pushesToBreach'],
+      fail,
+    );
+    if (victory.kind !== 'frontline') {
+      fail(`${victoryPath}.kind`, 'must match the frontline mode');
+    }
+    validateRankings(
+      victory.timeoutRanking,
+      `${victoryPath}.timeoutRanking`,
+      fail,
+    );
+    integer(victory.pushesToBreach, `${victoryPath}.pushesToBreach`, fail);
+    integer(
+      mode.frontlinePositionCount,
+      `${modePath}.frontlinePositionCount`,
+      fail,
+    );
+    if (
+      (victory.pushesToBreach as number) <= 0 ||
+      (mode.frontlinePositionCount as number) < 3 ||
+      (mode.frontlinePositionCount as number) % 2 === 0 ||
+      (victory.pushesToBreach as number) * 2 - 1 !==
+        mode.frontlinePositionCount
+    ) {
+      fail(
+        `${modePath}.frontlinePositionCount`,
+        'must be odd, at least three, and equal pushesToBreach * 2 - 1',
+      );
+    }
+    const capturePath = `${modePath}.capture`;
+    const capture = exact(
+      mode.capture,
+      capturePath,
+      [
+        'threshold',
+        'gainPerSoleTeamTick',
+        'decayAmount',
+        'decayIntervalTicks',
+        'redeployPauseTicks',
+        'controlPolicy',
+        'timeoutPolicy',
+        'territorialProgressFormula',
+        'completionPolicy',
+        'initialPosition',
+        'captureArithmetic',
+        'oppositionArithmetic',
+        'decayClock',
+        'disabledDecay',
+        'redeployPolicy',
+        'redeployTickArithmetic',
+      ],
+      fail,
+    );
+    for (const key of [
+      'threshold',
+      'gainPerSoleTeamTick',
+      'decayAmount',
+      'decayIntervalTicks',
+      'redeployPauseTicks',
+    ]) {
+      integer(capture[key], `${capturePath}.${key}`, fail);
+    }
+    if (
+      (capture.threshold as number) <= 0 ||
+      (capture.gainPerSoleTeamTick as number) <= 0 ||
+      (capture.decayAmount as number) < 0 ||
+      (capture.decayIntervalTicks as number) < 0 ||
+      (capture.redeployPauseTicks as number) < 0 ||
+      ((capture.decayAmount as number) === 0) !==
+        ((capture.decayIntervalTicks as number) === 0)
+    ) {
+      fail(
+        capturePath,
+        'contains invalid threshold, gain, decay, or redeploy tuning',
+      );
+    }
+    const fixedPolicies = {
+      controlPolicy:
+        'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
+      timeoutPolicy:
+        'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
+      territorialProgressFormula:
+        'per-team-advance-delta-times-index-offset-times-threshold-plus-signed-claim',
+      completionPolicy: 'base-breach-before-max-ticks',
+      initialPosition: 'centre-objective-index',
+      captureArithmetic:
+        'checked-int64-add-compare-threshold-completes-one-push-and-discards-overshoot',
+      oppositionArithmetic:
+        'erode-toward-zero-without-carrying-overshoot-into-own-claim',
+      decayClock:
+        'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
+      disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero',
+      redeployPolicy:
+        'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause',
+      redeployTickArithmetic:
+        'checked-int64-capture-tick-plus-one-plus-pause-require-int32',
+    } as const;
+    for (const [key, expected] of Object.entries(fixedPolicies)) {
+      if (capture[key] !== expected) {
+        fail(`${capturePath}.${key}`, `expected ${expected}`);
+      }
+    }
+    if (
+      scoreCatalog.length !== 1 ||
+      (scoreCatalog[0] as Record<string, unknown>).channel !==
+        'territorial-progress' ||
+      (scoreCatalog[0] as Record<string, unknown>).domain !== 'signed'
+    ) {
+      fail(
+        `${modePath}.scoreCatalog`,
+        'frontline requires exactly the signed territorial-progress channel',
+      );
+    }
+    const timeoutRanking = array(
+      victory.timeoutRanking,
+      `${victoryPath}.timeoutRanking`,
+      fail,
+    );
+    if (
+      timeoutRanking.length !== 1 ||
+      (timeoutRanking[0] as Record<string, unknown>).channel !==
+        'territorial-progress' ||
+      (timeoutRanking[0] as Record<string, unknown>).direction !==
+        'higher-wins'
+    ) {
+      fail(
+        `${victoryPath}.timeoutRanking`,
+        'frontline requires territorial-progress higher-wins',
+      );
+    }
+  }
   for (const key of [
     'forms',
     'movementProfiles',
@@ -2105,25 +2437,86 @@ function validateResult(value: unknown, path: string, fail: ReplayV3Fail): void 
     nullable(unit.activeLife, `${path}.units[${index}].activeLife`, lifeState, fail);
   });
   const mode = object(result.mode, `${path}.mode`, fail);
-  if (mode.kind !== 'deathmatch') {
-    fail(`${path}.mode.kind`, `unknown mode result ${String(mode.kind)}`);
+  if (mode.kind === 'deathmatch') {
+    const deathmatch = exact(
+      mode,
+      `${path}.mode`,
+      ['kind', 'reason', 'scores'],
+      fail,
+    );
+    if (
+      deathmatch.reason !== 'fault-eligibility' &&
+      deathmatch.reason !== 'kill-limit' &&
+      deathmatch.reason !== 'max-ticks'
+    ) {
+      fail(`${path}.mode.reason`, 'unknown deathmatch end reason');
+    }
+    array(deathmatch.scores, `${path}.mode.scores`, fail).forEach(
+      (entry, index) => {
+        const score = exact(
+          entry,
+          `${path}.mode.scores[${index}]`,
+          ['teamId', 'kills', 'deaths', 'damageDealt'],
+          fail,
+        );
+        integer(score.teamId, `${path}.mode.scores[${index}].teamId`, fail);
+        for (const key of ['kills', 'deaths', 'damageDealt']) {
+          int64(
+            score[key],
+            `${path}.mode.scores[${index}].${key}`,
+            fail,
+            true,
+          );
+        }
+      },
+    );
+    return;
   }
-  const deathmatch = exact(mode, `${path}.mode`, ['kind', 'reason', 'scores'], fail);
-  nonEmpty(deathmatch.reason, `${path}.mode.reason`, fail);
-  array(deathmatch.scores, `${path}.mode.scores`, fail).forEach(
-    (entry, index) => {
-      const score = exact(
-        entry,
-        `${path}.mode.scores[${index}]`,
-        ['teamId', 'kills', 'deaths', 'damageDealt'],
-        fail,
+  if (mode.kind === 'frontline') {
+    const frontline = exact(
+      mode,
+      `${path}.mode`,
+      ['kind', 'reason', 'control', 'scores'],
+      fail,
+    );
+    if (
+      frontline.reason !== 'fault-eligibility' &&
+      frontline.reason !== 'base-breach' &&
+      frontline.reason !== 'max-ticks'
+    ) {
+      fail(`${path}.mode.reason`, 'unknown frontline end reason');
+    }
+    modeState(frontline.control, `${path}.mode.control`, fail);
+    const control = object(
+      frontline.control,
+      `${path}.mode.control`,
+      fail,
+    );
+    if (control.kind !== 'frontline') {
+      fail(
+        `${path}.mode.control.kind`,
+        'frontline result requires frontline control',
       );
-      integer(score.teamId, `${path}.mode.scores[${index}].teamId`, fail);
-      for (const key of ['kills', 'deaths', 'damageDealt']) {
-        int64(score[key], `${path}.mode.scores[${index}].${key}`, fail, true);
-      }
-    },
-  );
+    }
+    array(frontline.scores, `${path}.mode.scores`, fail).forEach(
+      (entry, index) => {
+        const score = exact(
+          entry,
+          `${path}.mode.scores[${index}]`,
+          ['teamId', 'territorialProgress'],
+          fail,
+        );
+        integer(score.teamId, `${path}.mode.scores[${index}].teamId`, fail);
+        int64(
+          score.territorialProgress,
+          `${path}.mode.scores[${index}].territorialProgress`,
+          fail,
+        );
+      },
+    );
+    return;
+  }
+  fail(`${path}.mode.kind`, `unknown mode result ${String(mode.kind)}`);
 }
 
 /**
@@ -2506,6 +2899,75 @@ function validateV3Relationships(
     );
   }
   if (
+    contract.rules.gameMode.kind === 'frontline' &&
+    contract.modeMapBinding.kind === 'frontline'
+  ) {
+    const mode = contract.rules.gameMode;
+    const binding = contract.modeMapBinding;
+    const bindingPath = 'replay.header.contract.modeMapBinding';
+    if (
+      binding.orderedObjectiveRegionIds.length !==
+      mode.frontlinePositionCount
+    ) {
+      fail(
+        `${bindingPath}.orderedObjectiveRegionIds`,
+        'must contain exactly frontlinePositionCount regions',
+      );
+    }
+    ensureUnique(
+      binding.orderedObjectiveRegionIds,
+      (regionId) => regionId,
+      `${bindingPath}.orderedObjectiveRegionIds`,
+      fail,
+    );
+    ensureUnique(
+      contract.map.regions,
+      (region) => region.regionId,
+      'replay.header.contract.map.regions',
+      fail,
+    );
+    const claimedObjectiveTiles = new Set<string>();
+    binding.orderedObjectiveRegionIds.forEach((regionId, index) => {
+      const region = contract.map.regions.find(
+        (candidate) => candidate.regionId === regionId,
+      );
+      if (!region || region.kind !== 'objective') {
+        fail(
+          `${bindingPath}.orderedObjectiveRegionIds[${index}]`,
+          'must reference an objective map region',
+        );
+      }
+      if (region.tiles.length === 0) {
+        fail(
+          `${bindingPath}.orderedObjectiveRegionIds[${index}]`,
+          'must reference a non-empty objective map region',
+        );
+      }
+      region.tiles.forEach((tile, tileIndex) => {
+        const key = `${tile[0]},${tile[1]}`;
+        if (claimedObjectiveTiles.has(key)) {
+          fail(
+            `${bindingPath}.orderedObjectiveRegionIds[${index}]`,
+            `overlaps another frontline objective at tile ${key}`,
+          );
+        }
+        claimedObjectiveTiles.add(key);
+        if (
+          tile[0] < 0 ||
+          tile[0] >= contract.map.width ||
+          tile[1] < 0 ||
+          tile[1] >= contract.map.height ||
+          contract.map.tileRows[tile[1]]?.[tile[0]] !== '.'
+        ) {
+          fail(
+            `${bindingPath}.orderedObjectiveRegionIds[${index}].tiles[${tileIndex}]`,
+            'must identify an in-bounds floor tile',
+          );
+        }
+      });
+    });
+  }
+  if (
     contract.map.tileRows.length !== contract.map.height ||
     contract.map.tileRows.some((row) => row.length !== contract.map.width)
   ) {
@@ -2550,6 +3012,39 @@ function validateV3Relationships(
   }
 
   const teams = new Set(topology.teams.map((team) => team.teamId));
+  if (contract.modeMapBinding.kind === 'frontline') {
+    const advances = contract.modeMapBinding.teamAdvances;
+    ensureUnique(
+      advances,
+      (advance) => advance.teamId,
+      'replay.header.contract.modeMapBinding.teamAdvances',
+      fail,
+    );
+    advances.forEach((advance, index) => {
+      if (index > 0 && advance.teamId <= advances[index - 1]!.teamId) {
+        fail(
+          `replay.header.contract.modeMapBinding.teamAdvances[${index}].teamId`,
+          'must be in canonical ascending team order',
+        );
+      }
+    });
+    if (
+      advances.length !== 2 ||
+      !sameSet(
+        advances.map((advance) => String(advance.teamId)),
+        topology.teams.map((team) => String(team.teamId)),
+      ) ||
+      advances.reduce(
+        (total, advance) => total + advance.objectiveIndexDelta,
+        0,
+      ) !== 0
+    ) {
+      fail(
+        'replay.header.contract.modeMapBinding.teamAdvances',
+        'must cover exactly two topology teams advancing in opposite directions',
+      );
+    }
+  }
   const participants = new Map(
     topology.participants.map((participant) => [
       participant.participantId,
@@ -2793,6 +3288,78 @@ function validateV3Relationships(
     ) {
       fail(`${path}.mode`, 'must match the resolved contract game mode');
     }
+    if (
+      world.mode.kind === 'frontline' &&
+      contract.rules.gameMode.kind === 'frontline' &&
+      contract.modeMapBinding.kind === 'frontline'
+    ) {
+      const control = world.mode;
+      const mode = contract.rules.gameMode;
+      const capture = mode.capture;
+      const claimantKnown =
+        control.claimingTeamId === null ||
+        teams.has(control.claimingTeamId);
+      const neutral = control.claimingTeamId === null;
+      const invalidControl =
+        control.activePositionIndex < 0 ||
+        control.activePositionIndex >= mode.frontlinePositionCount ||
+        !claimantKnown ||
+        control.captureProgress < 0 ||
+        control.captureProgress >= capture.threshold ||
+        neutral !== (control.captureProgress === 0) ||
+        control.decayTicksElapsed < 0 ||
+        (neutral && control.decayTicksElapsed !== 0) ||
+        (capture.decayIntervalTicks === 0
+          ? control.decayTicksElapsed !== 0
+          : control.decayTicksElapsed >= capture.decayIntervalTicks) ||
+        control.controlResumesAtTick < 0 ||
+        control.controlResumesAtTick - world.nextTick >
+          capture.redeployPauseTicks ||
+        (world.nextTick < control.controlResumesAtTick &&
+          (!neutral ||
+            control.captureProgress !== 0 ||
+            control.decayTicksElapsed !== 0));
+      if (invalidControl) {
+        fail(`${path}.mode`, 'violates frontline control invariants');
+      }
+
+      const centre = Math.floor(mode.frontlinePositionCount / 2);
+      const advances = new Map(
+        contract.modeMapBinding.teamAdvances.map((advance) => [
+          advance.teamId,
+          advance.objectiveIndexDelta,
+        ]),
+      );
+      world.scoreboard.teams.forEach((team, teamIndex) => {
+        const territorial = team.scores.find(
+          (score) => score.channel === 'territorial-progress',
+        );
+        const delta = advances.get(team.teamId);
+        if (!territorial || delta === undefined) {
+          fail(
+            `${path}.scoreboard.teams[${teamIndex}].scores`,
+            'must expose frontline territorial progress for the team',
+          );
+        }
+        const claim =
+          control.claimingTeamId === null
+            ? 0n
+            : control.claimingTeamId === team.teamId
+              ? BigInt(control.captureProgress)
+              : -BigInt(control.captureProgress);
+        const expected =
+          BigInt(delta) *
+            BigInt(control.activePositionIndex - centre) *
+            BigInt(capture.threshold) +
+          claim;
+        if (territorial.value !== expected.toString()) {
+          fail(
+            `${path}.scoreboard.teams[${teamIndex}].scores`,
+            'must match the frontline territorial-progress formula',
+          );
+        }
+      });
+    }
   };
 
   validateWorld(initialFrame.state, 'replay.initialFrame.state', 0);
@@ -2857,6 +3424,13 @@ function validateV3Relationships(
     });
   };
   recordOrdinals(initialFrame.events, 'replay.initialFrame.events');
+
+  if (document.ticks.length > contract.rules.limits.maxTicks) {
+    fail(
+      'replay.ticks',
+      'cannot extend beyond the configured maximum tick boundary',
+    );
+  }
 
   let previousWorld = initialFrame.state;
   document.ticks.forEach((tick, tickIndex) => {
@@ -3099,6 +3673,23 @@ function validateV3Relationships(
         'must match the final scoreboard eligibility',
       );
     }
+    ensureUnique(
+      result.eligibleTeamIds,
+      (teamId) => teamId,
+      'replay.result.eligibleTeamIds',
+      fail,
+    );
+    result.eligibleTeamIds.forEach((teamId, index) => {
+      if (
+        index > 0 &&
+        teamId <= result.eligibleTeamIds[index - 1]!
+      ) {
+        fail(
+          `replay.result.eligibleTeamIds[${index}]`,
+          'must be in canonical ascending team order',
+        );
+      }
+    });
     ensureUnique(result.units, (unit) => unitValue(unit.slot), 'replay.result.units', fail);
     if (
       !sameSet(
@@ -3139,6 +3730,13 @@ function validateV3Relationships(
         );
       }
     });
+    const noTicksExecuted = document.ticks.length === 0;
+    if ((result.endTick === null) !== noTicksExecuted) {
+      fail(
+        'replay.result.endTick',
+        'must be null exactly when no joint tick executed',
+      );
+    }
     if (
       result.endTick !== null &&
       result.endTick !== document.ticks.at(-1)?.tick
@@ -3151,7 +3749,23 @@ function validateV3Relationships(
     ) {
       fail('replay.result.mode', 'must match completion reason and final mode');
     }
-    ensureUnique(result.mode.scores, (score) => score.teamId, 'replay.result.mode.scores', fail);
+    ensureUnique(
+      result.mode.scores.map((score) => score.teamId),
+      (teamId) => teamId,
+      'replay.result.mode.scores',
+      fail,
+    );
+    result.mode.scores.forEach((score, index) => {
+      if (
+        index > 0 &&
+        score.teamId <= result.mode.scores[index - 1]!.teamId
+      ) {
+        fail(
+          `replay.result.mode.scores[${index}].teamId`,
+          'must be in canonical ascending team order',
+        );
+      }
+    });
     if (
       !sameSet(
         result.mode.scores.map((score) => String(score.teamId)),
@@ -3159,6 +3773,381 @@ function validateV3Relationships(
       )
     ) {
       fail('replay.result.mode.scores', 'must cover exactly topology teams');
+    }
+    if (
+      result.mode.kind === 'deathmatch' &&
+      finalWorld.mode.kind === 'deathmatch' &&
+      contract.rules.gameMode.kind === 'deathmatch'
+    ) {
+      const terminalScores = new Map(
+        result.mode.scores.map((score) => [score.teamId, score]),
+      );
+      const finalScores = new Map(
+        finalWorld.scoreboard.teams.map((team) => [team.teamId, team]),
+      );
+      result.mode.scores.forEach((score, index) => {
+        const finalTeam = finalScores.get(score.teamId);
+        for (const [field, channel] of [
+          ['kills', 'kills'],
+          ['deaths', 'deaths'],
+          ['damageDealt', 'damage-dealt'],
+        ] as const) {
+          const finalValue = finalTeam?.scores.find(
+            (value) => value.channel === channel,
+          );
+          if (finalValue && score[field] !== finalValue.value) {
+            fail(
+              `replay.result.mode.scores[${index}].${field}`,
+              `must match the final ${channel} scoreboard value`,
+            );
+          }
+        }
+      });
+
+      const mode = contract.rules.gameMode;
+      mode.victory.timeoutRanking.forEach((ranking, index) => {
+        if (
+          !mode.scoreCatalog.some(
+            (score) => score.channel === ranking.channel,
+          )
+        ) {
+          fail(
+            `replay.header.contract.rules.gameMode.victory.timeoutRanking[${index}].channel`,
+            'must reference a declared score channel',
+          );
+        }
+      });
+      const scoreValue = (teamId: number, channel: string): bigint => {
+        const value = finalScores
+          .get(teamId)
+          ?.scores.find((score) => score.channel === channel);
+        if (!value) {
+          fail(
+            'replay.result.standings',
+            `cannot rank missing score channel ${channel}`,
+          );
+        }
+        return BigInt(value.value);
+      };
+      const kills = (teamId: number): bigint =>
+        BigInt(terminalScores.get(teamId)!.kills);
+      const compareTimeout = (left: number, right: number): number => {
+        for (const ranking of mode.victory.timeoutRanking) {
+          const leftValue = scoreValue(left, ranking.channel);
+          const rightValue = scoreValue(right, ranking.channel);
+          if (leftValue === rightValue) continue;
+          const comparison = leftValue < rightValue ? -1 : 1;
+          return ranking.direction === 'higher-wins'
+            ? -comparison
+            : comparison;
+        }
+        return 0;
+      };
+      const compareKills = (left: number, right: number): number => {
+        const leftKills = kills(left);
+        const rightKills = kills(right);
+        return leftKills === rightKills
+          ? 0
+          : leftKills > rightKills
+            ? -1
+            : 1;
+      };
+
+      const eligible = new Set(result.eligibleTeamIds);
+      const killLimitReached =
+        mode.victory.killsToWin !== null &&
+        [...eligible].some(
+          (teamId) =>
+            kills(teamId) >= BigInt(mode.victory.killsToWin!),
+        );
+      let authoritativeComparison:
+        | typeof compareTimeout
+        | typeof compareKills;
+      if (result.mode.reason === 'fault-eligibility') {
+        if (eligible.size > 1) {
+          fail(
+            'replay.result.mode.reason',
+            'fault eligibility requires at most one eligible team',
+          );
+        }
+        authoritativeComparison = compareTimeout;
+      } else if (result.mode.reason === 'kill-limit') {
+        if (
+          eligible.size <= 1 ||
+          mode.victory.killsToWin === null ||
+          !killLimitReached
+        ) {
+          fail(
+            'replay.result.mode.reason',
+            'kill-limit requires multiple eligible teams and a configured reached kill threshold',
+          );
+        }
+        authoritativeComparison = compareKills;
+      } else {
+        if (
+          eligible.size <= 1 ||
+          result.endTick !== contract.rules.limits.maxTicks - 1 ||
+          killLimitReached
+        ) {
+          fail(
+            'replay.result.mode.reason',
+            'max-ticks requires multiple eligible teams at the configured boundary with no reached kill limit',
+          );
+        }
+        authoritativeComparison = compareTimeout;
+      }
+
+      const rankedEligible = [...eligible].sort(
+        (left, right) =>
+          authoritativeComparison(left, right) || left - right,
+      );
+      const expectedRanks = new Map<number, number>();
+      rankedEligible.forEach((teamId, index) => {
+        const previous = rankedEligible[index - 1];
+        expectedRanks.set(
+          teamId,
+          previous !== undefined &&
+            authoritativeComparison(previous, teamId) === 0
+            ? expectedRanks.get(previous)!
+            : index + 1,
+        );
+      });
+      const ineligibleRank = rankedEligible.length + 1;
+      topology.teams.forEach((team) => {
+        if (!eligible.has(team.teamId)) {
+          expectedRanks.set(team.teamId, ineligibleRank);
+        }
+      });
+      const topCount = [...expectedRanks.values()].filter(
+        (rank) => rank === 1,
+      ).length;
+      const expectedStandings = topology.teams
+        .map((team) => {
+          const rank = expectedRanks.get(team.teamId)!;
+          return {
+            teamId: team.teamId,
+            rank,
+            outcome:
+              rank === 1
+                ? topCount === 1
+                  ? 'win'
+                  : 'draw'
+                : 'loss',
+          };
+        })
+        .sort(
+          (left, right) =>
+            left.rank - right.rank || left.teamId - right.teamId,
+        );
+      result.standings.teams.forEach((standing, index) => {
+        const expected = expectedStandings[index];
+        if (
+          !expected ||
+          standing.teamId !== expected.teamId ||
+          standing.rank !== expected.rank ||
+          standing.outcome !== expected.outcome
+        ) {
+          fail(
+            `replay.result.standings.teams[${index}]`,
+            'does not follow deathmatch eligibility and victory ranking',
+          );
+        }
+      });
+      const expectedWinner =
+        topCount === 1
+          ? [...expectedRanks].find(([, rank]) => rank === 1)?.[0] ?? null
+          : null;
+      if (result.standings.winnerTeamId !== expectedWinner) {
+        fail(
+          'replay.result.standings.winnerTeamId',
+          'must match the resolved deathmatch standings',
+        );
+      }
+    }
+    if (
+      result.mode.kind === 'frontline' &&
+      finalWorld.mode.kind === 'frontline' &&
+      contract.rules.gameMode.kind === 'frontline' &&
+      contract.modeMapBinding.kind === 'frontline'
+    ) {
+      if (
+        JSON.stringify(result.mode.control) !==
+        JSON.stringify(finalWorld.mode)
+      ) {
+        fail(
+          'replay.result.mode.control',
+          'must exactly match final authoritative frontline control',
+        );
+      }
+      result.mode.scores.forEach((score, index) => {
+        const finalTeam = finalWorld.scoreboard.teams.find(
+          (team) => team.teamId === score.teamId,
+        );
+        const finalTerritorial = finalTeam?.scores.find(
+          (value) => value.channel === 'territorial-progress',
+        );
+        if (
+          !finalTerritorial ||
+          score.territorialProgress !== finalTerritorial.value
+        ) {
+          fail(
+            `replay.result.mode.scores[${index}].territorialProgress`,
+            'must match the final territorial-progress scoreboard value',
+          );
+        }
+      });
+
+      const eligible = new Set(result.eligibleTeamIds);
+      const mode = contract.rules.gameMode;
+      const binding = contract.modeMapBinding;
+      let breachWinner: number | null = null;
+      if (result.mode.reason === 'fault-eligibility') {
+        if (
+          eligible.size > 1 ||
+          result.endTick === null ||
+          result.endTick >= contract.rules.limits.maxTicks
+        ) {
+          fail(
+            'replay.result.mode.reason',
+            'fault eligibility requires at most one eligible team before the configured maximum tick boundary',
+          );
+        }
+      } else if (result.mode.reason === 'max-ticks') {
+        if (
+          eligible.size <= 1 ||
+          finalWorld.nextTick !== contract.rules.limits.maxTicks
+        ) {
+          fail(
+            'replay.result.mode.reason',
+            'max-ticks requires multiple eligible teams at the configured maximum tick boundary',
+          );
+        }
+      } else {
+        if (
+          eligible.size <= 1 ||
+          result.endTick === null ||
+          result.endTick >= contract.rules.limits.maxTicks
+        ) {
+          fail(
+            'replay.result.mode.reason',
+            'base breach requires multiple eligible teams before the configured maximum tick boundary',
+          );
+        }
+        const requiredDelta =
+          finalWorld.mode.activePositionIndex === 0
+            ? -1
+            : finalWorld.mode.activePositionIndex ===
+                mode.frontlinePositionCount - 1
+              ? 1
+              : 0;
+        breachWinner =
+          binding.teamAdvances.find(
+            (advance) => advance.objectiveIndexDelta === requiredDelta,
+          )?.teamId ?? null;
+        if (
+          requiredDelta === 0 ||
+          breachWinner === null ||
+          !eligible.has(breachWinner) ||
+          finalWorld.mode.claimingTeamId !== null ||
+          finalWorld.mode.captureProgress !== 0 ||
+          finalWorld.mode.decayTicksElapsed !== 0 ||
+          finalWorld.mode.controlResumesAtTick > finalWorld.nextTick
+        ) {
+          fail(
+            'replay.result.mode.control',
+            'does not describe a valid terminal base breach',
+          );
+        }
+      }
+
+      const territorialScores = new Map(
+        result.mode.scores.map((score) => [
+          score.teamId,
+          BigInt(score.territorialProgress),
+        ]),
+      );
+      const rankedEligible = [...eligible].sort((left, right) => {
+        if (breachWinner !== null) {
+          return left === breachWinner
+            ? -1
+            : right === breachWinner
+              ? 1
+              : left - right;
+        }
+        const scoreComparison =
+          (territorialScores.get(right) ?? 0n) -
+          (territorialScores.get(left) ?? 0n);
+        return scoreComparison < 0n
+          ? -1
+          : scoreComparison > 0n
+            ? 1
+            : left - right;
+      });
+      const expectedRanks = new Map<number, number>();
+      rankedEligible.forEach((teamId, index) => {
+        const previous = rankedEligible[index - 1];
+        const tiedWithPrevious =
+          previous !== undefined &&
+          breachWinner === null &&
+          territorialScores.get(previous) === territorialScores.get(teamId);
+        expectedRanks.set(
+          teamId,
+          tiedWithPrevious
+            ? expectedRanks.get(previous)!
+            : index + 1,
+        );
+      });
+      const ineligibleRank = rankedEligible.length + 1;
+      topology.teams.forEach((team) => {
+        if (!eligible.has(team.teamId)) {
+          expectedRanks.set(team.teamId, ineligibleRank);
+        }
+      });
+      const topCount = [...expectedRanks.values()].filter(
+        (rank) => rank === 1,
+      ).length;
+      const expectedStandings = topology.teams
+        .map((team) => {
+          const rank = expectedRanks.get(team.teamId)!;
+          return {
+            teamId: team.teamId,
+            rank,
+            outcome:
+              rank === 1
+                ? topCount === 1
+                  ? 'win'
+                  : 'draw'
+                : 'loss',
+          };
+        })
+        .sort(
+          (left, right) =>
+            left.rank - right.rank || left.teamId - right.teamId,
+        );
+      result.standings.teams.forEach((standing, index) => {
+        const expected = expectedStandings[index];
+        if (
+          !expected ||
+          standing.teamId !== expected.teamId ||
+          standing.rank !== expected.rank ||
+          standing.outcome !== expected.outcome
+        ) {
+          fail(
+            `replay.result.standings.teams[${index}]`,
+            'does not follow frontline eligibility and victory ranking',
+          );
+        }
+      });
+      const expectedWinner =
+        topCount === 1
+          ? [...expectedRanks].find(([, rank]) => rank === 1)?.[0] ?? null
+          : null;
+      if (result.standings.winnerTeamId !== expectedWinner) {
+        fail(
+          'replay.result.standings.winnerTeamId',
+          'must match the resolved frontline standings',
+        );
+      }
     }
   }
 }
@@ -3198,6 +4187,32 @@ function identity(
   value: V3.ReplayV3ActorId,
 ): Model.ReplayGenericActorIdentity {
   return replayGenericIdentity(value.teamId, value.unitId, value.lifeId);
+}
+
+function frontlineMapFromV3(
+  contract: V3.ReplayV3ResolvedContract,
+): Model.ReplayFrontlineMap | null {
+  if (
+    contract.rules.gameMode.kind !== 'frontline' ||
+    contract.modeMapBinding.kind !== 'frontline'
+  ) {
+    return null;
+  }
+  const regions = new Map(
+    contract.map.regions.map((region) => [region.regionId, region]),
+  );
+  return {
+    positions: contract.modeMapBinding.orderedObjectiveRegionIds.map(
+      (regionId, positionIndex) => ({
+        positionIndex,
+        tiles: regions.get(regionId)!.tiles.map(positionFromTuple),
+      }),
+    ),
+    // Generation-3 maps express deployment and transition placement through
+    // named spawns/regions rather than the old Frontline-specific home bag.
+    teamHomes: [],
+    anchorForbiddenTiles: [],
+  };
 }
 
 export function normalizeReplayV3(
@@ -3369,6 +4384,45 @@ function contractFromV3(
   const spawnsById = new Map(
     contract.initialDeployment.spawns.map((spawn) => [spawn.spawnId, spawn]),
   );
+  const frontlineMap = frontlineMapFromV3(contract);
+  const mode: Model.ReplayGenericModeDefinition = (() => {
+    if (contract.rules.gameMode.kind === 'deathmatch') {
+      return {
+        kind: 'deathmatch',
+        modeId: contract.rules.gameMode.modeId,
+      };
+    }
+    if (contract.modeMapBinding.kind !== 'frontline') {
+      throw new Error('validated replay-v3 lost its frontline map binding');
+    }
+    return {
+      kind: 'frontline',
+      modeId: contract.rules.gameMode.modeId,
+      frontlinePositionCount:
+        contract.rules.gameMode.frontlinePositionCount,
+      pushesToBreach:
+        contract.rules.gameMode.victory.pushesToBreach,
+      capture: {
+        threshold: contract.rules.gameMode.capture.threshold,
+        gainPerSoleTeamTick:
+          contract.rules.gameMode.capture.gainPerSoleTeamTick,
+        decayAmount: contract.rules.gameMode.capture.decayAmount,
+        decayIntervalTicks:
+          contract.rules.gameMode.capture.decayIntervalTicks,
+        redeployPauseTicks:
+          contract.rules.gameMode.capture.redeployPauseTicks,
+      },
+      orderedObjectiveRegionIds: [
+        ...contract.modeMapBinding.orderedObjectiveRegionIds,
+      ],
+      teamAdvances: contract.modeMapBinding.teamAdvances.map(
+        (advance) => ({
+          teamId: advance.teamId,
+          positionIndexDelta: advance.objectiveIndexDelta as -1 | 1,
+        }),
+      ),
+    };
+  })();
   return {
     kind: 'v3-generic',
     completeness: 'exact',
@@ -3376,6 +4430,7 @@ function contractFromV3(
     matchContractFingerprint: contract.matchContractFingerprint,
     modeKind: contract.rules.gameMode.kind,
     modeId: contract.rules.gameMode.modeId,
+    mode,
     rawContract: contract,
     rules: {
       schemaVersion: contract.rules.schemaVersion,
@@ -3589,8 +4644,11 @@ function contractFromV3(
             : null;
         })
         .filter((spawn): spawn is NonNullable<typeof spawn> => spawn !== null),
-      objectiveTiles: [],
-      frontline: null,
+      objectiveTiles:
+        frontlineMap?.positions.flatMap((position) =>
+          position.tiles.map((tile) => ({ ...tile })),
+        ) ?? [],
+      frontline: frontlineMap,
     },
     topology: {
       teamCount: topology.counts.teamCount,
@@ -3633,7 +4691,9 @@ function contractFromV3(
 }
 
 function mapFromV3(header: V3.ReplayV3Header): Model.ReplayMap {
-  const map = header.contract.map;
+  const { contract } = header;
+  const map = contract.map;
+  const frontline = frontlineMapFromV3(contract);
   return {
     mapId: map.mapId,
     mapVersion: map.mapVersion,
@@ -3641,8 +4701,11 @@ function mapFromV3(header: V3.ReplayV3Header): Model.ReplayMap {
     width: map.width,
     height: map.height,
     tileRows: [...map.tileRows],
-    objectiveTiles: [],
-    frontline: null,
+    objectiveTiles:
+      frontline?.positions.flatMap((position) =>
+        position.tiles.map((tile) => ({ ...tile })),
+      ) ?? [],
+    frontline,
     presentation: header.presentation
       ? {
           themeId: header.presentation.themeId,
@@ -4620,7 +5683,14 @@ function resultFromV3(
     },
   );
   const objective = objectiveFromV3(finalWorld.mode);
-  if (objective.kind === 'frontline') objective.nextTick = finalWorld.nextTick;
+  if (objective.kind === 'frontline') {
+    objective.nextTick = finalWorld.nextTick;
+    objective.winnerTeamId =
+      result.mode.kind === 'frontline' &&
+      result.mode.reason === 'base-breach'
+        ? result.standings.winnerTeamId
+        : null;
+  }
   return {
     winnerTeamId: result.standings.winnerTeamId,
     reason: result.completionReason,
@@ -4633,13 +5703,24 @@ function resultFromV3(
     objective,
     teams,
     eligibleTeamIds: [...result.eligibleTeamIds],
-    mode: {
-      kind: 'deathmatch',
-      reason: result.mode.reason,
-      scores: result.mode.scores.map((score) => ({
-        teamKey: replayTeamKey(score.teamId),
-        ...score,
-      })),
-    },
+    mode:
+      result.mode.kind === 'deathmatch'
+        ? {
+            kind: 'deathmatch',
+            reason: result.mode.reason,
+            scores: result.mode.scores.map((score) => ({
+              teamKey: replayTeamKey(score.teamId),
+              ...score,
+            })),
+          }
+        : {
+            kind: 'frontline',
+            reason: result.mode.reason,
+            control: { ...result.mode.control },
+            scores: result.mode.scores.map((score) => ({
+              teamKey: replayTeamKey(score.teamId),
+              ...score,
+            })),
+          },
   };
 }

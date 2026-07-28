@@ -122,12 +122,29 @@ export type ArenaDeathmatchResult = {
   }[];
 };
 
+export type ArenaFrontlineResult = {
+  kind: 'frontline';
+  reason: 'fault-eligibility' | 'base-breach' | 'max-ticks';
+  control: {
+    kind: 'frontline';
+    modeId: string;
+    activePositionIndex: number;
+    claimingTeamId: number | null;
+    captureProgress: number;
+    decayTicksElapsed: number;
+    controlResumesAtTick: number;
+  };
+  scores: {
+    teamKey: string;
+    teamId: number;
+    /** Canonical signed decimal text; never coerce this through a JavaScript number. */
+    territorialProgress: string;
+  }[];
+};
+
 export type ArenaModeResult =
   | ArenaDeathmatchResult
-  | {
-      kind: string;
-      result: Readonly<Record<string, unknown>>;
-    }
+  | ArenaFrontlineResult
   | null;
 
 export type ArenaResult = {

@@ -485,11 +485,36 @@ export interface ReplayExactMatchContract {
  * viewer. New actions, forms, modes, and policy fields remain available in
  * rawContract without requiring the viewer model to predict them.
  */
+export type ReplayGenericModeDefinition =
+  | {
+      kind: 'deathmatch';
+      modeId: string;
+    }
+  | {
+      kind: 'frontline';
+      modeId: string;
+      frontlinePositionCount: number;
+      pushesToBreach: number;
+      capture: {
+        threshold: number;
+        gainPerSoleTeamTick: number;
+        decayAmount: number;
+        decayIntervalTicks: number;
+        redeployPauseTicks: number;
+      };
+      orderedObjectiveRegionIds: string[];
+      teamAdvances: {
+        teamId: number;
+        positionIndexDelta: -1 | 1;
+      }[];
+    };
+
 export interface ReplayGenericMatchContract
   extends Omit<ReplayExactMatchContract, 'kind'> {
   kind: 'v3-generic';
-  modeKind: string;
+  modeKind: ReplayGenericModeDefinition['kind'];
   modeId: string;
+  mode: ReplayGenericModeDefinition;
   rawContract: ReplayV3ResolvedContract;
 }
 
@@ -1204,6 +1229,18 @@ export interface ReplayDeathmatchResult {
   }[];
 }
 
+export interface ReplayFrontlineResult {
+  kind: 'frontline';
+  reason: 'fault-eligibility' | 'base-breach' | 'max-ticks';
+  control: Extract<ReplayModeState, { kind: 'frontline' }>;
+  scores: {
+    teamKey: ReplayTeamKey;
+    teamId: number;
+    /** Canonical signed decimal text. */
+    territorialProgress: string;
+  }[];
+}
+
 export interface ReplayTerminalResult {
   winnerTeamId: number | null;
   reason: string;
@@ -1214,10 +1251,7 @@ export interface ReplayTerminalResult {
   /** Exact wire value; null is permitted by the generic result contract. */
   reportedEndTick?: number | null;
   eligibleTeamIds?: number[];
-  mode?: ReplayDeathmatchResult | {
-    kind: string;
-    result: Readonly<Record<string, unknown>>;
-  };
+  mode?: ReplayDeathmatchResult | ReplayFrontlineResult;
 }
 
 export interface ReplayHeaderVersions {
