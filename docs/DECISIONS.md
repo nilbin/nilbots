@@ -2106,7 +2106,10 @@ the catalog is revalidated. Missing pack URLs remain real 404s rather than SPA f
 Self-contained CLI viewers stub the score module and do not copy `public/`; HostedViewer
 and the mobile bridge remain unchanged. Production release refuses any catalogued pack
 until rights are cleared, shipment is approved and every authored loop has completed
-human audition.
+human audition. A manually selected public-pilot tier may expose a rights-cleared,
+ship-approved pack while loop auditions remain pending; it emits the exact warning and
+cannot weaken provenance, manifest-integrity or declared-media checks. Production is the
+default tier and remains fully blocked.
 
 AAC in M4A is the baseline output because it keeps the broadest practical Safari/iOS and
 hardware-decoder path. The manifest and server MIME policy do not hard-code playback to

@@ -67,7 +67,11 @@ def resolve_relative_path(root_path: Path, raw_path: object, label: str) -> Path
     return candidate
 
 
-def release_blockers(catalog_path: Path) -> list[str]:
+def release_blockers(
+    catalog_path: Path,
+    *,
+    require_audition: bool = True,
+) -> list[str]:
     catalog = load_json_object(catalog_path, "soundtrack catalog")
     if catalog.get("schemaVersion") != 1:
         raise ReleaseApprovalError("soundtrack catalog schemaVersion must be 1")
@@ -102,7 +106,13 @@ def release_blockers(catalog_path: Path) -> list[str]:
             raise ReleaseApprovalError(
                 f"{track_id} manifest id does not match its catalog entry"
             )
-        blockers.extend(manifest_release_blockers(manifest, track_id))
+        blockers.extend(
+            manifest_release_blockers(
+                manifest,
+                track_id,
+                require_audition=require_audition,
+            )
+        )
         declared_media.update(manifest_media_paths(manifest_path, manifest, track_id))
 
     # Public directories can retain older content-addressed versions even after
@@ -128,6 +138,7 @@ def release_blockers(catalog_path: Path) -> list[str]:
             manifest_release_blockers(
                 manifest,
                 f"{manifest_id} ({relative})",
+                require_audition=require_audition,
             )
         )
         declared_media.update(
@@ -152,6 +163,8 @@ def release_blockers(catalog_path: Path) -> list[str]:
 def manifest_release_blockers(
     manifest: dict[str, Any],
     label: str,
+    *,
+    require_audition: bool = True,
 ) -> list[str]:
     blockers: list[str] = []
     provenance = manifest.get("provenance")
@@ -179,7 +192,7 @@ def manifest_release_blockers(
             or loop.get("auditionRequired") is not False
         ):
             unauditioned += 1
-    if unauditioned:
+    if unauditioned and require_audition:
         blockers.append(
             f"{label}: {unauditioned} loop(s) still require human audition"
         )
@@ -206,31 +219,69 @@ def manifest_media_paths(
     return media
 
 
-def assert_soundtracks_shippable(catalog_path: Path) -> None:
-    blockers = release_blockers(catalog_path)
+def assert_soundtracks_shippable(
+    catalog_path: Path,
+    *,
+    require_audition: bool = True,
+) -> None:
+    blockers = release_blockers(
+        catalog_path,
+        require_audition=require_audition,
+    )
     if blockers:
         detail = "\n".join(f"- {blocker}" for blocker in blockers)
+        guidance = (
+            "Keep these assets local, or record cleared rights, approved shipment, "
+            "and completed loop auditions before publishing."
+            if require_audition
+            else
+            "Pilot publication still requires cleared rights, explicit ship approval, "
+            "valid manifests, and fully declared media."
+        )
         raise ReleaseApprovalError(
             "soundtrack release approval failed:\n"
             f"{detail}\n"
-            "Keep these assets local, or record cleared rights, approved shipment, "
-            "and completed loop auditions before publishing."
+            f"{guidance}"
         )
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    pilot = len(argv) == 3 and argv[1] == "--pilot"
+    if not (len(argv) == 2 or pilot):
         print(
-            "usage: python3 scripts/assert_soundtrack_release.py "
+            "usage: python3 scripts/assert_soundtrack_release.py [--pilot] "
             "web/public/soundtracks/index.json",
             file=sys.stderr,
         )
         return 2
+    catalog_path = Path(argv[2] if pilot else argv[1])
     try:
-        assert_soundtracks_shippable(Path(argv[1]))
+        assert_soundtracks_shippable(
+            catalog_path,
+            require_audition=not pilot,
+        )
     except ReleaseApprovalError as error:
         print(error, file=sys.stderr)
         return 1
+    if pilot:
+        audition_warnings = [
+            blocker
+            for blocker in release_blockers(catalog_path)
+            if "still require human audition" in blocker
+        ]
+        if audition_warnings:
+            detail = "\n".join(f"- {warning}" for warning in audition_warnings)
+            print(
+                "Pilot soundtrack warning:\n"
+                f"{detail}\n"
+                "Complete human loop auditions before a production-tier release.",
+                file=sys.stderr,
+            )
+        print(
+            "Pilot soundtrack gate passed: rights, ship approval, manifests, "
+            "and declared media are valid."
+        )
+        return 0
     print("All public soundtracks are rights-cleared, auditioned, and approved.")
     return 0
 

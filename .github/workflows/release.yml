@@ -13,6 +13,14 @@ on:
           - publish-cli
           - publish
           - publish-and-deploy
+      release_tier:
+        description: How strict should public-media approval be?
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - pilot
 
 concurrency:
   group: nilbots-manual-release
@@ -56,8 +64,20 @@ jobs:
         run: bash scripts/e2e.sh
 
       - name: Require cleared and auditioned soundtrack media
-        if: inputs.operation == 'publish' || inputs.operation == 'publish-and-deploy'
+        if: >-
+          (inputs.operation == 'publish-cli' ||
+           inputs.operation == 'publish' ||
+           inputs.operation == 'publish-and-deploy') &&
+          inputs.release_tier == 'production'
         run: python3 scripts/assert_soundtrack_release.py web/public/soundtracks/index.json
+
+      - name: Require cleared and approved pilot soundtrack media
+        if: >-
+          (inputs.operation == 'publish-cli' ||
+           inputs.operation == 'publish' ||
+           inputs.operation == 'publish-and-deploy') &&
+          inputs.release_tier == 'pilot'
+        run: python3 scripts/assert_soundtrack_release.py --pilot web/public/soundtracks/index.json
 
       # Deploying a server whose toolchain no published CLI bundles is how you get
       # version hell: `submit` refuses (DECISIONS #93) and the fix it prints —
