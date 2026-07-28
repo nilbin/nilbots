@@ -15,7 +15,7 @@ export default function Shell() {
         <Link to="/" className="text-xl">
           <Logo size={26} />
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
+        <nav className="flex flex-wrap items-center gap-1 text-sm">
           <TopLink to="/">Season</TopLink>
           <TopLink to="/bots">Bots</TopLink>
           <TopLink to="/watch">Watch</TopLink>

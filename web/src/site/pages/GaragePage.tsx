@@ -8,6 +8,8 @@ import {
   projectileLookOptions,
 } from '../../render/arenaThemes';
 import BotIdentity from '../components/BotIdentity';
+import FirstRun from '../components/FirstRun';
+import { ErrorState, LoadingState } from '../components/StateView';
 import { useAuth } from '../auth';
 import { useCreateBot, useMyBots } from '../queries';
 import { errorMessage } from '../errorMessage';
@@ -40,8 +42,14 @@ const projectileLooks = projectileLookOptions();
 
 export default function GaragePage() {
   const { user, loading } = useAuth();
-  // Creating a bot navigates to it, so this list never needs a manual refresh.
-  const { data: bots = null } = useMyBots(Boolean(user));
+  // Creating a bot navigates to it, so this list never needs a manual refresh — but an
+  // account with none is polled by the hook, because the first bot usually arrives from a
+  // terminal rather than from this page.
+  const {
+    data: bots = null,
+    error: botsError,
+    refetch: refetchBots,
+  } = useMyBots(Boolean(user));
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('vanguard');
@@ -50,11 +58,19 @@ export default function GaragePage() {
   const navigate = useNavigate();
   const creation = useCreateBot();
 
-  if (loading) return <p className="text-sm text-arena-dim">Loading…</p>;
+  if (loading) return <LoadingState label="Loading your account…" />;
   if (!user) {
     navigate('/login');
     return null;
   }
+  if (botsError)
+    return <ErrorState error={botsError} onRetry={() => void refetchBots()} />;
+  if (bots === null) return <LoadingState label="Loading your bots…" />;
+  // An empty garage is not a garage with a notice in it: for an account that has never
+  // shipped a bot, the page's entire job is the hand-off to the CLI, so the appearance
+  // catalog and the create form — both of which only make sense once you have something
+  // to dress — stay off until there is one bot.
+  if (bots.length === 0) return <FirstRun />;
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -84,49 +100,41 @@ export default function GaragePage() {
     <div className="flex flex-col gap-8">
       <section>
         <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">My bots</h2>
-        {bots === null ? (
-          <p className="text-sm text-arena-dim">Loading…</p>
-        ) : bots.length === 0 ? (
-          <p className="text-sm text-arena-dim">
-            No bots yet — build your first one below.
-          </p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {bots.map((bot) => {
-              const look = botLook(bot.lookId);
-              const projectile = projectileLook(bot.projectileLookId);
-              return (
-                <li key={bot.id}>
-                  <Link
-                    to={`/bots/${bot.slug}`}
-                    className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
-                  >
-                    <BotIdentity
-                      name={bot.name}
-                      accent={bot.accent}
-                      lookId={bot.lookId}
-                      size="md"
-                      emphasized
-                    />
-                    <ProjectilePreview
-                      look={projectile}
-                      accent={bot.accent}
-                      className="h-6 w-10"
-                    />
-                    <span className="font-mono text-[10px] text-arena-dim">
-                      {look.label} · {projectile.label}
-                    </span>
-                    <span className="ml-auto font-mono text-[11px] text-arena-dim">
-                      {bot.latestVersion
-                        ? `v${bot.latestVersion.versionNumber} ${bot.latestVersion.status.toLowerCase()}`
-                        : 'no versions'}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {bots.map((bot) => {
+            const look = botLook(bot.lookId);
+            const projectile = projectileLook(bot.projectileLookId);
+            return (
+              <li key={bot.id}>
+                <Link
+                  to={`/bots/${bot.slug}`}
+                  className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
+                >
+                  <BotIdentity
+                    name={bot.name}
+                    accent={bot.accent}
+                    lookId={bot.lookId}
+                    size="md"
+                    emphasized
+                  />
+                  <ProjectilePreview
+                    look={projectile}
+                    accent={bot.accent}
+                    className="h-6 w-10"
+                  />
+                  <span className="font-mono text-[10px] text-arena-dim">
+                    {look.label} · {projectile.label}
+                  </span>
+                  <span className="ml-auto font-mono text-[11px] text-arena-dim">
+                    {bot.latestVersion
+                      ? `v${bot.latestVersion.versionNumber} ${bot.latestVersion.status.toLowerCase()}`
+                      : 'no versions'}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <CosmeticUnlocks catalog={catalog} accent={accent} error={catalogError} />

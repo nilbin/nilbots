@@ -7,12 +7,30 @@ import BotIdentity from '../components/BotIdentity';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import ChallengePanel from '../components/ChallengePanel';
 import CurrentLadderStanding from '../components/CurrentLadderStanding';
+import GenerationsChart, {
+  type GenerationRatings,
+} from '../components/GenerationsChart';
 import MatchHistory from '../components/MatchHistory';
 import StatusBadge from '../components/StatusBadge';
 import SubmitPanel from '../components/SubmitPanel';
-import { ApiError } from '../api';
+import { ApiError, type BotDetail } from '../api';
 import { useBot } from '../queries';
 
+/**
+ * Each generation's ratings, oldest generation first.
+ *
+ * Always empty today, and deliberately: nothing on the server records a rating per
+ * generation. `currentStanding` is one number for the bot as a whole, and a version row
+ * knows when it was submitted and nothing about how it did — so a line drawn from what
+ * exists would be a picture of an improvement nobody measured. The chart is built for
+ * the series and draws it the day an endpoint returns one; this is where it arrives.
+ */
+function generationHistory(_bot: BotDetail): readonly GenerationRatings[] {
+  return noHistory;
+}
+
+/** One array, so the chart's layout memo is not invalidated by every render. */
+const noHistory: readonly GenerationRatings[] = [];
 
 export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
@@ -37,6 +55,7 @@ export default function BotDetailPage() {
   if (!bot) return <p className="text-sm text-arena-dim">Loading…</p>;
   const look = botLook(bot.lookId);
   const projectile = projectileLook(bot.projectileLookId);
+  const liveVersion = bot.versions.find((version) => version.isActive) ?? null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -71,6 +90,29 @@ export default function BotDetailPage() {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="flex min-w-0 flex-col gap-8">
+      {/* First in the column because it is the question the page is opened with: the
+          submit just landed, is this generation better than the last one. */}
+      <GenerationsChart
+        series={generationHistory(bot)}
+        accent={bot.accent}
+        liveGeneration={liveVersion?.versionNumber ?? null}
+        note={
+          liveVersion
+            ? `submitted ${new Date(liveVersion.createdAt).toLocaleDateString()}`
+            : null
+        }
+        emptyTitle={
+          bot.versions.length === 0
+            ? 'Nothing submitted yet'
+            : 'No rating per generation yet'
+        }
+        emptyDetail={
+          bot.versions.length === 0
+            ? 'The first generation appears here once nilbots submit has built one.'
+            : 'The ladder records a rating for the bot, not for the generation that earned it, so there is no series to draw against these generations.'
+        }
+      />
+
       <BotStatisticsPanel botId={bot.id} />
 
       <section>

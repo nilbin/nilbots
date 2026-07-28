@@ -15,24 +15,40 @@ const BASE = process.env.BASE ?? 'http://127.0.0.1:4173';
 const SHOTS = process.env.SHOTS ?? '/tmp/site-shots';
 mkdirSync(SHOTS, { recursive: true });
 
-const bot = (rank, name, owner, accent, lookId, rating, sets) => ({
+const bot = (rank, name, owner, accent, lookId, rating, sets, movement, wins, losses, history) => ({
   id: `bot-${rank}`, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   rank, name, owner, accent, lookId, rating, rankedSets: sets,
+  // Season-shaped fields. Absent from the real payload today; present here so the
+  // harness can show the design as designed.
+  movementSinceSeasonOpen: movement, wins, losses, seasonHistory: history,
 });
 
 const FIXTURES = {
   '^/api/leaderboard': {
     rulesVersion: '0.5', activeRulesVersion: '0.5', ladders: ['0.4', '0.5'],
+    season: { number: 3, endsAt: '2026-08-08T00:00:00Z', qualifyingRank: 8 },
     entries: [
-      bot(1, 'Warden gen-1', 'ada', '#7dd3fc', 'aureate-warden', 1341, 14),
-      bot(2, 'Bastille gen-5', 'kell', '#ef4444', 'bulwark', 1309, 12),
-      bot(3, 'Pincer gen-10', 'you', '#22d3ee', 'vanguard', 1284, 11),
-      bot(4, 'Rampart gen-2', 'juno', '#bef264', 'orbiter', 1250, 9),
-      bot(5, 'Halyard gen-3', 'mox', '#fb7185', 'needle', 1238, 9),
-      bot(6, 'Murder Roomba', 'you', '#f5a623', 'mantis', 1147, 6),
+      bot(1, 'Warden gen-1', 'ada', '#7dd3fc', 'aureate-warden', 1341, 14, 3, 62, 29, [1290,1301,1298,1315,1322,1334,1341]),
+      bot(2, 'Bastille gen-5', 'kell', '#ef4444', 'bulwark', 1309, 12, -2, 54, 31, [1330,1326,1331,1318,1312,1307,1309]),
+      bot(3, 'Pincer gen-10', 'you', '#22d3ee', 'vanguard', 1284, 11, 14, 48, 22, [1231,1240,1252,1249,1263,1275,1284]),
+      bot(4, 'Rampart gen-2', 'juno', '#bef264', 'orbiter', 1250, 9, -6, 41, 38, [1288,1281,1272,1266,1259,1254,1250]),
+      bot(5, 'Halyard gen-3', 'mox', '#fb7185', 'needle', 1238, 9, 0, 39, 35, [1236,1240,1237,1241,1235,1239,1238]),
+      bot(6, 'Murder Roomba', 'you', '#f5a623', 'mantis', 1147, 6, -5, 28, 26, [1176,1170,1163,1158,1152,1149,1147]),
     ],
   },
-  '^/api/me': { id: 'u1', displayName: 'you', email: 'you@example.com' },
+  '^/api/season$': {
+    number: 3, name: 'Season 3',
+    opensAt: '2026-06-27T00:00:00Z', endsAt: '2026-08-08T00:00:00Z',
+    qualifyingRank: 8,
+  },
+  '^/api/bots/[^/]+/ratings$': {
+    generations: [
+      { versionNumber: 8, isActive: false, points: [1150, 1163, 1171, 1168, 1182, 1190, 1198] },
+      { versionNumber: 9, isActive: false, points: [1198, 1188, 1205, 1214, 1209, 1226, 1231] },
+      { versionNumber: 10, isActive: true, points: [1231, 1226, 1244, 1252, 1249, 1268, 1284] },
+    ],
+  },
+  '^/api/accounts/me': { id: 'u1', displayName: 'you', email: 'you@example.com' },
   '^/api/bots/[^/]+$': {
     id: 'bot-3', slug: 'pincer-gen-10', name: 'Pincer gen-10', owner: 'you',
     accent: '#22d3ee', lookId: 'vanguard', projectileLookId: null, isOwner: true,
@@ -46,6 +62,7 @@ const FIXTURES = {
         artifactHash: null, createdAt: '2026-06-24T10:00:00Z' },
     ],
   },
+  '^/api/bots/mine$': [],
   '^/api/bots/[^/]+/statistics$': {
     combat: { games: 214, wins: 118, losses: 96, damageDealt: 512, damageTaken: 489 },
     ranked: { sets: 11, setsWon: 7 },
@@ -63,10 +80,17 @@ page.on('pageerror', (e) => failures.push(String(e).split('\n')[0]));
 page.on('console', (m) => { if (m.type() === 'error') failures.push(m.text().slice(0, 200)); });
 await page.route('**/api/**', async (route) => {
   const url = new URL(route.request().url());
-  // Patterns, not prefixes: components call /api/bots/{id}/statistics with the bot's
-  // id while the page was reached by slug, so a prefix match answers the wrong route
-  // and the page dies on a field that was never there.
-  const key = Object.keys(FIXTURES).find((k) => new RegExp(k).test(url.pathname));
+  // Patterns, not prefixes: components call /api/bots/{id}/statistics with the bot's id
+  // while the page was reached by slug, so a prefix match answers the wrong route and the
+  // page dies on a field that was never there.
+  //
+  // Most literal wins, not first declared. /api/bots/mine matches both `bots/mine` and
+  // `bots/{id}`, and depending on which was written first the garage got a single bot
+  // object where it wanted a list — a blank page whose cause is three files away.
+  const literals = (k) => k.replace(/\[\^\/\]\+|[\^$]/g, '').length;
+  const key = Object.keys(FIXTURES)
+    .filter((k) => new RegExp(k).test(url.pathname))
+    .sort((a, z) => literals(z) - literals(a))[0];
   if (key === undefined) return route.fulfill({ status: 404, body: '{}' });
   const body = FIXTURES[key];
   return route.fulfill({
@@ -78,7 +102,12 @@ await page.route('**/api/**', async (route) => {
 
 // Every page is shot wide and narrow: a redesign that only works on a laptop is half a
 // redesign, and the narrow shot is the one that catches a table nobody can read.
-for (const [name, path] of [['leaderboard', '/leaderboard'], ['bot', '/bots/pincer-gen-10']]) {
+for (const [name, path] of [
+  ['season', '/'],
+  ['watch', '/watch'],
+  ['bot', '/bots/pincer-gen-10'],
+  ['firstrun', '/garage'],
+]) {
   for (const [label, width] of [['wide', 1180], ['narrow', 390]]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(BASE + path, { waitUntil: 'networkidle' });

@@ -195,9 +195,15 @@ export function useMatches(filters: MatchFilters) {
     // A short page means the end of the feed; anything else may have more behind it.
     getNextPageParam: (last: MatchSummary[], all) =>
       last.length < MATCH_PAGE ? undefined : all.flat().length,
-    // Only follow a feed that has something moving in it.
+    // Only follow a feed that has something moving in it — and a broadcast is moving.
+    // Status alone stops too early here for exactly the reason it does on `useMatch`: a
+    // match reaches Completed while its broadcast is still playing out and its result is
+    // still withheld, so a feed that stopped there would leave Watch's live cards frozen
+    // and never reveal the winner they are holding back.
     refetchInterval: (query) =>
-      query.state.data?.pages.flat().some((m) => m.status === 'Pending' || m.status === 'Running')
+      query.state.data?.pages
+        .flat()
+        .some((m) => m.broadcasting || m.status === 'Pending' || m.status === 'Running')
         ? 2_500
         : false,
   });
@@ -275,8 +281,23 @@ export function useMatchReplay(matchId: string | undefined, live: MatchLive | un
   });
 }
 
+/**
+ * The bots this account owns.
+ *
+ * Polls only while it owns none. The first-run screen's last step happens in a terminal
+ * rather than in the page, and it promises the page turns over on its own when the
+ * submission lands — so the empty answer is the one answer worth re-asking. The condition
+ * stops the interval on the first bot, which means no account that has ever shipped one
+ * pays for it.
+ */
 export function useMyBots(enabled: boolean) {
-  return useQuery({ queryKey: keys.myBots, queryFn: endpoints.myBots, enabled });
+  return useQuery({
+    queryKey: keys.myBots,
+    queryFn: endpoints.myBots,
+    enabled,
+    refetchInterval: (query) =>
+      query.state.data?.length === 0 ? 10_000 : false,
+  });
 }
 
 /**
