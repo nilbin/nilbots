@@ -16,7 +16,7 @@ Every experiment first identifies its immutable candidate as:
 
 `mode + ruleset + map + match format`
 
-It then labels its evidence as one of these:
+It then separates evidence into study blocks with one of these roles:
 
 1. **Regression/compatibility.** Frozen historical artifacts run under the
    candidate to catch faults, determinism changes, degenerate exploits, and
@@ -30,6 +30,9 @@ It then labels its evidence as one of these:
 4. **Infrastructure smoke.** Unqualified retained artifacts exercise candidate
    enumeration, provenance, runtime, verification, metrics, and report
    generation. This proves the evidence pipeline, never the game balance.
+5. **Adversarial sentinel.** A deliberately hostile policy attacks one metric,
+   mechanic, or suspected degeneracy. It diagnoses counterplay and metric
+   validity but does not substitute for a diverse native population.
 
 The first two are valuable, but old rules-unaware bots do not veto a
 substantial redesign. They cannot reveal a strategy space they were never
@@ -41,6 +44,13 @@ A change is substantial when it changes available actions, observations,
 objective economics, projectile/combat timing, survival rules, or ranked map
 geometry. A narrow number tune whose strategies remain valid may use a
 same-cohort A/B as primary evidence.
+
+Every causal block must share a declared random-stream profile across arms;
+equal numeric seeds with different seed profiles are not paired randomness.
+Every voting block pins a versioned decision profile, frozen published
+toolchain, exact qualification profile, and population coverage. Compatibility
+or smoke failures remain visible without silently invalidating a complete
+native-product block.
 
 ## Native cohort requirements
 
@@ -58,6 +68,14 @@ For a substantial rules verdict:
 - freeze artifact hashes, maps, seed blocks, runtime, and evaluation criteria
   before the final/holdout run;
 - use canonical WASM with zero faults for the final evidence.
+
+The minimum four doctrines must also be independent authoring lineages.
+Variants from one source lineage are useful ablations, not four independent
+samples. Statistical summaries over repeated pair/seed rows are conditional
+on the exact frozen population. Generalization comes primarily from policy
+lineages, so retain lineage identifiers and inspect leave-one-lineage-out
+sensitivity; do not present a pair-seed bootstrap as a population confidence
+interval.
 
 The generational product comparison is:
 
@@ -214,6 +232,32 @@ with a 42.5% leader, the product owner changed the future policy to 45% and
 promoted it as an explicit override (DECISIONS #74–#75). The original 35%
 failure remains in the record. Future threshold changes should normally be
 documented and frozen before their holdout.
+
+Holdouts are commit/reveal artifacts: publish only a cryptographic commitment
+before the run, keep the nonce and seed list outside the repository, verify
+the reveal, and atomically mark it consumed. A checked-in “holdout seed” is
+already disclosed and must be treated as an ordinary development seed.
+
+## Frontline pilot scope
+
+For the first Frontline pilot, cumulative T1–T4 and four independent T4+
+lineages are the minimum voting floor. Include T5-capable policies where
+available, but do not block the pilot on T7 adaptive exploitation, T8
+equilibrium-grade evaluation, empirical equilibrium estimation, automated
+best-response training, or candidate search. Those are explicitly deferred
+until the population can feed them.
+
+The durable Balance Population v1 target is at least four independent
+lineages at each of T2, T3, T4, and T5. Retain lower-tier and intermediate
+revisions instead of replacing them with a champion. They calibrate the fun
+floor, adjacent-tier gradient, and where a mechanic begins to matter. Run full
+within-tier and adjacent-tier cross-play; only expand to distant-tier or
+all-candidate products when a registered hypothesis needs them.
+
+Duel results establish duel behavior only. They may guide 2v2/3v3 hypotheses,
+but map and rule promotion for team formats requires team-native coordination
+qualification and evidence. FFA uses a separate general-sum evaluation
+profile, playlist, and ladder.
 
 ## After a holdout
 

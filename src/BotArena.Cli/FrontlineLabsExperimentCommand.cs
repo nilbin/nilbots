@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json;
 using BotArena.Engine;
 
 namespace BotArena.Cli;
@@ -32,17 +33,13 @@ public static class FrontlineLabsExperimentCommand
             "net-control",
             "one-bend-shots",
             "auto-companions",
-            "duel-map");
+            "duel-map",
+            "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
                 "Use either --seed or --seeds, not both.");
         }
-
-        string botSpec = RequiredOption(options, "bot");
-        string opponentSpec = RequiredOption(options, "opponent");
-        if (options.ContainsKey("swap"))
-            (botSpec, opponentSpec) = (opponentSpec, botSpec);
 
         string runtimeKind = options
             .GetValueOrDefault("runtime", "wasm")
@@ -81,6 +78,9 @@ public static class FrontlineLabsExperimentCommand
         bool automaticCompanions = OptionalFlag(
             options,
             "auto-companions");
+        bool printCandidateContract = OptionalFlag(
+            options,
+            "print-candidate-contract");
         FrontlineLabsDuelMapArm? duelMapArm =
             OptionalDuelMapArm(options);
         bool duelExperiment = oneBendShots
@@ -144,6 +144,16 @@ public static class FrontlineLabsExperimentCommand
         {
             definition = FrontlineLabsDefinition.Create();
         }
+        if (printCandidateContract)
+        {
+            PrintCandidateContract(definition);
+            return 0;
+        }
+
+        string botSpec = RequiredOption(options, "bot");
+        string opponentSpec = RequiredOption(options, "opponent");
+        if (options.ContainsKey("swap"))
+            (botSpec, opponentSpec) = (opponentSpec, botSpec);
         Console.WriteLine(
             experimentCount == 0
                 ? "LOCAL LABS: exact hosted Frontline Labs v1 contract; " +
@@ -278,6 +288,40 @@ public static class FrontlineLabsExperimentCommand
                 $"{wins}W {losses}L {draws}D");
         }
         return 0;
+    }
+
+    private static void PrintCandidateContract(
+        ActorResolvedMatchDefinition definition)
+    {
+        var contract = new
+        {
+            modeId = definition.Rules.GameMode.ModeId,
+            rulesetId = definition.Rules.RulesetId,
+            rulesFingerprint =
+                ActorContractFingerprint.ComputeRules(definition.Rules),
+            seedProfileId =
+                definition.Rules.SeedMechanics.SeedProfileId,
+            mapId = definition.Map.Id,
+            mapVersion = definition.Map.Version,
+            mapFingerprint =
+                ActorContractFingerprint.ComputeMap(definition.Map),
+            formatId = definition.Format.FormatId,
+            formatFingerprint =
+                ActorContractFingerprint.ComputeFormat(definition.Format),
+            topologyProfileId =
+                FrontlineLabsDefinition.TopologyProfileId,
+            topologyFingerprint =
+                ActorContractFingerprint.ComputeTopology(
+                    definition.Topology),
+            contractProfileId =
+                definition.CapabilityVersions.ContractProfileId,
+            matchContractFingerprint =
+                ActorContractFingerprint.ComputeMatch(definition),
+        };
+        Console.WriteLine(
+            JsonSerializer.Serialize(
+                contract,
+                new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static void PrintWasmDiagnostics(ResolvedGenericActorBot bot)

@@ -404,15 +404,25 @@ def build_plan(
     entrants: list[dict[str, Any]],
     seeds: list[int],
     pairing_extra_seeds: dict[str, list[int]] | None = None,
+    *,
+    include_self_play: bool = False,
 ) -> list[dict[str, Any]]:
     pairing_extra_seeds = pairing_extra_seeds or {}
     plan = []
     sequence = 0
-    for first, second in itertools.combinations(entrants, 2):
+    pairings = list(itertools.combinations(entrants, 2))
+    if include_self_play:
+        pairings.extend((entrant, entrant) for entrant in entrants)
+    for first, second in pairings:
         pair = ":".join(sorted((first["id"], second["id"])))
         pair_seeds = [*seeds, *pairing_extra_seeds.get(pair, [])]
         for seed in pair_seeds:
-            for bot, opponent in ((first, second), (second, first)):
+            assignments = (
+                ((first, second),)
+                if first["id"] == second["id"]
+                else ((first, second), (second, first))
+            )
+            for bot, opponent in assignments:
                 sequence += 1
                 match_id = (
                     f"{sequence:03}--{bot['id']}-vs-{opponent['id']}"
@@ -652,11 +662,14 @@ def execute_plan(
     *,
     dry_run: bool,
     reverify_existing: bool = False,
+    extra_values: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    extra_values = extra_values or {}
     executions = []
     for item in plan:
         match_dir = output / "matches" / item["id"]
         values = {
+            **extra_values,
             "bot": artifacts[item["bot"]].resolve(),
             "opponent": artifacts[item["opponent"]].resolve(),
             "seed": item["seed"],

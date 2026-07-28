@@ -2556,6 +2556,9 @@ future transition from being mislabeled as a turret.
 
 ## 145. Balance work becomes a fingerprinted Lab; automatic companions remain an explicit arm
 
+The experiment-wide evidence/holdout details in this historical decision were
+superseded by study blocks and commit/reveal in decision 147.
+
 Balance evidence is now organized around an immutable candidate tuple:
 `mode + ruleset + map + match format`. A checked-in spec declares the complete
 factor product, paired and sealed holdout seeds, exact contract fingerprints,
@@ -2585,11 +2588,10 @@ boolean ablation. Its three map variants and ruleset have separate
 fingerprints and are never selected implicitly.
 
 The 12-replay, one-seed Balance Lab run is retained only as
-`infrastructure-smoke`: both bots are cumulatively unqualified and the two
-holdout seeds remain sealed. It verified zero faults and exposed a strong
-map-policy interaction—thin objectives created activity under either policy,
-while automatic progression created activity on current/bypass without
-removing their repeated tails. It promotes no candidate. SDK/Guest advance to
+`infrastructure-smoke`: both bots are cumulatively unqualified. Its claimed
+causal map-policy effects were superseded after decision 147 found mismatched
+private seed profiles between progression arms. It promotes no candidate.
+SDK/Guest advance to
 0.10.4 for the additive lifecycle/origin contract and CLI/package advances to
 0.9.5; actor framing/configuration and controlled-build pipeline 4 remain
 unchanged.
@@ -2625,6 +2627,51 @@ the declared automatic child life under an immutable shortened contract. It
 awards no tier and is not balance eligible until the remaining T1/T2
 identity, path, fire, evade, and fresh-life holdouts exist. SDK/Guest 0.10.4,
 actor framing, replay 3, and hosted Labs remain unchanged.
+
+## 147. Freeze Balance Lab pilot architecture and make qualified population the critical path
+
+The first Lab smoke revealed a causal-provenance bug: manual and automatic
+progression arms derived private actor streams from different ruleset
+identities. Equal numeric seeds therefore did not supply common random
+numbers. Both duel-depth arms now declare
+`frontline-labs-duel-depth-1` as their shared seed profile, while preserving
+their distinct rules and match fingerprints. The old cross-progression smoke
+effects are superseded; a corrected 12-match WASM smoke verified all replays
+and common initial actor streams, but remains non-voting.
+
+Balance Lab schema 3 replaces one experiment-wide evidence label with
+study-scoped roles: compatibility sentinel, mechanic causality,
+rules-native product, infrastructure smoke, and adversarial sentinel. Each
+block owns candidate/population membership, qualification profile,
+self-play policy, and common-randomness declaration. A versioned decision
+profile owns voting tier, lineage, coverage, multiplicity, and required
+evidence-layer gates. Diagnostic blocks remain visible without poisoning or
+promoting voting evidence.
+
+The runner now publishes and hashes one complete executable bundle, rejects
+source/toolchain drift during execution or resume, records independent
+lineage/doctrine/authoring-budget identities, rejects duplicate source or
+artifact populations, and reports finite-population paired contrasts plus
+leave-one-lineage-out sensitivity. Pair/seed intervals are explicitly
+conditional on the frozen population and are not population-generalization
+claims. The internal Frontline pilot floor is four independent cumulative
+T4+ lineages; two lineages remain diagnostic only.
+
+Engine-derived candidate blocks replace hand-copied fingerprints through
+`--print-candidate-contract` and
+`scripts/frontline-balance-candidates.py`. Hidden final seeds use an external
+nonce-backed commit/reveal/consume artifact; checked-in seeds are never
+described as sealed. Open isolation promises are frozen in
+`balance/frontline-ablation-debt-v1.json`.
+
+This is the pilot architecture freeze. T7/T8 qualification, empirical
+equilibrium/best-response analysis, and automated candidate search are
+deferred until a credible population exists. The next critical path is
+cumulative T1–T4 qualification, at least four independent T4+ Frontline
+lineages under an equal budget, the registered six-cell
+topology-by-progression experiment, and outcome-blind replay/DX review. Duel
+conclusions remain provisional for 2v2/3v3, and FFA retains its separate
+general-sum evaluation profile and ladder.
 
 ## Deferred decisions
 

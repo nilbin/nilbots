@@ -19,4 +19,20 @@ python3 scripts/balance-lab-drive.py \
 Use `--dry-run` to validate and freeze a plan without matches, and `--resume`
 to revalidate an existing immutable output before completing or regenerating
 its report. The checked-in Frontline spec is deliberately an unqualified
-infrastructure smoke; its holdout seeds remain sealed.
+infrastructure smoke and has no holdout.
+
+Candidate contract blocks are generated from the engine rather than copied by
+hand:
+
+```bash
+python3 scripts/frontline-balance-candidates.py \
+  --spec balance/frontline-duel-progression-v1.json \
+  --cli src/BotArena.Cli/bin/Release/net10.0/botarena
+```
+
+Add `--write` to replace drifted blocks. Review and commit that diff like any
+other gameplay-contract change.
+
+A real voting study creates a private reveal plus public commitment with
+`scripts/balance-holdout.py`. Never check holdout seeds into its pre-run spec.
+Open isolation promises live in `frontline-ablation-debt-v1.json`.

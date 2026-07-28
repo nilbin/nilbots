@@ -36,12 +36,17 @@ Before running the final data, write down:
 - the mechanics-only diagnostics, native-generation product comparison,
   dynamics scorecard, and replay-review sample size.
 
-Keep three evidence classes separate:
+Keep study roles separate:
 
 1. frozen historical bots under the candidate = compatibility/regression;
 2. the same cohort under paired arms = mechanic causality for those policies;
 3. bots authored/adapted for each ruleset under their native rules = primary
-   product balance and entertainment.
+   product balance and entertainment;
+4. unqualified artifacts = infrastructure smoke only;
+5. hostile targeted policies = adversarial sentinels, not population evidence.
+
+Causal arms must share the same declared seed profile. Equal numeric seeds
+with different private-stream derivations are not paired randomness.
 
 For a substantial change, **old rules-unaware bots cannot veto the candidate**.
 They remain safety sentinels. Comparing different generations does not prove
@@ -57,11 +62,16 @@ behavior must stay bit-identical: run the full test suite.
 
 ## 3. Build the right population
 
-A substantial-rules verdict requires at least four independently authored or
-substantially adapted, candidate-aware doctrines using the agent-arena
+A substantial-rules verdict requires at least four independent authoring
+lineages and candidate-aware doctrines using the agent-arena
 docs/SDK/CLI-only boundary and equal iteration budgets. Their native
 round-robin is the primary verdict. Historical champions may join as named
 sentinels, but report their rows separately.
+
+The first internal Frontline pilot may vote at cumulative T4 with four
+independent lineages; include T5-capable policies when available. T7/T8,
+automated best responses, equilibrium estimation, and candidate search are
+deferred until a credible population exists.
 
 The generational reference is:
 
@@ -117,6 +127,10 @@ python3 scripts/balance-lab-drive.py \
   --spec balance/frontline-duel-progression-v1.json \
   --output /tmp/nilbots-balance/frontline-duel-progression-v1
 
+python3 scripts/frontline-balance-candidates.py \
+  --spec balance/frontline-duel-progression-v1.json \
+  --cli src/BotArena.Cli/bin/Release/net10.0/botarena
+
 nilbots experiment frontline-labs qualify \
   --bot <candidate-bot.wasm> \
   --suite frontline-qualification-2 \
@@ -146,16 +160,24 @@ identified map contracts. Children create fresh lives at declared ticks with
 `automatic-activation` origin and return automatically after destruction.
 The first isolated arm omits Prime Fabricate and Split, so label its factor a
 progression-policy bundle rather than claiming a one-boolean lifecycle
-ablation.
+ablation. Keep that and every promised follow-up isolation in
+`balance/frontline-ablation-debt-v1.json`.
 
-Balance Lab specs must declare evidence class, exact fingerprints, artifact
-and source hashes, topology and evaluation profiles, exact profile-scoped
-qualification evidence, full factor coverage, paired seeds, and sealed
-holdouts. The driver freezes and hashes a balance-eligible entrant's actual
+Balance Lab specs must declare study blocks, exact fingerprints, artifact and
+source hashes, topology and evaluation profiles, decision profile, exact
+profile-scoped qualification evidence, coverage, and common-randomness
+profiles. Voting holdouts use an external nonce-backed commitment/reveal;
+checked-in seed values are disclosed development seeds. The driver freezes
+the executable toolchain and hashes a balance-eligible entrant's actual
 qualification report and requires its artifact/profile/T/C fields to match.
 `infrastructure-smoke` with unqualified bots validates plumbing and effect
 direction only. It cannot select or promote a candidate or satisfy the
 independently competent tier-population requirement.
+
+Entrants must carry independent lineage, doctrine, equal authoring-budget
+packet, and packet hash. Pair/seed bootstrap intervals are conditional on the
+frozen finite population; inspect lineage diversity and leave-one-lineage-out
+sensitivity before making population claims.
 
 Frozen `frontline-qualification-1` is only the historical T4
 `entry-initiative` component. The WASM-only suite 2 currently implements

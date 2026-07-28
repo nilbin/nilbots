@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BotArena.Cli;
+using BotArena.Engine;
 
 namespace BotArena.Cli.Tests;
 
@@ -190,6 +191,50 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "--duel-map",
                     "thin-fronts",
                 ]));
+    }
+
+    [Fact]
+    public void PrintCandidateContract_RequiresNoBotsAndEmitsExactIdentity()
+    {
+        TextWriter original = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            Assert.Equal(
+                0,
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--auto-companions",
+                        "--duel-map",
+                        "thin-fronts",
+                    ]));
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        JsonElement root = document.RootElement;
+        Assert.Equal(
+            "frontline-labs-1-experiment-one-bend-auto-companions",
+            root.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.DuelDepthSeedProfileId,
+            root.GetProperty("seedProfileId").GetString());
+        Assert.Equal(
+            "frontline-labs-01-thin-fronts-auto-companions",
+            root.GetProperty("mapId").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.TopologyProfileId,
+            root.GetProperty("topologyProfileId").GetString());
+        Assert.Equal(
+            64,
+            root.GetProperty("matchContractFingerprint")
+                .GetString()!
+                .Length);
     }
 
     [Fact]

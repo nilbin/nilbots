@@ -34,6 +34,15 @@ class BalanceLabDriveTests(unittest.TestCase):
         spec = {
             "pairedSeeds": [7, 11],
             "evaluationProfileId": "two-team-zero-sum-v1",
+            "studyBlocks": [
+                {
+                    "id": "matrix",
+                    "role": "infrastructure-smoke",
+                    "candidateIds": ["a", "b", "c", "d"],
+                    "populationIds": ["t-two"],
+                    "includeSelfPlay": False,
+                },
+            ],
             "candidates": [
                 {"id": "a"},
                 {"id": "b"},
@@ -100,6 +109,10 @@ class BalanceLabDriveTests(unittest.TestCase):
                     {
                         "id": entrant_id,
                         "name": entrant_id.title(),
+                        "authoringLineageId": f"{entrant_id}-lineage",
+                        "doctrineId": f"{entrant_id}-doctrine",
+                        "authoringBudgetId": "test-budget",
+                        "authorPacketSha256": None,
                         "root": entrant_id,
                         "artifact": f"{entrant_id}/bot.wasm",
                         "artifactSha256": hashlib.sha256(
@@ -148,6 +161,25 @@ target.mkdir(parents=True, exist_ok=True)
                 "raise SystemExit(0)\n",
                 encoding="utf-8",
             )
+            ablation = root / "ablation.json"
+            ablation.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "registryId": "test-ablation-v1",
+                        "items": [
+                            {
+                                "id": "test-debt",
+                                "status": "open",
+                                "currentInterpretation": "A bundle.",
+                                "requiredIsolation": "Split the bundle.",
+                                "requiredBefore": "pilot",
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
             runner = (
                 f"{DRIVER.sys.executable} {helper} {FIXTURE} "
                 "{bot} {opponent} {seed} {out}"
@@ -156,17 +188,60 @@ target.mkdir(parents=True, exist_ok=True)
             spec_path.write_text(
                 json.dumps(
                     {
-                        "schemaVersion": 2,
+                        "schemaVersion": 3,
                         "experimentId": "test-balance-lab",
                         "status": "experimental",
-                        "evidenceClass": "infrastructure-smoke",
                         "hypothesis": "The matrix is reproducible.",
+                        "ablationRegistry": {
+                            "path": "ablation.json",
+                            "sha256": DRIVER._sha256(ablation),
+                        },
+                        "studyBlocks": [
+                            {
+                                "id": "matrix-smoke",
+                                "role": "infrastructure-smoke",
+                                "hypothesis": "The fixture matrix runs.",
+                                "qualificationProfileId":
+                                    "test-profile-1",
+                                "candidateIds": ["fixture-candidate"],
+                                "populationIds": ["tier-two"],
+                                "includeSelfPlay": False,
+                                "commonRandomness": {
+                                    "protocol": "not-required",
+                                },
+                            },
+                        ],
                         "factors": {
                             "map-topology": ["fixture"],
                             "companion-policy": ["manual"],
                         },
                         "pairedSeeds": [7],
-                        "holdoutSeeds": [13],
+                        "holdout": {
+                            "protocol": "none",
+                            "reason": "test infrastructure smoke",
+                        },
+                        "studyDesign": {
+                            "decisionProfileId": "test-pilot-v1",
+                            "analysisUnit":
+                                "mirrored-entrant-pair-seed-v1",
+                            "confidenceLevel": 0.95,
+                            "bootstrapResamples": 100,
+                            "minimumMirroredUnitsPerCell": 1,
+                            "minimumEntrantPairsPerCell": 1,
+                            "minimumSeedsPerEntrantPair": 1,
+                            "minimumIndependentLineagesPerPopulation": 2,
+                            "minimumVotingLineagesPerPopulation": 4,
+                            "minimumVotingTier": "T4",
+                            "multiplicityPolicy":
+                                "diagnostic-no-selection",
+                            "requiredEvidenceLayers": [
+                                "contract-validity",
+                            ],
+                        },
+                        "toolchain": {
+                            "protocol": "diagnostic-current-process",
+                            "reason": "unit-test fixture",
+                        },
                         "verifyCommand":
                             f"{DRIVER.sys.executable} {verify} "
                             "{replay}",
@@ -188,6 +263,10 @@ target.mkdir(parents=True, exist_ok=True)
                                     "rulesetId": rules["rulesetId"],
                                     "rulesFingerprint":
                                         rules["rulesFingerprint"],
+                                    "seedProfileId":
+                                        rules["seedMechanics"][
+                                            "seedProfileId"
+                                        ],
                                     "mapId": map_contract["mapId"],
                                     "mapVersion":
                                         map_contract["mapVersion"],
@@ -256,7 +335,7 @@ target.mkdir(parents=True, exist_ok=True)
             )
             self.assertTrue(
                 report["cells"][0]["matches"][0]["replay"].startswith(
-                    "candidates/fixture-candidate/"
+                    "studies/matrix-smoke/candidates/fixture-candidate/"
                 )
             )
             self.assertTrue((output / "report.json").is_file())
@@ -274,6 +353,8 @@ target.mkdir(parents=True, exist_ok=True)
             self.assertTrue(
                 (
                     output
+                    / "studies"
+                    / "matrix-smoke"
                     / "candidates"
                     / "fixture-candidate"
                     / "populations"
@@ -289,16 +370,42 @@ target.mkdir(parents=True, exist_ok=True)
             spec.write_text(
                 json.dumps(
                     {
-                        "schemaVersion": 2,
+                        "schemaVersion": 3,
                         "experimentId": "invalid",
                         "status": "experimental",
-                        "evidenceClass": "infrastructure-smoke",
                         "hypothesis": "invalid",
+                        "studyBlocks": [],
                         "factors": {
                             "map": ["a", "b"],
                             "policy": ["manual", "automatic"],
                         },
                         "pairedSeeds": [1],
+                        "holdout": {
+                            "protocol": "none",
+                            "reason": "invalid test",
+                        },
+                        "studyDesign": {
+                            "decisionProfileId": "test-v1",
+                            "analysisUnit":
+                                "mirrored-entrant-pair-seed-v1",
+                            "confidenceLevel": 0.95,
+                            "bootstrapResamples": 100,
+                            "minimumMirroredUnitsPerCell": 1,
+                            "minimumEntrantPairsPerCell": 1,
+                            "minimumSeedsPerEntrantPair": 1,
+                            "minimumIndependentLineagesPerPopulation": 2,
+                            "minimumVotingLineagesPerPopulation": 4,
+                            "minimumVotingTier": "T4",
+                            "multiplicityPolicy":
+                                "diagnostic-no-selection",
+                            "requiredEvidenceLayers": [
+                                "contract-validity",
+                            ],
+                        },
+                        "toolchain": {
+                            "protocol": "diagnostic-current-process",
+                            "reason": "invalid test",
+                        },
                         "verifyCommand": "true {replay}",
                         "evaluationProfileId":
                             "two-team-zero-sum-v1",
@@ -348,6 +455,10 @@ target.mkdir(parents=True, exist_ok=True)
             raw = {
                 "id": "entrant",
                 "name": "Entrant",
+                "authoringLineageId": "entrant-lineage",
+                "doctrineId": "entrant-doctrine",
+                "authoringBudgetId": "test-budget",
+                "authorPacketSha256": "b" * 64,
                 "root": "entrant",
                 "artifact": "entrant/bot.wasm",
                 "artifactSha256": artifact_sha,
@@ -439,11 +550,38 @@ target.mkdir(parents=True, exist_ok=True)
 
         fairness = report["balanceVector"]["sideSpawnFairness"]
         self.assertEqual(
-            "not-estimable-no-decisive-games",
+            "measured-mirrored-block-estimand",
             fairness["status"],
         )
         self.assertIsNone(fairness["decisiveWinDelta"])
         self.assertIsNone(fairness["assignmentSensitivePairShare"])
+
+    def test_trajectory_fingerprint_ignores_seed_attestation_not_actions(
+        self,
+    ) -> None:
+        baseline = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        reseeded = json.loads(json.dumps(baseline))
+        reseeded["header"]["seed"] = "999"
+        reseeded["initialFrame"]["lifeStarts"][0][
+            "actorRandomSeed"
+        ] = "999"
+        for tick in reseeded["ticks"]:
+            for start in tick["tickStart"]["lifeStarts"]:
+                start["actorRandomSeed"] = "999"
+
+        self.assertEqual(
+            DRIVER._trajectory_fingerprint(baseline),
+            DRIVER._trajectory_fingerprint(reseeded),
+        )
+
+        changed_action = json.loads(json.dumps(reseeded))
+        changed_action["ticks"][0]["actorTurns"][0][
+            "submittedDecision"
+        ]["actionId"] = "shoot"
+        self.assertNotEqual(
+            DRIVER._trajectory_fingerprint(baseline),
+            DRIVER._trajectory_fingerprint(changed_action),
+        )
 
 
 if __name__ == "__main__":

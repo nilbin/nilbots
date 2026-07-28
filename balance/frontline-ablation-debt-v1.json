@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "registryId": "frontline-ablation-debt-v1",
+  "items": [
+    {
+      "id": "automatic-progression-bundle",
+      "status": "open",
+      "currentInterpretation": "The automatic-activation arm jointly changes initial child activation, child return policy, Prime action availability, replication availability, lifecycle assignments, and child spawn assignments.",
+      "requiredIsolation": "Allocate non-conflicting replica capacity and compare automatic initial activation, automatic return, and action-catalog removal as separately fingerprinted arms before attributing the bundle effect to one mechanism.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "manual-fabrication-transport",
+      "status": "open",
+      "currentInterpretation": "Manual fabrication currently couples a Prime decision cost, source-position requirement, output-pad placement, and rebuild policy.",
+      "requiredIsolation": "Compare local versus remote source legality with identical fabrication decision cost, output placement, lifecycle policy, and qualified union-contract bots.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "turret-standoff-counterplay",
+      "status": "open",
+      "currentInterpretation": "Mobilize exists as a local arm, while the production-shaped turret transition remains contextual and can create symmetric non-progress play.",
+      "requiredIsolation": "Run symmetric self-play and permanent-Anchor sentinels, then isolate Mobilize availability from turret numeric strength and map placement.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "split-capacity-and-value",
+      "status": "open",
+      "currentInterpretation": "The automatic progression bundle removes Split because both mechanics currently compete for stable child capacity.",
+      "requiredIsolation": "Provide explicitly reserved replica capacity, then compare Split available versus unavailable under identical population progression and topology.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "map-topology-components",
+      "status": "open",
+      "currentInterpretation": "Thin fronts and outer shoulders are coherent map variants rather than single-tile causal changes.",
+      "requiredIsolation": "Use static route/exposure reports and targeted map variants before attributing an observed effect to choke width, objective capacity, or bypass availability individually.",
+      "requiredBefore": "ranked"
+    }
+  ]
+}

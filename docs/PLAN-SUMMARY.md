@@ -241,27 +241,31 @@ Balance work now has a reusable mode-independent entry point:
 [`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md). A candidate is the
 independently fingerprinted mode, ruleset, map, and match-format tuple,
 resolved with an explicit topology profile/fingerprint; a spec freezes its
-factor product, evaluation profile, bot sources/WASM, profile-scoped
-qualifications, paired/holdout seeds, and runner. The implemented slices
-execute verified mirrored full cross-play, Frontline replay-v3 dynamics,
-payoff matrices, vector reports, and factorial contrasts without inventing
-one balance score. Unqualified populations are hard-blocked from balance
-verdicts, and missing layers block candidate promotion.
+factor product, study blocks, evaluation/decision profile, bot sources/WASM,
+profile-scoped qualifications, common-randomness profile, committed holdout,
+and runner. The implemented slices freeze one published toolchain, execute
+verified mirrored full cross-play, Frontline replay-v3 dynamics, payoff
+matrices, vector reports, and factorial contrasts without inventing one
+balance score. Unqualified populations are hard-blocked from balance verdicts,
+and missing layers block candidate promotion.
 
 The separate WASM-only `frontline-qualification-2` foundation has its first
 deterministic component: both assignments repeat with exact replay hashes,
 zero faults, and declared automatic child activation. It intentionally
 reports an incomplete profile, no tier, and no balance eligibility. Static
-generalization, the remaining T1/T2 holdouts, restricted-play wrappers,
-higher-tier probes, empirical equilibrium/best-response analysis, automated
-candidate search, and structured human review remain later layers.
+generalization, the remaining T1–T4 probes, restricted-play wrappers, and
+structured human review remain later layers. Empirical
+equilibrium/best-response analysis and automated candidate search are
+explicitly deferred until a credible qualified population exists.
 
 The first spec compares three duel map topologies under manual fabrication and
 an explicit automatic-companion progression bundle. The latter is a
 separately fingerprinted local contract—children activate at ticks 120/260
 with fresh runtimes and distinct `automatic-activation` lineage; hosted Labs
 remains manual. Its 12-match unqualified population run validates the
-infrastructure and shows a map-policy interaction, not a balance winner.
+frozen infrastructure and shared private RNG profile, not a map-policy
+conclusion or balance winner. The next critical path is cumulative T1–T4
+qualification, four independent T4+ lineages, and the six-cell run.
 
 ## Next session pointers
 

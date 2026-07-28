@@ -273,10 +273,18 @@ but may be intentionally ineligible for a new season.
 
 - T1/T2 one-pass artifacts vote on authoring quality and the fun floor.
 - T4 probes may diagnose map entry and obvious positional loops.
-- T5–T6 artifacts are the minimum primary 1v1 balance population.
+- The first internal Frontline pilot may vote with at least four independent
+  cumulative T4+ lineages; include T5-capable policies where available and
+  report their exact tier rather than merging them into one band.
+- Balance Population v1 targets at least four independent lineages at each of
+  T2, T3, T4, and T5. Retained revisions measure adjacent-tier progression but
+  do not increase independent-lineage counts.
+- A later ranked/public balance population should be centered on T5–T6 after
+  the pilot has calibrated those probes.
 - 2v2 primary balance needs T6/C3 or better.
 - 3v3 primary balance needs T6/C4 or better.
-- T7–T8/C5 are ceiling and anti-degeneracy evidence.
+- T7–T8/C5 are ceiling and anti-degeneracy evidence, explicitly deferred
+  beyond the first Frontline pilot.
 
 The same final artifact hashes run every numeric/map A/B arm. A failed
 qualification remains a bot finding and never silently becomes a rules

@@ -41,10 +41,12 @@ For continuity with older evidence, the former bands map only as follows:
   applicable coordination grade.
 
 Invalid, random, or mechanically broken bots are `R0` robustness probes, not
-balance entrants. The game must be active and legible at T2; T5–T6 is the
-primary 1v1 balance band; T7–T8 tests whether strong play becomes solved,
-degenerate, or deadlocked. Multi-participant evidence must also declare its
-coordination grade.
+balance entrants. The game must be active and legible at T2. The first
+internal pilot may vote with four independent cumulative T4+ lineages and
+should include T5-capable policies; a later public/ranked balance population
+centers on T5–T6. T7–T8 tests whether strong play becomes solved, degenerate,
+or deadlocked and is deferred until the lower population is credible.
+Multi-participant evidence must also declare its coordination grade.
 
 The post-reveal shared-fundamentals cohort is mechanically credible T2
 evidence, not a claim that all real entrants meet that standard. A one-pass
@@ -284,22 +286,29 @@ to demonstrate coordination they do not implement.
 
 ## Balance Lab progression smoke
 
-The first mode-independent Lab slice ran the complete
+The corrected mode-independent Lab slice ran the complete
 `3 map topologies × 2 progression policies` product with identical artifacts,
-paired seed, mirrored assignments, exact replay verification, full cross-play,
-and retained reports. All 12 WASM replays were valid and fault-free.
+shared seed profile, mirrored assignments, exact replay verification,
+full cross-play, a frozen executable bundle, and retained reports. All 12 WASM
+replays were valid and fault-free.
 
 This was explicitly `infrastructure-smoke` evidence. Its GeometricDodger and
 InitiativePlanner artifacts have no cumulative tier, so their outcomes cannot
-choose a production map or lifecycle. The result did establish why the
-factorial structure matters: thin fronts made manual play active, while
-automatic companion activation made current/bypass play substantially more
-active without removing their repeated tails. Automatic thin fronts shortened
-the tiny cohort's median from 339.5 to 238 ticks, but two games per cell cannot
-support a tuning verdict.
+choose a production map or lifecycle. The older smoke had ruleset-specific
+private seed profiles and therefore did not establish common-random-number
+causality; its apparent topology/progression effects are superseded. The
+corrected two-game cells validate plumbing only, not a tuning verdict or a
+population confidence interval.
 
 The automatic cell is a coherent progression-policy bundle—declared first-life
 activation, automatic child return, assigned spawns, and no Prime
 Fabricate/Split—not a single-flag causal ablation. Future reporting must retain
 that label until a capacity-safe restricted-play design holds the other
 mechanics constant.
+
+The next balance work is not more orchestration: finish the cheap cumulative
+T1–T4 probes, retain at least four independent qualified lineages under an
+equal improvement budget, and then run the registered six-cell block plus
+outcome-blind replay review. Empirical equilibrium work, automated
+best-response training, and candidate search are deferred until that
+population exists.

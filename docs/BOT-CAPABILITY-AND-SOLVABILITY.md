@@ -137,13 +137,17 @@ and visible/shared team state, not an undeclared process-global channel.
 
 | Format | Fun floor | Balance-grade evidence | Intended ceiling |
 | --- | --- | --- | --- |
-| 1v1 | T2 is active; T3 creates readable tactics. | T5–T6 policies from both assignments. | T7–T8 may approach one playlist's equilibrium, but no short pure policy should dominate. |
+| 1v1 | T2 is active; T3 creates readable tactics. | Internal pilot: four independent T4+ lineages, including T5-capable policies where possible. Public/ranked: T5–T6 from both assignments. | T7–T8 may approach one playlist's equilibrium, but no short pure policy should dominate. |
 | 2v2 | T3/C1 avoids chaos; T4/C2 creates teamwork. | T6/C3–C4 teams. | Exact online solution should be impractical; duel mastery transfers, coordination mastery does not. |
 | 3v3 | T3/C2 remains readable. | T6/C4 teams. | T8/C5 is still an approximation; assignment, crossfire, composition, and opponent beliefs remain combinatorial. |
 
 This deliberately makes the entry floor much lower than the balance ceiling.
 A starter should already dodge, path, shoot, and use bodies competently. New
 authors improve strategy rather than repairing an embarrassing example.
+
+T7/T8 are useful long-term ceiling definitions, not prerequisites for the
+first Frontline pilot. Implement and calibrate them only after cumulative
+T1–T4 and a genuinely diverse voting population exist.
 
 ## Topology and phase scaling
 

@@ -15,6 +15,10 @@ public static class FrontlineLabsDefinition
     public const string MapId = "frontline-labs-01";
     public const string MatchFormatId =
         HeadToHeadMatchFormatDefinition.Id;
+    public const string TopologyProfileId =
+        "two-team-one-controller-three-slots-v1";
+    public const string DuelDepthSeedProfileId =
+        "frontline-labs-duel-depth-1";
 
     private const string PrimeFormId = "prime-mobile";
     private const string ChildFormId = "child-mobile";
@@ -166,7 +170,8 @@ public static class FrontlineLabsDefinition
             enableMobilize: false,
             remoteFabrication: false,
             oneBendShots: true,
-            duelMapArm: mapArm);
+            duelMapArm: mapArm,
+            seedProfileId: DuelDepthSeedProfileId);
 
     /// <summary>
     /// Creates a local-only progression arm. Each team's child slots create
@@ -186,7 +191,8 @@ public static class FrontlineLabsDefinition
             remoteFabrication: false,
             oneBendShots: true,
             duelMapArm: mapArm,
-            automaticCompanions: true);
+            automaticCompanions: true,
+            seedProfileId: DuelDepthSeedProfileId);
 
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
@@ -201,7 +207,8 @@ public static class FrontlineLabsDefinition
         bool oneBendShots = false,
         FrontlineLabsDuelMapArm duelMapArm =
             FrontlineLabsDuelMapArm.Current,
-        bool automaticCompanions = false)
+        bool automaticCompanions = false,
+        string? seedProfileId = null)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -211,7 +218,8 @@ public static class FrontlineLabsDefinition
             remoteFabrication,
             controlPolicy,
             oneBendShots,
-            automaticCompanions);
+            automaticCompanions,
+            seedProfileId);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -271,7 +279,8 @@ public static class FrontlineLabsDefinition
         bool remoteFabrication,
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
         bool oneBendShots,
-        bool automaticCompanions)
+        bool automaticCompanions,
+        string? seedProfileId)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -456,7 +465,7 @@ public static class FrontlineLabsDefinition
                 new ActorRuntimeFaultDefinition(
                     faultsAllowedBeforeDisqualification: 0)),
             new ActorSeedMechanicsDefinition(
-                rulesetId,
+                seedProfileId ?? rulesetId,
                 ActorSeedMechanicsDefinition.SeedDerivationKind
                     .MatchSeedProfileTeamUnitLifeMix64V1,
                 ActorSeedMechanicsDefinition.LifeIdentityAssignmentKind

@@ -155,6 +155,44 @@ public sealed class FrontlineLabsDuelMapArmTests
     }
 
     [Fact]
+    public void ProgressionCausalArms_ShareEveryCommonLifePrivateSeed()
+    {
+        ActorResolvedMatchDefinition manual =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        ActorResolvedMatchDefinition automatic =
+            FrontlineLabsDefinition.CreateAutomaticCompanionsExperiment();
+
+        Assert.Equal(
+            FrontlineLabsDefinition.DuelDepthSeedProfileId,
+            manual.Rules.SeedMechanics.SeedProfileId);
+        Assert.Equal(
+            manual.Rules.SeedMechanics.SeedProfileId,
+            automatic.Rules.SeedMechanics.SeedProfileId);
+        foreach (int teamId in new[] { 0, 1 })
+        {
+            foreach (int unitId in new[] { 0, 1, 2 })
+            {
+                foreach (int lifeId in new[] { 0, 1, 7 })
+                {
+                    var actorId = new ActorIdentity(
+                        teamId,
+                        unitId,
+                        lifeId);
+                    Assert.Equal(
+                        SeedDerivation.DeriveActorSeed(
+                            104_729,
+                            actorId,
+                            manual.Rules.SeedMechanics.SeedProfileId),
+                        SeedDerivation.DeriveActorSeed(
+                            104_729,
+                            actorId,
+                            automatic.Rules.SeedMechanics.SeedProfileId));
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void ThinFronts_NarrowEveryObjectiveAcrossTheAdvanceAxis()
     {
         ActorResolvedMatchDefinition current =

@@ -63,11 +63,15 @@ finding; reroute the rules verdict rather than calling the mechanic weak.
 
 Use the cumulative T1–T8 individual ladder and independent C0–C5 coordination
 grades in `docs/BOT-CAPABILITY-AND-SOLVABILITY.md`. Probe definitions and the
-planned canonical evidence shape live in `docs/BOT-QUALIFICATION-SUITE.md`.
-State the minimum T/C grade before authoring or selecting entrants. Until the
-cumulative dynamic qualification runner exists, describe one-pass entrants
-only as T1/T2 candidates unless replay evidence proves a specific higher
-probe; never infer a higher tier from tournament wins.
+canonical evidence shape live in `docs/BOT-QUALIFICATION-SUITE.md`. State the
+minimum T/C grade before authoring or selecting entrants. The first Frontline
+pilot targets at least four independent cumulative T4+ lineages, including
+T5-capable policies where available. T7/T8, automated best-response search,
+and equilibrium estimation are explicitly deferred until that credible
+population exists. The durable Balance Population v1 target is at least four
+independent lineages at each of T2, T3, T4, and T5. Preserve intermediate
+passing revisions for adjacent-tier calibration, but never count one lineage's
+revisions as independent policies. Never infer a tier from tournament wins.
 
 Two separately versioned dynamic components now exist:
 
@@ -99,6 +103,11 @@ evidence-file SHA-256, artifact hash, and awarded T/C values. Never copy a
 tier label between profiles or seasons. A new strategically necessary
 capability such as Air or FFA coalition play requires a new/extended profile;
 historical qualification remains valid only for its original profile.
+
+The causal manual-versus-automatic factorial requires one union-qualified
+population that can handle explicit Fabricate/rebuild and declared automatic
+activation/return. Rules-native product comparisons use separately authored
+or adapted populations and must not be mislabeled as the causal A/B.
 
 Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
 hosted path has quotas and no ladder; the exact local generic runner is the
@@ -141,7 +150,7 @@ tournament with those artifacts. Rebuild only after a source or compiled
 SDK/Guest input changes; a rules-only experiment does not require bot
 recompilation.
 
-Archive **every** entrant under
+Archive **every** entrant and revision under
 `arena-bots/frontline-labs/<cohort-id>/<entrant-id>/`, never just the leader
 and never under `champions/`. Preserve source, project metadata,
 `botarena.json`, README, `DX.md`, every repair revision, canonical `bot.wasm`,

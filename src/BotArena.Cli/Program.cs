@@ -237,6 +237,7 @@ static int CommandHelp(string command)
                    [--one-bend-shots]
                    [--auto-companions]
                    [--duel-map current|thin-fronts|outer-shoulder-bypass]
+                   [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -263,6 +264,8 @@ static int CommandHelp(string command)
             the last-moment central choke.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
+            --print-candidate-contract emits the exact resolved candidate
+            identity and exits; bot arguments are not required in this mode.
 
             Usage: nilbots experiment frontline-labs qualify
                    --bot <generic-spec> [--runtime wasm|in-process]
