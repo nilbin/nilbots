@@ -73,6 +73,10 @@ for key in \
   BOTARENA_DOMAIN \
   POSTGRES_PASSWORD \
   BOTARENA_DB_HOST \
+  BOTARENA_PGBOUNCER_HOST \
+  BOTARENA_DB_PORT \
+  BOTARENA_DB_NAME \
+  BOTARENA_NOTIFICATION_DB_NAME \
   BOTARENA_OPENIDDICT_CERT_PASSWORD \
   BOTARENA_NETWORK_HASH_KEY \
   BOTARENA_S3_ENDPOINT \
@@ -88,7 +92,15 @@ if grep -Eq '^(GARAGE_RPC_SECRET|GARAGE_ADMIN_TOKEN|GARAGE_METRICS_TOKEN)=' \
   fail "worker received Garage administration credentials"
 fi
 grep -qx "BOTARENA_DB_HOST=$primary_private_ip" "$shared/.env" ||
-  fail "database does not use the primary private address"
+  fail "legacy database rollback does not use the primary private address"
+grep -qx "BOTARENA_PGBOUNCER_HOST=$primary_private_ip" "$shared/.env" ||
+  fail "PgBouncer does not use the primary private address"
+grep -qx "BOTARENA_DB_PORT=6432" "$shared/.env" ||
+  fail "database does not use PgBouncer"
+grep -qx "BOTARENA_DB_NAME=botarena" "$shared/.env" ||
+  fail "database transaction-pool alias is incorrect"
+grep -qx "BOTARENA_NOTIFICATION_DB_NAME=botarena_session" "$shared/.env" ||
+  fail "database notification-pool alias is incorrect"
 grep -qx "BOTARENA_S3_ENDPOINT=http://$primary_private_ip:3900" "$shared/.env" ||
   fail "S3 does not use the primary private address"
 grep -qx "BOTARENA_WEB_BIND_ADDRESS=$worker_private_ip" "$shared/.env" ||
@@ -107,8 +119,21 @@ iptables -w -C NILBOTS-WORKER \
 iptables -w -C NILBOTS-WORKER -p tcp --dport 8080 -j DROP ||
   fail "worker web-ingress deny rule is missing"
 
-timeout 5 bash -c "</dev/tcp/$primary_private_ip/5432" 2>/dev/null ||
-  fail "PostgreSQL is unreachable over the private network"
+timeout 5 bash -c "</dev/tcp/$primary_private_ip/6432" 2>/dev/null ||
+  fail "PgBouncer is unreachable over the private network"
+postgres_password="$(
+  awk -F= '$1 == "POSTGRES_PASSWORD" {
+    sub(/^[^=]*=/, "")
+    print
+  }' "$shared/.env"
+)"
+[[ -n "$postgres_password" ]] || fail "database password is empty"
+PGPASSWORD="$postgres_password" \
+  psql \
+    "host=$primary_private_ip port=6432 dbname=botarena user=botarena connect_timeout=5" \
+    -Atqc 'select 1' |
+  grep -qx 1 ||
+  fail "PgBouncer authentication/query failed over the private network"
 timeout 5 bash -c "</dev/tcp/$primary_private_ip/3900" 2>/dev/null ||
   fail "Garage S3 is unreachable over the private network"
 

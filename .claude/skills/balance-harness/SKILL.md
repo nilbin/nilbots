@@ -7,7 +7,9 @@ description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-
 
 Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/balance-eval.py`, `scripts/replay-dynamics-eval.py`,
-`scripts/replay-review-sample.py`, and the CLI's `--rules` flag.
+`scripts/frontline-replay-eval.py`, `scripts/replay-review-sample.py`, the
+CLI's historical `--rules` flag, and the separate local
+`nilbots experiment frontline` path.
 
 ## 1. Classify and pre-register the experiment
 
@@ -65,12 +67,29 @@ python3 scripts/replay-dynamics-eval.py \
   --group current=/tmp/run/block1/<candidate> \
   --group current=/tmp/run/block2/<candidate>
 
+nilbots experiment frontline --bot <actor-a> --opponent <actor-b> \
+  --runtime wasm --seeds 101,202,303 --out /tmp/frontline/block-1
+
+python3 scripts/frontline-replay-eval.py \
+  --group current=/tmp/frontline/block-1 \
+  --group current=/tmp/frontline/block-2 \
+  --json /tmp/frontline/report.json
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
 
 Fixed seeds make same-cohort arms comparable. Preserve every replay in
 separate arm/block directories.
+
+The four framework-owned Frontline reference bots are calibration fixtures
+from one author. They verify that rush, replication, Anchor/turret, and
+defensive paths execute; they never satisfy the independently authored native
+cohort requirement.
+
+The Frontline analyzer rejects mixed rules fingerprints under one group label
+and surfaces map, runtime, and artifact cohort metadata. Do not combine
+in-process diagnostics with canonical WASM evidence.
 
 Always report:
 

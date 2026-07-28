@@ -36,14 +36,32 @@ internal static class ActorWireProtocol
         return Frame(ActorWireMessageType.Hello, writer.ToArray());
     }
 
+    public static byte[] EncodeHello(
+        int minimumMajor,
+        int maximumMajor,
+        ActorContractProfile requiredProfile)
+    {
+        ArgumentNullException.ThrowIfNull(requiredProfile);
+
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.Int32(minimumMajor));
+        writer.Field(2, ActorWireValue.Int32(maximumMajor));
+        writer.Field(3, EncodeContractProfile(requiredProfile));
+        return Frame(ActorWireMessageType.Hello, writer.ToArray());
+    }
+
     public static ActorWireHello DecodeHello(byte[] frame)
     {
         ActorWireFrame decoded = DecodeHostFrame(frame);
         Require(decoded, ActorWireMessageType.Hello);
         var reader = new ActorWireObjectReader(decoded.Payload, 0);
+        byte[]? requiredProfile = reader.Optional(3);
         return new ActorWireHello(
             ActorWireValue.Int32(reader.Required(1)),
-            ActorWireValue.Int32(reader.Required(2)));
+            ActorWireValue.Int32(reader.Required(2)),
+            requiredProfile is null
+                ? null
+                : DecodeContractProfile(requiredProfile, 1));
     }
 
     public static byte[] EncodeHelloAck(int selectedMajor)
@@ -53,12 +71,31 @@ internal static class ActorWireProtocol
         return Frame(ActorWireMessageType.HelloAck, writer.ToArray());
     }
 
-    public static int DecodeHelloAck(byte[] frame)
+    public static byte[] EncodeHelloAck(
+        int selectedMajor,
+        ActorContractProfile selectedProfile)
+    {
+        ArgumentNullException.ThrowIfNull(selectedProfile);
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.Int32(selectedMajor));
+        writer.Field(2, EncodeContractProfile(selectedProfile));
+        return Frame(ActorWireMessageType.HelloAck, writer.ToArray());
+    }
+
+    public static int DecodeHelloAck(byte[] frame) =>
+        DecodeHelloAckContract(frame).SelectedMajor;
+
+    public static ActorWireHelloAck DecodeHelloAckContract(byte[] frame)
     {
         ActorWireFrame decoded = DecodeGuestFrame(frame);
         Require(decoded, ActorWireMessageType.HelloAck);
         var reader = new ActorWireObjectReader(decoded.Payload, 0);
-        return ActorWireValue.Int32(reader.Required(1));
+        byte[]? selectedProfile = reader.Optional(2);
+        return new ActorWireHelloAck(
+            ActorWireValue.Int32(reader.Required(1)),
+            selectedProfile is null
+                ? null
+                : DecodeContractProfile(selectedProfile, 1));
     }
 
     public static byte[] EncodeMatchStart(
@@ -83,6 +120,31 @@ internal static class ActorWireProtocol
                 1));
     }
 
+    public static byte[] EncodeGenericMatchStart(
+        string botName,
+        GenericActorMatchStart start)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.String(botName, 256));
+        writer.Field(
+            2,
+            GenericActorWireContractCodec.EncodeMatchStart(start));
+        return Frame(ActorWireMessageType.MatchStart, writer.ToArray());
+    }
+
+    public static ActorWireGenericMatchStart DecodeGenericMatchStart(
+        byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.MatchStart);
+        var reader = new ActorWireObjectReader(decoded.Payload, 0);
+        return new ActorWireGenericMatchStart(
+            ActorWireValue.String(reader.Required(1), 256),
+            GenericActorWireContractCodec.DecodeMatchStart(
+                reader.Required(2),
+                1));
+    }
+
     public static byte[] EncodeReady(
         int selectedMajor,
         int runtimeContractVersion,
@@ -99,17 +161,67 @@ internal static class ActorWireProtocol
         return Frame(ActorWireMessageType.Ready, writer.ToArray());
     }
 
+    public static byte[] EncodeReady(
+        int selectedMajor,
+        int runtimeContractVersion,
+        int matchStartSchemaVersion,
+        int observationSchemaVersion,
+        int decisionSchemaVersion,
+        ActorContractProfile selectedProfile)
+    {
+        ArgumentNullException.ThrowIfNull(selectedProfile);
+        if (selectedProfile.RuntimeContractVersion != runtimeContractVersion
+            || selectedProfile.MatchStartSchemaVersion
+                != matchStartSchemaVersion
+            || selectedProfile.ObservationSchemaVersion
+                != observationSchemaVersion
+            || selectedProfile.DecisionSchemaVersion
+                != decisionSchemaVersion)
+        {
+            throw new ArgumentException(
+                "Actor Ready versions must match the selected contract profile.",
+                nameof(selectedProfile));
+        }
+
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.Int32(selectedMajor));
+        writer.Field(2, ActorWireValue.Int32(runtimeContractVersion));
+        writer.Field(3, ActorWireValue.Int32(matchStartSchemaVersion));
+        writer.Field(4, ActorWireValue.Int32(observationSchemaVersion));
+        writer.Field(5, ActorWireValue.Int32(decisionSchemaVersion));
+        writer.Field(6, EncodeContractProfile(selectedProfile));
+        return Frame(ActorWireMessageType.Ready, writer.ToArray());
+    }
+
     public static ActorWireReady DecodeReady(byte[] frame)
     {
         ActorWireFrame decoded = DecodeGuestFrame(frame);
         Require(decoded, ActorWireMessageType.Ready);
         var reader = new ActorWireObjectReader(decoded.Payload, 0);
-        return new ActorWireReady(
+        byte[]? selectedProfile = reader.Optional(6);
+        var ready = new ActorWireReady(
             ActorWireValue.Int32(reader.Required(1)),
             ActorWireValue.Int32(reader.Required(2)),
             ActorWireValue.Int32(reader.Required(3)),
             ActorWireValue.Int32(reader.Required(4)),
-            ActorWireValue.Int32(reader.Required(5)));
+            ActorWireValue.Int32(reader.Required(5)),
+            selectedProfile is null
+                ? null
+                : DecodeContractProfile(selectedProfile, 1));
+        if (ready.SelectedProfile is { } profile
+            && (profile.RuntimeContractVersion
+                    != ready.RuntimeContractVersion
+                || profile.MatchStartSchemaVersion
+                    != ready.MatchStartSchemaVersion
+                || profile.ObservationSchemaVersion
+                    != ready.ObservationSchemaVersion
+                || profile.DecisionSchemaVersion
+                    != ready.DecisionSchemaVersion))
+        {
+            throw new FormatException(
+                "Actor Ready versions do not match its selected contract profile.");
+        }
+        return ready;
     }
 
     public static byte[] EncodeObservation(ActorContext observation) =>
@@ -134,6 +246,32 @@ internal static class ActorWireProtocol
         ActorWireFrame decoded = DecodeGuestFrame(frame);
         Require(decoded, ActorWireMessageType.Decision);
         return ActorWireDecisionCodec.Decode(decoded.Payload);
+    }
+
+    public static byte[] EncodeGenericObservation(
+        GenericActorContext observation) =>
+        Frame(
+            ActorWireMessageType.Observation,
+            GenericActorWireObservationCodec.Encode(observation));
+
+    public static GenericActorContext DecodeGenericObservation(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.Observation);
+        return GenericActorWireObservationCodec.Decode(decoded.Payload);
+    }
+
+    public static byte[] EncodeGenericDecision(
+        GenericActorDecision decision) =>
+        Frame(
+            ActorWireMessageType.Decision,
+            GenericActorWireDecisionCodec.Encode(decision));
+
+    public static GenericActorDecision DecodeGenericDecision(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeGuestFrame(frame);
+        Require(decoded, ActorWireMessageType.Decision);
+        return GenericActorWireDecisionCodec.Decode(decoded.Payload);
     }
 
     public static byte[] EncodeFault(string message)
@@ -184,11 +322,84 @@ internal static class ActorWireProtocol
         return Frame(ActorWireMessageType.MatchEnd, writer.ToArray());
     }
 
+    public static string DecodeMatchEnd(byte[] frame)
+    {
+        ActorWireFrame decoded = DecodeHostFrame(frame);
+        Require(decoded, ActorWireMessageType.MatchEnd);
+        var reader = new ActorWireObjectReader(decoded.Payload, 0);
+        return ActorWireValue.String(reader.Required(1), 256);
+    }
+
     public static ActorWireMessageType PeekHostMessageType(byte[] frame) =>
         DecodeHostFrame(frame).MessageType;
 
     public static ActorWireMessageType PeekGuestMessageType(byte[] frame) =>
         DecodeGuestFrame(frame).MessageType;
+
+    private static byte[] EncodeContractProfile(
+        ActorContractProfile profile)
+    {
+        if (string.IsNullOrWhiteSpace(profile.ProfileId)
+            || profile.RuntimeContractVersion <= 0
+            || profile.MatchStartSchemaVersion <= 0
+            || profile.ObservationSchemaVersion <= 0
+            || profile.DecisionSchemaVersion <= 0
+            || profile.MatchContractSchemaVersion <= 0)
+        {
+            throw new InvalidOperationException(
+                "Actor contract profile IDs must be present and versions positive.");
+        }
+
+        var writer = new ActorWireObjectWriter();
+        writer.Field(
+            1,
+            ActorWireValue.String(
+                profile.ProfileId,
+                MaxSemanticIdBytes));
+        writer.Field(
+            2,
+            ActorWireValue.Int32(profile.RuntimeContractVersion));
+        writer.Field(
+            3,
+            ActorWireValue.Int32(profile.MatchStartSchemaVersion));
+        writer.Field(
+            4,
+            ActorWireValue.Int32(profile.ObservationSchemaVersion));
+        writer.Field(
+            5,
+            ActorWireValue.Int32(profile.DecisionSchemaVersion));
+        writer.Field(
+            6,
+            ActorWireValue.Int32(profile.MatchContractSchemaVersion));
+        return writer.ToArray();
+    }
+
+    private static ActorContractProfile DecodeContractProfile(
+        byte[] bytes,
+        int depth)
+    {
+        var reader = new ActorWireObjectReader(bytes, depth);
+        var profile = new ActorContractProfile(
+            ActorWireValue.String(
+                reader.Required(1),
+                MaxSemanticIdBytes),
+            ActorWireValue.Int32(reader.Required(2)),
+            ActorWireValue.Int32(reader.Required(3)),
+            ActorWireValue.Int32(reader.Required(4)),
+            ActorWireValue.Int32(reader.Required(5)),
+            ActorWireValue.Int32(reader.Required(6)));
+        if (string.IsNullOrWhiteSpace(profile.ProfileId)
+            || profile.RuntimeContractVersion <= 0
+            || profile.MatchStartSchemaVersion <= 0
+            || profile.ObservationSchemaVersion <= 0
+            || profile.DecisionSchemaVersion <= 0
+            || profile.MatchContractSchemaVersion <= 0)
+        {
+            throw new FormatException(
+                "Actor contract profile IDs must be present and versions positive.");
+        }
+        return profile;
+    }
 
     private static byte[] Frame(
         ActorWireMessageType messageType,
@@ -280,18 +491,24 @@ internal readonly record struct ActorWireFrame(
 
 internal readonly record struct ActorWireHello(
     int MinimumMajor,
-    int MaximumMajor);
+    int MaximumMajor,
+    ActorContractProfile? RequiredProfile);
 
 internal readonly record struct ActorWireMatchStart(
     string BotName,
     ActorMatchStart Start);
+
+internal readonly record struct ActorWireGenericMatchStart(
+    string BotName,
+    GenericActorMatchStart Start);
 
 internal readonly record struct ActorWireReady(
     int SelectedMajor,
     int RuntimeContractVersion,
     int MatchStartSchemaVersion,
     int ObservationSchemaVersion,
-    int DecisionSchemaVersion);
+    int DecisionSchemaVersion,
+    ActorContractProfile? SelectedProfile);
 
 internal readonly record struct ActorWireUnsupported(
     string Capability,

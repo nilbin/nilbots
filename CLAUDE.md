@@ -111,27 +111,46 @@ Project boundaries that must not be violated:
   `PublicRulesManifestFactory` projects `GameRules`, `ArenaMap`, and exact
   scoring-team/submitted-participant/stable-unit-slot/initial-life topology
   into explicitly ordered canonical rules, map, and aggregate fingerprints.
-  Shipped protocol 0.1 and replay v1 do not deliver or embed it; the internal
-  Frontline replay v2 embeds it for the experimental runtime and viewer.
-- Frontline is an unshipped experiment implemented internally through
-  Package 7. Official rules 0.1–0.5 leave `GameRules.Frontline` null and
-  continue through legacy `MatchSession`, runtime protocol 0.1, replay v1, and
-  map format 1. Experimental map format 2, exact rules/map/topology
-  fingerprints, `FrontlineMatchSession`, independently instantiated per-life
+  Shipped protocol 0.1 and replay v1 do not deliver or embed it; experimental
+  Frontline replay v2 embeds it for the actor runtime and viewer.
+- Frontline is an unshipped experiment whose core is implemented through
+  Packages 0–7, with Package 8's local runner/evaluator slice now present.
+  Official rules 0.1–0.5 leave `GameRules.Frontline` null and continue through
+  legacy `MatchSession`, runtime protocol 0.1, replay v1, and map format 1.
+  Experimental map format 2, exact rules/map/topology fingerprints,
+  `FrontlineMatchSession`, independently instantiated per-life
   `ActorRuntime`s, canonical team observations, replication/fabrication,
-  per-life Anchor/turret forms, internal replay v2, engine-independent actor
-  SDK/Guest adapters, actor protocol/configuration 1.0, and canonical isolated
-  WASM life instances exist. Web/mobile can present v2 through their
+  per-life Anchor/turret forms, experimental replay v2, engine-independent
+  actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
+  isolated WASM life instances exist. Web/mobile can present v2 through their
   version-neutral replay model; the web viewer's lazy WebGL 3D renderer and the
   Canvas2D one it replaced share those derivations. **3D is the web viewer**, with
   no mode to choose: Canvas2D is retained only as the floor for the self-contained
   CLI viewer, which excludes Three.js, and for a device that gives no WebGL
-  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains.
-  The public CLI/App match path, server admission, evaluation
-  corpus, and ladders do not expose Frontline yet. Format-v2 assets live under
-  `maps/experimental/`; current App and CLI catalogs/package inputs enumerate
-  only top-level format-v1 maps, and legacy `MatchEngine` still rejects a
-  Frontline definition defensively.
+  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains. Package 8 now exposes this only through the explicit local
+  `nilbots experiment frontline` command, which emits replay v2 and has a
+  separate descriptive evaluation tool. Historical `play`, App/server
+  admission, replay-v1 summary/verification, and ladders still do not select
+  Frontline. Format-v2 assets live under `maps/experimental/`; the CLI package
+  carries that directory only for the explicit experiment, while current App
+  and ordinary `maps` catalogs enumerate top-level format-v1 maps. Legacy
+  `MatchEngine` still rejects a Frontline definition defensively.
+- The follow-on parallel-mode architecture is unshipped but executable.
+  Additive Engine definitions model typed Frontline/Deathmatch modes,
+  breach/kill victory rules, head-to-head/FFA-N/equal-team formats, exact
+  topology/deployment validation, and gameplay-only map generation 3 with
+  named spawns and typed regions/tags. One neutral actor host/session executes
+  those contracts with bounded fabrication, Split, same-life forms, typed
+  mode drivers, generic chronology/results, and replay 3; the generic
+  SDK/Guest/WASM profile, web normalization, and hosted mobile bridge consume
+  the same contract generation. The App identity foundation adds immutable
+  legacy playlist versions, seasons, opaque ladders, pinned queued work,
+  repeatable backfill, and exact-compatible Duel Elo while preserving current
+  APIs.
+  Public App/server admission, normalized generic entrants/team results,
+  reveal-ordered settlement, generic APIs, matchmaking, and multiplayer
+  rating are not routed yet. The compatibility generations and dependency
+  order are frozen in `docs/GAME-MODE-ARCHITECTURE.md`.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,
@@ -223,6 +242,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   refabrication creates a fresh `lifeId` and runtime. Stable slots retain an
   immutable default form while the active life carries its effective form and
   pending transition.
+- Static rules, map, topology, mode, and objective facts arrive in immutable
+  MatchStart input. Privately learned history is life-scoped: a same-life form
+  change retains it, while respawn, refabrication, and Split descendants start
+  with empty private memory. Team perception shares only the current frozen
+  observable union; there is no implicit historical team map, parent-memory
+  copy, or sibling-memory copy.
 - One WASM actor factory compiles one Wasmtime Engine/Module per submitted
   artifact. Each active life owns an isolated Store/Instance/thread/memory;
   startup, every tick, and shutdown retain fuel, epoch, wall-clock, memory,

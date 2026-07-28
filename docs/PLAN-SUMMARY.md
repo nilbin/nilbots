@@ -110,17 +110,22 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   bots/submissions/challenges, PostgreSQL-backed compile and match jobs,
   stable artifact/replay object keys, and the SPA. Explicit web, compile,
   match, and migration roles share the same model without becoming services.
-- `deploy/` — the scale-ready single-VPS baseline: Caddy, role-separated
-  Docker Compose, commit-tagged images, provisioned certificates, a one-shot
+- `deploy/` — the scale-ready multi-VPS baseline: primary Caddy/stateful
+  services, inventory-driven web/compile workers, role-separated Docker
+  Compose, commit-tagged images, provisioned certificates, a one-shot
   migration, private Garage S3 storage at replication factor 3, and
   repository-free versioned deployment bundles plus backup/deploy runbooks.
-  Garage replicas remain co-located until additional VPS nodes justify a
-  private multi-zone layout.
+  Garage replicas remain co-located until additional physical failure domains
+  justify a private multi-zone layout. Primary-only PgBouncer provides bounded
+  transaction and notification-session pools, PostgreSQL loads
+  `pg_stat_statements`, and nightly local dumps are restored weekly into a
+  disposable database. Off-site recovery is deliberately deferred; follow
+  [`POSTGRESQL-OPERATIONS-PLAN.md`](POSTGRESQL-OPERATIONS-PLAN.md).
 - `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into. One normalized model
-  preserves replay v1 and presents internal Frontline replay v2 through the lazy
-  WebGL 3D renderer, with Canvas2D retained as the floor where 3D cannot draw.
-  The CLI artifact excludes Three.js.
+  preserves replay v1 and presents local experimental Frontline replay v2
+  through the lazy WebGL 3D renderer, with Canvas2D retained as the floor where
+  3D cannot draw. The CLI artifact excludes Three.js.
 - `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
   and replay-viewer suites, including DocDrift tests that pin mechanical
   docs/mirrors to the engine.
@@ -128,7 +133,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
   balance/dynamics/control/arc/replay-review evaluation tools.
 
-## Active experimental program (2026-07-27)
+## Active experimental program (2026-07-28)
 
 Frontline is now the active successor experiment; official rules 0.5 remains
 the current game and ladder. The deliberately small game hypothesis is a
@@ -140,15 +145,18 @@ as deterministic public inputs. This keeps future player counts, maps,
 seasons, and forms representable without fixing bots or ML models to today's
 body count.
 
-Packages 0–7 of
+Packages 0–7 and the local Package 8 authoring/measurement slice of
 [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md) are
-implemented on the internal experimental path. The historical shield and
+implemented on the experimental path. The historical shield and
 public fingerprints, explicit team/participant/unit/life topology,
 map-format-2 definition, objective kernel, independently instantiated
 same-artifact runtimes, canonical team observations, replication/fabrication,
 per-life Anchor/turret forms, strict replay v2, engine-independent actor
 SDK/Guest types, actor protocol/configuration 1.0, and canonical isolated WASM
-life instances are executable and tested.
+life instances are executable and tested. `nilbots experiment frontline`
+adds local actor built-in/project/WASM play, replay-v2 output and viewer,
+four deterministic calibration doctrines, and a separate descriptive
+replay-v2 evaluator/blind-sampling path.
 
 `PrepareTick()` freezes exact life-qualified actor keys and observations before
 any runtime acts. `StepActors()` resolves the keyed joint action, including
@@ -163,14 +171,35 @@ Canvas2D shares those derivations and remains the floor for the CLI artifact, fo
 a missing WebGL context, and for the mobile WebView. Manual GPU/mobile QA
 remains.
 
-This is still not a shipped gameplay path. Public CLI/App selection, server
-eligibility/admission, dataset/corpus/model tooling, evaluation, rollout, and
-any ladder remain Package 8 or replay-native follow-ons. Official rules 0.5,
-protocol/configuration 0.1, replay v1, and their hashes remain unchanged. The
-frozen internal contract is
+This is still not a shipped gameplay path. Historical `play`, App/server
+eligibility/admission, general replay-v2 summary/verification,
+dataset/corpus/model tooling, independently authored product evaluation,
+rollout, and every ladder remain Package 8 or replay-native follow-ons.
+Official rules 0.5, protocol/configuration 0.1, replay v1, and their hashes
+remain unchanged. The frozen experimental contract is
 [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md); the shared ML/data
 path remains
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md).
+
+The next architecture wave is
+[`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). It introduces new
+contract generations for typed game modes, match formats, generic
+score/results, bounded one-to-many Split, Deathmatch/FFA proof fixtures,
+immutable playlists, and opaque ladders. It does not mutate official replay
+v1 or the opened `frontline-alpha-1` replay-v2 evidence. Numeric proof values
+remain explicitly unbalanced experimental inputs. Its compatibility shield,
+typed vocabulary, resolved rules/map/format/topology contracts, and the
+profile-negotiated generic SDK/Guest programming boundary are implemented.
+One neutral actor host now executes typed Deathmatch and Frontline mode
+drivers, bounded Split and source-preserving fabrication, reusable same-life
+forms, generic standings, chronology, and strict replay 3. The web viewer
+normalizes that generation without assuming Deathmatch, and its hosted bridge
+carries the typed presentation to mobile. The additive competition identity
+layer now pins legacy Duel series to deterministic playlist versions, seasons,
+and opaque ladders while preserving its scheduler, Elo, and public API
+behavior. Generic server admission, normalized entrant/team-result storage,
+reveal-ordered settlement, generic APIs, and any multiplayer rating policy
+remain later work.
 
 ## Next session pointers
 
@@ -225,10 +254,11 @@ path remains
     incremental modular-monolith plan, not a rewrite.
 11. Replay-native ML support is proposed in
     [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). The engine-rewrite
-    seam is now implemented for internal Frontline: one canonical public
-    observation per `PrepareTick` actor is passed to its life runtime and
-    snapshotted with the keyed joint step into strict replay v2, and actor
-    protocol 1.0 delivers it to canonical per-life WASM instances. Dataset
-    export, public corpus access, bounded model assets, starter inference, and
-    public-product delivery remain sequenced follow-ons; no ML-driven
-    sandbox-limit change is proposed.
+    seam is implemented for frozen local Frontline-alpha and its generic
+    successor: one canonical public observation per prepared actor reaches its
+    isolated life runtime and the same observation is snapshotted into replay
+    v2 or v3 beside exact rules, topology, actions, lineage, and results.
+    Actor protocol 1.0 carries both explicitly negotiated generations.
+    Dataset export, public corpus access, bounded model assets, starter
+    inference, and hosted-product delivery remain sequenced follow-ons; no
+    ML-driven sandbox-limit change is proposed.

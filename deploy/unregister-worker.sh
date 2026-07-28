@@ -113,7 +113,7 @@ if ! ssh "${worker_ssh_options[@]}" "$worker_target" \
   echo "warning: worker was unreachable; continuing primary-side removal" >&2
 fi
 
-echo "Revoking the worker's exact PostgreSQL rule..."
+echo "Revoking the worker's exact PgBouncer and PostgreSQL rules..."
 ssh "${ssh_options[@]}" "$primary_target" \
   "$(remote_command sudo bash -s -- remove "$worker_private_ip")" \
   <"$deploy_dir/configure-primary-worker-access.sh"

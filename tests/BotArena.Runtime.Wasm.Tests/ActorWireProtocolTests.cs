@@ -6,6 +6,143 @@ namespace BotArena.Runtime.Wasm.Tests;
 
 public sealed class ActorWireProtocolTests
 {
+    [Fact]
+    public void LegacyNegotiationFrames_RemainByteExact()
+    {
+        Assert.Equal(
+            "4e4256320101000014000000"
+                + "01000400000001000000"
+                + "02000400000001000000",
+            Convert.ToHexStringLower(
+                ActorWireProtocol.EncodeHello(1, 1)));
+        Assert.Equal(
+            "4e425632010200000a000000"
+                + "01000400000001000000",
+            Convert.ToHexStringLower(
+                ActorWireProtocol.EncodeHelloAck(1)));
+        Assert.Equal(
+            "4e4256320104000032000000"
+                + "01000400000001000000"
+                + "02000400000001000000"
+                + "03000400000001000000"
+                + "04000400000001000000"
+                + "05000400000001000000",
+            Convert.ToHexStringLower(
+                ActorWireProtocol.EncodeReady(1, 1, 1, 1, 1)));
+    }
+
+    [Fact]
+    public void Hello_NegotiatesOneExactContractGenerationBeforeMatchStart()
+    {
+        byte[] hello = ActorWireProtocol.EncodeHello(
+            ActorWireProtocol.MajorVersion,
+            ActorWireProtocol.MajorVersion,
+            ActorContractProfile.GenericV2);
+
+        ActorWireHello offer = ActorWireProtocol.DecodeHello(hello);
+
+        Assert.Equal(1, offer.MinimumMajor);
+        Assert.Equal(1, offer.MaximumMajor);
+        Assert.Equal(
+            ActorContractProfile.GenericV2,
+            offer.RequiredProfile);
+
+        byte[] ack = ActorWireProtocol.EncodeHelloAck(
+            ActorWireProtocol.MajorVersion,
+            ActorContractProfile.GenericV2);
+        ActorWireHelloAck selection =
+            ActorWireProtocol.DecodeHelloAckContract(ack);
+
+        Assert.Equal(ActorWireProtocol.MajorVersion, selection.SelectedMajor);
+        Assert.Equal(
+            ActorContractProfile.GenericV2,
+            selection.SelectedProfile);
+        Assert.Equal(
+            ActorWireProtocol.MajorVersion,
+            ActorWireProtocol.DecodeHelloAck(ack));
+    }
+
+    [Fact]
+    public void LegacyHelloAck_HasNoContractGenerationSelection()
+    {
+        ActorWireHelloAck ack = ActorWireProtocol.DecodeHelloAckContract(
+            ActorWireProtocol.EncodeHelloAck(
+                ActorWireProtocol.MajorVersion));
+
+        Assert.Equal(ActorWireProtocol.MajorVersion, ack.SelectedMajor);
+        Assert.Null(ack.SelectedProfile);
+    }
+
+    [Fact]
+    public void Ready_AttestsSelectedMatchContractSchemaWhenPresent()
+    {
+        ActorWireReady ready = ActorWireProtocol.DecodeReady(
+            ActorWireProtocol.EncodeReady(
+                ActorWireProtocol.MajorVersion,
+                GenericActorContractVersions.RuntimeContractVersion,
+                GenericActorContractVersions.MatchStartSchemaVersion,
+                GenericActorContractVersions.ObservationSchemaVersion,
+                GenericActorContractVersions.DecisionSchemaVersion,
+                ActorContractProfile.GenericV2));
+
+        Assert.Equal(
+            ActorContractProfile.GenericV2,
+            ready.SelectedProfile);
+    }
+
+    [Fact]
+    public void Ready_RejectsTopLevelVersionsThatContradictSelectedProfile()
+    {
+        byte[] ready = ActorWireProtocol.EncodeReady(
+            ActorWireProtocol.MajorVersion,
+            GenericActorContractVersions.RuntimeContractVersion,
+            GenericActorContractVersions.MatchStartSchemaVersion,
+            GenericActorContractVersions.ObservationSchemaVersion,
+            GenericActorContractVersions.DecisionSchemaVersion,
+            ActorContractProfile.GenericV2);
+        byte[] contradictory = ChangeByte(
+            ready,
+            ActorWireProtocol.HeaderSize + 16,
+            GenericActorContractVersions.RuntimeContractVersion - 1);
+
+        Assert.Throws<FormatException>(
+            () => ActorWireProtocol.DecodeReady(contradictory));
+    }
+
+    [Fact]
+    public void LegacyHost_RejectsProfileSelectingHelloAck()
+    {
+        byte[] ack = ActorWireProtocol.EncodeHelloAck(
+            ActorWireProtocol.MajorVersion,
+            ActorContractProfile.GenericV2);
+
+        Assert.Throws<FormatException>(
+            () => ActorWasmProtocol.ParseHelloAck(ack));
+    }
+
+    [Fact]
+    public void MatchEnd_RequiresOneBoundedReason()
+    {
+        byte[] valid = ActorWireProtocol.EncodeMatchEnd("life-ended");
+
+        Assert.Equal(
+            "life-ended",
+            ActorWireProtocol.DecodeMatchEnd(valid));
+        Assert.Throws<FormatException>(
+            () => ActorWireProtocol.DecodeMatchEnd(
+                AppendField(
+                    valid,
+                    1,
+                    ActorWireValue.String("duplicate", 256))));
+
+        byte[] missing = valid[..ActorWireProtocol.HeaderSize];
+        BinaryPrimitives.WriteInt32LittleEndian(
+            missing.AsSpan(8, 4),
+            0);
+        Assert.Throws<FormatException>(
+            () => ActorWireProtocol.DecodeMatchEnd(missing));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -22,25 +22,98 @@ public static class GuestHost
     [DllImport("botarena")]
     private static extern unsafe void post_decision(byte* buffer, int length);
 
+    /// <summary>
+    /// Controlled-build entry point. The closed bot type determines which
+    /// programming models the artifact can negotiate without constructing a
+    /// throwaway bot instance. A type may deliberately implement more than one
+    /// interface; the host's negotiated contract selects the invoked factory.
+    /// </summary>
+    public static int RunDetected<TBot>(Func<TBot> botFactory)
+    {
+        ArgumentNullException.ThrowIfNull(botFactory);
+        bool supportsLegacy = typeof(IBot).IsAssignableFrom(typeof(TBot));
+        bool supportsActor = typeof(IActorBot).IsAssignableFrom(typeof(TBot));
+        bool supportsGeneric =
+            typeof(IGenericActorBot).IsAssignableFrom(typeof(TBot));
+        if (!supportsLegacy && !supportsActor && !supportsGeneric)
+        {
+            throw new InvalidOperationException(
+                $"{typeof(TBot).FullName} does not implement a Nilbots bot interface.");
+        }
+
+        object Create()
+        {
+            TBot bot = botFactory();
+            return (object?)bot
+                ?? throw new InvalidOperationException(
+                    "Bot factory returned null.");
+        }
+
+        return RunCore(
+            supportsLegacy
+                ? _ => (IBot)Create()
+                : null,
+            supportsActor
+                ? _ => (IActorBot)Create()
+                : null,
+            supportsGeneric
+                ? _ => (IGenericActorBot)Create()
+                : null);
+    }
+
     /// <summary>Single-bot artifact (the normal player case).</summary>
     public static int Run(Func<IBot> botFactory) =>
-        RunCore(_ => botFactory(), actorFactory: null);
+        RunCore(
+            _ => botFactory(),
+            actorFactory: null,
+            genericActorFactory: null);
 
     /// <summary>Multi-bot artifact: the factory receives the bot name from the init line
     /// (used by the built-in opponents artifact).</summary>
     public static int Run(Func<string, IBot> botFactory) =>
-        RunCore(botFactory, actorFactory: null);
+        RunCore(
+            botFactory,
+            actorFactory: null,
+            genericActorFactory: null);
 
-    /// <summary>Single entity-bot artifact for actor protocol vNext.</summary>
+    /// <summary>Single entity-bot artifact for the legacy actor contract.</summary>
     public static int Run(Func<IActorBot> botFactory) =>
-        RunCore(legacyFactory: null, _ => botFactory());
+        RunCore(
+            legacyFactory: null,
+            _ => botFactory(),
+            genericActorFactory: null);
 
     /// <summary>
     /// Multi-bot entity artifact. The factory receives the framework-owned bot
     /// selector carried beside MatchStart.
     /// </summary>
     public static int Run(Func<string, IActorBot> botFactory) =>
-        RunCore(legacyFactory: null, botFactory);
+        RunCore(
+            legacyFactory: null,
+            botFactory,
+            genericActorFactory: null);
+
+    /// <summary>
+    /// Single generic entity-bot artifact. The explicit method name avoids
+    /// overload ambiguity for bots that intentionally implement more than one
+    /// SDK interface.
+    /// </summary>
+    public static int RunGeneric(Func<IGenericActorBot> botFactory) =>
+        RunCore(
+            legacyFactory: null,
+            actorFactory: null,
+            _ => botFactory());
+
+    /// <summary>
+    /// Multi-bot generic entity artifact. The factory receives the
+    /// framework-owned selector carried beside MatchStart.
+    /// </summary>
+    public static int RunGeneric(
+        Func<string, IGenericActorBot> botFactory) =>
+        RunCore(
+            legacyFactory: null,
+            actorFactory: null,
+            botFactory);
 
     /// <summary>
     /// Framework/test artifact supporting both historical duel bots and
@@ -50,19 +123,24 @@ public static class GuestHost
     public static int Run(
         Func<string, IBot> legacyFactory,
         Func<string, IActorBot> actorFactory) =>
-        RunCore(legacyFactory, actorFactory);
+        RunCore(
+            legacyFactory,
+            actorFactory,
+            genericActorFactory: null);
 
     private static unsafe int RunCore(
         Func<string, IBot>? legacyFactory,
-        Func<string, IActorBot>? actorFactory)
+        Func<string, IActorBot>? actorFactory,
+        Func<string, IGenericActorBot>? genericActorFactory)
     {
         // The first actor Hello is tiny. Preserve the historical 128 KiB
         // allocation for legacy-only artifacts and grow only after vNext
         // negotiation succeeds.
         var buffer = new byte[LegacyBufferBytes];
         GuestSession? legacySession = null;
-        ActorGuestSession? actorSession = null;
-        bool actorNegotiated = false;
+        var actorDispatcher = new ActorGuestDispatcher(
+            actorFactory,
+            genericActorFactory);
         while (true)
         {
             int length;
@@ -73,6 +151,7 @@ public static class GuestHost
 
             byte[] replyBytes;
             bool actorMessage = false;
+            bool terminateAfterReply = false;
             try
             {
                 ReadOnlySpan<byte> message = buffer.AsSpan(0, length);
@@ -84,63 +163,17 @@ public static class GuestHost
                         throw new FormatException(
                             "A legacy session cannot switch to actor protocol.");
                     }
-                    if (actorFactory is null)
-                    {
-                        throw new ActorCapabilityNotSupportedException(
-                            "actor-runtime",
-                            "This artifact does not contain an actor bot.");
-                    }
 
-                    ActorGuestFrame frame =
-                        ActorGuestProtocol.ParseHostFrame(message);
-                    switch (frame.MessageType)
-                    {
-                        case ActorWireMessageType.Hello:
-                            if (actorNegotiated || actorSession is not null)
-                                throw new FormatException(
-                                    "Actor protocol Hello may occur only once.");
-                            ActorProtocolHello hello =
-                                ActorGuestProtocol.ParseHello(frame);
-                            replyBytes =
-                                ActorGuestProtocol.FormatHelloAck(hello);
-                            actorNegotiated = true;
-                            break;
-
-                        case ActorWireMessageType.MatchStart:
-                            if (!actorNegotiated || actorSession is not null)
-                                throw new FormatException(
-                                    "Actor MatchStart is out of sequence.");
-                            ActorMatchStartEnvelope envelope =
-                                ActorGuestProtocol.ParseMatchStart(frame);
-                            actorSession = ActorGuestSession.Start(
-                                envelope,
-                                actorFactory);
-                            replyBytes = ActorGuestProtocol.FormatReady();
-                            break;
-
-                        case ActorWireMessageType.Observation:
-                            if (actorSession is null)
-                                throw new FormatException(
-                                    "Actor observation received before MatchStart.");
-                            ActorContext observation =
-                                ActorGuestProtocol.ParseObservation(frame);
-                            ActorDecision decision =
-                                actorSession.HandleTick(observation);
-                            replyBytes =
-                                ActorGuestProtocol.FormatDecision(decision);
-                            break;
-
-                        case ActorWireMessageType.MatchEnd:
-                            return 0;
-
-                        default:
-                            throw new FormatException(
-                                $"Unexpected host actor message {frame.MessageType}.");
-                    }
+                    byte[]? actorReply = actorDispatcher.Handle(message);
+                    if (actorReply is null)
+                        return 0;
+                    replyBytes = actorReply;
                 }
                 else
                 {
-                    if (actorNegotiated || actorSession is not null)
+                    if (actorDispatcher.HelloReceived
+                        || actorDispatcher.Negotiated
+                        || actorDispatcher.HasSession)
                     {
                         throw new FormatException(
                             "Actor protocol switched to a legacy text message.");
@@ -173,23 +206,30 @@ public static class GuestHost
                 replyBytes = ActorGuestProtocol.FormatUnsupported(
                     ex.Capability,
                     BoundProtocolFault(ex.Message));
+                terminateAfterReply = true;
             }
             catch (Exception ex)
             {
                 string message = BoundProtocolFault(
                     $"{ex.GetType().Name}: {ex.Message}");
-                replyBytes = actorMessage
-                    || actorNegotiated
-                    || actorSession is not null
+                bool actorFault = actorMessage
+                    || actorDispatcher.HelloReceived
+                    || actorDispatcher.Negotiated
+                    || actorDispatcher.HasSession;
+                replyBytes = actorFault
                     ? ActorGuestProtocol.FormatFault(message)
                     : Encoding.UTF8.GetBytes(
                         GuestProtocol.FormatFault(message));
+                terminateAfterReply = actorFault;
             }
 
             fixed (byte* pointer = replyBytes)
                 post_decision(pointer, replyBytes.Length);
 
-            if (actorNegotiated
+            if (terminateAfterReply)
+                return 0;
+
+            if (actorDispatcher.Negotiated
                 && buffer.Length < ActorGuestProtocol.MaxHostFrameBytes)
             {
                 buffer = new byte[ActorGuestProtocol.MaxHostFrameBytes];
@@ -200,21 +240,17 @@ public static class GuestHost
     private static string BoundProtocolFault(string message)
     {
         const int maxBytes = 4096;
-        if (Encoding.UTF8.GetByteCount(message) <= maxBytes)
-            return message;
-
+        // Encoding.UTF8 replaces invalid UTF-16 (for example a lone
+        // surrogate from an exception message). Always round-trip, even when
+        // already under the byte limit, so formatting the fault cannot itself
+        // fail in the strict wire string encoder.
         byte[] bytes = Encoding.UTF8.GetBytes(message);
+        if (bytes.Length <= maxBytes)
+            return Encoding.UTF8.GetString(bytes);
+
         int length = maxBytes;
         while (length > 0 && (bytes[length] & 0xC0) == 0x80)
             length--;
         return Encoding.UTF8.GetString(bytes, 0, length);
-    }
-
-    private sealed class ActorCapabilityNotSupportedException(
-        string capability,
-        string message)
-        : NotSupportedException(message)
-    {
-        public string Capability { get; } = capability;
     }
 }

@@ -108,7 +108,8 @@ public static class BotBuilder
             File.WriteAllText(target, source.Content);
         }
         File.WriteAllText(Path.Combine(workspace, "__BotArenaMain.cs"),
-            $"return BotArena.Guest.GuestHost.Run(() => new {entryType}());\n");
+            $"return BotArena.Guest.GuestHost.RunDetected(" +
+            $"() => new {entryType}());\n");
         File.WriteAllText(Path.Combine(workspace, "bot.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -458,7 +459,14 @@ public static class BotBuilder
             BotArenaVersions.RuntimeProtocolVersion,
             BotArenaVersions.RuntimeConfigurationVersion,
             BotArenaVersions.ActorRuntimeProtocolVersion,
-            BotArenaVersions.ActorRuntimeConfigurationVersion)));
+            BotArenaVersions.ActorRuntimeConfigurationVersion,
+            BotArenaVersions.GenericActorRuntimeProtocolVersion,
+            BotArenaVersions.GenericActorRuntimeConfigurationVersion,
+            BotArenaVersions.GenericActorRuntimeContractVersion,
+            BotArenaVersions.GenericActorMatchStartSchemaVersion,
+            BotArenaVersions.GenericActorObservationSchemaVersion,
+            BotArenaVersions.GenericActorDecisionSchemaVersion,
+            BotArenaVersions.GenericActorMatchContractSchemaVersion)));
         // The two staged assemblies are compiled into the artifact, so they belong in
         // its identity. Version strings alone were a promise the code did not keep: an
         // Sdk edit without a GuestAdapterVersion bump kept serving the old artifact, and

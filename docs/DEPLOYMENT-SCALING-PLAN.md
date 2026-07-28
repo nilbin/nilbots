@@ -1,9 +1,10 @@
 # nilbots deployment and scaling plan
 
-Status: public-beta single-VPS path implemented; external object storage and
-additional VPSs remain measured promotion steps.
+Status: public-beta multi-VPS foundation and connection fan-in implemented;
+production acceptance, alerting, and the later value-triggered off-site backup
+upgrade remain.
 
-Last updated: 2026-07-24.
+Last updated: 2026-07-28.
 
 ## Goal
 
@@ -17,6 +18,9 @@ The plan therefore keeps the existing modular monolith, PostgreSQL job queue,
 and Docker workflow. It adds boundaries where a later move between machines
 would otherwise be painful.
 
+The focused PostgreSQL connection, extension, backup, and rollout checklist is
+[`POSTGRESQL-OPERATIONS-PLAN.md`](POSTGRESQL-OPERATIONS-PLAN.md).
+
 ## Decisions to make now
 
 1. **Keep one modular monolith and one repository.** Web and worker roles may
@@ -28,7 +32,10 @@ would otherwise be painful.
 3. **Put Caddy at the public edge.** Only Caddy exposes ports 80 and 443. The
    app and PostgreSQL stay on private container or VPS networks.
 4. **Keep PostgreSQL as the source of truth and job coordinator.** The existing
-   database-backed queue is enough for this growth path.
+   database-backed queue is enough for this growth path. Put PgBouncer in front
+   of application traffic before adding more nodes: normal traffic uses
+   transaction pooling, while the PostgreSQL notification listener uses a
+   session-pooled alias because `LISTEN` requires session affinity.
 5. **Treat durable blobs as objects, not host files.** Code talks through an
    object-store abstraction and PostgreSQL stores stable object keys.
    Production uses a private S3-compatible Garage cluster; development may use
@@ -57,20 +64,23 @@ flowchart LR
     C --> W1[Web role]
     C -. later .-> W2[Additional web role]
 
-    W1 --> P[(PostgreSQL)]
-    W2 --> P
+    W1 --> PT[PgBouncer transaction pool]
+    W2 --> PT
+    W1 -. LISTEN .-> PS[PgBouncer session pool]
+    W2 -. LISTEN .-> PS
 
-    CW[Compile coordinator] --> P
+    CW[Compile coordinator] --> PT
     CW --> Q[Filesystem request queue]
     Q --> CR[Networkless compiler runner]
-    MW[Match worker role] --> P
+    MW[Match worker role] --> PT
+    PT --> P[(PostgreSQL)]
+    PS --> P
     CW --> O[(Private object store)]
     MW --> O
     W1 --> O
     W2 --> O
 
-    P --> B[Encrypted off-site backups]
-    O --> B
+    P --> B[Bounded local dumps + restore rehearsal]
 ```
 
 On the first VPS every solid component in the diagram is a Compose service on
@@ -115,9 +125,9 @@ existing database and object store.
 | Artifacts | Immutable, content-hashed objects behind `IObjectStore` and private Garage S3 | Move Garage replicas to distinct physical zones before claiming storage HA |
 | Replays | Stable object keys and authorization-gated streaming through Garage | Rehearse Garage plus PostgreSQL restoration |
 | Authentication | Shared provisioned OpenIddict certificates; Data Protection keys in PostgreSQL | Operational certificate rotation still needs rehearsal |
-| Database | One-shot migration role and expansion-safe key migration | Backup restore rehearsal and monitoring remain |
+| Database | One-shot direct migration role, PgBouncer transaction/session aliases, bounded pools, `pg_stat_statements`, local dumps, and disposable restore rehearsal | Complete production acceptance/alerts; add off-site recovery only at the documented value trigger |
 | Edge | Caddy, trusted forwarded headers, secure cookies, live/ready health | External uptime alerting remains |
-| Operations | Manual Actions release, two GHCR images, digest deployment, SBOM/provenance, backup/deploy runbooks | Off-host logical backup automation, log alerts, and restore rehearsal remain |
+| Operations | Manual Actions release, three GHCR images, digest deployment, SBOM/provenance, scripted host/fleet setup, nightly local dumps, and weekly restore rehearsal | External uptime/database/backup alerts remain |
 
 The first implementation work should remove these gaps without changing the
 game architecture.
@@ -220,7 +230,7 @@ Start with Ubuntu 26.04 LTS on an x86-64 VPS:
 
 - workable beta minimum: 2 vCPU, 4 GB RAM;
 - more comfortable starting point: 4 vCPU, 8 GB RAM;
-- 40–80 GB SSD/NVMe, with disk alerts and off-site backups;
+- 40–80 GB SSD/NVMe, with disk alerts and capacity-bounded local backups;
 - one compile worker until measurements show spare CPU and memory.
 
 Compilation is expected to be the burstiest load. Avoid sizing the whole
@@ -236,6 +246,7 @@ The production Compose definition should contain:
 - `compile-worker` coordinator with one replica
 - `compiler-runner` with one replica and no network
 - `postgres`
+- `pgbouncer` with transaction and notification-session database aliases
 - three Garage storage nodes plus one Garage gateway
 - persistent Caddy/PostgreSQL/Garage volumes
 
@@ -334,18 +345,23 @@ Initial hobby-project targets:
 
 - recovery point objective: at most 24 hours of database changes lost;
 - recovery time objective: restore service within a few hours;
-- nightly encrypted PostgreSQL backup to a different provider or location;
+- nightly local PostgreSQL backup while the owner explicitly accepts total
+  primary-host loss to avoid recurring off-site storage cost;
 - daily backup or provider versioning for local objects;
 - retain at least 7 daily and 4 weekly recovery points;
 - retain the signing/encryption and Data Protection keys needed for token and
   cookie continuity;
 - test a restore into a disposable environment at least quarterly.
 
-The backup job is not complete because a file exists. It is complete only when
-the file is off-host, encrypted, monitored, and has passed a restore test.
+Local dumps protect against bad migrations and accidental deletion, not loss
+of the VPS or disk. This is a conscious hobby-phase risk, not disaster
+recovery. The local job is useful only when it is monitored, stored outside the
+live database volume, capacity-bounded, and has passed a restore test.
 
-Before public competitions or meaningful paid usage, improve the database RPO
-with more frequent logical backups or WAL archiving and write a short incident
+Before public competitions, meaningful paid usage, valuable production
+history, or a database move, add encrypted backups in another provider/failure
+domain. Improve the RPO with more frequent logical backups or WAL archiving
+only when the value of the data justifies it, and write a short incident
 runbook.
 
 ## Health, logs, and measurements
@@ -383,8 +399,9 @@ Everything runs in one Compose project. Registration is public, compiler
 admission is bounded, and the compiler runner is offline. Garage starts with
 three logical storage nodes at replication factor 3 plus a gateway, all
 co-located on the first host. This enables an in-place cluster layout change
-later but is not physical HA. Keep off-site backups and one compile and one
-match worker.
+later but is not physical HA. Keep monitored local dumps under the explicitly
+accepted hobby-phase loss risk, and one compile and one match worker. Add
+off-site backups when the recovery-section value trigger is crossed.
 
 Promote only after real usage shows a reason: register, submit, play, watch,
 monitor queue pressure, and survive a restore test—not merely when the
@@ -425,9 +442,10 @@ considerable traffic; this stage adds capacity, not full high availability.
 
 Move PostgreSQL to its own VPS or a managed service when database resource
 contention, backup burden, or desired recovery time—not fashion—justifies it.
-Prefer one well-backed-up primary over a self-managed cluster. Add a connection
-pooler or read replicas only after connection or read measurements demonstrate
-the need.
+Prefer one well-backed-up primary over a self-managed cluster. PgBouncer is
+already the application connection boundary by this stage, so moving the
+database changes its private backend target rather than every application
+node. Add read replicas only after read measurements demonstrate the need.
 
 ### Stage 5: higher availability
 
@@ -492,6 +510,10 @@ PostgreSQL, and object storage can each remain a single failure point.
 - [x] Make ranked-set finalization transactionally exactly-once before adding
       a second match worker.
 - [ ] Exercise a mixed-version/drained-worker deployment.
+- [x] Implement the PgBouncer transaction/session split and connection budgets
+      in `POSTGRESQL-OPERATIONS-PLAN.md`.
+- [ ] Close direct worker access to PostgreSQL 5432 after the PgBouncer
+      compatibility deployment and rollback rehearsal.
 
 ## Explicitly not now
 
@@ -514,3 +536,5 @@ multi-VPS nilbots deployment.
 - [ASP.NET Core web-farm guidance](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/web-farm?view=aspnetcore-10.0)
 - [ASP.NET Core health checks](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-10.0)
 - [PostgreSQL `SELECT`, including `SKIP LOCKED`](https://www.postgresql.org/docs/current/sql-select.html)
+- [PgBouncer feature compatibility](https://www.pgbouncer.org/features.html)
+- [PostgreSQL operations plan](POSTGRESQL-OPERATIONS-PLAN.md)

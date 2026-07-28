@@ -36,10 +36,15 @@ git archive --format=tar "$release_sha" deploy | gzip -n >"$temporary"
 required=(
   deploy/Caddyfile
   deploy/compose.production.yml
+  deploy/configure-database-env.sh
+  deploy/configure-pgbouncer.sh
   deploy/deploy.sh
   deploy/deploy-worker.sh
   deploy/init-garage.sh
+  deploy/install-primary-maintenance.sh
   deploy/install-release.sh
+  deploy/pgbouncer/pgbouncer.ini
+  deploy/restore-postgres-backup.sh
   deploy/worker-inventory.sh
 )
 contents="$(tar -tzf "$temporary")"

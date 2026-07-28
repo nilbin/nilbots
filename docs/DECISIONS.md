@@ -2106,7 +2106,10 @@ the catalog is revalidated. Missing pack URLs remain real 404s rather than SPA f
 Self-contained CLI viewers stub the score module and do not copy `public/`; HostedViewer
 and the mobile bridge remain unchanged. Production release refuses any catalogued pack
 until rights are cleared, shipment is approved and every authored loop has completed
-human audition.
+human audition. A manually selected public-pilot tier may expose a rights-cleared,
+ship-approved pack while loop auditions remain pending; it emits the exact warning and
+cannot weaken provenance, manifest-integrity or declared-media checks. Production is the
+default tier and remains fully blocked.
 
 AAC in M4A is the baseline output because it keeps the broadest practical Safari/iOS and
 hardware-decoder path. The manifest and server MIME policy do not hard-code playback to
@@ -2141,7 +2144,229 @@ The native HostedViewer remains unchanged until its host bridge owns an explicit
 activation and control contract. Because the approved cues change every self-contained
 replay viewer, the CLI package advances to 0.6.1 under the existing release-order guard.
 
-## 132. 3D is the viewer, and Canvas2D is a floor rather than a mode
+## 132. PgBouncer is the private application connection boundary, with a separate session alias for notifications
+
+Every application process owns an independent Npgsql pool, so adding otherwise
+stateless web and worker nodes can multiply potential PostgreSQL connections
+past the primary's fixed budget. PgBouncer runs beside PostgreSQL on the
+primary and expose only private port 6432 to exact registered-worker addresses.
+Ordinary EF Core, compile, and match traffic uses a bounded transaction-pooled
+`botarena` alias. The one PostgreSQL notification listener in each web process
+uses a `botarena_session` alias mapped to the same database in session mode,
+because transaction pooling cannot preserve `LISTEN`.
+
+Migrations, backups, and administration remain direct inside the primary's
+Compose network. A mixed-version deployment keeps exact-address worker access
+to 5432 only for the compatibility and rollback window; after every active
+release uses PgBouncer, raw PostgreSQL is closed to workers and their direct HBA
+rules are removed. This adds connection fan-in and backpressure, not database
+high availability. PostgreSQL stays a single primary until measured recovery,
+contention, or availability requirements justify moving it.
+
+`pg_stat_statements` is the only PostgreSQL extension adopted with this work.
+Audit logging, database cron, partition management, PITR tooling, exporters,
+and a full metrics stack remain explicit measured promotions. Backup
+correctness and a restore rehearsal outrank those deferred additions; paid
+off-site storage remains a separately triggered promotion. The executable
+rollout and rollback checklist lives in
+`docs/POSTGRESQL-OPERATIONS-PLAN.md`.
+
+## 133. Off-site backups are a value-triggered promotion, with primary-host loss accepted during the hobby phase
+
+Nilbots keeps scheduled, capacity-bounded local PostgreSQL dumps
+and rehearse restoring them, but will not yet pay for off-site backup storage.
+This protects against bad migrations and accidental logical deletion; it does
+not protect against loss or corruption of the primary VPS or disk. PostgreSQL,
+the local dumps, and the currently co-located Garage replicas may therefore be
+lost together, and that risk is explicitly accepted while production history
+is cheap to recreate.
+
+Encrypted backups in a different provider or failure domain become required
+before a public competition, payments, valuable user-generated history, a
+database move, or whenever losing the primary costs more than recurring backup
+storage. Point-in-time recovery through pgBackRest or WAL-G remains a later RPO
+decision rather than a prerequisite for the current local-dump baseline.
+## 134. Package 8 opens Frontline only as a local experiment and measures dimensions, not “fun”
+
+Frontline enters the CLI through the separate
+`nilbots experiment frontline` command, not through historical `play`, ranked
+rules resolution, ordinary map catalogs, the App, or server admission. Its
+named `frontline-alpha-1` arm stays outside `GameRules.Resolve`,
+`KnownNames`, and `ShippedNames`; format-v2 maps are packaged under the
+explicit `maps/experimental/` boundary. This makes the mechanics playable and
+iterable without accidentally claiming that they are a shipped game mode.
+CLI/toolchain version 0.7.0 owns that new surface.
+
+The command accepts actor built-ins, actor projects, or actor-protocol WASM,
+creates a distinct participant factory and an isolated runtime for every
+life, and emits complete replay v2 plus the self-contained Canvas2D viewer.
+In-process execution is a diagnostic convenience; all-WASM remains the
+canonical local run. A runtime failure produces a typed non-zero result and a
+partial replay instead of silently substituting `Wait`.
+
+Four deterministic reference policies exercise intentionally different
+paths—rush, mobile swarm, Anchor/turret bastion, and defensive
+counterpunch—but they share one author and count only as calibration/smoke
+fixtures. They cannot satisfy the independently authored native-doctrine
+cohort required for a product verdict.
+
+Replay-v2 evaluation is likewise separate from the historical slot-based
+evaluator. It reports duration and contract-derived phase, fabrication,
+Anchor/turret, territorial reversal/comeback, actorless/stagnant, combat, and
+action dimensions with per-match rows and fingerprints. It deliberately
+defines neither a composite “fun” score nor post-hoc pass thresholds.
+Outcome-blind sampling now dispatches between replay versions using header
+metadata only.
+
+Adding the reference policies grows the tracked built-in guest to 4,853,279
+bytes, SHA-256
+`88b6ae1f949dd139fcefcbfc7f144870a27b17a2f98ce58a354738a2908bac5a`,
+with controlled input stamp
+`f93cd92c9d3985fddaf3abc5d1675c39bdc129d5`. This supersedes Package 7's
+artifact as the current development guest without rewriting that package's
+historical evidence.
+
+Package 8 therefore establishes a runnable local authoring and measurement
+loop, not a balance or ship decision. The remaining gates are an independently
+authored cohort, frozen same-cohort/holdout runs, outcome-blind entertainment
+review, and a deliberate hosted/admission decision.
+## 135. Parallel modes use new typed contract generations, curated playlists, and opaque ladders
+
+Official duel replay v1 and the opened `frontline-alpha-1` rules-schema-2 /
+match-contract-schema-1 / replay-v2 evidence remain compatibility generations.
+The parallel-mode architecture begins under new experimental rules schema 3,
+match contract schema 2, and eventually replay 3; old writers branch on their
+stored schema and stay byte-exact. A generic Frontline arm is a new named
+experiment, never a reinterpretation of alpha-1.
+
+Product terms are fixed. A **game mode** owns objective/scoring semantics; a
+**ruleset** is one immutable mechanic/tuning revision; a **match format** maps
+participants onto teams and unit capacity; a **playlist version** pins a
+ruleset, format, map pool, scheduler, matchmaking, and admission policy; a
+**ladder** is an opaque season/rating population for one playlist version; and
+the **match contract** is their fully resolved exact tick-zero input.
+FFA Deathmatch is Deathmatch mode plus an FFA format, not another mode.
+
+Forms, actions, same-life form transitions, and one-to-many replication are
+closed typed catalogs. Existing typed mechanics are data-tunable; the first
+new physical semantic adds one tagged capability, not a rules DSL or
+imperative map callback. The initial Split proof retires one surviving source
+at the next tick start into bounded fresh descendant lives with isolated
+runtimes and explicit lineage. It is not destruction and awards no kill.
+
+Results become canonical tied team standings plus keyed score channels and a
+typed mode result. Winner-slot fields remain compatibility projections.
+Ratings key by opaque ladder ID rather than rules version. The current duel
+ladder first passes through a `DuelEloV1` adapter with exact K=32/floor=100
+behavior; an FFA rating policy is a later explicit product decision, not
+pairwise Elo in a loop.
+
+The dependency order, schemas, proof fixtures, persistence migration, viewer
+boundary, and substantial-change pre-registration are in
+[`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). No Split,
+Deathmatch, FFA, or numeric starting arm is a balance or ship decision.
+
+## 136. Generic actor contracts negotiate one exact profile and move the controlled toolchain
+
+Actor framing protocol/configuration 1.0 is retained, but its object contract
+is no longer inferred from whatever payload arrives next. An absent profile
+selects the frozen Frontline-alpha actor generation. New generic matches
+require exact profile `generic-actor-match-2`: runtime contract 2, MatchStart
+2, observation 2, decision 2, and resolved match contract 2. `HelloAck` and
+`Ready` attest the selected profile; unsupported, missing, contradictory, or
+late generation switches fail terminally before gameplay. There is no
+downgrade or payload sniffing.
+
+The generic SDK boundary mirrors the canonical rules-schema-3,
+map-format-3, and match-contract-schema-2 graph, plus variable life-qualified
+observations, participant/lifecycle state, nullable sensor capabilities,
+generic score/mode state, typed actions and legality, runtime faults, and
+event/transition lineage. The Engine remains the full semantic authority.
+The dependency-free guest independently enforces canonical syntax,
+fingerprints, identity consistency, and explicit byte/node/container limits.
+One artifact may implement several bot interfaces, but its negotiated session
+invokes exactly one.
+
+This is a player compile-surface and generated-source change. SDK and Guest
+adapter move from 0.9.0 to 0.10.0. `BotBuilder` now calls closed-type
+`RunDetected<T>` so it can expose all implemented interfaces without creating
+a throwaway bot; because that changes generated artifact bytes, controlled
+build pipeline moves 3 → 4. The CLI/package moves 0.7.0 → 0.8.0 under the
+existing release guard. Historical protocol 0.1, Frontline-alpha contract
+objects, replay 1/2, and their fingerprints/hashes remain exact. Generic
+gameplay hosting and replay 3 are subsequent packages, not implied shipped
+features.
+
+## 137. Generic actor matches execute through one neutral session and replay generation
+
+Schema-3 actor rules and schema-2 resolved contracts now execute through
+`GenericActorMatchSession`, not a Deathmatch host with Frontline conditionals.
+The session owns shared runtime coordination, movement, combat, lifecycle,
+resources, perception, chronology, and participant-fault handling. A closed
+typed mode driver owns mode state, score updates, objective completion, and
+terminal facts. Deathmatch and Frontline are the first two drivers; a new mode
+adds a definition, kernel/driver, and typed result arm without changing actor
+identity or the shared world envelope.
+
+Replay 3 is the corresponding generic generation. It records the exact
+contract and topology, pre-tick public observation delivered to each life,
+submitted and accepted action, authoritative causality, post-state, tied
+standings, and a closed typed Deathmatch or Frontline terminal arm. Signed
+scores cross JSON as canonical decimal strings. The Engine reader and
+web normalizer reject unknown arms, extra fields, impossible chronology, and
+contract/result disagreement before the hosted bridge carries a typed result
+to mobile. Replay 1 and the opened Frontline-alpha replay 2 remain byte-exact
+separate generations. This creates an executable experimental seam; it does
+not route a generic mode through public App/server admission or a ladder.
+
+## 138. Fabrication and Split reserve one joint lifecycle claim space
+
+Source-preserving fabrication and source-retiring Split first build
+provisional bundles from the same post-movement world. One family-neutral
+arbiter then blocks every operation in a connected conflict component sharing
+any stable slot, output tile, or operation ID. Neither mechanic receives
+priority from family type or collection order. Existing pending claims,
+active occupancy, and permanently reserved automatic-return tiles are part of
+the same legality boundary.
+
+A queued fabrication captures source lineage/pose, target slot/form, output
+tile/facing, and due tick. It survives source movement, destruction, or a later
+Split, because it is already source-preserving work; participant
+disqualification is the explicit cancellation override. At tick start,
+returns/readiness settle first, due fabrication settles before due Split, and
+same-life completion follows. Output-tile projectiles are consumed without
+damage before a fresh target life/runtime is created. Split still retires its
+source and creates fresh isolated descendants. Same-life form changes retain
+the exact runtime and private memory.
+
+Static rules, map, topology, and objective facts remain immutable MatchStart
+input. Learned private history belongs to one runtime life: respawn,
+refabrication, and Split descendants start empty, while team perception shares
+only the current frozen observable union. There is no implicit parent,
+sibling, or historical team-memory copy. A fabrication configuration whose
+unavailable placement result would fault a participant remains rejected until
+the host has a causal gameplay-fault API; `Blocked` and `Rejected` execute now.
+
+## 139. Legacy competition rows receive pinned playlist, season, and ladder identity first
+
+The additive competition migration begins by assigning deterministic
+legacy-import playlists and immutable playlist versions, explicit seasons,
+opaque ladders, and ladder-keyed ratings without changing Duel results or
+public response shapes. Ranked and unranked admission dual-write the pinned
+identity; workers execute the pinned rules and repair nullable compatibility
+rows; finalization repairs identity/rating links while retaining exact legacy
+Elo behavior. `Ladder.AwardsAchievements` is authoritative, and
+`SeasonOpeningRank` is a nullable opening snapshot rather than current rank
+under another name.
+
+The application backfill is advisory-locked, repeatable, and transactionally
+isolated. Operators run it after the nullable expand migration and again after
+old writers drain, before switching reads or enforcing non-null identities.
+This foundation does not claim normalized generic entrants/team results,
+reveal-ordered settlement, generic APIs, or an FFA/team rating policy; those
+remain the explicit next persistence stages.
+
+## 140. 3D is the viewer, and Canvas2D is a floor rather than a mode
 
 The 2D/2.5D toggle is gone. It asked a player to choose between a fidelity and a
 dimension count, which is not a decision anyone wanted to make, and the flat renderer

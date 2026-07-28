@@ -17,11 +17,25 @@ public static class ReplayOutput
 
     public static WrittenReplay Write(Replay replay, string outDir)
     {
-        Directory.CreateDirectory(outDir);
         string json = ReplaySerializer.ToJson(replay);
+        return WriteJson(json, outDir, replay.Header.ThemeId);
+    }
+
+    /// <summary>
+    /// Writes an already-canonical replay document. Frontline uses this
+    /// boundary so replay-v2's evolving DTO graph remains internal to Engine
+    /// while the CLI can still preserve and display the exact hashed bytes.
+    /// </summary>
+    public static WrittenReplay WriteJson(
+        string json,
+        string outDir,
+        string? themeId = null)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        Directory.CreateDirectory(outDir);
         string replayPath = Path.GetFullPath(Path.Combine(outDir, "replay.json"));
         File.WriteAllText(replayPath, json);
-        string? viewerPath = WriteViewer(json, outDir, replay.Header.ThemeId);
+        string? viewerPath = WriteViewer(json, outDir, themeId);
         return new WrittenReplay(replayPath, viewerPath);
     }
 

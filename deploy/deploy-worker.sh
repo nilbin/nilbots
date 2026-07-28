@@ -9,6 +9,7 @@ if [[ ! -f "$deploy_dir/.env" ]]; then
   echo "missing $deploy_dir/.env; configure private database and S3 endpoints first" >&2
   exit 1
 fi
+bash "$deploy_dir/configure-database-env.sh" worker "$deploy_dir/.env"
 
 env_value() {
   local key="$1"
@@ -27,11 +28,11 @@ env_value() {
   ' "$deploy_dir/.env"
 }
 
-database_host="$(env_value BOTARENA_DB_HOST)"
+database_host="$(env_value BOTARENA_PGBOUNCER_HOST)"
 s3_endpoint="$(env_value BOTARENA_S3_ENDPOINT)"
 case "$database_host" in
   ""|db|localhost|127.*|::1)
-    echo "worker BOTARENA_DB_HOST must name the primary host's private address" >&2
+    echo "worker BOTARENA_PGBOUNCER_HOST must name the primary host's private address" >&2
     exit 1
     ;;
 esac

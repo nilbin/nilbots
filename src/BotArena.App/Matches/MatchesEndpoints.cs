@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
+using BotArena.App.Competition;
 using BotArena.App.Jobs;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
@@ -25,6 +26,7 @@ public static class MatchesEndpoints
             MatchParticipantSnapshotFactory snapshots,
             MatchChallengeAnnouncer challenges,
             MatchExecutionSettings matchSettings,
+            LegacyCompetitionIdentityResolver identityResolver,
             UnrankedMatchLimits unrankedLimits,
             TimeProvider timeProvider,
             HttpContext http,
@@ -87,12 +89,20 @@ public static class MatchesEndpoints
                 return opponent.Error!.ToProblemDetails(http);
 
             long seed = request.Seed ?? Random.Shared.NextInt64();
+            LegacyCompetitionIdentity identity =
+                await identityResolver.ResolveOrCreateAsync(
+                    matchSettings.MatchRules.RulesVersion,
+                    matchSettings.MatchRules.RulesVersion,
+                    cancellationToken);
 
             var match = new Match
             {
                 MapId = mapId,
                 Seed = seed,
                 InitiatedByUserId = userId,
+                GameRulesVersion =
+                    matchSettings.MatchRules.RulesVersion,
+                PlaylistVersionId = identity.PlaylistVersionId,
             };
             match.Participants.Add(snapshots.Create(match.Id, 0, challenger.Value!));
             match.Participants.Add(snapshots.Create(match.Id, 1, opponent.Value!));

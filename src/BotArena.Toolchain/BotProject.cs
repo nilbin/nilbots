@@ -30,13 +30,14 @@ public static class ToolchainInfo
     /// <summary>The published `Nilbots` tool version. MUST be bumped whenever
     /// SdkVersion or BuildPipelineVersion changes: those decide artifact bytes, and
     /// `submit` refuses against a server the installed tool cannot match, so a player
-    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.6.x carries SDK 0.9.0
-    /// and build pipeline 3; it also carries the generated HTTP contracts used by
-    /// CLI server commands. 0.6.1 adds the approved Obsidian Foundry effects to
-    /// self-contained replay viewers. Keep in lockstep with
-    /// BotArena.Cli.csproj's Version — PackagedCliVersionTests pins them
-    /// together.</summary>
-    public const string CliVersion = "0.6.1";
+    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.8.x carries
+    /// SDK/Guest 0.10.0, build pipeline 4, the frozen local Frontline
+    /// actor/replay-v2 experiment, and the negotiated generic actor-match
+    /// programming model. It also carries the approved Obsidian Foundry effects
+    /// in self-contained replay viewers and the generated HTTP contracts used
+    /// by CLI server commands. Keep in lockstep with BotArena.Cli.csproj's
+    /// Version — PackagedCliVersionTests pins them together.</summary>
+    public const string CliVersion = "0.8.0";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -59,9 +60,13 @@ public static class ToolchainInfo
     // 0.9.0: independent entity-life API, typed Frontline manifest and
     // observations/actions, plus actor protocol 1.0's shared tagged codec.
     // Legacy IBot and line protocol 0.1 remain byte-for-byte compatible.
-    public const string SdkVersion = "0.9.0";
+    // 0.10.0: exact-profile generic actor-match contracts, variable topology
+    // and entity collections, typed dynamic action/event/score/mode unions,
+    // and generic replay-3-ready lineage. Legacy and Frontline-alpha surfaces
+    // remain separate compatibility generations.
+    public const string SdkVersion = "0.10.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.9.0";
+    public const string GuestAdapterVersion = "0.10.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed
@@ -74,7 +79,10 @@ public static class ToolchainInfo
     //    staged 9, the server 74); Sdk/Guest compile identically in any configuration
     //    from any directory; and their fallback build cache is keyed by source content
     //    rather than by GuestAdapterVersion. Artifact bytes change.
-    public const string BuildPipelineVersion = "3";
+    // 4: generated entry-point capability detection exposes every implemented
+    //    bot interface without constructing a throwaway instance. This changes
+    //    generated source and therefore every controlled artifact cache key.
+    public const string BuildPipelineVersion = "4";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home

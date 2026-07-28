@@ -22,17 +22,17 @@ public sealed class CosmeticAchievementService(
 
     /// <summary>
     /// The highest rating any of the account's bots holds on an official ladder.
-    /// Experiment arms carry a visibly non-official rules version (DECISIONS #54
-    /// keeps past eras alive), and an experiment ladder must not mint cosmetics —
-    /// but a peak on a closed official era still counts, because the account did
-    /// reach the rating.
+    /// The ladder's persisted policy is authoritative, so a closed official era
+    /// still counts while an experimental or otherwise ineligible ladder does not.
     /// </summary>
     public async Task<double> BestOfficialRatingAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
         return await db.BotRatings
-            .Where(rating => !rating.RulesVersion.Contains("-exp-"))
+            .Where(rating => db.Ladders.Any(ladder =>
+                ladder.Id == rating.LadderId &&
+                ladder.AwardsAchievements))
             .Where(rating => db.Bots.Any(bot =>
                 bot.Id == rating.BotId &&
                 bot.OwnerUserId == userId))
@@ -46,6 +46,9 @@ public sealed class CosmeticAchievementService(
     {
         return await db.MatchSets
             .Where(set => set.Status == MatchSetStatus.Completed)
+            .Where(set => db.Ladders.Any(ladder =>
+                ladder.Id == set.LadderId &&
+                ladder.AwardsAchievements))
             .Where(set => db.Bots.Any(bot =>
                 bot.OwnerUserId == userId &&
                 (bot.Id == set.BotAId || bot.Id == set.BotBId)))
@@ -64,7 +67,10 @@ public sealed class CosmeticAchievementService(
         var set = await db.MatchSets
             .Where(set =>
                 set.Id == matchSetId &&
-                set.Status == MatchSetStatus.Completed)
+                set.Status == MatchSetStatus.Completed &&
+                db.Ladders.Any(ladder =>
+                    ladder.Id == set.LadderId &&
+                    ladder.AwardsAchievements))
             .Select(set => new { set.BotAId, set.BotBId })
             .SingleOrDefaultAsync(cancellationToken);
         if (set is null)

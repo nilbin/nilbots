@@ -1,6 +1,7 @@
 using System.Data.Common;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
@@ -54,6 +55,15 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
         Assert.Equal(6, set.ScoreA);
         Assert.Equal(0, set.ScoreB);
         Assert.Equal(16, set.RatingChangeA, precision: 8);
+        Assert.NotNull(set.PlaylistVersionId);
+        Assert.NotNull(set.LadderId);
+        Assert.All(
+            await verify.Matches
+                .Where(match => match.MatchSetId == setId)
+                .ToArrayAsync(),
+            match => Assert.Equal(
+                set.PlaylistVersionId,
+                match.PlaylistVersionId));
 
         BotRating[] ratings = await verify.BotRatings
             .OrderBy(rating => rating.Rating)
@@ -62,6 +72,12 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
         Assert.Equal(1184, ratings[0].Rating, precision: 8);
         Assert.Equal(1216, ratings[1].Rating, precision: 8);
         Assert.All(ratings, rating => Assert.Equal(1, rating.RankedSets));
+        Assert.All(
+            ratings,
+            rating => Assert.Equal(set.LadderId, rating.LadderId));
+        Assert.All(
+            ratings,
+            rating => Assert.Null(rating.SeasonOpeningRank));
 
         Assert.Equal(2, await verify.EntitlementGrants.CountAsync());
         UserNotification notification =
@@ -110,6 +126,37 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task NonAwardingLadderFinalizesRatingsWithoutAchievements()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        Guid setId;
+        await using (AppDbContext seed = await database.CreateMigratedContextAsync())
+        {
+            setId = await SeedReadySetAsync(
+                seed,
+                previousCompletedSets: 0,
+                rulesVersion: "0.5-exp-no-achievements");
+        }
+
+        await using AppDbContext finalize = database.CreateContext();
+        Assert.Equal(
+            RankedSetFinalizationOutcome.Finalized,
+            await CreateFinalizer(finalize).TryFinalizeAsync(setId));
+
+        await using AppDbContext verify = database.CreateContext();
+        MatchSet set = await verify.MatchSets.SingleAsync(
+            candidate => candidate.Id == setId);
+        Ladder ladder = await verify.Ladders.SingleAsync(
+            candidate => candidate.Id == set.LadderId);
+        Assert.False(ladder.AwardsAchievements);
+        Assert.Equal(MatchSetStatus.Completed, set.Status);
+        Assert.Equal(2, await verify.BotRatings.CountAsync());
+        Assert.Empty(await verify.EntitlementGrants.ToArrayAsync());
+        Assert.Empty(await verify.UserNotifications.ToArrayAsync());
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
     public async Task FailureAfterRatingFlush_RollsBackSetAndRatings()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -152,13 +199,15 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
         var achievements = new CosmeticAchievementService(db, entitlements);
         return new RankedMatchSetFinalizer(
             db,
+            new LegacyCompetitionIdentityResolver(db),
             achievements,
             new FixedTimeProvider(FinalizedAt));
     }
 
     private static async Task<Guid> SeedReadySetAsync(
         AppDbContext db,
-        int previousCompletedSets)
+        int previousCompletedSets,
+        string rulesVersion = "0.5")
     {
         string suffix = Guid.NewGuid().ToString("N");
         var user = new User
@@ -189,20 +238,25 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
                 BotBId = botB.Id,
                 BotAVersionId = Guid.NewGuid(),
                 BotBVersionId = Guid.NewGuid(),
+                GameRulesVersion = rulesVersion,
                 Status = MatchSetStatus.Completed,
                 CompletedAt = FinalizedAt.UtcDateTime.AddDays(-1),
             });
         }
 
-        MatchSet set = AddReadySet(db, botA, botB);
+        MatchSet set = AddReadySet(db, botA, botB, rulesVersion);
         await db.SaveChangesAsync();
+        var resolver = new LegacyCompetitionIdentityResolver(db);
+        await new LegacyCompetitionIdentityBackfiller(db, resolver)
+            .RunAsync("0.5");
         return set.Id;
     }
 
     private static MatchSet AddReadySet(
         AppDbContext db,
         Bot botA,
-        Bot botB)
+        Bot botB,
+        string rulesVersion = "0.5")
     {
         var set = new MatchSet
         {
@@ -210,7 +264,7 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
             BotBId = botB.Id,
             BotAVersionId = Guid.NewGuid(),
             BotBVersionId = Guid.NewGuid(),
-            GameRulesVersion = "0.5",
+            GameRulesVersion = rulesVersion,
         };
         db.MatchSets.Add(set);
         for (int game = 1; game <= MatchSet.Games; game++)
@@ -223,7 +277,7 @@ public sealed class RankedMatchSetFinalizerIntegrationTests
                 WinnerSlot = 0,
                 EndReason = "Elimination",
                 EndTick = 10,
-                GameRulesVersion = "0.5",
+                GameRulesVersion = rulesVersion,
                 MatchSetId = set.Id,
                 SetGame = game,
                 CompletedAt = FinalizedAt.UtcDateTime.AddMinutes(-1),

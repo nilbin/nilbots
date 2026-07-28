@@ -1,7 +1,8 @@
 name: botarena
 
 x-database-environment: &database-environment
-  BOTARENA_DB: "Host=${BOTARENA_DB_HOST:-db};Database=botarena;Username=botarena;Password=${POSTGRES_PASSWORD}"
+  BOTARENA_DB: "Host=${BOTARENA_PGBOUNCER_HOST:-pgbouncer};Port=${BOTARENA_DB_PORT:-6432};Database=${BOTARENA_DB_NAME:-botarena};Username=botarena;Password=${POSTGRES_PASSWORD};Maximum Pool Size=${BOTARENA_DB_MAX_POOL_SIZE:-20}"
+  BOTARENA_NOTIFICATION_DB: "Host=${BOTARENA_PGBOUNCER_HOST:-pgbouncer};Port=${BOTARENA_DB_PORT:-6432};Database=${BOTARENA_NOTIFICATION_DB_NAME:-botarena_session};Username=botarena;Password=${POSTGRES_PASSWORD};Maximum Pool Size=${BOTARENA_NOTIFICATION_DB_MAX_POOL_SIZE:-2}"
   BOTARENA_DATA: "/data"
   ASPNETCORE_ENVIRONMENT: "Production"
 
@@ -19,6 +20,10 @@ x-application-environment: &application-environment
 x-runtime-build: &runtime-build
   context: ..
   target: runtime
+
+x-pgbouncer-build: &pgbouncer-build
+  context: ..
+  target: pgbouncer
 
 x-garage-common: &garage-common
   image: "dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690"
@@ -54,6 +59,22 @@ services:
       POSTGRES_USER: botarena
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
       POSTGRES_DB: botarena
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - compute_query_id=on
+      - -c
+      - pg_stat_statements.track=top
+      - -c
+      - pg_stat_statements.max=5000
+      - -c
+      - log_min_duration_statement=1000
+      - -c
+      - log_lock_waits=on
+      - -c
+      - log_autovacuum_min_duration=1000
     ports:
       - "${BOTARENA_POSTGRES_BIND_ADDRESS:-127.0.0.1}:5432:5432"
     volumes:
@@ -66,6 +87,41 @@ services:
       timeout: 3s
       retries: 20
     shm_size: 256mb
+
+  pgbouncer:
+    profiles: ["stateful"]
+    platform: linux/amd64
+    image: "${BOTARENA_PGBOUNCER_IMAGE:-botarena-pgbouncer:${BOTARENA_IMAGE_TAG:-local}}"
+    build: *pgbouncer-build
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    ports:
+      - "${BOTARENA_PGBOUNCER_BIND_ADDRESS:-127.0.0.1}:6432:6432"
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./secrets/pgbouncer-userlist.txt:/run/botarena-secrets/pgbouncer-userlist.txt:ro
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h 127.0.0.1 -p 6432 -U botarena -d botarena -Atqc 'select 1' | grep -qx 1
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: "${BOTARENA_PGBOUNCER_MEMORY:-128m}"
 
   garage-a:
     profiles: ["stateful"]
@@ -117,6 +173,7 @@ services:
     build: *runtime-build
     environment:
       <<: *application-environment
+      BOTARENA_DB: "Host=db;Port=5432;Database=botarena;Username=botarena;Password=${POSTGRES_PASSWORD};Pooling=false"
       BOTARENA_ROLE: "migrate"
       BOTARENA_OBJECT_MIGRATION_SOURCE: "/data/objects"
     volumes:
@@ -142,6 +199,7 @@ services:
     environment:
       <<: *application-environment
       BOTARENA_ROLE: "web"
+      BOTARENA_INSTANCE_ID: "${BOTARENA_WEB_INSTANCE_ID:-web-1}"
       BOTARENA_TRUST_FORWARDED_HEADERS: "true"
       BOTARENA_OPENIDDICT_SIGNING_CERT: "/run/botarena-secrets/openiddict-signing.pfx"
       BOTARENA_OPENIDDICT_ENCRYPTION_CERT: "/run/botarena-secrets/openiddict-encryption.pfx"

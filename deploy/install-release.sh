@@ -20,8 +20,8 @@ trap cleanup EXIT
 usage() {
   cat >&2 <<'EOF'
 usage:
-  install-release.sh install-primary DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE BUNDLE BUNDLE_SHA256
-  install-release.sh install-worker DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE BUNDLE BUNDLE_SHA256
+  install-release.sh install-primary DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE PGBOUNCER_IMAGE BUNDLE BUNDLE_SHA256
+  install-release.sh install-worker DEPLOY_ROOT GIT_SHA RUNTIME_IMAGE COMPILER_IMAGE PGBOUNCER_IMAGE BUNDLE BUNDLE_SHA256
   install-release.sh rollback DEPLOY_ROOT
 
 `install` remains an alias for `install-primary` for existing deployments.
@@ -141,12 +141,14 @@ write_release_environment() {
   local release_dir="$1"
   local runtime_image="$2"
   local compiler_image="$3"
-  local release_sha="$4"
+  local pgbouncer_image="$4"
+  local release_sha="$5"
   local environment="$release_dir/deploy/release.env"
   local temporary="${environment}.tmp"
   {
     printf 'BOTARENA_RUNTIME_IMAGE=%s\n' "$runtime_image"
     printf 'BOTARENA_COMPILER_IMAGE=%s\n' "$compiler_image"
+    printf 'BOTARENA_PGBOUNCER_IMAGE=%s\n' "$pgbouncer_image"
     printf 'BOTARENA_RELEASE_GIT_SHA=%s\n' "$release_sha"
   } >"$temporary"
   chmod 600 "$temporary"
@@ -172,13 +174,14 @@ activate_release() {
 }
 
 install_release() {
-  [[ $# -eq 6 ]] || usage
+  [[ $# -eq 7 ]] || usage
   local role="$1"
   local release_sha="$2"
   local runtime_image="$3"
   local compiler_image="$4"
-  local bundle="$5"
-  local expected_bundle_sha="$6"
+  local pgbouncer_image="$5"
+  local bundle="$6"
+  local expected_bundle_sha="$7"
   local deploy_script
   deploy_script="$(deployment_script "$role")"
   validate_role_transition "$role"
@@ -186,6 +189,7 @@ install_release() {
   if [[ ! "$release_sha" =~ ^[0-9a-f]{40}$ ||
         ! "$runtime_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
         ! "$compiler_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
+        ! "$pgbouncer_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
         ! "$expected_bundle_sha" =~ ^[0-9a-f]{64}$ ]]; then
     echo "invalid immutable release metadata" >&2
     exit 2
@@ -232,10 +236,15 @@ install_release() {
     for required in \
       deploy/Caddyfile \
       deploy/compose.production.yml \
+      deploy/configure-database-env.sh \
+      deploy/configure-pgbouncer.sh \
       deploy/deploy.sh \
       deploy/deploy-worker.sh \
       deploy/init-garage.sh \
+      deploy/install-primary-maintenance.sh \
       deploy/install-release.sh \
+      deploy/pgbouncer/pgbouncer.ini \
+      deploy/restore-postgres-backup.sh \
       deploy/worker-inventory.sh; do
       if [[ ! -f "$staging_dir/$required" ]]; then
         echo "release bundle is missing $required" >&2
@@ -254,6 +263,7 @@ install_release() {
     "$release_dir" \
     "$runtime_image" \
     "$compiler_image" \
+    "$pgbouncer_image" \
     "$release_sha"
   install -m 755 "$release_dir/deploy/install-release.sh" "$deploy_root/bin/release"
 

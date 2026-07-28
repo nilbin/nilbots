@@ -4,6 +4,7 @@
        runtime configuration version. -->
   <ItemGroup>
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
+    <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../BotArena.Sdk/BotArena.Sdk.csproj" />
     <PackageReference Include="Wasmtime" Version="44.0.0" />
   </ItemGroup>

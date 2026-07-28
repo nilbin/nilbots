@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
@@ -90,6 +91,13 @@ public class MatchCreationHttpTests
                 .Include(match => match.Participants)
                 .SingleAsync(match => match.Id == unrankedId);
             Assert.Equal(GameRules.Current.RulesVersion, unranked.GameRulesVersion);
+            Assert.NotNull(unranked.PlaylistVersionId);
+            PlaylistVersion unrankedPlaylist =
+                await db.PlaylistVersions.SingleAsync(version =>
+                    version.Id == unranked.PlaylistVersionId);
+            Assert.Equal(
+                GameRules.Current.RulesVersion,
+                unrankedPlaylist.RulesetId);
             AssertSnapshot(
                 unranked.Participants.Single(participant => participant.BotId == challengerId),
                 "Snapshot Alpha",
@@ -106,12 +114,28 @@ public class MatchCreationHttpTests
                 .Where(match => match.MatchSetId == setId)
                 .OrderBy(match => match.SetGame)
                 .ToListAsync();
+            MatchSet rankedSet = await db.MatchSets.SingleAsync(
+                set => set.Id == setId);
+            Assert.NotNull(rankedSet.PlaylistVersionId);
+            Assert.NotNull(rankedSet.LadderId);
+            Ladder rankedLadder = await db.Ladders.SingleAsync(
+                ladder => ladder.Id == rankedSet.LadderId);
+            Assert.Equal(
+                GameRules.Current.RulesVersion,
+                rankedLadder.LegacyRulesVersion);
+            Assert.Equal(LadderStatus.Open, rankedLadder.Status);
+            Assert.Equal(
+                rankedSet.PlaylistVersionId,
+                rankedLadder.PlaylistVersionId);
             Assert.Equal(MatchSet.Games, ranked.Count);
             Assert.All(
                 ranked,
                 match =>
                 {
                     Assert.Equal(GameRules.Current.RulesVersion, match.GameRulesVersion);
+                    Assert.Equal(
+                        rankedSet.PlaylistVersionId,
+                        match.PlaylistVersionId);
                     Assert.Equal(2, match.Participants.Count);
                     Assert.Contains(
                         match.Participants,

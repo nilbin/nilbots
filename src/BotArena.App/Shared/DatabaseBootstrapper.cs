@@ -1,5 +1,7 @@
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
+using BotArena.App.Matches;
 using BotArena.App.Storage;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +22,17 @@ public static class DatabaseBootstrapper
             .CreateLogger(typeof(DatabaseBootstrapper));
 
         await db.Database.MigrateAsync(cancellationToken);
+        var matchSettings =
+            scope.ServiceProvider.GetRequiredService<MatchExecutionSettings>();
+        var identityBackfiller =
+            scope.ServiceProvider
+                .GetRequiredService<LegacyCompetitionIdentityBackfiller>();
+        await identityBackfiller.RunAsync(
+            matchSettings.MatchRules.RulesVersion,
+            cancellationToken);
+        logger.LogInformation(
+            "Verified legacy competition identities for current rules {RulesVersion}",
+            matchSettings.MatchRules.RulesVersion);
         if (configuration["BOTARENA_OBJECT_MIGRATION_SOURCE"] is { Length: > 0 } source)
         {
             int count = await ObjectStoreMigrator.MigrateAsync(

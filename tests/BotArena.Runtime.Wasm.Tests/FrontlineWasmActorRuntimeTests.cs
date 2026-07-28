@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using BotArena.Bots.BuiltIn;
 using BotArena.Engine;
@@ -13,6 +14,30 @@ public sealed class FrontlineWasmActorRuntimeTests
     private static readonly string ArtifactPath = FindArtifact();
     private static readonly Lazy<ProbeRuns> Runs =
         new(RunProbeMatches, LazyThreadSafetyMode.ExecutionAndPublication);
+
+    [SkippableFact]
+    public void ActorFactory_ExposesHashOfItsCapturedArtifactBytes()
+    {
+        RequireArtifact();
+        byte[] bytes = File.ReadAllBytes(ArtifactPath);
+        string expected = Convert.ToHexStringLower(SHA256.HashData(bytes));
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-actor-hash-{Guid.NewGuid():N}.wasm");
+        File.WriteAllBytes(path, bytes);
+        try
+        {
+            using var factory = new WasmActorRuntimeFactory(
+                new WasmRuntimeOptions { ModulePath = path });
+            File.WriteAllBytes(path, [0, 1, 2, 3]);
+
+            Assert.Equal(expected, factory.ArtifactHash);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 
     [SkippableFact]
     public void FrontlineProbe_WasmNegotiatesAndMatchesInProcessReplay()

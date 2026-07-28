@@ -26,6 +26,16 @@ export function ArenaOutcome({
     result.winnerTeamId === null
       ? 'DRAW'
       : `TEAM ${result.winnerTeamId} WINS`;
+  const isFrontline = result.mode?.kind === 'frontline';
+  const territorialByTeam =
+    result.mode?.kind === 'frontline'
+      ? new Map(
+          result.mode.scores.map((score) => [
+            score.teamId,
+            score.territorialProgress,
+          ]),
+        )
+      : null;
 
   return (
     <View style={framed ? styles.card : styles.inline}>
@@ -57,17 +67,24 @@ export function ArenaOutcome({
                   {[...new Set(participantNames)].join(', ')}
                 </Text>
               ) : null}
-              <Text style={styles.aggregate}>
-                active HP {team.activeHealth} · damage {team.damageDealt}
-              </Text>
+              {!isFrontline || territorialByTeam ? (
+                <Text style={styles.aggregate}>
+                  {isFrontline
+                    ? `territory ${territorialByTeam?.get(team.teamId) ?? '—'}`
+                    : `active HP ${team.activeHealth} · damage ${team.damageDealt}`}
+                </Text>
+              ) : null}
               <View style={styles.units}>
                 {team.units.map((unit) => (
                   <Text key={unit.unitKey} style={styles.unit}>
                     U{unit.unitId} · {unit.formId} ·{' '}
                     {unit.lifecycleStatus.replaceAll('-', ' ')} · HP{' '}
-                    {unit.health} · damage {unit.damageDealt ?? '—'}
+                    {unit.health}
+                    {isFrontline
+                      ? ''
+                      : ` · damage ${unit.damageDealt ?? '—'}`}
                     {unit.pendingFormTransition
-                      ? ` · anchoring → ${unit.pendingFormTransition.toFormId} T${unit.pendingFormTransition.completesAtTick}`
+                      ? ` · transforming → ${unit.pendingFormTransition.toFormId} T${unit.pendingFormTransition.completesAtTick}`
                       : ''}
                   </Text>
                 ))}

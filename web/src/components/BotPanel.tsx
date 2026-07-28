@@ -337,8 +337,8 @@ export default function BotPanel({
 
             {formTransition && (
               <p className="lab mt-2">
-                ANCHORING · {formTransition.fromFormId.toUpperCase()} →{' '}
-                {formTransition.toFormId.toUpperCase()} · COMPLETES T
+                Transforming · {formTransition.fromFormId} →{' '}
+                {formTransition.toFormId} · completes T
                 {formTransition.completesAtTick}
               </p>
             )}

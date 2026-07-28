@@ -448,9 +448,16 @@ export default function Viewer({
                   <p className="val mt-1">
                     final position{' '}
                     {result.objective.activePositionIndex + 1}
-                    {result.territorialScore === null
-                      ? ''
-                      : ` · territory ${result.territorialScore}`}
+                    {result.mode?.kind === 'frontline'
+                      ? ` · ${result.mode.scores
+                          .map(
+                            (score) =>
+                              `${teamName(replay, score.teamId)} ${score.territorialProgress}`,
+                          )
+                          .join(' · ')}`
+                      : result.territorialScore === null
+                        ? ''
+                        : ` · territory ${result.territorialScore}`}
                   </p>
                 )}
                 <button

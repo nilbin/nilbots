@@ -6,7 +6,9 @@ import {
   decodeReplayJson,
   ReplayDecodeError,
 } from '../src/replayNormalize.ts';
+import type { ReplayV3Document } from '../src/replayWireV3.ts';
 import {
+  adaptReplayV3ToFrontline,
   JS_UNSAFE_DECIMAL,
   replayV1FixtureInput,
   replayV1LivePartialFixtureInput,
@@ -883,6 +885,369 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
   }
 });
 
+test('replay-v3 Deathmatch rejects illegal endings, counter drift, and standing drift', () => {
+  const fixture = () => {
+    const input = replayV3FixtureInput();
+    if (input.result?.mode.kind !== 'deathmatch') {
+      assert.fail('expected Deathmatch replay-v3 fixture');
+    }
+    return input;
+  };
+
+  const unknownReason = fixture() as unknown as {
+    result: {
+      completionReason: string;
+      mode: { reason: string };
+    };
+  };
+  unknownReason.result.completionReason = 'future-ending';
+  unknownReason.result.mode.reason = 'future-ending';
+  assert.throws(
+    () => decodeReplay(unknownReason),
+    /unknown deathmatch end reason/,
+  );
+
+  const impossibleKillLimit = fixture();
+  impossibleKillLimit.result!.completionReason = 'kill-limit';
+  impossibleKillLimit.result!.mode.reason = 'kill-limit';
+  assert.throws(
+    () => decodeReplay(impossibleKillLimit),
+    /kill-limit requires multiple eligible teams and a configured reached kill threshold/,
+  );
+
+  const counterDrift = fixture();
+  counterDrift.result!.mode.scores[0]!.kills = '999';
+  assert.throws(
+    () => decodeReplay(counterDrift),
+    /must match the final kills scoreboard value/,
+  );
+
+  const standingDrift = fixture();
+  standingDrift.result!.standings.winnerTeamId = 0;
+  standingDrift.result!.standings.teams[0]!.outcome = 'win';
+  standingDrift.result!.standings.teams[1]!.rank = 2;
+  standingDrift.result!.standings.teams[1]!.outcome = 'loss';
+  assert.throws(
+    () => decodeReplay(standingDrift),
+    /does not follow deathmatch eligibility and victory ranking/,
+  );
+
+  const reversedEligibility = fixture();
+  reversedEligibility.result!.eligibleTeamIds.reverse();
+  assert.throws(
+    () => decodeReplay(reversedEligibility),
+    /must be in canonical ascending team order/,
+  );
+
+  const pastMaximum = fixture();
+  pastMaximum.header.contract.rules.limits.maxTicks = 1;
+  assert.throws(
+    () => decodeReplay(pastMaximum),
+    /cannot extend beyond the configured maximum tick boundary/,
+  );
+
+  const timeoutAfterKillLimit = fixture();
+  if (timeoutAfterKillLimit.header.contract.rules.gameMode.kind !== 'deathmatch') {
+    assert.fail('expected Deathmatch rules');
+  }
+  timeoutAfterKillLimit.header.contract.rules.gameMode.victory.killsToWin = 1;
+  const finalWorld = timeoutAfterKillLimit.ticks.at(-1)!.postState;
+  finalWorld.scoreboard.teams[0]!.scores.find(
+    (score) => score.channel === 'kills',
+  )!.value = '1';
+  timeoutAfterKillLimit.result!.mode.scores[0]!.kills = '1';
+  timeoutAfterKillLimit.result!.standings.teams[0]!.scores.find(
+    (score) => score.channel === 'kills',
+  )!.value = '1';
+  assert.throws(
+    () => decodeReplay(timeoutAfterKillLimit),
+    /with no reached kill limit/,
+  );
+
+  const unknownScoringPolicy = fixture();
+  if (
+    unknownScoringPolicy.header.contract.rules.gameMode.kind !==
+    'deathmatch'
+  ) {
+    assert.fail('expected Deathmatch rules');
+  }
+  unknownScoringPolicy.header.contract.rules.gameMode.scoring.deathIncrement =
+    'future-policy';
+  assert.throws(
+    () => decodeReplay(unknownScoringPolicy),
+    /one-raw-death-to-destroyed-actor-team/,
+  );
+
+  const unknownTerminalPrecedence = fixture();
+  if (
+    unknownTerminalPrecedence.header.contract.rules.gameMode.kind !==
+    'deathmatch'
+  ) {
+    assert.fail('expected Deathmatch rules');
+  }
+  unknownTerminalPrecedence.header.contract.rules.gameMode.victory
+    .terminalTickPrecedence = 'future-precedence';
+  assert.throws(
+    () => decodeReplay(unknownTerminalPrecedence),
+    /supported Deathmatch completion precedence/,
+  );
+
+  const wrongPrimaryRanking = fixture();
+  if (
+    wrongPrimaryRanking.header.contract.rules.gameMode.kind !==
+    'deathmatch'
+  ) {
+    assert.fail('expected Deathmatch rules');
+  }
+  wrongPrimaryRanking.header.contract.rules.gameMode.victory
+    .timeoutRanking[0] = {
+      channel: 'damage-dealt',
+      direction: 'higher-wins',
+    };
+  assert.throws(
+    () => decodeReplay(wrongPrimaryRanking),
+    /must begin with higher kills/,
+  );
+
+  const wrongScoreDomain = fixture();
+  if (
+    wrongScoreDomain.header.contract.rules.gameMode.kind !==
+    'deathmatch'
+  ) {
+    assert.fail('expected Deathmatch rules');
+  }
+  wrongScoreDomain.header.contract.rules.gameMode.scoreCatalog[0]!.domain =
+    'signed';
+  assert.throws(
+    () => decodeReplay(wrongScoreDomain),
+    /non-negative domains/,
+  );
+
+  const duplicateRanking = fixture();
+  if (
+    duplicateRanking.header.contract.rules.gameMode.kind !==
+    'deathmatch'
+  ) {
+    assert.fail('expected Deathmatch rules');
+  }
+  duplicateRanking.header.contract.rules.gameMode.victory.timeoutRanking[1] =
+    {
+      channel: 'kills',
+      direction: 'lower-wins',
+    };
+  assert.throws(
+    () => decodeReplay(duplicateRanking),
+    /must be unique and reference a declared Deathmatch score channel/,
+  );
+});
+
+test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and signed terminal scores', () => {
+  const replay = decodeReplay(
+    adaptReplayV3ToFrontline(replayV3FixtureInput()),
+  ).replay;
+
+  assert.equal(replay.contract.kind, 'v3-generic');
+  if (replay.contract.kind !== 'v3-generic') {
+    assert.fail('expected replay-v3 generic contract');
+  }
+  assert.deepEqual(replay.contract.mode, {
+    kind: 'frontline',
+    modeId: 'frontline',
+    frontlinePositionCount: 3,
+    pushesToBreach: 2,
+    capture: {
+      threshold: 3,
+      gainPerSoleTeamTick: 1,
+      decayAmount: 1,
+      decayIntervalTicks: 2,
+      redeployPauseTicks: 1,
+    },
+    orderedObjectiveRegionIds: [
+      'frontline-low',
+      'frontline-centre',
+      'frontline-high',
+    ],
+    teamAdvances: [
+      { teamId: 0, positionIndexDelta: 1 },
+      { teamId: 1, positionIndexDelta: -1 },
+    ],
+  });
+  assert.deepEqual(replay.map.frontline?.positions, [
+    { positionIndex: 0, tiles: [{ x: 3, y: 3 }] },
+    { positionIndex: 1, tiles: [{ x: 4, y: 3 }] },
+    { positionIndex: 2, tiles: [{ x: 5, y: 3 }] },
+  ]);
+  assert.deepEqual(replay.result?.mode, {
+    kind: 'frontline',
+    reason: 'max-ticks',
+    control: {
+      kind: 'frontline',
+      modeId: 'frontline',
+      activePositionIndex: 1,
+      claimingTeamId: null,
+      captureProgress: 0,
+      decayTicksElapsed: 0,
+      controlResumesAtTick: 0,
+    },
+    scores: [
+      {
+        teamKey: 'team:0',
+        teamId: 0,
+        territorialProgress: '0',
+      },
+      {
+        teamKey: 'team:1',
+        teamId: 1,
+        territorialProgress: '0',
+      },
+    ],
+  });
+});
+
+test('replay-v3 Frontline rejects unknown arms and terminal/control/score/standing drift', () => {
+  const fixture = () =>
+    adaptReplayV3ToFrontline(replayV3FixtureInput(), 'base-breach');
+
+  const unknownRule = fixture() as unknown as {
+    header: { contract: { rules: { gameMode: { kind: string } } } };
+  };
+  unknownRule.header.contract.rules.gameMode.kind = 'future-mode';
+  assert.throws(
+    () => decodeReplay(unknownRule),
+    /unknown game mode future-mode/,
+  );
+
+  const unknownBinding = fixture() as unknown as {
+    header: { contract: { modeMapBinding: { kind: string } } };
+  };
+  unknownBinding.header.contract.modeMapBinding.kind = 'future-binding';
+  assert.throws(
+    () => decodeReplay(unknownBinding),
+    /unknown mode-map binding future-binding/,
+  );
+
+  const unknownResult = fixture() as unknown as {
+    result: { mode: { kind: string } };
+  };
+  unknownResult.result.mode.kind = 'future-mode';
+  assert.throws(
+    () => decodeReplay(unknownResult),
+    /unknown mode result future-mode/,
+  );
+
+  const unknownReason = fixture() as unknown as {
+    result: { mode: { reason: string } };
+  };
+  unknownReason.result.mode.reason = 'sudden-death';
+  assert.throws(
+    () => decodeReplay(unknownReason),
+    /unknown frontline end reason/,
+  );
+
+  const controlDrift = fixture();
+  if (controlDrift.result?.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline result');
+  }
+  controlDrift.result.mode.control.activePositionIndex = 1;
+  assert.throws(
+    () => decodeReplay(controlDrift),
+    /must exactly match final authoritative frontline control/,
+  );
+
+  const malformedSigned = fixture();
+  if (malformedSigned.result?.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline result');
+  }
+  malformedSigned.result.mode.scores[1]!.territorialProgress = '+3';
+  assert.throws(
+    () => decodeReplay(malformedSigned),
+    /expected a canonical signed 64-bit decimal string/,
+  );
+
+  const finalScoreDrift = fixture();
+  if (finalScoreDrift.result?.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline result');
+  }
+  finalScoreDrift.result.mode.scores[0]!.territorialProgress = '2';
+  assert.throws(
+    () => decodeReplay(finalScoreDrift),
+    /must match the final territorial-progress scoreboard value/,
+  );
+
+  const standingDrift = fixture();
+  standingDrift.result!.standings.teams[0]!.rank = 2;
+  assert.throws(
+    () => decodeReplay(standingDrift),
+    /does not follow frontline eligibility and victory ranking/,
+  );
+
+  const endTickDrift = fixture();
+  endTickDrift.result!.endTick = null;
+  assert.throws(
+    () => decodeReplay(endTickDrift),
+    /must be null exactly when no joint tick executed/,
+  );
+
+  const excessiveRedeployPause = adaptReplayV3ToFrontline(
+    replayV3FixtureInput(),
+  );
+  if (excessiveRedeployPause.initialFrame.state.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline initial control');
+  }
+  excessiveRedeployPause.initialFrame.state.mode.controlResumesAtTick = 2;
+  assert.throws(
+    () => decodeReplay(excessiveRedeployPause),
+    /violates frontline control invariants/,
+  );
+
+  const maxTicksWithOneEligible = adaptReplayV3ToFrontline(
+    replayV3FixtureInput(),
+  );
+  const finalWorld = maxTicksWithOneEligible.ticks.at(-1)!.postState;
+  finalWorld.scoreboard.teams[1]!.eligible = false;
+  maxTicksWithOneEligible.result!.eligibleTeamIds = [0];
+  assert.throws(
+    () => decodeReplay(maxTicksWithOneEligible),
+    /max-ticks requires multiple eligible teams/,
+  );
+
+  for (const reason of ['fault-eligibility', 'base-breach'] as const) {
+    const afterTimeout = adaptReplayV3ToFrontline(
+      replayV3FixtureInput(),
+      reason,
+    );
+    afterTimeout.header.contract.rules.limits.maxTicks = 1;
+    assert.throws(
+      () => decodeReplay(afterTimeout),
+      /configured maximum tick boundary/,
+    );
+  }
+
+  const emptyObjective = fixture();
+  emptyObjective.header.contract.map.regions[0]!.tiles = [];
+  assert.throws(
+    () => decodeReplay(emptyObjective),
+    /must reference a non-empty objective map region/,
+  );
+
+  const reversedScores = fixture();
+  reversedScores.result!.mode.scores.reverse();
+  assert.throws(
+    () => decodeReplay(reversedScores),
+    /must be in canonical ascending team order/,
+  );
+
+  const reversedAdvances = fixture();
+  if (reversedAdvances.header.contract.modeMapBinding.kind !== 'frontline') {
+    assert.fail('expected Frontline mode-map binding');
+  }
+  reversedAdvances.header.contract.modeMapBinding.teamAdvances.reverse();
+  assert.throws(
+    () => decodeReplay(reversedAdvances),
+    /must be in canonical ascending team order/,
+  );
+});
+
 test('replay-v3 mirrors emitted map region and tile-tag fields exactly', () => {
   const input = JSON.parse(replayV3FixtureText()) as {
     header: {
@@ -1107,6 +1472,10 @@ function replayV3FixtureText(): string {
     ),
     'utf8',
   );
+}
+
+function replayV3FixtureInput(): ReplayV3Document {
+  return JSON.parse(replayV3FixtureText()) as ReplayV3Document;
 }
 
 function replayV2FabricationFixtureInput() {

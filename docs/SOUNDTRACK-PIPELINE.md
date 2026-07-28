@@ -42,7 +42,10 @@ manifest record `rightsStatus: "rights-cleared"` and
 boundary with `scripts/assert_soundtrack_release.py`: production image
 publication is blocked until every public pack version is rights-cleared,
 ship-approved, all authored loops are marked `auditioned`, and every encoded
-media file is declared by a manifest.
+media file is declared by a manifest. A manually selected `pilot` release tier
+keeps the rights, ship-approval, manifest, and declared-media checks fail-closed
+but reports pending loop auditions as warnings. Production remains the default
+and requires completed human auditions.
 
 Pipeline regression tests are dependency-free:
 

@@ -111,3 +111,20 @@ jobs:
           --configuration Release
           --no-build
           --logger "console;verbosity=normal"
+
+  pgbouncer:
+    name: PgBouncer pools and PostgreSQL observability
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Prove application, pool, SCRAM, and statistics paths
+        run: bash scripts/test-pgbouncer.sh --application-tests

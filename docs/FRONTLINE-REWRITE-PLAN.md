@@ -11,13 +11,15 @@ versus one body into a territorial contest between two submitted
 intelligences that may each replicate into several independent runtime
 instances.
 
-Implementation checkpoint: Packages 0–7 are implemented on an internal
-experimental path: deterministic multi-life runtime/session, canonical team
-observation, strict replay v2, replication/fabrication, per-life Anchor/turret,
-engine-independent actor SDK/Guest types, actor protocol/configuration 1.0,
-canonical isolated WASM life instances, and version-neutral web/mobile
-presentation. It is not exposed through the public CLI/App match path,
-replay-v1 emitter, server admission, evaluation program, or ladder.
+Implementation checkpoint: Packages 0–7 and the local Package 8 authoring
+slice are implemented on an experimental path: deterministic multi-life
+runtime/session, canonical team observation, strict replay v2,
+replication/fabrication, per-life Anchor/turret, engine-independent actor
+SDK/Guest types, actor protocol/configuration 1.0, canonical isolated WASM
+life instances, version-neutral web/mobile presentation, an explicit local
+CLI runner, and a replay-v2 dynamics evaluator. It is not exposed through the
+historical `play` command, App/server admission, replay-v1 emitter, or ladder;
+product evaluation remains unfinished.
 
 ## Relationship to current plans
 
@@ -552,11 +554,13 @@ are capped at 1 MiB, guest replies at 64 KiB, semantic action/form IDs at 64
 UTF-8 bytes, and bot selectors/opaque handles at 256 bytes.
 
 The NativeAOT JSON candidate measured 21.2–21.5 MiB and exceeded the 16 MiB
-artifact ceiling. The custom codec kept the rebuilt tracked guest at
-3,341,998 bytes, so it became the actor 1.0 contract (DECISIONS #129). The
-controlled guest adapter hides wire details from ordinary bot authors; the
-shared codec lives in BotArena.Sdk so Guest and Runtime.Wasm do not maintain
-independent field definitions.
+artifact ceiling. The custom codec kept the protocol-only Package 7 guest at
+3,341,998 bytes, so it became the actor 1.0 contract (DECISIONS #129).
+Package 8's reference doctrines later increased the complete built-in
+artifact without changing that codec conclusion. The controlled guest adapter
+hides wire details from ordinary bot authors; the shared codec lives in
+BotArena.Sdk so Guest and Runtime.Wasm do not maintain independent field
+definitions.
 
 One submitted artifact factory compiles one Wasmtime Engine/Module. Every
 life owns an isolated Store/Instance/thread/memory and preserves it through a
@@ -709,7 +713,7 @@ Blind replay review must specifically score:
 - the spatial value and counterplay of turrets;
 - whether replication phases feel like escalation rather than clutter.
 
-The frontend refactor and internal Frontline presentation have landed.
+The frontend refactor and experimental Frontline presentation have landed.
 Replay-v1 still resolves participants by stable slot, while replay v2
 normalizes team/unit/life, lifecycle, forms, fabrication, objective, and
 transition facts into the same viewer model. Canvas, event feed, bot cards,

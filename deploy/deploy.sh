@@ -14,6 +14,7 @@ if [[ ! -f "$deploy_dir/secrets/openiddict-signing.pfx" ||
   echo "missing OpenIddict certificates under $deploy_dir/secrets" >&2
   exit 1
 fi
+bash "$deploy_dir/configure-database-env.sh" primary "$deploy_dir/.env"
 
 deploy_mode="existing"
 if [[ $# -gt 0 ]]; then
@@ -23,15 +24,17 @@ fi
 
 case "$deploy_mode" in
   --images)
-    if [[ $# -ne 3 ]]; then
-      echo "usage: $0 --images RUNTIME_IMAGE_REF COMPILER_IMAGE_REF GIT_SHA" >&2
+    if [[ $# -ne 4 ]]; then
+      echo "usage: $0 --images RUNTIME_IMAGE_REF COMPILER_IMAGE_REF PGBOUNCER_IMAGE_REF GIT_SHA" >&2
       exit 2
     fi
     runtime_image="$1"
     compiler_image="$2"
-    release_sha="$3"
+    pgbouncer_image="$3"
+    release_sha="$4"
     if [[ ! "$runtime_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
           ! "$compiler_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
+          ! "$pgbouncer_image" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ||
           ! "$release_sha" =~ ^[0-9a-f]{40}$ ]]; then
       echo "release images must be immutable GHCR digests and Git SHA must be full length" >&2
       exit 2
@@ -43,6 +46,7 @@ case "$deploy_mode" in
     {
       printf 'BOTARENA_RUNTIME_IMAGE=%s\n' "$runtime_image"
       printf 'BOTARENA_COMPILER_IMAGE=%s\n' "$compiler_image"
+      printf 'BOTARENA_PGBOUNCER_IMAGE=%s\n' "$pgbouncer_image"
       printf 'BOTARENA_RELEASE_GIT_SHA=%s\n' "$release_sha"
     } > "$temporary_env"
     chmod 600 "$temporary_env"
@@ -74,7 +78,7 @@ case "$deploy_mode" in
     ;;
   existing)
     if [[ $# -ne 0 ]]; then
-      echo "usage: $0 [--build-local | --rollback | --images RUNTIME COMPILER GIT_SHA]" >&2
+      echo "usage: $0 [--build-local | --rollback | --images RUNTIME COMPILER PGBOUNCER GIT_SHA]" >&2
       exit 2
     fi
     ;;
@@ -130,15 +134,27 @@ if [[ -f "$release_env" ]]; then
   set +a
   "${compose[@]}" pull \
     garage-a garage-b garage-c garage-gateway \
-    migrate web match-worker compile-worker compiler-runner
+    pgbouncer migrate web match-worker compile-worker compiler-runner
 else
   export BOTARENA_IMAGE_TAG
   BOTARENA_IMAGE_TAG="$(git rev-parse --short=12 HEAD)"
   "${compose[@]}" build
 fi
 "${compose[@]}" up -d --wait db garage-a garage-b garage-c garage-gateway
+if [[ -f "$worker_inventory" ]]; then
+  sudo -n bash "$deploy_dir/configure-primary-worker-access.sh" \
+    sync "$worker_inventory"
+fi
+bash "$deploy_dir/configure-pgbouncer.sh" "$deploy_dir"
+# The credential file is atomically replaced, so recreate PgBouncer to attach
+# the new inode and make password rotation deterministic.
+"${compose[@]}" up -d --no-deps --force-recreate --wait pgbouncer
 bash "$deploy_dir/init-garage.sh"
 bash "$deploy_dir/backup-postgres.sh" "$deploy_dir/backups"
+if [[ -L "$shared_env" ]]; then
+  deployment_root="$(cd "$shared_dir/.." && pwd -P)"
+  sudo -n bash "$deploy_dir/install-primary-maintenance.sh" "$deployment_root"
+fi
 "${compose[@]}" stop compile-worker compiler-runner match-worker >/dev/null 2>&1 || true
 "${compose[@]}" run --rm migrate
 "${compose[@]}" up -d --no-deps --wait compiler-runner

@@ -285,14 +285,29 @@ function objectiveAt(
   const tick = replay.ticks[tickIndex];
   const objective = tick.after.objective;
   if (objective.kind === 'frontline') {
-    const definition =
+    const legacyDefinition =
       replay.contract.kind === 'v2-full'
         ? replay.contract.rules.frontlineDefinition
         : null;
-    const threshold = definition?.capture.threshold ?? 1;
+    const genericDefinition =
+      replay.contract.kind === 'v3-generic' &&
+      replay.contract.mode.kind === 'frontline'
+        ? replay.contract.mode
+        : null;
+    const threshold =
+      legacyDefinition?.capture.threshold ??
+      genericDefinition?.capture.threshold ??
+      1;
+    const terminalWinner =
+      tickIndex === replay.ticks.length - 1 &&
+      replay.result?.mode?.kind === 'frontline' &&
+      replay.result.mode.reason === 'base-breach'
+        ? replay.result.winnerTeamId
+        : null;
+    const winnerTeamId = objective.winnerTeamId ?? terminalWinner;
     let phase: string;
-    if (objective.winnerTeamId !== null) {
-      phase = `${teamName(replay, objective.winnerTeamId)} BREACHES`;
+    if (winnerTeamId !== null) {
+      phase = `${teamName(replay, winnerTeamId)} BREACHES`;
     } else if (objective.controlResumesAtTick > objective.nextTick) {
       phase = `REDEPLOYMENT · RESUMES TICK ${objective.controlResumesAtTick}`;
     } else if (objective.claimingTeamId === null) {
@@ -306,14 +321,15 @@ function objectiveAt(
       kind: 'frontline',
       activePositionIndex: objective.activePositionIndex,
       positionCount:
-        definition?.frontlinePositionCount ??
+        legacyDefinition?.frontlinePositionCount ??
+        genericDefinition?.frontlinePositionCount ??
         replay.map.frontline?.positions.length ??
         0,
       claimingTeamId: objective.claimingTeamId,
       captureProgress: objective.captureProgress,
       captureThreshold: threshold,
       controlResumesAtTick: objective.controlResumesAtTick,
-      winnerTeamId: objective.winnerTeamId,
+      winnerTeamId,
       phase,
     };
   }

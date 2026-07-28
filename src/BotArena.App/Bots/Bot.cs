@@ -23,6 +23,12 @@ public class BotRating
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid BotId { get; set; }
+    /// <summary>
+    /// Opaque ladder identity for migrated ratings. Null during the additive
+    /// compatibility window so older application images can continue writing
+    /// rules-version keyed rows.
+    /// </summary>
+    public Guid? LadderId { get; set; }
     /// <summary>The resolved rules version string a set was played under ("0.5", "0.4",
     /// "0.4-exp-hill3"…) — experiments get their own ladders instead of polluting
     /// official elo.</summary>
@@ -32,6 +38,12 @@ public class BotRating
     public const double DefaultRating = 1200;
     public double Rating { get; set; } = DefaultRating;
     public int RankedSets { get; set; }
+    /// <summary>
+    /// Competition rank captured in the ladder's season-opening snapshot. Null
+    /// covers legacy ratings, ladders without that snapshot, and bots entering
+    /// after the season opened; it is not a mid-season entry rank.
+    /// </summary>
+    public int? SeasonOpeningRank { get; set; }
 }
 
 public enum BuildStatus

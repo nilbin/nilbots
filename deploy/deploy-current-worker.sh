@@ -70,9 +70,14 @@ compiler_ref="$(
   awk -F= '$1 == "BOTARENA_COMPILER_IMAGE" { print $2 }' \
     <<<"$release_environment"
 )"
+pgbouncer_ref="$(
+  awk -F= '$1 == "BOTARENA_PGBOUNCER_IMAGE" { print $2 }' \
+    <<<"$release_environment"
+)"
 [[ "$release_sha" =~ ^[0-9a-f]{40}$ &&
    "$runtime_ref" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ &&
-   "$compiler_ref" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]] ||
+   "$compiler_ref" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ &&
+   "$pgbouncer_ref" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]] ||
   { echo "primary active release metadata is invalid" >&2; exit 1; }
 
 git -C "$repo_root" cat-file -e "${release_sha}^{commit}" 2>/dev/null ||
@@ -110,7 +115,7 @@ scp "${worker_ssh_options[@]}" \
   "$worker_target:$incoming/"
 ssh "${worker_ssh_options[@]}" "$worker_target" \
   "bash '$incoming/install-release.sh' install-worker \
-    '$worker_path' '$release_sha' '$runtime_ref' '$compiler_ref' \
+    '$worker_path' '$release_sha' '$runtime_ref' '$compiler_ref' '$pgbouncer_ref' \
     '$incoming/$(basename "$bundle")' '$bundle_sha'"
 
 ssh "${ssh_options[@]}" "$primary_target" \

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
+using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
@@ -15,6 +16,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(options =>
@@ -41,9 +43,22 @@ if (mode.RunsCompileWorker && !mode.IsAll)
 else
     builder.Services.AddSingleton<ISubmissionCompiler, DirectSubmissionCompiler>();
 
-string connectionString = builder.Configuration.GetConnectionString("BotArena")
+string rawConnectionString = builder.Configuration.GetConnectionString("BotArena")
     ?? Environment.GetEnvironmentVariable("BOTARENA_DB")
     ?? "Host=127.0.0.1;Database=botarena;Username=botarena;Password=botarena";
+string instanceId = builder.Configuration["BOTARENA_INSTANCE_ID"] ?? mode.Name;
+string connectionString = WithApplicationName(
+    rawConnectionString,
+    $"nilbots-{mode.Name}-{instanceId}");
+// LISTEN/NOTIFY needs a session-affine PgBouncer pool. Local development and
+// older deployments remain compatible by falling back to the normal database.
+string rawNotificationConnectionString =
+    builder.Configuration.GetConnectionString("BotArenaNotifications")
+    ?? Environment.GetEnvironmentVariable("BOTARENA_NOTIFICATION_DB")
+    ?? rawConnectionString;
+string notificationConnectionString = WithApplicationName(
+    rawNotificationConnectionString,
+    $"nilbots-{mode.Name}-{instanceId}-notifications");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -85,6 +100,8 @@ else
 }
 builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
+builder.Services.AddScoped<LegacyCompetitionIdentityResolver>();
+builder.Services.AddScoped<LegacyCompetitionIdentityBackfiller>();
 
 if (mode.RunsWeb)
 {
@@ -144,7 +161,7 @@ if (mode.RunsWeb)
         options.AddSchemaTransformer<DiscriminatorRequiredTransformer>();
     });
     builder.Services.AddSignalR();
-    builder.Services.AddSingleton(new PostgresNotificationOptions(connectionString));
+    builder.Services.AddSingleton(new PostgresNotificationOptions(notificationConnectionString));
     if (!generatingOpenApiDocument)
         builder.Services.AddHostedService<PostgresNotificationListener>();
     builder.Services.AddSingleton(CompilerSubmissionLimits.FromConfiguration(builder.Configuration));
@@ -362,5 +379,14 @@ if (mode.RunsWeb)
 }
 
 app.Run();
+
+static string WithApplicationName(string connectionString, string applicationName)
+{
+    var builder = new NpgsqlConnectionStringBuilder(connectionString)
+    {
+        ApplicationName = applicationName[..Math.Min(applicationName.Length, 63)]
+    };
+    return builder.ConnectionString;
+}
 
 public partial class Program;

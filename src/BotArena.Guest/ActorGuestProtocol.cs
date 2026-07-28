@@ -26,15 +26,47 @@ internal static class ActorGuestProtocol
         ActorWireHello hello = ActorWireProtocol.DecodeHello(frame.Bytes);
         return new ActorProtocolHello(
             hello.MinimumMajor,
-            hello.MaximumMajor);
+            hello.MaximumMajor,
+            hello.RequiredProfile);
     }
 
-    public static byte[] FormatHelloAck(ActorProtocolHello hello)
+    public static ActorGuestContractGeneration SelectContractGeneration(
+        ActorProtocolHello hello)
+    {
+        _ = SelectMajor(
+            hello.MinimumMajor,
+            hello.MaximumMajor);
+        if (hello.RequiredProfile is null)
+            return ActorGuestContractGeneration.LegacyActorV1;
+        if (hello.RequiredProfile == ActorContractProfile.GenericV2)
+            return ActorGuestContractGeneration.GenericActorV2;
+
+        throw new ActorCapabilityNotSupportedException(
+            "actor-contract-profile",
+            $"This artifact does not support actor contract profile " +
+            $"'{hello.RequiredProfile.ProfileId}'.");
+    }
+
+    public static byte[] FormatHelloAck(
+        ActorProtocolHello hello,
+        ActorGuestContractGeneration generation)
     {
         int selected = SelectMajor(
             hello.MinimumMajor,
             hello.MaximumMajor);
-        return ActorWireProtocol.EncodeHelloAck(selected);
+        return generation switch
+        {
+            ActorGuestContractGeneration.LegacyActorV1
+                when hello.RequiredProfile is null =>
+                ActorWireProtocol.EncodeHelloAck(selected),
+            ActorGuestContractGeneration.GenericActorV2
+                when hello.RequiredProfile == ActorContractProfile.GenericV2 =>
+                ActorWireProtocol.EncodeHelloAck(
+                    selected,
+                    ActorContractProfile.GenericV2),
+            _ => throw new FormatException(
+                "Actor contract selection does not match the host Hello."),
+        };
     }
 
     public static ActorMatchStartEnvelope ParseMatchStart(
@@ -48,16 +80,49 @@ internal static class ActorGuestProtocol
     public static ActorContext ParseObservation(ActorGuestFrame frame) =>
         ActorWireProtocol.DecodeObservation(frame.Bytes);
 
-    public static byte[] FormatReady() =>
-        ActorWireProtocol.EncodeReady(
-            MajorVersion,
-            ActorContractVersions.RuntimeContractVersion,
-            ActorContractVersions.MatchStartSchemaVersion,
-            ActorContractVersions.ObservationSchemaVersion,
-            ActorContractVersions.DecisionSchemaVersion);
+    public static GenericActorMatchStartEnvelope ParseGenericMatchStart(
+        ActorGuestFrame frame)
+    {
+        ActorWireGenericMatchStart start =
+            ActorWireProtocol.DecodeGenericMatchStart(frame.Bytes);
+        return new GenericActorMatchStartEnvelope(
+            start.BotName,
+            start.Start);
+    }
+
+    public static GenericActorContext ParseGenericObservation(
+        ActorGuestFrame frame) =>
+        ActorWireProtocol.DecodeGenericObservation(frame.Bytes);
+
+    public static byte[] FormatReady(
+        ActorGuestContractGeneration generation) =>
+        generation switch
+        {
+            ActorGuestContractGeneration.LegacyActorV1 =>
+                ActorWireProtocol.EncodeReady(
+                    MajorVersion,
+                    ActorContractVersions.RuntimeContractVersion,
+                    ActorContractVersions.MatchStartSchemaVersion,
+                    ActorContractVersions.ObservationSchemaVersion,
+                    ActorContractVersions.DecisionSchemaVersion),
+            ActorGuestContractGeneration.GenericActorV2 =>
+                ActorWireProtocol.EncodeReady(
+                    MajorVersion,
+                    GenericActorContractVersions.RuntimeContractVersion,
+                    GenericActorContractVersions.MatchStartSchemaVersion,
+                    GenericActorContractVersions.ObservationSchemaVersion,
+                    GenericActorContractVersions.DecisionSchemaVersion,
+                    ActorContractProfile.GenericV2),
+            _ => throw new InvalidOperationException(
+                "Actor Ready requires a negotiated contract generation."),
+        };
 
     public static byte[] FormatDecision(ActorDecision decision) =>
         ActorWireProtocol.EncodeDecision(decision);
+
+    public static byte[] FormatGenericDecision(
+        GenericActorDecision decision) =>
+        ActorWireProtocol.EncodeGenericDecision(decision);
 
     public static byte[] FormatFault(string message) =>
         ActorWireProtocol.EncodeFault(message);
@@ -87,7 +152,8 @@ internal readonly record struct ActorGuestFrame(
 
 internal readonly record struct ActorProtocolHello(
     int MinimumMajor,
-    int MaximumMajor);
+    int MaximumMajor,
+    ActorContractProfile? RequiredProfile);
 
 internal sealed record ActorMatchStartEnvelope(
     string BotName,

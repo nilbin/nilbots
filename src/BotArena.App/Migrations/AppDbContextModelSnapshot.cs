@@ -181,6 +181,9 @@ namespace BotArena.App.Migrations
                     b.Property<Guid>("BotId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("LadderId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("RankedSets")
                         .HasColumnType("integer");
 
@@ -191,10 +194,17 @@ namespace BotArena.App.Migrations
 
                     b.Property<string>("RulesVersion")
                         .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("SeasonOpeningRank")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BotId", "LadderId")
+                        .IsUnique()
+                        .HasFilter("\"LadderId\" IS NOT NULL");
 
                     b.HasIndex("BotId", "RulesVersion")
                         .IsUnique();
@@ -202,7 +212,16 @@ namespace BotArena.App.Migrations
                     b.HasIndex("RulesVersion", "Rating")
                         .IsDescending(false, true);
 
-                    b.ToTable("BotRatings");
+                    b.HasIndex("LadderId", "Rating", "BotId")
+                        .IsDescending(false, true, false)
+                        .HasFilter("\"LadderId\" IS NOT NULL");
+
+                    b.ToTable("BotRatings", t =>
+                        {
+                            t.HasCheckConstraint("CK_BotRatings_SeasonOpeningRank_Positive", "\"SeasonOpeningRank\" IS NULL OR \"SeasonOpeningRank\" > 0");
+
+                            t.HasCheckConstraint("CK_BotRatings_SeasonOpeningRank_RequiresLadder", "\"SeasonOpeningRank\" IS NULL OR \"LadderId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Bots.BotVersion", b =>
@@ -282,6 +301,205 @@ namespace BotArena.App.Migrations
                     b.HasIndex("SubmissionNetworkHash", "CreatedAt");
 
                     b.ToTable("BotVersions");
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.Ladder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AwardsAchievements")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsListed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LegacyRulesVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("PlaylistVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RatingPolicyId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("SeasonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LegacyRulesVersion")
+                        .IsUnique()
+                        .HasFilter("\"LegacyRulesVersion\" IS NOT NULL");
+
+                    b.HasIndex("PlaylistVersionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Ladders_OneOpenPerPlaylistVersion")
+                        .HasFilter("\"Status\" = 'Open'");
+
+                    b.HasIndex("SeasonId");
+
+                    b.HasIndex("PlaylistVersionId", "SeasonId")
+                        .IsUnique();
+
+                    b.ToTable("Ladders");
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.Playlist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("Playlists");
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.PlaylistVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdmissionPolicyId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CanonicalDefinition")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DefinitionFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<string>("GameModeId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MapPoolId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MatchFormatId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MatchmakingPolicyId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("PlaylistId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Provenance")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("RulesetId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SeriesPolicyId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlaylistId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("PlaylistVersions", t =>
+                        {
+                            t.HasCheckConstraint("CK_PlaylistVersions_DefinitionFingerprint", "\"DefinitionFingerprint\" ~ '^[0-9a-f]{64}$'");
+
+                            t.HasCheckConstraint("CK_PlaylistVersions_Version_Positive", "\"Version\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.Season", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("Seasons", t =>
+                        {
+                            t.HasCheckConstraint("CK_Seasons_TimeWindow", "\"StartsAt\" IS NULL OR \"EndsAt\" IS NULL OR \"EndsAt\" > \"StartsAt\"");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Cosmetics.EntitlementGrant", b =>
@@ -418,6 +636,9 @@ namespace BotArena.App.Migrations
                     b.Property<Guid?>("MatchSetId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PlaylistVersionId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("PresentationTicksPerSecond")
                         .HasColumnType("integer");
 
@@ -452,6 +673,8 @@ namespace BotArena.App.Migrations
                     b.HasIndex("InitiatedByUserId");
 
                     b.HasIndex("MatchSetId");
+
+                    b.HasIndex("PlaylistVersionId");
 
                     b.HasIndex("MapId", "CreatedAt")
                         .IsDescending(false, true);
@@ -554,6 +777,12 @@ namespace BotArena.App.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("LadderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PlaylistVersionId")
+                        .HasColumnType("uuid");
+
                     b.Property<double>("RatingABefore")
                         .HasColumnType("double precision");
 
@@ -591,7 +820,14 @@ namespace BotArena.App.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.ToTable("MatchSets");
+                    b.HasIndex("PlaylistVersionId");
+
+                    b.HasIndex("LadderId", "CreatedAt");
+
+                    b.ToTable("MatchSets", t =>
+                        {
+                            t.HasCheckConstraint("CK_MatchSets_CompetitionIdentity_Paired", "(\"PlaylistVersionId\" IS NULL AND \"LadderId\" IS NULL) OR (\"PlaylistVersionId\" IS NOT NULL AND \"LadderId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Notifications.DeviceRegistration", b =>
@@ -1042,6 +1278,11 @@ namespace BotArena.App.Migrations
                         .HasForeignKey("BotId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("BotArena.App.Competition.Ladder", null)
+                        .WithMany()
+                        .HasForeignKey("LadderId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("BotArena.App.Bots.BotVersion", b =>
@@ -1050,6 +1291,30 @@ namespace BotArena.App.Migrations
                         .WithMany("Versions")
                         .HasForeignKey("BotId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.Ladder", b =>
+                {
+                    b.HasOne("BotArena.App.Competition.PlaylistVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PlaylistVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BotArena.App.Competition.Season", null)
+                        .WithMany()
+                        .HasForeignKey("SeasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.PlaylistVersion", b =>
+                {
+                    b.HasOne("BotArena.App.Competition.Playlist", null)
+                        .WithMany("Versions")
+                        .HasForeignKey("PlaylistId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -1068,6 +1333,11 @@ namespace BotArena.App.Migrations
                         .WithMany()
                         .HasForeignKey("InitiatedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BotArena.App.Competition.PlaylistVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PlaylistVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("BotArena.App.Matches.MatchParticipant", b =>
@@ -1077,6 +1347,19 @@ namespace BotArena.App.Migrations
                         .HasForeignKey("MatchId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.Matches.MatchSet", b =>
+                {
+                    b.HasOne("BotArena.App.Competition.Ladder", null)
+                        .WithMany()
+                        .HasForeignKey("LadderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BotArena.App.Competition.PlaylistVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PlaylistVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("BotArena.App.Notifications.DeviceRegistration", b =>
@@ -1152,6 +1435,11 @@ namespace BotArena.App.Migrations
                 {
                     b.Navigation("Ratings");
 
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("BotArena.App.Competition.Playlist", b =>
+                {
                     b.Navigation("Versions");
                 });
 

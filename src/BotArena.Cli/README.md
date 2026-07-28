@@ -41,4 +41,27 @@ Already have an account? Run `nilbots login`. Both commands use
 `https://nilbots.com` by default; `--server <url>` is available for local or
 self-hosted development.
 
+## Local Frontline experiment
+
+CLI 0.8.0 retains the explicitly separate, unranked Frontline authoring loop:
+
+```bash
+nilbots experiment frontline \
+  --bot frontline-rusher \
+  --opponent frontline-bastion \
+  --seed 42
+```
+
+One submitted `IActorBot` policy controls a team of independently instantiated
+body lives that can fabricate children and Anchor them as turrets. The command
+accepts actor built-ins, an actor project directory, or an actor-protocol WASM
+artifact. It writes canonical replay-v2 JSON and a self-contained Canvas2D
+viewer. Use `--runtime in-process` for fast diagnostic iteration and confirm in
+the default isolated WASM runtime.
+
+This is not an alias for `play`: it cannot rank, submit, or enter a server
+match, and `frontline-alpha-1` is absent from shipped rules and map catalogs.
+See `nilbots help experiment` and the packaged
+`docs/EXPERIMENTAL-FRONTLINE.md` contract.
+
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

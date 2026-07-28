@@ -41,6 +41,35 @@ class AssertSoundtrackReleaseTests(unittest.TestCase):
 
             assert_soundtracks_shippable(catalog)
 
+    def test_pilot_allows_pending_audition_after_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = write_pack(
+                Path(directory),
+                rights_status="rights-cleared",
+                ship_approval="approved",
+                loop_approval="analysis-reviewed",
+            )
+
+            assert_soundtracks_shippable(catalog, require_audition=False)
+
+    def test_pilot_still_blocks_uncleared_rights(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            catalog = write_pack(
+                Path(directory),
+                rights_status="user-supplied-unverified",
+                ship_approval="approved",
+                loop_approval="analysis-reviewed",
+            )
+
+            with self.assertRaisesRegex(
+                ReleaseApprovalError,
+                "source rights are not cleared",
+            ):
+                assert_soundtracks_shippable(
+                    catalog,
+                    require_audition=False,
+                )
+
     def test_catalog_manifest_may_not_escape_soundtrack_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

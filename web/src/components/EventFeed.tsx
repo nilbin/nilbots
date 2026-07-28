@@ -132,7 +132,7 @@ export default function EventFeed({
         return `${stableName} is rebuilt and ready`;
       case 'form-transition-started':
         return (
-          `${actorName(replay, event.sourceActor)} begins anchoring` +
+          `${actorName(replay, event.sourceActor)} begins transforming` +
           (event.fromFormId && event.toFormId
             ? ` · ${event.fromFormId} → ${event.toFormId}`
             : '') +
@@ -147,7 +147,7 @@ export default function EventFeed({
         );
       case 'form-transition-cancelled':
         return (
-          `${actorName(replay, event.sourceActor ?? event.targetActor)} anchoring is cancelled` +
+          `${actorName(replay, event.sourceActor ?? event.targetActor)} transformation is cancelled` +
           (event.toFormId ? ` · ${event.toFormId}` : '')
         );
       default:

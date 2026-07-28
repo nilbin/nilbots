@@ -1,0 +1,345 @@
+using System.Collections.Immutable;
+
+namespace BotArena.Engine;
+
+/// <summary>
+/// Internal closed seam between mode-neutral world orchestration and one
+/// mode's scoring, public projection, and completion semantics.
+/// </summary>
+internal interface IGenericActorMatchModeDriver
+{
+    GenericActorModeState State { get; }
+
+    GenericActorModeTickResult ApplyJointTick(
+        GenericActorModeWorldView world,
+        GenericActorModeTickInput input);
+
+    GenericActorModeCompletion ResolveCompletion(
+        GenericActorModeCompletionKind kind,
+        int endTick,
+        GenericActorModeWorldView world);
+
+    GenericActorModeProjection Project(
+        GenericActorModeWorldView world);
+}
+
+internal abstract record GenericActorModeState
+{
+    private GenericActorModeState()
+    {
+    }
+
+    internal sealed record Deathmatch : GenericActorModeState
+    {
+        public Deathmatch(DeathmatchScoreState scores)
+        {
+            ArgumentNullException.ThrowIfNull(scores);
+            Scores = scores;
+        }
+
+        public DeathmatchScoreState Scores { get; }
+    }
+
+    internal sealed record Frontline : GenericActorModeState
+    {
+        public Frontline(
+            FrontlineControlState control,
+            FrontlineScoreState scores)
+        {
+            ArgumentNullException.ThrowIfNull(control);
+            ArgumentNullException.ThrowIfNull(scores);
+            Control = control;
+            Scores = scores;
+        }
+
+        public FrontlineControlState Control { get; }
+        public FrontlineScoreState Scores { get; }
+    }
+}
+
+internal sealed record GenericActorModeWorldView
+{
+    public GenericActorModeWorldView(
+        IReadOnlyDictionary<int, long> activeHealthByTeam,
+        IReadOnlyCollection<int> eligibleTeamIds,
+        IReadOnlyCollection<GenericActorModeActiveLife> activeLives)
+    {
+        ArgumentNullException.ThrowIfNull(activeHealthByTeam);
+        ArgumentNullException.ThrowIfNull(eligibleTeamIds);
+        ArgumentNullException.ThrowIfNull(activeLives);
+
+        KeyValuePair<int, long>[] health = activeHealthByTeam
+            .OrderBy(entry => entry.Key)
+            .ToArray();
+        if (health.Length == 0
+            || health.Any(entry => entry.Key < 0 || entry.Value < 0))
+        {
+            throw new ArgumentException(
+                "Mode world health must be non-empty with non-negative teams and values.",
+                nameof(activeHealthByTeam));
+        }
+
+        int[] eligible = [.. eligibleTeamIds];
+        if (eligible.Any(teamId => teamId < 0)
+            || eligible.Distinct().Count() != eligible.Length
+            || eligible.Any(teamId =>
+                !activeHealthByTeam.ContainsKey(teamId)))
+        {
+            throw new ArgumentException(
+                "Eligible mode teams must be unique members of the health snapshot.",
+                nameof(eligibleTeamIds));
+        }
+
+        GenericActorModeActiveLife[] lives = [.. activeLives];
+        if (lives.Any(life => life is null)
+            || lives
+                .Select(life => life.ActorId)
+                .Distinct()
+                .Count() != lives.Length
+            || lives.Any(life =>
+                !activeHealthByTeam.ContainsKey(life.ActorId.TeamId)))
+        {
+            throw new ArgumentException(
+                "Mode active lives must be non-null, unique, and belong to a health team.",
+                nameof(activeLives));
+        }
+        Dictionary<int, long> summedHealth = health.ToDictionary(
+            entry => entry.Key,
+            _ => 0L);
+        foreach (GenericActorModeActiveLife life in lives)
+        {
+            summedHealth[life.ActorId.TeamId] = checked(
+                summedHealth[life.ActorId.TeamId] + life.Health);
+        }
+        if (health.Any(entry => summedHealth[entry.Key] != entry.Value))
+        {
+            throw new ArgumentException(
+                "Mode active lives must exactly reproduce team active health.",
+                nameof(activeLives));
+        }
+
+        ActiveHealthByTeam = health.ToImmutableSortedDictionary();
+        EligibleTeamIds = eligible
+            .Order()
+            .ToImmutableArray();
+        ActiveLives = lives
+            .OrderBy(life => life.ActorId)
+            .ToImmutableArray();
+    }
+
+    public ImmutableSortedDictionary<int, long> ActiveHealthByTeam
+    {
+        get;
+    }
+
+    public ImmutableArray<int> EligibleTeamIds { get; }
+    public ImmutableArray<GenericActorModeActiveLife> ActiveLives { get; }
+}
+
+internal sealed record GenericActorModeActiveLife
+{
+    public GenericActorModeActiveLife(
+        ActorIdentity actorId,
+        string formId,
+        Position position,
+        long health)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(formId);
+        if (health <= 0)
+            throw new ArgumentOutOfRangeException(nameof(health));
+
+        ActorId = actorId;
+        FormId = formId;
+        Position = position;
+        Health = health;
+    }
+
+    public ActorIdentity ActorId { get; }
+    public string FormId { get; }
+    public Position Position { get; }
+    public long Health { get; }
+}
+
+internal sealed record GenericActorModeTickInput
+{
+    public GenericActorModeTickInput(
+        int tick,
+        IReadOnlyCollection<GenericActorModeDamageContact> damageContacts)
+    {
+        if (tick < 0)
+            throw new ArgumentOutOfRangeException(nameof(tick));
+        ArgumentNullException.ThrowIfNull(damageContacts);
+
+        GenericActorModeDamageContact[] contacts = [.. damageContacts];
+        if (contacts.Any(contact => contact is null))
+        {
+            throw new ArgumentException(
+                "Mode damage contacts cannot contain null entries.",
+                nameof(damageContacts));
+        }
+
+        Tick = tick;
+        DamageContacts = contacts.ToImmutableArray();
+    }
+
+    public int Tick { get; }
+
+    /// <summary>
+    /// Preserves the world's already-canonical authoritative damage order.
+    /// </summary>
+    public ImmutableArray<GenericActorModeDamageContact> DamageContacts
+    {
+        get;
+    }
+}
+
+internal sealed record GenericActorModeScoreChange
+{
+    public GenericActorModeScoreChange(
+        int teamId,
+        string channel,
+        long newValue)
+    {
+        if (teamId < 0)
+            throw new ArgumentOutOfRangeException(nameof(teamId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(channel);
+
+        TeamId = teamId;
+        Channel = channel;
+        NewValue = newValue;
+    }
+
+    public int TeamId { get; }
+    public string Channel { get; }
+    public long NewValue { get; }
+}
+
+internal sealed record GenericActorModeTickResult
+{
+    public GenericActorModeTickResult(
+        IReadOnlyCollection<GenericActorModeScoreChange> scoreChanges,
+        GenericActorRuntimeObservation.ModeObservationState? modeChange,
+        bool modeObjectiveReached)
+    {
+        ArgumentNullException.ThrowIfNull(scoreChanges);
+        GenericActorModeScoreChange[] changes = [.. scoreChanges];
+        if (changes.Any(change => change is null)
+            || changes
+                .Select(change => (change.TeamId, change.Channel))
+                .Distinct()
+                .Count() != changes.Length)
+        {
+            throw new ArgumentException(
+                "Mode score changes must be non-null and unique per team/channel.",
+                nameof(scoreChanges));
+        }
+
+        ScoreChanges = changes.ToImmutableArray();
+        ModeChange = modeChange;
+        ModeObjectiveReached = modeObjectiveReached;
+    }
+
+    /// <summary>Exact mode-owned event order for this joint tick.</summary>
+    public ImmutableArray<GenericActorModeScoreChange> ScoreChanges { get; }
+    public GenericActorRuntimeObservation.ModeObservationState? ModeChange
+    {
+        get;
+    }
+    public bool ModeObjectiveReached { get; }
+}
+
+internal sealed record GenericActorModeProjection
+{
+    public GenericActorModeProjection(
+        GenericActorRuntimeObservation.ScoreboardState scoreboard,
+        GenericActorRuntimeObservation.ModeObservationState mode)
+    {
+        ArgumentNullException.ThrowIfNull(scoreboard);
+        ArgumentNullException.ThrowIfNull(mode);
+
+        Scoreboard = scoreboard;
+        Mode = mode;
+    }
+
+    public GenericActorRuntimeObservation.ScoreboardState Scoreboard
+    {
+        get;
+    }
+    public GenericActorRuntimeObservation.ModeObservationState Mode { get; }
+}
+
+internal enum GenericActorModeCompletionKind
+{
+    FaultEligibility = 0,
+    ModeObjective = 1,
+    MaxTicks = 2,
+}
+
+internal abstract record GenericActorModeCompletion
+{
+    private protected GenericActorModeCompletion(
+        string completionReason,
+        int endTick,
+        TeamStandings standings,
+        GenericActorMatchModeResult modeResult)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(completionReason);
+        if (endTick < 0)
+            throw new ArgumentOutOfRangeException(nameof(endTick));
+        ArgumentNullException.ThrowIfNull(standings);
+        ArgumentNullException.ThrowIfNull(modeResult);
+
+        CompletionReason = completionReason;
+        EndTick = endTick;
+        Standings = standings;
+        ModeResult = modeResult;
+    }
+
+    public string CompletionReason { get; }
+    public int EndTick { get; }
+    public TeamStandings Standings { get; }
+    public GenericActorMatchModeResult ModeResult { get; }
+
+    internal sealed record Deathmatch : GenericActorModeCompletion
+    {
+        public Deathmatch(
+            string completionReason,
+            GenericDeathmatchResult compatibilityResult)
+            : base(
+                completionReason,
+                compatibilityResult?.EndTick
+                    ?? throw new ArgumentNullException(
+                        nameof(compatibilityResult)),
+                compatibilityResult.Standings,
+                new GenericActorMatchModeResult.Deathmatch(
+                    compatibilityResult.Reason,
+                    compatibilityResult.Scores))
+        {
+            CompatibilityResult = compatibilityResult;
+        }
+
+        public GenericDeathmatchResult CompatibilityResult { get; }
+    }
+
+    internal sealed record Frontline : GenericActorModeCompletion
+    {
+        public Frontline(
+            string completionReason,
+            int endTick,
+            TeamStandings standings,
+            GenericFrontlineEndReason reason,
+            GenericActorRuntimeObservation.ModeObservationState.Frontline
+                control,
+            FrontlineScoreState scores)
+            : base(
+                completionReason,
+                endTick,
+                standings,
+                new GenericActorMatchModeResult.Frontline(
+                    reason,
+                    control,
+                    scores))
+        {
+        }
+    }
+}
