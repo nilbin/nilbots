@@ -265,11 +265,14 @@ static int CommandHelp(string command)
             the last-moment central choke.
             --classes gives each team one pre-registered chassis (bulwark,
             fabricator, or striker) under its own local-only ruleset identity.
-            Pairs are canonical in alphabetical order — swap bot assignments
-            with --swap, not the teams. Movement and projectile kinematics
-            stay shared; classes differ in durability, vision, fire tempo,
-            shot language, anchor play, and fabrication economics. May be
-            paired with --duel-map.
+            Pairs are canonical in alphabetical order. A project may instead
+            declare its class in botarena.json ("class": "striker"): declared
+            classes select the arm automatically, always bind each bot to its
+            class's canonical team side, and must agree with an explicit
+            --classes. Movement and projectile kinematics stay shared;
+            classes differ in durability, vision, fire tempo, shot language,
+            anchor play, and fabrication economics. May be paired with
+            --duel-map.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             --print-candidate-contract emits the exact resolved candidate

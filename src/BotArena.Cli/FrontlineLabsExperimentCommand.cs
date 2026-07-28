@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using BotArena.Engine;
+using BotArena.Toolchain;
 
 namespace BotArena.Cli;
 
@@ -87,6 +88,66 @@ public static class FrontlineLabsExperimentCommand
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classPair =
             OptionalClassPair(options);
+
+        // Class is bot identity (DECISIONS #154): a classed project always
+        // plays its declared chassis. Declared classes select the arm when
+        // --classes is absent, must agree with it when present, and always
+        // bind each bot to its class's canonical team side.
+        string? botSpec = null;
+        string? opponentSpec = null;
+        if (!printCandidateContract)
+        {
+            botSpec = RequiredOption(options, "bot");
+            opponentSpec = RequiredOption(options, "opponent");
+            if (options.ContainsKey("swap"))
+                (botSpec, opponentSpec) = (opponentSpec, botSpec);
+            FrontlineLabsClassDefinition? declared0 =
+                DeclaredClass(botSpec);
+            FrontlineLabsClassDefinition? declared1 =
+                DeclaredClass(opponentSpec);
+            if (classPair is null
+                && declared0 is not null
+                && declared1 is not null)
+            {
+                if (string.CompareOrdinal(declared0.Id, declared1.Id) > 0)
+                {
+                    (botSpec, opponentSpec) = (opponentSpec, botSpec);
+                    (declared0, declared1) = (declared1, declared0);
+                }
+                classPair = (declared0, declared1);
+                Console.WriteLine(
+                    "Classes resolved from bot manifests: "
+                    + $"{declared0.Id}-vs-{declared1.Id}.");
+            }
+            else if (classPair is { } requested)
+            {
+                if (declared0 is not null
+                    && declared0.Id != requested.TeamZero.Id)
+                {
+                    throw new InvalidOperationException(
+                        $"--bot declares class '{declared0.Id}' but the "
+                        + $"requested pair puts '{requested.TeamZero.Id}' "
+                        + "on team 0. A classed bot always plays its "
+                        + "declared chassis.");
+                }
+                if (declared1 is not null
+                    && declared1.Id != requested.TeamOne.Id)
+                {
+                    throw new InvalidOperationException(
+                        $"--opponent declares class '{declared1.Id}' but "
+                        + $"the requested pair puts '{requested.TeamOne.Id}' "
+                        + "on team 1. A classed bot always plays its "
+                        + "declared chassis.");
+                }
+            }
+            else if ((declared0 is null) != (declared1 is null))
+            {
+                throw new InvalidOperationException(
+                    "One entrant declares a class and the other does not. "
+                    + "Declare both (or pass --classes explicitly with "
+                    + "class-agnostic bots).");
+            }
+        }
         bool duelExperiment = oneBendShots
             || automaticCompanions
             || (duelMapArm is not null && classPair is null);
@@ -162,10 +223,8 @@ public static class FrontlineLabsExperimentCommand
             return 0;
         }
 
-        string botSpec = RequiredOption(options, "bot");
-        string opponentSpec = RequiredOption(options, "opponent");
-        if (options.ContainsKey("swap"))
-            (botSpec, opponentSpec) = (opponentSpec, botSpec);
+        string resolvedBotSpec = botSpec!;
+        string resolvedOpponentSpec = opponentSpec!;
         Console.WriteLine(
             experimentCount == 0
                 ? "LOCAL LABS: exact hosted Frontline Labs v1 contract; " +
@@ -200,12 +259,12 @@ public static class FrontlineLabsExperimentCommand
             ulong seed = seeds[seedIndex];
             using ResolvedGenericActorBot bot0 =
                 ResolvedGenericActorBot.Resolve(
-                    botSpec,
+                    resolvedBotSpec,
                     runtimeKind,
                     quiet: seeds.Length > 1);
             using ResolvedGenericActorBot bot1 =
                 ResolvedGenericActorBot.Resolve(
-                    opponentSpec,
+                    resolvedOpponentSpec,
                     runtimeKind,
                     quiet: seeds.Length > 1);
             if (seedIndex == 0)
@@ -450,6 +509,27 @@ public static class FrontlineLabsExperimentCommand
                 $"Unknown --duel-map '{value}' " +
                 "(use current, thin-fronts, or outer-shoulder-bypass)."),
         };
+    }
+
+    /// <summary>Reads a project spec's declared class from botarena.json.
+    /// Raw WASM artifacts declare no class; the Lab's entrant metadata covers
+    /// them.</summary>
+    private static FrontlineLabsClassDefinition? DeclaredClass(string spec)
+    {
+        if (!Directory.Exists(spec) || !BotProject.LooksLikeProject(spec))
+            return null;
+        string? declared = BotProject.Load(spec).Manifest.Class;
+        if (declared is null)
+            return null;
+        try
+        {
+            return FrontlineLabsClassDefinition.Parse(declared);
+        }
+        catch (ArgumentException error)
+        {
+            throw new InvalidOperationException(
+                $"{spec}: {error.Message}");
+        }
     }
 
     private static (FrontlineLabsClassDefinition TeamZero,

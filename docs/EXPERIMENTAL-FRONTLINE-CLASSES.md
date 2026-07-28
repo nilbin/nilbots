@@ -68,3 +68,9 @@ Pairs are canonical in alphabetical order (`bulwark-vs-fabricator`,
 `bulwark-vs-striker`, `fabricator-vs-striker`, and the three mirrors). Team 0
 always plays the first class; use `--swap` to mirror bot assignments.
 `--print-candidate-contract` emits the exact resolved identity for a spec.
+
+Your bot has **one class, chosen at creation**: declare it in
+`botarena.json` (`"class": "striker"`). Two class-declaring projects need no
+`--classes` flag at all — the arm resolves from the manifests and each bot
+is bound to its class's canonical team side automatically. A declared class
+must agree with any explicit `--classes`.

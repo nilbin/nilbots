@@ -194,6 +194,105 @@ public sealed class FrontlineLabsExperimentCommandTests
     }
 
     [Fact]
+    public void DeclaredManifestClasses_ResolveArmAndTeamBinding()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-class-identity-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporary);
+        string previousDirectory = Directory.GetCurrentDirectory();
+        TextWriter original = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Directory.SetCurrentDirectory(temporary);
+            Console.SetOut(output);
+            Assert.Equal(
+                0,
+                NewCommand.Run(
+                    "Pathfinder",
+                    ["--profile", "generic-actor"]));
+            Assert.Equal(
+                0,
+                NewCommand.Run(
+                    "Holdfast",
+                    ["--profile", "generic-actor"]));
+            DeclareClass(
+                Path.Combine(temporary, "Pathfinder"), "striker");
+            DeclareClass(
+                Path.Combine(temporary, "Holdfast"), "bulwark");
+
+            // The striker project is --bot, but bulwark sorts first: the
+            // command must auto-bind each bot to its class's canonical team.
+            Assert.Equal(
+                0,
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--bot",
+                        Path.Combine(temporary, "Pathfinder"),
+                        "--opponent",
+                        Path.Combine(temporary, "Holdfast"),
+                        "--runtime",
+                        "in-process",
+                        "--seed",
+                        "7",
+                    ]));
+        }
+        finally
+        {
+            Console.SetOut(original);
+            Directory.SetCurrentDirectory(previousDirectory);
+            try
+            {
+                Directory.Delete(temporary, recursive: true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        string log = output.ToString();
+        Assert.Contains(
+            "Classes resolved from bot manifests: bulwark-vs-striker.",
+            log);
+        Assert.Contains(
+            "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+            log);
+        Assert.Contains("Holdfast", log);
+
+        InvalidOperationException mismatch =
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--bot",
+                        "missing-project",
+                        "--opponent",
+                        "missing-project",
+                        "--classes",
+                        "striker-vs-warlock",
+                        "--print-candidate-contract",
+                    ]));
+        Assert.Contains("Unknown Frontline Labs class", mismatch.Message);
+    }
+
+    private static void DeclareClass(string projectDirectory, string classId)
+    {
+        string manifestPath = Path.Combine(
+            projectDirectory, "botarena.json");
+        using JsonDocument manifest = JsonDocument.Parse(
+            File.ReadAllText(manifestPath));
+        var fields = new Dictionary<string, object?>();
+        foreach (JsonProperty property in manifest.RootElement.EnumerateObject())
+            fields[property.Name] = property.Value.Clone();
+        fields["class"] = classId;
+        File.WriteAllText(
+            manifestPath,
+            JsonSerializer.Serialize(
+                fields,
+                new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Fact]
     public void ClassesArm_EmitsCanonicalIdentityAndRejectsSwappedOrder()
     {
         TextWriter original = Console.Out;

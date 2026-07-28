@@ -14,6 +14,12 @@ public sealed record BotManifest
     /// (gen-3 finding: repeating --rules on every command is easy to silently drop
     /// while practicing for a rules experiment). An explicit flag always wins.</summary>
     [JsonPropertyName("rules")] public string? Rules { get; init; }
+    /// <summary>The bot's class, chosen at creation (DECISIONS #154): a
+    /// Frontline Labs class ID such as "striker". A classed bot always plays
+    /// its declared chassis — the experiment command resolves the class arm
+    /// and team binding from both entrants' declarations. Null means the bot
+    /// is class-agnostic (base contracts and smoke populations).</summary>
+    [JsonPropertyName("class")] public string? Class { get; init; }
 }
 
 public sealed record BotAppearance
