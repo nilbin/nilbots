@@ -239,14 +239,22 @@ later work.
 
 Balance work now has a reusable mode-independent entry point:
 [`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md). A candidate is the
-independently fingerprinted mode, ruleset, map, and match-format tuple; a spec
-freezes its factor product, bot sources/WASM, qualifications, paired/holdout
-seeds, and runner. The implemented slice executes verified mirrored full
-cross-play, Frontline replay-v3 dynamics, payoff matrices, vector reports, and
-factorial contrasts without inventing one balance score. Static generalization,
-restricted-play wrappers, full tier probes, empirical equilibrium/best-response
-analysis, automated candidate search, and structured human review remain later
-layers.
+independently fingerprinted mode, ruleset, map, and match-format tuple,
+resolved with an explicit topology profile/fingerprint; a spec freezes its
+factor product, evaluation profile, bot sources/WASM, profile-scoped
+qualifications, paired/holdout seeds, and runner. The implemented slices
+execute verified mirrored full cross-play, Frontline replay-v3 dynamics,
+payoff matrices, vector reports, and factorial contrasts without inventing
+one balance score. Unqualified populations are hard-blocked from balance
+verdicts, and missing layers block candidate promotion.
+
+The separate WASM-only `frontline-qualification-2` foundation has its first
+deterministic component: both assignments repeat with exact replay hashes,
+zero faults, and declared automatic child activation. It intentionally
+reports an incomplete profile, no tier, and no balance eligibility. Static
+generalization, the remaining T1/T2 holdouts, restricted-play wrappers,
+higher-tier probes, empirical equilibrium/best-response analysis, automated
+candidate search, and structured human review remain later layers.
 
 The first spec compares three duel map topologies under manual fabrication and
 an explicit automatic-companion progression bundle. The latter is a

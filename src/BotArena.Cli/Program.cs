@@ -139,7 +139,8 @@ static int Help(int exitCode = 1)
                                                   local/quota-free, replay v3
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
-                        [--suite frontline-qualification-1] [--out <dir>]
+                        [--suite frontline-qualification-1|frontline-qualification-2]
+                        [--out <dir>]
                                                   versioned local capability
                                                   probes; never ranked
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
@@ -265,14 +266,17 @@ static int CommandHelp(string command)
 
             Usage: nilbots experiment frontline-labs qualify
                    --bot <generic-spec> [--runtime wasm|in-process]
-                   [--seed <n>] [--suite frontline-qualification-1]
+                   [--seed <n>]
+                   [--suite frontline-qualification-1|frontline-qualification-2]
                    [--out <dir>]
 
             Runs mirrored, versioned capability probes and writes verified
-            replay-v3 evidence plus qualification.json. The initial suite
-            implements only the T4 entry-initiative component and explicitly
-            awards no cumulative tier. Probe failure returns exit code 3;
-            runtime or contract failure returns 2. It is never ranked.
+            replay-v3 evidence plus qualification.json. Suite 1 is the frozen
+            T4 entry-initiative component. Suite 2 requires WASM and begins
+            the cumulative foundation profile with automatic-life contract
+            determinism; neither incomplete suite awards a cumulative tier.
+            Probe failure returns exit code 3; runtime or contract failure
+            returns 2. It is never ranked.
             """,
         "set" => """
             Usage: nilbots set --bot <spec> --opponent <spec>

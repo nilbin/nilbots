@@ -70,6 +70,9 @@ These names have one meaning in code, APIs, documentation, and UI:
   perception, scoring, and victory definitions.
 - **Match format** — the policy that maps submitted participants onto scoring
   teams and stable unit capacity, such as head-to-head, FFA-4, or 2v2.
+- **Topology profile** — a descriptive, versioned name for the exact
+  participant/controller, scoring-team, stable-slot, and initial-life shape.
+  The topology fingerprint, not the profile name, is authoritative.
 - **Map** — immutable geometry plus named spawn/objective/placement regions.
   A map declares capabilities; it does not contain imperative game scripts.
 - **Playlist version** — one immutable curated combination of ruleset, allowed
@@ -84,6 +87,11 @@ These names have one meaning in code, APIs, documentation, and UI:
 - **Match contract** — the complete resolved ruleset, map, format, exact
   topology, and capability versions delivered before tick zero and stored in
   the replay.
+- **Evaluation profile** — Balance Lab policy for lineup construction,
+  participant/team assignment, payoff interpretation, and compatible metrics.
+- **Qualification profile** — the semantic capability distribution on which a
+  bot earned its cumulative T/C result. It is separate from playlist admission
+  and is fingerprinted in balance evidence.
 
 FFA Deathmatch is therefore Deathmatch mode plus an FFA match format. It is
 not a second engine mode and it does not need an `IsFfa` switch.

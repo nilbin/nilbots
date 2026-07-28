@@ -14,12 +14,13 @@
     "pairedSeeds",
     "holdoutSeeds",
     "verifyCommand",
+    "evaluationProfileId",
     "candidates",
     "populations"
   ],
   "properties": {
     "$schema": { "type": "string" },
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "experimentId": { "$ref": "#/$defs/slug" },
     "status": { "const": "experimental" },
     "evidenceClass": {
@@ -52,6 +53,9 @@
       }
     },
     "verifyCommand": { "type": "string", "minLength": 1 },
+    "evaluationProfileId": {
+      "enum": ["two-team-zero-sum-v1"]
+    },
     "dynamicsAdapter": {
       "enum": ["generic-frontline-replay-v3"]
     },
@@ -96,6 +100,8 @@
         "mapFingerprint",
         "formatId",
         "formatFingerprint",
+        "topologyProfileId",
+        "topologyFingerprint",
         "contractProfileId",
         "matchContractFingerprint"
       ],
@@ -108,6 +114,8 @@
         "mapFingerprint": { "$ref": "#/$defs/fingerprint" },
         "formatId": { "$ref": "#/$defs/slug" },
         "formatFingerprint": { "$ref": "#/$defs/fingerprint" },
+        "topologyProfileId": { "$ref": "#/$defs/slug" },
+        "topologyFingerprint": { "$ref": "#/$defs/fingerprint" },
         "contractProfileId": { "$ref": "#/$defs/slug" },
         "matchContractFingerprint": { "$ref": "#/$defs/fingerprint" }
       }
@@ -135,7 +143,43 @@
     },
     "qualification": {
       "type": "object",
-      "minProperties": 1
+      "additionalProperties": false,
+      "required": [
+        "suiteId",
+        "suiteVersion",
+        "qualificationProfileId",
+        "qualificationContractFingerprint",
+        "evidence",
+        "evidenceSha256",
+        "tierAwarded",
+        "coordinationGradeAwarded",
+        "balanceEvidenceEligible"
+      ],
+      "properties": {
+        "suiteId": { "$ref": "#/$defs/slug" },
+        "suiteVersion": { "type": "integer", "minimum": 1 },
+        "qualificationProfileId": { "$ref": "#/$defs/slug" },
+        "qualificationContractFingerprint": {
+          "oneOf": [
+            { "$ref": "#/$defs/fingerprint" },
+            { "type": "null" }
+          ]
+        },
+        "evidence": {
+          "type": ["string", "null"]
+        },
+        "evidenceSha256": {
+          "oneOf": [
+            { "$ref": "#/$defs/fingerprint" },
+            { "type": "null" }
+          ]
+        },
+        "tierAwarded": { "type": ["string", "null"] },
+        "coordinationGradeAwarded": {
+          "type": ["string", "null"]
+        },
+        "balanceEvidenceEligible": { "type": "boolean" }
+      }
     },
     "entrant": {
       "type": "object",
@@ -169,12 +213,23 @@
         "id",
         "tier",
         "coordinationGrade",
+        "qualificationProfileId",
+        "qualificationContractFingerprint",
+        "balanceEvidenceEligible",
         "entrants"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/slug" },
         "tier": { "type": "string", "minLength": 1 },
         "coordinationGrade": { "type": "string", "minLength": 1 },
+        "qualificationProfileId": { "$ref": "#/$defs/slug" },
+        "qualificationContractFingerprint": {
+          "oneOf": [
+            { "$ref": "#/$defs/fingerprint" },
+            { "type": "null" }
+          ]
+        },
+        "balanceEvidenceEligible": { "type": "boolean" },
         "entrants": {
           "type": "array",
           "minItems": 2,

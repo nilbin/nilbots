@@ -71,4 +71,39 @@ public sealed class FrontlineLabsQualificationDefinitionTests
             ActorContractFingerprint.ComputeMatch(experiment),
             ActorContractFingerprint.ComputeMatch(first));
     }
+
+    [Fact]
+    public void FoundationContractProbe_ExercisesDeclaredAutomaticActivation()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsQualificationDefinition
+                .CreateContractAutoDeterminismProbe();
+        var mode = Assert.IsType<FrontlineGameModeDefinition>(
+            definition.Rules.GameMode);
+
+        Assert.Equal(
+            "frontline-qualification-2-contract-auto-determinism",
+            definition.Rules.RulesetId);
+        Assert.Equal(130, definition.Rules.Limits.MaxTicks);
+        Assert.Equal(1000, mode.Capture.Threshold);
+        Assert.Equal(4, definition.Topology.UnitSlots.Length);
+        Assert.Equal(
+            2,
+            definition.LifecycleAssignments.Count(assignment =>
+                assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick
+                && assignment.UnlockTick == 120));
+        Assert.All(
+            definition.Rules.Forms,
+            form => Assert.DoesNotContain(
+                form.AllowedActionIds,
+                actionId => actionId is "fabricate" or "split"));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMatch(definition),
+            ActorContractFingerprint.ComputeMatch(
+                FrontlineLabsQualificationDefinition
+                    .CreateContractAutoDeterminismProbe()));
+    }
 }

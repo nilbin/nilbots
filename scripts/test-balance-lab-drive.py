@@ -33,6 +33,7 @@ class BalanceLabDriveTests(unittest.TestCase):
     ) -> None:
         spec = {
             "pairedSeeds": [7, 11],
+            "evaluationProfileId": "two-team-zero-sum-v1",
             "candidates": [
                 {"id": "a"},
                 {"id": "b"},
@@ -44,6 +45,8 @@ class BalanceLabDriveTests(unittest.TestCase):
                     "id": "t-two",
                     "tier": "T2",
                     "coordinationGrade": "C0",
+                    "qualificationProfileId": "test-profile-1",
+                    "balanceEvidenceEligible": False,
                     "entrants": [
                         {"id": "one"},
                         {"id": "two"},
@@ -107,8 +110,15 @@ class BalanceLabDriveTests(unittest.TestCase):
                                 entrant_root
                             ),
                         "qualification": {
-                            "suite": "test",
+                            "suiteId": "test-suite",
+                            "suiteVersion": 1,
+                            "qualificationProfileId": "test-profile-1",
+                            "qualificationContractFingerprint": None,
+                            "evidence": None,
+                            "evidenceSha256": None,
                             "tierAwarded": "T2",
+                            "coordinationGradeAwarded": "C0",
+                            "balanceEvidenceEligible": False,
                         },
                     }
                 )
@@ -146,7 +156,7 @@ target.mkdir(parents=True, exist_ok=True)
             spec_path.write_text(
                 json.dumps(
                     {
-                        "schemaVersion": 1,
+                        "schemaVersion": 2,
                         "experimentId": "test-balance-lab",
                         "status": "experimental",
                         "evidenceClass": "infrastructure-smoke",
@@ -160,6 +170,8 @@ target.mkdir(parents=True, exist_ok=True)
                         "verifyCommand":
                             f"{DRIVER.sys.executable} {verify} "
                             "{replay}",
+                        "evaluationProfileId":
+                            "two-team-zero-sum-v1",
                         "dynamicsAdapter":
                             "generic-frontline-replay-v3",
                         "candidates": [
@@ -187,6 +199,12 @@ target.mkdir(parents=True, exist_ok=True)
                                         format_contract[
                                             "formatFingerprint"
                                         ],
+                                    "topologyProfileId":
+                                        "fixture-topology-v1",
+                                    "topologyFingerprint":
+                                        contract["topology"][
+                                            "topologyFingerprint"
+                                        ],
                                     "contractProfileId":
                                         contract["capabilityVersions"][
                                             "contractProfileId"
@@ -203,6 +221,10 @@ target.mkdir(parents=True, exist_ok=True)
                                 "id": "tier-two",
                                 "tier": "T2",
                                 "coordinationGrade": "C0",
+                                "qualificationProfileId":
+                                    "test-profile-1",
+                                "qualificationContractFingerprint": None,
+                                "balanceEvidenceEligible": False,
                                 "entrants": entrants,
                             },
                         ],
@@ -220,6 +242,11 @@ target.mkdir(parents=True, exist_ok=True)
             )
 
             self.assertEqual("complete", report["status"])
+            self.assertFalse(report["balanceVerdictEligible"])
+            self.assertFalse(report["candidatePromotionEligible"])
+            self.assertFalse(
+                report["cells"][0]["balanceVerdictEligibility"]["eligible"]
+            )
             self.assertEqual(2, report["cells"][0]["validMatches"])
             self.assertEqual(
                 "not-measured",
@@ -262,7 +289,7 @@ target.mkdir(parents=True, exist_ok=True)
             spec.write_text(
                 json.dumps(
                     {
-                        "schemaVersion": 1,
+                        "schemaVersion": 2,
                         "experimentId": "invalid",
                         "status": "experimental",
                         "evidenceClass": "infrastructure-smoke",
@@ -273,6 +300,8 @@ target.mkdir(parents=True, exist_ok=True)
                         },
                         "pairedSeeds": [1],
                         "verifyCommand": "true {replay}",
+                        "evaluationProfileId":
+                            "two-team-zero-sum-v1",
                         "candidates": [],
                         "populations": [],
                     }
@@ -283,13 +312,106 @@ target.mkdir(parents=True, exist_ok=True)
             with self.assertRaises(ValueError):
                 DRIVER.load_spec(spec)
 
+    def test_balance_eligible_entrant_requires_matching_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            entrant_root = root / "entrant"
+            entrant_root.mkdir()
+            (entrant_root / "Bot.cs").write_text(
+                "// source\n",
+                encoding="utf-8",
+            )
+            artifact = entrant_root / "bot.wasm"
+            artifact.write_bytes(b"artifact")
+            artifact_sha = hashlib.sha256(b"artifact").hexdigest()
+            qualification_fingerprint = "a" * 64
+            report_path = root / "qualification.json"
+            report_path.write_text(
+                json.dumps(
+                    {
+                        "suiteId": "test-suite",
+                        "suiteVersion": 2,
+                        "qualificationProfileId": "test-profile-1",
+                        "qualificationContractFingerprint":
+                            qualification_fingerprint,
+                        "artifactHash": artifact_sha,
+                        "passed": True,
+                        "profileComplete": True,
+                        "tierAwarded": "T2",
+                        "coordinationGradeAwarded": "C0",
+                        "balanceEvidenceEligible": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            evidence_sha = DRIVER._sha256(report_path)
+            raw = {
+                "id": "entrant",
+                "name": "Entrant",
+                "root": "entrant",
+                "artifact": "entrant/bot.wasm",
+                "artifactSha256": artifact_sha,
+                "sourceTreeSha256": DRIVER.COHORT._source_tree_sha256(
+                    entrant_root
+                ),
+                "qualification": {
+                    "suiteId": "test-suite",
+                    "suiteVersion": 2,
+                    "qualificationProfileId": "test-profile-1",
+                    "qualificationContractFingerprint":
+                        qualification_fingerprint,
+                    "evidence": "qualification.json",
+                    "evidenceSha256": evidence_sha,
+                    "tierAwarded": "T2",
+                    "coordinationGradeAwarded": "C0",
+                    "balanceEvidenceEligible": True,
+                },
+            }
+
+            normalized = DRIVER._normalize_entrant(
+                raw,
+                root.resolve(),
+                "population",
+                "test-profile-1",
+                qualification_fingerprint,
+                True,
+                "T2",
+                "C0",
+            )
+
+            self.assertEqual(
+                report_path.resolve(),
+                normalized["qualificationEvidencePath"],
+            )
+            bad = json.loads(json.dumps(raw))
+            bad["qualification"]["tierAwarded"] = "T3"
+            with self.assertRaises(ValueError):
+                DRIVER._normalize_entrant(
+                    bad,
+                    root.resolve(),
+                    "population",
+                    "test-profile-1",
+                    qualification_fingerprint,
+                    True,
+                    "T2",
+                    "C0",
+                )
+
     def test_draw_only_cell_does_not_report_zero_side_bias(self) -> None:
         report = DRIVER._cell_report(
-            {"id": "candidate", "factors": {"map": "one"}},
+            {
+                "id": "candidate",
+                "factors": {"map": "one"},
+                "contract": {
+                    "topologyProfileId": "fixture-topology-v1",
+                },
+            },
             {
                 "id": "population",
                 "tier": "T2",
                 "coordinationGrade": "C0",
+                "qualificationProfileId": "test-profile-1",
+                "balanceEvidenceEligible": False,
                 "entrants": [{"id": "alpha"}, {"id": "beta"}],
             },
             [

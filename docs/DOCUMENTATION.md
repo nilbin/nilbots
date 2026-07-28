@@ -63,15 +63,17 @@ wrong; it changes which document is the current entry point.
   practical 1v1/2v2/3v3 solvability targets, and the static gates that precede
   balance matches.
 - [`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md) — replay-native
-  T/C probe contract and scenario families. Its mirrored T4 entry component
-  is implemented; cumulative T1–T8/C0–C5 qualification remains in progress.
+  T/C probe contract and scenario families. Its immutable suite-1 T4 entry
+  component and suite-2 WASM determinism/automatic-life T1 component are
+  implemented; cumulative T1–T8/C0–C5 qualification remains in progress.
 - [`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) — executable
   projectile chronology, local payoff matrices, and map-wide one-bend
   last-mile classification for the current duel-depth experiment.
 - [`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md) — mode-independent
-  candidate identity, layered rejection pipeline, tiered/full-cross-play
-  population model, vector metrics, holdout/adversarial guardrails, and the
-  implemented factorial orchestration slice.
+  candidate plus topology identity, evaluation/qualification profiles,
+  layered rejection pipeline, tiered/full-cross-play population model,
+  vector metrics, holdout/adversarial guardrails, and the implemented
+  factorial orchestration slices.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, generic replay 3, datasets, and bounded model
   assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor

@@ -22,6 +22,11 @@ nilbots experiment frontline-labs \
   --bot out/bot.wasm \
   --opponent ../AnotherGenericBot/out/bot.wasm \
   --seed 104729
+
+# Deterministic contract/lifecycle component (not yet a tier award):
+nilbots experiment frontline-labs qualify \
+  --bot out/bot.wasm \
+  --suite frontline-qualification-2
 ```
 
 The command always selects the immutable `frontline-labs-1` definition and
@@ -53,6 +58,13 @@ coordinate focus fire, program curved-shot traps, remember opponents, or adapt
 its doctrine. `BOTNAME.cs` is the intended first editing surface: reorder its
 priorities, add conditions, and use actor/unit identity plus shared
 observations to make the independent lives cooperate.
+
+The qualification command is local and unranked. Its current suite-2
+foundation component repeats both assignments in WASM, verifies deterministic
+replay hashes, and checks fault-free handling of an automatically activated
+child. A passing result is useful compatibility evidence, but the report
+keeps `profileComplete: false`, `tierAwarded: null`, and
+`balanceEvidenceEligible: false` until the remaining cumulative probes exist.
 
 `ArenaBasics` demonstrates the important authoring pattern: select actions by
 their contract kind or stable ID, use the negotiated numeric code, and obey

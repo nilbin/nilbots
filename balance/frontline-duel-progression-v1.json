@@ -1,6 +1,6 @@
 {
   "$schema": "./balance-lab-spec.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "experimentId": "frontline-duel-progression-v1",
   "status": "experimental",
   "evidenceClass": "infrastructure-smoke",
@@ -24,6 +24,7 @@
     155921
   ],
   "verifyCommand": "dotnet run --no-build --project src/BotArena.Cli -- verify {replay}",
+  "evaluationProfileId": "two-team-zero-sum-v1",
   "dynamicsAdapter": "generic-frontline-replay-v3",
   "candidates": [
     {
@@ -42,6 +43,8 @@
         "mapFingerprint": "9e871738116293975e3e780bd7249276832094c29c30a744d66a609713a13d1b",
         "formatId": "head-to-head",
         "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
         "contractProfileId": "generic-actor-match-2",
         "matchContractFingerprint": "7322f6864e0d8f0d9171ecfd392121575e1833e098346cc77af34e14232d0128"
       }
@@ -62,6 +65,8 @@
         "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
         "formatId": "head-to-head",
         "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
         "contractProfileId": "generic-actor-match-2",
         "matchContractFingerprint": "a04636dc7cc86b6267db92a65ae2628391d3062c1a787117516cf33d443fa046"
       }
@@ -82,6 +87,8 @@
         "mapFingerprint": "edfc15e75f2d5f99070cccd40d07531ea34d3461978936d503bc55f58035f1f9",
         "formatId": "head-to-head",
         "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
         "contractProfileId": "generic-actor-match-2",
         "matchContractFingerprint": "428dc52112419f7bf6089b6fdb109cd02133f75aa5f59f1ca1522079ce75ed5d"
       }
@@ -102,6 +109,8 @@
         "mapFingerprint": "e8006455fc36cd72301db08e920d781f12205e82d3379e9b2428024d7ab3f7ad",
         "formatId": "head-to-head",
         "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
         "contractProfileId": "generic-actor-match-2",
         "matchContractFingerprint": "c40cb17acadac1e80c2464135bec068f656e95949e102dde2feeac7c1e9b52d4"
       }
@@ -122,6 +131,8 @@
         "mapFingerprint": "da6d51ea17459b35b4de9e5303778ebbc2eb57c7c149e69fe09ff7439a91e172",
         "formatId": "head-to-head",
         "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
         "contractProfileId": "generic-actor-match-2",
         "matchContractFingerprint": "cd62fe44390c031e7519cec96591568d5e61be76914781a1d9796088b2adfb1f"
       }
@@ -142,6 +153,8 @@
         "mapFingerprint": "72afa8969c812de5f1438c275b99ee44398ca593f52a541bf3cadb767c9e7785",
         "formatId": "head-to-head",
         "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
         "contractProfileId": "generic-actor-match-2",
         "matchContractFingerprint": "7531fd62a6aaa0e149ae36f8ddbd4e8a25f8ea7ce4761830c6d40fe8330cabd3"
       }
@@ -152,6 +165,9 @@
       "id": "unqualified-infrastructure",
       "tier": "unqualified",
       "coordinationGrade": "unqualified",
+      "qualificationProfileId": "unqualified-infrastructure-1",
+      "qualificationContractFingerprint": null,
+      "balanceEvidenceEligible": false,
       "entrants": [
         {
           "id": "geometric-dodger",
@@ -161,9 +177,14 @@
           "artifactSha256": "7deb5e727c58174afe3ba53c68777592da7b8a5b3116775a7c7beaa32b957ff5",
           "sourceTreeSha256": "sha256:ddd680d2b1c97c55cabc0b37edd7cbe11a5746d1413e018532d978228133386d",
           "qualification": {
-            "suite": "frontline-qualification-1",
-            "entryInitiative": "failed-both-assignments",
+            "suiteId": "frontline-qualification-1",
+            "suiteVersion": 1,
+            "qualificationProfileId": "unqualified-infrastructure-1",
+            "qualificationContractFingerprint": null,
+            "evidence": null,
+            "evidenceSha256": null,
             "tierAwarded": null,
+            "coordinationGradeAwarded": null,
             "balanceEvidenceEligible": false
           }
         },
@@ -175,9 +196,14 @@
           "artifactSha256": "6e8b74928d4119b725740fe3b4f2f85c3f40605e5d5ca44806d482350543577b",
           "sourceTreeSha256": "sha256:b118a13f00d76d511106e7b30a6afe9ad683afcdb6560e6cd3698a4337576cb2",
           "qualification": {
-            "suite": "frontline-qualification-1",
-            "entryInitiative": "passed-both-assignments",
+            "suiteId": "frontline-qualification-1",
+            "suiteVersion": 1,
+            "qualificationProfileId": "unqualified-infrastructure-1",
+            "qualificationContractFingerprint": null,
+            "evidence": null,
+            "evidenceSha256": null,
             "tierAwarded": null,
+            "coordinationGradeAwarded": null,
             "balanceEvidenceEligible": false
           }
         }

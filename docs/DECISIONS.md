@@ -2594,6 +2594,38 @@ removing their repeated tails. It promotes no candidate. SDK/Guest advance to
 0.9.5; actor framing/configuration and controlled-build pipeline 4 remain
 unchanged.
 
+## 146. Balance evidence pins topology, evaluation policy, and scoped qualification
+
+The Balance Lab schema advances to slice 2. Each resolved candidate now
+declares a descriptive topology profile plus the independently replay-verified
+topology fingerprint, in addition to mode/ruleset/map/format and aggregate
+match fingerprints. This prevents one-controller three-body H2H, five-body
+H2H, true multi-participant teams, and FFA from sharing an ambiguous
+experimental identity.
+
+An explicit `evaluationProfileId` owns lineup and payoff semantics. The only
+implemented profile is `two-team-zero-sum-v1`; team-lineup and FFA
+general-sum evaluation remain separate future profiles rather than
+conditionals in the duel matrix.
+
+Population and entrant manifests now carry exact qualification suite/version,
+profile, qualification-contract fingerprint, evidence hash, T/C awards, and
+balance-evidence eligibility. The driver rejects identity or eligibility
+mismatch and emits a hard `balanceVerdictEligible` gate. It may retain
+descriptive diagnostics from an unqualified infrastructure population, but
+those measurements cannot select a candidate; the separate promotion gate
+also remains false while required evaluation layers are unmeasured.
+
+The immutable `frontline-qualification-1` remains the suite-1 T4
+entry-initiative component. CLI 0.9.6 adds a distinct WASM-only
+`frontline-qualification-2` foundation profile. Its first
+`contract-auto-determinism` component runs both participant assignments twice,
+requires verified identical replay hashes, zero faults/disqualification, and
+the declared automatic child life under an immutable shortened contract. It
+awards no tier and is not balance eligible until the remaining T1/T2
+identity, path, fire, evade, and fresh-life holdouts exist. SDK/Guest 0.10.4,
+actor framing, replay 3, and hosted Labs remain unchanged.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

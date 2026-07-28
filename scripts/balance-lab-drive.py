@@ -27,7 +27,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 COHORT_SCRIPT = ROOT / "scripts" / "labs-cohort-drive.py"
 EVALUATOR_SCRIPT = ROOT / "scripts" / "labs-replay-eval.py"
-REPORT_SCHEMA_VERSION = 1
+REPORT_SCHEMA_VERSION = 2
+TWO_TEAM_ZERO_SUM_PROFILE = "two-team-zero-sum-v1"
 PIPELINE_FILES = (
     Path("balance/balance-lab-spec.schema.json"),
     Path("scripts/balance-lab-drive.py"),
@@ -108,6 +109,8 @@ def _contract(value: Any, label: str) -> dict[str, Any]:
         "mapFingerprint",
         "formatId",
         "formatFingerprint",
+        "topologyProfileId",
+        "topologyFingerprint",
         "contractProfileId",
         "matchContractFingerprint",
     }
@@ -120,6 +123,7 @@ def _contract(value: Any, label: str) -> dict[str, Any]:
         "rulesetId",
         "mapId",
         "formatId",
+        "topologyProfileId",
         "contractProfileId",
     ):
         _slug(value[key], f"{label}.{key}")
@@ -133,6 +137,7 @@ def _contract(value: Any, label: str) -> dict[str, Any]:
         "rulesFingerprint",
         "mapFingerprint",
         "formatFingerprint",
+        "topologyFingerprint",
         "matchContractFingerprint",
     ):
         _fingerprint(value[key], f"{label}.{key}")
@@ -189,6 +194,11 @@ def _normalize_entrant(
     raw: Any,
     manifest_root: Path,
     population_id: str,
+    qualification_profile_id: str,
+    qualification_contract_fingerprint: str | None,
+    balance_evidence_eligible: bool,
+    tier: str,
+    coordination_grade: str,
 ) -> dict[str, Any]:
     if not isinstance(raw, dict):
         raise ValueError(f"{population_id}: every entrant must be an object")
@@ -237,11 +247,133 @@ def _normalize_entrant(
             f"{population_id}/{entrant_id}: sourceTreeSha256 mismatch"
         )
     qualification = raw.get("qualification")
-    if not isinstance(qualification, dict) or not qualification:
+    qualification_fields = {
+        "suiteId",
+        "suiteVersion",
+        "qualificationProfileId",
+        "qualificationContractFingerprint",
+        "evidence",
+        "evidenceSha256",
+        "tierAwarded",
+        "coordinationGradeAwarded",
+        "balanceEvidenceEligible",
+    }
+    if (
+        not isinstance(qualification, dict)
+        or set(qualification) != qualification_fields
+    ):
         raise ValueError(
-            f"{population_id}/{entrant_id}: qualification must be a "
-            "non-empty explicit object"
+            f"{population_id}/{entrant_id}: qualification fields must be "
+            f"exactly {', '.join(sorted(qualification_fields))}"
         )
+    _slug(
+        qualification.get("suiteId"),
+        f"{population_id}/{entrant_id}.qualification.suiteId",
+    )
+    suite_version = qualification.get("suiteVersion")
+    if (
+        not isinstance(suite_version, int)
+        or isinstance(suite_version, bool)
+        or suite_version <= 0
+    ):
+        raise ValueError(
+            f"{population_id}/{entrant_id}: suiteVersion must be positive"
+        )
+    if (
+        qualification.get("qualificationProfileId")
+            != qualification_profile_id
+        or qualification.get("qualificationContractFingerprint")
+            != qualification_contract_fingerprint
+        or qualification.get("balanceEvidenceEligible")
+            is not balance_evidence_eligible
+    ):
+        raise ValueError(
+            f"{population_id}/{entrant_id}: qualification identity and "
+            "eligibility must match the population"
+        )
+    evidence = qualification.get("evidence")
+    evidence_sha = qualification.get("evidenceSha256")
+    evidence_path: Path | None = None
+    if evidence is None:
+        if evidence_sha is not None:
+            raise ValueError(
+                f"{population_id}/{entrant_id}: evidenceSha256 requires "
+                "an evidence path"
+            )
+    elif not isinstance(evidence, str) or not evidence.strip():
+        raise ValueError(
+            f"{population_id}/{entrant_id}: evidence must be a path or null"
+        )
+    else:
+        _fingerprint(
+            evidence_sha,
+            f"{population_id}/{entrant_id}.qualification.evidenceSha256",
+        )
+        evidence_path = (manifest_root / evidence).resolve()
+        if (
+            not evidence_path.is_relative_to(allowed_root)
+            or not evidence_path.is_file()
+            or _sha256(evidence_path) != evidence_sha
+        ):
+            raise ValueError(
+                f"{population_id}/{entrant_id}: qualification evidence "
+                "must exist inside the repository and match evidenceSha256"
+            )
+    for field in ("tierAwarded", "coordinationGradeAwarded"):
+        value = qualification.get(field)
+        if value is not None and (
+            not isinstance(value, str) or not value.strip()
+        ):
+            raise ValueError(
+                f"{population_id}/{entrant_id}.qualification.{field} "
+                "must be a non-empty string or null"
+            )
+    if balance_evidence_eligible and (
+        qualification_contract_fingerprint is None
+        or evidence_path is None
+        or evidence_sha is None
+        or qualification.get("tierAwarded") != tier
+        or qualification.get("coordinationGradeAwarded")
+            != coordination_grade
+    ):
+        raise ValueError(
+            f"{population_id}/{entrant_id}: balance-eligible entrants must "
+            "carry matching cumulative tier, coordination, "
+            "qualification-contract, and evidence fingerprints"
+        )
+    if balance_evidence_eligible:
+        evidence_report = json.loads(
+            evidence_path.read_text(encoding="utf-8")
+        )
+        if not isinstance(evidence_report, dict):
+            raise ValueError(
+                f"{population_id}/{entrant_id}: qualification evidence "
+                "must be a JSON object"
+            )
+        expected_report = {
+            "suiteId": qualification["suiteId"],
+            "suiteVersion": qualification["suiteVersion"],
+            "qualificationProfileId": qualification_profile_id,
+            "qualificationContractFingerprint":
+                qualification_contract_fingerprint,
+            "artifactHash": artifact_sha,
+            "passed": True,
+            "profileComplete": True,
+            "tierAwarded": tier,
+            "coordinationGradeAwarded": coordination_grade,
+            "balanceEvidenceEligible": True,
+        }
+        mismatches = [
+            field
+            for field, expected in expected_report.items()
+            if evidence_report.get(field) != expected
+        ]
+        if mismatches:
+            raise ValueError(
+                f"{population_id}/{entrant_id}: qualification evidence "
+                "does not match entrant fields: "
+                + ", ".join(mismatches)
+            )
     return {
         **raw,
         "id": entrant_id,
@@ -249,6 +381,7 @@ def _normalize_entrant(
         "artifactPath": artifact,
         "artifactSha256": artifact_sha,
         "sourceTreeSha256": source_sha,
+        "qualificationEvidencePath": evidence_path,
     }
 
 
@@ -264,6 +397,7 @@ def load_spec(path: Path) -> dict[str, Any]:
         "pairedSeeds",
         "holdoutSeeds",
         "verifyCommand",
+        "evaluationProfileId",
         "candidates",
         "populations",
     }
@@ -280,8 +414,12 @@ def load_spec(path: Path) -> dict[str, Any]:
             "Balance Lab spec has unsupported fields: "
             + ", ".join(sorted(set(document).difference(allowed)))
         )
-    if document.get("schemaVersion") != 1:
-        raise ValueError("Balance Lab schemaVersion must be 1")
+    if document.get("schemaVersion") != 2:
+        raise ValueError("Balance Lab schemaVersion must be 2")
+    if document.get("evaluationProfileId") != TWO_TEAM_ZERO_SUM_PROFILE:
+        raise ValueError(
+            "evaluationProfileId must be two-team-zero-sum-v1 in slice 2"
+        )
     document["experimentId"] = _slug(
         document.get("experimentId"),
         "experimentId",
@@ -393,11 +531,16 @@ def load_spec(path: Path) -> dict[str, Any]:
             "id",
             "tier",
             "coordinationGrade",
+            "qualificationProfileId",
+            "qualificationContractFingerprint",
+            "balanceEvidenceEligible",
             "entrants",
         }:
             raise ValueError(
-                "population fields must be exactly coordinationGrade, "
-                "entrants, id, and tier"
+                "population fields must be exactly balanceEvidenceEligible, "
+                "coordinationGrade, entrants, id, "
+                "qualificationContractFingerprint, "
+                "qualificationProfileId, and tier"
             )
         population_id = _slug(raw.get("id"), "population id")
         if population_id in population_ids:
@@ -405,6 +548,23 @@ def load_spec(path: Path) -> dict[str, Any]:
         population_ids.add(population_id)
         tier = raw.get("tier")
         coordination = raw.get("coordinationGrade")
+        qualification_profile_id = _slug(
+            raw.get("qualificationProfileId"),
+            f"{population_id}.qualificationProfileId",
+        )
+        qualification_contract_fingerprint = raw.get(
+            "qualificationContractFingerprint"
+        )
+        if qualification_contract_fingerprint is not None:
+            _fingerprint(
+                qualification_contract_fingerprint,
+                f"{population_id}.qualificationContractFingerprint",
+            )
+        balance_evidence_eligible = raw.get("balanceEvidenceEligible")
+        if not isinstance(balance_evidence_eligible, bool):
+            raise ValueError(
+                f"{population_id}: balanceEvidenceEligible must be boolean"
+            )
         if (
             not isinstance(tier, str)
             or not tier.strip()
@@ -420,7 +580,16 @@ def load_spec(path: Path) -> dict[str, Any]:
                 f"{population_id}: at least two entrants are required"
             )
         normalized = [
-            _normalize_entrant(item, manifest_root, population_id)
+            _normalize_entrant(
+                item,
+                manifest_root,
+                population_id,
+                qualification_profile_id,
+                qualification_contract_fingerprint,
+                balance_evidence_eligible,
+                tier,
+                coordination,
+            )
             for item in entrants
         ]
         if len({item["id"] for item in normalized}) != len(normalized):
@@ -472,6 +641,12 @@ def build_plan(
                         "tier": population["tier"],
                         "coordinationGrade":
                             population["coordinationGrade"],
+                        "qualificationProfileId":
+                            population["qualificationProfileId"],
+                        "balanceEvidenceEligible":
+                            population["balanceEvidenceEligible"],
+                        "evaluationProfileId":
+                            spec["evaluationProfileId"],
                     }
                 )
     return plan
@@ -517,6 +692,27 @@ def _freeze(
             )
             copied = COHORT._copy_entrant(entrant, destination)
             artifacts[(population["id"], entrant["id"])] = copied
+            evidence_path = entrant["qualificationEvidencePath"]
+            if evidence_path is not None:
+                frozen_evidence = (
+                    output
+                    / "populations"
+                    / population["id"]
+                    / "qualification"
+                    / f"{entrant['id']}.json"
+                )
+                frozen_evidence.parent.mkdir(
+                    parents=True,
+                    exist_ok=True,
+                )
+                shutil.copy2(evidence_path, frozen_evidence)
+                if _sha256(frozen_evidence) != (
+                    entrant["qualification"]["evidenceSha256"]
+                ):
+                    raise ValueError(
+                        f"{population['id']}/{entrant['id']}: frozen "
+                        "qualification evidence mismatch"
+                    )
     run = {
         "schemaVersion": REPORT_SCHEMA_VERSION,
         "spec": _public_spec(spec),
@@ -571,6 +767,23 @@ def _resume(
                     f"{population['id']}/{entrant['id']}: "
                     "frozen artifact or source changed"
                 )
+            if entrant["qualificationEvidencePath"] is not None:
+                frozen_evidence = (
+                    output
+                    / "populations"
+                    / population["id"]
+                    / "qualification"
+                    / f"{entrant['id']}.json"
+                )
+                if (
+                    not frozen_evidence.is_file()
+                    or _sha256(frozen_evidence)
+                        != entrant["qualification"]["evidenceSha256"]
+                ):
+                    raise ValueError(
+                        f"{population['id']}/{entrant['id']}: frozen "
+                        "qualification evidence changed"
+                    )
             artifacts[(population["id"], entrant["id"])] = artifact
     return artifacts
 
@@ -621,6 +834,11 @@ def _candidate_identity_issues(
             expected["formatFingerprint"],
         ),
         (
+            "topologyFingerprint",
+            contract.get("topology", {}).get("topologyFingerprint"),
+            expected["topologyFingerprint"],
+        ),
+        (
             "contractProfileId",
             capabilities.get("contractProfileId"),
             expected["contractProfileId"],
@@ -665,6 +883,18 @@ def _result_row(
         "populationId": population["id"],
         "tier": population["tier"],
         "coordinationGrade": population["coordinationGrade"],
+        "qualificationProfileId": population["qualificationProfileId"],
+        "balanceEvidenceEligible": population["balanceEvidenceEligible"],
+        "balanceVerdictEligibility": {
+            "eligible": population["balanceEvidenceEligible"],
+            "reason": (
+                "population carries matching profile-scoped cumulative "
+                "qualification evidence"
+                if population["balanceEvidenceEligible"]
+                else "diagnostic-only population; measurements cannot "
+                "select or promote a candidate"
+            ),
+        },
         "seed": plan["seed"],
         "teamAssignments": plan["teamAssignments"],
         "status": execution["status"],
@@ -793,12 +1023,30 @@ def _cell_report(
         else None
     )
     entrant_ids = [item["id"] for item in population["entrants"]]
+    cell_evidence_eligible = (
+        population["balanceEvidenceEligible"]
+        and len(valid) == len(rows)
+    )
     report = {
         "candidateId": candidate["id"],
         "populationId": population["id"],
         "factors": candidate["factors"],
+        "topologyProfileId":
+            candidate["contract"]["topologyProfileId"],
         "tier": population["tier"],
         "coordinationGrade": population["coordinationGrade"],
+        "qualificationProfileId": population["qualificationProfileId"],
+        "balanceEvidenceEligible": population["balanceEvidenceEligible"],
+        "balanceVerdictEligibility": {
+            "eligible": cell_evidence_eligible,
+            "reason": (
+                "all matches verified for a population carrying matching "
+                "profile-scoped cumulative qualification evidence"
+                if cell_evidence_eligible
+                else "population is diagnostic-only or its match matrix is "
+                "incomplete; measurements cannot select a candidate"
+            ),
+        },
         "plannedMatches": len(rows),
         "validMatches": len(valid),
         "payoffMatrix": _payoff_matrix(valid, entrant_ids),
@@ -816,7 +1064,7 @@ def _cell_report(
             },
             "exploitability": {
                 "status": "not-measured",
-                "reason": "best-response search is not in slice 1",
+                "reason": "best-response search is not yet implemented",
             },
             "strategicDiversity": {
                 "status": "descriptive-payoff-matrix-only",
@@ -944,6 +1192,8 @@ def _factor_contrasts(
                     contrasts.append(
                         {
                             "populationId": population_id,
+                            "balanceEvidenceEligible":
+                                baseline["balanceEvidenceEligible"],
                             "factor": factor_name,
                             "heldFactors": dict(held),
                             "from": baseline["factors"][factor_name],
@@ -988,7 +1238,11 @@ def _write_report(output: Path, report: dict[str, Any]) -> None:
         "",
         (
             f"Evidence class: `{report['evidenceClass']}`. "
-            "No composite balance score is calculated."
+            "No composite balance score is calculated. "
+            f"Balance verdict eligible: "
+            f"`{str(report['balanceVerdictEligible']).lower()}`. "
+            f"Candidate promotion eligible: "
+            f"`{str(report['candidatePromotionEligible']).lower()}`."
         ),
         "",
         "| Candidate | Population | Valid | Side delta | Median ticks |",
@@ -1013,7 +1267,7 @@ def _write_report(output: Path, report: dict[str, Any]) -> None:
             "",
             "Exploitability, equilibrium support, automated best responses, "
             "restricted-play ablations, and human entertainment review remain "
-            "explicitly unmeasured in slice 1.",
+            "explicitly unmeasured in the current slice.",
             "",
         ]
     )
@@ -1121,31 +1375,48 @@ def run(
             )
     valid_matches = sum(cell["validMatches"] for cell in cells)
     planned_matches = sum(cell["plannedMatches"] for cell in cells)
+    report_status = (
+        "planned"
+        if dry_run
+        else "complete"
+        if valid_matches == planned_matches
+        else "invalid"
+    )
+    unmeasured_layers = [
+        "restricted-play capability ablations",
+        "best-response exploitability",
+        "equilibrium population estimation",
+        "automated candidate search",
+        "outcome-blind human replay review",
+    ]
+    balance_verdict_eligible = (
+        report_status == "complete"
+        and spec["evidenceClass"] in {
+            "same-cohort-causality",
+            "native-product",
+        }
+        and all(
+            population["balanceEvidenceEligible"]
+            for population in spec["populations"]
+        )
+    )
     report = {
         "schemaVersion": REPORT_SCHEMA_VERSION,
         "experimentId": spec["experimentId"],
-        "status": (
-            "planned"
-            if dry_run
-            else "complete"
-            if valid_matches == planned_matches
-            else "invalid"
-        ),
+        "status": report_status,
         "evidenceClass": spec["evidenceClass"],
         "hypothesis": spec["hypothesis"],
         "candidateDefinition":
-            "mode + ruleset + map + match-format",
+            "mode + ruleset + map + match-format + resolved topology",
+        "evaluationProfileId": spec["evaluationProfileId"],
         "pairedSeeds": spec["pairedSeeds"],
         "holdoutSeeds": spec["holdoutSeeds"],
         "cells": cells,
         "factorContrasts": _factor_contrasts(cells, spec["factors"]),
-        "unmeasuredLayers": [
-            "restricted-play capability ablations",
-            "best-response exploitability",
-            "equilibrium population estimation",
-            "automated candidate search",
-            "outcome-blind human replay review",
-        ],
+        "balanceVerdictEligible": balance_verdict_eligible,
+        "candidatePromotionEligible":
+            balance_verdict_eligible and not unmeasured_layers,
+        "unmeasuredLayers": unmeasured_layers,
     }
     _write_report(output, report)
     return report

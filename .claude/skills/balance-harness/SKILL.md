@@ -19,8 +19,11 @@ turret-exit arm uses `--mobilize-turrets`.
 For a multi-factor generic candidate, use the mode-independent Balance Lab
 contract in `docs/NILBOTS-BALANCE-LAB.md` and a checked-in spec under
 `balance/`. Its candidate identity is always
-`mode + ruleset + map + match format`; never collapse those axes into a
-nickname or silently promote an experimental arm.
+`mode + ruleset + map + match format`, resolved with an exact topology
+profile/fingerprint. Never collapse those axes or the body/participant shape
+into a nickname or silently promote an experimental arm. Use the declared
+evaluation profile for lineup/payoff semantics; the implemented
+`two-team-zero-sum-v1` profile is not an FFA evaluator.
 
 ## 1. Classify and pre-register the experiment
 
@@ -114,6 +117,11 @@ python3 scripts/balance-lab-drive.py \
   --spec balance/frontline-duel-progression-v1.json \
   --output /tmp/nilbots-balance/frontline-duel-progression-v1
 
+nilbots experiment frontline-labs qualify \
+  --bot <candidate-bot.wasm> \
+  --suite frontline-qualification-2 \
+  --out /tmp/qualification/<bot>
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
@@ -141,10 +149,20 @@ progression-policy bundle rather than claiming a one-boolean lifecycle
 ablation.
 
 Balance Lab specs must declare evidence class, exact fingerprints, artifact
-and source hashes, qualification metadata, full factor coverage, paired seeds,
-and sealed holdouts. `infrastructure-smoke` with unqualified bots validates
-plumbing and effect direction only. It cannot promote a candidate or satisfy
-the independently competent tier-population requirement.
+and source hashes, topology and evaluation profiles, exact profile-scoped
+qualification evidence, full factor coverage, paired seeds, and sealed
+holdouts. The driver freezes and hashes a balance-eligible entrant's actual
+qualification report and requires its artifact/profile/T/C fields to match.
+`infrastructure-smoke` with unqualified bots validates plumbing and effect
+direction only. It cannot select or promote a candidate or satisfy the
+independently competent tier-population requirement.
+
+Frozen `frontline-qualification-1` is only the historical T4
+`entry-initiative` component. The WASM-only suite 2 currently implements
+`contract-auto-determinism`: mirrored repeated hashes, zero faults, and the
+declared automatic child life. A pass still has `profileComplete: false`,
+`tierAwarded: null`, and `balanceEvidenceEligible: false`; do not put it into
+a voting population until the cumulative profile is complete.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and

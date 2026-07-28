@@ -43,7 +43,7 @@ self-hosted development.
 
 ## Local Frontline experiment
 
-CLI 0.9.5 includes the explicitly separate, unranked Frontline authoring loop:
+CLI 0.9.6 includes the explicitly separate, unranked Frontline authoring loop:
 
 ```bash
 nilbots experiment frontline \
@@ -128,5 +128,21 @@ Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract
 fingerprints and payload hash.
+
+The versioned local qualification runner can check the first deterministic
+foundation component:
+
+```bash
+nilbots experiment frontline-labs qualify \
+  --bot LabsBot/out/bot.wasm \
+  --suite frontline-qualification-2 \
+  --out out/LabsBot-qualification
+```
+
+Suite 2 currently requires WASM and checks mirrored automatic-life contract
+handling plus exact repeated replay hashes. It intentionally awards no tier
+and is not balance-evidence eligible until the full cumulative profile is
+implemented. Frozen suite 1 remains available only as the earlier
+`entry-initiative` T4 component.
 
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

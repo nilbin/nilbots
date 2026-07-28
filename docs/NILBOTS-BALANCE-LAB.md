@@ -1,6 +1,7 @@
 # Nilbots Balance Lab
 
-Status: architecture and slice 1 implemented; no candidate promoted.
+Status: architecture and identity/qualification slice 2 implemented; no
+candidate promoted.
 
 ## Purpose
 
@@ -9,11 +10,14 @@ progressively more expensive evaluation pipeline. A candidate is always:
 
 `mode + ruleset + map + match format`
 
-Those four components remain independently selectable, immutable,
-fingerprinted, and present in every replay. A candidate ID is an experiment
-label, never a substitute for the component fingerprints. A playlist may pin
-a candidate later; a ladder belongs to that playlist and is not part of the
-candidate itself.
+Those four product components remain independently selectable, immutable,
+fingerprinted, and present in every replay. Execution additionally pins the
+exact topology fingerprint: participant/controller assignment, scoring teams,
+stable body capacity, and initial lives. The resulting subject is a
+**resolved candidate**: `candidate + topology profile`. A candidate ID or
+topology-profile label is never a substitute for its fingerprint. A playlist
+may pin a resolved candidate later; a ladder belongs to that playlist and is
+not part of the candidate itself.
 
 The intended operating split is approximately 80% deterministic automation
 and 20% model/human judgment. Automation owns enumeration, execution,
@@ -26,12 +30,12 @@ to program.
 
 | Layer | Existing reusable pieces | Missing after slice 1 |
 | --- | --- | --- |
-| Candidate identity | Typed mode/rules/map/format definitions; independent fingerprints; aggregate match fingerprint; replay-v3 contract | General candidate generator and hosted catalog |
+| Candidate identity | Typed mode/rules/map/format definitions; explicit topology profile/fingerprint; aggregate match fingerprint; replay-v3 contract | General candidate generator and hosted catalog |
 | Static/map analysis | Exact map model; deterministic map validators; duel map enumeration in `FrontlineLabsDuelTheoryTests`; one-bend route/fork scripts | Mode-neutral map feature extractor, symmetry/fairness report, generated-map rejection |
 | Exact tactics | Engine chronology validation; projectile and collision kernels; `shot-theory-lab.py`; bounded duel proofs | General microstate DSL, dominance solver, turret-standoff and objective-suppression catalog |
 | Restricted play | Action legality and data-driven rules make restrictions representable | Versioned ablation definitions and equivalent restricted bot wrappers |
-| Bot tiers | T1–T8 and C0–C5 definitions; qualification suite; retained source/WASM/reference evidence | Complete cumulative probes, multiple independently competent bots per tier, planning-budget declarations |
-| Population execution | Mirrored cohort runner; all-bot retention; paired seeds; replay verification; no champion-only pruning | Multi-tier population manifest, cross-tier blocks, automatic holdout sealing |
+| Bot tiers | T1–T8 and C0–C5 definitions; profile-scoped qualification provenance; immutable suite-1 T4 component; suite-2 WASM determinism/automatic-life component; retained source/WASM/reference evidence | Complete cumulative T1/T2 and higher probes, multiple independently competent bots per tier, planning-budget declarations |
+| Population execution | Mirrored cohort runner; all-bot retention; paired seeds; replay verification; no champion-only pruning; hard balance-verdict eligibility gate | Multi-tier population manifest, cross-tier blocks, automatic holdout sealing |
 | Replay metrics | Rich generic Frontline dynamics report; activity, combat, population, objectives, phases, deadlocks | Mode adapters for deathmatch/FFA; confidence intervals; coordinated-play classifiers |
 | Game theory | Exact local payoff examples and full empirical match rows | Payoff-tensor analysis, equilibrium support, best-response search, exploitability |
 | Candidate search | Immutable numeric/map experiment factories | Constrained/Bayesian/evolutionary search with cheap-layer promotion |
@@ -76,6 +80,13 @@ Two-team 1v1, 2v2, and 3v3 are team-level two-player zero-sum environments.
 FFA is general-sum and receives separate coalition, kingmaking, survival, and
 placement metrics, playlists, and ladders.
 
+An `evaluationProfileId` owns lineup construction, participant/team
+assignment, payoff interpretation, and its compatible dynamics adapter. Slice
+2 implements `two-team-zero-sum-v1`. Planned profiles such as
+`team-lineup-zero-sum-v1` and `ffa-general-sum-v1` extend this seam when their
+first real experiment is scheduled; FFA will not be bolted onto the duel
+payoff matrix.
+
 ## Balance vector
 
 There is no composite “fun” or “balance” score. Every report preserves:
@@ -95,13 +106,13 @@ There is no composite “fun” or “balance” score. Every report preserves:
 An unsupported dimension is `not-measured`, never zero and never silently
 omitted.
 
-## Slice 1
+## Implemented slices
 
 [`scripts/balance-lab-drive.py`](../scripts/balance-lab-drive.py) implements
 the smallest complete orchestration path:
 
 - validate that candidates cover the declared factor product exactly once;
-- require exact mode/rules/map/format and aggregate fingerprints;
+- require exact mode/rules/map/format/topology and aggregate fingerprints;
 - freeze every entrant source tree and WASM hash;
 - freeze the schema, orchestrator, cohort runner, evaluator, and gameplay
   checkout identities, and refuse a drifted resume;
@@ -111,6 +122,24 @@ the smallest complete orchestration path:
 - emit per-cell payoff matrices;
 - adapt generic Frontline replay v3 into the existing rich dynamics report;
 - emit a vector report and same-artifact factorial contrasts.
+
+Slice 2 adds:
+
+- a checked evaluation-profile identity, currently
+  `two-team-zero-sum-v1`;
+- explicit topology profile and independently replay-verified topology
+  fingerprint;
+- exact qualification provenance fields on every entrant and population;
+- a profile-scoped qualification-contract fingerprint so a Ground result
+  cannot silently qualify an Air or FFA population;
+- an explicit `balanceVerdictEligible` gate. Diagnostic metrics and contrasts
+  may still be calculated for smoke populations, but cannot select or promote
+  a candidate. `candidatePromotionEligible` additionally remains false while
+  required evaluation layers are explicitly unmeasured;
+- the WASM-only `frontline-qualification-2`
+  `contract-auto-determinism` component, which repeats both assignments and
+  requires identical replay hashes, zero faults, and the declared automatic
+  child life. It awards no tier while the cumulative profile is incomplete.
 
 Run it from a repository checkout:
 
@@ -140,6 +169,21 @@ It declares one disclosed paired seed, two sealed holdout seeds, all six
 factor cells, and two explicitly unqualified retained artifacts. Its evidence
 class is `infrastructure-smoke`: it proves orchestration, identity, causal
 comparison shape, and report generation, not balance.
+
+## Seasonal mechanism extension
+
+Most new forms and transforms are data-defined ruleset changes and enter the
+same pipeline as new candidate arms. A genuinely new semantic capability
+(Air traversal, shield, mine, heal, and so on) is a closed typed engine/SDK/
+replay addition, followed by a new qualification profile and named metric or
+ablation evidence. Historical artifacts and replays remain valid; only their
+eligibility for the new profile changes.
+
+Season identity never changes simulation semantics. A season curates immutable
+playlist versions, and each playlist pins its resolved candidate, admission
+profile, qualification requirement, execution policy, and ladder. This lets a
+season intentionally obsolete old bots without rewriting the Lab or erasing
+historical results.
 
 ## Immediate Frontline experiment
 

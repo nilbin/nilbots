@@ -224,6 +224,84 @@ public sealed class FrontlineLabsQualificationCommandTests
                     "--suite",
                     "future-suite",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsQualificationCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--runtime",
+                    "in-process",
+                    "--suite",
+                    "frontline-qualification-2",
+                ]));
+    }
+
+    [Fact]
+    public void FoundationProfile_VerifiesAutomaticLifeAndDeterministicWasm()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-qualification-foundation-{Guid.NewGuid():N}");
+        try
+        {
+            string bot = Path.Combine(
+                FindRepoRoot(),
+                "arena-bots",
+                "frontline-labs",
+                "duel-depth-v1-2026-07-28",
+                "initiative-planner",
+                "bot-balance-lab-v1.wasm");
+
+            Assert.Equal(0, RunFoundation(bot, temporary));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(
+                    Path.Combine(temporary, "qualification.json")));
+            JsonElement root = document.RootElement;
+            Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(
+                "frontline-h2h-one-bend-auto-foundation-1",
+                root.GetProperty("qualificationProfileId").GetString());
+            Assert.True(root.GetProperty("passed").GetBoolean());
+            Assert.False(
+                root.GetProperty("profileComplete").GetBoolean());
+            Assert.Equal(
+                JsonValueKind.Null,
+                root.GetProperty("tierAwarded").ValueKind);
+            Assert.False(
+                root.GetProperty("balanceEvidenceEligible").GetBoolean());
+            JsonElement probe = root.GetProperty("probes")[0];
+            Assert.Equal(
+                "contract-auto-determinism",
+                probe.GetProperty("probeId").GetString());
+            Assert.All(
+                probe.GetProperty("assignments").EnumerateArray(),
+                assignment =>
+                {
+                    Assert.True(
+                        assignment
+                            .GetProperty("replayHashMatched")
+                            .GetBoolean());
+                    Assert.True(
+                        assignment
+                            .GetProperty("primary")
+                            .GetProperty("automaticLifeStarted")
+                            .GetBoolean());
+                    Assert.True(
+                        assignment.GetProperty("passed").GetBoolean());
+                    AssertReplayVerifies(
+                        temporary,
+                        assignment.GetProperty("primary"));
+                    AssertReplayVerifies(
+                        temporary,
+                        assignment.GetProperty("determinismRepeat"));
+                });
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
     }
 
     private static void AssertReplayVerifies(
@@ -252,6 +330,33 @@ public sealed class FrontlineLabsQualificationCommandTests
                     bot,
                     "--runtime",
                     "in-process",
+                    "--out",
+                    output,
+                ]);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+    }
+
+    private static int RunFoundation(string bot, string output)
+    {
+        TextWriter originalOut = Console.Out;
+        TextWriter originalError = Console.Error;
+        try
+        {
+            Console.SetOut(TextWriter.Null);
+            Console.SetError(TextWriter.Null);
+            return FrontlineLabsQualificationCommand.Run(
+                [
+                    "--bot",
+                    bot,
+                    "--runtime",
+                    "wasm",
+                    "--suite",
+                    "frontline-qualification-2",
                     "--out",
                     output,
                 ]);

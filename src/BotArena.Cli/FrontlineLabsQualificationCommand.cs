@@ -68,7 +68,9 @@ public static class FrontlineLabsQualificationCommand
             "suite",
             FrontlineLabsQualificationDefinition.SuiteId);
         if (suiteId
-            != FrontlineLabsQualificationDefinition.SuiteId)
+            is not (
+                FrontlineLabsQualificationDefinition.SuiteId
+                or FrontlineLabsQualificationDefinition.FoundationSuiteId))
         {
             throw new InvalidOperationException(
                 $"Unknown qualification suite '{suiteId}'.");
@@ -80,6 +82,15 @@ public static class FrontlineLabsQualificationCommand
                 "out",
                 Path.Combine("out", suiteId)));
         Directory.CreateDirectory(outputDirectory);
+        if (suiteId
+            == FrontlineLabsQualificationDefinition.FoundationSuiteId)
+        {
+            return FrontlineLabsFoundationQualificationCommand.Run(
+                botSpec,
+                runtimeKind,
+                seed,
+                outputDirectory);
+        }
 
         ActorResolvedMatchDefinition definition =
             FrontlineLabsQualificationDefinition.CreateEntryProbe();

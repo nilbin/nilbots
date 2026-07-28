@@ -69,19 +69,36 @@ cumulative dynamic qualification runner exists, describe one-pass entrants
 only as T1/T2 candidates unless replay evidence proves a specific higher
 probe; never infer a higher tier from tournament wins.
 
-The first dynamic component now exists:
+Two separately versioned dynamic components now exist:
 
 ```bash
+# Frozen positional component:
 nilbots experiment frontline-labs qualify \
   --bot <generic-project-or-wasm> \
   --suite frontline-qualification-1 \
   --out <evidence-dir>
+
+# Current WASM-only foundation component:
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-2 \
+  --out <evidence-dir>
 ```
 
-It mirrors the `entry-initiative` probe and returns `3` for a clean failure.
-The report deliberately awards no tier until T1–T3 prerequisites are added.
-Use it to exclude failed positional references, never to label one passing
-artifact T4 by itself.
+Suite 1 mirrors the `entry-initiative` probe; retain it as immutable T4
+component evidence and never label one passing artifact T4 by itself. Suite 2
+repeats both assignments under the automatic-companion topology and requires
+verified identical replay hashes, zero faults, and the declared automatic
+child life. Its current report has `profileComplete: false`, deliberately
+awards no tier, and is not balance-evidence eligible. Use it to separate
+current-toolchain contract competence from strategy, not as T1/T2 proof.
+
+When the cumulative suite is complete, a Balance Lab voting entrant must pin
+the exact suite/version, qualification profile and contract fingerprint,
+evidence-file SHA-256, artifact hash, and awarded T/C values. Never copy a
+tier label between profiles or seasons. A new strategically necessary
+capability such as Air or FFA coalition play requires a new/extended profile;
+historical qualification remains valid only for its original profile.
 
 Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
 hosted path has quotas and no ladder; the exact local generic runner is the

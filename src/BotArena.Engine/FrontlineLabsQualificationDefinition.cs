@@ -10,7 +10,13 @@ namespace BotArena.Engine;
 public static class FrontlineLabsQualificationDefinition
 {
     public const string SuiteId = "frontline-qualification-1";
+    public const string FoundationSuiteId = "frontline-qualification-2";
+    public const int FoundationSuiteVersion = 2;
+    public const string FoundationProfileId =
+        "frontline-h2h-one-bend-auto-foundation-1";
     public const string EntryProbeId = "entry-initiative";
+    public const string ContractAutoDeterminismProbeId =
+        "contract-auto-determinism";
 
     private const string Team0SpawnId =
         "qualification-team-0-prime";
@@ -106,6 +112,76 @@ public static class FrontlineLabsQualificationDefinition
             deployment,
             lifecycleAssignments,
             [],
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    /// <summary>
+    /// First immutable component of the v2 foundation profile. The ordinary
+    /// automatic-companion contract is shortened to one unlock and given an
+    /// unreachable capture threshold so every conforming artifact observes
+    /// the same full topology window. No tier is awarded by this component.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateContractAutoDeterminismProbe()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateAutomaticCompanionsExperiment();
+        var frontline = (FrontlineGameModeDefinition)
+            source.Rules.GameMode;
+        FrontlineCaptureDefinition capture = frontline.Capture;
+        var probeMode = new FrontlineGameModeDefinition(
+            frontline.FrontlineVictory,
+            frontline.ScoreCatalog,
+            frontline.FrontlinePositionCount,
+            new FrontlineCaptureDefinition(
+                threshold: 1000,
+                capture.GainPerSoleTeamTick,
+                capture.DecayAmount,
+                capture.DecayIntervalTicks,
+                capture.RedeployPauseTicks,
+                capture.GainSchedule,
+                capture.ControlPolicy));
+        var rules = new ActorRulesDefinition(
+            $"{FoundationSuiteId}-{ContractAutoDeterminismProbeId}",
+            new ActorRulesLimits(
+                maxTicks: 130,
+                source.Rules.Limits.RuntimeFaults),
+            source.Rules.SeedMechanics,
+            probeMode,
+            source.Rules.Lifecycle,
+            source.Rules.Forms,
+            source.Rules.MovementProfiles,
+            source.Rules.VisionProfiles,
+            source.Rules.AttackProfiles,
+            source.Rules.Actions,
+            source.Rules.FabricationTransitions,
+            source.Rules.SameLifeTransitions,
+            source.Rules.ReplicationTransitions,
+            source.Rules.TeamPerception,
+            source.Rules.Collisions,
+            source.Rules.TickResolution);
+
+        PublicMatchTopology topology = source.Topology with
+        {
+            UnitSlots = source.Topology.UnitSlots
+                .Where(slot => slot.UnitId != 2)
+                .ToImmutableArray(),
+        };
+        ActorUnitSlotLifecycleAssignmentDefinition[] lifecycleAssignments =
+        [
+            .. source.LifecycleAssignments.Where(assignment =>
+                assignment.UnitId != 2),
+        ];
+
+        return new ActorResolvedMatchDefinition(
+            rules,
+            source.Map,
+            source.Format,
+            topology,
+            source.InitialDeployment,
+            lifecycleAssignments,
+            source.ParticipantRegionAssignments,
             source.ModeMapBinding,
             source.CapabilityVersions);
     }

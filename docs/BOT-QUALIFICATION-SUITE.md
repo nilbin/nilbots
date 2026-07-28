@@ -1,10 +1,11 @@
 # Bot qualification suite
 
 Status: implementation contract for turning the T1–T8/C0–C5 framework into
-balance-grade evidence. The mirrored `entry-initiative` T4 component and its
-canonical replay/report runner are implemented; the cumulative suite remains
-incomplete. Current one-pass cohorts remain T1/T2 and
-developer-experience evidence.
+balance-grade evidence. Immutable suite 1 retains the mirrored
+`entry-initiative` T4 component. Suite 2 begins a new profile-scoped,
+WASM-only cumulative foundation with the implemented
+`contract-auto-determinism` T1 component. The cumulative profile remains
+incomplete, awards no tier, and cannot produce balance-grade evidence.
 
 ## Purpose
 
@@ -13,7 +14,7 @@ weak, or a mechanic is dominant. Qualification measures capabilities before
 opening the A/B result. It is not a second ladder and does not crown a
 champion.
 
-The first suite should be `frontline-qualification-1`. Each run records:
+Every suite run records:
 
 - suite ID and version;
 - source and WASM artifact SHA-256;
@@ -44,14 +45,25 @@ Recommended CLI shape:
 ```text
 nilbots experiment frontline-labs qualify \
   --bot path/to/bot.wasm \
-  --suite frontline-qualification-1 \
+  --suite frontline-qualification-2 \
   --out path/to/evidence
 ```
 
-This command is implemented for `entry-initiative`. It returns `0` when both
-assignments pass, `3` for a clean probe failure, and `2` for runtime or
-contract invalidity. Its report intentionally sets `tierAwarded` to null
-until the prerequisite T1–T3 components exist.
+`frontline-qualification-1` is frozen evidence for `entry-initiative`; it may
+still run in-process for diagnostics and cannot be reinterpreted as a
+cumulative tier.
+
+`frontline-qualification-2` currently implements
+`contract-auto-determinism` under profile
+`frontline-h2h-one-bend-auto-foundation-1`. It requires canonical WASM, runs
+both participant assignments twice under the same seed, verifies every
+replay, requires identical hashes between repeats, zero faults or
+disqualification, and the contract-declared tick-120 automatic child life.
+It records rules, map, format, topology, match, controller, and qualification
+contract fingerprints. It returns `0` when this component passes and `3` for
+a clean failure, while `profileComplete` is false, `tierAwarded` remains null,
+and
+`balanceEvidenceEligible` remains false.
 
 The report should be deterministic JSON plus a short text summary. The CLI
 must not mutate a ladder, season, playlist, or submitted bot.
@@ -70,6 +82,12 @@ legal tuning values so passing cannot depend on coordinates or probe names.
 | `contract-counts` | Handles one, two, and three participant slots and changing ally/enemy/lifecycle counts. |
 | `rules-values` | Reads range, speed, cooldown, health, forms, objectives, topology, and action legality from the resolved contract. |
 | `runtime-determinism` | Same artifact/contract/seed produces the same decisions and replay hash with no faults. |
+
+The implemented v2 `contract-auto-determinism` probe covers one portion of
+`contract-counts`, declared lifecycle values, and `runtime-determinism` on a
+two-team, one-controller-per-team, two-slot topology. It does not yet prove
+non-default identities, true team lineups, three slots, or varied rules
+values, so it is a component rather than T1.
 
 Static source inspection is not a qualification requirement; behavior on
 holdouts is. A legacy bot may intentionally fail a new rules generation
@@ -226,8 +244,30 @@ sentinel attacks, action counts, first-life health/entry, objective residence,
 and initial-objective capture progress. Passing requires entry with no more
 than one damage taken before it and at least five ticks of effective capture
 progress, so touching the region during a blind run-through is insufficient.
-The next implementation package adds T1–T3 prerequisites and the T5
-three-policy matrix; only then can the report award a cumulative tier.
+The next implementation package completes the v2 foundation with mirrored
+and reflected/translated holdouts for contract identities/counts,
+`objective-path`, `direct-fire`, `straight-evade`, and fresh automatic-life
+return/reorientation. Only the complete prerequisite set may award
+`T2/frontline-h2h-one-bend-auto-v1`. T3 and the T5 three-policy matrix remain
+later packages.
+
+## Qualification profile boundary
+
+A capability tier is not globally transferable by label alone. Balance Lab
+entrants carry:
+
+- suite ID and version;
+- qualification profile ID;
+- qualification-contract fingerprint;
+- evidence-file SHA-256;
+- awarded T/C values;
+- explicit balance-evidence eligibility.
+
+Profiles group semantic capability families rather than every numeric tune.
+Safe parameter changes may reuse a profile; adding strategically necessary
+Air, a new action family, FFA coalition play, or a new participant arrangement
+requires a new or extended profile. A legacy bot keeps its historical result
+but may be intentionally ineligible for a new season.
 
 ## Evidence use
 
