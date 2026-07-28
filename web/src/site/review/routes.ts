@@ -21,6 +21,7 @@ import type {
 import {
   REVIEW_COMPLETED_MATCH_ID,
   REVIEW_FAILED_MATCH_ID,
+  REVIEW_LAUNCHED_MATCH_ID,
   REVIEW_LIVE_MATCH_ID,
   REVIEW_SET_ID,
   arenaCapabilitiesFixture,
@@ -42,6 +43,8 @@ import {
   liveMatchFixture,
   liveMatchDetailFixture,
   labsCatalogFixture,
+  launchedMatchDetailFixture,
+  launchedMatchLiveFixture,
   matchSetFixture,
   matchesFixture,
   meFixture,
@@ -158,6 +161,14 @@ const exactRoutes = new Map<string, SiteReviewApiResponse>([
   endpoint<MatchDetail>(
     `GET /api/matches/${REVIEW_LIVE_MATCH_ID}`,
     liveMatchDetailFixture,
+  ),
+  endpoint<MatchLive>(
+    `GET /api/matches/${REVIEW_LAUNCHED_MATCH_ID}/live`,
+    launchedMatchLiveFixture,
+  ),
+  endpoint<MatchDetail>(
+    `GET /api/matches/${REVIEW_LAUNCHED_MATCH_ID}`,
+    launchedMatchDetailFixture,
   ),
   endpoint<MatchLive>(
     `GET /api/matches/${REVIEW_COMPLETED_MATCH_ID}/live`,

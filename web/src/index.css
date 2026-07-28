@@ -229,6 +229,7 @@ html[data-arena-mode='viewer'] #root {
     gap: 16px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
   .arena-form-body > * {
     flex: none;
@@ -247,8 +248,28 @@ html[data-arena-mode='viewer'] #root {
     .arena-dialog {
       inset: auto 12px calc(3.5rem + env(safe-area-inset-bottom) + 8px);
       width: auto;
+      height: auto;
       max-height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
       margin: 0;
+    }
+    /*
+     * A definite form height is intentional. Mobile Safari can collapse a flex child's
+     * block size when a fixed dialog has only an intrinsic height plus max-height; the
+     * header remains while the form is clipped below the viewport. Ranked setup is
+     * compact; bot/opponent pickers get the taller frame and scroll inside it.
+     */
+    .arena-dialog:has(.arena-form) {
+      height: min(
+        710px,
+        calc(100dvh - 5rem - env(safe-area-inset-bottom))
+      );
+      max-height: none;
+    }
+    .arena-dialog[data-layout='compact']:has(.arena-form) {
+      height: min(
+        520px,
+        calc(100dvh - 5rem - env(safe-area-inset-bottom))
+      );
     }
     .appearance-save-dock {
       position: fixed;
@@ -328,8 +349,7 @@ html[data-arena-mode='viewer'] #root {
      choosing, deploying and buying; records and navigation keep the quieter `.btn`.
      A bright achromatic edge and shallow lift make the target feel tactile without
      spending the forge material or a player's colour as system state. */
-  .btn-strong,
-  .play-trigger {
+  .btn-strong {
     border-color: color-mix(
       in oklab,
       var(--color-arena-text) 38%,
@@ -338,8 +358,7 @@ html[data-arena-mode='viewer'] #root {
     background: var(--color-arena-raise);
     font-weight: 600;
   }
-  .btn-strong:hover:not(:disabled),
-  .play-trigger:hover:not(:disabled) {
+  .btn-strong:hover:not(:disabled) {
     border-color: var(--color-arena-text);
     background: color-mix(
       in oklab,
@@ -348,23 +367,177 @@ html[data-arena-mode='viewer'] #root {
     );
     transform: translateY(-1px);
   }
-  .btn-strong:active:not(:disabled),
-  .play-trigger:active:not(:disabled) {
+  .btn-strong:active:not(:disabled) {
     transform: translateY(1px);
   }
-  .btn-strong:disabled,
-  .play-trigger:disabled {
+  .btn-strong:disabled {
     border-color: var(--color-arena-edge);
     background: var(--color-arena-panel);
   }
-  .play-trigger::before {
+
+  /*
+   * The permanent Arena entry is a launcher, not another document button. Three
+   * structural chambers give it a recognisable silhouette while the achromatic
+   * treatment leaves player accents and forge material to their semantic jobs.
+   */
+  .arena-launcher {
+    position: relative;
+    display: inline-grid;
+    min-height: 44px;
+    grid-template-columns: 31px minmax(0, 1fr) 24px;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid
+      color-mix(
+        in oklab,
+        var(--color-arena-text) 46%,
+        var(--color-arena-edge2)
+      );
+    border-radius: 4px;
+    background: var(--color-arena-raise);
+    color: var(--color-arena-text);
+    padding: 0;
+    font-family: var(--font-sans);
+    text-align: left;
+    box-shadow:
+      inset 0 2px 0
+        color-mix(
+          in oklab,
+          var(--color-arena-text) 10%,
+          transparent
+        ),
+      inset 0 -2px 0 rgb(0 0 0 / 0.22);
+    transition:
+      border-color 150ms,
+      background-color 150ms,
+      transform 120ms;
+  }
+  .arena-launcher:hover {
+    border-color: var(--color-arena-text);
+    background: color-mix(
+      in oklab,
+      var(--color-arena-text) 6%,
+      var(--color-arena-raise)
+    );
+    transform: translateY(-1px);
+  }
+  .arena-launcher:active {
+    transform: translateY(1px);
+  }
+  .arena-launcher:focus-visible {
+    outline: 2px solid var(--color-arena-text);
+    outline-offset: 2px;
+  }
+  .arena-launcher-mark,
+  .arena-launcher-chevron {
+    display: grid;
+    place-items: center;
+    background: color-mix(
+      in oklab,
+      var(--color-arena-text) 3%,
+      var(--color-arena-panel)
+    );
+  }
+  .arena-launcher-mark {
+    border-right: 1px solid var(--color-arena-edge2);
+  }
+  .arena-launcher-glyph {
+    position: relative;
+    width: 17px;
+    height: 17px;
+    border: 1px solid
+      color-mix(
+        in oklab,
+        var(--color-arena-text) 58%,
+        var(--color-arena-edge2)
+      );
+    border-radius: 50%;
+    transition:
+      border-color 150ms,
+      transform 150ms;
+  }
+  .arena-launcher-glyph::after {
     content: '';
+    position: absolute;
+    top: 4px;
+    left: 6px;
     width: 0;
     height: 0;
     border-top: 4px solid transparent;
     border-bottom: 4px solid transparent;
     border-left: 6px solid currentColor;
-    opacity: 0.9;
+  }
+  .arena-launcher:hover .arena-launcher-glyph {
+    border-color: var(--color-arena-text);
+    transform: translateX(1px);
+  }
+  .arena-launcher-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .arena-launcher-kicker {
+    margin-bottom: 3px;
+    color: var(--color-arena-dim);
+    font-size: 8.5px;
+    font-stretch: 82%;
+    font-weight: 550;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .arena-launcher-label {
+    overflow: hidden;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .arena-launcher-chevron {
+    border-left: 1px solid var(--color-arena-edge2);
+  }
+  .arena-launcher-chevron::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid var(--color-arena-dim);
+    border-bottom: 1.5px solid var(--color-arena-dim);
+    transform: translateY(-2px) rotate(45deg);
+    transition:
+      border-color 150ms,
+      transform 150ms;
+  }
+  .arena-launcher:hover .arena-launcher-chevron::before {
+    border-color: var(--color-arena-text);
+    transform: translateY(0) rotate(45deg);
+  }
+  .arena-launcher-context {
+    min-width: 104px;
+  }
+  .arena-launcher-context .arena-launcher-copy {
+    padding-inline: 10px;
+  }
+  @media (max-width: 359px) {
+    .arena-launcher-global {
+      grid-template-columns: 26px minmax(0, 1fr) 18px;
+    }
+    .arena-launcher-global .arena-launcher-copy {
+      padding-inline: 2px;
+    }
+    .arena-launcher-global .arena-launcher-kicker {
+      display: none;
+    }
+    .arena-launcher-global .arena-launcher-glyph {
+      width: 15px;
+      height: 15px;
+    }
+    .arena-launcher-global .arena-launcher-glyph::after {
+      top: 3px;
+      left: 5px;
+    }
   }
 
   /* A reusable interactive tile. Selected state is expressed by the native ARIA
@@ -414,6 +587,23 @@ html[data-arena-mode='viewer'] #root {
           var(--color-arena-text)
         );
   }
+  .choice-card[data-selected='true']::after {
+    content: '✓';
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    display: grid;
+    width: 18px;
+    height: 18px;
+    place-items: center;
+    border: 1px solid var(--color-arena-text);
+    border-radius: 50%;
+    background: var(--color-arena-panel);
+    color: var(--color-arena-text);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 600;
+  }
   .choice-card:disabled {
     color: var(--color-arena-dim);
     cursor: not-allowed;
@@ -461,7 +651,6 @@ html[data-arena-mode='viewer'] #root {
   }
   .arena-card-play > button {
     flex: 1;
-    justify-content: center;
   }
 
   .text-link {

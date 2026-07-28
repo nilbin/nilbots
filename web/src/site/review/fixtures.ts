@@ -30,7 +30,9 @@ export const REVIEW_MURDER_ID = '10000000-0000-4000-8000-000000000006';
 export const REVIEW_COMPLETED_MATCH_ID = '30000000-0000-4000-8000-000000000001';
 export const REVIEW_LIVE_MATCH_ID = '30000000-0000-4000-8000-000000000002';
 export const REVIEW_FAILED_MATCH_ID = '30000000-0000-4000-8000-000000000003';
+export const REVIEW_LAUNCHED_MATCH_ID = '30000000-0000-4000-8000-000000000009';
 export const REVIEW_SET_ID = '40000000-0000-4000-8000-000000000001';
+export const REVIEW_LABS_PLAYLIST_ID = '60000000-0000-4000-8000-000000000001';
 export const REVIEW_REPLAY_HASH =
   '199d519237dd4b0665e5da2155d8acc68d876906292c9a690ff201d1da264c16';
 
@@ -507,7 +509,7 @@ export const labsCatalogFixture = {
   enabled: true,
   playlists: [
     {
-      playlistVersionId: '60000000-0000-4000-8000-000000000001',
+      playlistVersionId: REVIEW_LABS_PLAYLIST_ID,
       key: 'frontline-labs',
       displayName: 'Frontline Labs',
       version: 1,
@@ -916,6 +918,73 @@ export const liveMatchDetailFixture = {
       lookIdSnapshot: 'orbiter',
       projectileLookIdSnapshot: 'pulse-bolt',
       artifactHashSnapshot: '77dba5d2fe1939ac',
+      outcome: null,
+      finalHealth: null,
+      damageDealt: null,
+      faults: null,
+    },
+  ],
+  teamResults: [],
+} satisfies MatchDetail;
+
+/**
+ * The read-only launch simulation has its own live destination so a reviewed Pincer
+ * challenge or Labs run does not turn into an unrelated matchup after navigation.
+ */
+export const launchedMatchLiveFixture = {
+  status: 'Completed',
+  matchSetId: null,
+  setGame: null,
+  presentationTicksPerSecond: 5,
+  presentationTick: 24,
+  totalTicks: null,
+  broadcastComplete: false,
+  countdownMs: 0,
+} satisfies MatchLive;
+
+export const launchedMatchDetailFixture = {
+  id: REVIEW_LAUNCHED_MATCH_ID,
+  mapId: 'arena-01',
+  gameRulesVersion: '0.5',
+  seed: 3004873239773946906,
+  status: 'Completed',
+  broadcasting: true,
+  matchSetId: null,
+  setGame: null,
+  winnerSlot: null,
+  endReason: null,
+  endTick: null,
+  replayHash: null,
+  replayFormatVersion: null,
+  error: null,
+  createdAt: '2026-07-28T09:59:00Z',
+  completedAt: null,
+  participants: [
+    {
+      slot: 0,
+      teamId: 0,
+      botId: REVIEW_PINCER_ID,
+      nameSnapshot: 'Pincer gen-10',
+      ownerDisplayNameSnapshot: 'you',
+      accentSnapshot: '#22d3ee',
+      lookIdSnapshot: 'vanguard',
+      projectileLookIdSnapshot: 'pulse-bolt',
+      artifactHashSnapshot: '9f31c0a4b7de51aa',
+      outcome: null,
+      finalHealth: null,
+      damageDealt: null,
+      faults: null,
+    },
+    {
+      slot: 1,
+      teamId: 1,
+      botId: REVIEW_WARDEN_ID,
+      nameSnapshot: 'Warden gen-1',
+      ownerDisplayNameSnapshot: 'ada',
+      accentSnapshot: '#7dd3fc',
+      lookIdSnapshot: 'aureate-warden',
+      projectileLookIdSnapshot: 'pulse-bolt',
+      artifactHashSnapshot: '4f9229f8eb7b7725',
       outcome: null,
       finalHealth: null,
       damageDealt: null,

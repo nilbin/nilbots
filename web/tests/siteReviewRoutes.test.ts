@@ -4,8 +4,10 @@ import test from 'node:test';
 import {
   REVIEW_BASTILLE_ID,
   REVIEW_FAILED_MATCH_ID,
+  REVIEW_LAUNCHED_MATCH_ID,
   REVIEW_PINCER_ID,
   REVIEW_SET_ID,
+  REVIEW_WARDEN_ID,
   arenaCapabilitiesFixture,
   botMatchHistoryFixture,
   botsFixture,
@@ -13,6 +15,8 @@ import {
   currentLeaderboardEntries,
   cosmeticCatalogFixture,
   labsCatalogFixture,
+  launchedMatchDetailFixture,
+  launchedMatchLiveFixture,
   matchSetFixture,
   matchesFixture,
   metaFixture,
@@ -33,6 +37,27 @@ test('serves the hosted Labs catalog used by the owner bot review', () => {
   const response = siteReviewApiResponse('GET', '/api/labs');
   assert.ok(response);
   assert.deepEqual(response.body, labsCatalogFixture);
+});
+
+test('keeps the simulated Arena handoff on its selected matchup', () => {
+  const detail = siteReviewApiResponse(
+    'GET',
+    `/api/matches/${REVIEW_LAUNCHED_MATCH_ID}`,
+  );
+  const live = siteReviewApiResponse(
+    'GET',
+    `/api/matches/${REVIEW_LAUNCHED_MATCH_ID}/live`,
+  );
+
+  assert.deepEqual(detail?.body, launchedMatchDetailFixture);
+  assert.deepEqual(live?.body, launchedMatchLiveFixture);
+  assert.deepEqual(
+    launchedMatchDetailFixture.participants.map(
+      (participant) => participant.botId,
+    ),
+    [REVIEW_PINCER_ID, REVIEW_WARDEN_ID],
+  );
+  assert.equal(launchedMatchDetailFixture.matchSetId, null);
 });
 
 test('keeps Arena authority coherent with review rules, sets and ownership', () => {

@@ -4,7 +4,12 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, type Connect, type Plugin } from 'vite';
 import {
+  REVIEW_LABS_PLAYLIST_ID,
+  REVIEW_LAUNCHED_MATCH_ID,
   REVIEW_LIVE_MATCH_ID,
+  REVIEW_PINCER_ID,
+  REVIEW_SET_ID,
+  REVIEW_WARDEN_ID,
   reviewSetGameSpecs,
   type ReviewSetGameSpec,
 } from './src/site/review/fixtures';
@@ -24,7 +29,34 @@ const completedReviewReplays = new Map<string, string>(
     makeCompletedReviewReplay(sourceReplay, spec),
   ]),
 );
-const liveReviewReplay = makeLiveReviewReplay(sourceReplay);
+const liveReviewReplay = makeLiveReviewReplay(sourceReplay, [
+  {
+    name: 'Warden gen-1',
+    artifactHash: '4f9229f8eb7b7725',
+    accent: '#7dd3fc',
+    lookId: 'aureate-warden',
+  },
+  {
+    name: 'Rampart gen-2',
+    artifactHash: '77dba5d2fe1939ac',
+    accent: '#bef264',
+    lookId: 'orbiter',
+  },
+]);
+const launchedMatchReplay = makeLiveReviewReplay(sourceReplay, [
+  {
+    name: 'Pincer gen-10',
+    artifactHash: '9f31c0a4b7de51aa',
+    accent: '#22d3ee',
+    lookId: 'vanguard',
+  },
+  {
+    name: 'Warden gen-1',
+    artifactHash: '4f9229f8eb7b7725',
+    accent: '#7dd3fc',
+    lookId: 'aureate-warden',
+  },
+]);
 
 /**
  * The review API exists only in this config. Neither the normal Vite config nor the
@@ -68,6 +100,12 @@ function siteReviewApi(): Plugin {
       response.setHeader('cache-control', 'no-store');
       response.setHeader(SITE_REVIEW_HEADER, '1');
       response.end();
+      return;
+    }
+
+    const launchKind = reviewArenaLaunchKind(request.method, url);
+    if (launchKind !== null) {
+      void handleReviewArenaLaunch(request, response, launchKind);
       return;
     }
 
@@ -127,6 +165,111 @@ function siteReviewApi(): Plugin {
   };
 }
 
+/**
+ * Public review remains read-only: these responses do not mutate fixture state. They
+ * only let the Arena composer complete its frontend handoff to an existing reviewed
+ * set or match, so a phone walkthrough does not end at an artificial 409.
+ */
+type ReviewArenaLaunchKind = 'ranked' | 'challenge' | 'labs';
+
+function reviewArenaLaunchKind(
+  method: string | undefined,
+  url: URL,
+): ReviewArenaLaunchKind | null {
+  if (method?.toUpperCase() !== 'POST' || url.search !== '') return null;
+  if (url.pathname === '/api/matches/ranked') return 'ranked';
+  if (url.pathname === '/api/matches/challenge') return 'challenge';
+  if (url.pathname === '/api/labs/matches') return 'labs';
+  return null;
+}
+
+async function handleReviewArenaLaunch(
+  request: Parameters<Connect.NextHandleFunction>[0],
+  response: Parameters<Connect.NextHandleFunction>[1],
+  kind: ReviewArenaLaunchKind,
+) {
+  try {
+    const body = await readJsonRequest(request);
+    const launch = reviewArenaLaunch(kind, body);
+    if (launch === null) {
+      response.setHeader('x-nilbots-site-review-expected-status', '409');
+      response.setHeader(
+        'x-nilbots-site-review-error',
+        'uncanned-arena-launch',
+      );
+      sendJson(response, 409, {
+        type: 'about:blank',
+        title: 'Review matchup is not simulated',
+        status: 409,
+        detail:
+          'This read-only review can launch ranked Pincer or the Pincer vs Warden matchup. Choose those bots to inspect the destination flow.',
+      });
+      return;
+    }
+    response.setHeader('x-nilbots-site-review-simulated', '1');
+    sendJson(response, 200, launch);
+  } catch {
+    response.setHeader('x-nilbots-site-review-error', 'invalid-launch-body');
+    sendJson(response, 400, {
+      type: 'about:blank',
+      title: 'Invalid review launch',
+      status: 400,
+      detail: 'The Arena launch request was not valid JSON.',
+    });
+  }
+}
+
+function reviewArenaLaunch(
+  kind: ReviewArenaLaunchKind,
+  body: unknown,
+): { id: string } | null {
+  if (!isRecord(body)) return null;
+  if (kind === 'ranked') {
+    return body.botId === REVIEW_PINCER_ID ? { id: REVIEW_SET_ID } : null;
+  }
+  if (kind === 'challenge') {
+    return body.botId === REVIEW_PINCER_ID &&
+      body.opponentBotId === REVIEW_WARDEN_ID
+      ? { id: REVIEW_LAUNCHED_MATCH_ID }
+      : null;
+  }
+  return body.playlistVersionId === REVIEW_LABS_PLAYLIST_ID &&
+    Array.isArray(body.entrantBotIds) &&
+    body.entrantBotIds.length === 2 &&
+    body.entrantBotIds[0] === REVIEW_PINCER_ID &&
+    body.entrantBotIds[1] === REVIEW_WARDEN_ID
+    ? { id: REVIEW_LAUNCHED_MATCH_ID }
+    : null;
+}
+
+function readJsonRequest(
+  request: Parameters<Connect.NextHandleFunction>[0],
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    request.setEncoding('utf8');
+    request.on('data', (chunk: string) => {
+      body += chunk;
+      if (body.length > 16_384) {
+        reject(new Error('Review request body exceeded 16 KiB.'));
+        request.destroy();
+      }
+    });
+    request.on('end', () => {
+      try {
+        resolve(JSON.parse(body));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    request.on('error', reject);
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function sendJson(
   response: Parameters<Connect.NextHandleFunction>[1],
   status: number,
@@ -157,6 +300,9 @@ function reviewReplay(method: string | undefined, url: URL): string | null {
   if (completedReplay !== undefined) return completedReplay;
   if (url.pathname === `/api/matches/${REVIEW_LIVE_MATCH_ID}/replay`) {
     return liveReviewReplay;
+  }
+  if (url.pathname === `/api/matches/${REVIEW_LAUNCHED_MATCH_ID}/replay`) {
+    return launchedMatchReplay;
   }
   return null;
 }
@@ -234,7 +380,17 @@ function makeCompletedReviewReplay(
   return `${payload.slice(0, -1)},"replayHash":"${hash}"}`;
 }
 
-function makeLiveReviewReplay(source: string): string {
+interface LiveReviewParticipant {
+  readonly name: string;
+  readonly artifactHash: string;
+  readonly accent: string;
+  readonly lookId: string;
+}
+
+function makeLiveReviewReplay(
+  source: string,
+  participants: readonly [LiveReviewParticipant, LiveReviewParticipant],
+): string {
   const document = JSON.parse(source) as {
     header: {
       participants: Array<{
@@ -249,22 +405,12 @@ function makeLiveReviewReplay(source: string): string {
     replayHash?: unknown;
     partial?: boolean;
   };
-  const [warden, rampart] = document.header.participants;
-  if (!warden || !rampart) {
+  const [first, second] = document.header.participants;
+  if (!first || !second) {
     throw new Error('The review replay needs two participants.');
   }
-  Object.assign(warden, {
-    name: 'Warden gen-1',
-    artifactHash: '4f9229f8eb7b7725',
-    accent: '#7dd3fc',
-    lookId: 'aureate-warden',
-  });
-  Object.assign(rampart, {
-    name: 'Rampart gen-2',
-    artifactHash: '77dba5d2fe1939ac',
-    accent: '#bef264',
-    lookId: 'orbiter',
-  });
+  Object.assign(first, participants[0]);
+  Object.assign(second, participants[1]);
   document.ticks = document.ticks.slice(0, 25);
   delete document.result;
   delete document.replayHash;

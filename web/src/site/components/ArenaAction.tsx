@@ -306,6 +306,22 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     selectedBotId,
   ]);
 
+  // The global launcher is a quick path, so it must open in a state that can actually
+  // start. Keep the chooser visible, but preselect the first Duel-ready bot (falling
+  // back to any playable bot for a Labs-only account) instead of presenting a disabled
+  // primary action and waiting for the player to discover why.
+  useEffect(() => {
+    if (
+      !launch ||
+      launch.bot !== null ||
+      selectedBotId !== '' ||
+      ownedPlayBots.length === 0
+    )
+      return;
+    const preferredBot = readyOwnedBots[0] ?? ownedPlayBots[0];
+    setSelectedBotId(preferredBot.id);
+  }, [launch, ownedPlayBots, readyOwnedBots, selectedBotId]);
+
   // Eligibility can change while the composer is open. Never leave an invisible,
   // previously valid bot selected after a capabilities refresh.
   useEffect(() => {
@@ -548,6 +564,9 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         onClick={(event) => {
           if (event.target === event.currentTarget) close();
         }}
+        data-layout={
+          launch?.bot !== null && mode === 'ranked' ? 'compact' : 'full'
+        }
         className="arena-dialog panel w-[min(560px,calc(100vw-24px))] p-0 text-left text-arena-text"
       >
         {launch && (
@@ -963,16 +982,14 @@ export function GlobalArenaAction({
     <button
       type="button"
       aria-haspopup="dialog"
+      aria-label="Play"
       onClick={(event) => actions.launch(launch, 'ranked', event.currentTarget)}
       className={clsx(
-        'btn play-trigger inline-flex min-h-11 shrink-0 items-center gap-1.5',
+        'arena-launcher arena-launcher-global shrink-0',
         className,
       )}
     >
-      Play
-      <span aria-hidden="true" className="text-arena-dim">
-        ▾
-      </span>
+      <ArenaLauncherFace label="Play" showKicker />
     </button>
   );
 }
@@ -1052,13 +1069,35 @@ function ArenaTriggers({
           : `${label} with ${botName}`
       }
       onClick={(event) => onOpen(mode, event.currentTarget)}
-      className="btn play-trigger inline-flex min-h-11 items-center gap-1.5"
+      className="arena-launcher arena-launcher-context"
     >
-      {label}
-      <span aria-hidden="true" className="text-arena-dim">
-        ▾
-      </span>
+      <ArenaLauncherFace label={label} />
     </button>
+  );
+}
+
+function ArenaLauncherFace({
+  label,
+  showKicker = false,
+}: {
+  label: string;
+  showKicker?: boolean;
+}) {
+  return (
+    <>
+      <span aria-hidden="true" className="arena-launcher-mark">
+        <span className="arena-launcher-glyph" />
+      </span>
+      <span className="arena-launcher-copy">
+        {showKicker && (
+          <span aria-hidden="true" className="arena-launcher-kicker">
+            Arena
+          </span>
+        )}
+        <span className="arena-launcher-label">{label}</span>
+      </span>
+      <span aria-hidden="true" className="arena-launcher-chevron" />
+    </>
   );
 }
 

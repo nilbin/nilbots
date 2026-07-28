@@ -35,6 +35,11 @@ const pages = [
     async (page) => {
       await page.getByRole('button', { name: 'Play', exact: true }).click();
       await page.getByLabel('Ranked set allowance').waitFor();
+      const start = page.getByRole('button', { name: 'Start ranked set' });
+      await start.waitFor();
+      if (!(await start.isEnabled())) {
+        throw new Error('Global Play opened without an actionable ranked start');
+      }
     },
   ],
   [
@@ -169,6 +174,7 @@ try {
 }
 const failedShots = [];
 let linkedRouteFailures = [];
+let arenaLaunchFailures = [];
 
 try {
   for (const [name, path, prepare] of pages) {
@@ -239,6 +245,12 @@ try {
         const result = await page.evaluate(() => {
           const main = document.querySelector('main');
           const text = (main?.innerText ?? '').trim();
+          const dialog = document.querySelector('dialog[open]');
+          const dialogAction = dialog?.querySelector(
+            '.arena-form-submit button[type="submit"]',
+          );
+          const dialogRect = dialog?.getBoundingClientRect();
+          const actionRect = dialogAction?.getBoundingClientRect();
           return {
             textLength: text.length,
             hasVisibleMain:
@@ -248,6 +260,18 @@ try {
             overflow:
               document.documentElement.scrollWidth -
               document.documentElement.clientWidth,
+            openDialogOutsideViewport:
+              dialogRect !== undefined &&
+              (dialogRect.top < -1 ||
+                dialogRect.left < -1 ||
+                dialogRect.right > window.innerWidth + 1 ||
+                dialogRect.bottom > window.innerHeight + 1),
+            dialogActionOutsideViewport:
+              actionRect !== undefined &&
+              (actionRect.top < -1 ||
+                actionRect.left < -1 ||
+                actionRect.right > window.innerWidth + 1 ||
+                actionRect.bottom > window.innerHeight + 1),
           };
         });
 
@@ -258,6 +282,12 @@ try {
         }
         if (result.overflow > 0) {
           failures.push(`horizontal overflow: ${result.overflow}px`);
+        }
+        if (result.openDialogOutsideViewport) {
+          failures.push('open dialog extends outside the usable viewport');
+        }
+        if (result.dialogActionOutsideViewport) {
+          failures.push('open dialog action is not visible in the viewport');
         }
 
         await page.screenshot({
@@ -282,11 +312,16 @@ try {
     }
   }
   linkedRouteFailures = await auditLinkedReviewRoutes(browser);
+  arenaLaunchFailures = await auditArenaLaunches(browser);
 } finally {
   await browser.close();
 }
 
-if (failedShots.length > 0 || linkedRouteFailures.length > 0) {
+if (
+  failedShots.length > 0 ||
+  linkedRouteFailures.length > 0 ||
+  arenaLaunchFailures.length > 0
+) {
   console.error('\nSite review failed:');
   for (const { shot, failures } of failedShots) {
     console.error(`  ${shot}`);
@@ -295,6 +330,12 @@ if (failedShots.length > 0 || linkedRouteFailures.length > 0) {
   if (linkedRouteFailures.length > 0) {
     console.error('  linked route audit');
     for (const failure of linkedRouteFailures) {
+      console.error(`    - ${failure}`);
+    }
+  }
+  if (arenaLaunchFailures.length > 0) {
+    console.error('  Arena launch audit');
+    for (const failure of arenaLaunchFailures) {
       console.error(`    - ${failure}`);
     }
   }
@@ -401,6 +442,125 @@ async function auditLinkedReviewRoutes(browser) {
   const state = uniqueFailures.length === 0 ? 'ok' : 'FAILED';
   console.log(
     `linked-route-audit ${state} · ${seen.size} rendered internal routes`,
+  );
+  return uniqueFailures;
+}
+
+async function auditArenaLaunches(browser) {
+  const flows = [
+    {
+      name: 'ranked',
+      path: '/',
+      endpoint: '/api/matches/ranked',
+      destination: /^\/sets\/[^/]+$/,
+      prepare: async (page) => {
+        await page.getByRole('button', { name: 'Play', exact: true }).click();
+        return page.getByRole('button', { name: 'Start ranked set' });
+      },
+      waitForDestination: (page) =>
+        page.getByRole('heading', { name: /^Ranked set:/ }).waitFor(),
+    },
+    {
+      name: 'challenge',
+      path: '/bots/warden-gen-1',
+      endpoint: '/api/matches/challenge',
+      destination: /^\/matches\/[^/]+$/,
+      prepare: async (page) => {
+        await page.getByRole('button', { name: /^Challenge / }).click();
+        const dialog = page.locator('dialog[open]');
+        await dialog
+          .locator('label.choice-card')
+          .filter({ hasText: 'Pincer gen-10' })
+          .click();
+        return dialog.getByRole('button', {
+          name: 'Start Pincer gen-10 vs Warden gen-1',
+        });
+      },
+      waitForDestination: async (page) => {
+        await page.getByRole('heading', { name: /^Match / }).waitFor();
+        await page.getByText('Pincer gen-10', { exact: true }).first().waitFor();
+        await page.getByText('Warden gen-1', { exact: true }).first().waitFor();
+      },
+    },
+    {
+      name: 'Labs',
+      path: '/',
+      endpoint: '/api/labs/matches',
+      destination: /^\/matches\/[^/]+$/,
+      prepare: async (page) => {
+        await page.getByRole('button', { name: 'Play', exact: true }).click();
+        const dialog = page.locator('dialog[open]');
+        await dialog.getByRole('button', { name: /^Labs/ }).click();
+        await dialog
+          .getByRole('group', { name: 'Choose opponent' })
+          .locator('label.choice-card')
+          .filter({ hasText: 'Warden gen-1' })
+          .click();
+        return dialog.getByRole('button', { name: 'Run lab match' });
+      },
+      waitForDestination: async (page) => {
+        await page.getByRole('heading', { name: /^Match / }).waitFor();
+        await page.getByText('Pincer gen-10', { exact: true }).first().waitFor();
+        await page.getByText('Warden gen-1', { exact: true }).first().waitFor();
+      },
+    },
+  ];
+  const failures = [];
+
+  for (const flow of flows) {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 900 },
+      locale: 'en-GB',
+      timezoneId: 'Europe/Stockholm',
+    });
+    const page = await context.newPage();
+    await page.clock.setFixedTime(new Date('2026-07-28T10:00:00Z'));
+
+    try {
+      await page.goto(`${base}${flow.path}`, {
+        waitUntil: 'networkidle',
+        timeout: 20_000,
+      });
+      const submit = await flow.prepare(page);
+      await submit.waitFor();
+      if (!(await submit.isEnabled())) {
+        throw new Error('submit action is disabled');
+      }
+
+      const responsePromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === flow.endpoint,
+      );
+      const destinationPromise = page.waitForURL(
+        (url) => flow.destination.test(url.pathname),
+        { timeout: 20_000 },
+      );
+      await submit.click();
+      const [response] = await Promise.all([
+        responsePromise,
+        destinationPromise,
+      ]);
+      if (
+        response.status() !== 200 ||
+        response.headers()['x-nilbots-site-review-simulated'] !== '1'
+      ) {
+        throw new Error(
+          `${flow.endpoint} returned ${response.status()} without the simulated-review marker`,
+        );
+      }
+      await flow.waitForDestination(page);
+    } catch (error) {
+      failures.push(`${flow.name}: ${firstLine(error)}`);
+    } finally {
+      await context.close();
+    }
+  }
+
+  const uniqueFailures = [...new Set(failures)];
+  const state = uniqueFailures.length === 0 ? 'ok' : 'FAILED';
+  console.log(
+    `arena-launch-audit ${state} · ${flows.length} complete UI handoffs`,
   );
   return uniqueFailures;
 }

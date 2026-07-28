@@ -30,7 +30,7 @@ export default function Shell() {
           Skip to content
         </a>
         <NotificationCenter />
-        <header className="flex flex-nowrap items-center gap-3.5 border-b border-arena-edge bg-arena-panel px-3.5 py-2.5">
+        <header className="flex flex-nowrap items-center gap-3.5 border-b border-arena-edge bg-arena-panel px-3.5 py-2.5 max-[359px]:gap-2 max-[359px]:px-2.5">
           <Link to="/" className="shrink-0 text-arena-material">
             <Logo size={17} />
           </Link>
@@ -43,14 +43,14 @@ export default function Shell() {
             <TopLink to="/watch">Watch</TopLink>
             <TopLink to="/docs">Docs</TopLink>
           </nav>
-          <div className="ml-auto flex min-w-0 items-center gap-2">
-            <GlobalArenaAction className="px-2.5" />
+          <div className="ml-auto flex min-w-0 items-center gap-2 max-[359px]:gap-1">
+            <GlobalArenaAction />
             {user ? (
               <>
                 <Link
                   to="/garage"
                   aria-label={`${user.displayName}'s Garage`}
-                  className="t-meta min-w-0 truncate transition-colors hover:text-arena-text"
+                  className="t-meta inline-flex min-h-11 min-w-0 items-center truncate transition-colors hover:text-arena-text max-[359px]:shrink-0"
                 >
                   <span className="sm:hidden">Garage</span>
                   <span className="hidden sm:inline">{user.displayName}</span>
@@ -58,7 +58,7 @@ export default function Shell() {
                 <button
                   type="button"
                   onClick={() => void logout().then(() => navigate('/'))}
-                  className="btn shrink-0 text-arena-dim hover:text-arena-text"
+                  className="btn min-h-11 shrink-0 text-arena-dim hover:text-arena-text max-[359px]:px-2"
                 >
                   Sign out
                 </button>
