@@ -1,6 +1,6 @@
 # Replay-native ML support: engine-rewrite integration plan
 
-Status: shared ML/data plan, 2026-07-26; reconciled on 2026-07-27 with both
+Status: shared ML/data plan, 2026-07-26; reconciled on 2026-07-28 with both
 the frozen Frontline-alpha replay-v2 proof and the generic actor-match
 architecture. Replay 2 remains observation-complete evidence for the local
 Frontline experiment. Replay 3 is the target for all new generic modes,
@@ -29,8 +29,10 @@ The successor SDK/Guest 0.10.0 boundary also negotiates the exact
 `generic-actor-match-2` profile. It parses the canonical resolved contract and
 exposes variable entity sets, score channels, tagged mode state, typed action
 arguments, and lifecycle lineage without assuming two players. This completes
-the bot-facing half of the generic ML seam; the neutral Engine host and replay
-3 projection remain in progress.
+the bot-facing half of the generic ML seam. The neutral Engine host now records
+the same inputs, decisions, lifecycle causality, post-state, standings, and
+typed Deathmatch/Frontline terminal facts in strict replay 3. Dataset export
+and the public product layers remain separate follow-ons.
 
 ## Executive conclusion
 
@@ -389,12 +391,10 @@ may remain viewable and analyzable, but official tooling labels it
 
 ## Work package A — observation and replay foundation
 
-Status: **implemented as the frozen local Frontline replay-v2 proof; generic
-SDK/Guest input contracts implemented; generic replay 3 remains planned**.
-The remaining work begins with the neutral generic host, replay-3 envelope,
-and version-dispatched viewer, followed by dataset/product delivery. Replay v1
-remains a dedicated historical reader/verifier and replay v2 remains a
-dedicated alpha reader/verifier.
+Status: **implemented for the frozen local Frontline replay-v2 proof and the
+generic actor-match replay-3 seam**. The remaining work begins with
+dataset/product delivery. Replay v1 remains a dedicated historical
+reader/verifier and replay v2 remains a dedicated alpha reader/verifier.
 
 ### Implementation
 
@@ -417,7 +417,7 @@ dedicated alpha reader/verifier.
 - `src/BotArena.Engine/ActorRuntime.cs`
 - `src/BotArena.Engine/FrontlineObservationProjector.cs`
 - `src/BotArena.Engine/ReplayV2.cs` and `ReplayV2Serializer.cs` (frozen);
-- new generic replay-3 DTO, projection, serializer, and validator files;
+- generic replay-3 DTO, projection, serializer, and validator files;
 - `src/BotArena.Sdk/IActorBot.cs`
 - `src/BotArena.Engine/BotObservation.cs`
 - `src/BotArena.Engine/MatchSession.cs`
@@ -431,7 +431,7 @@ dedicated alpha reader/verifier.
 - `src/BotArena.Runtime.Wasm/WasmActorRuntime.cs`
 - `src/BotArena.Guest/ActorGuestProtocol.cs`
 - `src/BotArena.Sdk/ActorWireProtocol.cs`
-- versioned `web/src/replayWireV1.ts`, `replayWireV2.ts`, future
+- versioned `web/src/replayWireV1.ts`, `replayWireV2.ts`,
   `replayWireV3.ts`, and shared `replayModel.ts`;
 - web and mobile replay playback adapters
 - `docs/REPLAY-FORMAT.md`
@@ -745,9 +745,9 @@ This gate proves accessibility and integrity, not championship strength.
    Frontline:** canonical observation, direct replay snapshot, v2 schema, v1
    compatibility, actor protocol/WASM delivery, local CLI generation/viewing,
    and parity/leakage tests.
-2. **Generic actor delivery and replay 3 — architecture prerequisite:** typed
-   SDK/Guest contract, common host, generic scores/results/events, and
-   version-dispatched normalization.
+2. **Generic actor delivery and replay 3 — implemented architecture
+   prerequisite:** typed SDK/Guest contract, common host, generic
+   scores/results/events, and version-dispatched normalization.
 3. **Replay-only dataset CLI — next ML slice:** inspect/export and
    clean-environment proof.
 4. **Public corpus access:** cursor API, generated clients, dataset pull.

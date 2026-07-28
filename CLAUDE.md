@@ -134,16 +134,22 @@ Project boundaries that must not be violated:
   carries that directory only for the explicit experiment, while current App
   and ordinary `maps` catalogs enumerate top-level format-v1 maps. Legacy
   `MatchEngine` still rejects a Frontline definition defensively.
-- The follow-on parallel-mode architecture is also unshipped and currently
-  unused. Additive Engine definitions model typed Frontline/Deathmatch modes,
+- The follow-on parallel-mode architecture is unshipped but executable.
+  Additive Engine definitions model typed Frontline/Deathmatch modes,
   breach/kill victory rules, head-to-head/FFA-N/equal-team formats, exact
   topology/deployment validation, and gameplay-only map generation 3 with
-  named spawns and typed regions/tags. Persistence-free App definitions model
-  immutable playlist versions, opaque season ladders, tied team series
-  results, and an exact-compatible `DuelEloV1`. They do not yet route through
-  sessions, actor contracts, APIs, EF, matchmaking, ratings, replays, SDKs, or
-  viewers. The compatibility generations and dependency order are frozen in
-  `docs/GAME-MODE-ARCHITECTURE.md`.
+  named spawns and typed regions/tags. One neutral actor host/session executes
+  those contracts with bounded fabrication, Split, same-life forms, typed
+  mode drivers, generic chronology/results, and replay 3; the generic
+  SDK/Guest/WASM profile, web normalization, and hosted mobile bridge consume
+  the same contract generation. The App identity foundation adds immutable
+  legacy playlist versions, seasons, opaque ladders, pinned queued work,
+  repeatable backfill, and exact-compatible Duel Elo while preserving current
+  APIs.
+  Public App/server admission, normalized generic entrants/team results,
+  reveal-ordered settlement, generic APIs, matchmaking, and multiplayer
+  rating are not routed yet. The compatibility generations and dependency
+  order are frozen in `docs/GAME-MODE-ARCHITECTURE.md`.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,
@@ -235,6 +241,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   refabrication creates a fresh `lifeId` and runtime. Stable slots retain an
   immutable default form while the active life carries its effective form and
   pending transition.
+- Static rules, map, topology, mode, and objective facts arrive in immutable
+  MatchStart input. Privately learned history is life-scoped: a same-life form
+  change retains it, while respawn, refabrication, and Split descendants start
+  with empty private memory. Team perception shares only the current frozen
+  observable union; there is no implicit historical team map, parent-memory
+  copy, or sibling-memory copy.
 - One WASM actor factory compiles one Wasmtime Engine/Module per submitted
   artifact. Each active life owns an isolated Store/Instance/thread/memory;
   startup, every tick, and shutdown retain fuel, epoch, wall-clock, memory,

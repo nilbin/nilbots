@@ -1,6 +1,7 @@
 # Playlist, ladder, and series persistence plan
 
-Status: **active migration plan; not implemented**, 2026-07-27.
+Status: **active additive migration; identity foundation implemented, generic
+results and reveal-time settlement still planned**, 2026-07-28.
 
 This plan is the persistence and publication companion to
 [`GAME-MODE-ARCHITECTURE.md`](GAME-MODE-ARCHITECTURE.md). It replaces
@@ -12,6 +13,26 @@ legacy API shapes throughout migration.
 The migration is additive. Generic FFA and team matches may be played and
 read before a multiplayer rating policy exists, but they must not enter an
 open ranked ladder.
+
+Implementation checkpoint:
+
+- Deterministic legacy-import playlists, immutable playlist versions, seasons,
+  opaque ladders, ladder-keyed ratings, and pinned identity columns are in the
+  EF model and additive migration.
+- The repeatable application backfill uses a database advisory lock and a
+  repeatable-read transaction. Ranked and unranked Duel admission dual-write
+  the pinned identities; execution and finalization repair nullable
+  compatibility rows while preserving the legacy scheduler and exact Elo
+  behavior.
+- `Ladder.AwardsAchievements` is authoritative, and season-opening rank is a
+  nullable snapshot rather than a continuously rewritten current rank.
+- Operators run the backfill once after the nullable expand schema lands and
+  again after old writers are drained, before switching reads or adding
+  non-null constraints.
+- Normalized series entrants, per-team match/series results, reveal-ordered
+  generic settlement, generic APIs, and multiplayer rating policies are not
+  implemented by this checkpoint. Legacy Duel result storage and public API
+  projections remain authoritative.
 
 ## 1. Invariants
 

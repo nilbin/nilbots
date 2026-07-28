@@ -133,7 +133,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   build-wasm-guest.sh, test.sh, play.sh, dev-viewer.sh, e2e.sh, plus the
   balance/dynamics/control/arc/replay-review evaluation tools.
 
-## Active experimental program (2026-07-27)
+## Active experimental program (2026-07-28)
 
 Frontline is now the active successor experiment; official rules 0.5 remains
 the current game and ladder. The deliberately small game hypothesis is a
@@ -189,8 +189,16 @@ v1 or the opened `frontline-alpha-1` replay-v2 evidence. Numeric proof values
 remain explicitly unbalanced experimental inputs. Its compatibility shield,
 typed vocabulary, resolved rules/map/format/topology contracts, and the
 profile-negotiated generic SDK/Guest programming boundary are implemented.
-The neutral runtime/host, runnable Split and Deathmatch sessions, replay 3,
-presentation, and competition routing remain in progress.
+One neutral actor host now executes typed Deathmatch and Frontline mode
+drivers, bounded Split and source-preserving fabrication, reusable same-life
+forms, generic standings, chronology, and strict replay 3. The web viewer
+normalizes that generation without assuming Deathmatch, and its hosted bridge
+carries the typed presentation to mobile. The additive competition identity
+layer now pins legacy Duel series to deterministic playlist versions, seasons,
+and opaque ladders while preserving its scheduler, Elo, and public API
+behavior. Generic server admission, normalized entrant/team-result storage,
+reveal-ordered settlement, generic APIs, and any multiplayer rating policy
+remain later work.
 
 ## Next session pointers
 
@@ -245,10 +253,11 @@ presentation, and competition routing remain in progress.
     incremental modular-monolith plan, not a rewrite.
 11. Replay-native ML support is proposed in
     [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). The engine-rewrite
-    seam is now implemented for local experimental Frontline: one canonical
-    public observation per `PrepareTick` actor is passed to its life runtime
-    and snapshotted with the keyed joint step into strict replay v2, and actor
-    protocol 1.0 delivers it to canonical per-life WASM instances. Dataset
-    export, public corpus access, bounded model assets, starter inference, and
-    hosted-product delivery remain sequenced follow-ons; no ML-driven
-    sandbox-limit change is proposed.
+    seam is implemented for frozen local Frontline-alpha and its generic
+    successor: one canonical public observation per prepared actor reaches its
+    isolated life runtime and the same observation is snapshotted into replay
+    v2 or v3 beside exact rules, topology, actions, lineage, and results.
+    Actor protocol 1.0 carries both explicitly negotiated generations.
+    Dataset export, public corpus access, bounded model assets, starter
+    inference, and hosted-product delivery remain sequenced follow-ons; no
+    ML-driven sandbox-limit change is proposed.

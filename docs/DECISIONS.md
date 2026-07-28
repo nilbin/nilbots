@@ -2297,6 +2297,75 @@ objects, replay 1/2, and their fingerprints/hashes remain exact. Generic
 gameplay hosting and replay 3 are subsequent packages, not implied shipped
 features.
 
+## 137. Generic actor matches execute through one neutral session and replay generation
+
+Schema-3 actor rules and schema-2 resolved contracts now execute through
+`GenericActorMatchSession`, not a Deathmatch host with Frontline conditionals.
+The session owns shared runtime coordination, movement, combat, lifecycle,
+resources, perception, chronology, and participant-fault handling. A closed
+typed mode driver owns mode state, score updates, objective completion, and
+terminal facts. Deathmatch and Frontline are the first two drivers; a new mode
+adds a definition, kernel/driver, and typed result arm without changing actor
+identity or the shared world envelope.
+
+Replay 3 is the corresponding generic generation. It records the exact
+contract and topology, pre-tick public observation delivered to each life,
+submitted and accepted action, authoritative causality, post-state, tied
+standings, and a closed typed Deathmatch or Frontline terminal arm. Signed
+scores cross JSON as canonical decimal strings. The Engine reader and
+web normalizer reject unknown arms, extra fields, impossible chronology, and
+contract/result disagreement before the hosted bridge carries a typed result
+to mobile. Replay 1 and the opened Frontline-alpha replay 2 remain byte-exact
+separate generations. This creates an executable experimental seam; it does
+not route a generic mode through public App/server admission or a ladder.
+
+## 138. Fabrication and Split reserve one joint lifecycle claim space
+
+Source-preserving fabrication and source-retiring Split first build
+provisional bundles from the same post-movement world. One family-neutral
+arbiter then blocks every operation in a connected conflict component sharing
+any stable slot, output tile, or operation ID. Neither mechanic receives
+priority from family type or collection order. Existing pending claims,
+active occupancy, and permanently reserved automatic-return tiles are part of
+the same legality boundary.
+
+A queued fabrication captures source lineage/pose, target slot/form, output
+tile/facing, and due tick. It survives source movement, destruction, or a later
+Split, because it is already source-preserving work; participant
+disqualification is the explicit cancellation override. At tick start,
+returns/readiness settle first, due fabrication settles before due Split, and
+same-life completion follows. Output-tile projectiles are consumed without
+damage before a fresh target life/runtime is created. Split still retires its
+source and creates fresh isolated descendants. Same-life form changes retain
+the exact runtime and private memory.
+
+Static rules, map, topology, and objective facts remain immutable MatchStart
+input. Learned private history belongs to one runtime life: respawn,
+refabrication, and Split descendants start empty, while team perception shares
+only the current frozen observable union. There is no implicit parent,
+sibling, or historical team-memory copy. A fabrication configuration whose
+unavailable placement result would fault a participant remains rejected until
+the host has a causal gameplay-fault API; `Blocked` and `Rejected` execute now.
+
+## 139. Legacy competition rows receive pinned playlist, season, and ladder identity first
+
+The additive competition migration begins by assigning deterministic
+legacy-import playlists and immutable playlist versions, explicit seasons,
+opaque ladders, and ladder-keyed ratings without changing Duel results or
+public response shapes. Ranked and unranked admission dual-write the pinned
+identity; workers execute the pinned rules and repair nullable compatibility
+rows; finalization repairs identity/rating links while retaining exact legacy
+Elo behavior. `Ladder.AwardsAchievements` is authoritative, and
+`SeasonOpeningRank` is a nullable opening snapshot rather than current rank
+under another name.
+
+The application backfill is advisory-locked, repeatable, and transactionally
+isolated. Operators run it after the nullable expand migration and again after
+old writers drain, before switching reads or enforcing non-null identities.
+This foundation does not claim normalized generic entrants/team results,
+reveal-ordered settlement, generic APIs, or an FFA/team rating policy; those
+remain the explicit next persistence stages.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

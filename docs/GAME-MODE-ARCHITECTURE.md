@@ -1,6 +1,6 @@
 # Game-mode and competition architecture
 
-Status: **active implementation plan; not shipped**, 2026-07-27.
+Status: **active implementation plan; not shipped**, 2026-07-28.
 
 This plan generalizes the experimental actor-match path without changing the
 official rules 0.1–0.5 product or rewriting the opened `frontline-alpha-1`
@@ -20,24 +20,36 @@ Implementation checkpoint:
 - Package A compatibility shields are complete for the checked-in official
   replay-v1 fixture, every official rules/map/match fingerprint, the
   Frontline-alpha fingerprints, and a real end-to-end alpha replay-v2 run.
-- Package B's mode/victory/format/topology and persistence-free
-  playlist/ladder/rating definitions are implemented but unused.
+- Package B's mode/victory/format/topology definitions now drive the generic
+  Engine path. Playlist/ladder/rating definitions also underpin the additive
+  legacy-identity migration; generic competition results and rating remain
+  later packages.
 - Package C's isolated map-generation model, resolved actor-rules catalog,
   lifecycle profiles, three transition families, and generic standings
-  component are implemented but still unused. The cross-component resolved
-  match aggregate accepts head-to-head, FFA-4, and 2v2 Deathmatch through the
-  same rules and rejects invalid capacity, placement, respawn, arithmetic, and
-  mode-map combinations before hashing. Separate rules/map/format/topology and
-  aggregate match writers now use explicit canonical wire IDs, provenance
-  separation, captured capability versions, and literal golden fingerprints.
-  Package C is complete.
+  component are implemented and used by generic sessions. The cross-component
+  resolved match aggregate accepts head-to-head, FFA-4, and 2v2 Deathmatch
+  through the same rules and rejects invalid capacity, placement, respawn,
+  arithmetic, and mode-map combinations before hashing. Separate
+  rules/map/format/topology and aggregate match writers now use explicit
+  canonical wire IDs, provenance separation, captured capability versions,
+  and literal golden fingerprints. Package C is complete.
 - Package D's static and dynamic SDK contract, strict tagged codecs, exact
   `generic-actor-match-2` negotiation, profile-aware Guest state machine, and
   controlled-build capability detection are implemented and independently
-  reviewed. The common Engine/WASM runtime boundary is in progress; replay 3
-  has not been emitted.
-- No new definition is yet routed into a gameplay session, API, ladder,
-  replay, or viewer.
+  reviewed. The neutral actor runtime boundary executes schema-3 matches and
+  replay 3 is the strict generic chronology/result envelope.
+- Packages E–G now provide one neutral actor session, typed Deathmatch and
+  Frontline mode drivers, same-life forms, bounded Split, source-preserving
+  fabrication, generic chronology reconstruction, and 1v1/FFA/team proof
+  fixtures. Their values remain experimental mechanics inputs.
+- Package H's deterministic legacy playlist/version/season/ladder identity,
+  repeatable backfill, and Duel dual-write foundation are implemented.
+  Normalized generic entrants/results, reveal-ordered settlement, generic
+  APIs, multiplayer rating policy, and public admission remain planned.
+- Package I normalizes replay 3 in the web viewer and carries its closed typed
+  presentation through the hosted mobile bridge. No generic mode is yet
+  selectable through public App/server matchmaking or an open ranked ladder,
+  and none of this checkpoint promotes Frontline balance values.
 
 ## 1. Product terminology
 
@@ -361,6 +373,30 @@ at that tick's end. A projectile may enter a reserved lifecycle output tile
 before its due tick; immediately before a return, fabrication, or replication
 spawn, every occupying projectile is consumed in projectile-ID order without
 damage, then the new life is created before observations.
+
+Static map, rules, topology, mode, and objective facts are immutable
+`MatchStart` inputs rather than facts a runtime must rediscover. Private
+state learned while playing belongs to one runtime life: same-life form
+transitions retain it, while destruction/return, explicit refabrication, and
+Split descendants start with empty private memory. Team perception shares the
+current frozen observable union allowed by the contract; it does not copy a
+parent's WASM memory into a descendant or preserve a historical team map.
+Durable team memory would be a separately bounded, replayed blackboard
+capability rather than an accidental consequence of clones sharing an
+artifact.
+
+Permanent objective-inert forms also need a playlist-level liveness gate.
+The initial Frontline shape satisfies it by allowing only the expendable child
+to Anchor while a separately renewable, objective-weighted Prime remains
+mobile. A future ruleset that lets its last renewable progress-capable life
+become stationary must either retain objective/progress semantics or use a
+typed bounded tenure with a forced same-life return. `maxTicks` guarantees
+termination, but is not an entertainment remedy for two unreachable
+stationary actors. Activation limits, return timing, and return-health
+continuity belong in a new typed transition capability before such a playlist
+is admitted; they are not inferred by the current permanent-transition
+kernel.
+
 The first Air movement profile remains a localized new engine capability with
 explicit wall, projectile, landing, vision, objective, and occupancy
 semantics. Once it exists, additional flying forms and their
@@ -533,12 +569,14 @@ is queued and never resolve “whatever is current” at execution time.
 - Pin an end-to-end `frontline-alpha-1` actor replay-v2 hash.
 - Keep the experimental alpha rules/map/match fingerprints exact.
 
-### Package B — vocabulary and unused domain types
+### Package B — vocabulary and executable domain types
 
 - Add typed game-mode, victory, score, match-format, playlist, ladder, and
   tied-standing definitions.
 - Add pure compatibility validators and `DuelEloV1`.
-- Route no production or experimental session through them yet.
+- Route generic experimental sessions through the mode/result definitions;
+  keep public production admission on the compatibility path until the later
+  persistence and rollout gates are complete.
 
 ### Package C — generic map/topology contract
 
@@ -574,11 +612,15 @@ is queued and never resolve “whatever is current” at execution time.
 - Run the same definition as 1v1 and FFA-4; add a 2v2 topology fixture.
 - Treat all values as an experimental mechanics arm.
 
-### Package H — competition persistence
+### Package H — competition identity foundation and normalization
 
-- Add playlist/ladder/series normalization and dual-write legacy duel data.
+- Add playlist/version/season/ladder identities and dual-write them onto
+  legacy Duel data first.
 - Route the current official ladder through `DuelMirrored6V1` and
   `DuelEloV1` without changing outcomes or APIs.
+- Add normalized series entrants and team results only in the later
+  persistence stage; they are not part of the implemented identity
+  foundation.
 - Defer rating mutation, achievements, notifications, and result deltas until
   reveal-time settlement; simulation completion alone is not publication.
 - Add generic read APIs before admitting multiplayer ranked creation.

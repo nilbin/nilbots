@@ -32,6 +32,22 @@ That analyzer accepts only complete version-2 documents with contiguous
 assign a fun score or verify the canonical hash; replay-v2 admission and a
 public verification surface remain hosted-product follow-ons.
 
+A separate replay v3 is now implemented for generic actor matches. It embeds
+the exact schema-3 rules and map, schema-2 resolved match contract, variable
+team/participant/unit topology, canonical per-life observations and
+resolutions, lifecycle lineage, authoritative events/post-state, tied
+standings, and a closed typed Deathmatch or Frontline terminal arm. Signed
+scores use canonical decimal strings. Its serializer and reader reject unknown
+arms, extra fields, impossible chronology, contract/result disagreement, and
+unsafe numeric encodings. The web normalizer projects v3 into the shared
+version-neutral presentation model, and the hosted bridge carries that typed
+model to mobile while retaining mode-specific objective and result facts.
+
+Replay v3 is still an unshipped generic-engine contract, not a claim that
+historical `play`, App/server admission, public replay endpoints, datasets, or
+ladders select it. Replay 1, the opened Frontline-alpha replay 2, and their
+hashes remain separate frozen generations.
+
 > For replay v1, a quick digest instead of raw JSON is available through
 > `botarena replay <file> --summary`. It prints a compact timeline (states,
 > shots, damage, debug lines) built on the conventions below.
@@ -67,9 +83,9 @@ shape is a replay-format version change.
 The authoritative shapes live in `src/BotArena.Engine/Replay.cs`,
 `GameEvent.cs` and `MatchResult.cs`. The viewer's version-specific wire mirror
 is `web/src/replayWireV1.ts`; `replayWireV2.ts` preserves the separate
-Frontline-alpha generation, and both normalize into `web/src/replayModel.ts`.
-A future generic generation receives its own `replayWireV3.ts` rather than
-widening this frozen v1 shape. Summary:
+Frontline-alpha generation, and `replayWireV3.ts` preserves the generic actor
+generation. All three normalize into `web/src/replayModel.ts` without widening
+this frozen v1 shape. Summary:
 
 ## `header`
 
