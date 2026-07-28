@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "cohortId": "frontline-duel-depth-v1-2026-07-28",
+  "engineCommit": "5431c5c94851344b9d27dbc912e1420d35479378",
+  "playlist": {
+    "id": "frontline-labs",
+    "version": 1,
+    "rulesetId": "frontline-labs-1-experiment-one-bend-shots",
+    "mapId": "frontline-labs-01",
+    "mapVersion": 1,
+    "formatId": "head-to-head",
+    "contractProfileId": "generic-actor-match-2",
+    "rulesFingerprint": "254baa015336bbaa80e1005cb45d6a7a4e245705c147b5bc242ce86b34ecd3fd",
+    "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+    "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+    "matchContractFingerprint": "a04636dc7cc86b6267db92a65ae2628391d3062c1a787117516cf33d443fa046"
+  },
+  "authoringBudget": {
+    "implementationPasses": 1,
+    "improvementPasses": 0,
+    "sharedRepairPasses": 0,
+    "balancePasses": 0
+  },
+  "seeds": [
+    104729
+  ],
+  "pairingExtraSeeds": {
+    "adaptive-mixer:curve-predictor": [
+      130363,
+      155921
+    ],
+    "adaptive-mixer:geometric-dodger": [
+      130363,
+      155921
+    ],
+    "adaptive-mixer:territory-holder": [
+      130363,
+      155921
+    ]
+  },
+  "registeredDoctrines": [
+    "adaptive",
+    "geometry",
+    "prediction",
+    "territory"
+  ],
+  "entrants": [
+    {
+      "id": "adaptive-mixer",
+      "name": "AdaptiveMixer",
+      "doctrine": "adaptive",
+      "root": "adaptive-mixer",
+      "artifact": "adaptive-mixer/bot.wasm",
+      "artifactSha256": "5b197058c804fd32b5e02a14c8c5bd139be6cc06cc002572169a4b1b17584d74",
+      "sourceRevision": "sha256:c562f0caf09fc24b2d6b99ea353104fb5eff9f56d7de088aa6e8cb36e4539967",
+      "sourceTreeSha256": "sha256:c562f0caf09fc24b2d6b99ea353104fb5eff9f56d7de088aa6e8cb36e4539967",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "balancePasses": 0,
+      "dxReport": "adaptive-mixer/DX.md"
+    },
+    {
+      "id": "curve-predictor",
+      "name": "CurvePredictor",
+      "doctrine": "prediction",
+      "root": "curve-predictor",
+      "artifact": "curve-predictor/bot.wasm",
+      "artifactSha256": "51260cc27dfeb3ce9f15856f615ab60bca5e5b9ab4a5cb987556cda62829fc21",
+      "sourceRevision": "sha256:6b93a2fb7391c17273e4912f018eb9d065ce935dd800e9f2556c00787fab8623",
+      "sourceTreeSha256": "sha256:6b93a2fb7391c17273e4912f018eb9d065ce935dd800e9f2556c00787fab8623",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "balancePasses": 0,
+      "dxReport": "curve-predictor/DX.md"
+    },
+    {
+      "id": "geometric-dodger",
+      "name": "GeometricDodger",
+      "doctrine": "geometry",
+      "root": "geometric-dodger",
+      "artifact": "geometric-dodger/bot.wasm",
+      "artifactSha256": "18f450d1442d46196f060685db7de8c57e9f65277511a5a2ef8e3678a39e8fb2",
+      "sourceRevision": "sha256:ddd680d2b1c97c55cabc0b37edd7cbe11a5746d1413e018532d978228133386d",
+      "sourceTreeSha256": "sha256:ddd680d2b1c97c55cabc0b37edd7cbe11a5746d1413e018532d978228133386d",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "balancePasses": 0,
+      "dxReport": "geometric-dodger/DX.md"
+    },
+    {
+      "id": "territory-holder",
+      "name": "TerritoryHolder",
+      "doctrine": "territory",
+      "root": "territory-holder",
+      "artifact": "territory-holder/bot.wasm",
+      "artifactSha256": "7859abb10a8ce625b53f4fc1cb2bffda45f22ccadac44e78e9ece810361f5ea3",
+      "sourceRevision": "sha256:650eda88416f1ca87d633912cb2d7f72dcc183c88966494451744b3818b4ee77",
+      "sourceTreeSha256": "sha256:650eda88416f1ca87d633912cb2d7f72dcc183c88966494451744b3818b4ee77",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "balancePasses": 0,
+      "dxReport": "territory-holder/DX.md"
+    }
+  ]
+}

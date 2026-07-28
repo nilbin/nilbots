@@ -1,7 +1,12 @@
 # Frontline duel-depth experiment
 
-Status: local-only, content-identified falsification screen. This document
-does not change hosted `frontline-labs-1` or declare 1v1 balanced.
+Status: completed as a local-only one-pass usability/DX screen. See
+[`EXPERIMENTAL-FRONTLINE-DUEL-DEPTH-RESULTS.md`](EXPERIMENTAL-FRONTLINE-DUEL-DEPTH-RESULTS.md)
+for the rejected arm-policy evidence and
+[`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) for the later
+engine-path analysis. The one-bend mechanic remains a reference hypothesis;
+this document does not change hosted `frontline-labs-1` or declare 1v1
+balanced.
 
 ## Question
 
@@ -44,6 +49,10 @@ deterministic; strategic uncertainty comes from the unknown opponent policy
 and private committed choice, not random engine outcomes.
 
 ## One-pass micro-cohort
+
+This is the frozen historical T1/T2/DX screen. Higher balance claims now use
+the tiers and probes in
+[`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md).
 
 Retain four source-complete policies:
 

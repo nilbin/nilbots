@@ -23,7 +23,7 @@ from typing import Any, Iterable
 
 
 REPORT_SCHEMA_VERSION = 2
-METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-6"
+METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-7"
 PRESENTATION_TICKS_PER_SECOND = 5
 STALL_TICKS = 20
 RECENT_FRAME_WINDOW = 20
@@ -234,6 +234,31 @@ def _normalized_entropy(counts: Counter[str]) -> float:
         for count in nonzero
     )
     return entropy / math.log(len(nonzero))
+
+
+def _attack_trajectory(action: Any) -> str:
+    value = _object(action, "attack action")
+    for raw_argument in _array(
+        value.get("arguments"),
+        "attack action.arguments",
+    ):
+        argument = _object(raw_argument, "attack action argument")
+        if argument.get("kind") != "shot-program":
+            continue
+        program = _object(
+            argument.get("value"),
+            "attack shot-program.value",
+        )
+        return (
+            "curved"
+            if _integer(
+                program.get("bendCount"),
+                "attack shot-program.bendCount",
+            )
+            > 0
+            else "straight"
+        )
+    return "straight"
 
 
 def _transition_catalog(
@@ -601,6 +626,7 @@ def analyze_replay(
     ready_latencies: dict[int, list[int]] = defaultdict(list)
     actor_participant: dict[tuple[int, int, int], int] = {}
     projectile_participant: dict[str, int] = {}
+    projectile_trajectory: dict[str, str] = {}
     phase_body_ticks: dict[int, Counter[str]] = defaultdict(Counter)
     phase_ticks: Counter[str] = Counter()
 
@@ -753,18 +779,32 @@ def analyze_replay(
                     "attack.actorId",
                 )
                 participant_id = actor_participant.get(source_key)
+                trajectory = _attack_trajectory(payload.get("action"))
                 if participant_id is not None:
                     participant_stats[participant_id]["attacksLaunched"] += 1
+                    participant_stats[participant_id][
+                        f"{trajectory}AttacksLaunched"
+                    ] += 1
                     if in_opening:
                         opening_participant_stats[participant_id][
                             "attacksLaunched"
                         ] += 1
+                        opening_participant_stats[participant_id][
+                            f"{trajectory}AttacksLaunched"
+                        ] += 1
                     projectile_participant[str(payload.get("projectileId"))] = (
                         participant_id
                     )
+                    projectile_trajectory[
+                        str(payload.get("projectileId"))
+                    ] = trajectory
             elif kind == "damage":
                 projectile_id = str(payload.get("projectileId"))
                 participant_id = projectile_participant.get(projectile_id)
+                trajectory = projectile_trajectory.get(
+                    projectile_id,
+                    "unknown",
+                )
                 if participant_id is None:
                     source_actor = payload.get("sourceActorId")
                     if source_actor is not None:
@@ -782,12 +822,27 @@ def analyze_replay(
                     participant_stats[participant_id]["damageAmount"] += (
                         _integer(payload.get("amount"), "damage.amount")
                     )
+                    participant_stats[participant_id][
+                        f"{trajectory}DamageEvents"
+                    ] += 1
+                    participant_stats[participant_id][
+                        f"{trajectory}DamageAmount"
+                    ] += _integer(payload.get("amount"), "damage.amount")
                     if in_opening:
                         opening_participant_stats[participant_id][
                             "damageEvents"
                         ] += 1
                         opening_participant_stats[participant_id][
                             "damageAmount"
+                        ] += _integer(
+                            payload.get("amount"),
+                            "damage.amount",
+                        )
+                        opening_participant_stats[participant_id][
+                            f"{trajectory}DamageEvents"
+                        ] += 1
+                        opening_participant_stats[participant_id][
+                            f"{trajectory}DamageAmount"
                         ] += _integer(
                             payload.get("amount"),
                             "damage.amount",
@@ -931,6 +986,14 @@ def analyze_replay(
                 != actor_key[0]
             ]
             hostile_projectile_visible = bool(hostile_projectiles)
+            hostile_trajectories = {
+                projectile_trajectory.get(
+                    str(projectile.get("projectileId")),
+                    "unknown",
+                )
+                for projectile in hostile_projectiles
+            }
+            curved_threat_visible = "curved" in hostile_trajectories
 
             self_state = _object(
                 observation.get("self"),
@@ -1051,6 +1114,26 @@ def analyze_replay(
             stats["hostileProjectileMovementAvailableTurns"] += int(
                 hostile_projectile_visible and movement_available
             )
+            stats["curvedThreatVisibleTurns"] += int(
+                curved_threat_visible
+            )
+            stats["curvedThreatMovementAvailableTurns"] += int(
+                curved_threat_visible and movement_available
+            )
+            stats["curvedThreatOnObjectiveTurns"] += int(
+                curved_threat_visible and on_active_objective
+            )
+            if in_opening:
+                opening_stats = opening_participant_stats[participant_id]
+                opening_stats["curvedThreatVisibleTurns"] += int(
+                    curved_threat_visible
+                )
+                opening_stats[
+                    "curvedThreatMovementAvailableTurns"
+                ] += int(curved_threat_visible and movement_available)
+                opening_stats["curvedThreatOnObjectiveTurns"] += int(
+                    curved_threat_visible and on_active_objective
+                )
             stats["directAttackOpportunityTurns"] += int(
                 direct_attack_opportunity
             )
@@ -1132,6 +1215,43 @@ def analyze_replay(
                 and movement_available
                 and family == "movement"
             )
+            stats["curvedThreatMovementResponses"] += int(
+                curved_threat_visible
+                and movement_available
+                and family == "movement"
+            )
+            stats[
+                "curvedThreatOnObjectiveMovementResponses"
+            ] += int(
+                curved_threat_visible
+                and on_active_objective
+                and family == "movement"
+            )
+            stats["curvedThreatOnObjectiveHoldResponses"] += int(
+                curved_threat_visible
+                and on_active_objective
+                and family != "movement"
+            )
+            if in_opening:
+                opening_stats["curvedThreatMovementResponses"] += int(
+                    curved_threat_visible
+                    and movement_available
+                    and family == "movement"
+                )
+                opening_stats[
+                    "curvedThreatOnObjectiveMovementResponses"
+                ] += int(
+                    curved_threat_visible
+                    and on_active_objective
+                    and family == "movement"
+                )
+                opening_stats[
+                    "curvedThreatOnObjectiveHoldResponses"
+                ] += int(
+                    curved_threat_visible
+                    and on_active_objective
+                    and family != "movement"
+                )
             stats["imminentThreatMovementResponses"] += int(
                 imminent_projectile_threat
                 and movement_available
@@ -1536,8 +1656,34 @@ def analyze_replay(
                 "combatPolicy": {
                     "attackDecisions": stats["attackDecisions"],
                     "attacksLaunched": stats["attacksLaunched"],
+                    "straightAttacksLaunched": stats[
+                        "straightAttacksLaunched"
+                    ],
+                    "curvedAttacksLaunched": stats[
+                        "curvedAttacksLaunched"
+                    ],
                     "damageEvents": stats["damageEvents"],
                     "damageAmount": stats["damageAmount"],
+                    "straightDamageEvents": stats[
+                        "straightDamageEvents"
+                    ],
+                    "straightDamageAmount": stats[
+                        "straightDamageAmount"
+                    ],
+                    "curvedDamageEvents": stats[
+                        "curvedDamageEvents"
+                    ],
+                    "curvedDamageAmount": stats[
+                        "curvedDamageAmount"
+                    ],
+                    "straightAttackDamageConversion": _fraction(
+                        stats["straightDamageEvents"],
+                        stats["straightAttacksLaunched"],
+                    ),
+                    "curvedAttackDamageConversion": _fraction(
+                        stats["curvedDamageEvents"],
+                        stats["curvedAttacksLaunched"],
+                    ),
                     "launchedAttackDamageConversion": _fraction(
                         stats["damageEvents"],
                         stats["attacksLaunched"],
@@ -1578,6 +1724,30 @@ def analyze_replay(
                             "hostileProjectileMovementAvailableTurns"
                         ],
                     ),
+                    "curvedThreatVisibleTurns": stats[
+                        "curvedThreatVisibleTurns"
+                    ],
+                    "curvedThreatMovementAvailableTurns": stats[
+                        "curvedThreatMovementAvailableTurns"
+                    ],
+                    "curvedThreatMovementResponses": stats[
+                        "curvedThreatMovementResponses"
+                    ],
+                    "curvedThreatMovementResponseShare": _fraction(
+                        stats["curvedThreatMovementResponses"],
+                        stats[
+                            "curvedThreatMovementAvailableTurns"
+                        ],
+                    ),
+                    "curvedThreatOnObjectiveTurns": stats[
+                        "curvedThreatOnObjectiveTurns"
+                    ],
+                    "curvedThreatOnObjectiveMovementResponses": stats[
+                        "curvedThreatOnObjectiveMovementResponses"
+                    ],
+                    "curvedThreatOnObjectiveHoldResponses": stats[
+                        "curvedThreatOnObjectiveHoldResponses"
+                    ],
                     "imminentProjectileThreatTurns": stats[
                         "imminentProjectileThreatTurns"
                     ],
@@ -1628,8 +1798,45 @@ def analyze_replay(
                         "curvedAttackDecisions"
                     ],
                     "attacksLaunched": opening_stats["attacksLaunched"],
+                    "straightAttacksLaunched": opening_stats[
+                        "straightAttacksLaunched"
+                    ],
+                    "curvedAttacksLaunched": opening_stats[
+                        "curvedAttacksLaunched"
+                    ],
                     "damageEvents": opening_stats["damageEvents"],
                     "damageAmount": opening_stats["damageAmount"],
+                    "straightDamageEvents": opening_stats[
+                        "straightDamageEvents"
+                    ],
+                    "straightDamageAmount": opening_stats[
+                        "straightDamageAmount"
+                    ],
+                    "curvedDamageEvents": opening_stats[
+                        "curvedDamageEvents"
+                    ],
+                    "curvedDamageAmount": opening_stats[
+                        "curvedDamageAmount"
+                    ],
+                    "curvedThreatVisibleTurns": opening_stats[
+                        "curvedThreatVisibleTurns"
+                    ],
+                    "curvedThreatMovementAvailableTurns": opening_stats[
+                        "curvedThreatMovementAvailableTurns"
+                    ],
+                    "curvedThreatMovementResponses": opening_stats[
+                        "curvedThreatMovementResponses"
+                    ],
+                    "curvedThreatOnObjectiveTurns": opening_stats[
+                        "curvedThreatOnObjectiveTurns"
+                    ],
+                    "curvedThreatOnObjectiveMovementResponses":
+                        opening_stats[
+                            "curvedThreatOnObjectiveMovementResponses"
+                        ],
+                    "curvedThreatOnObjectiveHoldResponses": opening_stats[
+                        "curvedThreatOnObjectiveHoldResponses"
+                    ],
                     "movementDecisions": opening_stats[
                         "movementDecisions"
                     ],
@@ -1863,8 +2070,14 @@ def _summarize_entrants(
             for field in (
                 "attackDecisions",
                 "attacksLaunched",
+                "straightAttacksLaunched",
+                "curvedAttacksLaunched",
                 "damageEvents",
                 "damageAmount",
+                "straightDamageEvents",
+                "straightDamageAmount",
+                "curvedDamageEvents",
+                "curvedDamageAmount",
                 "enemyVisibleTurns",
                 "enemyVisibleAttackAvailableTurns",
                 "attackOpportunityUses",
@@ -1873,6 +2086,12 @@ def _summarize_entrants(
                 "hostileProjectileVisibleTurns",
                 "hostileProjectileMovementAvailableTurns",
                 "projectileMovementResponses",
+                "curvedThreatVisibleTurns",
+                "curvedThreatMovementAvailableTurns",
+                "curvedThreatMovementResponses",
+                "curvedThreatOnObjectiveTurns",
+                "curvedThreatOnObjectiveMovementResponses",
+                "curvedThreatOnObjectiveHoldResponses",
                 "imminentProjectileThreatTurns",
                 "imminentThreatMovementAvailableTurns",
                 "imminentThreatMovementResponses",
@@ -1970,6 +2189,14 @@ def _summarize_entrants(
                         combat["damageEvents"],
                         combat["attacksLaunched"],
                     ),
+                    "straightAttackDamageConversion": _fraction(
+                        combat["straightDamageEvents"],
+                        combat["straightAttacksLaunched"],
+                    ),
+                    "curvedAttackDamageConversion": _fraction(
+                        combat["curvedDamageEvents"],
+                        combat["curvedAttacksLaunched"],
+                    ),
                     "attackOpportunityUseShare": _fraction(
                         combat["attackOpportunityUses"],
                         combat["enemyVisibleAttackAvailableTurns"],
@@ -1984,6 +2211,12 @@ def _summarize_entrants(
                             "hostileProjectileMovementAvailableTurns"
                         ],
                     ),
+                    "curvedThreatMovementResponseShare": _fraction(
+                        combat["curvedThreatMovementResponses"],
+                        combat[
+                            "curvedThreatMovementAvailableTurns"
+                        ],
+                    ),
                     "imminentThreatMovementResponseShare": _fraction(
                         combat["imminentThreatMovementResponses"],
                         combat[
@@ -1996,6 +2229,119 @@ def _summarize_entrants(
             }
         )
     return entrants
+
+
+def _summarize_pairings(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    buckets: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in rows:
+        participants = row["participants"]
+        if len(participants) != 2:
+            continue
+        by_hash = {
+            str(participant["artifactHash"]): participant
+            for participant in participants
+        }
+        if len(by_hash) != 2:
+            continue
+        key = tuple(sorted(by_hash))
+        bucket = buckets.setdefault(
+            key,
+            {
+                "matches": 0,
+                "entrants": {
+                    artifact_hash: {
+                        "name": by_hash[artifact_hash]["name"],
+                        "artifactHash": artifact_hash,
+                        "appearances": 0,
+                        "wins": 0,
+                        "opening": Counter(),
+                        "boundaryTerritorialProgress": 0,
+                    }
+                    for artifact_hash in key
+                },
+            },
+        )
+        bucket["matches"] += 1
+        winner_team_id = row["result"]["winnerTeamId"]
+        for participant in participants:
+            entrant = bucket["entrants"][
+                str(participant["artifactHash"])
+            ]
+            entrant["appearances"] += 1
+            entrant["wins"] += int(
+                winner_team_id == participant["teamId"]
+            )
+            for field, value in participant["opening"].items():
+                entrant["opening"][field] += value
+            entrant["boundaryTerritorialProgress"] += row["opening"][
+                "boundaryScores"
+            ][str(participant["teamId"])].get(
+                "territorial-progress",
+                0,
+            )
+
+    result = []
+    for key, bucket in sorted(buckets.items()):
+        entrants = []
+        for artifact_hash in key:
+            entrant = bucket["entrants"][artifact_hash]
+            opening = entrant["opening"]
+            appearances = entrant["appearances"]
+            entrants.append(
+                {
+                    "name": entrant["name"],
+                    "artifactHash": artifact_hash,
+                    "appearances": appearances,
+                    "wins": entrant["wins"],
+                    "winShare": _fraction(
+                        entrant["wins"],
+                        appearances,
+                    ),
+                    "openingDamagePerAppearance": _fraction(
+                        opening["damageAmount"],
+                        appearances,
+                    ),
+                    "openingCurvedAttackDamageConversion": _fraction(
+                        opening["curvedDamageEvents"],
+                        opening["curvedAttacksLaunched"],
+                    ),
+                    "openingStraightAttackDamageConversion": _fraction(
+                        opening["straightDamageEvents"],
+                        opening["straightAttacksLaunched"],
+                    ),
+                    "openingCurvedThreatMovementResponseShare": _fraction(
+                        opening["curvedThreatMovementResponses"],
+                        opening[
+                            "curvedThreatMovementAvailableTurns"
+                        ],
+                    ),
+                    "openingCurvedThreatOnObjectiveMoveShare": _fraction(
+                        opening[
+                            "curvedThreatOnObjectiveMovementResponses"
+                        ],
+                        opening["curvedThreatOnObjectiveTurns"],
+                    ),
+                    "averageBoundaryTerritorialProgress": _fraction(
+                        entrant["boundaryTerritorialProgress"],
+                        appearances,
+                    ),
+                }
+            )
+        result.append(
+            {
+                "matches": bucket["matches"],
+                "entrants": sorted(
+                    entrants,
+                    key=lambda value: (
+                        str(value["name"]),
+                        value["artifactHash"],
+                    ),
+                ),
+            }
+        )
+    return result
 
 
 def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -2146,6 +2492,7 @@ def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
             ),
         },
         "entrants": _summarize_entrants(rows),
+        "pairings": _summarize_pairings(rows),
         "combat": {
             "gamesWithDamage": sum(
                 row["combat"]["damageEvents"] > 0 for row in rows
@@ -2157,6 +2504,26 @@ def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
                 row["combat"]["damageTicks"] >= 2 for row in rows
             ),
             "attacks": sum(row["combat"]["attacks"] for row in rows),
+            "straightAttacks": sum(
+                participant["combatPolicy"]["straightAttacksLaunched"]
+                for row in rows
+                for participant in row["participants"]
+            ),
+            "curvedAttacks": sum(
+                participant["combatPolicy"]["curvedAttacksLaunched"]
+                for row in rows
+                for participant in row["participants"]
+            ),
+            "straightDamageAmount": sum(
+                participant["combatPolicy"]["straightDamageAmount"]
+                for row in rows
+                for participant in row["participants"]
+            ),
+            "curvedDamageAmount": sum(
+                participant["combatPolicy"]["curvedDamageAmount"]
+                for row in rows
+                for participant in row["participants"]
+            ),
             "attacksPer100Ticks": _fraction(
                 sum(row["combat"]["attacks"] for row in rows) * 100,
                 total_ticks,
@@ -2308,6 +2675,10 @@ def _print_report(groups: list[dict[str, Any]]) -> None:
             f"reciprocal={combat['reciprocalDamageGames']} "
             f"multi-tick={combat['multiDamageTickGames']} "
             f"attacks/100t={combat['attacksPer100Ticks']:.1f} "
+            f"straight={combat['straightDamageAmount']}/"
+            f"{combat['straightAttacks']} "
+            f"curved={combat['curvedDamageAmount']}/"
+            f"{combat['curvedAttacks']} "
             f"damage/100t={combat['damagePer100Ticks']:.1f} "
             f"damage={combat['damageAmount']} "
             f"destructions={combat['destructions']}"

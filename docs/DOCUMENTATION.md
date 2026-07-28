@@ -58,6 +58,16 @@ wrong; it changes which document is the current entry point.
   pre-registered seeds, mirrored matrix, outcome/dynamics gates, replay review,
   artifact retention, and one-mechanism tuning rule for the exploratory Labs
   v1 balance pass.
+- [`BOT-CAPABILITY-AND-SOLVABILITY.md`](BOT-CAPABILITY-AND-SOLVABILITY.md) —
+  eight cumulative individual tiers, a separate six-grade coordination axis,
+  practical 1v1/2v2/3v3 solvability targets, and the static gates that precede
+  balance matches.
+- [`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md) — planned
+  replay-native T/C probe runner, scenario families, evidence manifest, and
+  the boundary between bot findings and rules findings.
+- [`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) — executable
+  projectile chronology, local payoff matrices, and map-wide one-bend
+  last-mile classification for the current duel-depth experiment.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, generic replay 3, datasets, and bounded model
   assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor

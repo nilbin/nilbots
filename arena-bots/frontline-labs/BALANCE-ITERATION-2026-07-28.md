@@ -3,6 +3,14 @@
 Status: architecture accepted; no gameplay candidate promoted into immutable
 `frontline-labs-1`.
 
+This file preserves the chronological V1–V10 experiment record. Its old
+floor/capable/expert labels and “do not change the map yet” sequencing are
+superseded for new work by
+`docs/BOT-CAPABILITY-AND-SOLVABILITY.md`,
+`docs/BOT-QUALIFICATION-SUITE.md`, and
+`docs/FRONTLINE-DUEL-THEORY.md`. The recorded metrics and rejection decisions
+remain historical evidence.
+
 ## Decision
 
 Keep baseline v2 as the frozen calibration population. The engine, generic
@@ -267,7 +275,9 @@ Start with the most legible action family—straight or one hidden bend—and
 retain four purpose-built policies: geometric dodger, territory holder,
 private-curve predictor, and adaptive or deterministically mixed shooter. Use
 mirrored assignments and enough pre-registered seeds to exercise the mixed
-policy. No strategy-improvement rounds occur before the first verdict.
+policy. No strategy-improvement rounds occur before the first one-pass
+usability verdict. Do not treat that verdict as numeric balance evidence
+unless each entrant already passed the relevant capable/expert gates.
 
 The foundation fails if one simple evasive policy preserves both health and
 objective control against every legal trajectory family, or if curve-aware

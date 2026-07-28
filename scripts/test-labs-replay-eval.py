@@ -33,6 +33,25 @@ class LabsReplayEvalTests(unittest.TestCase):
     def setUp(self) -> None:
         self.document = json.loads(FIXTURE.read_text(encoding="utf-8"))
 
+    def test_attack_trajectory_uses_committed_program(self) -> None:
+        self.assertEqual(
+            "straight",
+            EVALUATOR._attack_trajectory({"arguments": []}),
+        )
+        self.assertEqual(
+            "curved",
+            EVALUATOR._attack_trajectory(
+                {
+                    "arguments": [
+                        {
+                            "kind": "shot-program",
+                            "value": {"bendCount": 1},
+                        }
+                    ]
+                }
+            ),
+        )
+
     def test_frontline_v3_fixture_emits_identity_and_dynamics(self) -> None:
         row = EVALUATOR.analyze_replay(
             self.document,
@@ -80,6 +99,8 @@ class LabsReplayEvalTests(unittest.TestCase):
         self.assertEqual({"team-0": 1}, summary["outcomes"])
         self.assertEqual(["in-process"], summary["cohort"]["runtimeClasses"])
         self.assertEqual(2, len(summary["entrants"]))
+        self.assertEqual(1, len(summary["pairings"]))
+        self.assertEqual(1, summary["pairings"][0]["matches"])
         self.assertEqual(1, summary["activity"]["gamesWithoutCombatEvents"])
         self.assertEqual(0.0, summary["combat"]["attacksPer100Ticks"])
         self.assertEqual(0, summary["opening"]["gamesWithDamage"])

@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "CurvePredictor",
+  "doctrine": "Predict the opponent's next objective-seeking cardinal step and choose a straight or one-bend interception path.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0
+}

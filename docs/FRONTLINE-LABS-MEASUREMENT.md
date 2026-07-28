@@ -16,39 +16,58 @@ Balance numbers are not interpretable while the calibration bots routinely
 miss direct shots, ignore immediate projectile paths, or fail to activate
 available bodies. The scorecard therefore has four ordered gates.
 
-## Competence ladder
+## Capability ladder
 
-No single bot tier is the balance target. Each tier answers a different
-question, and a rule candidate must state which tier produced its evidence.
+The canonical ladder is
+[`BOT-CAPABILITY-AND-SOLVABILITY.md`](BOT-CAPABILITY-AND-SOLVABILITY.md):
+eight cumulative individual tiers (`T1`–`T8`) and six independent
+coordination grades (`C0`–`C5`). Do not compress projectile skill, navigation,
+population strategy, adaptation, and teamwork into one unexplained label.
+The replay-native probe plan is
+[`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md).
 
-1. **Floor** bots perform contract-generic fundamentals: legal actions,
-   objective-directed movement, obvious direct shots, obvious one-advance
-   evasion, and prompt use of an immediately valuable unlocked body. Avoiding
-   one visible straight projectile is expected boilerplate, not a meaningful
-   skill discriminator. The game must already be active and legible at this
-   tier.
-2. **Capable** bots add doctrine: body roles, useful transformation timing,
-   objective-aware fabrication, elementary focus fire, and deliberate
-   exchanges between health, firing tempo, and territorial pressure. This
-   tier is the primary early/mid/late pacing calibration.
-3. **Expert** bots exploit the strategic ceiling: shared team information,
-   coordinated movement, crossfire, focus fire, curved-shot traps, forced
-   movement, feints, and opponent adaptation. This tier tests whether a
-   seemingly healthy rule becomes solved, degenerate, or deadlocked under
-   strong play.
+For continuity with older evidence, the former bands map only as follows:
 
-Invalid, random, or mechanically broken bots test engine robustness, not
-balance. Conversely, expert-only interactions must not be required to rescue
-an otherwise inert match. The post-reveal shared-fundamentals cohort is a
-mechanically credible floor cohort, not a capable or expert cohort and not a claim that
-all real entrants will meet that standard.
+- **floor** means T2 reactive fundamentals;
+- **capable** was too broad and must be replaced by an exact T/C claim,
+  normally T4–T6;
+- **expert** was also too broad and must be replaced by T7–T8 plus the
+  applicable coordination grade.
 
-Expert evidence should eventually add coordination diagnostics alongside the
-ordinary action counts: the share of active bodies that contribute attacks or
+Invalid, random, or mechanically broken bots are `R0` robustness probes, not
+balance entrants. The game must be active and legible at T2; T5–T6 is the
+primary 1v1 balance band; T7–T8 tests whether strong play becomes solved,
+degenerate, or deadlocked. Multi-participant evidence must also declare its
+coordination grade.
+
+The post-reveal shared-fundamentals cohort is mechanically credible T2
+evidence, not a claim that all real entrants meet that standard. A one-pass
+independently authored cohort is a T1/T2 and developer-experience screen
+unless its entrants pass higher qualification probes. Tournament records do
+not establish bot quality: a sweep can mean a strong mechanic, a weak
+opponent, or both. Never select a numeric rule value from a one-pass win table
+alone.
+
+For T4+ balance evidence, qualify behavior before opening the final
+comparison:
+
+- demonstrate the mechanic the entrant claims to evaluate;
+- meet declared direct-fire, evasion, objective, population, and inactivity
+  gates relevant to the rules hypothesis;
+- use an equal, pre-registered improvement budget;
+- preserve every authored revision rather than retaining only a champion;
+- freeze holdout seeds before result-informed iteration;
+- run the same final artifacts under every numeric A/B arm and mirror
+  participant assignments.
+
+Report failed qualifications as bot findings, not game-balance findings.
+
+Coordination-grade evidence should add diagnostics alongside the ordinary
+action counts: the share of active bodies that contribute attacks or
 objective weight, multi-body attacks on one target within a short window,
 multi-attacker eliminations, attacks enabled by allied visibility, and useful
 damage from bent projectiles. These describe strategic headroom; they are not
-minimum requirements for an entry-level bot.
+minimum T2 requirements.
 
 ## Duel-depth falsification screen
 
@@ -68,7 +87,10 @@ Prime-versus-Prime phase and test the smallest intended mind game:
 Use a retained, mirrored, rules-native micro-cohort with at least an obvious
 geometric dodger, a territory holder, a private-curve predictor, and an
 adaptive or seeded mixed shooter. Start with straight or one hidden bend so
-the action space is watchable. The 1v1 foundation fails this screen if one
+the action space is watchable. A one-pass version first tests authorability
+and obvious T1/T2 behavior; it does not establish that the named policies are
+strong examples of their doctrines. The 1v1 foundation fails a
+capability-qualified screen if one
 simple evasive policy avoids damage and preserves control against every legal
 trajectory family, or if private-curve policies cannot outperform straight
 fire from both assignments. It passes provisionally when no universal
@@ -190,17 +212,17 @@ declared matchup bands, not inferred from one equal-budget round robin:
 - at least half of cross-tier games end by objective breach;
 - a materially stronger calibration policy can win cross-tier games from both
   participant assignments;
-- same-tier capable games may end by timed territorial ranking, but no more
+- same-tier T5–T6 games may end by timed territorial ranking, but no more
   than 60% should reach MaxTicks and their median should not simply equal the
   cap.
 
 These bands deliberately allow an early win without making early events
 deterministic, allow close games to reveal late composition, and avoid
 punishing the game merely because evenly matched bots use a legitimate timed
-finish. Same-tier floor, same-tier capable, floor-versus-capable, and later
-capable-versus-expert evidence should be reported separately. Revisit these
-values after outcome-blind review at 1x on mobile and desktop; statistical
-motion is necessary but not sufficient for an entertaining replay.
+finish. Same-tier T2, same-tier T5–T6, T2-versus-T5+, and later T6-versus-T8
+evidence should be reported separately. Revisit these values after
+outcome-blind review at 1x on mobile and desktop; statistical motion is
+necessary but not sufficient for an entertaining replay.
 
 ## Current baseline diagnosis
 
@@ -223,13 +245,14 @@ balance should wait until that population produces credible tactical play.
 
 ## First competence and control screen
 
-The four retained mechanically credible floor bots add prompt fabrication, narrow
-direct-fire execution, imminent-path dodging, and objective-preserving dodge
-selection equally to the four doctrines. Across the 12 hosted WASM matches,
+The four retained mechanically credible T2 bots add prompt fabrication,
+narrow direct-fire execution, imminent-path dodging, and
+objective-preserving dodge selection equally to the four doctrines. Across
+the 12 hosted WASM matches,
 direct-shot use is 79–87%, imminent-threat movement is 66–84%, every game has
 reciprocal multi-tick damage, and there are no faults, stalls, loops, or
 75-tick combat gaps. Bot adequacy is therefore high enough to expose rules
-behavior, but the dodge rates do not establish capable or expert play.
+behavior, but the dodge rates do not establish T4+ play.
 
 The screen also changes the diagnosis:
 
@@ -250,5 +273,5 @@ standalone pacing solution. Net control is retained as a generic contract
 experiment because it makes companion advantage mechanically meaningful, but
 it is not promoted as a pacing fix. The next screens must include the
 competent generated starter, explicit cross-tier matchups, and at least one
-teamwork-aware capable policy rather than asking independently competent
-bodies to demonstrate expert coordination.
+teamwork-aware T5/C2+ policy rather than asking independently competent bodies
+to demonstrate coordination they do not implement.

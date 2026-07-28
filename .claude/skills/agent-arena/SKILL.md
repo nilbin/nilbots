@@ -49,9 +49,25 @@ not apply.
   native round-robin. Mechanical compile/contract/fault repairs are allowed
   without opponent results. If a shared brief or scaffold defect needs a
   repair pass, give every author the same opportunity and archive all
-  revisions. This is an exploratory tuning screen, not a ship verdict.
+  revisions. This is a T1/T2/DX and exploratory screen, not a bot-quality
+  proof, numeric balance authority, or ship verdict.
 
 ## Frontline Labs cohort sprint
+
+Do not infer mechanic strength from a one-pass cohort's standings. Before a
+Frontline run may support numeric balance claims, every voting entrant must
+pass pre-registered capability gates relevant to its doctrine, receive the
+same small improvement budget, and run unchanged across mirrored A/B arms and
+holdout seeds. Keep every revision. A failed doctrine demonstration is a bot
+finding; reroute the rules verdict rather than calling the mechanic weak.
+
+Use the cumulative T1–T8 individual ladder and independent C0–C5 coordination
+grades in `docs/BOT-CAPABILITY-AND-SOLVABILITY.md`. Probe definitions and the
+planned canonical evidence shape live in `docs/BOT-QUALIFICATION-SUITE.md`.
+State the minimum T/C grade before authoring or selecting entrants. Until the
+dynamic qualification runner exists, describe one-pass entrants only as
+T1/T2 candidates unless replay evidence proves a specific higher probe; never
+infer a higher tier from tournament wins.
 
 Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
 hosted path has quotas and no ladder; the exact local generic runner is the

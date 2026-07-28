@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "AdaptiveMixer",
+  "doctrine": "Mix straight and private one-bend trajectories, then adapt bend bias to observed post-shot lateral responses.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0
+}
