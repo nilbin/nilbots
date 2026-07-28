@@ -30,7 +30,8 @@ public static class FrontlineLabsExperimentCommand
             "mobilize-turrets",
             "remote-fabrication",
             "net-control",
-            "one-bend-shots");
+            "one-bend-shots",
+            "duel-map");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
@@ -76,13 +77,16 @@ public static class FrontlineLabsExperimentCommand
         bool oneBendShots = OptionalFlag(
             options,
             "one-bend-shots");
+        FrontlineLabsDuelMapArm? duelMapArm =
+            OptionalDuelMapArm(options);
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
             + (mobilizeTurrets ? 1 : 0)
             + (remoteFabrication ? 1 : 0)
             + (netControl ? 1 : 0)
-            + (oneBendShots ? 1 : 0);
+            + (oneBendShots ? 1 : 0)
+            + (duelMapArm is null ? 0 : 1);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
@@ -101,20 +105,32 @@ public static class FrontlineLabsExperimentCommand
                     phase.StartsAtTick,
                     phase.Gain);
         }
+        else if (mobilizeTurrets)
+        {
+            definition = FrontlineLabsDefinition.CreateMobilizeExperiment();
+        }
+        else if (remoteFabrication)
+        {
+            definition =
+                FrontlineLabsDefinition.CreateRemoteFabricationExperiment();
+        }
+        else if (netControl)
+        {
+            definition = FrontlineLabsDefinition.CreateNetControlExperiment();
+        }
+        else if (duelMapArm is { } mapArm)
+        {
+            definition =
+                FrontlineLabsDefinition.CreateOneBendShotsExperiment(mapArm);
+        }
+        else if (oneBendShots)
+        {
+            definition =
+                FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        }
         else
         {
-            definition = mobilizeTurrets
-                ? FrontlineLabsDefinition.CreateMobilizeExperiment()
-                : remoteFabrication
-                    ? FrontlineLabsDefinition
-                        .CreateRemoteFabricationExperiment()
-                    : netControl
-                        ? FrontlineLabsDefinition
-                            .CreateNetControlExperiment()
-                        : oneBendShots
-                            ? FrontlineLabsDefinition
-                                .CreateOneBendShotsExperiment()
-                            : FrontlineLabsDefinition.Create();
+            definition = FrontlineLabsDefinition.Create();
         }
         Console.WriteLine(
             experimentCount == 0
@@ -349,6 +365,23 @@ public static class FrontlineLabsExperimentCommand
                 $"--{name} does not accept a value.");
         }
         return true;
+    }
+
+    private static FrontlineLabsDuelMapArm? OptionalDuelMapArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("duel-map", out string? value))
+            return null;
+        return value.ToLowerInvariant() switch
+        {
+            "current" => FrontlineLabsDuelMapArm.Current,
+            "thin-fronts" => FrontlineLabsDuelMapArm.ThinFronts,
+            "outer-shoulder-bypass" =>
+                FrontlineLabsDuelMapArm.OuterShoulderBypass,
+            _ => throw new InvalidOperationException(
+                $"Unknown --duel-map '{value}' " +
+                "(use current, thin-fronts, or outer-shoulder-bypass)."),
+        };
     }
 
     private static ulong[] ParseSeeds(

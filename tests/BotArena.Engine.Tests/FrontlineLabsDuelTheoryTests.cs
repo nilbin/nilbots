@@ -351,11 +351,16 @@ public class FrontlineLabsDuelTheoryTests
         ];
         IReadOnlyList<IReadOnlySet<Position>> verticalStrips =
         [
-            Positions(4, 8, 9, 10),
-            Positions(7, 4, 5, 6),
-            Positions(11, 6, 7, 8),
-            Positions(15, 4, 5, 6),
-            Positions(18, 8, 9, 10),
+            .. FrontlineLabsDefinition
+                .CreateOneBendShotsExperiment(
+                    FrontlineLabsDuelMapArm.ThinFronts)
+                .Map
+                .Regions
+                .Where(region => region.RegionId.StartsWith(
+                    "frontline-position-",
+                    StringComparison.Ordinal))
+                .Select(region =>
+                    (IReadOnlySet<Position>)region.Tiles.ToHashSet()),
         ];
         Assert.All(
             verticalStrips.SelectMany(strip => strip),
@@ -651,11 +656,6 @@ public class FrontlineLabsDuelTheoryTests
             .Where(response => !hitByAny.Contains(response))
             .ToHashSet(StringComparer.Ordinal);
     }
-
-    private static IReadOnlySet<Position> Positions(
-        int x,
-        params int[] ys) =>
-        ys.Select(y => new Position(x, y)).ToHashSet();
 
     private static bool HasSafeStayAndLeaveTradeoff(
         LastMileAnalysis analysis,

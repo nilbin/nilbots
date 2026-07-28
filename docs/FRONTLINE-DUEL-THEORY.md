@@ -155,7 +155,7 @@ Every current universal response consumes movement; none permits Hold. The
 projectile language therefore passes the no-zero-cost-defense gate even where
 it does not form a full private fork.
 
-## Map geometry candidate
+## Map geometry candidates
 
 The current objectives are generally wider along the east-west advance axis
 than across it. That lets an odd-range move away from the shooter sometimes
@@ -182,11 +182,17 @@ lateral capacity with the playlist's expected active population. A 2v2 or
 3v3 map should add lateral lanes and contest pockets rather than merely reuse
 the duel strip.
 
-The wall geometry remains a separate lever. If qualified bots cannot time the
-current entry, first test opening the inner shoulders at `x=9` and `x=13`
-above and below the central lane. Do not open every shoulder at first-contact
-range: that risks turning the approach into trivial long-range lateral
-dodging.
+The objective-only candidate is implemented as the content-identified
+`thin-fronts` map arm.
+
+The wall geometry remains a separate lever. The implemented
+`outer-shoulder-bypass` arm opens `(8,6)`, `(8,8)`, `(14,6)`, and `(14,8)`.
+On the left approach, excluding the direct `(9,7)` choke, this shortens the
+route from `(8,7)` to central entry `(10,7)` from eight moves to six. The inner
+walls at `x=9` and `x=13` remain closed: a policy gets an earlier, costly route
+choice without receiving a universal last-moment lateral dodge. Opening those
+inner shoulders would erase the intended T4 discontinuity and is therefore
+not the first wall arm.
 
 ## Entry initiative
 
@@ -201,7 +207,7 @@ The current map therefore asks a policy to move before it has final
 information, use projectile/cooldown timing, and then make a mixed positional
 response. A purely reactive dodger will retreat forever. This is a legitimate
 T4 boundary if stronger policies can cross it often enough to keep matches
-active; otherwise the inner-shoulder map arm is the cleaner fix.
+active; otherwise the outer-shoulder bypass is the cleaner first map test.
 
 ## Team-size consequence
 

@@ -42,6 +42,32 @@ choices:
 Initial aim offset is exactly zero. Repeated bends are unavailable. Turret
 fire remains straight and omnidirectional.
 
+Two map-only arms keep that exact ruleset fingerprint and receive distinct map
+and match fingerprints:
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> \
+  --opponent <generic-spec> \
+  --duel-map thin-fronts
+
+nilbots experiment frontline-labs \
+  --bot <generic-spec> \
+  --opponent <generic-spec> \
+  --duel-map outer-shoulder-bypass
+```
+
+`thin-fronts` narrows each objective across the primary attack axis. The exact
+map enumeration raises full private-fork coverage on primary-axis objective
+states from 54% to 67% and cuts universal-response states that retain
+objective occupancy from 33% to 13%. Its three-tile capacity is an explicit
+late-population risk to test.
+
+`outer-shoulder-bypass` opens four earlier flank tiles at `x=8` and `x=14`.
+It shortens a route around the central choke by two moves while keeping the
+inner `x=9`/`x=13` walls closed, so the range-five last-moment dodge does not
+become trivial.
+
 Movement still resolves before an existing projectile advances. Opponents see
 the projectile's current heading, position, remaining distance, and exact
 advance timing, but never its committed future bend. Physics and replay remain

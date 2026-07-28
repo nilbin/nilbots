@@ -234,6 +234,7 @@ static int CommandHelp(string command)
                    [--remote-fabrication]
                    [--net-control]
                    [--one-bend-shots]
+                   [--duel-map current|thin-fronts|outer-shoulder-bypass]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -251,6 +252,10 @@ static int CommandHelp(string command)
             instead of treating every two-team presence as a complete contest.
             --one-bend-shots limits mobile fire to straight or one private
             45-degree bend after 1-4 tiles for the duel-depth screen.
+            --duel-map runs those same one-bend rules on a content-identified
+            map arm. thin-fronts raises the positional cost of retreat;
+            outer-shoulder-bypass adds an earlier, longer flank without opening
+            the last-moment central choke.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
 

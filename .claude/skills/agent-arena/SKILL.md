@@ -96,6 +96,13 @@ narrow falsification screen, adapt the smallest retained micro-cohort that
 covers the competing policies; promote to a four-doctrine sprint only if the
 screen survives.
 
+For duel-depth map A/Bs, use one frozen artifact set with
+`--duel-map current`, `--duel-map thin-fronts`, and
+`--duel-map outer-shoulder-bypass`. These arms share one-bend rules and differ
+by content-identified map fingerprints. Do not treat a map win table as
+balance evidence until the voting artifacts pass the relevant qualification
+probes.
+
 Pre-register the run in `docs/FRONTLINE-LABS-COHORT-BASELINE.md`. Give each of
 four independent agents the identical
 `docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`, the player rules in

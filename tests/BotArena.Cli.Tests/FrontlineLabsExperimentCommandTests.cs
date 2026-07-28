@@ -169,6 +169,27 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "--net-control",
                     "--one-bend-shots",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--duel-map",
+                    "unknown-map",
+                ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--one-bend-shots",
+                    "--duel-map",
+                    "thin-fronts",
+                ]));
     }
 
     [Fact]
@@ -457,6 +478,61 @@ public sealed class FrontlineLabsExperimentCommandTests
         }
     }
 
+    [Fact]
+    public void DuelMapArm_WritesOneBendRulesAndDistinctMapIdentity()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-duel-map-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "thin-fronts");
+
+            Assert.Equal(
+                0,
+                Run(
+                    alpha,
+                    beta,
+                    output,
+                    duelMap: "thin-fronts"));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement contract = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract");
+            Assert.Equal(
+                "frontline-labs-1-experiment-one-bend-shots",
+                contract.GetProperty("rules")
+                    .GetProperty("rulesetId")
+                    .GetString());
+            Assert.Equal(
+                "frontline-labs-01-thin-fronts-experiment",
+                contract.GetProperty("map")
+                    .GetProperty("mapId")
+                    .GetString());
+            Assert.All(
+                contract.GetProperty("map")
+                    .GetProperty("regions")
+                    .EnumerateArray()
+                    .Where(region => region.GetProperty("regionId")
+                        .GetString()!
+                        .StartsWith(
+                            "frontline-position-",
+                            StringComparison.Ordinal)),
+                region => Assert.Equal(
+                    3,
+                    region.GetProperty("tiles").GetArrayLength()));
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
     private static int Run(
         string bot,
         string opponent,
@@ -466,7 +542,8 @@ public sealed class FrontlineLabsExperimentCommandTests
         bool mobilizeTurrets = false,
         bool remoteFabrication = false,
         bool netControl = false,
-        bool oneBendShots = false)
+        bool oneBendShots = false,
+        string? duelMap = null)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -505,6 +582,11 @@ public sealed class FrontlineLabsExperimentCommandTests
                 arguments.Add("--net-control");
             if (oneBendShots)
                 arguments.Add("--one-bend-shots");
+            if (duelMap is not null)
+            {
+                arguments.Add("--duel-map");
+                arguments.Add(duelMap);
+            }
             return FrontlineLabsExperimentCommand.Run(arguments);
         }
         finally

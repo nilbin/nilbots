@@ -233,7 +233,7 @@ ruleset:
 | Objective control | Higher total mobile objective weight controls at the configured base rate; the size of the margin does not multiply gain. | A 2v1 can break a sacrificial contest, while a 3v1 does not snowball three times faster. This constant-gain net policy is a new experimental policy, not the current binary or scaling-net policy. |
 | Turret | HP 5, objective weight 0, omnidirectional vision/fire, straight cooldown 1, plus one declared remobilization opportunity. | Strong lane support earns stationary commitment; zero weight and remobilization prevent permanent objective/turret standoffs. |
 | Split | Prime-only, pre-transform, data-defined descendant count and health distribution. | Trades durability for action economy and objective bodies without adding a new controller contract. |
-| Geometry | Current walls plus a perpendicular-objective candidate; inner shoulders are a second isolated arm. | Change positional cost before adding combat verbs. |
+| Geometry | Current map plus isolated `thin-fronts` and `outer-shoulder-bypass` arms. | Change positional cost or approach timing before adding combat verbs. |
 
 Automatic companion return and constant-gain net control need isolated
 ruleset identities and same-artifact A/B evidence. They should remain
@@ -305,13 +305,21 @@ ground where possible. Important prediction chambers should stage likely
 engagements at even range; approach lanes can use odd ranges as readable
 forced-movement pressure.
 
-The first map-only candidate rotates the five objective regions into
+The implemented `thin-fronts` map arm rotates the five objective regions into
 three-tile strips perpendicular to the east-west advance axis. On primary-axis
 engagements, full-fork coverage rises from 26/48 (54%) to 20/30 (67%), while
 states where a universal response can stay inside the objective fall from
 16/48 (33%) to 4/30 (13%). This is a promising objective-payoff A/B, not a
 promotion: a three-tile strip may be too small after fabrication, and
 2v2/3v3 maps need proportionally more lateral capacity and lanes.
+
+The implemented `outer-shoulder-bypass` arm opens `(8,6)`, `(8,8)`,
+`(14,6)`, and `(14,8)`. It shortens the left-side route around the direct
+`(9,7)` choke from eight moves to six, so a bot can branch later without
+receiving a free last-moment dodge. The inner walls at `x=9` and `x=13`
+remain closed, preserving the exact range-five suppression discontinuity.
+Opening those inner walls is not the first candidate because it would remove
+that skill test rather than price an alternative.
 
 This is strong theoretical support for the minimal one-bend language. It does
 not prove full-game balance: the enumeration excludes diagonal initial

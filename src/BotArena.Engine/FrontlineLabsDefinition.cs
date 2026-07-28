@@ -156,14 +156,17 @@ public static class FrontlineLabsDefinition
     /// initial aim offsets and repeated bends are unavailable.
     /// </summary>
     public static ActorResolvedMatchDefinition
-        CreateOneBendShotsExperiment() =>
+        CreateOneBendShotsExperiment(
+            FrontlineLabsDuelMapArm mapArm =
+                FrontlineLabsDuelMapArm.Current) =>
         CreateResolved(
             $"{RulesetId}-experiment-one-bend-shots",
             captureThreshold: 15,
             captureGainSchedule: null,
             enableMobilize: false,
             remoteFabrication: false,
-            oneBendShots: true);
+            oneBendShots: true,
+            duelMapArm: mapArm);
 
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
@@ -175,7 +178,9 @@ public static class FrontlineLabsDefinition
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
             FrontlineCaptureDefinition.ControlPolicyKind
                 .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
-        bool oneBendShots = false)
+        bool oneBendShots = false,
+        FrontlineLabsDuelMapArm duelMapArm =
+            FrontlineLabsDuelMapArm.Current)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -185,7 +190,9 @@ public static class FrontlineLabsDefinition
             remoteFabrication,
             controlPolicy,
             oneBendShots);
-        ActorMapDefinition map = CreateMap(remoteFabrication);
+        ActorMapDefinition map = CreateMap(
+            remoteFabrication,
+            duelMapArm);
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
             CreateInitialDeployment();
@@ -675,17 +682,122 @@ public static class FrontlineLabsDefinition
         ).ToImmutableArray();
 
     private static ActorMapDefinition CreateMap(
-        bool remoteFabrication) =>
+        bool remoteFabrication,
+        FrontlineLabsDuelMapArm duelMapArm) =>
         new(
             remoteFabrication
                 ? $"{MapId}-remote-fabrication-experiment"
-                : MapId,
+                : duelMapArm switch
+                {
+                    FrontlineLabsDuelMapArm.Current => MapId,
+                    FrontlineLabsDuelMapArm.ThinFronts =>
+                        $"{MapId}-thin-fronts-experiment",
+                    FrontlineLabsDuelMapArm.OuterShoulderBypass =>
+                        $"{MapId}-outer-shoulder-bypass-experiment",
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(duelMapArm),
+                        duelMapArm,
+                        "Unknown Frontline Labs duel map arm."),
+                },
             version: 1,
-            MapTileRows(),
+            MapTileRows(duelMapArm),
             [
                 Spawn("team-0-prime", 2, 7, Direction.East),
                 Spawn("team-1-prime", 20, 7, Direction.West),
             ],
+            [
+                .. ObjectiveRegions(duelMapArm),
+                Region(
+                    "team-0-home-pad",
+                    [(1, 6), (2, 6), (1, 7), (2, 7), (1, 8), (2, 8)]),
+                Region(
+                    "team-1-home-pad",
+                    [
+                        (20, 6),
+                        (21, 6),
+                        (20, 7),
+                        (21, 7),
+                        (20, 8),
+                        (21, 8),
+                    ]),
+                .. RemoteFabricationRegions(remoteFabrication),
+            ],
+            [
+                new ActorMapTileTagDefinition(
+                    "anchor-forbidden",
+                    ActorMapTileTagDefinition.TileTagKind
+                        .TransitionPlacementForbidden,
+                    AnchorForbiddenTiles(duelMapArm)),
+                new ActorMapTileTagDefinition(
+                    "protected-home-pads",
+                    ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    [
+                        new Position(1, 6),
+                        new Position(2, 6),
+                        new Position(1, 7),
+                        new Position(2, 7),
+                        new Position(1, 8),
+                        new Position(2, 8),
+                        new Position(20, 6),
+                        new Position(21, 6),
+                        new Position(20, 7),
+                        new Position(21, 7),
+                        new Position(20, 8),
+                        new Position(21, 8),
+                    ]),
+            ]);
+
+    private static ImmutableArray<string> MapTileRows(
+        FrontlineLabsDuelMapArm duelMapArm)
+    {
+        ImmutableArray<string> rows =
+        [
+            "#######################",
+            "#.....................#",
+            "#..##.....#.#.....##..#",
+            "#.........#.#.........#",
+            "#...#......#......#...#",
+            "#....#.....#.....#....#",
+            "#....#..##...##..#....#",
+            "#.....................#",
+            "#....#..##...##..#....#",
+            "#....#.....#.....#....#",
+            "#....#.....#.....#....#",
+            "#.........#.#.........#",
+            "#..##.....#.#.....##..#",
+            "#.....................#",
+            "#######################",
+        ];
+        if (duelMapArm != FrontlineLabsDuelMapArm.OuterShoulderBypass)
+            return rows;
+
+        return rows
+            .SetItem(6, "#....#...#...#...#....#")
+            .SetItem(8, "#....#...#...#...#....#");
+    }
+
+    private static ImmutableArray<ActorMapRegionDefinition>
+        ObjectiveRegions(FrontlineLabsDuelMapArm duelMapArm) =>
+        duelMapArm == FrontlineLabsDuelMapArm.ThinFronts
+            ?
+            [
+                Objective(
+                    "frontline-position-0",
+                    [(4, 8), (4, 9), (4, 10)]),
+                Objective(
+                    "frontline-position-1",
+                    [(7, 4), (7, 5), (7, 6)]),
+                Objective(
+                    "frontline-position-2",
+                    [(11, 6), (11, 7), (11, 8)]),
+                Objective(
+                    "frontline-position-3",
+                    [(15, 4), (15, 5), (15, 6)]),
+                Objective(
+                    "frontline-position-4",
+                    [(18, 8), (18, 9), (18, 10)]),
+            ]
+            :
             [
                 Objective(
                     "frontline-position-0",
@@ -709,64 +821,7 @@ public static class FrontlineLabsDefinition
                 Objective(
                     "frontline-position-4",
                     [(18, 8), (19, 8), (18, 9), (19, 9)]),
-                Region(
-                    "team-0-home-pad",
-                    [(1, 6), (2, 6), (1, 7), (2, 7), (1, 8), (2, 8)]),
-                Region(
-                    "team-1-home-pad",
-                    [
-                        (20, 6),
-                        (21, 6),
-                        (20, 7),
-                        (21, 7),
-                        (20, 8),
-                        (21, 8),
-                    ]),
-                .. RemoteFabricationRegions(remoteFabrication),
-            ],
-            [
-                new ActorMapTileTagDefinition(
-                    "anchor-forbidden",
-                    ActorMapTileTagDefinition.TileTagKind
-                        .TransitionPlacementForbidden,
-                    AnchorForbiddenTiles()),
-                new ActorMapTileTagDefinition(
-                    "protected-home-pads",
-                    ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
-                    [
-                        new Position(1, 6),
-                        new Position(2, 6),
-                        new Position(1, 7),
-                        new Position(2, 7),
-                        new Position(1, 8),
-                        new Position(2, 8),
-                        new Position(20, 6),
-                        new Position(21, 6),
-                        new Position(20, 7),
-                        new Position(21, 7),
-                        new Position(20, 8),
-                        new Position(21, 8),
-                    ]),
-            ]);
-
-    private static ImmutableArray<string> MapTileRows() =>
-    [
-        "#######################",
-        "#.....................#",
-        "#..##.....#.#.....##..#",
-        "#.........#.#.........#",
-        "#...#......#......#...#",
-        "#....#.....#.....#....#",
-        "#....#..##...##..#....#",
-        "#.....................#",
-        "#....#..##...##..#....#",
-        "#....#.....#.....#....#",
-        "#....#.....#.....#....#",
-        "#.........#.#.........#",
-        "#..##.....#.#.....##..#",
-        "#.....................#",
-        "#######################",
-    ];
+            ];
 
     private static ImmutableArray<ActorMapRegionDefinition>
         RemoteFabricationRegions(bool enabled) =>
@@ -780,7 +835,8 @@ public static class FrontlineLabsDefinition
 
     private static IReadOnlyList<(int X, int Y)> WalkableMapTiles()
     {
-        ImmutableArray<string> rows = MapTileRows();
+        ImmutableArray<string> rows = MapTileRows(
+            FrontlineLabsDuelMapArm.Current);
         return (
             from y in Enumerable.Range(0, rows.Length)
             from x in Enumerable.Range(0, rows[y].Length)
@@ -822,7 +878,8 @@ public static class FrontlineLabsDefinition
         tiles.Select(tile => new Position(tile.X, tile.Y))
             .ToImmutableArray();
 
-    private static ImmutableArray<Position> AnchorForbiddenTiles() =>
+    private static ImmutableArray<Position> AnchorForbiddenTiles(
+        FrontlineLabsDuelMapArm duelMapArm) =>
     [
         new(1, 1), new(2, 1), new(20, 1), new(21, 1),
         new(1, 2), new(2, 2), new(20, 2), new(21, 2),
@@ -848,7 +905,20 @@ public static class FrontlineLabsDefinition
         new(21, 12),
         new(1, 13), new(2, 13), new(6, 13), new(16, 13), new(20, 13),
         new(21, 13),
+        .. ShoulderBypassForbiddenTiles(duelMapArm),
     ];
+
+    private static ImmutableArray<Position> ShoulderBypassForbiddenTiles(
+        FrontlineLabsDuelMapArm duelMapArm) =>
+        duelMapArm == FrontlineLabsDuelMapArm.OuterShoulderBypass
+            ?
+            [
+                new Position(8, 6),
+                new Position(14, 6),
+                new Position(8, 8),
+                new Position(14, 8),
+            ]
+            : [];
 
     private static PublicMatchTopology CreateTopology() =>
         new()
