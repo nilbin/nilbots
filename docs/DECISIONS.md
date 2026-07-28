@@ -2840,6 +2840,41 @@ test; the shared `BuildRules` assembly point keeps limits, seed mechanics,
 mode, perception, collision, and tick resolution byte-identical across
 every arm.
 
+## 154. One exclusive verb per class; companions are automatic unless fabrication is the class skill
+
+The slate revision sharpens #153 into one exclusive verb family per class
+and resolves the manual-fabrication chore verdict. **Striker** keeps the
+one-bend programs. **Anchor becomes Bulwark-exclusive and class-wide**: the
+old child-only restriction guarded against an irreversible prime
+self-brick, but Bulwark's Anchor is reversible (Mobilize back, once per
+life), so a fortifying prime is a priced commitment rather than a trap.
+Each source form anchors into its own turret form
+(`bulwark-prime-turret`, `bulwark-child-turret`) so the parameterless
+Mobilize resolves a single return target, and the prime's three-tick
+windup versus the child's one makes the stronger commitment a visible,
+punishable window — pre-registered values, not tuning. **Striker and
+Bulwark receive companions automatically** at their unlock ticks
+(the earlier finding stands: an explicit queue with no price, alternative,
+or placement choice is a dominant chore). **Fabricator is the only class
+that fabricates**, and its verb carries exactly the ingredients the
+doctrine demands for manual spawning: placement choice (the child
+materializes beside the prime in the field, never on a protected pad),
+timing risk, and a scarce alternative (the action was a shot or a move) —
+at earlier unlocks and faster rebuilds, giving the class the lowest floor
+and the highest ceiling. **Split is absent from every class arm** and
+reserved as the identity verb of a future swarm class: it was a trap for
+the fragile Fabricator, off-identity for Bulwark, and unused in every
+retained screen. The composite nature of each chassis is registered as
+ablation debt (`classes-composite-chassis`), and class capability remains
+fully contract-visible to opponents: routes, windups, reversibility, and
+turret stats are all in the resolved contract before tick zero. Class as
+bot-level identity (manifest declaration, arm resolution from the
+entrants' declared classes) and a typed `classId` in the next contract
+generation for ML-stable observation remain the follow-on phases; the
+class information is already derivable from the contract and replays, so
+no authored population requires re-authoring when the typed field lands —
+retained sources rebuild and requalify mechanically.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

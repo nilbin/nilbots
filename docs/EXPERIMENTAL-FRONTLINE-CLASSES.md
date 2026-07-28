@@ -1,46 +1,59 @@
 # Frontline classes experiment (local-only)
 
-Status: pre-registered candidate arms (DECISIONS #153). Nothing here is
+Status: pre-registered candidate arms (DECISIONS #153/#154). Nothing here is
 hosted, ranked, or balanced; the values below are hypotheses for the
 class-pair factorial.
 
-Each team plays one **class**: a chassis that changes stats and available
-verbs but never movement speed, projectile speed, or damage. Both teams keep
-the same map, objective rules, scoring, and three-slot topology as the base
-Labs contract. Your bot reads everything it needs from the resolved contract:
-form stats, allowed actions, action legality masks, unlock ticks, and both
-teams' form IDs are all visible at match start — a well-written bot can
-recognize the opposing class from its forms and adapt.
+Each team plays one **class**: a chassis with its own stats and exactly one
+exclusive verb family. Classes never change movement speed, projectile
+speed, or damage. Both teams keep the same map family, objective rules,
+scoring, and three-slot topology. Everything below is readable from the
+resolved contract at match start — form stats, allowed actions, transition
+routes, unlock ticks, and both teams' form IDs — so a well-written bot
+recognizes the opposing class and adapts instead of hard-coding.
 
 ## The slate
 
 | | striker | bulwark | fabricator |
 | --- | --- | --- | --- |
+| **Exclusive verb** | one private bend per shot (`shoot`) | reversible Anchor, prime included (`transform`/`mobilize`) | explicit forward fabrication (`fabricate`) |
 | Prime / child health | 3 / 3 | 5 / 4 | 2 / 3 |
 | Mobile vision | facing quadrant, range 6 | omnidirectional, range 4 | facing quadrant, range 6 |
 | Fire cooldown | 2 | 3 | 2 |
 | Projectile range | 8 | 6 | 7 |
-| Shot language | straight or one private bend (`shoot`) | straight only (`shoot-straight`) | straight only (`shoot-straight`) |
-| Turret health | 5 | 7 | 5 |
-| Turret may Mobilize back | no | **yes** | no |
-| Child unlock ticks | 120 / 260 | 120 / 260 | **60 / 180** |
-| Child rebuild delay | 30 | 30 | **15** |
+| Other fire | — | straight only (`shoot-straight`) | straight only (`shoot-straight`) |
+| Turret forms | — | HP 7, omni fire; windup **3** (prime) / **1** (child) | — |
+| Companions | automatic at 120 / 260, auto-rebuild 30 | automatic at 120 / 260, auto-rebuild 30 | **explicit** at 60 / 180, Ready again after 15 |
 
 Shared by every class: one tile of movement per tick, projectile speed two
-with damage one, Anchor (`transform`) from child to turret gaining +2 health
-capped at the turret maximum, Prime-only Split into two replicas, explicit
-fabrication from the protected home pad, and Prime respawn after 18 ticks.
+with damage one, and Prime respawn after 18 ticks. Split does not exist in
+any class arm.
+
+## Class identities
+
+- **Striker** duels through hidden trajectory commitments: straight or one
+  private 45° bend after 1–4 tiles, longest gun on the fastest cadence.
+- **Bulwark** fortifies: any of its bodies may Anchor into a tough
+  omnidirectional turret and Mobilize back once per life. The prime's
+  three-tick windup is a visible, punishable commitment — opponents see the
+  route, the windup, and the reversibility in the contract before tick 0.
+- **Fabricator** is the only class that fabricates, and its fabrication is a
+  real decision: the child materializes beside the prime in the field (never
+  on a protected pad), earlier and rebuilt faster than anyone else's — but
+  every queue costs a combat action, and a Fabricator that never queues gets
+  no companions at all. Lowest floor, highest ceiling.
 
 ## Reading the class from the contract
 
-- Your own forms carry your class prefix (`striker-prime`, `bulwark-turret`,
+- Your forms carry your class prefix (`striker-prime`, `bulwark-child-turret`,
   …); the enemy's visible `FormId`s carry theirs.
-- If your forms allow `shoot`, you have the one-bend program envelope; if
-  they allow `shoot-straight`, the action takes no payload and always fires
-  straight along your facing.
-- Only a `bulwark-turret` ever has `mobilize` in its allowed actions.
-- Unlock ticks and rebuild delays come from your slots' lifecycle
-  assignments — do not hard-code 120/260.
+- Prefer conditioning on the enemy's *stats and routes* (health, cooldown,
+  anchor routes, fabrication routes) over its name — stat-based counters
+  generalize to classes that do not exist yet.
+- If your forms allow `shoot`, you have the one-bend envelope; if they allow
+  `shoot-straight`, the action takes no payload and fires along your facing.
+- Companion timing comes from your slots' lifecycle assignments — do not
+  hard-code 120/260.
 
 ## Running matches
 

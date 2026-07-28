@@ -36,6 +36,13 @@
       "currentInterpretation": "Thin fronts and outer shoulders are coherent map variants rather than single-tile causal changes.",
       "requiredIsolation": "Use static route/exposure reports and targeted map variants before attributing an observed effect to choke width, objective capacity, or bypass availability individually.",
       "requiredBefore": "ranked"
+    },
+    {
+      "id": "classes-composite-chassis",
+      "status": "open",
+      "currentInterpretation": "Each class arm (DECISIONS #154) jointly changes several stat axes plus one exclusive verb family: Striker couples one-bend programs with the longest range and fastest cadence; Bulwark couples durability, short omni vision, slow cadence, and class-wide reversible Anchor with a longer prime windup; Fabricator couples a fragile prime with exclusive explicit forward fabrication at earlier, faster companion economics while other classes receive companions automatically. Split is absent from every class arm and reserved for a future swarm class.",
+      "requiredIsolation": "Before attributing a class-pair effect to one axis, compare single-axis variants (verb-only, stats-only, economics-only) under identical qualified populations, and test Split's reintroduction as its own class identity rather than a shared verb.",
+      "requiredBefore": "public-unranked"
     }
   ]
 }

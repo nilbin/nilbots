@@ -5,13 +5,15 @@ namespace BotArena.Engine;
 /// <summary>
 /// One pre-registered Frontline Labs class chassis: a data-only stat and
 /// capability block that the classes experiment arm expands into per-team
-/// forms, profiles, routes, and lifecycle assignments (DECISIONS #153).
+/// forms, profiles, routes, and lifecycle assignments (DECISIONS #153/#154).
 /// The values are experiment candidates, never a balance verdict. Movement
 /// and projectile kinematics (one tile per tick, projectile speed two,
 /// damage one) are deliberately identical across classes so the exact duel
-/// analysis keeps its parity structure; classes differ in durability,
-/// vision, fire tempo, shot language, anchor play, and fabrication
-/// economics only.
+/// analysis keeps its parity structure. Each class carries exactly one
+/// exclusive verb family: Striker bends shots, Bulwark fortifies
+/// (reversibly, class-wide), Fabricator forward-fabricates explicitly while
+/// the other classes receive companions automatically. Split is absent from
+/// every class arm and reserved for a future swarm class (ablation debt).
 /// </summary>
 public sealed record FrontlineLabsClassDefinition
 {
@@ -28,23 +30,38 @@ public sealed record FrontlineLabsClassDefinition
     /// programs fires straight through the parameterless attack action.</summary>
     public required bool OneBendShotPrograms { get; init; }
 
+    /// <summary>Class-wide fortification: prime and children may Anchor into
+    /// per-source turret forms and Mobilize back once per life. The prime's
+    /// longer windup makes its commitment a readable, punishable window.</summary>
+    public required bool MayAnchor { get; init; }
+
+    public required int PrimeAnchorWindupTicks { get; init; }
+    public required int ChildAnchorWindupTicks { get; init; }
     public required int TurretMaxHealth { get; init; }
-    public required bool TurretMayMobilize { get; init; }
+
+    /// <summary>The Fabricator's exclusive verb: explicitly queue a child
+    /// that materializes beside the prime in the field (never on a protected
+    /// pad). Classes without it receive companions automatically at their
+    /// unlock ticks — manual pad fabrication is a dominant chore, not a
+    /// strategy (DECISIONS #154).</summary>
+    public required bool ExplicitForwardFabrication { get; init; }
+
     public required int FirstChildUnlockTick { get; init; }
     public required int SecondChildUnlockTick { get; init; }
     public required int ChildRebuildDelayTicks { get; init; }
 
     public string PrimeFormId => $"{Id}-prime";
     public string ChildFormId => $"{Id}-child";
-    public string ReplicaFormId => $"{Id}-replica";
-    public string TurretFormId => $"{Id}-turret";
+    public string PrimeTurretFormId => $"{Id}-prime-turret";
+    public string ChildTurretFormId => $"{Id}-child-turret";
     public string MobileVisionProfileId => $"{Id}-vision";
     public string MobileAttackProfileId => $"{Id}-bolt";
     public string PrimeLifecycleProfileId => $"{Id}-prime-respawn";
     public string ChildLifecycleProfileId => $"{Id}-child-ready";
 
     /// <summary>The reference chassis: the duel-depth one-bend arm as a class.
-    /// Prediction duels through private shot commitments.</summary>
+    /// Prediction duels through private shot commitments; companions arrive
+    /// automatically.</summary>
     public static FrontlineLabsClassDefinition Striker { get; } = new()
     {
         Id = "striker",
@@ -56,15 +73,19 @@ public sealed record FrontlineLabsClassDefinition
         MobileCooldownTicks = 2,
         MobileMaxTravelTiles = 8,
         OneBendShotPrograms = true,
-        TurretMaxHealth = 5,
-        TurretMayMobilize = false,
+        MayAnchor = false,
+        PrimeAnchorWindupTicks = 0,
+        ChildAnchorWindupTicks = 0,
+        TurretMaxHealth = 0,
+        ExplicitForwardFabrication = false,
         FirstChildUnlockTick = 120,
         SecondChildUnlockTick = 260,
         ChildRebuildDelayTicks = 30,
     };
 
-    /// <summary>Durable short-sighted holder: straight suppressive fire on a
-    /// slow cadence, tougher bodies, and reversible turret commitment.</summary>
+    /// <summary>Durable short-sighted fortifier: straight suppressive fire on
+    /// a slow cadence, tougher bodies, and the exclusive reversible Anchor —
+    /// prime included, behind a longer visible windup.</summary>
     public static FrontlineLabsClassDefinition Bulwark { get; } = new()
     {
         Id = "bulwark",
@@ -76,15 +97,19 @@ public sealed record FrontlineLabsClassDefinition
         MobileCooldownTicks = 3,
         MobileMaxTravelTiles = 6,
         OneBendShotPrograms = false,
+        MayAnchor = true,
+        PrimeAnchorWindupTicks = 3,
+        ChildAnchorWindupTicks = 1,
         TurretMaxHealth = 7,
-        TurretMayMobilize = true,
+        ExplicitForwardFabrication = false,
         FirstChildUnlockTick = 120,
         SecondChildUnlockTick = 260,
         ChildRebuildDelayTicks = 30,
     };
 
-    /// <summary>Fragile economy engine: ordinary guns on a weak prime, but
-    /// companions unlock earlier and rebuild faster.</summary>
+    /// <summary>Fragile economy engine: the only class that fabricates, and
+    /// its fabrication is a real decision — earlier, faster, field-placed
+    /// children bought with combat actions. Lowest floor, highest ceiling.</summary>
     public static FrontlineLabsClassDefinition Fabricator { get; } = new()
     {
         Id = "fabricator",
@@ -96,8 +121,11 @@ public sealed record FrontlineLabsClassDefinition
         MobileCooldownTicks = 2,
         MobileMaxTravelTiles = 7,
         OneBendShotPrograms = false,
-        TurretMaxHealth = 5,
-        TurretMayMobilize = false,
+        MayAnchor = false,
+        PrimeAnchorWindupTicks = 0,
+        ChildAnchorWindupTicks = 0,
+        TurretMaxHealth = 0,
+        ExplicitForwardFabrication = true,
         FirstChildUnlockTick = 60,
         SecondChildUnlockTick = 180,
         ChildRebuildDelayTicks = 15,

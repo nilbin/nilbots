@@ -1,10 +1,13 @@
 namespace BotArena.Engine.Tests;
 
 /// <summary>
-/// Pins the class-matchup experiment arm (DECISIONS #153): every canonical
-/// pair resolves and validates, contracts stay content-identified and
-/// distinct, per-team chassis land on the right slots, and kinematics remain
-/// shared so classes cannot silently fork the exact duel analysis.
+/// Pins the class-matchup experiment arm (DECISIONS #153/#154): every
+/// canonical pair resolves and validates, contracts stay content-identified
+/// and distinct, each class carries exactly one exclusive verb family
+/// (Striker bends, Bulwark fortifies reversibly class-wide, Fabricator
+/// forward-fabricates while the others receive companions automatically),
+/// Split is absent from every class arm, and kinematics remain shared so
+/// classes cannot silently fork the exact duel analysis.
 /// </summary>
 public sealed class FrontlineLabsClassesDefinitionTests
 {
@@ -59,7 +62,13 @@ public sealed class FrontlineLabsClassesDefinitionTests
             Assert.Equal(
                 FrontlineLabsDefinition.ClassesSeedProfileId,
                 definition.Rules.SeedMechanics.SeedProfileId);
-            Assert.Equal(FrontlineLabsDefinition.MapId, definition.Map.Id);
+            Assert.Equal(
+                $"{FrontlineLabsDefinition.MapId}-classes",
+                definition.Map.Id);
+            Assert.Empty(definition.Rules.ReplicationTransitions);
+            Assert.DoesNotContain(
+                definition.Rules.Actions,
+                action => action.Id == "split");
         }
     }
 
@@ -73,45 +82,108 @@ public sealed class FrontlineLabsClassesDefinitionTests
     }
 
     [Fact]
-    public void CrossClassPairAssignsEachTeamItsOwnChassis()
+    public void CompanionEconomicsFollowTheClass()
     {
         ActorResolvedMatchDefinition definition =
             FrontlineLabsDefinition.CreateClassesExperiment(
                 FrontlineLabsClassDefinition.Fabricator,
                 FrontlineLabsClassDefinition.Striker);
 
-        Assert.Equal(
-            "fabricator-prime",
-            definition.Topology.InitialLives
-                .Single(life => life.TeamId == 0).FormId);
-        Assert.Equal(
-            "striker-prime",
-            definition.Topology.InitialLives
-                .Single(life => life.TeamId == 1).FormId);
-
-        var teamZeroChildSlots = definition.LifecycleAssignments
+        var fabricatorChildSlots = definition.LifecycleAssignments
             .Where(slot => slot.TeamId == 0 && slot.UnitId > 0)
             .OrderBy(slot => slot.UnitId)
             .ToArray();
-        Assert.Equal(60, teamZeroChildSlots[0].UnlockTick);
-        Assert.Equal(180, teamZeroChildSlots[1].UnlockTick);
+        Assert.Equal(60, fabricatorChildSlots[0].UnlockTick);
+        Assert.Equal(180, fabricatorChildSlots[1].UnlockTick);
         Assert.All(
-            teamZeroChildSlots,
-            slot => Assert.Contains("fabricator-turret", slot.AllowedFormIds));
+            fabricatorChildSlots,
+            slot =>
+            {
+                Assert.Equal(
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind.DormantUnlockAtTick,
+                    slot.InitialAvailability);
+                Assert.Null(slot.AssignedRespawnSpawnId);
+            });
 
-        var teamOneChildSlots = definition.LifecycleAssignments
+        var strikerChildSlots = definition.LifecycleAssignments
             .Where(slot => slot.TeamId == 1 && slot.UnitId > 0)
             .OrderBy(slot => slot.UnitId)
             .ToArray();
-        Assert.Equal(120, teamOneChildSlots[0].UnlockTick);
-        Assert.Equal(260, teamOneChildSlots[1].UnlockTick);
+        Assert.Equal(120, strikerChildSlots[0].UnlockTick);
+        Assert.Equal(260, strikerChildSlots[1].UnlockTick);
         Assert.All(
-            teamOneChildSlots,
-            slot => Assert.Contains("striker-turret", slot.AllowedFormIds));
+            strikerChildSlots,
+            slot => Assert.Equal(
+                ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind
+                    .DormantAutomaticActivationAtTick,
+                slot.InitialAvailability));
+
+        ActorFormDefinition fabricatorPrime = definition.Rules.Forms
+            .Single(form => form.Id == "fabricator-prime");
+        ActorFormDefinition strikerPrime = definition.Rules.Forms
+            .Single(form => form.Id == "striker-prime");
+        Assert.Contains("fabricate", fabricatorPrime.AllowedActionIds);
+        Assert.DoesNotContain("fabricate", strikerPrime.AllowedActionIds);
+
+        BoundedChildFabricationDefinition forward =
+            Assert.IsType<BoundedChildFabricationDefinition>(
+                Assert.Single(definition.Rules.FabricationTransitions));
+        Assert.Empty(forward.RequiredSourceTileTags);
+        Assert.Empty(forward.RequiredOutputTileTags);
+        Assert.Contains(
+            ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+            forward.ForbiddenOutputTileTags);
     }
 
     [Fact]
-    public void ShotLanguageAndAnchorPlayFollowTheClass()
+    public void FortificationIsBulwarkExclusiveReversibleAndClassWide()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Bulwark,
+                FrontlineLabsClassDefinition.Striker);
+
+        ActorFormDefinition bulwarkPrime = definition.Rules.Forms
+            .Single(form => form.Id == "bulwark-prime");
+        ActorFormDefinition strikerPrime = definition.Rules.Forms
+            .Single(form => form.Id == "striker-prime");
+        Assert.Contains("transform", bulwarkPrime.AllowedActionIds);
+        Assert.DoesNotContain("transform", strikerPrime.AllowedActionIds);
+        Assert.DoesNotContain(
+            definition.Rules.Forms,
+            form => form.Id.StartsWith(
+                "striker-", StringComparison.Ordinal)
+                && form.Id.Contains("turret", StringComparison.Ordinal));
+
+        ActorSameLifeTransitionDefinition primeAnchor =
+            definition.Rules.SameLifeTransitions.Single(transition =>
+                transition.TransitionId == "anchor-bulwark-prime");
+        ActorSameLifeTransitionDefinition childAnchor =
+            definition.Rules.SameLifeTransitions.Single(transition =>
+                transition.TransitionId == "anchor-bulwark-child");
+        Assert.Equal(3, primeAnchor.Windup.DurationTicks);
+        Assert.Equal(1, childAnchor.Windup.DurationTicks);
+        Assert.False(primeAnchor.IrreversibleForLife);
+        Assert.False(childAnchor.IrreversibleForLife);
+
+        ActorSameLifeTransitionDefinition primeMobilize =
+            definition.Rules.SameLifeTransitions.Single(transition =>
+                transition.TransitionId == "mobilize-bulwark-prime");
+        Assert.Equal("bulwark-prime-turret", primeMobilize.SourceFormId);
+        Assert.Equal("bulwark-prime", primeMobilize.TargetFormId);
+        Assert.True(primeMobilize.IrreversibleForLife);
+
+        Assert.Equal(
+            7,
+            definition.Rules.Forms
+                .Single(form => form.Id == "bulwark-prime-turret")
+                .MaxHealth);
+    }
+
+    [Fact]
+    public void ShotLanguageFollowsTheClass()
     {
         ActorResolvedMatchDefinition definition =
             FrontlineLabsDefinition.CreateClassesExperiment(
@@ -128,24 +200,6 @@ public sealed class FrontlineLabsClassesDefinitionTests
             strikerPrime.AllowedActionIds);
         Assert.Contains("shoot-straight", bulwarkPrime.AllowedActionIds);
         Assert.DoesNotContain("shoot", bulwarkPrime.AllowedActionIds);
-
-        ActorFormDefinition bulwarkTurret = definition.Rules.Forms
-            .Single(form => form.Id == "bulwark-turret");
-        ActorFormDefinition strikerTurret = definition.Rules.Forms
-            .Single(form => form.Id == "striker-turret");
-        Assert.Contains("mobilize", bulwarkTurret.AllowedActionIds);
-        Assert.DoesNotContain("mobilize", strikerTurret.AllowedActionIds);
-        Assert.Equal(7, bulwarkTurret.MaxHealth);
-        Assert.Equal(5, strikerTurret.MaxHealth);
-
-        ActorSameLifeTransitionDefinition bulwarkAnchor =
-            definition.Rules.SameLifeTransitions.Single(transition =>
-                transition.TransitionId == "anchor-bulwark-child");
-        ActorSameLifeTransitionDefinition strikerAnchor =
-            definition.Rules.SameLifeTransitions.Single(transition =>
-                transition.TransitionId == "anchor-striker-child");
-        Assert.False(bulwarkAnchor.IrreversibleForLife);
-        Assert.True(strikerAnchor.IrreversibleForLife);
     }
 
     [Fact]
@@ -171,23 +225,28 @@ public sealed class FrontlineLabsClassesDefinitionTests
     }
 
     [Fact]
-    public void MirrorPairContainsEachCatalogEntryExactlyOnce()
+    public void MirrorPairsContainExactlyTheirOwnCatalog()
     {
-        ActorResolvedMatchDefinition definition =
+        ActorResolvedMatchDefinition strikerMirror =
             FrontlineLabsDefinition.CreateClassesExperiment(
                 FrontlineLabsClassDefinition.Striker,
                 FrontlineLabsClassDefinition.Striker);
-
-        Assert.Equal(4, definition.Rules.Forms.Length);
+        Assert.Equal(2, strikerMirror.Rules.Forms.Length);
         Assert.All(
-            definition.Rules.Forms,
+            strikerMirror.Rules.Forms,
             form => Assert.StartsWith("striker-", form.Id));
+
+        ActorResolvedMatchDefinition bulwarkMirror =
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Bulwark,
+                FrontlineLabsClassDefinition.Bulwark);
+        Assert.Equal(4, bulwarkMirror.Rules.Forms.Length);
+        Assert.All(
+            bulwarkMirror.Rules.Forms,
+            form => Assert.StartsWith("bulwark-", form.Id));
         Assert.Equal(
-            definition.Rules.Forms.Select(form => form.Id).Distinct().Count(),
-            definition.Rules.Forms.Length);
-        Assert.Equal(
-            "striker-prime",
-            definition.Topology.InitialLives
+            "bulwark-prime",
+            bulwarkMirror.Topology.InitialLives
                 .Single(life => life.TeamId == 1).FormId);
     }
 }

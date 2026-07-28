@@ -226,7 +226,7 @@ public sealed class FrontlineLabsExperimentCommandTests
             FrontlineLabsDefinition.ClassesSeedProfileId,
             root.GetProperty("seedProfileId").GetString());
         Assert.Equal(
-            "frontline-labs-01-thin-fronts-experiment",
+            "frontline-labs-01-thin-fronts-classes",
             root.GetProperty("mapId").GetString());
 
         InvalidOperationException swapped =

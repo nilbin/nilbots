@@ -6,7 +6,7 @@
   "hypothesis": "Declared automatic companion activation removes the population-progression failure independently of map topology; this two-bot run validates the factorial pipeline and effect direction, not game balance.",
   "ablationRegistry": {
     "path": "frontline-ablation-debt-v1.json",
-    "sha256": "18801706b4dacf2fcc8db8f7f3389719b581fcfcf1e9f156cba3e62f27a28cd2"
+    "sha256": "57740b6491d9ed981048421f4247de6142c169c88e0b4cfa2e582f0cfa2642aa"
   },
   "studyBlocks": [
     {
