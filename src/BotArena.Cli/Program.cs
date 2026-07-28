@@ -237,6 +237,7 @@ static int CommandHelp(string command)
                    [--one-bend-shots]
                    [--auto-companions]
                    [--duel-map current|thin-fronts|outer-shoulder-bypass]
+                   [--classes <class>-vs-<class>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
@@ -262,6 +263,13 @@ static int CommandHelp(string command)
             map arm. thin-fronts raises the positional cost of retreat;
             outer-shoulder-bypass adds an earlier, longer flank without opening
             the last-moment central choke.
+            --classes gives each team one pre-registered chassis (bulwark,
+            fabricator, or striker) under its own local-only ruleset identity.
+            Pairs are canonical in alphabetical order — swap bot assignments
+            with --swap, not the teams. Movement and projectile kinematics
+            stay shared; classes differ in durability, vision, fire tempo,
+            shot language, anchor play, and fabrication economics. May be
+            paired with --duel-map.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             --print-candidate-contract emits the exact resolved candidate

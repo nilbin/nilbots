@@ -19,6 +19,8 @@ public static class FrontlineLabsDefinition
         "two-team-one-controller-three-slots-v1";
     public const string DuelDepthSeedProfileId =
         "frontline-labs-duel-depth-1";
+    public const string ClassesSeedProfileId =
+        "frontline-labs-classes-1";
 
     private const string PrimeFormId = "prime-mobile";
     private const string ChildFormId = "child-mobile";
@@ -30,6 +32,8 @@ public static class FrontlineLabsDefinition
     private const string MobileAttackId = "mobile-bolt";
     private const string TurretAttackId = "turret-bolt";
     private const string MobilizeActionId = "mobilize";
+    private const string ShootStraightActionId = "shoot-straight";
+    private const int ShootStraightActionCode = 105;
     private const string PrimeLifecycleId = "prime-respawn";
     private const string ChildLifecycleId = "child-ready";
     private const string FabricationSourceRoleId =
@@ -194,6 +198,40 @@ public static class FrontlineLabsDefinition
             automaticCompanions: true,
             seedProfileId: DuelDepthSeedProfileId);
 
+    /// <summary>
+    /// Creates a local-only, content-identified class-matchup arm. Each team's
+    /// slots carry one pre-registered class chassis; the map, mode, scoring,
+    /// and kinematics stay identical to the base contract. Pairs are
+    /// canonical in ordinal class-ID order — fairness comes from mirrored bot
+    /// assignments, not from a second swapped contract (DECISIONS #153).
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateClassesExperiment(
+        FrontlineLabsClassDefinition teamZeroClass,
+        FrontlineLabsClassDefinition teamOneClass,
+        FrontlineLabsDuelMapArm mapArm = FrontlineLabsDuelMapArm.Current)
+    {
+        ArgumentNullException.ThrowIfNull(teamZeroClass);
+        ArgumentNullException.ThrowIfNull(teamOneClass);
+        if (string.CompareOrdinal(teamZeroClass.Id, teamOneClass.Id) > 0)
+        {
+            throw new ArgumentException(
+                "Class pairs are canonical: pass classes in ordinal ID order "
+                + "and mirror bot assignments instead of swapping teams.",
+                nameof(teamZeroClass));
+        }
+
+        return CreateResolved(
+            $"{RulesetId}-experiment-classes-"
+            + $"{teamZeroClass.Id}-vs-{teamOneClass.Id}",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            duelMapArm: mapArm,
+            seedProfileId: ClassesSeedProfileId,
+            classes: (teamZeroClass, teamOneClass));
+    }
+
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
         int captureThreshold,
@@ -208,7 +246,9 @@ public static class FrontlineLabsDefinition
         FrontlineLabsDuelMapArm duelMapArm =
             FrontlineLabsDuelMapArm.Current,
         bool automaticCompanions = false,
-        string? seedProfileId = null)
+        string? seedProfileId = null,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes = null)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -219,14 +259,15 @@ public static class FrontlineLabsDefinition
             controlPolicy,
             oneBendShots,
             automaticCompanions,
-            seedProfileId);
+            seedProfileId,
+            classes);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
             automaticCompanions);
-        PublicMatchTopology topology = CreateTopology();
+        PublicMatchTopology topology = CreateTopology(classes);
         InitialDeploymentDefinition deployment =
-            CreateInitialDeployment();
+            CreateInitialDeployment(classes);
 
         return new ActorResolvedMatchDefinition(
             rules,
@@ -234,7 +275,7 @@ public static class FrontlineLabsDefinition
             new HeadToHeadMatchFormatDefinition(),
             topology,
             deployment,
-            CreateLifecycleAssignments(automaticCompanions),
+            CreateLifecycleAssignments(automaticCompanions, classes),
             automaticCompanions
                 ? []
                 : CreateParticipantRegionAssignments(remoteFabrication),
@@ -280,11 +321,22 @@ public static class FrontlineLabsDefinition
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
         bool oneBendShots,
         bool automaticCompanions,
-        string? seedProfileId)
+        string? seedProfileId,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
             ActorMovementLayer.Ground);
+        if (classes is { } classPair)
+        {
+            return CreateClassesRules(
+                rulesetId,
+                captureThreshold,
+                seedProfileId,
+                classPair,
+                movement);
+        }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
             ActorVisionShape.FacingQuadrant,
@@ -458,45 +510,12 @@ public static class FrontlineLabsDefinition
                     irreversibleForLife: true));
         }
 
-        return new ActorRulesDefinition(
+        return BuildRules(
             rulesetId,
-            new ActorRulesLimits(
-                maxTicks: 500,
-                new ActorRuntimeFaultDefinition(
-                    faultsAllowedBeforeDisqualification: 0)),
-            new ActorSeedMechanicsDefinition(
-                seedProfileId ?? rulesetId,
-                ActorSeedMechanicsDefinition.SeedDerivationKind
-                    .MatchSeedProfileTeamUnitLifeMix64V1,
-                ActorSeedMechanicsDefinition.LifeIdentityAssignmentKind
-                    .PerStableUnitMonotonicStartingAtZero,
-                ActorSeedMechanicsDefinition.RuntimeLifetimeKind
-                    .FreshRuntimePerLife,
-                ActorSeedMechanicsDefinition.PrivateMemoryKind
-                    .IsolatedPerRuntime),
-            new FrontlineGameModeDefinition(
-                new FrontlineVictoryDefinition(
-                    pushesToBreach: 3,
-                    [
-                        new ScoreRankingDefinition(
-                            ScoreChannelDefinition.ChannelKind
-                                .TerritorialProgress,
-                            ScoreRankingDefinition.SortDirection.HigherWins),
-                    ]),
-                [
-                    new ScoreChannelDefinition(
-                        ScoreChannelDefinition.ChannelKind
-                            .TerritorialProgress),
-                ],
-                frontlinePositionCount: 5,
-                new FrontlineCaptureDefinition(
-                    threshold: captureThreshold,
-                    gainPerSoleTeamTick: 1,
-                    decayAmount: 1,
-                    decayIntervalTicks: 2,
-                    redeployPauseTicks: 5,
-                    gainSchedule: captureGainSchedule,
-                    controlPolicy)),
+            captureThreshold,
+            captureGainSchedule,
+            controlPolicy,
+            seedProfileId,
             new ActorLifecycleDefinition(
                 [
                     new ActorLifecycleProfileDefinition(
@@ -617,7 +636,81 @@ public static class FrontlineLabsDefinition
                         new ActorRelativePositionOffset(1, 0),
                     ],
                     splitWindup),
+                ]);
+    }
+
+    /// <summary>
+    /// The single assembly point for every Labs arm's rules: limits, seed
+    /// mechanics, mode, perception, collision, and tick resolution are
+    /// invariant across arms and exist only here, so a new arm cannot drift
+    /// them.
+    /// </summary>
+    private static ActorRulesDefinition BuildRules(
+        string rulesetId,
+        int captureThreshold,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            captureGainSchedule,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
+        string? seedProfileId,
+        ActorLifecycleDefinition lifecycle,
+        IEnumerable<ActorFormDefinition> forms,
+        IEnumerable<ActorMovementProfileDefinition> movementProfiles,
+        IEnumerable<ActorVisionProfileDefinition> visionProfiles,
+        IEnumerable<ActorAttackProfileDefinition> attackProfiles,
+        IEnumerable<ActorActionDefinition> actions,
+        IEnumerable<ActorFabricationTransitionDefinition>
+            fabricationTransitions,
+        IEnumerable<ActorSameLifeTransitionDefinition> sameLifeTransitions,
+        IEnumerable<ActorReplicationTransitionDefinition>
+            replicationTransitions) =>
+        new(
+            rulesetId,
+            new ActorRulesLimits(
+                maxTicks: 500,
+                new ActorRuntimeFaultDefinition(
+                    faultsAllowedBeforeDisqualification: 0)),
+            new ActorSeedMechanicsDefinition(
+                seedProfileId ?? rulesetId,
+                ActorSeedMechanicsDefinition.SeedDerivationKind
+                    .MatchSeedProfileTeamUnitLifeMix64V1,
+                ActorSeedMechanicsDefinition.LifeIdentityAssignmentKind
+                    .PerStableUnitMonotonicStartingAtZero,
+                ActorSeedMechanicsDefinition.RuntimeLifetimeKind
+                    .FreshRuntimePerLife,
+                ActorSeedMechanicsDefinition.PrivateMemoryKind
+                    .IsolatedPerRuntime),
+            new FrontlineGameModeDefinition(
+                new FrontlineVictoryDefinition(
+                    pushesToBreach: 3,
+                    [
+                        new ScoreRankingDefinition(
+                            ScoreChannelDefinition.ChannelKind
+                                .TerritorialProgress,
+                            ScoreRankingDefinition.SortDirection.HigherWins),
+                    ]),
+                [
+                    new ScoreChannelDefinition(
+                        ScoreChannelDefinition.ChannelKind
+                            .TerritorialProgress),
                 ],
+                frontlinePositionCount: 5,
+                new FrontlineCaptureDefinition(
+                    threshold: captureThreshold,
+                    gainPerSoleTeamTick: 1,
+                    decayAmount: 1,
+                    decayIntervalTicks: 2,
+                    redeployPauseTicks: 5,
+                    gainSchedule: captureGainSchedule,
+                    controlPolicy)),
+            lifecycle,
+            forms,
+            movementProfiles,
+            visionProfiles,
+            attackProfiles,
+            actions,
+            fabricationTransitions,
+            sameLifeTransitions,
+            replicationTransitions,
             new ActorTeamPerceptionDefinition(
                 ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion),
             new ActorCollisionDefinition(
@@ -639,15 +732,357 @@ public static class FrontlineLabsDefinition
                 decisionsResolveAsJointStep: true,
                 ActorDamageResolutionDefinition.CanonicalJointV1,
                 ActorTickResolutionDefinition.CreateSupportedPhases()));
+
+    /// <summary>
+    /// Expands one or two class chassis into the complete per-class form,
+    /// profile, route, and lifecycle catalog. Mirror pairs collapse to one
+    /// class so a striker-vs-striker contract contains each catalog entry
+    /// exactly once. Kinematics (movement, projectile speed, damage) and the
+    /// turret's shared vision/attack stay identical across classes.
+    /// </summary>
+    private static ActorRulesDefinition CreateClassesRules(
+        string rulesetId,
+        int captureThreshold,
+        string? seedProfileId,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne) classes,
+        ActorMovementProfileDefinition movement)
+    {
+        FrontlineLabsClassDefinition[] distinct =
+            classes.TeamZero.Id == classes.TeamOne.Id
+                ? [classes.TeamZero]
+                : [classes.TeamZero, classes.TeamOne];
+        ActorVisionProfileDefinition turretVision = Vision(
+            TurretVisionId,
+            ActorVisionShape.Omnidirectional,
+            omnidirectionalProximityRange: 6);
+        var turretAttack = new ActorAttackProfileDefinition(
+            TurretAttackId,
+            omnidirectionalAim: true,
+            ClassProjectile(maxTravelTiles: 8),
+            cooldownTicks: 1,
+            maxEnergy: 0,
+            attackEnergyCost: 0,
+            energyRegenerationIntervalTicks: 0,
+            energyRegenerationAmount: 0,
+            ShotProgram(enabled: false, oneBendOnly: false));
+        ActorTransitionWindupDefinition anchorWindup = Windup(
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate);
+        ActorTransitionWindupDefinition splitWindup = Windup(
+            ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                .TickStartAfterDuration);
+
+        var actions = new List<ActorActionDefinition>
+        {
+            new("wait", 0, ActorActionKind.Wait, []),
+            new(
+                "move",
+                1,
+                ActorActionKind.Movement,
+                [ActorActionParameterKind.Direction]),
+            new(
+                "rotate",
+                2,
+                ActorActionKind.Rotation,
+                [ActorActionParameterKind.Direction]),
+        };
+        if (distinct.Any(entry => entry.OneBendShotPrograms))
+        {
+            actions.Add(
+                new ActorActionDefinition(
+                    "shoot",
+                    4,
+                    ActorActionKind.Attack,
+                    [ActorActionParameterKind.ShotProgram]));
+        }
+        actions.Add(
+            new ActorActionDefinition(
+                "transform",
+                PublicActionCodes.Transform,
+                ActorActionKind.SameLifeTransition,
+                [ActorActionParameterKind.FormTarget]));
+        actions.Add(
+            new ActorActionDefinition(
+                PublicActionIds.ShootDirection,
+                PublicActionCodes.ShootDirection,
+                ActorActionKind.Attack,
+                [ActorActionParameterKind.ProjectileHeading]));
+        actions.Add(
+            new ActorActionDefinition(
+                "fabricate",
+                PublicActionCodes.Fabricate,
+                ActorActionKind.Fabrication,
+                [ActorActionParameterKind.UnitTarget]));
+        actions.Add(
+            new ActorActionDefinition(
+                "split",
+                103,
+                ActorActionKind.Replication,
+                []));
+        if (distinct.Any(entry => !entry.OneBendShotPrograms))
+        {
+            actions.Add(
+                new ActorActionDefinition(
+                    ShootStraightActionId,
+                    ShootStraightActionCode,
+                    ActorActionKind.Attack,
+                    []));
+        }
+        if (distinct.Any(entry => entry.TurretMayMobilize))
+        {
+            actions.Add(
+                new ActorActionDefinition(
+                    MobilizeActionId,
+                    104,
+                    ActorActionKind.SameLifeTransition,
+                    []));
+        }
+
+        var visions = new List<ActorVisionProfileDefinition>();
+        var attacks = new List<ActorAttackProfileDefinition>();
+        var forms = new List<ActorFormDefinition>();
+        var lifecycleProfiles = new List<ActorLifecycleProfileDefinition>();
+        var fabrications = new List<BoundedChildFabricationDefinition>();
+        var sameLifeTransitions =
+            new List<ActorSameLifeTransitionDefinition>();
+        var replications =
+            new List<SplitReplicationTransitionDefinition>();
+        foreach (FrontlineLabsClassDefinition entry in distinct)
+        {
+            string shootActionId = entry.OneBendShotPrograms
+                ? "shoot"
+                : ShootStraightActionId;
+            visions.Add(
+                Vision(
+                    entry.MobileVisionProfileId,
+                    entry.MobileVisionShape,
+                    entry.MobileOmnidirectionalProximityRange,
+                    entry.MobileVisionRange));
+            attacks.Add(
+                new ActorAttackProfileDefinition(
+                    entry.MobileAttackProfileId,
+                    omnidirectionalAim: false,
+                    ClassProjectile(entry.MobileMaxTravelTiles),
+                    entry.MobileCooldownTicks,
+                    maxEnergy: 0,
+                    attackEnergyCost: 0,
+                    energyRegenerationIntervalTicks: 0,
+                    energyRegenerationAmount: 0,
+                    ShotProgram(
+                        enabled: entry.OneBendShotPrograms,
+                        oneBendOnly: true)));
+            forms.Add(
+                new ActorFormDefinition(
+                    entry.PrimeFormId,
+                    entry.PrimeMaxHealth,
+                    movement.Id,
+                    entry.MobileVisionProfileId,
+                    entry.MobileAttackProfileId,
+                    objectiveWeight: 1,
+                    [
+                        "wait",
+                        "move",
+                        "rotate",
+                        shootActionId,
+                        "fabricate",
+                        "split",
+                    ]));
+            forms.Add(
+                new ActorFormDefinition(
+                    entry.ChildFormId,
+                    entry.ChildMaxHealth,
+                    movement.Id,
+                    entry.MobileVisionProfileId,
+                    entry.MobileAttackProfileId,
+                    objectiveWeight: 1,
+                    ["wait", "move", "rotate", shootActionId, "transform"]));
+            forms.Add(
+                new ActorFormDefinition(
+                    entry.ReplicaFormId,
+                    entry.ChildMaxHealth,
+                    movement.Id,
+                    entry.MobileVisionProfileId,
+                    entry.MobileAttackProfileId,
+                    objectiveWeight: 1,
+                    ["wait", "move", "rotate", shootActionId]));
+            forms.Add(
+                new ActorFormDefinition(
+                    entry.TurretFormId,
+                    entry.TurretMaxHealth,
+                    movement.Id,
+                    turretVision.Id,
+                    turretAttack.Id,
+                    objectiveWeight: 0,
+                    entry.TurretMayMobilize
+                        ?
+                        [
+                            "wait",
+                            PublicActionIds.ShootDirection,
+                            MobilizeActionId,
+                        ]
+                        : ["wait", PublicActionIds.ShootDirection]));
+            lifecycleProfiles.Add(
+                new ActorLifecycleProfileDefinition(
+                    entry.PrimeLifecycleProfileId,
+                    ActorLifecycleProfileDefinition
+                        .DestructionPolicyKind.AutomaticRespawn,
+                    delayTicks: 18,
+                    automaticReturnFormId: entry.PrimeFormId));
+            lifecycleProfiles.Add(
+                new ActorLifecycleProfileDefinition(
+                    entry.ChildLifecycleProfileId,
+                    ActorLifecycleProfileDefinition
+                        .DestructionPolicyKind.ReadyForExplicitFabrication,
+                    entry.ChildRebuildDelayTicks,
+                    automaticReturnFormId: null));
+            fabrications.Add(
+                new BoundedChildFabricationDefinition(
+                    $"fabricate-{entry.Id}-child",
+                    "fabricate",
+                    [entry.PrimeFormId],
+                    entry.ChildFormId,
+                    FabricationSourceRoleId,
+                    FabricationOutputRoleId,
+                    requiredSourceTileTags:
+                    [
+                        ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    ],
+                    requiredOutputTileTags:
+                    [
+                        ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    ],
+                    forbiddenOutputTileTags: [],
+                    FabricationCandidateOffsets(),
+                    new ActorFabricationDelayDefinition(durationTicks: 1),
+                    ActorActionRejectionResult.Blocked));
+            sameLifeTransitions.Add(
+                new ActorFormTransitionDefinition(
+                    $"anchor-{entry.Id}-child",
+                    "transform",
+                    entry.ChildFormId,
+                    entry.TurretFormId,
+                    anchorWindup,
+                    ActorSameLifeTransitionDefinition.MemoryContinuityKind
+                        .PreservePrivateMemory,
+                    new ActorSameLifeHealthDefinition(
+                        ActorSameLifeHealthDefinition.HealthPolicyKind
+                            .AddFlatCappedToTargetMaximum,
+                        flatHealthGain: 2),
+                    ActorSameLifeCombatStateDefinition
+                        .PreserveWithoutRefillV1,
+                    new ActorSameLifePlacementDefinition(
+                        ActorSameLifePlacementDefinition
+                            .PositionContinuityKind.SameOccupiedGroundTile,
+                        ActorSameLifePlacementDefinition
+                            .LegalityEvaluationKind
+                            .QueueAndCompletionTileTags,
+                        requiredTileTags: [],
+                        forbiddenTileTags:
+                        [
+                            ActorMapTileTagDefinition.TileTagKind
+                                .TransitionPlacementForbidden,
+                        ],
+                        ActorSameLifePlacementDefinition
+                            .FailedCompletionKind
+                            .CancelAndRemainInSourceForm),
+                    irreversibleForLife: !entry.TurretMayMobilize));
+            if (entry.TurretMayMobilize)
+            {
+                sameLifeTransitions.Add(
+                    new ActorFormTransitionDefinition(
+                        $"mobilize-{entry.Id}-child",
+                        MobilizeActionId,
+                        entry.TurretFormId,
+                        entry.ChildFormId,
+                        anchorWindup,
+                        ActorSameLifeTransitionDefinition
+                            .MemoryContinuityKind.PreservePrivateMemory,
+                        new ActorSameLifeHealthDefinition(
+                            ActorSameLifeHealthDefinition.HealthPolicyKind
+                                .PreserveCurrentCappedToTargetMaximum,
+                            flatHealthGain: 0),
+                        ActorSameLifeCombatStateDefinition
+                            .PreserveWithoutRefillV1,
+                        new ActorSameLifePlacementDefinition(
+                            ActorSameLifePlacementDefinition
+                                .PositionContinuityKind.SameOccupiedGroundTile,
+                            ActorSameLifePlacementDefinition
+                                .LegalityEvaluationKind
+                                .QueueAndCompletionTileTags,
+                            requiredTileTags: [],
+                            forbiddenTileTags: [],
+                            ActorSameLifePlacementDefinition
+                                .FailedCompletionKind
+                                .CancelAndRemainInSourceForm),
+                        irreversibleForLife: true));
+            }
+            replications.Add(
+                new SplitReplicationTransitionDefinition(
+                    $"split-{entry.Id}-prime",
+                    "split",
+                    [entry.PrimeFormId],
+                    entry.ReplicaFormId,
+                    descendantCount: 2,
+                    maxSourceGeneration: 0,
+                    requireNoPriorSameLifeTransition: true,
+                    new ActorReplicationHealthDefinition(
+                        ActorReplicationHealthDefinition.DistributionKind
+                            .DivideCurrentHealthEquallyFloor,
+                        minimumHealthPerDescendant: 1,
+                        ActorReplicationHealthDefinition.RemainderKind
+                            .Discard),
+                    candidateOffsets:
+                    [
+                        new ActorRelativePositionOffset(0, -1),
+                        new ActorRelativePositionOffset(0, 1),
+                        new ActorRelativePositionOffset(-1, 0),
+                        new ActorRelativePositionOffset(1, 0),
+                    ],
+                    splitWindup));
+        }
+        visions.Add(turretVision);
+        attacks.Add(turretAttack);
+
+        return BuildRules(
+            rulesetId,
+            captureThreshold,
+            captureGainSchedule: null,
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
+            seedProfileId,
+            new ActorLifecycleDefinition(lifecycleProfiles),
+            forms,
+            [movement],
+            visions,
+            attacks,
+            actions,
+            fabrications,
+            sameLifeTransitions,
+            replications);
     }
+
+    private static ActorProjectileDefinition ClassProjectile(
+        int maxTravelTiles) =>
+        new(
+            ActorProjectileMode.Discrete,
+            damagePerHit: 1,
+            maxTravelTiles,
+            ticksPerAdvance: 1,
+            tilesPerAdvance: 2,
+            launchTiles: 1,
+            advancesOnLaunchTick: false,
+            damageAppliedSimultaneously: true,
+            diagonalCornersMustBeClear: true);
 
     private static ActorVisionProfileDefinition Vision(
         string id,
         ActorVisionShape shape,
-        int omnidirectionalProximityRange) =>
+        int omnidirectionalProximityRange,
+        int range = 6) =>
         new(
             id,
-            range: 6,
+            range,
             ActorVisionDistanceMetric.Chebyshev,
             shape,
             omnidirectionalProximityRange,
@@ -991,7 +1426,9 @@ public static class FrontlineLabsDefinition
             ]
             : [];
 
-    private static PublicMatchTopology CreateTopology() =>
+    private static PublicMatchTopology CreateTopology(
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes) =>
         new()
         {
             Teams = [new PublicScoringTeam(0), new PublicScoringTeam(1)],
@@ -1011,12 +1448,22 @@ public static class FrontlineLabsDefinition
             ],
             InitialLives =
             [
-                new PublicInitialLife(0, 0, 0, PrimeFormId),
-                new PublicInitialLife(1, 0, 0, PrimeFormId),
+                new PublicInitialLife(
+                    0,
+                    0,
+                    0,
+                    classes?.TeamZero.PrimeFormId ?? PrimeFormId),
+                new PublicInitialLife(
+                    1,
+                    0,
+                    0,
+                    classes?.TeamOne.PrimeFormId ?? PrimeFormId),
             ],
         };
 
-    private static InitialDeploymentDefinition CreateInitialDeployment() =>
+    private static InitialDeploymentDefinition CreateInitialDeployment(
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes) =>
         new(
             [
                 new InitialSpawnDefinition(
@@ -1033,20 +1480,54 @@ public static class FrontlineLabsDefinition
                     0,
                     0,
                     0,
-                    PrimeFormId,
+                    classes?.TeamZero.PrimeFormId ?? PrimeFormId,
                     "team-0-prime"),
                 new InitialLifeDeployment(
                     1,
                     0,
                     0,
-                    PrimeFormId,
+                    classes?.TeamOne.PrimeFormId ?? PrimeFormId,
                     "team-1-prime"),
             ]);
 
     private static ImmutableArray<
         ActorUnitSlotLifecycleAssignmentDefinition>
-        CreateLifecycleAssignments(bool automaticCompanions) =>
-    [
+        CreateLifecycleAssignments(
+            bool automaticCompanions,
+            (FrontlineLabsClassDefinition TeamZero,
+                FrontlineLabsClassDefinition TeamOne)? classes)
+    {
+        if (classes is { } pair)
+        {
+            return
+            [
+                ClassPrimeAssignment(0, "team-0-prime", pair.TeamZero),
+                ClassChildAssignment(
+                    0,
+                    1,
+                    pair.TeamZero,
+                    pair.TeamZero.FirstChildUnlockTick),
+                ClassChildAssignment(
+                    0,
+                    2,
+                    pair.TeamZero,
+                    pair.TeamZero.SecondChildUnlockTick),
+                ClassPrimeAssignment(1, "team-1-prime", pair.TeamOne),
+                ClassChildAssignment(
+                    1,
+                    1,
+                    pair.TeamOne,
+                    pair.TeamOne.FirstChildUnlockTick),
+                ClassChildAssignment(
+                    1,
+                    2,
+                    pair.TeamOne,
+                    pair.TeamOne.SecondChildUnlockTick),
+            ];
+        }
+
+        return
+        [
         PrimeAssignment(0, "team-0-prime"),
         ChildAssignment(
             0,
@@ -1077,7 +1558,46 @@ public static class FrontlineLabsDefinition
             automaticCompanions
                 ? "team-1-child-2"
                 : null),
-    ];
+        ];
+    }
+
+    private static ActorUnitSlotLifecycleAssignmentDefinition
+        ClassPrimeAssignment(
+            int teamId,
+            string spawnId,
+            FrontlineLabsClassDefinition entry) =>
+        new(
+            teamId,
+            unitId: 0,
+            entry.PrimeLifecycleProfileId,
+            initialGeneration: 0,
+            allowedFormIds: [entry.PrimeFormId, entry.ReplicaFormId],
+            ActorUnitSlotLifecycleAssignmentDefinition
+                .InitialAvailabilityKind.ActiveAtTickZero,
+            unlockTick: null,
+            assignedRespawnSpawnId: spawnId);
+
+    private static ActorUnitSlotLifecycleAssignmentDefinition
+        ClassChildAssignment(
+            int teamId,
+            int unitId,
+            FrontlineLabsClassDefinition entry,
+            int unlockTick) =>
+        new(
+            teamId,
+            unitId,
+            entry.ChildLifecycleProfileId,
+            initialGeneration: null,
+            allowedFormIds:
+            [
+                entry.ChildFormId,
+                entry.ReplicaFormId,
+                entry.TurretFormId,
+            ],
+            ActorUnitSlotLifecycleAssignmentDefinition
+                .InitialAvailabilityKind.DormantUnlockAtTick,
+            unlockTick,
+            assignedRespawnSpawnId: null);
 
     private static ActorUnitSlotLifecycleAssignmentDefinition PrimeAssignment(
         int teamId,

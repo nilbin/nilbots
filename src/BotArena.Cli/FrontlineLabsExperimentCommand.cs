@@ -34,6 +34,7 @@ public static class FrontlineLabsExperimentCommand
             "one-bend-shots",
             "auto-companions",
             "duel-map",
+            "classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
@@ -83,16 +84,20 @@ public static class FrontlineLabsExperimentCommand
             "print-candidate-contract");
         FrontlineLabsDuelMapArm? duelMapArm =
             OptionalDuelMapArm(options);
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classPair =
+            OptionalClassPair(options);
         bool duelExperiment = oneBendShots
             || automaticCompanions
-            || duelMapArm is not null;
+            || (duelMapArm is not null && classPair is null);
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
             + (mobilizeTurrets ? 1 : 0)
             + (remoteFabrication ? 1 : 0)
             + (netControl ? 1 : 0)
-            + (duelExperiment ? 1 : 0);
+            + (duelExperiment ? 1 : 0)
+            + (classPair is null ? 0 : 1);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
@@ -123,6 +128,13 @@ public static class FrontlineLabsExperimentCommand
         else if (netControl)
         {
             definition = FrontlineLabsDefinition.CreateNetControlExperiment();
+        }
+        else if (classPair is { } selectedClasses)
+        {
+            definition = FrontlineLabsDefinition.CreateClassesExperiment(
+                selectedClasses.TeamZero,
+                selectedClasses.TeamOne,
+                duelMapArm ?? FrontlineLabsDuelMapArm.Current);
         }
         else if (automaticCompanions)
         {
@@ -438,6 +450,45 @@ public static class FrontlineLabsExperimentCommand
                 $"Unknown --duel-map '{value}' " +
                 "(use current, thin-fronts, or outer-shoulder-bypass)."),
         };
+    }
+
+    private static (FrontlineLabsClassDefinition TeamZero,
+        FrontlineLabsClassDefinition TeamOne)? OptionalClassPair(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("classes", out string? value))
+            return null;
+
+        string[] parts = value.Split("-vs-");
+        if (parts.Length != 2
+            || parts.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new InvalidOperationException(
+                "Use --classes <class>-vs-<class>, for example "
+                + "--classes bulwark-vs-striker.");
+        }
+
+        FrontlineLabsClassDefinition teamZero;
+        FrontlineLabsClassDefinition teamOne;
+        try
+        {
+            teamZero = FrontlineLabsClassDefinition.Parse(parts[0]);
+            teamOne = FrontlineLabsClassDefinition.Parse(parts[1]);
+        }
+        catch (ArgumentException error)
+        {
+            throw new InvalidOperationException(error.Message);
+        }
+
+        if (string.CompareOrdinal(teamZero.Id, teamOne.Id) > 0)
+        {
+            throw new InvalidOperationException(
+                $"Class pairs are canonical: use --classes "
+                + $"{teamOne.Id}-vs-{teamZero.Id} and swap bot assignments "
+                + "with --swap instead of swapping teams.");
+        }
+
+        return (teamZero, teamOne);
     }
 
     private static ulong[] ParseSeeds(

@@ -2804,6 +2804,42 @@ authoring lineage and one effective doctrine for pilot-breadth accounting.
 The next balance experiment therefore authors independently briefed T4+
 doctrines rather than treating the qualification lineage as a population.
 
+## 153. Classes are data-only chassis on the generic form catalog; kinematics never vary by class
+
+The first class slate — `striker` (one-bend prediction duelist), `bulwark`
+(durable short-sighted holder with reversible turret commitment), and
+`fabricator` (fragile economy engine with earlier, faster companions) — is
+implemented entirely as data: `FrontlineLabsClassDefinition` stat blocks
+expand into per-class forms, vision/attack profiles, fabrication/anchor/split
+routes, and per-slot lifecycle assignments inside
+`frontline-labs-1-experiment-classes-<a>-vs-<b>` arms that compose with the
+duel map arms and share the `frontline-labs-classes-1` seed profile.
+Class pairs are canonical in ordinal ID order; fairness comes from mirrored
+bot assignments, never from a second swapped contract. Mirror pairs collapse
+to one catalog so striker-vs-striker contains each entry exactly once.
+
+The axis split is the load-bearing decision: classes may vary durability,
+vision shape/range, fire tempo, projectile range, shot language (the
+parameterless `shoot-straight` action versus one-bend programs), anchor
+reversibility and turret durability, and fabrication economics (unlock
+ticks, rebuild delay). They may never vary movement speed, projectile
+speed/damage, or the movement layer — those constants define the parity
+structure of the exact duel analysis, and varying them would fork that
+layer per class pair. Projectile range is the one admitted geometry
+variable and is disclosed as such. Classes are conceptually mode-neutral
+(the chassis expands into the generic actor catalog and per-slot topology
+that any mode consumes); they are deliberately packaged as a Labs
+experiment arm first and lift into a mode-neutral catalog when a second
+mode schedules its first class experiment, exactly like the evaluation
+profiles. No class arm is hosted, ranked, or promoted; the stat values are
+pre-registered candidates for the class-pair factorial, and the class
+choice mechanism (a player-facing admission input) is explicitly out of
+scope for the lab, which needs only pre-registered topology cells.
+Pinned by `FrontlineLabsClassesDefinitionTests` and the classes CLI arm
+test; the shared `BuildRules` assembly point keeps limits, seed mechanics,
+mode, perception, collision, and tick resolution byte-identical across
+every arm.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

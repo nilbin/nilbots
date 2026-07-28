@@ -194,6 +194,61 @@ public sealed class FrontlineLabsExperimentCommandTests
     }
 
     [Fact]
+    public void ClassesArm_EmitsCanonicalIdentityAndRejectsSwappedOrder()
+    {
+        TextWriter original = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            Assert.Equal(
+                0,
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "fabricator-vs-striker",
+                        "--duel-map",
+                        "thin-fronts",
+                    ]));
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        JsonElement root = document.RootElement;
+        Assert.Equal(
+            "frontline-labs-1-experiment-classes-fabricator-vs-striker",
+            root.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.ClassesSeedProfileId,
+            root.GetProperty("seedProfileId").GetString());
+        Assert.Equal(
+            "frontline-labs-01-thin-fronts-experiment",
+            root.GetProperty("mapId").GetString());
+
+        InvalidOperationException swapped =
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--classes",
+                        "striker-vs-fabricator",
+                    ]));
+        Assert.Contains("fabricator-vs-striker", swapped.Message);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "striker-vs-warlock",
+                ]));
+    }
+
+    [Fact]
     public void PrintCandidateContract_RequiresNoBotsAndEmitsExactIdentity()
     {
         TextWriter original = Console.Out;
