@@ -1,7 +1,18 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from './auth';
 import Logo from '../components/Logo';
+import {
+  ArenaActionProvider,
+  GlobalArenaAction,
+} from './components/ArenaAction';
 import NotificationCenter from './components/NotificationCenter';
 
 export default function Shell() {
@@ -9,49 +20,132 @@ export default function Shell() {
   const navigate = useNavigate();
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 md:px-6">
-      <NotificationCenter />
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-arena-edge py-4">
-        <Link to="/" className="text-xl">
-          <Logo size={26} />
-        </Link>
-        <nav className="flex flex-wrap items-center gap-1 text-sm">
-          <TopLink to="/">Season</TopLink>
-          <TopLink to="/bots">Bots</TopLink>
-          <TopLink to="/watch">Watch</TopLink>
-          <TopLink to="/store">Store</TopLink>
-          <TopLink to="/docs">Docs</TopLink>
-          {user && <TopLink to="/garage">My garage</TopLink>}
-        </nav>
-        <div className="ml-auto flex items-center gap-3 text-sm">
-          {user ? (
-            <>
-              <span className="text-arena-dim">{user.displayName}</span>
-              <button
-                onClick={() => void logout().then(() => navigate('/'))}
-                className="rounded-md border border-arena-edge px-3 py-1 text-arena-dim transition-colors hover:text-arena-text"
+    <ArenaActionProvider>
+      <div className="mx-auto flex min-h-screen w-full min-w-0 max-w-6xl flex-col px-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[640px]:pb-0 md:px-6">
+        <ScrollToHash />
+        <a
+          href="#main-content"
+          className="btn sr-only z-50 focus:fixed focus:top-2 focus:left-2 focus:not-sr-only"
+        >
+          Skip to content
+        </a>
+        <NotificationCenter />
+        <header className="flex flex-nowrap items-center gap-3.5 border-b border-arena-edge bg-arena-panel px-3.5 py-2.5">
+          <Link to="/" className="shrink-0 text-arena-material">
+            <Logo size={17} />
+          </Link>
+          <nav
+            className="ml-auto hidden flex-nowrap items-center gap-0.5 min-[640px]:flex"
+            aria-label="Primary navigation"
+          >
+            <TopLink to="/">Season</TopLink>
+            <TopLink to="/bots">Bots</TopLink>
+            <TopLink to="/watch">Watch</TopLink>
+            <TopLink to="/docs">Docs</TopLink>
+          </nav>
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <GlobalArenaAction className="px-2.5" />
+            {user ? (
+              <>
+                <Link
+                  to="/garage"
+                  aria-label={`${user.displayName}'s Garage`}
+                  className="t-meta min-w-0 truncate transition-colors hover:text-arena-text"
+                >
+                  <span className="sm:hidden">Garage</span>
+                  <span className="hidden sm:inline">{user.displayName}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void logout().then(() => navigate('/'))}
+                  className="btn shrink-0 text-arena-dim hover:text-arena-text"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="btn shrink-0"
               >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <Link
-              to="/login"
-              className="rounded-md border border-arena-accent px-3 py-1 font-medium text-arena-accent transition-colors hover:bg-arena-accent/15"
-            >
-              Sign in
+                Sign in
+              </Link>
+            )}
+          </div>
+        </header>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 py-6">
+          <Outlet />
+        </main>
+        <footer className="t-micro flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-arena-edge py-3">
+          <span>deterministic robot combat · every match is reproducible</span>
+          <nav
+            className="ml-auto flex items-center gap-3"
+            aria-label="Secondary navigation"
+          >
+            <Link to="/store" className="text-link">
+              Shop
             </Link>
-          )}
-        </div>
-      </header>
-      <main className="flex-1 py-6">
-        <Outlet />
-      </main>
-      <footer className="border-t border-arena-edge py-3 font-mono text-[11px] text-arena-dim">
-        deterministic robot combat · every match is reproducible
-      </footer>
-    </div>
+            {user && (
+              <Link to="/garage" className="text-link">
+                Garage
+              </Link>
+            )}
+          </nav>
+        </footer>
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-arena-edge bg-arena-panel pb-[env(safe-area-inset-bottom)] min-[640px]:hidden"
+          aria-label="Primary navigation"
+        >
+          <MobileLink to="/">Season</MobileLink>
+          <MobileLink to="/bots">Bots</MobileLink>
+          <MobileLink to="/watch">Watch</MobileLink>
+          <MobileLink to="/docs">Docs</MobileLink>
+        </nav>
+      </div>
+    </ArenaActionProvider>
   );
+}
+
+/**
+ * Native fragment scrolling runs before asynchronously queried content exists. This
+ * observer gives links such as `/store#pack-x` and `/bots/x#submit` one reliable behavior
+ * across client navigation and hard refresh without coupling Shell to either screen.
+ */
+function ScrollToHash() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (hash === '') return;
+    let id: string;
+    try {
+      id = decodeURIComponent(hash.slice(1));
+    } catch {
+      return;
+    }
+
+    const reveal = () => {
+      const target = document.getElementById(id);
+      if (!target) return false;
+      target.scrollIntoView({ block: 'start' });
+      return true;
+    };
+
+    if (reveal()) return;
+    const observer = new MutationObserver(() => {
+      if (reveal()) observer.disconnect();
+    });
+    observer.observe(document.getElementById('main-content') ?? document.body, {
+      childList: true,
+      subtree: true,
+    });
+    const timeout = window.setTimeout(() => observer.disconnect(), 5_000);
+    return () => {
+      window.clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, [hash, pathname]);
+
+  return null;
 }
 
 function TopLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -61,8 +155,34 @@ function TopLink({ to, children }: { to: string; children: React.ReactNode }) {
       end={to === '/'}
       className={({ isActive }) =>
         clsx(
-          'rounded-md px-3 py-1.5 transition-colors',
-          isActive ? 'bg-arena-panel text-arena-text' : 'text-arena-dim hover:text-arena-text',
+          'btn whitespace-nowrap',
+          isActive
+            ? 'btn-on'
+            : 'border-transparent text-arena-dim hover:text-arena-text',
+        )
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
+
+function MobileLink({
+  to,
+  children,
+}: {
+  to: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) =>
+        clsx(
+          'lab flex min-h-12 items-center justify-center px-2 py-2.5 text-center',
+          isActive &&
+            'text-arena-text [box-shadow:inset_0_2px_0_var(--color-arena-text)]',
         )
       }
     >

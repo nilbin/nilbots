@@ -1,10 +1,15 @@
 import clsx from 'clsx';
-import IdentityChip from '../../components/IdentityChip';
+import IdentityChip, {
+  type IdentityChipSize,
+} from '../../components/IdentityChip';
 
 export type BotIdentitySize = 'xs' | 'sm' | 'md' | 'lg';
 
 /** Chassis size in pixels per step, with the name size that reads beside it. */
-const sizes: Record<BotIdentitySize, { chassis: number; name: string }> = {
+const sizes: Record<
+  BotIdentitySize,
+  { chassis: IdentityChipSize; name: string }
+> = {
   xs: { chassis: 18, name: 'text-sm' },
   sm: { chassis: 24, name: 'text-sm' },
   md: { chassis: 30, name: 'text-base' },

@@ -8,6 +8,8 @@ inlined, which is also why `climb.html` is 680 KB.
 | `climb.html` | The specification. Colour policy, type system, ground, logotype, viewer, full-screen chrome, bot page, first run, CLI. This is the one to read. |
 | `logotype.html` | The mark on its own: the construction, the alphabet, four finishes, size tests. |
 | `directions.html` | The nine directions Climb was chosen from. Kept as provenance — it predates the Forge ground and the type system, so its palettes and typography are **not** current. |
+| `AUTO_ARENA.md` | Product and frontend contract for the proposed daily ranked-set scheduler, including Shop semantics, quota behavior, and the backend projection it will require. |
+| `UX_FLOW_REVIEW.md` | End-to-end review of the main player jobs, route closure, Arena entry/continuation, and the frontend/backend gaps that remain. |
 
 Published copies, for sharing without a checkout:
 [Climb](https://claude.ai/code/artifact/8d87e1eb-0014-4339-a6df-a823b532da7c) ·
@@ -68,3 +70,13 @@ what is still undecided or missing — seasons do not exist, `▲14 places` need
 snapshot nothing writes yet, and the renderer preference needs a name. Two decisions are
 recorded there rather than implemented: 2.5D becoming the default, and replacing the mobile
 WebView with a shared three.js renderer.
+
+Implementation status lives in `IMPLEMENTATION.md`. To review the real routed web app
+without a backend, run this from `web/`:
+
+```bash
+npm run site-review
+npm run site-review:tunnel  # public and unauthenticated
+```
+
+This is separate from `npm run review`, which is the replay-only preview.

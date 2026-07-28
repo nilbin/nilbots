@@ -10,6 +10,7 @@ import {
   teamName,
   unitName,
 } from '../replayParticipants';
+import ToggleButton from './ToggleButton';
 
 /** Events that end a unit's participation. The only ones that earn a colour. */
 const TERMINAL = new Set(['destroyed', 'disqualified', 'fault']);
@@ -164,29 +165,22 @@ export default function EventFeed({
         {selectedUnitKey && (
           <span className="ml-auto flex gap-1">
             {([false, true] as const).map((only) => (
-              <button
+              <ToggleButton
                 key={String(only)}
-                type="button"
                 onClick={() => setMineOnly(only)}
-                aria-pressed={mineOnly === only}
-                className={clsx(
-                  'pill transition-colors',
-                  mineOnly === only
-                    ? 'btn-on text-arena-text'
-                    : 'text-arena-dim hover:text-arena-text',
-                )}
+                pressed={mineOnly === only}
+                className="t-micro px-2 py-1"
               >
                 {only ? 'Selected' : 'All'}
-              </button>
+              </ToggleButton>
             ))}
           </span>
         )}
       </div>
-      {/* The list scrolls; it never grows the page. Below `lg` the panel is content in
-          the page and the cap keeps it from burying the transport; at `lg` the column is
-          out of flow with a real height, so flex-1 bounds it. */}
+      {/* The list scrolls; it never grows the page. The cap applies at every width so
+          advancing playback cannot make the index stretch the whole viewer grid. */}
       <ol
-        className="grid max-h-64 min-h-0 flex-1 auto-rows-min gap-px overflow-y-auto px-3 pb-3 lg:max-h-none"
+        className="grid max-h-64 min-h-0 flex-1 auto-rows-min gap-px overflow-y-auto px-3 pb-3"
         aria-live="polite"
       >
         {shown.length === 0 && (
@@ -196,39 +190,46 @@ export default function EventFeed({
         )}
         {shown.map(({ tick: eventTick, event }) => {
           const [headline, detail] = splitDetail(describe(event));
-          return (
-            <li key={event.eventId}>
-              <button
-                type="button"
-                onClick={() => onSeek?.(eventTick)}
-                disabled={!onSeek}
+          const rowClass = clsx(
+            'grid w-full grid-cols-[38px_1fr] items-baseline gap-[10px] rounded-[3px] border border-transparent px-2 py-[7px] text-left transition-colors',
+            onSeek && 'hover:bg-arena-raise',
+            eventTick === tick && 'border-arena-edge bg-arena-raise',
+          );
+          const contents = (
+            <>
+              <span className="val">
+                {String(eventTick).padStart(3, '0')}
+              </span>
+              <span
                 className={clsx(
-                  'grid w-full grid-cols-[38px_1fr] items-baseline gap-[10px] rounded-[3px] border border-transparent px-2 py-[7px] text-left transition-colors',
-                  onSeek && 'hover:bg-arena-raise',
-                  // Where the playhead is, in the index — the row and the tick badge are
-                  // the same fact seen from two places.
-                  eventTick === tick && 'border-arena-edge bg-arena-raise',
+                  't-body',
+                  TERMINAL.has(event.type)
+                    ? 'font-semibold text-arena-hot'
+                    : involves(event)
+                      ? 'text-arena-text'
+                      : 'text-arena-dim',
                 )}
               >
-                <span className="val">
-                  {String(eventTick).padStart(3, '0')}
-                </span>
-                <span
-                  className={clsx(
-                    't-body',
-                    TERMINAL.has(event.type)
-                      ? 'font-semibold text-arena-hot'
-                      : involves(event)
-                        ? 'text-arena-text'
-                        : 'text-arena-dim',
-                  )}
+                {headline}
+                {detail && (
+                  <em className="t-micro mt-px block not-italic">{detail}</em>
+                )}
+              </span>
+            </>
+          );
+          return (
+            <li key={event.eventId}>
+              {onSeek ? (
+                <button
+                  type="button"
+                  onClick={() => onSeek(eventTick)}
+                  className={rowClass}
                 >
-                  {headline}
-                  {detail && (
-                    <em className="t-micro mt-px block not-italic">{detail}</em>
-                  )}
-                </span>
-              </button>
+                  {contents}
+                </button>
+              ) : (
+                <div className={rowClass}>{contents}</div>
+              )}
             </li>
           );
         })}

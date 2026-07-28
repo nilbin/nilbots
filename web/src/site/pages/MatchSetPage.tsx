@@ -1,11 +1,14 @@
-import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import clsx from 'clsx';
 import BotIdentity from '../components/BotIdentity';
 import Matchup from '../components/Matchup';
+import LiveStatus from '../../components/LiveStatus';
+import ArenaAction from '../components/ArenaAction';
 import { ErrorState, LoadingState } from '../components/StateView';
+import Movement from '../components/Movement';
+import Th from '../components/TableHeader';
 import { ApiError, type MatchSetDetail, type SetGame } from '../api';
-import { useMatchSet } from '../queries';
+import { useAuth } from '../auth';
+import { useMatchSet, useMyBots } from '../queries';
 
 /**
  * A ranked set: six games, three map/seed **pairs**, each pair played from both sides.
@@ -29,6 +32,8 @@ import { useMatchSet } from '../queries';
 export default function MatchSetPage() {
   const { setId } = useParams<{ setId: string }>();
   const { data: set, error, refetch } = useMatchSet(setId);
+  const { user } = useAuth();
+  const { data: myBots = [] } = useMyBots(Boolean(user));
 
   // A mistyped id is an answer, not an alarm.
   if (error instanceof ApiError && error.status === 404)
@@ -37,7 +42,7 @@ export default function MatchSetPage() {
         <p className="t-body font-semibold text-arena-dim">No such set</p>
         <p className="t-micro mt-1">
           This set id does not exist.{' '}
-          <Link to="/watch" className="text-arena-accent hover:underline">
+          <Link to="/watch" className="text-link">
             Back to Watch
           </Link>
           .
@@ -53,9 +58,20 @@ export default function MatchSetPage() {
   const standings = [...sides].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
   const drawn =
     set.revealed && set.status === 'Completed' && set.winnerBotId === null;
+  const myIds = new Set(myBots.map((bot) => bot.id));
+  const ownedSide = sides.find((side) => myIds.has(side.id));
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
+      <nav aria-label="Breadcrumb">
+        <Link to="/watch" className="t-meta text-link">
+          ← Watch
+        </Link>
+      </nav>
+      <h1 className="sr-only">
+        Ranked set: {set.botA.name ?? 'removed bot'} vs{' '}
+        {set.botB.name ?? 'removed bot'}
+      </h1>
       <header className="flex flex-col gap-2.5">
         <p className="lab">
           Ranked set · Rules {set.rulesVersion} · {shortDate(set.createdAt)}
@@ -81,14 +97,30 @@ export default function MatchSetPage() {
               two competitors. */}
           {standings.map((side) => (
             <div key={side.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <BotIdentity
-                name={side.name ?? 'A removed bot'}
-                accent={side.accent}
-                lookId={side.lookId}
-                size="md"
-                emphasized={set.winnerBotId === side.id}
-                className="min-w-0"
-              />
+              {side.name === null ? (
+                <BotIdentity
+                  name="A removed bot"
+                  accent={side.accent}
+                  lookId={side.lookId}
+                  size="md"
+                  emphasized={set.winnerBotId === side.id}
+                  className="min-w-0"
+                />
+              ) : (
+                <Link
+                  to={`/bots/${side.id}`}
+                  className="inline-flex min-w-0 transition-opacity hover:opacity-80"
+                >
+                  <BotIdentity
+                    name={side.name}
+                    accent={side.accent}
+                    lookId={side.lookId}
+                    size="md"
+                    emphasized={set.winnerBotId === side.id}
+                    className="min-w-0"
+                  />
+                </Link>
+              )}
               {side.owner !== null && (
                 <span className="t-micro hidden min-w-0 truncate sm:block">{side.owner}</span>
               )}
@@ -219,6 +251,32 @@ export default function MatchSetPage() {
         )}
       </section>
 
+      <section className="panel-quiet pad flex flex-wrap items-center gap-2">
+        <span className="t-meta mr-auto">
+          {ownedSide
+            ? 'The next ranked set is matchmade again from the current ladder.'
+            : 'Follow another fight from the public feed.'}
+        </span>
+        <Link to="/watch" className="btn">
+          Watch more
+        </Link>
+        {ownedSide && (
+          <ArenaAction
+            bot={{
+              id: ownedSide.id,
+              name: ownedSide.name ?? 'Your bot',
+              accent: ownedSide.accent,
+              lookId: ownedSide.lookId,
+              isOwner: true,
+              ready: true,
+            }}
+            modes={['ranked']}
+            initialMode="ranked"
+            triggerLabel="Start another matchmade set"
+          />
+        )}
+      </section>
+
       {/* A set's provenance is the union of its games', and each game page carries its own
           in full — so this is a footnote, not a panel. */}
       <p className="t-micro break-all">
@@ -251,23 +309,26 @@ function PairCard({
       <span className="val">seed {pair.seed ?? '—'}</span>
       <hr className="border-arena-edge" />
       {arrangements.map((arrangement, column) => (
-        <div key={arrangement.key} className="flex items-center gap-2">
+        <div
+          key={arrangement.key}
+          className="grid min-w-0 grid-cols-[58px_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5"
+        >
+          <span className="lab">Starter</span>
           <span className="flex min-w-0 items-center gap-1.5">
             {arrangement.name === null ? (
-              <span className="lab">Start {column + 1}</span>
+              <span className="t-body text-arena-dim">Start {column + 1}</span>
             ) : (
-              <>
-                <BotIdentity
-                  name={arrangement.name}
-                  accent={arrangement.accent}
-                  lookId={arrangement.lookId}
-                  size="xs"
-                />
-                <span className="lab">first</span>
-              </>
+              <BotIdentity
+                name={arrangement.name}
+                accent={arrangement.accent}
+                lookId={arrangement.lookId}
+                size="xs"
+                className="min-w-0"
+                nameClassName="overflow-visible whitespace-normal text-clip"
+              />
             )}
           </span>
-          <span className="val ml-auto shrink-0">→</span>
+          <span className="lab">Result</span>
           <GameCell game={pair.games[column]} sides={sides} />
         </div>
       ))}
@@ -292,7 +353,7 @@ function GameCell({ game, sides }: { game: SetGame | undefined; sides: readonly 
       className="group flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
     >
       <GameOutcome game={game} sides={sides} />
-      <span className="val ml-auto shrink-0 text-arena-accent">
+      <span className="val ml-auto shrink-0 text-arena-text">
         {number === null ? 'open' : `g${number}`}{' '}
         <span aria-hidden className="inline-block transition-transform group-hover:translate-x-0.5">
           →
@@ -305,12 +366,7 @@ function GameCell({ game, sides }: { game: SetGame | undefined; sides: readonly 
 function GameOutcome({ game, sides }: { game: SetGame; sides: readonly SetSide[] }) {
   if (game.status === 'Failed') return <span className="val text-arena-hot">did not run</span>;
   if (game.broadcasting)
-    return (
-      <span className="pill inline-flex items-center gap-1.5 text-arena-hot">
-        <span className="inline-block size-1.5 animate-pulse rounded-full bg-arena-hot" />
-        Live
-      </span>
-    );
+    return <LiveStatus />;
   if (game.draw)
     return (
       <span className="flex items-baseline gap-1.5">
@@ -332,6 +388,7 @@ function GameOutcome({ game, sides }: { game: SetGame; sides: readonly SetSide[]
         lookId={participant?.lookIdSnapshot ?? winner?.lookId}
         size="xs"
         className="min-w-0"
+        nameClassName="overflow-visible whitespace-normal text-clip"
       />
     );
   }
@@ -348,44 +405,8 @@ function Verdict({ verdict }: { verdict: PairVerdict | null }) {
   );
 }
 
-/**
- * A rating change, and the two numbers around it when they exist.
- *
- * The design asks for `SeasonPage`'s `Movement` to be promoted to
- * `site/components/Movement.tsx` and used in both places rather than written twice. That
- * promotion belongs to a change that owns both files; this one owns the two match pages,
- * so the shape is here and the note is the seam. Outcome is the one exception to "chroma
- * means a player chose it", and it is spent on the glyph alone.
- */
 function RatingDelta({ change, before }: { change: number | null; before: number | null }) {
-  if (change === null) return null;
-  const rounded = Math.round(change * 10) / 10;
-  return (
-    <span className="t-micro inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap">
-      <span
-        className={clsx(rounded > 0 && 'text-arena-ok', rounded < 0 && 'text-arena-hot')}
-      >
-        {rounded > 0 ? '▲' : rounded < 0 ? '▼' : '—'}
-      </span>
-      <span className="val">{Math.abs(rounded)}</span>
-      {before !== null && (
-        <span className="val">
-          ({Math.round(before)} → {Math.round(before + change)})
-        </span>
-      )}
-    </span>
-  );
-}
-
-function Th({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <th
-      scope="col"
-      className={clsx('lab border-b border-arena-edge pr-2 pb-2 text-left', className)}
-    >
-      {children}
-    </th>
-  );
+  return <Movement change={change} before={before} />;
 }
 
 /* ------------------------------------------------------------------ derivations ----- */
@@ -441,7 +462,7 @@ interface PairVerdict {
  * markup changes; the score and rating fields are the same assertion and move with it.
  */
 function setSides(set: MatchSetDetail): SetSide[] {
-  const wire = (set as MatchSetDetail & UnprojectedSetFields).sides ?? [set.botA, set.botB];
+  const wire = [set.botA, set.botB];
   const scores = [set.scoreA, set.scoreB];
   const changes = [set.ratingChangeA, set.ratingChangeB];
   return wire.map((bot, index) => ({
@@ -456,7 +477,7 @@ function setSides(set: MatchSetDetail): SetSide[] {
         ?.ownerDisplayNameSnapshot ?? null,
     points: scores[index] ?? null,
     ratingChange: changes[index] ?? null,
-    ratingBefore: (bot as SetSideWire & UnprojectedSetBotFields).ratingBefore ?? null,
+    ratingBefore: null,
   }));
 }
 
@@ -553,8 +574,7 @@ function sideLabel(bot: SetSideWire): string | null {
   // Name and accent are null when a bot has been deleted and the set carries no participant
   // snapshot for it (`MatchPublicProjection.ToSetBot`).
   if (bot.name === null) return null;
-  const generation = (bot as SetSideWire & UnprojectedSetBotFields).versionNumberSnapshot;
-  return generation === undefined ? bot.name : `${bot.name} gen-${generation}`;
+  return bot.name;
 }
 
 function shortDate(iso: string): string {
@@ -565,51 +585,16 @@ function shortDate(iso: string): string {
   });
 }
 
-/* ------------------------------------------------------------------------ seams ----- */
-
 type SetSideWire = MatchSetDetail['botA'];
 
 /**
- * Fields the design needs that the generated contract does not carry yet.
+ * The generated set contract does not carry seeds, generation snapshots, starting
+ * ratings, or a generalized sides collection yet.
  *
- * Read off the response optionally rather than added to `schema.d.ts`, which is generated
- * from the server and must not be hand-edited. Production sends none of them, so each of
- * these reads null and renders an em-dash or nothing; the day the projection carries them,
- * regenerating the client deletes these types and nothing else changes.
+ * These presentation seams stay visibly empty rather than accepting arbitrary extra JSON
+ * that bypasses the generated schema. When the contract grows, regenerate it and map the
+ * typed fields in `setSides`, `sideLabel`, and `gameSeed`.
  */
-interface UnprojectedSetGameFields {
-  /**
-   * **The most load-bearing gap on this page.** It says "map/seed pairs" and can show only
-   * the map: `MatchSetGameResponse` carries `mapId` and no `seed`, though `Match.Seed` is
-   * right there in the projection's own input. One field on a projection that already
-   * holds the `Match`.
-   */
-  seed?: number;
-}
-
-interface UnprojectedSetBotFields {
-  /**
-   * A set is a contest between two *generations* by definition, and every other surface
-   * says "Pincer gen-10". `MatchSet.BotAVersionId`/`BotBVersionId` exist and are not
-   * projected. Do not synthesize from the bot's current version — that silently relabels
-   * old sets.
-   */
-  versionNumberSnapshot?: number;
-  /**
-   * `MatchSet.RatingABefore`/`RatingBBefore` are in the database; only `ratingChangeA/B`
-   * are projected, so a standing can say `▲14.2` but not `1284 → 1298`, which is the
-   * number a player actually came for.
-   */
-  ratingBefore?: number;
-}
-
-interface UnprojectedSetFields {
-  /** The day `botA`/`botB` becomes a list, `setSides` returns it unchanged. */
-  sides?: SetSideWire[];
-}
-
-function gameSeed(game: SetGame | undefined): string | null {
-  if (game === undefined) return null;
-  const seed = (game as SetGame & UnprojectedSetGameFields).seed;
-  return seed === undefined ? null : String(seed);
+function gameSeed(_game: SetGame | undefined): string | null {
+  return null;
 }

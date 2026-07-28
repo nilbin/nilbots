@@ -15,7 +15,9 @@ export default function AuthPage() {
   const { data: providers } = useAuthProviders();
   // Carried through Google and back, so a player who was sent here from a protected page —
   // or from the CLI's and the app's /connect/authorize bounce — resumes where they were.
-  const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+  const returnUrl = safeReturnUrl(
+    new URLSearchParams(window.location.search).get('returnUrl'),
+  );
   const externalError = new URLSearchParams(window.location.search).get('error');
   const navigate = useNavigate();
   const register = useRegister();
@@ -27,22 +29,30 @@ export default function AuthPage() {
     if (mode === 'register') await register.mutateAsync({ displayName, email, password });
     else await login.mutateAsync({ email, password });
     await refresh();
-    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
-    if (returnUrl && returnUrl.startsWith('/')) window.location.assign(returnUrl);
+    if (returnUrl) navigate(returnUrl);
     else navigate('/garage');
   };
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <div className="rounded-xl border border-arena-edge bg-arena-panel p-6">
-        <div className="mb-5 flex gap-1 rounded-lg bg-arena-bg p-1 text-sm">
+      <div className="panel pad">
+        <h1 className="type-display mb-4 text-[24px]">Account</h1>
+        <div
+          className="panel-quiet mb-4 flex gap-1 p-1"
+          role="group"
+          aria-label="Account access"
+        >
           {(['login', 'register'] as const).map((m) => (
             <button
               key={m}
+              type="button"
               onClick={() => setMode(m)}
+              aria-pressed={mode === m}
               className={
-                'flex-1 rounded-md py-1.5 transition-colors ' +
-                (mode === m ? 'bg-arena-panel text-arena-text' : 'text-arena-dim')
+                'btn flex-1 ' +
+                (mode === m
+                  ? 'btn-on text-arena-text'
+                  : 'border-transparent text-arena-dim')
               }
             >
               {m === 'login' ? 'Sign in' : 'Create account'}
@@ -58,7 +68,8 @@ export default function AuthPage() {
                 required
                 minLength={2}
                 maxLength={40}
-                className={inputClass}
+                autoComplete="name"
+                className="field"
               />
             </Field>
           )}
@@ -68,7 +79,8 @@ export default function AuthPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className={inputClass}
+              autoComplete="email"
+              className="field"
             />
           </Field>
           <Field label="Password">
@@ -78,27 +90,28 @@ export default function AuthPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className={inputClass}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              className="field"
             />
           </Field>
           {externalError === 'email-taken' && (
-            <p className="text-sm text-arena-accent">
+            <p className="t-body text-arena-text">
               That address already has a nilbots account with a password. Sign in with it
               here, and Google will be linked for next time.
             </p>
           )}
           {externalError === 'google' && (
-            <p className="text-sm text-arena-hot">Google sign-in did not complete.</p>
+            <p className="t-body text-arena-hot">Google sign-in did not complete.</p>
           )}
           {active.isError && (
-            <p className="text-sm text-arena-hot">
+            <p className="t-body text-arena-hot">
               {errorMessage(active.error, 'Something went wrong.')}
             </p>
           )}
           <button
             type="submit"
             disabled={active.isPending}
-            className="mt-2 rounded-md bg-arena-accent py-2 font-semibold text-arena-bg transition-opacity disabled:opacity-50"
+            className="btn btn-on mt-1 w-full disabled:opacity-50"
           >
             {mode === 'login' ? 'Sign in' : 'Create account'}
           </button>
@@ -109,19 +122,19 @@ export default function AuthPage() {
             Google and come back, which XHR cannot do. */}
         {providers?.google && (
           <>
-            <div className="my-5 flex items-center gap-3">
+            <div className="my-4 flex items-center gap-3">
               <span className="h-px flex-1 bg-arena-edge" />
-              <span className="font-mono text-[10px] tracking-widest text-arena-dim">OR</span>
+              <span className="lab">Or</span>
               <span className="h-px flex-1 bg-arena-edge" />
             </div>
             <a
               href={`/api/accounts/external/google${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
-              className="flex items-center justify-center gap-2.5 rounded-md border border-arena-edge bg-arena-bg px-4 py-2 text-sm font-semibold text-arena-text transition-colors hover:border-arena-dim"
+              className="btn flex w-full items-center justify-center gap-2.5"
             >
               <GoogleMark />
               Continue with Google
             </a>
-            <p className="mt-2 text-center text-xs text-arena-dim">
+            <p className="t-meta mt-2 text-center">
               Signs you in, or creates an account if you do not have one.
             </p>
           </>
@@ -131,12 +144,20 @@ export default function AuthPage() {
   );
 }
 
-const inputClass =
-  'rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm outline-none focus:border-arena-accent';
+/** Mirror the backend's same-origin redirect rule before any auth flow receives it. */
+function safeReturnUrl(candidate: string | null) {
+  return candidate &&
+    candidate.length > 1 &&
+    candidate[0] === '/' &&
+    candidate[1] !== '/' &&
+    candidate[1] !== '\\'
+    ? candidate
+    : null;
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-arena-dim">
+    <label className="t-meta flex flex-col gap-1">
       {label}
       {children}
     </label>

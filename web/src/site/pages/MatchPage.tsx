@@ -2,8 +2,11 @@ import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import Viewer from '../../components/Viewer';
+import LiveStatus from '../../components/LiveStatus';
+import ArenaAction, { type ArenaMode } from '../components/ArenaAction';
 import BotIdentity from '../components/BotIdentity';
 import { ErrorState } from '../components/StateView';
+import Th from '../components/TableHeader';
 import {
   ApiError,
   type MatchDetail,
@@ -11,7 +14,9 @@ import {
   type MatchLive,
   type MatchSetDetail,
 } from '../api';
+import { useAuth } from '../auth';
 import { useMatch, useMatchLive, useMatchReplay, useMatchSet } from '../queries';
+import { useMyBots } from '../queries';
 
 /**
  * One match: the arena, what it counted for, and the receipt.
@@ -40,19 +45,52 @@ export default function MatchPage() {
   // The detail runs *always* rather than only for a failed match: map, seed and both
   // artifact hashes are public from the moment the match exists, and the whole argument of
   // this page is that they are published before anyone knows the result.
+  const { user } = useAuth();
+  const { data: myBots = [] } = useMyBots(Boolean(user));
   const { data: live, error: liveError, refetch } = useMatchLive(matchId);
-  const { data: loadedReplay } = useMatchReplay(matchId, live);
-  const { data: detail } = useMatch(matchId);
+  const {
+    data: loadedReplay,
+    error: replayError,
+    refetch: refetchReplay,
+  } = useMatchReplay(matchId, live);
+  const {
+    data: detail,
+    error: detailError,
+    refetch: refetchDetail,
+  } = useMatch(matchId);
   const replay = loadedReplay?.replay;
 
   // Either response names the set, so the standing strip never waits on the slower one.
   const matchSetId = live?.matchSetId ?? detail?.matchSetId ?? null;
   const setGame = live?.setGame ?? detail?.setGame ?? null;
-  const { data: set } = useMatchSet(matchSetId ?? undefined);
+  const {
+    data: set,
+    error: setError,
+    refetch: refetchSet,
+  } = useMatchSet(matchSetId ?? undefined);
 
   const missing = liveError instanceof ApiError && liveError.status === 404;
   const failed = live?.status === 'Failed' || detail?.status === 'Failed';
   const finished = live?.broadcastComplete ?? false;
+  const ownedIds = new Set(myBots.map((bot) => bot.id));
+  const ownedParticipant = detail?.participants.find((participant) =>
+    ownedIds.has(participant.botId),
+  );
+  const opponent = detail?.participants.find(
+    (participant) => participant.botId !== ownedParticipant?.botId,
+  );
+  const nextFight =
+    ownedParticipant === undefined
+      ? null
+      : matchSetId !== null
+        ? {
+            modes: ['ranked'] as readonly ArenaMode[],
+            label: 'Start another matchmade set',
+          }
+        : {
+            modes: ['challenge'] as readonly ArenaMode[],
+            label: 'Challenge again',
+          };
 
   // A mistyped id is an answer, not an alarm — so it renders as an empty shape with a way
   // back, rather than as the red state a dead server deserves.
@@ -62,7 +100,7 @@ export default function MatchPage() {
         <p className="t-body font-semibold text-arena-dim">No such match</p>
         <p className="t-micro mt-1">
           This match id does not exist.{' '}
-          <Link to="/watch" className="text-arena-accent hover:underline">
+          <Link to="/watch" className="text-link">
             Back to Watch
           </Link>
           .
@@ -76,6 +114,29 @@ export default function MatchPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-3">
+      <nav
+        aria-label="Breadcrumb"
+        className="t-meta flex flex-wrap items-center gap-1.5"
+      >
+        <Link to="/watch" className="text-link">
+          ← Watch
+        </Link>
+        {matchSetId !== null && (
+          <>
+            <span aria-hidden="true">/</span>
+            <Link to={`/sets/${matchSetId}`} className="text-link">
+              Ranked set
+            </Link>
+            {setGame !== null && (
+              <>
+                <span aria-hidden="true">/</span>
+                <span>Game {setGame}</span>
+              </>
+            )}
+          </>
+        )}
+      </nav>
+      <h1 className="sr-only">Match {matchId}</h1>
       <Standing
         matchSetId={matchSetId}
         setGame={setGame}
@@ -84,9 +145,22 @@ export default function MatchPage() {
         live={live}
         failed={failed}
       />
+      {setError && (
+        <QueryWarning
+          label="Set context unavailable"
+          error={setError}
+          onRetry={() => void refetchSet()}
+        />
+      )}
 
       {failed ? (
         <DidNotRun error={detail?.error ?? null} ranked={matchSetId !== null} />
+      ) : replayError ? (
+        <QueryWarning
+          label="Replay unavailable"
+          error={replayError}
+          onRetry={() => void refetchReplay()}
+        />
       ) : (
         <Arena
           matchId={matchId}
@@ -113,10 +187,46 @@ export default function MatchPage() {
 
       {/* Result first, Record second: a reader arriving from a `match-settled` toast wants
           the outcome, and the receipt is what they check next. */}
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_330px]">
-        <Result detail={detail} failed={failed} />
-        <Record detail={detail} />
+      <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_330px]">
+        <Result
+          detail={detail}
+          failed={failed}
+          error={detailError}
+          onRetry={() => void refetchDetail()}
+        />
+        <Record
+          detail={detail}
+          error={detailError}
+          onRetry={() => void refetchDetail()}
+        />
       </div>
+      <section className="panel-quiet pad flex flex-wrap items-center gap-2">
+        <span className="t-meta mr-auto">
+          {nextFight
+            ? 'Keep this bot moving, or return to the public feed.'
+            : 'Follow another fight from the public feed.'}
+        </span>
+        <Link to="/watch" className="btn">
+          Watch more
+        </Link>
+        {nextFight && ownedParticipant && (
+          <ArenaAction
+            bot={{
+              id: ownedParticipant.botId,
+              name: ownedParticipant.nameSnapshot,
+              accent: ownedParticipant.accentSnapshot,
+              lookId: ownedParticipant.lookIdSnapshot,
+              isOwner: true,
+              ready: true,
+            }}
+            modes={nextFight.modes}
+            initialMode={nextFight.modes[0]}
+            initialOpponentId={opponent?.botId}
+            initialMapId={detail?.mapId}
+            triggerLabel={nextFight.label}
+          />
+        )}
+      </section>
     </div>
   );
 }
@@ -204,12 +314,7 @@ function StandingPill({ live, failed }: { live: MatchLive | undefined; failed: b
   if (live.status === 'Pending') return <span className="pill ml-auto">Queued</span>;
   if (live.status === 'Running') return <span className="pill ml-auto">Fighting</span>;
   if (!live.broadcastComplete)
-    return (
-      <span className="pill ml-auto inline-flex items-center gap-1.5 text-arena-hot">
-        <span className="inline-block size-1.5 animate-pulse rounded-full bg-arena-hot" />
-        Live
-      </span>
-    );
+    return <LiveStatus className="ml-auto" />;
   return <span className="pill ml-auto">Decided</span>;
 }
 
@@ -231,14 +336,11 @@ function Arena({
 }) {
   const phase = waitingPhase(live, replayTicks, finished);
   if (phase !== null) return <Phase {...phase} />;
-  // A definite height, because the viewer sizes itself with `h-full`. In landscape on a
-  // coarse pointer it goes immersive and takes the viewport instead, which is why nothing
-  // essential lives only above the arena.
-  return (
-    <div key={matchId} className="h-[min(72dvh,760px)] min-h-[460px]">
-      {children}
-    </div>
-  );
+  // The arena, transport and bounded index establish the viewer's natural height. A
+  // viewport-derived hard height can be shorter than those contents at desktop widths,
+  // which makes the arena and index escape their row and cover the transport. Immersive
+  // mode still takes its own fixed 100dvh viewport inside Viewer.
+  return <div key={matchId}>{children}</div>;
 }
 
 /**
@@ -306,9 +408,19 @@ function DidNotRun({ error, ranked }: { error: string | null; ranked: boolean })
 /* --------------------------------------------------------------------- the result ---
    What watching reveals: the ledger the server settled, and the hash that pins it. */
 
-function Result({ detail, failed }: { detail: MatchDetail | undefined; failed: boolean }) {
+function Result({
+  detail,
+  failed,
+  error,
+  onRetry,
+}: {
+  detail: MatchDetail | undefined;
+  failed: boolean;
+  error: unknown;
+  onRetry: () => void;
+}) {
   return (
-    <section className="panel pad flex flex-col gap-3">
+    <section className="panel pad flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="lab">Result</h2>
         {detail !== undefined && detail.endReason !== null && (
@@ -319,7 +431,9 @@ function Result({ detail, failed }: { detail: MatchDetail | undefined; failed: b
         )}
       </div>
 
-      {detail === undefined ? (
+      {error ? (
+        <InlineQueryError error={error} onRetry={onRetry} />
+      ) : detail === undefined ? (
         <p className="t-meta">Reading the ledger…</p>
       ) : failed ? (
         <p className="t-body text-arena-dim">
@@ -428,11 +542,21 @@ function Result({ detail, failed }: { detail: MatchDetail | undefined; failed: b
 /* --------------------------------------------------------------------- the record ---
    The complete input set. Public from the moment the match exists, which is the point. */
 
-function Record({ detail }: { detail: MatchDetail | undefined }) {
+function Record({
+  detail,
+  error,
+  onRetry,
+}: {
+  detail: MatchDetail | undefined;
+  error: unknown;
+  onRetry: () => void;
+}) {
   return (
-    <section className="panel pad flex flex-col gap-3">
+    <section className="panel pad flex min-w-0 flex-col gap-3">
       <h2 className="lab">Record</h2>
-      {detail === undefined ? (
+      {error ? (
+        <InlineQueryError error={error} onRetry={onRetry} />
+      ) : detail === undefined ? (
         <p className="t-meta">Reading the record…</p>
       ) : (
         <>
@@ -459,12 +583,7 @@ function Record({ detail }: { detail: MatchDetail | undefined }) {
             <p className="lab">Artifacts</p>
             {detail.participants.map((participant) => (
               <div key={participant.slot} className="flex flex-col gap-1">
-                <BotIdentity
-                  name={botLabel(participant)}
-                  accent={participant.accentSnapshot}
-                  lookId={participant.lookIdSnapshot}
-                  size="xs"
-                />
+                <BotLink participant={participant} winner={false} />
                 <span className="val break-all">{participant.artifactHashSnapshot}</span>
               </div>
             ))}
@@ -472,6 +591,47 @@ function Record({ detail }: { detail: MatchDetail | undefined }) {
         </>
       )}
     </section>
+  );
+}
+
+function QueryWarning({
+  label,
+  error,
+  onRetry,
+}: {
+  label: string;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  return (
+    <section className="panel-quiet pad flex flex-wrap items-center gap-2" role="alert">
+      <span className="lab text-arena-hot">{label}</span>
+      <span className="t-meta min-w-0 grow">
+        {error instanceof Error ? error.message : String(error)}
+      </span>
+      <button type="button" onClick={onRetry} className="btn">
+        Try again
+      </button>
+    </section>
+  );
+}
+
+function InlineQueryError({
+  error,
+  onRetry,
+}: {
+  error: unknown;
+  onRetry: () => void;
+}) {
+  return (
+    <div role="alert">
+      <p className="t-meta text-arena-hot">
+        {error instanceof Error ? error.message : String(error)}
+      </p>
+      <button type="button" onClick={onRetry} className="btn mt-2">
+        Try again
+      </button>
+    </div>
   );
 }
 
@@ -501,20 +661,6 @@ function BotLink({
         emphasized={winner}
       />
     </Link>
-  );
-}
-
-function Th({ children, numeric }: { children: ReactNode; numeric?: boolean }) {
-  return (
-    <th
-      scope="col"
-      className={clsx(
-        'lab border-b border-arena-edge pb-2',
-        numeric ? 'pl-2 text-right' : 'pr-2 text-left',
-      )}
-    >
-      {children}
-    </th>
   );
 }
 
@@ -553,45 +699,14 @@ function ranAt(detail: MatchDetail): string {
 }
 
 /**
- * Fields the design needs that the generated contract does not carry yet.
- *
- * Read off the response optionally rather than added to `schema.d.ts`, which is generated
- * from the server and must not be hand-edited. Production sends none of them, so each of
- * these reads null and its row renders an em-dash; the day the projection carries them,
- * regenerating the client deletes this type and nothing else changes.
+ * The generated detail contract does not project its historical rules version. Do not
+ * accept an undeclared JSON extension or substitute current `/api/meta` data: either one
+ * can silently relabel an old match. This stays empty until the generated type owns it.
  */
-interface UnprojectedMatchFields {
-  /**
-   * Which rules this match ran under. `Match.GameRulesVersion` is on the entity;
-   * `MatchDetailResponse` does not project it.
-   *
-   * `/api/meta` must **not** be substituted: that is the server's *current* rules version,
-   * which is a different fact and would silently relabel every old match. Until the field
-   * lands, an unranked match cannot state its rules until the replay document loads — so
-   * never for a failed match, and not before reveal.
-   */
-  gameRulesVersion?: string;
-}
-
-interface UnprojectedParticipantFields {
-  /**
-   * Which generation of the bot fought. Participants carry `nameSnapshot` and no version
-   * number, so these pages can only say "Pincer" where every other surface says
-   * "Pincer gen-10". Do not synthesize it from the bot's current version — that relabels
-   * old matches with a generation that did not play them. Needs `versionNumberSnapshot`
-   * on `MatchDetailParticipantResponse`.
-   */
-  versionNumberSnapshot?: number;
-}
-
-function matchRules(detail: MatchDetail): string | null {
-  return (detail as MatchDetail & UnprojectedMatchFields).gameRulesVersion ?? null;
+function matchRules(_detail: MatchDetail): string | null {
+  return null;
 }
 
 function botLabel(participant: MatchDetailParticipant): string {
-  const generation = (participant as MatchDetailParticipant & UnprojectedParticipantFields)
-    .versionNumberSnapshot;
-  return generation === undefined
-    ? participant.nameSnapshot
-    : `${participant.nameSnapshot} gen-${generation}`;
+  return participant.nameSnapshot;
 }

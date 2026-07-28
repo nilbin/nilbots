@@ -36,7 +36,7 @@ export default function SoundEffectsControl({
   return (
     <div
       data-sound-effects-control
-      className="flex items-center gap-2 rounded-md border border-arena-edge bg-arena-panel/90 px-2 py-1"
+      className="panel-quiet flex items-center gap-1.5 px-1.5 py-1"
       title={effects.error ?? effects.packLabel}
     >
       <button
@@ -46,10 +46,10 @@ export default function SoundEffectsControl({
         aria-label={label}
         aria-pressed={audible}
         className={clsx(
-          'flex size-7 items-center justify-center rounded font-mono text-sm transition-colors disabled:opacity-50',
+          'btn flex size-7 items-center justify-center p-0 disabled:opacity-50',
           audible
-            ? 'bg-arena-accent/15 text-arena-accent hover:bg-arena-accent/25'
-            : 'text-arena-dim hover:bg-arena-edge hover:text-arena-text',
+            ? 'btn-on'
+            : 'text-arena-dim hover:text-arena-text',
         )}
       >
         {effects.activating ? (
@@ -57,7 +57,7 @@ export default function SoundEffectsControl({
         ) : (
           <span
             className={clsx(
-              'text-[8px] font-bold tracking-tight',
+              'lab text-[8px] tracking-tight text-inherit',
               !audible && 'line-through',
             )}
           >
@@ -65,7 +65,7 @@ export default function SoundEffectsControl({
           </span>
         )}
       </button>
-      <span className="hidden max-w-44 truncate font-mono text-[10px] text-arena-dim sm:block">
+      <span className="lab hidden max-w-44 truncate sm:block">
         {statusText}
       </span>
       <span className="sr-only" role="status" aria-live="polite">
@@ -82,7 +82,7 @@ export default function SoundEffectsControl({
             effects.setVolume(Number(event.currentTarget.value))
           }
           aria-label="Sound effects volume"
-          className="h-1 w-16 accent-(--color-arena-accent)"
+          className="h-1 w-16 accent-(--color-arena-text)"
         />
       )}
     </div>

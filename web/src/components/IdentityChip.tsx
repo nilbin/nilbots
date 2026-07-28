@@ -1,5 +1,8 @@
 import clsx from 'clsx';
 import { botLook } from '../render/arenaThemes';
+import AccentRing, { type AccentRingSize } from './AccentRing';
+
+export type IdentityChipSize = AccentRingSize;
 
 /**
  * Who a bot is, in one chip: the chassis its owner chose, ringed in the accent its
@@ -38,34 +41,24 @@ export default function IdentityChip({
   visualIndex?: number;
   sub?: string;
   /** Chassis size in pixels; the ring and gap scale from it. */
-  size?: number;
+  size?: IdentityChipSize;
   emphasized?: boolean;
   className?: string;
   nameClassName?: string;
 }) {
   const look = botLook(lookId ?? undefined, visualIndex);
-  const ring = accent ?? 'var(--color-arena-edge2)';
-
   return (
     <span className={clsx('inline-flex min-w-0 items-center gap-2.5', className)}>
-      {/* Only the ring's colour is inline, because only the colour is data: it is the
-          hex a player picked. The geometry is a class like everything else. */}
-      <span
-        className="flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-solid bg-arena-bg p-0.5"
-        style={{ borderColor: ring }}
-      >
+      <AccentRing accent={accent} size={size}>
         {look.image ? (
           <img
             src={look.imageUrl}
             alt=""
             loading="lazy"
-            style={{ width: size, height: size }}
-            className="object-contain"
+            className="size-full object-contain"
           />
-        ) : (
-          <span style={{ width: size, height: size }} />
-        )}
-      </span>
+        ) : null}
+      </AccentRing>
       <span className="min-w-0">
         <span
           className={clsx(

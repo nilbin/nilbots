@@ -12,7 +12,7 @@
 
 export function LoadingState({ label = 'Loading…' }: { label?: string }) {
   return (
-    <p className="py-8 text-center font-mono text-sm text-arena-dim" role="status">
+    <p className="t-meta py-8 text-center" role="status">
       {label}
     </p>
   );
@@ -24,12 +24,12 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   const message = error instanceof Error ? error.message : String(error);
   return (
     <div className="py-8 text-center" role="alert">
-      <p className="text-sm text-arena-hot">{message}</p>
+      <p className="t-body text-arena-hot">{message}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 rounded-md border border-arena-edge px-3 py-1.5 font-mono text-xs text-arena-accent transition-colors hover:border-arena-accent"
+          className="btn mt-3"
         >
           Try again
         </button>
@@ -41,8 +41,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 export function EmptyState({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="py-10 text-center">
-      <p className="text-sm font-semibold text-arena-dim">{title}</p>
-      {detail && <p className="mt-1 text-xs text-arena-dim">{detail}</p>}
+      <p className="t-body font-semibold text-arena-dim">{title}</p>
+      {detail && <p className="t-meta mt-1">{detail}</p>}
     </div>
   );
 }

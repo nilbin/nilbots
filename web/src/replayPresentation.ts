@@ -9,7 +9,7 @@ import type {
   ReplayWorldSnapshot,
 } from './replayModel';
 import { botLook, presentationAccent } from './render/arenaThemes';
-import { adjustAccentForBackground } from './render/adaptiveAccent';
+import { playerAccent } from './presentation/playerAccent';
 import { replayMaxHealth } from './replayMetadata';
 import {
   legacySlotForUnit,
@@ -224,9 +224,8 @@ function presentUnit(
     participantId: unit.controllerParticipantId,
     legacySlot: legacySlotForUnit(replay, unitKey),
     name: unitName(replay, unitKey),
-    accent: adjustAccentForBackground(
+    accent: playerAccent(
       presentationAccent(look, participant?.accent ?? undefined),
-      '#111823',
     ),
     lookLabel: look.label,
     runtimeKind: participant?.runtimeKind ?? 'unknown',

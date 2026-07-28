@@ -44,7 +44,7 @@ export default function SoundtrackControl({
   return (
     <div
       data-soundtrack-control
-      className="flex items-center gap-2 rounded-md border border-arena-edge bg-arena-panel/90 px-2 py-1"
+      className="panel-quiet flex items-center gap-1.5 px-1.5 py-1"
       title={controlTitle}
     >
       <button
@@ -53,15 +53,15 @@ export default function SoundtrackControl({
         aria-label={label}
         aria-pressed={controller.enabled}
         className={clsx(
-          'flex size-7 items-center justify-center rounded font-mono text-sm transition-colors',
+          'btn flex size-7 items-center justify-center p-0',
           controller.enabled
-            ? 'bg-arena-accent/15 text-arena-accent hover:bg-arena-accent/25'
-            : 'text-arena-dim hover:bg-arena-edge hover:text-arena-text',
+            ? 'btn-on'
+            : 'text-arena-dim hover:text-arena-text',
         )}
       >
         {controller.status === 'loading' ? '…' : controller.enabled ? '♫' : '♩'}
       </button>
-      <span className="hidden max-w-40 truncate font-mono text-[10px] text-arena-dim sm:block">
+      <span className="lab hidden max-w-40 truncate sm:block">
         {statusText}
       </span>
       <span className="sr-only" role="status" aria-live="polite">
@@ -76,7 +76,7 @@ export default function SoundtrackControl({
           value={controller.volume}
           onChange={(event) => controller.setVolume(Number(event.target.value))}
           aria-label="Soundtrack volume"
-          className="h-1 w-16 accent-(--color-arena-accent)"
+          className="h-1 w-16 accent-(--color-arena-text)"
         />
       )}
     </div>

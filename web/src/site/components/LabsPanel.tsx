@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { BotDetail } from '../api';
 import { errorMessage } from '../errorMessage';
 import {
   createLabsMatchRequest,
   eligibleLabsOpponents,
-  eligibleLabsPlaylist,
+  eligibleLabsPlaylists,
 } from '../labs';
 import {
   useBots,
@@ -15,9 +15,15 @@ import {
 
 export default function LabsPanel({ bot }: { bot: BotDetail }) {
   const { data: catalog } = useLabsCatalog(bot.isOwner);
-  const playlist = catalog
-    ? eligibleLabsPlaylist(bot, catalog)
-    : undefined;
+  const playlists = useMemo(
+    () => (catalog ? eligibleLabsPlaylists(bot, catalog) : []),
+    [bot, catalog],
+  );
+  const [playlistId, setPlaylistId] = useState('');
+  const playlist =
+    playlists.find(
+      (candidate) => candidate.playlistVersionId === playlistId,
+    ) ?? playlists[0];
   const roster = useBots(Boolean(playlist));
   const opponents = useMemo(
     () =>
@@ -31,6 +37,7 @@ export default function LabsPanel({ bot }: { bot: BotDetail }) {
     [bot.id, playlist, roster.data],
   );
   const [opponentId, setOpponentId] = useState('');
+  const headingId = useId();
   const navigate = useNavigate();
   const creation = useCreateLabsMatch();
 
@@ -58,48 +65,78 @@ export default function LabsPanel({ bot }: { bot: BotDetail }) {
 
   return (
     <section
-      aria-labelledby="labs-heading"
-      className="flex flex-wrap items-end gap-4 rounded-xl border border-arena-edge bg-arena-panel p-5"
+      aria-labelledby={headingId}
+      className="panel pad flex flex-col gap-3"
     >
-      <div className="min-w-56 flex-1">
+      <header>
         <p
-          id="labs-heading"
-          className="font-mono text-[11px] tracking-[0.2em] text-arena-accent"
+          className="lab mb-1 text-arena-accent"
         >
-          LABS · UNRANKED
+          Labs · unranked
         </p>
-        <h2 className="mt-1 font-semibold">{playlist.displayName}</h2>
-        <p className="mt-1 text-sm text-arena-dim">
-          Experimental two-bot match.
+        <h2 id={headingId} className="t-body font-semibold text-arena-text">
+          {playlist.displayName}
+        </h2>
+        <p className="t-meta mt-1">
+          Experimental two-bot match. Results do not move either bot's rating.
         </p>
-      </div>
+      </header>
+
+      {playlists.length > 1 && (
+        <label className="t-meta flex flex-col gap-1">
+          Experiment
+          <select
+            aria-label="Labs experiment"
+            value={playlist.playlistVersionId}
+            onChange={(event) => {
+              setPlaylistId(event.target.value);
+              setOpponentId('');
+              creation.reset();
+            }}
+            className="field"
+          >
+            {playlists.map((candidate) => (
+              <option
+                key={candidate.playlistVersionId}
+                value={candidate.playlistVersionId}
+              >
+                {candidate.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {roster.isPending ? (
-        <p className="pb-2 text-sm text-arena-dim">Finding compatible bots…</p>
+        <p className="t-meta" role="status">
+          Finding compatible bots…
+        </p>
       ) : roster.error ? (
-        <div className="flex items-center gap-3 pb-1 text-sm text-red-400">
-          <span>{errorMessage(roster.error, 'Compatible bots could not be loaded.')}</span>
+        <div className="flex flex-wrap items-center gap-2" role="alert">
+          <p className="t-meta min-w-0 grow text-arena-hot">
+            {errorMessage(roster.error, 'Compatible bots could not be loaded.')}
+          </p>
           <button
             type="button"
             onClick={() => void roster.refetch()}
-            className="text-arena-accent hover:underline"
+            className="btn"
           >
-            Retry
+            Try again
           </button>
         </div>
       ) : opponents.length === 0 ? (
-        <p className="pb-2 text-sm text-arena-dim">
+        <p className="t-meta">
           No compatible opponent is active yet.
         </p>
       ) : (
-        <>
-          <label className="flex flex-col gap-1 text-xs text-arena-dim">
+        <div className="flex flex-col gap-2">
+          <label className="t-meta flex flex-col gap-1">
             Opponent
             <select
               aria-label="Labs opponent"
               value={selectedOpponent}
               onChange={(event) => setOpponentId(event.target.value)}
-              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text"
+              className="field"
             >
               <option value="">Choose a bot…</option>
               {opponents.map((opponent) => (
@@ -113,15 +150,15 @@ export default function LabsPanel({ bot }: { bot: BotDetail }) {
             type="button"
             onClick={startMatch}
             disabled={creation.isPending || !selectedOpponent}
-            className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
+            className="btn btn-on self-start"
           >
-            {creation.isPending ? 'STARTING…' : 'RUN LAB MATCH'}
+            {creation.isPending ? 'Starting…' : 'Run lab match'}
           </button>
-        </>
+        </div>
       )}
 
       {creation.error && (
-        <p className="w-full text-sm text-red-400">
+        <p className="t-meta text-arena-hot" role="alert">
           {errorMessage(creation.error, 'Labs match could not be started.')}
         </p>
       )}

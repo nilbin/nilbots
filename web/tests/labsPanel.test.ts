@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createElement, Fragment } from 'react';
+import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import {
-  ChallengePanel,
-  LabsPanel,
-} from './.harness/harness.entry.js';
+import { LabsPanel } from './.harness/harness.entry.js';
 
 const GENERIC_PROFILE = 'generic-actor-match-2';
 
@@ -45,7 +42,7 @@ test('the Labs panel renders only eligible opponents for an eligible owned bot',
     ],
   });
 
-  assert.match(markup, /LABS · UNRANKED/);
+  assert.match(markup, /Labs · unranked/);
   assert.match(markup, /Frontline Labs/);
   assert.match(markup, /Compatible/);
   assert.doesNotMatch(markup, /Legacy only/);
@@ -100,12 +97,7 @@ function renderPanel(data: { labs: unknown; bots: unknown }) {
       createElement(
         MemoryRouter,
         null,
-        createElement(
-          Fragment,
-          null,
-          createElement(ChallengePanel, { bot: ownedGenericBot() }),
-          createElement(LabsPanel, { bot: ownedGenericBot() }),
-        ),
+        createElement(LabsPanel, { bot: ownedGenericBot() }),
       ),
     ),
   );

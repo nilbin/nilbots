@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import clsx from 'clsx';
-import { adjustAccentForBackground } from '../../render/adaptiveAccent';
+import { playerAccent } from '../../presentation/playerAccent';
+import { styleVariables } from '../../presentation/styleVariables';
 import { EmptyState } from './StateView';
 
 /**
@@ -61,9 +62,6 @@ const liveDotRing = 2.5;
 const pastDotRing = 1.6;
 const labelSize = 11.5;
 
-/** `--color-arena-panel`, as a value: the contrast check needs a colour, not a class. */
-const panelBackground = '#191210';
-
 export default function GenerationsChart({
   series,
   accent,
@@ -75,7 +73,7 @@ export default function GenerationsChart({
   // The accent is a player's pick, so it can be anything — including something that
   // vanishes on a panel this dark. Adjust before drawing, never before storing.
   const drawn = useMemo(
-    () => adjustAccentForBackground(accent, panelBackground),
+    () => playerAccent(accent, 'panel'),
     [accent],
   );
   const chart = useMemo(() => layout(series), [series]);
@@ -125,7 +123,14 @@ export default function GenerationsChart({
             {chart.lines.map((entry, index) => {
               const last = entry.points[entry.points.length - 1];
               return (
-                <g key={entry.generation}>
+                <g
+                  key={entry.generation}
+                  style={
+                    entry.live
+                      ? styleVariables({ '--player-accent': drawn })
+                      : undefined
+                  }
+                >
                   {/* The rule between two generations: where a submit replaced one. */}
                   {index > 0 && (
                     <line
@@ -140,12 +145,15 @@ export default function GenerationsChart({
                   )}
                   {entry.points.length > 1 && (
                     <polyline
-                      className={entry.live ? undefined : 'stroke-arena-edge2'}
+                      className={
+                        entry.live
+                          ? 'player-accent-stroke'
+                          : 'stroke-arena-edge2'
+                      }
                       points={entry.points
                         .map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`)
                         .join(' ')}
                       fill="none"
-                      stroke={entry.live ? drawn : undefined}
                       strokeWidth={entry.live ? liveStroke : pastStroke}
                       strokeLinejoin="round"
                     />
@@ -156,12 +164,13 @@ export default function GenerationsChart({
                     <circle
                       className={clsx(
                         'fill-arena-bg',
-                        !entry.live && 'stroke-arena-edge2',
+                        entry.live
+                          ? 'player-accent-stroke'
+                          : 'stroke-arena-edge2',
                       )}
                       cx={last.x.toFixed(1)}
                       cy={last.y.toFixed(1)}
                       r={entry.live ? liveDot : pastDot}
-                      stroke={entry.live ? drawn : undefined}
                       strokeWidth={entry.live ? liveDotRing : pastDotRing}
                     />
                   )}
@@ -188,14 +197,30 @@ export default function GenerationsChart({
                   key={entry.generation}
                   className="inline-flex items-center gap-1.5"
                 >
-                  <span
-                    aria-hidden="true"
-                    className={clsx(
-                      'block h-0.5 w-3.5 rounded-[2px]',
-                      !entry.live && 'bg-arena-edge2',
-                    )}
-                    style={entry.live ? { background: drawn } : undefined}
-                  />
+                  <svg
+                    aria-hidden
+                    width="14"
+                    height="4"
+                    viewBox="0 0 14 4"
+                    style={
+                      entry.live
+                        ? styleVariables({ '--player-accent': drawn })
+                        : undefined
+                    }
+                  >
+                    <line
+                      className={
+                        entry.live
+                          ? 'player-accent-stroke'
+                          : 'stroke-arena-edge2'
+                      }
+                      x1="0"
+                      y1="2"
+                      x2="14"
+                      y2="2"
+                      strokeWidth="2"
+                    />
+                  </svg>
                   {/* A generation number is a counter the toolchain assigned, like a
                       seed or a tick, and it has to read as the same token as the label
                       drawn under its stretch of the axis. */}

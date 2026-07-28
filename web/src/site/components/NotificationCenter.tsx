@@ -4,8 +4,15 @@ import {
   LogLevel,
   type HubConnection,
 } from '@microsoft/signalr';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import {
+  type FocusEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import {
   botLook,
@@ -16,6 +23,7 @@ import { type UserNotification, type EntitlementEarnedPayload } from '../api';
 import { useAuth } from '../auth';
 import { useNotifications, useReadNotification } from '../queries';
 import ResultToast from './ResultToast';
+import ToastFrame, { ToastArtwork } from './ToastFrame';
 
 const VISIBLE_MS = 14_000;
 
@@ -45,8 +53,15 @@ function isShowable(notification: UserNotification): boolean {
 
 export default function NotificationCenter() {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const [pending, setPending] = useState<UserNotification[]>([]);
+  const [hovered, setHovered] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
   const seen = useRef(new Set<string>());
+  const dismissClock = useRef<{
+    notificationId: string;
+    remainingMs: number;
+  } | null>(null);
   const acknowledge = useReadNotification();
   const acknowledgeRef = useRef(acknowledge.mutate);
   acknowledgeRef.current = acknowledge.mutate;
@@ -73,7 +88,9 @@ export default function NotificationCenter() {
   useEffect(() => {
     seen.current.clear();
     setPending([]);
-    if (!user) return;
+    // A site-review build has a typed HTTP fixture boundary but intentionally no fake
+    // realtime server. The normal build folds this branch away and keeps hub delivery.
+    if (!user || import.meta.env.VITE_SITE_REVIEW === '1') return;
 
     let disposed = false;
     let restartTimer: number | undefined;
@@ -115,27 +132,85 @@ export default function NotificationCenter() {
   );
 
   const active = pending[0];
+  const activeId = active?.id;
+  // A result toast over a live arena can reveal another outcome and covers the playback
+  // controls on a phone. Keep it queued, and resume its remaining display time after the
+  // viewer is left.
+  const watchingMatch = pathname.startsWith('/matches/');
+  const interacting = hovered || focusWithin || watchingMatch;
+
   useEffect(() => {
-    if (!active) return;
+    if (!activeId) {
+      dismissClock.current = null;
+      return;
+    }
+    let clock = dismissClock.current;
+    if (clock?.notificationId !== activeId) {
+      clock = {
+        notificationId: activeId,
+        remainingMs: VISIBLE_MS,
+      };
+      dismissClock.current = clock;
+    }
+
     let timer: number | undefined;
-    const schedule = () => {
+    let startedAt: number | undefined;
+
+    const pause = () => {
       window.clearTimeout(timer);
-      if (!document.hidden)
-        timer = window.setTimeout(() => dismiss(active.id), VISIBLE_MS);
+      timer = undefined;
+      if (startedAt === undefined) return;
+      clock.remainingMs = Math.max(
+        0,
+        clock.remainingMs - (performance.now() - startedAt),
+      );
+      startedAt = undefined;
     };
-    document.addEventListener('visibilitychange', schedule);
+    const schedule = () => {
+      if (interacting || document.hidden || startedAt !== undefined) return;
+      if (clock.remainingMs <= 0) {
+        dismiss(activeId);
+        return;
+      }
+      startedAt = performance.now();
+      timer = window.setTimeout(() => {
+        timer = undefined;
+        startedAt = undefined;
+        clock.remainingMs = 0;
+        dismiss(activeId);
+      }, clock.remainingMs);
+    };
+    const syncVisibility = () => {
+      if (document.hidden) pause();
+      else schedule();
+    };
+
+    document.addEventListener('visibilitychange', syncVisibility);
     schedule();
     return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener('visibilitychange', schedule);
+      pause();
+      document.removeEventListener('visibilitychange', syncVisibility);
     };
-  }, [active, dismiss]);
+  }, [activeId, dismiss, interacting]);
 
-  if (!active) return null;
+  useEffect(() => {
+    if (!activeId) {
+      setHovered(false);
+      setFocusWithin(false);
+    }
+  }, [activeId]);
+
+  const handleToastBlur = useCallback((event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+      setFocusWithin(false);
+  }, []);
+
+  if (!active || watchingMatch) return null;
   // Narrowed on the payload's own discriminator, not the notification's — they carry the
   // same string, but TypeScript cannot narrow a sibling property from it.
+  let toast: ReactNode;
   if (isUnlock(active))
-    return (
+    toast = (
       <UnlockToast
         key={active.id}
         notification={active}
@@ -143,12 +218,12 @@ export default function NotificationCenter() {
         onDismiss={() => dismiss(active.id)}
       />
     );
-  if (
+  else if (
     active.payload.kind === 'match-challenged' ||
     active.payload.kind === 'match-settled' ||
     active.payload.kind === 'set-settled'
   )
-    return (
+    toast = (
       <ResultToast
         key={active.id}
         payload={active.payload}
@@ -156,7 +231,18 @@ export default function NotificationCenter() {
         onDismiss={() => dismiss(active.id)}
       />
     );
-  return null;
+  else return null;
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocusWithin(true)}
+      onBlurCapture={handleToastBlur}
+    >
+      {toast}
+    </div>
+  );
 }
 
 async function stop(connection: HubConnection) {
@@ -186,58 +272,40 @@ function UnlockToast({
       : 'New loadout unlocked';
 
   return (
-    <aside
-      className="unlock-toast fixed top-4 right-4 z-50 w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-arena-accent/45 bg-[#101720]/96 shadow-[0_22px_70px_rgba(0,0,0,0.55),0_0_35px_rgba(245,190,70,0.13)] backdrop-blur"
-      role="status"
-      aria-live="polite"
-    >
-      <div className="unlock-toast__sheen pointer-events-none absolute inset-0" />
-      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-arena-accent to-transparent" />
-      <div className="relative flex gap-4 p-4 sm:p-5">
+    <ToastFrame
+      tone="neutral"
+      eyebrow="Achievement unlocked"
+      title={title}
+      artwork={
         <UnlockArtwork
           chassis={chassis}
           projectileId={projectileItem?.id}
         />
-        <div className="min-w-0 flex-1 py-0.5">
-          <p className="font-mono text-[10px] font-bold tracking-[0.22em] text-arena-accent">
-            ACHIEVEMENT UNLOCKED
-          </p>
-          <h2 className="type-display mt-1 text-[19px] text-arena-text">
-            {title}
-          </h2>
-          {items.length > 1 && (
-            <p className="mt-0.5 text-sm font-semibold text-arena-text">
-              {items.map((item) => item.label).join(' + ')}
-            </p>
-          )}
-          {reason && (
-            <p className="mt-1.5 text-xs leading-relaxed text-arena-dim">
-              {reason}
-            </p>
-          )}
-          <Link
-            to="/garage"
-            onClick={onDismiss}
-            className="mt-3 inline-flex items-center gap-1 font-mono text-xs font-bold text-arena-accent transition-colors hover:text-arena-accent"
-          >
-            Equip in my garage <span aria-hidden>→</span>
-          </Link>
-          {queued > 0 && (
-            <p className="mt-2 font-mono text-[10px] text-arena-dim">
-              +{queued} more unlock{queued === 1 ? '' : 's'}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
+      }
+      action={
+        <Link
+          to="/garage"
           onClick={onDismiss}
-          aria-label="Dismiss unlock notification"
-          className="-mt-1 -mr-1 flex size-7 shrink-0 items-center justify-center rounded-md text-arena-dim transition-colors hover:bg-white/5 hover:text-arena-text"
+          className="btn mt-3 inline-flex items-center gap-1"
         >
-          ×
-        </button>
-      </div>
-    </aside>
+          Equip in my garage <span aria-hidden>→</span>
+        </Link>
+      }
+      queuedLabel={
+        queued > 0
+          ? `+${queued} more unlock${queued === 1 ? '' : 's'}`
+          : undefined
+      }
+      dismissLabel="Dismiss unlock notification"
+      onDismiss={onDismiss}
+    >
+      {items.length > 1 && (
+        <p className="t-body mt-1 text-arena-text">
+          {items.map((item) => item.label).join(' + ')}
+        </p>
+      )}
+      {reason && <p className="t-meta mt-1">{reason}</p>}
+    </ToastFrame>
   );
 }
 
@@ -248,37 +316,35 @@ function UnlockArtwork({
   chassis: BotLook | null;
   projectileId?: string;
 }) {
-  const accent = chassis?.suggestedAccent ?? '#38bdf8';
+  const accent = chassis?.suggestedAccent ?? botLook().suggestedAccent;
+  const badge =
+    chassis && projectileId ? (
+      <ProjectilePreview
+        look={projectileLook(projectileId)}
+        accent={accent}
+        className="h-5 w-7"
+      />
+    ) : undefined;
+
   return (
-    <div
-      className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_42%,rgba(245,190,70,0.18),rgba(10,14,20,0.82)_68%)]"
-      style={{ boxShadow: `inset 0 -3px 0 ${accent}55` }}
-    >
-      <div className="unlock-toast__halo absolute size-16 rounded-full bg-arena-accent/10 blur-xl" />
+    <ToastArtwork accent={accent} badge={badge}>
       {chassis ? (
         <img
           src={chassis.imageUrl}
           alt=""
-          className="relative size-20 object-contain drop-shadow-[0_7px_9px_rgba(0,0,0,0.55)]"
+          className="size-16 object-contain sm:size-20"
         />
       ) : projectileId ? (
         <ProjectilePreview
           look={projectileLook(projectileId)}
           accent={accent}
-          className="relative h-16 w-20"
+          className="h-16 w-20"
         />
       ) : (
-        <span className="relative text-3xl text-arena-accent">✦</span>
-      )}
-      {chassis && projectileId && (
-        <span className="absolute right-1.5 bottom-1.5 flex size-9 items-center justify-center rounded-full border border-arena-accent/25 bg-[#0a0e14]/90 shadow-lg">
-          <ProjectilePreview
-            look={projectileLook(projectileId)}
-            accent={accent}
-            className="h-5 w-7"
-          />
+        <span className="text-3xl text-arena-text" aria-hidden>
+          ✦
         </span>
       )}
-    </div>
+    </ToastArtwork>
   );
 }

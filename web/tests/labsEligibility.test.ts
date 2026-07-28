@@ -10,6 +10,7 @@ import {
   createLabsMatchRequest,
   eligibleLabsOpponents,
   eligibleLabsPlaylist,
+  eligibleLabsPlaylists,
 } from '../src/site/labs';
 
 const GENERIC_PROFILE = 'generic-actor-match-2';
@@ -98,6 +99,29 @@ test('Labs opponents are distinct active bots with the exact required profile', 
   assert.deepEqual(
     eligibleLabsOpponents(roster, entrantId, GENERIC_PROFILE),
     [eligible],
+  );
+});
+
+test('Labs exposes every eligible experiment in catalog order', () => {
+  const second = {
+    ...playlist,
+    playlistVersionId: '10000000-0000-0000-0000-000000000002',
+    key: 'frontline-nightly',
+    displayName: 'Frontline Nightly',
+  };
+  const unsupported = {
+    ...playlist,
+    playlistVersionId: '10000000-0000-0000-0000-000000000003',
+    key: 'future-mode',
+    requiredContractProfileId: 'future-contract-1',
+  };
+
+  assert.deepEqual(
+    eligibleLabsPlaylists(
+      botDetail(true, [botVersion(true, [GENERIC_PROFILE])]),
+      { enabled: true, playlists: [playlist, unsupported, second] },
+    ),
+    [playlist, second],
   );
 });
 

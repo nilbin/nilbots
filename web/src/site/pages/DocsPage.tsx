@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Markdown from '../components/Markdown';
 // The one source of rules prose. Imported raw at build time, so the site, the text
 // mirror at /llms-full.txt and the README written by `nilbots new` are the same words
@@ -13,7 +14,7 @@ const RULES_VERSION = '0.5';
 /// submitted bot without reading the repository.
 export default function DocsPage() {
   return (
-    <div className="prose-invert mx-auto flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
+    <div className="t-body mx-auto flex max-w-3xl flex-col gap-3.5 leading-relaxed">
       <section>
         <h1 className="mb-2 type-display text-[26px]">How to play</h1>
         <p className="text-arena-dim">
@@ -23,20 +24,31 @@ export default function DocsPage() {
         </p>
       </section>
 
-      <Doc title="Quick start (browser only)">
+      <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
-          <li>Create an account and open <b>My garage</b>.</li>
-          <li>Create a bot, then paste your C# into <b>Submit new version</b> — the
-            server compiles it to WebAssembly and validates it.</li>
-          <li>Open any bot's page and hit <b>FIGHT</b> — or <b>FIGHT FOR RATING</b>
-            for a ranked 6-game set that moves elo.</li>
-          <li>Watch the broadcast live; click your bot in the viewer to see exactly
-            what it saw and why it acted.</li>
+          <li>
+            <Link to="/login" className="text-link">Create an account</Link> and
+            install the CLI.
+          </li>
+          <li>
+            Run <code className="font-mono">nilbots new</code>, iterate locally, then{' '}
+            <code className="font-mono">nilbots submit</code>. The first bot reaches
+            the site from that terminal hand-off.
+          </li>
+          <li>
+            Open your <Link to="/garage" className="text-link">Garage</Link>, choose
+            the bot, then use <b>Play</b> for a ranked 6-game set or a one-off
+            challenge.
+          </li>
+          <li>
+            Follow the broadcast in <Link to="/watch" className="text-link">Watch</Link>;
+            click either bot in the result to inspect its generations and history.
+          </li>
         </ol>
       </Doc>
 
       <Doc title="The bot API">
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`using BotArena.Sdk;
+        <pre className="term">{`using BotArena.Sdk;
 
 public sealed class MyBot : IBot
 {
@@ -75,7 +87,7 @@ public sealed class MyBot : IBot
           README, so the site cannot drift from the game — which it did once, teaching
           a retired zone-tick win condition for two days. */}
       <Doc title={`Rules of the arena (v${RULES_VERSION})`}>
-        <Markdown source={playerGuide} />
+        <Markdown source={playerGuide} headingOffset={2} />
       </Doc>
 
       <Doc title="Determinism (why replays are trustworthy)">
@@ -103,7 +115,7 @@ public sealed class MyBot : IBot
           Everything the site does goes through the JSON API, and cookie auth works
           headless — no browser needed:
         </p>
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`curl -c jar -H 'Content-Type: application/json' \\
+        <pre className="term">{`curl -c jar -H 'Content-Type: application/json' \\
   -d '{"displayName":"Me","email":"me@x","password":"..."}' <server>/api/accounts/register
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"name":"MyBot","accent":"#22d3ee","lookId":"vanguard","projectileLookId":"pulse-bolt"}' <server>/api/bots
@@ -134,7 +146,7 @@ curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals
       </Doc>
 
       <Doc title="Local development (CLI)">
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`dotnet tool install --global Nilbots
+        <pre className="term">{`dotnet tool install --global Nilbots
 nilbots register                                   # create account + OAuth/PKCE sign-in
 nilbots new MyBot && cd MyBot
 nilbots play --runtime in-process --bot . --opponent hunter   # fastest — iterate here
@@ -155,8 +167,8 @@ nilbots submit .                                   # creates bot + official buil
 
 function Doc({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-arena-edge bg-arena-panel/60 p-5">
-      <h2 className="mb-3 type-label text-[10.5px] text-arena-dim uppercase">{title}</h2>
+    <section className="panel pad">
+      <h2 className="lab mb-3">{title}</h2>
       {children}
     </section>
   );

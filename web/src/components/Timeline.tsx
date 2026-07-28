@@ -8,6 +8,8 @@ import type {
 } from '../replayModel';
 import { participantForUnit } from '../replayParticipants';
 import type { PlaybackState } from '../playback';
+import { playerAccent } from '../presentation/playerAccent';
+import { styleVariables } from '../presentation/styleVariables';
 
 /**
  * The timeline, carrying what happened rather than only where we are.
@@ -68,9 +70,12 @@ export default function Timeline({
   const lastTick = Math.max(1, playback.tickCount - 1);
 
   const { lanes, marks, moments } = useMemo(() => {
-    const accentOf = (unitKey: ReplayStableUnitKey | undefined): string =>
-      (unitKey ? participantForUnit(replay, unitKey)?.accent : null) ??
-      'currentColor';
+    const accentOf = (unitKey: ReplayStableUnitKey | undefined): string => {
+      const accent = unitKey
+        ? participantForUnit(replay, unitKey)?.accent
+        : null;
+      return accent ? playerAccent(accent, 'panel') : 'currentColor';
+    };
     const teamOf = (unitKey: ReplayStableUnitKey | undefined): number | null =>
       replay.units.find((unit) => unit.unitKey === unitKey)?.teamId ?? null;
 
@@ -167,8 +172,8 @@ export default function Timeline({
           <span
             key={moment.key}
             aria-hidden
-            className="absolute inset-y-0 w-px bg-arena-edge2"
-            style={{ left: at(moment.tick) }}
+            className="runtime-position absolute inset-y-0 w-px bg-arena-edge2"
+            style={styleVariables({ '--runtime-position': at(moment.tick) })}
           />
         ))}
 
@@ -181,8 +186,11 @@ export default function Timeline({
             <span
               key={`${mark.key}:rule`}
               aria-hidden
-              className="absolute inset-y-0 w-0 border-l border-dashed opacity-40"
-              style={{ left: at(mark.tick), borderColor: mark.accent }}
+              className="player-accent-border runtime-position absolute inset-y-0 w-0 border-l border-dashed opacity-40"
+              style={styleVariables({
+                '--runtime-position': at(mark.tick),
+                '--player-accent': mark.accent,
+              })}
             />
           ))}
 
@@ -194,8 +202,10 @@ export default function Timeline({
             />
             <span
               aria-hidden
-              className="absolute top-1/2 left-0 h-[1.5px] -translate-y-1/2 bg-arena-dim"
-              style={{ width: `${progress * 100}%` }}
+              className="runtime-progress absolute top-1/2 left-0 h-[1.5px] -translate-y-1/2 bg-arena-dim"
+              style={styleVariables({
+                '--runtime-progress': `${progress * 100}%`,
+              })}
             />
             {marks
               .filter((mark) => mark.lane === lane.key)
@@ -205,6 +215,7 @@ export default function Timeline({
                   aria-hidden
                   className={clsx(
                     'absolute top-1/2 -translate-x-1/2 -translate-y-1/2',
+                    'player-accent-fill runtime-position',
                     // A shot is a hairline, a hit taken is a notch, a loss is a block:
                     // weight tracks consequence, so a lane reads at a glance.
                     mark.kind === 'fired' && 'h-2 w-[1.5px] opacity-75',
@@ -213,7 +224,10 @@ export default function Timeline({
                     mark.kind === 'form' &&
                       'h-2 w-2 rotate-45 rounded-[1px] opacity-80',
                   )}
-                  style={{ left: at(mark.tick), background: mark.accent }}
+                  style={styleVariables({
+                    '--runtime-position': at(mark.tick),
+                    '--player-accent': mark.accent,
+                  })}
                 />
               ))}
           </span>
@@ -224,8 +238,13 @@ export default function Timeline({
           positioned span, so `h-[100%]` resolves to nothing and the playhead silently
           disappears — which it did. The span is the anchor; this centres on it. */}
       <Slider.Thumb
-        className="absolute top-1/2 block w-[1.5px] -translate-y-1/2 rounded-full bg-arena-text focus:outline-2 focus:outline-offset-2 focus:outline-arena-accent"
-        style={{ height: LANE_HEIGHT * lanes.length + LANE_GAP * (lanes.length - 1) + 8 }}
+        className="runtime-height absolute top-1/2 block w-[1.5px] -translate-y-1/2 rounded-full bg-arena-text focus:outline-2 focus:outline-offset-2 focus:outline-arena-text"
+        style={styleVariables({
+          '--runtime-height':
+            LANE_HEIGHT * lanes.length +
+            LANE_GAP * (lanes.length - 1) +
+            8,
+        })}
         aria-label="Playhead"
       >
         {/* The knob is what says this is a handle rather than a marker, and it is the

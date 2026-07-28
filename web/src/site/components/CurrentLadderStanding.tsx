@@ -8,31 +8,35 @@ export default function CurrentLadderStanding({
   return (
     <section
       className={
-        'flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border px-4 py-3 ' +
-        (standing
-          ? 'border-arena-accent/50 bg-arena-accent/5'
-          : 'border-arena-edge bg-arena-panel/40')
+        'panel-quiet pad flex flex-wrap items-center gap-x-3.5 gap-y-1.5 ' +
+        (standing ? 'border-arena-edge2 bg-arena-raise' : '')
       }
     >
-      <span className="font-mono text-[11px] tracking-wider text-arena-dim">
-        CURRENT LADDER
-      </span>
+      <span className="lab">Current ladder</span>
       {standing ? (
         <>
-          <strong className="text-xl text-arena-accent">#{standing.rank}</strong>
-          <span className="font-mono text-sm">
-            {standing.rating.toLocaleString()} rating
+          <strong className="type-display tabular text-[22px] text-arena-text">
+            #{standing.rank}
+          </strong>
+          <span className="t-meta">
+            <span className="val text-arena-text">
+              {standing.rating.toLocaleString()}
+            </span>{' '}
+            rating
           </span>
-          <span className="text-xs text-arena-dim">
-            {standing.rankedSets.toLocaleString()} ranked{' '}
+          <span className="t-meta">
+            <span className="val">
+              {standing.rankedSets.toLocaleString()}
+            </span>{' '}
+            ranked{' '}
             {standing.rankedSets === 1 ? 'set' : 'sets'} · rules{' '}
-            {standing.rulesVersion}
+            <span className="val">{standing.rulesVersion}</span>
           </span>
         </>
       ) : (
         <>
-          <strong className="text-sm">Unranked</strong>
-          <span className="text-xs text-arena-dim">
+          <strong className="t-body font-semibold text-arena-text">Unranked</strong>
+          <span className="t-meta">
             No completed ranked set on the current rules ladder yet.
           </span>
         </>

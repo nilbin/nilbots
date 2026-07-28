@@ -1,24 +1,19 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
-import {
-  botLook,
-  botLookOptions,
-  projectileLook,
-  projectileLookOptions,
-} from '../../render/arenaThemes';
+import { botLook, projectileLook } from '../../render/arenaThemes';
+import AppearanceFields, {
+  appearanceSelectionOwned,
+} from '../components/AppearanceFields';
+import ArenaAction from '../components/ArenaAction';
 import BotIdentity from '../components/BotIdentity';
 import FirstRun from '../components/FirstRun';
 import { ErrorState, LoadingState } from '../components/StateView';
 import { useAuth } from '../auth';
-import { useCreateBot, useMyBots } from '../queries';
+import { rosterBotSupportsLegacyDuel } from '../botContractProfiles';
+import { useBots, useCreateBot, useMyBots } from '../queries';
 import { errorMessage } from '../errorMessage';
-import {
-  BOT_LOOK_KIND,
-  cosmeticItem,
-  PROJECTILE_LOOK_KIND,
-  useCosmeticCatalog,
-} from '../cosmetics';
+import { useCosmeticCatalog } from '../cosmetics';
 import CosmeticUnlocks from '../components/CosmeticUnlocks';
 
 /// The player dashboard: my bots + create a new one.
@@ -37,9 +32,6 @@ function CliAccess() {
   );
 }
 
-const looks = botLookOptions();
-const projectileLooks = projectileLookOptions();
-
 export default function GaragePage() {
   const { user, loading } = useAuth();
   // Creating a bot navigates to it, so this list never needs a manual refresh — but an
@@ -50,6 +42,11 @@ export default function GaragePage() {
     error: botsError,
     refetch: refetchBots,
   } = useMyBots(Boolean(user));
+  const {
+    data: roster = null,
+    error: rosterError,
+    refetch: refetchRoster,
+  } = useBots(Boolean(user));
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('vanguard');
@@ -60,8 +57,12 @@ export default function GaragePage() {
 
   if (loading) return <LoadingState label="Loading your account…" />;
   if (!user) {
-    navigate('/login');
-    return null;
+    return (
+      <Navigate
+        to={`/login?returnUrl=${encodeURIComponent('/garage')}`}
+        replace
+      />
+    );
   }
   if (botsError)
     return <ErrorState error={botsError} onRetry={() => void refetchBots()} />;
@@ -77,38 +78,56 @@ export default function GaragePage() {
     const bot = await creation.mutateAsync({ name, accent, lookId, projectileLookId });
     navigate(`/bots/${bot.id}`);
   };
-  const selectedLookOwned =
-    cosmeticItem(catalog, BOT_LOOK_KIND, lookId)?.owned === true;
-  const selectedProjectileOwned =
-    cosmeticItem(catalog, PROJECTILE_LOOK_KIND, projectileLookId)?.owned ===
-    true;
-  const selectLook = (nextLookId: string) => {
-    setLookId(nextLookId);
-    const defaultProjectile = botLook(nextLookId).defaultProjectileLookId;
-    if (
-      defaultProjectile &&
-      cosmeticItem(
-        catalog,
-        PROJECTILE_LOOK_KIND,
-        defaultProjectile,
-      )?.owned === true
-    )
-      setProjectileLookId(defaultProjectile);
-  };
+  const selectionOwned = appearanceSelectionOwned(
+    catalog,
+    lookId,
+    projectileLookId,
+  );
+  const duelReadyIds = new Set(
+    (roster ?? [])
+      .filter(rosterBotSupportsLegacyDuel)
+      .map((bot) => bot.id),
+  );
 
   return (
     <div className="flex flex-col gap-8">
+      <h1 className="type-display text-[30px]">Garage</h1>
       <section>
         <h2 className="lab mb-3">My bots</h2>
+        {rosterError && (
+          <div
+            className="panel-quiet pad mb-3 flex flex-wrap items-center gap-2"
+            role="alert"
+          >
+            <p className="t-meta min-w-0 grow text-arena-hot">
+              Arena availability could not be loaded. Your bots are still available
+              below.
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetchRoster()}
+              className="btn"
+            >
+              Try again
+            </button>
+          </div>
+        )}
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bots.map((bot) => {
             const look = botLook(bot.lookId);
             const projectile = projectileLook(bot.projectileLookId);
+            const ready =
+              bot.latestVersion?.isActive === true &&
+              bot.latestVersion.status === 'Built' &&
+              duelReadyIds.has(bot.id);
             return (
-              <li key={bot.id}>
+              <li
+                key={bot.id}
+                className="panel-quiet pad flex flex-wrap items-center gap-3"
+              >
                 <Link
                   to={`/bots/${bot.slug}`}
-                  className="panel-quiet pad flex items-center gap-3 transition-colors hover:border-arena-edge2"
+                  className="flex min-w-0 grow items-center gap-3 transition-opacity hover:opacity-80"
                 >
                   <BotIdentity
                     name={bot.name}
@@ -133,6 +152,21 @@ export default function GaragePage() {
                       : 'no versions'}
                   </span>
                 </Link>
+                {ready && (
+                  <ArenaAction
+                    bot={{
+                      id: bot.id,
+                      slug: bot.slug,
+                      name: bot.name,
+                      accent: bot.accent,
+                      lookId: bot.lookId,
+                      isOwner: true,
+                      ready,
+                    }}
+                    triggerLabel="Play"
+                    className="shrink-0"
+                  />
+                )}
               </li>
             );
           })}
@@ -155,85 +189,38 @@ export default function GaragePage() {
               minLength={2}
               maxLength={40}
               placeholder="Murder Roomba"
-              className="t-body rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-arena-text outline-none focus:border-arena-accent"
+              className="field"
             />
           </label>
-          <label className="t-meta flex items-center gap-3">
-            Accent color
-            <input
-              type="color"
-              value={accent}
-              onChange={(e) => setAccent(e.target.value)}
-              className="h-8 w-14 cursor-pointer rounded-md border border-arena-edge bg-arena-bg"
-            />
-            <span className="val">{accent}</span>
-          </label>
-          <label className="t-meta flex flex-col gap-1">
-            Chassis
-            <select
-              value={lookId}
-              onChange={(event) => selectLook(event.target.value)}
-              className="t-body rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-arena-text outline-none focus:border-arena-accent"
-            >
-              {looks.map((look) => (
-                <option
-                  key={look.id}
-                  value={look.id}
-                  disabled={
-                    cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned !== true
-                  }
-                >
-                  {look.label}
-                  {cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned
-                    ? ''
-                    : ` — locked: ${
-                        cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.unlock
-                          ?.hint ?? 'Unlock required'
-                      }`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="t-meta flex flex-col gap-1">
-            Projectile
-            <select
-              value={projectileLookId}
-              onChange={(event) => setProjectileLookId(event.target.value)}
-              className="t-body rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-arena-text outline-none focus:border-arena-accent"
-            >
-              {projectileLooks.map((look) => (
-                <option
-                  key={look.id}
-                  value={look.id}
-                  disabled={
-                    cosmeticItem(
-                      catalog,
-                      PROJECTILE_LOOK_KIND,
-                      look.id,
-                    )?.owned !== true
-                  }
-                >
-                  {look.label}
-                  {cosmeticItem(catalog, PROJECTILE_LOOK_KIND, look.id)?.owned
-                    ? ''
-                    : ` — locked: ${
-                        cosmeticItem(
-                          catalog,
-                          PROJECTILE_LOOK_KIND,
-                          look.id,
-                        )?.unlock?.hint ?? 'Unlock required'
-                      }`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="t-meta flex items-center gap-3 rounded-[3px] border border-arena-edge bg-arena-bg/60 px-3 py-2">
-            <ProjectilePreview
-              look={projectileLook(projectileLookId)}
-              accent={accent}
-              className="h-7 w-16"
-            />
-            {projectileLook(projectileLookId).label}
+          <AppearanceFields
+            catalog={catalog}
+            accent={accent}
+            lookId={lookId}
+            projectileLookId={projectileLookId}
+            accentLabel="Accent color"
+            onAccentChange={setAccent}
+            onLookChange={setLookId}
+            onProjectileLookChange={setProjectileLookId}
+          />
+          <div className="panel-quiet pad flex flex-col gap-2">
+            <p className="lab">Preview</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <BotIdentity
+                name={name.trim() || 'New bot'}
+                accent={accent}
+                lookId={lookId}
+                size="sm"
+                emphasized
+              />
+              <span className="t-meta flex items-center gap-2">
+                <ProjectilePreview
+                  look={projectileLook(projectileLookId)}
+                  accent={accent}
+                  className="h-7 w-16"
+                />
+                {projectileLook(projectileLookId).label}
+              </span>
+            </div>
           </div>
           {creation.isError && (
             <p className="t-body text-arena-hot">
@@ -246,10 +233,9 @@ export default function GaragePage() {
             disabled={
               creation.isPending ||
               !catalog ||
-              !selectedLookOwned ||
-              !selectedProjectileOwned
+              !selectionOwned
             }
-            className="mt-1 self-start rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-arena-bg disabled:cursor-not-allowed disabled:opacity-40"
+            className="btn btn-on mt-1 self-start disabled:opacity-40"
           >
             {creation.isPending ? 'Creating…' : 'Create bot'}
           </button>

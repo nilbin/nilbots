@@ -1,9 +1,12 @@
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
+import AccentRing from '../../components/AccentRing';
 import ProjectilePreview from '../../components/ProjectilePreview';
+import { styleVariables } from '../../presentation/styleVariables';
 import { botLook, projectileLook } from '../../render/arenaThemes';
 import type { CosmeticCatalog, CosmeticCatalogItem } from '../api';
 import { BOT_LOOK_KIND, PROJECTILE_LOOK_KIND } from '../cosmetics';
+import Th from './TableHeader';
 
 /**
  * The look library: one table per pick, your wardrobe on top, the catalogue below a band.
@@ -18,10 +21,10 @@ import { BOT_LOOK_KIND, PROJECTILE_LOOK_KIND } from '../cosmetics';
  * So: only the two look kinds are ever drawn — an unknown `kind` is skipped rather than
  * guessed at — and `CosmeticProgress.unit` is mapped rather than assumed.
  *
- * There are no state pills here. Owned is the ladder's own `tr.mine` form, an inset rule
- * in the wearer's accent, because it means the same thing ("mine") and should not get a
- * second visual language. Locked is the absence of that rule plus the sentence in *Where
- * it comes from*, which already says everything a `LOCKED` pill would — on twelve rows.
+ * There are no state pills here. Owned is a quiet achromatic inset rule; player colour
+ * stays inside the identity artwork instead of being reused as a system-state signal.
+ * Locked is the absence of that rule plus the sentence in *Where it comes from*, which
+ * already says everything a `LOCKED` pill would — on twelve rows.
  */
 
 /**
@@ -74,36 +77,26 @@ export function LookMark({
   kind,
   id,
   accent,
-  size = 24,
 }: {
   kind: string;
   id: string;
   accent: string;
-  /** Chassis size in pixels; the projectile disc scales from it so the two line up. */
-  size?: number;
 }) {
   if (kind === BOT_LOOK_KIND) {
     return (
-      <span
-        className="flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-solid bg-arena-bg p-0.5"
-        style={{ borderColor: accent }}
-      >
+      <AccentRing accent={accent} size={24}>
         <img
           src={botLook(id).imageUrl}
           alt=""
           loading="lazy"
-          style={{ width: size, height: size }}
-          className="object-contain"
+          className="size-full object-contain"
         />
-      </span>
+      </AccentRing>
     );
   }
   if (kind === PROJECTILE_LOOK_KIND) {
     return (
-      <span
-        className="flex shrink-0 items-center justify-center rounded-full border border-arena-edge bg-arena-bg"
-        style={{ width: size + 7, height: size + 7 }}
-      >
+      <span className="flex size-[31px] shrink-0 items-center justify-center rounded-full border border-arena-edge bg-arena-bg">
         <ProjectilePreview
           look={projectileLook(id)}
           accent={accent}
@@ -155,8 +148,8 @@ export interface LookLibraryProps {
   wornBy?: (item: CosmeticCatalogItem) => readonly string[];
   /** The pack a purchase-gated look comes in, resolved from `useStore()`. */
   packLabel?: (item: CosmeticCatalogItem) => string | null;
-  /** Where that pack sits on this page, so a locked row can reach the shelf selling it. */
-  packHref?: string;
+  /** Where this item's pack is sold, when the caller has loaded the shop catalogue. */
+  packHref?: (item: CosmeticCatalogItem) => string | null;
   selectedId?: string | null;
   onSelect?: (item: CosmeticCatalogItem) => void;
 }
@@ -209,7 +202,7 @@ export function LookLibrary({
                   accent={accent}
                   worn={wornBy?.(item) ?? []}
                   pack={packLabel?.(item) ?? null}
-                  packHref={packHref}
+                  packHref={packHref?.(item) ?? undefined}
                   selected={item.id === selectedId}
                   onSelect={onSelect}
                   band={index + 1 === bandAfter ? band : null}
@@ -227,7 +220,7 @@ export function LookLibrary({
               accent={accent}
               worn={wornBy?.(item) ?? []}
               pack={packLabel?.(item) ?? null}
-              packHref={packHref}
+              packHref={packHref?.(item) ?? undefined}
               selected={item.id === selectedId}
               onSelect={onSelect}
               band={index + 1 === bandAfter ? band : null}
@@ -270,10 +263,10 @@ function Row({
         )}
       >
         <td
-          className="p-2 align-middle"
-          // The ladder's rule, in the wearer's accent. The hex is data, which is the one
-          // thing on this page allowed to be an inline style.
-          style={item.owned ? { boxShadow: `inset 2px 0 0 ${accent}` } : undefined}
+          className={clsx(
+            'p-2 align-middle',
+            item.owned && 'border-l-2 border-l-arena-edge2',
+          )}
         >
           <Face item={item} accent={accent} selected={selected} onSelect={onSelect} />
         </td>
@@ -281,7 +274,7 @@ function Row({
           <Source item={item} pack={pack} packHref={packHref} />
         </td>
         <td className="p-2 align-middle">
-          <Progress item={item} accent={accent} />
+          <Progress item={item} />
         </td>
         <td className="t-micro p-2 text-right align-middle">
           <WornBy names={worn} />
@@ -316,8 +309,8 @@ function PhoneRow({
         className={clsx(
           'flex flex-col gap-1.5 border-b border-arena-edge px-3 py-2.5',
           item.owned && 'bg-arena-text/[0.028]',
+          item.owned && 'border-l-2 border-l-arena-edge2',
         )}
-        style={item.owned ? { boxShadow: `inset 2px 0 0 ${accent}` } : undefined}
       >
         <div className="flex items-center justify-between gap-2">
           <Face item={item} accent={accent} selected={selected} onSelect={onSelect} />
@@ -328,7 +321,7 @@ function PhoneRow({
         <span className="t-micro">
           <Source item={item} pack={pack} packHref={packHref} />
         </span>
-        <Progress item={item} accent={accent} />
+        <Progress item={item} />
       </li>
       {band && (
         <li className="px-3 pb-1.5">
@@ -396,9 +389,9 @@ function Source({
   if (item.unlock?.sourceKind === 'purchase') {
     if (pack === null) return <>{item.unlock.hint}</>;
     return packHref ? (
-      <a href={packHref} className="text-arena-accent hover:underline">
+      <Link to={packHref} className="text-link">
         {pack} pack ↑
-      </a>
+      </Link>
     ) : (
       <>{pack} pack</>
     );
@@ -413,7 +406,7 @@ function Source({
  * from* already reads "Complete 100 ranked matches", and a second copy above every bar is
  * what made the old one wrong about the rating milestone.
  */
-function Progress({ item, accent }: { item: CosmeticCatalogItem; accent: string }) {
+function Progress({ item }: { item: CosmeticCatalogItem }) {
   const progress = item.progress;
   if (!progress || item.owned) return null;
   const pct = Math.max(
@@ -424,13 +417,18 @@ function Progress({ item, accent }: { item: CosmeticCatalogItem; accent: string 
   return (
     <span className="flex items-center gap-2" title={said}>
       <span
-        role="img"
+        role="progressbar"
         aria-label={said}
+        aria-valuemin={0}
+        aria-valuemax={progress.target}
+        aria-valuenow={progress.current}
         className="block h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-arena-edge2"
       >
         <span
-          className="block h-full rounded-full"
-          style={{ width: `${pct}%`, background: accent }}
+          className="runtime-progress block h-full rounded-full bg-arena-dim"
+          style={styleVariables({
+            '--runtime-progress': `${pct}%`,
+          })}
         />
       </span>
       <span className="val shrink-0">
@@ -445,23 +443,6 @@ function WornBy({ names }: { names: readonly string[] }) {
   return <>worn by {names.join(', ')}</>;
 }
 
-function Th({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <th
-      scope="col"
-      className={clsx('lab border-b border-arena-edge px-2 pb-2 text-left', className)}
-    >
-      {children}
-    </th>
-  );
-}
-
 interface CosmeticUnlocksProps {
   catalog: CosmeticCatalog | null;
   accent: string;
@@ -471,10 +452,10 @@ interface CosmeticUnlocksProps {
 /**
  * The garage's slice: the looks this account can still *earn*.
  *
- * The whole catalogue — starters, earned and sold, with the wearer that makes their colour
- * mean anything — is the Looks page, which is where picking happens. This stays narrow on
- * purpose: the garage asks "what am I close to", not "what could my bot look like". It
- * renders through the rows above, so the two cannot drift.
+ * The whole catalogue — starters, earned and sold — is available from each owned bot's
+ * appearance picker. This stays narrow on purpose: the garage asks "what am I close to",
+ * not "what could this particular bot look like". It renders through the rows above, so
+ * progress and unlock wording cannot drift from the picker.
  */
 export default function CosmeticUnlocks({
   catalog,
@@ -482,17 +463,18 @@ export default function CosmeticUnlocks({
   error,
 }: CosmeticUnlocksProps) {
   const earnable = (catalog?.items ?? []).filter(
-    (item) => item.availability === 'entitlement',
+    (item) =>
+      !item.owned &&
+      item.availability === 'entitlement' &&
+      item.unlock?.sourceKind !== 'purchase',
   );
 
   return (
     <section className="flex flex-col gap-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="lab">Unlocks</h2>
-        {/* Routed by `Site.tsx`; the design renames this to `/looks` with `/store`
-            redirecting, which is a one-line change in that file. */}
         <Link to="/store" className="btn">
-          Every look
+          Shop
         </Link>
       </div>
       {!catalog && !error && <p className="t-micro">Loading cosmetic progress…</p>}

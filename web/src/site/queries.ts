@@ -115,8 +115,13 @@ export function useNotifications(enabled: boolean) {
 }
 
 /** Versions and rules; changes about as often as a deploy. */
-export function useMeta() {
-  return useQuery({ queryKey: keys.meta, queryFn: endpoints.meta, staleTime: 5 * 60_000 });
+export function useMeta(enabled = true) {
+  return useQuery({
+    queryKey: keys.meta,
+    queryFn: endpoints.meta,
+    staleTime: 5 * 60_000,
+    enabled,
+  });
 }
 
 export function useBots(enabled = true) {
@@ -362,13 +367,16 @@ export function useSubmitVersion(botKey: string, botId: string) {
   });
 }
 
-/** Appearance is drawn from `bot.accent`/`lookId` everywhere, so the bot is what stales. */
+/** Appearance is drawn on both the detail and owned-bot roster, so both views stale. */
 export function useUpdateAppearance(botKey: string, botId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: UpdateBotAppearanceRequest) =>
       endpoints.updateAppearance(botId, body),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.bot(botKey) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.bot(botKey) });
+      void client.invalidateQueries({ queryKey: keys.myBots });
+    },
   });
 }
 

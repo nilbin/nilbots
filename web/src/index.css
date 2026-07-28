@@ -38,7 +38,7 @@
   --color-arena-edge2: #513a2b;
   --color-arena-text: #e6ddd4;
   --color-arena-dim: #94806f;
-  --color-arena-accent: #c8763c;
+  --color-arena-material: #c8763c;
   /* Rise is the theme's own zone teal rather than a generic green, so it reads as
      part of the arena. Fall is pushed toward rose: plain red shares the ground's hue
      family here and stops registering as an alarm. */
@@ -55,13 +55,6 @@
    condensed names a region of the screen, normal is read, expanded is display.
    Mono is reserved for values a machine wrote — ratings, deltas, ticks, seeds,
    hashes, code — and never for a label, a name, a button or a sentence. */
-.type-label {
-  font-family: var(--font-sans);
-  font-stretch: 82%;
-  font-weight: 550;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
 .type-display {
   font-family: var(--font-sans);
   font-stretch: 117%;
@@ -78,18 +71,14 @@ body {
   color: var(--color-arena-text);
 }
 
-/* The viewer sizes itself with h-full, which resolves to `auto` unless every ancestor has
-   a height — so in standalone mode the arena was content-sized rather than filling the
-   window.
-
-   Scoped to the viewer, and min-height rather than height. Applying it globally changed
-   layout on every site page, and a hard 100% pins the container to the viewport so any
-   content taller than it — the controls under a stacked arena and panel on a narrow
-   screen — overflows instead of flowing. min-height fills a tall window and still grows. */
+/* Standalone mode fills the dynamic viewport and may still grow beyond it. A percentage
+   min-height is not definite when the ancestor's own height is `auto`, so `100%` left a
+   tall viewer content-sized. `100dvh` follows mobile browser chrome without pinning a
+   narrow viewer whose stacked content needs more room. */
 html[data-arena-mode='viewer'],
 html[data-arena-mode='viewer'] body,
 html[data-arena-mode='viewer'] #root {
-  min-height: 100%;
+  min-height: 100dvh;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -97,6 +86,7 @@ html[data-arena-mode='viewer'] #root {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
@@ -112,49 +102,8 @@ html[data-arena-mode='viewer'] #root {
   }
 }
 
-@keyframes unlock-toast-sheen {
-  0%,
-  35% {
-    transform: translateX(-135%) skewX(-18deg);
-  }
-  70%,
-  100% {
-    transform: translateX(165%) skewX(-18deg);
-  }
-}
-
-@keyframes unlock-toast-halo {
-  0%,
-  100% {
-    opacity: 0.45;
-    transform: scale(0.92);
-  }
-  50% {
-    opacity: 0.75;
-    transform: scale(1.08);
-  }
-}
-
 .unlock-toast {
   animation: unlock-toast-enter 360ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
-}
-
-.unlock-toast__sheen::after {
-  position: absolute;
-  inset: -30% auto -30% -25%;
-  width: 22%;
-  content: '';
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(254 240 138 / 0.1),
-    transparent
-  );
-  animation: unlock-toast-sheen 2.8s ease-out 280ms 1 both;
-}
-
-.unlock-toast__halo {
-  animation: unlock-toast-halo 2.8s ease-in-out infinite;
 }
 
 /* Rendered markdown (the canonical player guide) in the site's visual language.
@@ -162,7 +111,10 @@ html[data-arena-mode='viewer'] #root {
    hand-built pages around them. */
 .markdown-body h1,
 .markdown-body h2,
-.markdown-body h3 {
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--color-arena-text);
@@ -170,7 +122,10 @@ html[data-arena-mode='viewer'] #root {
 }
 .markdown-body h1 { font-size: 1.15rem; }
 .markdown-body h2 { font-size: 1.05rem; }
-.markdown-body h3 { font-size: 0.95rem; }
+.markdown-body h3 { font-size: 1.15rem; }
+.markdown-body h4 { font-size: 1.05rem; }
+.markdown-body h5,
+.markdown-body h6 { font-size: 0.95rem; }
 .markdown-body p,
 .markdown-body li { color: var(--color-arena-dim); }
 .markdown-body ul,
@@ -178,7 +133,12 @@ html[data-arena-mode='viewer'] #root {
 .markdown-body ul { list-style: disc; }
 .markdown-body ol { list-style: decimal; }
 .markdown-body strong { color: var(--color-arena-text); font-weight: 700; }
-.markdown-body a { color: var(--color-arena-accent); text-decoration: underline; }
+.markdown-body a {
+  color: var(--color-arena-text);
+  text-decoration: underline;
+  text-decoration-color: var(--color-arena-edge2);
+  text-underline-offset: 2px;
+}
 .markdown-body code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.85em;
@@ -223,7 +183,7 @@ html[data-arena-mode='viewer'] #root {
 
    They exist because the alternative was what the first pass produced: every page
    re-typing `rounded-sm border border-arena-edge bg-arena-panel px-3.5 py-3` and
-   `type-label text-[10.5px] text-arena-dim`, so a change of radius or label size meant
+   the `.lab` properties, so a change of radius or label size meant
    a search across twenty files and the values drifted apart in the meantime.
 
    Compose these; reach for an arbitrary value only when a thing is genuinely one of a
@@ -240,6 +200,23 @@ html[data-arena-mode='viewer'] #root {
     background: color-mix(in oklab, var(--color-arena-panel) 60%, transparent);
     border: 1px solid var(--color-arena-edge);
     border-radius: 3px;
+  }
+  .arena-dialog {
+    position: fixed;
+    margin: auto;
+    overscroll-behavior: contain;
+  }
+  .arena-dialog::backdrop {
+    background: rgb(0 0 0 / 0.7);
+    backdrop-filter: blur(1px);
+  }
+  @media (max-width: 639px) {
+    .arena-dialog {
+      inset: auto 12px calc(3.5rem + env(safe-area-inset-bottom) + 8px);
+      width: auto;
+      max-height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
+      margin: 0;
+    }
   }
   .pad {
     padding: 12px 14px;
@@ -293,8 +270,43 @@ html[data-arena-mode='viewer'] #root {
     background: var(--color-arena-raise);
   }
 
+  .text-link {
+    color: var(--color-arena-text);
+    text-decoration: underline;
+    text-decoration-color: var(--color-arena-edge2);
+    text-underline-offset: 2px;
+    transition: text-decoration-color 150ms;
+  }
+  .text-link:hover {
+    text-decoration-color: var(--color-arena-text);
+  }
+
+  .field {
+    width: 100%;
+    border: 1px solid var(--color-arena-edge);
+    border-radius: 3px;
+    background: var(--color-arena-bg);
+    padding: 6px 12px;
+    color: var(--color-arena-text);
+    font-size: 13px;
+  }
+  .field::placeholder {
+    color: var(--color-arena-dim);
+  }
+  .field:focus-visible {
+    border-color: var(--color-arena-text);
+    outline: 2px solid color-mix(
+      in oklab,
+      var(--color-arena-text) 72%,
+      transparent
+    );
+    outline-offset: 2px;
+  }
+
   /* Anything a machine printed, shown as it printed it. */
   .term {
+    min-width: 0;
+    max-width: 100%;
     font-family: var(--font-mono);
     font-size: 11.5px;
     line-height: 1.75;
@@ -325,5 +337,50 @@ html[data-arena-mode='viewer'] #root {
     font-variant-numeric: tabular-nums;
     font-size: 11.5px;
     color: var(--color-arena-dim);
+  }
+
+  /*
+   * Runtime colour and geometry enter JSX as custom properties only. The rule stays
+   * here, so changing a rail, marker, mask or progress treatment never means searching
+   * through component style objects.
+   */
+  .player-accent-border {
+    border-color: var(--player-accent, var(--color-arena-edge2));
+  }
+  .player-accent-rail {
+    box-shadow: inset 2px 0 0 var(--player-accent, var(--color-arena-edge2));
+  }
+  .player-accent-fill {
+    background-color: var(--player-accent, var(--color-arena-dim));
+  }
+  .player-accent-text {
+    color: var(--player-accent, var(--color-arena-text));
+  }
+  .player-accent-stroke {
+    stroke: var(--player-accent, var(--color-arena-dim));
+  }
+  .runtime-progress {
+    width: var(--runtime-progress, 0%);
+  }
+  .runtime-position {
+    left: var(--runtime-position, 0%);
+  }
+  .runtime-height {
+    height: var(--runtime-height, auto);
+  }
+  .safe-area-top {
+    margin-top: max(0.5rem, env(safe-area-inset-top));
+  }
+  .projectile-preview {
+    background-color: var(--player-accent);
+    filter: drop-shadow(0 0 5px var(--player-accent));
+    mask-image: var(--projectile-image);
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+    -webkit-mask-image: var(--projectile-image);
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
   }
 }

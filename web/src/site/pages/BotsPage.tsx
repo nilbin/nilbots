@@ -2,10 +2,16 @@ import { Fragment, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import BotIdentity from '../components/BotIdentity';
+import ArenaAction from '../components/ArenaAction';
 import type { BotSummary } from '../api';
 import { ErrorState, LoadingState } from '../components/StateView';
+import Th from '../components/TableHeader';
+import Control from '../../components/ToggleButton';
 import { useAuth } from '../auth';
 import { useBots, useMeta, useMyBots } from '../queries';
+import { rosterBotSupportsLegacyDuel } from '../botContractProfiles';
+import { playerAccent } from '../../presentation/playerAccent';
+import { styleVariables } from '../../presentation/styleVariables';
 
 /**
  * The census of the game: every bot anyone has submitted, and the screen you pick one
@@ -24,29 +30,16 @@ import { useBots, useMeta, useMyBots } from '../queries';
  *   bots with a completed ranked set. `/api/bots` returns everything and attaches a
  *   whole-ladder `currentStanding` per bot, so rank #137 is correct here and unreachable
  *   on the ladder.
- * - **It knows what can be fought.** `activeVersion === null` means no built artifact,
- *   and `ChallengePanel` already refuses those. Fightability is a first-class column here
- *   and appears nowhere else in the product.
+ * - **It knows what can be fought.** The active artifact must support legacy Duel; a
+ *   generic-actor-only Frontline bot can be active without belonging in this arena.
+ *   Fightability is a first-class filter here and appears nowhere else in the product.
  *
  * Colour: the only saturated colour on this screen is `bot.accent`, in exactly two places
- * — the chip ring and the 2px rule on your rows. Ratings used to print in
- * `text-arena-accent`; burnt orange is material, never a signal, so a rating is now a
+ * — the chip ring and the 2px rule on your rows. Ratings used to print in the old accent
+ * token; burnt orange is material, never a signal, so a rating is now a
  * `.val` in `text-arena-text`. `--color-arena-ok`/`--color-arena-hot` appear nowhere:
  * there is no rise or fall in a directory, so the outcome exception is not spent.
  */
-
-/**
- * Fields the design needs that `/api/bots` does not carry yet.
- *
- * Read off the response optionally rather than added to `schema.d.ts`, which is generated
- * from the server and must not be hand-edited. Production sends none of them, so every
- * read here is null and the screen says so instead of inventing a value. The day the
- * endpoint grows them, regenerating the client deletes this type and nothing else moves.
- */
-interface RosterSeamFields {
-  /** Seam: `lastMatchAt` on `BotSummaryResponse`. */
-  lastMatchAt?: string;
-}
 
 /**
  * When this bot last fought — the real gap for "worth challenging".
@@ -57,8 +50,8 @@ interface RosterSeamFields {
  * `BotSummaryResponse` this returns null on every row, the footnote admits it, and there
  * is no "active" pill pretending otherwise.
  */
-function lastPlayed(bot: BotSummary): string | null {
-  return (bot as BotSummary & RosterSeamFields).lastMatchAt ?? null;
+function lastPlayed(_bot: BotSummary): string | null {
+  return null;
 }
 
 /*
@@ -112,7 +105,7 @@ export default function BotsPage() {
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return (bots ?? []).filter((bot) => {
-      if (fightableOnly && bot.activeVersion === null) return false;
+      if (fightableOnly && !rosterBotSupportsLegacyDuel(bot)) return false;
       if (mineActive && !myIds.has(bot.id)) return false;
       if (needle === '') return true;
       return (
@@ -163,7 +156,7 @@ export default function BotsPage() {
       <h1 className="type-display mb-2 text-[30px]">Every bot</h1>
       <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
         Every bot anyone has submitted. Rank, rating and sets belong to the active
-        ladder; a bot with no built version cannot be fought.
+        ladder; legacy Duel actions require a compatible active build.
       </p>
 
       {bots !== null && bots.length > 0 && (
@@ -174,10 +167,10 @@ export default function BotsPage() {
           </span>{' '}
           ranked ·{' '}
           <span className="val text-arena-text">
-            {bots.filter((bot) => bot.activeVersion).length}
+            {bots.filter(rosterBotSupportsLegacyDuel).length}
           </span>
-          <span className="hidden sm:inline"> with a built version</span>
-          <span className="sm:hidden"> built</span>
+          <span className="hidden sm:inline"> ready for Duel</span>
+          <span className="sm:hidden"> Duel-ready</span>
           <span className="hidden sm:inline">
             {' · '}
             <span className="val text-arena-text">
@@ -217,7 +210,7 @@ export default function BotsPage() {
                 <Control
                   pressed={fightableOnly}
                   onClick={() => setFightableOnly(!fightableOnly)}
-                  title="A bot with no built artifact cannot be fought."
+                  description="Only active bots compatible with legacy Duel can be fought here."
                 >
                   can fight
                 </Control>
@@ -240,7 +233,7 @@ export default function BotsPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter by bot or owner…"
                 aria-label="Filter the roster by bot or owner"
-                className="t-body min-w-0 grow basis-full rounded-[3px] border border-arena-edge bg-arena-bg px-3 py-1.5 text-arena-text placeholder:text-arena-dim focus:border-arena-edge2 focus:outline-none sm:basis-0"
+                className="field min-w-0 grow basis-full sm:basis-0"
               />
               <span className="val ml-auto">
                 {ordered.length}/{bots.length}
@@ -291,6 +284,21 @@ export default function BotsPage() {
                     ? `gen-${bot.activeVersion.versionNumber}`
                     : null;
                   const owner = mine ? 'you' : bot.owner;
+                  const rail =
+                    mine && bot.accent
+                      ? playerAccent(bot.accent, 'panel')
+                      : null;
+                  const arenaBot = rosterBotSupportsLegacyDuel(bot)
+                    ? {
+                        id: bot.id,
+                        slug: bot.slug,
+                        name: bot.name,
+                        accent: bot.accent,
+                        lookId: bot.lookId,
+                        isOwner: mine,
+                        ready: true,
+                      }
+                    : null;
                   return (
                     <Fragment key={bot.id}>
                       {index === bandAt && (
@@ -326,10 +334,11 @@ export default function BotsPage() {
                           className={clsx(
                             'type-display tabular p-2 align-middle text-[22px]',
                             standing ? 'text-arena-text' : 'text-arena-dim',
+                            rail && 'player-accent-rail',
                           )}
                           style={
-                            mine && bot.accent
-                              ? { boxShadow: `inset 2px 0 0 ${bot.accent}` }
+                            rail
+                              ? styleVariables({ '--player-accent': rail })
                               : undefined
                           }
                         >
@@ -360,6 +369,13 @@ export default function BotsPage() {
                               {standing ? standing.rankedSets : 'no sets'}
                             </span>
                           </Link>
+                          {arenaBot && (
+                            <ArenaAction
+                              bot={arenaBot}
+                              triggerLabel={mine ? 'Play' : 'Challenge'}
+                              className="mt-2 sm:hidden"
+                            />
+                          )}
                         </td>
                         <td className="hidden p-2 align-middle sm:table-cell">
                           {/* The cheapest possible "show me this player's stable", and
@@ -402,15 +418,13 @@ export default function BotsPage() {
                           {standing ? standing.rankedSets : 0}
                         </td>
                         <td className="hidden p-2 text-right align-middle sm:table-cell">
-                          {/* A link, not a form. Composing a match needs your bot, a map
-                              and a ranked/unranked choice, and that composer already
-                              exists on the bot page — reproducing it per row would fork
-                              it, and would bake a 1v1 shape into a directory. The
-                              directory hands off; the bot page composes. */}
-                          {bot.activeVersion && (
-                            <Link className="btn inline-block" to={`/bots/${bot.slug}#challenge`}>
-                              challenge
-                            </Link>
+                          {/* The directory opens the shared Arena overlay; the composer
+                              exists once rather than being copied into every row. */}
+                          {arenaBot && (
+                            <ArenaAction
+                              bot={arenaBot}
+                              triggerLabel={mine ? 'Play' : 'Challenge'}
+                            />
                           )}
                         </td>
                       </tr>
@@ -481,7 +495,7 @@ function EmptyRoster({ signedIn }: { signedIn: boolean }) {
         </h2>
         <p className="t-meta">
           The roster fills as players ship their first generation.{' '}
-          <Link to="/login" className="text-arena-accent underline">
+          <Link to="/login" className="text-link">
             Sign in
           </Link>
         </p>
@@ -499,7 +513,7 @@ function EmptyRoster({ signedIn }: { signedIn: boolean }) {
       </pre>
       <p className="t-meta mt-[11px]">
         Your{' '}
-        <Link to="/garage" className="text-arena-accent underline">
+        <Link to="/garage" className="text-link">
           garage
         </Link>{' '}
         walks the whole sequence.
@@ -514,49 +528,3 @@ function EmptyRoster({ signedIn }: { signedIn: boolean }) {
  * `.btn`/`.btn-on` are the shared control pair, so pressed, disabled and hover are one
  * implementation rather than four utilities re-typed per page.
  */
-function Control({
-  children,
-  pressed,
-  title,
-  onClick,
-}: {
-  children: React.ReactNode;
-  pressed: boolean;
-  title?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-pressed={pressed}
-      className={clsx('btn', pressed && 'btn-on')}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Th({
-  children,
-  className,
-  numeric,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  numeric?: boolean;
-}) {
-  return (
-    <th
-      scope="col"
-      className={clsx(
-        'lab border-b border-arena-edge px-2 pb-2',
-        numeric ? 'text-right' : 'text-left',
-        className,
-      )}
-    >
-      {children}
-    </th>
-  );
-}

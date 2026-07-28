@@ -3,8 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import Matchup from '../components/Matchup';
 import { ErrorState, LoadingState } from '../components/StateView';
+import Th from '../components/TableHeader';
+import LiveStatus, { LiveDot } from '../../components/LiveStatus';
 import { type Me, type MatchLive, type MatchSummary } from '../api';
 import { useBots, useMatchLive, useMatches, useMe, useMeta } from '../queries';
+import { playerAccent } from '../../presentation/playerAccent';
+import { styleVariables } from '../../presentation/styleVariables';
 
 /**
  * Watch — the one screen a spectator reaches without already knowing what they came for.
@@ -199,6 +203,10 @@ export default function ArenaPage() {
                               clear
                             </button>
                           </span>
+                        ) : lastFinished !== null ? (
+                          filtered
+                            ? 'The featured replay is the only match in this filter.'
+                            : 'The featured replay is the whole arena so far.'
                         ) : filtered ? (
                           'Nothing in this filter has finished yet — it is all still playing out.'
                         ) : (
@@ -323,7 +331,11 @@ function LiveRail({
 
       {/* One sentence, attached to the place the question arises. */}
       <p className="t-micro mt-2.5">
-        No result is shown until a broadcast has played all the way out.
+        {live.length > 0
+          ? 'No result is shown until a broadcast has played all the way out.'
+          : lastFinished !== null
+            ? 'The newest completed match leads here whenever there is nothing live.'
+            : 'Queued and fighting matches appear here once their broadcast begins.'}
       </p>
     </section>
   );
@@ -355,7 +367,7 @@ function FeatureCard({
       className="panel group flex flex-col gap-3 bg-arena-raise px-3 py-3 transition-colors hover:border-arena-edge2"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        {live ? <LiveTag /> : <span className="lab">Last match</span>}
+        {live ? <LiveStatus /> : <span className="lab">Last match</span>}
         {/* A map id is a machine identifier, so it is set the way every other one is. */}
         <span className="val">{match.mapId}</span>
       </div>
@@ -426,6 +438,9 @@ function FeedRow({ match, me }: { match: MatchSummary; me: Me | null }) {
       : (match.participants.find(
           (participant) => participant.ownerDisplayNameSnapshot === me.displayName,
         ) ?? null);
+  const rail = mine?.accentSnapshot
+    ? playerAccent(mine.accentSnapshot, 'panel')
+    : null;
 
   return (
     <tr
@@ -435,10 +450,10 @@ function FeedRow({ match, me }: { match: MatchSummary; me: Me | null }) {
       )}
     >
       <td
-        className="p-2 align-middle"
+        className={clsx('p-2 align-middle', rail && 'player-accent-rail')}
         style={
-          mine?.accentSnapshot
-            ? { boxShadow: `inset 2px 0 0 ${mine.accentSnapshot}` }
+          rail
+            ? styleVariables({ '--player-accent': rail })
             : undefined
         }
       >
@@ -538,7 +553,7 @@ function Verdict({
   match: MatchSummary;
   outcome: RevealedOutcome | null;
 }) {
-  if (match.broadcasting) return <LiveTag />;
+  if (match.broadcasting) return <LiveStatus />;
   // `error` is on the detail response only, so a failed match says this and no more — and
   // is offered no `replay →` anywhere, because it has no replay.
   if (match.status === 'Failed')
@@ -549,7 +564,7 @@ function Verdict({
     const running = match.status === 'Running';
     return (
       <span className="t-body inline-flex items-center gap-2 text-arena-dim">
-        {running && <PulseDot />}
+        {running && <LiveDot />}
         {match.status === 'Pending'
           ? 'Queued'
           : running
@@ -567,39 +582,6 @@ function Verdict({
       </span>{' '}
       wins
     </span>
-  );
-}
-
-/**
- * Live is expressed by being brighter and by moving, not by hue: state is the system
- * talking, and saturated colour on this page belongs to the players.
- */
-function LiveTag() {
-  return (
-    <span className="pill inline-flex items-center gap-1.5 text-arena-text">
-      <PulseDot />
-      Live
-    </span>
-  );
-}
-
-function PulseDot() {
-  return (
-    <span
-      aria-hidden
-      className="inline-block size-1.5 shrink-0 animate-pulse rounded-full bg-current motion-reduce:animate-none"
-    />
-  );
-}
-
-function Th({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <th
-      scope="col"
-      className={clsx('lab border-b border-arena-edge px-2 pb-2 text-left', className)}
-    >
-      {children}
-    </th>
   );
 }
 

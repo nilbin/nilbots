@@ -10,6 +10,8 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { createPresenter } from '../replayPresentation';
+import { playerAccent } from '../presentation/playerAccent';
+import { styleVariables } from '../presentation/styleVariables';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -81,7 +83,7 @@ export default function BotPanel({
   const cooldownScale = useCooldownScale(replay);
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex min-w-0 flex-col gap-2.5">
       {objective?.kind === 'legacy-control' && (
         <div className="panel-quiet pad">
           <div className="flex items-baseline justify-between gap-3">
@@ -102,9 +104,9 @@ export default function BotPanel({
           <div className="relative mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
             <div className="absolute inset-y-0 left-1/2 w-px bg-arena-dim" />
             <div
-              className="absolute top-0 h-full w-1 rounded-[2px] bg-arena-text transition-[left]"
-              style={{
-                left: `${Math.max(
+              className="runtime-position absolute top-0 h-full w-1 rounded-[2px] bg-arena-text transition-[left]"
+              style={styleVariables({
+                '--runtime-position': `${Math.max(
                   0,
                   Math.min(
                     100,
@@ -113,7 +115,7 @@ export default function BotPanel({
                         Math.max(1, objective.limit),
                   ),
                 )}%`,
-              }}
+              })}
             />
           </div>
           {objective.phase && (
@@ -136,17 +138,17 @@ export default function BotPanel({
           <div className="mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
             <div
               className={clsx(
-                'h-full transition-[width]',
+                'runtime-progress h-full transition-[width]',
                 objective.claimingTeamId === null
                   ? 'bg-arena-edge2'
                   : 'bg-arena-dim',
               )}
-              style={{
-                width: `${
+              style={styleVariables({
+                '--runtime-progress': `${
                   (100 * Math.abs(objective.captureProgress)) /
                   Math.max(1, objective.captureThreshold)
                 }%`,
-              }}
+              })}
             />
           </div>
           <p className="lab mt-2 text-center">{objective.phase}</p>
@@ -186,15 +188,12 @@ export default function BotPanel({
           unit.actionResult !== 'none'
             ? unit.actionResult
             : null;
+        const visibleAccent = playerAccent(unit.accent, 'panel');
         return (
-          <button
+          <article
             key={unit.unitKey}
-            onClick={() =>
-              onSelectUnit(selected ? null : unit.unitKey)
-            }
-            aria-pressed={selected}
             className={clsx(
-              'panel pad text-left transition-colors',
+              'panel pad min-w-0 transition-colors',
               out && 'opacity-[0.62]',
               // Selection is a state, and state is never the accent here — the accent is
               // the shop's own colour. Raised ground and a brighter edge say it instead.
@@ -203,7 +202,7 @@ export default function BotPanel({
                 : 'hover:border-arena-edge2',
             )}
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2.5">
               <IdentityChip
                 lookId={participantForUnit(replay, unit.unitKey)?.lookId}
                 visualIndex={visualIndexForUnit(replay, unit.unitKey)}
@@ -220,18 +219,30 @@ export default function BotPanel({
                   one colour that means something — the player's accent. Out of the game
                   a unit is out; everything else is a state it is passing through, and
                   the word already says which. */}
-              <span
-                className={clsx(
-                  'pill ml-auto',
-                  out
-                    ? 'text-arena-hot'
-                    : unit.status === 'active'
-                      ? 'text-arena-text'
-                      : 'text-arena-dim',
-                )}
-              >
-                {unit.status}
-                {transition ? ` · ${transition}` : ''}
+              <span className="ml-auto flex shrink-0 items-center gap-1.5">
+                <span
+                  className={clsx(
+                    'pill',
+                    out
+                      ? 'text-arena-hot'
+                      : unit.status === 'active'
+                        ? 'text-arena-text'
+                        : 'text-arena-dim',
+                  )}
+                >
+                  {unit.status}
+                  {transition ? ` · ${transition}` : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelectUnit(selected ? null : unit.unitKey)
+                  }
+                  aria-pressed={selected}
+                  className={clsx('btn', selected && 'btn-on')}
+                >
+                  {selected ? 'Close' : 'Inspect'}
+                </button>
               </span>
             </div>
 
@@ -251,11 +262,14 @@ export default function BotPanel({
                       'h-[9px] flex-1 rounded-[2px] border',
                       index >= unit.health && 'border-arena-edge',
                       index >= unit.health && out && 'border-dashed',
+                      index < unit.health &&
+                        'player-accent-border player-accent-fill',
                     )}
-                    // Again: the colour is the only thing here that is data.
                     style={
                       index < unit.health
-                        ? { background: unit.accent, borderColor: unit.accent }
+                        ? styleVariables({
+                            '--player-accent': visibleAccent,
+                          })
                         : undefined
                     }
                   />
@@ -274,10 +288,13 @@ export default function BotPanel({
                   aria-hidden
                 >
                   <span
-                    className="block h-full bg-arena-dim transition-[width]"
-                    style={{
-                      width: `${Math.min(100, (100 * unit.cooldown) / cooldownMax)}%`,
-                    }}
+                    className="runtime-progress block h-full bg-arena-dim transition-[width]"
+                    style={styleVariables({
+                      '--runtime-progress': `${Math.min(
+                        100,
+                        (100 * unit.cooldown) / cooldownMax,
+                      )}%`,
+                    })}
                   />
                 </span>
               </dd>
@@ -367,7 +384,7 @@ export default function BotPanel({
                   : 'no enemies visible'}
               </p>
             )}
-          </button>
+          </article>
         );
       })}
 
@@ -376,7 +393,7 @@ export default function BotPanel({
           type="checkbox"
           checked={showVisibility}
           onChange={onToggleVisibility}
-          className="accent-(--color-arena-accent)"
+          className="accent-(--color-arena-text)"
         />
         Show selected unit&apos;s field of view
       </label>

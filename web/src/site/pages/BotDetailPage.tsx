@@ -2,10 +2,10 @@ import { Fragment, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
-import AppearanceEditor from '../components/AppearanceEditor';
+import AppearanceCard from '../components/AppearanceCard';
+import ArenaAction from '../components/ArenaAction';
 import BotIdentity from '../components/BotIdentity';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
-import ChallengePanel from '../components/ChallengePanel';
 import CurrentLadderStanding from '../components/CurrentLadderStanding';
 import GenerationsChart, {
   type GenerationRatings,
@@ -14,8 +14,10 @@ import LabsPanel from '../components/LabsPanel';
 import MatchHistory from '../components/MatchHistory';
 import { ErrorState, LoadingState } from '../components/StateView';
 import StatusBadge from '../components/StatusBadge';
+import Th from '../components/TableHeader';
 import SubmitPanel from '../components/SubmitPanel';
-import { ApiError, type BotDetail } from '../api';
+import { ApiError } from '../api';
+import { detailBotSupportsLegacyDuel } from '../botContractProfiles';
 import { useBot } from '../queries';
 
 /**
@@ -24,17 +26,11 @@ import { useBot } from '../queries';
  * Always empty today, and deliberately: nothing on the server records a rating per
  * generation. `currentStanding` is one number for the bot as a whole, and a version row
  * knows when it was submitted and nothing about how it did — so a line drawn from what
- * exists would be a picture of an improvement nobody measured. The chart is built for
- * the series and draws it the day an endpoint returns one; this is where it arrives.
+ * exists would be a picture of an improvement nobody measured. This typed empty seam is
+ * replaced with generated-contract data when an endpoint exists; arbitrary extra JSON
+ * fields must never turn review fixtures into production behavior.
  */
-function generationHistory(bot: BotDetail): readonly GenerationRatings[] {
-  const carried = (bot as BotDetail & { ratingHistory?: readonly GenerationRatings[] })
-    .ratingHistory;
-  return carried && carried.length > 0 ? carried : noHistory;
-}
-
-/** One array, so the chart's layout memo is not invalidated by every render. */
-const noHistory: readonly GenerationRatings[] = [];
+const generationHistory: readonly GenerationRatings[] = [];
 
 export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
@@ -49,7 +45,7 @@ export default function BotDetailPage() {
         <p className="t-body font-semibold">No bot called “{botKey}”.</p>
         <p className="t-meta mt-1">
           It may have been renamed or never existed.{' '}
-          <Link to="/bots" className="text-arena-accent hover:underline">
+          <Link to="/bots" className="text-link">
             Browse every bot
           </Link>
           .
@@ -63,23 +59,36 @@ export default function BotDetailPage() {
   const look = botLook(bot.lookId);
   const projectile = projectileLook(bot.projectileLookId);
   const liveVersion = bot.versions.find((version) => version.isActive) ?? null;
+  const duelCompatible = detailBotSupportsLegacyDuel(bot);
+  const canPlay = liveVersion?.status === 'Built' && duelCompatible;
+  // A built generic-actor bot belongs to Labs, not legacy Duel. Before a build exists,
+  // the Arena action remains useful because its unavailable state points to submission.
+  const showArenaAction =
+    liveVersion?.status !== 'Built' || duelCompatible;
 
   return (
     <div className="flex flex-col gap-3.5">
+      <nav aria-label="Breadcrumb">
+        <Link to="/bots" className="t-meta text-link">
+          ← Bots
+        </Link>
+      </nav>
       {/* The hero states who this bot is and what you can do to it. Everything below
           used to sit at one weight in a single column, so a page that is mostly read
           for one thing — is the new generation better — gave that no more prominence
           than the build log. */}
       <header className="flex flex-wrap items-end justify-between gap-2.5">
         <div className="flex min-w-0 flex-col gap-2">
-          <BotIdentity
-            name={bot.name}
-            accent={bot.accent}
-            lookId={bot.lookId}
-            size="lg"
-            emphasized
-            nameClassName="type-display"
-          />
+          <h1 className="min-w-0">
+            <BotIdentity
+              name={bot.name}
+              accent={bot.accent}
+              lookId={bot.lookId}
+              size="lg"
+              emphasized
+              nameClassName="type-display"
+            />
+          </h1>
           {/* The mock carries this inside the identity chip as its sub-line, at the
               same 11.5px: chassis, then what the ladder knows about the bot. */}
           <span className="t-micro flex flex-wrap items-center gap-2.5">
@@ -93,18 +102,39 @@ export default function BotDetailPage() {
             />
           </span>
         </div>
+        <span className="flex flex-wrap items-center gap-2">
+          {showArenaAction && (
+            <ArenaAction
+              bot={{
+                id: bot.id,
+                slug: bot.slug,
+                name: bot.name,
+                accent: bot.accent,
+                lookId: bot.lookId,
+                isOwner: bot.isOwner,
+                ready: canPlay,
+              }}
+              variant={bot.isOwner ? 'multi' : 'compact'}
+            />
+          )}
+          {bot.isOwner && (
+            <Link to={`/bots/${bot.slug}/appearance`} className="btn">
+              Appearance
+            </Link>
+          )}
+        </span>
       </header>
 
       <CurrentLadderStanding standing={bot.currentStanding} />
 
       {/* The document's `.two-up`: one column and a 340px rail, and it becomes one
           column below 900px rather than at Tailwind's 1024. */}
-      <div className="grid gap-3 min-[900px]:grid-cols-[minmax(0,1fr)_340px] min-[900px]:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 min-[900px]:grid-cols-[minmax(0,1fr)_340px] min-[900px]:items-start">
         <div className="flex min-w-0 flex-col gap-3.5">
           {/* First in the column because it is the question the page is opened with:
               the submit just landed, is this generation better than the last one. */}
           <GenerationsChart
-            series={generationHistory(bot)}
+            series={generationHistory}
             accent={bot.accent}
             liveGeneration={liveVersion?.versionNumber ?? null}
             note={
@@ -145,18 +175,18 @@ export default function BotDetailPage() {
                 <table className="t-body w-full border-collapse">
                   <thead>
                     <tr>
-                      <th scope="col" className="lab w-16 border-b border-arena-edge px-2 pb-2 text-left">
+                      <Th className="w-16">
                         Gen
-                      </th>
-                      <th scope="col" className="lab border-b border-arena-edge px-2 pb-2 text-left">
+                      </Th>
+                      <Th>
                         Status
-                      </th>
-                      <th scope="col" className="lab hidden border-b border-arena-edge px-2 pb-2 text-left sm:table-cell">
+                      </Th>
+                      <Th className="hidden sm:table-cell">
                         Artifact
-                      </th>
-                      <th scope="col" className="lab border-b border-arena-edge px-2 pb-2 text-right">
+                      </Th>
+                      <Th numeric>
                         Submitted
-                      </th>
+                      </Th>
                     </tr>
                   </thead>
                   <tbody>
@@ -240,21 +270,13 @@ export default function BotDetailPage() {
             for the bot you are looking at rather than to reproduce the CLI in HTML. */}
         <aside className="flex flex-col gap-3.5">
           <WorkOnThisBot />
-          <ChallengePanel bot={bot} />
+          {bot.isOwner && <LabsPanel bot={bot} />}
         </aside>
       </div>
 
-      {bot.isOwner && <LabsPanel bot={bot} />}
-
       {bot.isOwner && (
         <div className="grid gap-3 min-[900px]:grid-cols-2 min-[900px]:items-start">
-          <AppearanceEditor
-            bot={bot}
-            botKey={botKey!}
-            entitlementRevision={
-              bot.versions.filter((version) => version.status === 'Built').length
-            }
-          />
+          <AppearanceCard bot={bot} />
           <SubmitPanel bot={bot} botKey={botKey!} />
         </div>
       )}

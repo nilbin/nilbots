@@ -5,6 +5,11 @@ import BotIdentity from '../components/BotIdentity';
 import type { LeaderboardEntry } from '../api';
 import { useLeaderboard, useMe } from '../queries';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateView';
+import Th from '../components/TableHeader';
+import Movement from '../components/Movement';
+import Control from '../../components/ToggleButton';
+import { playerAccent } from '../../presentation/playerAccent';
+import { styleVariables } from '../../presentation/styleVariables';
 
 /**
  * The season screen: your fleet, your trajectory, and the ladder underneath them.
@@ -27,27 +32,6 @@ import { EmptyState, ErrorState, LoadingState } from '../components/StateView';
  */
 
 /**
- * The season currently running, if seasons existed.
- *
- * They do not — nothing in the API carries a season number, a start or a deadline — so
- * the header names the era the game actually has, which is the rules version, and says
- * nothing about a countdown it cannot know. The day a season endpoint lands this returns
- * it and the line above the fleet becomes "Season 3 · 11 days left" without moving.
- */
-function seasonWindow(
-  season: SeasonFields | null,
-): { number: number; daysLeft: number } | null {
-  if (season?.number === undefined || season.endsAt === undefined) return null;
-  const days = Math.max(
-    0,
-    Math.ceil(
-      (new Date(season.endsAt).getTime() - Date.now()) / 86_400_000,
-    ),
-  );
-  return { number: season.number, daysLeft: days };
-}
-
-/**
  * Per-row season data, when there is a season.
  *
  * Today every field is empty. `movement` needs a rank snapshot at season open, `history`
@@ -56,41 +40,27 @@ function seasonWindow(
  * not worth a request. The table is already shaped for all three, so the day an endpoint
  * appears the change is this function rather than the markup.
  */
-function seasonView(entry: LeaderboardEntry): {
+interface SeasonEntryView {
   movement: number | null;
   history: readonly number[] | null;
   record: { wins: number; losses: number } | null;
-} {
-  const extra = entry as LeaderboardEntry & SeasonEntryFields;
-  return {
-    movement: extra.movementSinceSeasonOpen ?? null,
-    history: extra.seasonHistory ?? null,
-    record:
-      extra.wins === undefined || extra.losses === undefined
-        ? null
-        : { wins: extra.wins, losses: extra.losses },
-  };
 }
 
 /**
- * Fields the design needs that the generated contract does not carry yet.
+ * One stable object keeps the page honest and avoids allocating a placeholder for every
+ * row. The generated leaderboard contract carries none of these values today.
  *
- * They are read off the response optionally rather than added to `schema.d.ts`, which is
- * generated from the server and must not be hand-edited. Production sends none of them, so
- * every one of these reads null and the columns stay empty; a review fixture sends them and
- * the screen renders as designed. The day the endpoints exist, regenerating the client
- * deletes this type and nothing else changes.
+ * A review response with made-up properties must not activate production UI. When the
+ * backend owns these fields, regenerate the API client and map those typed fields here.
  */
-interface SeasonEntryFields {
-  movementSinceSeasonOpen?: number;
-  seasonHistory?: readonly number[];
-  wins?: number;
-  losses?: number;
-}
+const unavailableSeasonEntry: SeasonEntryView = {
+  movement: null,
+  history: null,
+  record: null,
+};
 
-interface SeasonFields {
-  number?: number;
-  endsAt?: string;
+function seasonView(_entry: LeaderboardEntry): SeasonEntryView {
+  return unavailableSeasonEntry;
 }
 
 type SortKey = 'rating' | 'movement';
@@ -144,9 +114,11 @@ export default function SeasonPage() {
     });
   }, [shown, sort]);
 
-  const hasMovement = shown.some((entry) => seasonView(entry).movement !== null);
-  const hasHistory = shown.some((entry) => seasonView(entry).history !== null);
-  const hasRecord = shown.some((entry) => seasonView(entry).record !== null);
+  const hasMovement = entries.some((entry) => seasonView(entry).movement !== null);
+  const hasHistory = entries.some((entry) => seasonView(entry).history !== null);
+  const hasRecord = entries.some((entry) => seasonView(entry).record !== null);
+  const ladderColumnCount =
+    5 + Number(hasMovement) + Number(hasHistory) + Number(hasRecord);
 
   const closed =
     board !== null && board.rulesVersion !== board.activeRulesVersion;
@@ -156,7 +128,7 @@ export default function SeasonPage() {
       <p className="lab mb-2">
         Ranked ladder{board === null ? '' : ` · rules ${board.rulesVersion}`}
       </p>
-      <h1 className="type-display mb-2 text-[30px]">Standings</h1>
+      <h1 className="type-display mb-2 text-[30px]">Season</h1>
       <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
         Ratings move only through ranked sets: six games across three map/seed pairs,
         each played from both starting positions. Every rules version has its own
@@ -166,7 +138,7 @@ export default function SeasonPage() {
       </p>
 
       {closed && (
-        <p className="panel-quiet t-body mb-4 max-w-[62ch] border-l-2 border-l-arena-accent px-3 py-2 text-arena-dim">
+        <p className="panel-quiet t-body mb-4 max-w-[62ch] border-l-2 border-l-arena-edge2 px-3 py-2 text-arena-dim">
           This ladder is <b className="text-arena-text">closed</b>: rules{' '}
           {board.rulesVersion} no longer accepts new sets, so these standings are
           final. Ranked play happens on rules {board.activeRulesVersion}.
@@ -215,11 +187,7 @@ export default function SeasonPage() {
             <section className="panel pad">
               <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2.5">
                 <p className="lab">
-                  {headerLine(
-                    board.rulesVersion,
-                    fleet.length,
-                    (board as unknown as { season?: SeasonFields }).season ?? null,
-                  )}
+                  {headerLine(board.rulesVersion, fleet.length)}
                 </p>
                 <span className="pill">
                   best rank {Math.min(...fleet.map((entry) => entry.rank))}
@@ -248,7 +216,10 @@ export default function SeasonPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-2.5">
-                      <Movement places={seasonView(entry).movement} suffix="places" />
+                      <Movement
+                        change={seasonView(entry).movement}
+                        suffix="places"
+                      />
                       <span className="val ml-auto text-arena-text">{entry.rating}</span>
                     </div>
                   </Link>
@@ -283,14 +254,14 @@ export default function SeasonPage() {
                 <Control pressed={sort === 'rating'} onClick={() => setSort('rating')}>
                   rating
                 </Control>
-                <Control
-                  pressed={sort === 'movement'}
-                  disabled={!hasMovement}
-                  onClick={() => setSort('movement')}
-                  title="Sorting by movement needs each bot's rank when the season opened, which nothing records yet."
-                >
-                  movement
-                </Control>
+                {hasMovement && (
+                  <Control
+                    pressed={sort === 'movement'}
+                    onClick={() => setSort('movement')}
+                  >
+                    movement
+                  </Control>
+                )}
                 {fleet.length > 0 && (
                   <Control pressed={mineActive} onClick={() => setMineOnly(!mineActive)}>
                     mine only
@@ -305,25 +276,31 @@ export default function SeasonPage() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter by bot or owner…"
                 aria-label="Filter the ladder by bot or owner"
-                className="t-body mb-2.5 w-full rounded-[3px] border border-arena-edge bg-arena-bg px-3 py-1.5 text-arena-text placeholder:text-arena-dim focus:border-arena-edge2 focus:outline-none"
+                className="field mb-2.5"
               />
-              {/* A phone drops columns rather than scrolling sideways. Rank, bot and
-                  rating are what a standing *is*; everything else is context you can open
-                  the bot page for. A table that has to be dragged is a table nobody reads. */}
+              {/* A phone drops secondary columns rather than scrolling sideways. Columns
+                  the generated response cannot fill stay out of the visible table entirely;
+                  their named seams remain in `seasonView` until the contract owns them. */}
               <table className="t-body w-full border-collapse">
                 <thead>
                   <tr>
                     <Th className="w-[30px]">#</Th>
-                    <Th className="hidden w-[78px] sm:table-cell">Movement</Th>
+                    {hasMovement && (
+                      <Th className="hidden w-[78px] sm:table-cell">Movement</Th>
+                    )}
                     <Th>Bot</Th>
                     <Th className="hidden w-28 sm:table-cell">Owner</Th>
-                    <Th className="hidden w-[80px] md:table-cell">Trend</Th>
+                    {hasHistory && (
+                      <Th className="hidden w-[80px] md:table-cell">Trend</Th>
+                    )}
                     <Th className="w-20" numeric>
                       Rating
                     </Th>
-                    <Th className="hidden w-16 md:table-cell" numeric>
-                      W–L
-                    </Th>
+                    {hasRecord && (
+                      <Th className="hidden w-16 md:table-cell" numeric>
+                        W–L
+                      </Th>
+                    )}
                     <Th className="hidden w-16 sm:table-cell" numeric>
                       Sets
                     </Th>
@@ -332,7 +309,7 @@ export default function SeasonPage() {
                 <tbody>
                   {ordered.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="py-4 text-arena-dim">
+                      <td colSpan={ladderColumnCount} className="py-4 text-arena-dim">
                         {query.trim() === ''
                           ? 'No bot of yours is on this ladder.'
                           : `No bot on this ladder matches “${query}”.`}
@@ -345,6 +322,10 @@ export default function SeasonPage() {
                     // a system opinion.
                     const mine = me !== null && entry.owner === me.displayName;
                     const season = seasonView(entry);
+                    const rail =
+                      mine && entry.accent
+                        ? playerAccent(entry.accent, 'panel')
+                        : null;
                     return (
                       <tr
                         key={entry.id}
@@ -354,18 +335,23 @@ export default function SeasonPage() {
                         )}
                       >
                         <td
-                          className="type-display tabular p-2 align-middle text-[22px] text-arena-text"
+                          className={clsx(
+                            'type-display tabular p-2 align-middle text-[22px] text-arena-text',
+                            rail && 'player-accent-rail',
+                          )}
                           style={
-                            mine && entry.accent
-                              ? { boxShadow: `inset 2px 0 0 ${entry.accent}` }
+                            rail
+                              ? styleVariables({ '--player-accent': rail })
                               : undefined
                           }
                         >
                           {entry.rank}
                         </td>
-                        <td className="hidden p-2 align-middle sm:table-cell">
-                          <Movement places={season.movement} />
-                        </td>
+                        {hasMovement && (
+                          <td className="hidden p-2 align-middle sm:table-cell">
+                            <Movement change={season.movement} />
+                          </td>
+                        )}
                         <td className="p-2 align-middle">
                           <Link
                             to={`/bots/${entry.slug}`}
@@ -382,18 +368,23 @@ export default function SeasonPage() {
                         <td className="hidden truncate p-2 align-middle text-arena-dim sm:table-cell">
                           {entry.owner}
                         </td>
-                        <td className="hidden p-2 align-middle md:table-cell">
-                          <Sparkline
-                            history={season.history}
-                            accent={mine ? entry.accent : null}
-                          />
-                        </td>
+                        {hasHistory && (
+                          <td className="hidden p-2 align-middle md:table-cell">
+                            <Sparkline
+                              history={season.history}
+                              accent={mine ? entry.accent : null}
+                            />
+                          </td>
+                        )}
                         <td className="val p-2 text-right align-middle whitespace-nowrap text-arena-text">
                           {entry.rating}
                         </td>
-                        <td className="val hidden p-2 text-right align-middle whitespace-nowrap text-arena-text md:table-cell">
-                          {season.record && `${season.record.wins}–${season.record.losses}`}
-                        </td>
+                        {hasRecord && (
+                          <td className="val hidden p-2 text-right align-middle whitespace-nowrap text-arena-text md:table-cell">
+                            {season.record &&
+                              `${season.record.wins}–${season.record.losses}`}
+                          </td>
+                        )}
                         <td className="val hidden p-2 text-right align-middle whitespace-nowrap sm:table-cell">
                           {entry.rankedSets}
                         </td>
@@ -402,13 +393,12 @@ export default function SeasonPage() {
                   })}
                 </tbody>
               </table>
-              {/* Say why three columns are blank rather than leaving them looking broken.
-                  They stay in the markup because a column that renders nothing is a
-                  column that renders the day the endpoint lands. */}
+              {/* Say why the mock's secondary measures are absent rather than leaving a
+                  disabled control or a run of blank columns looking unfinished. */}
               {!hasMovement && !hasHistory && !hasRecord && (
-                <p className="t-micro mt-2.5">
-                  Movement, trend and W–L are blank on every row: no rank snapshot, rating
-                  history or ranked record reaches this endpoint yet.
+                <p id="season-data-note" className="t-micro mt-2.5">
+                  Movement, trend and W–L are not shown: no rank snapshot, rating history
+                  or ranked record reaches this endpoint yet.
                 </p>
               )}
             </div>
@@ -429,39 +419,9 @@ export default function SeasonPage() {
 function headerLine(
   rulesVersion: string,
   owned: number,
-  seasonFields: SeasonFields | null,
 ) {
-  const season = seasonWindow(seasonFields);
   const yours = `your ${owned} ranked ${owned === 1 ? 'bot' : 'bots'}`;
-  return season === null
-    ? `Rules ${rulesVersion} · ${yours}`
-    : `Season ${season.number} · ${season.daysLeft} days left · ${yours}`;
-}
-
-/**
- * A change of rank, when there is one to show.
- *
- * Outcome is the one exception to "chroma means a player chose it", and it is spent on
- * the glyph alone — never a fill and never a row tint — so a rise reads at a glance
- * without ever sitting behind somebody's accent. The number is mono because a machine
- * computed it; the unit beside it is not.
- */
-function Movement({ places, suffix }: { places: number | null; suffix?: string }) {
-  if (places === null) return null;
-  return (
-    <span className="t-micro inline-flex items-baseline gap-1 whitespace-nowrap">
-      <span
-        className={clsx(
-          places > 0 && 'text-arena-ok',
-          places < 0 && 'text-arena-hot',
-        )}
-      >
-        {places > 0 ? '▲' : places < 0 ? '▼' : '—'}
-      </span>
-      <span className="val">{Math.abs(places)}</span>
-      {suffix && <span>{suffix}</span>}
-    </span>
-  );
+  return `Rules ${rulesVersion} · ${yours}`;
 }
 
 /**
@@ -511,9 +471,10 @@ function SeasonChart({
         className="block h-auto"
         role="img"
         aria-label={lines
-          .map(
-            (line) =>
-              `${line.name}: ${line.history?.[0]} to ${line.history?.[line.history.length - 1]}`,
+          .map((line) =>
+            line.history === null || line.history.length === 0
+              ? `${line.name}: no history`
+              : `${line.name}: ${line.history[0]} to ${line.history.at(-1)}`,
           )
           .join('; ')}
       >
@@ -536,8 +497,11 @@ function SeasonChart({
             </text>
           </g>
         ))}
-        {lines.map((line) => {
+        {lines.map((line, index) => {
           const history = line.history ?? [];
+          const drawn = line.accent
+            ? playerAccent(line.accent, 'panel')
+            : 'currentColor';
           const points = history
             .map(
               (value, index) =>
@@ -546,37 +510,58 @@ function SeasonChart({
             .join(' ');
           const last = points.split(' ').at(-1)?.split(',') ?? ['0', '0'];
           return (
-            <g key={line.name}>
+            <g
+              key={line.name}
+              style={styleVariables({ '--player-accent': drawn })}
+            >
               <polyline
+                className="player-accent-stroke"
                 points={points}
                 fill="none"
                 strokeWidth={2}
                 strokeLinejoin="round"
-                stroke={line.accent ?? 'currentColor'}
+                strokeDasharray={linePattern(index)}
               />
               <circle
+                className="fill-arena-bg player-accent-stroke"
                 cx={last[0]}
                 cy={last[1]}
                 r={4}
-                className="fill-arena-bg"
                 strokeWidth={2.5}
-                stroke={line.accent ?? 'currentColor'}
               />
             </g>
           );
         })}
       </svg>
       <ul className="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1">
-        {lines.map((line) => (
-          <li key={line.name} className="t-meta flex items-center gap-1.5">
-            <span
-              className="block h-0.5 w-3.5 rounded-xs"
-              style={{ background: line.accent ?? 'currentColor' }}
-            />
-            {line.name}
-            <span className="val">{line.history?.at(-1)}</span>
-          </li>
-        ))}
+        {lines.map((line, index) => {
+          const drawn = line.accent
+            ? playerAccent(line.accent, 'panel')
+            : 'currentColor';
+          return (
+            <li key={line.name} className="t-meta flex items-center gap-1.5">
+              <svg
+                aria-hidden
+                width="14"
+                height="4"
+                viewBox="0 0 14 4"
+                style={styleVariables({ '--player-accent': drawn })}
+              >
+                <line
+                  className="player-accent-stroke"
+                  x1="0"
+                  y1="2"
+                  x2="14"
+                  y2="2"
+                  strokeWidth="2"
+                  strokeDasharray={linePattern(index)}
+                />
+              </svg>
+              {line.name}
+              <span className="val">{line.history?.at(-1)}</span>
+            </li>
+          );
+        })}
       </ul>
     </>
   );
@@ -609,73 +594,30 @@ function Sparkline({
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(' ');
+  const drawn = accent
+    ? playerAccent(accent, 'panel')
+    : 'var(--color-arena-dim)';
   return (
-    <svg className="block" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true">
+    <svg
+      className="block"
+      width="72"
+      height="20"
+      viewBox="0 0 72 20"
+      aria-hidden="true"
+      style={styleVariables({ '--player-accent': drawn })}
+    >
       <polyline
+        className="player-accent-stroke"
         points={points}
         fill="none"
         strokeWidth="1.5"
         strokeLinejoin="round"
-        // The one value here that is data rather than geometry: a player's hex.
-        style={{ stroke: accent ?? 'var(--color-arena-dim)' }}
       />
     </svg>
   );
 }
 
-/**
- * A sort or filter control.
- *
- * `.btn` and `.btn-on` are the shared control pair, and they carry the mock's own button
- * — 12.5px/500, edge hairline, 3px radius, 5px 11px — so pressed, disabled and hover are
- * one implementation rather than four utilities re-typed per page.
- */
-function Control({
-  children,
-  pressed,
-  disabled,
-  title,
-  onClick,
-}: {
-  children: React.ReactNode;
-  pressed: boolean;
-  disabled?: boolean;
-  title?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-pressed={pressed}
-      className={clsx('btn', pressed && 'btn-on')}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Th({
-  children,
-  className,
-  numeric,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  numeric?: boolean;
-}) {
-  return (
-    <th
-      scope="col"
-      className={clsx(
-        'lab border-b border-arena-edge px-2 pb-2',
-        numeric ? 'text-right' : 'text-left',
-        className,
-      )}
-    >
-      {children}
-    </th>
-  );
+/** Colour is not identity: repeatable dash patterns keep equal accents distinguishable. */
+function linePattern(index: number): string | undefined {
+  return [undefined, '7 4', '2 3', '10 3 2 3'][index % 4];
 }

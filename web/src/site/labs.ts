@@ -8,22 +8,22 @@ import type {
 import { explicitlySupportsContractProfile } from './botContractProfiles';
 
 /**
- * Select the first experiment this deliberately small two-entrant panel can launch.
+ * All two-entrant experiments this owned bot can launch.
  *
  * Capability support belongs to the active artifact, not the bot generally. Historical
  * artifacts have null profile metadata and are therefore not inferred to support the
  * generic actor contract.
  */
-export function eligibleLabsPlaylist(
+export function eligibleLabsPlaylists(
   bot: BotDetail,
   catalog: LabsCatalog,
-): LabsPlaylist | undefined {
-  if (!bot.isOwner || !catalog.enabled) return undefined;
+): LabsPlaylist[] {
+  if (!bot.isOwner || !catalog.enabled) return [];
 
   const activeVersion = bot.versions.find((version) => version.isActive);
-  if (!activeVersion) return undefined;
+  if (!activeVersion) return [];
 
-  return catalog.playlists.find(
+  return catalog.playlists.filter(
     (playlist) =>
       playlist.participantCount === 2 &&
       playlist.scoringTeamCount === 2 &&
@@ -33,6 +33,14 @@ export function eligibleLabsPlaylist(
         playlist.requiredContractProfileId,
       ),
   );
+}
+
+/** First eligible playlist retained for callers that only need an availability check. */
+export function eligibleLabsPlaylist(
+  bot: BotDetail,
+  catalog: LabsCatalog,
+): LabsPlaylist | undefined {
+  return eligibleLabsPlaylists(bot, catalog)[0];
 }
 
 export function eligibleLabsOpponents(
