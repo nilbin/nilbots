@@ -135,16 +135,16 @@ tactical profile:
 ```bash
 nilbots experiment frontline-labs qualify \
   --bot LabsBot/out/bot.wasm \
-  --suite frontline-qualification-4 \
+  --suite frontline-qualification-5 \
   --out out/LabsBot-qualification
 ```
 
-Suite 4 requires WASM, reruns the exact cumulative T2 suite-3 prerequisite,
-then checks tactical curve geometry, strict corners, projectile range/cadence,
-cooldown tempo, and local transform safety. A complete pass awards T3 but is
-not numeric-balance eligible; cumulative T4 is the directional pilot floor.
-Run suite 3 directly for T2. Frozen suite 1 remains only the historical
-`entry-initiative` T4 component, while suite 2 remains an incomplete
-automatic-life/determinism foundation.
+Suite 5 requires WASM, reruns the exact cumulative T3 prerequisite, then
+checks suppression, proactive pressure entry, objective-preserving response,
+front rotation, and the thin-fronts map holdout. A complete pass awards T4
+and entrant-level balance eligibility. Run suite 3 directly for T2 and suite
+4 for T3. Frozen suite 1 remains only the historical `entry-initiative` T4
+component, while suite 2 remains an incomplete automatic-life/determinism
+foundation.
 
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

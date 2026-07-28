@@ -384,4 +384,88 @@ public sealed class FrontlineLabsQualificationDefinitionTests
                 && transition.TargetFormId == "turret");
     }
 
+    [Fact]
+    public void PositionalProbes_FreezeDistinctOrdinaryContracts()
+    {
+        Func<int, ActorResolvedMatchDefinition>[] factories =
+        [
+            FrontlineLabsQualificationDefinition
+                .CreateSuppressionChokeProbe,
+            FrontlineLabsQualificationDefinition
+                .CreatePositionalEntryProbe,
+            FrontlineLabsQualificationDefinition
+                .CreatePredictionChamberProbe,
+            FrontlineLabsQualificationDefinition
+                .CreateFrontRotationProbe,
+            FrontlineLabsQualificationDefinition
+                .CreateMapHoldoutProbe,
+        ];
+        var fingerprints = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Func<int, ActorResolvedMatchDefinition> factory
+                 in factories)
+        {
+            foreach (int teamId in new[] { 0, 1 })
+            {
+                ActorResolvedMatchDefinition definition = factory(teamId);
+                Assert.StartsWith(
+                    "frontline-qualification-5-",
+                    definition.Rules.RulesetId,
+                    StringComparison.Ordinal);
+                Assert.Equal(2, definition.Topology.UnitSlots.Length);
+                Assert.DoesNotContain(
+                    definition.Rules.Actions,
+                    action => action.Id is "fabricate" or "split");
+                Assert.Equal(
+                    ActorContractFingerprint.ComputeMatch(definition),
+                    ActorContractFingerprint.ComputeMatch(factory(teamId)));
+                if (teamId == 0)
+                {
+                    fingerprints.Add(
+                        ActorContractFingerprint.ComputeMatch(definition));
+                }
+            }
+        }
+        Assert.Equal(factories.Length, fingerprints.Count);
+    }
+
+    [Fact]
+    public void PositionalStates_ExposeSuppressionRotationAndMapHoldout()
+    {
+        ActorResolvedMatchDefinition suppression =
+            FrontlineLabsQualificationDefinition
+                .CreateSuppressionChokeProbe(0);
+        ActorResolvedMatchDefinition rotation =
+            FrontlineLabsQualificationDefinition
+                .CreateFrontRotationProbe(0);
+        ActorResolvedMatchDefinition holdout =
+            FrontlineLabsQualificationDefinition
+                .CreateMapHoldoutProbe(0);
+
+        ActorMapRegionDefinition suppressionObjective =
+            suppression.Map.Regions.Single(region =>
+                region.RegionId == "frontline-position-2");
+        Assert.Contains(
+            new Position(8, 7),
+            suppressionObjective.Tiles);
+        Assert.Equal(
+            6,
+            Assert.IsType<FrontlineGameModeDefinition>(
+                    rotation.Rules.GameMode)
+                .Capture.Threshold);
+        Assert.Equal(40, rotation.Rules.Limits.MaxTicks);
+        Assert.Contains(
+            "thin-fronts",
+            holdout.Map.Id,
+            StringComparison.Ordinal);
+        Assert.True(
+            holdout.Map.Regions.Single(region =>
+                    region.RegionId == "frontline-position-2")
+                .Tiles.SequenceEqual(
+                [
+                    new Position(11, 6),
+                    new Position(11, 7),
+                    new Position(11, 8),
+                ]));
+    }
+
 }

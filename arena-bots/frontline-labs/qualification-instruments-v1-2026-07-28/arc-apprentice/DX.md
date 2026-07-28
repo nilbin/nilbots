@@ -41,9 +41,11 @@
   tracked content manifest exist, but durable artifact-store upload is still
   required before release use.
 
-## Remaining boundary work
+## Measured upper boundary
 
-T4 must test positional doctrine rather than add more local geometry. This
-artifact should fail a genuine suppression/rotation profile because it has no
-opening doctrine, prediction model, or front-state memory.
-
+The cumulative T4 profile retains T3 and fails only current-map
+`entry-initiative`: one assignment enters and establishes control, while the
+mirror repeatedly takes the generic two-advance dodge and retreats from the
+choke. It passes suppression, objective-preserving response, front rotation,
+and thin-front holdout. This is now a useful exact T3 calibration boundary,
+but it remains one lineage revision and cannot vote on numeric balance.

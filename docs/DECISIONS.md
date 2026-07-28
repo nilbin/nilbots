@@ -2778,6 +2778,32 @@ also empties the existing bind-mount workspace in place: deleting and
 recreating its inode occasionally exposed a transient empty directory through
 macOS virtiofs.
 
+## 152. Cumulative T4 measures positional commitment and gates entrant evidence
+
+`frontline-qualification-5` freezes
+`frontline-duel-depth-union-t4-v1`. It always reruns and hash-links the exact
+suite-4 cumulative T3 prerequisite, then executes five mirrored components:
+useful-ground suppression, pressure-lane entry, objective-preserving threat
+response, rotation after a captured front, and a thin-fronts map holdout. A
+clean failure retains the prerequisite tier; artifact, runtime, contract,
+controller, or replay invalidity remains exit 2.
+
+T4 is the first tier whose passing artifact may set entrant-level
+`balanceEvidenceEligible=true`. That field is necessary but not sufficient:
+population lineage breadth, study validity, multiplicity policy, and human
+replay review remain independent verdict gates. The holdout is a second
+declared map, not evidence that T4 generalizes to every future topology.
+
+ArcApprentice now forms an exact T3 upper boundary: it passes four T4
+components but, from one mirrored assignment, repeatedly retreats from the
+current-map choke and never enters the objective. BreachApprentice adds one
+contract-driven initiative rule, passes cumulative T4 from both assignments,
+and preserves its source, WASM, report, and replay-byte manifest. Because
+Breach is an adjacent House/Arc revision, all three artifacts remain one
+authoring lineage and one effective doctrine for pilot-breadth accounting.
+The next balance experiment therefore authors independently briefed T4+
+doctrines rather than treating the qualification lineage as a population.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

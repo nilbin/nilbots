@@ -1,0 +1,10 @@
+{
+  "name": "BreachApprentice",
+  "entryType": "BreachApprentice",
+  "sdkVersion": "0.10.4",
+  "appearance": {
+    "accent": "#fb7185",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

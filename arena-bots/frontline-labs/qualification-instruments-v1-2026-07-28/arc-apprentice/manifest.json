@@ -6,7 +6,7 @@
   "doctrineId": "exact-local-projectile-geometry",
   "role": "boundary-instrument",
   "targetTier": "T3",
-  "status": "t3-qualified-t4-boundary-pending",
+  "status": "exact-t3-boundary-measured",
   "launchPopulationStatus": "eligible-for-later-entertainment-review",
   "derivedFrom": "house-apprentice-t2-v1",
   "authoringBudgetId": "t3-tactical-extension-v1",
@@ -41,5 +41,18 @@
     "tierAwarded": "T3",
     "coordinationGradeAwarded": null,
     "balanceEvidenceEligible": false
+  },
+  "upperBoundary": {
+    "suiteId": "frontline-qualification-5",
+    "suiteVersion": 1,
+    "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+    "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+    "report": "qualification-frontline-5-boundary.json",
+    "reportSha256": "f6195ce6283e5a3613a6c2c04e6e40f8bf1bc3fcb65f2d394603ca491a7a6a2d",
+    "passed": false,
+    "tierRetained": "T3",
+    "failedProbeIds": [
+      "entry-initiative"
+    ]
   }
 }

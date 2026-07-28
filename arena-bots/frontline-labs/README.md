@@ -14,8 +14,10 @@ The current qualification population starts at
 Its first retained source/artifact pair, HouseApprentice, passes the cumulative
 T2 union profile and now cleanly fails two cumulative T3 components.
 ArcApprentice derives from it, adds narrow contract-driven tactical geometry,
-and passes the cumulative T3 profile. Neither may vote on numeric balance
-before cumulative T4.
+passes cumulative T3, and now cleanly fails only current-map T4 entry.
+BreachApprentice adds one objective-initiative rule and passes cumulative T4.
+It is balance-eligible as an entrant, but the three revisions share one
+authoring lineage and do not satisfy independent pilot-population breadth.
 
 New population authors receive
 [`FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`](../../docs/FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md)

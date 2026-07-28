@@ -9,7 +9,10 @@ component. Immutable suite 3 implements the complete cumulative
 profile, but T2 remains authoring/fun-floor evidence rather than a numeric
 balance vote. Immutable suite 4 reruns that exact prerequisite and implements
 the cumulative `frontline-duel-depth-union-t3-v1` tactical profile. It is the
-current highest implemented individual qualification.
+first tactical profile. Immutable suite 5 reruns that exact prerequisite and
+implements cumulative `frontline-duel-depth-union-t4-v1`; it is the current
+highest implemented individual qualification and the first tier permitted to
+vote in the directional pilot.
 
 ## Purpose
 
@@ -49,7 +52,7 @@ Recommended CLI shape:
 ```text
 nilbots experiment frontline-labs qualify \
   --bot path/to/bot.wasm \
-  --suite frontline-qualification-4 \
+  --suite frontline-qualification-5 \
   --out path/to/evidence
 ```
 
@@ -127,7 +130,43 @@ directional pilot voting floor.
 The first retained passing T3 reference is
 `arena-bots/frontline-labs/qualification-instruments-v1-2026-07-28/arc-apprentice`.
 Its source, WASM, cumulative report, and replay-byte manifest are retained.
-Its exact T3 boundary remains pending until cumulative T4 exists.
+Suite 5 measures its upper boundary: it retains T3 and fails only mirrored
+current-map entry initiative.
+
+`frontline-qualification-5` is the current cumulative T4 profile. It first
+executes suite 4 into a nested evidence directory and verifies its exact
+suite, version, profile, qualification-contract fingerprint, artifact, and
+runtime identities. It then runs five positional components from both
+assignments:
+
+- `suppression-choke` starts the tested bot on valuable active-objective
+  ground and requires immediate wall-aware straight suppression rather than a
+  wall-consumed curve or unnecessary concession;
+- `entry-initiative` requires crossing the known six-tile straight-pressure
+  choke into the central prediction chamber, losing at most one HP before
+  entry, and establishing five consecutive effective capture ticks;
+- `prediction-chamber` requires a threat response that remains on the active
+  objective and takes no damage;
+- `front-rotation` uses a short declared capture threshold and requires
+  leaving the obsolete centre, entering the newly active objective, and
+  establishing residence there;
+- `map-holdout` repeats pressure entry on the content-identified thin-fronts
+  objective topology.
+
+The report pins all nested prerequisite and case identities plus action,
+damage, threat, objective-entry, capture, front-advance, and residence
+evidence. It returns `0` only for cumulative T4, `3` for a clean failure that
+retains the prerequisite tier, and `2` for invalid evidence. A pass sets the
+entrant-level `balanceEvidenceEligible` flag; candidate promotion still
+requires the declared population, study blocks, and evidence layers.
+
+The first retained passing T4 policy is
+`arena-bots/frontline-labs/qualification-instruments-v1-2026-07-28/breach-apprentice`.
+It derives from ArcApprentice and adds one contract-driven initiative rule:
+when objective progress improves and the next projectile advance is safe, it
+crosses before the generic two-advance dodge window forces retreat. It is an
+adjacent-tier instrument and potential launch opponent, not an independent
+pilot doctrine.
 
 The report should be deterministic JSON plus a short text summary. The CLI
 must not mutate a ladder, season, playlist, or submitted bot.
@@ -189,11 +228,11 @@ full match.
 
 | Probe | Required behavior |
 | --- | --- |
-| `suppression-choke` | Uses suppression or an early exit rather than spamming wall-consumed curves. |
-| `entry-initiative` | From both sides, crosses the `(8,7)`/`(14,7)` approach into the central chamber under at least the declared straight and biased-shot controllers instead of retreating forever. |
+| `suppression-choke` | When already holding valuable ground, uses straight suppression rather than conceding it or spamming wall-consumed curves. |
+| `entry-initiative` | From both sides, crosses the `(8,7)`/`(14,7)` approach into the central chamber under declared straight pressure instead of retreating forever. |
 | `prediction-chamber` | Recognizes the range-four three-choice matrix and values safe destinations by objective and fire-tempo consequence. |
 | `front-rotation` | Relocates after a push/redeploy rather than defending an obsolete objective indefinitely. |
-| `map-holdout` | Repeats the doctrine on reflected and translated geometry without semantic IDs or coordinates. |
+| `map-holdout` | Repeats the doctrine from both assignments on the thin-front objective topology without probe-name or coordinate branching. |
 
 The entry probe must report damage, objective progress, and time-to-entry
 separately. Requiring zero damage would select passivity; accepting any damage
@@ -311,11 +350,10 @@ and initial-objective capture progress. Passing requires entry with no more
 than one damage taken before it and at least five ticks of effective capture
 progress, so touching the region during a blind run-through is insufficient.
 
-Suite 3 supplies cumulative T2 and suite 4 supplies cumulative T3 as described
-above. Suite 4 reruns and hash-links the exact suite-3 prerequisite rather
-than accepting a copied tier label. The next immutable package adds T4
-entry/suppression/rotation holdouts and must reference the exact suite-4
-prerequisite fingerprint. T5's three-policy matrix remains a later package.
+Suite 3 supplies cumulative T2, suite 4 supplies cumulative T3, and suite 5
+supplies cumulative T4 as described above. Each cumulative suite reruns and
+hash-links its exact prerequisite rather than accepting a copied tier label.
+T5's three-policy matrix remains the next individual qualification package.
 
 ## Qualification profile boundary
 

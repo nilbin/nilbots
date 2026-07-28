@@ -73,7 +73,8 @@ public static class FrontlineLabsQualificationCommand
                 or FrontlineLabsQualificationDefinition.FoundationSuiteId
                 or FrontlineLabsQualificationDefinition
                     .FundamentalsSuiteId
-                or FrontlineLabsQualificationDefinition.TacticalSuiteId))
+                or FrontlineLabsQualificationDefinition.TacticalSuiteId
+                or FrontlineLabsQualificationDefinition.PositionalSuiteId))
         {
             throw new InvalidOperationException(
                 $"Unknown qualification suite '{suiteId}'.");
@@ -107,6 +108,15 @@ public static class FrontlineLabsQualificationCommand
             == FrontlineLabsQualificationDefinition.TacticalSuiteId)
         {
             return FrontlineLabsTacticalQualificationCommand.Run(
+                botSpec,
+                runtimeKind,
+                seed,
+                outputDirectory);
+        }
+        if (suiteId
+            == FrontlineLabsQualificationDefinition.PositionalSuiteId)
+        {
+            return FrontlineLabsPositionalQualificationCommand.Run(
                 botSpec,
                 runtimeKind,
                 seed,

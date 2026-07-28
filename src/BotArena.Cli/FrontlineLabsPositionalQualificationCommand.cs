@@ -7,35 +7,37 @@ using BotArena.Runtime;
 namespace BotArena.Cli;
 
 /// <summary>
-/// Immutable cumulative T3 tactical-geometry profile. It first reruns the
-/// exact cumulative T2 prerequisite, then executes bounded public-contract
-/// geometry, cadence, tempo, and local-commitment probes.
+/// Immutable cumulative T4 positional profile. It reruns the exact cumulative
+/// T3 prerequisite, then exercises suppression, initiative, objective-aware
+/// response, front rotation, and a declared map holdout.
 /// </summary>
-internal static class FrontlineLabsTacticalQualificationCommand
+internal static class FrontlineLabsPositionalQualificationCommand
 {
     private const string WaitControllerFingerprint =
         "frontline-qualification-wait-controller-v1";
     private const string OneShotControllerFingerprint =
         "frontline-qualification-one-shot-controller-v1";
+    private const string PressureControllerFingerprint =
+        "frontline-qualification-pressure-controller-v1";
     private const string AnalyzerFingerprint =
-        "frontline-qualification-4-t3-analyzer-v1";
+        "frontline-qualification-5-t4-analyzer-v1";
     private const string PredicateFingerprint =
-        "frontline-qualification-4-t3-predicates-v1";
+        "frontline-qualification-5-t4-predicates-v1";
 
     private enum ControllerKind
     {
         Wait,
         OneShot,
+        Pressure,
     }
 
     private enum AnalysisKind
     {
-        CurvedIntercept,
-        StrictCorner,
-        CadenceHarmless,
-        CadenceThreatening,
-        CooldownWindow,
-        LocalFormSafety,
+        Suppression,
+        Entry,
+        Prediction,
+        Rotation,
+        MapHoldout,
     }
 
     private sealed record CasePlan(
@@ -63,20 +65,22 @@ internal static class FrontlineLabsTacticalQualificationCommand
         bool ProbeControllerValid,
         int BotTurnCount,
         int FaultedTurnCount,
+        string? FirstAcceptedActionId,
+        int StraightAttackCount,
         int CurvedAttackCount,
-        int CurvedProjectileHitCount,
-        int CurvedDamageDealt,
-        int ApparentThreatTurnCount,
-        int RealThreatTurnCount,
-        int SuccessfulApparentThreatMoveCount,
-        int SuccessfulRealThreatMoveCount,
+        int DamageDealt,
         int DamageTaken,
         int ControllerAttackCount,
-        int? ObjectiveDistanceAtControllerAttack,
-        int? MinimumObjectiveDistanceDuringCooldown,
-        int DamageDealtDuringCooldown,
-        int UnsafeCommitmentCount,
+        int ThreatTurnCount,
+        int ThreatMoveIntoObjectiveCount,
+        int? FirstLifeObjectiveTick,
+        int? DamageTakenBeforeEntry,
         int MaxConsecutiveCaptureTicks,
+        int InitialActivePositionIndex,
+        int? FirstAdvancedPositionIndex,
+        int? FirstAdvancedPositionTick,
+        int? FirstAdvancedObjectiveEntryTick,
+        int MaxAdvancedObjectiveResidenceTicks,
         string ReplayHash,
         string ReplayPath,
         bool Passed);
@@ -123,21 +127,20 @@ internal static class FrontlineLabsTacticalQualificationCommand
         string botSpec,
         string runtimeKind,
         ulong seed,
-        string outputDirectory,
-        bool printSummary = true)
+        string outputDirectory)
     {
         if (runtimeKind != "wasm")
         {
             throw new InvalidOperationException(
-                $"{FrontlineLabsQualificationDefinition.TacticalSuiteId} " +
+                $"{FrontlineLabsQualificationDefinition.PositionalSuiteId} " +
                 "requires the canonical WASM runtime.");
         }
 
         string prerequisiteDirectory = Path.Combine(
             outputDirectory,
-            "prerequisite-t2");
+            "prerequisite-t3");
         int prerequisiteExit =
-            FrontlineLabsFundamentalsQualificationCommand.Run(
+            FrontlineLabsTacticalQualificationCommand.Run(
                 botSpec,
                 runtimeKind,
                 seed,
@@ -152,7 +155,7 @@ internal static class FrontlineLabsTacticalQualificationCommand
         if (prerequisiteExit == 2)
         {
             Console.WriteLine(
-                "T3 qualification stopped: cumulative T2 evidence was " +
+                "T4 qualification stopped: cumulative T3 evidence was " +
                 "runtime/contract invalid.");
             Console.WriteLine(
                 $"Prerequisite report: {prerequisiteReportPath}");
@@ -163,47 +166,41 @@ internal static class FrontlineLabsTacticalQualificationCommand
         [
             new(
                 FrontlineLabsQualificationDefinition
-                    .WallTerminatedBendProbeId,
-                "off-axis-visible-target",
+                    .SuppressionChokeProbeId,
+                "objective-hold-straight-pressure",
                 ControllerKind.Wait,
-                AnalysisKind.CurvedIntercept,
+                AnalysisKind.Suppression,
                 FrontlineLabsQualificationDefinition
-                    .CreateWallTerminatedBendProbe),
+                    .CreateSuppressionChokeProbe),
             new(
-                FrontlineLabsQualificationDefinition.StrictCornerProbeId,
-                "strict-corner-invalid-intercept",
+                FrontlineLabsQualificationDefinition.EntryProbeId,
+                "current-map-pressure-entry",
+                ControllerKind.Pressure,
+                AnalysisKind.Entry,
+                FrontlineLabsQualificationDefinition
+                    .CreatePositionalEntryProbe),
+            new(
+                FrontlineLabsQualificationDefinition
+                    .PredictionChamberProbeId,
+                "objective-preserving-response",
+                ControllerKind.OneShot,
+                AnalysisKind.Prediction,
+                FrontlineLabsQualificationDefinition
+                    .CreatePredictionChamberProbe),
+            new(
+                FrontlineLabsQualificationDefinition.FrontRotationProbeId,
+                "advance-after-capture",
                 ControllerKind.Wait,
-                AnalysisKind.StrictCorner,
+                AnalysisKind.Rotation,
                 FrontlineLabsQualificationDefinition
-                    .CreateStrictCornerProbe),
+                    .CreateFrontRotationProbe),
             new(
-                FrontlineLabsQualificationDefinition.CadenceParityProbeId,
-                "range-3-harmless",
-                ControllerKind.OneShot,
-                AnalysisKind.CadenceHarmless,
-                teamId => FrontlineLabsQualificationDefinition
-                    .CreateCadenceParityProbe(teamId, projectileRange: 3)),
-            new(
-                FrontlineLabsQualificationDefinition.CadenceParityProbeId,
-                "range-4-threatening",
-                ControllerKind.OneShot,
-                AnalysisKind.CadenceThreatening,
-                teamId => FrontlineLabsQualificationDefinition
-                    .CreateCadenceParityProbe(teamId, projectileRange: 4)),
-            new(
-                FrontlineLabsQualificationDefinition.CooldownWindowProbeId,
-                "declared-mobile-cooldown",
-                ControllerKind.OneShot,
-                AnalysisKind.CooldownWindow,
+                FrontlineLabsQualificationDefinition.MapHoldoutProbeId,
+                "thin-fronts-pressure-entry",
+                ControllerKind.Pressure,
+                AnalysisKind.MapHoldout,
                 FrontlineLabsQualificationDefinition
-                    .CreateCooldownWindowProbe),
-            new(
-                FrontlineLabsQualificationDefinition.LocalFormSafetyProbeId,
-                "objective-weight-zero-transform",
-                ControllerKind.Wait,
-                AnalysisKind.LocalFormSafety,
-                FrontlineLabsQualificationDefinition
-                    .CreateLocalFormSafetyProbe),
+                    .CreateMapHoldoutProbe),
         ];
 
         string? artifactName = null;
@@ -260,13 +257,13 @@ internal static class FrontlineLabsTacticalQualificationCommand
 
         string resolvedArtifactName = artifactName
             ?? throw new InvalidOperationException(
-                "T3 qualification produced no artifact identity.");
+                "T4 qualification produced no artifact identity.");
         string resolvedArtifactHash = artifactHash
             ?? throw new InvalidOperationException(
-                "T3 qualification produced no artifact hash.");
+                "T4 qualification produced no artifact hash.");
         string resolvedRuntimeKind = actualRuntimeKind
             ?? throw new InvalidOperationException(
-                "T3 qualification produced no runtime identity.");
+                "T4 qualification produced no runtime identity.");
         using (JsonDocument prerequisiteDocument = JsonDocument.Parse(
                    File.ReadAllText(prerequisiteReportPath)))
         {
@@ -281,7 +278,7 @@ internal static class FrontlineLabsTacticalQualificationCommand
             {
                 throw new InvalidOperationException(
                     "Qualification artifact identity changed between the " +
-                    "T2 prerequisite and T3 probes.");
+                    "T3 prerequisite and T4 probes.");
             }
         }
 
@@ -297,26 +294,25 @@ internal static class FrontlineLabsTacticalQualificationCommand
                     ];
                     return new ProbeEvidence(
                         group.Key,
-                        "T3",
+                        "T4",
                         evidence.All(item => item.Passed),
                         evidence);
                 })
-                .OrderBy(probe =>
-                    ProbeOrder(probe.ProbeId)),
+                .OrderBy(probe => ProbeOrder(probe.ProbeId)),
         ];
-        bool t3Passed =
+        bool t4Passed =
             prerequisite.Passed
             && probes.All(probe => probe.Passed);
-        string? tierAwarded = t3Passed
-            ? "T3"
+        string? tierAwarded = t4Passed
+            ? "T4"
             : prerequisite.TierAwarded;
         var fingerprintParts = new List<string>
         {
-            FrontlineLabsQualificationDefinition.TacticalSuiteId,
-            FrontlineLabsQualificationDefinition.TacticalSuiteVersion
+            FrontlineLabsQualificationDefinition.PositionalSuiteId,
+            FrontlineLabsQualificationDefinition.PositionalSuiteVersion
                 .ToString(
                     System.Globalization.CultureInfo.InvariantCulture),
-            FrontlineLabsQualificationDefinition.TacticalProfileId,
+            FrontlineLabsQualificationDefinition.PositionalProfileId,
             prerequisite.QualificationContractFingerprint,
             PredicateFingerprint,
         };
@@ -334,21 +330,21 @@ internal static class FrontlineLabsTacticalQualificationCommand
         string qualificationFingerprint = Fingerprint(
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
-            SchemaVersion: 4,
-            FrontlineLabsQualificationDefinition.TacticalSuiteId,
-            FrontlineLabsQualificationDefinition.TacticalSuiteVersion,
-            FrontlineLabsQualificationDefinition.TacticalProfileId,
+            SchemaVersion: 5,
+            FrontlineLabsQualificationDefinition.PositionalSuiteId,
+            FrontlineLabsQualificationDefinition.PositionalSuiteVersion,
+            FrontlineLabsQualificationDefinition.PositionalProfileId,
             qualificationFingerprint,
             resolvedArtifactName,
             resolvedArtifactHash,
             resolvedRuntimeKind,
             seed,
             prerequisite,
-            Passed: t3Passed,
+            Passed: t4Passed,
             ProfileComplete: true,
             tierAwarded,
             CoordinationGradeAwarded: null,
-            BalanceEvidenceEligible: false,
+            BalanceEvidenceEligible: t4Passed,
             probes);
         string reportPath = Path.Combine(
             outputDirectory,
@@ -364,27 +360,24 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 })
             + Environment.NewLine);
 
-        if (printSummary)
+        Console.WriteLine($"Qualification suite: {report.SuiteId}");
+        Console.WriteLine(
+            $"Profile:             {report.QualificationProfileId}");
+        Console.WriteLine(
+            $"Artifact:            {resolvedArtifactName} " +
+            $"[{resolvedArtifactHash[..12]}…]");
+        Console.WriteLine(
+            $"prerequisite T3       " +
+            $"{(prerequisite.Passed ? "PASS" : "FAIL")}");
+        foreach (ProbeEvidence probe in probes)
         {
-            Console.WriteLine($"Qualification suite: {report.SuiteId}");
             Console.WriteLine(
-                $"Profile:             {report.QualificationProfileId}");
-            Console.WriteLine(
-                $"Artifact:            {resolvedArtifactName} " +
-                $"[{resolvedArtifactHash[..12]}…]");
-            Console.WriteLine(
-                $"prerequisite T2       " +
-                $"{(prerequisite.Passed ? "PASS" : "FAIL")}");
-            foreach (ProbeEvidence probe in probes)
-            {
-                Console.WriteLine(
-                    $"{probe.ProbeId,-24} " +
-                    $"{(probe.Passed ? "PASS" : "FAIL")}");
-            }
-            Console.WriteLine($"Report:              {reportPath}");
-            Console.WriteLine(
-                $"Tier awarded:        {tierAwarded ?? "none"}");
+                $"{probe.ProbeId,-24} " +
+                $"{(probe.Passed ? "PASS" : "FAIL")}");
         }
+        Console.WriteLine($"Report:              {reportPath}");
+        Console.WriteLine(
+            $"Tier awarded:        {tierAwarded ?? "none"}");
 
         bool invalid = probes
             .SelectMany(probe => probe.Cases)
@@ -396,7 +389,7 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 || run.Disqualified
                 || !run.ProbeControllerValid
                 || run.FaultedTurnCount != 0);
-        return invalid ? 2 : t3Passed ? 0 : 3;
+        return invalid ? 2 : t4Passed ? 0 : 3;
     }
 
     private static RunEvidence Execute(
@@ -501,64 +494,42 @@ internal static class FrontlineLabsTacticalQualificationCommand
         HashSet<string> movementActions = ActionIds(
             contract,
             "movement");
-        HashSet<string> attackActions = ActionIds(
-            contract,
-            "attack");
-        HashSet<string> commitmentActions = ActionIds(
-            contract,
-            "same-life-transition");
-        Position[] objective = ActiveObjectiveTiles(
-            contract,
-            root.GetProperty("initialFrame").GetProperty("state"));
+        int initialActiveIndex = root
+            .GetProperty("initialFrame")
+            .GetProperty("state")
+            .GetProperty("mode")
+            .GetProperty("activePositionIndex")
+            .GetInt32();
 
         int botTurnCount = 0;
         int faultedTurnCount = 0;
-        int apparentThreatTurnCount = 0;
-        int realThreatTurnCount = 0;
-        int apparentThreatMoves = 0;
-        int realThreatMoves = 0;
-        int unsafeCommitmentCount = 0;
-        var objectiveDistances = new Dictionary<int, int>();
-        var postObjectiveDistances = new Dictionary<int, int>();
-        int? controllerAttackTick = null;
-        int? controllerCooldownTicks = null;
+        string? firstAcceptedActionId = null;
+        int? initialFirstLifeHealth = null;
+        int? healthAtFirstLifeObjective = null;
+        int? firstLifeObjectiveTick = null;
+        int threatTurnCount = 0;
+        var threatMoveTicks = new HashSet<int>();
         foreach (JsonElement tick in root
                      .GetProperty("ticks")
                      .EnumerateArray())
         {
             foreach (JsonElement turn in tick
                          .GetProperty("actorTurns")
-                         .EnumerateArray())
+                         .EnumerateArray()
+                         .Where(turn =>
+                             turn.GetProperty("participantId").GetInt32()
+                                == botParticipantId))
             {
+                botTurnCount++;
                 JsonElement resolution =
                     turn.GetProperty("actionResolution");
                 string? acceptedActionId = AcceptedActionId(resolution);
                 bool success =
                     resolution.GetProperty("outcome").GetString()
-                    == "success";
-                int participantId =
-                    turn.GetProperty("participantId").GetInt32();
-                if (participantId != botParticipantId)
-                {
-                    if (
-                        controllerAttackTick is null
-                        && success
-                        && acceptedActionId is not null
-                        && attackActions.Contains(acceptedActionId))
-                    {
-                        controllerAttackTick =
-                            turn.GetProperty("tick").GetInt32();
-                        string formId = turn.GetProperty("observation")
-                            .GetProperty("self")
-                            .GetProperty("formId")
-                            .GetString()!;
-                        controllerCooldownTicks =
-                            CooldownForForm(contract, formId);
-                    }
-                    continue;
-                }
-
-                botTurnCount++;
+                        == "success";
+                firstAcceptedActionId ??= success
+                    ? acceptedActionId
+                    : null;
                 if (
                     resolution.GetProperty("outcome").GetString()
                         == "faulted"
@@ -567,107 +538,64 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 {
                     faultedTurnCount++;
                 }
-                if (success
-                    && acceptedActionId is not null
-                    && commitmentActions.Contains(acceptedActionId))
-                {
-                    unsafeCommitmentCount++;
-                }
 
                 JsonElement observation =
                     turn.GetProperty("observation");
-                Position self = ReadPosition(
-                    observation.GetProperty("self")
-                        .GetProperty("position"));
-                int tickNumber = turn.GetProperty("tick").GetInt32();
-                objectiveDistances[tickNumber] =
-                    objective.Length == 0
-                        ? 0
-                        : objective.Min(self.ChebyshevDistance);
-                bool apparent = false;
-                bool real = false;
-                foreach (JsonElement projectile in observation
-                             .GetProperty("visibleProjectiles")
-                             .EnumerateArray()
-                             .Where(projectile =>
-                                 projectile
-                                     .GetProperty("ownerTeamId")
-                                     .GetInt32() != botTeamId))
+                JsonElement self = observation.GetProperty("self");
+                JsonElement actorId = self.GetProperty("actorId");
+                int lifeId = actorId.GetProperty("lifeId").GetInt32();
+                int health = self.GetProperty("health").GetInt32();
+                if (lifeId == 0)
+                    initialFirstLifeHealth ??= health;
+                Position selfPosition = ReadPosition(
+                    self.GetProperty("position"));
+                Position[] objective = ActiveObjectiveTiles(
+                    contract,
+                    observation);
+                if (
+                    lifeId == 0
+                    && objective.Contains(selfPosition)
+                    && firstLifeObjectiveTick is null)
                 {
-                    if (!ProjectileRayDistance(
-                            projectile,
-                            self,
-                            out int distance))
-                    {
-                        continue;
-                    }
-                    int twoAdvances = projectile
-                        .GetProperty("tilesPerAdvance")
-                        .GetInt32() * 2;
-                    apparent |= distance <= twoAdvances;
-                    real |= distance <= Math.Min(
-                        twoAdvances,
-                        projectile.GetProperty("remainingTiles")
-                            .GetInt32());
+                    firstLifeObjectiveTick =
+                        turn.GetProperty("tick").GetInt32();
+                    healthAtFirstLifeObjective = health;
                 }
-                bool successfulMove =
+
+                bool threatened = observation
+                    .GetProperty("visibleProjectiles")
+                    .EnumerateArray()
+                    .Where(projectile =>
+                        projectile.GetProperty("ownerTeamId").GetInt32()
+                            != botTeamId)
+                    .Any(projectile =>
+                        ProjectileRayDistance(
+                            projectile,
+                            selfPosition,
+                            out int distance)
+                        && distance <= Math.Min(
+                            projectile.GetProperty("remainingTiles")
+                                .GetInt32(),
+                            projectile.GetProperty("tilesPerAdvance")
+                                .GetInt32() * 2));
+                if (!threatened)
+                    continue;
+                threatTurnCount++;
+                if (
                     success
                     && acceptedActionId is not null
-                    && movementActions.Contains(acceptedActionId);
-                if (apparent)
+                    && movementActions.Contains(acceptedActionId))
                 {
-                    apparentThreatTurnCount++;
-                    if (successfulMove)
-                        apparentThreatMoves++;
+                    threatMoveTicks.Add(
+                        turn.GetProperty("tick").GetInt32());
                 }
-                if (real)
-                {
-                    realThreatTurnCount++;
-                    if (successfulMove)
-                        realThreatMoves++;
-                }
-            }
-
-            JsonElement postState = tick.GetProperty("postState");
-            JsonElement? testedLife = postState
-                .GetProperty("activeLives")
-                .EnumerateArray()
-                .Cast<JsonElement?>()
-                .SingleOrDefault(life =>
-                    life!.Value.GetProperty("actorId")
-                        .GetProperty("teamId")
-                        .GetInt32() == botTeamId
-                    && life.Value.GetProperty("actorId")
-                        .GetProperty("unitId")
-                        .GetInt32() == 0);
-            if (testedLife is JsonElement life)
-            {
-                Position[] postObjective = ActiveObjectiveTiles(
-                    contract,
-                    postState);
-                Position postPosition = ReadPosition(
-                    life.GetProperty("position"));
-                postObjectiveDistances[
-                    tick.GetProperty("tick").GetInt32()] =
-                    postObjective.Length == 0
-                        ? 0
-                        : postObjective.Min(
-                            postPosition.ChebyshevDistance);
             }
         }
 
-        var curvedProjectileIds = new HashSet<string>(
-            StringComparer.Ordinal);
+        int straightAttackCount = 0;
         int curvedAttackCount = 0;
         int controllerAttackCount = 0;
-        foreach (JsonElement attackEvent in root
-                     .GetProperty("ticks")
-                     .EnumerateArray()
-                     .SelectMany(tick =>
-                         tick.GetProperty("events").EnumerateArray())
-                     .Where(item =>
-                         item.GetProperty("kind").GetString()
-                            == "attack"))
+        foreach (JsonElement attackEvent in Events(root, "attack"))
         {
             JsonElement payload = attackEvent.GetProperty("payload");
             int sourceTeam = payload.GetProperty("actorId")
@@ -678,49 +606,22 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 controllerAttackCount++;
                 continue;
             }
-            if (!IsCurved(payload.GetProperty("action")))
-                continue;
-            curvedAttackCount++;
-            curvedProjectileIds.Add(
-                payload.GetProperty("projectileId").GetString()!);
+            if (IsCurved(payload.GetProperty("action")))
+                curvedAttackCount++;
+            else
+                straightAttackCount++;
         }
 
-        int curvedDamageDealt = 0;
-        var curvedProjectileHits = new HashSet<string>(
-            StringComparer.Ordinal);
+        int damageDealt = 0;
         int damageTaken = 0;
-        int cooldownDamage = 0;
-        foreach (JsonElement damage in root
-                     .GetProperty("ticks")
-                     .EnumerateArray()
-                     .SelectMany(tick =>
-                         tick.GetProperty("events").EnumerateArray())
-                     .Where(item =>
-                         item.GetProperty("kind").GetString()
-                            == "damage"))
+        foreach (JsonElement damage in Events(root, "damage"))
         {
             JsonElement payload = damage.GetProperty("payload");
             int amount = payload.GetProperty("amount").GetInt32();
-            if (
-                payload.GetProperty("sourceTeamId").GetInt32()
-                    == botTeamId)
+            if (payload.GetProperty("sourceTeamId").GetInt32()
+                == botTeamId)
             {
-                string projectileId =
-                    payload.GetProperty("projectileId").GetString()!;
-                if (curvedProjectileIds.Contains(projectileId))
-                {
-                    curvedDamageDealt += amount;
-                    curvedProjectileHits.Add(projectileId);
-                }
-                int eventTick = damage.GetProperty("tick").GetInt32();
-                if (
-                    controllerAttackTick is int attackTick
-                    && controllerCooldownTicks is int cooldown
-                    && eventTick > attackTick
-                    && eventTick <= attackTick + cooldown)
-                {
-                    cooldownDamage += amount;
-                }
+                damageDealt += amount;
             }
             if (
                 payload.GetProperty("targetActorId")
@@ -731,21 +632,52 @@ internal static class FrontlineLabsTacticalQualificationCommand
             }
         }
 
-        int? distanceAtAttack =
-            controllerAttackTick is int shotTick
-                ? objectiveDistances.GetValueOrDefault(shotTick)
-                : null;
-        int? minimumCooldownDistance =
-            controllerAttackTick is int attack
-            && controllerCooldownTicks is int cooldownTicks
-                ? postObjectiveDistances
-                    .Where(pair =>
-                        pair.Key >= attack
-                        && pair.Key <= attack + cooldownTicks)
-                    .Select(pair => (int?)pair.Value)
-                    .DefaultIfEmpty()
-                    .Min()
-                : null;
+        int threatMoveIntoObjectiveCount = 0;
+        int? firstAdvancedIndex = null;
+        int? firstAdvancedTick = null;
+        int? firstAdvancedEntryTick = null;
+        int advancedResidence = 0;
+        int maxAdvancedResidence = 0;
+        foreach (JsonElement tick in root
+                     .GetProperty("ticks")
+                     .EnumerateArray())
+        {
+            int tickNumber = tick.GetProperty("tick").GetInt32();
+            JsonElement state = tick.GetProperty("postState");
+            int activeIndex = state.GetProperty("mode")
+                .GetProperty("activePositionIndex")
+                .GetInt32();
+            if (activeIndex != initialActiveIndex
+                && firstAdvancedIndex is null)
+            {
+                firstAdvancedIndex = activeIndex;
+                firstAdvancedTick = tickNumber;
+            }
+            Position[] objective = ActiveObjectiveTiles(contract, state);
+            JsonElement? testedLife = FindTestedLife(state, botTeamId);
+            bool occupies = testedLife is JsonElement life
+                && objective.Contains(
+                    ReadPosition(life.GetProperty("position")));
+            if (threatMoveTicks.Contains(tickNumber) && occupies)
+                threatMoveIntoObjectiveCount++;
+            if (firstAdvancedIndex is not null
+                && activeIndex == firstAdvancedIndex)
+            {
+                if (occupies)
+                {
+                    firstAdvancedEntryTick ??= tickNumber;
+                    advancedResidence++;
+                    maxAdvancedResidence = Math.Max(
+                        maxAdvancedResidence,
+                        advancedResidence);
+                }
+                else
+                {
+                    advancedResidence = 0;
+                }
+            }
+        }
+
         int maxCaptureTicks = MaxConsecutiveCaptureTicks(
             root,
             contract,
@@ -776,6 +708,11 @@ internal static class FrontlineLabsTacticalQualificationCommand
                     item.GetProperty("runtimeFaultCount").GetString()!,
                     System.Globalization.CultureInfo.InvariantCulture) == 0
                 && !item.GetProperty("disqualified").GetBoolean());
+        int? damageBeforeEntry =
+            initialFirstLifeHealth is int initialHealth
+            && healthAtFirstLifeObjective is int entryHealth
+                ? initialHealth - entryHealth
+                : null;
         bool common = contractValid
             && botEligible
             && runtimeFaultCount == 0
@@ -785,37 +722,31 @@ internal static class FrontlineLabsTacticalQualificationCommand
             && faultedTurnCount == 0;
         bool passed = common && analysis switch
         {
-            AnalysisKind.CurvedIntercept =>
-                curvedAttackCount > 0
-                && curvedProjectileHits.Count == curvedAttackCount
-                && curvedDamageDealt > 0,
-            AnalysisKind.StrictCorner =>
-                curvedAttackCount == 0
+            AnalysisKind.Suppression =>
+                firstAcceptedActionId is not null
+                && ActionIds(contract, "attack")
+                    .Contains(firstAcceptedActionId)
+                && straightAttackCount > 0
+                && curvedAttackCount == 0
+                && damageDealt > 0,
+            AnalysisKind.Entry or AnalysisKind.MapHoldout =>
+                controllerAttackCount > 0
+                && firstLifeObjectiveTick is not null
+                && damageBeforeEntry is >= 0 and <= 1
+                && maxCaptureTicks >= 5,
+            AnalysisKind.Prediction =>
+                controllerAttackCount > 0
+                && threatTurnCount > 0
+                && threatMoveIntoObjectiveCount > 0
                 && damageTaken == 0
                 && maxCaptureTicks >= 3,
-            AnalysisKind.CadenceHarmless =>
-                controllerAttackCount > 0
-                && apparentThreatTurnCount > 0
-                && realThreatTurnCount == 0
-                && apparentThreatMoves == 0
-                && damageTaken == 0
-                && maxCaptureTicks >= 3,
-            AnalysisKind.CadenceThreatening =>
-                controllerAttackCount > 0
-                && realThreatTurnCount > 0
-                && realThreatMoves > 0
-                && damageTaken == 0,
-            AnalysisKind.CooldownWindow =>
-                controllerAttackCount > 0
-                && ((
-                    distanceAtAttack is int initialDistance
-                    && minimumCooldownDistance is int minimumDistance
-                    && minimumDistance < initialDistance)
-                    || cooldownDamage > 0),
-            AnalysisKind.LocalFormSafety =>
-                unsafeCommitmentCount == 0
-                && maxCaptureTicks >= 4
-                && damageTaken == 0,
+            AnalysisKind.Rotation =>
+                firstAdvancedIndex
+                    == initialActiveIndex + (botTeamId == 0 ? 1 : -1)
+                && firstAdvancedTick is not null
+                && firstAdvancedEntryTick is not null
+                && firstAdvancedEntryTick > firstAdvancedTick
+                && maxAdvancedResidence >= 4,
             _ => false,
         };
         return new RunEvidence(
@@ -826,20 +757,22 @@ internal static class FrontlineLabsTacticalQualificationCommand
             controllerValid,
             botTurnCount,
             faultedTurnCount,
+            firstAcceptedActionId,
+            straightAttackCount,
             curvedAttackCount,
-            curvedProjectileHits.Count,
-            curvedDamageDealt,
-            apparentThreatTurnCount,
-            realThreatTurnCount,
-            apparentThreatMoves,
-            realThreatMoves,
+            damageDealt,
             damageTaken,
             controllerAttackCount,
-            distanceAtAttack,
-            minimumCooldownDistance,
-            cooldownDamage,
-            unsafeCommitmentCount,
+            threatTurnCount,
+            threatMoveIntoObjectiveCount,
+            firstLifeObjectiveTick,
+            damageBeforeEntry,
             maxCaptureTicks,
+            initialActiveIndex,
+            firstAdvancedIndex,
+            firstAdvancedTick,
+            firstAdvancedEntryTick,
+            maxAdvancedResidence,
             replayHash,
             replayPath,
             passed);
@@ -858,18 +791,16 @@ internal static class FrontlineLabsTacticalQualificationCommand
             root.GetProperty("qualificationProfileId").GetString()!;
         if (
             suiteId
-                != FrontlineLabsQualificationDefinition
-                    .FundamentalsSuiteId
+                != FrontlineLabsQualificationDefinition.TacticalSuiteId
             || suiteVersion
                 != FrontlineLabsQualificationDefinition
-                    .FundamentalsSuiteVersion
+                    .TacticalSuiteVersion
             || profileId
-                != FrontlineLabsQualificationDefinition
-                    .FundamentalsProfileId)
+                != FrontlineLabsQualificationDefinition.TacticalProfileId)
         {
             throw new InvalidOperationException(
-                "T3 qualification requires the exact immutable cumulative " +
-                "T2 prerequisite profile.");
+                "T4 qualification requires the exact immutable cumulative " +
+                "T3 prerequisite profile.");
         }
         return new PrerequisiteEvidence(
             suiteId,
@@ -886,6 +817,16 @@ internal static class FrontlineLabsTacticalQualificationCommand
                 : null);
     }
 
+    private static IEnumerable<JsonElement> Events(
+        JsonElement root,
+        string kind) =>
+        root.GetProperty("ticks")
+            .EnumerateArray()
+            .SelectMany(tick =>
+                tick.GetProperty("events").EnumerateArray())
+            .Where(item =>
+                item.GetProperty("kind").GetString() == kind);
+
     private static int MaxConsecutiveCaptureTicks(
         JsonElement root,
         JsonElement contract,
@@ -898,14 +839,10 @@ internal static class FrontlineLabsTacticalQualificationCommand
         {
             JsonElement state = tick.GetProperty("postState");
             Position[] objective = ActiveObjectiveTiles(contract, state);
-            bool occupies = state.GetProperty("activeLives")
-                .EnumerateArray()
-                .Any(life =>
-                    life.GetProperty("actorId")
-                        .GetProperty("teamId")
-                        .GetInt32() == botTeamId
-                    && objective.Contains(
-                        ReadPosition(life.GetProperty("position"))));
+            JsonElement? testedLife = FindTestedLife(state, botTeamId);
+            bool occupies = testedLife is JsonElement life
+                && objective.Contains(
+                    ReadPosition(life.GetProperty("position")));
             JsonElement mode = state.GetProperty("mode");
             bool contributes = occupies
                 && mode.GetProperty("claimingTeamId").ValueKind
@@ -917,6 +854,20 @@ internal static class FrontlineLabsTacticalQualificationCommand
         }
         return maximum;
     }
+
+    private static JsonElement? FindTestedLife(
+        JsonElement state,
+        int botTeamId) =>
+        state.GetProperty("activeLives")
+            .EnumerateArray()
+            .Cast<JsonElement?>()
+            .SingleOrDefault(life =>
+                life!.Value.GetProperty("actorId")
+                    .GetProperty("teamId")
+                    .GetInt32() == botTeamId
+                && life.Value.GetProperty("actorId")
+                    .GetProperty("unitId")
+                    .GetInt32() == 0);
 
     private static Position[] ActiveObjectiveTiles(
         JsonElement contract,
@@ -945,27 +896,6 @@ internal static class FrontlineLabsTacticalQualificationCommand
                         tile[0].GetInt32(),
                         tile[1].GetInt32())),
         ];
-    }
-
-    private static int CooldownForForm(
-        JsonElement contract,
-        string formId)
-    {
-        JsonElement form = contract.GetProperty("rules")
-            .GetProperty("forms")
-            .EnumerateArray()
-            .Single(item =>
-                item.GetProperty("id").GetString() == formId);
-        string attackProfileId =
-            form.GetProperty("attackProfileId").GetString()!;
-        return contract.GetProperty("rules")
-            .GetProperty("attackProfiles")
-            .EnumerateArray()
-            .Single(item =>
-                item.GetProperty("id").GetString()
-                    == attackProfileId)
-            .GetProperty("cooldownTicks")
-            .GetInt32();
     }
 
     private static HashSet<string> ActionIds(
@@ -1047,6 +977,9 @@ internal static class FrontlineLabsTacticalQualificationCommand
             ControllerKind.OneShot =>
                 new InProcessGenericActorRuntimeFactory(
                     () => new FrontlineLabsQualificationOneShotController()),
+            ControllerKind.Pressure =>
+                new InProcessGenericActorRuntimeFactory(
+                    () => new FrontlineLabsQualificationSentinel()),
             _ => throw new InvalidOperationException(
                 "Unknown qualification controller."),
         };
@@ -1067,6 +1000,8 @@ internal static class FrontlineLabsTacticalQualificationCommand
                     "Qualification Passive Controller",
                 ControllerKind.OneShot =>
                     "Qualification One-Shot Controller",
+                ControllerKind.Pressure =>
+                    "Qualification Pressure Controller",
                 _ => "Qualification Controller",
             },
             RuntimeFactory = runtimeFactory,
@@ -1082,6 +1017,7 @@ internal static class FrontlineLabsTacticalQualificationCommand
         {
             ControllerKind.Wait => WaitControllerFingerprint,
             ControllerKind.OneShot => OneShotControllerFingerprint,
+            ControllerKind.Pressure => PressureControllerFingerprint,
             _ => throw new InvalidOperationException(
                 "Unknown qualification controller."),
         };
@@ -1090,11 +1026,12 @@ internal static class FrontlineLabsTacticalQualificationCommand
         probeId switch
         {
             FrontlineLabsQualificationDefinition
-                .WallTerminatedBendProbeId => 0,
-            FrontlineLabsQualificationDefinition.StrictCornerProbeId => 1,
-            FrontlineLabsQualificationDefinition.CadenceParityProbeId => 2,
-            FrontlineLabsQualificationDefinition.CooldownWindowProbeId => 3,
-            FrontlineLabsQualificationDefinition.LocalFormSafetyProbeId => 4,
+                .SuppressionChokeProbeId => 0,
+            FrontlineLabsQualificationDefinition.EntryProbeId => 1,
+            FrontlineLabsQualificationDefinition
+                .PredictionChamberProbeId => 2,
+            FrontlineLabsQualificationDefinition.FrontRotationProbeId => 3,
+            FrontlineLabsQualificationDefinition.MapHoldoutProbeId => 4,
             _ => 100,
         };
 

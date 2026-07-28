@@ -139,7 +139,7 @@ static int Help(int exitCode = 1)
                                                   local/quota-free, replay v3
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
-                        [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4]
+                        [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
                         [--out <dir>]
                                                   versioned local capability
                                                   probes; never ranked
@@ -270,14 +270,16 @@ static int CommandHelp(string command)
             Usage: nilbots experiment frontline-labs qualify
                    --bot <generic-spec> [--runtime wasm|in-process]
                    [--seed <n>]
-                   [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4]
+                   [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
                    [--out <dir>]
 
             Runs mirrored, versioned capability probes and writes verified
             replay-v3 evidence plus qualification.json. Suite 1 is the frozen
             T4 entry-initiative component. Suite 2 requires WASM and freezes
             the automatic-life foundation component. Suite 3 is the
-            cumulative WASM-only T2 duel-depth union profile.
+            cumulative WASM-only T2 duel-depth union profile; suite 4 adds
+            cumulative T3 tactical geometry; suite 5 adds cumulative T4
+            positional doctrine and is the first balance-eligible tier.
             Probe failure returns exit code 3; runtime or contract failure
             returns 2. It is never ranked.
             """,

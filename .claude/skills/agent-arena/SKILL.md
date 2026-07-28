@@ -81,7 +81,7 @@ artifact count alone is never population breadth. Preserve intermediate
 passing revisions, but never count revisions of one lineage as independent
 policies. Never infer a tier from tournament wins.
 
-Four separately versioned dynamic suites now exist:
+Five separately versioned dynamic suites now exist:
 
 ```bash
 # Frozen positional component:
@@ -102,10 +102,16 @@ nilbots experiment frontline-labs qualify \
   --suite frontline-qualification-3 \
   --out <evidence-dir>
 
-# Current cumulative T3 tactical profile (reruns exact T2):
+# Cumulative T3 tactical profile (reruns exact T2):
 nilbots experiment frontline-labs qualify \
   --bot <generic-wasm> \
   --suite frontline-qualification-4 \
+  --out <evidence-dir>
+
+# Current cumulative T4 positional profile (reruns exact T3):
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-5 \
   --out <evidence-dir>
 ```
 
@@ -131,7 +137,14 @@ cadence, missed-shot cooldown tempo, and local transform safety from both
 assignments. A clean pass awards T3 under
 `frontline-duel-depth-union-t3-v1`; it also remains below the numeric-balance
 voting floor. Run suite 3 directly for an assigned T2 boundary and suite 4 for
-T3 or higher authoring until cumulative T4 exists.
+an assigned T3 boundary.
+
+Suite 5 reruns and hash-links exact T3, then tests suppression, proactive
+pressure entry, objective-preserving response, front rotation, and the
+thin-fronts holdout from both assignments. A clean pass awards T4 under
+`frontline-duel-depth-union-t4-v1` and sets entrant-level balance eligibility.
+That does not waive the independent-lineage, study-block, or evidence-layer
+requirements. Use suite 5 for every directional-pilot author.
 
 Every Balance Lab entrant must pin
 the exact suite/version, qualification profile and contract fingerprint,

@@ -133,7 +133,7 @@ python3 scripts/frontline-balance-candidates.py \
 
 nilbots experiment frontline-labs qualify \
   --bot <candidate-bot.wasm> \
-  --suite frontline-qualification-4 \
+  --suite frontline-qualification-5 \
   --out /tmp/qualification/<bot>
 
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
@@ -193,6 +193,12 @@ cadence, cooldown tempo, and local transform safety from both assignments.
 It returns the retained prerequisite tier on a clean capability failure. A
 suite-4 pass awards T3 but also remains below the cumulative T4 directional
 pilot voting floor.
+
+Current suite 5 reruns and hash-links exact T3, then tests suppression,
+proactive pressure entry, objective-preserving response, front rotation, and
+the thin-fronts holdout from both assignments. A suite-5 pass awards T4 and
+entrant-level balance eligibility. It does not make a same-lineage revision
+an independent doctrine or satisfy the four-doctrine pilot floor.
 
 Read the cell's `strategicDiversity.doctrineRedundancy` block before claiming
 population breadth. It reports artifacts, declared doctrines, effective

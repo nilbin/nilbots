@@ -76,6 +76,12 @@ intercepts, strict wall termination, declared projectile range/cadence,
 cooldown tempo, and local transform safety. The generated starter is
 intentionally not claimed to pass it.
 
+Suite 5 is the first balance-eligible target. It reruns exact T3, then checks
+suppression versus concession, proactive pressure entry,
+objective-preserving response, front rotation, and a thin-fronts map holdout.
+Passing qualifies one artifact as T4; a pilot still needs independently
+authored effective doctrines rather than several revisions of one starter.
+
 `ArenaBasics` demonstrates the important authoring pattern: select actions by
 their contract kind or stable ID, use the negotiated numeric code, and obey
 the current typed legality constraints. The host still resolves joint

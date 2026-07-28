@@ -22,6 +22,10 @@ public static class FrontlineLabsQualificationDefinition
     public const int TacticalSuiteVersion = 1;
     public const string TacticalProfileId =
         "frontline-duel-depth-union-t3-v1";
+    public const string PositionalSuiteId = "frontline-qualification-5";
+    public const int PositionalSuiteVersion = 1;
+    public const string PositionalProfileId =
+        "frontline-duel-depth-union-t4-v1";
     public const string EntryProbeId = "entry-initiative";
     public const string ContractAutoDeterminismProbeId =
         "contract-auto-determinism";
@@ -38,6 +42,10 @@ public static class FrontlineLabsQualificationDefinition
     public const string CadenceParityProbeId = "cadence-parity";
     public const string CooldownWindowProbeId = "cooldown-window";
     public const string LocalFormSafetyProbeId = "local-form-safety";
+    public const string SuppressionChokeProbeId = "suppression-choke";
+    public const string PredictionChamberProbeId = "prediction-chamber";
+    public const string FrontRotationProbeId = "front-rotation";
+    public const string MapHoldoutProbeId = "map-holdout";
 
     private const string Team0SpawnId =
         "qualification-team-0-prime";
@@ -553,6 +561,133 @@ public static class FrontlineLabsQualificationDefinition
                 "child-mobile");
     }
 
+    /// <summary>
+    /// T4 suppression state. The tested Prime already occupies the active
+    /// objective at one end of the six-tile central lane. Advancing gives up
+    /// useful ground, while straight fire reaches the passive lane target and
+    /// every one-bend alternative is consumed by the approach walls.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateSuppressionChokeProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        Position team0 = new(8, 7);
+        Position team1 = new(14, 7);
+        Position[] objective = testedTeamId == 0
+            ? [new Position(7, 7), new Position(8, 7)]
+            : [new Position(14, 7), new Position(15, 7)];
+        return CreatePositionalSingleLifeProbe(
+            SuppressionChokeProbeId,
+            maxTicks: 12,
+            captureThreshold: 1000,
+            FrontlineLabsDuelMapArm.Current,
+            team0,
+            Direction.East,
+            team1,
+            Direction.West,
+            objective,
+            mapVariantId: $"tested-team-{testedTeamId}");
+    }
+
+    /// <summary>
+    /// T4 entry state under the current wall topology. A repeated straight
+    /// pressure controller makes waiting for a last-moment response retreat
+    /// forever; useful play enters the central prediction chamber early.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreatePositionalEntryProbe(int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return CreatePositionalSingleLifeProbe(
+            EntryProbeId,
+            maxTicks: 60,
+            captureThreshold: 1000,
+            FrontlineLabsDuelMapArm.Current,
+            new Position(8, 7),
+            Direction.East,
+            new Position(14, 7),
+            Direction.West);
+    }
+
+    /// <summary>
+    /// T4 prediction-chamber state. A range-four straight projectile leaves a
+    /// safe lateral response that preserves active-objective occupancy; a
+    /// positional policy should prefer it to an equally safe concession.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreatePredictionChamberProbe(int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return testedTeamId == 0
+            ? CreatePositionalSingleLifeProbe(
+                PredictionChamberProbeId,
+                maxTicks: 8,
+                captureThreshold: 1000,
+                FrontlineLabsDuelMapArm.Current,
+                new Position(12, 7),
+                Direction.West,
+                new Position(8, 7),
+                Direction.East)
+            : CreatePositionalSingleLifeProbe(
+                PredictionChamberProbeId,
+                maxTicks: 8,
+                captureThreshold: 1000,
+                FrontlineLabsDuelMapArm.Current,
+                new Position(14, 7),
+                Direction.West,
+                new Position(10, 7),
+                Direction.East);
+    }
+
+    /// <summary>
+    /// T4 front-state probe. The tested Prime begins on the centre objective,
+    /// completes a short declared capture, then must leave the obsolete region
+    /// and establish control on the newly active objective.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateFrontRotationProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return testedTeamId == 0
+            ? CreatePositionalSingleLifeProbe(
+                FrontRotationProbeId,
+                maxTicks: 40,
+                captureThreshold: 6,
+                FrontlineLabsDuelMapArm.Current,
+                new Position(11, 7),
+                Direction.East,
+                new Position(20, 13),
+                Direction.West)
+            : CreatePositionalSingleLifeProbe(
+                FrontRotationProbeId,
+                maxTicks: 40,
+                captureThreshold: 6,
+                FrontlineLabsDuelMapArm.Current,
+                new Position(2, 13),
+                Direction.East,
+                new Position(11, 7),
+                Direction.West);
+    }
+
+    /// <summary>
+    /// T4 public map holdout. It repeats the mirrored pressure-entry task on
+    /// the content-identified thin-front objective topology.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateMapHoldoutProbe(
+        int testedTeamId)
+    {
+        ValidateTestedTeam(testedTeamId);
+        return CreatePositionalSingleLifeProbe(
+            MapHoldoutProbeId,
+            maxTicks: 60,
+            captureThreshold: 1000,
+            FrontlineLabsDuelMapArm.ThinFronts,
+            new Position(8, 7),
+            Direction.East,
+            new Position(14, 7),
+            Direction.West);
+    }
+
     private static ActorResolvedMatchDefinition CreatePrimeOnlyProbe(
         string probeId,
         int maxTicks,
@@ -765,6 +900,129 @@ public static class FrontlineLabsQualificationDefinition
             source.ModeMapBinding,
             source.CapabilityVersions);
     }
+
+    private static ActorResolvedMatchDefinition
+        CreatePositionalSingleLifeProbe(
+            string probeId,
+            int maxTicks,
+            int captureThreshold,
+            FrontlineLabsDuelMapArm mapArm,
+            Position team0Position,
+            Direction team0Facing,
+            Position team1Position,
+            Direction team1Facing,
+            IReadOnlyCollection<Position>? activeObjectiveOverride = null,
+            string? mapVariantId = null)
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment(mapArm);
+        ActorRulesDefinition rules = WithProbeMode(
+            source.Rules,
+            $"{PositionalSuiteId}-{probeId}",
+            maxTicks,
+            captureThreshold,
+            removePopulationActions: true);
+        string team0SpawnId =
+            $"{PositionalSuiteId}-{probeId}-team-0";
+        string team1SpawnId =
+            $"{PositionalSuiteId}-{probeId}-team-1";
+        ImmutableArray<ActorMapRegionDefinition> regions =
+        [
+            .. source.Map.Regions.Select(region =>
+                activeObjectiveOverride is not null
+                && region.RegionId == "frontline-position-2"
+                    ? new ActorMapRegionDefinition(
+                        region.RegionId,
+                        region.Kind,
+                        activeObjectiveOverride.ToImmutableArray())
+                    : region),
+        ];
+        var map = new ActorMapDefinition(
+            $"fq5-{probeId}-{MapArmId(mapArm)}" +
+            $"{(mapVariantId is null ? "" : $"-{mapVariantId}")}-map",
+            version: 1,
+            source.Map.TileRows,
+            [
+                Spawn(team0SpawnId, team0Position, team0Facing),
+                Spawn(team1SpawnId, team1Position, team1Facing),
+            ],
+            regions,
+            source.Map.TileTags);
+        var deployment = new InitialDeploymentDefinition(
+            [
+                new InitialSpawnDefinition(
+                    team0SpawnId,
+                    team0Position,
+                    team0Facing),
+                new InitialSpawnDefinition(
+                    team1SpawnId,
+                    team1Position,
+                    team1Facing),
+            ],
+            [
+                new InitialLifeDeployment(
+                    0,
+                    0,
+                    0,
+                    "prime-mobile",
+                    team0SpawnId),
+                new InitialLifeDeployment(
+                    1,
+                    0,
+                    0,
+                    "prime-mobile",
+                    team1SpawnId),
+            ]);
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            .. source.LifecycleAssignments
+                .Where(assignment => assignment.UnitId == 0)
+                .Select(assignment =>
+                    new ActorUnitSlotLifecycleAssignmentDefinition(
+                        assignment.TeamId,
+                        assignment.UnitId,
+                        assignment.LifecycleProfileId,
+                        assignment.InitialGeneration,
+                        ["prime-mobile"],
+                        assignment.InitialAvailability,
+                        assignment.UnlockTick,
+                        assignment.TeamId == 0
+                            ? team0SpawnId
+                            : team1SpawnId)),
+        ];
+        var topology = source.Topology with
+        {
+            UnitSlots = source.Topology.UnitSlots
+                .Where(slot => slot.UnitId == 0)
+                .ToImmutableArray(),
+            InitialLives =
+            [
+                new PublicInitialLife(0, 0, 0, "prime-mobile"),
+                new PublicInitialLife(1, 0, 0, "prime-mobile"),
+            ],
+        };
+        return new ActorResolvedMatchDefinition(
+            rules,
+            map,
+            source.Format,
+            topology,
+            deployment,
+            assignments,
+            [],
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static string MapArmId(FrontlineLabsDuelMapArm mapArm) =>
+        mapArm switch
+        {
+            FrontlineLabsDuelMapArm.Current => "current",
+            FrontlineLabsDuelMapArm.ThinFronts => "thin-fronts",
+            FrontlineLabsDuelMapArm.OuterShoulderBypass =>
+                "outer-shoulder-bypass",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(mapArm)),
+        };
 
     private static ActorResolvedMatchDefinition WithMobileProjectileRange(
         ActorResolvedMatchDefinition source,
