@@ -26,7 +26,8 @@ public static class FrontlineLabsExperimentCommand
             "out",
             "open",
             "capture-threshold",
-            "capture-gain-phase");
+            "capture-gain-phase",
+            "mobilize-turrets");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
@@ -60,26 +61,42 @@ public static class FrontlineLabsExperimentCommand
             "capture-threshold");
         (int StartsAtTick, int Gain)? captureGainPhase =
             OptionalCaptureGainPhase(options);
-        if (captureThreshold is not null && captureGainPhase is not null)
+        bool mobilizeTurrets = OptionalFlag(
+            options,
+            "mobilize-turrets");
+        int experimentCount =
+            (captureThreshold is null ? 0 : 1)
+            + (captureGainPhase is null ? 0 : 1)
+            + (mobilizeTurrets ? 1 : 0);
+        if (experimentCount > 1)
         {
             throw new InvalidOperationException(
-                "Use one numeric Frontline Labs experiment option at a time.");
+                "Use one Frontline Labs experiment option at a time.");
         }
-        ActorResolvedMatchDefinition definition =
-            captureThreshold is int threshold
-                ? FrontlineLabsDefinition
-                    .CreateCaptureThresholdExperiment(threshold)
-                : captureGainPhase is { } phase
-                    ? FrontlineLabsDefinition
-                        .CreateCaptureGainPhaseExperiment(
-                            phase.StartsAtTick,
-                            phase.Gain)
-                    : FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition definition;
+        if (captureThreshold is int threshold)
+        {
+            definition = FrontlineLabsDefinition
+                .CreateCaptureThresholdExperiment(threshold);
+        }
+        else if (captureGainPhase is { } phase)
+        {
+            definition = FrontlineLabsDefinition
+                .CreateCaptureGainPhaseExperiment(
+                    phase.StartsAtTick,
+                    phase.Gain);
+        }
+        else
+        {
+            definition = mobilizeTurrets
+                ? FrontlineLabsDefinition.CreateMobilizeExperiment()
+                : FrontlineLabsDefinition.Create();
+        }
         Console.WriteLine(
-            captureThreshold is null && captureGainPhase is null
+            experimentCount == 0
                 ? "LOCAL LABS: exact hosted Frontline Labs v1 contract; " +
                   "unranked and quota-free."
-                : "LOCAL LABS: content-identified numeric experiment; " +
+                : "LOCAL LABS: content-identified experiment; " +
                   "unranked, quota-free, and not the hosted v1 ruleset.");
         Console.WriteLine($"Runtime:           {runtimeKind}");
         Console.WriteLine($"Rules:             {definition.Rules.RulesetId}");
@@ -291,6 +308,23 @@ public static class FrontlineLabsExperimentCommand
                 "--capture-gain-phase must be <positive-start-tick>:<positive-gain>.");
         }
         return (startsAtTick, gain);
+    }
+
+    private static bool OptionalFlag(
+        IReadOnlyDictionary<string, string> options,
+        string name)
+    {
+        if (!options.TryGetValue(name, out string? value))
+            return false;
+        if (!string.Equals(
+                value,
+                "true",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"--{name} does not accept a value.");
+        }
+        return true;
     }
 
     private static ulong[] ParseSeeds(

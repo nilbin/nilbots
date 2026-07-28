@@ -25,6 +25,7 @@ public static class FrontlineLabsDefinition
     private const string TurretVisionId = "turret-vision";
     private const string MobileAttackId = "mobile-bolt";
     private const string TurretAttackId = "turret-bolt";
+    private const string MobilizeActionId = "mobilize";
     private const string PrimeLifecycleId = "prime-respawn";
     private const string ChildLifecycleId = "child-ready";
     private const string FabricationSourceRoleId =
@@ -36,7 +37,8 @@ public static class FrontlineLabsDefinition
         CreateResolved(
             RulesetId,
             captureThreshold: 15,
-            captureGainSchedule: null);
+            captureGainSchedule: null,
+            enableMobilize: false);
 
     /// <summary>
     /// Creates a local-only, content-identified capture-threshold arm without
@@ -56,7 +58,8 @@ public static class FrontlineLabsDefinition
         return CreateResolved(
             $"{RulesetId}-experiment-capture-{captureThreshold}",
             captureThreshold,
-            captureGainSchedule: null);
+            captureGainSchedule: null,
+            enableMobilize: false);
     }
 
     /// <summary>
@@ -96,19 +99,33 @@ public static class FrontlineLabsDefinition
                     "late-escalation",
                     startsAtTick,
                     gainPerSoleTeamTick),
-            ]);
+            ],
+            enableMobilize: false);
     }
+
+    /// <summary>
+    /// Creates a local-only action-contract arm in which a turret may return
+    /// once to child-mobile without allowing an Anchor healing loop.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateMobilizeExperiment() =>
+        CreateResolved(
+            $"{RulesetId}-experiment-mobilize",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: true);
 
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
         int captureThreshold,
         IEnumerable<FrontlineCaptureGainPhaseDefinition>?
-            captureGainSchedule)
+            captureGainSchedule,
+        bool enableMobilize)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
             captureThreshold,
-            captureGainSchedule);
+            captureGainSchedule,
+            enableMobilize);
         ActorMapDefinition map = CreateMap();
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
@@ -158,7 +175,8 @@ public static class FrontlineLabsDefinition
         string rulesetId,
         int captureThreshold,
         IEnumerable<FrontlineCaptureGainPhaseDefinition>?
-            captureGainSchedule)
+            captureGainSchedule,
+        bool enableMobilize)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -207,6 +225,125 @@ public static class FrontlineLabsDefinition
         ActorTransitionWindupDefinition splitWindup = Windup(
             ActorTransitionWindupDefinition.ActorTransitionCompletionKind
                 .TickStartAfterDuration);
+        string[] turretActions = enableMobilize
+            ? ["wait", PublicActionIds.ShootDirection, MobilizeActionId]
+            : ["wait", PublicActionIds.ShootDirection];
+        var actions = new List<ActorActionDefinition>
+        {
+            new(
+                "wait",
+                0,
+                ActorActionKind.Wait,
+                []),
+            new(
+                "move",
+                1,
+                ActorActionKind.Movement,
+                [ActorActionParameterKind.Direction]),
+            new(
+                "rotate",
+                2,
+                ActorActionKind.Rotation,
+                [ActorActionParameterKind.Direction]),
+            new(
+                "shoot",
+                4,
+                ActorActionKind.Attack,
+                [ActorActionParameterKind.ShotProgram]),
+            new(
+                "fabricate",
+                PublicActionCodes.Fabricate,
+                ActorActionKind.Fabrication,
+                [ActorActionParameterKind.UnitTarget]),
+            new(
+                "transform",
+                PublicActionCodes.Transform,
+                ActorActionKind.SameLifeTransition,
+                [ActorActionParameterKind.FormTarget]),
+            new(
+                PublicActionIds.ShootDirection,
+                PublicActionCodes.ShootDirection,
+                ActorActionKind.Attack,
+                [ActorActionParameterKind.ProjectileHeading]),
+            new(
+                "split",
+                103,
+                ActorActionKind.Replication,
+                []),
+        };
+        if (enableMobilize)
+        {
+            actions.Add(
+                new ActorActionDefinition(
+                    MobilizeActionId,
+                    104,
+                    ActorActionKind.SameLifeTransition,
+                    []));
+        }
+        var sameLifeTransitions =
+            new List<ActorSameLifeTransitionDefinition>
+            {
+                new ActorFormTransitionDefinition(
+                    "anchor-child",
+                    "transform",
+                    ChildFormId,
+                    TurretFormId,
+                    anchorWindup,
+                    ActorSameLifeTransitionDefinition.MemoryContinuityKind
+                        .PreservePrivateMemory,
+                    new ActorSameLifeHealthDefinition(
+                        ActorSameLifeHealthDefinition.HealthPolicyKind
+                            .AddFlatCappedToTargetMaximum,
+                        flatHealthGain: 2),
+                    ActorSameLifeCombatStateDefinition
+                        .PreserveWithoutRefillV1,
+                    new ActorSameLifePlacementDefinition(
+                        ActorSameLifePlacementDefinition
+                            .PositionContinuityKind.SameOccupiedGroundTile,
+                        ActorSameLifePlacementDefinition
+                            .LegalityEvaluationKind
+                            .QueueAndCompletionTileTags,
+                        requiredTileTags: [],
+                        forbiddenTileTags:
+                        [
+                            ActorMapTileTagDefinition.TileTagKind
+                                .TransitionPlacementForbidden,
+                        ],
+                        ActorSameLifePlacementDefinition
+                            .FailedCompletionKind
+                            .CancelAndRemainInSourceForm),
+                    irreversibleForLife: !enableMobilize),
+            };
+        if (enableMobilize)
+        {
+            sameLifeTransitions.Add(
+                new ActorFormTransitionDefinition(
+                    "mobilize-child",
+                    MobilizeActionId,
+                    TurretFormId,
+                    ChildFormId,
+                    anchorWindup,
+                    ActorSameLifeTransitionDefinition.MemoryContinuityKind
+                        .PreservePrivateMemory,
+                    new ActorSameLifeHealthDefinition(
+                        ActorSameLifeHealthDefinition.HealthPolicyKind
+                            .PreserveCurrentCappedToTargetMaximum,
+                        flatHealthGain: 0),
+                    ActorSameLifeCombatStateDefinition
+                        .PreserveWithoutRefillV1,
+                    new ActorSameLifePlacementDefinition(
+                        ActorSameLifePlacementDefinition
+                            .PositionContinuityKind.SameOccupiedGroundTile,
+                        ActorSameLifePlacementDefinition
+                            .LegalityEvaluationKind
+                            .QueueAndCompletionTileTags,
+                        requiredTileTags: [],
+                        forbiddenTileTags: [],
+                        ActorSameLifePlacementDefinition
+                            .FailedCompletionKind
+                            .CancelAndRemainInSourceForm),
+                    irreversibleForLife: true));
+        }
 
         return new ActorRulesDefinition(
             rulesetId,
@@ -301,53 +438,12 @@ public static class FrontlineLabsDefinition
                     turretVision.Id,
                     turretAttack.Id,
                     objectiveWeight: 0,
-                    ["wait", PublicActionIds.ShootDirection]),
+                    turretActions),
             ],
             [movement],
             [mobileVision, turretVision],
             [mobileAttack, turretAttack],
-            [
-                new ActorActionDefinition(
-                    "wait",
-                    0,
-                    ActorActionKind.Wait,
-                    []),
-                new ActorActionDefinition(
-                    "move",
-                    1,
-                    ActorActionKind.Movement,
-                    [ActorActionParameterKind.Direction]),
-                new ActorActionDefinition(
-                    "rotate",
-                    2,
-                    ActorActionKind.Rotation,
-                    [ActorActionParameterKind.Direction]),
-                new ActorActionDefinition(
-                    "shoot",
-                    4,
-                    ActorActionKind.Attack,
-                    [ActorActionParameterKind.ShotProgram]),
-                new ActorActionDefinition(
-                    "fabricate",
-                    PublicActionCodes.Fabricate,
-                    ActorActionKind.Fabrication,
-                    [ActorActionParameterKind.UnitTarget]),
-                new ActorActionDefinition(
-                    "transform",
-                    PublicActionCodes.Transform,
-                    ActorActionKind.SameLifeTransition,
-                    [ActorActionParameterKind.FormTarget]),
-                new ActorActionDefinition(
-                    PublicActionIds.ShootDirection,
-                    PublicActionCodes.ShootDirection,
-                    ActorActionKind.Attack,
-                    [ActorActionParameterKind.ProjectileHeading]),
-                new ActorActionDefinition(
-                    "split",
-                    103,
-                    ActorActionKind.Replication,
-                    []),
-            ],
+            actions,
             [
                 new BoundedChildFabricationDefinition(
                     "fabricate-child",
@@ -369,38 +465,7 @@ public static class FrontlineLabsDefinition
                     new ActorFabricationDelayDefinition(durationTicks: 1),
                     ActorActionRejectionResult.Blocked),
             ],
-            [
-                new ActorFormTransitionDefinition(
-                    "anchor-child",
-                    "transform",
-                    ChildFormId,
-                    TurretFormId,
-                    anchorWindup,
-                    ActorSameLifeTransitionDefinition.MemoryContinuityKind
-                        .PreservePrivateMemory,
-                    new ActorSameLifeHealthDefinition(
-                        ActorSameLifeHealthDefinition.HealthPolicyKind
-                            .AddFlatCappedToTargetMaximum,
-                        flatHealthGain: 2),
-                    ActorSameLifeCombatStateDefinition
-                        .PreserveWithoutRefillV1,
-                    new ActorSameLifePlacementDefinition(
-                        ActorSameLifePlacementDefinition
-                            .PositionContinuityKind.SameOccupiedGroundTile,
-                        ActorSameLifePlacementDefinition
-                            .LegalityEvaluationKind
-                            .QueueAndCompletionTileTags,
-                        requiredTileTags: [],
-                        forbiddenTileTags:
-                        [
-                            ActorMapTileTagDefinition.TileTagKind
-                                .TransitionPlacementForbidden,
-                        ],
-                        ActorSameLifePlacementDefinition
-                            .FailedCompletionKind
-                            .CancelAndRemainInSourceForm),
-                    irreversibleForLife: true),
-            ],
+            sameLifeTransitions,
             [
                 new SplitReplicationTransitionDefinition(
                     "split-prime",

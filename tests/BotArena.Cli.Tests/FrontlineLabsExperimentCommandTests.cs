@@ -128,6 +128,27 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "--capture-gain-phase",
                     "300:2",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--capture-threshold",
+                    "12",
+                    "--mobilize-turrets",
+                ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--mobilize-turrets",
+                    "false",
+                ]));
     }
 
     [Fact]
@@ -214,12 +235,68 @@ public sealed class FrontlineLabsExperimentCommandTests
         }
     }
 
+    [Fact]
+    public void MobilizeArm_WritesActionTransitionAndDistinctIdentity()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-mobilize-arm-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "mobilize");
+
+            Assert.Equal(
+                0,
+                Run(
+                    alpha,
+                    beta,
+                    output,
+                    mobilizeTurrets: true));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement rules = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract")
+                .GetProperty("rules");
+            Assert.Equal(
+                "frontline-labs-1-experiment-mobilize",
+                rules.GetProperty("rulesetId").GetString());
+            Assert.Contains(
+                rules.GetProperty("actions").EnumerateArray(),
+                action =>
+                    action.GetProperty("id").GetString() == "mobilize"
+                    && action.GetProperty("code").GetInt32() == 104);
+            JsonElement transition = Assert.Single(
+                rules.GetProperty("sameLifeTransitions").EnumerateArray(),
+                value =>
+                    value.GetProperty("transitionId").GetString()
+                    == "mobilize-child");
+            Assert.Equal(
+                "turret",
+                transition.GetProperty("sourceFormId").GetString());
+            Assert.Equal(
+                "child-mobile",
+                transition.GetProperty("targetFormId").GetString());
+            Assert.True(
+                transition.GetProperty("irreversibleForLife").GetBoolean());
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
     private static int Run(
         string bot,
         string opponent,
         string output,
         string? captureThreshold = null,
-        string? captureGainPhase = null)
+        string? captureGainPhase = null,
+        bool mobilizeTurrets = false)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -250,6 +327,8 @@ public sealed class FrontlineLabsExperimentCommandTests
                 arguments.Add("--capture-gain-phase");
                 arguments.Add(captureGainPhase);
             }
+            if (mobilizeTurrets)
+                arguments.Add("--mobilize-turrets");
             return FrontlineLabsExperimentCommand.Run(arguments);
         }
         finally

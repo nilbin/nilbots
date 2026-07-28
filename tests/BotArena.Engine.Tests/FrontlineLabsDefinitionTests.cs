@@ -185,6 +185,64 @@ public sealed class FrontlineLabsDefinitionTests
     }
 
     [Fact]
+    public void MobilizeExperimentAddsOneWayTurretExitWithoutChangingMap()
+    {
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition candidate =
+            FrontlineLabsDefinition.CreateMobilizeExperiment();
+        Dictionary<string, ActorFormDefinition> forms =
+            candidate.Rules.Forms.ToDictionary(form => form.Id);
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-mobilize",
+            candidate.Rules.RulesetId);
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(baseline.Map),
+            ActorContractFingerprint.ComputeMap(candidate.Map));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(baseline.Rules),
+            ActorContractFingerprint.ComputeRules(candidate.Rules));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMatch(baseline),
+            ActorContractFingerprint.ComputeMatch(candidate));
+        Assert.Empty(
+            Assert.IsType<FrontlineGameModeDefinition>(
+                candidate.Rules.GameMode).Capture.GainSchedule);
+
+        ActorActionDefinition mobilize = candidate.Rules.Actions.Single(
+            action => action.Id == "mobilize");
+        Assert.Equal(104, mobilize.Code);
+        Assert.Equal(ActorActionKind.SameLifeTransition, mobilize.Kind);
+        Assert.Empty(mobilize.ParameterKinds);
+        Assert.Contains("mobilize", forms["turret"].AllowedActionIds);
+        Assert.DoesNotContain(
+            "mobilize",
+            forms["child-mobile"].AllowedActionIds);
+
+        ActorFormTransitionDefinition anchor = candidate.Rules
+            .SameLifeTransitions
+            .OfType<ActorFormTransitionDefinition>()
+            .Single(transition => transition.TransitionId == "anchor-child");
+        ActorFormTransitionDefinition mobilizeTransition = candidate.Rules
+            .SameLifeTransitions
+            .OfType<ActorFormTransitionDefinition>()
+            .Single(transition =>
+                transition.TransitionId == "mobilize-child");
+        Assert.False(anchor.IrreversibleForLife);
+        Assert.Equal("turret", mobilizeTransition.SourceFormId);
+        Assert.Equal("child-mobile", mobilizeTransition.TargetFormId);
+        Assert.Equal("mobilize", mobilizeTransition.ActionId);
+        Assert.Equal(
+            ActorSameLifeHealthDefinition.HealthPolicyKind
+                .PreserveCurrentCappedToTargetMaximum,
+            mobilizeTransition.Health.Policy);
+        Assert.True(mobilizeTransition.IrreversibleForLife);
+        Assert.Empty(mobilizeTransition.Placement.RequiredTileTags);
+        Assert.Empty(mobilizeTransition.Placement.ForbiddenTileTags);
+    }
+
+    [Fact]
     public void SplitOutputCannotAnchorAndPrimeSlotStaysObjectiveCapable()
     {
         ActorResolvedMatchDefinition definition =

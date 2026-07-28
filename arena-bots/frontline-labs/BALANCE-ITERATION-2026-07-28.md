@@ -125,6 +125,47 @@ hypothesis is specific: fortification should be a strategic commitment, not a
 permanent self-removal, and late remobilization should break the six
 Bastion-centred positioning loops without erasing the turret's early/mid value.
 
+### v8 pre-registration — one-way remobilization
+
+This is a substantial action-contract experiment, not a numeric tune and not
+a ship verdict. The candidate ruleset is
+`frontline-labs-1-experiment-mobilize`; hosted `frontline-labs-1`, its map,
+static capture tuning, lifecycle, fabrication, Split, attacks, vision, and
+every non-Bastion policy stay fixed.
+
+The candidate adds one declared `mobilize` action and a
+`turret -> child-mobile` same-life transition. It preserves actor/runtime
+identity, private memory, position, facing, cooldown, and energy; health is
+preserved but capped to the child maximum. Anchor retains its existing `+2`
+health and placement restriction. Mobilize consumes a one-tick windup and is
+irreversible back toward turret for that life, preventing Anchor/Mobilize
+healing loops while still letting a committed turret rejoin the mobile game.
+
+Isolation and evidence:
+
+1. Baseline-v2 artifacts under the candidate are compatibility sentinels.
+   Because none can submit `mobilize`, their normalized behavioral
+   trajectories must remain identical to hosted v1 after contract/artifact
+   identity and ruleset-derived actor seeds are removed.
+2. Only Bastion receives one declared, candidate-aware policy pass. It may
+   mobilize its designated turret after the active objective moves outside
+   useful fire support. Adapter, Fabricator, and Pressure sources remain
+   byte-identical and are mechanically rebuilt only if the SDK contract
+   version changes.
+3. The final screen uses seed `104729`, both participant assignments, all six
+   unordered doctrine pairs (12 WASM matches), the same map, and all verified
+   replay-v3 evidence.
+
+Hard gates are zero runtime faults/disqualifications, deterministic replay
+verification, at least one legal Mobilize completion, no pre-Mobilize
+trajectory drift in the candidate Bastion games, and exact non-Bastion match
+behavior. The watchability hypothesis passes this exploratory arm only if the
+six Bastion-centred games reduce both stalled and looped classifications from
+six to at most three without increasing the full cohort's MaxTicks count above
+five or reducing its breach count below seven. Duration and outcome balance
+remain diagnostics; a numeric pass still requires human replay review before
+any rules promotion.
+
 ## Replay review
 
 The outcome-blind v2 review found exact spectator duplicates and long shared

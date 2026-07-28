@@ -97,6 +97,12 @@ embedded in the contract, gets a distinct ruleset/fingerprint identity, and is
 available to bots through
 `frontlineMode.Capture.GainPhaseAtTick(context.Tick)`.
 
+For the action-contract arm, `--mobilize-turrets` adds the declared
+`mobilize` action and a one-way `turret -> child-mobile` same-life transition.
+It uses ruleset `frontline-labs-1-experiment-mobilize`; health and combat state
+are preserved and capped to the mobile form, while that life cannot Anchor
+again after Mobilize.
+
 Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract
