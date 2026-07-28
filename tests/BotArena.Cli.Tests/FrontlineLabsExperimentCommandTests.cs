@@ -96,12 +96,59 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "1,2",
                     "--open",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--capture-threshold",
+                    "0",
+                ]));
+    }
+
+    [Fact]
+    public void CaptureThresholdArm_WritesDistinctRulesetIdentity()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-arm-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "capture-12");
+
+            Assert.Equal(0, Run(alpha, beta, output, "12"));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement header = document.RootElement.GetProperty("header");
+            Assert.Equal(
+                "frontline-labs-1-experiment-capture-12",
+                header.GetProperty("gameRulesVersion").GetString());
+            Assert.Equal(
+                12,
+                header.GetProperty("contract")
+                    .GetProperty("rules")
+                    .GetProperty("gameMode")
+                    .GetProperty("capture")
+                    .GetProperty("threshold")
+                    .GetInt32());
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
     }
 
     private static int Run(
         string bot,
         string opponent,
-        string output)
+        string output,
+        string? captureThreshold = null)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -109,19 +156,25 @@ public sealed class FrontlineLabsExperimentCommandTests
         {
             Console.SetOut(TextWriter.Null);
             Console.SetError(TextWriter.Null);
-            return FrontlineLabsExperimentCommand.Run(
-                [
-                    "--bot",
-                    bot,
-                    "--opponent",
-                    opponent,
-                    "--runtime",
-                    "in-process",
-                    "--seed",
-                    "42",
-                    "--out",
-                    output,
-                ]);
+            var arguments = new List<string>
+            {
+                "--bot",
+                bot,
+                "--opponent",
+                opponent,
+                "--runtime",
+                "in-process",
+                "--seed",
+                "42",
+                "--out",
+                output,
+            };
+            if (captureThreshold is not null)
+            {
+                arguments.Add("--capture-threshold");
+                arguments.Add(captureThreshold);
+            }
+            return FrontlineLabsExperimentCommand.Run(arguments);
         }
         finally
         {

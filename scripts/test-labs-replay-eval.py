@@ -6,6 +6,9 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -124,6 +127,39 @@ class LabsReplayEvalTests(unittest.TestCase):
             "may be null only for a faulted turn",
         ):
             EVALUATOR.analyze_replay(invalid)
+
+    def test_json_report_uses_group_relative_source_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            replay = root / "matches" / "one" / "attempt-01" / "replay.json"
+            replay.parent.mkdir(parents=True)
+            replay.write_text(
+                json.dumps(self.document),
+                encoding="utf-8",
+            )
+            report_path = root / "report.json"
+
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--group",
+                    f"baseline={root / 'matches'}",
+                    "--json",
+                    str(report_path),
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(0, completed.returncode, completed.stderr)
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual("replay.json", report["matches"][0]["source"])
+            self.assertFalse(
+                Path(report["matches"][0]["source"]).is_absolute()
+            )
 
 
 if __name__ == "__main__":

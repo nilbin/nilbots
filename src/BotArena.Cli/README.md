@@ -85,6 +85,12 @@ unranked. Both entrants are required: a generic spec is an
 `IGenericActorBot` project or generic-profile WASM artifact, and no generic
 built-in opponent exists. Use `--swap` for the other team assignment.
 
+For a registered local numeric arm, `--capture-threshold <positive-n>` creates
+a distinct ruleset such as
+`frontline-labs-1-experiment-capture-12`. Its changed rules and match
+fingerprints are embedded in replay v3; the option never changes or aliases
+hosted `frontline-labs-1`.
+
 Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract

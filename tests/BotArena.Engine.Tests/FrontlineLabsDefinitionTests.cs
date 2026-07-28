@@ -116,6 +116,34 @@ public sealed class FrontlineLabsDefinitionTests
     }
 
     [Fact]
+    public void CaptureThresholdExperiment_GetsDistinctImmutableIdentity()
+    {
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition candidate =
+            FrontlineLabsDefinition.CreateCaptureThresholdExperiment(12);
+        FrontlineGameModeDefinition mode =
+            Assert.IsType<FrontlineGameModeDefinition>(
+                candidate.Rules.GameMode);
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-capture-12",
+            candidate.Rules.RulesetId);
+        Assert.Equal(12, mode.Capture.Threshold);
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(baseline.Map),
+            ActorContractFingerprint.ComputeMap(candidate.Map));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(baseline.Rules),
+            ActorContractFingerprint.ComputeRules(candidate.Rules));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMatch(baseline),
+            ActorContractFingerprint.ComputeMatch(candidate));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            FrontlineLabsDefinition.CreateCaptureThresholdExperiment(0));
+    }
+
+    [Fact]
     public void SplitOutputCannotAnchorAndPrimeSlotStaysObjectiveCapable()
     {
         ActorResolvedMatchDefinition definition =

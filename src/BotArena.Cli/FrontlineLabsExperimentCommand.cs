@@ -5,9 +5,10 @@ using BotArena.Engine;
 namespace BotArena.Cli;
 
 /// <summary>
-/// Exact local authoring loop for the immutable hosted Frontline Labs v1
-/// definition. It bypasses App authentication and quotas, but uses the same
-/// resolved contract, generic session, replay-v3 projection, and WASM runtime.
+/// Local authoring loop for the immutable hosted Frontline Labs v1 definition
+/// and explicitly content-identified, local-only numeric experiment arms. It
+/// bypasses App authentication and quotas, but uses the same resolved
+/// contract, generic session, replay-v3 projection, and WASM runtime.
 /// </summary>
 public static class FrontlineLabsExperimentCommand
 {
@@ -23,7 +24,8 @@ public static class FrontlineLabsExperimentCommand
             "swap",
             "runtime",
             "out",
-            "open");
+            "open",
+            "capture-threshold");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
@@ -52,11 +54,18 @@ public static class FrontlineLabsExperimentCommand
                 "--open requires a single --seed.");
         }
 
-        ActorResolvedMatchDefinition definition =
-            FrontlineLabsDefinition.Create();
+        int? captureThreshold = OptionalPositiveInt(
+            options,
+            "capture-threshold");
+        ActorResolvedMatchDefinition definition = captureThreshold is int value
+            ? FrontlineLabsDefinition.CreateCaptureThresholdExperiment(value)
+            : FrontlineLabsDefinition.Create();
         Console.WriteLine(
-            "LOCAL LABS: exact hosted Frontline Labs v1 contract; " +
-            "unranked and quota-free.");
+            captureThreshold is null
+                ? "LOCAL LABS: exact hosted Frontline Labs v1 contract; " +
+                  "unranked and quota-free."
+                : "LOCAL LABS: content-identified numeric experiment; " +
+                  "unranked, quota-free, and not the hosted v1 ruleset.");
         Console.WriteLine($"Runtime:           {runtimeKind}");
         Console.WriteLine($"Rules:             {definition.Rules.RulesetId}");
         Console.WriteLine(
@@ -217,6 +226,25 @@ public static class FrontlineLabsExperimentCommand
             throw new InvalidOperationException(
                 $"nilbots experiment frontline-labs requires --{name} " +
                 "<project|wasm>.");
+        }
+        return value;
+    }
+
+    private static int? OptionalPositiveInt(
+        IReadOnlyDictionary<string, string> options,
+        string name)
+    {
+        if (!options.TryGetValue(name, out string? raw))
+            return null;
+        if (!int.TryParse(
+                raw,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out int value)
+            || value <= 0)
+        {
+            throw new InvalidOperationException(
+                $"--{name} must be a positive integer.");
         }
         return value;
     }

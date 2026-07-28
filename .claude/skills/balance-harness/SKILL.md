@@ -10,7 +10,8 @@ Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/frontline-replay-eval.py`, `scripts/labs-replay-eval.py`,
 `scripts/replay-review-sample.py`, the CLI's historical `--rules` flag, the
 frozen replay-v2 `nilbots experiment frontline` path, and the generic
-replay-v3 `nilbots experiment frontline-labs` path.
+replay-v3 `nilbots experiment frontline-labs` path. Labs capture-threshold
+arms use its local-only `--capture-threshold <positive-n>` option.
 
 ## 1. Classify and pre-register the experiment
 
@@ -84,12 +85,21 @@ python3 scripts/labs-replay-eval.py \
   --group current=arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/matches \
   --json arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/dynamics.json
 
+nilbots experiment frontline-labs \
+  --bot <bot.wasm> --opponent <opponent.wasm> \
+  --capture-threshold 12 --seed 104729
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
 
 Fixed seeds make same-cohort arms comparable. Preserve every replay in
 separate arm/block directories.
+
+For a Labs capture-threshold arm, the CLI creates a distinct
+`frontline-labs-1-experiment-capture-<n>` ruleset and fingerprints. Put those
+exact values in the cohort manifest and include the same option in
+`--runner-command`; never relabel changed values as `frontline-labs-1`.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and

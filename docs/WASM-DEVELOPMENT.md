@@ -178,12 +178,16 @@ nilbots experiment frontline-labs \
 nilbots verify out/frontline-labs/<match>/replay.json
 ```
 
-`frontline-labs` always resolves `FrontlineLabsDefinition.Create()` and writes
-canonical replay v3. It accepts two external `IGenericActorBot` projects or
-generic-profile WASM artifacts; there is intentionally no generic built-in
-fallback. `--runtime in-process` is the fast diagnostic loop, while the
-default `wasm` path uses `WasmGenericActorRuntimeFactory` exactly as the hosted
-generic match executor does.
+By default, `frontline-labs` resolves
+`FrontlineLabsDefinition.Create()` and writes canonical replay v3. A local
+`--capture-threshold <positive-n>` causal arm instead resolves a distinct
+content-descriptive experimental ruleset and embeds its changed fingerprints;
+it cannot reinterpret hosted v1. The command accepts two external
+`IGenericActorBot` projects or generic-profile WASM artifacts; there is
+intentionally no generic built-in fallback. `--runtime in-process` is the fast
+diagnostic loop, while the default `wasm` path uses
+`WasmGenericActorRuntimeFactory` exactly as the hosted generic match executor
+does.
 
 Actor 1.0 negotiates and then exchanges:
 

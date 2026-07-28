@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "name": "Adapter",
+  "cohort": "baseline-v2-2026-07-28",
+  "doctrine": "Adapter: change priorities from visible allied/enemy state, score, active objective, and available contract capabilities rather than committing to one opening.",
+  "authoringPasses": 1,
+  "repairs": 3,
+  "mechanicalRepairs": 1,
+  "runtimeRepairs": 2,
+  "frameworkSdkRepairs": 2,
+  "botSourceChangedForFrameworkSdkRepair": false,
+  "sourceSha256": "8b40e8771629e96ed99636a08a6810c7f7629452a8dc2cf13f1c3d289f4b0ea9",
+  "artifactSha256": "dd5ef784414250847fb750b9f3cc41d018f7cd5898e8aa233b54235ca68f21ca",
+  "previousArtifactSha256": "d01f26f41d870bd842c12372748e3e63770a77a0c2f6d2443637ca2e43283557",
+  "currentToolchain": {
+    "cliVersion": "0.9.3",
+    "sdkVersion": "0.10.2",
+    "compiler": "NativeAOT-LLVM 10.0.0-rc.1.26306.1",
+    "buildCache": "miss",
+    "buildCacheKey": "6a534e0a79ae51682e9df8b1fbd6907f8c3a9f2c2cf8016722dd17c4198a6120"
+  },
+  "artifactHistory": [
+    {
+      "sdkVersion": "0.10.0",
+      "sourceSha256": "8b40e8771629e96ed99636a08a6810c7f7629452a8dc2cf13f1c3d289f4b0ea9",
+      "artifactSha256": "d4dcc5edcd711e87bdd3153f3f75f9132c3d0b1f74d01b2897045ff782299161",
+      "status": "historical"
+    },
+    {
+      "sdkVersion": "0.10.1",
+      "sourceSha256": "8b40e8771629e96ed99636a08a6810c7f7629452a8dc2cf13f1c3d289f4b0ea9",
+      "artifactSha256": "d01f26f41d870bd842c12372748e3e63770a77a0c2f6d2443637ca2e43283557",
+      "status": "historical"
+    },
+    {
+      "sdkVersion": "0.10.2",
+      "sourceSha256": "8b40e8771629e96ed99636a08a6810c7f7629452a8dc2cf13f1c3d289f4b0ea9",
+      "artifactSha256": "dd5ef784414250847fb750b9f3cc41d018f7cd5898e8aa233b54235ca68f21ca",
+      "status": "current"
+    }
+  ],
+  "smokeRuns": [
+    {
+      "opponent": "pressure-v1",
+      "seed": 104729,
+      "artifact": "intermediate",
+      "replaySha256": "11bc3e5bae4cf8918fb7e6f35038904e52ad4c97a3d13b19f93f852b7b57dc1f",
+      "adapterFaulted": true
+    },
+    {
+      "opponent": "fabricator-v1",
+      "seed": 130363,
+      "artifact": "final",
+      "replaySha256": "04b174ffdb30e81b29c9e0bd71d3261feb6efb3fe414ab7c6b12836bb90f41aa",
+      "adapterFaulted": false
+    },
+    {
+      "opponent": "bastion-v1",
+      "seed": 155921,
+      "artifact": "final",
+      "replaySha256": "cc1b1ed982b003d0786e6a69a776aa1fa3d845edd7612ed67fcfc68a92416865",
+      "adapterFaulted": true,
+      "externalObservationFault": true
+    },
+    {
+      "opponent": "bastion-v1",
+      "seed": 155921,
+      "artifact": "sdk-0.10.1-current",
+      "replaySha256": "33b7609731298c0bcbb95237fd58dc39881f21292cbd0d76c08d5fd0c41469d9",
+      "completionReason": "fault-eligibility",
+      "endTick": 144,
+      "adapterOutcome": "win",
+      "adapterFaulted": false,
+      "opponentFaulted": true,
+      "frameworkSdkRepairValidation": true
+    }
+  ]
+}

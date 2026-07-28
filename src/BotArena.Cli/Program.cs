@@ -221,11 +221,14 @@ static int CommandHelp(string command)
             Usage: nilbots experiment frontline-labs
                    --bot <generic-spec> --opponent <generic-spec>
                    [--seed <n> | --seeds a,b,c] [--swap]
+                   [--capture-threshold <positive-n>]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
             through the generic actor session and writes canonical replay v3,
             without App authentication, queues, or quotas. It is unranked.
+            --capture-threshold creates a local-only ruleset with a distinct,
+            content-descriptive ruleset ID; it never reinterprets hosted v1.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             """,

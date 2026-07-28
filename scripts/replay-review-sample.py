@@ -141,7 +141,7 @@ def write_review_package(destination, chosen, blind):
         if copied_hash != source_hash:
             raise ValueError(f"{source}: copied replay bytes changed")
         labels = presentation_labels(item, blind)
-        item["reviewSource"] = str(copied_replay.resolve())
+        item["reviewSource"] = f"replays/{sample_id}.json"
         item["presentationLabels"] = labels
         index.append(
             {

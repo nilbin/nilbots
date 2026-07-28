@@ -32,9 +32,36 @@ public static class FrontlineLabsDefinition
     private const string FabricationOutputRoleId =
         "fabrication-output";
 
-    public static ActorResolvedMatchDefinition Create()
+    public static ActorResolvedMatchDefinition Create() =>
+        CreateResolved(RulesetId, captureThreshold: 15);
+
+    /// <summary>
+    /// Creates a local-only, content-identified capture-threshold arm without
+    /// reinterpreting the immutable hosted <see cref="RulesetId"/> contract.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateCaptureThresholdExperiment(int captureThreshold)
     {
-        ActorRulesDefinition rules = CreateRules();
+        if (captureThreshold <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(captureThreshold),
+                captureThreshold,
+                "Capture threshold must be positive.");
+        }
+
+        return CreateResolved(
+            $"{RulesetId}-experiment-capture-{captureThreshold}",
+            captureThreshold);
+    }
+
+    private static ActorResolvedMatchDefinition CreateResolved(
+        string rulesetId,
+        int captureThreshold)
+    {
+        ActorRulesDefinition rules = CreateRules(
+            rulesetId,
+            captureThreshold);
         ActorMapDefinition map = CreateMap();
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
@@ -80,7 +107,9 @@ public static class FrontlineLabsDefinition
             decisionSchemaVersion: 2,
             matchContractSchemaVersion: 2);
 
-    private static ActorRulesDefinition CreateRules()
+    private static ActorRulesDefinition CreateRules(
+        string rulesetId,
+        int captureThreshold)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -131,13 +160,13 @@ public static class FrontlineLabsDefinition
                 .TickStartAfterDuration);
 
         return new ActorRulesDefinition(
-            RulesetId,
+            rulesetId,
             new ActorRulesLimits(
                 maxTicks: 500,
                 new ActorRuntimeFaultDefinition(
                     faultsAllowedBeforeDisqualification: 0)),
             new ActorSeedMechanicsDefinition(
-                RulesetId,
+                rulesetId,
                 ActorSeedMechanicsDefinition.SeedDerivationKind
                     .MatchSeedProfileTeamUnitLifeMix64V1,
                 ActorSeedMechanicsDefinition.LifeIdentityAssignmentKind
@@ -162,7 +191,7 @@ public static class FrontlineLabsDefinition
                 ],
                 frontlinePositionCount: 5,
                 new FrontlineCaptureDefinition(
-                    threshold: 15,
+                    threshold: captureThreshold,
                     gainPerSoleTeamTick: 1,
                     decayAmount: 1,
                     decayIntervalTicks: 2,

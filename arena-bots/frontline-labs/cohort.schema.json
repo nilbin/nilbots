@@ -44,7 +44,10 @@
       "properties": {
         "id": { "const": "frontline-labs" },
         "version": { "const": 1 },
-        "rulesetId": { "const": "frontline-labs-1" },
+        "rulesetId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
         "mapId": { "const": "frontline-labs-01" },
         "mapVersion": { "const": 1 },
         "formatId": { "const": "head-to-head" },
@@ -74,7 +77,8 @@
       "properties": {
         "implementationPasses": { "const": 1 },
         "improvementPasses": { "const": 0 },
-        "sharedRepairPasses": { "type": "integer", "minimum": 0 }
+        "sharedRepairPasses": { "type": "integer", "minimum": 0 },
+        "balancePasses": { "type": "integer", "minimum": 0 }
       }
     },
     "seeds": {
@@ -128,6 +132,7 @@
           },
           "implementationPasses": { "const": 1 },
           "repairPasses": { "type": "integer", "minimum": 0 },
+          "balancePasses": { "type": "integer", "minimum": 0 },
           "dxReport": { "type": "string", "minLength": 1 }
         }
       }

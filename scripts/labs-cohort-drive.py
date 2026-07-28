@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import itertools
 import json
+import os
 import re
 import shlex
 import shutil
@@ -23,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_SEEDS = [104729, 130363, 155921]
+DEFAULT_SEEDS = [104729]
 DEFAULT_RUNNER = (
     "dotnet run --project src/BotArena.Cli -- "
     "experiment frontline-labs --bot {bot} --opponent {opponent} "
@@ -41,6 +42,9 @@ EXPECTED_PLAYLIST = {
     "formatId": "head-to-head",
     "contractProfileId": "generic-actor-match-2",
 }
+FIXED_PLAYLIST_FIELDS = tuple(
+    key for key in EXPECTED_PLAYLIST if key != "rulesetId"
+)
 EXPECTED_DOCTRINES = {"pressure", "fabricator", "bastion", "adapter"}
 FINGERPRINT_FIELDS = (
     "rulesFingerprint",
@@ -190,11 +194,17 @@ def _repository_source_identity(root: Path) -> dict[str, Any]:
 def _validate_playlist(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("playlist must be an object")
-    for key, expected in EXPECTED_PLAYLIST.items():
+    for key in FIXED_PLAYLIST_FIELDS:
+        expected = EXPECTED_PLAYLIST[key]
         if value.get(key) != expected:
             raise ValueError(
                 f"playlist {key} must be exactly {expected!r}"
             )
+    ruleset_id = value.get("rulesetId")
+    if not isinstance(ruleset_id, str) or _slug(ruleset_id) != ruleset_id:
+        raise ValueError(
+            "playlist rulesetId must be a lowercase kebab-case slug"
+        )
     for key in FINGERPRINT_FIELDS:
         if not re.fullmatch(r"[0-9a-f]{64}", str(value.get(key, ""))):
             raise ValueError(
@@ -422,7 +432,7 @@ def freeze_run(
         "cohortId": manifest["cohortId"],
         "engineCommit": manifest["engineCommit"],
         "repositorySource": manifest["repositorySource"],
-        "sourceManifest": str(manifest_path.resolve()),
+        "sourceManifest": os.path.relpath(manifest_path, output),
         "sourceManifestSha256": _sha256(manifest_path),
         "playlist": manifest.get("playlist"),
         "authoringBudget": manifest.get("authoringBudget"),
@@ -769,7 +779,9 @@ def replay_result(
         "seed": item["seed"],
         "teamAssignments": item["teamAssignments"],
         "status": execution["status"],
-        "replay": str((execution["attempt"] / "replay.json").resolve()),
+        "replay": (
+            f"matches/{item['id']}/{execution['attempt'].name}/replay.json"
+        ),
     }
     if execution["status"] != "verified":
         return row

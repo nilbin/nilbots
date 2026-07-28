@@ -43,13 +43,13 @@ class LabsCohortDriveTests(unittest.TestCase):
             },
         }
 
-    def test_four_entrants_three_seeds_make_mirrored_36_game_plan(
+    def test_four_entrants_one_seed_make_mirrored_12_game_plan(
         self,
     ) -> None:
         entrants = [{"id": value} for value in ("a", "b", "c", "d")]
         plan = DRIVER.build_plan(entrants, DRIVER.DEFAULT_SEEDS)
 
-        self.assertEqual(36, len(plan))
+        self.assertEqual(12, len(plan))
         assignments = {
             (
                 row["bot"],
@@ -172,6 +172,37 @@ class LabsCohortDriveTests(unittest.TestCase):
                 "worktreeDirty",
                 run["repositorySource"],
             )
+            self.assertFalse(Path(run["sourceManifest"]).is_absolute())
+
+    def test_result_replay_path_is_archive_relative(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            attempt = (
+                Path(temporary)
+                / "matches"
+                / "001--a-vs-b--s7"
+                / "attempt-01"
+            )
+            execution = {
+                "plan": {
+                    "id": "001--a-vs-b--s7",
+                    "seed": 7,
+                    "teamAssignments": {"0": "a", "1": "b"},
+                },
+                "attempt": attempt,
+                "status": "planned",
+            }
+
+            row = DRIVER.replay_result(
+                execution,
+                {},
+                self.playlist(),
+            )
+
+            self.assertEqual(
+                "matches/001--a-vs-b--s7/attempt-01/replay.json",
+                row["replay"],
+            )
+            self.assertFalse(Path(row["replay"]).is_absolute())
 
     def test_source_tree_mutation_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -245,6 +276,17 @@ class LabsCohortDriveTests(unittest.TestCase):
     ) -> None:
         playlist = self.playlist()
         self.assertEqual(playlist, DRIVER._validate_playlist(playlist))
+        candidate = {
+            **playlist,
+            "rulesetId": "frontline-labs-1-experiment-capture-12",
+        }
+        self.assertEqual(
+            candidate,
+            DRIVER._validate_playlist(candidate),
+        )
+        invalid_ruleset = {**playlist, "rulesetId": "Frontline Labs"}
+        with self.assertRaisesRegex(ValueError, "rulesetId"):
+            DRIVER._validate_playlist(invalid_ruleset)
         wrong = {**playlist, "mapVersion": 2}
         with self.assertRaisesRegex(ValueError, "mapVersion"):
             DRIVER._validate_playlist(wrong)
@@ -308,9 +350,27 @@ class LabsCohortDriveTests(unittest.TestCase):
         example = json.loads(EXAMPLE.read_text(encoding="utf-8"))
         playlist_properties = schema["properties"]["playlist"]["properties"]
 
-        for key, value in DRIVER.EXPECTED_PLAYLIST.items():
+        self.assertEqual(DRIVER.DEFAULT_SEEDS, example["seeds"])
+        self.assertIn(
+            "balancePasses",
+            schema["properties"]["authoringBudget"]["properties"],
+        )
+        self.assertIn(
+            "balancePasses",
+            schema["properties"]["entrants"]["items"]["properties"],
+        )
+        for key in DRIVER.FIXED_PLAYLIST_FIELDS:
+            value = DRIVER.EXPECTED_PLAYLIST[key]
             self.assertEqual(value, playlist_properties[key]["const"])
             self.assertEqual(value, example["playlist"][key])
+        self.assertEqual(
+            DRIVER.EXPECTED_PLAYLIST["rulesetId"],
+            example["playlist"]["rulesetId"],
+        )
+        self.assertIn(
+            "pattern",
+            playlist_properties["rulesetId"],
+        )
         for key in DRIVER.FINGERPRINT_FIELDS:
             self.assertIn(
                 key,

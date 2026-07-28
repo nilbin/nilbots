@@ -85,9 +85,13 @@ python3 scripts/labs-cohort-drive.py \
   --output arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm
 ```
 
-The first baseline is four bots × six unordered pairs × seeds
-`104729,130363,155921` × both participant assignments = 36 matches. The driver
-uses `nilbots experiment frontline-labs` in WASM mode, requires
+The current cohort-sprint default is four bots × six unordered pairs × seed
+`104729` × both participant assignments = 12 matches. The historical first
+baseline used `104729,130363,155921` for 36 matches; it established that the
+current deterministic bots produce identical behavior across those seeds.
+Add pre-registered seeds only when a ruleset or bot consumes randomness, or a
+specific causal arm requires them. The driver uses
+`nilbots experiment frontline-labs` in WASM mode, requires
 `nilbots verify` for every complete replay v3, retains every entrant, replay,
 log, and result, and computes W/D/L/points without Elo. Use `--resume` after
 interruption; it adds an immutable attempt instead of overwriting evidence.

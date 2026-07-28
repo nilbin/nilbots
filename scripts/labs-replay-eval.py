@@ -14,6 +14,7 @@ import argparse
 import copy
 import json
 import math
+import os
 import statistics
 import sys
 from collections import Counter, defaultdict
@@ -1060,6 +1061,11 @@ def main(argv: list[str] | None = None) -> int:
         paths = list(dict.fromkeys(paths_by_group[name]))
         if not paths:
             raise ValueError(f"group '{name}' contains no replay.json files")
+        source_root = Path(
+            os.path.commonpath(
+                [str(path.resolve().parent) for path in paths]
+            )
+        )
         group_rows = []
         for path in paths:
             try:
@@ -1069,7 +1075,9 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 row = analyze_replay(
                     document,
-                    source=str(path.resolve()),
+                    source=path.resolve()
+                    .relative_to(source_root)
+                    .as_posix(),
                     group=name,
                 )
             except (OSError, json.JSONDecodeError, ValueError) as error:

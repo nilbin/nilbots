@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "cohortId": "frontline-labs-capture-threshold-12",
+  "engineCommit": "de8fe4352f68322c7ad56452ddacda70955ed59e",
+  "playlist": {
+    "id": "frontline-labs",
+    "version": 1,
+    "rulesetId": "frontline-labs-1-experiment-capture-12",
+    "mapId": "frontline-labs-01",
+    "mapVersion": 1,
+    "formatId": "head-to-head",
+    "contractProfileId": "generic-actor-match-2",
+    "rulesFingerprint": "5b5262f9f094ac03157acea4d28de83b7fb8ad020237c6c6ffc22f7eebb92b24",
+    "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+    "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+    "matchContractFingerprint": "f6d8d890be1112f4e82e1cf201a0c70a81998508e07614537d81f6c5bd3dd872"
+  },
+  "authoringBudget": {
+    "implementationPasses": 1,
+    "improvementPasses": 0,
+    "sharedRepairPasses": 2,
+    "balancePasses": 1
+  },
+  "seeds": [
+    104729
+  ],
+  "entrants": [
+    {
+      "id": "pressure",
+      "name": "Pressure",
+      "doctrine": "pressure",
+      "root": "pressure",
+      "artifact": "pressure/bot.wasm",
+      "artifactSha256": "4c2f276f0e2e7d62cecd31aad7198a01b24eb90f4c086a93ed42dfc5ed758798",
+      "sourceRevision": "sha256:791ca8c566284d080519ccdd61c6e1cd1f42a9b73ad719f9f6de411b11e82464",
+      "sourceTreeSha256": "sha256:3e4829bd90bb86be2275612e3e04e93a68c8d6e519b7b34753383fe6aebb7999",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "balancePasses": 0,
+      "dxReport": "pressure/DX.md"
+    },
+    {
+      "id": "fabricator",
+      "name": "Fabricator",
+      "doctrine": "fabricator",
+      "root": "fabricator",
+      "artifact": "fabricator/bot.wasm",
+      "artifactSha256": "a7adb15943d0a23f4f44ec8b9c22c92e385ec0f476fed086b57536fb4d84d2ee",
+      "sourceRevision": "sha256:30afefc6898ed95d6de8d6db7443aa1d849d81610c7c0792bb96f8ef21cd06ed",
+      "sourceTreeSha256": "sha256:bdcdf9d1970574547ddb32648e6fea432ae50dbe34c03a8b78a899a76c288bed",
+      "implementationPasses": 1,
+      "repairPasses": 1,
+      "balancePasses": 0,
+      "dxReport": "fabricator/DX.md"
+    },
+    {
+      "id": "bastion",
+      "name": "Bastion",
+      "doctrine": "bastion",
+      "root": "bastion",
+      "artifact": "bastion/bot.wasm",
+      "artifactSha256": "81bb22eb433e8dda031f4dbb08220009a356ace9008bcbf734e2aa661a7a934d",
+      "sourceRevision": "sha256:93348aaff9e16d0a5a621fdbc284212b33adb4ebf0e873d73d9474af2737154f",
+      "sourceTreeSha256": "sha256:29b21647032dbb70ffb64d5c4b7c913146715fe1b25a87f6ca3728e39710c111",
+      "implementationPasses": 1,
+      "repairPasses": 2,
+      "balancePasses": 0,
+      "dxReport": "bastion/DX.md"
+    },
+    {
+      "id": "adapter",
+      "name": "Adapter",
+      "doctrine": "adapter",
+      "root": "adapter",
+      "artifact": "adapter/bot.wasm",
+      "artifactSha256": "dd5ef784414250847fb750b9f3cc41d018f7cd5898e8aa233b54235ca68f21ca",
+      "sourceRevision": "sha256:8b40e8771629e96ed99636a08a6810c7f7629452a8dc2cf13f1c3d289f4b0ea9",
+      "sourceTreeSha256": "sha256:ee0aef1a4604baf84f3cb9fbd1b1598762e91f7e30d9c00a3d05bebdfb514759",
+      "implementationPasses": 1,
+      "repairPasses": 3,
+      "balancePasses": 0,
+      "dxReport": "adapter/DX.md"
+    }
+  ]
+}

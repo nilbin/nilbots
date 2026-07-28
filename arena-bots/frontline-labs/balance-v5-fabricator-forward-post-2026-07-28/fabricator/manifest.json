@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "entrant": "fabricator",
+  "doctrine": "Fabricator: value additional active bodies and coordinated mobile crossfire when the contract makes fabrication worthwhile.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 1,
+  "cohort": "balance-v5-fabricator-forward-post-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": false,
+  "balanceHypothesis": "One surplus forward perimeter post converts a secure local formation into continued territorial pressure.",
+  "sdkVersion": "0.10.2",
+  "sourceSha256": "dbaac56c5401e95f76efad8732bf55380b2fb645512ebb3ccad09a037b84721e",
+  "artifactSha256": "b8e91829a30d62e5498457e349e3c476e93cf4dc95c4444af4b75cb3a4296084",
+  "previousSourceSha256": "30afefc6898ed95d6de8d6db7443aa1d849d81610c7c0792bb96f8ef21cd06ed",
+  "previousArtifactSha256": "a7adb15943d0a23f4f44ec8b9c22c92e385ec0f476fed086b57536fb4d84d2ee"
+}

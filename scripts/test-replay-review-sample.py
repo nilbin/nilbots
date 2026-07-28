@@ -150,6 +150,10 @@ class ReplayReviewSampleTests(unittest.TestCase):
             "generic-frontline-replay-v3.json",
             manifest["replays"][0]["source"],
         )
+        self.assertEqual(
+            "replays/sample-01.json",
+            manifest["replays"][0]["source"],
+        )
         self.assertEqual(source_hash, copied_hash)
         self.assertEqual(
             ["Entrant A", "Entrant B"],

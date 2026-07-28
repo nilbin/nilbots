@@ -114,6 +114,11 @@ The output is the same canonical replay-v3 envelope and generic WASM runtime
 used by hosted Labs, but the match remains local and unranked. In-process
 execution is diagnostic only; cohort evidence and parity claims use WASM.
 
+`--capture-threshold <positive-n>` is the registered local numeric-arm
+override. It creates a separate ruleset identity such as
+`frontline-labs-1-experiment-capture-12`, changes the rules and match
+fingerprints, and leaves immutable hosted `frontline-labs-1` untouched.
+
 At the action boundary, select from the contract-delivered catalog rather
 than hard-coding the action code:
 

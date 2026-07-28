@@ -1,0 +1,130 @@
+{
+  "sampleVersion": 2,
+  "selection": "versioned header-fields-only; map-balanced; unseen-pair-first; seeded SHA-256",
+  "selectionSeed": 20260728,
+  "outcomeBlind": true,
+  "identitiesBlind": true,
+  "populationSize": 24,
+  "replays": [
+    {
+      "id": "sample-01",
+      "source": "replays/sample-01.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "104729",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-02",
+      "source": "replays/sample-02.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "104729",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-03",
+      "source": "replays/sample-03.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "104729",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-04",
+      "source": "replays/sample-04.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "130363",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-05",
+      "source": "replays/sample-05.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "130363",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-06",
+      "source": "replays/sample-06.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "130363",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-07",
+      "source": "replays/sample-07.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "130363",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-08",
+      "source": "replays/sample-08.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "104729",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-09",
+      "source": "replays/sample-09.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "130363",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    },
+    {
+      "id": "sample-10",
+      "source": "replays/sample-10.json",
+      "replayVersion": 3,
+      "rules": "frontline-labs-1",
+      "map": "frontline-labs-01",
+      "matchSeed": "130363",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ]
+    }
+  ]
+}
