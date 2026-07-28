@@ -39,6 +39,8 @@ try
         ["play", .. var rest] => PlayCommand.Run(rest),
         ["experiment", "frontline", .. var rest] =>
             FrontlineExperimentCommand.Run(rest),
+        ["experiment", "frontline-labs", "qualify", .. var rest] =>
+            FrontlineLabsQualificationCommand.Run(rest),
         ["experiment", "frontline-labs", .. var rest] =>
             FrontlineLabsExperimentCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
@@ -135,6 +137,11 @@ static int Help(int exitCode = 1)
                         [--runtime wasm|in-process] [--out <dir>] [--open]
                                                   exact hosted Labs v1 contract,
                                                   local/quota-free, replay v3
+          nilbots experiment frontline-labs qualify
+                        --bot <generic-spec> [--runtime wasm|in-process]
+                        [--suite frontline-qualification-1] [--out <dir>]
+                                                  versioned local capability
+                                                  probes; never ranked
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]
                                                   ranked mirrored set; preserves each game
@@ -246,6 +253,17 @@ static int CommandHelp(string command)
             45-degree bend after 1-4 tiles for the duel-depth screen.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
+
+            Usage: nilbots experiment frontline-labs qualify
+                   --bot <generic-spec> [--runtime wasm|in-process]
+                   [--seed <n>] [--suite frontline-qualification-1]
+                   [--out <dir>]
+
+            Runs mirrored, versioned capability probes and writes verified
+            replay-v3 evidence plus qualification.json. The initial suite
+            implements only the T4 entry-initiative component and explicitly
+            awards no cumulative tier. Probe failure returns exit code 3;
+            runtime or contract failure returns 2. It is never ranked.
             """,
         "set" => """
             Usage: nilbots set --bot <spec> --opponent <spec>

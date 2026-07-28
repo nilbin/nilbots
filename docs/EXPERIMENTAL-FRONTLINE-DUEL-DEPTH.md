@@ -48,6 +48,27 @@ advance timing, but never its committed future bend. Physics and replay remain
 deterministic; strategic uncertainty comes from the unknown opponent policy
 and private committed choice, not random engine outcomes.
 
+## Entry qualification component
+
+Run one frozen artifact through the mirrored opening-entry probe with:
+
+```bash
+nilbots experiment frontline-labs qualify \
+  --bot <generic-project-or-wasm> \
+  --suite frontline-qualification-1 \
+  --out <evidence-dir>
+```
+
+The distinct qualification contract starts the two Primes at `(8,7)` and
+`(14,7)`, removes companion slots/actions, ends after tick 119, and uses the
+same one-bend combat physics. A deterministic public-SDK sentinel applies
+straight pressure. Passing requires life 0 to reach the central objective
+from both team assignments. Exit `3` is a clean probe failure; exit `2` is
+runtime/contract invalidity.
+
+This is one T4 positional component. `qualification.json` deliberately awards
+no cumulative tier until T1–T3 prerequisite probes exist.
+
 ## One-pass micro-cohort
 
 This is the frozen historical T1/T2/DX screen. Higher balance claims now use

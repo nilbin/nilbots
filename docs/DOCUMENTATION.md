@@ -62,9 +62,9 @@ wrong; it changes which document is the current entry point.
   eight cumulative individual tiers, a separate six-grade coordination axis,
   practical 1v1/2v2/3v3 solvability targets, and the static gates that precede
   balance matches.
-- [`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md) — planned
-  replay-native T/C probe runner, scenario families, evidence manifest, and
-  the boundary between bot findings and rules findings.
+- [`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md) — replay-native
+  T/C probe contract and scenario families. Its mirrored T4 entry component
+  is implemented; cumulative T1–T8/C0–C5 qualification remains in progress.
 - [`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) — executable
   projectile chronology, local payoff matrices, and map-wide one-bend
   last-mile classification for the current duel-depth experiment.

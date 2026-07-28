@@ -65,9 +65,23 @@ Use the cumulative T1–T8 individual ladder and independent C0–C5 coordinatio
 grades in `docs/BOT-CAPABILITY-AND-SOLVABILITY.md`. Probe definitions and the
 planned canonical evidence shape live in `docs/BOT-QUALIFICATION-SUITE.md`.
 State the minimum T/C grade before authoring or selecting entrants. Until the
-dynamic qualification runner exists, describe one-pass entrants only as
-T1/T2 candidates unless replay evidence proves a specific higher probe; never
-infer a higher tier from tournament wins.
+cumulative dynamic qualification runner exists, describe one-pass entrants
+only as T1/T2 candidates unless replay evidence proves a specific higher
+probe; never infer a higher tier from tournament wins.
+
+The first dynamic component now exists:
+
+```bash
+nilbots experiment frontline-labs qualify \
+  --bot <generic-project-or-wasm> \
+  --suite frontline-qualification-1 \
+  --out <evidence-dir>
+```
+
+It mirrors the `entry-initiative` probe and returns `3` for a clean failure.
+The report deliberately awards no tier until T1–T3 prerequisites are added.
+Use it to exclude failed positional references, never to label one passing
+artifact T4 by itself.
 
 Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
 hosted path has quotas and no ladder; the exact local generic runner is the

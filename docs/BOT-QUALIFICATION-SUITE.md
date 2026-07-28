@@ -1,8 +1,10 @@
 # Bot qualification suite
 
 Status: implementation contract for turning the T1–T8/C0–C5 framework into
-balance-grade evidence. The suite is not implemented yet; current one-pass
-cohorts remain T1/T2 and developer-experience evidence.
+balance-grade evidence. The mirrored `entry-initiative` T4 component and its
+canonical replay/report runner are implemented; the cumulative suite remains
+incomplete. Current one-pass cohorts remain T1/T2 and
+developer-experience evidence.
 
 ## Purpose
 
@@ -43,8 +45,13 @@ Recommended CLI shape:
 nilbots experiment frontline-labs qualify \
   --bot path/to/bot.wasm \
   --suite frontline-qualification-1 \
-  --output path/to/evidence
+  --out path/to/evidence
 ```
+
+This command is implemented for `entry-initiative`. It returns `0` when both
+assignments pass, `3` for a clean probe failure, and `2` for runtime or
+contract invalidity. Its report intentionally sets `tierAwarded` to null
+until the prerequisite T1–T3 components exist.
 
 The report should be deterministic JSON plus a short text summary. The CLI
 must not mutate a ladder, season, playlist, or submitted bot.
@@ -206,11 +213,18 @@ The framework must reject a bad scenario before blaming a bot:
 - 2v2/3v3 crossfire is achievable only after setup, not guaranteed at spawn;
 - translated/reflected holdouts remain strategically equivalent.
 
-`FrontlineLabsDuelTheoryTests` already covers projectile chronology, the
+`FrontlineLabsDuelTheoryTests` covers projectile chronology, the
 range-four matrix, exact speed-2 parity, current map last-mile counts, the
 entry choke discontinuity, the perpendicular objective-strip candidate, and
-the two-projectile crossfire union. The dynamic qualification runner is the
-next implementation package.
+the two-projectile crossfire union.
+
+`FrontlineLabsQualificationDefinition` and
+`FrontlineLabsQualificationCommand` now run the ordinary-contract,
+opening-only entry probe from both teams against a deterministic public-SDK
+straight-pressure sentinel. It records verified replay hashes, eligibility,
+sentinel attacks, action counts, and first-life objective entry. The next
+implementation package adds T1–T3 prerequisites and the T5 three-policy
+matrix; only then can the report award a cumulative tier.
 
 ## Evidence use
 

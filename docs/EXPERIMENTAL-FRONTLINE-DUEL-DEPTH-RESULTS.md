@@ -118,6 +118,27 @@ The 0-18 record is therefore evidence that `AdaptiveMixer` is not a
 balance-grade curve reference. It is not evidence that a T5+ curved-shot
 policy would lose 0-18.
 
+## Post-screen positional qualification
+
+The later `frontline-qualification-1` runner starts the Primes directly at
+the `(8,7)`/`(14,7)` suppression approach, mirrors the artifact across both
+teams, ends before companion unlock, and applies deterministic straight
+pressure from a framework controller using only the public SDK. It records
+first-life objective entry but intentionally awards no cumulative tier.
+
+All four retained canonical WASM artifacts failed both assignments:
+
+| Artifact | Team-0 first-life entry | Team-1 first-life entry | Sentinel attacks/assignment |
+| --- | --- | --- | ---: |
+| `AdaptiveMixer` | never | never | 16 / 18 |
+| `CurvePredictor` | never | never | 19 / 19 |
+| `GeometricDodger` | never | never | 19 / 19 |
+| `TerritoryHolder` | never | never | 19 / 19 |
+
+This is the missing quality control: none is a T4 positional reference. Their
+full-match trajectory and win table cannot judge whether a qualified policy
+can turn the one-bend chamber into useful play.
+
 ## Decision
 
 Do not promote this ruleset and do not tune Frontline around its win table.
