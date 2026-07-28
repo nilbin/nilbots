@@ -16,5 +16,5 @@ public sealed record BuildReceipt(
     string RuntimeConfigurationVersion,
     string CompilerImageReference,
     string GitCommit,
-    DateTime BuiltAt);
-
+    DateTime BuiltAt,
+    string[]? SupportedContractProfiles = null);

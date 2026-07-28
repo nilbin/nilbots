@@ -3,6 +3,7 @@ using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -151,6 +152,16 @@ public sealed class CompetitionPersistenceTests
                         nameof(PlaylistVersion.PlaylistId),
                         nameof(PlaylistVersion.Version),
                     ]));
+        Assert.Equal(
+            PlaylistExecutionPolicyIds.LegacyDuel,
+            version.FindProperty(
+                    nameof(PlaylistVersion.ExecutionPolicyId))!
+                .GetDefaultValue());
+        Assert.Equal(
+            BotArenaVersions.EngineVersion,
+            version.FindProperty(
+                    nameof(PlaylistVersion.ExecutionEngineVersion))!
+                .GetDefaultValue());
         Assert.Contains(
             season.GetIndexes(),
             index =>
@@ -388,6 +399,8 @@ public sealed class CompetitionPersistenceTests
             SeriesPolicyId = "duel-mirrored-6-v1",
             MatchmakingPolicyId = "nearest-rating-v1",
             AdmissionPolicyId = "legacy-duel-v1",
+            ExecutionPolicyId = PlaylistExecutionPolicyIds.LegacyDuel,
+            ExecutionEngineVersion = BotArenaVersions.EngineVersion,
             CanonicalDefinition = """{"schemaVersion":1}""",
             DefinitionFingerprint = new string('a', 64),
             Provenance = """{"source":"test"}""",

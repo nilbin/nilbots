@@ -30,14 +30,14 @@ public static class ToolchainInfo
     /// <summary>The published `Nilbots` tool version. MUST be bumped whenever
     /// SdkVersion or BuildPipelineVersion changes: those decide artifact bytes, and
     /// `submit` refuses against a server the installed tool cannot match, so a player
-    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.8.x carries
+    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.9.x carries
     /// SDK/Guest 0.10.0, build pipeline 4, the frozen local Frontline
     /// actor/replay-v2 experiment, and the negotiated generic actor-match
     /// programming model. It also carries the approved Obsidian Foundry effects
     /// in self-contained replay viewers and the generated HTTP contracts used
     /// by CLI server commands. Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.8.0";
+    public const string CliVersion = "0.9.0";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

@@ -331,7 +331,12 @@ public static class RankedEndpoints
     {
         var candidates = await db.Bots
             .Where(b => b.Id != challenger.Id)
-            .Where(b => b.Versions.Any(v => v.IsActive && v.Status == BuildStatus.Built))
+            .Where(b => b.Versions.Any(v =>
+                v.IsActive &&
+                v.Status == BuildStatus.Built &&
+                (v.SupportedContractProfiles == null ||
+                 v.SupportedContractProfiles.Contains(
+                     BotContractProfiles.LegacyDuel))))
             .Select(b => new MatchmakingCandidate(
                 b.Id,
                 b.Ratings.Where(r => r.RulesVersion == rulesVersion)

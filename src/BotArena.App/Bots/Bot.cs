@@ -73,6 +73,12 @@ public class BotVersion
     public string? ArtifactHash { get; set; }
     /// <summary>Public provenance receipt for a successful server build.</summary>
     public string? BuildReceiptJson { get; set; }
+    /// <summary>
+    /// Exact runtime contract profiles detected for this artifact at build time.
+    /// Null identifies historical builds whose supported profiles were not
+    /// recorded; an empty array means a new build explicitly detected none.
+    /// </summary>
+    public string[]? SupportedContractProfiles { get; set; }
     /// <summary>For built-in bots hosted in the shared catalog artifact: the guest-side bot name.</summary>
     public string? GuestBotName { get; set; }
     public string GameRulesVersion { get; set; } = Engine.BotArenaVersions.GameRulesVersion;

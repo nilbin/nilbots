@@ -837,6 +837,54 @@
         }
       }
     },
+    "/api/labs": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabsCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/labs/matches": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLabsMatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedMatchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -996,7 +1044,8 @@
         "required": [
           "id",
           "versionNumber",
-          "artifactHash"
+          "artifactHash",
+          "supportedContractProfiles"
         ],
         "type": "object",
         "properties": {
@@ -1013,6 +1062,15 @@
               "null",
               "string"
             ]
+          },
+          "supportedContractProfiles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -1422,7 +1480,8 @@
           "buildReceipt",
           "buildLog",
           "entryType",
-          "sources"
+          "sources",
+          "supportedContractProfiles"
         ],
         "type": "object",
         "properties": {
@@ -1479,6 +1538,15 @@
             ],
             "items": {
               "$ref": "#/components/schemas/SourceFile"
+            }
+          },
+          "supportedContractProfiles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
             }
           }
         }
@@ -1546,6 +1614,15 @@
           "builtAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "supportedContractProfiles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -1722,6 +1799,34 @@
           }
         }
       },
+      "CreateLabsMatchRequest": {
+        "required": [
+          "playlistVersionId",
+          "entrantBotIds",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "playlistVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantBotIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "seed": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "CreatedBot": {
         "required": [
           "id",
@@ -1797,6 +1902,80 @@
             "type": "string"
           },
           "label": {
+            "type": "string"
+          }
+        }
+      },
+      "LabsCatalogResponse": {
+        "required": [
+          "enabled",
+          "playlists"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "playlists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabsPlaylistResponse"
+            }
+          }
+        }
+      },
+      "LabsPlaylistResponse": {
+        "required": [
+          "playlistVersionId",
+          "key",
+          "displayName",
+          "version",
+          "gameModeId",
+          "rulesetId",
+          "matchFormatId",
+          "participantCount",
+          "scoringTeamCount",
+          "participantsPerTeam",
+          "requiredContractProfileId"
+        ],
+        "type": "object",
+        "properties": {
+          "playlistVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gameModeId": {
+            "type": "string"
+          },
+          "rulesetId": {
+            "type": "string"
+          },
+          "matchFormatId": {
+            "type": "string"
+          },
+          "participantCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scoringTeamCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "participantsPerTeam": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "requiredContractProfileId": {
             "type": "string"
           }
         }
@@ -1926,6 +2105,7 @@
       "MatchDetailParticipantResponse": {
         "required": [
           "slot",
+          "teamId",
           "botId",
           "nameSnapshot",
           "ownerDisplayNameSnapshot",
@@ -1942,6 +2122,13 @@
         "properties": {
           "slot": {
             "type": "integer",
+            "format": "int32"
+          },
+          "teamId": {
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "botId": {
@@ -1999,6 +2186,7 @@
         "required": [
           "id",
           "mapId",
+          "gameRulesVersion",
           "seed",
           "status",
           "broadcasting",
@@ -2008,10 +2196,12 @@
           "endReason",
           "endTick",
           "replayHash",
+          "replayFormatVersion",
           "error",
           "createdAt",
           "completedAt",
-          "participants"
+          "participants",
+          "teamResults"
         ],
         "type": "object",
         "properties": {
@@ -2020,6 +2210,9 @@
             "format": "uuid"
           },
           "mapId": {
+            "type": "string"
+          },
+          "gameRulesVersion": {
             "type": "string"
           },
           "seed": {
@@ -2072,6 +2265,13 @@
               "string"
             ]
           },
+          "replayFormatVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
           "error": {
             "type": [
               "null",
@@ -2093,6 +2293,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MatchDetailParticipantResponse"
+            }
+          },
+          "teamResults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchTeamResultResponse"
             }
           }
         }
@@ -2483,6 +2689,49 @@
             "items": {
               "$ref": "#/components/schemas/MatchSummaryParticipantResponse"
             }
+          }
+        }
+      },
+      "MatchTeamResultResponse": {
+        "required": [
+          "teamId",
+          "placement",
+          "outcome",
+          "scores"
+        ],
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "placement": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "scores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchTeamScoreResponse"
+            }
+          }
+        }
+      },
+      "MatchTeamScoreResponse": {
+        "required": [
+          "scoreChannelId",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "scoreChannelId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
           }
         }
       },

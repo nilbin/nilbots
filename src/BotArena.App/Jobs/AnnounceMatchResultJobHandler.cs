@@ -1,3 +1,4 @@
+using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
@@ -40,6 +41,16 @@ public sealed class AnnounceMatchResultJobHandler(
         // A set announces once as a whole; its games stay silent.
         if (match.MatchSetId is not null)
             return new JobExecutionResult("set_game_skipped");
+        bool isLabsMatch = match.PlaylistVersionId is Guid playlistVersionId &&
+            await db.PlaylistVersions.AnyAsync(
+                version =>
+                    version.Id == playlistVersionId &&
+                    version.Visibility == PlaylistVisibilityIds.Labs,
+                cancellationToken);
+        if (isLabsMatch)
+        {
+            return new JobExecutionResult("labs_match_skipped");
+        }
 
         DateTime now = timeProvider.GetUtcNow().UtcDateTime;
         if (!match.BroadcastComplete(now))

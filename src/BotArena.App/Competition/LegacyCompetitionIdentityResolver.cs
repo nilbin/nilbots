@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text.Json.Nodes;
 using BotArena.App.Shared;
+using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -168,6 +169,10 @@ public sealed class LegacyCompetitionIdentityResolver(AppDbContext db)
                     LegacyCompetitionDefinition.UnknownDefinitionId,
                 AdmissionPolicyId =
                     LegacyCompetitionDefinition.UnknownDefinitionId,
+                ExecutionPolicyId =
+                    PlaylistExecutionPolicyIds.LegacyDuel,
+                ExecutionEngineVersion =
+                    BotArenaVersions.EngineVersion,
                 CanonicalDefinition = expected.CanonicalDefinition,
                 DefinitionFingerprint = expected.DefinitionFingerprint,
                 Provenance = expected.Provenance,
@@ -328,6 +333,16 @@ public sealed class LegacyCompetitionIdentityResolver(AppDbContext db)
             nameof(version.AdmissionPolicyId),
             LegacyCompetitionDefinition.UnknownDefinitionId,
             version.AdmissionPolicyId);
+        AssertEqual(
+            expected,
+            nameof(version.ExecutionPolicyId),
+            PlaylistExecutionPolicyIds.LegacyDuel,
+            version.ExecutionPolicyId);
+        AssertEqual(
+            expected,
+            nameof(version.ExecutionEngineVersion),
+            BotArenaVersions.EngineVersion,
+            version.ExecutionEngineVersion);
         AssertEqual(
             expected,
             nameof(version.DefinitionFingerprint),

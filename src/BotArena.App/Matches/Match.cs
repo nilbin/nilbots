@@ -23,6 +23,11 @@ public class Match
     public int? EndTick { get; set; }
     public string? ReplayKey { get; set; }
     public string? ReplayHash { get; set; }
+    /// <summary>
+    /// Persisted replay payload discriminator. Null identifies historical v1
+    /// replays; new executors write the exact positive format version.
+    /// </summary>
+    public int? ReplayFormatVersion { get; set; }
     public string? Error { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
@@ -43,6 +48,7 @@ public class Match
     /// <summary>1-based game number inside a ranked set.</summary>
     public int? SetGame { get; set; }
     public List<MatchParticipant> Participants { get; set; } = [];
+    public List<MatchTeamResult> TeamResults { get; set; } = [];
 
     /// <summary>The tick the shared presentation clock has reached (-1 during countdown).</summary>
     public int PresentationTick(DateTime utcNow)
@@ -59,7 +65,8 @@ public class Match
 
     public bool BroadcastComplete(DateTime utcNow) =>
         Status == MatchStatus.Completed &&
-        (BroadcastStartedAt is null || EndTick is null || PresentationTick(utcNow) > EndTick.Value);
+        (BroadcastStartedAt is null ||
+         PresentationTick(utcNow) > EndTick.GetValueOrDefault(-1));
 }
 
 /// <summary>Snapshot of who fought (plan §33.4/§39): names, presentation, and
@@ -69,6 +76,11 @@ public class MatchParticipant
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid MatchId { get; set; }
     public int Slot { get; set; }
+    /// <summary>
+    /// Match-local scoring team identity. Null only for historical rows created
+    /// before normalized team results were persisted.
+    /// </summary>
+    public int? TeamId { get; set; }
     public Guid BotId { get; set; }
     public Guid BotVersionId { get; set; }
     public required string NameSnapshot { get; set; }

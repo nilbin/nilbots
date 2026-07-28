@@ -1,3 +1,5 @@
+using BotArena.App.Bots;
+using BotArena.App.Matches;
 using BotArena.Runtime.Wasm;
 using BotArena.Toolchain;
 using BotArena.Engine.Tests;
@@ -46,6 +48,15 @@ public sealed class GenericActorToolchainIntegrationTests
             1,
             BotBuilder.MaxArtifactBytes);
         Assert.NotNull(metadata);
+
+        var profileProbe = new SubmissionContractProfileProbe(
+            MatchExecutionSettings.FromEnvironment());
+        SubmissionContractProfileProbe.Result detected =
+            profileProbe.Probe(built.WasmPath);
+        Assert.True(
+            detected.SupportedContractProfiles.SequenceEqual(
+                [Engine.BotArenaVersions.GenericActorContractProfileId]),
+            detected.FailureSummary);
 
         Engine.ActorResolvedMatchDefinition contract =
             GenericActorContractTestFixture.Deathmatch("head-to-head");

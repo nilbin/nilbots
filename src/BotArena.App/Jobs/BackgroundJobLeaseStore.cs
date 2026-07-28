@@ -1,3 +1,5 @@
+using System.Data;
+using BotArena.App.Matches;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,13 +15,31 @@ public sealed class BackgroundJobLeaseStore(
 {
     private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
-    private const int MaxAttempts = 3;
+    public const int MaxAttempts = 3;
 
-    public async Task<BackgroundJob?> ClaimAsync(
+    public Task<BackgroundJob?> ClaimAsync(
         string jobType,
+        string workerId,
+        CancellationToken cancellationToken) =>
+        ClaimAnyAsync([jobType], workerId, cancellationToken);
+
+    public async Task<BackgroundJob?> ClaimAnyAsync(
+        IReadOnlyCollection<string> jobTypes,
         string workerId,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(jobTypes);
+        if (jobTypes.Count == 0 ||
+            jobTypes.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException(
+                "At least one non-blank job type is required.",
+                nameof(jobTypes));
+        }
+        string[] supportedJobTypes = jobTypes
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
         List<BackgroundJob> jobs = await db.BackgroundJobs
             .FromSqlInterpolated($"""
                 UPDATE "BackgroundJobs"
@@ -28,7 +48,7 @@ public sealed class BackgroundJobLeaseStore(
                     "LockedBy" = {workerId}
                 WHERE "Id" = (
                     SELECT "Id" FROM "BackgroundJobs"
-                    WHERE "Type" = {jobType}
+                    WHERE "Type" = ANY ({supportedJobTypes})
                       AND (("Status" = 'Pending' AND "AvailableAt" <= now())
                        OR ("Status" = 'Running' AND "LockedUntil" < now()))
                     ORDER BY "Id"
@@ -71,21 +91,69 @@ public sealed class BackgroundJobLeaseStore(
         string error = exception.Message.Length <= 4000
             ? exception.Message
             : exception.Message[^4000..];
+        await using var transaction =
+            await db.Database.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted,
+                cancellationToken);
+        if (!retry &&
+            GenericActorMatchJobType.IsGenericActorMatch(job.Type) &&
+            TryPayloadId(job, "matchId") is Guid matchId)
+        {
+            DateTime completedAt =
+                timeProvider.GetUtcNow().UtcDateTime;
+            await db.Matches
+                .Where(match =>
+                    match.Id == matchId &&
+                    match.Status != MatchStatus.Completed &&
+                    match.Status != MatchStatus.Failed)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(
+                            match => match.Status,
+                            MatchStatus.Failed)
+                        .SetProperty(
+                            match => match.Error,
+                            error)
+                        .SetProperty(
+                            match => match.CompletedAt,
+                            completedAt),
+                    cancellationToken);
+        }
+
         int updated = await db.BackgroundJobs
             .Where(candidate =>
                 candidate.Id == job.Id &&
                 candidate.LockedBy == workerId)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(
-                    candidate => candidate.Status,
-                    retry ? JobStatus.Pending : JobStatus.Failed)
-                .SetProperty(candidate => candidate.Attempts, attempts)
-                .SetProperty(candidate => candidate.AvailableAt, availableAt)
-                .SetProperty(candidate => candidate.LockedUntil, (DateTime?)null)
-                .SetProperty(candidate => candidate.LockedBy, (string?)null)
-                .SetProperty(candidate => candidate.LastError, error), cancellationToken);
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(
+                        candidate => candidate.Status,
+                        retry
+                            ? JobStatus.Pending
+                            : JobStatus.Failed)
+                    .SetProperty(
+                        candidate => candidate.Attempts,
+                        attempts)
+                    .SetProperty(
+                        candidate => candidate.AvailableAt,
+                        availableAt)
+                    .SetProperty(
+                        candidate => candidate.LockedUntil,
+                        (DateTime?)null)
+                    .SetProperty(
+                        candidate => candidate.LockedBy,
+                        (string?)null)
+                    .SetProperty(
+                        candidate => candidate.LastError,
+                        error),
+                cancellationToken);
         if (updated == 0)
+        {
+            await transaction.RollbackAsync(
+                CancellationToken.None);
             return JobFailureOutcome.LeaseLost;
+        }
+        await transaction.CommitAsync(cancellationToken);
         return retry
             ? JobFailureOutcome.RetryScheduled
             : JobFailureOutcome.TerminalFailure;
@@ -109,5 +177,23 @@ public sealed class BackgroundJobLeaseStore(
                     lockedUntil),
                 cancellationToken);
         return updated == 1;
+    }
+
+    private static Guid? TryPayloadId(
+        BackgroundJob job,
+        string property)
+    {
+        try
+        {
+            return job.PayloadId(property);
+        }
+        catch (Exception exception) when (
+            exception is FormatException
+            or InvalidOperationException
+            or KeyNotFoundException
+            or System.Text.Json.JsonException)
+        {
+            return null;
+        }
     }
 }

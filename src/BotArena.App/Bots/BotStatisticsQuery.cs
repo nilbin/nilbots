@@ -1,3 +1,4 @@
+using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,10 @@ public sealed class BotStatisticsQuery(
             .Where(match =>
                 match.Status == MatchStatus.Completed &&
                 (match.MatchSetId != null || match.InitiatedByUserId != null) &&
+                (match.PlaylistVersionId == null ||
+                 !db.PlaylistVersions.Any(version =>
+                     version.Id == match.PlaylistVersionId &&
+                     version.Visibility == PlaylistVisibilityIds.Labs)) &&
                 match.Participants.Any(participant => participant.BotId == botId))
             .ToListAsync(cancellationToken);
         Dictionary<Guid, MatchBroadcastResult> broadcasts =

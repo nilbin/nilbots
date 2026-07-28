@@ -1,4 +1,5 @@
 using BotArena.App.Competition;
+using BotArena.Engine;
 
 namespace BotArena.App.Tests;
 
@@ -21,6 +22,8 @@ public sealed class PlaylistVersionDefinitionTests
             "mirrored-three-map-series-1",
             "nearest-rating-v1",
             "actor-contract-v3",
+            PlaylistExecutionPolicyIds.GenericActor,
+            BotArenaVersions.GenericActorEngineVersion,
             new string('a', 64));
 
         Assert.Equal(id, definition.Id);
@@ -38,6 +41,12 @@ public sealed class PlaylistVersionDefinitionTests
         Assert.Equal(
             "actor-contract-v3",
             definition.AdmissionPolicyId);
+        Assert.Equal(
+            PlaylistExecutionPolicyIds.GenericActor,
+            definition.ExecutionPolicyId);
+        Assert.Equal(
+            BotArenaVersions.GenericActorEngineVersion,
+            definition.ExecutionEngineVersion);
     }
 
     [Fact]
@@ -55,6 +64,8 @@ public sealed class PlaylistVersionDefinitionTests
             "mirrored-six",
             "nearest-rating-v1",
             "legacy-duel-v1",
+            PlaylistExecutionPolicyIds.LegacyDuel,
+            BotArenaVersions.EngineVersion,
             new string('a', 64)));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PlaylistVersionDefinition(
             PlaylistVersionId.New(),
@@ -68,6 +79,8 @@ public sealed class PlaylistVersionDefinitionTests
             "mirrored-six",
             "nearest-rating-v1",
             "legacy-duel-v1",
+            PlaylistExecutionPolicyIds.LegacyDuel,
+            BotArenaVersions.EngineVersion,
             new string('a', 64)));
         Assert.Throws<ArgumentException>(() => new PlaylistVersionDefinition(
             PlaylistVersionId.New(),
@@ -81,6 +94,8 @@ public sealed class PlaylistVersionDefinitionTests
             "mirrored-six",
             "nearest-rating-v1",
             "legacy-duel-v1",
+            PlaylistExecutionPolicyIds.LegacyDuel,
+            BotArenaVersions.EngineVersion,
             new string('a', 64)));
         Assert.Throws<ArgumentException>(() => new PlaylistVersionDefinition(
             PlaylistVersionId.New(),
@@ -94,6 +109,8 @@ public sealed class PlaylistVersionDefinitionTests
             "mirrored-six",
             "nearest-rating-v1",
             "legacy-duel-v1",
+            PlaylistExecutionPolicyIds.LegacyDuel,
+            BotArenaVersions.EngineVersion,
             "fingerprint"));
     }
 }

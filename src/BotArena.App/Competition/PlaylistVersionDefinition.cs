@@ -3,10 +3,11 @@ namespace BotArena.App.Competition;
 /// <summary>
 /// One immutable, fully named playlist revision.
 /// <para>
-/// A playlist combines a game mode, ruleset, match format, map pool, and series
-/// policy. A ladder may then open a rating population for exactly this revision.
-/// The referenced definitions are typed application catalog entries; the aggregate
-/// fingerprint pins their exact resolved content.
+/// A playlist combines a game mode, ruleset, match format, map pool, series,
+/// matchmaking, admission, and hosted-execution policy. A ladder may then open
+/// a rating population for exactly this revision. The referenced definitions
+/// are typed application catalog entries; the aggregate fingerprint pins their
+/// exact resolved content.
 /// </para>
 /// </summary>
 public sealed class PlaylistVersionDefinition
@@ -23,6 +24,8 @@ public sealed class PlaylistVersionDefinition
         string seriesPolicyId,
         string matchmakingPolicyId,
         string admissionPolicyId,
+        string executionPolicyId,
+        string executionEngineVersion,
         string definitionFingerprint)
     {
         if (id.IsEmpty)
@@ -49,6 +52,12 @@ public sealed class PlaylistVersionDefinition
         AdmissionPolicyId = Required(
             admissionPolicyId,
             nameof(admissionPolicyId));
+        ExecutionPolicyId = Required(
+            executionPolicyId,
+            nameof(executionPolicyId));
+        ExecutionEngineVersion = Required(
+            executionEngineVersion,
+            nameof(executionEngineVersion));
         DefinitionFingerprint = Fingerprint(
             definitionFingerprint,
             nameof(definitionFingerprint));
@@ -65,6 +74,8 @@ public sealed class PlaylistVersionDefinition
     public string SeriesPolicyId { get; }
     public string MatchmakingPolicyId { get; }
     public string AdmissionPolicyId { get; }
+    public string ExecutionPolicyId { get; }
+    public string ExecutionEngineVersion { get; }
     public string DefinitionFingerprint { get; }
 
     private static string Required(string value, string parameterName)

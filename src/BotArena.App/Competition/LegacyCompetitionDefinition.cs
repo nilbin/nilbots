@@ -17,7 +17,7 @@ public sealed class LegacyCompetitionDefinition
     public const string GameModeId = "deathmatch";
     public const string MatchFormatId = "head-to-head";
     public const string UnknownDefinitionId = "legacy-import";
-    public const string Visibility = "legacy";
+    public const string Visibility = PlaylistVisibilityIds.Legacy;
 
     private LegacyCompetitionDefinition(
         string rulesVersion,

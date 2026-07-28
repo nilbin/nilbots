@@ -43,6 +43,7 @@ public sealed record MatchSummaryResponse(
 
 public sealed record MatchDetailParticipantResponse(
     int Slot,
+    int? TeamId,
     Guid BotId,
     string NameSnapshot,
     string OwnerDisplayNameSnapshot,
@@ -58,6 +59,7 @@ public sealed record MatchDetailParticipantResponse(
 public sealed record MatchDetailResponse(
     Guid Id,
     string MapId,
+    string GameRulesVersion,
     long Seed,
     string Status,
     bool Broadcasting,
@@ -67,10 +69,12 @@ public sealed record MatchDetailResponse(
     string? EndReason,
     int? EndTick,
     string? ReplayHash,
+    int? ReplayFormatVersion,
     string? Error,
     DateTime CreatedAt,
     DateTime? CompletedAt,
-    IReadOnlyList<MatchDetailParticipantResponse> Participants);
+    IReadOnlyList<MatchDetailParticipantResponse> Participants,
+    IReadOnlyList<MatchTeamResultResponse> TeamResults);
 
 public sealed record MatchLiveResponse(
     string Status,
@@ -165,6 +169,8 @@ public sealed record CreatedMatchSetResponse(Guid Id);
 /// </summary>
 public static class MatchPublicProjection
 {
+    private const string PublicExecutionFailure = "execution_failed";
+
     public static MatchBroadcastResult BroadcastSafe(
         Match match,
         DateTime utcNow)
@@ -231,6 +237,7 @@ public static class MatchPublicProjection
         return new MatchDetailResponse(
             match.Id,
             match.MapId,
+            match.GameRulesVersion,
             match.Seed,
             match.Status.ToString(),
             broadcast.Broadcasting,
@@ -240,7 +247,10 @@ public static class MatchPublicProjection
             broadcast.EndReason,
             broadcast.EndTick,
             broadcast.ReplayHash,
-            match.Error,
+            broadcast.Revealed ? match.ReplayFormatVersion : null,
+            match.Status == MatchStatus.Failed
+                ? PublicExecutionFailure
+                : null,
             match.CreatedAt,
             match.CompletedAt,
             match.Participants
@@ -251,6 +261,7 @@ public static class MatchPublicProjection
                         broadcast.Participants[participant.Slot];
                     return new MatchDetailParticipantResponse(
                         participant.Slot,
+                        participant.TeamId,
                         participant.BotId,
                         participant.NameSnapshot,
                         participant.OwnerDisplayNameSnapshot,
@@ -263,7 +274,26 @@ public static class MatchPublicProjection
                         result.DamageDealt,
                         result.Faults);
                 })
-                .ToArray());
+                .ToArray(),
+            broadcast.Revealed
+                ? match.TeamResults
+                    .OrderBy(result => result.TeamId)
+                    .Select(result => new MatchTeamResultResponse(
+                        result.TeamId,
+                        result.Placement,
+                        result.Outcome.ToString(),
+                        result.Scores
+                            .OrderBy(score => score.ScoreChannelId)
+                            .Select(score =>
+                                new MatchTeamScoreResponse(
+                                    score.ScoreChannelId,
+                                    score.Value.ToString(
+                                        System.Globalization
+                                            .CultureInfo
+                                            .InvariantCulture)))
+                            .ToArray()))
+                    .ToArray()
+                : []);
     }
 
     public static MatchLiveResponse ToLive(
@@ -281,7 +311,11 @@ public static class MatchPublicProjection
             match.SetGame,
             match.PresentationTicksPerSecond,
             presentationTick,
-            broadcast.EndTick + 1,
+            broadcast.Revealed
+                ? broadcast.EndTick is int endTick
+                    ? endTick + 1
+                    : 0
+                : null,
             broadcast.Revealed,
             match.BroadcastStartedAt is DateTime start && start > utcNow
                 ? (int)(start - utcNow).TotalMilliseconds

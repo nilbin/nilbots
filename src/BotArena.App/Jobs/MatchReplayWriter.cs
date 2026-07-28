@@ -15,8 +15,21 @@ public sealed class MatchReplayWriter(IObjectStore objectStore)
         Replay replay,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(replay);
+        return await WriteCanonicalJsonAsync(
+            matchId,
+            ReplaySerializer.ToJson(replay),
+            cancellationToken);
+    }
+
+    public async Task<string> WriteCanonicalJsonAsync(
+        Guid matchId,
+        string canonicalJson,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(canonicalJson);
         string replayKey = ObjectKeys.Replay(matchId);
-        byte[] replayBytes = Encoding.UTF8.GetBytes(ReplaySerializer.ToJson(replay));
+        byte[] replayBytes = Encoding.UTF8.GetBytes(canonicalJson);
         await using var stream = new MemoryStream(replayBytes, writable: false);
         await objectStore.PutAsync(
             replayKey,

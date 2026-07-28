@@ -150,9 +150,14 @@ contract, variable entity observations, generic scores/mode state, typed
 actions/events/lineage, and exact profile attestation do not widen the
 Frontline-alpha objects. One bot type may implement several programming
 interfaces; controlled-build pipeline 4 detects those interfaces from the
-closed entry type without constructing a throwaway instance. The generic
-Engine host and gameplay sessions are still under active implementation and
-are not selected by the historical Frontline command.
+closed entry type without constructing a throwaway instance. Hosted App
+execution selects the generic Engine host/session only through an immutable
+hosted definition and its playlist-version queue capability. A configured
+generic lane claims all capabilities registered in that worker binary. Its
+first consumer is the off-by-default, setless, unranked `frontline-labs` v1
+playlist; local/test harnesses may invoke the same neutral host directly, and
+the historical Frontline command continues to select the separate alpha
+contract.
 
 Actor 1.0 negotiates and then exchanges:
 

@@ -1,6 +1,7 @@
 # Game-mode and competition architecture
 
-Status: **active implementation plan; not shipped**, 2026-07-28.
+Status: **active implementation; hosted Labs slice implemented behind an
+off-by-default flag, no generic ranked product shipped**, 2026-07-28.
 
 This plan generalizes the experimental actor-match path without changing the
 official rules 0.1–0.5 product or rewriting the opened `frontline-alpha-1`
@@ -44,11 +45,18 @@ Implementation checkpoint:
   fixtures. Their values remain experimental mechanics inputs.
 - Package H's deterministic legacy playlist/version/season/ladder identity,
   repeatable backfill, and Duel dual-write foundation are implemented.
-  Normalized generic entrants/results, reveal-ordered settlement, generic
-  APIs, multiplayer rating policy, and public admission remain planned.
+  The narrower hosted Labs slice also persists participant team identity and
+  normalized match-team standings/scores for one setless match. Normalized
+  series entrants/results, reveal-ordered settlement, broad generic
+  competition APIs, and multiplayer rating policy remain planned.
 - Package I normalizes replay 3 in the web viewer and carries its closed typed
-  presentation through the hosted mobile bridge. No generic mode is yet
-  selectable through public App/server matchmaking or an open ranked ladder,
+  presentation through the hosted mobile bridge. A bot-detail Labs panel can
+  now create one direct, unranked generic Frontline match when
+  `BOTARENA_FRONTLINE_LABS_ENABLED` is true; the flag defaults off and also
+  prevents newly compiled generic-only artifacts from activating while
+  disabled. The existing direct match page/viewer presents its broadcast-safe
+  replay 3.
+  There is no generic open matchmaking, season, ladder, rating, or series,
   and none of this checkpoint promotes Frontline balance values.
 
 ## 1. Product terminology
@@ -66,7 +74,8 @@ These names have one meaning in code, APIs, documentation, and UI:
   A map declares capabilities; it does not contain imperative game scripts.
 - **Playlist version** — one immutable curated combination of ruleset, allowed
   match format, map pool, series scheduler, matchmaking policy, and admission
-  requirements.
+  requirements. It also pins the execution policy and semantic engine version;
+  neither is inferred from admission profile or replay format.
 - **Ladder** — an opaque rating population attached to one playlist version
   and season. A ruleset ID is not a ladder ID.
 - **Series** — a scheduled collection of matches whose aggregate result may
@@ -91,7 +100,7 @@ The architecture begins by preserving, not widening, existing contracts:
 |---|---:|---:|---:|---|
 | Official duel | historical | historical | 1 | frozen and shipped |
 | `frontline-alpha-1` | 2 | 1 | 2 | frozen local experiment |
-| generic actor match | 3 | 2 | 3 | new experimental path |
+| generic actor match | 3 | 2 | 3 | experimental Engine plus off-by-default hosted Labs path |
 
 Official `MatchEngine`, `MatchSession`, `Replay`, `ReplaySerializer`, runtime
 protocol/configuration 0.1, replay hashes, and public rules remain untouched.
@@ -435,6 +444,12 @@ Simultaneous replication bundles that claim a common tile or slot all block.
 Resolution never awards a reservation to whichever actor happened to appear
 first in a collection.
 
+The hosted Frontline Labs v1 arm resolves Split descendants into the
+`replica-mobile` form. Replicas remain mobile and their legal-action catalog
+does not contain `transform`; only a `child-mobile` life created through
+Fabricate may Anchor into a turret. This is a frozen playlist-v1 contract
+choice, not a universal restriction on future replication definitions.
+
 Replay events are generic lifecycle facts:
 
 - `replication-queued`;
@@ -556,10 +571,53 @@ The rating boundary accepts all entrants and tied team standings atomically.
 FFA rating is not implemented by looping pairwise Elo over opponents; its
 policy is a separate later product decision.
 
-One playlist version pins the ruleset, format, map pool, series scheduler, and
-matchmaking/admission policy. One ladder pins that playlist version, season,
-and rating-policy version. Workers store both exact identities when a series
-is queued and never resolve “whatever is current” at execution time.
+One playlist version pins the ruleset, format, map pool, series scheduler,
+matchmaking/admission policy, execution policy, and semantic engine version.
+One ladder pins that playlist version, season, and rating-policy version.
+Workers store both exact identities when a series is queued and never resolve
+“whatever is current” at execution time.
+
+### Hosted Frontline Labs checkpoint
+
+The first hosted generic slice deliberately stops below the series and ladder
+layers:
+
+- immutable playlist `frontline-labs`, version 1, pins ruleset
+  `frontline-labs-1`, map `frontline-labs-01`, head-to-head format,
+  `single-match-v1`, direct-challenge admission, and exact contract profile
+  `generic-actor-match-2`;
+- creation accepts exactly two distinct eligible submitted bots. The first
+  entrant is owned by the caller; both active versions must have compile-time
+  support for the exact generic profile;
+- one setless, unranked `Match` is queued with its playlist version and
+  participant-to-team mapping pinned. Turning the discovery/admission flag
+  off does not invalidate already queued work;
+- generic execution resolves the playlist key/version through a hosted
+  definition registry, validates its canonical fingerprint and engine pin,
+  and gives every immutable playlist version a distinct retrying queue
+  capability. Each configured generic lane claims the capability set known to
+  its binary, so old workers leave new definitions pending without
+  multiplying concurrency. The legacy Duel lane rejects that execution
+  policy. Historical definitions/capabilities remain registered until their
+  pending and running jobs have drained or been explicitly migrated;
+- canonical replay 3 is stored with its format version. During broadcast the
+  replay endpoint emits a validated canonical prefix with result and hash
+  withheld; after reveal it returns the complete document;
+- terminal authority is normalized `MatchTeamResult` plus keyed signed
+  `MatchTeamScore`. Legacy participant outcome/health and winner-slot fields
+  are compatibility projections only;
+- the existing direct match endpoint and version-normalized viewer are reused.
+  Labs matches are excluded from the legacy Duel feed, bot history/statistics,
+  achievements, and result notifications.
+- durable Labs admission budgets default to 10 starts per account per day,
+  one active match per account, and four active matches globally, with a
+  separate two-per-minute burst policy. All remain configurable and the
+  feature flag remains false by default.
+
+This slice creates no `MatchSet`, series entrant, season, ladder, rating,
+series settlement, or generic leaderboard. FFA, 2v2, Deathmatch admission,
+ranked generic play, and broader playlist discovery remain future consumers of
+the same format/topology/result envelopes.
 
 ## 12. Implementation packages
 
@@ -618,12 +676,13 @@ is queued and never resolve “whatever is current” at execution time.
   legacy Duel data first.
 - Route the current official ladder through `DuelMirrored6V1` and
   `DuelEloV1` without changing outcomes or APIs.
-- Add normalized series entrants and team results only in the later
-  persistence stage; they are not part of the implemented identity
-  foundation.
+- Persist normalized match-team results and score channels for the narrow
+  setless Labs path. Add normalized series entrants and series-team results
+  only in the later persistence stage; they are not implied by this slice.
 - Defer rating mutation, achievements, notifications, and result deltas until
   reveal-time settlement; simulation completion alone is not publication.
-- Add generic read APIs before admitting multiplayer ranked creation.
+- Keep Labs unranked and outside Duel stats/achievements/notifications; add
+  broad generic read APIs before admitting multiplayer ranked creation.
 - Follow the additive schema, ordered settlement state machine, compatibility
   adapters, and secrecy gates in
   [`COMPETITION-PERSISTENCE-PLAN.md`](COMPETITION-PERSISTENCE-PLAN.md).
@@ -632,6 +691,8 @@ is queued and never resolve “whatever is current” at execution time.
 
 - Extend normalized replay/viewer/mobile models from replay 3.
 - Preserve form-specific health and add Split/scoreboard causality.
+- Reuse the direct match viewer for the off-by-default hosted Labs slice; do
+  not infer ranked or evaluated status from availability.
 - Integrate adaptive soundtrack through normalized signals.
 - Run the required native-cohort, dynamics, and outcome-blind workflow before
   any mode or mechanic becomes ranked.

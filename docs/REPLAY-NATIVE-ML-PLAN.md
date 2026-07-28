@@ -31,8 +31,10 @@ exposes variable entity sets, score channels, tagged mode state, typed action
 arguments, and lifecycle lineage without assuming two players. This completes
 the bot-facing half of the generic ML seam. The neutral Engine host now records
 the same inputs, decisions, lifecycle causality, post-state, standings, and
-typed Deathmatch/Frontline terminal facts in strict replay 3. Dataset export
-and the public product layers remain separate follow-ons.
+typed Deathmatch/Frontline terminal facts in strict replay 3. The
+off-by-default hosted Frontline Labs slice now proves replay-3 persistence and
+broadcast delivery; dataset export, public corpora, starter models, broader
+mode admission, and ranked product layers remain separate follow-ons.
 
 ## Executive conclusion
 

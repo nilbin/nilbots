@@ -7,6 +7,7 @@ import BotIdentity from '../components/BotIdentity';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import ChallengePanel from '../components/ChallengePanel';
 import CurrentLadderStanding from '../components/CurrentLadderStanding';
+import LabsPanel from '../components/LabsPanel';
 import MatchHistory from '../components/MatchHistory';
 import StatusBadge from '../components/StatusBadge';
 import SubmitPanel from '../components/SubmitPanel';
@@ -75,6 +76,8 @@ export default function BotDetailPage() {
       )}
 
       <ChallengePanel bot={bot} />
+
+      {bot.isOwner && <LabsPanel bot={bot} />}
 
       <section>
         <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">VERSIONS</h2>

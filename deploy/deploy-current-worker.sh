@@ -99,6 +99,27 @@ worker_ssh_options=(
   -o UserKnownHostsFile="$known_hosts"
   -o StrictHostKeyChecking=yes
 )
+worker_target="$worker_user@$worker_host"
+
+feature_environment="$(
+  ssh "${ssh_options[@]}" "$primary_target" \
+    "$(remote_command \
+      bash -s -- \
+      render \
+      "$deploy_root/shared/.env")" \
+    <"$deploy_dir/sync-worker-feature-env.sh"
+)"
+feature_arguments=()
+while IFS= read -r line; do
+  [[ -z "$line" ]] || feature_arguments+=("$line")
+done <<<"$feature_environment"
+ssh "${worker_ssh_options[@]}" "$worker_target" \
+  "$(remote_command \
+    bash -s -- \
+    apply \
+    "$worker_path/shared/.env" \
+    "${feature_arguments[@]}")" \
+  <"$deploy_dir/sync-worker-feature-env.sh"
 
 bundle="$temporary_dir/nilbots-deploy-$release_sha.tar.gz"
 bash "$deploy_dir/build-release-bundle.sh" "$release_sha" "$bundle"
@@ -107,7 +128,6 @@ if [[ -z "$bundle_sha" ]]; then
   bundle_sha="$(shasum -a 256 "$bundle" | awk '{ print $1 }')"
 fi
 incoming="$worker_path/incoming/$release_sha"
-worker_target="$worker_user@$worker_host"
 ssh "${worker_ssh_options[@]}" "$worker_target" \
   "install -d -m 700 '$incoming'"
 scp "${worker_ssh_options[@]}" \

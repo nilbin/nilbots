@@ -25,6 +25,12 @@ public sealed class LegacyCompetitionDefinitionTests
         Assert.Matches(
             "^[0-9a-f]{64}$",
             first.DefinitionFingerprint);
+        Assert.Equal(
+            """{"schemaVersion":1,"gameModeId":"deathmatch","rulesetId":"0.4","matchFormatId":"head-to-head","mapPoolId":"legacy-import","seriesPolicyId":"legacy-import","matchmakingPolicyId":"legacy-import","admissionPolicyId":"legacy-import"}""",
+            first.CanonicalDefinition);
+        Assert.Equal(
+            "3e4c591eff887f4eaa4824041a3be69d89ca408f6af07e3687f7229b0e1b6b80",
+            first.DefinitionFingerprint);
 
         using JsonDocument definition =
             JsonDocument.Parse(first.CanonicalDefinition);
@@ -43,6 +49,10 @@ public sealed class LegacyCompetitionDefinitionTests
             definition.RootElement
                 .GetProperty("seriesPolicyId")
                 .GetString());
+        Assert.False(
+            definition.RootElement.TryGetProperty(
+                "executionPolicyId",
+                out _));
 
         using JsonDocument provenance =
             JsonDocument.Parse(first.Provenance);

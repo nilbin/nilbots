@@ -83,7 +83,7 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 | 6 competitions | Seasons/tournaments | later |
 | 7 browser dev | In-browser editor on the same pipeline | later |
 
-## What exists in this repo (2026-07-27)
+## What exists in this repo (2026-07-28)
 
 - `src/BotArena.Engine` — pure engine: rules, maps, FOV, RNG, tick resolution,
   replay + SHA-256 hash, plus the experimental multi-life
@@ -108,8 +108,11 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 - `templates/botarena-bot` — the player project template.
 - `src/BotArena.App` — the monolith: cookie/OpenIddict auth,
   bots/submissions/challenges, PostgreSQL-backed compile and match jobs,
-  stable artifact/replay object keys, and the SPA. Explicit web, compile,
-  match, and migration roles share the same model without becoming services.
+  stable artifact/replay object keys, and the SPA. It also owns the
+  off-by-default Frontline Labs playlist/admission/execution path, exact bot
+  contract-profile attestations, and normalized match-team results. Explicit
+  web, compile, match, and migration roles share the same model without
+  becoming services.
 - `deploy/` — the scale-ready multi-VPS baseline: primary Caddy/stateful
   services, inventory-driven web/compile workers, role-separated Docker
   Compose, commit-tagged images, provisioned certificates, a one-shot
@@ -125,7 +128,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   standalone replay viewer the CLI embeds replays into. One normalized model
   preserves replay v1 and presents local experimental Frontline replay v2
   through the default Canvas2D renderer or an optional lazy WebGL 2.5D
-  renderer. The CLI artifact excludes Three.js.
+  renderer. The same model presents hosted generic replay 3, and an isolated
+  bot-detail Labs panel can create a direct unranked match when the server
+  advertises the feature. The CLI artifact excludes Three.js.
 - `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
   and replay-viewer suites, including DocDrift tests that pin mechanical
   docs/mirrors to the engine.
@@ -170,10 +175,11 @@ turret state. Canvas2D remains the default; the optional WebGL 2.5D renderer
 shares those derivations, loads lazily, and still requires manual GPU/mobile
 QA.
 
-This is still not a shipped gameplay path. Historical `play`, App/server
-eligibility/admission, general replay-v2 summary/verification,
-dataset/corpus/model tooling, independently authored product evaluation,
-rollout, and every ladder remain Package 8 or replay-native follow-ons.
+This is still not a shipped gameplay path. Historical `play`, general
+replay-v2 summary/verification, dataset/corpus/model tooling, independently
+authored product evaluation, rollout, and every Frontline ladder remain
+Package 8 or replay-native follow-ons. The App's distinct generic successor is
+described below; it does not make the frozen alpha an App/server format.
 Official rules 0.5, protocol/configuration 0.1, replay v1, and their hashes
 remain unchanged. The frozen experimental contract is
 [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md); the shared ML/data
@@ -196,9 +202,33 @@ normalizes that generation without assuming Deathmatch, and its hosted bridge
 carries the typed presentation to mobile. The additive competition identity
 layer now pins legacy Duel series to deterministic playlist versions, seasons,
 and opaque ladders while preserving its scheduler, Elo, and public API
-behavior. Generic server admission, normalized entrant/team-result storage,
-reveal-ordered settlement, generic APIs, and any multiplayer rating policy
-remain later work.
+behavior.
+
+The first hosted consumer is Frontline Labs playlist v1 behind
+`BOTARENA_FRONTLINE_LABS_ENABLED`, which defaults off. While disabled, newly
+compiled artifacts must retain legacy Duel support; enabling it also admits
+generic-only artifacts. The playlist admits exactly two distinct
+`generic-actor-match-2` submitted bots to one setless unranked H2H match, pins
+the immutable playlist and participant teams, executes the generic WASM host,
+persists normalized match-team standings/signed scores, and serves replay 3
+through broadcast-safe prefixes and the existing direct match viewer. Split
+descendants are mobile replicas; only Fabricate-created mobile children may
+Anchor. Labs is excluded from legacy Duel history/statistics, achievements,
+notifications, ratings, and match feed.
+
+Execution technology is explicit playlist identity rather than inferred from
+game mode or admission: every immutable hosted playlist version has a durable
+queue capability, and each generic lane claims the registered set without
+multiplying configured concurrency. Old workers leave new capabilities
+pending, while legacy Duel fails closed. The off-by-default pilot also has
+separate durable daily/account/global compute budgets and a two-per-minute
+burst guard.
+
+This is an architecture/execution checkpoint, not a balance verdict:
+Frontline Labs values remain experimental and unvalidated. Generic series
+entrants/results, reveal-ordered settlement, broad generic APIs, FFA/2v2 or
+Deathmatch admission, seasons, ladders, and multiplayer rating policies remain
+later work.
 
 ## Next session pointers
 
@@ -259,5 +289,6 @@ remain later work.
     v2 or v3 beside exact rules, topology, actions, lineage, and results.
     Actor protocol 1.0 carries both explicitly negotiated generations.
     Dataset export, public corpus access, bounded model assets, starter
-    inference, and hosted-product delivery remain sequenced follow-ons; no
-    ML-driven sandbox-limit change is proposed.
+    inference, and general hosted-product delivery remain sequenced
+    follow-ons. The narrow replay-v3 Labs path is the only hosted generic
+    exception; no ML-driven sandbox-limit change is proposed.

@@ -46,6 +46,12 @@ public static class BotArenaVersions
         "generic-actor-match-2";
     public const string GenericActorRuntimeProtocolVersion = "1.0";
     public const string GenericActorRuntimeConfigurationVersion = "1.0";
+    /// <summary>
+    /// Semantic implementation version for generation-3 actor matches. This is
+    /// deliberately separate from <see cref="EngineVersion"/>, which remains
+    /// the historical Duel/replay-v1 engine identity.
+    /// </summary>
+    public const string GenericActorEngineVersion = "1.0.0";
     public const int GenericActorRuntimeContractVersion = 2;
     public const int GenericActorMatchStartSchemaVersion = 2;
     public const int GenericActorObservationSchemaVersion = 2;
@@ -69,8 +75,9 @@ public static class BotArenaVersions
     /// </summary>
     public const int GenericActorMaxCanonicalCollectionCount = 4_096;
     /// <summary>
-    /// Additive entity replay contract. Legacy <see cref="ReplayFormatVersion"/>
-    /// remains 1 and is still the only publicly emitted replay.
+    /// Additive frozen-alpha entity replay contract. Legacy public Duel stays
+    /// on <see cref="ReplayFormatVersion"/> 1; hosted generic Labs uses the
+    /// separate <see cref="GenericActorReplayFormatVersion"/> 3 contract.
     /// </summary>
     public const int EntityReplayFormatVersion = 2;
 }

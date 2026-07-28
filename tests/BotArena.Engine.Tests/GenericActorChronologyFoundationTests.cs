@@ -37,7 +37,7 @@ public sealed class GenericActorChronologyFoundationTests
             descriptor.MatchContractFingerprint);
         Assert.Equal(9_007_199_254_740_993UL, descriptor.MatchSeed);
         Assert.Equal(
-            BotArenaVersions.EngineVersion,
+            BotArenaVersions.GenericActorEngineVersion,
             descriptor.EngineVersion);
         Assert.Equal(
             definition.CapabilityVersions.RuntimeProtocolVersion,

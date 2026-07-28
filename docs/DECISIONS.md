@@ -2366,6 +2366,79 @@ This foundation does not claim normalized generic entrants/team results,
 reveal-ordered settlement, generic APIs, or an FFA/team rating policy; those
 remain the explicit next persistence stages.
 
+## 140. Hosted Frontline Labs stops at one off-by-default, setless, unranked H2H match
+
+The first App consumer of the generic actor architecture is immutable playlist
+`frontline-labs` version 1. It pins ruleset `frontline-labs-1`, map
+`frontline-labs-01`, head-to-head format, `single-match-v1`,
+`direct-challenge-v1`, and exact admission profile
+`generic-actor-match-2`. `BOTARENA_FRONTLINE_LABS_ENABLED` defaults false and
+controls catalog discovery, new admission, and activation of newly compiled
+generic-only artifacts. While it is false, a new artifact must also support
+`legacy-duel-0.1`. Turning it off never deactivates an existing artifact or
+changes/cancels an already queued match whose playlist identity is pinned.
+
+Admission requires exactly two distinct eligible submitted bots, with the
+first entrant owned by the caller and both active versions compile-attested
+for the exact generic profile. It creates one setless, unranked `Match`, pins
+participant team IDs, and runs the generic WASM session. Canonical
+`MatchTeamResult` standings and keyed signed `MatchTeamScore` rows are result
+authority. Participant outcome/health and a unique winner-slot may exist only
+as compatibility projections.
+
+Hosted generic matches store replay format 3. Before broadcast completion the
+existing replay endpoint returns a validated canonical prefix with terminal
+result and hash withheld; after reveal it returns the complete document. The
+bot-detail Labs panel navigates to the existing direct match page and
+version-normalized viewer instead of introducing a parallel viewer or a
+ranked-looking mode hub. Labs matches stay out of the legacy Duel feed, bot
+history/statistics, achievements, result notifications, ratings, and
+leaderboards.
+
+Execution is not inferred from admission or replay format. `PlaylistVersion`
+pins `ExecutionPolicyId` and `ExecutionEngineVersion`; Frontline Labs v1 pins
+`generic-actor-v1` and generic engine `1.0.0`. A versioned hosted-definition
+registry validates the exact canonical definition before execution. Each
+immutable hosted playlist version has its own durable queue capability; each
+configured generic lane claims any capability registered in its binary. A
+legacy worker cannot claim generic work, and an older generic worker leaves a
+new playlist version pending instead of exhausting its retries. Adding modes
+does not multiply configured concurrency. Unknown/infrastructure failures
+reach the normal three-attempt queue retry; the final failed attempt
+terminally fails the match without exposing the stored operator exception in
+the public match response. A historical definition and its job capability
+remain registered while any pending/running job can reference them; removal
+requires an explicit queue drain or migration.
+
+Labs admission retains the general unranked ceiling and adds visibility-wide
+transactional pilot defaults: 10 starts per account per 24 hours, one active
+match per account, and four active matches globally, plus a two-per-minute
+account-and-network burst guard. The global and account checks use advisory
+locks. Initial bootstrap and routine fleet deployment propagate the disabled
+flag and these limits to every web/compiler replica through a narrow,
+validated, secret-preserving environment sync; generic workers default to one
+lane. Binary rollout occurs everywhere with the flag false before a separate
+configuration rollout may enable it. That rollout drains and stops all
+compiler roles, propagates one validated configuration to every node, starts
+compile workers before exposing any enabled web replica, and then smoke-tests
+a generic-only build. After Labs data exists, rollback is limited to binaries
+that include the profile-aware compatibility guards and scoped legacy
+backfiller.
+
+This slice creates no `MatchSet`, normalized series entrant/result, season,
+ladder, rating, or reveal-time series settlement. FFA, 2v2, Deathmatch,
+multi-match series, and ranked generic play remain future consumers of the
+same typed topology/result envelopes. In playlist v1, Split retires an
+eligible untransformed Prime into two fresh mobile replicas with divided
+health; replicas cannot Anchor, and only a mobile child created through
+Fabricate may transform into a turret.
+
+The map and all numeric mechanics remain `experimental-unvalidated`.
+Execution availability is not a balance, entertainment, or ship verdict. The
+flag must remain disabled in any deployment until the existing release guard
+passes and CLI/package 0.9.0 from the exact compatibility revision has been
+published and tagged `cli-v0.9.0`.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -3,7 +3,6 @@ using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 using BotArena.App.Storage;
-using BotArena.Engine;
 using BotArena.Runtime.Wasm;
 using BotArena.Toolchain;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +15,8 @@ public sealed class CompileSubmissionJobHandler(
     ISubmissionCompiler submissionCompiler,
     BuildProvenance buildProvenance,
     CosmeticEntitlementService entitlements,
-    MatchExecutionSettings matchSettings,
+    SubmissionContractProfileProbe contractProfileProbe,
+    FrontlineLabsSettings labsSettings,
     TimeProvider timeProvider)
 {
     public async Task<JobExecutionResult> HandleAsync(
@@ -51,7 +51,26 @@ public sealed class CompileSubmissionJobHandler(
                     $"version {version.VersionNumber}",
                     cancellationToken);
                 _ = WasmArtifactValidator.Validate(built.WasmPath);
-                SmokeTest(built.WasmPath);
+                SubmissionContractProfileProbe.Result profileProbe =
+                    contractProfileProbe.Probe(built.WasmPath);
+                version.SupportedContractProfiles =
+                    profileProbe.SupportedContractProfiles;
+                if (profileProbe.SupportedContractProfiles.Length == 0)
+                {
+                    throw new InvalidOperationException(
+                        "the artifact does not support any hosted contract " +
+                        $"profile. {profileProbe.FailureSummary}");
+                }
+                if (!BotContractProfiles.CanActivateCompiledArtifact(
+                        profileProbe.SupportedContractProfiles,
+                        labsSettings.Enabled))
+                {
+                    throw new InvalidOperationException(
+                        "generic-only artifacts cannot be activated while " +
+                        "hosted Frontline Labs is disabled. Implement the " +
+                        $"'{BotContractProfiles.LegacyDuel}' profile too, or " +
+                        "submit again after Labs is enabled.");
+                }
 
                 string artifactKey = ObjectKeys.Artifact(built.ArtifactHash);
                 await using (var stream = File.OpenRead(built.WasmPath))
@@ -83,7 +102,8 @@ public sealed class CompileSubmissionJobHandler(
                         version.RuntimeConfigurationVersion,
                         buildProvenance.CompilerImageReference,
                         buildProvenance.GitCommit,
-                        builtAt));
+                        builtAt,
+                        profileProbe.SupportedContractProfiles));
                 version.BuildLog = Tail(built.BuildLog, 8000);
 
                 List<BotVersion> siblings = await db.BotVersions
@@ -144,50 +164,6 @@ public sealed class CompileSubmissionJobHandler(
             CosmeticUnlockEvents.FirstSuccessfulBuild,
             new { botVersionId = version.Id },
             cancellationToken);
-    }
-
-    private void SmokeTest(string wasmPath)
-    {
-        string? builtin = RepoPaths.FindUpward(
-            Path.Combine("artifacts", "wasm", "builtin-bots.wasm"));
-        GameRules rules = matchSettings.MatchRules with { MaxTicks = 5 };
-        ArenaMap map = ArenaMapLoader.Load("basic-01", rules);
-        using var candidate =
-            new WasmBotRuntime(new WasmRuntimeOptions { ModulePath = wasmPath });
-        using IBotRuntime idle = builtin is null
-            ? new Runtime.InProcessBotRuntime(
-                () => new BotArena.Bots.BuiltIn.IdleBot())
-            : new WasmBotRuntime(new WasmRuntimeOptions
-            {
-                ModulePath = builtin,
-                BotName = "idle",
-            });
-        MatchRunResult run = new MatchEngine().Run(new MatchConfiguration
-        {
-            Map = map,
-            Rules = rules,
-            Seed = 1,
-            Participants =
-            [
-                new MatchParticipantConfig
-                {
-                    Name = "candidate",
-                    Runtime = candidate,
-                },
-                new MatchParticipantConfig
-                {
-                    Name = "idle",
-                    Runtime = idle,
-                },
-            ],
-        });
-        BotMatchResult candidateResult = run.Result.Bots[0];
-        if (candidateResult.Faults >= rules.FaultLimit)
-        {
-            throw new InvalidOperationException(
-                "the bot faulted on every tick of the validation match " +
-                "(it may crash at startup or return no action).");
-        }
     }
 
     private static string Tail(string text, int maxChars) =>

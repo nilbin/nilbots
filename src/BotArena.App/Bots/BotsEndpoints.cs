@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using BotArena.App.Accounts;
+using BotArena.App.Competition;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
@@ -57,7 +58,10 @@ public static class BotsEndpoints
                     b.Versions
                         .Where(v => v.IsActive && v.Status == BuildStatus.Built)
                         .Select(v => new BotActiveVersionResponse(
-                            v.Id, v.VersionNumber, v.ArtifactHash))
+                            v.Id,
+                            v.VersionNumber,
+                            v.ArtifactHash,
+                            v.SupportedContractProfiles))
                         .FirstOrDefault(),
                     b.Versions.Count(v => v.Status == BuildStatus.Built)))
                 .ToListAsync();
@@ -143,7 +147,8 @@ public static class BotsEndpoints
                         isOwner ? v.EntryType : null,
                         isOwner
                             ? JsonSerializer.Deserialize<List<SourceFile>>(v.SourcesJson)
-                            : null))
+                            : null,
+                        v.SupportedContractProfiles))
                     .ToList()));
         }).Produces<BotDetailResponse>();
 
@@ -279,7 +284,12 @@ public static class BotsEndpoints
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             var matches = await db.Matches
                 .Include(m => m.Participants)
-                .Where(m => m.Participants.Any(p => p.BotId == botId))
+                .Where(m =>
+                    m.Participants.Any(p => p.BotId == botId) &&
+                    (m.PlaylistVersionId == null ||
+                     !db.PlaylistVersions.Any(version =>
+                         version.Id == m.PlaylistVersionId &&
+                         version.Visibility == PlaylistVisibilityIds.Labs)))
                 .OrderByDescending(m => m.CreatedAt)
                 .Take(50)
                 .ToListAsync();

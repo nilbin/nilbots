@@ -70,7 +70,7 @@ public sealed record GenericActorMatchDescriptor
         : this(
             definition,
             matchSeed,
-            BotArenaVersions.EngineVersion,
+            BotArenaVersions.GenericActorEngineVersion,
             definition?.CapabilityVersions.RuntimeProtocolVersion
                 ?? throw new ArgumentNullException(nameof(definition)),
             definition.CapabilityVersions.RuntimeConfigurationVersion,

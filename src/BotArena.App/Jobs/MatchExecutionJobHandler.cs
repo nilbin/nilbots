@@ -27,9 +27,44 @@ public sealed class MatchExecutionJobHandler(
         Match match = await db.Matches
             .Include(candidate => candidate.Participants)
             .SingleAsync(candidate => candidate.Id == matchId, cancellationToken);
+        PlaylistVersion? pinnedPlaylistVersion = null;
+        if (match.PlaylistVersionId is Guid pinnedPlaylistVersionId)
+        {
+            pinnedPlaylistVersion =
+                await db.PlaylistVersions
+                    .AsNoTracking()
+                    .SingleAsync(
+                        candidate =>
+                            candidate.Id == pinnedPlaylistVersionId,
+                        cancellationToken);
+            if (!string.Equals(
+                    pinnedPlaylistVersion.ExecutionPolicyId,
+                    PlaylistExecutionPolicyIds.LegacyDuel,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Legacy ExecuteMatch job for match {match.Id} cannot " +
+                    $"execute playlist policy " +
+                    $"'{pinnedPlaylistVersion.ExecutionPolicyId}'.");
+            }
+            if (!string.Equals(
+                    pinnedPlaylistVersion.ExecutionEngineVersion,
+                    BotArenaVersions.EngineVersion,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Legacy ExecuteMatch job for match {match.Id} requires " +
+                    $"engine '{pinnedPlaylistVersion.ExecutionEngineVersion}', " +
+                    $"but this worker provides '{BotArenaVersions.EngineVersion}'.");
+            }
+        }
+
         if (match.Status is MatchStatus.Completed or MatchStatus.Failed)
         {
-            await ApplyTerminalEffectsAsync(match, cancellationToken);
+            await ApplyTerminalEffectsAsync(
+                match,
+                pinnedPlaylistVersion,
+                cancellationToken);
             return new JobExecutionResult(
                 match.Status == MatchStatus.Completed
                     ? "already_completed"
@@ -66,12 +101,10 @@ public sealed class MatchExecutionJobHandler(
             if (match.PlaylistVersionId is Guid playlistVersionId)
             {
                 PlaylistVersion playlistVersion =
-                    await db.PlaylistVersions
-                        .AsNoTracking()
-                        .SingleAsync(
-                            candidate =>
-                                candidate.Id == playlistVersionId,
-                            cancellationToken);
+                    pinnedPlaylistVersion
+                    ?? throw new InvalidOperationException(
+                        $"Match {match.Id} has no loaded playlist " +
+                        $"{playlistVersionId}.");
                 if (!string.Equals(
                         playlistVersion.RulesetId,
                         match.GameRulesVersion,
@@ -132,6 +165,15 @@ public sealed class MatchExecutionJobHandler(
             List<string> modulePaths = [];
             foreach (BotVersion version in versions)
             {
+                if (!BotContractProfiles.Supports(
+                        version.SupportedContractProfiles,
+                        BotContractProfiles.LegacyDuel))
+                {
+                    throw new InvalidOperationException(
+                        $"Bot version {version.Id} cannot execute a Duel " +
+                        $"match because it does not support contract profile " +
+                        $"'{BotContractProfiles.LegacyDuel}'.");
+                }
                 if (version.ArtifactKey is null || version.ArtifactHash is null)
                 {
                     throw new InvalidOperationException(
@@ -178,6 +220,8 @@ public sealed class MatchExecutionJobHandler(
                     run.Replay,
                     cancellationToken);
                 match.ReplayHash = run.ReplayHash;
+                match.ReplayFormatVersion =
+                    BotArenaVersions.ReplayFormatVersion;
                 match.GameRulesVersion = rules.RulesVersion;
                 match.WinnerSlot = run.Result.WinnerSlot;
                 match.EndReason = run.Result.Reason.ToString();
@@ -219,7 +263,10 @@ public sealed class MatchExecutionJobHandler(
         ScheduleResultAnnouncement(match);
 
         await db.SaveChangesAsync(cancellationToken);
-        await ApplyTerminalEffectsAsync(match, cancellationToken);
+        await ApplyTerminalEffectsAsync(
+            match,
+            pinnedPlaylistVersion,
+            cancellationToken);
         return new JobExecutionResult(
             match.Status == MatchStatus.Completed
                 ? "completed"
@@ -249,9 +296,11 @@ public sealed class MatchExecutionJobHandler(
 
     private async Task ApplyTerminalEffectsAsync(
         Match match,
+        PlaylistVersion? playlistVersion,
         CancellationToken cancellationToken)
     {
         if (match.Status == MatchStatus.Completed &&
+            playlistVersion?.Visibility != PlaylistVisibilityIds.Labs &&
             match.MatchSetId is null &&
             match.InitiatedByUserId is Guid challengerId)
         {

@@ -128,9 +128,11 @@ Project boundaries that must not be violated:
   viewer excludes Three.js. Manual GPU/mobile QA remains for the optional
   renderer. Package 8 now exposes this only through the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
-  separate descriptive evaluation tool. Historical `play`, App/server
-  admission, replay-v1 summary/verification, and ladders still do not select
-  Frontline. Format-v2 assets live under `maps/experimental/`; the CLI package
+  separate descriptive evaluation tool. Historical `play`, replay-v1
+  summary/verification, and ladders still do not select this frozen alpha;
+  hosted admission selects only the separate off-by-default generation-3
+  Frontline Labs definition described below. Format-v2 assets live under
+  `maps/experimental/`; the CLI package
   carries that directory only for the explicit experiment, while current App
   and ordinary `maps` catalogs enumerate top-level format-v1 maps. Legacy
   `MatchEngine` still rejects a Frontline definition defensively.
@@ -146,10 +148,16 @@ Project boundaries that must not be violated:
   legacy playlist versions, seasons, opaque ladders, pinned queued work,
   repeatable backfill, and exact-compatible Duel Elo while preserving current
   APIs.
-  Public App/server admission, normalized generic entrants/team results,
-  reveal-ordered settlement, generic APIs, matchmaking, and multiplayer
-  rating are not routed yet. The compatibility generations and dependency
-  order are frozen in `docs/GAME-MODE-ARCHITECTURE.md`.
+  The App now routes one deliberately narrow consumer: feature-gated,
+  setless, unranked H2H `frontline-labs` v1 admission, a
+  playlist-version-capability generic execution lane, normalized match-team
+  results, replay-v3 broadcast projection, and a direct viewer entry point.
+  Older workers leave unknown playlist-version work pending; retain historical
+  definitions and capabilities until their queued work drains or is migrated.
+  It creates no season, ladder, rating, series settlement, broad matchmaking,
+  FFA, or team-play product.
+  The compatibility generations and dependency order are frozen in
+  `docs/GAME-MODE-ARCHITECTURE.md`.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,

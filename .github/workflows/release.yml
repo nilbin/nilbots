@@ -349,6 +349,17 @@ jobs:
           bundle="$RUNNER_TEMP/nilbots-deploy-$GITHUB_SHA.tar.gz"
           bash deploy/build-release-bundle.sh "$GITHUB_SHA" "$bundle"
           bundle_sha="$(sha256sum "$bundle" | awk '{ print $1 }')"
+          worker_feature_environment="$(
+            ssh -i "$HOME/.ssh/nilbots-deploy" \
+              -o BatchMode=yes \
+              "$DEPLOY_USER@$DEPLOY_HOST" \
+              "bash -s -- render '$DEPLOY_PATH/shared/.env'" \
+              <deploy/sync-worker-feature-env.sh
+          )"
+          worker_feature_arguments=()
+          while IFS= read -r line; do
+            test -z "$line" || worker_feature_arguments+=("$line")
+          done <<<"$worker_feature_environment"
           deploy_node install-primary "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_PATH"
 
           inventory="$RUNNER_TEMP/nilbots-workers.tsv"
@@ -366,6 +377,15 @@ jobs:
             worker_name worker_host worker_user worker_path; do
             test "$worker_host" != "$DEPLOY_HOST"
             echo "Deploying worker $worker_name ($worker_host)"
+            feature_command=""
+            printf -v feature_command '%q ' \
+              bash -s -- apply "$worker_path/shared/.env" \
+              "${worker_feature_arguments[@]}"
+            ssh -i "$HOME/.ssh/nilbots-deploy" \
+              -o BatchMode=yes \
+              "$worker_user@$worker_host" \
+              "${feature_command% }" \
+              <deploy/sync-worker-feature-env.sh
             deploy_node \
               install-worker \
               "$worker_host" \

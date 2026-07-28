@@ -1,16 +1,68 @@
 # Experimental Frontline contract
 
-Status: **playable local experiment; not a shipped ruleset**, 2026-07-27.
-Official rules 0.5, replay v1, runtime protocol/configuration 0.1, and the
-current ladder are unchanged. Its engine-independent actor SDK/Guest,
+Status: **playable local alpha plus an off-by-default hosted generic Labs
+successor; neither is a shipped or ranked ruleset**, 2026-07-28. Official
+rules 0.5, replay v1, runtime protocol/configuration 0.1, and the current
+ladder are unchanged. The frozen alpha's engine-independent actor SDK/Guest,
 protocol/configuration 1.0, and canonical per-life WASM runtime are selectable
-only through `nilbots experiment frontline`. Historical `play`, App/server
-matches, submissions, and ranked play do not admit Frontline.
+through `nilbots experiment frontline`. Historical `play` and ranked play do
+not admit Frontline.
 
 This document is the concise player and bot-author contract for the frozen
 Frontline engine arm. The complete machine-readable truth is the
 `PublicMatchContractManifest` embedded in replay v2. Numeric defaults below
 are experiment inputs, not a balance or ship verdict.
+
+## Hosted Labs successor
+
+The App also contains a separate generation-3 contract named
+`frontline-labs-1`. It does not reinterpret `frontline-alpha-1`: it uses
+resolved match contract 2, rules schema 3, map format 3, exact profile
+`generic-actor-match-2`, and replay 3.
+
+The hosted boundary is deliberately narrow:
+
+- `BOTARENA_FRONTLINE_LABS_ENABLED` defaults false and controls catalog
+  discovery, new admission, and activation of newly compiled generic-only
+  artifacts. While disabled, a new artifact must retain legacy Duel support.
+  Disabling it does not deactivate an existing artifact or invalidate an
+  already queued, identity-pinned match.
+- The immutable playlist also pins generic execution policy and semantic
+  engine `1.0.0`. A versioned hosted-definition registry validates that
+  identity before a capability-scoped generic job lane executes it. Older
+  generic workers leave unknown playlist versions pending; the Duel lane
+  fails closed.
+- Immutable playlist `frontline-labs`, version 1, admits exactly two distinct
+  eligible submitted bots to one head-to-head match. The first bot is owned by
+  the caller; both active versions must attest the exact generic profile.
+- The match is setless and unranked. It creates no season, ladder, rating,
+  series entrant, series settlement, generic leaderboard, or broad
+  matchmaking queue.
+- Participant team IDs and canonical match-team standings/signed score
+  channels are persisted. Replay 3 is returned as a validated broadcast prefix
+  with result/hash withheld, then as the complete document after reveal.
+- The bot-detail Labs panel opens the existing direct match page and
+  version-normalized viewer. Labs matches remain outside legacy Duel feeds,
+  bot history/statistics, achievements, and result notifications.
+- Pilot compute limits default to 10 Labs starts per account per 24 hours,
+  one active match per account, four active matches globally, and two
+  creation requests per minute per account plus network. The matching
+  `BOTARENA_FRONTLINE_LABS_ACCOUNT_DAILY`, `_ACCOUNT_ACTIVE`, and
+  `_GLOBAL_ACTIVE` values are deployment configuration, not game rules.
+
+This first playlist carries Fabricate, Anchor, and Split through the generic
+typed catalogs. Split is available only to an eligible untransformed Prime and
+retires it into two fresh `replica-mobile` lives with divided health. Those
+replicas remain mobile and cannot Anchor. Only a `child-mobile` life created
+through Fabricate has the `transform` action that Anchors into a turret.
+Broader FFA, 2v2, Deathmatch, ranked, and multi-match-series consumers remain
+future architecture work.
+
+Availability is only an execution and integration checkpoint. The Labs map
+and numeric values remain `experimental-unvalidated`; they have not passed the
+independent doctrine, causal-arm, dynamics, or outcome-blind entertainment
+gates. CLI/package 0.9.0 must be published and tagged from the exact final
+compatibility revision before this flag may be enabled.
 
 ## Run the local experiment
 
@@ -220,10 +272,12 @@ The observation includes:
 The public manifest also carries all gameplay variables that may differ by
 map, ruleset, or season: topology and counts, form statistics, respawn and
 fabrication timings, projectile rules, capture/victory rules, action
-parameters, Anchor policy, and map geometry. A future form such as flight is a
-new form/action capability, not a reinterpretation of an existing action.
-Older artifacts may remain executable while becoming ineligible or
-uncompetitive under a newer contract.
+parameters, Anchor policy, and map geometry. The hosted generic MatchStart
+extends that same principle to typed mode, victory, format, score, and
+replication definitions. A future form such as flight is a new form/action
+capability, not a reinterpretation of an existing action. Older artifacts may
+remain executable while becoming ineligible or uncompetitive under a newer
+contract.
 
 ## Replay and ML status
 
@@ -251,7 +305,9 @@ five concurrent lives per team, including fabrication, observation, replay,
 transformation, and terminal unit rows. Competitive behavior at those counts
 still requires suitable training data.
 
-The local CLI can emit and display replay v2. Descriptive evaluation is:
+The local alpha CLI can emit and display replay v2. Hosted Labs emits the
+separate generic replay 3 through the direct match viewer. Descriptive alpha
+evaluation is:
 
 ```bash
 python3 scripts/frontline-replay-eval.py \
@@ -263,7 +319,7 @@ python3 scripts/frontline-replay-eval.py \
 The report keeps duration/phase, fabrication, Anchor/turret, territorial,
 combat, actorless, stagnation, and action dimensions separate; it deliberately
 has no composite fun score. Dataset export, public replay corpora, model-asset
-packaging, starter inference, App/server admission, general replay-v2
+packaging, starter inference, broader App/server admission, general replay-v2
 verification/summary, and ranked use remain follow-on work in
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) and
 [`FRONTLINE-IMPLEMENTATION-PLAN.md`](FRONTLINE-IMPLEMENTATION-PLAN.md).
@@ -271,8 +327,9 @@ verification/summary, and ranked use remain follow-on work in
 ## Evidence status
 
 Engine, observation, replay, actor SDK/protocol/WASM, local CLI, evaluator,
-viewer, and mobile-bridge tests establish determinism, valid mechanics, and
-measurement consistency. They do not establish fun, duration, or balance.
+hosted Labs execution/persistence, viewer, and mobile-bridge tests establish
+determinism, valid mechanics, and integration consistency. They do not
+establish fun, duration, or balance.
 Small calibration runs are diagnosis only; the strong-turret defaults remain
 starting arms. Canvas2D remains the viewer default; the optional lazy WebGL
 2.5D renderer shares normalized replay state, is absent from the

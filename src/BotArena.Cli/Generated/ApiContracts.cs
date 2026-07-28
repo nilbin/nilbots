@@ -60,6 +60,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("artifactHash")]
         public string? ArtifactHash { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("supportedContractProfiles")]
+        public System.Collections.Generic.IReadOnlyList<string>? SupportedContractProfiles { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -480,6 +483,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("sources")]
         public System.Collections.Generic.IReadOnlyList<SourceFile>? Sources { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("supportedContractProfiles")]
+        public System.Collections.Generic.IReadOnlyList<string>? SupportedContractProfiles { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -549,6 +555,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("builtAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset BuiltAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("supportedContractProfiles")]
+        public System.Collections.Generic.IReadOnlyList<string>? SupportedContractProfiles { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -737,6 +746,32 @@ namespace BotArena.Cli.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CreateLabsMatchRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("playlistVersionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid PlaylistVersionId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("entrantBotIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<System.Guid> EntrantBotIds { get; set; } = new System.Collections.Generic.List<System.Guid>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("seed")]
+        public long? Seed { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreatedBot
     {
 
@@ -832,6 +867,83 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("label")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Label { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LabsCatalogResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("playlists")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<LabsPlaylistResponse> Playlists { get; set; } = new System.Collections.Generic.List<LabsPlaylistResponse>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LabsPlaylistResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("playlistVersionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid PlaylistVersionId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("displayName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DisplayName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        public int Version { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("gameModeId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string GameModeId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rulesetId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string RulesetId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchFormatId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string MatchFormatId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("participantCount")]
+        public int ParticipantCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("scoringTeamCount")]
+        public int ScoringTeamCount { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("participantsPerTeam")]
+        public int ParticipantsPerTeam { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("requiredContractProfileId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string RequiredContractProfileId { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -985,6 +1097,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("slot")]
         public int Slot { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        public int? TeamId { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("botId")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid BotId { get; set; } = default!;
@@ -1048,6 +1163,10 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string MapId { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("gameRulesVersion")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string GameRulesVersion { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("seed")]
         public long Seed { get; set; } = default!;
 
@@ -1076,6 +1195,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("replayHash")]
         public string? ReplayHash { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("replayFormatVersion")]
+        public int? ReplayFormatVersion { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("error")]
         public string? Error { get; set; } = default!;
 
@@ -1089,6 +1211,10 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("participants")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<MatchDetailParticipantResponse> Participants { get; set; } = new System.Collections.Generic.List<MatchDetailParticipantResponse>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamResults")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<MatchTeamResultResponse> TeamResults { get; set; } = new System.Collections.Generic.List<MatchTeamResultResponse>();
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1403,6 +1529,58 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("participants")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<MatchSummaryParticipantResponse> Participants { get; set; } = new System.Collections.Generic.List<MatchSummaryParticipantResponse>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MatchTeamResultResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("teamId")]
+        public int TeamId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("placement")]
+        public int Placement { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Outcome { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("scores")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<MatchTeamScoreResponse> Scores { get; set; } = new System.Collections.Generic.List<MatchTeamScoreResponse>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MatchTeamScoreResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("scoreChannelId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ScoreChannelId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

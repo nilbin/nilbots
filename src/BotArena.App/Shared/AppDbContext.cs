@@ -33,6 +33,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<MatchSet> MatchSets => Set<MatchSet>();
     public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
+    public DbSet<MatchTeamResult> MatchTeamResults => Set<MatchTeamResult>();
+    public DbSet<MatchTeamScore> MatchTeamScores => Set<MatchTeamScore>();
     public DbSet<BackgroundJob> BackgroundJobs => Set<BackgroundJob>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -127,6 +129,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(version => version.SeriesPolicyId).HasMaxLength(100);
             entity.Property(version => version.MatchmakingPolicyId).HasMaxLength(100);
             entity.Property(version => version.AdmissionPolicyId).HasMaxLength(100);
+            entity.Property(version => version.ExecutionPolicyId)
+                .HasMaxLength(100)
+                .HasDefaultValue(PlaylistExecutionPolicyIds.LegacyDuel);
+            entity.Property(version => version.ExecutionEngineVersion)
+                .HasMaxLength(100)
+                .HasDefaultValue(
+                    BotArena.Engine.BotArenaVersions.EngineVersion);
             entity.Property(version => version.CanonicalDefinition).HasColumnType("jsonb");
             entity.Property(version => version.DefinitionFingerprint)
                 .HasMaxLength(64)
@@ -183,6 +192,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(v => v.SourcesJson).HasColumnType("jsonb");
             entity.Property(v => v.BuildReceiptJson).HasColumnType("jsonb");
             entity.Property(v => v.SubmissionNetworkHash).HasMaxLength(64);
+            entity.Property(v => v.SupportedContractProfiles)
+                .HasColumnType("text[]");
         });
 
         modelBuilder.Entity<EntitlementGrant>(entity =>
@@ -308,8 +319,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         modelBuilder.Entity<Match>(entity =>
         {
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_Matches_ReplayFormatVersion_Positive",
+                "\"ReplayFormatVersion\" IS NULL OR \"ReplayFormatVersion\" > 0"));
             entity.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
+            entity.HasMany(m => m.TeamResults)
+                .WithOne()
+                .HasForeignKey(result => result.MatchId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(m => m.CreatedAt);
             entity.HasIndex(m => m.MatchSetId);
             entity.HasIndex(m => m.PlaylistVersionId);
@@ -349,6 +367,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         modelBuilder.Entity<MatchParticipant>(entity =>
         {
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_MatchParticipants_TeamId_NonNegative",
+                "\"TeamId\" IS NULL OR \"TeamId\" >= 0"));
             entity.HasIndex(p => new { p.MatchId, p.Slot }).IsUnique();
             // "Every match this bot played" — the feed's bot filter and the bot page's
             // history. MatchId trails BotId so the lookup is index-only.
@@ -356,6 +377,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(p => p.OwnerDisplayNameSnapshot).HasMaxLength(60);
             entity.Property(p => p.LookIdSnapshot).HasMaxLength(64);
             entity.Property(p => p.ProjectileLookIdSnapshot).HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<MatchTeamResult>(entity =>
+        {
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_MatchTeamResults_TeamId_NonNegative",
+                    "\"TeamId\" >= 0");
+                table.HasCheckConstraint(
+                    "CK_MatchTeamResults_Placement_Positive",
+                    "\"Placement\" > 0");
+                table.HasCheckConstraint(
+                    "CK_MatchTeamResults_Outcome",
+                    "\"Outcome\" IN ('Win', 'Loss', 'Draw')");
+            });
+            entity.HasKey(result => new { result.MatchId, result.TeamId });
+            entity.Property(result => result.Outcome)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.HasMany(result => result.Scores)
+                .WithOne()
+                .HasForeignKey(score => new { score.MatchId, score.TeamId })
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MatchTeamScore>(entity =>
+        {
+            entity.HasKey(score => new
+            {
+                score.MatchId,
+                score.TeamId,
+                score.ScoreChannelId,
+            });
+            entity.Property(score => score.ScoreChannelId).HasMaxLength(100);
         });
 
         modelBuilder.Entity<BackgroundJob>(entity =>
