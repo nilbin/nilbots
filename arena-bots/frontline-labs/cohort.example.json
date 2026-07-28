@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "cohortId": "frontline-labs-v1-generation-1",
+  "engineCommit": "0000000000000000000000000000000000000000",
+  "playlist": {
+    "id": "frontline-labs",
+    "version": 1,
+    "rulesetId": "frontline-labs-1",
+    "mapId": "frontline-labs-01",
+    "mapVersion": 1,
+    "formatId": "head-to-head",
+    "contractProfileId": "generic-actor-match-2",
+    "rulesFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "mapFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "formatFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "matchContractFingerprint": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "authoringBudget": {
+    "implementationPasses": 1,
+    "improvementPasses": 0,
+    "sharedRepairPasses": 0
+  },
+  "seeds": [104729, 130363, 155921],
+  "entrants": [
+    {
+      "id": "pressure",
+      "name": "Replace Me",
+      "doctrine": "pressure",
+      "root": "pressure",
+      "artifact": "pressure/bot.wasm",
+      "artifactSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceRevision": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceTreeSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "dxReport": "pressure/DX.md"
+    },
+    {
+      "id": "fabricator",
+      "name": "Replace Me",
+      "doctrine": "fabricator",
+      "root": "fabricator",
+      "artifact": "fabricator/bot.wasm",
+      "artifactSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceRevision": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceTreeSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "dxReport": "fabricator/DX.md"
+    },
+    {
+      "id": "bastion",
+      "name": "Replace Me",
+      "doctrine": "bastion",
+      "root": "bastion",
+      "artifact": "bastion/bot.wasm",
+      "artifactSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceRevision": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceTreeSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "dxReport": "bastion/DX.md"
+    },
+    {
+      "id": "adapter",
+      "name": "Replace Me",
+      "doctrine": "adapter",
+      "root": "adapter",
+      "artifact": "adapter/bot.wasm",
+      "artifactSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceRevision": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "sourceTreeSha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "implementationPasses": 1,
+      "repairPasses": 0,
+      "dxReport": "adapter/DX.md"
+    }
+  ]
+}

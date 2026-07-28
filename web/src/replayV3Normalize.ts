@@ -2813,6 +2813,324 @@ function sameSet(left: Iterable<string>, right: Iterable<string>): boolean {
   return JSON.stringify(sorted(left)) === JSON.stringify(sorted(right));
 }
 
+function jsonEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function scoreboardsStableAcrossTickStart(
+  before: V3.ReplayV3Scoreboard,
+  after: V3.ReplayV3Scoreboard,
+): boolean {
+  if (before.teams.length !== after.teams.length) return false;
+  return before.teams.every((beforeTeam, teamIndex) => {
+    const afterTeam = after.teams[teamIndex];
+    if (
+      !afterTeam ||
+      beforeTeam.teamId !== afterTeam.teamId ||
+      beforeTeam.eligible !== afterTeam.eligible ||
+      beforeTeam.scores.length !== afterTeam.scores.length
+    ) {
+      return false;
+    }
+    return beforeTeam.scores.every((beforeScore, scoreIndex) => {
+      const afterScore = afterTeam.scores[scoreIndex];
+      return (
+        afterScore !== undefined &&
+        beforeScore.channel === afterScore.channel &&
+        (beforeScore.channel === 'active-health' ||
+          beforeScore.value === afterScore.value)
+      );
+    });
+  });
+}
+
+/**
+ * Tick start applies exact-due lifecycle work before observations are frozen.
+ * Its authoritative state can therefore contain declared unlocks, returns,
+ * fabrication/Split completions, same-life form work, and placement purges.
+ */
+export function validateReplayV3TickStartBoundary(
+  before: V3.ReplayV3WorldState,
+  tickStart: V3.ReplayV3TickStart,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const after = tickStart.state;
+  if (jsonEqual(before, after)) return;
+
+  if (
+    before.matchContractFingerprint !== after.matchContractFingerprint ||
+    before.nextTick !== tickStart.tick ||
+    after.nextTick !== tickStart.tick ||
+    before.nextProjectileId !== after.nextProjectileId ||
+    !jsonEqual(before.participants, after.participants) ||
+    !jsonEqual(before.mode, after.mode) ||
+    !scoreboardsStableAcrossTickStart(before.scoreboard, after.scoreboard)
+  ) {
+    fail(
+      path,
+      'tick-start lifecycle cannot change participants, mode, projectile issuance, eligibility, or non-derived scores',
+    );
+  }
+
+  const beforeLives = new Map(
+    before.activeLives.map((life) => [actorValue(life.actorId), life]),
+  );
+  const afterLives = new Map(
+    after.activeLives.map((life) => [actorValue(life.actorId), life]),
+  );
+  const starts = new Map(
+    tickStart.lifeStarts.map((start) => [actorValue(start.actorId), start]),
+  );
+  const spawnEvents = tickStart.events.filter(
+    (event) =>
+      event.kind === 'life-spawned' &&
+      event.payload.kind === 'life-spawned',
+  );
+  const spawnEventsByActor = new Map(
+    spawnEvents.map((event) => [
+      actorValue(
+        (event.payload as Extract<
+          V3.ReplayV3EventPayload,
+          { kind: 'life-spawned' }
+        >).actorId,
+      ),
+      event,
+    ]),
+  );
+  const addedActors = [...afterLives.keys()].filter(
+    (actor) => !beforeLives.has(actor),
+  );
+  if (
+    !sameSet(addedActors, starts.keys()) ||
+    !sameSet(addedActors, spawnEventsByActor.keys()) ||
+    starts.size !== tickStart.lifeStarts.length ||
+    spawnEventsByActor.size !== spawnEvents.length
+  ) {
+    fail(
+      `${path}.activeLives`,
+      'every tick-start life addition must have exactly one life start and LifeSpawned event',
+    );
+  }
+  for (const actor of addedActors) {
+    const life = afterLives.get(actor)!;
+    const start = starts.get(actor)!;
+    const event = spawnEventsByActor.get(actor)!;
+    const spawned = event.payload as Extract<
+      V3.ReplayV3EventPayload,
+      { kind: 'life-spawned' }
+    >;
+    if (
+      life.participantId !== start.participantId ||
+      life.generation !== start.origin.generation ||
+      spawned.participantId !== start.participantId ||
+      !jsonEqual(spawned.parentActorId, start.origin.parentActorId) ||
+      spawned.generation !== start.origin.generation ||
+      spawned.formId !== life.formId ||
+      spawned.health !== life.health ||
+      !jsonEqual(spawned.position, life.position) ||
+      spawned.reason !== start.origin.reason ||
+      spawned.sourceTransitionId !== start.origin.sourceTransitionId ||
+      spawned.sourceOperationId !== start.origin.sourceOperationId
+    ) {
+      fail(
+        `${path}.activeLives`,
+        `life ${actor} does not match its tick-start life start and spawn event`,
+      );
+    }
+  }
+
+  const removalEvents = tickStart.events.filter(
+    (event) =>
+      (event.kind === 'destruction' &&
+        event.payload.kind === 'destruction') ||
+      (event.kind === 'life-retired' &&
+        event.payload.kind === 'life-retired'),
+  );
+  const removedActors = [...beforeLives.keys()].filter(
+    (actor) => !afterLives.has(actor),
+  );
+  const evidencedRemovals = removalEvents.map((event) =>
+    actorValue(
+      (
+        event.payload as Extract<
+          V3.ReplayV3EventPayload,
+          { kind: 'destruction' | 'life-retired' }
+        >
+      ).actorId,
+    ),
+  );
+  if (
+    !sameSet(removedActors, evidencedRemovals) ||
+    new Set(evidencedRemovals).size !== evidencedRemovals.length
+  ) {
+    fail(
+      `${path}.activeLives`,
+      'every tick-start life removal must have exactly one Destruction or LifeRetired event',
+    );
+  }
+
+  for (const [actor, beforeLife] of beforeLives) {
+    const afterLife = afterLives.get(actor);
+    if (!afterLife || jsonEqual(beforeLife, afterLife)) continue;
+    const formEvents = tickStart.events.filter(
+      (event) =>
+        event.payload.kind === 'form-transition' &&
+        actorValue(event.payload.actorId) === actor,
+    );
+    if (formEvents.length !== 1) {
+      fail(
+        `${path}.activeLives`,
+        `surviving life ${actor} changed without exactly one form-transition event`,
+      );
+    }
+  }
+
+  const afterSlots = new Map(after.slots.map((slot) => [unitValue(slot), slot]));
+  for (const beforeSlot of before.slots) {
+    const key = unitValue(beforeSlot);
+    const afterSlot = afterSlots.get(key);
+    if (!afterSlot) {
+      fail(`${path}.slots`, `stable unit slot ${key} disappeared at tick start`);
+    }
+    if (jsonEqual(beforeSlot, afterSlot)) continue;
+
+    const sameStableFields =
+      afterSlot.teamId === beforeSlot.teamId &&
+      afterSlot.unitId === beforeSlot.unitId &&
+      afterSlot.participantId === beforeSlot.participantId;
+    if (
+      sameStableFields &&
+      beforeSlot.state.kind === 'availability-pending' &&
+      beforeSlot.state.dueTick === tickStart.tick &&
+      afterSlot.nextLifeId === beforeSlot.nextLifeId &&
+      afterSlot.state.kind === 'ready' &&
+      afterSlot.pendingParentActorId === null &&
+      afterSlot.splitReservation === null
+    ) {
+      continue;
+    }
+
+    if (
+      sameStableFields &&
+      (beforeSlot.state.kind === 'automatic-return-pending' ||
+        beforeSlot.state.kind === 'fabrication-pending' ||
+        beforeSlot.state.kind === 'replication-pending') &&
+      beforeSlot.state.dueTick === tickStart.tick &&
+      afterSlot.nextLifeId === beforeSlot.nextLifeId + 1 &&
+      afterSlot.state.kind === 'active'
+    ) {
+      const actor = actorValue(afterSlot.state.actorId);
+      const start = starts.get(actor);
+      const expectedReason =
+        beforeSlot.state.kind === 'automatic-return-pending'
+          ? 'automatic-return'
+          : beforeSlot.state.kind === 'fabrication-pending'
+            ? 'fabrication'
+            : 'replication';
+      if (
+        afterSlot.state.actorId.teamId === beforeSlot.teamId &&
+        afterSlot.state.actorId.unitId === beforeSlot.unitId &&
+        afterSlot.state.actorId.lifeId === beforeSlot.nextLifeId &&
+        start?.origin.reason === expectedReason
+      ) {
+        continue;
+      }
+    }
+
+    const beforeActor =
+      beforeSlot.state.kind === 'active'
+        ? actorValue(beforeSlot.state.actorId)
+        : null;
+    const afterActor =
+      afterSlot.state.kind === 'active'
+        ? actorValue(afterSlot.state.actorId)
+        : null;
+    const hasSameLifeEvidence =
+      beforeActor !== null &&
+      beforeActor === afterActor &&
+      tickStart.events.some(
+        (event) =>
+          event.payload.kind === 'form-transition' &&
+          actorValue(event.payload.actorId) === beforeActor,
+      );
+    const hasReplicationEvidence =
+      tickStart.events.some(
+        (event) =>
+          (event.payload.kind === 'lifecycle' &&
+            ((event.payload.targetTeamId === beforeSlot.teamId &&
+              event.payload.targetUnitId === beforeSlot.unitId) ||
+              actorValue(event.payload.sourceActorId) === beforeActor)) ||
+          (event.payload.kind === 'life-retired' &&
+            actorValue(event.payload.actorId) === beforeActor),
+      ) &&
+      (afterActor === null || starts.has(afterActor));
+    if (!sameStableFields || (!hasSameLifeEvidence && !hasReplicationEvidence)) {
+      fail(
+        `${path}.slots`,
+        `slot ${key} changed without exact-due lifecycle evidence`,
+      );
+    }
+  }
+
+  if (after.slots.length !== before.slots.length) {
+    fail(`${path}.slots`, 'tick start cannot add or remove stable unit slots');
+  }
+
+  const beforeProjectiles = new Map(
+    before.projectiles.map((projectile) => [
+      projectile.projectileId,
+      projectile,
+    ]),
+  );
+  const afterProjectiles = new Map(
+    after.projectiles.map((projectile) => [
+      projectile.projectileId,
+      projectile,
+    ]),
+  );
+  for (const [projectileId, projectile] of afterProjectiles) {
+    if (!jsonEqual(projectile, beforeProjectiles.get(projectileId))) {
+      fail(
+        `${path}.projectiles`,
+        `tick start cannot create or mutate projectile ${projectileId}`,
+      );
+    }
+  }
+  const removedProjectiles = [...beforeProjectiles.keys()].filter(
+    (projectileId) => !afterProjectiles.has(projectileId),
+  );
+  const purgedProjectiles = tickStart.traversals
+    .filter(
+      (traversal) =>
+        traversal.terminal.kind === 'lifecycle-placement-purge',
+    )
+    .map((traversal) => traversal.projectileId);
+  if (
+    !sameSet(removedProjectiles, purgedProjectiles) ||
+    new Set(purgedProjectiles).size !== purgedProjectiles.length
+  ) {
+    fail(
+      `${path}.projectiles`,
+      'every tick-start projectile removal must have exactly one lifecycle-placement purge traversal',
+    );
+  }
+
+  if (
+    !jsonEqual(before.pendingReplications, after.pendingReplications) &&
+    !tickStart.events.some(
+      (event) =>
+        event.kind === 'lifecycle-completed' ||
+        event.kind === 'life-retired',
+    )
+  ) {
+    fail(
+      `${path}.pendingReplications`,
+      'pending replication state changed without completion evidence',
+    );
+  }
+}
+
 function ensureUnique<T>(
   entries: readonly T[],
   key: (entry: T) => string | number,
@@ -3438,9 +3756,12 @@ function validateV3Relationships(
     if (tick.tick !== tickIndex || tick.tickStart.tick !== tick.tick) {
       fail(`${path}.tick`, `ticks must be contiguous from zero`);
     }
-    if (JSON.stringify(tick.tickStart.state) !== JSON.stringify(previousWorld)) {
-      fail(`${path}.tickStart.state`, 'must equal the preceding authoritative world');
-    }
+    validateReplayV3TickStartBoundary(
+      previousWorld,
+      tick.tickStart,
+      `${path}.tickStart.state`,
+      fail,
+    );
     validateWorld(tick.tickStart.state, `${path}.tickStart.state`, tick.tick);
     validateWorld(tick.postState, `${path}.postState`, tick.tick + 1);
     if (

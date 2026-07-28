@@ -216,6 +216,13 @@ descendants are mobile replicas; only Fabricate-created mobile children may
 Anchor. Labs is excluded from legacy Duel history/statistics, achievements,
 notifications, ratings, and match feed.
 
+The same immutable Labs v1 definition now has a local, quota-free authoring
+loop: `nilbots new --profile generic-actor` creates an `IGenericActorBot`,
+`nilbots experiment frontline-labs` runs two explicit projects or WASM
+artifacts through the generic session, and `nilbots verify` validates its
+canonical replay 3. This tooling does not enable hosted Labs or create a
+season, ladder, rating, or App match.
+
 Execution technology is explicit playlist identity rather than inferred from
 game mode or admission: every immutable hosted playlist version has a durable
 queue capability, and each generic lane claims the registered set without

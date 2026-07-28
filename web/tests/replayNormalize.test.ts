@@ -6,6 +6,7 @@ import {
   decodeReplayJson,
   ReplayDecodeError,
 } from '../src/replayNormalize.ts';
+import { validateReplayV3TickStartBoundary } from '../src/replayV3Normalize.ts';
 import type { ReplayV3Document } from '../src/replayWireV3.ts';
 import {
   adaptReplayV3ToFrontline,
@@ -883,6 +884,95 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
     assert.equal(replay.contract.modeKind, 'deathmatch');
     assert.equal(replay.contract.rawContract.format.participantCount, 2);
   }
+});
+
+test('replay-v3 accepts a declared automatic return at the tick-start boundary', () => {
+  const fixture = replayV3FixtureInput();
+  const before = structuredClone(fixture.initialFrame.state);
+  const returned = structuredClone(fixture.initialFrame.state);
+  const priorActorId = { teamId: 0, unitId: 0, lifeId: 0 };
+  const returnedActorId = { teamId: 0, unitId: 0, lifeId: 1 };
+
+  const beforeSlot = before.slots.find(
+    (slot) => slot.teamId === 0 && slot.unitId === 0,
+  )!;
+  beforeSlot.state = {
+    kind: 'automatic-return-pending',
+    dueTick: 0,
+    targetFormId: 'mobile',
+    generation: 0,
+  };
+  beforeSlot.pendingParentActorId = priorActorId;
+  before.activeLives = before.activeLives.filter(
+    (life) => life.actorId.teamId !== 0,
+  );
+  before.scoreboard.teams[0]!.scores.find(
+    (score) => score.channel === 'active-health',
+  )!.value = '0';
+
+  const returnedSlot = returned.slots.find(
+    (slot) => slot.teamId === 0 && slot.unitId === 0,
+  )!;
+  returnedSlot.nextLifeId = 2;
+  if (returnedSlot.state.kind !== 'active') {
+    assert.fail('expected an active fixture slot');
+  }
+  returnedSlot.state.actorId = returnedActorId;
+  const returnedLife = returned.activeLives.find(
+    (life) => life.actorId.teamId === 0,
+  )!;
+  returnedLife.actorId = returnedActorId;
+  returnedLife.spawnReason = 'automatic-return';
+  returnedLife.parentActorId = priorActorId;
+
+  const start = structuredClone(fixture.initialFrame.lifeStarts[0]!);
+  start.actorId = returnedActorId;
+  start.origin.reason = 'automatic-return';
+  start.origin.parentActorId = priorActorId;
+  const event = structuredClone(fixture.initialFrame.events[0]!);
+  if (event.payload.kind !== 'life-spawned') {
+    assert.fail('expected a LifeSpawned fixture event');
+  }
+  event.payload.actorId = returnedActorId;
+  event.payload.reason = 'automatic-return';
+  event.payload.parentActorId = priorActorId;
+
+  const tickStart = {
+    tick: 0,
+    state: returned,
+    activeActorIds: returned.activeLives.map((life) => life.actorId),
+    lifeStarts: [start],
+    events: [event],
+    traversals: [],
+  };
+  const fail = (path: string, message: string): never => {
+    throw new ReplayDecodeError(`${path}: ${message}`);
+  };
+
+  assert.doesNotThrow(() =>
+    validateReplayV3TickStartBoundary(
+      before,
+      tickStart,
+      'replay.ticks[0].tickStart.state',
+      fail,
+    ),
+  );
+
+  const unexplained = structuredClone(tickStart);
+  unexplained.state.mode = {
+    kind: 'deathmatch',
+    modeId: 'undeclared-mode-change',
+  };
+  assert.throws(
+    () =>
+      validateReplayV3TickStartBoundary(
+        before,
+        unexplained,
+        'replay.ticks[0].tickStart.state',
+        fail,
+      ),
+    /cannot change participants, mode, projectile issuance/,
+  );
 });
 
 test('replay-v3 Deathmatch rejects illegal endings, counter drift, and standing drift', () => {

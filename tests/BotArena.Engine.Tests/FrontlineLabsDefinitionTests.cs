@@ -196,6 +196,74 @@ public sealed class FrontlineLabsDefinitionTests
     }
 
     [Fact]
+    public void ActionAvailabilityIncludesStableLifecyclePrerequisites()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsDefinition.Create();
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, observation) =>
+                    start.ActorId.TeamId == 0 && observation.Tick < 2
+                        ? GenericDeathmatchSessionTestFixture.Move(
+                            Direction.East)
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 9_002);
+
+        GenericActorMatchPreparedTick opening = session.PrepareTick();
+        Assert.All(
+            opening.Observations,
+            observation =>
+            {
+                Assert.False(observation.ActionLegalities.Single(action =>
+                    action.ActionId == "fabricate").Available);
+                Assert.False(observation.ActionLegalities.Single(action =>
+                    action.ActionId == "split").Available);
+            });
+
+        session.Step(opening.Observations);
+        while (session.Tick < 120)
+        {
+            GenericActorMatchPreparedTick prepared =
+                session.PrepareTick();
+            session.Step(prepared.Observations);
+        }
+
+        GenericActorMatchPreparedTick unlocked = session.PrepareTick();
+        GenericActorRuntimeObservation movedPrime =
+            unlocked.Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 0);
+        GenericActorRuntimeObservation homePrime =
+            unlocked.Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 1);
+
+        Assert.Equal(new Position(4, 7), movedPrime.Self.Position);
+        Assert.False(movedPrime.ActionLegalities.Single(action =>
+            action.ActionId == "fabricate").Available);
+        Assert.Single(movedPrime.ActionLegalities.Single(action =>
+                action.ActionId == "fabricate")
+            .Constraints
+            .OfType<GenericActorRuntimeActionLegality.ArgumentConstraint
+                .UnitTargetConstraint>()
+            .Single()
+            .AllowedValues);
+        Assert.True(homePrime.ActionLegalities.Single(action =>
+            action.ActionId == "fabricate").Available);
+        Assert.All(
+            unlocked.Observations,
+            observation => Assert.True(
+                observation.ActionLegalities.Single(action =>
+                    action.ActionId == "split").Available));
+    }
+
+    [Fact]
     public void Fingerprints_AreStableAcrossFreshMaterialization()
     {
         ActorResolvedMatchDefinition first =

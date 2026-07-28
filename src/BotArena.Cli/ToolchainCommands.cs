@@ -3,119 +3,6 @@ using BotArena.Toolchain;
 
 namespace BotArena.Cli;
 
-public static class NewCommand
-{
-    public static int Run(string name)
-    {
-        if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z][A-Za-z0-9]*$"))
-        {
-            Console.Error.WriteLine("Bot name must be a valid C# identifier (letters and digits, starting with a letter).");
-            return 1;
-        }
-        // C# warns for all-lowercase type names because they may become reserved;
-        // solution-wide warnings-as-errors otherwise makes `new suppressor` generate
-        // a project that cannot compile. Preserve the requested directory but emit a
-        // conventional, valid entry type.
-        string entryType = char.ToUpperInvariant(name[0]) + name[1..];
-        string? templateDir = CliSupport.FindUpward(Path.Combine("templates", "botarena-bot"));
-        if (templateDir is null)
-        {
-            Console.Error.WriteLine("Template not found (templates/botarena-bot).");
-            return 1;
-        }
-        string targetDir = Path.GetFullPath(name);
-        if (Directory.Exists(targetDir) && Directory.EnumerateFileSystemEntries(targetDir).Any())
-        {
-            Console.Error.WriteLine($"Directory {targetDir} already exists and is not empty.");
-            return 1;
-        }
-        Directory.CreateDirectory(targetDir);
-
-        string? sdkProject = CliSupport.FindUpward(
-            Path.Combine("src", "BotArena.Sdk", "BotArena.Sdk.csproj"));
-        string sdkReference;
-        if (sdkProject is not null)
-        {
-            sdkReference =
-                $"<ProjectReference Include=\"{Path.GetRelativePath(targetDir, sdkProject)}\" />";
-        }
-        else
-        {
-            string packagedSdk = Path.Combine(AppContext.BaseDirectory, "BotArena.Sdk.dll");
-            if (!File.Exists(packagedSdk))
-                throw new InvalidOperationException(
-                    "The installed CLI is missing BotArena.Sdk.dll; reinstall the Nilbots tool.");
-            string botLib = Path.Combine(targetDir, "lib");
-            Directory.CreateDirectory(botLib);
-            File.Copy(packagedSdk, Path.Combine(botLib, "BotArena.Sdk.dll"), overwrite: true);
-            // The XML docs must travel WITH the dll or every SDK member is blank in
-            // IntelliSense — the whole player API is this one assembly (player-test
-            // finding). Missing docs must never fail `new`, so this is best-effort.
-            string packagedDocs = Path.ChangeExtension(packagedSdk, ".xml");
-            if (File.Exists(packagedDocs))
-                File.Copy(packagedDocs, Path.Combine(botLib, "BotArena.Sdk.xml"), overwrite: true);
-            sdkReference =
-                "<Reference Include=\"BotArena.Sdk\"><HintPath>lib/BotArena.Sdk.dll</HintPath></Reference>";
-        }
-        // The scaffolded README stays self-contained — an offline player-test called it
-        // "the best documentation in the product" — but its rules section is SPLICED IN
-        // from the canonical guide rather than restated, so the rules have one source.
-        string rulesCard = ReadCanonicalRulesCard();
-        foreach (var file in Directory.EnumerateFiles(templateDir))
-        {
-            string content = File.ReadAllText(file)
-                .Replace("BOTNAME", entryType)
-                .Replace("SDKVERSION", ToolchainInfo.SdkVersion)
-                .Replace("<!--BOTARENA_RULES-->", rulesCard)
-                .Replace("<!--BOTARENA_SDK_REFERENCE-->", sdkReference);
-            File.WriteAllText(
-                Path.Combine(targetDir, Path.GetFileName(file).Replace("BOTNAME", entryType)),
-                content);
-        }
-        Console.WriteLine($"Created bot project: {targetDir}");
-        Console.WriteLine();
-        Console.WriteLine($"  cd {name}");
-        Console.WriteLine("  nilbots play --bot . --opponent hunter --seed 42");
-        if (sdkProject is not null)
-        {
-            Console.WriteLine();
-            Console.WriteLine("Source checkout without `nilbots` on PATH:");
-            string wrapper = Path.GetFullPath(Path.Combine(
-                Path.GetDirectoryName(sdkProject)!, "..", "..", "scripts", "botarena"));
-            Console.WriteLine($"  {wrapper} play --bot . --opponent hunter --seed 42");
-        }
-        return 0;
-    }
-
-    /// <summary>The one copy of the player rules card: shipped beside the tool and, on a
-    /// source checkout, read from docs/. The same file backs the server's
-    /// /llms-full.txt, so the scaffolded README, the text docs and the repo cannot
-    /// disagree. If it is somehow missing, scaffolding still succeeds with a pointer —
-    /// a missing doc must never block creating a bot.</summary>
-    private static string ReadCanonicalRulesCard()
-    {
-        const string guideName = "PLAYER-GUIDE.md";
-        string packaged = Path.Combine(AppContext.BaseDirectory, "docs", guideName);
-        string? path = File.Exists(packaged)
-            ? packaged
-            : CliSupport.FindUpward(Path.Combine("docs", guideName));
-        if (path is null)
-            return "## Rules\n\nSee https://nilbots.com/llms-full.txt for the current rules.\n";
-
-        // Drop the guide's own title and its repo-facing tail; keep the rules body.
-        var lines = File.ReadAllLines(path).ToList();
-        int start = lines.FindIndex(l => l.StartsWith("## ", StringComparison.Ordinal));
-        int end = lines.FindIndex(l => l.StartsWith("## Promotion evidence", StringComparison.Ordinal));
-        if (start < 0)
-            return string.Join('\n', lines);
-        var body = lines.GetRange(start, (end > start ? end : lines.Count) - start);
-        return "# Rules that decide matches\n\n" +
-               "<!-- Spliced from the official rules card at `nilbots new` time; the same\n" +
-               "     text is served at https://nilbots.com/llms-full.txt -->\n\n" +
-               string.Join('\n', body).TrimEnd() + "\n";
-    }
-}
-
 public static class BuildCommand
 {
     public static int Run(IReadOnlyList<string> args)
@@ -141,7 +28,11 @@ public static class BuildCommand
         // No "Game rules" line: the artifact is rules-agnostic — the ruleset is chosen
         // per match by play/set/server, not baked in at build time (gen-4 trial #4:
         // printing the default here read as "built for the wrong game" under a pin).
-        Console.WriteLine($"Runtime protocol: {BotArenaVersions.RuntimeProtocolVersion}");
+        Console.WriteLine(
+            $"Runtime protocols: legacy " +
+            $"{BotArenaVersions.RuntimeProtocolVersion}; actor " +
+            $"{BotArenaVersions.GenericActorRuntimeProtocolVersion} " +
+            "(selected by match and implemented entry interface)");
         Console.WriteLine($"SDK:              {ToolchainInfo.SdkVersion}");
         Console.WriteLine($"Compiler:         NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
         Console.WriteLine($"Cache:            {(built.FromCache ? "hit" : "miss (compiled)")} · key {built.CacheKey}");

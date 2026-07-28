@@ -43,7 +43,7 @@ self-hosted development.
 
 ## Local Frontline experiment
 
-CLI 0.9.0 includes the explicitly separate, unranked Frontline authoring loop:
+CLI 0.9.3 includes the explicitly separate, unranked Frontline authoring loop:
 
 ```bash
 nilbots experiment frontline \
@@ -63,5 +63,31 @@ This is not an alias for `play`: it cannot rank, submit, or enter a server
 match, and `frontline-alpha-1` is absent from shipped rules and map catalogs.
 See `nilbots help experiment` and the packaged
 `docs/EXPERIMENTAL-FRONTLINE.md` contract.
+
+## Local Frontline Labs v1
+
+Create generic actor projects separately from shipped Duel bots:
+
+```bash
+nilbots new LabsBot --profile generic-actor
+nilbots new Rival --profile generic-actor
+nilbots experiment frontline-labs \
+  --bot LabsBot \
+  --opponent Rival \
+  --runtime in-process \
+  --seeds 104729,130363,155921
+```
+
+This command runs the exact immutable hosted `frontline-labs-1` resolved
+contract through `GenericActorMatchSession`, then writes canonical replay v3.
+It bypasses App accounts, queues, and pilot quotas and remains local and
+unranked. Both entrants are required: a generic spec is an
+`IGenericActorBot` project or generic-profile WASM artifact, and no generic
+built-in opponent exists. Use `--swap` for the other team assignment.
+
+Iterate in-process, then build both projects and repeat in the default WASM
+runtime before treating results as evidence. `nilbots verify <replay.json>`
+cryptographically verifies replay v3, including its exact embedded contract
+fingerprints and payload hash.
 
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

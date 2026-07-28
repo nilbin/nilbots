@@ -2439,6 +2439,75 @@ flag must remain disabled in any deployment until the existing release guard
 passes and CLI/package 0.9.0 from the exact compatibility revision has been
 published and tagged `cli-v0.9.0`.
 
+## 141. Frontline Labs gets an exact local authoring loop before its balance cohort
+
+The CLI adds `nilbots experiment frontline-labs` as a local, quota-free
+authoring boundary around the immutable hosted Frontline Labs v1 definition.
+It accepts two explicit external `IGenericActorBot` projects or generic-profile
+WASM artifacts, supports deterministic seed batches and side swaps, executes
+`FrontlineLabsDefinition.Create()` through `GenericActorMatchSession`, and
+writes canonical replay 3. The default WASM path uses the same
+`WasmGenericActorRuntimeFactory` as hosted execution; in-process remains an
+explicit diagnostic loop.
+
+`nilbots new <Name> --profile generic-actor` provides the missing authoring
+surface without changing the shipped Duel default. The scaffold reads variable
+topology, map, mode, and action legality from the negotiated contract, and
+resolves action codes from the current legality entry rather than copying
+numeric selectors. There is no generic built-in opponent: both entrants are
+always named, which keeps a cohort from silently testing against the unrelated
+Frontline-alpha bot interface. `nilbots verify` now validates replay 3 through
+the Engine's canonical serializer, including payload hash and nested contract
+fingerprints.
+
+This is tooling around the existing playlist, not a gameplay or product
+mutation. Playlist v1, its fingerprints, hosted admission, quotas, and disabled
+feature flag remain unchanged. The command creates no App match, submission,
+season, ladder, rating, or ranking, and it does not enable Labs. Because the
+CLI/package and packaged templates changed, the release target moves from the
+unpublished 0.9.0 compatibility revision to 0.9.1 and must be tagged
+`cli-v0.9.1` before Labs may be enabled. SDK/Guest remain 0.10.0 and controlled
+build pipeline remains 4.
+
+## 142. Labs balance waits for truthful action masks and an Anchor-safe SDK
+
+The first frozen four-doctrine Labs cohort is retained but cannot justify a
+numeric rules change. Its 36 verified WASM matches had no participant-slot side
+advantage, yet 24 reached MaxTicks, half were stalled and looped, Fabricate
+blocked 15,417 times, and Split completed zero times. Outcome-blind review
+independently found long inert endings.
+
+The causal defect is in generic action availability, not a capture or combat
+number. Fabricate had been advertised whenever a compatible Ready target
+existed even when the source was outside its declared region. Split had been
+advertised from a matching form even without enough health or Ready compatible
+slots. `Available` now includes source-local Fabricate eligibility and
+Split source/health/slot prerequisites. Placement, movement, and intersecting
+lifecycle claims remain joint-resolution outcomes: predicting them in the
+mask could leak hidden occupancy and would reject actions which become possible
+after a simultaneous vacancy.
+
+That correction activated Fabricate, Split, and Anchor in unchanged entrant
+artifacts. Anchor then exposed two separate public SDK defects. A one-tick
+end-of-started-tick form change canonically emits event chronology with
+`startedTick == dueTick`; SDK 0.10.0 incorrectly rejected it before player code
+ran. Event payloads now permit equal ticks, while in-progress transition state
+still requires a future due tick. An enemy transition-created life may also be
+visible while privacy policy redacts both its parent and occurrence handle;
+SDK 0.10.1 incorrectly required the redacted handle. Transition-spawn events
+now accept that canonical redacted shape while retaining the public transition
+ID, and still reject a disclosed parent without its operation handle. These
+repairs change embedded player bytes, so SDK/Guest move to 0.10.2 and
+CLI/package moves to 0.9.3; controlled-build pipeline 4 and every immutable
+Labs fingerprint remain unchanged. The required release tag is therefore
+`cli-v0.9.3`.
+
+Local Labs also retains sandbox diagnostics after life disposal and prints the
+precise local failure plus peak completed-tick fuel when a WASM participant
+faults. Public replay faults remain stable/redacted. The next balance evidence
+must rebuild probes and entrants against 0.10.2, use a shorter two-seed mirrored
+cohort, and demonstrate lifecycle coverage before any one-variable numeric arm.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

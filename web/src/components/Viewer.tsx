@@ -23,11 +23,11 @@ import EventFeed from './EventFeed';
 import Logo from './Logo';
 
 /**
- * The 2.5D renderer, loaded only if asked for.
+ * The hosted viewer's default 2.5D renderer.
  *
- * `lazy` rather than a plain import so three.js lands in its own chunk: the Canvas2D
- * viewer is the default and must not pay for a renderer it does not use, and the CLI's
- * single-file artifact stubs this module out entirely (see vite.cli.config.ts).
+ * `lazy` keeps three.js in its own chunk so the Canvas2D fallback can load
+ * independently. The CLI's single-file artifact stubs this module out
+ * entirely (see vite.cli.config.ts).
  */
 const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
 const AdaptiveSoundtrack = lazy(
@@ -65,15 +65,16 @@ export default function Viewer({
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
-  // Opt-in, and sticky for the session so a reviewer comparing the two is not retyping a
-  // query string. The Canvas2D renderer stays the default until this one has been judged
-  // on a real screen — it is an alternative, not a replacement.
-  const [dimensional, setDimensional] = useState(
-    () =>
-      DIMENSIONAL_RENDERER_AVAILABLE &&
-      new URLSearchParams(window.location.search).get('renderer') ===
-        '3d',
-  );
+  // The 3D renderer is the viewer now, and there is no way to ask for the flat one:
+  // a dimension count was never a choice a player wanted to make.
+  //
+  // Canvas2D is not dead, it is just no longer a mode. It stays as the floor for the two
+  // cases where this cannot draw at all — the CLI's single-file artifact, which stubs the
+  // dynamic import out entirely (`vite.cli.config.ts` sets
+  // `__BOTARENA_DIMENSIONAL_RENDERER__` false so three.js never enters a copied replay),
+  // and a device that fails to give us a WebGL context, which is what `onUnavailable`
+  // catches. Both fall back without asking.
+  const [dimensional, setDimensional] = useState(DIMENSIONAL_RENDERER_AVAILABLE);
 
   const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
@@ -261,19 +262,6 @@ export default function Viewer({
         )}
         {soundEffectsAvailable && (
           <SoundEffectsControl effects={soundEffects} />
-        )}
-        {/* Which renderer. The CLI artifact intentionally stubs the dynamic module to
-            keep three.js out of every copied replay, so it must not offer a blank mode. */}
-        {DIMENSIONAL_RENDERER_AVAILABLE && (
-          <button
-            type="button"
-            onClick={() => setDimensional((on) => !on)}
-            className="rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
-            aria-pressed={dimensional}
-            title="Switch between the flat and the 2.5D renderer"
-          >
-            {dimensional ? '2.5D' : '2D'}
-          </button>
         )}
         {/* Pointer devices only. A phone says what it wants by being turned, and a button
             that duplicated that would either fight the orientation or strand someone in a

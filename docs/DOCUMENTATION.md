@@ -47,6 +47,17 @@ wrong; it changes which document is the current entry point.
   player/bot contract and local CLI instructions for the frozen alpha, plus
   the exact boundary of its distinct hosted generic Labs successor. Neither
   is the shipped player guide or a ranked availability claim.
+- [`FRONTLINE-LABS-RULES.md`](FRONTLINE-LABS-RULES.md) — standalone,
+  player-facing contract for immutable hosted Labs playlist v1 and its exact
+  local generic runner. It does not require authors to infer which frozen
+  Frontline-alpha mechanics happen to remain similar.
+- [`FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`](FRONTLINE-LABS-BOT-AUTHOR-PACKET.md)
+  — frozen common information and DX-reporting budget for the first
+  independently authored generic calibration cohort.
+- [`FRONTLINE-LABS-COHORT-BASELINE.md`](FRONTLINE-LABS-COHORT-BASELINE.md) —
+  pre-registered seeds, mirrored matrix, outcome/dynamics gates, replay review,
+  artifact retention, and one-mechanism tuning rule for the exploratory Labs
+  v1 balance pass.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, generic replay 3, datasets, and bounded model
   assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor

@@ -2273,9 +2273,15 @@ public sealed class GenericActorMatchSession : IDisposable
                 && (attack.MaxEnergy == 0
                     || life.Energy >= attack.AttackEnergyCost),
             ActorActionKind.Replication =>
-                MatchingSplitTransitions(life, action.Id).Length == 1,
+                MatchingSplitTransitions(life, action.Id) is
+                    [SplitReplicationTransitionDefinition split]
+                && IsSplitAvailable(life, split),
             ActorActionKind.Fabrication =>
-                MatchingFabricationTransitions(life, action.Id).Length == 1
+                MatchingFabricationTransitions(life, action.Id) is
+                    [BoundedChildFabricationDefinition fabrication]
+                && _fabrication.IsSourceEligibleForRequest(
+                    FabricationSnapshot(life),
+                    fabrication)
                 && FabricationTargets(life, action).Length > 0,
             ActorActionKind.SameLifeTransition =>
                 _sameLife.MatchRoutes(life.FormId, action.Id)
@@ -2284,6 +2290,38 @@ public sealed class GenericActorMatchSession : IDisposable
                         transition.TransitionId)),
             _ => false,
         };
+    }
+
+    private bool IsSplitAvailable(
+        LifeState life,
+        SplitReplicationTransitionDefinition transition)
+    {
+        if (!SplitReplicationKernel.IsEligibleSource(
+                SplitSnapshot(life),
+                transition))
+        {
+            return false;
+        }
+
+        SlotState sourceSlot =
+            _slots[(life.ActorId.TeamId, life.ActorId.UnitId)];
+        if (!sourceSlot.Assignment.AllowedFormIds.Contains(
+                transition.OutputFormId,
+                StringComparer.Ordinal))
+        {
+            return false;
+        }
+
+        int additionalSlotsRequired = transition.DescendantCount - 1;
+        int compatibleReadySlots = _slots.Values.Count(slot =>
+            slot.TeamId == life.ActorId.TeamId
+            && slot.ParticipantId == life.ParticipantId
+            && slot.UnitId != life.ActorId.UnitId
+            && slot.Kind == SlotKind.Ready
+            && slot.Assignment.AllowedFormIds.Contains(
+                transition.OutputFormId,
+                StringComparer.Ordinal));
+        return compatibleReadySlots >= additionalSlotsRequired;
     }
 
     private ImmutableArray<

@@ -22,14 +22,22 @@ internal static class InProcessProject
     internal sealed record LoadedActorFactory(
         Func<Sdk.IActorBot> Factory,
         string ProvenanceHash);
+    internal sealed record LoadedGenericActorFactory(
+        Func<Sdk.IGenericActorBot> Factory,
+        string ProvenanceHash);
     private sealed record CachedActorFactory(
         long SourceStamp,
         LoadedActorFactory Loaded);
+    private sealed record CachedGenericActorFactory(
+        long SourceStamp,
+        LoadedGenericActorFactory Loaded);
 
     private static readonly Dictionary<string, CachedFactory> Factories =
         new(StringComparer.Ordinal);
     private static readonly Dictionary<string, CachedActorFactory> ActorFactories =
         new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, CachedGenericActorFactory>
+        GenericActorFactories = new(StringComparer.Ordinal);
 
     public static Func<Sdk.IBot> LoadFactory(BotProject project, bool quiet = false)
     {
@@ -93,6 +101,44 @@ internal static class InProcessProject
             AssemblyClosureHash(dllPath));
         ActorFactories[projectDirectory] =
             new CachedActorFactory(sourceStamp, loaded);
+        return loaded;
+    }
+
+    /// <summary>
+    /// Generic actor equivalent of <see cref="LoadActorFactory"/>. The loaded
+    /// factory still creates a fresh SDK object for every runtime life.
+    /// </summary>
+    public static LoadedGenericActorFactory LoadGenericActorFactory(
+        BotProject project,
+        bool quiet = false)
+    {
+        string projectDirectory = Path.GetFullPath(project.Directory);
+        long sourceStamp = SourceStamp(project, projectDirectory);
+        if (GenericActorFactories.TryGetValue(
+                projectDirectory,
+                out CachedGenericActorFactory? cached)
+            && cached.SourceStamp == sourceStamp)
+        {
+            return cached.Loaded;
+        }
+
+        string dllPath = Build(project, quiet);
+        var context = new BotLoadContext(dllPath);
+        Assembly assembly = context.LoadFromAssemblyPath(dllPath);
+        Type entryType = FindEntryType(project, dllPath, assembly);
+        if (!typeof(Sdk.IGenericActorBot).IsAssignableFrom(entryType))
+        {
+            throw new InvalidOperationException(
+                $"{entryType.FullName} does not implement " +
+                "BotArena.Sdk.IGenericActorBot " +
+                "(required by Frontline Labs).");
+        }
+
+        var loaded = new LoadedGenericActorFactory(
+            () => (Sdk.IGenericActorBot)Activator.CreateInstance(entryType)!,
+            AssemblyClosureHash(dllPath));
+        GenericActorFactories[projectDirectory] =
+            new CachedGenericActorFactory(sourceStamp, loaded);
         return loaded;
     }
 

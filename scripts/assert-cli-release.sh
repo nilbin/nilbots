@@ -102,6 +102,9 @@ EOF
       docker/wasm-builder.Dockerfile
       maps
       templates/botarena-bot
+      templates/botarena-generic-actor
+      docs/EXPERIMENTAL-FRONTLINE.md
+      docs/FRONTLINE-LABS-RULES.md
       docs/PLAYER-GUIDE.md
       scripts/run-wasm-publish.sh
       scripts/setup-wasi-sdk.sh
@@ -117,8 +120,17 @@ EOF
       web/src/index.css
       web/src/main.tsx
       web/src/playback.ts
+      web/src/replayIngress.ts
       web/src/render
       web/src/replayMetadata.ts
+      web/src/replayModel.ts
+      web/src/replayNormalize.ts
+      web/src/replayParticipants.ts
+      web/src/replayPresentation.ts
+      web/src/replayV3Normalize.ts
+      web/src/replayWireV1.ts
+      web/src/replayWireV2.ts
+      web/src/replayWireV3.ts
       web/src/types.ts
     )
     if ! git diff --quiet "$tagged" "$revision" -- "${compatibility_paths[@]}"; then

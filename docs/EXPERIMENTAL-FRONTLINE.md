@@ -61,10 +61,78 @@ future architecture work.
 Availability is only an execution and integration checkpoint. The Labs map
 and numeric values remain `experimental-unvalidated`; they have not passed the
 independent doctrine, causal-arm, dynamics, or outcome-blind entertainment
-gates. CLI/package 0.9.0 must be published and tagged from the exact final
+gates. CLI/package 0.9.3 must be published and tagged from the exact final
 compatibility revision before this flag may be enabled.
 
-## Run the local experiment
+### Author and run the hosted Labs contract locally
+
+The complete standalone player-facing mechanics card is
+[`FRONTLINE-LABS-RULES.md`](FRONTLINE-LABS-RULES.md). Use that card for
+`IGenericActorBot` authorship; the later **Frozen Frontline-alpha game**
+sections describe the older `IActorBot` contract and are not an implicit Labs
+specification.
+
+Create the generic actor profile explicitly:
+
+```bash
+nilbots new MyLabsBot --profile generic-actor
+nilbots new TrainingPartner --profile generic-actor
+```
+
+The profile implements `IGenericActorBot` and includes a small
+contract-driven objective navigator. Its action helper resolves numeric codes
+from each tick's legality catalog; it does not copy the current codes into bot
+logic. Both the immutable MatchStart contract and the dynamic legality masks
+are normal bot inputs, so the same API can expose changed team/unit counts,
+maps, forms, actions, and modes in later playlist versions.
+
+Run two generic projects through the exact hosted v1 definition without App
+authentication, queues, or pilot quotas:
+
+```bash
+nilbots experiment frontline-labs \
+  --bot MyLabsBot \
+  --opponent TrainingPartner \
+  --runtime in-process \
+  --seeds 104729,130363,155921
+
+# Final sandbox/parity run:
+nilbots build MyLabsBot
+nilbots build TrainingPartner
+nilbots experiment frontline-labs \
+  --bot MyLabsBot/out/bot.wasm \
+  --opponent TrainingPartner/out/bot.wasm \
+  --seed 104729
+nilbots verify out/frontline-labs/<match>/replay.json
+```
+
+The command accepts only `IGenericActorBot` project directories or
+generic-actor-profile WASM artifacts. Both entrants are required because
+there are no generic built-in opponents. `--swap` reverses participant/team
+assignment; `--seeds` preserves one replay under each `s<seed>/` directory.
+The output is the same canonical replay-v3 envelope and generic WASM runtime
+used by hosted Labs, but the match remains local and unranked. In-process
+execution is diagnostic only; cohort evidence and parity claims use WASM.
+
+At the action boundary, select from the contract-delivered catalog rather
+than hard-coding the action code:
+
+```csharp
+public GenericActorDecision Tick(GenericActorContext context)
+{
+    GenericActorActionLegality wait = context.Action("wait")
+        ?? throw new InvalidOperationException("No wait action.");
+    return GenericActorDecision.WithoutArguments(
+        wait.ActionId,
+        wait.ActionCode);
+}
+```
+
+The generated project demonstrates typed direction and projectile-heading
+arguments as well as reading the active Frontline objective from
+`context.Mode` and `StartLife.Contract.ModeMapBinding`.
+
+## Run the frozen Frontline-alpha experiment
 
 ```bash
 nilbots experiment frontline \
@@ -123,7 +191,7 @@ The included opponents are deterministic calibration fixtures:
 They were created together to exercise mechanics. They are not independently
 authored doctrines and cannot satisfy the product-evaluation cohort gate.
 
-## The game
+## Frozen Frontline-alpha game
 
 Two submitted policies contest one moving objective across five ordered
 positions. It starts in the centre. Sole presence by one team builds capture

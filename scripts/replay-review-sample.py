@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Select a deterministic, outcome-blind replay-review sample.
 
-Selection reads only replay headers. It balances map coverage first and unseen
-bot pairings second, then uses a seeded SHA-256 order. The output deliberately
-omits winner, reason, damage, and duration so reviewers can watch before seeing
-the outcome table.
+Selection uses only replay-header fields. It balances map coverage first and
+unseen bot pairings second, then uses a seeded SHA-256 order. The output
+deliberately omits winner, reason, damage, and duration so reviewers can watch
+before seeing the outcome table.
 """
 
 import argparse
@@ -12,6 +12,15 @@ import collections
 import hashlib
 import json
 import pathlib
+import shutil
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def replay_files(roots):
@@ -36,12 +45,20 @@ def candidate(path, selection_seed):
     elif replay_version == 2:
         map_id = header["contract"]["map"]["mapId"]
         participant_key = "participantId"
+    elif replay_version == 3:
+        map_id = header["contract"]["map"]["mapId"]
+        participant_key = "participantId"
     else:
         raise ValueError(
             f"{path}: unsupported replay version {replay_version!r}"
         )
+    provenance = (
+        header["provenance"]["participants"]
+        if replay_version == 3
+        else header["participants"]
+    )
     participants = sorted(
-        header["participants"],
+        provenance,
         key=lambda item: item[participant_key],
     )
     names = [participant["name"] for participant in participants]
@@ -100,39 +117,117 @@ def select(candidates, count):
     return selected
 
 
+def presentation_labels(item, blind):
+    if not blind:
+        return list(item["participants"])
+    return [
+        f"Entrant {chr(ord('A') + index)}"
+        for index in range(len(item["participants"]))
+    ]
+
+
+def write_review_package(destination, chosen, blind):
+    destination.mkdir(parents=True, exist_ok=False)
+    replay_directory = destination / "replays"
+    replay_directory.mkdir()
+    index = []
+    for sample_index, item in enumerate(chosen, start=1):
+        sample_id = f"sample-{sample_index:02}"
+        copied_replay = replay_directory / f"{sample_id}.json"
+        source = pathlib.Path(item["source"])
+        source_hash = file_sha256(source)
+        shutil.copy2(source, copied_replay)
+        copied_hash = file_sha256(copied_replay)
+        if copied_hash != source_hash:
+            raise ValueError(f"{source}: copied replay bytes changed")
+        labels = presentation_labels(item, blind)
+        item["reviewSource"] = str(copied_replay.resolve())
+        item["presentationLabels"] = labels
+        index.append(
+            {
+                "id": sample_id,
+                "url": f"replays/{sample_id}.json",
+                "map": item["map"],
+                "bots": labels,
+                # Outcome-blind packages intentionally do not inspect duration
+                # or termination reason. The existing picker renders "?t".
+                "ticks": "?",
+                "reason": None,
+                "identityAliases": [
+                    {
+                        "participantIndex": participant_index,
+                        "label": label,
+                    }
+                    for participant_index, label in enumerate(labels)
+                ],
+            }
+        )
+    (destination / "replays.json").write_text(
+        json.dumps(index, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("roots", nargs="+", help="replay files or directories")
     parser.add_argument("--count", type=int, default=12)
     parser.add_argument("--seed", type=int, default=20260724)
+    parser.add_argument(
+        "--blind-identities",
+        action="store_true",
+        help="Replace participant names in the reviewer manifest.",
+    )
+    parser.add_argument(
+        "--copy-selected",
+        type=pathlib.Path,
+        help=(
+            "Write a hosted-review package with neutral replay paths and "
+            "replays.json; required with --blind-identities."
+        ),
+    )
     parser.add_argument("--output", type=pathlib.Path)
     args = parser.parse_args()
     if args.count <= 0:
         parser.error("--count must be positive")
+    if args.blind_identities and args.copy_selected is None:
+        parser.error(
+            "--blind-identities requires --copy-selected to hide source paths"
+        )
 
     candidates = [
         candidate(path, args.seed)
         for path in replay_files(args.roots)
     ]
     chosen = select(candidates, min(args.count, len(candidates)))
+    if args.copy_selected is not None:
+        write_review_package(
+            args.copy_selected,
+            chosen,
+            args.blind_identities,
+        )
     manifest = {
         "sampleVersion": 2,
         "selection": (
-            "versioned header-only; map-balanced; unseen-pair-first; "
+            "versioned header-fields-only; map-balanced; unseen-pair-first; "
             "seeded SHA-256"
         ),
         "selectionSeed": args.seed,
         "outcomeBlind": True,
+        "identitiesBlind": args.blind_identities,
         "populationSize": len(candidates),
         "replays": [
             {
                 "id": f"sample-{index + 1:02}",
-                "source": item["source"],
+                "source": item.get("reviewSource", item["source"]),
                 "replayVersion": item["replayVersion"],
                 "rules": item["rules"],
                 "map": item["map"],
                 "matchSeed": item["matchSeed"],
-                "participants": item["participants"],
+                "participants": item.get(
+                    "presentationLabels",
+                    presentation_labels(item, args.blind_identities),
+                ),
             }
             for index, item in enumerate(chosen)
         ],

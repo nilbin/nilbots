@@ -1,0 +1,10 @@
+{
+  "name": "Fabricator",
+  "entryType": "Fabricator",
+  "sdkVersion": "0.10.2",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

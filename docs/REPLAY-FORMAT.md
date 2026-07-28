@@ -13,8 +13,9 @@ version-neutral normalization layer for v1 and this experimental v2.
 it in a self-contained Canvas2D viewer. Historical `play`, Duel App/server
 matches, and the ladder still emit only v1; the separate off-by-default
 Frontline Labs path emits replay v3. Replay v2 is not yet a stable public
-format, and the general `replay --summary` and `verify` commands remain
-v1-only; its architecture and ML use are described in
+format. The general `replay --summary` command remains v1-only; `verify`
+accepts complete canonical v1 and v3 documents, but not v2. The experimental
+formats' architecture and ML use are described in
 [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md) and
 [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md). Do not normalize v1 to
 v2 before verifying a stored v1 hash.
@@ -47,10 +48,12 @@ model to mobile while retaining mode-specific objective and result facts.
 Replay v3 is now consumed by one narrow hosted integration checkpoint:
 feature-gated, setless, unranked `frontline-labs` v1 matches store it and the
 public replay endpoint projects a result-redacted canonical prefix until the
-broadcast completes. Historical `play`, Duel admission, datasets, ladders,
-and general replay verification do not select it. Replay 1, the opened
-Frontline-alpha replay 2, and their hashes remain separate frozen
-generations.
+broadcast completes. The exact local
+`nilbots experiment frontline-labs` runner also writes it, and
+`nilbots verify` checks its canonical payload hash plus nested contract
+fingerprints. Historical `play`, Duel admission, datasets, and ladders do not
+select it. Replay 1, the opened Frontline-alpha replay 2, and their hashes
+remain separate frozen generations.
 
 > For replay v1, a quick digest instead of raw JSON is available through
 > `botarena replay <file> --summary`. It prints a compact timeline (states,

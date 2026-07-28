@@ -13,7 +13,7 @@ itself for the primary product verdict while historical champions act as
 non-voting sentinels. This evaluates the docs and the full pipeline; the
 tournament is the fun part.
 
-**Default: ONE challenger.** A tournament agent costs ~200-400k tokens per
+**Legacy Duel default: ONE challenger.** A tournament agent costs ~200-400k tokens per
 phase, so a 3-agent bracket runs 1.5-2M+ and triples wall-clock (and restart
 exposure). Since champions are seeded server bots (DECISIONS #43), a single
 challenger vs the champion lineage is a full title fight. Use a multi-agent
@@ -22,6 +22,10 @@ verdict needs archetype diversity. A substantial-rules ship verdict is that
 exception: use at least four independently authored or substantially adapted
 candidate-aware doctrines, because frozen champions cannot reveal a strategy
 space they were never written to use.
+
+Frontline Labs uses the separate **cohort sprint** below. It is setless and
+unranked, so legacy ladder, Elo, champion-seeding, and crowning semantics do
+not apply.
 
 ## Run length (pick before launching, per the request)
 
@@ -40,8 +44,73 @@ space they were never written to use.
 - **full** — 2-4 iterations and/or a multi-agent bracket; explicit request
   only. Drop champion pairings from later rounds once they're proven
   uninformative (0-6 sweeps every time) — rerunning them is elo noise.
+- **cohort sprint** — the Frontline Labs default: four independent doctrines,
+  one authoring pass, zero strategy-improvement passes, then one mirrored
+  native round-robin. Mechanical compile/contract/fault repairs are allowed
+  without opponent results. If a shared brief or scaffold defect needs a
+  repair pass, give every author the same opportunity and archive all
+  revisions. This is an exploratory tuning screen, not a ship verdict.
 
-## 1. Boot the environment
+## Frontline Labs cohort sprint
+
+Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
+hosted path has quotas and no ladder; the exact local generic runner is the
+evaluation boundary.
+
+Pre-register the run in `docs/FRONTLINE-LABS-COHORT-BASELINE.md`. Give each of
+four independent agents the identical
+`docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`, the player rules in
+`docs/FRONTLINE-LABS-RULES.md`, and exactly one doctrine sentence: pressure,
+fabricator, bastion, or adapter. Authors may inspect only the player-facing
+material permitted by the packet. They create projects with
+`nilbots new <Name> --profile generic-actor`, receive one implementation pass,
+and do not see another entrant, standings, or replay evidence before freeze.
+
+Every author writes `DX.md` after source freeze and before tournament
+disclosure. It records player-facing friction and mechanical repairs but
+cannot trigger strategy editing. Synthesize all four reports into
+`DX-SYNTHESIS.md`, grouped by severity, before opening tournament outcomes.
+
+Archive **every** entrant under
+`arena-bots/frontline-labs/<cohort-id>/<entrant-id>/`, never just the leader
+and never under `champions/`. Preserve source, project metadata,
+`botarena.json`, README, `DX.md`, every repair revision, canonical `bot.wasm`,
+and its SHA-256. Fill the cohort manifest described by
+`arena-bots/frontline-labs/README.md`; freeze all hashes before the first
+match.
+
+```bash
+python3 scripts/labs-cohort-drive.py \
+  --manifest arena-bots/frontline-labs/<cohort-id>/cohort.json \
+  --output arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm
+```
+
+The first baseline is four bots × six unordered pairs × seeds
+`104729,130363,155921` × both participant assignments = 36 matches. The driver
+uses `nilbots experiment frontline-labs` in WASM mode, requires
+`nilbots verify` for every complete replay v3, retains every entrant, replay,
+log, and result, and computes W/D/L/points without Elo. Use `--resume` after
+interruption; it adds an immutable attempt instead of overwriting evidence.
+
+Before reading `results.json`, freeze the review sample and notes:
+
+```bash
+python3 scripts/replay-review-sample.py \
+  arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm/matches \
+  --count 12 --seed 20260724 --blind-identities \
+  --copy-selected arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm/blind-review \
+  --output arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm/review-sample.json
+python3 scripts/labs-replay-eval.py \
+  --group baseline=arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm/matches \
+  --json arena-bots/frontline-labs/<cohort-id>/evidence/baseline-wasm/dynamics.json
+```
+
+Report W/D/L/points, participant-assignment bias, terminal reasons, dynamics,
+outcome-blind notes, and DX synthesis. Do not crown the leader. Counterplay
+adaptation is a new equal-budget, pre-registered run on fresh seeds, not the
+default continuation of the sprint.
+
+## 1. Boot the environment (legacy Duel)
 
 ```bash
 bash scripts/setup.sh
@@ -320,7 +389,7 @@ Standard runs do 1 iteration, full runs 2-4 (stop early only if the
 leaderboard order is unchanged twice running). Elo accumulates across
 rounds; the drama is the point.
 
-## 3.6 Crown only a dethroner — and KEEP it
+## 3.6 Crown only a legacy Duel dethroner — and KEEP it
 
 **If a reigning champion finishes #1, there is no new champion**: report
 "champion defended the title" (that's a headline, not a failure) and skip this

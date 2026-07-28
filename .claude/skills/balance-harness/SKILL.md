@@ -7,9 +7,10 @@ description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-
 
 Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/balance-eval.py`, `scripts/replay-dynamics-eval.py`,
-`scripts/frontline-replay-eval.py`, `scripts/replay-review-sample.py`, the
-CLI's historical `--rules` flag, and the separate local
-`nilbots experiment frontline` path.
+`scripts/frontline-replay-eval.py`, `scripts/labs-replay-eval.py`,
+`scripts/replay-review-sample.py`, the CLI's historical `--rules` flag, the
+frozen replay-v2 `nilbots experiment frontline` path, and the generic
+replay-v3 `nilbots experiment frontline-labs` path.
 
 ## 1. Classify and pre-register the experiment
 
@@ -75,6 +76,14 @@ python3 scripts/frontline-replay-eval.py \
   --group current=/tmp/frontline/block-2 \
   --json /tmp/frontline/report.json
 
+python3 scripts/labs-cohort-drive.py \
+  --manifest arena-bots/frontline-labs/<cohort>/cohort.json \
+  --output arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm
+
+python3 scripts/labs-replay-eval.py \
+  --group current=arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/matches \
+  --json arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/dynamics.json
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
@@ -86,6 +95,22 @@ The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and
 defensive paths execute; they never satisfy the independently authored native
 cohort requirement.
+
+For the first Frontline Labs exploratory screen, use the agent-arena
+**cohort sprint** and the frozen
+`docs/FRONTLINE-LABS-COHORT-BASELINE.md` pre-registration. Its four authors
+receive `docs/FRONTLINE-LABS-RULES.md`, one implementation pass, and zero
+strategy-improvement passes by default. That smaller budget can expose gross
+dominance, deadlocks, unused mechanics, participant-assignment bias, and DX
+failures; it cannot establish balance or a ship verdict. Mechanical repair is
+permitted without opponent results, and a shared repair opportunity must be
+equal and retain every revision.
+
+Labs cohorts are neutral evidence under `arena-bots/frontline-labs/`, not
+champions. Archive all entrants, source revisions, final WASM hashes,
+pre-disclosure `DX.md` reports, match logs, verified replay-v3 files, W/D/L
+results, dynamics, and the outcome-blind sample. Synthesize DX before
+tournament disclosure and do not turn it into another strategy pass.
 
 The Frontline analyzer rejects mixed rules fingerprints under one group label
 and surfaces map, runtime, and artifact cohort metadata. Do not combine

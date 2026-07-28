@@ -275,6 +275,44 @@ public sealed class GenericActorObservationCodecTests
         Assert.Equal("fabricate:opaque:9", spawned.SourceOperationId);
     }
 
+    [Theory]
+    [InlineData(GenericActorMatchStart.SpawnReason.Fabrication, "fabricate")]
+    [InlineData(GenericActorMatchStart.SpawnReason.Replication, "split")]
+    public void TransitionSpawnAcceptsFullyRedactedPrivateLineage(
+        GenericActorMatchStart.SpawnReason reason,
+        string transitionId)
+    {
+        var source = new GenericActorContext.ObservedEvent(
+            "redacted-transition-life",
+            sourceTick: 8,
+            sourceOrdinal: 0,
+            GenericActorContext.EventKind.LifeSpawned,
+            new GenericActorContext.EventPayload.LifeSpawned(
+                new ActorIdentity(0, 4, 1),
+                participantId: 10,
+                parentActorId: null,
+                generation: 1,
+                "mobile",
+                health: 1,
+                new Position(4, 4),
+                reason,
+                sourceTransitionId: transitionId,
+                sourceOperationId: null),
+            [GenericActorDynamicTestFixture.SelfActor]);
+
+        GenericActorContext.ObservedEvent decoded =
+            GenericActorWireEventCodec.DecodeEvent(
+                GenericActorWireEventCodec.EncodeEvent(source),
+                0);
+        var spawned = Assert.IsType<
+            GenericActorContext.EventPayload.LifeSpawned>(
+                decoded.Payload);
+
+        Assert.Null(spawned.ParentActorId);
+        Assert.Equal(transitionId, spawned.SourceTransitionId);
+        Assert.Null(spawned.SourceOperationId);
+    }
+
     [Fact]
     public void UnknownTaggedObservationFieldIsIgnored()
     {
@@ -332,7 +370,7 @@ public sealed class GenericActorObservationCodecTests
             () => new GenericActorContext.EventPayload.LifeSpawned(
                 new ActorIdentity(0, 1, 1),
                 participantId: 10,
-                parentActorId: null,
+                parentActorId: new ActorIdentity(0, 0, 0),
                 generation: 1,
                 "mobile",
                 health: 4,
@@ -383,6 +421,37 @@ public sealed class GenericActorObservationCodecTests
             () => CreateMinimalContext(
                 [first],
                 [source, duplicateOrdinal]));
+    }
+
+    [Fact]
+    public void FormTransitionEventsAllowEndOfStartedTickCompletion()
+    {
+        GenericActorContext.EventPayload.FormTransition sameTick = new(
+            GenericActorDynamicTestFixture.SelfActor,
+            "anchor",
+            "anchor:0:0:4:9",
+            "mobile",
+            "turret",
+            startedTick: 9,
+            dueTick: 9);
+
+        Assert.Equal(9, sameTick.DueTick);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new GenericActorContext.EventPayload.FormTransition(
+                GenericActorDynamicTestFixture.SelfActor,
+                "anchor",
+                "anchor:0:0:4:8",
+                "mobile",
+                "turret",
+                startedTick: 9,
+                dueTick: 8));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new GenericActorContext.PendingSameLifeTransition(
+                "anchor",
+                "anchor:0:0:4:9",
+                "turret",
+                startedTick: 9,
+                dueTick: 9));
     }
 
     [Fact]

@@ -577,7 +577,11 @@ public sealed class SplitReplicationKernel
         return selected;
     }
 
-    private static bool IsEligibleSource(
+    /// <summary>
+    /// Reports source-local Split eligibility. Slot, placement, and
+    /// cross-bundle conflicts remain queue-time outcomes.
+    /// </summary>
+    internal static bool IsEligibleSource(
         SplitReplicationActorSnapshot source,
         SplitReplicationTransitionDefinition transition) =>
         transition.SourceFormIds.Contains(

@@ -59,6 +59,21 @@ public sealed record GenericActorReplayDocument
     }
 
     /// <summary>
+    /// Verifies a complete canonical replay-v3 envelope, including its payload
+    /// hash, exact nested contract fingerprints, canonical ordering, and
+    /// closed vocabularies.
+    /// </summary>
+    public static bool VerifyHash(
+        string canonicalReplayJson,
+        out string? failure)
+    {
+        ArgumentNullException.ThrowIfNull(canonicalReplayJson);
+        return ReplayV3Serializer.VerifyHash(
+            canonicalReplayJson,
+            out failure);
+    }
+
+    /// <summary>
     /// Creates a canonical, explicitly unhashed broadcast prefix from a
     /// verified complete replay-v3 envelope. A presentation clock beyond the
     /// terminal tick safely exposes all available ticks, never terminal facts.

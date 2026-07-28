@@ -896,7 +896,7 @@ fields; it must not invent presentation-only gameplay state.
 
 Before enabling the hosted Labs flag in an experimental server deployment:
 
-- CLI/package 0.9.0 published and `cli-v0.9.0` tagged from the exact final
+- CLI/package 0.9.3 published and `cli-v0.9.3` tagged from the exact final
   compatibility revision before deployment;
 - the profile-aware web, compile, and match-worker binary deployed and soaked
   everywhere with the flag still false; the retained `previous` rollback

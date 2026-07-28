@@ -144,7 +144,7 @@ actor protocol/configuration 1.0. The explicit local
 `nilbots experiment frontline` command selects it; historical `play`,
 App/server admission, and ladders do not.
 
-SDK/Guest 0.10.0 adds the separately negotiated
+SDK/Guest 0.10.2 carries the separately negotiated
 `generic-actor-match-2` profile and `IGenericActorBot`. Its static match
 contract, variable entity observations, generic scores/mode state, typed
 actions/events/lineage, and exact profile attestation do not widen the
@@ -158,6 +158,32 @@ first consumer is the off-by-default, setless, unranked `frontline-labs` v1
 playlist; local/test harnesses may invoke the same neutral host directly, and
 the historical Frontline command continues to select the separate alpha
 contract.
+
+The CLI exposes that exact local generic host without App admission or quotas:
+
+```bash
+nilbots new LabsBot --profile generic-actor
+nilbots experiment frontline-labs \
+  --bot LabsBot \
+  --opponent AnotherGenericBot \
+  --runtime in-process \
+  --seeds 104729,130363,155921
+
+# Submission-equivalent runtime check:
+nilbots build LabsBot
+nilbots experiment frontline-labs \
+  --bot LabsBot/out/bot.wasm \
+  --opponent AnotherGenericBot/out/bot.wasm \
+  --seed 104729
+nilbots verify out/frontline-labs/<match>/replay.json
+```
+
+`frontline-labs` always resolves `FrontlineLabsDefinition.Create()` and writes
+canonical replay v3. It accepts two external `IGenericActorBot` projects or
+generic-profile WASM artifacts; there is intentionally no generic built-in
+fallback. `--runtime in-process` is the fast diagnostic loop, while the
+default `wasm` path uses `WasmGenericActorRuntimeFactory` exactly as the hosted
+generic match executor does.
 
 Actor 1.0 negotiates and then exchanges:
 

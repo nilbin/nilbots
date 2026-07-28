@@ -123,10 +123,11 @@ Project boundaries that must not be violated:
   per-life Anchor/turret forms, experimental replay v2, engine-independent
   actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
   isolated WASM life instances exist. Web/mobile can present v2 through their
-  version-neutral replay model; the web viewer's default Canvas2D and optional
-  lazy WebGL 2.5D renderers share those derivations. The self-contained CLI
-  viewer excludes Three.js. Manual GPU/mobile QA remains for the optional
-  renderer. Package 8 now exposes this only through the explicit local
+  version-neutral replay model; the hosted web viewer defaults to the lazy
+  WebGL 2.5D renderer and falls back to Canvas2D when WebGL is unavailable.
+  The self-contained CLI viewer excludes Three.js. Manual GPU/mobile QA
+  remains required for the hosted renderer. Package 8 now exposes this only
+  through the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
   separate descriptive evaluation tool. Historical `play`, replay-v1
   summary/verification, and ladders still do not select this frozen alpha;
@@ -152,6 +153,12 @@ Project boundaries that must not be violated:
   setless, unranked H2H `frontline-labs` v1 admission, a
   playlist-version-capability generic execution lane, normalized match-team
   results, replay-v3 broadcast projection, and a direct viewer entry point.
+  The separate `nilbots experiment frontline-labs` command runs that exact
+  immutable v1 definition locally through the generic session, accepts two
+  external `IGenericActorBot` projects or WASM artifacts, and writes
+  verifiable replay v3 without App admission or quotas. `nilbots new
+  --profile generic-actor` is its authoring scaffold. This local path remains
+  unranked and does not enable the hosted feature.
   Older workers leave unknown playlist-version work pending; retain historical
   definitions and capabilities until their queued work drains or is migrated.
   It creates no season, ladder, rating, series settlement, broad matchmaking,

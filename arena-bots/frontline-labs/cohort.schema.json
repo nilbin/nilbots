@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nilbots.com/schemas/frontline-labs-cohort-1.json",
+  "title": "nilbots Frontline Labs cohort",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "cohortId",
+    "engineCommit",
+    "playlist",
+    "authoringBudget",
+    "seeds",
+    "entrants"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "cohortId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "engineCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "playlist": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "rulesetId",
+        "mapId",
+        "mapVersion",
+        "formatId",
+        "contractProfileId",
+        "rulesFingerprint",
+        "mapFingerprint",
+        "formatFingerprint",
+        "matchContractFingerprint"
+      ],
+      "properties": {
+        "id": { "const": "frontline-labs" },
+        "version": { "const": 1 },
+        "rulesetId": { "const": "frontline-labs-1" },
+        "mapId": { "const": "frontline-labs-01" },
+        "mapVersion": { "const": 1 },
+        "formatId": { "const": "head-to-head" },
+        "contractProfileId": { "const": "generic-actor-match-2" },
+        "rulesFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "mapFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "formatFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "matchContractFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "authoringBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementationPasses", "improvementPasses"],
+      "properties": {
+        "implementationPasses": { "const": 1 },
+        "improvementPasses": { "const": 0 },
+        "sharedRepairPasses": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "seeds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 0 }
+    },
+    "entrants": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "doctrine",
+          "root",
+          "artifact",
+          "artifactSha256",
+          "sourceRevision",
+          "sourceTreeSha256",
+          "implementationPasses",
+          "repairPasses",
+          "dxReport"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "name": { "type": "string", "minLength": 1 },
+          "doctrine": {
+            "enum": ["pressure", "fabricator", "bastion", "adapter"]
+          },
+          "root": { "type": "string", "minLength": 1 },
+          "artifact": { "type": "string", "minLength": 1 },
+          "artifactSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "sourceRevision": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "sourceTreeSha256": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "implementationPasses": { "const": 1 },
+          "repairPasses": { "type": "integer", "minimum": 0 },
+          "dxReport": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

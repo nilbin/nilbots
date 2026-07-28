@@ -385,7 +385,7 @@ deactivate existing artifacts or cancel identity-pinned work.
 
 Enablement is a maintenance operation, not an ordinary rolling flag flip:
 
-1. Publish and tag CLI 0.9.0 from the exact compatibility revision.
+1. Publish and tag CLI 0.9.1 from the exact compatibility revision.
 2. Deploy and soak the profile-aware web, compile, and match-worker binary
    everywhere with the flag false. Confirm the retained `previous` release is
    also profile-aware and contains the scoped legacy backfiller; this may
