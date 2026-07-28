@@ -230,19 +230,21 @@ export default function BotDetailPage() {
         <aside className="flex flex-col gap-6">
           <WorkOnThisBot />
           <ChallengePanel bot={bot} />
-          {bot.isOwner && (
-            <AppearanceEditor
-              bot={bot}
-              botKey={botKey!}
-              entitlementRevision={
-                bot.versions.filter((version) => version.status === 'Built')
-                  .length
-              }
-            />
-          )}
-          {bot.isOwner && <SubmitPanel bot={bot} botKey={botKey!} />}
         </aside>
       </div>
+
+      {bot.isOwner && (
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+          <AppearanceEditor
+            bot={bot}
+            botKey={botKey!}
+            entitlementRevision={
+              bot.versions.filter((version) => version.status === 'Built').length
+            }
+          />
+          <SubmitPanel bot={bot} botKey={botKey!} />
+        </div>
+      )}
     </div>
   );
 }

@@ -215,3 +215,115 @@ html[data-arena-mode='viewer'] #root {
   padding-left: 0.75rem;
   color: var(--color-arena-dim);
 }
+
+/* ---------------------------------------------------------------- surfaces ---
+   These are the design document's own class names, carrying its own values, because
+   `docs/design/climb.template.html` is the specification and a review should be a
+   literal comparison rather than a translation. `.panel` here is `.panel` there.
+
+   They exist because the alternative was what the first pass produced: every page
+   re-typing `rounded-sm border border-arena-edge bg-arena-panel px-3.5 py-3` and
+   `type-label text-[10.5px] text-arena-dim`, so a change of radius or label size meant
+   a search across twenty files and the values drifted apart in the meantime.
+
+   Compose these; reach for an arbitrary value only when a thing is genuinely one of a
+   kind, and prefer adding a class here when it is not. */
+
+@layer components {
+  /* A surface that holds content, separated by a hairline rather than a shadow. */
+  .panel {
+    background: var(--color-arena-panel);
+    border: 1px solid var(--color-arena-edge);
+    border-radius: 3px;
+  }
+  .panel-quiet {
+    background: color-mix(in oklab, var(--color-arena-panel) 60%, transparent);
+    border: 1px solid var(--color-arena-edge);
+    border-radius: 3px;
+  }
+  .pad {
+    padding: 12px 14px;
+  }
+
+  /* Names a region of the screen. Never says anything — that is what text is for. */
+  .lab {
+    font-family: var(--font-sans);
+    font-stretch: 82%;
+    font-weight: 550;
+    font-size: 10.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-arena-dim);
+  }
+
+  /* A standing fact about the thing beside it: a status, a count, a version. */
+  .pill {
+    font-family: var(--font-sans);
+    font-stretch: 82%;
+    font-weight: 550;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    border-radius: 99px;
+    padding: 1px 8px;
+    color: var(--color-arena-dim);
+    white-space: nowrap;
+  }
+
+  .btn {
+    font-size: 12.5px;
+    font-weight: 500;
+    border: 1px solid var(--color-arena-edge);
+    background: transparent;
+    color: var(--color-arena-text);
+    border-radius: 3px;
+    padding: 5px 11px;
+    transition: border-color 150ms, color 150ms;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--color-arena-edge2);
+  }
+  .btn:disabled {
+    color: var(--color-arena-dim);
+    cursor: not-allowed;
+  }
+  .btn-on {
+    border-color: var(--color-arena-edge2);
+    background: var(--color-arena-raise);
+  }
+
+  /* Anything a machine printed, shown as it printed it. */
+  .term {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.75;
+    padding: 11px 13px;
+    background: var(--color-arena-bg);
+    border: 1px solid var(--color-arena-edge);
+    border-radius: 3px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  /* The reading sizes. Three, so a page cannot invent a fourth by accident. */
+  .t-body {
+    font-size: 13px;
+  }
+  .t-meta {
+    font-size: 12.5px;
+    color: var(--color-arena-dim);
+  }
+  .t-micro {
+    font-size: 11.5px;
+    color: var(--color-arena-dim);
+  }
+
+  /* A value a machine produced, in a column that lines up. */
+  .val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    color: var(--color-arena-dim);
+  }
+}
