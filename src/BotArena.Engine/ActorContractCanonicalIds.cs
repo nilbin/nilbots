@@ -52,8 +52,11 @@ internal static class ActorContractCanonicalIds
                 .CompleteJointTickThenHighestRawKillsWinTiedTopDraw =>
             "complete-joint-tick-then-highest-raw-kills-win-tied-top-draw",
         FrontlineCaptureDefinition.ControlPolicyKind
-                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral =>
-            "binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral",
+                  .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral =>
+              "binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral",
+        FrontlineCaptureDefinition.ControlPolicyKind
+                  .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral =>
+              "net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral",
         FrontlineCaptureDefinition.TimeoutPolicyKind
                 .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers =>
             "signed-position-threshold-plus-claim-zero-draw-no-tiebreakers",

@@ -75,6 +75,12 @@ participant faults.
 The local in-process runner may be used for authoring and mechanical repair.
 All reported outcome data is reproduced with the WASM runtime.
 
+This 36-match matrix describes the historical first baseline. Later cohort
+sprints default to seed `104729` and both assignments: 12 matches for four
+bots. The first run established that its deterministic policies behaved
+identically across the three original seeds. Add seeds only when a candidate
+bot consumes private randomness or the mechanic hypothesis requires them.
+
 ## Recorded outcome measures
 
 For the full matrix record:
@@ -103,14 +109,26 @@ balanced. A 36-game matrix is too small for a production verdict.
 Replay-v3 analysis records, by match and doctrine:
 
 - submitted and successful actions;
+- direct-shot opportunities/use and imminent-projectile movement responses,
+  treated as mechanical diagnostics rather than strategic skill;
+- imminent threats coinciding with an available attack, threats on the active
+  objective, and multi-projectile threats;
 - Fabricate attempts/completions and child active time;
+- eligible population, Ready-slot debt, Ready-to-active latency, and
+  contract-derived phase body density;
 - Split attempts/completions and replica active time;
 - Anchor attempts/completions/cancellations and turret active time;
 - movement, attacks, damage, destruction, returns, and objective transitions;
-- score-lead changes and the tick of the first meaningful interaction;
+- score-lead changes and the ticks of first engine activity and first combat;
 - longest windows without movement, attack, damage, fabrication, replication,
   form change, capture progress, or score change;
+- longest windows without an attack or damage event;
 - periods where both teams have a turret but make no territorial progress.
+
+The ordered adequacy, population, pacing, and watchability gates are defined
+in [`FRONTLINE-LABS-MEASUREMENT.md`](FRONTLINE-LABS-MEASUREMENT.md). The
+original thresholds below remain historical baseline diagnostics; they are not
+a substitute for the narrower bot-quality and combat-tempo measures.
 
 The baseline raises a dynamics warning when:
 

@@ -52,11 +52,165 @@ class LabsReplayEvalTests(unittest.TestCase):
         self.assertEqual(0, row["mechanics"]["anchor"]["completions"])
         self.assertEqual(1, row["objective"]["soleControlTicks"])
         self.assertEqual(0, row["activity"]["longestNoInteractionRunTicks"])
+        self.assertIsNone(row["activity"]["firstCombatEventTick"])
+        self.assertEqual(
+            1,
+            row["activity"]["longestCombatEventFreeRunTicks"],
+        )
+        self.assertEqual(2, len(row["participants"]))
+        self.assertEqual(
+            1.0,
+            row["participants"][0]["population"]["averageBodies"],
+        )
+        self.assertEqual(
+            1.0,
+            row["participants"][0]["population"][
+                "activeEligibleSlotShare"
+            ],
+        )
 
         summary = EVALUATOR.summarize_group("baseline", [row])
         self.assertEqual(1, summary["matches"])
         self.assertEqual({"team-0": 1}, summary["outcomes"])
         self.assertEqual(["in-process"], summary["cohort"]["runtimeClasses"])
+        self.assertEqual(2, len(summary["entrants"]))
+        self.assertEqual(1, summary["activity"]["gamesWithoutCombatEvents"])
+        self.assertEqual(0.0, summary["combat"]["attacksPer100Ticks"])
+
+    def test_ready_slots_are_population_debt_not_inactive_locked_slots(
+        self,
+    ) -> None:
+        candidate = copy.deepcopy(self.document)
+        topology = candidate["header"]["contract"]["topology"]
+        topology["unitSlots"].append(
+            {
+                "teamId": 0,
+                "unitId": 1,
+                "controllerParticipantId": 10,
+            }
+        )
+        candidate["header"]["contract"]["lifecycleAssignments"].append(
+            {
+                "teamId": 0,
+                "unitId": 1,
+                "lifecycleProfileId": "child-ready",
+                "initialGeneration": None,
+                "allowedFormIds": ["mobile"],
+                "initialAvailability": "dormant-unlock-at-tick",
+                "unlockTick": 0,
+                "assignedRespawnSpawnId": None,
+            }
+        )
+        candidate["ticks"][0]["tickStart"]["state"]["slots"].append(
+            {
+                "teamId": 0,
+                "unitId": 1,
+                "participantId": 10,
+                "nextLifeId": 0,
+                "state": {"kind": "ready"},
+                "pendingParentActorId": None,
+                "splitReservation": None,
+            }
+        )
+
+        row = EVALUATOR.analyze_replay(candidate)
+        participant = next(
+            value
+            for value in row["participants"]
+            if value["participantId"] == 10
+        )
+
+        self.assertEqual(2, participant["population"]["eligibleSlotTicks"])
+        self.assertEqual(1, participant["population"]["readySlotTicks"])
+        self.assertEqual(
+            0.5,
+            participant["population"]["activeEligibleSlotShare"],
+        )
+        self.assertEqual(1, participant["population"]["terminalReadyEpisodes"])
+
+    def test_direct_shot_and_imminent_projectile_metrics_are_narrow(
+        self,
+    ) -> None:
+        candidate = copy.deepcopy(self.document)
+        turn = candidate["ticks"][0]["actorTurns"][0]
+        observation = turn["observation"]
+        observation["enemies"] = [
+            {
+                "actorId": {
+                    "teamId": 1,
+                    "unitId": 0,
+                    "lifeId": 0,
+                },
+                "formId": "mobile",
+                "position": {"x": 6, "y": 2},
+                "facing": "west",
+                "health": 1,
+                "pendingSameLifeTransition": None,
+                "observedBy": [turn["actorId"]],
+            }
+        ]
+        observation["visibleProjectiles"] = [
+            {
+                "projectileId": "threat",
+                "ownerTeamId": 1,
+                "ownerActorId": {
+                    "teamId": 1,
+                    "unitId": 0,
+                    "lifeId": 0,
+                },
+                "position": {"x": 2, "y": 2},
+                "heading": "east",
+                "tilesPerAdvance": 2,
+                "ticksUntilAdvance": 1,
+                "remainingTiles": 7,
+                "observedBy": [turn["actorId"]],
+            }
+        ]
+        candidate["header"]["contract"]["rules"]["actions"].append(
+            {
+                "id": "move",
+                "code": 1,
+                "kind": "movement",
+            }
+        )
+        observation["actionLegalities"].append(
+            {
+                "actionId": "move",
+                "actionCode": 1,
+                "allowedByForm": True,
+                "available": True,
+                "constraints": [],
+            }
+        )
+
+        row = EVALUATOR.analyze_replay(candidate)
+        participant = next(
+            value
+            for value in row["participants"]
+            if value["participantId"] == 10
+        )
+        policy = participant["combatPolicy"]
+
+        self.assertEqual(1, policy["directAttackOpportunityTurns"])
+        self.assertEqual(0, policy["directAttackOpportunityUses"])
+        self.assertEqual(1, policy["imminentProjectileThreatTurns"])
+        self.assertEqual(0, policy["imminentThreatMovementResponses"])
+        self.assertEqual(
+            1,
+            policy["imminentThreatDirectAttackOpportunityTurns"],
+        )
+        self.assertEqual(
+            0,
+            policy[
+                "imminentThreatMovementInsteadOfDirectAttackResponses"
+            ],
+        )
+        self.assertEqual(1, policy["imminentThreatOnObjectiveTurns"])
+        self.assertEqual(
+            1,
+            policy["imminentThreatOnObjectiveHoldResponses"],
+        )
+        self.assertEqual(0, policy["multiImminentProjectileThreatTurns"])
 
     def test_partial_and_non_frontline_replays_are_rejected(self) -> None:
         partial = copy.deepcopy(self.document)

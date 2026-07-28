@@ -224,6 +224,8 @@ static int CommandHelp(string command)
                    [--capture-threshold <positive-n>]
                    [--capture-gain-phase <start-tick>:<gain>]
                    [--mobilize-turrets]
+                   [--remote-fabrication]
+                   [--net-control]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -235,6 +237,10 @@ static int CommandHelp(string command)
             tick-phase schedule that bots can resolve from context.Tick.
             --mobilize-turrets adds a one-way turret-to-mobile same-life
             transition under its own local-only ruleset identity.
+            --remote-fabrication lets a Prime explicitly queue a Ready child
+            from any walkable tile while retaining the protected home output.
+            --net-control lets surplus objective weight create capture pressure
+            instead of treating every two-team presence as a complete contest.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             """,

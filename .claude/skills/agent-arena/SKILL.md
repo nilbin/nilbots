@@ -57,6 +57,15 @@ Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
 hosted path has quotas and no ladder; the exact local generic runner is the
 evaluation boundary.
 
+Do not rerun bot authoring for an ordinary numeric or rules-policy A/B. Reuse
+the frozen source and WASM artifacts from the most relevant retained cohort so
+only the declared rules variable changes. Commission a fresh rules-native
+cohort only when actions, observations, objectives, or strategic affordances
+change enough that the retained bots cannot exercise the hypothesis. For a
+narrow falsification screen, adapt the smallest retained micro-cohort that
+covers the competing policies; promote to a four-doctrine sprint only if the
+screen survives.
+
 Pre-register the run in `docs/FRONTLINE-LABS-COHORT-BASELINE.md`. Give each of
 four independent agents the identical
 `docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`, the player rules in
@@ -70,6 +79,13 @@ Every author writes `DX.md` after source freeze and before tournament
 disclosure. It records player-facing friction and mechanical repairs but
 cannot trigger strategy editing. Synthesize all four reports into
 `DX-SYNTHESIS.md`, grouped by severity, before opening tournament outcomes.
+
+Use `--runtime in-process` for authoring smoke matches. It avoids the
+controlled-compiler round trip but is diagnostic only. Compile each frozen
+revision to WASM once, preserve its artifact, and run the pre-registered
+tournament with those artifacts. Rebuild only after a source or compiled
+SDK/Guest input changes; a rules-only experiment does not require bot
+recompilation.
 
 Archive **every** entrant under
 `arena-bots/frontline-labs/<cohort-id>/<entrant-id>/`, never just the leader

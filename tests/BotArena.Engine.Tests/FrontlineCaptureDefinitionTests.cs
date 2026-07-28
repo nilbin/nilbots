@@ -74,6 +74,10 @@ public sealed class FrontlineCaptureDefinitionTests
             Capture(decayAmount: -1, decayIntervalTicks: -1));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             Capture(redeployPauseTicks: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Capture(
+                controlPolicy:
+                    (FrontlineCaptureDefinition.ControlPolicyKind)99));
     }
 
     [Fact]
@@ -165,14 +169,18 @@ public sealed class FrontlineCaptureDefinitionTests
         int decayIntervalTicks = 2,
         int redeployPauseTicks = 3,
         IEnumerable<FrontlineCaptureGainPhaseDefinition>?
-            gainSchedule = null) =>
+            gainSchedule = null,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral) =>
         new(
             threshold,
             gainPerSoleTeamTick,
             decayAmount,
             decayIntervalTicks,
             redeployPauseTicks,
-            gainSchedule);
+            gainSchedule,
+            controlPolicy);
 
     private static FrontlineVictoryDefinition Victory(int pushesToBreach) =>
         new(

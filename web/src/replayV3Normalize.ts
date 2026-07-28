@@ -4687,6 +4687,9 @@ export function normalizeReplayV3(
   const attackProfiles = new Map(
     contract.rules.attackProfiles.map((profile) => [profile.id, profile]),
   );
+  const actionKinds = new Map(
+    contract.rules.actions.map((action) => [action.id, action.kind]),
+  );
   const forms = [...contract.rules.forms]
     .sort((left, right) => left.id.localeCompare(right.id))
     .map<Model.ReplayForm>((form) => {
@@ -4698,6 +4701,16 @@ export function normalizeReplayV3(
         ? attackProfiles.get(form.attackProfileId)
         : undefined;
       const presentation = formPresentation.get(form.id);
+      const canMove =
+        movement !== undefined &&
+        form.allowedActionIds.some(
+          (actionId) => actionKinds.get(actionId) === 'movement',
+        );
+      const canShoot =
+        attack !== undefined &&
+        form.allowedActionIds.some(
+          (actionId) => actionKinds.get(actionId) === 'attack',
+        );
       return {
         formId: form.id,
         maxHealth: form.maxHealth,
@@ -4707,9 +4720,10 @@ export function normalizeReplayV3(
         omnidirectionalShooting: attack?.omnidirectionalAim ?? false,
         movementLayer: movement?.movementLayer ?? 'none',
         objectiveWeight: form.objectiveWeight,
-        canMove: movement !== undefined,
-        canShoot: attack !== undefined,
-        allowsProgrammedShots: attack?.shotProgram.enabled ?? false,
+        canMove,
+        canShoot,
+        allowsProgrammedShots:
+          canShoot && (attack?.shotProgram.enabled ?? false),
         allowedActionIds: [...form.allowedActionIds],
         lookId: presentation?.lookId ?? null,
         projectileLookId: presentation?.projectileLookId ?? null,
@@ -4764,6 +4778,9 @@ function contractFromV3(
   const topology = contract.topology;
   const firstAttack = contract.rules.attackProfiles[0];
   const firstVision = contract.rules.visionProfiles[0];
+  const actionKinds = new Map(
+    contract.rules.actions.map((action) => [action.id, action.kind]),
+  );
   const shot = firstAttack?.shotProgram;
   const shotRecord = (shot ?? {}) as Record<string, unknown>;
   const aimOnly = (shotRecord.aimOnlyProgram ?? {}) as Record<string, unknown>;
@@ -4905,6 +4922,16 @@ function contractFromV3(
         const attack = contract.rules.attackProfiles.find(
           (profile) => profile.id === form.attackProfileId,
         );
+        const canMove =
+          movement !== undefined &&
+          form.allowedActionIds.some(
+            (actionId) => actionKinds.get(actionId) === 'movement',
+          );
+        const canShoot =
+          attack !== undefined &&
+          form.allowedActionIds.some(
+            (actionId) => actionKinds.get(actionId) === 'attack',
+          );
         return {
           id: form.id,
           maxHealth: form.maxHealth,
@@ -4914,9 +4941,10 @@ function contractFromV3(
           omnidirectionalShooting: attack?.omnidirectionalAim ?? false,
           movementLayer: movement?.movementLayer ?? 'none',
           objectiveWeight: form.objectiveWeight,
-          canMove: movement !== undefined,
-          canShoot: attack !== undefined,
-          allowsProgrammedShots: attack?.shotProgram.enabled ?? false,
+          canMove,
+          canShoot,
+          allowsProgrammedShots:
+            canShoot && (attack?.shotProgram.enabled ?? false),
           allowedActionIds: [...form.allowedActionIds],
         };
       }),

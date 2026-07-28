@@ -1025,7 +1025,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.body.position.x = -kick;
       bot.body.position.z =
         drift * DRIFT_SLIDE + idle * sway * IDLE_SWAY;
-      bot.body.position.y = idle * rise * IDLE_RISE;
+      bot.body.position.y =
+        TURRET_LIFT * bot.size * tipping +
+        idle * rise * IDLE_RISE;
       bot.body.rotation.y =
         -drift * DRIFT_YAW + idle * sway * IDLE_YAW;
       bot.body.rotation.x =

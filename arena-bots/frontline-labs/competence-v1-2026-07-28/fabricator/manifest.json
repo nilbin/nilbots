@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Fabricator",
+  "cohort": "competence-v1-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "fundamentalsPass": "equal contract-generic fabricate, dodge, and direct-fire fundamentals",
+  "sourceSha256": "a9522497c1363d1fd95f1c34b14ff5bebd7ba1ef1509a698a22d895112485106",
+  "sharedFundamentalsSha256": "602b8d4450d8651fe7e6182fce074402b1c5f7dd5e2fe38d7be6135f5f3a5c43",
+  "artifactSha256": "8c1cb6349c13fc11f43d549d43201afd38ac125a20f99d7e9f14ff7016f356cb",
+  "sdkVersion": "0.10.3"
+}

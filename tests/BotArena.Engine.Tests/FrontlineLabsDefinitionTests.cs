@@ -243,6 +243,92 @@ public sealed class FrontlineLabsDefinitionTests
     }
 
     [Fact]
+    public void RemoteFabricationExperimentRemovesThePrimeCommuteOnly()
+    {
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition candidate =
+            FrontlineLabsDefinition.CreateRemoteFabricationExperiment();
+        BoundedChildFabricationDefinition fabrication =
+            Assert.IsType<BoundedChildFabricationDefinition>(
+                Assert.Single(candidate.Rules.FabricationTransitions));
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-remote-fabrication",
+            candidate.Rules.RulesetId);
+        Assert.Equal(
+            "frontline-labs-01-remote-fabrication-experiment",
+            candidate.Map.Id);
+        Assert.Empty(fabrication.RequiredSourceTileTags);
+        Assert.Contains(
+            ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+            fabrication.RequiredOutputTileTags);
+        Assert.Equal(1, fabrication.Delay.DurationTicks);
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(baseline.Rules),
+            ActorContractFingerprint.ComputeRules(candidate.Rules));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMap(baseline.Map),
+            ActorContractFingerprint.ComputeMap(candidate.Map));
+
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(
+                candidate,
+                (start, observation) =>
+                    start.ActorId.TeamId == 0 && observation.Tick < 2
+                        ? GenericDeathmatchSessionTestFixture.Move(
+                            Direction.East)
+                        : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericActorMatchSession(
+            candidate,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                candidate,
+                factories),
+            matchSeed: 9_003);
+        while (session.Tick < 120)
+            session.Step();
+
+        GenericActorRuntimeObservation movedPrime =
+            session.PrepareTick().Observations.Single(observation =>
+                observation.Self.ActorId.TeamId == 0);
+
+        Assert.Equal(new Position(4, 7), movedPrime.Self.Position);
+        Assert.True(movedPrime.ActionLegalities.Single(action =>
+            action.ActionId == "fabricate").Available);
+    }
+
+    [Fact]
+    public void NetControlExperimentChangesOnlyTheRulesIdentityAndPolicy()
+    {
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition candidate =
+            FrontlineLabsDefinition.CreateNetControlExperiment();
+        FrontlineCaptureDefinition capture =
+            Assert.IsType<FrontlineGameModeDefinition>(
+                candidate.Rules.GameMode).Capture;
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-net-control",
+            candidate.Rules.RulesetId);
+        Assert.Equal(
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral,
+            capture.ControlPolicy);
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(baseline.Map),
+            ActorContractFingerprint.ComputeMap(candidate.Map));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(baseline.Rules),
+            ActorContractFingerprint.ComputeRules(candidate.Rules));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMatch(baseline),
+            ActorContractFingerprint.ComputeMatch(candidate));
+    }
+
+    [Fact]
     public void SplitOutputCannotAnchorAndPrimeSlotStaysObjectiveCapable()
     {
         ActorResolvedMatchDefinition definition =

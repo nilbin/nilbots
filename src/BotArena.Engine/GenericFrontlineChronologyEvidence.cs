@@ -87,7 +87,8 @@ internal static class GenericFrontlineChronologyEvidence
                 ImmutableHashSet<Position> activeTiles = regionTiles[
                     binding.OrderedObjectiveRegionIds[
                         previous.ActivePositionIndex]];
-                ImmutableArray<int> presence = PresenceAtModePhase(
+                ImmutableDictionary<int, int> objectiveWeightByTeam =
+                    ObjectiveWeightAtModePhase(
                     definition,
                     frame,
                     objectiveWeights,
@@ -95,7 +96,7 @@ internal static class GenericFrontlineChronologyEvidence
                 control = kernel.ApplyJointTick(
                         previous,
                         frame.Tick,
-                        presence)
+                        objectiveWeightByTeam)
                     .State;
                 if (control.WinnerTeamId is not null)
                 {
@@ -207,7 +208,8 @@ internal static class GenericFrontlineChronologyEvidence
         }
     }
 
-    private static ImmutableArray<int> PresenceAtModePhase(
+    private static ImmutableDictionary<int, int>
+        ObjectiveWeightAtModePhase(
         ActorResolvedMatchDefinition definition,
         GenericActorMatchTickFrame frame,
         IReadOnlyDictionary<string, int> objectiveWeights,
@@ -239,18 +241,23 @@ internal static class GenericFrontlineChronologyEvidence
                 payload => payload.FromFormId);
 
         return frame.PostState.ActiveLives
-            .Where(life =>
+            .Select(life =>
             {
                 string modePhaseForm = endClockSourceForms.GetValueOrDefault(
                     life.ActorId,
                     life.FormId);
-                return objectiveWeights[modePhaseForm] > 0
-                    && activeTiles.Contains(life.Position);
+                return (
+                    Life: life,
+                    Weight: objectiveWeights[modePhaseForm]);
             })
-            .Select(life => life.ActorId.TeamId)
-            .Distinct()
-            .Order()
-            .ToImmutableArray();
+            .Where(item =>
+                item.Weight > 0
+                && activeTiles.Contains(item.Life.Position))
+            .GroupBy(item => item.Life.ActorId.TeamId)
+            .OrderBy(group => group.Key)
+            .ToImmutableDictionary(
+                group => group.Key,
+                group => group.Sum(item => item.Weight));
     }
 
     private static void ValidateBoundary(
@@ -355,11 +362,11 @@ internal static class GenericFrontlineChronologyEvidence
         if (expectedModeChange
             && (facts[^1].Payload is not
                     GenericActorRuntimeObservation.EventPayload.ModeChanged
-                    {
-                        State:
+            {
+                State:
                         GenericActorRuntimeObservation.ModeObservationState
                             .Frontline,
-                    }
+            }
                 || !Equals(
                     ((GenericActorRuntimeObservation.EventPayload.ModeChanged)
                         facts[^1].Payload).State,

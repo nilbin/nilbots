@@ -149,6 +149,16 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "--mobilize-turrets",
                     "false",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--mobilize-turrets",
+                    "--remote-fabrication",
+                ]));
     }
 
     [Fact]
@@ -290,13 +300,114 @@ public sealed class FrontlineLabsExperimentCommandTests
         }
     }
 
+    [Fact]
+    public void RemoteFabricationArm_WritesDistinctSourceRegion()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-remote-fabrication-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "remote-fabrication");
+
+            Assert.Equal(
+                0,
+                Run(
+                    alpha,
+                    beta,
+                    output,
+                    remoteFabrication: true));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement contract = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract");
+            Assert.Equal(
+                "frontline-labs-1-experiment-remote-fabrication",
+                contract.GetProperty("rules")
+                    .GetProperty("rulesetId")
+                    .GetString());
+            Assert.Equal(
+                "frontline-labs-01-remote-fabrication-experiment",
+                contract.GetProperty("map")
+                    .GetProperty("mapId")
+                    .GetString());
+            JsonElement transition = Assert.Single(
+                contract.GetProperty("rules")
+                    .GetProperty("fabricationTransitions")
+                    .EnumerateArray());
+            Assert.Empty(
+                transition.GetProperty("requiredSourceTileTags")
+                    .EnumerateArray());
+            Assert.Contains(
+                contract.GetProperty("participantRegionAssignments")
+                    .EnumerateArray(),
+                assignment =>
+                    assignment.GetProperty("regionRoleId").GetString()
+                        == "fabrication-source"
+                    && assignment.GetProperty("mapRegionId").GetString()
+                        == "fabrication-source-anywhere");
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void NetControlArm_WritesDistinctControlPolicy()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-net-control-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "net-control");
+
+            Assert.Equal(
+                0,
+                Run(alpha, beta, output, netControl: true));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement rules = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract")
+                .GetProperty("rules");
+            Assert.Equal(
+                "frontline-labs-1-experiment-net-control",
+                rules.GetProperty("rulesetId").GetString());
+            Assert.Equal(
+                "net-positive-objective-weight-difference-scales-gain-" +
+                "non-positive-applies-configured-decay-opposition-erodes-" +
+                "to-neutral",
+                rules.GetProperty("gameMode")
+                    .GetProperty("capture")
+                    .GetProperty("controlPolicy")
+                    .GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
     private static int Run(
         string bot,
         string opponent,
         string output,
         string? captureThreshold = null,
         string? captureGainPhase = null,
-        bool mobilizeTurrets = false)
+        bool mobilizeTurrets = false,
+        bool remoteFabrication = false,
+        bool netControl = false)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -329,6 +440,10 @@ public sealed class FrontlineLabsExperimentCommandTests
             }
             if (mobilizeTurrets)
                 arguments.Add("--mobilize-turrets");
+            if (remoteFabrication)
+                arguments.Add("--remote-fabrication");
+            if (netControl)
+                arguments.Add("--net-control");
             return FrontlineLabsExperimentCommand.Run(arguments);
         }
         finally

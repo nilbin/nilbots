@@ -203,3 +203,76 @@ openings despite healthy combat totals. The five recommended hosted replays,
 in order, are `sample-02`, `sample-06`, `sample-10`, `sample-01`, and
 `sample-04`. A human mobile/desktop pass is still required for actual 3D
 legibility and audio.
+
+## V9 screen: competence tiers, fabrication transport, and control policy
+
+The prior arms used bots whose tactical omissions confounded game motion.
+A retained `competence-v1-2026-07-28` cohort therefore applies the same
+contract-generic fundamentals to all four doctrines: prompt activation of a
+Ready child, obvious one-advance projectile dodging, clear direct fire, and
+objective-preserving dodge selection. This is a mechanically credible floor
+cohort: single-projectile evasion is expected boilerplate, not evidence of
+capable strategy or expert teamwork.
+
+All 48 WASM matches across hosted, remote fabrication, late gain, and net
+control verified with zero faults or disqualifications.
+
+| Arm | Breach | MaxTicks | Median | Attacks/100t | Damage/100t | Ready share | Pushes | Reversals |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| hosted fundamentals | 2 | 10 | 500 | 47.7 | 16.8 | 10.3% | 63 | 42 |
+| remote fabrication | 3 | 9 | 500 | 49.5 | 18.0 | 3.6% | 63 | 32 |
+| late gain `300:2` | 2 | 10 | 500 | 47.2 | 16.9 | 10.3% | 106 | 59 |
+| net objective control | 2 | 10 | 500 | 47.8 | 16.7 | 9.2% | 74 | 42 |
+
+Remote fabrication removes the Prime commute while retaining an explicit
+Prime-authored Fabricate decision and protected home output. It reduces
+aggregate Ready share from 10.3% to 3.6%, increases average bodies after the
+first unlock from 1.71 to 1.86, and improves combat tempo without creating a
+long combat gap. Retain it as the strongest population candidate; it is not a
+standalone objective-pacing fix.
+
+Late gain again fails to move completion. Net control makes the positive
+objective-weight difference between teams multiply capture pressure. It
+increases territorial pushes from 63 to 74, proving that companion advantage
+can become rules-visible motion, but the extra motion reverses just as often
+and does not increase breach endings. After policies adapt, only 102 contested
+ticks have unequal objective weight, versus 1,507 equal-weight contested
+ticks. Retain the generic named control policy as an experiment, but do not
+promote it as a pacing fix from this evidence.
+
+Every same-tier match in every arm reaches the final unlock. The earlier gate
+that treated all MaxTicks endings as equivalent was therefore revised:
+same-tier capable games may legitimately end on timed territorial ranking,
+while cross-tier games must demonstrate that a material skill advantage can
+produce early or mid breach wins from both participant assignments. A first
+generated competent-apprentice bot now supplies that floor. Its initial screen
+has active reciprocal combat and loses to Adapter from either assignment, but
+both binary-control games still take 500 ticks; under net control one side
+breaches at tick 344 and the other still reaches the cap. Cross-tier pacing
+remains an open requirement.
+
+## V10 pre-registration: falsify the 1v1 foundation
+
+Do not assume that additional bodies can rescue a trivial duel. The next
+screen isolates the opening Prime-versus-Prime phase and treats routine
+straight-path dodging as a floor check only.
+
+The smallest intended mind game already exists in the contract chronology:
+both decisions are frozen simultaneously, movement resolves before an
+existing projectile advances, and the target observes current heading and
+timing but not the projectile's committed future curve. The active objective
+must make safe destinations differ in territorial or firing-tempo cost.
+
+Start with the most legible action family—straight or one hidden bend—and
+retain four purpose-built policies: geometric dodger, territory holder,
+private-curve predictor, and adaptive or deterministically mixed shooter. Use
+mirrored assignments and enough pre-registered seeds to exercise the mixed
+policy. No strategy-improvement rounds occur before the first verdict.
+
+The foundation fails if one simple evasive policy preserves both health and
+objective control against every legal trajectory family, or if curve-aware
+policies cannot outperform straight fire from both assignments. It passes
+provisionally only if prediction produces damage or measurable territorial
+concessions and outcome-blind viewers can understand the commitment and
+response. A deterministic replay remaining identical on rerun is required,
+not a failure of variety.

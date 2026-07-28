@@ -32,13 +32,16 @@ public static class FrontlineLabsDefinition
         "fabrication-source";
     private const string FabricationOutputRoleId =
         "fabrication-output";
+    private const string RemoteFabricationSourceRegionId =
+        "fabrication-source-anywhere";
 
     public static ActorResolvedMatchDefinition Create() =>
         CreateResolved(
             RulesetId,
             captureThreshold: 15,
             captureGainSchedule: null,
-            enableMobilize: false);
+            enableMobilize: false,
+            remoteFabrication: false);
 
     /// <summary>
     /// Creates a local-only, content-identified capture-threshold arm without
@@ -59,7 +62,8 @@ public static class FrontlineLabsDefinition
             $"{RulesetId}-experiment-capture-{captureThreshold}",
             captureThreshold,
             captureGainSchedule: null,
-            enableMobilize: false);
+            enableMobilize: false,
+            remoteFabrication: false);
     }
 
     /// <summary>
@@ -100,7 +104,8 @@ public static class FrontlineLabsDefinition
                     startsAtTick,
                     gainPerSoleTeamTick),
             ],
-            enableMobilize: false);
+            enableMobilize: false,
+            remoteFabrication: false);
     }
 
     /// <summary>
@@ -112,21 +117,58 @@ public static class FrontlineLabsDefinition
             $"{RulesetId}-experiment-mobilize",
             captureThreshold: 15,
             captureGainSchedule: null,
-            enableMobilize: true);
+            enableMobilize: true,
+            remoteFabrication: false);
+
+    /// <summary>
+    /// Creates a local-only fabrication arm in which an explicit Fabricate
+    /// action may queue a Ready child from any walkable source position. The
+    /// child still appears on the participant's protected output pad and the
+    /// action still consumes one Prime decision.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateRemoteFabricationExperiment() =>
+        CreateResolved(
+            $"{RulesetId}-experiment-remote-fabrication",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: true);
+
+    /// <summary>
+    /// Creates a local-only objective-control arm in which the positive form
+    /// weight difference between teams determines capture pressure.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateNetControlExperiment() =>
+        CreateResolved(
+            $"{RulesetId}-experiment-net-control",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            controlPolicy:
+                FrontlineCaptureDefinition.ControlPolicyKind
+                    .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral);
 
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
         int captureThreshold,
         IEnumerable<FrontlineCaptureGainPhaseDefinition>?
             captureGainSchedule,
-        bool enableMobilize)
+        bool enableMobilize,
+        bool remoteFabrication,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
             captureThreshold,
             captureGainSchedule,
-            enableMobilize);
-        ActorMapDefinition map = CreateMap();
+            enableMobilize,
+            remoteFabrication,
+            controlPolicy);
+        ActorMapDefinition map = CreateMap(remoteFabrication);
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
             CreateInitialDeployment();
@@ -138,7 +180,7 @@ public static class FrontlineLabsDefinition
             topology,
             deployment,
             CreateLifecycleAssignments(),
-            CreateParticipantRegionAssignments(),
+            CreateParticipantRegionAssignments(remoteFabrication),
             new FrontlineActorModeMapBindingDefinition(
                 [
                     "frontline-position-0",
@@ -176,7 +218,9 @@ public static class FrontlineLabsDefinition
         int captureThreshold,
         IEnumerable<FrontlineCaptureGainPhaseDefinition>?
             captureGainSchedule,
-        bool enableMobilize)
+        bool enableMobilize,
+        bool remoteFabrication,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -382,7 +426,8 @@ public static class FrontlineLabsDefinition
                     decayAmount: 1,
                     decayIntervalTicks: 2,
                     redeployPauseTicks: 5,
-                    gainSchedule: captureGainSchedule)),
+                    gainSchedule: captureGainSchedule,
+                    controlPolicy)),
             new ActorLifecycleDefinition(
                 [
                     new ActorLifecycleProfileDefinition(
@@ -453,15 +498,20 @@ public static class FrontlineLabsDefinition
                     FabricationSourceRoleId,
                     FabricationOutputRoleId,
                     requiredSourceTileTags:
-                    [
-                        ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
-                    ],
+                    remoteFabrication
+                        ? []
+                        : [
+                            ActorMapTileTagDefinition.TileTagKind
+                                .SpawnProtected,
+                        ],
                     requiredOutputTileTags:
                     [
                         ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
                     ],
                     forbiddenOutputTileTags: [],
-                    candidateOffsets: FabricationCandidateOffsets(),
+                    candidateOffsets: remoteFabrication
+                        ? RemoteFabricationCandidateOffsets()
+                        : FabricationCandidateOffsets(),
                     new ActorFabricationDelayDefinition(durationTicks: 1),
                     ActorActionRejectionResult.Blocked),
             ],
@@ -587,27 +637,27 @@ public static class FrontlineLabsDefinition
             select new ActorRelativePositionOffset(forward, right)
         ).ToImmutableArray();
 
-    private static ActorMapDefinition CreateMap() =>
+    private static ImmutableArray<ActorRelativePositionOffset>
+        RemoteFabricationCandidateOffsets() =>
+        (
+            from forward in Enumerable.Range(-22, 45)
+            from right in Enumerable.Range(-14, 29)
+            where forward != 0 || right != 0
+            orderby Math.Max(Math.Abs(forward), Math.Abs(right)),
+                Math.Abs(forward) + Math.Abs(right),
+                forward,
+                right
+            select new ActorRelativePositionOffset(forward, right)
+        ).ToImmutableArray();
+
+    private static ActorMapDefinition CreateMap(
+        bool remoteFabrication) =>
         new(
-            MapId,
+            remoteFabrication
+                ? $"{MapId}-remote-fabrication-experiment"
+                : MapId,
             version: 1,
-            [
-                "#######################",
-                "#.....................#",
-                "#..##.....#.#.....##..#",
-                "#.........#.#.........#",
-                "#...#......#......#...#",
-                "#....#.....#.....#....#",
-                "#....#..##...##..#....#",
-                "#.....................#",
-                "#....#..##...##..#....#",
-                "#....#.....#.....#....#",
-                "#....#.....#.....#....#",
-                "#.........#.#.........#",
-                "#..##.....#.#.....##..#",
-                "#.....................#",
-                "#######################",
-            ],
+            MapTileRows(),
             [
                 Spawn("team-0-prime", 2, 7, Direction.East),
                 Spawn("team-1-prime", 20, 7, Direction.West),
@@ -648,6 +698,7 @@ public static class FrontlineLabsDefinition
                         (20, 8),
                         (21, 8),
                     ]),
+                .. RemoteFabricationRegions(remoteFabrication),
             ],
             [
                 new ActorMapTileTagDefinition(
@@ -673,6 +724,46 @@ public static class FrontlineLabsDefinition
                         new Position(21, 8),
                     ]),
             ]);
+
+    private static ImmutableArray<string> MapTileRows() =>
+    [
+        "#######################",
+        "#.....................#",
+        "#..##.....#.#.....##..#",
+        "#.........#.#.........#",
+        "#...#......#......#...#",
+        "#....#.....#.....#....#",
+        "#....#..##...##..#....#",
+        "#.....................#",
+        "#....#..##...##..#....#",
+        "#....#.....#.....#....#",
+        "#....#.....#.....#....#",
+        "#.........#.#.........#",
+        "#..##.....#.#.....##..#",
+        "#.....................#",
+        "#######################",
+    ];
+
+    private static ImmutableArray<ActorMapRegionDefinition>
+        RemoteFabricationRegions(bool enabled) =>
+        enabled
+            ? [
+                Region(
+                    RemoteFabricationSourceRegionId,
+                    WalkableMapTiles()),
+            ]
+            : [];
+
+    private static IReadOnlyList<(int X, int Y)> WalkableMapTiles()
+    {
+        ImmutableArray<string> rows = MapTileRows();
+        return (
+            from y in Enumerable.Range(0, rows.Length)
+            from x in Enumerable.Range(0, rows[y].Length)
+            where rows[y][x] != '#'
+            select (X: x, Y: y)
+        ).ToArray();
+    }
 
     private static ActorMapSpawnAnchorDefinition Spawn(
         string id,
@@ -830,12 +921,15 @@ public static class FrontlineLabsDefinition
 
     private static ImmutableArray<
         ActorParticipantRegionAssignmentDefinition>
-        CreateParticipantRegionAssignments() =>
+        CreateParticipantRegionAssignments(
+            bool remoteFabrication) =>
     [
         new ActorParticipantRegionAssignmentDefinition(
             0,
             FabricationSourceRoleId,
-            "team-0-home-pad",
+            remoteFabrication
+                ? RemoteFabricationSourceRegionId
+                : "team-0-home-pad",
             Direction.East),
         new ActorParticipantRegionAssignmentDefinition(
             0,
@@ -845,7 +939,9 @@ public static class FrontlineLabsDefinition
         new ActorParticipantRegionAssignmentDefinition(
             1,
             FabricationSourceRoleId,
-            "team-1-home-pad",
+            remoteFabrication
+                ? RemoteFabricationSourceRegionId
+                : "team-1-home-pad",
             Direction.West),
         new ActorParticipantRegionAssignmentDefinition(
             1,

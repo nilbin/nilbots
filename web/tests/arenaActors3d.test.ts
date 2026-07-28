@@ -409,6 +409,10 @@ test('Anchor telegraphs pending state, then authoritatively switches to a statio
   actors.update(9.25, 'frontline:0:unit:1', false);
   assert.equal(mobile.visible, true);
   assert.equal(turret.visible, false);
+  assert.ok(
+    mobile.position.y > 0.05,
+    `the chassis lifts while tipping into its tower form (${mobile.position.y})`,
+  );
   assert.equal(anchor.visible, true);
   assert.equal(chassis.userData.formId, 'child-mobile');
 

@@ -29,9 +29,14 @@ public sealed class GenericActorScaffoldTests
             string project = Path.Combine(temporary, "Starter");
             string source = File.ReadAllText(
                 Path.Combine(project, "Starter.cs"));
+            string basics = File.ReadAllText(
+                Path.Combine(project, "ArenaBasics.cs"));
             Assert.Contains("IGenericActorBot", source);
-            Assert.Contains("context.Action(actionId)", source);
-            Assert.Contains("selected.ActionCode", source);
+            Assert.Contains("TryFabricateReady", source);
+            Assert.Contains("TryDodge", source);
+            Assert.Contains("TryDirectShot", source);
+            Assert.Contains("TryAdvanceToActiveObjective", source);
+            Assert.Contains("action.ActionCode", basics);
 
             ProcessResult built = Run(
                 project,

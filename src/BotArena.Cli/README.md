@@ -103,6 +103,20 @@ It uses ruleset `frontline-labs-1-experiment-mobilize`; health and combat state
 are preserved and capped to the mobile form, while that life cannot Anchor
 again after Mobilize.
 
+For the fabrication-transport arm, `--remote-fabrication` keeps Fabricate an
+explicit Prime action and keeps child output on the protected home pad, but
+allows the Prime to queue a Ready child from any walkable tile. It uses
+ruleset `frontline-labs-1-experiment-remote-fabrication` and a distinct
+experiment map identity because the resolved map publishes the all-floor
+source region. This removes the commute without silently converting an
+authored action into a system spawn.
+
+For the objective-control arm, `--net-control` keeps form objective weights,
+capture threshold, decay, map, and lifecycle rules fixed. Equal team weight
+still contests the objective, while a positive weight surplus applies capture
+gain multiplied by that surplus. It uses the distinct ruleset
+`frontline-labs-1-experiment-net-control`.
+
 Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract

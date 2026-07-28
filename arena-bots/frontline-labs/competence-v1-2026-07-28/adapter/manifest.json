@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Adapter",
+  "cohort": "competence-v1-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "fundamentalsPass": "equal contract-generic fabricate, dodge, and direct-fire fundamentals",
+  "sourceSha256": "a52dcbe2065e244d8df737f66b9c8747be5caeb8d6a5f714bb2fbdd1acef7b37",
+  "sharedFundamentalsSha256": "602b8d4450d8651fe7e6182fce074402b1c5f7dd5e2fe38d7be6135f5f3a5c43",
+  "artifactSha256": "c2c90ac4467db01052604672c1725474095d15896d2c5e89bb6eefe7c1ed3ae9",
+  "sdkVersion": "0.10.3"
+}

@@ -267,7 +267,10 @@ public sealed class GenericActorRulesContract
 
     /// <summary>Frontline control, capture, decay, and redeploy mechanics.</summary>
     /// <param name="Threshold">Progress required to capture one objective.</param>
-    /// <param name="GainPerSoleTeamTick">Progress gained by sole control per tick.</param>
+    /// <param name="GainPerSoleTeamTick">
+    /// Base progress gained per control-pressure unit and tick. The declared
+    /// control policy defines whether pressure is binary or weight-scaled.
+    /// </param>
     /// <param name="DecayAmount">Progress removed at each decay application.</param>
     /// <param name="DecayIntervalTicks">Ticks between decay applications.</param>
     /// <param name="RedeployPauseTicks">Pause after an objective advance.</param>
@@ -343,7 +346,9 @@ public sealed class GenericActorRulesContract
     /// </summary>
     /// <param name="PhaseId">Stable semantic phase identifier.</param>
     /// <param name="StartsAtTick">First authoritative tick in this phase.</param>
-    /// <param name="GainPerSoleTeamTick">Sole-control gain during the phase.</param>
+    /// <param name="GainPerSoleTeamTick">
+    /// Base control-pressure gain during the phase.
+    /// </param>
     public sealed record FrontlineCaptureGainPhase(
         string PhaseId,
         int StartsAtTick,

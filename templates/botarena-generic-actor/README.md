@@ -36,12 +36,29 @@ counts, unit slots, forms, transitions, objective binding, lineage, and
 private deterministic seed. `Tick` receives dynamic allies, visible enemies,
 scores, objective state, and exact action legality for that body.
 
-The starter's `Choose` helper demonstrates the important authoring pattern:
-look up the current action by stable ID, take its negotiated numeric code, and
-only submit it when available. Typed constraints on that legality entry list
-the currently legal directions, targets, forms, headings, or shot-program
-payload. The host still resolves joint conflicts, so an individually available
-move or transition can be blocked by another body's simultaneous choice.
+The generated bot is a competent apprentice rather than a blank or solved
+policy. Its short `Tick` priority list promptly activates an available
+companion, leaves an obvious one-advance projectile path, takes a clear direct
+shot, and pathfinds around walls toward the active objective. Those
+contract-driven building blocks live in `ArenaBasics.cs`; keep or replace them
+as your policy develops.
+
+The immediate evasion is intentionally baseline boilerplate. The interesting
+work starts with deciding when moving costs too much territory or firing
+tempo, and with using multiple bodies and programmed trajectories to force
+those choices on an opponent.
+
+The starter deliberately does not assign body roles, choose transformations,
+coordinate focus fire, program curved-shot traps, remember opponents, or adapt
+its doctrine. `BOTNAME.cs` is the intended first editing surface: reorder its
+priorities, add conditions, and use actor/unit identity plus shared
+observations to make the independent lives cooperate.
+
+`ArenaBasics` demonstrates the important authoring pattern: select actions by
+their contract kind or stable ID, use the negotiated numeric code, and obey
+the current typed legality constraints. The host still resolves joint
+conflicts, so an individually available move or transition can be blocked by
+another body's simultaneous choice.
 
 Current Frontline Labs v1 includes `fabricate`, `split`, `transform`, and
 `shoot-direction` in addition to movement, rotation, shooting, and waiting.

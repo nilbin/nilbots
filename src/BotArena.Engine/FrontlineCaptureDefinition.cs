@@ -35,8 +35,8 @@ public sealed record FrontlineCaptureGainPhaseDefinition
 
 /// <summary>
 /// Rules-owned Frontline pressure, decay, and redeploy tuning. Its typed fixed
-/// policies keep sole control, timeout ranking, and completion precedence
-/// explicit rather than hiding them in a mode implementation.
+/// policies keep objective control, timeout ranking, and completion
+/// precedence explicit rather than hiding them in a mode implementation.
 /// </summary>
 public sealed record FrontlineCaptureDefinition
 {
@@ -46,7 +46,10 @@ public sealed record FrontlineCaptureDefinition
         int decayAmount,
         int decayIntervalTicks,
         int redeployPauseTicks,
-        IEnumerable<FrontlineCaptureGainPhaseDefinition>? gainSchedule = null)
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>? gainSchedule = null,
+        ControlPolicyKind controlPolicy =
+            ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral)
     {
         if (threshold <= 0)
             throw new ArgumentOutOfRangeException(nameof(threshold));
@@ -68,6 +71,8 @@ public sealed record FrontlineCaptureDefinition
             throw new ArgumentOutOfRangeException(
                 nameof(redeployPauseTicks));
         }
+        if (!Enum.IsDefined(controlPolicy))
+            throw new ArgumentOutOfRangeException(nameof(controlPolicy));
         FrontlineCaptureGainPhaseDefinition[] schedule =
             gainSchedule?.ToArray() ?? [];
         if (schedule.Any(phase => phase is null))
@@ -115,6 +120,7 @@ public sealed record FrontlineCaptureDefinition
         DecayIntervalTicks = decayIntervalTicks;
         RedeployPauseTicks = redeployPauseTicks;
         GainSchedule = schedule.ToImmutableArray();
+        ControlPolicy = controlPolicy;
     }
 
     public int Threshold { get; }
@@ -154,9 +160,7 @@ public sealed record FrontlineCaptureDefinition
         return active;
     }
 
-    public ControlPolicyKind ControlPolicy =>
-        ControlPolicyKind
-            .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral;
+    public ControlPolicyKind ControlPolicy { get; }
 
     public TimeoutPolicyKind TimeoutPolicy =>
         TimeoutPolicyKind
@@ -196,6 +200,15 @@ public sealed record FrontlineCaptureDefinition
         /// the current claim; sole opposition first erodes it to neutral.
         /// </summary>
         BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral = 0,
+
+        /// <summary>
+        /// Sum positive form objective weights per team. Equal weights are
+        /// contested; otherwise the higher-weight team applies capture gain
+        /// multiplied by the exact weight difference. Opposition still
+        /// erodes only to neutral and discards overshoot.
+        /// </summary>
+        NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral
+            = 1,
     }
 
     public enum TimeoutPolicyKind

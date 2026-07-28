@@ -27,7 +27,9 @@ public static class FrontlineLabsExperimentCommand
             "open",
             "capture-threshold",
             "capture-gain-phase",
-            "mobilize-turrets");
+            "mobilize-turrets",
+            "remote-fabrication",
+            "net-control");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
@@ -64,10 +66,18 @@ public static class FrontlineLabsExperimentCommand
         bool mobilizeTurrets = OptionalFlag(
             options,
             "mobilize-turrets");
+        bool remoteFabrication = OptionalFlag(
+            options,
+            "remote-fabrication");
+        bool netControl = OptionalFlag(
+            options,
+            "net-control");
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
-            + (mobilizeTurrets ? 1 : 0);
+            + (mobilizeTurrets ? 1 : 0)
+            + (remoteFabrication ? 1 : 0)
+            + (netControl ? 1 : 0);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
@@ -90,7 +100,13 @@ public static class FrontlineLabsExperimentCommand
         {
             definition = mobilizeTurrets
                 ? FrontlineLabsDefinition.CreateMobilizeExperiment()
-                : FrontlineLabsDefinition.Create();
+                : remoteFabrication
+                    ? FrontlineLabsDefinition
+                        .CreateRemoteFabricationExperiment()
+                    : netControl
+                        ? FrontlineLabsDefinition
+                            .CreateNetControlExperiment()
+                        : FrontlineLabsDefinition.Create();
         }
         Console.WriteLine(
             experimentCount == 0
