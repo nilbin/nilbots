@@ -25,8 +25,10 @@ import { useBot } from '../queries';
  * exists would be a picture of an improvement nobody measured. The chart is built for
  * the series and draws it the day an endpoint returns one; this is where it arrives.
  */
-function generationHistory(_bot: BotDetail): readonly GenerationRatings[] {
-  return noHistory;
+function generationHistory(bot: BotDetail): readonly GenerationRatings[] {
+  const carried = (bot as BotDetail & { ratingHistory?: readonly GenerationRatings[] })
+    .ratingHistory;
+  return carried && carried.length > 0 ? carried : noHistory;
 }
 
 /** One array, so the chart's layout memo is not invalidated by every render. */

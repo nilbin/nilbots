@@ -53,6 +53,11 @@ const FIXTURES = {
     id: 'bot-3', slug: 'pincer-gen-10', name: 'Pincer gen-10', owner: 'you',
     accent: '#22d3ee', lookId: 'vanguard', projectileLookId: null, isOwner: true,
     currentStanding: { rank: 3, rating: 1284, rulesVersion: '0.5', rankedSets: 11 },
+    ratingHistory: [
+      { generation: 8, live: false, ratings: [1150, 1163, 1171, 1168, 1182, 1190, 1198] },
+      { generation: 9, live: false, ratings: [1198, 1188, 1205, 1214, 1209, 1226, 1231] },
+      { generation: 10, live: true, ratings: [1231, 1226, 1244, 1252, 1249, 1268, 1284] },
+    ],
     versions: [
       { id: 'v10', versionNumber: 10, status: 'Built', isActive: true,
         artifactHash: '9f31c0a4b7de51', createdAt: '2026-07-17T10:00:00Z' },
@@ -63,9 +68,11 @@ const FIXTURES = {
     ],
   },
   '^/api/bots/mine$': [],
-  '^/api/bots/[^/]+/statistics$': {
-    combat: { games: 214, wins: 118, losses: 96, damageDealt: 512, damageTaken: 489 },
-    ranked: { sets: 11, setsWon: 7 },
+  '^/api/bots/[^/]+/stats$': {
+    overall: { played: 214, wins: 118, losses: 96, draws: 0 },
+    ranked: { played: 66, wins: 38, losses: 28, draws: 0 },
+    unranked: { played: 148, wins: 80, losses: 68, draws: 0 },
+    combat: { games: 214, damageDealt: 512, faults: 0 },
   },
   '^/api/bots/[^/]+/matches': { wins: 118, losses: 96, draws: 0, matches: [] },
   '^/api/bots$': [],
@@ -118,7 +125,7 @@ for (const [name, path] of [
     // A page that rendered nothing is the failure this harness exists to catch, so it
     // is reported as loudly as a crash rather than saved as a black rectangle.
     const text = (await page.locator('body').innerText()).trim();
-    const bad = failures.splice(0).filter((f) => !/SignalR|negotiation|Failed to start|404/.test(f));
+    const bad = failures.splice(0).filter((f) => !/SignalR|negotiation|Failed to start|status of 404/.test(f));
     console.log(
       `  ${name}-${label}  overflow ${overflow}px  ${text.length} chars` +
         (text.length < 40 ? '  ← BLANK' : '') +
