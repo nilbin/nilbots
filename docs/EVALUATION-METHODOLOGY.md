@@ -3,6 +3,8 @@
 This is the shared product-evaluation policy for Claude Code and Codex. The
 executable workflows are `.claude/skills/balance-harness/SKILL.md` and
 `.claude/skills/agent-arena/SKILL.md`.
+Multi-factor experiments use the mode-independent spec and runner in
+[`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md).
 
 The goal is not the shortest match or the highest count of one result label.
 The goal is a deterministic programming game whose matches are strategically
@@ -10,7 +12,11 @@ varied, visibly active, understandable, and worth watching.
 
 ## Separate the three questions
 
-Every rules experiment should label its evidence as one of these:
+Every experiment first identifies its immutable candidate as:
+
+`mode + ruleset + map + match format`
+
+It then labels its evidence as one of these:
 
 1. **Regression/compatibility.** Frozen historical artifacts run under the
    candidate to catch faults, determinism changes, degenerate exploits, and
@@ -21,6 +27,9 @@ Every rules experiment should label its evidence as one of these:
 3. **Product quality.** Bots authored or substantially adapted for a ruleset
    fight one another under that ruleset. This is the primary balance and
    entertainment evidence.
+4. **Infrastructure smoke.** Unqualified retained artifacts exercise candidate
+   enumeration, provenance, runtime, verification, metrics, and report
+   generation. This proves the evidence pipeline, never the game balance.
 
 The first two are valuable, but old rules-unaware bots do not veto a
 substantial redesign. They cannot reveal a strategy space they were never

@@ -778,6 +778,18 @@ public static class ActorResolvedMatchDefinitionValidator
                     $"references unknown profile '{assignment.LifecycleProfileId}'.");
                 continue;
             }
+            if (assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick
+                && profile.DestructionPolicy
+                    != ActorLifecycleProfileDefinition
+                        .DestructionPolicyKind.AutomaticRespawn)
+            {
+                errors.Add(
+                    $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
+                    "automatic activation requires an automatic-respawn profile.");
+            }
 
             ValidateAssignmentRespawn(
                 assignment,

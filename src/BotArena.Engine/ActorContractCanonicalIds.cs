@@ -537,6 +537,9 @@ internal static class ActorContractCanonicalIds
         ActorUnitSlotLifecycleAssignmentDefinition.InitialAvailabilityKind
                 .DormantUnlockAtTick =>
             "dormant-unlock-at-tick",
+        ActorUnitSlotLifecycleAssignmentDefinition.InitialAvailabilityKind
+                .DormantAutomaticActivationAtTick =>
+            "dormant-automatic-activation-at-tick",
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(value),

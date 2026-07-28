@@ -326,7 +326,7 @@ public sealed class FrontlineLabsQualificationCommandTests
               {
                 "name": "{{name}}",
                 "entryType": "{{name}}",
-                "sdkVersion": "0.10.3"
+                "sdkVersion": "0.10.4"
               }
               """);
         return directory;

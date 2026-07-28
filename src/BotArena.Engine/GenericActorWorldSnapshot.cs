@@ -118,7 +118,8 @@ public sealed class GenericActorWorldSnapshot
     public long NextProjectileId { get; }
     public ImmutableArray<
         GenericActorRuntimeObservation.ObservedParticipantStatus>
-        Participants { get; }
+        Participants
+    { get; }
     public ImmutableArray<SlotSnapshot> Slots { get; }
     public ImmutableArray<LifeSnapshot> ActiveLives { get; }
     public ImmutableArray<SplitReplicationReservation> PendingReplications
@@ -286,9 +287,11 @@ public sealed class GenericActorWorldSnapshot
         public string? SourceTransitionId { get; }
         public string? SourceOperationId { get; }
         public GenericActorRuntimeActionResolution?
-            PreviousActionResolution { get; }
+            PreviousActionResolution
+        { get; }
         public GenericActorRuntimeObservation.PendingSameLifeTransition?
-            PendingSameLifeTransition { get; }
+            PendingSameLifeTransition
+        { get; }
     }
 
     public sealed record ProjectileSnapshot
@@ -1407,6 +1410,8 @@ public sealed class GenericActorWorldSnapshot
         bool valid = life.SpawnReason switch
         {
             GenericActorRuntimeStart.SpawnReason.Initial =>
+                life.ParentActorId is null && !hasTransition,
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
                 life.ParentActorId is null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.AutomaticReturn =>
                 life.ParentActorId is not null && !hasTransition,

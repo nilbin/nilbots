@@ -22,6 +22,9 @@ Use only:
   including its README and starter helper;
 - the complete Labs-v1 rule card in
   [`FRONTLINE-LABS-RULES.md`](FRONTLINE-LABS-RULES.md);
+- when explicitly assigned an automatic-companion or duel-map experiment, the
+  additional candidate contract in
+  [`EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md`](EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md);
 - the Labs-v1 authoring command and product boundary in
   [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md);
 - the generic runtime/toolchain material in
@@ -56,6 +59,11 @@ strategy independently derived from the same player-facing information.
   fabrication, and replication create fresh instances. Current allied body
   state and allied sensor union are shared through observations, not through
   hidden cross-instance memory.
+- Treat lifecycle assignments and `StartLife.Origin` as data. A future or
+  experimental slot may be Ready for explicit fabrication or may create its
+  first fresh life automatically at a declared tick. Automatic activation
+  inherits no Prime/parent memory and is distinct from both initial deployment
+  and post-destruction automatic return.
 - Use only deterministic observation, contract, and `context.Random` inputs.
   Do not use clocks, entropy APIs, files, network access, threads, reflection,
   native calls, or environment state.

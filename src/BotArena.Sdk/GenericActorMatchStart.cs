@@ -36,7 +36,8 @@ public sealed record GenericActorMatchStart
     /// <param name="Generation">Replication/return generation of the new life.</param>
     /// <param name="ParentActorId">
     /// Prior same-slot life for automatic return, or source life for
-    /// fabrication/replication; <see langword="null"/> only for an initial life.
+    /// fabrication/replication; <see langword="null"/> for an initial life or
+    /// declared first automatic activation.
     /// </param>
     /// <param name="SourceTransitionId">
     /// Static catalog transition ID for transition-created lives; otherwise
@@ -64,5 +65,9 @@ public sealed record GenericActorMatchStart
         Fabrication = 2,
         /// <summary>Life was created by a replication transition.</summary>
         Replication = 3,
+        /// <summary>
+        /// The slot's declared delayed activation created its first life.
+        /// </summary>
+        AutomaticActivation = 4,
     }
 }

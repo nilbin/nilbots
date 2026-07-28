@@ -237,6 +237,24 @@ entrants/results, reveal-ordered settlement, broad generic APIs, FFA/2v2 or
 Deathmatch admission, seasons, ladders, and multiplayer rating policies remain
 later work.
 
+Balance work now has a reusable mode-independent entry point:
+[`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md). A candidate is the
+independently fingerprinted mode, ruleset, map, and match-format tuple; a spec
+freezes its factor product, bot sources/WASM, qualifications, paired/holdout
+seeds, and runner. The implemented slice executes verified mirrored full
+cross-play, Frontline replay-v3 dynamics, payoff matrices, vector reports, and
+factorial contrasts without inventing one balance score. Static generalization,
+restricted-play wrappers, full tier probes, empirical equilibrium/best-response
+analysis, automated candidate search, and structured human review remain later
+layers.
+
+The first spec compares three duel map topologies under manual fabrication and
+an explicit automatic-companion progression bundle. The latter is a
+separately fingerprinted local contract—children activate at ticks 120/260
+with fresh runtimes and distinct `automatic-activation` lineage; hosted Labs
+remains manual. Its 12-match unqualified population run validates the
+infrastructure and shows a map-policy interaction, not a balance winner.
+
 ## Next session pointers
 
 1. ~~Fast inner loop~~ **DONE** (DECISIONS #44): `--runtime in-process` runs

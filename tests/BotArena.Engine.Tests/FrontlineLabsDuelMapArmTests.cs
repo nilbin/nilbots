@@ -3,6 +3,107 @@ namespace BotArena.Engine.Tests;
 public sealed class FrontlineLabsDuelMapArmTests
 {
     [Fact]
+    public void AutomaticCompanions_ActivateAsDeclaredAndActOnDueTick()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsDefinition.CreateAutomaticCompanionsExperiment();
+        Dictionary<
+            int,
+            GenericDeathmatchSessionTestFixture.RecordingFactory> factories =
+            GenericDeathmatchSessionTestFixture.Factories(definition);
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition,
+                factories),
+            matchSeed: 104_729);
+
+        Assert.Empty(definition.Rules.FabricationTransitions);
+        Assert.Empty(definition.Rules.ReplicationTransitions);
+        Assert.Empty(definition.ParticipantRegionAssignments);
+        Assert.DoesNotContain(
+            "fabricate",
+            definition.Rules.Forms.Single(form =>
+                form.Id == "prime-mobile").AllowedActionIds);
+        Assert.Equal(
+            4,
+            definition.LifecycleAssignments.Count(assignment =>
+                assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick));
+
+        for (int tick = 0; tick < 120; tick++)
+            session.Step(session.PrepareTick().Observations);
+
+        GenericActorMatchPreparedTick firstActivation =
+            session.PrepareTick();
+        Assert.Equal(4, firstActivation.Observations.Length);
+
+        session.Step(firstActivation.Observations);
+        GenericActorMatchTickFrame firstActivationFrame =
+            session.Chronology.Ticks[120];
+        GenericActorMatchTickStart recordedActivation =
+            firstActivationFrame.TickStart;
+        Assert.Equal(
+            [
+                new ActorIdentity(0, 1, 0),
+                new ActorIdentity(1, 1, 0),
+            ],
+            recordedActivation.LifeStarts
+                .Select(start => start.ActorId)
+                .ToArray());
+        Assert.Equal(
+            4,
+            firstActivationFrame.ActorTurns.Length);
+        Assert.All(
+            recordedActivation.LifeStarts,
+            start => Assert.Contains(
+                firstActivationFrame.ActorTurns,
+                turn => turn.ActorId == start.ActorId));
+        Assert.All(
+            recordedActivation.LifeStarts,
+            start =>
+            {
+                Assert.Equal(
+                    GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation,
+                    start.Origin.Reason);
+                Assert.Null(start.Origin.ParentActorId);
+                Assert.Equal(0, start.Origin.Generation);
+            });
+        Assert.All(
+            factories.Values,
+            factory => Assert.Contains(
+                factory.Starts,
+                start => start.Origin.Reason
+                    == GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation));
+
+        for (int tick = 121; tick < 260; tick++)
+            session.Step(session.PrepareTick().Observations);
+        GenericActorMatchPreparedTick secondActivation =
+            session.PrepareTick();
+        Assert.Equal(6, secondActivation.Observations.Length);
+        session.Step(secondActivation.Observations);
+        Assert.Equal(
+            [
+                new ActorIdentity(0, 2, 0),
+                new ActorIdentity(1, 2, 0),
+            ],
+            session.Chronology.Ticks[260].TickStart.LifeStarts
+                .Select(start => start.ActorId)
+                .ToArray());
+
+        string replay = ReplayV3Serializer.ToJson(
+            ReplayV3Projection.Project(session.Chronology));
+        Assert.Contains(
+            "\"spawnReason\":\"automatic-activation\"",
+            replay,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MapArms_KeepRulesStableAndChangeOnlyMapIdentity()
     {
         ActorResolvedMatchDefinition current =

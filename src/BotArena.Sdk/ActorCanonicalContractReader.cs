@@ -2232,6 +2232,9 @@ public static class ActorCanonicalContractReader
                 MatchContract.InitialAvailability.ActiveAtTickZero,
             "dormant-unlock-at-tick" =>
                 MatchContract.InitialAvailability.DormantUnlockAtTick,
+            "dormant-automatic-activation-at-tick" =>
+                MatchContract.InitialAvailability
+                    .DormantAutomaticActivationAtTick,
             string value => throw Unsupported(
                 "initial availability",
                 value),

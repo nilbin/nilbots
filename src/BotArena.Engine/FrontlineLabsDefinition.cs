@@ -168,6 +168,26 @@ public static class FrontlineLabsDefinition
             oneBendShots: true,
             duelMapArm: mapArm);
 
+    /// <summary>
+    /// Creates a local-only progression arm. Each team's child slots create
+    /// their first mobile lives automatically at ticks 120 and 260, then use
+    /// ordinary automatic respawn. One-bend shots remain enabled so this arm
+    /// can be compared directly with the duel-depth map experiments.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateAutomaticCompanionsExperiment(
+            FrontlineLabsDuelMapArm mapArm =
+                FrontlineLabsDuelMapArm.Current) =>
+        CreateResolved(
+            $"{RulesetId}-experiment-one-bend-auto-companions",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            oneBendShots: true,
+            duelMapArm: mapArm,
+            automaticCompanions: true);
+
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
         int captureThreshold,
@@ -180,7 +200,8 @@ public static class FrontlineLabsDefinition
                 .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
         bool oneBendShots = false,
         FrontlineLabsDuelMapArm duelMapArm =
-            FrontlineLabsDuelMapArm.Current)
+            FrontlineLabsDuelMapArm.Current,
+        bool automaticCompanions = false)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -189,10 +210,12 @@ public static class FrontlineLabsDefinition
             enableMobilize,
             remoteFabrication,
             controlPolicy,
-            oneBendShots);
+            oneBendShots,
+            automaticCompanions);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
-            duelMapArm);
+            duelMapArm,
+            automaticCompanions);
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
             CreateInitialDeployment();
@@ -203,8 +226,10 @@ public static class FrontlineLabsDefinition
             new HeadToHeadMatchFormatDefinition(),
             topology,
             deployment,
-            CreateLifecycleAssignments(),
-            CreateParticipantRegionAssignments(remoteFabrication),
+            CreateLifecycleAssignments(automaticCompanions),
+            automaticCompanions
+                ? []
+                : CreateParticipantRegionAssignments(remoteFabrication),
             new FrontlineActorModeMapBindingDefinition(
                 [
                     "frontline-position-0",
@@ -245,7 +270,8 @@ public static class FrontlineLabsDefinition
         bool enableMobilize,
         bool remoteFabrication,
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
-        bool oneBendShots)
+        bool oneBendShots,
+        bool automaticCompanions)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -324,11 +350,6 @@ public static class FrontlineLabsDefinition
                 ActorActionKind.Attack,
                 [ActorActionParameterKind.ShotProgram]),
             new(
-                "fabricate",
-                PublicActionCodes.Fabricate,
-                ActorActionKind.Fabrication,
-                [ActorActionParameterKind.UnitTarget]),
-            new(
                 "transform",
                 PublicActionCodes.Transform,
                 ActorActionKind.SameLifeTransition,
@@ -338,12 +359,22 @@ public static class FrontlineLabsDefinition
                 PublicActionCodes.ShootDirection,
                 ActorActionKind.Attack,
                 [ActorActionParameterKind.ProjectileHeading]),
-            new(
-                "split",
-                103,
-                ActorActionKind.Replication,
-                []),
         };
+        if (!automaticCompanions)
+        {
+            actions.Add(
+                new ActorActionDefinition(
+                    "fabricate",
+                    PublicActionCodes.Fabricate,
+                    ActorActionKind.Fabrication,
+                    [ActorActionParameterKind.UnitTarget]));
+            actions.Add(
+                new ActorActionDefinition(
+                    "split",
+                    103,
+                    ActorActionKind.Replication,
+                    []));
+        }
         if (enableMobilize)
         {
             actions.Add(
@@ -467,11 +498,15 @@ public static class FrontlineLabsDefinition
                         automaticReturnFormId: PrimeFormId),
                     new ActorLifecycleProfileDefinition(
                         ChildLifecycleId,
-                        ActorLifecycleProfileDefinition
-                            .DestructionPolicyKind
-                            .ReadyForExplicitFabrication,
+                        automaticCompanions
+                            ? ActorLifecycleProfileDefinition
+                                .DestructionPolicyKind.AutomaticRespawn
+                            : ActorLifecycleProfileDefinition
+                                .DestructionPolicyKind
+                                .ReadyForExplicitFabrication,
                         delayTicks: 30,
-                        automaticReturnFormId: null),
+                        automaticReturnFormId:
+                            automaticCompanions ? ChildFormId : null),
                 ]),
             [
                 new ActorFormDefinition(
@@ -481,14 +516,16 @@ public static class FrontlineLabsDefinition
                     mobileVision.Id,
                     mobileAttack.Id,
                     objectiveWeight: 1,
-                    [
-                        "wait",
-                        "move",
-                        "rotate",
-                        "shoot",
-                        "fabricate",
-                        "split",
-                    ]),
+                    automaticCompanions
+                        ? ["wait", "move", "rotate", "shoot"]
+                        : [
+                            "wait",
+                            "move",
+                            "rotate",
+                            "shoot",
+                            "fabricate",
+                            "split",
+                        ]),
                 new ActorFormDefinition(
                     ChildFormId,
                     maxHealth: 3,
@@ -518,7 +555,9 @@ public static class FrontlineLabsDefinition
             [mobileVision, turretVision],
             [mobileAttack, turretAttack],
             actions,
-            [
+            automaticCompanions
+                ? []
+                : [
                 new BoundedChildFabricationDefinition(
                     "fabricate-child",
                     "fabricate",
@@ -543,9 +582,11 @@ public static class FrontlineLabsDefinition
                         : FabricationCandidateOffsets(),
                     new ActorFabricationDelayDefinition(durationTicks: 1),
                     ActorActionRejectionResult.Blocked),
-            ],
+                ],
             sameLifeTransitions,
-            [
+            automaticCompanions
+                ? []
+                : [
                 new SplitReplicationTransitionDefinition(
                     "split-prime",
                     "split",
@@ -567,7 +608,7 @@ public static class FrontlineLabsDefinition
                         new ActorRelativePositionOffset(1, 0),
                     ],
                     splitWindup),
-            ],
+                ],
             new ActorTeamPerceptionDefinition(
                 ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion),
             new ActorCollisionDefinition(
@@ -683,17 +724,26 @@ public static class FrontlineLabsDefinition
 
     private static ActorMapDefinition CreateMap(
         bool remoteFabrication,
-        FrontlineLabsDuelMapArm duelMapArm) =>
+        FrontlineLabsDuelMapArm duelMapArm,
+        bool automaticCompanions) =>
         new(
             remoteFabrication
                 ? $"{MapId}-remote-fabrication-experiment"
-                : duelMapArm switch
+                : (duelMapArm, automaticCompanions) switch
                 {
-                    FrontlineLabsDuelMapArm.Current => MapId,
-                    FrontlineLabsDuelMapArm.ThinFronts =>
+                    (FrontlineLabsDuelMapArm.Current, false) => MapId,
+                    (FrontlineLabsDuelMapArm.ThinFronts, false) =>
                         $"{MapId}-thin-fronts-experiment",
-                    FrontlineLabsDuelMapArm.OuterShoulderBypass =>
+                    (FrontlineLabsDuelMapArm
+                        .OuterShoulderBypass, false) =>
                         $"{MapId}-outer-shoulder-bypass-experiment",
+                    (FrontlineLabsDuelMapArm.Current, true) =>
+                        $"{MapId}-auto-companions",
+                    (FrontlineLabsDuelMapArm.ThinFronts, true) =>
+                        $"{MapId}-thin-fronts-auto-companions",
+                    (FrontlineLabsDuelMapArm
+                        .OuterShoulderBypass, true) =>
+                        $"{MapId}-outer-shoulder-auto-companions",
                     _ => throw new ArgumentOutOfRangeException(
                         nameof(duelMapArm),
                         duelMapArm,
@@ -704,6 +754,7 @@ public static class FrontlineLabsDefinition
             [
                 Spawn("team-0-prime", 2, 7, Direction.East),
                 Spawn("team-1-prime", 20, 7, Direction.West),
+                .. AutomaticCompanionSpawns(automaticCompanions),
             ],
             [
                 .. ObjectiveRegions(duelMapArm),
@@ -857,6 +908,17 @@ public static class FrontlineLabsDefinition
                 facing),
             [ActorMovementLayer.Ground]);
 
+    private static ImmutableArray<ActorMapSpawnAnchorDefinition>
+        AutomaticCompanionSpawns(bool enabled) =>
+        enabled
+            ? [
+                Spawn("team-0-child-1", 1, 6, Direction.East),
+                Spawn("team-0-child-2", 1, 8, Direction.East),
+                Spawn("team-1-child-1", 21, 6, Direction.West),
+                Spawn("team-1-child-2", 21, 8, Direction.West),
+            ]
+            : [];
+
     private static ActorMapRegionDefinition Objective(
         string id,
         IReadOnlyList<(int X, int Y)> tiles) =>
@@ -974,14 +1036,38 @@ public static class FrontlineLabsDefinition
 
     private static ImmutableArray<
         ActorUnitSlotLifecycleAssignmentDefinition>
-        CreateLifecycleAssignments() =>
+        CreateLifecycleAssignments(bool automaticCompanions) =>
     [
         PrimeAssignment(0, "team-0-prime"),
-        ChildAssignment(0, 1, unlockTick: 120),
-        ChildAssignment(0, 2, unlockTick: 260),
+        ChildAssignment(
+            0,
+            1,
+            unlockTick: 120,
+            automaticCompanions
+                ? "team-0-child-1"
+                : null),
+        ChildAssignment(
+            0,
+            2,
+            unlockTick: 260,
+            automaticCompanions
+                ? "team-0-child-2"
+                : null),
         PrimeAssignment(1, "team-1-prime"),
-        ChildAssignment(1, 1, unlockTick: 120),
-        ChildAssignment(1, 2, unlockTick: 260),
+        ChildAssignment(
+            1,
+            1,
+            unlockTick: 120,
+            automaticCompanions
+                ? "team-1-child-1"
+                : null),
+        ChildAssignment(
+            1,
+            2,
+            unlockTick: 260,
+            automaticCompanions
+                ? "team-1-child-2"
+                : null),
     ];
 
     private static ActorUnitSlotLifecycleAssignmentDefinition PrimeAssignment(
@@ -1001,17 +1087,22 @@ public static class FrontlineLabsDefinition
     private static ActorUnitSlotLifecycleAssignmentDefinition ChildAssignment(
         int teamId,
         int unitId,
-        int unlockTick) =>
+        int unlockTick,
+        string? automaticSpawnId) =>
         new(
             teamId,
             unitId,
             ChildLifecycleId,
-            initialGeneration: null,
+            initialGeneration: automaticSpawnId is null ? null : 0,
             allowedFormIds: [ChildFormId, ReplicaFormId, TurretFormId],
-            ActorUnitSlotLifecycleAssignmentDefinition
-                .InitialAvailabilityKind.DormantUnlockAtTick,
+            automaticSpawnId is null
+                ? ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind.DormantUnlockAtTick
+                : ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind
+                    .DormantAutomaticActivationAtTick,
             unlockTick,
-            assignedRespawnSpawnId: null);
+            assignedRespawnSpawnId: automaticSpawnId);
 
     private static ImmutableArray<
         ActorParticipantRegionAssignmentDefinition>

@@ -218,8 +218,35 @@ internal static class GenericActorWireContractCodec
                 HasValidFabrication(value, origin),
             GenericActorMatchStart.SpawnReason.Replication =>
                 HasValidReplication(value, origin),
+            GenericActorMatchStart.SpawnReason.AutomaticActivation =>
+                HasValidAutomaticActivation(value, origin),
             _ => false,
         };
+    }
+
+    private static bool HasValidAutomaticActivation(
+        GenericActorMatchStart value,
+        GenericActorMatchStart.LifeOrigin origin)
+    {
+        GenericActorResolvedMatchContract.LifecycleAssignment? assignment =
+            FindAssignment(value);
+        if (assignment is null)
+            return false;
+        GenericActorRulesContract.LifecycleProfile? profile =
+            value.Contract.Rules.Lifecycle.Profiles.FirstOrDefault(
+                candidate =>
+                    candidate.ProfileId == assignment.LifecycleProfileId);
+        return value.ActorId.LifeId == 0
+            && origin.Generation == assignment.InitialGeneration
+            && origin.ParentActorId is null
+            && origin.SourceTransitionId is null
+            && origin.SourceOperationId is null
+            && assignment.InitialAvailability
+                == GenericActorResolvedMatchContract.InitialAvailability
+                    .DormantAutomaticActivationAtTick
+            && assignment.UnlockTick is not null
+            && assignment.AssignedRespawnSpawnId is not null
+            && profile?.DestructionPolicy == "automatic-respawn";
     }
 
     private static bool HasValidAutomaticReturn(

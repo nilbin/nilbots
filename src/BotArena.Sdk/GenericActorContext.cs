@@ -2227,6 +2227,11 @@ public sealed record GenericActorContext
                 && parentActorId is null
                 && sourceTransitionId is null
                 && sourceOperationId is null,
+            GenericActorMatchStart.SpawnReason.AutomaticActivation =>
+                generation >= 0
+                && parentActorId is null
+                && sourceTransitionId is null
+                && sourceOperationId is null,
             GenericActorMatchStart.SpawnReason.AutomaticReturn =>
                 sourceTransitionId is null
                 && sourceOperationId is null,

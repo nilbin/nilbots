@@ -175,10 +175,13 @@ public sealed class GenericActorResolvedMatchContract
     /// <param name="UnitId">Stable unit-slot identifier.</param>
     /// <param name="LifecycleProfileId">Assigned lifecycle catalog entry.</param>
     /// <param name="InitialGeneration">
-    /// Initial generation, or <see langword="null"/> until first activation.
+    /// Declared generation for a tick-zero or scheduled automatic first life;
+    /// <see langword="null"/> when a source transition must create it.
     /// </param>
     /// <param name="AllowedFormIds">Complete set of forms this slot may host.</param>
-    /// <param name="InitialAvailability">Tick-zero availability policy.</param>
+    /// <param name="InitialAvailability">
+    /// Initial and scheduled first-life availability policy.
+    /// </param>
     /// <param name="UnlockTick">
     /// Scheduled unlock tick for delayed slots; otherwise <see langword="null"/>.
     /// </param>
@@ -244,13 +247,18 @@ public sealed class GenericActorResolvedMatchContract
         Teams = 2,
     }
 
-    /// <summary>Tick-zero availability of a stable unit slot.</summary>
+    /// <summary>Initial and scheduled availability of a stable unit slot.</summary>
     public enum InitialAvailability
     {
         /// <summary>The slot contains an active life at tick zero.</summary>
         ActiveAtTickZero = 0,
         /// <summary>The slot is dormant until its declared unlock tick.</summary>
         DormantUnlockAtTick = 1,
+        /// <summary>
+        /// The slot is dormant until the engine creates its first life at the
+        /// declared tick and assigned spawn.
+        /// </summary>
+        DormantAutomaticActivationAtTick = 2,
     }
 
     /// <summary>Discriminator for mode-to-map binding records.</summary>

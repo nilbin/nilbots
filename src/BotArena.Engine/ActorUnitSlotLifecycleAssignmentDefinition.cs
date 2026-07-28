@@ -69,9 +69,10 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
                 "A tick-zero active slot must declare its initial life generation.",
                 nameof(initialGeneration));
         }
-        if (initialAvailability
-                == InitialAvailabilityKind.DormantUnlockAtTick
-            && unlockTick is null)
+        bool delayed = initialAvailability is
+            InitialAvailabilityKind.DormantUnlockAtTick
+            or InitialAvailabilityKind.DormantAutomaticActivationAtTick;
+        if (delayed && unlockTick is null)
         {
             throw new ArgumentException(
                 "A dormant slot must declare its absolute unlock tick.",
@@ -84,6 +85,22 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
             throw new ArgumentException(
                 "A dormant slot has no life generation before fabrication.",
                 nameof(initialGeneration));
+        }
+        if (initialAvailability
+                == InitialAvailabilityKind.DormantAutomaticActivationAtTick
+            && initialGeneration is null)
+        {
+            throw new ArgumentException(
+                "An automatically activated slot must declare its first life generation.",
+                nameof(initialGeneration));
+        }
+        if (initialAvailability
+                == InitialAvailabilityKind.DormantAutomaticActivationAtTick
+            && assignedRespawnSpawnId is null)
+        {
+            throw new ArgumentException(
+                "An automatically activated slot must declare its activation and respawn spawn.",
+                nameof(assignedRespawnSpawnId));
         }
 
         TeamId = teamId;
@@ -117,5 +134,14 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
         /// becomes ready for explicit fabrication.
         /// </summary>
         DormantUnlockAtTick = 1,
+
+        /// <summary>
+        /// No life exists initially. At <see cref="UnlockTick"/> the engine
+        /// creates the slot's first life at its assigned respawn spawn using
+        /// the lifecycle profile's automatic-return form. Tick-start
+        /// activations share the canonical returns/readiness lifecycle phase
+        /// and settle before due fabrication and replication.
+        /// </summary>
+        DormantAutomaticActivationAtTick = 2,
     }
 }

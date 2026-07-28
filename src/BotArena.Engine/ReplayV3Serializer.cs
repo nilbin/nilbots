@@ -5176,7 +5176,8 @@ internal static class ReplayV3Serializer
         value is "initial"
             or "automatic-return"
             or "fabrication"
-            or "replication";
+            or "replication"
+            or "automatic-activation";
 
     private static bool IsRetirementReason(string value) =>
         value is "replication" or "participant-disqualified";

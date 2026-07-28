@@ -1110,6 +1110,8 @@ internal static class ReplayV3Projection
                 "fabrication",
             GenericActorRuntimeStart.SpawnReason.Replication =>
                 "replication",
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
+                "automatic-activation",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

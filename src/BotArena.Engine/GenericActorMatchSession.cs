@@ -233,7 +233,10 @@ public sealed class GenericActorMatchSession : IDisposable
             ImmutableArray.CreateBuilder<GenericActorLifeStart>();
         var projectileTransitions =
             ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
-        ApplyInitialUnlocks();
+        ApplyInitialUnlocks(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
         ApplyAutomaticReturns(
             tickStartEvents,
             lifeStarts,
@@ -509,7 +512,10 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
-    private void ApplyInitialUnlocks()
+    private void ApplyInitialUnlocks(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (SlotState slot in _slots.Values
                      .OrderBy(slot => slot.TeamId)
@@ -521,6 +527,40 @@ public sealed class GenericActorMatchSession : IDisposable
                         .InitialUnlock
                 || slot.DueTick != Tick)
             {
+                continue;
+            }
+            if (slot.Assignment.InitialAvailability
+                == ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind
+                    .DormantAutomaticActivationAtTick)
+            {
+                ActorLifecycleProfileDefinition profile =
+                    _lifecycleProfiles[slot.Assignment.LifecycleProfileId];
+                string formId = profile.AutomaticReturnFormId
+                    ?? throw new InvalidOperationException(
+                        "Automatic activation has no target form.");
+                InitialSpawnDefinition spawn = _spawns[
+                    slot.Assignment.AssignedRespawnSpawnId!];
+                ConsumeProjectilesAt(spawn.Position, traversals);
+                LifeState life = CreateLife(
+                    slot,
+                    formId,
+                    slot.Assignment.InitialGeneration!.Value,
+                    spawn.Position,
+                    spawn.Facing,
+                    _forms[formId].MaxHealth,
+                    GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation,
+                    parentActorId: null,
+                    sourceTransitionId: null,
+                    sourceOperationId: null);
+                lifeStarts.Add(life.LifeStart);
+                ClearPendingClock(slot);
+                events.Add(EmitSpatial(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.LifeSpawned,
+                    SpawnPayload(life),
+                    life.Position));
                 continue;
             }
             slot.Kind = SlotKind.Ready;
@@ -3519,8 +3559,8 @@ public sealed class GenericActorMatchSession : IDisposable
                             : SlotKind.AvailabilityPending,
                     DueTick = assignment.UnlockTick,
                     PendingReason = assignment.InitialAvailability
-                        == ActorUnitSlotLifecycleAssignmentDefinition
-                            .InitialAvailabilityKind.DormantUnlockAtTick
+                        != ActorUnitSlotLifecycleAssignmentDefinition
+                            .InitialAvailabilityKind.ActiveAtTickZero
                             ? GenericActorRuntimeObservation
                                 .AvailabilityReason.InitialUnlock
                             : null,

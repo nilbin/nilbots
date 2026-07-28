@@ -298,7 +298,7 @@ public sealed class GenericActorStaticContractTests
     }
 
     [Fact]
-    public void FabricationAndAutomaticReturnOriginsRoundTrip()
+    public void FabricationAutomaticReturnAndActivationOriginsRoundTrip()
     {
         GenericActorResolvedMatchContract transitionContract =
             Parse(GenericActorContractTestFixture.WithTransitions());
@@ -337,6 +337,35 @@ public sealed class GenericActorStaticContractTests
             GenericActorWireContractCodec.DecodeMatchStart(
                 GenericActorWireContractCodec.EncodeMatchStart(
                     automaticReturn)).Origin);
+
+        GenericActorResolvedMatchContract activationContract =
+            Parse(
+                FrontlineLabsDefinition
+                    .CreateAutomaticCompanionsExperiment());
+        GenericActorMatchStart automaticActivation = Start(
+            activationContract,
+            new BotArena.Sdk.ActorIdentity(0, 1, 0),
+            participantId: 0,
+            new GenericActorMatchStart.LifeOrigin(
+                GenericActorMatchStart.SpawnReason.AutomaticActivation,
+                Generation: 0,
+                ParentActorId: null,
+                SourceTransitionId: null,
+                SourceOperationId: null));
+        GenericActorMatchStart decodedActivation =
+            GenericActorWireContractCodec.DecodeMatchStart(
+                GenericActorWireContractCodec.EncodeMatchStart(
+                    automaticActivation));
+        Assert.Equal(
+            automaticActivation.Origin,
+            decodedActivation.Origin);
+        Assert.Equal(
+            GenericActorResolvedMatchContract.InitialAvailability
+                .DormantAutomaticActivationAtTick,
+            decodedActivation.Contract.LifecycleAssignments.Single(
+                assignment =>
+                    assignment.TeamId == 0
+                    && assignment.UnitId == 1).InitialAvailability);
     }
 
     [Fact]

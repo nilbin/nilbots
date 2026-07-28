@@ -2554,6 +2554,46 @@ zero-to-weighted routes are Mobilize, and only Anchor target forms count as
 fortified for turret-deadlock detection. This prevents a mobile target of a
 future transition from being mislabeled as a turret.
 
+## 145. Balance work becomes a fingerprinted Lab; automatic companions remain an explicit arm
+
+Balance evidence is now organized around an immutable candidate tuple:
+`mode + ruleset + map + match format`. A checked-in spec declares the complete
+factor product, paired and sealed holdout seeds, exact contract fingerprints,
+runtime commands, retained source/WASM hashes, qualification status, and
+evidence class. The first mode-independent runner verifies complete mirrored
+within-population cross-play, rejects replay/provenance/fault drift, builds a
+payoff matrix, adapts replay-v3 Frontline dynamics, and reports a balance
+vector plus same-artifact factorial contrasts. Missing exploitability,
+equilibrium, tier-gradient, ablation, or human-review evidence is explicitly
+`not-measured`; there is no composite score and no champion-only pruning.
+
+The engine/SDK contract adds a third initial slot lifecycle:
+`dormant-automatic-activation-at-tick`. On the exact due tick it creates a
+fresh generation-declared life at the assigned spawn, before fabrication and
+replication, able to act immediately. Its parentless life-origin reason is
+`automatic-activation`, distinct from tick-zero deployment and ordinary
+post-destruction return. Validation, canonical wire reading, replay projection,
+and chronology all preserve that distinction. Hosted `frontline-labs-1`
+remains byte-identical and manual.
+
+The first local Frontline arm activates children at ticks 120/260 and uses
+automatic 30-absent-tick child returns. It deliberately removes Prime
+Fabricate and Split, retaining child Anchor/turret, because already occupied
+child slots cannot also be honest capacity for those operations. The
+comparison is therefore named a progression-policy bundle, not a single
+boolean ablation. Its three map variants and ruleset have separate
+fingerprints and are never selected implicitly.
+
+The 12-replay, one-seed Balance Lab run is retained only as
+`infrastructure-smoke`: both bots are cumulatively unqualified and the two
+holdout seeds remain sealed. It verified zero faults and exposed a strong
+map-policy interaction—thin objectives created activity under either policy,
+while automatic progression created activity on current/bypass without
+removing their repeated tails. It promotes no candidate. SDK/Guest advance to
+0.10.4 for the additive lifecycle/origin contract and CLI/package advances to
+0.9.5; actor framing/configuration and controlled-build pipeline 4 remain
+unchanged.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

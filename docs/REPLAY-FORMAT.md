@@ -45,6 +45,16 @@ unsafe numeric encodings. The web normalizer projects v3 into the shared
 version-neutral presentation model, and the hosted bridge carries that typed
 model to mobile while retaining mode-specific objective and result facts.
 
+Replay-v3 life origins distinguish `initial`, `automatic-activation`,
+`automatic-return`, `fabrication`, and `replication`. Initial deployment and
+declared automatic activation are both parentless, but they are not
+interchangeable: an automatic activation must occur on the exact slot unlock
+tick at its assigned spawn and carries the declared initial generation.
+Chronology validation rejects an origin, due clock, parent, or spawn that does
+not match the embedded lifecycle assignment. This distinction is available to
+replay analysis and ML export without reconstructing policy intent from a
+body's first visible tick.
+
 Replay v3 is now consumed by one narrow hosted integration checkpoint:
 feature-gated, setless, unranked `frontline-labs` v1 matches store it and the
 public replay endpoint projects a result-redacted canonical prefix until the

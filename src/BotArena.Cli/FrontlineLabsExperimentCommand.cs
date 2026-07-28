@@ -31,6 +31,7 @@ public static class FrontlineLabsExperimentCommand
             "remote-fabrication",
             "net-control",
             "one-bend-shots",
+            "auto-companions",
             "duel-map");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
@@ -77,16 +78,21 @@ public static class FrontlineLabsExperimentCommand
         bool oneBendShots = OptionalFlag(
             options,
             "one-bend-shots");
+        bool automaticCompanions = OptionalFlag(
+            options,
+            "auto-companions");
         FrontlineLabsDuelMapArm? duelMapArm =
             OptionalDuelMapArm(options);
+        bool duelExperiment = oneBendShots
+            || automaticCompanions
+            || duelMapArm is not null;
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
             + (mobilizeTurrets ? 1 : 0)
             + (remoteFabrication ? 1 : 0)
             + (netControl ? 1 : 0)
-            + (oneBendShots ? 1 : 0)
-            + (duelMapArm is null ? 0 : 1);
+            + (duelExperiment ? 1 : 0);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
@@ -117,6 +123,12 @@ public static class FrontlineLabsExperimentCommand
         else if (netControl)
         {
             definition = FrontlineLabsDefinition.CreateNetControlExperiment();
+        }
+        else if (automaticCompanions)
+        {
+            definition = FrontlineLabsDefinition
+                .CreateAutomaticCompanionsExperiment(
+                    duelMapArm ?? FrontlineLabsDuelMapArm.Current);
         }
         else if (duelMapArm is { } mapArm)
         {

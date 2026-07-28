@@ -8,12 +8,19 @@ description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-
 Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/balance-eval.py`, `scripts/replay-dynamics-eval.py`,
 `scripts/frontline-replay-eval.py`, `scripts/labs-replay-eval.py`,
+`scripts/balance-lab-drive.py`,
 `scripts/replay-review-sample.py`, the CLI's historical `--rules` flag, the
 frozen replay-v2 `nilbots experiment frontline` path, and the generic
 replay-v3 `nilbots experiment frontline-labs` path. Labs capture-threshold
 arms use its local-only `--capture-threshold <positive-n>` option; phased
 capture-gain arms use `--capture-gain-phase <start-tick>:<gain>`; the isolated
 turret-exit arm uses `--mobilize-turrets`.
+
+For a multi-factor generic candidate, use the mode-independent Balance Lab
+contract in `docs/NILBOTS-BALANCE-LAB.md` and a checked-in spec under
+`balance/`. Its candidate identity is always
+`mode + ruleset + map + match format`; never collapse those axes into a
+nickname or silently promote an experimental arm.
 
 ## 1. Classify and pre-register the experiment
 
@@ -99,6 +106,14 @@ nilbots experiment frontline-labs \
   --bot <candidate-bot.wasm> --opponent <opponent.wasm> \
   --mobilize-turrets --seed 104729
 
+nilbots experiment frontline-labs \
+  --bot <candidate-bot.wasm> --opponent <opponent.wasm> \
+  --auto-companions --duel-map thin-fronts --seed 104729
+
+python3 scripts/balance-lab-drive.py \
+  --spec balance/frontline-duel-progression-v1.json \
+  --output /tmp/nilbots-balance/frontline-duel-progression-v1
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
@@ -116,6 +131,20 @@ canonical contract data, and candidate-aware bots resolve it with
 It also applies to the Mobilize arm: that flag exposes a new action under
 `frontline-labs-1-experiment-mobilize`; rules-unaware bots are compatibility
 sentinels, not product-balance evidence.
+
+The automatic-companion arm uses
+`frontline-labs-1-experiment-one-bend-auto-companions` and separately
+identified map contracts. Children create fresh lives at declared ticks with
+`automatic-activation` origin and return automatically after destruction.
+The first isolated arm omits Prime Fabricate and Split, so label its factor a
+progression-policy bundle rather than claiming a one-boolean lifecycle
+ablation.
+
+Balance Lab specs must declare evidence class, exact fingerprints, artifact
+and source hashes, qualification metadata, full factor coverage, paired seeds,
+and sealed holdouts. `infrastructure-smoke` with unqualified bots validates
+plumbing and effect direction only. It cannot promote a candidate or satisfy
+the independently competent tier-population requirement.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and

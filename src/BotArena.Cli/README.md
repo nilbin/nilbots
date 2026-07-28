@@ -43,7 +43,7 @@ self-hosted development.
 
 ## Local Frontline experiment
 
-CLI 0.9.4 includes the explicitly separate, unranked Frontline authoring loop:
+CLI 0.9.5 includes the explicitly separate, unranked Frontline authoring loop:
 
 ```bash
 nilbots experiment frontline \

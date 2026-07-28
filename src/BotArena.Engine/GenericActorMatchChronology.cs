@@ -639,7 +639,12 @@ public sealed record GenericActorMatchChronology
             definition.Rules.Forms.ToDictionary(
                 form => form.Id,
                 StringComparer.Ordinal);
+        Dictionary<string, ActorLifecycleProfileDefinition> profiles =
+            definition.Rules.Lifecycle.Profiles.ToDictionary(
+                profile => profile.ProfileId,
+                StringComparer.Ordinal);
         var expectedAutomaticActors = new List<ActorIdentity>();
+        var expectedActivationActors = new List<ActorIdentity>();
 
         foreach (GenericActorWorldSnapshot.SlotSnapshot beforeSlot in
                  before.Slots)
@@ -658,6 +663,162 @@ public sealed record GenericActorMatchChronology
                         {
                             throw new ArgumentException(
                                 "A not-yet-due availability clock must remain exact across tick start.",
+                                parameterName);
+                        }
+                        break;
+                    }
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        availabilityAssignment = assignments[
+                            (beforeSlot.TeamId, beforeSlot.UnitId)];
+                    if (availabilityAssignment.InitialAvailability
+                        == ActorUnitSlotLifecycleAssignmentDefinition
+                            .InitialAvailabilityKind
+                            .DormantAutomaticActivationAtTick)
+                    {
+                        if (pending.DueTick != tickStart.Tick
+                            || pending.Reason
+                                != GenericActorRuntimeObservation
+                                    .AvailabilityReason.InitialUnlock)
+                        {
+                            throw new ArgumentException(
+                                "An automatic-activation clock must be an exact-due initial unlock.",
+                                parameterName);
+                        }
+                        InitialSpawnDefinition activationSpawn = spawns[
+                            availabilityAssignment
+                                .AssignedRespawnSpawnId!];
+                        ActorLifecycleProfileDefinition activationProfile =
+                            profiles[
+                                availabilityAssignment.LifecycleProfileId];
+                        string activationFormId =
+                            activationProfile.AutomaticReturnFormId!;
+                        var activationActorId = new ActorIdentity(
+                            beforeSlot.TeamId,
+                            beforeSlot.UnitId,
+                            beforeSlot.NextLifeId);
+                        expectedActivationActors.Add(activationActorId);
+                        GenericActorWorldSnapshot.LifeSnapshot[]
+                            activationLives = tickStart.State.ActiveLives
+                                .Where(life =>
+                                    life.ActorId == activationActorId)
+                                .ToArray();
+                        GenericActorLifeStart[] activationStarts =
+                            tickStart.LifeStarts
+                                .Where(start =>
+                                    start.ActorId == activationActorId)
+                                .ToArray();
+                        GenericActorAuthoritativeEvent[]
+                            activationSpawnEvents = tickStart.Events
+                                .Where(item =>
+                                    item.Payload is
+                                        GenericActorRuntimeObservation
+                                            .EventPayload.LifeSpawned spawned
+                                    && spawned.ActorId
+                                        == activationActorId)
+                                .ToArray();
+                        if (activationLives.Length != 1
+                            || activationStarts.Length != 1
+                            || activationSpawnEvents.Length != 1)
+                        {
+                            throw new ArgumentException(
+                                "An exact-due automatic activation needs one active life, life start, and spawn event.",
+                                parameterName);
+                        }
+                        GenericActorWorldSnapshot.LifeSnapshot
+                            activationLife = activationLives[0];
+                        GenericActorLifeStart activationStart =
+                            activationStarts[0];
+                        var activationSpawned =
+                            (GenericActorRuntimeObservation.EventPayload
+                                .LifeSpawned)activationSpawnEvents[0].Payload;
+                        ActorFormDefinition activationForm =
+                            forms[activationFormId];
+                        int activationGeneration =
+                            availabilityAssignment.InitialGeneration!.Value;
+                        int? activationEnergy = InitialFormEnergy(
+                            definition,
+                            activationFormId);
+                        if (afterSlot.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || afterSlot.NextLifeId
+                                != checked(beforeSlot.NextLifeId + 1)
+                            || afterSlot.State is not
+                                GenericActorRuntimeObservation.UnitSlotState
+                                    .Active activationActive
+                            || activationActive.ActorId
+                                != activationActorId
+                            || activationActive.Generation
+                                != activationGeneration
+                            || !string.Equals(
+                                activationActive.FormId,
+                                activationFormId,
+                                StringComparison.Ordinal)
+                            || afterSlot.PendingParentActorId is not null
+                            || afterSlot.SplitReservation is not null
+                            || activationLife.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || activationLife.Generation
+                                != activationGeneration
+                            || !string.Equals(
+                                activationLife.FormId,
+                                activationFormId,
+                                StringComparison.Ordinal)
+                            || activationLife.Position
+                                != activationSpawn.Position
+                            || activationLife.Facing
+                                != activationSpawn.Facing
+                            || activationLife.Health
+                                != activationForm.MaxHealth
+                            || activationLife.Cooldown != 0
+                            || activationLife.Energy != activationEnergy
+                            || activationLife.SpawnedAtTick
+                                != tickStart.Tick
+                            || activationLife.SpawnReason
+                                != GenericActorRuntimeStart.SpawnReason
+                                    .AutomaticActivation
+                            || activationLife.ParentActorId is not null
+                            || activationLife.SourceTransitionId is not null
+                            || activationLife.SourceOperationId is not null
+                            || activationLife.PreviousActionResolution
+                                is not null
+                            || activationLife.PendingSameLifeTransition
+                                is not null
+                            || activationStart.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || activationStart.Origin.Reason
+                                != GenericActorRuntimeStart.SpawnReason
+                                    .AutomaticActivation
+                            || activationStart.Origin.Generation
+                                != activationGeneration
+                            || activationStart.Origin.ParentActorId
+                                is not null
+                            || activationStart.Origin.SourceTransitionId
+                                is not null
+                            || activationStart.Origin.SourceOperationId
+                                is not null
+                            || activationSpawned.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || activationSpawned.Reason
+                                != GenericActorRuntimeStart.SpawnReason
+                                    .AutomaticActivation
+                            || activationSpawned.ParentActorId is not null
+                            || activationSpawned.Generation
+                                != activationGeneration
+                            || !string.Equals(
+                                activationSpawned.FormId,
+                                activationFormId,
+                                StringComparison.Ordinal)
+                            || activationSpawned.Health
+                                != activationForm.MaxHealth
+                            || activationSpawned.Position
+                                != activationSpawn.Position
+                            || activationSpawned.SourceTransitionId
+                                is not null
+                            || activationSpawned.SourceOperationId
+                                is not null)
+                        {
+                            throw new ArgumentException(
+                                "An automatic activation must consume its exact contract clock into the declared first assigned-spawn life.",
                                 parameterName);
                         }
                         break;
@@ -835,14 +996,42 @@ public sealed record GenericActorMatchChronology
                     item.Payload).ActorId)
             .Order()
             .ToArray();
+        ActorIdentity[] expectedActivations = expectedActivationActors
+            .Order()
+            .ToArray();
+        ActorIdentity[] recordedActivationStarts = tickStart.LifeStarts
+            .Where(start =>
+                start.Origin.Reason
+                    == GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation)
+            .Select(start => start.ActorId)
+            .Order()
+            .ToArray();
+        ActorIdentity[] recordedActivationEvents = tickStart.Events
+            .Where(item =>
+                item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.LifeSpawned
+                        spawned
+                && spawned.Reason
+                    == GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+                    item.Payload).ActorId)
+            .Order()
+            .ToArray();
         if (!expected.SequenceEqual(recordedStarts)
             || !expected.SequenceEqual(recordedEvents)
+            || !expectedActivations.SequenceEqual(
+                recordedActivationStarts)
+            || !expectedActivations.SequenceEqual(
+                recordedActivationEvents)
             || tickStart.Events.Any(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
                     .LifecycleClockCancelled))
         {
             throw new ArgumentException(
-                "Automatic-return evidence must originate from every and only exact-due slot clock, and tick-start clocks cannot be cancelled.",
+                "Automatic lifecycle evidence must originate from every and only exact-due slot clock, and tick-start clocks cannot be cancelled.",
                 parameterName);
         }
     }
@@ -856,6 +1045,17 @@ public sealed record GenericActorMatchChronology
             .FabricationTransitions
             .Select(transition => transition.TransitionId)
             .ToHashSet(StringComparer.Ordinal);
+        GenericActorAuthoritativeEvent[] activationSpawns =
+            tickStart.Events
+                .Where(item =>
+                    item.Payload is
+                        GenericActorRuntimeObservation.EventPayload.LifeSpawned
+                            spawned
+                    && spawned.Reason
+                        == GenericActorRuntimeStart.SpawnReason
+                            .AutomaticActivation)
+                .OrderBy(item => item.Ordinal)
+                .ToArray();
         GenericActorAuthoritativeEvent[] automaticSpawns =
             tickStart.Events
                 .Where(item =>
@@ -866,17 +1066,27 @@ public sealed record GenericActorMatchChronology
                         == GenericActorRuntimeStart.SpawnReason.AutomaticReturn)
                 .OrderBy(item => item.Ordinal)
                 .ToArray();
-        if (!automaticSpawns.SequenceEqual(
+        if (!activationSpawns.SequenceEqual(
+                activationSpawns.OrderBy(item =>
+                    ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+                        item.Payload).ActorId))
+            || !automaticSpawns.SequenceEqual(
                 automaticSpawns.OrderBy(item =>
                     ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
                         item.Payload).ActorId)))
         {
             throw new ArgumentException(
-                "Automatic returns must resolve in stable-slot order.",
+                "Automatic activations and returns must each resolve in stable-slot order.",
                 parameterName);
         }
+        GenericActorAuthoritativeEvent[] automaticLifecycleSpawns =
+        [
+            .. activationSpawns,
+            .. automaticSpawns,
+        ];
         long priorAutomaticBundleEnd = -1;
-        foreach (GenericActorAuthoritativeEvent spawnEvent in automaticSpawns)
+        foreach (GenericActorAuthoritativeEvent spawnEvent in
+                 automaticLifecycleSpawns)
         {
             Position position =
                 ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
@@ -904,13 +1114,13 @@ public sealed record GenericActorMatchChronology
                         .Order()))
             {
                 throw new ArgumentException(
-                    "Each automatic-return bundle must purge projectiles by ID and spawn atomically in stable-slot order.",
+                    "Each automatic lifecycle bundle must purge projectiles by ID and spawn atomically in declared phase order.",
                     parameterName);
             }
             priorAutomaticBundleEnd = spawnEvent.Ordinal;
         }
 
-        Position[] automaticPositions = automaticSpawns
+        Position[] automaticPositions = automaticLifecycleSpawns
             .Select(item =>
                 ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
                     item.Payload).Position)
@@ -938,7 +1148,7 @@ public sealed record GenericActorMatchChronology
                     item.Payload).Position)
             .ToArray();
 
-        var automaticOrdinals = automaticSpawns
+        var automaticOrdinals = automaticLifecycleSpawns
             .Select(item => item.Ordinal)
             .Concat(tickStart.Traversals
                 .Where(traversal =>
@@ -1018,7 +1228,7 @@ public sealed record GenericActorMatchChronology
             if (phase.Min() <= previousPhaseEnd)
             {
                 throw new ArgumentException(
-                    "Tick-start lifecycle facts must resolve as automatic returns, fabrication, Split, then same-life work without phase interleaving.",
+                    "Tick-start lifecycle facts must resolve as automatic activation/return, fabrication, Split, then same-life work without phase interleaving.",
                     parameterName);
             }
             previousPhaseEnd = phase.Max();

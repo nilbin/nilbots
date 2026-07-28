@@ -533,6 +533,67 @@ public sealed class FrontlineLabsExperimentCommandTests
         }
     }
 
+    [Fact]
+    public void AutomaticCompanionsArm_WritesDeclaredProgressionContract()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-auto-companions-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "auto-companions");
+
+            Assert.Equal(
+                0,
+                Run(
+                    alpha,
+                    beta,
+                    output,
+                    automaticCompanions: true,
+                    duelMap: "thin-fronts"));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement contract = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract");
+            Assert.Equal(
+                "frontline-labs-1-experiment-one-bend-auto-companions",
+                contract.GetProperty("rules")
+                    .GetProperty("rulesetId")
+                    .GetString());
+            Assert.Equal(
+                "frontline-labs-01-thin-fronts-auto-companions",
+                contract.GetProperty("map")
+                    .GetProperty("mapId")
+                    .GetString());
+            Assert.Equal(
+                4,
+                contract.GetProperty("lifecycleAssignments")
+                    .EnumerateArray()
+                    .Count(assignment =>
+                        assignment.GetProperty("initialAvailability")
+                            .GetString()
+                        == "dormant-automatic-activation-at-tick"));
+            Assert.Contains(
+                document.RootElement.GetProperty("ticks")
+                    .EnumerateArray()
+                    .SelectMany(tick => tick.GetProperty("tickStart")
+                        .GetProperty("lifeStarts")
+                        .EnumerateArray()),
+                start => start.GetProperty("origin")
+                    .GetProperty("reason")
+                    .GetString() == "automatic-activation");
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
     private static int Run(
         string bot,
         string opponent,
@@ -543,6 +604,7 @@ public sealed class FrontlineLabsExperimentCommandTests
         bool remoteFabrication = false,
         bool netControl = false,
         bool oneBendShots = false,
+        bool automaticCompanions = false,
         string? duelMap = null)
     {
         TextWriter originalOut = Console.Out;
@@ -582,6 +644,8 @@ public sealed class FrontlineLabsExperimentCommandTests
                 arguments.Add("--net-control");
             if (oneBendShots)
                 arguments.Add("--one-bend-shots");
+            if (automaticCompanions)
+                arguments.Add("--auto-companions");
             if (duelMap is not null)
             {
                 arguments.Add("--duel-map");
@@ -662,7 +726,7 @@ public sealed class FrontlineLabsExperimentCommandTests
               {
                 "name": "{{name}}",
                 "entryType": "{{name}}",
-                "sdkVersion": "0.10.3"
+                "sdkVersion": "0.10.4"
               }
               """);
         return directory;

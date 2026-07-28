@@ -28,5 +28,6 @@ public sealed record GenericActorRuntimeStart
         AutomaticReturn = 1,
         Fabrication = 2,
         Replication = 3,
+        AutomaticActivation = 4,
     }
 }

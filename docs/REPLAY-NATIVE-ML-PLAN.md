@@ -265,6 +265,12 @@ Across generations, actor identity is explicit:
 - actor replay 2/3: `teamId + unitId + lifeId`, with the stable unit slot and
   parent/generation facts preserving fabrication and replication lineage.
 
+Replay 3 also records the exact life-origin reason. A parentless declared
+automatic activation is therefore distinguishable from tick-zero deployment,
+post-destruction return, fabrication, and replication. Dataset exporters
+should retain this categorical lifecycle input rather than infer it from the
+life ID or current body count.
+
 The schema must not encode one fixed body count. Allies, enemies, projectiles,
 objectives, forms, and future action targets are ordered collections with
 presence/legality masks. Counts such as teams, submitted participants, and

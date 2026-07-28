@@ -234,6 +234,7 @@ static int CommandHelp(string command)
                    [--remote-fabrication]
                    [--net-control]
                    [--one-bend-shots]
+                   [--auto-companions]
                    [--duel-map current|thin-fronts|outer-shoulder-bypass]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
@@ -252,6 +253,9 @@ static int CommandHelp(string command)
             instead of treating every two-team presence as a complete contest.
             --one-bend-shots limits mobile fire to straight or one private
             45-degree bend after 1-4 tiles for the duel-depth screen.
+            --auto-companions applies those one-bend rules and creates child
+            lives automatically at ticks 120 and 260. It may be paired with
+            --duel-map; fabrication and Split are absent from this isolated arm.
             --duel-map runs those same one-bend rules on a content-identified
             map arm. thin-fronts raises the positional cost of retreat;
             outer-shoulder-bypass adds an earlier, longer flank without opening

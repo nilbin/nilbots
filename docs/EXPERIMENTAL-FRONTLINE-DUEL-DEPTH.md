@@ -68,6 +68,48 @@ It shortens a route around the central choke by two moves while keeping the
 inner `x=9`/`x=13` walls closed, so the range-five last-moment dodge does not
 become trivial.
 
+### Declared automatic-companion arm
+
+The separately fingerprinted progression experiment is:
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> \
+  --opponent <generic-spec> \
+  --auto-companions \
+  --duel-map current
+```
+
+`--duel-map` may instead be `thin-fronts` or
+`outer-shoulder-bypass`. The ruleset is
+`frontline-labs-1-experiment-one-bend-auto-companions`. Child slots create
+their first independent lives automatically at tick 120 and tick 260 at
+team-specific assigned spawns. Those lives use `child-mobile`, generation 0,
+fresh runtime/private memory, can act on the activation tick, and identify
+their parentless replay/SDK origin as `automatic-activation`. After
+destruction they use the ordinary 30-absent-tick automatic-return lifecycle.
+
+This first arm deliberately omits `fabricate` and `split` from the Prime
+catalog. It isolates guaranteed population progression without pretending an
+already occupied child slot remains available to those operations. Anchor and
+turret play remain available to activated children.
+
+Consequently, `manual-fabrication` versus `automatic-activation` is currently
+a named **progression-policy bundle**, not a one-field numeric A/B: it changes
+initial child activation, child destruction recovery, available Prime
+transitions, and assigned child spawns together. Identical artifacts, seeds,
+assignments, and map arms still estimate the product-level bundle effect, but
+must not be described as the isolated causal effect of a single boolean. A
+future mechanic-specific ablation can allocate separate replica-only capacity
+if Split and automatic companions need to coexist.
+
+The three map IDs are respectively
+`frontline-labs-01-auto-companions`,
+`frontline-labs-01-thin-fronts-auto-companions`, and
+`frontline-labs-01-outer-shoulder-auto-companions`. This is local,
+experimental, and never selected by hosted `frontline-labs-1` unless an
+immutable future playlist explicitly pins it.
+
 Movement still resolves before an existing projectile advances. Opponents see
 the projectile's current heading, position, remaining distance, and exact
 advance timing, but never its committed future bend. Physics and replay remain

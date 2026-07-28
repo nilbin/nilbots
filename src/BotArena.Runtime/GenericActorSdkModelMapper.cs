@@ -583,6 +583,9 @@ internal static class GenericActorSdkModelMapper
                 Sdk.GenericActorMatchStart.SpawnReason.Fabrication,
             GenericActorRuntimeStart.SpawnReason.Replication =>
                 Sdk.GenericActorMatchStart.SpawnReason.Replication,
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
+                Sdk.GenericActorMatchStart.SpawnReason
+                    .AutomaticActivation,
             _ => throw UnknownEnum(value),
         };
 

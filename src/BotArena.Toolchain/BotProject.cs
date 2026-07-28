@@ -37,12 +37,14 @@ public static class ToolchainInfo
     /// generic-actor scaffold, and replay-v3 verification without changing
     /// SDK/Guest bytes. 0.9.4 carries SDK/Guest 0.10.3, whose generic
     /// Frontline contract can expose optional capture-gain schedules while
-    /// retaining the exact static hosted-v1 bytes. It
-    /// also carries the approved Obsidian Foundry effects
+    /// retaining the exact static hosted-v1 bytes. It also carries the
+    /// approved Obsidian Foundry effects
     /// in self-contained replay viewers and the generated HTTP contracts used
-    /// by CLI server commands. Keep in lockstep with BotArena.Cli.csproj's
+    /// by CLI server commands. 0.9.5 carries SDK/Guest 0.10.4 and the additive
+    /// declared automatic-activation lifecycle contract used only by explicit
+    /// experimental candidates. Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.4";
+    public const string CliVersion = "0.9.5";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -76,9 +78,12 @@ public static class ToolchainInfo
     // redacted parent/operation lineage while retaining the public transition ID.
     // 0.10.3: optional Frontline capture-gain schedules are parsed from the
     // canonical contract and resolvable against the authoritative tick.
-    public const string SdkVersion = "0.10.3";
+    // 0.10.4: dormant slots may declare a first automatic activation tick and
+    // life starts identify that parentless origin separately from deployment,
+    // return, fabrication, and replication.
+    public const string SdkVersion = "0.10.4";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.3";
+    public const string GuestAdapterVersion = "0.10.4";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

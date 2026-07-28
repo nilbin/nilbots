@@ -202,3 +202,30 @@ chambers. Give them a small equal improvement budget, retain every revision,
 and freeze holdout seeds before final evaluation. Then run the same qualified
 artifacts under both rules arms from both participant assignments. A separate
 one-pass T1/T2 cohort remains the accessibility check.
+
+## Subsequent Balance Lab infrastructure smoke
+
+The next step did not treat the nine-match map screen as a balance verdict.
+It implemented the reusable
+[`Nilbots Balance Lab`](NILBOTS-BALANCE-LAB.md) and pre-registered the complete
+`map topology × progression policy` product. Manual and automatic cells used
+the same two retained, unqualified artifacts, seed `104729`, pairings, and
+mirrored assignments; seeds `130363` and `155921` were sealed and not run.
+All 12 WASM replays verified with zero faults or disqualifications.
+
+| Map | Manual active / damage per 100t | Automatic active / damage per 100t | Manual → automatic median |
+| --- | --- | --- | ---: |
+| current | 3.2% / 0.0 | 70.7% / 3.0 | 500 → 355.5 |
+| thin fronts | 83.5% / 17.5 | 82.4% / 16.6 | 339.5 → 238 |
+| outer shoulder | 3.2% / 0.0 | 78.2% / 7.9 | 500 → 500 |
+
+Thin fronts had no stalls or detected loops under either progression policy;
+current and outer shoulder had both games stalled and looped under both. The
+automatic bundle shortened the longest no-interaction run on current and outer
+shoulder from 484 to 104 ticks, but did not eliminate the repeated tail.
+
+These data validate the experiment plumbing and show that topology and
+progression interact strongly. They do not promote thin fronts, automatic
+companions, or any numeric rule: the population is unqualified, the sample is
+two games per cell, exploitability and tier gradient are unmeasured, and no
+outcome-blind entertainment review was performed.

@@ -3,6 +3,12 @@
 Status: provisional measurement contract for population and bot-quality work.
 It does not declare `frontline-labs-1` balanced or ready for ranked play.
 
+The reusable, mode-independent orchestration and evidence-vector architecture
+now lives in [`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md). This document
+defines the Frontline adapter's domain metrics and historical thresholds; new
+multi-factor runs use a Balance Lab spec rather than an ad-hoc directory
+convention.
+
 ## Why the old scorecard is insufficient
 
 The first scorecard mixed engine activity, bot competence, match pacing, and
@@ -275,3 +281,25 @@ it is not promoted as a pacing fix. The next screens must include the
 competent generated starter, explicit cross-tier matchups, and at least one
 teamwork-aware T5/C2+ policy rather than asking independently competent bodies
 to demonstrate coordination they do not implement.
+
+## Balance Lab progression smoke
+
+The first mode-independent Lab slice ran the complete
+`3 map topologies × 2 progression policies` product with identical artifacts,
+paired seed, mirrored assignments, exact replay verification, full cross-play,
+and retained reports. All 12 WASM replays were valid and fault-free.
+
+This was explicitly `infrastructure-smoke` evidence. Its GeometricDodger and
+InitiativePlanner artifacts have no cumulative tier, so their outcomes cannot
+choose a production map or lifecycle. The result did establish why the
+factorial structure matters: thin fronts made manual play active, while
+automatic companion activation made current/bypass play substantially more
+active without removing their repeated tails. Automatic thin fronts shortened
+the tiny cohort's median from 339.5 to 238 ticks, but two games per cell cannot
+support a tuning verdict.
+
+The automatic cell is a coherent progression-policy bundle—declared first-life
+activation, automatic child return, assigned spawns, and no Prime
+Fabricate/Split—not a single-flag causal ablation. Future reporting must retain
+that label until a capacity-safe restricted-play design holds the other
+mechanics constant.

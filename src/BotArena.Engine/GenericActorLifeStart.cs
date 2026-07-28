@@ -102,6 +102,26 @@ public sealed record GenericActorLifeStart
                 "An initial life start must identify one exact topology initial life.",
                 nameof(descriptor));
         }
+        if (Origin.Reason
+                == GenericActorRuntimeStart.SpawnReason.AutomaticActivation)
+        {
+            ActorUnitSlotLifecycleAssignmentDefinition? assignment =
+                definition.LifecycleAssignments.SingleOrDefault(candidate =>
+                    candidate.TeamId == ActorId.TeamId
+                    && candidate.UnitId == ActorId.UnitId);
+            if (ActorId.LifeId != 0
+                || assignment is null
+                || assignment.InitialAvailability
+                    != ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick
+                || Origin.Generation != assignment.InitialGeneration)
+            {
+                throw new ArgumentException(
+                    "An automatic activation must identify the declared first life of its dormant slot.",
+                    nameof(descriptor));
+            }
+        }
 
         ulong expectedSeed = SeedDerivation.DeriveActorSeed(
             descriptor.MatchSeed,
@@ -118,12 +138,13 @@ public sealed record GenericActorLifeStart
     internal void ValidateDynamicLineage(
         GenericActorLifeStart? issuedParent)
     {
-        if (Origin.Reason == GenericActorRuntimeStart.SpawnReason.Initial)
+        if (Origin.Reason is GenericActorRuntimeStart.SpawnReason.Initial
+            or GenericActorRuntimeStart.SpawnReason.AutomaticActivation)
         {
             if (issuedParent is not null)
             {
                 throw new ArgumentException(
-                    "An initial life cannot have issued parent metadata.",
+                    "A parentless lifecycle origin cannot have issued parent metadata.",
                     nameof(issuedParent));
             }
             return;
@@ -196,6 +217,8 @@ public sealed record GenericActorLifeStart
         return origin.Reason switch
         {
             GenericActorRuntimeStart.SpawnReason.Initial =>
+                origin.ParentActorId is null && !hasTransition,
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
                 origin.ParentActorId is null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.AutomaticReturn =>
                 origin.ParentActorId is ActorIdentity parent

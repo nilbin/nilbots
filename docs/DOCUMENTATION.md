@@ -68,6 +68,10 @@ wrong; it changes which document is the current entry point.
 - [`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) — executable
   projectile chronology, local payoff matrices, and map-wide one-bend
   last-mile classification for the current duel-depth experiment.
+- [`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md) — mode-independent
+  candidate identity, layered rejection pipeline, tiered/full-cross-play
+  population model, vector metrics, holdout/adversarial guardrails, and the
+  implemented factorial orchestration slice.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, generic replay 3, datasets, and bounded model
   assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor

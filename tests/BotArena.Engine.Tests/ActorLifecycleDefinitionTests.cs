@@ -195,6 +195,45 @@ public sealed class ActorLifecycleDefinitionTests
                 unlockTick: 0);
 
         Assert.Equal(0, tickZeroReady.UnlockTick);
+
+        ActorUnitSlotLifecycleAssignmentDefinition automaticActivation =
+            CreateAssignment(
+                initialGeneration: 0,
+                initialAvailability:
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick,
+                unlockTick: 120);
+        Assert.Equal(0, automaticActivation.InitialGeneration);
+        Assert.Equal(
+            "west-respawn",
+            automaticActivation.AssignedRespawnSpawnId);
+
+        Assert.Throws<ArgumentException>(() =>
+            CreateAssignment(
+                initialGeneration: null,
+                initialAvailability:
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick,
+                unlockTick: 120));
+        Assert.Throws<ArgumentException>(() =>
+            CreateAssignment(
+                initialGeneration: 0,
+                initialAvailability:
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick,
+                unlockTick: null));
+        Assert.Throws<ArgumentException>(() =>
+            CreateAssignment(
+                initialGeneration: 0,
+                initialAvailability:
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick,
+                unlockTick: 120,
+                assignedRespawnSpawnId: null));
     }
 
     [Fact]

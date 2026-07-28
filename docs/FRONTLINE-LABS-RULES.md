@@ -249,3 +249,13 @@ return to `child-mobile` with the same actor/runtime memory and capped health,
 then cannot Anchor again during that life. That arm proved the generic
 same-life transition architecture but failed its initial pacing gate; it is
 not a hosted v1 rule.
+
+The duel-depth map experiments and declared automatic-companion progression
+arm are specified in
+[`EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md`](EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md).
+In the automatic arm, dormant child slots create fresh lives at their declared
+ticks and report `StartLife.Origin.Reason == AutomaticActivation`; Fabricate
+and Split are absent from that isolated candidate. Bots must follow the
+resolved contract and current legality rather than infer that every local
+experiment has hosted-v1 actions or manual child readiness. None of those map
+or lifecycle arms changes this immutable hosted rule card.
