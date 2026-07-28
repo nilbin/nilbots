@@ -26,12 +26,17 @@ public static class BroadcastSchedule
     /// </summary>
     public static DateTime? CompletesAt(Match match)
     {
-        if (match.BroadcastStartedAt is not DateTime start || match.EndTick is not int endTick)
+        if (match.BroadcastStartedAt is not DateTime start)
             return null;
         int ticksPerSecond = Math.Max(1, match.PresentationTicksPerSecond);
         // BroadcastComplete wants PresentationTick strictly past EndTick, so the whole of
-        // the last tick has to elapse before the result is public.
-        return start.AddSeconds((endTick + 1.0) / ticksPerSecond);
+        // the last tick has to elapse before the result is public. A null EndTick is a
+        // valid zero-tick generic result and becomes public at the broadcast start, not
+        // during its countdown.
+        double presentedTickCount = match.EndTick is int endTick
+            ? endTick + 1.0
+            : 0;
+        return start.AddSeconds(presentedTickCount / ticksPerSecond);
     }
 
     /// <summary>When the announcement job for <paramref name="match"/> should become due.</summary>

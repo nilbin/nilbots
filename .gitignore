@@ -46,3 +46,10 @@ web/.review-cache/
 # Keep this generic: future packs must not become tracked merely because their
 # archive has a different title or was dropped in a subdirectory.
 *.zip
+
+# Frontline Labs runs are large local evidence archives. Commit the compact
+# verdict/manifests explicitly (with `git add -f`) and keep full replay/log
+# trees in the durable artifact store.
+arena-bots/frontline-labs/**/evidence/
+arena-bots/frontline-labs/**/smoke/
+arena-bots/frontline-labs/**/revisions/

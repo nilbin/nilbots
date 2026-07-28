@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "Pressure",
+  "doctrine": "Pressure: seek early territorial advantage and credible breach opportunities without assuming escalation will unlock.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0,
+  "cohort": "balance-v3-pressure-bootstrap-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": false,
+  "balanceHypothesis": "A lone objective-capable body must Split before attacking or moving so the replication doctrine can bootstrap.",
+  "sdkVersion": "0.10.2",
+  "sourceSha256": "9a74b434975ed0888715c2d768cd2a59765e23df0a7099cb37a2351e19834426",
+  "artifactSha256": "764e7dba5041c80c5a8d398e12ba778e3aa96a6eca0dd4768ca484912ba9390c",
+  "previousSourceSha256": "791ca8c566284d080519ccdd61c6e1cd1f42a9b73ad719f9f6de411b11e82464",
+  "previousArtifactSha256": "4c2f276f0e2e7d62cecd31aad7198a01b24eb90f4c086a93ed42dfc5ed758798"
+}

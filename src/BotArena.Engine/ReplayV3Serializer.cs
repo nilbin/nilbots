@@ -110,6 +110,19 @@ internal static class ReplayV3Serializer
     public static bool VerifyHash(string json) =>
         VerifyHash(json, out _);
 
+    public static ReplayV3 ReadCanonicalComplete(string json)
+    {
+        if (!VerifyHash(json, out string? failure))
+        {
+            throw new InvalidDataException(
+                $"Replay-v3 document is not a verified canonical complete replay: {failure}");
+        }
+
+        return JsonSerializer.Deserialize<ReplayV3>(json, ReadOptions)
+            ?? throw new InvalidDataException(
+                "Replay-v3 document deserialized to null.");
+    }
+
     public static bool VerifyHash(
         string json,
         out string? failure)

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "cohortId": "frontline-labs-competence-v1",
+  "classification": "mechanically-credible-floor",
+  "seed": 104729,
+  "mirroredMatchesPerArm": 12,
+  "sharedFundamentalsSha256": "602b8d4450d8651fe7e6182fce074402b1c5f7dd5e2fe38d7be6135f5f3a5c43",
+  "entrants": [
+    {
+      "id": "adapter",
+      "sourceSha256": "a52dcbe2065e244d8df737f66b9c8747be5caeb8d6a5f714bb2fbdd1acef7b37",
+      "artifactSha256": "c2c90ac4467db01052604672c1725474095d15896d2c5e89bb6eefe7c1ed3ae9"
+    },
+    {
+      "id": "bastion",
+      "sourceSha256": "22eb99c624a7029769511526c83708236684c25e146824ebbcc72eaf6ce2610f",
+      "artifactSha256": "ecd4708903f1fea5f5d84f8fe0c74b49665eecf0ddc0facaa81a3e50c6ad5de2"
+    },
+    {
+      "id": "fabricator",
+      "sourceSha256": "a9522497c1363d1fd95f1c34b14ff5bebd7ba1ef1509a698a22d895112485106",
+      "artifactSha256": "8c1cb6349c13fc11f43d549d43201afd38ac125a20f99d7e9f14ff7016f356cb"
+    },
+    {
+      "id": "pressure",
+      "sourceSha256": "12007edfb4ad6d7ea2c2a62b41ba02166d962ca6eb8c94e41ec849b9570dce18",
+      "artifactSha256": "8e5eb4875a13316ba3504d591aa4fd50c02f7fd616728dd7726fb0a68b84bbd2"
+    }
+  ],
+  "arms": [
+    {
+      "id": "hosted",
+      "rulesetId": "frontline-labs-1",
+      "rulesFingerprint": "ab63d409b682ad32fdb816c13cc3271413c2d0f6b1937e4933b6e455ff5d2593",
+      "mapId": "frontline-labs-01",
+      "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+      "matchContractFingerprint": "cf10fe4929d8cd11cace95e62b07d9732fbd1549dc2e9fe096f78605028ca837",
+      "baseBreaches": 2,
+      "maxTicks": 10
+    },
+    {
+      "id": "remote-fabrication",
+      "rulesetId": "frontline-labs-1-experiment-remote-fabrication",
+      "rulesFingerprint": "b1bc9ee02b74f29a701d3ee0ba13ed1d9b192d351483d87638e5feb62b788d81",
+      "mapId": "frontline-labs-01-remote-fabrication-experiment",
+      "mapFingerprint": "c8fa4fef3f8ae04ba1e1a503c31a7b7efd652f7efa01c7ef9781aa6322b993e1",
+      "matchContractFingerprint": "1fb0847a0c4cd855874b395fe953948d1b9f4f5d38097e88c19ff12f0487b8d1",
+      "baseBreaches": 3,
+      "maxTicks": 9
+    },
+    {
+      "id": "late-gain",
+      "rulesetId": "frontline-labs-1-experiment-gain-t300-2",
+      "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+      "mapId": "frontline-labs-01",
+      "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+      "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+      "baseBreaches": 2,
+      "maxTicks": 10
+    },
+    {
+      "id": "net-control",
+      "rulesetId": "frontline-labs-1-experiment-net-control",
+      "rulesFingerprint": "15ef4843df27af38c035997f0f12a72f77f3ae001b9ece8c76f15b0ba0cd17a1",
+      "mapId": "frontline-labs-01",
+      "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+      "matchContractFingerprint": "a848dbc5841a4475d4fee66855ca9220d56f300c6194f4c4744c8f34994b0dda",
+      "baseBreaches": 2,
+      "maxTicks": 10
+    }
+  ]
+}

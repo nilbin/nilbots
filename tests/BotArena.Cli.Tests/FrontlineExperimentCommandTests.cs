@@ -3,6 +3,7 @@ using BotArena.Cli;
 
 namespace BotArena.Cli.Tests;
 
+[Collection("Console")]
 public class FrontlineExperimentCommandTests
 {
     [Fact]

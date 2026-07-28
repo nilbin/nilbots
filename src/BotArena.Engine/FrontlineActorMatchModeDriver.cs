@@ -94,22 +94,25 @@ internal sealed class FrontlineActorMatchModeDriver
             previousMode = ProjectControl(previousControl);
         ImmutableHashSet<Position> activeTiles =
             _objectiveTiles[previousControl.ActivePositionIndex];
-        ImmutableArray<int> presence = world.ActiveLives
+        ImmutableDictionary<int, int> objectiveWeightByTeam =
+            world.ActiveLives
             .Where(life =>
                 _objectiveWeights.TryGetValue(
                     life.FormId,
                     out int objectiveWeight)
                 && objectiveWeight > 0
                 && activeTiles.Contains(life.Position))
-            .Select(life => life.ActorId.TeamId)
-            .Distinct()
-            .Order()
-            .ToImmutableArray();
+            .GroupBy(life => life.ActorId.TeamId)
+            .OrderBy(group => group.Key)
+            .ToImmutableDictionary(
+                group => group.Key,
+                group => group.Sum(life =>
+                    _objectiveWeights[life.FormId]));
 
         FrontlineControlStepResult step = _kernel.ApplyJointTick(
             previousControl,
             input.Tick,
-            presence);
+            objectiveWeightByTeam);
         _control = step.State;
         FrontlineScoreState scores = _kernel.CreateScoreState(_control);
         GenericActorRuntimeObservation.ModeObservationState.Frontline mode =

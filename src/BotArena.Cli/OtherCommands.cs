@@ -170,30 +170,6 @@ public static class ReplayCommand
     }
 }
 
-public static class VerifyCommand
-{
-    public static int Run(string file)
-    {
-        var document = ReplaySerializer.FromJson(File.ReadAllText(file));
-        var rebuilt = new Replay
-        {
-            Header = document.Header,
-            Ticks = document.Ticks,
-            Result = document.Result,
-        };
-        string actual = ReplaySerializer.ComputeHash(rebuilt);
-        Console.WriteLine($"Stored hash:   {document.ReplayHash}");
-        Console.WriteLine($"Computed hash: {actual}");
-        if (actual == document.ReplayHash)
-        {
-            Console.WriteLine("OK: replay content matches its hash.");
-            return 0;
-        }
-        Console.Error.WriteLine("MISMATCH: replay content does not match its stored hash.");
-        return 1;
-    }
-}
-
 public static class ListCommand
 {
     public static int Bots()

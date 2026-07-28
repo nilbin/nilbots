@@ -18,7 +18,9 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
     private readonly WasmtimeEngine _engine;
     private readonly Module _module;
     private readonly WasmRuntimeOptions _options;
-    private readonly Action _releaseFactoryRuntime;
+    private readonly Action<
+        WasmGenericActorRuntimeFactory.RuntimeDiagnostic>
+        _releaseFactoryRuntime;
 
     private Store? _store;
     private Thread? _guestThread;
@@ -29,12 +31,15 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
     private int _replyExpected;
     private bool _started;
     private bool _disposed;
+    private ActorIdentity? _actorId;
+    private string? _failureReason;
 
     internal WasmGenericActorRuntime(
         WasmtimeEngine engine,
         Module module,
         WasmRuntimeOptions options,
-        Action releaseFactoryRuntime)
+        Action<WasmGenericActorRuntimeFactory.RuntimeDiagnostic>
+            releaseFactoryRuntime)
     {
         _engine = engine;
         _module = module;
@@ -57,6 +62,7 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
         ArgumentNullException.ThrowIfNull(start);
 
         _started = true;
+        _actorId = start.ActorId;
         _guestDead = new CancellationTokenSource();
         _toGuest = new BlockingCollection<byte[]>(boundedCapacity: 1);
         _fromGuest = new BlockingCollection<GenericActorRuntimeReply>(
@@ -120,6 +126,9 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
         }
         catch
         {
+            _failureReason = string.IsNullOrWhiteSpace(_deathReason)
+                ? "WASM generic actor startup negotiation failed."
+                : _deathReason;
             MarkDead("WASM generic actor startup negotiation failed.");
             _engine.IncrementEpoch();
             throw;
@@ -136,8 +145,19 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
                 "StartLife must be called before ExecuteTick.");
         }
 
-        GenericActorRuntimeReply reply = Exchange(
-            GenericActorWasmProtocol.FormatObservation(observation));
+        GenericActorRuntimeReply reply;
+        try
+        {
+            reply = Exchange(
+                GenericActorWasmProtocol.FormatObservation(observation));
+        }
+        catch (Exception exception)
+        {
+            _failureReason = string.IsNullOrWhiteSpace(_deathReason)
+                ? $"{exception.GetType().Name}: {exception.Message}"
+                : _deathReason;
+            throw;
+        }
         LastFuelRemaining = reply.FuelRemaining;
         ulong used = _options.FuelPerTick > LastFuelRemaining
             ? _options.FuelPerTick - LastFuelRemaining
@@ -151,6 +171,8 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
         }
         catch
         {
+            _failureReason =
+                "WASM generic actor posted an invalid terminal reply.";
             MarkDead("WASM generic actor posted an invalid terminal reply.");
             _engine.IncrementEpoch();
             throw;
@@ -431,7 +453,11 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
                 _toGuest = null;
                 _fromGuest = null;
                 _guestDead = null;
-                _releaseFactoryRuntime();
+                _releaseFactoryRuntime(new(
+                    _actorId,
+                    MaxFuelUsedPerTick,
+                    _options.FuelPerTick,
+                    _failureReason));
             }
         }
     }

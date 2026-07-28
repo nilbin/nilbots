@@ -17,7 +17,7 @@ public sealed class ReplayV3SerializerTests
     private const ulong FixtureSeed = 9_007_199_254_740_993UL;
     private const string FixtureName = "generic-replay-v3.json";
     private const string FixtureReplayHash =
-        "78f0d6d82b024d5533f866f8c96ef92e7c718c020667ac97a5b337b448aebbdd";
+        "bab89df8cbf1e25bdfdcb63c4adf6f9b6611e992c08687c5b1219734cf8dfc53";
 
     [Fact]
     public void CompleteDocument_HasExactEnvelopeAndVerifiablePayloadHash()

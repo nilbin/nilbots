@@ -7,7 +7,7 @@
 > `frontline-alpha-1` generation and must not be rewritten as though that
 > opened contract used the later generic schemas.
 
-Status: **active experiment / implementation in progress**, 2026-07-27. This
+Status: **active experiments / implementation in progress**, 2026-07-28. This
 document turns
 [`FRONTLINE-REWRITE-PLAN.md`](FRONTLINE-REWRITE-PLAN.md) into an
 implementation sequence. It does not mean Frontline has shipped, been
@@ -19,14 +19,22 @@ the authoritative experimental Frontline replay-v2 state rather than a
 presentation-only substitute.
 
 Current implementation scope: Packages 0–7 and Package 8's local authoring
-and measurement slice are implemented on the experimental path. That includes
-independent per-life runtimes, canonical team observation, replay v2,
-replication/fabrication, Anchor/turret forms, viewer/mobile presentation, the
-engine-independent actor SDK/Guest contract, actor
-protocol/configuration 1.0, canonical isolated WASM life instances, an
+and measurement slice are implemented for the frozen `frontline-alpha-1`
+path. That includes independent per-life runtimes, canonical team
+observation, replay v2, replication/fabrication, Anchor/turret forms,
+viewer/mobile presentation, the engine-independent actor SDK/Guest contract,
+actor protocol/configuration 1.0, canonical isolated WASM life instances, an
 explicit local CLI runner, four deterministic calibration doctrines, and a
-replay-v2 evaluator. App/server admission, replay-v2 CLI summary/verification,
-the independently authored product cohort, and rollout remain planned.
+replay-v2 evaluator.
+
+A separate generic successor is also implemented as an off-by-default hosted
+vertical slice: immutable Frontline Labs playlist v1, exact
+`generic-actor-match-2` admission, one setless unranked H2H match between two
+eligible submitted bots, normalized match-team results, replay 3 with
+broadcast-safe prefixes, and the existing direct match viewer. It adds no
+ladder, season, rating, series settlement, or product verdict. General
+replay-v2 CLI summary/verification, the independently authored product cohort,
+and broader rollout remain planned.
 
 ## 1. Recommendation
 
@@ -124,6 +132,12 @@ Before a server emits or admits any such contract:
 `scripts/assert-cli-release.sh` may allow a later server-only revision to reuse
 that CLI only when its complete enumerated compatibility surface is
 byte-identical.
+
+The hosted Labs slice changes the enumerated Engine/runtime/replay surface.
+Its feature flag defaults off and must not be enabled in a deployment until
+the release verifier passes, the compatible CLI/package version from the
+exact revision is published, and its `cli-v<version>` tag exists. Implemented
+code and migrations alone do not satisfy this deployment gate.
 
 The mobile app consumes the server-hosted viewer. Web-only viewer changes
 therefore reach mobile without a native renderer fork, but a hosted-viewer
@@ -632,8 +646,10 @@ limits, WASM/in-process and observation/replay parity, and per-life isolation.
 Status: **partially implemented**. Internal web/mobile presentation, the
 experimental brief, local CLI authoring loop, reference doctrines,
 replay-v2 dynamics evaluator, and version-neutral blind sampler are complete.
-Backend/App/server admission, general replay-v2 summary/verification, the
-independently authored product cohort, and rollout remain.
+The separate generic Frontline Labs successor now has a minimal
+feature-gated App/server admission and replay-v3 delivery path. General
+replay-v2 summary/verification, the independently authored product cohort,
+ranked competition, and rollout remain.
 
 Goal: make Frontline observable and evaluable without claiming it has shipped.
 
@@ -668,7 +684,8 @@ Remaining:
 
 - add general team-aware replay-v2 verification/summary if the format is
   admitted beyond this command;
-- add replay truncation and broadcast secrecy before any server exposure;
+- keep frozen replay v2 local; the distinct hosted generic arm uses strict
+  replay 3 and validated result/hash-withholding prefixes;
 - commission at least four independently authored native doctrines under
   equal budgets (the built-ins above are one-author fixtures and do not count);
 - freeze all-WASM artifacts and holdout blocks, then run any pre-registered
@@ -719,12 +736,13 @@ The actor/action/replay types are frozen internally. Package 7 now has:
 and action types, protocol twins, and version documentation remain choke
 points owned by one person at a time.
 
-### Product wave — local slice complete, hosted slice next
+### Product wave — local alpha and minimal hosted Labs slices complete
 
 - replay/CLI owner retains the separate local dispatch and may add generic v2
   verification/summary without changing v1 verification;
-- Backend owner adds explicit eligibility, admission, and broadcast-safe
-  replay-v2 delivery;
+- Backend owner has added exact-profile eligibility, direct admission, and
+  broadcast-safe replay-v3 delivery for one setless Labs match. Generic
+  series, FFA/2v2 admission, and ranked settlement remain separate work;
 - primary integrator owns compatibility/release gates and the experimental
   deployment boundary.
 
@@ -757,6 +775,13 @@ stable slot rather than array position, and experimental replay v2 normalizes
 team/unit/life, lifecycle, forms, fabrication, and Frontline state into the
 same playback model. Hosted bridge v1 remains unchanged; bridge v2 carries
 stable-unit/team terminal rows and current form/transition presentation.
+
+The hosted Labs site surface is intentionally smaller than a general mode
+browser: an owner-facing bot-detail panel appears only when Labs is enabled
+and the selected bot supports the required profile, filters opponents to
+eligible submitted bots, creates the direct match, and navigates to the
+existing match page. It adds no main-navigation mode, series page, ladder
+view, or ranked affordance.
 
 The implemented Frontline consumer work touches:
 
@@ -793,8 +818,9 @@ The Frontline-specific portion was implemented only after Engine replay v2
 supplied stable team/unit/life, lifecycle, form, fabrication, and objective
 fields. Hosted-viewer bridge and native mobile arena changes landed in the
 same integration slices. The explicit experimental CLI now emits v2 under
-CLI 0.7.0; App/server emission and general CLI replay summary/verification
-remain deferred.
+CLI 0.7.0. The App does not emit that frozen alpha format; its distinct
+off-by-default Labs path emits replay 3 and reuses the direct match viewer.
+General CLI replay-v2 summary/verification remains deferred.
 
 ## 8. Documentation migration
 
@@ -817,8 +843,9 @@ Do not rewrite historical documents as though Frontline has already shipped.
   as the active experiment while retaining rules 0.5 as current.
 - `EXPERIMENTAL-FRONTLINE.md` is now the concise local experimental bot
   contract for lifecycle, fabrication, Anchor, turret-fire, actor WASM, and
-  replay v2. It remains explicitly unshipped and absent from hosted/ranked
-  surfaces until the remaining release arms are frozen.
+  replay v2. It remains explicitly unshipped. That document also distinguishes
+  the separate hosted replay-v3 Labs successor, which is unranked and disabled
+  by default rather than rewriting the alpha contract.
 - Maintain `DOCUMENTATION.md` as the status index; split replay/protocol guides
   by version when v2 creates simultaneously supported formats.
 - Continue recording only actually frozen decisions, never numeric
@@ -867,14 +894,31 @@ Packages touching web/mobile run the scoped builds/tests from `web/CLAUDE.md`
 and `mobile/CLAUDE.md`. Frontline UI work consumes only authoritative replay-v2
 fields; it must not invent presentation-only gameplay state.
 
-Before an experimental server deployment:
+Before enabling the hosted Labs flag in an experimental server deployment:
 
+- CLI/package 0.9.3 published and `cli-v0.9.3` tagged from the exact final
+  compatibility revision before deployment;
+- the profile-aware web, compile, and match-worker binary deployed and soaked
+  everywhere with the flag still false; the retained `previous` rollback
+  bundle must already contain the profile-aware admission/execution checks and
+  scoped legacy backfiller;
+- the compile queue drained and every compile-worker/compiler-runner stopped
+  before propagating and validating the enabled flag and quota values on every
+  node;
+- compile workers restarted on the intended revision/config before any
+  enabled web replica or submission traffic is exposed, followed by a
+  generic-only build smoke test;
+- no rollback to a pre-profile-aware/pre-scoped-backfiller image while a
+  generic-only artifact or Labs match exists;
 - deterministic canonical WASM matches and zero faults;
 - replay-v1 verify/view compatibility;
-- replay-v2 parity, leakage, and broadcast-secrecy gates;
+- replay-v3 parity, leakage, and broadcast-secrecy gates;
 - protocol negotiation and old-artifact eligibility tests;
-- raw/compressed replay-size and six-runtime resource measurements;
-- compatible CLI published/tagged before deployment;
+- raw/compressed replay-size and concurrent-viewer prefix-projection
+  measurements;
+- six-runtime resource measurements both alone and concurrently with one Duel
+  inside the production 1 GiB match-worker limit;
+- durable Labs quotas and independently sized generic worker lane configured;
 - coordinated mobile release if the hosted bridge/native presentation changed.
 
 Before any ship decision, apply `EVALUATION-METHODOLOGY.md` literally:
@@ -898,16 +942,17 @@ experimental directory. Legacy `MatchEngine` still rejects it rather than
 silently running duel mechanics.
 
 The next dependent implementation slice is Package 8's product-verdict and
-hosted path:
+broader hosted path:
 
 1. commission the independently authored Frontline-native cohort, freeze
    all-WASM artifacts/maps/seeds/criteria, and lock at least twelve
    outcome-blind reviews before opening the descriptive report;
 2. pre-register only the causal balance arms the calibration and blind review
    justify; do not tune the opened `frontline-alpha-1` data post hoc;
-3. if the product earns continued rollout, add App/server
-   eligibility/admission, broadcast-safe replay-v2 delivery, and general
-   verification/summary behind the release-version guards;
+3. exercise the off-by-default setless Labs path without treating availability
+   as evidence; if the product earns continued rollout, add broad generic
+   discovery, FFA/2v2 or series admission, and ranked settlement only behind
+   their own release and evidence gates;
 4. build the replay-only dataset and corpus follow-ons through the shared
    `REPLAY-NATIVE-ML-PLAN.md`, not a Frontline-specific exporter;
 5. record a ship/hold decision while keeping shipped rules 0.5 untouched

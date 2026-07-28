@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Bastion",
+  "cohort": "competence-v1-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "fundamentalsPass": "equal contract-generic fabricate, dodge, and direct-fire fundamentals",
+  "sourceSha256": "22eb99c624a7029769511526c83708236684c25e146824ebbcc72eaf6ce2610f",
+  "sharedFundamentalsSha256": "602b8d4450d8651fe7e6182fce074402b1c5f7dd5e2fe38d7be6135f5f3a5c43",
+  "artifactSha256": "ecd4708903f1fea5f5d84f8fe0c74b49665eecf0ddc0facaa81a3e50c6ad5de2",
+  "sdkVersion": "0.10.3"
+}

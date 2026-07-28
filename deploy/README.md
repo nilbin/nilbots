@@ -366,6 +366,43 @@ docker compose --env-file "$release/.env" -f "$release/compose.production.yml" \
 5. Test registration/login, `/api/meta`, a submission, its public build
    receipt and WASM artifact, one match, and replay playback.
 
+Frontline Labs is a separate experimental enablement after the compatible
+binary rollout. Its shared environment keys are:
+
+```text
+BOTARENA_FRONTLINE_LABS_ENABLED=false
+BOTARENA_FRONTLINE_LABS_ACCOUNT_DAILY=10
+BOTARENA_FRONTLINE_LABS_ACCOUNT_ACTIVE=1
+BOTARENA_FRONTLINE_LABS_GLOBAL_ACTIVE=4
+```
+
+Routine fleet deployment copies only those four allowlisted values from the
+primary `shared/.env` into every worker `shared/.env`, preserving secrets and
+host-specific resource settings. Compose injects them into every web and
+compile-worker replica. The flag gates both Labs discovery/admission and
+activation of newly compiled generic-only artifacts. Turning it off does not
+deactivate existing artifacts or cancel identity-pinned work.
+
+Enablement is a maintenance operation, not an ordinary rolling flag flip:
+
+1. Publish and tag CLI 0.9.1 from the exact compatibility revision.
+2. Deploy and soak the profile-aware web, compile, and match-worker binary
+   everywhere with the flag false. Confirm the retained `previous` release is
+   also profile-aware and contains the scoped legacy backfiller; this may
+   require a second flag-false release before enablement.
+3. Hold new submissions and Labs creation, drain the compile queue, then stop
+   every compile-worker and compiler-runner, including remote nodes.
+4. Set and validate the four values on the primary, propagate them to every
+   node, and restart compile workers on the intended revision before exposing
+   any enabled web replica.
+5. Restore web traffic only after every web/compiler replica reports the same
+   revision and configuration, then smoke-test one generic-only build.
+
+Do not roll back to a pre-profile-aware or pre-scoped-backfiller image while a
+generic-only artifact or Labs match exists. The map and numeric mechanics
+remain experimental and still require the measurement gates in
+`docs/FRONTLINE-IMPLEMENTATION-PLAN.md`.
+
 The release manager retains the previous deployment bundle and digest pair.
 To roll back:
 

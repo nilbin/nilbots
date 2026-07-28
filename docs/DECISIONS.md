@@ -2396,6 +2396,194 @@ pin was needed.
 Replacing the WebView with a shared native renderer (expo-gl) is **deferred**: the app
 keeps the shared web viewer for now.
 
+## 141. Hosted Frontline Labs stops at one off-by-default, setless, unranked H2H match
+
+The first App consumer of the generic actor architecture is immutable playlist
+`frontline-labs` version 1. It pins ruleset `frontline-labs-1`, map
+`frontline-labs-01`, head-to-head format, `single-match-v1`,
+`direct-challenge-v1`, and exact admission profile
+`generic-actor-match-2`. `BOTARENA_FRONTLINE_LABS_ENABLED` defaults false and
+controls catalog discovery, new admission, and activation of newly compiled
+generic-only artifacts. While it is false, a new artifact must also support
+`legacy-duel-0.1`. Turning it off never deactivates an existing artifact or
+changes/cancels an already queued match whose playlist identity is pinned.
+
+Admission requires exactly two distinct eligible submitted bots, with the
+first entrant owned by the caller and both active versions compile-attested
+for the exact generic profile. It creates one setless, unranked `Match`, pins
+participant team IDs, and runs the generic WASM session. Canonical
+`MatchTeamResult` standings and keyed signed `MatchTeamScore` rows are result
+authority. Participant outcome/health and a unique winner-slot may exist only
+as compatibility projections.
+
+Hosted generic matches store replay format 3. Before broadcast completion the
+existing replay endpoint returns a validated canonical prefix with terminal
+result and hash withheld; after reveal it returns the complete document. The
+bot-detail Labs panel navigates to the existing direct match page and
+version-normalized viewer instead of introducing a parallel viewer or a
+ranked-looking mode hub. Labs matches stay out of the legacy Duel feed, bot
+history/statistics, achievements, result notifications, ratings, and
+leaderboards.
+
+Execution is not inferred from admission or replay format. `PlaylistVersion`
+pins `ExecutionPolicyId` and `ExecutionEngineVersion`; Frontline Labs v1 pins
+`generic-actor-v1` and generic engine `1.0.0`. A versioned hosted-definition
+registry validates the exact canonical definition before execution. Each
+immutable hosted playlist version has its own durable queue capability; each
+configured generic lane claims any capability registered in its binary. A
+legacy worker cannot claim generic work, and an older generic worker leaves a
+new playlist version pending instead of exhausting its retries. Adding modes
+does not multiply configured concurrency. Unknown/infrastructure failures
+reach the normal three-attempt queue retry; the final failed attempt
+terminally fails the match without exposing the stored operator exception in
+the public match response. A historical definition and its job capability
+remain registered while any pending/running job can reference them; removal
+requires an explicit queue drain or migration.
+
+Labs admission retains the general unranked ceiling and adds visibility-wide
+transactional pilot defaults: 10 starts per account per 24 hours, one active
+match per account, and four active matches globally, plus a two-per-minute
+account-and-network burst guard. The global and account checks use advisory
+locks. Initial bootstrap and routine fleet deployment propagate the disabled
+flag and these limits to every web/compiler replica through a narrow,
+validated, secret-preserving environment sync; generic workers default to one
+lane. Binary rollout occurs everywhere with the flag false before a separate
+configuration rollout may enable it. That rollout drains and stops all
+compiler roles, propagates one validated configuration to every node, starts
+compile workers before exposing any enabled web replica, and then smoke-tests
+a generic-only build. After Labs data exists, rollback is limited to binaries
+that include the profile-aware compatibility guards and scoped legacy
+backfiller.
+
+This slice creates no `MatchSet`, normalized series entrant/result, season,
+ladder, rating, or reveal-time series settlement. FFA, 2v2, Deathmatch,
+multi-match series, and ranked generic play remain future consumers of the
+same typed topology/result envelopes. In playlist v1, Split retires an
+eligible untransformed Prime into two fresh mobile replicas with divided
+health; replicas cannot Anchor, and only a mobile child created through
+Fabricate may transform into a turret.
+
+The map and all numeric mechanics remain `experimental-unvalidated`.
+Execution availability is not a balance, entertainment, or ship verdict. The
+flag must remain disabled in any deployment until the existing release guard
+passes and CLI/package 0.9.0 from the exact compatibility revision has been
+published and tagged `cli-v0.9.0`.
+
+## 142. Frontline Labs gets an exact local authoring loop before its balance cohort
+
+The CLI adds `nilbots experiment frontline-labs` as a local, quota-free
+authoring boundary around the immutable hosted Frontline Labs v1 definition.
+It accepts two explicit external `IGenericActorBot` projects or generic-profile
+WASM artifacts, supports deterministic seed batches and side swaps, executes
+`FrontlineLabsDefinition.Create()` through `GenericActorMatchSession`, and
+writes canonical replay 3. The default WASM path uses the same
+`WasmGenericActorRuntimeFactory` as hosted execution; in-process remains an
+explicit diagnostic loop.
+
+`nilbots new <Name> --profile generic-actor` provides the missing authoring
+surface without changing the shipped Duel default. The scaffold reads variable
+topology, map, mode, and action legality from the negotiated contract, and
+resolves action codes from the current legality entry rather than copying
+numeric selectors. There is no generic built-in opponent: both entrants are
+always named, which keeps a cohort from silently testing against the unrelated
+Frontline-alpha bot interface. `nilbots verify` now validates replay 3 through
+the Engine's canonical serializer, including payload hash and nested contract
+fingerprints.
+
+This is tooling around the existing playlist, not a gameplay or product
+mutation. Playlist v1, its fingerprints, hosted admission, quotas, and disabled
+feature flag remain unchanged. The command creates no App match, submission,
+season, ladder, rating, or ranking, and it does not enable Labs. Because the
+CLI/package and packaged templates changed, the release target moves from the
+unpublished 0.9.0 compatibility revision to 0.9.1 and must be tagged
+`cli-v0.9.1` before Labs may be enabled. SDK/Guest remain 0.10.0 and controlled
+build pipeline remains 4.
+
+## 143. Labs balance waits for truthful action masks and an Anchor-safe SDK
+
+The first frozen four-doctrine Labs cohort is retained but cannot justify a
+numeric rules change. Its 36 verified WASM matches had no participant-slot side
+advantage, yet 24 reached MaxTicks, half were stalled and looped, Fabricate
+blocked 15,417 times, and Split completed zero times. Outcome-blind review
+independently found long inert endings.
+
+The causal defect is in generic action availability, not a capture or combat
+number. Fabricate had been advertised whenever a compatible Ready target
+existed even when the source was outside its declared region. Split had been
+advertised from a matching form even without enough health or Ready compatible
+slots. `Available` now includes source-local Fabricate eligibility and
+Split source/health/slot prerequisites. Placement, movement, and intersecting
+lifecycle claims remain joint-resolution outcomes: predicting them in the
+mask could leak hidden occupancy and would reject actions which become possible
+after a simultaneous vacancy.
+
+That correction activated Fabricate, Split, and Anchor in unchanged entrant
+artifacts. Anchor then exposed two separate public SDK defects. A one-tick
+end-of-started-tick form change canonically emits event chronology with
+`startedTick == dueTick`; SDK 0.10.0 incorrectly rejected it before player code
+ran. Event payloads now permit equal ticks, while in-progress transition state
+still requires a future due tick. An enemy transition-created life may also be
+visible while privacy policy redacts both its parent and occurrence handle;
+SDK 0.10.1 incorrectly required the redacted handle. Transition-spawn events
+now accept that canonical redacted shape while retaining the public transition
+ID, and still reject a disclosed parent without its operation handle. These
+repairs change embedded player bytes, so SDK/Guest move to 0.10.2 and
+CLI/package moves to 0.9.3; controlled-build pipeline 4 and every immutable
+Labs fingerprint remain unchanged. The required release tag is therefore
+`cli-v0.9.3`.
+
+Local Labs also retains sandbox diagnostics after life disposal and prints the
+precise local failure plus peak completed-tick fuel when a WASM participant
+faults. Public replay faults remain stable/redacted. The next balance evidence
+must rebuild probes and entrants against 0.10.2, use a shorter two-seed mirrored
+cohort, and demonstrate lifecycle coverage before any one-variable numeric arm.
+
+## 144. Phased Frontline pacing is optional canonical contract data
+
+Static capture tuning did not remove the repetitive late tail in the first
+Frontline Labs population. A phased candidate therefore needs to be legible to
+hand-authored bots, ML policies, replay tooling, and fingerprints without
+changing immutable hosted `frontline-labs-1`.
+
+`FrontlineCaptureDefinition` now supports an ordered, data-defined gain
+schedule. A scheduled contract includes every phase ID, start tick, and gain;
+the engine and SDK resolve the active phase from the authoritative tick. A
+static definition omits the optional property, preserving its exact canonical
+bytes and fingerprints. The first candidate keeps gain 1 through tick 299 and
+uses gain 2 from tick 300 under its own ruleset ID.
+
+The additive reader and bot-facing helper change embedded SDK/Guest bytes, so
+SDK/Guest move to 0.10.3 and CLI/package to 0.9.4. Actor framing,
+generic-actor profile/schema numbers, replay v3, and controlled-build pipeline
+4 remain unchanged: older artifacts still run unchanged on contracts that omit
+the schedule, while schedule-aware rules require a rebuilt artifact.
+
+## 145. Turret remobilization proves the transform architecture but misses its pacing gate
+
+A local-only `frontline-labs-1-experiment-mobilize` definition adds the
+declared `mobilize` action and a `turret -> child-mobile` same-life route using
+the existing generic action/transition contracts. Actor identity, runtime
+memory, position, facing, cooldown, and energy persist; health is preserved
+but capped to the mobile maximum. Anchor is reversible only in this candidate,
+while Mobilize is irreversible for that life, so an Anchor/Mobilize healing
+cycle is impossible. Immutable hosted `frontline-labs-1` and its fingerprints
+remain byte-identical.
+
+The pre-registered 12-match WASM screen verified 15 Anchors and 15 Mobilizes
+with zero faults, no same-life re-Anchor, exact non-Bastion control
+trajectories, and no Bastion drift before its first Mobilize tick. Mobilize
+eliminated all dual-turret no-progress ticks, but the candidate policy left all
+six Bastion games classified stalled and looped, reduced breaches from seven
+to six, and increased MaxTicks from five to six. The action and generic
+architecture are retained as an isolated extensibility proof; neither the
+mechanic nor this policy is promoted into hosted v1.
+
+Replay-v3 dynamics now classifies same-life routes from contract-declared
+source/target objective weights. Weighted-to-zero routes are Anchor,
+zero-to-weighted routes are Mobilize, and only Anchor target forms count as
+fortified for turret-deadlock detection. This prevents a mobile target of a
+future transition from being mislabeled as a turret.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

@@ -33,6 +33,14 @@ public static class DatabaseBootstrapper
         logger.LogInformation(
             "Verified legacy competition identities for current rules {RulesVersion}",
             matchSettings.MatchRules.RulesVersion);
+        var labsSeeder =
+            scope.ServiceProvider
+                .GetRequiredService<FrontlineLabsPlaylistSeeder>();
+        PlaylistVersion labsVersion =
+            await labsSeeder.SeedAsync(cancellationToken);
+        logger.LogInformation(
+            "Verified immutable Frontline Labs playlist version {PlaylistVersionId}",
+            labsVersion.Id);
         if (configuration["BOTARENA_OBJECT_MIGRATION_SOURCE"] is { Length: > 0 } source)
         {
             int count = await ObjectStoreMigrator.MigrateAsync(

@@ -124,14 +124,17 @@ Project boundaries that must not be violated:
   actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
   isolated WASM life instances exist. Web/mobile can present v2 through their
   version-neutral replay model; the web viewer's lazy WebGL 3D renderer and the
-  Canvas2D one it replaced share those derivations. **3D is the web viewer**, with
-  no mode to choose: Canvas2D is retained only as the floor for the self-contained
+  Canvas2D renderer share those derivations. **3D is the web viewer**, with no
+  mode to choose: Canvas2D is retained only as the floor for the self-contained
   CLI viewer, which excludes Three.js, and for a device that gives no WebGL
-  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains. Package 8 now exposes this only through the explicit local
+  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains
+  required. Package 8 now exposes this only through the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
-  separate descriptive evaluation tool. Historical `play`, App/server
-  admission, replay-v1 summary/verification, and ladders still do not select
-  Frontline. Format-v2 assets live under `maps/experimental/`; the CLI package
+  separate descriptive evaluation tool. Historical `play`, replay-v1
+  summary/verification, and ladders still do not select this frozen alpha;
+  hosted admission selects only the separate off-by-default generation-3
+  Frontline Labs definition described below. Format-v2 assets live under
+  `maps/experimental/`; the CLI package
   carries that directory only for the explicit experiment, while current App
   and ordinary `maps` catalogs enumerate top-level format-v1 maps. Legacy
   `MatchEngine` still rejects a Frontline definition defensively.
@@ -147,10 +150,22 @@ Project boundaries that must not be violated:
   legacy playlist versions, seasons, opaque ladders, pinned queued work,
   repeatable backfill, and exact-compatible Duel Elo while preserving current
   APIs.
-  Public App/server admission, normalized generic entrants/team results,
-  reveal-ordered settlement, generic APIs, matchmaking, and multiplayer
-  rating are not routed yet. The compatibility generations and dependency
-  order are frozen in `docs/GAME-MODE-ARCHITECTURE.md`.
+  The App now routes one deliberately narrow consumer: feature-gated,
+  setless, unranked H2H `frontline-labs` v1 admission, a
+  playlist-version-capability generic execution lane, normalized match-team
+  results, replay-v3 broadcast projection, and a direct viewer entry point.
+  The separate `nilbots experiment frontline-labs` command runs that exact
+  immutable v1 definition locally through the generic session, accepts two
+  external `IGenericActorBot` projects or WASM artifacts, and writes
+  verifiable replay v3 without App admission or quotas. `nilbots new
+  --profile generic-actor` is its authoring scaffold. This local path remains
+  unranked and does not enable the hosted feature.
+  Older workers leave unknown playlist-version work pending; retain historical
+  definitions and capabilities until their queued work drains or is migrated.
+  It creates no season, ladder, rating, series settlement, broad matchmaking,
+  FFA, or team-play product.
+  The compatibility generations and dependency order are frozen in
+  `docs/GAME-MODE-ARCHITECTURE.md`.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,

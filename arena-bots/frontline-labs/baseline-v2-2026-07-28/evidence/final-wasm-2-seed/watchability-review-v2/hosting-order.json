@@ -1,0 +1,84 @@
+{
+  "reviewVersion": 1,
+  "outcomeBlind": true,
+  "identitiesBlind": true,
+  "selectionSeed": 20260728,
+  "normalPlaybackTicksPerSecond": 5,
+  "order": [
+    {
+      "position": 1,
+      "replayId": "sample-02",
+      "source": "replays/sample-02.json",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ],
+      "rationale": "Best overall pacing, no combat-silent gap over 25 ticks, and eight objective pushes."
+    },
+    {
+      "position": 2,
+      "replayId": "sample-06",
+      "source": "replays/sample-06.json",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ],
+      "rationale": "Twelve objective pushes and the strongest sustained late reversals."
+    },
+    {
+      "position": 3,
+      "replayId": "sample-10",
+      "source": "replays/sample-10.json",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ],
+      "rationale": "Thirteen objective pushes and a dense, varied second half despite the long opening plateau."
+    },
+    {
+      "position": 4,
+      "replayId": "sample-01",
+      "source": "replays/sample-01.json",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ],
+      "rationale": "The compact one-minute option, with early combat and four objective pushes."
+    },
+    {
+      "position": 5,
+      "replayId": "sample-04",
+      "source": "replays/sample-04.json",
+      "participants": [
+        "Entrant A",
+        "Entrant B"
+      ],
+      "rationale": "Late six-actor escalation, form variety, and a dense combat window around the tick-315 push."
+    }
+  ],
+  "doNotCoHostAsDistinct": [
+    {
+      "replayIds": [
+        "sample-01",
+        "sample-09"
+      ],
+      "reason": "Exact spectator-visible trajectory duplicate."
+    },
+    {
+      "replayIds": [
+        "sample-02",
+        "sample-07"
+      ],
+      "reason": "Exact spectator-visible trajectory duplicate."
+    }
+  ],
+  "heldBackHighlightCandidate": {
+    "replayId": "sample-08",
+    "tickRange": [
+      332,
+      351
+    ],
+    "reason": "Strong late swarm fight, but the full replay delays objective pressure for nearly one minute."
+  },
+  "requiresHumanDevicePass": true
+}

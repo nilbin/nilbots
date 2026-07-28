@@ -19,15 +19,30 @@ public sealed class MatchAdmissionService(
     AppDbContext db,
     BotAppearancePolicy appearancePolicy)
 {
-    public async Task<ApplicationResult<AdmittedMatchBot>> AdmitAsync(
+    public Task<ApplicationResult<AdmittedMatchBot>> AdmitAsync(
         Guid botId,
         Guid? requiredOwnerUserId,
+        CancellationToken cancellationToken = default) =>
+        AdmitForProfileAsync(
+            botId,
+            requiredOwnerUserId,
+            BotContractProfiles.LegacyDuel,
+            cancellationToken);
+
+    public async Task<ApplicationResult<AdmittedMatchBot>> AdmitForProfileAsync(
+        Guid botId,
+        Guid? requiredOwnerUserId,
+        string requiredContractProfileId,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(requiredContractProfileId);
         using Activity? activity =
             ApplicationTelemetry.ActivitySource.StartActivity("matches.admit_participant");
         activity?.SetTag("account.id", requiredOwnerUserId);
         activity?.SetTag("bot.id", botId);
+        activity?.SetTag(
+            "bot.required_contract_profile",
+            requiredContractProfileId);
 
         Bot? bot = await db.Bots.SingleOrDefaultAsync(
             candidate => candidate.Id == botId,
@@ -74,6 +89,19 @@ public sealed class MatchAdmissionService(
                     ApplicationErrorCodes.MatchActiveVersionRequired,
                     ApplicationErrorType.Conflict,
                     $"{bot.Name} has no successfully built active version."),
+                requiredOwnerUserId,
+                bot.Id);
+        }
+        if (!BotContractProfiles.Supports(
+                version.SupportedContractProfiles,
+                requiredContractProfileId))
+        {
+            return Failure(
+                new ApplicationError(
+                    ApplicationErrorCodes.MatchContractProfileRequired,
+                    ApplicationErrorType.Conflict,
+                    $"{bot.Name}'s active version does not support contract " +
+                    $"profile '{requiredContractProfileId}'."),
                 requiredOwnerUserId,
                 bot.Id);
         }

@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { type BotDetail } from '../api';
 import {
+  detailBotSupportsLegacyDuel,
+  rosterBotSupportsLegacyDuel,
+} from '../botContractProfiles';
+import {
   useBots,
   useChallenge,
   useMeta,
@@ -17,7 +21,7 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
   const { data: mine } = useMyBots(bot.isOwner);
   const { data: meta = null } = useMeta();
   const allBots = useMemo(
-    () => (roster ?? []).filter((candidate) => candidate.activeVersion),
+    () => (roster ?? []).filter(rosterBotSupportsLegacyDuel),
     [roster],
   );
   const myBots = useMemo(
@@ -34,7 +38,8 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
   const failure = challenge.error ?? rankedChallenge.error;
   const busy = challenge.isPending || rankedChallenge.isPending;
 
-  const isMine = bot.isOwner && bot.versions.some((v) => v.status === 'Built');
+  const viewedBotEligible = detailBotSupportsLegacyDuel(bot);
+  const isMine = bot.isOwner && viewedBotEligible;
   // On my own bot page: challenge others with this bot. On another bot's page:
   // challenge it with one of my bots.
   const challenger = isMine ? bot.id : challengerId;
@@ -43,7 +48,13 @@ export default function ChallengePanel({ bot }: { bot: BotDetail }) {
     ? allBots.filter((b) => b.id !== bot.id)
     : myBots.filter((b) => b.id !== bot.id);
 
-  if (selectable.length === 0 || (!isMine && myBots.length === 0)) return null;
+  if (
+    !viewedBotEligible ||
+    selectable.length === 0 ||
+    (!isMine && myBots.length === 0)
+  ) {
+    return null;
+  }
 
   const fight = async () => {
     if (ranked) {

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "Pressure",
+  "doctrine": "Pressure: seek early territorial advantage and credible breach opportunities without assuming escalation will unlock.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0,
+  "balancePassCount": 0,
+  "cohort": "balance-v8-mobilize-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": true,
+  "sdkVersion": "0.10.3",
+  "sourceSha256": "791ca8c566284d080519ccdd61c6e1cd1f42a9b73ad719f9f6de411b11e82464",
+  "artifactSha256": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+  "previousArtifactSha256": "4c2f276f0e2e7d62cecd31aad7198a01b24eb90f4c086a93ed42dfc5ed758798"
+}

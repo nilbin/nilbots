@@ -83,16 +83,23 @@ public class PostgreSqlSchemaIntegrationTests
         };
         db.Users.Add(user);
         db.Bots.Add(bot);
-        db.BotVersions.Add(new BotVersion
-        {
-            BotId = bot.Id,
-            VersionNumber = 1,
-            EntryType = "Bot",
-            SourcesJson = "[]",
-            SourceHash = "legacy",
-            Status = BuildStatus.Built,
-        });
         await db.SaveChangesAsync();
+        Guid versionId = Guid.NewGuid();
+        DateTime builtAt = DateTime.UtcNow;
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "BotVersions"
+                ("Id", "BotId", "VersionNumber", "EntryType", "SourcesJson",
+                 "SourceHash", "Status", "GameRulesVersion",
+                 "RuntimeProtocolVersion", "RuntimeConfigurationVersion",
+                 "CreatedAt", "BuiltAt", "IsActive")
+            VALUES
+                ({versionId}, {bot.Id}, {1}, {"Bot"}, CAST({"[]"} AS jsonb),
+                 {"legacy"}, {"Built"},
+                 {Engine.BotArenaVersions.GameRulesVersion},
+                 {Engine.BotArenaVersions.RuntimeProtocolVersion},
+                 {Engine.BotArenaVersions.RuntimeConfigurationVersion},
+                 {builtAt}, {builtAt}, {true})
+            """);
 
         await migrator.MigrateAsync();
 

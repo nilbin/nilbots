@@ -144,15 +144,63 @@ actor protocol/configuration 1.0. The explicit local
 `nilbots experiment frontline` command selects it; historical `play`,
 App/server admission, and ladders do not.
 
-SDK/Guest 0.10.0 adds the separately negotiated
+SDK/Guest 0.10.3 carries the separately negotiated
 `generic-actor-match-2` profile and `IGenericActorBot`. Its static match
 contract, variable entity observations, generic scores/mode state, typed
 actions/events/lineage, and exact profile attestation do not widen the
 Frontline-alpha objects. One bot type may implement several programming
 interfaces; controlled-build pipeline 4 detects those interfaces from the
-closed entry type without constructing a throwaway instance. The generic
-Engine host and gameplay sessions are still under active implementation and
-are not selected by the historical Frontline command.
+closed entry type without constructing a throwaway instance. Hosted App
+execution selects the generic Engine host/session only through an immutable
+hosted definition and its playlist-version queue capability. A configured
+generic lane claims all capabilities registered in that worker binary. Its
+first consumer is the off-by-default, setless, unranked `frontline-labs` v1
+playlist; local/test harnesses may invoke the same neutral host directly, and
+the historical Frontline command continues to select the separate alpha
+contract.
+
+The CLI exposes that exact local generic host without App admission or quotas:
+
+```bash
+nilbots new LabsBot --profile generic-actor
+nilbots experiment frontline-labs \
+  --bot LabsBot \
+  --opponent AnotherGenericBot \
+  --runtime in-process \
+  --seeds 104729,130363,155921
+
+# Submission-equivalent runtime check:
+nilbots build LabsBot
+nilbots experiment frontline-labs \
+  --bot LabsBot/out/bot.wasm \
+  --opponent AnotherGenericBot/out/bot.wasm \
+  --seed 104729
+nilbots verify out/frontline-labs/<match>/replay.json
+```
+
+By default, `frontline-labs` resolves
+`FrontlineLabsDefinition.Create()` and writes canonical replay v3. A local
+`--capture-threshold <positive-n>` causal arm instead resolves a distinct
+content-descriptive experimental ruleset and embeds its changed fingerprints;
+it cannot reinterpret hosted v1. The command accepts two external
+`IGenericActorBot` projects or generic-profile WASM artifacts; there is
+intentionally no generic built-in fallback. `--runtime in-process` is the fast
+diagnostic loop, while the default `wasm` path uses
+`WasmGenericActorRuntimeFactory` exactly as the hosted generic match executor
+does.
+
+`--capture-gain-phase 300:2` is the schedule-shaped numeric arm: gain remains
+1 through tick 299 and becomes 2 at tick 300. The optional `gainSchedule` is
+part of canonical MatchStart contract data. Generic bots resolve the current
+phase with `frontlineMode.Capture.GainPhaseAtTick(context.Tick)`, so the same
+rules input works for hand-authored policies and ML preprocessing.
+
+`--mobilize-turrets` is the isolated action-contract arm. It resolves
+`frontline-labs-1-experiment-mobilize`, adds a declared no-argument
+`mobilize` action, and permits `turret -> child-mobile` while preserving the
+same life/runtime memory and capping health to the mobile maximum. Mobilize is
+one-way for that life to prevent Anchor/Mobilize healing cycles. This is a
+local experiment, not part of immutable hosted v1.
 
 Actor 1.0 negotiates and then exchanges:
 

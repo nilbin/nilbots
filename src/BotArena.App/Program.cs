@@ -36,6 +36,8 @@ bool trustForwardedHeaders =
 builder.Services.AddSingleton(mode);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(MatchExecutionSettings.FromEnvironment());
+builder.Services.AddSingleton(
+    FrontlineLabsSettings.FromConfiguration(builder.Configuration));
 builder.Services.AddObjectStore(builder.Configuration);
 builder.Services.AddSingleton(BuildProvenance.FromConfiguration(builder.Configuration));
 if (mode.RunsCompileWorker && !mode.IsAll)
@@ -73,11 +75,14 @@ builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
 builder.Services.AddScoped<BotAppearancePolicy>();
 builder.Services.AddScoped<MatchAdmissionService>();
+builder.Services.AddSingleton<SubmissionContractProfileProbe>();
 builder.Services.AddSingleton<MatchParticipantSnapshotFactory>();
 builder.Services.AddScoped<BackgroundJobLeaseStore>();
 builder.Services.AddScoped<BackgroundJobDispatcher>();
 builder.Services.AddScoped<CompileSubmissionJobHandler>();
 builder.Services.AddScoped<MatchExecutionJobHandler>();
+builder.Services.AddScoped<GenericActorMatchExecutor>();
+builder.Services.AddScoped<GenericActorMatchExecutionJobHandler>();
 builder.Services.AddScoped<AnnounceMatchResultJobHandler>();
 builder.Services.AddScoped<AnnounceSetResultJobHandler>();
 builder.Services.AddScoped<UserNotificationWriter>();
@@ -102,6 +107,10 @@ builder.Services.AddScoped<MatchReplayWriter>();
 builder.Services.AddScoped<RankedMatchSetFinalizer>();
 builder.Services.AddScoped<LegacyCompetitionIdentityResolver>();
 builder.Services.AddScoped<LegacyCompetitionIdentityBackfiller>();
+builder.Services.AddScoped<FrontlineLabsPlaylistSeeder>();
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => FrontlineLabsPlaylistDefinition.Create());
+builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
 
 if (mode.RunsWeb)
 {
@@ -265,6 +274,7 @@ if (mode.RunsWeb)
     app.MapBots();
     app.MapCosmetics();
     app.MapMatches();
+    app.MapFrontlineLabs();
     app.MapRanked();
     app.MapUserNotifications();
     app.MapExternalAuth();

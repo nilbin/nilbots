@@ -135,6 +135,39 @@ public sealed class GenericActorStaticContractTests
     }
 
     [Fact]
+    public void ParsesOptionalFrontlineCaptureGainSchedule()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateCaptureGainPhaseExperiment(300, 2);
+        string canonical =
+            ActorContractManifestSerializer.ToCanonicalJson(source);
+
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(canonical);
+        var mode =
+            Assert.IsType<GenericActorRulesContract.FrontlineGameMode>(
+                contract.Rules.GameMode);
+
+        Assert.Equal(
+            [("opening", 0, 1), ("late-escalation", 300, 2)],
+            mode.Capture.GainSchedule.Select(phase => (
+                phase.PhaseId,
+                phase.StartsAtTick,
+                phase.GainPerSoleTeamTick)));
+        Assert.Equal(
+            "opening",
+            mode.Capture.GainPhaseAtTick(299).PhaseId);
+        Assert.Equal(
+            "late-escalation",
+            mode.Capture.GainPhaseAtTick(300).PhaseId);
+        Assert.Contains("\"gainSchedule\":[", canonical);
+        Assert.DoesNotContain(
+            "\"gainSchedule\":",
+            ActorContractManifestSerializer.ToCanonicalJson(
+                FrontlineLabsDefinition.Create()));
+    }
+
+    [Fact]
     public void AcceptedFixturesAllComeFromEngineValidatedResolvedMatches()
     {
         ActorResolvedMatchDefinition[] engineValidated =

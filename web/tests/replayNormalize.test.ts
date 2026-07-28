@@ -6,6 +6,7 @@ import {
   decodeReplayJson,
   ReplayDecodeError,
 } from '../src/replayNormalize.ts';
+import { validateReplayV3TickStartBoundary } from '../src/replayV3Normalize.ts';
 import type { ReplayV3Document } from '../src/replayWireV3.ts';
 import {
   adaptReplayV3ToFrontline,
@@ -885,6 +886,172 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
   }
 });
 
+test('replay-v3 accepts a declared automatic return at the tick-start boundary', () => {
+  const fixture = replayV3FixtureInput();
+  const before = structuredClone(fixture.initialFrame.state);
+  const returned = structuredClone(fixture.initialFrame.state);
+  const priorActorId = { teamId: 0, unitId: 0, lifeId: 0 };
+  const returnedActorId = { teamId: 0, unitId: 0, lifeId: 1 };
+
+  const beforeSlot = before.slots.find(
+    (slot) => slot.teamId === 0 && slot.unitId === 0,
+  )!;
+  beforeSlot.state = {
+    kind: 'automatic-return-pending',
+    dueTick: 0,
+    targetFormId: 'mobile',
+    generation: 0,
+  };
+  beforeSlot.pendingParentActorId = priorActorId;
+  before.activeLives = before.activeLives.filter(
+    (life) => life.actorId.teamId !== 0,
+  );
+  before.scoreboard.teams[0]!.scores.find(
+    (score) => score.channel === 'active-health',
+  )!.value = '0';
+
+  const returnedSlot = returned.slots.find(
+    (slot) => slot.teamId === 0 && slot.unitId === 0,
+  )!;
+  returnedSlot.nextLifeId = 2;
+  if (returnedSlot.state.kind !== 'active') {
+    assert.fail('expected an active fixture slot');
+  }
+  returnedSlot.state.actorId = returnedActorId;
+  const returnedLife = returned.activeLives.find(
+    (life) => life.actorId.teamId === 0,
+  )!;
+  returnedLife.actorId = returnedActorId;
+  returnedLife.spawnReason = 'automatic-return';
+  returnedLife.parentActorId = priorActorId;
+
+  const start = structuredClone(fixture.initialFrame.lifeStarts[0]!);
+  start.actorId = returnedActorId;
+  start.origin.reason = 'automatic-return';
+  start.origin.parentActorId = priorActorId;
+  const event = structuredClone(fixture.initialFrame.events[0]!);
+  if (event.payload.kind !== 'life-spawned') {
+    assert.fail('expected a LifeSpawned fixture event');
+  }
+  event.payload.actorId = returnedActorId;
+  event.payload.reason = 'automatic-return';
+  event.payload.parentActorId = priorActorId;
+
+  const tickStart = {
+    tick: 0,
+    state: returned,
+    activeActorIds: returned.activeLives.map((life) => life.actorId),
+    lifeStarts: [start],
+    events: [event],
+    traversals: [],
+  };
+  const fail = (path: string, message: string): never => {
+    throw new ReplayDecodeError(`${path}: ${message}`);
+  };
+
+  assert.doesNotThrow(() =>
+    validateReplayV3TickStartBoundary(
+      before,
+      tickStart,
+      'replay.ticks[0].tickStart.state',
+      fail,
+    ),
+  );
+
+  const unexplained = structuredClone(tickStart);
+  unexplained.state.mode = {
+    kind: 'deathmatch',
+    modeId: 'undeclared-mode-change',
+  };
+  assert.throws(
+    () =>
+      validateReplayV3TickStartBoundary(
+        before,
+        unexplained,
+        'replay.ticks[0].tickStart.state',
+        fail,
+      ),
+    /cannot change participants, mode, projectile issuance/,
+  );
+});
+
+test('replay-v3 accepts a declared Split cancellation at the tick-start boundary', () => {
+  const fixture = replayV3FixtureInput();
+  const before = structuredClone(fixture.initialFrame.state);
+  const after = structuredClone(fixture.initialFrame.state);
+  const source = before.activeLives[0]!;
+  const operationId = 'split:cancelled-before-completion';
+  before.pendingReplications = [
+    {
+      sourceActorId: source.actorId,
+      participantId: source.participantId,
+      sourceGeneration: source.generation,
+      sourceFormId: source.formId,
+      sourcePosition: source.position,
+      sourceFacing: source.facing,
+      transitionId: 'split-prime',
+      operationId,
+      queuedTick: -1,
+      dueTick: 0,
+      descendants: [],
+    },
+  ];
+  const cancellation = {
+    eventHandle: 'authoritative-event:split-cancelled',
+    tick: 0,
+    globalOrdinal: '0',
+    sourceOrdinal: 0,
+    kind: 'lifecycle-cancelled',
+    payload: {
+      kind: 'lifecycle',
+      transitionId: 'split-prime',
+      operationId,
+      sourceActorId: source.actorId,
+      targetTeamId: source.actorId.teamId,
+      targetUnitId: 1,
+      dueTick: 0,
+      cancellationReason: 'insufficient-health',
+    },
+    audience: {
+      kind: 'spatial',
+      primaryPosition: source.position,
+    },
+  } as const;
+  const tickStart = {
+    tick: 0,
+    state: after,
+    activeActorIds: after.activeLives.map((life) => life.actorId),
+    lifeStarts: [],
+    events: [cancellation],
+    traversals: [],
+  };
+  const fail = (path: string, message: string): never => {
+    throw new ReplayDecodeError(`${path}: ${message}`);
+  };
+
+  assert.doesNotThrow(() =>
+    validateReplayV3TickStartBoundary(
+      before,
+      tickStart,
+      'replay.ticks[0].tickStart.state',
+      fail,
+    ),
+  );
+
+  const unexplained = structuredClone(tickStart);
+  unexplained.events = [];
+  assert.throws(
+    () =>
+      validateReplayV3TickStartBoundary(
+        before,
+        unexplained,
+        'replay.ticks[0].tickStart.state',
+        fail,
+      ),
+    /pending replication state changed without resolution evidence/,
+  );
+});
+
 test('replay-v3 Deathmatch rejects illegal endings, counter drift, and standing drift', () => {
   const fixture = () => {
     const input = replayV3FixtureInput();
@@ -1102,6 +1269,100 @@ test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and
       },
     ],
   });
+});
+
+test('replay-v3 Frontline preserves and strictly validates a phased capture-gain schedule', () => {
+  const fixture = () => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    input.header.contract.rules.gameMode.capture.gainSchedule = [
+      {
+        phaseId: 'opening',
+        startsAtTick: 0,
+        gainPerSoleTeamTick: 1,
+      },
+      {
+        phaseId: 'late-escalation',
+        startsAtTick: 1,
+        gainPerSoleTeamTick: 2,
+      },
+    ];
+    return input;
+  };
+
+  const replay = decodeReplay(fixture()).replay;
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.mode.kind !== 'frontline'
+  ) {
+    assert.fail('expected generic Frontline contract');
+  }
+  assert.deepEqual(replay.contract.mode.capture.gainSchedule, [
+    {
+      phaseId: 'opening',
+      startsAtTick: 0,
+      gainPerSoleTeamTick: 1,
+    },
+    {
+      phaseId: 'late-escalation',
+      startsAtTick: 1,
+      gainPerSoleTeamTick: 2,
+    },
+  ]);
+
+  const empty = fixture();
+  if (empty.header.contract.rules.gameMode.kind !== 'frontline') {
+    assert.fail('expected Frontline rules');
+  }
+  empty.header.contract.rules.gameMode.capture.gainSchedule = [];
+  assert.throws(
+    () => decodeReplay(empty),
+    /gainSchedule: must be omitted instead of emitted empty/,
+  );
+
+  const duplicateStart = fixture();
+  if (duplicateStart.header.contract.rules.gameMode.kind !== 'frontline') {
+    assert.fail('expected Frontline rules');
+  }
+  duplicateStart.header.contract.rules.gameMode.capture.gainSchedule![1]!
+    .startsAtTick = 0;
+  assert.throws(
+    () => decodeReplay(duplicateStart),
+    /must be strictly increasing, non-negative, and before maxTicks/,
+  );
+
+  const invalidId = fixture();
+  if (invalidId.header.contract.rules.gameMode.kind !== 'frontline') {
+    assert.fail('expected Frontline rules');
+  }
+  invalidId.header.contract.rules.gameMode.capture.gainSchedule![1]!.phaseId =
+    'Late_Escalation';
+  assert.throws(
+    () => decodeReplay(invalidId),
+    /expected a 1-64 character lowercase-kebab semantic ID/,
+  );
+
+  const unknownPhaseField = fixture() as unknown as {
+    header: {
+      contract: {
+        rules: {
+          gameMode: {
+            capture: {
+              gainSchedule: { presentationHint?: string }[];
+            };
+          };
+        };
+      };
+    };
+  };
+  unknownPhaseField.header.contract.rules.gameMode.capture.gainSchedule[0]!
+    .presentationHint = 'opening';
+  assert.throws(
+    () => decodeReplay(unknownPhaseField),
+    /gainSchedule\[0\]\.presentationHint: unknown property/,
+  );
 });
 
 test('replay-v3 Frontline rejects unknown arms and terminal/control/score/standing drift', () => {

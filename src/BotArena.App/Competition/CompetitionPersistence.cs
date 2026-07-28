@@ -16,7 +16,7 @@ public sealed class Playlist
 
 /// <summary>
 /// Immutable persisted definition of an exact game-mode, ruleset, match-format,
-/// map-pool, and series-policy combination.
+/// map-pool, series, admission, and hosted-execution combination.
 /// </summary>
 public sealed class PlaylistVersion
 {
@@ -30,6 +30,12 @@ public sealed class PlaylistVersion
     public required string SeriesPolicyId { get; set; }
     public required string MatchmakingPolicyId { get; set; }
     public required string AdmissionPolicyId { get; set; }
+    /// <summary>Stable host route; deliberately independent of admission.</summary>
+    public string ExecutionPolicyId { get; set; } =
+        PlaylistExecutionPolicyIds.LegacyDuel;
+    /// <summary>Exact semantic engine implementation required by that route.</summary>
+    public string ExecutionEngineVersion { get; set; } =
+        BotArena.Engine.BotArenaVersions.EngineVersion;
     public required string CanonicalDefinition { get; set; }
     public required string DefinitionFingerprint { get; set; }
     public required string Provenance { get; set; }

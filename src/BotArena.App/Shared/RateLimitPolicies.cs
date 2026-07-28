@@ -27,6 +27,7 @@ public static class RateLimitPolicies
     public const string Auth = "auth";
     public const string Submission = "submission";
     public const string Challenge = "challenge";
+    public const string Labs = "labs";
     public const string Ranked = "ranked";
 
     public static void AddBotArenaRateLimiting(this IServiceCollection services)
@@ -61,6 +62,15 @@ public static class RateLimitPolicies
 
             options.AddPolicy(Challenge, context =>
                 Window(Account(context), permits: 20, TimeSpan.FromMinutes(1)));
+
+            // A generic match may run six isolated actor lives for 500 ticks.
+            // The transactional Labs budget is authoritative; this absorbs
+            // account-plus-origin bursts before they contend on its locks.
+            options.AddPolicy(Labs, context =>
+                Window(
+                    AccountAndNetwork(context),
+                    permits: 2,
+                    TimeSpan.FromMinutes(1)));
 
             // Ranked is its own policy rather than sharing the challenge one: a ranked set
             // is six WASM matches, so the same permit count means six times the work. The

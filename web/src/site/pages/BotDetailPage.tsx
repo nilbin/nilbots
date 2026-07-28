@@ -10,6 +10,7 @@ import CurrentLadderStanding from '../components/CurrentLadderStanding';
 import GenerationsChart, {
   type GenerationRatings,
 } from '../components/GenerationsChart';
+import LabsPanel from '../components/LabsPanel';
 import MatchHistory from '../components/MatchHistory';
 import { ErrorState, LoadingState } from '../components/StateView';
 import StatusBadge from '../components/StatusBadge';
@@ -242,6 +243,8 @@ export default function BotDetailPage() {
           <ChallengePanel bot={bot} />
         </aside>
       </div>
+
+      {bot.isOwner && <LabsPanel bot={bot} />}
 
       {bot.isOwner && (
         <div className="grid gap-3 min-[900px]:grid-cols-2 min-[900px]:items-start">

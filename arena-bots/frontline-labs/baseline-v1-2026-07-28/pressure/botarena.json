@@ -1,0 +1,10 @@
+{
+  "name": "Pressure",
+  "entryType": "Pressure",
+  "sdkVersion": "0.10.0",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

@@ -35,4 +35,5 @@ public sealed record BotVersionResponse(
     BuildReceipt? BuildReceipt,
     string? BuildLog,
     string? EntryType,
-    IReadOnlyList<SourceFile>? Sources);
+    IReadOnlyList<SourceFile>? Sources,
+    IReadOnlyList<string>? SupportedContractProfiles);

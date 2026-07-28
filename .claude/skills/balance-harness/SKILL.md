@@ -7,9 +7,13 @@ description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-
 
 Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/balance-eval.py`, `scripts/replay-dynamics-eval.py`,
-`scripts/frontline-replay-eval.py`, `scripts/replay-review-sample.py`, the
-CLI's historical `--rules` flag, and the separate local
-`nilbots experiment frontline` path.
+`scripts/frontline-replay-eval.py`, `scripts/labs-replay-eval.py`,
+`scripts/replay-review-sample.py`, the CLI's historical `--rules` flag, the
+frozen replay-v2 `nilbots experiment frontline` path, and the generic
+replay-v3 `nilbots experiment frontline-labs` path. Labs capture-threshold
+arms use its local-only `--capture-threshold <positive-n>` option; phased
+capture-gain arms use `--capture-gain-phase <start-tick>:<gain>`; the isolated
+turret-exit arm uses `--mobilize-turrets`.
 
 ## 1. Classify and pre-register the experiment
 
@@ -75,6 +79,26 @@ python3 scripts/frontline-replay-eval.py \
   --group current=/tmp/frontline/block-2 \
   --json /tmp/frontline/report.json
 
+python3 scripts/labs-cohort-drive.py \
+  --manifest arena-bots/frontline-labs/<cohort>/cohort.json \
+  --output arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm
+
+python3 scripts/labs-replay-eval.py \
+  --group current=arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/matches \
+  --json arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/dynamics.json
+
+nilbots experiment frontline-labs \
+  --bot <bot.wasm> --opponent <opponent.wasm> \
+  --capture-threshold 12 --seed 104729
+
+nilbots experiment frontline-labs \
+  --bot <bot.wasm> --opponent <opponent.wasm> \
+  --capture-gain-phase 300:2 --seed 104729
+
+nilbots experiment frontline-labs \
+  --bot <candidate-bot.wasm> --opponent <opponent.wasm> \
+  --mobilize-turrets --seed 104729
+
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
 ```
@@ -82,10 +106,37 @@ python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
 Fixed seeds make same-cohort arms comparable. Preserve every replay in
 separate arm/block directories.
 
+For a Labs capture-threshold arm, the CLI creates a distinct
+`frontline-labs-1-experiment-capture-<n>` ruleset and fingerprints. Put those
+exact values in the cohort manifest and include the same option in
+`--runner-command`; never relabel changed values as `frontline-labs-1`.
+The same identity rule applies to capture-gain phases. The schedule is
+canonical contract data, and candidate-aware bots resolve it with
+`frontlineMode.Capture.GainPhaseAtTick(context.Tick)`.
+It also applies to the Mobilize arm: that flag exposes a new action under
+`frontline-labs-1-experiment-mobilize`; rules-unaware bots are compatibility
+sentinels, not product-balance evidence.
+
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and
 defensive paths execute; they never satisfy the independently authored native
 cohort requirement.
+
+For the first Frontline Labs exploratory screen, use the agent-arena
+**cohort sprint** and the frozen
+`docs/FRONTLINE-LABS-COHORT-BASELINE.md` pre-registration. Its four authors
+receive `docs/FRONTLINE-LABS-RULES.md`, one implementation pass, and zero
+strategy-improvement passes by default. That smaller budget can expose gross
+dominance, deadlocks, unused mechanics, participant-assignment bias, and DX
+failures; it cannot establish balance or a ship verdict. Mechanical repair is
+permitted without opponent results, and a shared repair opportunity must be
+equal and retain every revision.
+
+Labs cohorts are neutral evidence under `arena-bots/frontline-labs/`, not
+champions. Archive all entrants, source revisions, final WASM hashes,
+pre-disclosure `DX.md` reports, match logs, verified replay-v3 files, W/D/L
+results, dynamics, and the outcome-blind sample. Synthesize DX before
+tournament disclosure and do not turn it into another strategy pass.
 
 The Frontline analyzer rejects mixed rules fingerprints under one group label
 and surfaces map, runtime, and artifact cohort metadata. Do not combine

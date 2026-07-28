@@ -1,3 +1,5 @@
+using BotArena.App.Competition;
+
 namespace BotArena.App.Jobs;
 
 /// <summary>
@@ -7,14 +9,25 @@ namespace BotArena.App.Jobs;
 public sealed class BackgroundJobDispatcher(
     CompileSubmissionJobHandler compileSubmission,
     MatchExecutionJobHandler matchExecution,
+    GenericActorMatchExecutionJobHandler genericActorMatchExecution,
     AnnounceMatchResultJobHandler announceMatchResult,
     AnnounceSetResultJobHandler announceSetResult,
-    DeliverPushJobHandler deliverPush)
+    DeliverPushJobHandler deliverPush,
+    HostedGenericMatchDefinitionRegistry genericDefinitions)
 {
     public Task<JobExecutionResult> DispatchAsync(
         BackgroundJob job,
-        CancellationToken cancellationToken) =>
-        job.Type switch
+        CancellationToken cancellationToken)
+    {
+        if (genericDefinitions.SupportsJobType(job.Type))
+        {
+            return genericActorMatchExecution.HandleAsync(
+                job.PayloadId("matchId"),
+                job.Type,
+                cancellationToken);
+        }
+
+        return job.Type switch
         {
             BackgroundJob.CompileSubmissionType =>
                 compileSubmission.HandleAsync(
@@ -39,4 +52,5 @@ public sealed class BackgroundJobDispatcher(
             _ => throw new InvalidOperationException(
                 $"Unknown job type '{job.Type}'."),
         };
+    }
 }

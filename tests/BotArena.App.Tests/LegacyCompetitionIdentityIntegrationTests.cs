@@ -3,6 +3,7 @@ using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Tests;
@@ -286,6 +287,76 @@ public sealed class LegacyCompetitionIdentityIntegrationTests
                 set => set.Id == nullSetId);
         Assert.Null(stillNull.PlaylistVersionId);
         Assert.Null(stillNull.LadderId);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task BackfillLeavesPinnedGenericLabsIdentityUntouched()
+    {
+        await using var database =
+            await PostgreSqlDatabaseFixture.CreateAsync();
+        Guid labsPlaylistVersionId;
+        Guid labsMatchId;
+        Guid legacyMatchId;
+        await using (AppDbContext db =
+                     await database.CreateMigratedContextAsync())
+        {
+            PlaylistVersion labs =
+                await new FrontlineLabsPlaylistSeeder(db).SeedAsync();
+            var match = new Match
+            {
+                MapId = FrontlineLabsDefinition.MapId,
+                MapVersion = 1,
+                GameRulesVersion = FrontlineLabsDefinition.RulesetId,
+                RuntimeConfigurationVersion =
+                    BotArenaVersions
+                        .GenericActorRuntimeConfigurationVersion,
+                PlaylistVersionId = labs.Id,
+                Seed = 1,
+            };
+            db.Matches.Add(match);
+            Match legacy = AddMatch(
+                db,
+                GameRules.Current.RulesVersion,
+                matchSetId: null);
+            await db.SaveChangesAsync();
+            labsPlaylistVersionId = labs.Id;
+            labsMatchId = match.Id;
+            legacyMatchId = legacy.Id;
+
+            var resolver =
+                new LegacyCompetitionIdentityResolver(db);
+            var backfiller =
+                new LegacyCompetitionIdentityBackfiller(db, resolver);
+            await backfiller.RunAsync(GameRules.Current.RulesVersion);
+            await backfiller.RunAsync(GameRules.Current.RulesVersion);
+            await backfiller.RunAsync("0.6");
+        }
+
+        await using AppDbContext verify = database.CreateContext();
+        Match persisted = await verify.Matches.SingleAsync(
+            match => match.Id == labsMatchId);
+        Assert.Equal(
+            labsPlaylistVersionId,
+            persisted.PlaylistVersionId);
+        Assert.NotNull(
+            (await verify.Matches.SingleAsync(
+                match => match.Id == legacyMatchId))
+            .PlaylistVersionId);
+        Assert.False(await verify.Ladders.AnyAsync(
+            ladder =>
+                ladder.LegacyRulesVersion ==
+                FrontlineLabsDefinition.RulesetId));
+        Assert.False(await verify.PlaylistVersions.AnyAsync(
+            version =>
+                version.RulesetId ==
+                    FrontlineLabsDefinition.RulesetId &&
+                version.ExecutionPolicyId ==
+                    PlaylistExecutionPolicyIds.LegacyDuel));
+        Assert.False(await verify.Ladders.AnyAsync(
+            ladder =>
+                ladder.PlaylistVersionId ==
+                labsPlaylistVersionId));
     }
 
     private static (Bot A, Bot B) AddBots(AppDbContext db)

@@ -43,12 +43,63 @@ public sealed class LegacyCompetitionIdentityBackfiller(
             await resolver.AcquireAdvisoryLockAsync(cancellationToken);
             await ValidateNoOrphanedMatchesAsync(cancellationToken);
 
-            List<BotRating> ratings =
-                await db.BotRatings.ToListAsync(cancellationToken);
-            List<MatchSet> sets =
-                await db.MatchSets.ToListAsync(cancellationToken);
-            List<Match> matches =
-                await db.Matches.ToListAsync(cancellationToken);
+            // Null identity means an old Duel writer. Once an identity is
+            // pinned, execution policy—not a rules-name guess—decides whether
+            // this legacy repair owns the row. Generic modes may use any rules
+            // string and must never be imported into a Duel ladder.
+            List<BotRating> ratings = await db.BotRatings
+                .Where(rating =>
+                    rating.LadderId == null ||
+                    db.Ladders.Any(ladder =>
+                        ladder.Id == rating.LadderId &&
+                        (ladder.LegacyRulesVersion != null ||
+                         db.PlaylistVersions.Any(version =>
+                             version.Id == ladder.PlaylistVersionId &&
+                             version.ExecutionPolicyId ==
+                             PlaylistExecutionPolicyIds.LegacyDuel))))
+                .ToListAsync(cancellationToken);
+            List<MatchSet> sets = await db.MatchSets
+                .Where(set =>
+                    set.PlaylistVersionId == null ||
+                    db.PlaylistVersions.Any(version =>
+                        version.Id == set.PlaylistVersionId &&
+                        version.ExecutionPolicyId ==
+                        PlaylistExecutionPolicyIds.LegacyDuel) ||
+                    set.LadderId != null &&
+                    db.Ladders.Any(ladder =>
+                        ladder.Id == set.LadderId &&
+                        (ladder.LegacyRulesVersion != null ||
+                         db.PlaylistVersions.Any(version =>
+                             version.Id == ladder.PlaylistVersionId &&
+                             version.ExecutionPolicyId ==
+                             PlaylistExecutionPolicyIds.LegacyDuel))))
+                .ToListAsync(cancellationToken);
+            List<Match> matches = await db.Matches
+                .Where(match =>
+                    match.PlaylistVersionId == null ||
+                    db.PlaylistVersions.Any(version =>
+                        version.Id == match.PlaylistVersionId &&
+                        version.ExecutionPolicyId ==
+                        PlaylistExecutionPolicyIds.LegacyDuel) ||
+                    match.MatchSetId != null &&
+                    db.MatchSets.Any(set =>
+                        set.Id == match.MatchSetId &&
+                        (set.PlaylistVersionId == null ||
+                         db.PlaylistVersions.Any(version =>
+                             version.Id == set.PlaylistVersionId &&
+                             version.ExecutionPolicyId ==
+                             PlaylistExecutionPolicyIds.LegacyDuel) ||
+                         set.LadderId != null &&
+                         db.Ladders.Any(ladder =>
+                             ladder.Id == set.LadderId &&
+                             (ladder.LegacyRulesVersion != null ||
+                              db.PlaylistVersions.Any(version =>
+                                  version.Id ==
+                                  ladder.PlaylistVersionId &&
+                                  version.ExecutionPolicyId ==
+                                  PlaylistExecutionPolicyIds
+                                      .LegacyDuel))))))
+                .ToListAsync(cancellationToken);
             List<(Guid Id, string RulesVersion)> existingAliases =
                 await db.Ladders
                     .Where(ladder =>
@@ -155,7 +206,16 @@ public sealed class LegacyCompetitionIdentityBackfiller(
 
                 if (match.MatchSetId is not Guid matchSetId)
                     continue;
-                MatchSet owningSet = setsById[matchSetId];
+                if (!setsById.TryGetValue(
+                        matchSetId,
+                        out MatchSet? owningSet))
+                {
+                    throw Contradiction(
+                        nameof(Match),
+                        match.Id,
+                        match.GameRulesVersion,
+                        $"belongs to non-legacy MatchSet {matchSetId}");
+                }
                 if (!string.Equals(
                         match.GameRulesVersion,
                         owningSet.GameRulesVersion,

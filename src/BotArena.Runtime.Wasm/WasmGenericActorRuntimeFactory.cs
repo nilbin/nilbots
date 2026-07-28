@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Collections.Immutable;
 using BotArena.Engine;
 using Wasmtime;
 using WasmtimeEngine = Wasmtime.Engine;
@@ -18,12 +19,27 @@ public sealed class WasmGenericActorRuntimeFactory
     private WasmtimeEngine? _engine;
     private Module? _module;
     private int _activeRuntimes;
+    private readonly List<RuntimeDiagnostic> _diagnostics = [];
 
     /// <summary>
     /// SHA-256 of the exact bytes captured, validated, and compiled by this
     /// factory.
     /// </summary>
     public string ArtifactHash { get; }
+
+    /// <summary>
+    /// Completed life-runtime diagnostics. Hosted callers may ignore these;
+    /// local authoring tools can expose the precise sandbox failure and peak
+    /// fuel use without weakening public replay fault redaction.
+    /// </summary>
+    public ImmutableArray<RuntimeDiagnostic> Diagnostics
+    {
+        get
+        {
+            lock (_gate)
+                return _diagnostics.ToImmutableArray();
+        }
+    }
 
     public WasmGenericActorRuntimeFactory(WasmRuntimeOptions options)
     {
@@ -75,10 +91,13 @@ public sealed class WasmGenericActorRuntimeFactory
         }
     }
 
-    private void ReleaseRuntime()
+    private void ReleaseRuntime(RuntimeDiagnostic diagnostic)
     {
         lock (_gate)
+        {
+            _diagnostics.Add(diagnostic);
             _activeRuntimes--;
+        }
     }
 
     public void Dispose()
@@ -99,4 +118,10 @@ public sealed class WasmGenericActorRuntimeFactory
             _engine = null;
         }
     }
+
+    public sealed record RuntimeDiagnostic(
+        ActorIdentity? ActorId,
+        ulong MaxFuelUsedPerTick,
+        ulong FuelPerTick,
+        string? FailureReason);
 }

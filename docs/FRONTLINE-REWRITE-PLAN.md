@@ -19,7 +19,13 @@ SDK/Guest types, actor protocol/configuration 1.0, canonical isolated WASM
 life instances, version-neutral web/mobile presentation, an explicit local
 CLI runner, and a replay-v2 dynamics evaluator. It is not exposed through the
 historical `play` command, App/server admission, replay-v1 emitter, or ladder;
-product evaluation remains unfinished.
+product evaluation remains unfinished. A separate off-by-default hosted
+successor, `frontline-labs` v1, now exercises the generation-3 generic actor
+contract and replay v3 without reinterpreting this frozen alpha. Its exact
+immutable definition is also available through the separate local
+`nilbots experiment frontline-labs` command and the
+`nilbots new --profile generic-actor` scaffold; that tooling creates no App
+match or ranking.
 
 ## Relationship to current plans
 

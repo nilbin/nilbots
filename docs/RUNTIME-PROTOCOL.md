@@ -159,7 +159,9 @@ attest requires a new version and explicit eligibility handling.
 
 The Frontline-alpha delivery remains the historical SDK/Guest 0.9.0,
 actor-protocol/configuration 1.0 checkpoint. The generic profile is introduced
-by SDK/Guest 0.10.0 and controlled-build pipeline 4 in CLI 0.8.0. Actor framing
-and sandbox configuration remain 1.0 because profile negotiation changes the
-object contract without changing frame or resource semantics. Legacy duel
-protocol/configuration remain exactly 0.1.
+by SDK/Guest 0.10.2 and extended in SDK/Guest 0.10.3 with optional canonical
+Frontline capture-gain schedules; controlled-build pipeline 4 remains
+unchanged, and CLI 0.9.4 carries that SDK. Actor framing and sandbox
+configuration remain 1.0 because the additive static-contract branch does not
+change frame or resource semantics. Legacy duel protocol/configuration remain
+exactly 0.1.

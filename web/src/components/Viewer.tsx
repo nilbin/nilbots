@@ -26,12 +26,11 @@ import Logo from './Logo';
 import IdentityChip from './IdentityChip';
 
 /**
- * The 3D renderer — what the viewer is.
+ * The hosted viewer's 3D renderer — what the web viewer is.
  *
- * Still `lazy` rather than a plain import, for two reasons that outlived it being
- * optional: three.js stays in its own chunk so a cold WebView is not made to parse it
- * before anything renders, and the CLI's single-file artifact stubs this module out
- * entirely (see vite.cli.config.ts) so a copied replay never carries it.
+ * It stays `lazy` so Three.js remains in its own chunk and Canvas2D can load as
+ * the no-WebGL floor. The CLI's single-file artifact stubs this module out
+ * entirely (see vite.cli.config.ts), so a copied replay never carries it.
  */
 const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
 const AdaptiveSoundtrack = lazy(

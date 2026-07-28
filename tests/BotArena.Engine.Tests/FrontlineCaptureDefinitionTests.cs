@@ -74,6 +74,55 @@ public sealed class FrontlineCaptureDefinitionTests
             Capture(decayAmount: -1, decayIntervalTicks: -1));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             Capture(redeployPauseTicks: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Capture(
+                controlPolicy:
+                    (FrontlineCaptureDefinition.ControlPolicyKind)99));
+    }
+
+    [Fact]
+    public void GainScheduleIsCanonicalAndResolvesByAuthoritativeTick()
+    {
+        FrontlineCaptureDefinition capture = Capture(
+            gainSchedule:
+            [
+                new("late", startsAtTick: 300, gainPerSoleTeamTick: 2),
+                new("opening", startsAtTick: 0, gainPerSoleTeamTick: 1),
+            ]);
+
+        Assert.Equal(
+            ["opening", "late"],
+            capture.GainSchedule.Select(phase => phase.PhaseId));
+        Assert.Equal("opening", capture.GainPhaseAtTick(299).PhaseId);
+        Assert.Equal(1, capture.GainPhaseAtTick(299).GainPerSoleTeamTick);
+        Assert.Equal("late", capture.GainPhaseAtTick(300).PhaseId);
+        Assert.Equal(2, capture.GainPhaseAtTick(500).GainPerSoleTeamTick);
+        Assert.Equal("default", Capture().GainPhaseAtTick(9).PhaseId);
+
+        Assert.Throws<ArgumentException>(() =>
+            Capture(gainSchedule:
+            [
+                new("late", startsAtTick: 1, gainPerSoleTeamTick: 2),
+            ]));
+        Assert.Throws<ArgumentException>(() =>
+            Capture(gainSchedule:
+            [
+                new("opening", startsAtTick: 0, gainPerSoleTeamTick: 2),
+            ]));
+        Assert.Throws<ArgumentException>(() =>
+            Capture(gainSchedule:
+            [
+                new("same", startsAtTick: 0, gainPerSoleTeamTick: 1),
+                new("same", startsAtTick: 2, gainPerSoleTeamTick: 2),
+            ]));
+        Assert.Throws<ArgumentException>(() =>
+            Capture(gainSchedule:
+            [
+                new("opening", startsAtTick: 0, gainPerSoleTeamTick: 1),
+                new("late", startsAtTick: 0, gainPerSoleTeamTick: 2),
+            ]));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Capture().GainPhaseAtTick(-1));
     }
 
     [Fact]
@@ -118,13 +167,20 @@ public sealed class FrontlineCaptureDefinitionTests
         int gainPerSoleTeamTick = 1,
         int decayAmount = 1,
         int decayIntervalTicks = 2,
-        int redeployPauseTicks = 3) =>
+        int redeployPauseTicks = 3,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            gainSchedule = null,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral) =>
         new(
             threshold,
             gainPerSoleTeamTick,
             decayAmount,
             decayIntervalTicks,
-            redeployPauseTicks);
+            redeployPauseTicks,
+            gainSchedule,
+            controlPolicy);
 
     private static FrontlineVictoryDefinition Victory(int pushesToBreach) =>
         new(

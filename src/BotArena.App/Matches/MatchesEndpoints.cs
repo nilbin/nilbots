@@ -139,7 +139,14 @@ public static class MatchesEndpoints
             int offset = skip is > 0 ? skip.Value : 0;
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
 
-            var query = db.Matches.Include(m => m.Participants).AsQueryable();
+            var query = db.Matches
+                .Include(m => m.Participants)
+                .Where(match =>
+                    match.PlaylistVersionId == null ||
+                    !db.PlaylistVersions.Any(version =>
+                        version.Id == match.PlaylistVersionId &&
+                        version.Visibility == PlaylistVisibilityIds.Labs))
+                .AsQueryable();
             if (bot is { Length: > 0 } botKey)
             {
                 Guid? botId = Guid.TryParse(botKey, out var parsed)
@@ -169,7 +176,10 @@ public static class MatchesEndpoints
             AppDbContext db,
             TimeProvider timeProvider) =>
         {
-            var match = await db.Matches.Include(m => m.Participants)
+            var match = await db.Matches
+                .Include(m => m.Participants)
+                .Include(m => m.TeamResults)
+                    .ThenInclude(result => result.Scores)
                 .SingleOrDefaultAsync(m => m.Id == matchId);
             if (match is null)
                 return Results.NotFound();
@@ -214,8 +224,29 @@ public static class MatchesEndpoints
             {
                 int visibleTicks = Math.Max(0, match.PresentationTick(now) + 1);
                 using var reader = new StreamReader(replay);
-                var document = Engine.ReplaySerializer.FromJson(
-                    await reader.ReadToEndAsync(cancellationToken));
+                string replayJson =
+                    await reader.ReadToEndAsync(cancellationToken);
+                if (match.ReplayFormatVersion ==
+                    BotArenaVersions.GenericActorReplayFormatVersion)
+                {
+                    string partialReplayJson =
+                        GenericActorReplayDocument.CreatePartialPrefix(
+                            replayJson,
+                            visibleTicks);
+                    return Results.Text(
+                        partialReplayJson,
+                        "application/json; charset=utf-8");
+                }
+                if (match.ReplayFormatVersion is not null and
+                    not BotArenaVersions.ReplayFormatVersion)
+                {
+                    throw new InvalidOperationException(
+                        $"Replay format {match.ReplayFormatVersion} is not " +
+                        "supported by the hosted broadcast projector.");
+                }
+
+                var document =
+                    Engine.ReplaySerializer.FromJson(replayJson);
                 var partial = new
                 {
                     document.Header,

@@ -1185,6 +1185,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/labs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LabsCatalogResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/labs/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateLabsMatchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedMatchResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -1398,6 +1472,7 @@ export interface components {
             /** Format: int32 */
             versionNumber: number;
             artifactHash: null | string;
+            supportedContractProfiles: null | string[];
         };
         BotBuildStatusResponse: {
             /** Format: uuid */
@@ -1521,6 +1596,7 @@ export interface components {
             buildLog: null | string;
             entryType: null | string;
             sources: null | components["schemas"]["SourceFile"][];
+            supportedContractProfiles: null | string[];
         };
         BuildReceipt: {
             /** Format: uuid */
@@ -1540,6 +1616,7 @@ export interface components {
             gitCommit: string;
             /** Format: date-time */
             builtAt: string;
+            supportedContractProfiles?: null | string[];
         };
         ChallengeRequest: {
             /** Format: uuid */
@@ -1583,6 +1660,13 @@ export interface components {
             lookId?: null | string;
             projectileLookId?: null | string;
         };
+        CreateLabsMatchRequest: {
+            /** Format: uuid */
+            playlistVersionId: string;
+            entrantBotIds: string[];
+            /** Format: int64 */
+            seed: null | number;
+        };
         CreatedBot: {
             /** Format: uuid */
             id: string;
@@ -1605,6 +1689,28 @@ export interface components {
             kind: string;
             id: string;
             label: string;
+        };
+        LabsCatalogResponse: {
+            enabled: boolean;
+            playlists: components["schemas"]["LabsPlaylistResponse"][];
+        };
+        LabsPlaylistResponse: {
+            /** Format: uuid */
+            playlistVersionId: string;
+            key: string;
+            displayName: string;
+            /** Format: int32 */
+            version: number;
+            gameModeId: string;
+            rulesetId: string;
+            matchFormatId: string;
+            /** Format: int32 */
+            participantCount: number;
+            /** Format: int32 */
+            scoringTeamCount: number;
+            /** Format: int32 */
+            participantsPerTeam: number;
+            requiredContractProfileId: string;
         };
         LadderStanding: {
             /** Format: uuid */
@@ -1645,6 +1751,8 @@ export interface components {
         MatchDetailParticipantResponse: {
             /** Format: int32 */
             slot: number;
+            /** Format: int32 */
+            teamId: null | number;
             /** Format: uuid */
             botId: string;
             nameSnapshot: string;
@@ -1665,6 +1773,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             mapId: string;
+            gameRulesVersion: string;
             /** Format: int64 */
             seed: number;
             status: string;
@@ -1679,12 +1788,15 @@ export interface components {
             /** Format: int32 */
             endTick: null | number;
             replayHash: null | string;
+            /** Format: int32 */
+            replayFormatVersion: null | number;
             error: null | string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             completedAt: null | string;
             participants: components["schemas"]["MatchDetailParticipantResponse"][];
+            teamResults: components["schemas"]["MatchTeamResultResponse"][];
         };
         MatchLiveResponse: {
             status: string;
@@ -1787,6 +1899,18 @@ export interface components {
             /** Format: date-time */
             completedAt: null | string;
             participants: components["schemas"]["MatchSummaryParticipantResponse"][];
+        };
+        MatchTeamResultResponse: {
+            /** Format: int32 */
+            teamId: number;
+            /** Format: int32 */
+            placement: number;
+            outcome: string;
+            scores: components["schemas"]["MatchTeamScoreResponse"][];
+        };
+        MatchTeamScoreResponse: {
+            scoreChannelId: string;
+            value: string;
         };
         MetaMapResponse: {
             id: string;

@@ -28,6 +28,9 @@ public static class AdmissionLocks
     /// <summary>Serialises everything competing for the shared compiler queue.</summary>
     public const long CompilerQueue = 0x4e494c424f545301;
 
+    /// <summary>Serialises the global active-match budget across Labs playlists.</summary>
+    public const long LabsMatchPool = 0x4e494c424f545302;
+
     public static long Compilation(Guid userId) => Account(CompilationTag, userId);
 
     public static long Ranked(Guid userId) => Account(RankedTag, userId);

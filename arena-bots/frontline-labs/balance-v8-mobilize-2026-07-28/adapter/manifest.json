@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "Adapter",
+  "doctrine": "Adapter: change priorities from visible allied/enemy state, score, active objective, and available contract capabilities rather than committing to one opening.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 3,
+  "balancePassCount": 0,
+  "cohort": "balance-v8-mobilize-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": true,
+  "sdkVersion": "0.10.3",
+  "sourceSha256": "8b40e8771629e96ed99636a08a6810c7f7629452a8dc2cf13f1c3d289f4b0ea9",
+  "artifactSha256": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+  "previousArtifactSha256": "dd5ef784414250847fb750b9f3cc41d018f7cd5898e8aa233b54235ca68f21ca"
+}

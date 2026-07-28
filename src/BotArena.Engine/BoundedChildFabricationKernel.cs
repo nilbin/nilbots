@@ -317,14 +317,7 @@ public sealed class BoundedChildFabricationKernel
                 BoundedChildFabricationReservationOutcome
                     .FabricationReservationBlockReason.SourceUnavailable);
         }
-        if (!transition.SourceFormIds.Contains(
-                source.FormId,
-                StringComparer.Ordinal)
-            || source.Generation == int.MaxValue
-            || !IsEligibleSourcePosition(
-                source.ParticipantId,
-                transition,
-                source.Position))
+        if (!IsSourceEligibleForRequest(source, transition))
         {
             return Blocked(
                 request,
@@ -407,6 +400,29 @@ public sealed class BoundedChildFabricationKernel
                 .FabricationReservationOutcomeKind.Reserved,
             Reason: null,
             reservation);
+    }
+
+    /// <summary>
+    /// Reports source-local eligibility that cannot be changed by another
+    /// actor's simultaneous decision. Placement and reservation conflicts
+    /// remain queue-time outcomes so this check does not leak hidden
+    /// occupancy or rule out a tile another actor may vacate this tick.
+    /// </summary>
+    internal bool IsSourceEligibleForRequest(
+        BoundedChildFabricationActorSnapshot source,
+        BoundedChildFabricationDefinition transition)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(transition);
+        return _transitions.ContainsKey(transition.TransitionId)
+            && transition.SourceFormIds.Contains(
+                source.FormId,
+                StringComparer.Ordinal)
+            && source.Generation < int.MaxValue
+            && IsEligibleSourcePosition(
+                source.ParticipantId,
+                transition,
+                source.Position);
     }
 
     private bool IsEligibleSourcePosition(

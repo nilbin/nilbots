@@ -30,14 +30,19 @@ public static class ToolchainInfo
     /// <summary>The published `Nilbots` tool version. MUST be bumped whenever
     /// SdkVersion or BuildPipelineVersion changes: those decide artifact bytes, and
     /// `submit` refuses against a server the installed tool cannot match, so a player
-    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.8.x carries
-    /// SDK/Guest 0.10.0, build pipeline 4, the frozen local Frontline
+    /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.9.x carries
+    /// SDK/Guest 0.10.x, build pipeline 4, the frozen local Frontline
     /// actor/replay-v2 experiment, and the negotiated generic actor-match
-    /// programming model. It also carries the approved Obsidian Foundry effects
+    /// programming model. 0.9.1 adds the exact local Frontline Labs runner,
+    /// generic-actor scaffold, and replay-v3 verification without changing
+    /// SDK/Guest bytes. 0.9.4 carries SDK/Guest 0.10.3, whose generic
+    /// Frontline contract can expose optional capture-gain schedules while
+    /// retaining the exact static hosted-v1 bytes. It
+    /// also carries the approved Obsidian Foundry effects
     /// in self-contained replay viewers and the generated HTTP contracts used
     /// by CLI server commands. Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.8.0";
+    public const string CliVersion = "0.9.4";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -64,9 +69,16 @@ public static class ToolchainInfo
     // and entity collections, typed dynamic action/event/score/mode unions,
     // and generic replay-3-ready lineage. Legacy and Frontline-alpha surfaces
     // remain separate compatibility generations.
-    public const string SdkVersion = "0.10.0";
+    // 0.10.1: generic form-transition events accept a due tick equal to their
+    // started tick for end-of-started-tick completion. Pending transition
+    // state remains strictly future-due.
+    // 0.10.2: transition-created LifeSpawned observations accept intentionally
+    // redacted parent/operation lineage while retaining the public transition ID.
+    // 0.10.3: optional Frontline capture-gain schedules are parsed from the
+    // canonical contract and resolvable against the authoritative tick.
+    public const string SdkVersion = "0.10.3";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.0";
+    public const string GuestAdapterVersion = "0.10.3";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

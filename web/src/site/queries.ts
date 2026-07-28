@@ -30,6 +30,7 @@ import {
 const keys = {
   meta: ['meta'] as const,
   bots: ['bots'] as const,
+  labs: ['labs'] as const,
   bot: (key: string) => ['bot', key] as const,
   botMatches: (botId: string) => ['bot', botId, 'matches'] as const,
   botStats: (botId: string) => ['bot', botId, 'stats'] as const,
@@ -118,8 +119,18 @@ export function useMeta() {
   return useQuery({ queryKey: keys.meta, queryFn: endpoints.meta, staleTime: 5 * 60_000 });
 }
 
-export function useBots() {
-  return useQuery({ queryKey: keys.bots, queryFn: endpoints.bots });
+export function useBots(enabled = true) {
+  return useQuery({ queryKey: keys.bots, queryFn: endpoints.bots, enabled });
+}
+
+/** Hosted experiments available on this deployment; disabled deployments return an empty catalog. */
+export function useLabsCatalog(enabled = true) {
+  return useQuery({
+    queryKey: keys.labs,
+    queryFn: endpoints.labs,
+    enabled,
+    staleTime: 5 * 60_000,
+  });
 }
 
 /**
@@ -374,6 +385,14 @@ export function useRankedChallenge() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.rankedChallenge,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+  });
+}
+
+export function useCreateLabsMatch() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.createLabsMatch,
     onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
   });
 }

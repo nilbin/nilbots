@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "Bastion",
+  "doctrine": "Bastion: use Anchor for deliberate area denial while retaining enough mobile objective pressure to finish games.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 2,
+  "balancePassCount": 1,
+  "cohort": "balance-v8-mobilize-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": false,
+  "sdkVersion": "0.10.3",
+  "sourceSha256": "596a30d00471e19b0ad58bb2f7ba3d32f07dd6c7682224a7ff20ffebd5aef89a",
+  "artifactSha256": "cdca10778fdbce762f0fc3668e795c58be92b4e9ac6ba4f979dbb2659670724c",
+  "previousArtifactSha256": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Frontline Labs Split Calibration Probe",
+  "entryType": "SplitProbe",
+  "sdkVersion": "0.10.2",
+  "appearance": {
+    "accent": "#f59e0b",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

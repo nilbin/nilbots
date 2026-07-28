@@ -3,6 +3,7 @@ using BotArena.App.Bots;
 using BotArena.App.Cosmetics;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.Engine;
 
 namespace BotArena.App.Tests;
 
@@ -81,5 +82,36 @@ public class MatchAdmissionServiceIntegrationTests
         Assert.True(admitted.Succeeded);
         Assert.Equal(version.Id, admitted.Value?.Version.Id);
         Assert.Equal(owner.DisplayName, admitted.Value?.OwnerDisplayName);
+
+        ApplicationResult<AdmittedMatchBot> historicalGeneric =
+            await service.AdmitForProfileAsync(
+                ready.Id,
+                owner.Id,
+                BotArenaVersions.GenericActorContractProfileId);
+        Assert.False(historicalGeneric.Succeeded);
+        Assert.Equal(
+            ApplicationErrorCodes.MatchContractProfileRequired,
+            historicalGeneric.Error?.Code);
+
+        version.SupportedContractProfiles =
+        [
+            BotArenaVersions.GenericActorContractProfileId,
+        ];
+        await db.SaveChangesAsync();
+
+        ApplicationResult<AdmittedMatchBot> admittedGeneric =
+            await service.AdmitForProfileAsync(
+                ready.Id,
+                owner.Id,
+                BotArenaVersions.GenericActorContractProfileId);
+        Assert.True(admittedGeneric.Succeeded);
+        Assert.Equal(version.Id, admittedGeneric.Value?.Version.Id);
+
+        ApplicationResult<AdmittedMatchBot> explicitGenericOnLegacyPath =
+            await service.AdmitAsync(ready.Id, owner.Id);
+        Assert.False(explicitGenericOnLegacyPath.Succeeded);
+        Assert.Equal(
+            ApplicationErrorCodes.MatchContractProfileRequired,
+            explicitGenericOnLegacyPath.Error?.Code);
     }
 }

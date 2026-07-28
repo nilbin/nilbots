@@ -88,6 +88,17 @@ public class BackgroundJob
         PayloadJson = JsonSerializer.Serialize(new { matchId }),
     };
 
+    public static BackgroundJob ExecuteGenericActorMatch(
+        Guid matchId,
+        string playlistKey,
+        int playlistVersion) => new()
+    {
+        Type = GenericActorMatchJobType.ForPlaylist(
+            playlistKey,
+            playlistVersion),
+        PayloadJson = JsonSerializer.Serialize(new { matchId }),
+    };
+
     public Guid PayloadId(string property) =>
         JsonDocument.Parse(PayloadJson).RootElement.GetProperty(property).GetGuid();
 }

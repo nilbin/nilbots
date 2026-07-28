@@ -26,7 +26,7 @@ try
 {
     return args switch
     {
-        ["new", var name] => NewCommand.Run(name),
+        ["new", var name, .. var rest] => NewCommand.Run(name, rest),
         ["register", .. var rest] => ServerCommands.Register(rest),
         ["login", .. var rest] => ServerCommands.Login(rest),
         ["logout"] => ServerCommands.Logout(),
@@ -39,6 +39,8 @@ try
         ["play", .. var rest] => PlayCommand.Run(rest),
         ["experiment", "frontline", .. var rest] =>
             FrontlineExperimentCommand.Run(rest),
+        ["experiment", "frontline-labs", .. var rest] =>
+            FrontlineLabsExperimentCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -90,7 +92,8 @@ static int Help(int exitCode = 1)
         nilbots CLI (prototype)
 
         Usage:
-          nilbots new <Name>                      create a bot project
+          nilbots new <Name> [--profile duel|generic-actor]
+                                                  create a bot project
           nilbots register [--server url]         create an account + sign in via the browser
                         [--email <a@b.c> --password <pw> [--name <display>]]
                                                   ...or headless, with no browser at all
@@ -126,6 +129,12 @@ static int Help(int exitCode = 1)
                                                   LOCAL EXPERIMENT: replication,
                                                   Anchor/turrets, replay v2;
                                                   never ranked or server-admitted
+          nilbots experiment frontline-labs
+                        --bot <generic-spec> --opponent <generic-spec>
+                        [--seed <n> | --seeds a,b,c] [--swap]
+                        [--runtime wasm|in-process] [--out <dir>] [--open]
+                                                  exact hosted Labs v1 contract,
+                                                  local/quota-free, replay v3
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]
                                                   ranked mirrored set; preserves each game
@@ -141,6 +150,8 @@ static int Help(int exitCode = 1)
         project directory, or a path to a .wasm artifact.
         A Frontline <actor-spec> is an actor built-in (`nilbots help experiment`),
         an IActorBot project directory, or an actor-protocol .wasm artifact.
+        A Labs <generic-spec> is an IGenericActorBot project directory or a
+        generic-actor-profile .wasm artifact; both entrants must be named.
         Defaults: --bot hunter --opponent wander --map basic-01 --seed 42
                   --runtime wasm --rules 0.5
         A `"rules"` field in your project's botarena.json pins the default --rules
@@ -163,8 +174,12 @@ static int CommandHelp(string command)
     string? help = command.ToLowerInvariant() switch
     {
         "new" => """
-            Usage: nilbots new <Name>
-            Creates <Name>/ with Bot.cs, botarena.json, and a portable SDK reference.
+            Usage: nilbots new <Name> [--profile duel|generic-actor]
+            Creates <Name>/ with bot source, botarena.json, a portable SDK
+            reference, and profile-specific authoring instructions.
+
+            duel is the shipped default. generic-actor creates an experimental
+            IGenericActorBot scaffold for `nilbots experiment frontline-labs`.
             """,
         "build" => """
             Usage: nilbots build [dir] [--no-cache]
@@ -202,6 +217,32 @@ static int CommandHelp(string command)
                       seed 42, runtime wasm, rules frontline-alpha-1.
             Use --runtime in-process for fast diagnostic iteration, then confirm
             candidate behavior in the default WASM sandbox.
+
+            Usage: nilbots experiment frontline-labs
+                   --bot <generic-spec> --opponent <generic-spec>
+                   [--seed <n> | --seeds a,b,c] [--swap]
+                   [--capture-threshold <positive-n>]
+                   [--capture-gain-phase <start-tick>:<gain>]
+                   [--mobilize-turrets]
+                   [--remote-fabrication]
+                   [--net-control]
+                   [--runtime wasm|in-process] [--out <dir>] [--open]
+
+            Runs the exact immutable hosted Frontline Labs v1 resolved contract
+            through the generic actor session and writes canonical replay v3,
+            without App authentication, queues, or quotas. It is unranked.
+            --capture-threshold creates a local-only ruleset with a distinct,
+            content-descriptive ruleset ID; it never reinterprets hosted v1.
+            --capture-gain-phase does the same while publishing a deterministic
+            tick-phase schedule that bots can resolve from context.Tick.
+            --mobilize-turrets adds a one-way turret-to-mobile same-life
+            transition under its own local-only ruleset identity.
+            --remote-fabrication lets a Prime explicitly queue a Ready child
+            from any walkable tile while retaining the protected home output.
+            --net-control lets surplus objective weight create capture pressure
+            instead of treating every two-team presence as a complete contest.
+            Both entrants are required; a generic spec is an IGenericActorBot
+            project or a generic-actor-profile WASM artifact.
             """,
         "set" => """
             Usage: nilbots set --bot <spec> --opponent <spec>

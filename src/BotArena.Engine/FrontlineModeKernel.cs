@@ -4,9 +4,9 @@ namespace BotArena.Engine;
 
 /// <summary>
 /// Pure schema-3 Frontline objective, score, and standings kernel. The world
-/// simulation supplies only binary team presence in the active objective;
-/// forms, combat, lifecycle, replication, and fabrication remain reusable
-/// mechanics outside the mode.
+/// simulation supplies positive team objective weights in the active
+/// objective; forms, combat, lifecycle, replication, and fabrication remain
+/// reusable mechanics outside the mode.
 /// </summary>
 public sealed class FrontlineModeKernel
 {
@@ -90,17 +90,39 @@ public sealed class FrontlineModeKernel
     }
 
     /// <summary>
-    /// Applies one post-combat objective update. Presence is a set of scoring
-    /// teams with at least one positive-weight active body in the current
-    /// objective; body count never multiplies pressure.
+    /// Compatibility overload for binary presence. Each supplied team
+    /// contributes one objective-weight unit regardless of body count.
     /// </summary>
     public FrontlineControlStepResult ApplyJointTick(
         FrontlineControlState state,
         int tick,
         IReadOnlyCollection<int> presentTeamIds)
     {
-        ValidateState(state);
         ArgumentNullException.ThrowIfNull(presentTeamIds);
+        int[] presence = [.. presentTeamIds];
+        if (presence.Distinct().Count() != presence.Length)
+        {
+            throw new ArgumentException(
+                "Frontline presence must not repeat a topology team.",
+                nameof(presentTeamIds));
+        }
+        return ApplyJointTick(
+            state,
+            tick,
+            presence.ToDictionary(teamId => teamId, _ => 1));
+    }
+
+    /// <summary>
+    /// Applies one post-combat objective update from the positive objective
+    /// weight currently present for each scoring team.
+    /// </summary>
+    public FrontlineControlStepResult ApplyJointTick(
+        FrontlineControlState state,
+        int tick,
+        IReadOnlyDictionary<int, int> objectiveWeightByTeam)
+    {
+        ValidateState(state);
+        ArgumentNullException.ThrowIfNull(objectiveWeightByTeam);
         if (state.WinnerTeamId is not null)
         {
             throw new InvalidOperationException(
@@ -119,13 +141,12 @@ public sealed class FrontlineModeKernel
                 "Frontline cannot advance beyond the signed 32-bit tick range.");
         }
 
-        int[] presence = [.. presentTeamIds];
-        if (presence.Distinct().Count() != presence.Length
-            || presence.Any(teamId => !_teamIdSet.Contains(teamId)))
+        if (objectiveWeightByTeam.Any(pair =>
+                !_teamIdSet.Contains(pair.Key) || pair.Value <= 0))
         {
             throw new ArgumentException(
-                "Frontline presence must be a unique subset of topology teams.",
-                nameof(presentTeamIds));
+                "Frontline objective weights must be positive and reference only topology teams.",
+                nameof(objectiveWeightByTeam));
         }
 
         if (tick < state.ControlResumesAtTick)
@@ -135,8 +156,14 @@ public sealed class FrontlineModeKernel
                 Transition: null);
         }
 
-        return presence.Length == 1
-            ? ApplySoleControl(state, tick, presence[0])
+        (int? teamId, int pressureMultiplier) =
+            ResolveControl(objectiveWeightByTeam);
+        return teamId is int controllingTeamId
+            ? ApplyControl(
+                state,
+                tick,
+                controllingTeamId,
+                pressureMultiplier)
             : ApplyNonSoleControl(state, tick);
     }
 
@@ -219,14 +246,53 @@ public sealed class FrontlineModeKernel
                 -scores[leftTeamId].CompareTo(scores[rightTeamId]));
     }
 
-    private FrontlineControlStepResult ApplySoleControl(
+    private (int? TeamId, int PressureMultiplier) ResolveControl(
+        IReadOnlyDictionary<int, int> objectiveWeightByTeam)
+    {
+        switch (_gameMode.Capture.ControlPolicy)
+        {
+            case FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral:
+                return objectiveWeightByTeam.Count == 1
+                    ? (objectiveWeightByTeam.Keys.Single(), 1)
+                    : (null, 0);
+            case FrontlineCaptureDefinition.ControlPolicyKind
+                .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral:
+                int firstTeamId = _teamIds[0];
+                int secondTeamId = _teamIds[1];
+                int firstWeight =
+                    objectiveWeightByTeam.GetValueOrDefault(firstTeamId);
+                int secondWeight =
+                    objectiveWeightByTeam.GetValueOrDefault(secondTeamId);
+                if (firstWeight == secondWeight)
+                    return (null, 0);
+                return firstWeight > secondWeight
+                    ? (firstTeamId, checked(firstWeight - secondWeight))
+                    : (secondTeamId, checked(secondWeight - firstWeight));
+            default:
+                throw new InvalidOperationException(
+                    "Unknown Frontline control policy.");
+        }
+    }
+
+    private FrontlineControlStepResult ApplyControl(
         FrontlineControlState state,
         int tick,
-        int teamId)
+        int teamId,
+        int pressureMultiplier)
     {
+        if (pressureMultiplier <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pressureMultiplier));
+        }
         int? claimant = state.ClaimingTeamId;
         int progress = state.CaptureProgress;
-        int gain = _gameMode.Capture.GainPerSoleTeamTick;
+        int gain = checked(
+            _gameMode.Capture
+                .GainPhaseAtTick(tick)
+                .GainPerSoleTeamTick
+            * pressureMultiplier);
 
         if (claimant is null)
         {

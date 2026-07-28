@@ -145,6 +145,107 @@ public sealed class FrontlineModeKernelTests
     }
 
     [Fact]
+    public void CaptureGainPhaseBeginsOnItsDeclaredTick()
+    {
+        FrontlineModeKernel kernel = Kernel(
+            threshold: 20,
+            gain: 1,
+            decayAmount: 0,
+            decayInterval: 0,
+            pause: 0,
+            gainSchedule:
+            [
+                new("opening", startsAtTick: 0, gainPerSoleTeamTick: 1),
+                new("late", startsAtTick: 300, gainPerSoleTeamTick: 2),
+            ]);
+        FrontlineControlState before = kernel.CreateInitialState(299);
+
+        FrontlineControlStepResult opening =
+            kernel.ApplyJointTick(before, tick: 299, [HigherTeam]);
+        FrontlineControlStepResult late =
+            kernel.ApplyJointTick(opening.State, tick: 300, [HigherTeam]);
+
+        Assert.Equal(1, opening.State.CaptureProgress);
+        Assert.Equal(3, late.State.CaptureProgress);
+    }
+
+    [Fact]
+    public void NetControlUsesExactObjectiveWeightSurplus()
+    {
+        FrontlineModeKernel kernel = Kernel(
+            threshold: 10,
+            gain: 1,
+            decayAmount: 1,
+            decayInterval: 2,
+            pause: 0,
+            controlPolicy:
+                FrontlineCaptureDefinition.ControlPolicyKind
+                    .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral);
+        FrontlineControlState state = kernel.CreateInitialState();
+
+        state = kernel.ApplyJointTick(
+            state,
+            tick: 0,
+            new Dictionary<int, int>
+            {
+                [HigherTeam] = 3,
+                [LowerTeam] = 1,
+            }).State;
+        Assert.Equal(HigherTeam, state.ClaimingTeamId);
+        Assert.Equal(2, state.CaptureProgress);
+
+        state = kernel.ApplyJointTick(
+            state,
+            tick: 1,
+            new Dictionary<int, int>
+            {
+                [HigherTeam] = 2,
+                [LowerTeam] = 2,
+            }).State;
+        Assert.Equal(2, state.CaptureProgress);
+        Assert.Equal(1, state.DecayTicksElapsed);
+
+        state = kernel.ApplyJointTick(
+            state,
+            tick: 2,
+            new Dictionary<int, int>
+            {
+                [HigherTeam] = 1,
+                [LowerTeam] = 3,
+            }).State;
+        Assert.Null(state.ClaimingTeamId);
+        Assert.Equal(0, state.CaptureProgress);
+
+        state = kernel.ApplyJointTick(
+            state,
+            tick: 3,
+            new Dictionary<int, int>
+            {
+                [LowerTeam] = 3,
+            }).State;
+        Assert.Equal(LowerTeam, state.ClaimingTeamId);
+        Assert.Equal(3, state.CaptureProgress);
+    }
+
+    [Fact]
+    public void BinaryControlIgnoresWeightSurplus()
+    {
+        FrontlineModeKernel kernel = Kernel();
+
+        FrontlineControlState state = kernel.ApplyJointTick(
+            kernel.CreateInitialState(),
+            tick: 0,
+            new Dictionary<int, int>
+            {
+                [HigherTeam] = 3,
+                [LowerTeam] = 1,
+            }).State;
+
+        Assert.Null(state.ClaimingTeamId);
+        Assert.Equal(0, state.CaptureProgress);
+    }
+
+    [Fact]
     public void EdgeCaptureBreachesAndProducesCanonicalStandings()
     {
         FrontlineModeKernel kernel = Kernel(
@@ -263,15 +364,22 @@ public sealed class FrontlineModeKernelTests
         int gain = 2,
         int decayAmount = 1,
         int decayInterval = 2,
-        int pause = 0) =>
+        int pause = 0,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            gainSchedule = null,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral) =>
         new(
             Topology(),
             Mode(
                 threshold,
                 gain,
                 decayAmount,
-                decayInterval,
-                pause),
+                  decayInterval,
+                  pause,
+                  gainSchedule,
+                  controlPolicy),
             new FrontlineActorModeMapBindingDefinition(
                 ObjectiveIds(),
                 [
@@ -303,7 +411,12 @@ public sealed class FrontlineModeKernelTests
         int gain = 2,
         int decayAmount = 1,
         int decayInterval = 2,
-        int pause = 0) =>
+        int pause = 0,
+        IEnumerable<FrontlineCaptureGainPhaseDefinition>?
+            gainSchedule = null,
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
+            FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral) =>
         new(
             new FrontlineVictoryDefinition(
                 pushesToBreach: 3,
@@ -323,8 +436,10 @@ public sealed class FrontlineModeKernelTests
                 threshold,
                 gain,
                 decayAmount,
-                decayInterval,
-                pause));
+                  decayInterval,
+                  pause,
+                  gainSchedule,
+                  controlPolicy));
 
     private static string[] ObjectiveIds() =>
         ["front-0", "front-1", "front-2", "front-3", "front-4"];

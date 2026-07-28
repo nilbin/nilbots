@@ -43,7 +43,7 @@ self-hosted development.
 
 ## Local Frontline experiment
 
-CLI 0.8.0 retains the explicitly separate, unranked Frontline authoring loop:
+CLI 0.9.4 includes the explicitly separate, unranked Frontline authoring loop:
 
 ```bash
 nilbots experiment frontline \
@@ -63,5 +63,63 @@ This is not an alias for `play`: it cannot rank, submit, or enter a server
 match, and `frontline-alpha-1` is absent from shipped rules and map catalogs.
 See `nilbots help experiment` and the packaged
 `docs/EXPERIMENTAL-FRONTLINE.md` contract.
+
+## Local Frontline Labs v1
+
+Create generic actor projects separately from shipped Duel bots:
+
+```bash
+nilbots new LabsBot --profile generic-actor
+nilbots new Rival --profile generic-actor
+nilbots experiment frontline-labs \
+  --bot LabsBot \
+  --opponent Rival \
+  --runtime in-process \
+  --seeds 104729,130363,155921
+```
+
+This command runs the exact immutable hosted `frontline-labs-1` resolved
+contract through `GenericActorMatchSession`, then writes canonical replay v3.
+It bypasses App accounts, queues, and pilot quotas and remains local and
+unranked. Both entrants are required: a generic spec is an
+`IGenericActorBot` project or generic-profile WASM artifact, and no generic
+built-in opponent exists. Use `--swap` for the other team assignment.
+
+For a registered local numeric arm, `--capture-threshold <positive-n>` creates
+a distinct ruleset such as
+`frontline-labs-1-experiment-capture-12`. Its changed rules and match
+fingerprints are embedded in replay v3; the option never changes or aliases
+hosted `frontline-labs-1`.
+
+For a phased pacing arm, `--capture-gain-phase 300:2` retains gain 1 through
+tick 299 and uses gain 2 from tick 300. The complete ordered `gainSchedule` is
+embedded in the contract, gets a distinct ruleset/fingerprint identity, and is
+available to bots through
+`frontlineMode.Capture.GainPhaseAtTick(context.Tick)`.
+
+For the action-contract arm, `--mobilize-turrets` adds the declared
+`mobilize` action and a one-way `turret -> child-mobile` same-life transition.
+It uses ruleset `frontline-labs-1-experiment-mobilize`; health and combat state
+are preserved and capped to the mobile form, while that life cannot Anchor
+again after Mobilize.
+
+For the fabrication-transport arm, `--remote-fabrication` keeps Fabricate an
+explicit Prime action and keeps child output on the protected home pad, but
+allows the Prime to queue a Ready child from any walkable tile. It uses
+ruleset `frontline-labs-1-experiment-remote-fabrication` and a distinct
+experiment map identity because the resolved map publishes the all-floor
+source region. This removes the commute without silently converting an
+authored action into a system spawn.
+
+For the objective-control arm, `--net-control` keeps form objective weights,
+capture threshold, decay, map, and lifecycle rules fixed. Equal team weight
+still contests the objective, while a positive weight surplus applies capture
+gain multiplied by that surplus. It uses the distinct ruleset
+`frontline-labs-1-experiment-net-control`.
+
+Iterate in-process, then build both projects and repeat in the default WASM
+runtime before treating results as evidence. `nilbots verify <replay.json>`
+cryptographically verifies replay v3, including its exact embedded contract
+fingerprints and payload hash.
 
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

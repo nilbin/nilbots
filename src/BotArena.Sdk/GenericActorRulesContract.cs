@@ -267,7 +267,10 @@ public sealed class GenericActorRulesContract
 
     /// <summary>Frontline control, capture, decay, and redeploy mechanics.</summary>
     /// <param name="Threshold">Progress required to capture one objective.</param>
-    /// <param name="GainPerSoleTeamTick">Progress gained by sole control per tick.</param>
+    /// <param name="GainPerSoleTeamTick">
+    /// Base progress gained per control-pressure unit and tick. The declared
+    /// control policy defines whether pressure is binary or weight-scaled.
+    /// </param>
     /// <param name="DecayAmount">Progress removed at each decay application.</param>
     /// <param name="DecayIntervalTicks">Ticks between decay applications.</param>
     /// <param name="RedeployPauseTicks">Pause after an objective advance.</param>
@@ -298,7 +301,58 @@ public sealed class GenericActorRulesContract
         string DecayClock,
         string DisabledDecay,
         string RedeployPolicy,
-        string RedeployTickArithmetic);
+        string RedeployTickArithmetic)
+    {
+        /// <summary>
+        /// Optional full capture-gain schedule. An empty array means the
+        /// static <see cref="GainPerSoleTeamTick"/> applies for every tick.
+        /// </summary>
+        public ImmutableArray<FrontlineCaptureGainPhase> GainSchedule
+        {
+            get;
+            init;
+        } = [];
+
+        /// <summary>
+        /// Resolves the active phase from the authoritative observation tick.
+        /// Static rulesets return a synthetic <c>default</c> phase.
+        /// </summary>
+        public FrontlineCaptureGainPhase GainPhaseAtTick(int tick)
+        {
+            if (tick < 0)
+                throw new ArgumentOutOfRangeException(nameof(tick));
+            if (GainSchedule.IsDefaultOrEmpty)
+            {
+                return new FrontlineCaptureGainPhase(
+                    "default",
+                    StartsAtTick: 0,
+                    GainPerSoleTeamTick);
+            }
+
+            FrontlineCaptureGainPhase active = GainSchedule[0];
+            foreach (FrontlineCaptureGainPhase phase in GainSchedule)
+            {
+                if (phase.StartsAtTick > tick)
+                    break;
+                active = phase;
+            }
+            return active;
+        }
+    }
+
+    /// <summary>
+    /// One deterministic capture-gain phase, ordered by
+    /// <see cref="StartsAtTick"/>.
+    /// </summary>
+    /// <param name="PhaseId">Stable semantic phase identifier.</param>
+    /// <param name="StartsAtTick">First authoritative tick in this phase.</param>
+    /// <param name="GainPerSoleTeamTick">
+    /// Base control-pressure gain during the phase.
+    /// </param>
+    public sealed record FrontlineCaptureGainPhase(
+        string PhaseId,
+        int StartsAtTick,
+        int GainPerSoleTeamTick);
 
     /// <summary>
     /// Lifecycle profiles plus global destruction, return, generation, and

@@ -1,0 +1,10 @@
+{
+  "name": "Frontline Labs Fabricate Anchor Fire Calibration Probe",
+  "entryType": "FabricateAnchorFireProbe",
+  "sdkVersion": "0.10.2",
+  "appearance": {
+    "accent": "#a855f7",
+    "look": "sentinel",
+    "projectile": "plasma-orb"
+  }
+}

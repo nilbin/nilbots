@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "Pressure",
+  "cohort": "competence-v1-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "fundamentalsPass": "equal contract-generic fabricate, dodge, and direct-fire fundamentals",
+  "sourceSha256": "12007edfb4ad6d7ea2c2a62b41ba02166d962ca6eb8c94e41ec849b9570dce18",
+  "sharedFundamentalsSha256": "602b8d4450d8651fe7e6182fce074402b1c5f7dd5e2fe38d7be6135f5f3a5c43",
+  "artifactSha256": "8e5eb4875a13316ba3504d591aa4fd50c02f7fd616728dd7726fb0a68b84bbd2",
+  "sdkVersion": "0.10.3"
+}

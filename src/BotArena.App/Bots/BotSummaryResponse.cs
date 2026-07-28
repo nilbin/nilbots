@@ -31,7 +31,11 @@ public sealed record BotSummaryResponse(
 public sealed record BotLadderRatingResponse(string RulesVersion, double Rating, int RankedSets);
 
 /// <summary>The built version currently fighting for a bot, absent until one builds.</summary>
-public sealed record BotActiveVersionResponse(Guid Id, int VersionNumber, string? ArtifactHash);
+public sealed record BotActiveVersionResponse(
+    Guid Id,
+    int VersionNumber,
+    string? ArtifactHash,
+    IReadOnlyList<string>? SupportedContractProfiles);
 
 /// <summary>
 /// A bot owned by the caller. Deliberately narrower than <see cref="BotSummaryResponse"/>:

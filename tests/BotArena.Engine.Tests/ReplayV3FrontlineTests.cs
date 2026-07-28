@@ -336,6 +336,16 @@ public sealed class ReplayV3FrontlineTests
             "BotArena.Engine.Tests",
             "Fixtures",
             FixtureName);
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("UPDATE_GOLDEN"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            File.WriteAllText(
+                path,
+                actual + "\n",
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        }
 
         Assert.True(
             File.Exists(path),

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using BotArena.App.Competition;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
 
@@ -13,6 +14,7 @@ public sealed class JobWorker(
     IServiceScopeFactory scopeFactory,
     ApplicationMode mode,
     MatchExecutionSettings matchSettings,
+    HostedGenericMatchDefinitionRegistry genericDefinitions,
     ILogger<JobWorker> logger)
     : BackgroundService
 {
@@ -21,17 +23,33 @@ public sealed class JobWorker(
         ReadEnv("BOTARENA_COMPILE_WORKERS", fallback: 1, min: 1, max: 8);
     private static readonly int MatchWorkers =
         ReadEnv("BOTARENA_MATCH_WORKERS", fallback: 1, min: 1, max: 8);
+    private static readonly int GenericMatchWorkers =
+        ReadEnv(
+            "BOTARENA_GENERIC_MATCH_WORKERS",
+            fallback: 1,
+            min: 1,
+            max: 4);
     private readonly string workerId = ResolveWorkerId();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         int matchWorkers = mode.RunsMatchWorker ? MatchWorkers : 0;
+        int genericMatchWorkers =
+            mode.RunsMatchWorker ? GenericMatchWorkers : 0;
         int compileWorkers = mode.RunsCompileWorker ? CompileWorkers : 0;
+        if (genericMatchWorkers > 0 &&
+            genericDefinitions.ExecutionJobTypes.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "The generic match worker has no registered execution " +
+                "capabilities.");
+        }
         logger.LogInformation(
-            "Job worker {WorkerId} started in {Role} role: match={MatchWorkers}, compile={CompileWorkers}, broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
+            "Job worker {WorkerId} started in {Role} role: match={MatchWorkers}, generic-match={GenericMatchWorkers}, compile={CompileWorkers}, broadcast {Tps} ticks/s + {Delay}s countdown, rules {Rules}",
             workerId,
             mode.Name,
             matchWorkers,
+            genericMatchWorkers,
             compileWorkers,
             matchSettings.BroadcastTicksPerSecond,
             matchSettings.BroadcastDelaySeconds,
@@ -40,6 +58,14 @@ public sealed class JobWorker(
         List<Task> lanes = [];
         for (int index = 0; index < matchWorkers; index++)
             lanes.Add(RunLane(BackgroundJob.ExecuteMatchType, stoppingToken));
+        for (int index = 0; index < genericMatchWorkers; index++)
+        {
+            lanes.Add(
+                RunLane(
+                    "generic-match",
+                    genericDefinitions.ExecutionJobTypes,
+                    stoppingToken));
+        }
         for (int index = 0; index < compileWorkers; index++)
             lanes.Add(RunLane(BackgroundJob.CompileSubmissionType, stoppingToken));
         // Announcements ride with match execution: they are the tail of a match, and a
@@ -62,8 +88,17 @@ public sealed class JobWorker(
         await Task.WhenAll(lanes);
     }
 
-    private async Task RunLane(
+    private Task RunLane(
         string jobType,
+        CancellationToken stoppingToken) =>
+        RunLane(
+            jobType,
+            [jobType],
+            stoppingToken);
+
+    private async Task RunLane(
+        string laneName,
+        IReadOnlyCollection<string> jobTypes,
         CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -71,7 +106,7 @@ public sealed class JobWorker(
             bool didWork = false;
             try
             {
-                didWork = await RunOneJobAsync(jobType, stoppingToken);
+                didWork = await RunOneJobAsync(jobTypes, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -81,8 +116,8 @@ public sealed class JobWorker(
             {
                 logger.LogError(
                     exception,
-                    "Job lane ({Type}) iteration failed",
-                    jobType);
+                    "Job lane ({Lane}) iteration failed",
+                    laneName);
             }
 
             if (!didWork)
@@ -100,14 +135,14 @@ public sealed class JobWorker(
     }
 
     private async Task<bool> RunOneJobAsync(
-        string jobType,
+        IReadOnlyCollection<string> jobTypes,
         CancellationToken cancellationToken)
     {
         using IServiceScope scope = scopeFactory.CreateScope();
         BackgroundJobLeaseStore leases =
             scope.ServiceProvider.GetRequiredService<BackgroundJobLeaseStore>();
-        BackgroundJob? job = await leases.ClaimAsync(
-            jobType,
+        BackgroundJob? job = await leases.ClaimAnyAsync(
+            jobTypes,
             workerId,
             cancellationToken);
         if (job is null)
@@ -168,11 +203,9 @@ public sealed class JobWorker(
                 "Job {JobId} ({Type}) failed",
                 job.Id,
                 job.Type);
-            JobFailureOutcome failure = await leases.FailAsync(
+            JobFailureOutcome failure = await FailJobAsync(
                 job,
-                workerId,
-                exception,
-                CancellationToken.None);
+                exception);
             outcome = failure switch
             {
                 JobFailureOutcome.RetryScheduled => "retry_scheduled",
@@ -189,6 +222,24 @@ public sealed class JobWorker(
             activity?.SetTag("application.outcome", outcome);
         }
         return true;
+    }
+
+    private async Task<JobFailureOutcome> FailJobAsync(
+        BackgroundJob job,
+        Exception exception)
+    {
+        // Domain execution may have left its scoped DbContext unusable after
+        // a database exception. Queue failure and any terminal match
+        // transition therefore use a fresh scope and transaction.
+        using IServiceScope scope = scopeFactory.CreateScope();
+        BackgroundJobLeaseStore leases =
+            scope.ServiceProvider
+                .GetRequiredService<BackgroundJobLeaseStore>();
+        return await leases.FailAsync(
+            job,
+            workerId,
+            exception,
+            CancellationToken.None);
     }
 
     private async Task KeepLeaseAsync(

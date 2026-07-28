@@ -1,0 +1,251 @@
+# Frontline Labs v1 bot contract
+
+Status: player-facing rule card for immutable playlist `frontline-labs`,
+version 1. It is experimental, setless, and unranked. This document describes
+`frontline-labs-1`; it does not describe the older `frontline-alpha-1`
+`IActorBot` experiment or shipped Duel.
+
+The exact schema-2 resolved match contract delivered to
+`IGenericActorBot.StartLife` and embedded in replay v3 is authoritative. Bots
+should discover catalog entries, counts, map geometry, and legality from that
+contract instead of turning the current values below into structural
+assumptions.
+
+## Objective and ending
+
+Two teams contest one active objective along five ordered Frontline positions.
+The match starts at the centre position.
+
+- Sole mobile presence builds capture progress by 1 per tick.
+- Empty or contested control decays existing progress by 1 every 2 ticks.
+- Stacking multiple allied bodies does not accelerate capture.
+- A capture completes at 15 progress and advances the Frontline one position
+  toward the opponent.
+- After an advance, capture pauses for 5 ticks before the new active position
+  can progress.
+- Three advances in one direction breach the opposing base and win
+  immediately.
+- The match executes at most 500 ticks.
+
+An early breach is a complete win. Fabrication, Split, and Anchor are options
+for games that remain close, not phases every match must reach.
+
+At the tick cap, teams are ranked by signed territorial progress: displacement
+from the centre multiplied by the capture threshold, plus current capture
+progress signed toward the controlling team's advance direction. Health,
+damage, body count, and kills do not break a territorial tie.
+
+## Current topology and lifecycle
+
+Playlist v1 has two submitted participants, one per team. Each team has three
+stable unit slots:
+
+- unit 0 starts active as one `prime-mobile`;
+- unit 1 unlocks at tick 120;
+- unit 2 unlocks at tick 260.
+
+The Prime returns automatically 18 complete absent-decision ticks after
+destruction. An unlocked child slot becomes Ready rather than spawning
+automatically. A destroyed child becomes Ready again after 30 complete
+absent-decision ticks and must be fabricated explicitly.
+
+These are values, not array-shape guarantees. The contract separately declares
+teams, participants, unit slots, initial lives, lifecycle assignments, and
+their participant ownership.
+
+## Forms
+
+All mobile forms have 3 maximum health, ground movement, objective weight 1,
+range-6 mobile vision, and the same mobile projectile profile.
+
+| Form | How it appears | Available capability |
+| --- | --- | --- |
+| `prime-mobile` | initial life or automatic Prime return | move, rotate, shoot, Fabricate, Split |
+| `child-mobile` | explicit Fabricate completion | move, rotate, shoot, Anchor |
+| `replica-mobile` | Split completion | move, rotate, shoot |
+| `turret` | same-life Anchor completion | wait or absolute-heading turret fire |
+
+The turret has 5 maximum health, objective weight 0, no movement or rotation,
+range-6 omnidirectional vision, 360-degree firing, and a faster attack
+cooldown. It cannot capture or contest an objective.
+
+Current mobile vision is a facing quadrant plus omnidirectional proximity 1.
+Turret vision is fully omnidirectional. Allied perception is an immediate
+union: every life receives current allied body state and the union of what
+declared allied sensors see, including `observedBy` provenance for enemies.
+Hearing has radius 8 for attacks, damage, and destruction.
+
+## Actions
+
+Every decision pairs the stable action ID with the numeric code from that
+tick's `GenericActorActionLegality`. The current stable IDs are:
+
+- `wait`;
+- `move`, with an absolute cardinal `Direction`;
+- `rotate`, with an absolute cardinal `Direction`;
+- `shoot`, with an optional mobile `ShotProgram`;
+- `fabricate`, with one stable team/unit target;
+- `split`;
+- `transform`, with a form target;
+- `shoot-direction`, with one absolute eight-way projectile heading.
+
+Availability and typed constraints are authoritative. An action may be absent
+from a future form or contract. `Available` includes source-local and stable
+slot prerequisites: for example, Fabricate is unavailable away from its
+declared source region, and Split is unavailable without enough health and
+compatible Ready slots. It deliberately cannot promise the result of
+simultaneous physical resolution. Another body's move or lifecycle claim can
+still make an individually available action succeed or block.
+
+Mobile shots deal 1 damage, have cooldown 2, travel at most 8 tiles, and
+advance 2 tiles per projectile tick after a one-tile launch. The default
+program fires straight forward. An optional program may offset initial aim by
+one 45-degree sector and bend left or right after 1–4 tiles, every 1–3 tiles,
+for 1–3 bends. Strict diagonal corners apply.
+
+Turret shots deal the same damage and use the same range/travel cadence, but
+have cooldown 1, choose an absolute eight-way heading, and cannot curve.
+
+Damage is simultaneous. Actors and walls block actors; allied actors also
+block movement. Same-destination moves all block, swaps block, following a
+vacated actor blocks, and projectiles block movement. Moving onto a projectile
+causes a hit. Walls consume projectiles. Allied projectiles pass through
+allies; enemy projectiles stop on the first enemy actor. Projectiles do not
+collide with each other.
+
+## Fabricate
+
+Only a `prime-mobile` on its own protected home pad may Fabricate. The action
+targets one own child slot that is currently Ready.
+
+A successful action reserves the first legal free pad tile within the
+contract's bounded placement offsets and creates a fresh `child-mobile` life
+at the next tick start, facing the team's authored home direction. Placement
+is evaluated after movement, so a same-tick vacancy can allow an attempt that
+was initially crowded. A full pad blocks the attempt.
+
+The authored Prime spawn remains reserved against own child movement. Enemy
+ground units cannot enter the opposing protected pad, but protected does not
+mean immune to projectiles or damage.
+
+## Split
+
+Only an eligible generation-0 `prime-mobile` that has not previously changed
+form may Split. Playlist v1 retires the source life and creates two fresh
+`replica-mobile` descendants in reserved legal cardinal placements.
+
+The source's current health is divided equally with floor rounding and a
+minimum of 1 per descendant; any remainder is discarded. Thus a full-health
+3-HP Prime produces two 1-HP replicas. Descendants have independent fresh
+runtime instances and private memory. Their `StartLife.Origin` identifies the
+source life, transition, shared operation, and generation.
+
+Split has a one-tick windup. The legality mask exposes source health/state and
+whether enough compatible Ready slots exist. Placement and cross-operation
+claims resolve jointly after movement, so an available Split may still block.
+Replicas cannot Fabricate, Split again, or Anchor.
+
+## Anchor
+
+Only a fabricated `child-mobile` may submit `transform` targeting `turret`.
+Anchor is illegal on every contract-tagged transition-forbidden tile,
+including all objective and protected-pad tiles.
+
+Anchor consumes the tick and has a one-tick windup. During the windup the life
+remains a targetable, tile-occupying mobile child, still contributes objective
+weight, and may only wait. Lethal damage cancels the transition; nonlethal
+damage does not.
+
+Completion is irreversible for that life. It preserves exact actor identity,
+runtime/private memory, position, facing, cooldown, energy, and accumulated
+damage. Health becomes:
+
+```text
+min(5, current health + 2)
+```
+
+Because the Prime always returns automatically and turrets have objective
+weight zero, two turrets do not by themselves create a rules-level terminal
+deadlock. Poor positioning can still produce long passive stretches, which
+the balance cohort measures explicitly.
+
+## Map
+
+`frontline-labs-01` is 23 by 15 tiles. Coordinates start at `(0,0)` in the
+top-left; x grows east and y grows south. `#` is a wall:
+
+```text
+#######################
+#.....................#
+#..##.....#.#.....##..#
+#.........#.#.........#
+#...#......#......#...#
+#....#.....#.....#....#
+#....#..##...##..#....#
+#.....................#
+#....#..##...##..#....#
+#....#.....#.....#....#
+#....#.....#.....#....#
+#.........#.#.........#
+#..##.....#.#.....##..#
+#.....................#
+#######################
+```
+
+The initial Prime spawns are `(2,7)` facing east and `(20,7)` facing west.
+The ordered objective regions are:
+
+```text
+position 0: (3,8) (4,8) (3,9) (4,9)
+position 1: (6,5) (7,5) (6,6) (7,6)
+position 2: (10,7) (11,7) (12,7) (10,8) (11,8) (12,8)
+position 3: (15,5) (16,5) (15,6) (16,6)
+position 4: (18,8) (19,8) (18,9) (19,9)
+```
+
+Each home pad is a six-tile region around its Prime spawn. The complete
+protected and transition-forbidden tile sets are delivered as map tags; use
+those tags rather than copying their coordinates.
+
+## Runtime, memory, and determinism
+
+One submitted artifact controls all of a participant's body lives, but each
+active life receives its own isolated bot instance, deterministic random
+stream, and private memory.
+
+- A same-life form change preserves private memory.
+- Destruction disposes the instance.
+- Prime return, Fabricate, and Split create fresh instances.
+- Fresh lives do not inherit private fields from a parent.
+- `StartLife.Origin` and current allied observations let code assign roles
+  without hidden shared state.
+
+Observations are frozen before any same-tick decisions execute. A life never
+sees an ally's current action. Use only the delivered contract, observation,
+and `context.Random`; wall clocks, ambient entropy, file/network access,
+threads, and environment state are outside the deterministic sandbox contract.
+
+The default final authoring check is:
+
+```bash
+nilbots build <project>
+nilbots experiment frontline-labs \
+  --bot <project>/out/bot.wasm \
+  --opponent <other>/out/bot.wasm \
+  --seed 104729
+nilbots verify <replay.json>
+```
+
+Use in-process execution only for fast mechanical diagnosis. Frozen cohort
+outcomes use the controlled WASM runtime.
+
+### Local candidate contracts
+
+The CLI may expose separately identified local experiments without changing
+this hosted v1 contract. `--capture-threshold`, `--capture-gain-phase`, and
+`--mobilize-turrets` each produce a content-descriptive experimental ruleset
+and new fingerprints embedded in replay v3. In the Mobilize arm, a turret can
+return to `child-mobile` with the same actor/runtime memory and capped health,
+then cannot Anchor again during that life. That arm proved the generic
+same-life transition architecture but failed its initial pacing gate; it is
+not a hosted v1 rule.

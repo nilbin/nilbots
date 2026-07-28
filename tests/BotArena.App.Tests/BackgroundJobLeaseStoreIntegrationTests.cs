@@ -1,6 +1,7 @@
 using BotArena.App.Jobs;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
+using Matches = BotArena.App.Matches;
 
 namespace BotArena.App.Tests;
 
@@ -103,5 +104,206 @@ public sealed class BackgroundJobLeaseStoreIntegrationTests
         Assert.Null(stored.LockedBy);
         Assert.Null(stored.LockedUntil);
         Assert.Equal("injected finally", stored.LastError);
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task GenericActorWorkIsInvisibleToLegacyMatchLane()
+    {
+        await using var database =
+            await PostgreSqlDatabaseFixture.CreateAsync();
+        Guid matchId = Guid.NewGuid();
+        await using (AppDbContext seed =
+                     await database.CreateMigratedContextAsync())
+        {
+            BackgroundJob job =
+                BackgroundJob.ExecuteGenericActorMatch(
+                    matchId,
+                    "frontline-labs",
+                    1);
+            job.AvailableAt = DateTime.UnixEpoch;
+            seed.BackgroundJobs.Add(job);
+            await seed.SaveChangesAsync();
+        }
+
+        await using AppDbContext db = database.CreateContext();
+        var leases = new BackgroundJobLeaseStore(
+            db,
+            new FixedTimeProvider(QueueNow));
+        Assert.Null(await leases.ClaimAsync(
+            BackgroundJob.ExecuteMatchType,
+            "legacy-worker",
+            CancellationToken.None));
+
+        BackgroundJob claimed = Assert.IsType<BackgroundJob>(
+            await leases.ClaimAsync(
+                GenericActorMatchJobType.ForPlaylist(
+                    "frontline-labs",
+                    1),
+                "generic-worker",
+                CancellationToken.None));
+        Assert.Equal(matchId, claimed.PayloadId("matchId"));
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task GenericClaimsOnlyConsumeDefinitionsAdvertisedByWorker()
+    {
+        await using var database =
+            await PostgreSqlDatabaseFixture.CreateAsync();
+        string currentType = GenericActorMatchJobType.ForPlaylist(
+            "frontline-labs",
+            1);
+        string futureType = GenericActorMatchJobType.ForPlaylist(
+            "deathmatch-labs",
+            1);
+        await using (AppDbContext seed =
+                     await database.CreateMigratedContextAsync())
+        {
+            BackgroundJob future =
+                BackgroundJob.ExecuteGenericActorMatch(
+                    Guid.NewGuid(),
+                    "deathmatch-labs",
+                    1);
+            future.AvailableAt = DateTime.UnixEpoch;
+            BackgroundJob current =
+                BackgroundJob.ExecuteGenericActorMatch(
+                    Guid.NewGuid(),
+                    "frontline-labs",
+                    1);
+            current.AvailableAt = DateTime.UnixEpoch;
+            seed.BackgroundJobs.AddRange(future, current);
+            await seed.SaveChangesAsync();
+        }
+
+        await using (AppDbContext oldWorkerDb =
+                     database.CreateContext())
+        {
+            var oldWorker = new BackgroundJobLeaseStore(
+                oldWorkerDb,
+                new FixedTimeProvider(QueueNow));
+            BackgroundJob current = Assert.IsType<BackgroundJob>(
+                await oldWorker.ClaimAnyAsync(
+                    [currentType],
+                    "old-generic-worker",
+                    CancellationToken.None));
+            Assert.Equal(currentType, current.Type);
+        }
+
+        await using (AppDbContext verifyOldWorker =
+                     database.CreateContext())
+        {
+            BackgroundJob future =
+                await verifyOldWorker.BackgroundJobs.SingleAsync(
+                    job => job.Type == futureType);
+            Assert.Equal(JobStatus.Pending, future.Status);
+            Assert.Equal(0, future.Attempts);
+        }
+
+        await using (AppDbContext newWorkerDb =
+                     database.CreateContext())
+        {
+            var newWorker = new BackgroundJobLeaseStore(
+                newWorkerDb,
+                new FixedTimeProvider(QueueNow));
+            BackgroundJob future = Assert.IsType<BackgroundJob>(
+                await newWorker.ClaimAnyAsync(
+                    [currentType, futureType],
+                    "new-generic-worker",
+                    CancellationToken.None));
+            Assert.Equal(futureType, future.Type);
+        }
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task TerminalGenericFailureAtomicallyFailsJobAndMatch()
+    {
+        await using var database =
+            await PostgreSqlDatabaseFixture.CreateAsync();
+        Guid matchId;
+        await using (AppDbContext seed =
+                     await database.CreateMigratedContextAsync())
+        {
+            var match = new Matches.Match
+            {
+                MapId = "generic-failure-test",
+                Seed = 1,
+                Status = Matches.MatchStatus.Running,
+            };
+            BackgroundJob job =
+                BackgroundJob.ExecuteGenericActorMatch(
+                    match.Id,
+                    "frontline-labs",
+                    1);
+            job.AvailableAt = DateTime.UnixEpoch;
+            seed.AddRange(match, job);
+            await seed.SaveChangesAsync();
+            matchId = match.Id;
+        }
+
+        for (int attempt = 1;
+             attempt <= BackgroundJobLeaseStore.MaxAttempts;
+             attempt++)
+        {
+            await using AppDbContext db = database.CreateContext();
+            var leases = new BackgroundJobLeaseStore(
+                db,
+                new FixedTimeProvider(QueueNow));
+            BackgroundJob claimed = Assert.IsType<BackgroundJob>(
+                await leases.ClaimAsync(
+                    GenericActorMatchJobType.ForPlaylist(
+                        "frontline-labs",
+                        1),
+                    "generic-failure-worker",
+                    CancellationToken.None));
+            JobFailureOutcome outcome = await leases.FailAsync(
+                claimed,
+                "generic-failure-worker",
+                new InvalidOperationException(
+                    $"generic failure {attempt}"),
+                CancellationToken.None);
+            Assert.Equal(
+                attempt < BackgroundJobLeaseStore.MaxAttempts
+                    ? JobFailureOutcome.RetryScheduled
+                    : JobFailureOutcome.TerminalFailure,
+                outcome);
+
+            await using AppDbContext verifyAttempt =
+                database.CreateContext();
+            Matches.Match storedMatch =
+                await verifyAttempt.Matches.SingleAsync(
+                    match => match.Id == matchId);
+            if (attempt <
+                BackgroundJobLeaseStore.MaxAttempts)
+            {
+                Assert.Equal(
+                    Matches.MatchStatus.Running,
+                    storedMatch.Status);
+                Assert.Null(storedMatch.Error);
+                Assert.Null(storedMatch.CompletedAt);
+            }
+            else
+            {
+                Assert.Equal(
+                    Matches.MatchStatus.Failed,
+                    storedMatch.Status);
+                Assert.Equal(
+                    $"generic failure {attempt}",
+                    storedMatch.Error);
+                Assert.NotNull(storedMatch.CompletedAt);
+            }
+        }
+
+        await using AppDbContext verify = database.CreateContext();
+        BackgroundJob storedJob =
+            await verify.BackgroundJobs.SingleAsync();
+        Assert.Equal(JobStatus.Failed, storedJob.Status);
+        Assert.Equal(
+            BackgroundJobLeaseStore.MaxAttempts,
+            storedJob.Attempts);
+        Assert.Equal(
+            $"generic failure {BackgroundJobLeaseStore.MaxAttempts}",
+            storedJob.LastError);
     }
 }

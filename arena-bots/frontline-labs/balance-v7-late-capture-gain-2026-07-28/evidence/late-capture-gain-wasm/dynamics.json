@@ -1,0 +1,2187 @@
+{
+  "evidenceClass": "descriptive-replay-dynamics; not causal or product verdict",
+  "groups": [
+    {
+      "activity": {
+        "activeShare": 0.8050145047658517,
+        "activeTicks": 3885,
+        "gamesFirstInteractionAfterTick120": 0,
+        "gamesWithNoInteractionRunAtLeast75": 4,
+        "gamesWithTurretDeadlockRunAtLeast60": 0,
+        "loopedGames": 6,
+        "maxBothTurretNoProgressRunTicks": 0,
+        "maxNoInteractionRunTicks": 88,
+        "medianFirstMeaningfulInteractionTick": 0.0,
+        "medianLongRunDecisionShare": 0.693140781752356,
+        "medianNormalizedActionFamilyEntropy": 0.5894258768373462,
+        "stagnantShare": 0.19498549523414838,
+        "stagnantTicks": 941,
+        "stalledGames": 6
+      },
+      "cohort": {
+        "artifactHashes": [
+          "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+          "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+          "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+          "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87"
+        ],
+        "contractProfiles": [
+          "generic-actor-match-2"
+        ],
+        "mapIds": [
+          "frontline-labs-01"
+        ],
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": [
+          "frontline-labs-1-experiment-gain-t300-2"
+        ],
+        "runtimeClasses": [
+          "wasm"
+        ]
+      },
+      "combat": {
+        "attacks": 1314,
+        "damageAmount": 720,
+        "destructions": 229,
+        "gamesWithDamage": 12,
+        "multiDamageTickGames": 12,
+        "reciprocalDamageGames": 12
+      },
+      "completionReasons": {
+        "base-breach": 8,
+        "max-ticks": 4
+      },
+      "drawRate": 0.08333333333333333,
+      "duration": {
+        "maxTicks": 500,
+        "medianSeconds": 83.3,
+        "medianTicks": 416.5,
+        "p10Ticks": 305,
+        "p90Seconds": 100.0,
+        "p90Ticks": 500
+      },
+      "matches": 12,
+      "mechanics": {
+        "anchor": {
+          "attempts": 10,
+          "cancellations": 0,
+          "completions": 10,
+          "successfulActions": 10,
+          "targetFormActorTicks": 1667
+        },
+        "fabrication": {
+          "attempts": 83,
+          "cancellations": 0,
+          "completions": 83,
+          "successfulActions": 83,
+          "targetFormActorTicks": 3356
+        },
+        "split": {
+          "attempts": 3,
+          "cancellations": 1,
+          "completions": 2,
+          "successfulActions": 3,
+          "targetFormActorTicks": 29
+        }
+      },
+      "name": "current",
+      "objective": {
+        "contestedTicks": 994,
+        "contestedToSoleTransitions": 72,
+        "pushDirectionReversals": 57,
+        "pushes": 111,
+        "scoreLeadChanges": 43,
+        "soleControlTicks": 1919
+      },
+      "outcomes": {
+        "draw": 1,
+        "team-0": 6,
+        "team-1": 5
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      }
+    }
+  ],
+  "matches": [
+    {
+      "actions": {
+        "families": {
+          "attack": 137,
+          "fabrication": 5,
+          "movement": 392,
+          "replication": 1,
+          "rotation": 29,
+          "same-life-transition": 1,
+          "wait": 614
+        },
+        "longRunDecisionShare": 0.7175572519083969,
+        "normalizedFamilyEntropy": 0.556194807848645,
+        "submitted": {
+          "fabricate": 5,
+          "move": 392,
+          "rotate": 29,
+          "shoot": 68,
+          "shoot-direction": 69,
+          "split": 1,
+          "transform": 1,
+          "wait": 614
+        },
+        "successful": {
+          "fabricate": 5,
+          "move": 390,
+          "rotate": 29,
+          "shoot": 68,
+          "shoot-direction": 69,
+          "split": 1,
+          "transform": 1,
+          "wait": 614
+        }
+      },
+      "activity": {
+        "activeTicks": 308,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 88,
+        "longestRecentRepeatRunTicks": 88,
+        "longestStagnantRunTicks": 88,
+        "looped": true,
+        "recentRepeatTicks": 88,
+        "stagnantTicks": 89,
+        "stalled": true
+      },
+      "combat": {
+        "attacks": 137,
+        "damageAmount": 47,
+        "damageEvents": 47,
+        "damageTicks": 40,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 14,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 79.4,
+        "ticks": 397
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 328,
+          "prime-mobile": 609,
+          "turret": 228
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+            "name": "adapter",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+            "name": "bastion",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "100c8a297ab3492fc4a24f88f603966564aaf577b27636945c0c0a25871a67e3",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 1,
+          "cancellations": 0,
+          "completions": 1,
+          "successfulActions": 1,
+          "targetFormActorTicks": 228,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 5,
+          "cancellations": 0,
+          "completions": 5,
+          "successfulActions": 5,
+          "targetFormActorTicks": 328,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 1,
+          "cancellations": 1,
+          "completions": 0,
+          "successfulActions": 1,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 137,
+        "contestedToSoleTransitions": 8,
+        "pushDirectionReversals": 4,
+        "pushes": 8,
+        "scoreLeadChanges": 5,
+        "soleControlTicks": 204
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 396,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": 0
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "001--adapter-vs-bastion--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 161,
+          "fabrication": 14,
+          "movement": 639,
+          "rotation": 18,
+          "same-life-transition": 3,
+          "wait": 652
+        },
+        "longRunDecisionShare": 0.7047747141896435,
+        "normalizedFamilyEntropy": 0.599986480485936,
+        "submitted": {
+          "fabricate": 14,
+          "move": 639,
+          "rotate": 18,
+          "shoot": 107,
+          "shoot-direction": 54,
+          "transform": 3,
+          "wait": 652
+        },
+        "successful": {
+          "fabricate": 14,
+          "move": 635,
+          "rotate": 18,
+          "shoot": 107,
+          "shoot-direction": 54,
+          "transform": 3,
+          "wait": 652
+        }
+      },
+      "activity": {
+        "activeTicks": 411,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 88,
+        "longestRecentRepeatRunTicks": 88,
+        "longestStagnantRunTicks": 88,
+        "looped": true,
+        "recentRepeatTicks": 88,
+        "stagnantTicks": 89,
+        "stalled": true
+      },
+      "combat": {
+        "attacks": 161,
+        "damageAmount": 78,
+        "damageEvents": 78,
+        "damageTicks": 58,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 23,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 100.0,
+        "ticks": 500
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 437,
+          "prime-mobile": 788,
+          "turret": 239
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+            "name": "bastion",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+            "name": "adapter",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "7576230ddd59d7db17127b5e6280ac22aec89c81a11a68c581de32957dd88358",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 3,
+          "cancellations": 0,
+          "completions": 3,
+          "successfulActions": 3,
+          "targetFormActorTicks": 239,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 14,
+          "cancellations": 0,
+          "completions": 14,
+          "successfulActions": 14,
+          "targetFormActorTicks": 437,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 114,
+        "contestedToSoleTransitions": 5,
+        "pushDirectionReversals": 10,
+        "pushes": 17,
+        "scoreLeadChanges": 9,
+        "soleControlTicks": 255
+      },
+      "result": {
+        "completionReason": "max-ticks",
+        "draw": false,
+        "endTick": 499,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "15"
+              }
+            ],
+            "teamId": 1
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-15"
+              }
+            ],
+            "teamId": 0
+          }
+        ],
+        "winnerTeamId": 1
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "002--bastion-vs-adapter--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 106,
+          "fabrication": 9,
+          "movement": 519,
+          "replication": 1,
+          "rotation": 4,
+          "wait": 86
+        },
+        "longRunDecisionShare": 0.6137931034482759,
+        "normalizedFamilyEntropy": 0.4830680141903203,
+        "submitted": {
+          "fabricate": 9,
+          "move": 519,
+          "rotate": 4,
+          "shoot": 106,
+          "split": 1,
+          "wait": 86
+        },
+        "successful": {
+          "fabricate": 9,
+          "move": 451,
+          "rotate": 4,
+          "shoot": 106,
+          "split": 1,
+          "wait": 86
+        }
+      },
+      "activity": {
+        "activeTicks": 264,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 14,
+        "longestRecentRepeatRunTicks": 14,
+        "longestStagnantRunTicks": 14,
+        "looped": false,
+        "recentRepeatTicks": 100,
+        "stagnantTicks": 104,
+        "stalled": false
+      },
+      "combat": {
+        "attacks": 106,
+        "damageAmount": 83,
+        "damageEvents": 83,
+        "damageTicks": 45,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 28,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 73.6,
+        "ticks": 368
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 304,
+          "prime-mobile": 372,
+          "replica-mobile": 21
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+            "name": "adapter",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+            "name": "fabricator",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "48bbfe542797babf35e3452e5768a8c99541a22e26680a7db0d91b7aef909c6e",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 9,
+          "cancellations": 0,
+          "completions": 9,
+          "successfulActions": 9,
+          "targetFormActorTicks": 304,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 1,
+          "cancellations": 0,
+          "completions": 1,
+          "successfulActions": 1,
+          "targetFormActorTicks": 21,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 34,
+        "contestedToSoleTransitions": 6,
+        "pushDirectionReversals": 0,
+        "pushes": 2,
+        "scoreLeadChanges": 0,
+        "soleControlTicks": 37
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 367,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": 0
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "003--adapter-vs-fabricator--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 149,
+          "fabrication": 15,
+          "movement": 741,
+          "replication": 1,
+          "rotation": 32,
+          "wait": 192
+        },
+        "longRunDecisionShare": 0.6283185840707964,
+        "normalizedFamilyEntropy": 0.5634396021245087,
+        "submitted": {
+          "fabricate": 15,
+          "move": 741,
+          "rotate": 32,
+          "shoot": 149,
+          "split": 1,
+          "wait": 192
+        },
+        "successful": {
+          "fabricate": 15,
+          "move": 722,
+          "rotate": 32,
+          "shoot": 149,
+          "split": 1,
+          "wait": 192
+        }
+      },
+      "activity": {
+        "activeTicks": 396,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 14,
+        "longestRecentRepeatRunTicks": 14,
+        "longestStagnantRunTicks": 14,
+        "looped": false,
+        "recentRepeatTicks": 100,
+        "stagnantTicks": 104,
+        "stalled": false
+      },
+      "combat": {
+        "attacks": 149,
+        "damageAmount": 112,
+        "damageEvents": 112,
+        "damageTicks": 65,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 38,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 100.0,
+        "ticks": 500
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 531,
+          "prime-mobile": 553,
+          "replica-mobile": 8
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+            "name": "fabricator",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+            "name": "adapter",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "fd0c78e7519a4f2e05ae4a589b1874a6a3a42508b63a7f9a9a8be2f7636d4baa",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 15,
+          "cancellations": 0,
+          "completions": 15,
+          "successfulActions": 15,
+          "targetFormActorTicks": 531,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 1,
+          "cancellations": 0,
+          "completions": 1,
+          "successfulActions": 1,
+          "targetFormActorTicks": 8,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 59,
+        "contestedToSoleTransitions": 9,
+        "pushDirectionReversals": 4,
+        "pushes": 11,
+        "scoreLeadChanges": 1,
+        "soleControlTicks": 115
+      },
+      "result": {
+        "completionReason": "max-ticks",
+        "draw": false,
+        "endTick": 499,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "16"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-16"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": 0
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "004--fabricator-vs-adapter--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 51,
+          "fabrication": 1,
+          "movement": 187,
+          "rotation": 2,
+          "wait": 85
+        },
+        "longRunDecisionShare": 0.5920245398773006,
+        "normalizedFamilyEntropy": 0.6266267194385408,
+        "submitted": {
+          "fabricate": 1,
+          "move": 187,
+          "rotate": 2,
+          "shoot": 51,
+          "wait": 85
+        },
+        "successful": {
+          "fabricate": 1,
+          "move": 187,
+          "rotate": 2,
+          "shoot": 51,
+          "wait": 85
+        }
+      },
+      "activity": {
+        "activeTicks": 175,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 14,
+        "longestRecentRepeatRunTicks": 14,
+        "longestStagnantRunTicks": 14,
+        "looped": false,
+        "recentRepeatTicks": 56,
+        "stagnantTicks": 56,
+        "stalled": false
+      },
+      "combat": {
+        "attacks": 51,
+        "damageAmount": 41,
+        "damageEvents": 41,
+        "damageTicks": 24,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 13,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 46.2,
+        "ticks": 231
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 94,
+          "prime-mobile": 219
+        },
+        "peakBodiesByTeam": {
+          "0": 2,
+          "1": 1
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+            "name": "adapter",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+            "name": "pressure",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "81dba91e76935005e538bb86f80de4c1448d76367e406df09c66270fc1bd1fb6",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 1,
+          "cancellations": 0,
+          "completions": 1,
+          "successfulActions": 1,
+          "targetFormActorTicks": 94,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 10,
+        "contestedToSoleTransitions": 3,
+        "pushDirectionReversals": 0,
+        "pushes": 2,
+        "scoreLeadChanges": 1,
+        "soleControlTicks": 67
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 230,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": 0
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "005--adapter-vs-pressure--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 67,
+          "fabrication": 2,
+          "movement": 255,
+          "rotation": 5,
+          "wait": 123
+        },
+        "longRunDecisionShare": 0.5796460176991151,
+        "normalizedFamilyEntropy": 0.6423882586655402,
+        "submitted": {
+          "fabricate": 2,
+          "move": 255,
+          "rotate": 5,
+          "shoot": 67,
+          "wait": 123
+        },
+        "successful": {
+          "fabricate": 2,
+          "move": 255,
+          "rotate": 5,
+          "shoot": 67,
+          "wait": 123
+        }
+      },
+      "activity": {
+        "activeTicks": 235,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 14,
+        "longestRecentRepeatRunTicks": 14,
+        "longestStagnantRunTicks": 14,
+        "looped": false,
+        "recentRepeatTicks": 70,
+        "stagnantTicks": 70,
+        "stalled": false
+      },
+      "combat": {
+        "attacks": 67,
+        "damageAmount": 51,
+        "damageEvents": 51,
+        "damageTicks": 27,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 17,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 61.0,
+        "ticks": 305
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 117,
+          "prime-mobile": 318
+        },
+        "peakBodiesByTeam": {
+          "0": 1,
+          "1": 2
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+            "name": "pressure",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "b65fad95d48b4bdad673bdfba52cbaba69e0cd508a5692108a41d3ee37348b87",
+            "name": "adapter",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "808b56805b24d4adda6871f5376a1f0d931eca626eff6fa58f2b8108768f661b",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 2,
+          "cancellations": 0,
+          "completions": 2,
+          "successfulActions": 2,
+          "targetFormActorTicks": 117,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 20,
+        "contestedToSoleTransitions": 1,
+        "pushDirectionReversals": 2,
+        "pushes": 4,
+        "scoreLeadChanges": 1,
+        "soleControlTicks": 96
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 304,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 1
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 0
+          }
+        ],
+        "winnerTeamId": 1
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "006--pressure-vs-adapter--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 150,
+          "fabrication": 12,
+          "movement": 664,
+          "rotation": 34,
+          "same-life-transition": 2,
+          "wait": 764
+        },
+        "longRunDecisionShare": 0.7435424354243543,
+        "normalizedFamilyEntropy": 0.5948457822042751,
+        "submitted": {
+          "fabricate": 12,
+          "move": 664,
+          "rotate": 34,
+          "shoot": 90,
+          "shoot-direction": 60,
+          "transform": 2,
+          "wait": 764
+        },
+        "successful": {
+          "fabricate": 12,
+          "move": 662,
+          "rotate": 34,
+          "shoot": 90,
+          "shoot-direction": 60,
+          "transform": 2,
+          "wait": 764
+        }
+      },
+      "activity": {
+        "activeTicks": 428,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 69,
+        "longestRecentRepeatRunTicks": 69,
+        "longestStagnantRunTicks": 69,
+        "looped": true,
+        "recentRepeatTicks": 70,
+        "stagnantTicks": 72,
+        "stalled": true
+      },
+      "combat": {
+        "attacks": 150,
+        "damageAmount": 70,
+        "damageEvents": 70,
+        "damageTicks": 53,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 21,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 100.0,
+        "ticks": 500
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 508,
+          "prime-mobile": 791,
+          "turret": 306
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+            "name": "bastion",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+            "name": "fabricator",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "f99ba1d4b1c56ff3182f6f1f8a2d5b79d8f11b6922e8edfdc8b32d61053e28f2",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 2,
+          "cancellations": 0,
+          "completions": 2,
+          "successfulActions": 2,
+          "targetFormActorTicks": 306,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 12,
+          "cancellations": 0,
+          "completions": 12,
+          "successfulActions": 12,
+          "targetFormActorTicks": 508,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 107,
+        "contestedToSoleTransitions": 8,
+        "pushDirectionReversals": 12,
+        "pushes": 19,
+        "scoreLeadChanges": 9,
+        "soleControlTicks": 277
+      },
+      "result": {
+        "completionReason": "max-ticks",
+        "draw": false,
+        "endTick": 499,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "15"
+              }
+            ],
+            "teamId": 1
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-15"
+              }
+            ],
+            "teamId": 0
+          }
+        ],
+        "winnerTeamId": 1
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "007--bastion-vs-fabricator--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 142,
+          "fabrication": 12,
+          "movement": 609,
+          "rotation": 21,
+          "same-life-transition": 2,
+          "wait": 730
+        },
+        "longRunDecisionShare": 0.7467018469656992,
+        "normalizedFamilyEntropy": 0.5840059714704171,
+        "submitted": {
+          "fabricate": 12,
+          "move": 609,
+          "rotate": 21,
+          "shoot": 83,
+          "shoot-direction": 59,
+          "transform": 2,
+          "wait": 730
+        },
+        "successful": {
+          "fabricate": 12,
+          "move": 576,
+          "rotate": 21,
+          "shoot": 83,
+          "shoot-direction": 59,
+          "transform": 2,
+          "wait": 730
+        }
+      },
+      "activity": {
+        "activeTicks": 433,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 67,
+        "longestRecentRepeatRunTicks": 67,
+        "longestStagnantRunTicks": 67,
+        "looped": true,
+        "recentRepeatTicks": 72,
+        "stagnantTicks": 67,
+        "stalled": true
+      },
+      "combat": {
+        "attacks": 142,
+        "damageAmount": 73,
+        "damageEvents": 73,
+        "damageTicks": 53,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 23,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 100.0,
+        "ticks": 500
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 429,
+          "prime-mobile": 764,
+          "turret": 300
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+            "name": "fabricator",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+            "name": "bastion",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "f4f0ae60adc62fa2202ea0ca49b06048f156877a53125d94af07452a7c7f56e0",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 2,
+          "cancellations": 0,
+          "completions": 2,
+          "successfulActions": 2,
+          "targetFormActorTicks": 300,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 12,
+          "cancellations": 0,
+          "completions": 12,
+          "successfulActions": 12,
+          "targetFormActorTicks": 429,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 103,
+        "contestedToSoleTransitions": 11,
+        "pushDirectionReversals": 9,
+        "pushes": 18,
+        "scoreLeadChanges": 7,
+        "soleControlTicks": 280
+      },
+      "result": {
+        "completionReason": "max-ticks",
+        "draw": true,
+        "endTick": 499,
+        "teams": [
+          {
+            "outcome": "draw",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "0"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "draw",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "0"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": null
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "008--fabricator-vs-bastion--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 109,
+          "fabrication": 3,
+          "movement": 284,
+          "rotation": 4,
+          "same-life-transition": 1,
+          "wait": 771
+        },
+        "longRunDecisionShare": 0.7960750853242321,
+        "normalizedFamilyEntropy": 0.49145399622525754,
+        "submitted": {
+          "fabricate": 3,
+          "move": 284,
+          "rotate": 4,
+          "shoot": 50,
+          "shoot-direction": 59,
+          "transform": 1,
+          "wait": 771
+        },
+        "successful": {
+          "fabricate": 3,
+          "move": 284,
+          "rotate": 4,
+          "shoot": 50,
+          "shoot-direction": 59,
+          "transform": 1,
+          "wait": 771
+        }
+      },
+      "activity": {
+        "activeTicks": 355,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 88,
+        "longestRecentRepeatRunTicks": 88,
+        "longestStagnantRunTicks": 88,
+        "looped": true,
+        "recentRepeatTicks": 117,
+        "stagnantTicks": 89,
+        "stalled": true
+      },
+      "combat": {
+        "attacks": 109,
+        "damageAmount": 33,
+        "damageEvents": 33,
+        "damageTicks": 27,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 10,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 88.8,
+        "ticks": 444
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 138,
+          "prime-mobile": 723,
+          "turret": 301
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 1
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+            "name": "bastion",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+            "name": "pressure",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "33b4689211f39911110c5d9b0838bc0c7f10ec4844ff597cfdb469e0ed56646a",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 1,
+          "cancellations": 0,
+          "completions": 1,
+          "successfulActions": 1,
+          "targetFormActorTicks": 301,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 3,
+          "cancellations": 0,
+          "completions": 3,
+          "successfulActions": 3,
+          "targetFormActorTicks": 138,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 182,
+        "contestedToSoleTransitions": 5,
+        "pushDirectionReversals": 5,
+        "pushes": 10,
+        "scoreLeadChanges": 4,
+        "soleControlTicks": 177
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 443,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": 0
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "009--bastion-vs-pressure--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 109,
+          "fabrication": 3,
+          "movement": 279,
+          "rotation": 5,
+          "same-life-transition": 1,
+          "wait": 744
+        },
+        "longRunDecisionShare": 0.7765118317265557,
+        "normalizedFamilyEntropy": 0.4984773604182675,
+        "submitted": {
+          "fabricate": 3,
+          "move": 279,
+          "rotate": 5,
+          "shoot": 50,
+          "shoot-direction": 59,
+          "transform": 1,
+          "wait": 744
+        },
+        "successful": {
+          "fabricate": 3,
+          "move": 279,
+          "rotate": 5,
+          "shoot": 50,
+          "shoot-direction": 59,
+          "transform": 1,
+          "wait": 744
+        }
+      },
+      "activity": {
+        "activeTicks": 347,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 88,
+        "longestRecentRepeatRunTicks": 88,
+        "longestStagnantRunTicks": 88,
+        "looped": true,
+        "recentRepeatTicks": 118,
+        "stagnantTicks": 89,
+        "stalled": true
+      },
+      "combat": {
+        "attacks": 109,
+        "damageAmount": 34,
+        "damageEvents": 34,
+        "damageTicks": 27,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 10,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 87.2,
+        "ticks": 436
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 130,
+          "prime-mobile": 708,
+          "turret": 293
+        },
+        "peakBodiesByTeam": {
+          "0": 1,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+            "name": "pressure",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "13df200e5dae66117452a2c4e680f1065d5e9f71edd306494eb148b67e60a111",
+            "name": "bastion",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "20ab30dd23bfae1a6d3a0fea7871905dc5472299c28492a1fdf8e2f576ecdd2f",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 1,
+          "cancellations": 0,
+          "completions": 1,
+          "successfulActions": 1,
+          "targetFormActorTicks": 293,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 3,
+          "cancellations": 0,
+          "completions": 3,
+          "successfulActions": 3,
+          "targetFormActorTicks": 130,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 176,
+        "contestedToSoleTransitions": 6,
+        "pushDirectionReversals": 5,
+        "pushes": 10,
+        "scoreLeadChanges": 4,
+        "soleControlTicks": 176
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 435,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 1
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 0
+          }
+        ],
+        "winnerTeamId": 1
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "010--pressure-vs-bastion--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 70,
+          "fabrication": 4,
+          "movement": 329,
+          "rotation": 6,
+          "wait": 175
+        },
+        "longRunDecisionShare": 0.6815068493150684,
+        "normalizedFamilyEntropy": 0.633667185372156,
+        "submitted": {
+          "fabricate": 4,
+          "move": 329,
+          "rotate": 6,
+          "shoot": 70,
+          "wait": 175
+        },
+        "successful": {
+          "fabricate": 4,
+          "move": 329,
+          "rotate": 6,
+          "shoot": 70,
+          "wait": 175
+        }
+      },
+      "activity": {
+        "activeTicks": 279,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 14,
+        "longestRecentRepeatRunTicks": 14,
+        "longestStagnantRunTicks": 14,
+        "looped": false,
+        "recentRepeatTicks": 56,
+        "stagnantTicks": 56,
+        "stalled": false
+      },
+      "combat": {
+        "attacks": 70,
+        "damageAmount": 51,
+        "damageEvents": 51,
+        "damageTicks": 33,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 17,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 67.0,
+        "ticks": 335
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 182,
+          "prime-mobile": 385
+        },
+        "peakBodiesByTeam": {
+          "0": 3,
+          "1": 1
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+            "name": "fabricator",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+            "name": "pressure",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "a7735b268429e28e838d0cc9e605128fea14b8ba25f7896c8c9e671d2df804b5",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 4,
+          "cancellations": 0,
+          "completions": 4,
+          "successfulActions": 4,
+          "targetFormActorTicks": 182,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 26,
+        "contestedToSoleTransitions": 5,
+        "pushDirectionReversals": 4,
+        "pushes": 6,
+        "scoreLeadChanges": 2,
+        "soleControlTicks": 128
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 334,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 0
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 1
+          }
+        ],
+        "winnerTeamId": 0
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "011--fabricator-vs-pressure--s104729/attempt-01/replay.json"
+    },
+    {
+      "actions": {
+        "families": {
+          "attack": 63,
+          "fabrication": 3,
+          "movement": 321,
+          "rotation": 11,
+          "wait": 145
+        },
+        "longRunDecisionShare": 0.6593001841620626,
+        "normalizedFamilyEntropy": 0.6343580174328706,
+        "submitted": {
+          "fabricate": 3,
+          "move": 321,
+          "rotate": 11,
+          "shoot": 63,
+          "wait": 145
+        },
+        "successful": {
+          "fabricate": 3,
+          "move": 321,
+          "rotate": 11,
+          "shoot": 63,
+          "wait": 145
+        }
+      },
+      "activity": {
+        "activeTicks": 254,
+        "firstMeaningfulInteractionTick": 0,
+        "longestBothTurretNoProgressRunTicks": 0,
+        "longestNoInteractionRunTicks": 14,
+        "longestRecentRepeatRunTicks": 14,
+        "longestStagnantRunTicks": 14,
+        "looped": false,
+        "recentRepeatTicks": 56,
+        "stagnantTicks": 56,
+        "stalled": false
+      },
+      "combat": {
+        "attacks": 63,
+        "damageAmount": 47,
+        "damageEvents": 47,
+        "damageTicks": 31,
+        "damagingTeams": [
+          0,
+          1
+        ],
+        "destructions": 15,
+        "reciprocalDamage": true
+      },
+      "duration": {
+        "seconds": 62.0,
+        "ticks": 310
+      },
+      "forms": {
+        "actorTicks": {
+          "child-mobile": 158,
+          "prime-mobile": 370
+        },
+        "peakBodiesByTeam": {
+          "0": 1,
+          "1": 3
+        }
+      },
+      "group": "current",
+      "identity": {
+        "contractProfileId": "generic-actor-match-2",
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "matchContractFingerprint": "acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb",
+        "participants": [
+          {
+            "artifactHash": "9f97d4ae3fbb6f9c8c32fbbe850a51bdd5311e5d6031c5cfb984d04479f28ae6",
+            "name": "pressure",
+            "participantId": 0,
+            "runtimeKind": "wasm",
+            "teamId": 0
+          },
+          {
+            "artifactHash": "4d8773436cd7746710db65be07c834bc54c07b634e8cea099756ccd9a73357fa",
+            "name": "fabricator",
+            "participantId": 1,
+            "runtimeKind": "wasm",
+            "teamId": 1
+          }
+        ],
+        "replayHash": "3a5751b195da085b167bc0bcfb818f481b87d70e60db5704b7a9ab83a3c64eb5",
+        "rulesFingerprint": "8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042",
+        "rulesVersion": "frontline-labs-1-experiment-gain-t300-2",
+        "seed": "104729"
+      },
+      "mechanics": {
+        "anchor": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "turret"
+          ]
+        },
+        "fabrication": {
+          "attempts": 3,
+          "cancellations": 0,
+          "completions": 3,
+          "successfulActions": 3,
+          "targetFormActorTicks": 158,
+          "targetFormIds": [
+            "child-mobile"
+          ]
+        },
+        "split": {
+          "attempts": 0,
+          "cancellations": 0,
+          "completions": 0,
+          "successfulActions": 0,
+          "targetFormActorTicks": 0,
+          "targetFormIds": [
+            "replica-mobile"
+          ]
+        }
+      },
+      "objective": {
+        "contestedTicks": 26,
+        "contestedToSoleTransitions": 5,
+        "pushDirectionReversals": 2,
+        "pushes": 4,
+        "scoreLeadChanges": 0,
+        "soleControlTicks": 107
+      },
+      "result": {
+        "completionReason": "base-breach",
+        "draw": false,
+        "endTick": 309,
+        "teams": [
+          {
+            "outcome": "win",
+            "rank": 1,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "30"
+              }
+            ],
+            "teamId": 1
+          },
+          {
+            "outcome": "loss",
+            "rank": 2,
+            "scores": [
+              {
+                "channel": "territorial-progress",
+                "value": "-30"
+              }
+            ],
+            "teamId": 0
+          }
+        ],
+        "winnerTeamId": 1
+      },
+      "safety": {
+        "cumulativeRuntimeFaults": 0,
+        "participantDisqualifications": 0,
+        "runtimeFaultEvents": 0
+      },
+      "source": "012--pressure-vs-fabricator--s104729/attempt-01/replay.json"
+    }
+  ],
+  "metricDefinitionsVersion": "generic-frontline-replay-v3-1",
+  "schemaVersion": 1
+}

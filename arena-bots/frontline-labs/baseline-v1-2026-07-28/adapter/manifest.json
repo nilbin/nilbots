@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "Adapter",
+  "doctrine": "Adapter: change priorities from visible allied/enemy state, score, active objective, and available contract capabilities rather than committing to one opening.",
+  "authoringPasses": 1,
+  "mechanicalRepairs": 0
+}

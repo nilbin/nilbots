@@ -290,6 +290,9 @@ namespace BotArena.App.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.PrimitiveCollection<string[]>("SupportedContractProfiles")
+                        .HasColumnType("text[]");
+
                     b.Property<int>("VersionNumber")
                         .HasColumnType("integer");
 
@@ -407,6 +410,20 @@ namespace BotArena.App.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character(64)")
                         .IsFixedLength();
+
+                    b.Property<string>("ExecutionEngineVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("0.1.0");
+
+                    b.Property<string>("ExecutionPolicyId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("legacy-duel-v1");
 
                     b.Property<string>("GameModeId")
                         .IsRequired()
@@ -642,6 +659,9 @@ namespace BotArena.App.Migrations
                     b.Property<int>("PresentationTicksPerSecond")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ReplayFormatVersion")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ReplayHash")
                         .HasColumnType("text");
 
@@ -679,7 +699,10 @@ namespace BotArena.App.Migrations
                     b.HasIndex("MapId", "CreatedAt")
                         .IsDescending(false, true);
 
-                    b.ToTable("Matches");
+                    b.ToTable("Matches", t =>
+                        {
+                            t.HasCheckConstraint("CK_Matches_ReplayFormatVersion_Positive", "\"ReplayFormatVersion\" IS NULL OR \"ReplayFormatVersion\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Matches.MatchParticipant", b =>
@@ -739,6 +762,9 @@ namespace BotArena.App.Migrations
                     b.Property<int>("Slot")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("TeamId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BotId", "MatchId");
@@ -746,7 +772,10 @@ namespace BotArena.App.Migrations
                     b.HasIndex("MatchId", "Slot")
                         .IsUnique();
 
-                    b.ToTable("MatchParticipants");
+                    b.ToTable("MatchParticipants", t =>
+                        {
+                            t.HasCheckConstraint("CK_MatchParticipants_TeamId_NonNegative", "\"TeamId\" IS NULL OR \"TeamId\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("BotArena.App.Matches.MatchSet", b =>
@@ -828,6 +857,54 @@ namespace BotArena.App.Migrations
                         {
                             t.HasCheckConstraint("CK_MatchSets_CompetitionIdentity_Paired", "(\"PlaylistVersionId\" IS NULL AND \"LadderId\" IS NULL) OR (\"PlaylistVersionId\" IS NOT NULL AND \"LadderId\" IS NOT NULL)");
                         });
+                });
+
+            modelBuilder.Entity("BotArena.App.Matches.MatchTeamResult", b =>
+                {
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Placement")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MatchId", "TeamId");
+
+                    b.ToTable("MatchTeamResults", t =>
+                        {
+                            t.HasCheckConstraint("CK_MatchTeamResults_Outcome", "\"Outcome\" IN ('Win', 'Loss', 'Draw')");
+
+                            t.HasCheckConstraint("CK_MatchTeamResults_Placement_Positive", "\"Placement\" > 0");
+
+                            t.HasCheckConstraint("CK_MatchTeamResults_TeamId_NonNegative", "\"TeamId\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("BotArena.App.Matches.MatchTeamScore", b =>
+                {
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScoreChannelId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("MatchId", "TeamId", "ScoreChannelId");
+
+                    b.ToTable("MatchTeamScores");
                 });
 
             modelBuilder.Entity("BotArena.App.Notifications.DeviceRegistration", b =>
@@ -1362,6 +1439,24 @@ namespace BotArena.App.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("BotArena.App.Matches.MatchTeamResult", b =>
+                {
+                    b.HasOne("BotArena.App.Matches.Match", null)
+                        .WithMany("TeamResults")
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BotArena.App.Matches.MatchTeamScore", b =>
+                {
+                    b.HasOne("BotArena.App.Matches.MatchTeamResult", null)
+                        .WithMany("Scores")
+                        .HasForeignKey("MatchId", "TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BotArena.App.Notifications.DeviceRegistration", b =>
                 {
                     b.HasOne("BotArena.App.Accounts.User", null)
@@ -1446,6 +1541,13 @@ namespace BotArena.App.Migrations
             modelBuilder.Entity("BotArena.App.Matches.Match", b =>
                 {
                     b.Navigation("Participants");
+
+                    b.Navigation("TeamResults");
+                });
+
+            modelBuilder.Entity("BotArena.App.Matches.MatchTeamResult", b =>
+                {
+                    b.Navigation("Scores");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

@@ -88,6 +88,32 @@ test('generic Frontline replay-v3 presents contract tuning and the derived breac
   });
 });
 
+test('generic replay-v3 derives form mobility from allowed actions, not ground occupancy', () => {
+  const generic = loadReplayJson(
+    readFileSync(
+      new URL(
+        '../../tests/BotArena.Engine.Tests/Fixtures/generic-frontline-replay-v3.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ).replay;
+  const form = generic.forms.find((candidate) => candidate.formId === 'mobile');
+
+  assert.ok(form);
+  assert.equal(form.movementLayer, 'ground');
+  assert.equal(form.canMove, false);
+  assert.equal(form.canShoot, true);
+  if (generic.contract.kind !== 'v3-generic') {
+    assert.fail('expected a generic replay-v3 contract');
+  }
+  const contractForm = generic.contract.rules.forms.find(
+    (candidate) => candidate.id === 'mobile',
+  );
+  assert.equal(contractForm?.canMove, false);
+  assert.equal(contractForm?.canShoot, true);
+});
+
 test('actor-life interpolation adds fabricated lives without morphing primes', () => {
   assert.deepEqual(
     posesAt(replay, 0.5).map((pose) => pose.actorKey),

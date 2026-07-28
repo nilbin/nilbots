@@ -1,3 +1,4 @@
+using BotArena.App.Matches;
 using BotArena.App.Storage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -11,6 +12,7 @@ namespace BotArena.App.Tests;
 public sealed class BotArenaApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string connectionString;
+    private readonly bool frontlineLabsEnabled;
     private readonly string? previousRole;
     private readonly string? previousDatabase;
     private readonly string? previousNetworkHashKey;
@@ -18,9 +20,13 @@ public sealed class BotArenaApplicationFactory : WebApplicationFactory<Program>
     private readonly string objectRoot =
         Path.Combine(Path.GetTempPath(), $"nilbots-app-tests-{Guid.NewGuid():N}");
 
-    public BotArenaApplicationFactory(string connectionString, string? webDist = null)
+    public BotArenaApplicationFactory(
+        string connectionString,
+        string? webDist = null,
+        bool frontlineLabsEnabled = false)
     {
         this.connectionString = connectionString;
+        this.frontlineLabsEnabled = frontlineLabsEnabled;
         previousRole = Environment.GetEnvironmentVariable("BOTARENA_ROLE");
         previousDatabase = Environment.GetEnvironmentVariable("BOTARENA_DB");
         previousNetworkHashKey =
@@ -54,6 +60,9 @@ public sealed class BotArenaApplicationFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<IObjectStore>();
             services.AddSingleton<IObjectStore>(new LocalObjectStore(objectRoot));
+            services.RemoveAll<FrontlineLabsSettings>();
+            services.AddSingleton(
+                new FrontlineLabsSettings(frontlineLabsEnabled));
         });
     }
 

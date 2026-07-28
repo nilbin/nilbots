@@ -1394,7 +1394,9 @@ public sealed record GenericActorContext
             /// Static transition catalog ID for transition-created lives.
             /// </param>
             /// <param name="sourceOperationId">
-            /// Unique occurrence handle shared by sibling outputs.
+            /// Unique occurrence handle shared by sibling outputs, or
+            /// <see langword="null"/> when observation policy redacts the
+            /// transition occurrence.
             /// </param>
             public LifeSpawned(
                 ActorIdentity actorId,
@@ -1474,7 +1476,8 @@ public sealed record GenericActorContext
             public string? SourceTransitionId { get; }
             /// <summary>
             /// Unique operation occurrence handle shared by sibling outputs,
-            /// or <see langword="null"/> when not transition-created.
+            /// or <see langword="null"/> when not transition-created or
+            /// redacted by observation policy.
             /// </summary>
             public string? SourceOperationId { get; }
 
@@ -1694,7 +1697,11 @@ public sealed record GenericActorContext
                 ArgumentNullException.ThrowIfNull(actorId);
                 if (startedTick < 0)
                     throw new ArgumentOutOfRangeException(nameof(startedTick));
-                if (dueTick <= startedTick)
+                // End-of-started-tick transitions with a one-tick declared
+                // duration legitimately emit started/completed events whose
+                // canonical due tick equals the started tick. Pending
+                // transition state remains strictly future-due.
+                if (dueTick < startedTick)
                     throw new ArgumentOutOfRangeException(nameof(dueTick));
                 ActorId = actorId;
                 TransitionId = GenericActorDynamicValueRules.SemanticId(
@@ -2226,7 +2233,8 @@ public sealed record GenericActorContext
             GenericActorMatchStart.SpawnReason.Fabrication
                 or GenericActorMatchStart.SpawnReason.Replication =>
                 sourceTransitionId is not null
-                && sourceOperationId is not null,
+                && (parentActorId is null
+                    || sourceOperationId is not null),
             _ => false,
         };
         if (!valid)

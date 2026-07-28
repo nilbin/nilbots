@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "Bastion",
+  "doctrine": "Bastion: use Anchor for deliberate area denial while retaining enough mobile objective pressure to finish games.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 2,
+  "cohort": "balance-v4-bastion-fire-control-2026-07-28",
+  "sourceCohort": "baseline-v2-2026-07-28",
+  "frameworkOnlyRebuild": false,
+  "balanceHypothesis": "Exact legal turret rays turn existing Anchor placement into credible area denial without changing turret numerics.",
+  "sdkVersion": "0.10.2",
+  "sourceSha256": "28adffd78da3c39bc457e7286a3653e098df5bd3bac50bee4899e28f0d2fa833",
+  "artifactSha256": "6fce011e28c4f9a61f6bb29dbcfa1614e23c3d85a8212e66dac9e46c4999aec8",
+  "previousSourceSha256": "93348aaff9e16d0a5a621fdbc284212b33adb4ebf0e873d73d9474af2737154f",
+  "previousArtifactSha256": "81bb22eb433e8dda031f4dbb08220009a356ace9008bcbf734e2aa661a7a934d"
+}
