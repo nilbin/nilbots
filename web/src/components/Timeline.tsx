@@ -30,11 +30,14 @@ import type { PlaybackState } from '../playback';
 
 /**
  * Lane geometry. The classes below are the source of truth for what is drawn —
- * `h-3.5` and `gap-1.5` — and these two exist only because the playhead's height is
+ * `h-3.5` and `gap-1` — and these two exist only because the playhead's height is
  * arithmetic over them and cannot be a percentage (see the Thumb).
+ *
+ * 14 and 4 give an 18px lane pitch, which with the track's own 8px above and below is
+ * the 48px band the design draws two lanes in.
  */
 const LANE_HEIGHT = 14; // h-3.5
-const LANE_GAP = 6; //    gap-1.5
+const LANE_GAP = 4; //    gap-1
 
 /** Marks are ordered by how much they matter, which is also how they stack visually. */
 type MarkKind = 'fired' | 'hit' | 'lost' | 'form';
@@ -157,7 +160,7 @@ export default function Timeline({
       onValueChange={([value]) => playback.seek(value)}
       aria-label="Match timeline — drag to seek"
     >
-      <Slider.Track className="relative flex w-full grow flex-col gap-1.5 py-1">
+      <Slider.Track className="relative flex w-full grow flex-col gap-1 py-2">
         {/* Events belonging to the match cross every lane, because they happened to
             all of them: a position advancing is not one team's mark. */}
         {moments.map((moment) => (
@@ -169,15 +172,29 @@ export default function Timeline({
           />
         ))}
 
+        {/* A destruction is the one thing in a lane that changed the whole match, so it
+            also carries a rule across all of them. Dashed and at 40%, because it is
+            context for the other lanes rather than an event in them. */}
+        {marks
+          .filter((mark) => mark.kind === 'lost' && mark.lane !== 'selected')
+          .map((mark) => (
+            <span
+              key={`${mark.key}:rule`}
+              aria-hidden
+              className="absolute inset-y-0 w-0 border-l border-dashed opacity-40"
+              style={{ left: at(mark.tick), borderColor: mark.accent }}
+            />
+          ))}
+
         {lanes.map((lane) => (
           <span key={lane.key} className="relative block h-3.5">
             <span
               aria-hidden
-              className="absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 bg-arena-edge"
+              className="absolute top-1/2 right-0 left-0 h-[1.5px] -translate-y-1/2 bg-arena-edge2"
             />
             <span
               aria-hidden
-              className="absolute top-1/2 left-0 h-px -translate-y-1/2 bg-arena-dim"
+              className="absolute top-1/2 left-0 h-[1.5px] -translate-y-1/2 bg-arena-dim"
               style={{ width: `${progress * 100}%` }}
             />
             {marks
@@ -190,9 +207,9 @@ export default function Timeline({
                     'absolute top-1/2 -translate-x-1/2 -translate-y-1/2',
                     // A shot is a hairline, a hit taken is a notch, a loss is a block:
                     // weight tracks consequence, so a lane reads at a glance.
-                    mark.kind === 'fired' && 'h-2 w-px opacity-70',
-                    mark.kind === 'hit' && 'h-2.5 w-[3px] rounded-[1px]',
-                    mark.kind === 'lost' && 'h-3.5 w-[7px] rounded-[2px]',
+                    mark.kind === 'fired' && 'h-2 w-[1.5px] opacity-75',
+                    mark.kind === 'hit' && 'h-[11px] w-[5px] rounded-[2px]',
+                    mark.kind === 'lost' && 'size-2.5 rounded-[2.5px]',
                     mark.kind === 'form' &&
                       'h-2 w-2 rotate-45 rounded-[1px] opacity-80',
                   )}
@@ -207,10 +224,17 @@ export default function Timeline({
           positioned span, so `h-[100%]` resolves to nothing and the playhead silently
           disappears — which it did. The span is the anchor; this centres on it. */}
       <Slider.Thumb
-        className="absolute top-1/2 block w-0.5 -translate-y-1/2 rounded-full bg-arena-text focus:outline-2 focus:outline-offset-2 focus:outline-arena-accent"
-        style={{ height: LANE_HEIGHT * lanes.length + LANE_GAP * (lanes.length - 1) + 10 }}
+        className="absolute top-1/2 block w-[1.5px] -translate-y-1/2 rounded-full bg-arena-text focus:outline-2 focus:outline-offset-2 focus:outline-arena-accent"
+        style={{ height: LANE_HEIGHT * lanes.length + LANE_GAP * (lanes.length - 1) + 8 }}
         aria-label="Playhead"
-      />
+      >
+        {/* The knob is what says this is a handle rather than a marker, and it is the
+            only part of the playhead big enough to put a finger on. */}
+        <span
+          aria-hidden
+          className="absolute top-1/2 left-1/2 block size-[9px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-arena-text"
+        />
+      </Slider.Thumb>
     </Slider.Root>
   );
 }

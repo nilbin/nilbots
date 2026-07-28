@@ -27,19 +27,45 @@ interface BotPanelProps {
  * to print them raw behind an arrow. They are generated from the id rather than mapped
  * by hand, so a new action reads sensibly the day it lands instead of falling through
  * to a code.
+ *
+ * How it went is not part of the sentence: it is a standing fact about the action, so it
+ * stands beside it as a pill rather than turning one clause into two.
  */
 function describeAction(
   actionId: string,
   heading: string | null,
-  result: string | null,
 ): string {
   const words = actionId.replace(/[-_]/g, ' ');
   const phrase =
     words === 'wait'
       ? 'Holding position'
       : words.charAt(0).toUpperCase() + words.slice(1);
-  const aimed = heading ? `${phrase} ${heading.toLowerCase()}` : phrase;
-  return !result || result === 'success' ? aimed : `${aimed} — ${result}`;
+  return heading ? `${phrase} ${heading.toLowerCase()}` : phrase;
+}
+
+/**
+ * How long a full reload is, so the cooldown bar has a denominator.
+ *
+ * `form.shootCooldownTicks` is the declared value and replay v2/v3 carry it — replay v1,
+ * which is every shipped duel, leaves it null. The longest cooldown a unit is ever seen
+ * holding is the same number observed rather than declared, so the bar drains truthfully
+ * in both. Computed once per replay, not per tick.
+ */
+function useCooldownScale(
+  replay: ReplayModel,
+): Map<ReplayStableUnitKey, number> {
+  return useMemo(() => {
+    const observed = new Map<ReplayStableUnitKey, number>();
+    for (const replayTick of replay.ticks) {
+      for (const actor of replayTick.after.actors) {
+        observed.set(
+          actor.unitKey,
+          Math.max(observed.get(actor.unitKey) ?? 0, actor.cooldown),
+        );
+      }
+    }
+    return observed;
+  }, [replay]);
 }
 
 export default function BotPanel({
@@ -52,30 +78,31 @@ export default function BotPanel({
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const { objective, units } = presenter.at(tick);
+  const cooldownScale = useCooldownScale(replay);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       {objective?.kind === 'legacy-control' && (
-        <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
+        <div className="panel-quiet pad">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="truncate text-[13px] text-arena-text">
+            <span className="t-body truncate text-arena-text">
               {objective.names[0]}
             </span>
-            <span className="type-label shrink-0 text-[9px] text-arena-dim">
+            <span className="lab shrink-0">
               {objective.overtime ? 'Overtime · ' : ''}Control{' '}
-              <span className="tabular font-mono text-[11px] tracking-normal text-arena-text">
+              <span className="val tracking-normal text-arena-text">
                 {objective.pressure > 0 ? '+' : ''}
                 {objective.pressure}/{objective.limit}
               </span>
             </span>
-            <span className="truncate text-right text-[13px] text-arena-text">
+            <span className="t-body truncate text-right text-arena-text">
               {objective.names[1]}
             </span>
           </div>
-          <div className="relative mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
+          <div className="relative mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
             <div className="absolute inset-y-0 left-1/2 w-px bg-arena-dim" />
             <div
-              className="absolute top-0 h-full w-1 rounded bg-arena-text transition-[left]"
+              className="absolute top-0 h-full w-1 rounded-[2px] bg-arena-text transition-[left]"
               style={{
                 left: `${Math.max(
                   0,
@@ -90,25 +117,23 @@ export default function BotPanel({
             />
           </div>
           {objective.phase && (
-            <p className="type-label mt-2 text-center text-[9px] text-arena-dim">
-              {objective.phase}
-            </p>
+            <p className="lab mt-2 text-center">{objective.phase}</p>
           )}
         </div>
       )}
 
       {objective?.kind === 'frontline' && (
-        <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
+        <div className="panel-quiet pad">
           <div className="flex items-center justify-between">
-            <span className="type-label text-[9px] text-arena-dim">Frontline</span>
-            <span className="type-label text-[9px] text-arena-dim">
+            <span className="lab">Frontline</span>
+            <span className="lab">
               Position{' '}
-              <span className="tabular font-mono text-[11px] tracking-normal text-arena-text">
+              <span className="val tracking-normal text-arena-text">
                 {objective.activePositionIndex + 1}/{objective.positionCount}
               </span>
             </span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
+          <div className="mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
             <div
               className={clsx(
                 'h-full transition-[width]',
@@ -124,14 +149,16 @@ export default function BotPanel({
               }}
             />
           </div>
-          <p className="type-label mt-2 text-center text-[9px] text-arena-dim">
-            {objective.phase}
-          </p>
+          <p className="lab mt-2 text-center">{objective.phase}</p>
         </div>
       )}
 
       {units.map((unit) => {
         const selected = selectedUnitKey === unit.unitKey;
+        // Out of the game, as the design's dead card reads it: the whole card recedes
+        // rather than one word turning a colour.
+        const out =
+          unit.status === 'destroyed' || unit.status === 'disqualified';
         const transition =
           unit.status === 'respawning' && unit.respawnAtTick !== null
             ? `RESPAWN T${unit.respawnAtTick}`
@@ -145,6 +172,20 @@ export default function BotPanel({
                   ? `SPAWN T${unit.fabricationAtTick}`
                   : null;
         const formTransition = unit.pendingFormTransition;
+        const declaredCooldown =
+          replay.forms.find((form) => form.formId === unit.formId)
+            ?.shootCooldownTicks ?? 0;
+        const cooldownMax = Math.max(
+          1,
+          declaredCooldown,
+          cooldownScale.get(unit.unitKey) ?? 0,
+        );
+        const actionResult =
+          unit.actionResult &&
+          unit.actionResult !== 'success' &&
+          unit.actionResult !== 'none'
+            ? unit.actionResult
+            : null;
         return (
           <button
             key={unit.unitKey}
@@ -153,18 +194,22 @@ export default function BotPanel({
             }
             aria-pressed={selected}
             className={clsx(
-              'rounded-lg border p-3 text-left transition-colors',
+              'panel pad text-left transition-colors',
+              out && 'opacity-[0.62]',
+              // Selection is a state, and state is never the accent here — the accent is
+              // the shop's own colour. Raised ground and a brighter edge say it instead.
               selected
-                ? 'border-arena-accent/70 bg-arena-panel'
-                : 'border-arena-edge bg-arena-panel/60 hover:border-arena-dim',
+                ? 'border-arena-edge2 bg-arena-raise'
+                : 'hover:border-arena-edge2',
             )}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <IdentityChip
                 lookId={participantForUnit(replay, unit.unitKey)?.lookId}
                 visualIndex={visualIndexForUnit(replay, unit.unitKey)}
                 accent={unit.accent}
                 name={unit.name}
+                nameClassName="text-[14px]"
                 sub={`${unit.lookLabel} · ${
                   unit.legacySlot === null
                     ? `team ${unit.teamId} · unit ${unit.unitId}${unit.lifeId === null ? '' : ` · life ${unit.lifeId}`}`
@@ -177,9 +222,8 @@ export default function BotPanel({
                   the word already says which. */}
               <span
                 className={clsx(
-                  'type-label ml-auto text-[10.5px] tracking-[0.12em] whitespace-nowrap',
-                  unit.status === 'destroyed' ||
-                    unit.status === 'disqualified'
+                  'pill ml-auto',
+                  out
                     ? 'text-arena-hot'
                     : unit.status === 'active'
                       ? 'text-arena-text'
@@ -195,7 +239,7 @@ export default function BotPanel({
                 This was `♥♥♥ · CD 0 · ⬢ idle · → turn-left`: four encodings of state
                 on one line, three of them abbreviations only the author knew. */}
             <dl className="mt-[9px] grid grid-cols-[64px_1fr_auto] items-center gap-x-[10px] gap-y-[9px]">
-              <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">Health</dt>
+              <dt className="lab">Health</dt>
               <dd
                 className="flex gap-[3px]"
                 aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
@@ -206,6 +250,7 @@ export default function BotPanel({
                     className={clsx(
                       'h-[9px] flex-1 rounded-[2px] border',
                       index >= unit.health && 'border-arena-edge',
+                      index >= unit.health && out && 'border-dashed',
                     )}
                     // Again: the colour is the only thing here that is data.
                     style={
@@ -216,54 +261,64 @@ export default function BotPanel({
                   />
                 ))}
               </dd>
-              <dd className="tabular font-mono text-[11.5px] text-arena-dim">
+              <dd className="val">
                 {unit.health}/{unit.maxHealth}
               </dd>
 
-              <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">Weapon</dt>
-              <dd className="col-span-2 text-[13px] text-arena-text">
-                {unit.cooldown > 0 ? (
-                  <>
-                    Reloading —{' '}
-                    <span className="tabular font-mono text-[12px] text-arena-dim">
-                      {unit.cooldown}t
-                    </span>
-                  </>
-                ) : (
-                  'Ready'
-                )}
-                {unit.energy !== null && (
-                  <span className="tabular font-mono text-[12px] text-arena-dim">
-                    {' · '}
-                    {unit.energy} energy
-                  </span>
-                )}
+              {/* A draining bar, not a sentence: how much of the reload is left is a
+                  quantity, and a quantity is faster to see than to read. */}
+              <dt className="lab">Cooldown</dt>
+              <dd>
+                <span
+                  className="block h-[5px] overflow-hidden rounded-[3px] bg-arena-edge"
+                  aria-hidden
+                >
+                  <span
+                    className="block h-full bg-arena-dim transition-[width]"
+                    style={{
+                      width: `${Math.min(100, (100 * unit.cooldown) / cooldownMax)}%`,
+                    }}
+                  />
+                </span>
               </dd>
+              <dd className="val">{unit.cooldown}t</dd>
+
+              {unit.energy !== null && (
+                <>
+                  <dt className="lab">Energy</dt>
+                  <dd className="val col-span-2">{unit.energy}</dd>
+                </>
+              )}
 
               {unit.actionId && (
                 <>
-                  <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">
-                    Doing
-                  </dt>
-                  <dd className="col-span-2 text-[13px] text-arena-text">
+                  <dt className="lab">Doing</dt>
+                  <dd
+                    className={clsx(
+                      't-body text-arena-text',
+                      actionResult === null && 'col-span-2',
+                    )}
+                  >
                     {describeAction(
                       unit.actionId,
                       unit.actionLaunchHeading,
-                      unit.actionResult,
                     )}
                   </dd>
+                  {actionResult !== null && (
+                    <dd>
+                      <span className="pill">{actionResult}</span>
+                    </dd>
+                  )}
                 </>
               )}
 
               {(objective !== null || unit.zoneTicks !== null) && (
                 <>
-                  <dt className="type-label text-[10px] tracking-[0.13em] text-arena-dim">
-                    Objective
-                  </dt>
-                  <dd className="col-span-2 text-[13px] text-arena-text">
+                  <dt className="lab">Objective</dt>
+                  <dd className="t-body col-span-2 text-arena-text">
                     {unit.zoneTicks !== null ? (
                       <>
-                        <span className="tabular font-mono text-[12px]">
+                        <span className="val text-arena-text">
                           {unit.zoneTicks}
                         </span>{' '}
                         <span className="text-arena-dim">
@@ -281,7 +336,7 @@ export default function BotPanel({
             </dl>
 
             {formTransition && (
-              <p className="mt-2 font-mono text-[10px] tracking-wide text-arena-dim">
+              <p className="lab mt-2">
                 ANCHORING · {formTransition.fromFormId.toUpperCase()} →{' '}
                 {formTransition.toFormId.toUpperCase()} · COMPLETES T
                 {formTransition.completesAtTick}
@@ -289,7 +344,7 @@ export default function BotPanel({
             )}
 
             {!unit.canMove && (
-              <p className="mt-2 font-mono text-[10px] tracking-wide text-arena-accent">
+              <p className="lab mt-2">
                 STATIONARY ·{' '}
                 {unit.omnidirectionalVision ? '360° VISION' : 'DIRECTED VISION'}
                 {' · '}
@@ -300,23 +355,23 @@ export default function BotPanel({
             )}
 
             {selected && unit.debug && (
-              <pre className="mt-2 overflow-x-auto rounded bg-arena-bg/80 p-2 font-mono text-[11px] whitespace-pre-wrap text-arena-dim">
+              <pre className="term mt-2 whitespace-pre-wrap text-arena-dim">
                 {unit.debug}
               </pre>
             )}
             {selected && unit.actionId && (
-              <div className="mt-2 font-mono text-[11px] text-arena-dim">
+              <p className="val mt-2">
                 sees {unit.visibleTiles} tiles ·{' '}
                 {unit.visibleEnemies.length > 0
                   ? `enemy at ${unit.visibleEnemies.map((enemy) => `(${enemy.x},${enemy.y})`).join(' ')}`
                   : 'no enemies visible'}
-              </div>
+              </p>
             )}
           </button>
         );
       })}
 
-      <label className="flex cursor-pointer items-center gap-2 px-1 text-xs text-arena-dim select-none">
+      <label className="t-meta flex cursor-pointer items-center gap-2 px-1 select-none">
         <input
           type="checkbox"
           checked={showVisibility}

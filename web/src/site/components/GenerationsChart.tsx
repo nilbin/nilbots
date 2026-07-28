@@ -40,7 +40,7 @@ interface GenerationsChartProps {
 
 /* The mock draws this 1120 units wide because that is how wide it renders there: its
    coordinate space is CSS pixels at the width of the page it sits on. The bot page gives
-   this panel a 320px rail less than that, so the space is narrower — but every other
+   this panel a 340px rail less than that, so the space is narrower — but every other
    number is the mock's own, which is what makes the 52px label gutter, the 11.5px mono
    labels and the 16/28 margins land at the size they were drawn at. */
 const width = 720;
@@ -84,16 +84,10 @@ export default function GenerationsChart({
     liveGeneration ?? series.find((generation) => generation.live)?.generation ?? null;
 
   return (
-    <section className="rounded-lg border border-arena-edge bg-arena-panel/60 px-3.5 py-3">
-      <div className="mb-2.5 flex items-center justify-between gap-3">
-        <h2 className="type-label text-[10.5px] text-arena-dim">
-          Rating · every generation on one axis
-        </h2>
-        {live !== null && (
-          <span className="type-label shrink-0 rounded-full border border-current px-2 py-px text-[10.5px] text-arena-dim">
-            gen-{live} live
-          </span>
-        )}
+    <section className="panel pad">
+      <div className="mb-2.5 flex items-center justify-between gap-2.5">
+        <h2 className="lab">Rating · every generation on one axis</h2>
+        {live !== null && <span className="pill shrink-0">gen-{live} live</span>}
       </div>
 
       {chart === null ? (
@@ -184,7 +178,7 @@ export default function GenerationsChart({
             })}
           </svg>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[12px] text-arena-dim">
+          <div className="t-meta mt-2 flex flex-wrap items-center gap-3.5">
             {/* Newest first: the legend is read to find the live one. */}
             {chart.lines
               .slice()
@@ -197,7 +191,7 @@ export default function GenerationsChart({
                   <span
                     aria-hidden="true"
                     className={clsx(
-                      'h-0.5 w-3.5 rounded-full',
+                      'block h-0.5 w-3.5 rounded-[2px]',
                       !entry.live && 'bg-arena-edge2',
                     )}
                     style={entry.live ? { background: drawn } : undefined}

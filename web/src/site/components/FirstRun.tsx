@@ -56,12 +56,12 @@ const STEPS: readonly Step[] = [
 
 export default function FirstRun() {
   return (
-    <section className="rounded-lg border border-arena-edge bg-arena-panel px-3.5 py-3">
+    <section className="panel pad">
       {/* One column until the code has somewhere to go: the peek is a 400px rail, and
           below that width it stacks under the steps rather than shrinking to a gutter. */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-[26px] min-[940px]:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0">
-          <p className="type-label mb-2 text-[10.5px] text-arena-dim">No bots yet</p>
+          <p className="lab mb-2">No bots yet</p>
           <h1 className="type-display mb-5 max-w-[34ch] text-[21px] text-arena-text">
             Write a bot in C#. It compiles to WebAssembly and fights on a
             deterministic grid.
@@ -91,16 +91,14 @@ export default function FirstRun() {
                   <h2 className="text-[14px] font-semibold text-arena-text">
                     {step.title}
                   </h2>
-                  <pre className="mt-[7px] overflow-x-auto rounded border border-arena-edge bg-arena-bg px-[13px] py-[11px] font-mono text-[11.5px] leading-[1.75] text-arena-text">
+                  <pre className="term mt-[7px] text-arena-text">
                     {step.commands.map((command) => (
                       <span key={command} className="block">
                         <span className="text-arena-dim">$</span> {command}
                       </span>
                     ))}
                   </pre>
-                  <p className="mt-[7px] text-[12.5px] text-arena-dim">
-                    {step.note}
-                  </p>
+                  <p className="t-meta mt-[7px]">{step.note}</p>
                   {step.waiting && <WaitingLine />}
                 </div>
               </li>
@@ -123,10 +121,7 @@ export default function FirstRun() {
  */
 function WaitingLine() {
   return (
-    <p
-      role="status"
-      className="mt-[7px] flex items-center gap-[7px] text-[12.5px] text-arena-dim"
-    >
+    <p role="status" className="t-meta mt-[7px] flex items-center gap-[7px]">
       <span
         aria-hidden
         className="h-1.5 w-1.5 flex-none animate-pulse rounded-full bg-arena-ok motion-reduce:animate-none"
@@ -190,18 +185,14 @@ function dimKeywords(source: string) {
 function StarterPeek() {
   return (
     <div className="min-w-0 min-[940px]:border-l min-[940px]:border-arena-edge min-[940px]:pl-[22px]">
-      <p className="type-label mb-2 text-[10.5px] text-arena-dim">
-        What you actually write
-      </p>
-      <pre className="overflow-x-auto rounded border border-arena-edge bg-arena-bg px-[13px] py-[11px] font-mono text-[11.5px] leading-[1.75] text-arena-text">
-        {dimKeywords(STARTER)}
-      </pre>
-      <p className="mt-[11px] text-[12.5px] text-arena-dim">
+      <p className="lab mb-2">What you actually write</p>
+      <pre className="term text-arena-text">{dimKeywords(STARTER)}</pre>
+      <p className="t-meta mt-[11px]">
         The real template is a little longer — it keeps a field between ticks,
         because one instance plays the whole match and remembers what it has
         seen.
       </p>
-      <p className="mt-[11px] text-[12.5px] text-arena-dim">
+      <p className="t-meta mt-[11px]">
         Syntax colour is deliberately absent: colour here means a player chose
         it, so code separates by weight instead.
       </p>

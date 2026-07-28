@@ -221,7 +221,7 @@ export default function Viewer({
     >
       <header
         className={clsx(
-          'relative flex flex-wrap items-center gap-x-4 gap-y-1',
+          'relative flex flex-wrap items-center gap-x-3.5 gap-y-1',
           immersive.active && 'hidden',
         )}
       >
@@ -229,7 +229,7 @@ export default function Viewer({
         {/* Who is fighting, not what the match is made of. The map, the seed, the rules
             version and the hash are provenance — they matter enormously, which is why
             they get a disclosure of their own rather than a byline nobody reads. */}
-        <span className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           {replay.teams.map((team, index) => {
             // A team's units, not a fixed pair: a duel shows one chip a side and a
             // Frontline team shows however many it fields.
@@ -237,12 +237,8 @@ export default function Viewer({
               .filter((unit) => unit.teamId === team.teamId)
               .map((unit) => unit.unitKey);
             return (
-              <span key={team.teamKey} className="flex items-center gap-4">
-                {index > 0 && (
-                  <span className="type-label text-[10px] text-arena-dim">
-                    vs
-                  </span>
-                )}
+              <span key={team.teamKey} className="flex items-center gap-3">
+                {index > 0 && <span className="lab">vs</span>}
                 {unitKeys.slice(0, 3).map((unitKey) => (
                   <IdentityChip
                     key={unitKey}
@@ -250,48 +246,43 @@ export default function Viewer({
                     visualIndex={visualIndexForUnit(replay, unitKey)}
                     accent={participantForUnit(replay, unitKey)?.accent}
                     name={unitName(replay, unitKey)}
+                    nameClassName="text-[14px]"
                     size={22}
                   />
                 ))}
                 {unitKeys.length > 3 && (
-                  <span className="tabular font-mono text-[11px] text-arena-dim">
-                    +{unitKeys.length - 3}
-                  </span>
+                  <span className="val">+{unitKeys.length - 3}</span>
                 )}
               </span>
             );
           })}
         </span>
         {isLive ? (
-          <span className="type-label ml-auto flex items-center gap-1.5 rounded-full border border-arena-hot/50 px-2.5 py-0.5 text-[10px] text-arena-hot">
+          <span className="pill ml-auto inline-flex items-center gap-1.5 text-arena-hot">
             <span className="inline-block size-1.5 animate-pulse rounded-full bg-arena-hot" />
             Live
           </span>
         ) : (
           <details className="group ml-auto">
-            <summary className="type-label cursor-pointer list-none rounded-md border border-arena-edge px-2.5 py-1 text-[10px] text-arena-dim transition-colors hover:border-arena-edge2 hover:text-arena-text">
+            <summary className="btn cursor-pointer list-none text-arena-dim hover:text-arena-text">
               Verify
             </summary>
             {/* Determinism is the product's core claim, so the thing that lets anyone
                 check it should be legible and copyable rather than a grey #de24f5aa in
                 the corner. */}
-            <dl className="absolute right-0 z-20 mt-2 grid grid-cols-[4rem_1fr] gap-x-4 gap-y-1.5 rounded-lg border border-arena-edge bg-arena-panel p-3 shadow-lg">
-              <dt className="type-label text-[9px] text-arena-dim">Map</dt>
-              <dd className="tabular font-mono text-[12px] text-arena-text">
-                {replay.map.mapId}
-              </dd>
-              <dt className="type-label text-[9px] text-arena-dim">Seed</dt>
-              <dd className="tabular font-mono text-[12px] text-arena-text">
-                {String(replay.seed)}
-              </dd>
-              <dt className="type-label text-[9px] text-arena-dim">Rules</dt>
-              <dd className="tabular font-mono text-[12px] text-arena-text">
+            <dl className="panel pad absolute right-0 z-20 mt-2 grid grid-cols-[70px_1fr] items-baseline gap-x-3 gap-y-[7px]">
+              <dt className="lab">Map</dt>
+              <dd className="val text-arena-text">{replay.map.mapId}</dd>
+              <dt className="lab">Seed</dt>
+              <dd className="val text-arena-text">{String(replay.seed)}</dd>
+              <dt className="lab">Rules</dt>
+              <dd className="val text-arena-text">
                 {replay.versions.gameRulesVersion}
               </dd>
               {replay.replayHash && (
                 <>
-                  <dt className="type-label text-[9px] text-arena-dim">Replay</dt>
-                  <dd className="font-mono text-[12px] break-all text-arena-text">
+                  <dt className="lab">Replay</dt>
+                  <dd className="val break-all text-arena-text">
                     {replay.replayHash}
                   </dd>
                 </>
@@ -325,7 +316,7 @@ export default function Viewer({
           <button
             type="button"
             onClick={() => immersive.toggle(shell.current)}
-            className="ml-auto rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
+            className="btn ml-auto text-arena-dim hover:text-arena-text"
             aria-pressed={immersive.active}
           >
             {immersive.active ? 'exit full screen' : 'full screen'}
@@ -340,7 +331,9 @@ export default function Viewer({
           // letterbox — they cost the arena no size, since it is height-constrained — but
           // a third of the screen given to text is not "mainly the game". The black bars
           // are aspect ratio, not waste, and framing beats clutter.
-          immersive.active ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
+          immersive.active
+            ? 'grid-cols-1'
+            : 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]',
         )}
       >
         <main
@@ -358,7 +351,7 @@ export default function Viewer({
               // rather than from how much has happened in it. It applies at every width,
               // not just where the two are columns: stacked, the arena had only its
               // minimum height to fall back on and came out shorter than it used to be.
-              : 'rounded-lg border border-arena-edge aspect-[16/10]',
+              : 'rounded-[3px] border border-arena-edge aspect-[16/10]',
           )}
         >
           {dimensional ? (
@@ -381,25 +374,46 @@ export default function Viewer({
               onSelectUnit={setSelectedUnitKey}
             />
           )}
+          {/* Where we are, over the game rather than under it: the eye is on the arena,
+              and this is the one number a spectator is always reading. It is also the
+              thing that must never disappear — when the immersive chrome fades, this
+              goes to 40% instead of to nothing, because a viewer who cannot see the tick
+              cannot tell how far in they are. */}
+          <p
+            className={clsx(
+              'val absolute top-2 left-2 rounded-full border border-arena-edge bg-arena-bg/75 px-[9px] py-[2px] backdrop-blur-[3px] transition-opacity duration-300',
+              immersive.active && !chromeVisible && 'opacity-40',
+            )}
+          >
+            <span className="text-arena-text">
+              {String(tick).padStart(3, '0')}
+            </span>{' '}
+            / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
+          </p>
           {!assets.ready && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/80">
-              <p className="font-mono text-xs tracking-widest text-arena-dim" role="status">
-                LOADING ARENA — {assets.pending} texture{assets.pending === 1 ? '' : 's'}
+              <p className="lab" role="status">
+                Loading arena — {assets.pending} texture
+                {assets.pending === 1 ? '' : 's'}
               </p>
             </div>
           )}
           {!isLive && playback.atEnd && result && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/70">
-              <div className="rounded-xl border border-arena-edge bg-arena-panel px-8 py-6 text-center shadow-2xl">
-                <p className="font-mono text-xs tracking-widest text-arena-dim">
-                  MATCH COMPLETE — {result.reason.toUpperCase()} · TICK {result.endTick}
+              <div className="panel px-8 py-6 text-center">
+                <p className="lab">
+                  Match complete — {result.reason} · tick {result.endTick}
                 </p>
-                <p className="mt-2 text-2xl font-black tracking-wide">
+                <p className="type-display mt-2 text-[21px]">
                   {winnerTeam ? (
                     <>
                       <span
                         style={{
-                          color: winnerParticipant?.accent ?? '#38bdf8',
+                          // The winner's own colour, and nothing stands in for it: with
+                          // no accent on record the name stays in the reading colour.
+                          color:
+                            winnerParticipant?.accent ??
+                            'var(--color-arena-text)',
                         }}
                       >
                         {teamName(replay, winnerTeam.teamId)}
@@ -411,7 +425,7 @@ export default function Viewer({
                   )}
                 </p>
                 {result.teams.some((team) => team.zoneTicks !== null) && (
-                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                  <p className="val mt-1">
                     zone{' '}
                     {[...result.teams]
                       .sort((left, right) => left.teamId - right.teamId)
@@ -424,14 +438,14 @@ export default function Viewer({
                 )}
                 {result.objective.kind === 'legacy' &&
                   result.objective.controlPressure !== null && (
-                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                  <p className="val mt-1">
                     final control{' '}
                     {result.objective.controlPressure > 0 ? '+' : ''}
                     {result.objective.controlPressure}
                   </p>
                 )}
                 {result.objective.kind === 'frontline' && (
-                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                  <p className="val mt-1">
                     final position{' '}
                     {result.objective.activePositionIndex + 1}
                     {result.territorialScore === null
@@ -440,8 +454,9 @@ export default function Viewer({
                   </p>
                 )}
                 <button
+                  type="button"
                   onClick={playback.restart}
-                  className="mt-4 rounded-md border border-arena-accent px-4 py-1.5 font-mono text-sm text-arena-accent transition-colors hover:bg-arena-accent/15"
+                  className="btn mt-4"
                 >
                   ⟲ Watch again
                 </button>
@@ -460,7 +475,7 @@ export default function Viewer({
         <aside
           className={clsx('relative flex min-h-0 flex-col', immersive.active && 'hidden')}
         >
-          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:absolute lg:inset-0">
+          <div className="flex min-h-0 flex-1 flex-col gap-2.5 lg:absolute lg:inset-0">
             <BotPanel
               replay={replay}
               tick={tick}
@@ -505,7 +520,7 @@ export default function Viewer({
           )}
         >
           {isLive ? (
-            <div className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4 font-mono text-xs text-arena-dim">
+            <div className="panel pad val flex items-center gap-2.5">
               <span className="inline-block size-2 animate-pulse rounded-full bg-arena-hot" />
               Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees this moment.
             </div>
@@ -527,7 +542,7 @@ export default function Viewer({
           type="button"
           onClick={immersive.exit}
           className={clsx(
-            'absolute top-0 right-0 z-20 m-2 rounded-md border border-arena-edge bg-arena-panel/80 px-2.5 py-1.5 font-mono text-[11px] text-arena-dim backdrop-blur transition-opacity duration-300 hover:border-arena-accent hover:text-arena-accent',
+            'btn absolute top-0 right-0 z-20 m-2 bg-arena-panel/80 text-arena-dim backdrop-blur transition-opacity duration-300 hover:text-arena-text',
             chromeVisible ? 'opacity-95' : 'opacity-0',
           )}
           // The notch is the only reason this is not a class.

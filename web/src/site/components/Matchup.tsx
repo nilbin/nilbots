@@ -43,6 +43,13 @@ interface MatchupProps {
  *
  * The winner is marked by weight alone. The row's verdict says who won in words, so a
  * second glyph or a colour here would be the same fact three times.
+ *
+ * **The chips are deliberately not links.** `MatchSummaryParticipantResponse` carries
+ * snapshots — name, accent, look, owner — and no `botId` or slug, and the detail
+ * projection has an id but still no slug. Joining a snapshot name back against
+ * `/api/bots` to recover one would send a reader to the wrong bot the first time somebody
+ * renames theirs, silently. So the whole row or card is the link, and one field on the
+ * summary participant is what unlocks a chip that is one.
  */
 export default function Matchup({
   participants,
@@ -63,9 +70,9 @@ export default function Matchup({
     >
       {participants.map((participant, index) => (
         <Fragment key={participant.slot}>
-          {index > 0 && (
-            <span className="type-label text-[10.5px] text-arena-dim">vs</span>
-          )}
+          {/* Stacked, `vs` is its own line and sits under the chassis rather than at the
+              card's edge, so the two names read as one pairing instead of two entries. */}
+          {index > 0 && <span className={clsx('lab', stacked && 'pl-3')}>vs</span>}
           <span
             className={clsx(
               'flex min-w-0 items-center gap-2',
@@ -80,7 +87,7 @@ export default function Matchup({
               emphasized={participant.slot === winnerSlot}
             />
             {showOwners && (
-              <span className="min-w-0 truncate text-[11.5px] tracking-[0.04em] text-arena-dim [font-stretch:84%]">
+              <span className="t-micro min-w-0 truncate tracking-[0.04em] [font-stretch:84%]">
                 {participant.ownerDisplayNameSnapshot}
               </span>
             )}

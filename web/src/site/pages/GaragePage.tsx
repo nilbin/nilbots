@@ -24,13 +24,13 @@ import CosmeticUnlocks from '../components/CosmeticUnlocks';
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
   return (
-    <section className="max-w-xl rounded-xl border border-arena-edge bg-arena-panel p-5">
-      <h2 className="mb-2 type-label text-[10.5px] text-arena-dim">Cli access</h2>
-      <p className="text-xs text-arena-dim">
+    <section className="panel pad max-w-xl">
+      <h2 className="lab mb-2">Cli access</h2>
+      <p className="t-meta">
         Develop locally and submit from your terminal:{' '}
-        <code className="font-mono">nilbots register</code> opens this site in your browser to
+        <code className="val">nilbots register</code> opens this site in your browser to
         create an account and sign you in securely (OAuth + PKCE), then{' '}
-        <code className="font-mono">nilbots submit</code> creates your bot and uploads it for the official
+        <code className="val">nilbots submit</code> creates your bot and uploads it for the official
         server build and reports whether your local artifact matches it bit-for-bit.
       </p>
     </section>
@@ -99,7 +99,7 @@ export default function GaragePage() {
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">My bots</h2>
+        <h2 className="lab mb-3">My bots</h2>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bots.map((bot) => {
             const look = botLook(bot.lookId);
@@ -108,7 +108,7 @@ export default function GaragePage() {
               <li key={bot.id}>
                 <Link
                   to={`/bots/${bot.slug}`}
-                  className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-dim"
+                  className="panel-quiet pad flex items-center gap-3 transition-colors hover:border-arena-edge2"
                 >
                   <BotIdentity
                     name={bot.name}
@@ -122,10 +122,12 @@ export default function GaragePage() {
                     accent={bot.accent}
                     className="h-6 w-10"
                   />
-                  <span className="font-mono text-[10px] text-arena-dim">
+                  {/* Chassis and projectile are names a player chose, not values a
+                      machine wrote, so they are sans — mono is reserved. */}
+                  <span className="t-micro">
                     {look.label} · {projectile.label}
                   </span>
-                  <span className="ml-auto font-mono text-[11px] text-arena-dim">
+                  <span className="val ml-auto">
                     {bot.latestVersion
                       ? `v${bot.latestVersion.versionNumber} ${bot.latestVersion.status.toLowerCase()}`
                       : 'no versions'}
@@ -141,10 +143,10 @@ export default function GaragePage() {
 
       <CliAccess />
 
-      <section className="max-w-md rounded-xl border border-arena-edge bg-arena-panel p-5">
-        <h2 className="mb-3 type-label text-[10.5px] text-arena-dim">New bot</h2>
+      <section className="panel pad max-w-md">
+        <h2 className="lab mb-3">New bot</h2>
         <form onSubmit={create} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-xs text-arena-dim">
+          <label className="t-meta flex flex-col gap-1">
             Name
             <input
               value={name}
@@ -153,25 +155,25 @@ export default function GaragePage() {
               minLength={2}
               maxLength={40}
               placeholder="Murder Roomba"
-              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
+              className="t-body rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-arena-text outline-none focus:border-arena-accent"
             />
           </label>
-          <label className="flex items-center gap-3 text-xs text-arena-dim">
+          <label className="t-meta flex items-center gap-3">
             Accent color
             <input
               type="color"
               value={accent}
               onChange={(e) => setAccent(e.target.value)}
-              className="h-8 w-14 cursor-pointer rounded border border-arena-edge bg-arena-bg"
+              className="h-8 w-14 cursor-pointer rounded-md border border-arena-edge bg-arena-bg"
             />
-            <span className="font-mono">{accent}</span>
+            <span className="val">{accent}</span>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-arena-dim">
+          <label className="t-meta flex flex-col gap-1">
             Chassis
             <select
               value={lookId}
               onChange={(event) => selectLook(event.target.value)}
-              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
+              className="t-body rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-arena-text outline-none focus:border-arena-accent"
             >
               {looks.map((look) => (
                 <option
@@ -192,12 +194,12 @@ export default function GaragePage() {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-xs text-arena-dim">
+          <label className="t-meta flex flex-col gap-1">
             Projectile
             <select
               value={projectileLookId}
               onChange={(event) => setProjectileLookId(event.target.value)}
-              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text outline-none focus:border-arena-accent"
+              className="t-body rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-arena-text outline-none focus:border-arena-accent"
             >
               {projectileLooks.map((look) => (
                 <option
@@ -225,7 +227,7 @@ export default function GaragePage() {
               ))}
             </select>
           </label>
-          <div className="flex items-center gap-3 rounded-md border border-arena-edge bg-arena-bg/60 px-3 py-2 text-xs text-arena-dim">
+          <div className="t-meta flex items-center gap-3 rounded-[3px] border border-arena-edge bg-arena-bg/60 px-3 py-2">
             <ProjectilePreview
               look={projectileLook(projectileLookId)}
               accent={accent}
@@ -234,11 +236,11 @@ export default function GaragePage() {
             {projectileLook(projectileLookId).label}
           </div>
           {creation.isError && (
-            <p className="text-sm text-arena-hot">
+            <p className="t-body text-arena-hot">
               {errorMessage(creation.error, 'Failed to create bot.')}
             </p>
           )}
-          {catalogError && <p className="text-sm text-arena-hot">{catalogError}</p>}
+          {catalogError && <p className="t-body text-arena-hot">{catalogError}</p>}
           <button
             type="submit"
             disabled={

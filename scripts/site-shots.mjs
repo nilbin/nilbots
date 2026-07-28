@@ -75,8 +75,35 @@ const FIXTURES = {
     combat: { games: 214, damageDealt: 512, faults: 0 },
   },
   '^/api/bots/[^/]+/matches': { wins: 118, losses: 96, draws: 0, matches: [] },
-  '^/api/bots$': [],
-  '^/api/matches': [],
+  '^/api/bots$': [
+    { id: 'bot-1', slug: 'warden-gen-1', name: 'Warden gen-1', owner: 'ada',
+      accent: '#7dd3fc', lookId: 'aureate-warden', projectileLookId: 'pulse-bolt',
+      createdAt: '2026-06-01T00:00:00Z', versionCount: 4, ratings: [],
+      activeVersion: { id: 'v4', versionNumber: 4, status: 'Built' },
+      currentStanding: { rank: 1, rating: 1341, rulesVersion: '0.5', rankedSets: 14 } },
+    { id: 'bot-3', slug: 'pincer-gen-10', name: 'Pincer gen-10', owner: 'you',
+      accent: '#22d3ee', lookId: 'vanguard', projectileLookId: 'pulse-bolt',
+      createdAt: '2026-05-11T00:00:00Z', versionCount: 10, ratings: [],
+      activeVersion: { id: 'v10', versionNumber: 10, status: 'Built' },
+      currentStanding: { rank: 3, rating: 1284, rulesVersion: '0.5', rankedSets: 11 } },
+  ],
+  '^/api/matches/[^/]+/live$': { presentationTick: 24, totalTicks: null },
+  '^/api/matches': [
+    { id: 'm1', mapId: 'bastion-01', status: 'Completed', broadcasting: false,
+      matchSetId: null, setGame: null, winnerSlot: 0, endReason: 'elimination',
+      endTick: 39, createdAt: '2026-07-27T21:00:00Z', completedAt: '2026-07-27T21:02:00Z',
+      participants: [
+        { slot: 0, nameSnapshot: 'Pincer gen-10', ownerDisplayNameSnapshot: 'you', accentSnapshot: '#22d3ee', lookIdSnapshot: 'vanguard', projectileLookIdSnapshot: 'pulse-bolt', outcome: 'Win', finalHealth: 2 },
+        { slot: 1, nameSnapshot: 'Bastille gen-5', ownerDisplayNameSnapshot: 'kell', accentSnapshot: '#ef4444', lookIdSnapshot: 'bulwark', projectileLookIdSnapshot: 'pulse-bolt', outcome: 'Loss', finalHealth: 2 },
+      ] },
+    { id: 'm2', mapId: 'arena-01', status: 'Running', broadcasting: true,
+      matchSetId: null, setGame: null, winnerSlot: null, endReason: null,
+      endTick: null, createdAt: '2026-07-27T21:20:00Z', completedAt: null,
+      participants: [
+        { slot: 0, nameSnapshot: 'Warden gen-1', ownerDisplayNameSnapshot: 'ada', accentSnapshot: '#7dd3fc', lookIdSnapshot: 'aureate-warden', projectileLookIdSnapshot: 'pulse-bolt', outcome: null, finalHealth: 2 },
+        { slot: 1, nameSnapshot: 'Rampart gen-2', ownerDisplayNameSnapshot: 'juno', accentSnapshot: '#bef264', lookIdSnapshot: 'orbiter', projectileLookIdSnapshot: 'pulse-bolt', outcome: null, finalHealth: 2 },
+      ] },
+  ],
 };
 
 const b = await chromium.launch();
@@ -111,6 +138,7 @@ await page.route('**/api/**', async (route) => {
 // redesign, and the narrow shot is the one that catches a table nobody can read.
 for (const [name, path] of [
   ['season', '/'],
+  ['bots', '/bots'],
   ['watch', '/watch'],
   ['bot', '/bots/pincer-gen-10'],
   ['firstrun', '/garage'],

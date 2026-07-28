@@ -153,11 +153,11 @@ export default function SeasonPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <p className="type-label mb-2 text-[10.5px] text-arena-dim">
+      <p className="lab mb-2">
         Ranked ladder{board === null ? '' : ` · rules ${board.rulesVersion}`}
       </p>
       <h1 className="type-display mb-2 text-[30px]">Standings</h1>
-      <p className="mb-4 max-w-[62ch] text-sm text-arena-dim">
+      <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
         Ratings move only through ranked sets: six games across three map/seed pairs,
         each played from both starting positions. Every rules version has its own
         ladder — a new era never erases old standings. There is no season boundary yet,
@@ -166,7 +166,7 @@ export default function SeasonPage() {
       </p>
 
       {closed && (
-        <p className="mb-4 max-w-[62ch] rounded-md border border-arena-edge border-l-2 border-l-arena-accent bg-arena-panel/60 px-3 py-2 text-sm text-arena-dim">
+        <p className="panel-quiet t-body mb-4 max-w-[62ch] border-l-2 border-l-arena-accent px-3 py-2 text-arena-dim">
           This ladder is <b className="text-arena-text">closed</b>: rules{' '}
           {board.rulesVersion} no longer accepts new sets, so these standings are
           final. Ranked play happens on rules {board.activeRulesVersion}.
@@ -182,14 +182,10 @@ export default function SeasonPage() {
           {board.ladders.map((ladder) => (
             <button
               key={ladder}
+              type="button"
               onClick={() => setRules(ladder)}
               aria-pressed={ladder === board.rulesVersion}
-              className={clsx(
-                'type-label rounded-full border px-2.5 py-1 text-[10px] transition-colors',
-                ladder === board.rulesVersion
-                  ? 'border-arena-edge2 bg-arena-raise text-arena-text'
-                  : 'border-arena-edge text-arena-dim hover:text-arena-text',
-              )}
+              className={clsx('btn', ladder === board.rulesVersion && 'btn-on')}
             >
               rules {ladder}
             </button>
@@ -216,16 +212,16 @@ export default function SeasonPage() {
               with nothing on this ladder: every line in it is about *your* bots, so
               signed out it would say nothing the page above has not already said. */}
           {fleet.length > 0 && (
-            <section className="rounded-sm border border-arena-edge bg-arena-panel px-3.5 py-3">
-              <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-                <p className="type-label m-0 text-[10.5px] tracking-[0.15em] text-arena-dim">
+            <section className="panel pad">
+              <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2.5">
+                <p className="lab">
                   {headerLine(
-                  board.rulesVersion,
-                  fleet.length,
-                  (board as unknown as { season?: SeasonFields }).season ?? null,
-                )}
+                    board.rulesVersion,
+                    fleet.length,
+                    (board as unknown as { season?: SeasonFields }).season ?? null,
+                  )}
                 </p>
-                <span className="type-label rounded-full border border-current px-2 py-px text-[10.5px] tracking-[0.12em] whitespace-nowrap text-arena-dim">
+                <span className="pill">
                   best rank {Math.min(...fleet.map((entry) => entry.rank))}
                 </span>
               </div>
@@ -234,7 +230,7 @@ export default function SeasonPage() {
                   <Link
                     key={entry.id}
                     to={`/bots/${entry.slug}`}
-                    className="rounded-sm border border-arena-edge px-3 py-[11px] transition-colors hover:border-arena-edge2"
+                    className="panel px-3 py-[11px] transition-colors hover:border-arena-edge2"
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <BotIdentity
@@ -251,11 +247,9 @@ export default function SeasonPage() {
                         {entry.rank}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2.5">
                       <Movement places={seasonView(entry).movement} suffix="places" />
-                      <span className="tabular ml-auto font-mono text-[11px] text-arena-text">
-                        {entry.rating}
-                      </span>
+                      <span className="val ml-auto text-arena-text">{entry.rating}</span>
                     </div>
                   </Link>
                 ))}
@@ -264,10 +258,8 @@ export default function SeasonPage() {
           )}
 
           {fleet.length > 0 && (
-            <section className="rounded-sm border border-arena-edge bg-arena-panel px-3.5 py-3">
-              <p className="type-label mb-2 text-[10.5px] tracking-[0.15em] text-arena-dim">
-                Your season · one line per bot
-              </p>
+            <section className="panel pad">
+              <p className="lab mb-2">Your season · one line per bot</p>
               {/* This is where player accents earn their keep, and it is the design's own
                   argument: several overlaid trajectories are unreadable in one colour and
                   instantly separable in six — precisely because the grid and the labels
@@ -284,11 +276,9 @@ export default function SeasonPage() {
             </section>
           )}
 
-          <section className="rounded-sm border border-arena-edge bg-arena-panel">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 pt-3">
-              <p className="type-label m-0 text-[10.5px] tracking-[0.15em] text-arena-dim">
-                Ranked ladder · {entries.length} bots
-              </p>
+          <section className="panel">
+            <div className="pad flex flex-wrap items-center justify-between gap-2.5 pb-0">
+              <p className="lab">Ranked ladder · {entries.length} bots</p>
               <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Sort and filter the ladder">
                 <Control pressed={sort === 'rating'} onClick={() => setSort('rating')}>
                   rating
@@ -308,19 +298,19 @@ export default function SeasonPage() {
                 )}
               </div>
             </div>
-            <div className="px-3.5 pt-2.5 pb-3">
+            <div className="pad pt-2.5">
               <input
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter by bot or owner…"
                 aria-label="Filter the ladder by bot or owner"
-                className="mb-2.5 w-full rounded-sm border border-arena-edge bg-arena-bg px-3 py-1.5 text-sm text-arena-text placeholder:text-arena-dim focus:border-arena-edge2 focus:outline-none"
+                className="t-body mb-2.5 w-full rounded-[3px] border border-arena-edge bg-arena-bg px-3 py-1.5 text-arena-text placeholder:text-arena-dim focus:border-arena-edge2 focus:outline-none"
               />
               {/* A phone drops columns rather than scrolling sideways. Rank, bot and
                   rating are what a standing *is*; everything else is context you can open
                   the bot page for. A table that has to be dragged is a table nobody reads. */}
-              <table className="w-full border-collapse text-[13px]">
+              <table className="t-body w-full border-collapse">
                 <thead>
                   <tr>
                     <Th className="w-[30px]">#</Th>
@@ -342,7 +332,7 @@ export default function SeasonPage() {
                 <tbody>
                   {ordered.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="py-4 text-sm text-arena-dim">
+                      <td colSpan={8} className="py-4 text-arena-dim">
                         {query.trim() === ''
                           ? 'No bot of yours is on this ladder.'
                           : `No bot on this ladder matches “${query}”.`}
@@ -364,7 +354,7 @@ export default function SeasonPage() {
                         )}
                       >
                         <td
-                          className="type-display tabular p-2 text-[22px] text-arena-text"
+                          className="type-display tabular p-2 align-middle text-[22px] text-arena-text"
                           style={
                             mine && entry.accent
                               ? { boxShadow: `inset 2px 0 0 ${entry.accent}` }
@@ -373,10 +363,10 @@ export default function SeasonPage() {
                         >
                           {entry.rank}
                         </td>
-                        <td className="hidden p-2 sm:table-cell">
+                        <td className="hidden p-2 align-middle sm:table-cell">
                           <Movement places={season.movement} />
                         </td>
-                        <td className="p-2">
+                        <td className="p-2 align-middle">
                           <Link
                             to={`/bots/${entry.slug}`}
                             className="inline-flex min-w-0 transition-opacity hover:opacity-80"
@@ -389,22 +379,22 @@ export default function SeasonPage() {
                             />
                           </Link>
                         </td>
-                        <td className="hidden truncate p-2 text-arena-dim sm:table-cell">
+                        <td className="hidden truncate p-2 align-middle text-arena-dim sm:table-cell">
                           {entry.owner}
                         </td>
-                        <td className="hidden p-2 md:table-cell">
+                        <td className="hidden p-2 align-middle md:table-cell">
                           <Sparkline
                             history={season.history}
                             accent={mine ? entry.accent : null}
                           />
                         </td>
-                        <td className="tabular p-2 text-right font-mono text-[12px] whitespace-nowrap text-arena-text">
+                        <td className="val p-2 text-right align-middle whitespace-nowrap text-arena-text">
                           {entry.rating}
                         </td>
-                        <td className="tabular hidden p-2 text-right font-mono text-[12px] whitespace-nowrap text-arena-dim md:table-cell">
+                        <td className="val hidden p-2 text-right align-middle whitespace-nowrap text-arena-text md:table-cell">
                           {season.record && `${season.record.wins}–${season.record.losses}`}
                         </td>
-                        <td className="tabular hidden p-2 text-right font-mono text-[12px] whitespace-nowrap text-arena-dim sm:table-cell">
+                        <td className="val hidden p-2 text-right align-middle whitespace-nowrap sm:table-cell">
                           {entry.rankedSets}
                         </td>
                       </tr>
@@ -416,7 +406,7 @@ export default function SeasonPage() {
                   They stay in the markup because a column that renders nothing is a
                   column that renders the day the endpoint lands. */}
               {!hasMovement && !hasHistory && !hasRecord && (
-                <p className="mt-2.5 text-[11.5px] text-arena-dim">
+                <p className="t-micro mt-2.5">
                   Movement, trend and W–L are blank on every row: no rank snapshot, rating
                   history or ranked record reaches this endpoint yet.
                 </p>
@@ -459,7 +449,7 @@ function headerLine(
 function Movement({ places, suffix }: { places: number | null; suffix?: string }) {
   if (places === null) return null;
   return (
-    <span className="inline-flex items-baseline gap-1 text-[11.5px] whitespace-nowrap text-arena-dim">
+    <span className="t-micro inline-flex items-baseline gap-1 whitespace-nowrap">
       <span
         className={clsx(
           places > 0 && 'text-arena-ok',
@@ -468,19 +458,12 @@ function Movement({ places, suffix }: { places: number | null; suffix?: string }
       >
         {places > 0 ? '▲' : places < 0 ? '▼' : '—'}
       </span>
-      <span className="tabular font-mono">{Math.abs(places)}</span>
+      <span className="val">{Math.abs(places)}</span>
       {suffix && <span>{suffix}</span>}
     </span>
   );
 }
 
-/**
- * One row's shape over the season.
- *
- * Achromatic for everybody else and in the bot's own accent for your rows, which is the
- * same rule the rule down the left of the row follows: the only colour is one a player
- * picked. Renders nothing without a history, which is every row today.
- */
 /**
  * Every one of your bots' seasons on one axis.
  *
@@ -547,7 +530,7 @@ function SeasonChart({
             <text
               x={4}
               y={y(mark) + 4}
-              className="fill-arena-dim font-mono text-[10px]"
+              className="fill-arena-dim font-mono text-[9px]"
             >
               {mark}
             </text>
@@ -583,20 +566,15 @@ function SeasonChart({
           );
         })}
       </svg>
-      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+      <ul className="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1">
         {lines.map((line) => (
-          <li
-            key={line.name}
-            className="flex items-center gap-1.5 text-[12px] text-arena-dim"
-          >
+          <li key={line.name} className="t-meta flex items-center gap-1.5">
             <span
-              className="block h-0.5 w-3.5 rounded-full"
+              className="block h-0.5 w-3.5 rounded-xs"
               style={{ background: line.accent ?? 'currentColor' }}
             />
             {line.name}
-            <span className="tabular font-mono">
-              {line.history?.at(-1)}
-            </span>
+            <span className="val">{line.history?.at(-1)}</span>
           </li>
         ))}
       </ul>
@@ -604,6 +582,13 @@ function SeasonChart({
   );
 }
 
+/**
+ * One row's shape over the season.
+ *
+ * Achromatic for everybody else and in the bot's own accent for your rows, which is the
+ * same rule the rule down the left of the row follows: the only colour is one a player
+ * picked. Renders nothing without a history, which is every row today.
+ */
 function Sparkline({
   history,
   accent,
@@ -638,7 +623,13 @@ function Sparkline({
   );
 }
 
-/** A sort or filter control. Pressed is a border in the text colour, per the mock. */
+/**
+ * A sort or filter control.
+ *
+ * `.btn` and `.btn-on` are the shared control pair, and they carry the mock's own button
+ * — 12.5px/500, edge hairline, 3px radius, 5px 11px — so pressed, disabled and hover are
+ * one implementation rather than four utilities re-typed per page.
+ */
 function Control({
   children,
   pressed,
@@ -659,14 +650,7 @@ function Control({
       disabled={disabled}
       title={title}
       aria-pressed={pressed}
-      className={clsx(
-        'rounded-sm border px-[11px] py-[5px] text-[12.5px] font-medium transition-colors',
-        disabled
-          ? 'cursor-not-allowed border-arena-edge text-arena-dim/60'
-          : pressed
-            ? 'border-arena-text text-arena-text'
-            : 'border-arena-edge text-arena-dim hover:text-arena-text',
-      )}
+      className={clsx('btn', pressed && 'btn-on')}
     >
       {children}
     </button>
@@ -686,7 +670,7 @@ function Th({
     <th
       scope="col"
       className={clsx(
-        'type-label border-b border-arena-edge px-2 pb-2 text-[10.5px] font-normal text-arena-dim',
+        'lab border-b border-arena-edge px-2 pb-2',
         numeric ? 'text-right' : 'text-left',
         className,
       )}
