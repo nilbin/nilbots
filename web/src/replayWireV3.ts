@@ -163,6 +163,7 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
   capture: {
     threshold: number;
     gainPerSoleTeamTick: number;
+    gainSchedule?: ReplayV3FrontlineCaptureGainPhase[];
     decayAmount: number;
     decayIntervalTicks: number;
     redeployPauseTicks: number;
@@ -186,6 +187,13 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     redeployTickArithmetic:
       'checked-int64-capture-tick-plus-one-plus-pause-require-int32';
   };
+}
+
+export interface ReplayV3FrontlineCaptureGainPhase
+  extends ReplayV3JsonObject {
+  phaseId: string;
+  startsAtTick: number;
+  gainPerSoleTeamTick: number;
 }
 
 export type ReplayV3GameModeDefinition =

@@ -1194,6 +1194,100 @@ test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and
   });
 });
 
+test('replay-v3 Frontline preserves and strictly validates a phased capture-gain schedule', () => {
+  const fixture = () => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    input.header.contract.rules.gameMode.capture.gainSchedule = [
+      {
+        phaseId: 'opening',
+        startsAtTick: 0,
+        gainPerSoleTeamTick: 1,
+      },
+      {
+        phaseId: 'late-escalation',
+        startsAtTick: 1,
+        gainPerSoleTeamTick: 2,
+      },
+    ];
+    return input;
+  };
+
+  const replay = decodeReplay(fixture()).replay;
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.mode.kind !== 'frontline'
+  ) {
+    assert.fail('expected generic Frontline contract');
+  }
+  assert.deepEqual(replay.contract.mode.capture.gainSchedule, [
+    {
+      phaseId: 'opening',
+      startsAtTick: 0,
+      gainPerSoleTeamTick: 1,
+    },
+    {
+      phaseId: 'late-escalation',
+      startsAtTick: 1,
+      gainPerSoleTeamTick: 2,
+    },
+  ]);
+
+  const empty = fixture();
+  if (empty.header.contract.rules.gameMode.kind !== 'frontline') {
+    assert.fail('expected Frontline rules');
+  }
+  empty.header.contract.rules.gameMode.capture.gainSchedule = [];
+  assert.throws(
+    () => decodeReplay(empty),
+    /gainSchedule: must be omitted instead of emitted empty/,
+  );
+
+  const duplicateStart = fixture();
+  if (duplicateStart.header.contract.rules.gameMode.kind !== 'frontline') {
+    assert.fail('expected Frontline rules');
+  }
+  duplicateStart.header.contract.rules.gameMode.capture.gainSchedule![1]!
+    .startsAtTick = 0;
+  assert.throws(
+    () => decodeReplay(duplicateStart),
+    /must be strictly increasing, non-negative, and before maxTicks/,
+  );
+
+  const invalidId = fixture();
+  if (invalidId.header.contract.rules.gameMode.kind !== 'frontline') {
+    assert.fail('expected Frontline rules');
+  }
+  invalidId.header.contract.rules.gameMode.capture.gainSchedule![1]!.phaseId =
+    'Late_Escalation';
+  assert.throws(
+    () => decodeReplay(invalidId),
+    /expected a 1-64 character lowercase-kebab semantic ID/,
+  );
+
+  const unknownPhaseField = fixture() as unknown as {
+    header: {
+      contract: {
+        rules: {
+          gameMode: {
+            capture: {
+              gainSchedule: { presentationHint?: string }[];
+            };
+          };
+        };
+      };
+    };
+  };
+  unknownPhaseField.header.contract.rules.gameMode.capture.gainSchedule[0]!
+    .presentationHint = 'opening';
+  assert.throws(
+    () => decodeReplay(unknownPhaseField),
+    /gainSchedule\[0\]\.presentationHint: unknown property/,
+  );
+});
+
 test('replay-v3 Frontline rejects unknown arms and terminal/control/score/standing drift', () => {
   const fixture = () =>
     adaptReplayV3ToFrontline(replayV3FixtureInput(), 'base-breach');

@@ -498,6 +498,11 @@ export type ReplayGenericModeDefinition =
       capture: {
         threshold: number;
         gainPerSoleTeamTick: number;
+        gainSchedule?: {
+          phaseId: string;
+          startsAtTick: number;
+          gainPerSoleTeamTick: number;
+        }[];
         decayAmount: number;
         decayIntervalTicks: number;
         redeployPauseTicks: number;

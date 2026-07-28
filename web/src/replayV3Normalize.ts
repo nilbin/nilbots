@@ -65,6 +65,21 @@ function nonEmpty(
   if (value.length === 0) fail(path, 'must not be empty');
 }
 
+function semanticId(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): asserts value is string {
+  string(value, path, fail);
+  if (
+    value.length === 0 ||
+    value.length > 64 ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)
+  ) {
+    fail(path, 'expected a 1-64 character lowercase-kebab semantic ID');
+  }
+}
+
 function integer(
   value: unknown,
   path: string,
@@ -570,12 +585,15 @@ function validateContract(
       );
     }
     const capturePath = `${modePath}.capture`;
+    const captureValue = object(mode.capture, capturePath, fail);
+    const hasGainSchedule = own(captureValue, 'gainSchedule');
     const capture = exact(
-      mode.capture,
+      captureValue,
       capturePath,
       [
         'threshold',
         'gainPerSoleTeamTick',
+        ...(hasGainSchedule ? ['gainSchedule'] : []),
         'decayAmount',
         'decayIntervalTicks',
         'redeployPauseTicks',
@@ -615,6 +633,64 @@ function validateContract(
         capturePath,
         'contains invalid threshold, gain, decay, or redeploy tuning',
       );
+    }
+    if (hasGainSchedule) {
+      const schedule = array(
+        capture.gainSchedule,
+        `${capturePath}.gainSchedule`,
+        fail,
+      );
+      if (schedule.length === 0) {
+        fail(
+          `${capturePath}.gainSchedule`,
+          'must be omitted instead of emitted empty',
+        );
+      }
+      const phaseIds = new Set<string>();
+      let priorStartTick = -1;
+      schedule.forEach((value, index) => {
+        const phasePath = `${capturePath}.gainSchedule[${index}]`;
+        const phase = exact(
+          value,
+          phasePath,
+          ['phaseId', 'startsAtTick', 'gainPerSoleTeamTick'],
+          fail,
+        );
+        semanticId(phase.phaseId, `${phasePath}.phaseId`, fail);
+        integer(phase.startsAtTick, `${phasePath}.startsAtTick`, fail);
+        integer(
+          phase.gainPerSoleTeamTick,
+          `${phasePath}.gainPerSoleTeamTick`,
+          fail,
+        );
+        if (phaseIds.has(phase.phaseId)) {
+          fail(`${phasePath}.phaseId`, 'must be unique within the schedule');
+        }
+        phaseIds.add(phase.phaseId);
+        if (
+          (phase.startsAtTick as number) <= priorStartTick ||
+          (phase.startsAtTick as number) >= (limits.maxTicks as number)
+        ) {
+          fail(
+            `${phasePath}.startsAtTick`,
+            'must be strictly increasing, non-negative, and before maxTicks',
+          );
+        }
+        priorStartTick = phase.startsAtTick as number;
+        if ((phase.gainPerSoleTeamTick as number) <= 0) {
+          fail(`${phasePath}.gainPerSoleTeamTick`, 'must be positive');
+        }
+        if (
+          index === 0 &&
+          ((phase.startsAtTick as number) !== 0 ||
+            phase.gainPerSoleTeamTick !== capture.gainPerSoleTeamTick)
+        ) {
+          fail(
+            phasePath,
+            'first phase must start at tick zero with the declared base gain',
+          );
+        }
+      });
     }
     const fixedPolicies = {
       controlPolicy:
@@ -4727,6 +4803,14 @@ function contractFromV3(
         threshold: contract.rules.gameMode.capture.threshold,
         gainPerSoleTeamTick:
           contract.rules.gameMode.capture.gainPerSoleTeamTick,
+        ...(contract.rules.gameMode.capture.gainSchedule
+          ? {
+              gainSchedule:
+                contract.rules.gameMode.capture.gainSchedule.map(
+                  (phase) => ({ ...phase }),
+                ),
+            }
+          : {}),
         decayAmount: contract.rules.gameMode.capture.decayAmount,
         decayIntervalTicks:
           contract.rules.gameMode.capture.decayIntervalTicks,
