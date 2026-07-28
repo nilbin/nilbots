@@ -18,12 +18,17 @@ import type {
  * Pixel-level regression cover for the renderer.
  *
  * Replays are deterministic, so the same replay at the same tick must produce the same
- * frame. That makes the renderer testable in a way most renderers are not, and it is what
- * lets `drawArena` be restructured at all: a pass refactor is supposed to change how the
- * frame is produced and not what it looks like, and nothing else can hold that line.
+ * frame on a given native canvas target. That makes the renderer testable in a way most
+ * renderers are not, and it is what lets `drawArena` be restructured at all: a pass
+ * refactor is supposed to change how the frame is produced and not what it looks like,
+ * and nothing else can hold that line.
  *
  * Hashes, not images: a mismatch means "you changed the picture", and the diff belongs in
- * a reviewer's eyes rather than in version control as megabytes of PNG.
+ * a reviewer's eyes rather than in version control as megabytes of PNG. Hash raw RGBA
+ * pixels rather than PNG bytes because platform encoders may represent identical pixels
+ * with different compression streams. Native Skia targets also differ slightly in path
+ * antialiasing and blur rasterization, so each OS/architecture gets an exact baseline
+ * rather than weakening every target with a fuzzy comparison.
  *
  * Textures are absent here — `arenaThemes` returns null images without a DOM — so this
  * covers geometry, layering, tinting and fog, not the atlases themselves. That is the part
@@ -38,6 +43,7 @@ const replay = loadReplayJson(
   readFileSync(join(here, 'fixtures', 'golden-replay.json'), 'utf8'),
 ).replay;
 const goldenPath = join(here, 'fixtures', 'golden-frames.json');
+const renderTarget = `${process.platform}-${process.arch}`;
 
 /** Opening, mid-match, and the final tick — spawn layout, combat, and the end state. */
 const FRAMES = [
@@ -84,13 +90,21 @@ function frameHash(
     WIDTH,
     HEIGHT,
   );
-  return createHash('sha256').update(canvas.toBuffer('image/png')).digest('hex').slice(0, 16);
+  const pixels = ctx.getImageData(0, 0, WIDTH, HEIGHT).data;
+  return createHash('sha256').update(pixels).digest('hex').slice(0, 16);
 }
 
 const actual = Object.fromEntries(FRAMES.map((frame) => [frame.name, frameHash(frame)]));
 
 if (process.env.UPDATE_GOLDEN === '1') {
-  writeFileSync(goldenPath, `${JSON.stringify(actual, null, 2)}\n`);
+  const recorded = existsSync(goldenPath)
+    ? (JSON.parse(readFileSync(goldenPath, 'utf8')) as Record<
+        string,
+        Record<string, string>
+      >)
+    : {};
+  recorded[renderTarget] = actual;
+  writeFileSync(goldenPath, `${JSON.stringify(recorded, null, 2)}\n`);
 }
 
 test('the renderer produces the recorded frames', () => {
@@ -98,7 +112,16 @@ test('the renderer produces the recorded frames', () => {
     existsSync(goldenPath),
     'No golden frames recorded. Run once with UPDATE_GOLDEN=1.',
   );
-  const expected = JSON.parse(readFileSync(goldenPath, 'utf8')) as Record<string, string>;
+  const recorded = JSON.parse(readFileSync(goldenPath, 'utf8')) as Record<
+    string,
+    Record<string, string>
+  >;
+  const expected = recorded[renderTarget];
+  assert.ok(
+    expected,
+    `No golden frames recorded for ${renderTarget}. ` +
+      'Run once with UPDATE_GOLDEN=1.',
+  );
 
   for (const frame of FRAMES) {
     assert.equal(
@@ -113,8 +136,12 @@ test('the renderer produces the recorded frames', () => {
 test('every frame renders something', () => {
   // A guard on the guard: if drawArena threw or drew nothing, every hash would still be
   // stable and identical, and the suite above would pass while covering nothing.
+  const blankCanvas = createCanvas(WIDTH, HEIGHT);
+  const blankPixels = blankCanvas
+    .getContext('2d')
+    .getImageData(0, 0, WIDTH, HEIGHT).data;
   const blank = createHash('sha256')
-    .update(createCanvas(WIDTH, HEIGHT).toBuffer('image/png'))
+    .update(blankPixels)
     .digest('hex')
     .slice(0, 16);
   for (const frame of FRAMES) {
