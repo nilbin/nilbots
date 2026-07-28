@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-shot developer setup. Idempotent on macOS (including Apple Silicon) and
 # Linux. Linux x64 uses a native WASM compiler when wasi-sdk is installed;
-# other hosts use the cached linux/amd64 Docker builder automatically.
+# other hosts use the cached host-CPU-matched Docker builder automatically.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

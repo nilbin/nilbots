@@ -9,14 +9,21 @@ only the **compiler host** has a platform restriction.
 | Developer host | Build backend | Requirements |
 | --- | --- | --- |
 | Linux x86_64 | Native by default | .NET 10 and wasi-sdk 29 |
-| macOS Apple Silicon | Docker `linux/amd64` | .NET 10, Docker, Node 22+ |
-| macOS Intel | Docker `linux/amd64` | .NET 10, Docker, Node 22+ |
-| Linux arm64 | Docker `linux/amd64` | .NET 10, Docker, Node 22+ |
+| macOS Apple Silicon | Docker `linux/arm64` (native CPU) | .NET 10, Docker, Node 22+ |
+| macOS Intel | Docker `linux/amd64` (native CPU) | .NET 10, Docker, Node 22+ |
+| Linux arm64 | Docker `linux/arm64` (native CPU) | .NET 10, Docker, Node 22+ |
 
-The pinned `runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM` package contains
-the compiler executable. There is no corresponding macOS or Linux arm64 host
-package at the pinned version. Installing an arm64 wasi-sdk does not change that:
-wasi-sdk supplies the linker/sysroot, not the NativeAOT compiler host.
+The pinned toolchain publishes `runtime.linux-x64` and `runtime.linux-arm64`
+`Microsoft.DotNet.ILCompiler.LLVM` compiler-host packages, and both emit
+byte-identical modules (DECISIONS #145). There is no macOS host package at the
+pinned version, so a Linux environment (Docker) remains required on macOS —
+but the builder container always matches the host CPU, so the compiler never
+runs emulated by default. `BOTARENA_WASM_DOCKER_PLATFORM` can force a specific
+container platform; a forced non-native platform automatically runs the
+emulation-hardened single-node configuration, because MSBuild's multi-node
+fan-out intermittently deadlocks at 0% CPU under Rosetta/qemu. Installing an
+arm64 wasi-sdk alone does not change any of this: wasi-sdk supplies the
+linker/sysroot, not the NativeAOT compiler host.
 
 `scripts/run-wasm-publish.sh` owns this distinction. Callers should not add
 platform-specific MSBuild conditions or install Rosetta-hosted .NET directly.
@@ -112,8 +119,9 @@ the command exits immediately. The stamp is committed beside the tracked guest,
 so a fresh checkout does not rebuild it needlessly. Generated `bin/` and `obj/`
 sources are excluded: an ordinary managed build cannot invalidate the guest.
 Relevant changes trigger one NativeAOT publish:
-normally several seconds on native Linux x64 and tens of seconds under Apple
-Silicon x64 emulation—not a full application-image rebuild.
+normally several seconds on native Linux x64 and under ten seconds through the
+platform-matched Docker builder on Apple Silicon—not a full application-image
+rebuild.
 
 The stamp guarantees reuse of the checked-in artifact; it does not claim that
 two forced NativeAOT publishes are byte-for-byte reproducible. The pinned

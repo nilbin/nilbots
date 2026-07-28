@@ -76,9 +76,18 @@ public static class BotBuilder
         string workspace = isolated
             ? Path.Combine(BuildIsolation.WorkRoot, cacheKey[..24])
             : Path.Combine(cacheDir, "build");
-        if (Directory.Exists(workspace))
-            Directory.Delete(workspace, recursive: true);
+        // Empty the workspace without deleting the directory itself: it becomes a
+        // Docker bind-mount source moments later, and replacing the mount root's
+        // inode races macOS virtiofs into a transient empty container view
+        // (MSB1009; DECISIONS #145).
         Directory.CreateDirectory(workspace);
+        foreach (string entry in Directory.EnumerateFileSystemEntries(workspace))
+        {
+            if (Directory.Exists(entry))
+                Directory.Delete(entry, recursive: true);
+            else
+                File.Delete(entry);
+        }
         // Stage EXACTLY the assemblies the generated project references, never "every dll
         // next to whoever invoked us" (DECISIONS #84). That copied the host's whole output
         // directory in: 9 assemblies from the CLI but 74 from the server — AWS SDK, EF
@@ -143,7 +152,12 @@ public static class BotBuilder
               </ItemGroup>
               <ItemGroup>
                 <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" />
-                <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" />
+                <!-- Host-matched compiler package: the build may run on a linux-x64 or
+                     linux-arm64 host (platform-matched Docker builder, DECISIONS #145);
+                     both emit byte-identical modules. The condition evaluates in the
+                     build process, so one workspace stays correct on every host. -->
+                <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' != 'Arm64'" />
+                <PackageReference Include="runtime.linux-arm64.Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'" />
                 <Reference Include="BotArena.Sdk"><HintPath>libs/BotArena.Sdk.dll</HintPath></Reference>
                 <Reference Include="BotArena.Guest"><HintPath>libs/BotArena.Guest.dll</HintPath></Reference>
               </ItemGroup>
@@ -159,7 +173,7 @@ public static class BotBuilder
         string buildLogPath = Path.Combine(cacheDir, "build.log");
         if (!quiet)
             Console.WriteLine($"Compiling {displayName} to WASM (cold cache, " +
-                              $"{(docker ? "Docker linux/amd64" : isolated ? "native isolated" : "native")}, " +
+                              $"{(docker ? "Docker" : isolated ? "native isolated" : "native")}, " +
                               $"~10 s idle / longer under load — tail {buildLogPath})...");
         var startInfo = docker
             ? WasmBuildPlatform.DockerPublish(repoRoot, workspace, "-c", "Release", "-v", "q")

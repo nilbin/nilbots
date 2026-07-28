@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds the canonical built-in bot guest.
 #
-# Linux x64 compiles natively. macOS/Apple Silicon and Linux arm64
-# automatically use the cached linux/amd64 Docker builder. An input stamp makes
+# Linux x64 compiles natively. macOS and Linux arm64
+# automatically use the cached host-CPU-matched Docker builder. An input stamp makes
 # unchanged invocations effectively instant instead of rerunning NativeAOT.
 set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"

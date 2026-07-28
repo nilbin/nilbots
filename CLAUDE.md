@@ -27,8 +27,8 @@ the plan left choices open (cite/extend it when making new ones).
 ## Environment bootstrap
 
 Fresh environments are scripted. Linux x64 uses NativeAOT-LLVM natively when
-wasi-sdk is installed; macOS/Apple Silicon and Linux arm64 automatically use
-the focused cached linux/amd64 Docker builder:
+wasi-sdk is installed; macOS and Linux arm64 automatically use the focused
+cached Docker builder matched to the host CPU (DECISIONS #145):
 
 ```bash
 bash scripts/setup.sh          # platform-aware .NET/WASM/web bootstrap
@@ -52,8 +52,10 @@ without CREATEDB then fails rather than skips (DECISIONS #101). CI additionally
 sets `BOTARENA_POSTGRES_REQUIRED=true`, which makes a MISSING variable an error.
 
 The C#→WASM toolchain is NativeAOT-LLVM from the `dotnet-experimental` NuGet
-feed (`nuget.config`), pinned in `ToolchainInfo`. Its compiler host package is
-Linux x64 only. `scripts/run-wasm-publish.sh` is the platform boundary; do not
+feed (`nuget.config`), pinned in `ToolchainInfo`. Its compiler host ships for
+linux-x64 and linux-arm64 (byte-identical output), and the Docker builder
+matches the host CPU so the compiler never runs emulated.
+`scripts/run-wasm-publish.sh` is the platform boundary; do not
 invent per-project platform conditions. On Ubuntu,
 `scripts/setup-wasi-sdk.sh` synthesizes wasi-sdk at
 `/opt/botarena/wasi-sdk-29.0`. Other hosts use
@@ -360,9 +362,11 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   it (`scripts/build-wasm-guest.sh`) after touching Sdk/Guest/Bots.BuiltIn/
   WasmGuest. `scripts/test.sh` calls the input-stamped build unconditionally,
   preventing a stale tracked artifact.
-- The NativeAOT compiler executable is Linux x64 only. On macOS/arm64, let
-  `run-wasm-publish.sh` use Docker. The portable part is the emitted WASI
-  module, not the compiler process.
+- The NativeAOT compiler executable is Linux-only (x64 and arm64 hosts). On
+  macOS, let `run-wasm-publish.sh` pick the platform-matched Docker builder;
+  forcing a non-native platform via `BOTARENA_WASM_DOCKER_PLATFORM` runs the
+  slower emulation-hardened single-node mode. The portable part is the emitted
+  WASI module, not the compiler process.
 - The build cache key covers player sources, the pinned versions, **and the
   SHA-256 of the staged `BotArena.Sdk`/`BotArena.Guest` DLLs** (DECISIONS #84),
   so a framework edit invalidates it without a version bump. Those two
