@@ -3197,12 +3197,13 @@ export function validateReplayV3TickStartBoundary(
     !tickStart.events.some(
       (event) =>
         event.kind === 'lifecycle-completed' ||
+        event.kind === 'lifecycle-cancelled' ||
         event.kind === 'life-retired',
     )
   ) {
     fail(
       `${path}.pendingReplications`,
-      'pending replication state changed without completion evidence',
+      'pending replication state changed without resolution evidence',
     );
   }
 }

@@ -975,6 +975,83 @@ test('replay-v3 accepts a declared automatic return at the tick-start boundary',
   );
 });
 
+test('replay-v3 accepts a declared Split cancellation at the tick-start boundary', () => {
+  const fixture = replayV3FixtureInput();
+  const before = structuredClone(fixture.initialFrame.state);
+  const after = structuredClone(fixture.initialFrame.state);
+  const source = before.activeLives[0]!;
+  const operationId = 'split:cancelled-before-completion';
+  before.pendingReplications = [
+    {
+      sourceActorId: source.actorId,
+      participantId: source.participantId,
+      sourceGeneration: source.generation,
+      sourceFormId: source.formId,
+      sourcePosition: source.position,
+      sourceFacing: source.facing,
+      transitionId: 'split-prime',
+      operationId,
+      queuedTick: -1,
+      dueTick: 0,
+      descendants: [],
+    },
+  ];
+  const cancellation = {
+    eventHandle: 'authoritative-event:split-cancelled',
+    tick: 0,
+    globalOrdinal: '0',
+    sourceOrdinal: 0,
+    kind: 'lifecycle-cancelled',
+    payload: {
+      kind: 'lifecycle',
+      transitionId: 'split-prime',
+      operationId,
+      sourceActorId: source.actorId,
+      targetTeamId: source.actorId.teamId,
+      targetUnitId: 1,
+      dueTick: 0,
+      cancellationReason: 'insufficient-health',
+    },
+    audience: {
+      kind: 'spatial',
+      primaryPosition: source.position,
+    },
+  } as const;
+  const tickStart = {
+    tick: 0,
+    state: after,
+    activeActorIds: after.activeLives.map((life) => life.actorId),
+    lifeStarts: [],
+    events: [cancellation],
+    traversals: [],
+  };
+  const fail = (path: string, message: string): never => {
+    throw new ReplayDecodeError(`${path}: ${message}`);
+  };
+
+  assert.doesNotThrow(() =>
+    validateReplayV3TickStartBoundary(
+      before,
+      tickStart,
+      'replay.ticks[0].tickStart.state',
+      fail,
+    ),
+  );
+
+  const unexplained = structuredClone(tickStart);
+  unexplained.events = [];
+  assert.throws(
+    () =>
+      validateReplayV3TickStartBoundary(
+        before,
+        unexplained,
+        'replay.ticks[0].tickStart.state',
+        fail,
+      ),
+    /pending replication state changed without resolution evidence/,
+  );
+});
+
 test('replay-v3 Deathmatch rejects illegal endings, counter drift, and standing drift', () => {
   const fixture = () => {
     const input = replayV3FixtureInput();
