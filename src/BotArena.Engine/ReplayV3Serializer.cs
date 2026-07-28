@@ -1880,6 +1880,26 @@ internal static class ReplayV3Serializer
                         json.WriteEndObject();
                     });
                 break;
+            case ReplayV3.ModeResult.Frontline frontline:
+                writer.WriteString("reason", frontline.Reason);
+                writer.WritePropertyName("control");
+                WriteModeState(writer, frontline.Control);
+                WriteArray(
+                    writer,
+                    "scores",
+                    frontline.Scores,
+                    static (json, score) =>
+                    {
+                        json.WriteStartObject();
+                        json.WriteNumber("teamId", score.TeamId);
+                        WriteInt64String(
+                            json,
+                            "territorialProgress",
+                            score.TerritorialProgress,
+                            nonNegative: false);
+                        json.WriteEndObject();
+                    });
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 mode result '{value.GetType().Name}'.");
@@ -2270,12 +2290,15 @@ internal static class ReplayV3Serializer
             ReadContractReplications(rules);
         ImmutableArray<string> scoreChannels =
             ReadScoreChannels(rules);
-        ContractMode mode = ReadContractMode(rules);
         (
             ImmutableArray<int> teamIds,
             ImmutableArray<ContractParticipant> participants,
             ImmutableArray<ContractUnitSlot> unitSlots) =
             ReadContractTopology(topology);
+        ContractMode mode = ReadContractMode(
+            rules,
+            RequiredObject(root, "modeMapBinding"),
+            teamIds);
 
         return new CanonicalContractIndex(
             fingerprint,
@@ -2527,7 +2550,10 @@ internal static class ReplayV3Serializer
         return result.ToImmutable();
     }
 
-    private static ContractMode ReadContractMode(JsonElement rules)
+    private static ContractMode ReadContractMode(
+        JsonElement rules,
+        JsonElement modeMapBinding,
+        ImmutableArray<int> teamIds)
     {
         JsonElement gameMode = RequiredObject(rules, "gameMode");
         string kind = RequiredString(gameMode, "kind");
@@ -2535,16 +2561,131 @@ internal static class ReplayV3Serializer
         int maxTicks = RequiredInt32(
             RequiredObject(rules, "limits"),
             "maxTicks");
-        if (!string.Equals(kind, "deathmatch", StringComparison.Ordinal))
+        if (string.Equals(kind, "frontline", StringComparison.Ordinal))
         {
+            RequireExactObject(
+                modeMapBinding,
+                "embedded Frontline mode-map binding",
+                "kind",
+                "orderedObjectiveRegionIds",
+                "teamAdvances");
+            if (!string.Equals(
+                    RequiredString(modeMapBinding, "kind"),
+                    "frontline",
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline mode-map binding kind is invalid.");
+            }
+
+            JsonElement capture = RequiredObject(gameMode, "capture");
+            int positionCount = RequiredInt32(
+                gameMode,
+                "frontlinePositionCount");
+            int threshold = RequiredInt32(capture, "threshold");
+            int decayAmount = RequiredInt32(capture, "decayAmount");
+            int decayIntervalTicks = RequiredInt32(
+                capture,
+                "decayIntervalTicks");
+            int redeployPauseTicks = RequiredInt32(
+                capture,
+                "redeployPauseTicks");
+            ImmutableArray<ContractTeamAdvance> teamAdvances =
+                RequiredArray(modeMapBinding, "teamAdvances")
+                    .EnumerateArray()
+                    .Select(value =>
+                    {
+                        RequireExactObject(
+                            value,
+                            "embedded Frontline team advance",
+                            "teamId",
+                            "direction",
+                            "objectiveIndexDelta");
+                        string direction = RequiredString(
+                            value,
+                            "direction");
+                        int expectedDelta = direction switch
+                        {
+                            "toward-lower-index" => -1,
+                            "toward-higher-index" => 1,
+                            _ => throw new ArgumentException(
+                                "Embedded Frontline team advance direction is invalid."),
+                        };
+                        int delta = RequiredInt32(
+                            value,
+                            "objectiveIndexDelta");
+                        if (delta != expectedDelta)
+                        {
+                            throw new ArgumentException(
+                                "Embedded Frontline team advance direction and delta disagree.");
+                        }
+                        return new ContractTeamAdvance(
+                            RequiredInt32(value, "teamId"),
+                            delta);
+                    })
+                    .ToImmutableArray();
+            RequireCanonicalOrder(
+                teamAdvances,
+                static (left, right) =>
+                    left.TeamId.CompareTo(right.TeamId),
+                "embedded Frontline team advances");
+            if (!teamAdvances.Select(value => value.TeamId)
+                    .SequenceEqual(teamIds)
+                || teamAdvances.Length != 2
+                || teamAdvances.Sum(value =>
+                    value.ObjectiveIndexDelta) != 0
+                || positionCount < 3
+                || positionCount % 2 == 0
+                || threshold <= 0
+                || redeployPauseTicks < 0
+                || !((decayAmount == 0 && decayIntervalTicks == 0)
+                     || (decayAmount > 0
+                         && decayIntervalTicks > 0)))
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline mode configuration is invalid.");
+            }
+            if (RequiredArray(
+                    modeMapBinding,
+                    "orderedObjectiveRegionIds").GetArrayLength()
+                != positionCount)
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline position and objective-region counts disagree.");
+            }
+
             return new ContractMode(
                 kind,
                 modeId,
                 maxTicks,
                 KillsToWin: null,
-                []);
+                [],
+                new ContractFrontline(
+                    positionCount,
+                    threshold,
+                    decayAmount,
+                    decayIntervalTicks,
+                    redeployPauseTicks,
+                    teamAdvances));
+        }
+        if (!string.Equals(kind, "deathmatch", StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 embedded game mode '{kind}' is unsupported.");
         }
 
+        RequireExactObject(
+            modeMapBinding,
+            "embedded Deathmatch mode-map binding",
+            "kind");
+        if (!string.Equals(
+                RequiredString(modeMapBinding, "kind"),
+                "deathmatch",
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Embedded Deathmatch mode-map binding kind is invalid.");
+        }
         JsonElement victory = RequiredObject(gameMode, "victory");
         JsonElement killsToWinValue = victory.GetProperty("killsToWin");
         int? killsToWin = killsToWinValue.ValueKind switch
@@ -2584,7 +2725,8 @@ internal static class ReplayV3Serializer
             modeId,
             maxTicks,
             killsToWin,
-            rankings);
+            rankings,
+            Frontline: null);
     }
 
     private static ImmutableArray<ContractReplication>
@@ -2741,6 +2883,11 @@ internal static class ReplayV3Serializer
         ReplayV3 replay,
         CanonicalContractIndex contract)
     {
+        if (replay.Ticks.Length > contract.Mode.MaxTicks)
+        {
+            throw new ArgumentException(
+                "Replay-v3 ticks cannot extend beyond the embedded maximum tick boundary.");
+        }
         ValidateProvenance(replay.Header.Provenance, contract);
         ValidateInitialFrame(
             replay.InitialFrame,
@@ -3095,7 +3242,11 @@ internal static class ReplayV3Serializer
             state.Scoreboard,
             contract,
             $"{context} scoreboard");
-        ValidateModeState(state.Mode, contract, context);
+        ValidateModeState(
+            state.Mode,
+            state.NextTick,
+            contract,
+            context);
     }
 
     private static void ValidateLifeState(
@@ -3646,7 +3797,11 @@ internal static class ReplayV3Serializer
             observation.Scoreboard,
             contract,
             $"{context} scoreboard");
-        ValidateModeState(observation.Mode, contract, context);
+        ValidateModeState(
+            observation.Mode,
+            observation.Tick,
+            contract,
+            context);
         ValidateActionLegalities(
             observation.ActionLegalities,
             contract,
@@ -4135,7 +4290,248 @@ internal static class ReplayV3Serializer
                 finalState,
                 contract);
         }
+        else if (result.Mode is ReplayV3.ModeResult.Frontline frontline)
+        {
+            ValidateFrontlineResult(
+                result,
+                frontline,
+                finalState,
+                contract);
+        }
+        else
+        {
+            throw new ArgumentException(
+                "Replay-v3 result contains an unsupported terminal mode arm.");
+        }
         ValidateCompetitionRanks(result.Standings);
+    }
+
+    private static void ValidateFrontlineResult(
+        ReplayV3.MatchResult result,
+        ReplayV3.ModeResult.Frontline frontline,
+        ReplayV3.WorldState finalState,
+        CanonicalContractIndex contract)
+    {
+        if (!string.Equals(
+                contract.Mode.Kind,
+                "frontline",
+                StringComparison.Ordinal)
+            || contract.Mode.Frontline is not { } configuration)
+        {
+            throw new ArgumentException(
+                "Replay-v3 Frontline result does not match the embedded game mode.");
+        }
+        if (!IsFrontlineEndReason(frontline.Reason)
+            || !string.Equals(
+                result.CompletionReason,
+                frontline.Reason,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Frontline completion reason is invalid or inconsistent.");
+        }
+        if (finalState.Mode
+                is not ReplayV3.ModeState.Frontline finalControl
+            || !Equals(frontline.Control, finalControl))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Frontline terminal control must exactly equal the final mode state.");
+        }
+
+        RequireCanonicalOrder(
+            frontline.Scores,
+            static (left, right) =>
+                left.TeamId.CompareTo(right.TeamId),
+            "Frontline result scores");
+        if (!frontline.Scores.Select(value => value.TeamId)
+                .SequenceEqual(contract.TeamIds))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Frontline result scores must cover every topology team.");
+        }
+
+        Dictionary<int, long> territorialScores = [];
+        foreach (ReplayV3.FrontlineTeamScore score in frontline.Scores)
+        {
+            long actual = ParseSignedInt64(score.TerritorialProgress);
+            long expected = FrontlineTerritorialProgress(
+                score.TeamId,
+                frontline.Control,
+                configuration);
+            ReplayV3.ScoreValue finalScore = finalState.Scoreboard.Teams
+                .Single(team => team.TeamId == score.TeamId)
+                .Scores.Single(value => string.Equals(
+                    value.Channel,
+                    "territorial-progress",
+                    StringComparison.Ordinal));
+            if (actual != expected
+                || !string.Equals(
+                    score.TerritorialProgress,
+                    finalScore.Value,
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 Frontline territorial scores must equal the final control formula and scoreboard.");
+            }
+            territorialScores.Add(score.TeamId, actual);
+        }
+
+        ValidateFrontlineStandings(
+            result,
+            frontline,
+            territorialScores,
+            configuration,
+            finalState,
+            contract);
+    }
+
+    private static long FrontlineTerritorialProgress(
+        int teamId,
+        ReplayV3.ModeState.Frontline control,
+        ContractFrontline configuration)
+    {
+        ContractTeamAdvance advance =
+            configuration.TeamAdvances.Single(value =>
+                value.TeamId == teamId);
+        int centre = configuration.PositionCount / 2;
+        long position = checked(
+            (long)advance.ObjectiveIndexDelta
+            * (control.ActivePositionIndex - centre)
+            * configuration.CaptureThreshold);
+        long claim = control.ClaimingTeamId switch
+        {
+            null => 0,
+            int claimant when claimant == teamId =>
+                control.CaptureProgress,
+            _ => -control.CaptureProgress,
+        };
+        return checked(position + claim);
+    }
+
+    private static void ValidateFrontlineStandings(
+        ReplayV3.MatchResult result,
+        ReplayV3.ModeResult.Frontline frontline,
+        IReadOnlyDictionary<int, long> territorialScores,
+        ContractFrontline configuration,
+        ReplayV3.WorldState finalState,
+        CanonicalContractIndex contract)
+    {
+        HashSet<int> eligible = result.EligibleTeamIds.ToHashSet();
+        int CompareTerritory(int leftTeamId, int rightTeamId) =>
+            -territorialScores[leftTeamId].CompareTo(
+                territorialScores[rightTeamId]);
+
+        Comparison<int> authoritativeComparison;
+        switch (frontline.Reason)
+        {
+            case "fault-eligibility"
+                when eligible.Count <= 1
+                     && result.EndTick < contract.Mode.MaxTicks:
+                authoritativeComparison = CompareTerritory;
+                break;
+            case "max-ticks"
+                when eligible.Count > 1
+                     && result.EndTick == contract.Mode.MaxTicks - 1:
+                authoritativeComparison = CompareTerritory;
+                break;
+            case "base-breach"
+                when eligible.Count > 1
+                     && result.EndTick < contract.Mode.MaxTicks
+                     && frontline.Control.ClaimingTeamId is null
+                     && frontline.Control.CaptureProgress == 0
+                     && frontline.Control.DecayTicksElapsed == 0
+                     && frontline.Control.ControlResumesAtTick
+                         <= finalState.NextTick:
+                {
+                    ContractTeamAdvance[] breachCandidates =
+                        configuration.TeamAdvances
+                            .Where(advance =>
+                                frontline.Control.ActivePositionIndex
+                                == (advance.ObjectiveIndexDelta > 0
+                                    ? configuration.PositionCount - 1
+                                    : 0))
+                            .ToArray();
+                    if (breachCandidates.Length != 1
+                        || !eligible.Contains(
+                            breachCandidates[0].TeamId))
+                    {
+                        throw new ArgumentException(
+                            "Replay-v3 Frontline base-breach reason is not legal for the final control state.");
+                    }
+                    int breachWinner = breachCandidates[0].TeamId;
+                    authoritativeComparison = (left, right) =>
+                        left == breachWinner
+                            ? -1
+                            : right == breachWinner
+                                ? 1
+                                : 0;
+                    break;
+                }
+            default:
+                throw new ArgumentException(
+                    "Replay-v3 Frontline completion reason is not legal for the final state.");
+        }
+
+        int[] rankedEligible = eligible.ToArray();
+        Array.Sort(
+            rankedEligible,
+            (left, right) =>
+            {
+                int comparison = authoritativeComparison(left, right);
+                return comparison != 0
+                    ? comparison
+                    : left.CompareTo(right);
+            });
+        var ranks = new Dictionary<int, int>();
+        for (int index = 0; index < rankedEligible.Length; index++)
+        {
+            int rank = index == 0
+                ? 1
+                : authoritativeComparison(
+                    rankedEligible[index - 1],
+                    rankedEligible[index]) == 0
+                    ? ranks[rankedEligible[index - 1]]
+                    : index + 1;
+            ranks.Add(rankedEligible[index], rank);
+        }
+        int ineligibleRank = rankedEligible.Length + 1;
+        foreach (int teamId in contract.TeamIds)
+        {
+            if (!eligible.Contains(teamId))
+                ranks.Add(teamId, ineligibleRank);
+        }
+
+        int topCount = ranks.Count(value => value.Value == 1);
+        ReplayV3.TeamStanding[] expected = contract.TeamIds
+            .Select(teamId =>
+            {
+                int rank = ranks[teamId];
+                string outcome = rank switch
+                {
+                    1 when topCount == 1 => "win",
+                    1 => "draw",
+                    _ => "loss",
+                };
+                return new ReplayV3.TeamStanding(
+                    teamId,
+                    rank,
+                    outcome,
+                    []);
+            })
+            .OrderBy(value => value.Rank)
+            .ThenBy(value => value.TeamId)
+            .ToArray();
+        if (!result.Standings.Teams.Zip(expected).All(pair =>
+                pair.First.TeamId == pair.Second.TeamId
+                && pair.First.Rank == pair.Second.Rank
+                && string.Equals(
+                    pair.First.Outcome,
+                    pair.Second.Outcome,
+                    StringComparison.Ordinal)))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Frontline standings do not follow the embedded victory policy.");
+        }
     }
 
     private static void ValidateDeathmatchStandings(
@@ -4408,6 +4804,7 @@ internal static class ReplayV3Serializer
 
     private static void ValidateModeState(
         ReplayV3.ModeState mode,
+        int nextTick,
         CanonicalContractIndex contract,
         string context)
     {
@@ -4423,6 +4820,50 @@ internal static class ReplayV3Serializer
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} mode state does not match the embedded game mode.");
+        }
+
+        if (mode is not ReplayV3.ModeState.Frontline frontline)
+            return;
+        if (contract.Mode.Frontline is not { } configuration)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Frontline state does not match the embedded game mode.");
+        }
+
+        bool decayDisabled =
+            configuration.DecayAmount == 0
+            && configuration.DecayIntervalTicks == 0;
+        bool invalid =
+            nextTick < 0
+            || frontline.ActivePositionIndex < 0
+            || frontline.ActivePositionIndex >= configuration.PositionCount
+            || frontline.ClaimingTeamId is int claimant
+                && !contract.TeamIds.Contains(claimant)
+            || frontline.CaptureProgress < 0
+            || frontline.CaptureProgress
+                >= configuration.CaptureThreshold
+            || frontline.DecayTicksElapsed < 0
+            || decayDisabled && frontline.DecayTicksElapsed != 0
+            || !decayDisabled
+                && frontline.DecayTicksElapsed
+                    >= configuration.DecayIntervalTicks
+            || frontline.ControlResumesAtTick < 0
+            || frontline.ClaimingTeamId is null
+                && frontline.CaptureProgress != 0
+            || frontline.ClaimingTeamId is null
+                && frontline.DecayTicksElapsed != 0
+            || frontline.ClaimingTeamId is not null
+                && frontline.CaptureProgress == 0
+            || nextTick < frontline.ControlResumesAtTick
+                && (frontline.ClaimingTeamId is not null
+                    || frontline.CaptureProgress != 0
+                    || frontline.DecayTicksElapsed != 0)
+            || (long)frontline.ControlResumesAtTick - nextTick
+                > configuration.RedeployPauseTicks;
+        if (invalid)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Frontline control violates the embedded capture bounds.");
         }
     }
 
@@ -4546,6 +4987,16 @@ internal static class ReplayV3Serializer
             throw new ArgumentException(
                 "Replay-v3 deathmatch result reason is invalid.");
         }
+        if (replay.Result is
+            {
+                Mode:
+                ReplayV3.ModeResult.Frontline frontline
+            }
+            && !IsFrontlineEndReason(frontline.Reason))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Frontline result reason is invalid.");
+        }
     }
 
     private static void ValidateActorIds(
@@ -4641,6 +5092,19 @@ internal static class ReplayV3Serializer
             CultureInfo.InvariantCulture);
     }
 
+    private static long ParseSignedInt64(string value)
+    {
+        if (!IsCanonicalInt64(value, nonNegative: false))
+        {
+            throw new ArgumentException(
+                "Replay-v3 canonical signed decimal value is invalid.");
+        }
+        return long.Parse(
+            value,
+            NumberStyles.AllowLeadingSign,
+            CultureInfo.InvariantCulture);
+    }
+
     private static void RequireExactObject(
         JsonElement value,
         string context,
@@ -4732,6 +5196,9 @@ internal static class ReplayV3Serializer
     private static bool IsDeathmatchEndReason(string value) =>
         value is "fault-eligibility" or "kill-limit" or "max-ticks";
 
+    private static bool IsFrontlineEndReason(string value) =>
+        value is "fault-eligibility" or "base-breach" or "max-ticks";
+
     private sealed record CanonicalContractIndex(
         string Fingerprint,
         ImmutableArray<int> TeamIds,
@@ -4773,11 +5240,24 @@ internal static class ReplayV3Serializer
         string ModeId,
         int MaxTicks,
         int? KillsToWin,
-        ImmutableArray<ContractRanking> TimeoutRanking);
+        ImmutableArray<ContractRanking> TimeoutRanking,
+        ContractFrontline? Frontline);
 
     private sealed record ContractRanking(
         string Channel,
         string Direction);
+
+    private sealed record ContractFrontline(
+        int PositionCount,
+        int CaptureThreshold,
+        int DecayAmount,
+        int DecayIntervalTicks,
+        int RedeployPauseTicks,
+        ImmutableArray<ContractTeamAdvance> TeamAdvances);
+
+    private sealed record ContractTeamAdvance(
+        int TeamId,
+        int ObjectiveIndexDelta);
 
     private static void ValidatePresentation(
         ReplayV3.PresentationMetadata? presentation)
@@ -4946,6 +5426,12 @@ internal static class ReplayV3Serializer
                                     property.Value.GetString(),
                                     nonNegative: true),
                             "newValue" =>
+                                property.Value.ValueKind
+                                    == JsonValueKind.String
+                                && IsCanonicalInt64(
+                                    property.Value.GetString(),
+                                    nonNegative: false),
+                            "territorialProgress" =>
                                 property.Value.ValueKind
                                     == JsonValueKind.String
                                 && IsCanonicalInt64(
@@ -5150,13 +5636,7 @@ internal static class ReplayV3Serializer
                             ReplayV3.TraversalTerminal
                                 .ParticipantDisqualification),
                 }));
-        options.Converters.Add(
-            new TaggedUnionJsonConverter<ReplayV3.ModeResult>(
-                new Dictionary<string, Type>(StringComparer.Ordinal)
-                {
-                    ["deathmatch"] =
-                        typeof(ReplayV3.ModeResult.Deathmatch),
-                }));
+        options.Converters.Add(new ModeResultJsonConverter());
         return options;
     }
 
@@ -5452,6 +5932,103 @@ internal static class ReplayV3Serializer
             JsonSerializerOptions options) =>
             throw new NotSupportedException(
                 "Replay-v3 uses its explicit canonical writer.");
+    }
+
+    private sealed class ModeResultJsonConverter
+        : JsonConverter<ReplayV3.ModeResult>
+    {
+        public override ReplayV3.ModeResult Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options)
+        {
+            using JsonDocument document =
+                JsonDocument.ParseValue(ref reader);
+            JsonElement root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                throw new JsonException(
+                    "Replay-v3 terminal mode result must be an object.");
+            }
+
+            string kind = RequiredString(root, "kind");
+            switch (kind)
+            {
+                case "deathmatch":
+                    RequireProperties(
+                        root,
+                        "kind",
+                        "reason",
+                        "scores");
+                    return new ReplayV3.ModeResult.Deathmatch(
+                        RequiredString(root, "reason"),
+                        RequiredArrayValue<
+                            ReplayV3.DeathmatchTeamScore>(
+                                root,
+                                "scores",
+                                options));
+                case "frontline":
+                    {
+                        RequireProperties(
+                            root,
+                            "kind",
+                            "reason",
+                            "control",
+                            "scores");
+                        ReplayV3.ModeState control =
+                            root.GetProperty("control")
+                                .Deserialize<ReplayV3.ModeState>(
+                                    options)
+                            ?? throw new JsonException(
+                                "Replay-v3 Frontline terminal control cannot be null.");
+                        if (control
+                            is not ReplayV3.ModeState.Frontline frontline)
+                        {
+                            throw new JsonException(
+                                "Replay-v3 Frontline terminal control must use the Frontline state arm.");
+                        }
+                        return new ReplayV3.ModeResult.Frontline(
+                            RequiredString(root, "reason"),
+                            frontline,
+                            RequiredArrayValue<
+                                ReplayV3.FrontlineTeamScore>(
+                                    root,
+                                    "scores",
+                                    options));
+                    }
+                default:
+                    throw new JsonException(
+                        $"Unknown replay-v3 terminal mode result kind '{kind}'.");
+            }
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            ReplayV3.ModeResult value,
+            JsonSerializerOptions options) =>
+            throw new NotSupportedException(
+                "Replay-v3 uses its explicit canonical writer.");
+
+        private static ImmutableArray<T> RequiredArrayValue<T>(
+            JsonElement value,
+            string propertyName,
+            JsonSerializerOptions options)
+        {
+            JsonElement property = value.GetProperty(propertyName);
+            if (property.ValueKind != JsonValueKind.Array)
+            {
+                throw new JsonException(
+                    $"Replay-v3 '{propertyName}' must be an array.");
+            }
+            ImmutableArray<T> result =
+                property.Deserialize<ImmutableArray<T>>(options);
+            if (result.IsDefault)
+            {
+                throw new JsonException(
+                    $"Replay-v3 '{propertyName}' must be initialized.");
+            }
+            return result;
+        }
     }
 
     private sealed class TaggedUnionJsonConverter<TBase>(

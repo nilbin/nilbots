@@ -691,6 +691,12 @@ internal sealed record ReplayV3(
             string Reason,
             ImmutableArray<DeathmatchTeamScore> Scores)
             : ModeResult("deathmatch");
+
+        internal sealed record Frontline(
+            string Reason,
+            ModeState.Frontline Control,
+            ImmutableArray<FrontlineTeamScore> Scores)
+            : ModeResult("frontline");
     }
 
     internal sealed record DeathmatchTeamScore(
@@ -698,4 +704,8 @@ internal sealed record ReplayV3(
         string Kills,
         string Deaths,
         string DamageDealt);
+
+    internal sealed record FrontlineTeamScore(
+        int TeamId,
+        string TerritorialProgress);
 }

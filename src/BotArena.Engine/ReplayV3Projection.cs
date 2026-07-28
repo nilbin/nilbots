@@ -969,18 +969,23 @@ internal static class ReplayV3Projection
                 new ReplayV3.ModeState.Deathmatch(deathmatch.ModeId),
             GenericActorRuntimeObservation.ModeObservationState.Frontline
                 frontline =>
-                new ReplayV3.ModeState.Frontline(
-                    frontline.ModeId,
-                    frontline.ActivePositionIndex,
-                    frontline.ClaimingTeamId,
-                    frontline.CaptureProgress,
-                    frontline.DecayTicksElapsed,
-                    frontline.ControlResumesAtTick),
+                FrontlineModeState(frontline),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
                 "Unknown mode state."),
         };
+
+    private static ReplayV3.ModeState.Frontline FrontlineModeState(
+        GenericActorRuntimeObservation.ModeObservationState.Frontline
+            value) =>
+        new(
+            value.ModeId,
+            value.ActivePositionIndex,
+            value.ClaimingTeamId,
+            value.CaptureProgress,
+            value.DecayTicksElapsed,
+            value.ControlResumesAtTick);
 
     private static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>
@@ -1032,6 +1037,16 @@ internal static class ReplayV3Projection
                                 Decimal(score.Kills),
                                 Decimal(score.Deaths),
                                 Decimal(score.DamageDealt)))
+                        .ToImmutableArray()),
+            GenericActorMatchModeResult.Frontline frontline =>
+                new ReplayV3.ModeResult.Frontline(
+                    FrontlineEndReason(frontline.Reason),
+                    FrontlineModeState(frontline.Control),
+                    frontline.Scores.Teams
+                        .Select(score =>
+                            new ReplayV3.FrontlineTeamScore(
+                                score.TeamId,
+                                Decimal(score.TerritorialProgress)))
                         .ToImmutableArray()),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
@@ -1248,6 +1263,17 @@ internal static class ReplayV3Projection
                 "fault-eligibility",
             GenericDeathmatchEndReason.KillLimit => "kill-limit",
             GenericDeathmatchEndReason.MaxTicks => "max-ticks",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    private static string FrontlineEndReason(
+        GenericFrontlineEndReason value) =>
+        value switch
+        {
+            GenericFrontlineEndReason.FaultEligibility =>
+                "fault-eligibility",
+            GenericFrontlineEndReason.BaseBreach => "base-breach",
+            GenericFrontlineEndReason.MaxTicks => "max-ticks",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 }
