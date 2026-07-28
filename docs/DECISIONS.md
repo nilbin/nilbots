@@ -2747,6 +2747,37 @@ source, controlled WASM, profile-scoped evidence, and replay-byte manifests.
 ArcApprentice is not called an exact T3 boundary until cumulative T4 measures
 its upper edge.
 
+## 151. The Docker WASM builder matches the host CPU; emulated builds run single-node
+
+`nilbots build` on Apple Silicon intermittently sat at 0% CPU forever with an
+empty quiet-verbosity log. Captured `/proc` evidence from three reproduced
+stalls showed the same signature: the entry `dotnet publish` blocked in
+`rt_mutex_schedule` after spawning only some of its MSBuild worker nodes, the
+spawned workers parked in `futex_wait_queue` mid-handshake, and VBCSCompiler
+idle — a multi-node fan-out deadlock under Rosetta's x64 emulation inside the
+Docker VM. Measured baseline: 4 stalls in 45 builds (~9%), healthy builds 18 s
+serial. `DOTNET_EnableWriteXorExecute=0` alone was tested and refuted (stalled
+within 6 builds). Forcing `-maxcpucount:1 -nodeReuse:false
+-p:UseSharedCompilation=false` removed every cross-process handshake and every
+stall, but serialized the framework-object clang compiles behind
+`BuildInParallel` and doubled the build to 36 s.
+
+The structural fix: the pinned NativeAOT-LLVM release also publishes a
+`runtime.linux-arm64` compiler host, and it emits byte-identical modules.
+`run-wasm-publish.sh` selects the container platform matching the host CPU,
+keys the cached builder image per architecture, and selects the compiler host
+package from the build-process architecture. A native-arm64 `nilbots build`
+measures 9 seconds end-to-end versus 18 seconds under emulation. The
+single-node, no-build-server, and W^X guards remain only for an explicitly
+emulated fallback. `WasmPublishEmulationGuardTests` pins both command shapes.
+
+`BuildPipelineVersion` stays at 1 because player artifact bytes and cache keys
+are unchanged. In the composed qualification branch the CLI compatibility
+version advances to 0.9.7, after the 0.9.6 qualification release. `BotBuilder`
+also empties the existing bind-mount workspace in place: deleting and
+recreating its inode occasionally exposed a transient empty directory through
+macOS virtiofs.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

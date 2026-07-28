@@ -43,10 +43,13 @@ public static class ToolchainInfo
     /// by CLI server commands. 0.9.5 carries SDK/Guest 0.10.4 and the additive
     /// declared automatic-activation lifecycle contract used only by explicit
     /// experimental candidates. 0.9.6 adds the profile-scoped, WASM-only
-    /// foundation qualification runner without changing SDK/Guest bytes.
-    /// Keep in lockstep with BotArena.Cli.csproj's
+    /// foundation and cumulative qualification runners without changing
+    /// SDK/Guest bytes. 0.9.7 selects the platform-matched Docker NativeAOT
+    /// compiler host and guards the emulated fallback against multi-node
+    /// stalls, while preserving player artifact bytes and cache keys. Keep in
+    /// lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.6";
+    public const string CliVersion = "0.9.7";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
