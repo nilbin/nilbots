@@ -7,8 +7,8 @@ Status: architecture accepted; no gameplay candidate promoted into immutable
 
 Keep baseline v2 as the frozen calibration population. The engine, generic
 contracts, WASM runtime, lifecycle mechanics, replay v3, and evidence tooling
-are reliable enough for continued tuning: all 72 matches across v2 and the
-four 12-game arms verified with zero faults or disqualifications.
+are reliable enough for continued tuning: all 84 matches across v2 and the
+five 12-game arms verified with zero faults or disqualifications.
 
 Do not change the map yet. Do not lower the hosted capture threshold yet.
 Pressure's bootstrap, Bastion's exact fire control, Fabricator's forward post,
@@ -29,6 +29,7 @@ the 12-game slice is the non-duplicated control.
 | v4 Bastion fire control | 7 | 5 | 0 | 429.0 | 79.4% | 6 | 6 | 4 | 0.550 |
 | v5 Fabricator forward post | 7 | 5 | 0 | 409.5 | 80.0% | 6 | 6 | 4 | 0.585 |
 | v6 capture threshold 12 | 8 | 4 | 1 | 414.0 | 80.1% | 6 | 6 | 4 | 0.564 |
+| v7 late gain `300:2` | 8 | 4 | 1 | 416.5 | 80.5% | 6 | 6 | 4 | 0.589 |
 
 ### v3 — Pressure bootstrap: rejected
 
@@ -77,6 +78,24 @@ It reduced draws from two to one and MaxTicks from five to four, but breaches
 rose only from seven to eight; stalled games, looped games, and long-idle
 games did not move. It mostly relabeled the same repetitive trajectories.
 
+### v7 — late capture gain `300:2`: architecture accepted, tune rejected
+
+The candidate used ruleset
+`frontline-labs-1-experiment-gain-t300-2`, rules fingerprint
+`8d6642f0d4626189083ee8657e0b63004d3d346f06c5752cd0ddf0f1fc0a8042`,
+and match fingerprint
+`acafc50d1bbc81dbcb74b413b2fbf1970a317bc3c5a19a6e5eb394660db1a4bb`.
+All four baseline-v2 policy sources were byte-identical and mechanically
+rebuilt against SDK/Guest 0.10.3.
+
+After normalizing only contract/artifact identity and the ruleset-derived
+per-life seed, every ordered pairing was spectator-trajectory-identical
+through tick 299 or its earlier terminal tick. The schedule therefore passed
+its causal implementation check. It modestly improved breaches, MaxTicks,
+draws, duration, and action entropy, but stalled, looped, and long-idle counts
+did not move. It changes how quickly an already-controlled objective resolves;
+it does not help a doctrine disengage, relocate, or break a positioning loop.
+
 ## Population verdict
 
 - Adapter remains the control and best complete starter example.
@@ -91,22 +110,20 @@ games did not move. It mostly relabeled the same repetitive trajectories.
 
 ## Recommended next arm
 
-Test one explicit late-phase escalation schedule instead of another static
-threshold:
+Stop changing universal capture numbers. The remaining repetitive tail is
+concentrated in Bastion pairings and survives exact fire control and phased
+gain. Test a reversible, contract-defined `Mobilize` transition from turret
+back to child-mobile, then give only Bastion one declared policy pass to use
+it when the active objective has moved beyond its fire support or the late
+phase begins.
 
-- ticks 0-299 retain capture threshold 15 and sole-control gain 1;
-- from tick 300, retain threshold 15 but raise sole-control gain to 2;
-- keep decay, redeploy pause, combat, lifecycle, map, MaxTicks, and all four v2
-  artifacts fixed;
-- expose the phase schedule and active phase through the resolved contract so
-  bots and ML policies can condition on it;
-- give the arm a distinct ruleset ID/fingerprints and run the same 12 mirrored
-  games.
-
-This targets only games that have already demonstrated a repetitive tail and
-creates a real early/mid/late pacing transition. Unlike capture threshold 12,
-it does not make every opening capture cheaper. It remains a causal
-experiment, not a ship recommendation.
+This is a native-rules product comparison, not a same-artifact numeric arm:
+historical bots remain compatibility sentinels, while the candidate Bastion
+must understand the new action. Keep health continuity, windup, placement,
+cooldowns, map, capture schedule, and every non-Bastion policy fixed. The
+hypothesis is specific: fortification should be a strategic commitment, not a
+permanent self-removal, and late remobilization should break the six
+Bastion-centred positioning loops without erasing the turret's early/mid value.
 
 ## Replay review
 

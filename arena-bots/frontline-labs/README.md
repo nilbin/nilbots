@@ -4,7 +4,7 @@ This is the permanent, neutral archive for independently authored Frontline
 Labs bots. It is separate from `champions/`: cohort entrants are calibration
 evidence and reusable starter opponents, not ladder title holders.
 
-The current population/pacing verdict and four preserved causal arms are in
+The current population/pacing verdict and five preserved causal arms are in
 [`BALANCE-ITERATION-2026-07-28.md`](BALANCE-ITERATION-2026-07-28.md). Baseline
 v2 remains the calibration control; no candidate in that iteration mutates or
 relabels immutable `frontline-labs-1`.
