@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "name": "InitiativePlanner",
+  "doctrine": "Spend a safe early movement action to cross the suppression approach before the projectile reaches its final public state, then use immediate evasion and a deterministic private shot mixture.",
+  "derivedFrom": "AdaptiveMixer",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0,
+  "artifactSha256": "eee65c8fbbab2a35c2755a4e27ade341d0a12216623d7477778df7241cc5a0c4",
+  "qualificationClaim": "entry-initiative component passed from both assignments under WASM; no cumulative tier",
+  "qualificationEvidence": {
+    "suiteId": "frontline-qualification-1",
+    "probeId": "entry-initiative",
+    "seed": 104729,
+    "team0": {
+      "firstLifeEntryTick": 2,
+      "damageTakenBeforeEntry": 0,
+      "maxInitialObjectiveCaptureProgress": 14
+    },
+    "team1": {
+      "firstLifeEntryTick": 2,
+      "damageTakenBeforeEntry": 0,
+      "maxInitialObjectiveCaptureProgress": 14
+    }
+  }
+}

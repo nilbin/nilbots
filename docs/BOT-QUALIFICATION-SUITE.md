@@ -222,9 +222,12 @@ the two-projectile crossfire union.
 `FrontlineLabsQualificationCommand` now run the ordinary-contract,
 opening-only entry probe from both teams against a deterministic public-SDK
 straight-pressure sentinel. It records verified replay hashes, eligibility,
-sentinel attacks, action counts, and first-life objective entry. The next
-implementation package adds T1–T3 prerequisites and the T5 three-policy
-matrix; only then can the report award a cumulative tier.
+sentinel attacks, action counts, first-life health/entry, objective residence,
+and initial-objective capture progress. Passing requires entry with no more
+than one damage taken before it and at least five ticks of effective capture
+progress, so touching the region during a blind run-through is insufficient.
+The next implementation package adds T1–T3 prerequisites and the T5
+three-policy matrix; only then can the report award a cumulative tier.
 
 ## Evidence use
 

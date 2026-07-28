@@ -18,6 +18,12 @@ public static class FrontlineLabsQualificationCommand
         int SentinelAttackCount,
         int? FirstObjectiveTick,
         int? FirstLifeObjectiveTick,
+        int? InitialFirstLifeHealth,
+        int? HealthAtFirstLifeObjectiveTick,
+        int? MinimumFirstLifeHealth,
+        int? DamageTakenBeforeEntry,
+        int FirstLifeObjectiveObservationCount,
+        int MaxInitialObjectiveCaptureProgress,
         IReadOnlyDictionary<string, int> BotActionCounts,
         string ReplayHash,
         string ReplayPath,
@@ -220,6 +226,10 @@ public static class FrontlineLabsQualificationCommand
                 $"{(item.Passed ? "PASS" : "FAIL")} " +
                 $"first-life-entry=" +
                 $"{item.FirstLifeObjectiveTick?.ToString() ?? "never"} " +
+                $"damage-before-entry=" +
+                $"{item.DamageTakenBeforeEntry?.ToString() ?? "n/a"} " +
+                $"initial-progress=" +
+                $"{item.MaxInitialObjectiveCaptureProgress} " +
                 $"sentinel-shots={item.SentinelAttackCount}");
         }
         Console.WriteLine($"Report:              {reportPath}");
@@ -287,6 +297,11 @@ public static class FrontlineLabsQualificationCommand
         int sentinelParticipantId = sentinelTeamId;
         int? firstObjectiveTick = null;
         int? firstLifeObjectiveTick = null;
+        int? initialFirstLifeHealth = null;
+        int? healthAtFirstLifeObjectiveTick = null;
+        int? minimumFirstLifeHealth = null;
+        int firstLifeObjectiveObservationCount = 0;
+        int maxInitialObjectiveCaptureProgress = 0;
         int sentinelAttackCount = 0;
         var actionCounts = new Dictionary<string, int>(
             StringComparer.Ordinal);
@@ -328,6 +343,15 @@ public static class FrontlineLabsQualificationCommand
                 JsonElement actorId = self.GetProperty("actorId");
                 if (actorId.GetProperty("unitId").GetInt32() != 0)
                     continue;
+                int lifeId = actorId.GetProperty("lifeId").GetInt32();
+                int health = self.GetProperty("health").GetInt32();
+                if (lifeId == 0)
+                {
+                    initialFirstLifeHealth ??= health;
+                    minimumFirstLifeHealth = Math.Min(
+                        minimumFirstLifeHealth ?? health,
+                        health);
+                }
                 JsonElement position = self.GetProperty("position");
                 if (!objectiveTiles.Contains(
                         (
@@ -340,15 +364,40 @@ public static class FrontlineLabsQualificationCommand
 
                 int tickNumber = turn.GetProperty("tick").GetInt32();
                 firstObjectiveTick ??= tickNumber;
-                if (actorId.GetProperty("lifeId").GetInt32() == 0)
+                if (lifeId == 0)
+                {
                     firstLifeObjectiveTick ??= tickNumber;
+                    healthAtFirstLifeObjectiveTick ??= health;
+                    firstLifeObjectiveObservationCount++;
+                }
+
+                JsonElement mode = turn
+                    .GetProperty("observation")
+                    .GetProperty("mode");
+                if (mode.GetProperty("activePositionIndex").GetInt32() == 2
+                    && mode.GetProperty("claimingTeamId").ValueKind
+                        == JsonValueKind.Number
+                    && mode.GetProperty("claimingTeamId").GetInt32()
+                        == botTeamId)
+                {
+                    maxInitialObjectiveCaptureProgress = Math.Max(
+                        maxInitialObjectiveCaptureProgress,
+                        mode.GetProperty("captureProgress").GetInt32());
+                }
             }
         }
 
+        int? damageTakenBeforeEntry =
+            initialFirstLifeHealth is int initialHealth
+            && healthAtFirstLifeObjectiveTick is int entryHealth
+                ? initialHealth - entryHealth
+                : null;
         bool passed = contractValid
             && botEligible
             && sentinelAttackCount > 0
-            && firstLifeObjectiveTick is not null;
+            && firstLifeObjectiveTick is not null
+            && damageTakenBeforeEntry is >= 0 and <= 1
+            && maxInitialObjectiveCaptureProgress >= 5;
         return new AssignmentEvidence(
             botTeamId,
             contractValid,
@@ -356,6 +405,12 @@ public static class FrontlineLabsQualificationCommand
             sentinelAttackCount,
             firstObjectiveTick,
             firstLifeObjectiveTick,
+            initialFirstLifeHealth,
+            healthAtFirstLifeObjectiveTick,
+            minimumFirstLifeHealth,
+            damageTakenBeforeEntry,
+            firstLifeObjectiveObservationCount,
+            maxInitialObjectiveCaptureProgress,
             actionCounts,
             replayHash,
             replayPath,

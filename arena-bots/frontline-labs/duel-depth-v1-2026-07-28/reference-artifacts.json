@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "studyId": "frontline-duel-depth-reference-1",
+  "engineCommit": "6b4342c0d4e897f45dd789618d8733082d0e203b",
+  "artifacts": [
+    {
+      "id": "initiative-planner",
+      "name": "InitiativePlanner",
+      "root": "initiative-planner",
+      "artifact": "initiative-planner/bot.wasm",
+      "artifactSha256": "eee65c8fbbab2a35c2755a4e27ade341d0a12216623d7477778df7241cc5a0c4",
+      "sourceTreeSha256": "sha256:b118a13f00d76d511106e7b30a6afe9ad683afcdb6560e6cd3698a4337576cb2",
+      "qualification": {
+        "suiteId": "frontline-qualification-1",
+        "passedComponents": [
+          "entry-initiative"
+        ],
+        "tierAwarded": null,
+        "evidence": "evidence/qualification-entry/initiative-planner-final/qualification.json"
+      },
+      "diagnosticMapScreen": {
+        "seeds": [
+          104729,
+          130363,
+          155921
+        ],
+        "evidence": "evidence/map-screen/initiative-self-final/dynamics.json"
+      }
+    }
+  ]
+}

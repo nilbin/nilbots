@@ -1,0 +1,10 @@
+{
+  "name": "InitiativePlanner",
+  "entryType": "InitiativePlanner",
+  "sdkVersion": "0.10.3",
+  "appearance": {
+    "accent": "#a3e635",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

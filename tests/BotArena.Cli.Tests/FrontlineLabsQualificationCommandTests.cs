@@ -76,7 +76,7 @@ public sealed class FrontlineLabsQualificationCommandTests
     }
 
     [Fact]
-    public void AdvancingBot_PassesEntryFromBothAssignments()
+    public void BreachAndHoldBot_PassesEntryFromBothAssignments()
     {
         string temporary = Path.Combine(
             Path.GetTempPath(),
@@ -85,8 +85,16 @@ public sealed class FrontlineLabsQualificationCommandTests
         {
             string bot = CreateBot(
                 temporary,
-                "QualificationAdvance",
+                "QualificationBreachAndHold",
                 """
+                if (context.Tick >= 2)
+                {
+                    GenericActorActionLegality wait =
+                        context.Action("wait")!;
+                    return GenericActorDecision.WithoutArguments(
+                        wait.ActionId,
+                        wait.ActionCode);
+                }
                 GenericActorActionLegality move =
                     context.Action("move")!;
                 Direction direction =
@@ -121,7 +129,79 @@ public sealed class FrontlineLabsQualificationCommandTests
                         assignment
                             .GetProperty("firstLifeObjectiveTick")
                             .ValueKind);
+                    Assert.Equal(
+                        0,
+                        assignment
+                            .GetProperty("damageTakenBeforeEntry")
+                            .GetInt32());
+                    Assert.True(
+                        assignment
+                            .GetProperty(
+                                "maxInitialObjectiveCaptureProgress")
+                            .GetInt32()
+                        >= 5);
                     AssertReplayVerifies(output, assignment);
+                });
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void BlindRushBot_TouchesButDoesNotUseTheObjective()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-qualification-rush-{Guid.NewGuid():N}");
+        try
+        {
+            string bot = CreateBot(
+                temporary,
+                "QualificationBlindRush",
+                """
+                GenericActorActionLegality move =
+                    context.Action("move")!;
+                Direction direction =
+                    context.Self.ActorId.TeamId == 0
+                        ? Direction.East
+                        : Direction.West;
+                return new GenericActorDecision(
+                    move.ActionId,
+                    move.ActionCode,
+                    [
+                        new GenericActorActionArgument
+                            .DirectionArgument(direction),
+                    ]);
+                """);
+            string output = Path.Combine(temporary, "evidence");
+
+            Assert.Equal(3, Run(bot, output));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(
+                    Path.Combine(output, "qualification.json")));
+            Assert.All(
+                document.RootElement
+                    .GetProperty("assignments")
+                    .EnumerateArray(),
+                assignment =>
+                {
+                    Assert.NotEqual(
+                        JsonValueKind.Null,
+                        assignment
+                            .GetProperty("firstLifeObjectiveTick")
+                            .ValueKind);
+                    Assert.True(
+                        assignment
+                            .GetProperty(
+                                "maxInitialObjectiveCaptureProgress")
+                            .GetInt32()
+                        < 5);
+                    Assert.False(
+                        assignment.GetProperty("passed").GetBoolean());
                 });
         }
         finally

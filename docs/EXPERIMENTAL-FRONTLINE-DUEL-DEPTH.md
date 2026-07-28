@@ -88,9 +88,10 @@ nilbots experiment frontline-labs qualify \
 The distinct qualification contract starts the two Primes at `(8,7)` and
 `(14,7)`, removes companion slots/actions, ends after tick 119, and uses the
 same one-bend combat physics. A deterministic public-SDK sentinel applies
-straight pressure. Passing requires life 0 to reach the central objective
-from both team assignments. Exit `3` is a clean probe failure; exit `2` is
-runtime/contract invalidity.
+straight pressure. Passing requires life 0 to reach the central objective from
+both team assignments, lose no more than one HP before entry, and produce at
+least five ticks of effective capture progress there. Exit `3` is a clean
+probe failure; exit `2` is runtime/contract invalidity.
 
 This is one T4 positional component. `qualification.json` deliberately awards
 no cumulative tier until T1–T3 prerequisite probes exist.

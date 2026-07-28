@@ -139,6 +139,44 @@ This is the missing quality control: none is a T4 positional reference. Their
 full-match trajectory and win table cannot judge whether a qualified policy
 can turn the one-bend chamber into useful play.
 
+## Initiative reference and map screen
+
+`InitiativePlanner` is a retained source-complete reference artifact
+(`eee65c8fbbab2a35c2755a4e27ade341d0a12216623d7477778df7241cc5a0c4`).
+It spends movement when the active objective is within two steps, before
+straight suppression reaches its final public state. Under the stricter
+mirrored entry component, both assignments entered at tick 2 with zero damage
+and reached capture progress 14. This passes that component only; it awards no
+cumulative tier.
+
+The exact same WASM then played itself for seeds `104729`, `130363`, and
+`155921` on the three content-identified map arms:
+
+| Map arm | Outcomes | Active ticks | Damage / 100t | Destructions | Fabrications | Stalled / looped | Longest no interaction |
+| --- | --- | ---: | ---: | ---: | ---: | --- | ---: |
+| current | 3 draws | 20.3% | 1.5 | 6 | 0 | 3 / 3 | 415t |
+| outer-shoulder bypass | 3 draws | 20.1% | 1.5 | 6 | 0 | 3 / 3 | 415t |
+| thin fronts | 2 draws, 1 team-1 edge | 88.8% | 16.7 | 80 | 21 | 0 / 1 | 164t |
+
+All nine matches reached tick 499. This is a diagnostic screen by one
+partially qualified policy, not balance-grade population evidence.
+
+Three findings survive that limitation:
+
+1. Objective shape is a strong activity lever for this policy. Thin fronts
+   convert equal occupation into movement, combat, deaths, and companion use.
+2. The outer-shoulder bypass is strategically invisible to a shortest-path
+   policy. It needs a map-holdout reference that deliberately values route
+   timing before it can receive a verdict.
+3. On current and bypass maps, unlocked companion slots were Ready for 55.4%
+   of eligible observations, but no fabrication occurred. The match therefore
+   never developed its intended mid/late population. This supports testing the
+   already-derived automatic activation policy in the next coherent arm.
+
+Thin fronts are not promoted. Three-tile capacity may over-amplify blocking,
+one seed produced a team-1 territorial edge, and none of the games reached a
+terminal objective win.
+
 ## Decision
 
 Do not promote this ruleset and do not tune Frontline around its win table.
