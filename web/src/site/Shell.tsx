@@ -38,7 +38,7 @@ export default function Shell() {
             className="ml-auto hidden flex-nowrap items-center gap-0.5 min-[640px]:flex"
             aria-label="Primary navigation"
           >
-            <TopLink to="/">Season</TopLink>
+            <TopLink to="/">Rankings</TopLink>
             <TopLink to="/bots">Bots</TopLink>
             <TopLink to="/watch">Watch</TopLink>
             <TopLink to="/docs">Docs</TopLink>
@@ -96,7 +96,7 @@ export default function Shell() {
           className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-arena-edge bg-arena-panel pb-[env(safe-area-inset-bottom)] min-[640px]:hidden"
           aria-label="Primary navigation"
         >
-          <MobileLink to="/">Season</MobileLink>
+          <MobileLink to="/">Rankings</MobileLink>
           <MobileLink to="/bots">Bots</MobileLink>
           <MobileLink to="/watch">Watch</MobileLink>
           <MobileLink to="/docs">Docs</MobileLink>
@@ -115,7 +115,10 @@ function ScrollToHash() {
   const { pathname, hash } = useLocation();
 
   useEffect(() => {
-    if (hash === '') return;
+    if (hash === '') {
+      window.scrollTo({ top: 0, left: 0 });
+      return;
+    }
     let id: string;
     try {
       id = decodeURIComponent(hash.slice(1));

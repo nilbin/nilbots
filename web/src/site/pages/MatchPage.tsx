@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import Viewer from '../../components/Viewer';
 import LiveStatus from '../../components/LiveStatus';
@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../auth';
 import { useMatch, useMatchLive, useMatchReplay, useMatchSet } from '../queries';
 import { useMyBots } from '../queries';
+import { internalReturnTarget } from '../returnTarget';
 
 /**
  * One match: the arena, what it counted for, and the receipt.
@@ -39,6 +40,11 @@ import { useMyBots } from '../queries';
  */
 export default function MatchPage() {
   const { matchId } = useParams<{ matchId: string }>();
+  const location = useLocation();
+  const watchReturn = internalReturnTarget(location.state, {
+    to: '/watch',
+    label: 'Watch',
+  });
   // Three queries, not one loop: the clock says where the broadcast is, the replay follows
   // it, and the detail carries the ledger. Each stops on its own condition.
   //
@@ -62,6 +68,7 @@ export default function MatchPage() {
 
   // Either response names the set, so the standing strip never waits on the slower one.
   const matchSetId = live?.matchSetId ?? detail?.matchSetId ?? null;
+  const matchSetPath = matchSetId === null ? null : `/sets/${matchSetId}`;
   const setGame = live?.setGame ?? detail?.setGame ?? null;
   const {
     data: set,
@@ -88,8 +95,8 @@ export default function MatchPage() {
             label: 'Start another matchmade set',
           }
         : {
-            modes: ['challenge'] as readonly ArenaMode[],
-            label: 'Challenge again',
+            modes: ['challenge', 'labs'] as readonly ArenaMode[],
+            label: 'Play again',
           };
 
   // A mistyped id is an answer, not an alarm — so it renders as an empty shape with a way
@@ -100,7 +107,7 @@ export default function MatchPage() {
         <p className="t-body font-semibold text-arena-dim">No such match</p>
         <p className="t-micro mt-1">
           This match id does not exist.{' '}
-          <Link to="/watch" className="text-link">
+          <Link to={watchReturn.to} className="text-link">
             Back to Watch
           </Link>
           .
@@ -118,13 +125,20 @@ export default function MatchPage() {
         aria-label="Breadcrumb"
         className="t-meta flex flex-wrap items-center gap-1.5"
       >
-        <Link to="/watch" className="text-link">
-          ← Watch
+        <Link to={watchReturn.to} className="text-link">
+          ← {watchReturn.label}
         </Link>
-        {matchSetId !== null && (
+        {matchSetId !== null && watchReturn.to !== matchSetPath && (
           <>
             <span aria-hidden="true">/</span>
-            <Link to={`/sets/${matchSetId}`} className="text-link">
+            <Link
+              to={`/sets/${matchSetId}`}
+              state={{
+                returnTo: watchReturn.to,
+                returnLabel: watchReturn.label,
+              }}
+              className="text-link"
+            >
               Ranked set
             </Link>
             {setGame !== null && (
@@ -144,6 +158,7 @@ export default function MatchPage() {
         set={set}
         live={live}
         failed={failed}
+        returnTarget={watchReturn}
       />
       {setError && (
         <QueryWarning
@@ -206,7 +221,7 @@ export default function MatchPage() {
             ? 'Keep this bot moving, or return to the public feed.'
             : 'Follow another fight from the public feed.'}
         </span>
-        <Link to="/watch" className="btn">
+        <Link to={watchReturn.to} className="btn">
           Watch more
         </Link>
         {nextFight && ownedParticipant && (
@@ -240,6 +255,7 @@ function Standing({
   set,
   live,
   failed,
+  returnTarget,
 }: {
   matchSetId: string | null;
   setGame: number | null;
@@ -247,37 +263,40 @@ function Standing({
   set: MatchSetDetail | undefined;
   live: MatchLive | undefined;
   failed: boolean;
+  returnTarget: { to: string; label: string };
 }) {
   // An unranked match still renders the strip: "this changed nothing on the ladder" is
   // information, and its absence would read as a page that had not finished loading.
   if (matchSetId === null)
     return (
       <div className="panel-quiet pad flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="lab">Unranked challenge</p>
+        <p className="lab">Unranked match</p>
         <span className="t-micro">No rating moves on this one.</span>
         <StandingPill live={live} failed={failed} />
       </div>
     );
 
-  // Pair is `ceil(game / 2)` — the index the server assigned, never the map. The total
-  // needs the set, so the line names the pair immediately and gains "of 3" when it lands.
-  const pair = setGame === null ? null : Math.ceil(setGame / GAMES_PER_PAIR);
-  const pairs =
-    set === undefined
-      ? null
-      : Math.ceil(
-          Math.max(...set.games.map((game, index) => game.game ?? index + 1), 0) /
-            GAMES_PER_PAIR,
-        );
+  const games = set?.games.length ?? null;
+  const setPath = `/sets/${matchSetId}`;
+  const setReturnState =
+    returnTarget.to === setPath
+      ? undefined
+      : {
+          returnTo: returnTarget.to,
+          returnLabel: returnTarget.label,
+        };
 
   return (
     <div className="panel-quiet pad flex flex-wrap items-center gap-x-3 gap-y-2">
       {/* The strip is a way back to the set, but the game chips inside it are links of
           their own, and a link cannot nest — so the label carries the navigation. */}
-      <Link to={`/sets/${matchSetId}`} className="lab hover:text-arena-text">
+      <Link
+        to={setPath}
+        state={setReturnState}
+        className="lab hover:text-arena-text"
+      >
         Ranked set
-        {pair !== null && ` · Pair ${pair}${pairs === null ? '' : ` of ${pairs}`}`}
-        {setGame !== null && ` · Game ${setGame}`} ↗
+        {setGame !== null && ` · Game ${setGame}${games === null ? '' : ` of ${games}`}`} ↗
       </Link>
       {set !== undefined && set.games.length > 0 && (
         <nav className="flex flex-wrap items-center gap-1" aria-label="Games in this set">
@@ -288,6 +307,10 @@ function Standing({
               <Link
                 key={game.id}
                 to={`/matches/${game.id}`}
+                state={{
+                  returnTo: returnTarget.to,
+                  returnLabel: returnTarget.label,
+                }}
                 aria-current={current ? 'page' : undefined}
                 aria-label={`Game ${number}`}
                 className={clsx(
@@ -397,7 +420,7 @@ function DidNotRun({ error, ranked }: { error: string | null; ranked: boolean })
       {error !== null && <pre className="term">{error}</pre>}
       <p className="t-body text-arena-dim">
         {ranked
-          ? 'No rating changed — a set only settles when all six games complete.'
+          ? 'No rating changed — a set settles only after every scheduled game completes.'
           : 'No rating changed, and no replay exists: this match never reached a conclusion.'}
       </p>
     </div>
@@ -564,8 +587,10 @@ function Record({
             <dd className="val text-arena-text">{detail.mapId}</dd>
             <dt className="lab">Seed</dt>
             <dd className="val text-arena-text">{String(detail.seed)}</dd>
-            <dt className="lab">Rules</dt>
-            <dd className="val text-arena-text">{matchRules(detail) ?? '—'}</dd>
+            <dt className="lab">Ruleset ID</dt>
+            <dd className="val break-all text-arena-text">
+              {detail.gameRulesVersion}
+            </dd>
             <dt className="lab">Ran</dt>
             <dd className="val text-arena-text">{ranAt(detail)}</dd>
             <dt className="lab">Match</dt>
@@ -575,9 +600,9 @@ function Record({
           <hr className="border-arena-edge" />
 
           {/* The strongest thing on the page, and it is free: `artifactHashSnapshot` is in
-              the payload today and rendered nowhere else on the site. Map + seed + rules +
-              every artifact hash is the complete input set, and publishing it beside the
-              outcome is what turns "trust us" into "run it yourself". */}
+              the payload today and rendered nowhere else on the site. Map + seed + ruleset
+              + every artifact hash is the complete input set, and publishing it beside
+              the outcome is what turns "trust us" into "run it yourself". */}
           <div className="flex flex-col gap-2">
             <p className="lab">Artifacts</p>
             {detail.participants.map((participant) => (
@@ -643,11 +668,16 @@ function BotLink({
   participant: MatchDetailParticipant;
   winner: boolean;
 }) {
+  const location = useLocation();
   // By id, not by a slug snapshot: `/api/bots/{key}` accepts a uuid and the bot route
   // canonicalizes, so a rename cannot strand this link on a name that no longer exists.
   return (
     <Link
       to={`/bots/${participant.botId}`}
+      state={{
+        returnTo: `${location.pathname}${location.search}`,
+        returnLabel: 'Match',
+      }}
       className="inline-flex min-w-0 transition-opacity hover:opacity-80"
     >
       {/* The winner is marked by weight, never colour: the outcome column already says it
@@ -673,8 +703,6 @@ function Td({ children }: { children: ReactNode }) {
 
 /* -------------------------------------------------------------------- derivations --- */
 
-const GAMES_PER_PAIR = 2;
-
 /** Revealed is exactly what the server means by it: completed, and done broadcasting. */
 function revealed(detail: MatchDetail): boolean {
   return detail.status === 'Completed' && !detail.broadcasting;
@@ -695,15 +723,6 @@ function ranAt(detail: MatchDetail): string {
     month: 'short',
     year: 'numeric',
   })} · ${when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-/**
- * The generated detail contract does not project its historical rules version. Do not
- * accept an undeclared JSON extension or substitute current `/api/meta` data: either one
- * can silently relabel an old match. This stays empty until the generated type owns it.
- */
-function matchRules(_detail: MatchDetail): string | null {
-  return null;
 }
 
 function botLabel(participant: MatchDetailParticipant): string {

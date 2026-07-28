@@ -118,9 +118,17 @@ function Pack({
   signedIn: boolean;
 }) {
   const settled = pack.owned && !pack.repeatable;
+  const canEquip =
+    settled &&
+    pack.items.some(
+      (item) =>
+        item.kind === BOT_LOOK_KIND || item.kind === PROJECTILE_LOOK_KIND,
+    );
   const checkout = checkoutFor(pack);
   const reason = settled
-    ? 'You already own this.'
+    ? canEquip
+      ? null
+      : 'You already own this.'
     : !open
       ? 'The shop is not open yet.'
       : !signedIn
@@ -146,7 +154,11 @@ function Pack({
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
-        {checkout ? (
+        {canEquip ? (
+          <Link to="/garage" className="btn w-full sm:w-auto">
+            Choose a bot
+          </Link>
+        ) : checkout ? (
           <a href={checkout.href} className="btn btn-on w-full sm:w-auto">
             Buy
           </a>

@@ -4,7 +4,15 @@ import { errorMessage } from '../errorMessage';
 import { useBotMatches } from '../queries';
 
 /** A bot's recent games, newest first. Absent entirely when it has never fought. */
-export default function MatchHistory({ botId, botSlug }: { botId: string; botSlug: string }) {
+export default function MatchHistory({
+  botId,
+  botSlug,
+  botName,
+}: {
+  botId: string;
+  botSlug: string;
+  botName: string;
+}) {
   const { data, error, refetch } = useBotMatches(botId);
 
   if (error)
@@ -38,6 +46,10 @@ export default function MatchHistory({ botId, botSlug }: { botId: string; botSlu
           <li key={match.id}>
             <Link
               to={`/matches/${match.id}`}
+              state={{
+                returnTo: `/bots/${botSlug}`,
+                returnLabel: botName,
+              }}
               className="panel-quiet flex min-w-0 items-center gap-2.5 px-3 py-2 transition-colors hover:border-arena-edge2"
             >
               <span className="val w-12 shrink-0 uppercase">

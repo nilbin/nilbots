@@ -1,5 +1,5 @@
-import { Fragment, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Fragment, useMemo } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import BotIdentity from '../components/BotIdentity';
 import ArenaAction from '../components/ArenaAction';
@@ -11,7 +11,6 @@ import { useAuth } from '../auth';
 import {
   useArenaCapabilities,
   useBots,
-  useMeta,
   useMyBots,
 } from '../queries';
 import { rosterBotSupportsLegacyDuel } from '../botContractProfiles';
@@ -50,19 +49,6 @@ import { styleVariables } from '../../presentation/styleVariables';
  * there is no rise or fall in a directory, so the outcome exception is not spent.
  */
 
-/**
- * When this bot last fought — the real gap for "worth challenging".
- *
- * Nothing on the roster says it. `createdAt` is when the bot was *made*, which is why the
- * `new` sort means newest-created and why an abandoned month-one experiment is
- * indistinguishable here from something fighting hourly. Until `lastMatchAt` lands on
- * `BotSummaryResponse` this returns null on every row, the footnote admits it, and there
- * is no "active" pill pretending otherwise.
- */
-function lastPlayed(_bot: BotSummary): string | null {
-  return null;
-}
-
 /*
  * Three things are deliberately *not* shaped here, and each is a refusal rather than an
  * omission:
@@ -86,7 +72,6 @@ const SUB_LINE_INDENT = 'ml-[41px]';
 
 export default function BotsPage() {
   const { data: bots = null, error, refetch } = useBots();
-  const { data: meta = null } = useMeta();
   const { user, loading: authLoading } = useAuth();
   const { data: myBots = null } = useMyBots(Boolean(user));
   const {
@@ -94,12 +79,28 @@ export default function BotsPage() {
     error: arenaError,
     refetch: refetchArena,
   } = useArenaCapabilities(Boolean(user));
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortKey>('rank');
-  const [fightableOnly, setFightableOnly] = useState(false);
-  const [mineOnly, setMineOnly] = useState(false);
-
-  const rules = meta?.gameRulesVersion ?? null;
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
+  const query = params.get('q') ?? '';
+  const sortValue = params.get('sort');
+  const sort: SortKey =
+    sortValue === 'new' || sortValue === 'name' ? sortValue : 'rank';
+  const fightableOnly = params.get('playable') === '1';
+  const mineOnly = params.get('mine') === '1';
+  const setParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(params);
+    if (value === null || value === '') next.delete(key);
+    else next.set(key, value);
+    setParams(next, { replace: true });
+  };
+  const setQuery = (value: string) => setParam('q', value);
+  const setSort = (value: SortKey) =>
+    setParam('sort', value === 'rank' ? null : value);
+  const setFightableOnly = (value: boolean) =>
+    setParam('playable', value ? '1' : null);
+  const setMineOnly = (value: boolean) =>
+    setParam('mine', value ? '1' : null);
+  const returnTo = `${location.pathname}${location.search}`;
 
   // Ownership joins on ids, never display names. Once Arena authority arrives it wins;
   // `/api/bots/mine` remains only a pre-capability fallback for page presentation.
@@ -178,7 +179,6 @@ export default function BotsPage() {
 
   const ladderEmpty =
     bots !== null && bots.length > 0 && !bots.some((bot) => bot.currentStanding);
-  const hasLastPlayed = (bots ?? []).some((bot) => lastPlayed(bot) !== null);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -186,11 +186,12 @@ export default function BotsPage() {
           lede say nothing they cannot already know. The census line and the controls do
           not — a count of nothing is noise and a pressed filter over no data is a dead
           control. */}
-      <p className="lab mb-2">Directory{rules === null ? '' : ` · rules ${rules}`}</p>
+      <p className="lab mb-2">Bot directory</p>
       <h1 className="type-display mb-2 text-[30px]">Every bot</h1>
       <p className="t-body mb-4 max-w-[62ch] text-arena-dim">
-        Every bot anyone has submitted. Rank, rating and sets belong to the active
-        ladder; legacy Duel actions require a compatible active build.
+        Compare the roster, inspect a bot, or challenge one directly. Rank, rating and
+        sets reflect the current ladder; Play appears only where the Arena can accept
+        the bot.
       </p>
 
       {bots !== null && bots.length > 0 && (
@@ -268,9 +269,9 @@ export default function BotsPage() {
                 <Control
                   pressed={fightableOnly}
                   onClick={() => setFightableOnly(!fightableOnly)}
-                  description="Only active bots compatible with legacy Duel can be fought here."
+                  description="Only bots currently accepted for ranked sets and one-off challenges."
                 >
-                  can fight
+                  Duel-ready
                 </Control>
                 {/* Only when you are signed in and own something on this roster: a
                     filter that can only ever empty the table is not a control. */}
@@ -350,7 +351,7 @@ export default function BotsPage() {
                     arena !== null
                       ? serverPlayableIds.has(bot.id)
                       : rosterBotSupportsLegacyDuel(bot);
-                  const arenaBot = fightable
+                  const arenaBot = fightable || mine
                     ? {
                         id: bot.id,
                         slug: bot.slug,
@@ -360,10 +361,9 @@ export default function BotsPage() {
                         isOwner: mine,
                       }
                     : null;
-                  const arenaModes = [
-                    'ranked',
-                    'challenge',
-                  ] as const;
+                  const arenaModes = mine
+                    ? (['ranked', 'challenge', 'labs'] as const)
+                    : (['challenge'] as const);
                   return (
                     <Fragment key={bot.id}>
                       {index === bandAt && (
@@ -376,12 +376,6 @@ export default function BotsPage() {
                             className="lab border-t border-dashed border-arena-edge pt-2.5 pb-1.5"
                           >
                             Unranked · {ordered.length - bandAt} bots
-                            {rules !== null && (
-                              <span className="hidden sm:inline">
-                                {' '}
-                                · no set on rules {rules}
-                              </span>
-                            )}
                           </td>
                         </tr>
                       )}
@@ -412,6 +406,10 @@ export default function BotsPage() {
                         <td className="p-2 align-middle">
                           <Link
                             to={`/bots/${bot.slug}`}
+                            state={{
+                              returnTo,
+                              returnLabel: 'All bots',
+                            }}
                             className="block min-w-0 transition-opacity hover:opacity-80"
                           >
                             <BotIdentity
@@ -503,16 +501,11 @@ export default function BotsPage() {
               </tbody>
             </table>
 
-            {/* The honest account of the blank columns. A directory that shows a dormant
-                bot and a busy one identically should say so rather than let the reader
-                diagnose it. */}
-            <p className="t-micro mt-2.5">
-              {ladderEmpty &&
-                `No bot has completed a ranked set${rules === null ? '' : ` on rules ${rules}`} yet. `}
-              {hasLastPlayed
-                ? 'No win–loss record reaches this endpoint: it is one request per bot.'
-                : 'No record and no last-played date reach this endpoint, so a dormant bot and a busy one read the same.'}
-            </p>
+            {ladderEmpty && (
+              <p className="t-micro mt-2.5">
+                Nobody has entered ranked play yet. Use Play to start the first set.
+              </p>
+            )}
           </div>
         </section>
       )}
@@ -536,7 +529,7 @@ function byNewest(a: BotSummary, b: BotSummary) {
 function noMatchLine(query: string, fightable: boolean, mine: boolean) {
   const needle = query.trim();
   const active: string[] = [];
-  if (fightable) active.push('can fight');
+  if (fightable) active.push('Duel-ready');
   if (mine) active.push('mine');
   const filters = active.join(' and ');
   if (active.length === 0)

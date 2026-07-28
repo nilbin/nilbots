@@ -45,11 +45,11 @@ const STEPS: readonly Step[] = [
     note: 'Writes a replay and a viewer.html you can open and scrub. No account, nothing uploaded.',
   },
   {
-    title: 'Put it on the ladder',
+    title: 'Submit your first generation',
     // `submit` refuses before it compiles when nobody is signed in, and the account you
     // are reading this page with is not the CLI's — the browser grant is a separate step.
     commands: ['nilbots login', 'nilbots submit'],
-    note: 'The server rebuilds your source and tells you whether its artifact is byte-for-byte the one you played.',
+    note: 'The server rebuilds your source and checks artifact parity. When it appears in your Garage, use Play to enter a ranked set, challenge or experiment.',
     waiting: true,
   },
 ];

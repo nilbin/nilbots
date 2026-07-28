@@ -4,11 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-import { LabsPanel } from './.harness/harness.entry.js';
+import {
+  ArenaActionProvider,
+  LabsPanel,
+} from './.harness/harness.entry.js';
 
 const GENERIC_PROFILE = 'generic-actor-match-2';
 
-test('the Labs panel renders only eligible opponents for an eligible owned bot', () => {
+test('an eligible Labs panel opens match setup through the shared Play composer', () => {
   const markup = renderPanel({
     labs: {
       enabled: true,
@@ -44,20 +47,19 @@ test('the Labs panel renders only eligible opponents for an eligible owned bot',
 
   assert.match(markup, /Labs · unranked/);
   assert.match(markup, /Frontline Labs/);
-  assert.match(markup, /Compatible/);
-  assert.doesNotMatch(markup, /Legacy only/);
+  assert.match(markup, /Run lab match/);
   assert.doesNotMatch(markup, /Ranked set|FIGHT FOR RATING/);
 });
 
-test('the Labs panel stays absent when the deployment or active artifact is ineligible', () => {
-  assert.equal(
+test('the Labs panel explains disabled and incompatible experiment states', () => {
+  assert.match(
     renderPanel({
       labs: { enabled: false, playlists: [] },
       bots: [],
     }),
-    '',
+    /No experiments are running/,
   );
-  assert.equal(
+  assert.match(
     renderPanel({
       labs: {
         enabled: true,
@@ -79,8 +81,32 @@ test('the Labs panel stays absent when the deployment or active artifact is inel
       },
       bots: [],
     }),
-    '',
+    /No compatible experiment/,
   );
+});
+
+test('the Labs panel exposes its catalog loading state', () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  const markup = renderToStaticMarkup(
+    createElement(
+      QueryClientProvider,
+      { client },
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(
+          ArenaActionProvider,
+          null,
+          createElement(LabsPanel, { bot: ownedGenericBot() }),
+        ),
+      ),
+    ),
+  );
+
+  assert.match(markup, /Checking experiments/);
 });
 
 function renderPanel(data: { labs: unknown; bots: unknown }) {
@@ -97,7 +123,11 @@ function renderPanel(data: { labs: unknown; bots: unknown }) {
       createElement(
         MemoryRouter,
         null,
-        createElement(LabsPanel, { bot: ownedGenericBot() }),
+        createElement(
+          ArenaActionProvider,
+          null,
+          createElement(LabsPanel, { bot: ownedGenericBot() }),
+        ),
       ),
     ),
   );

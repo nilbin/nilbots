@@ -13,8 +13,9 @@ an Automatic Arena entitlement, schedule, occurrence, worker or endpoint. Those 
 the separate package specified below.
 
 Automatic Arena is a purchasable quality-of-life feature that lets a player
-schedule one daily ranked set for an owned bot. A ranked set currently consists
-of six games: three map-and-seed pairs played from mirrored starting slots.
+schedule one daily ranked set for an owned bot. The open ladder's pinned
+playlist version defines the set schedule; the client never assumes a fixed
+game count or pairing shape.
 Automatic play must enter exactly the same admission, matchmaking, quota, and
 execution paths as a manually started ranked set.
 
@@ -24,8 +25,9 @@ execution paths as a manually started ranked set.
 - A scheduled set consumes the account's existing rolling ranked-set allowance.
 - It does not add ranked sets, raise concurrency, bypass system capacity, or move
   work ahead of another player's work.
-- The server selects the opponent, maps, seeds, current rules, and open ladder in
-  the same way it does for manual ranked play.
+- The server selects the open ladder and its playlist version, then applies that
+  version's matchmaking, maps, seeds, ruleset and scheduler exactly as manual
+  ranked play does.
 - The bot's active eligible version at execution time is used. Scheduling does
   not pin a version indefinitely.
 - Every state shown in the UI must come from a real capability, entitlement,
@@ -47,14 +49,15 @@ locked package before the Store and capability APIs supply it.
 
 - **Schedule**: the player's recurring local-time preference for one bot.
 - **Occurrence**: one local calendar day's attempt to start the scheduled set.
-- **Ranked set**: six games whose result is settled together.
+- **Ranked set**: the games scheduled by the open ladder's playlist version and
+  settled together.
 - **Execution window**: the bounded period after the selected time in which a
   temporarily blocked occurrence may still start.
 - **Needs attention**: a schedule that cannot safely continue without a player
   action, such as selecting an eligible bot build or restoring entitlement.
 
-The interface should say “daily ranked set” and “6 games” rather than the
-ambiguous “daily game.”
+The interface should say “daily ranked set,” not the ambiguous “daily game.”
+When the capability response includes a schedule size it may also say “N games.”
 
 ## User journey
 
@@ -95,7 +98,8 @@ The configuration form contains:
 
 - local start time, at minute precision;
 - time zone, defaulted as a suggestion from the device but explicitly saved;
-- a summary: “One ranked set · 6 games · starts around HH:mm”;
+- a summary such as “One ranked set · starts around HH:mm,” including the
+  server-projected game count only when available;
 - the current rolling ranked quota and concurrency limit when supplied by the
   server; and
 - a concise explanation that quota or queue pressure can delay or skip a day.
@@ -231,7 +235,7 @@ A six-hour execution window is a reasonable initial default, capped before the
 next local occurrence. Its final value is server policy and should be exposed as
 capability data if the frontend needs to explain it.
 
-Once admitted, all six games join the normal match queue. Automatic sets receive
+Once admitted, every scheduled game joins the normal match queue. Automatic sets receive
 the normal ranked-result experience and link to the existing set detail. The
 schedule history should reference that set rather than duplicate its scores,
 ratings, or replay data.
@@ -434,7 +438,8 @@ availability from the package ID.
   bot without visiting Looks.
 - Locked, unavailable, purchased, and active states are based on server data,
   not component constants.
-- The UI always describes the action as one ranked set containing six games.
+- The UI always describes the action as one ranked set and uses the
+  server-projected schedule size when it mentions a game count.
 - One bot can have at most one schedule and one occurrence per local date.
 - Manual and automatic starts share quotas, concurrency, matchmaking, ladder,
   and queue behavior.

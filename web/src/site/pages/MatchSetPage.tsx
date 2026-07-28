@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
 import Matchup from '../components/Matchup';
 import LiveStatus from '../../components/LiveStatus';
@@ -9,28 +9,22 @@ import Th from '../components/TableHeader';
 import { ApiError, type MatchSetDetail, type SetGame } from '../api';
 import { useAuth } from '../auth';
 import { useMatchSet, useMyBots } from '../queries';
+import { internalReturnTarget } from '../returnTarget';
 
 /**
- * A ranked set: six games, three map/seed **pairs**, each pair played from both sides.
+ * A ranked set: authoritative standings and its exact ordered game schedule.
  *
- * The page's question is not "what was the score" — the `set-settled` notification already
- * carried `score`, `opponentScore` and `ratingChange`, so anyone arriving from it has been
- * told. Its question is **whether one bot is actually better than the other, or only better
- * on one side of one map**, which no notification can answer. So the *mirror* leads and the
- * score is a caption on it.
- *
- * That is why the games are not six cards. Six cards are a rendering of the storage layout;
- * the format is three pairs played twice, and a pair that one bot took from both sides says
- * something a pair that split does not. A player who sees three splits has learned that the
- * two bots are equal and the maps are unfair; a player who sees three sweeps has learned
- * they were beaten. **At no width does this page render a flat list of six.**
- *
- * Nothing here assumes two sides or two games to a pair: `setSides` returns an ordered
- * collection, the mirror's arrangement columns are derived from the games themselves, and
- * both are walked.
+ * Playlist versions can define different schedules. The response does not currently
+ * project scheduler grouping or seeds, so this page deliberately renders games flat
+ * rather than guessing which adjacent games form a mirrored pair.
  */
 export default function MatchSetPage() {
   const { setId } = useParams<{ setId: string }>();
+  const location = useLocation();
+  const returnTarget = internalReturnTarget(location.state, {
+    to: '/watch',
+    label: 'Watch',
+  });
   const { data: set, error, refetch } = useMatchSet(setId);
   const { user } = useAuth();
   const { data: myBots = [] } = useMyBots(Boolean(user));
@@ -42,8 +36,8 @@ export default function MatchSetPage() {
         <p className="t-body font-semibold text-arena-dim">No such set</p>
         <p className="t-micro mt-1">
           This set id does not exist.{' '}
-          <Link to="/watch" className="text-link">
-            Back to Watch
+          <Link to={returnTarget.to} className="text-link">
+            Back to {returnTarget.label}
           </Link>
           .
         </p>
@@ -53,8 +47,7 @@ export default function MatchSetPage() {
   if (!set) return <LoadingState label="Loading the set…" />;
 
   const sides = setSides(set);
-  const pairs = mirrorPairs(set);
-  const arrangements = startingArrangements(pairs);
+  const games = orderedSetGames(set);
   const standings = [...sides].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
   const drawn =
     set.revealed && set.status === 'Completed' && set.winnerBotId === null;
@@ -64,8 +57,8 @@ export default function MatchSetPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
       <nav aria-label="Breadcrumb">
-        <Link to="/watch" className="t-meta text-link">
-          ← Watch
+        <Link to={returnTarget.to} className="t-meta text-link">
+          ← {returnTarget.label}
         </Link>
       </nav>
       <h1 className="sr-only">
@@ -74,7 +67,7 @@ export default function MatchSetPage() {
       </h1>
       <header className="flex flex-col gap-2.5">
         <p className="lab">
-          Ranked set · Rules {set.rulesVersion} · {shortDate(set.createdAt)}
+          Ranked set · {shortDate(set.createdAt)}
         </p>
         {/* The matchup is the page title, walked rather than destructured — the same
             component the feed uses, so a set of three sides would render three chips. */}
@@ -109,6 +102,10 @@ export default function MatchSetPage() {
               ) : (
                 <Link
                   to={`/bots/${side.id}`}
+                  state={{
+                    returnTo: `/sets/${set.id}`,
+                    returnLabel: 'Ranked set',
+                  }}
                   className="inline-flex min-w-0 transition-opacity hover:opacity-80"
                 >
                   <BotIdentity
@@ -154,8 +151,8 @@ export default function MatchSetPage() {
           </p>
           <p className="t-body max-w-[62ch] text-arena-dim">
             The result is held until every game has finished broadcasting, so the first
-            person to watch is not the first person to know. Open any game below; the pairs
-            fill in as they finish.
+            person to watch is not the first person to know. Open any game below; the
+            schedule fills in as broadcasts finish.
           </p>
         </div>
       )}
@@ -163,26 +160,25 @@ export default function MatchSetPage() {
       <section className="panel">
         <div className="pad pb-2.5">
           <h2 className="lab">
-            The mirror · {pairs.length} map/seed {pairs.length === 1 ? 'pair' : 'pairs'},
-            each played from both sides
+            Schedule · {set.games.length}{' '}
+            {set.games.length === 1 ? 'game' : 'games'}
           </h2>
         </div>
 
-        {pairs.length === 0 ? (
+        {games.length === 0 ? (
           <p className="pad t-body pt-0 text-arena-dim">
             The games for this set have not been created yet.
           </p>
         ) : (
           <>
-            {/* Below sm the axis flips from columns to stacked rows and nothing is lost,
-                because the pair — not the game — is the unit at every size. */}
             <div className="flex flex-col gap-2.5 px-3.5 pb-3.5 sm:hidden">
-              {pairs.map((pair) => (
-                <PairCard
-                  key={pair.number}
-                  pair={pair}
-                  arrangements={arrangements}
+              {games.map((game, index) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  fallbackNumber={index + 1}
                   sides={sides}
+                  setId={set.id}
                 />
               ))}
             </div>
@@ -191,61 +187,35 @@ export default function MatchSetPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <Th className="w-[52px]">Pair</Th>
-                    <Th>Map · seed</Th>
-                    {arrangements.map((arrangement, column) => (
-                      <Th key={arrangement.key}>
-                        <span className="flex items-center gap-1.5">
-                          {arrangement.name === null ? (
-                            `Start ${column + 1}`
-                          ) : (
-                            <>
-                              {/* The chip keeps its own name size; the uppercase and the
-                                  tracking come from the `.lab` head it sits in. */}
-                              <BotIdentity
-                                name={arrangement.name}
-                                accent={arrangement.accent}
-                                lookId={arrangement.lookId}
-                                size="xs"
-                              />
-                              first
-                            </>
-                          )}
-                        </span>
-                      </Th>
-                    ))}
-                    <Th className="w-[104px]">Verdict</Th>
+                    <Th className="w-[64px]">Game</Th>
+                    <Th>Matchup</Th>
+                    <Th className="w-[120px]">Map</Th>
+                    <Th className="w-[150px]">Result</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pairs.map((pair) => (
-                    <tr key={pair.number} className="border-b border-arena-edge last:border-b-0">
+                  {games.map((game, index) => (
+                    <tr key={game.id} className="border-b border-arena-edge last:border-b-0">
                       <td className="val py-2.5 pr-2 align-top text-arena-text">
-                        {pair.number}
+                        {game.game ?? index + 1}
                       </td>
                       <td className="py-2.5 pr-2 align-top">
-                        {/* Named once per pair, because being shared is the entire point. */}
-                        <span className="t-body block text-arena-text">{pair.mapId}</span>
-                        <span className="val">seed {pair.seed ?? '—'}</span>
+                        <Matchup
+                          participants={game.participants}
+                          winnerSlot={gameWinnerSlot(game)}
+                          size="xs"
+                        />
                       </td>
-                      {arrangements.map((arrangement, column) => (
-                        <td key={arrangement.key} className="py-2.5 pr-2 align-top">
-                          <GameCell game={pair.games[column]} sides={sides} />
-                        </td>
-                      ))}
+                      <td className="val py-2.5 pr-2 align-top text-arena-text">
+                        {game.mapId}
+                      </td>
                       <td className="py-2.5 align-top">
-                        <Verdict verdict={pairVerdict(pair, sides)} />
+                        <GameCell game={game} sides={sides} setId={set.id} />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-
-              <p className="t-micro mt-2.5 max-w-[68ch]">
-                <b className="text-arena-text">swept</b> — one bot took the pair from both
-                sides. <b className="text-arena-text">first move</b> — each bot won the game
-                it started, so the position decided it. That is what the mirror is for.
-              </p>
             </div>
           </>
         )}
@@ -259,6 +229,9 @@ export default function MatchSetPage() {
         </span>
         <Link to="/watch" className="btn">
           Watch more
+        </Link>
+        <Link to="/" className="btn">
+          View rankings
         </Link>
         {ownedSide && (
           <ArenaAction
@@ -276,78 +249,77 @@ export default function MatchSetPage() {
         )}
       </section>
 
-      {/* A set's provenance is the union of its games', and each game page carries its own
-          in full — so this is a footnote, not a panel. */}
-      <p className="t-micro break-all">
-        set {set.id} · rules {set.rulesVersion} · created {shortDate(set.createdAt)}
-      </p>
+      <details className="panel-quiet px-3 py-2">
+        <summary className="lab cursor-pointer">Technical details</summary>
+        <dl className="t-micro mt-2 grid grid-cols-[62px_minmax(0,1fr)] gap-x-2 gap-y-1">
+          <dt>Set</dt>
+          <dd className="val break-all">{set.id}</dd>
+          <dt>Ruleset ID</dt>
+          <dd className="val break-all">{set.rulesVersion}</dd>
+          <dt>Created</dt>
+          <dd>{shortDate(set.createdAt)}</dd>
+        </dl>
+      </details>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------- the mirror ---- */
+/* -------------------------------------------------------------------- schedule ----- */
 
-function PairCard({
-  pair,
-  arrangements,
+function GameCard({
+  game,
+  fallbackNumber,
   sides,
+  setId,
 }: {
-  pair: MirrorPair;
-  arrangements: readonly Arrangement[];
+  game: SetGame;
+  fallbackNumber: number;
   sides: readonly SetSide[];
+  setId: string;
 }) {
-  const verdict = pairVerdict(pair, sides);
+  const number = game.game ?? fallbackNumber;
   return (
     <div className="panel-quiet flex flex-col gap-2 px-3 py-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <p className="lab">
-          Pair {pair.number} · {pair.mapId}
-        </p>
-        <Verdict verdict={verdict} />
+        <p className="lab">Game {number}</p>
+        <span className="val">{game.mapId}</span>
       </div>
-      <span className="val">seed {pair.seed ?? '—'}</span>
       <hr className="border-arena-edge" />
-      {arrangements.map((arrangement, column) => (
-        <div
-          key={arrangement.key}
-          className="grid min-w-0 grid-cols-[58px_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5"
-        >
-          <span className="lab">Starter</span>
-          <span className="flex min-w-0 items-center gap-1.5">
-            {arrangement.name === null ? (
-              <span className="t-body text-arena-dim">Start {column + 1}</span>
-            ) : (
-              <BotIdentity
-                name={arrangement.name}
-                accent={arrangement.accent}
-                lookId={arrangement.lookId}
-                size="xs"
-                className="min-w-0"
-                nameClassName="overflow-visible whitespace-normal text-clip"
-              />
-            )}
-          </span>
-          <span className="lab">Result</span>
-          <GameCell game={pair.games[column]} sides={sides} />
-        </div>
-      ))}
+      <Matchup
+        participants={game.participants}
+        winnerSlot={gameWinnerSlot(game)}
+        size="xs"
+        layout="stack"
+      />
+      <GameCell game={game} sides={sides} setId={setId} />
     </div>
   );
 }
 
 /**
- * One game of a pair: who won it, and a way into it.
+ * One scheduled game: its current outcome and a way into the broadcast or replay.
  *
  * The cell links out rather than expanding, which is the deliberate consequence of the set
  * projection carrying no `endReason`/`endTick` per game — the match page has them, and it
  * has the arena too.
  */
-function GameCell({ game, sides }: { game: SetGame | undefined; sides: readonly SetSide[] }) {
-  if (game === undefined) return <span className="val">—</span>;
+function GameCell({
+  game,
+  sides,
+  setId,
+}: {
+  game: SetGame;
+  sides: readonly SetSide[];
+  setId: string;
+}) {
   const number = game.game;
   return (
     <Link
       to={`/matches/${game.id}`}
+      state={{
+        returnTo: `/sets/${setId}`,
+        returnLabel: 'Ranked set',
+      }}
       aria-label={`Game ${number ?? ''} on ${game.mapId}`}
       className="group flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
     >
@@ -378,30 +350,16 @@ function GameOutcome({ game, sides }: { game: SetGame; sides: readonly SetSide[]
     const participant = game.participants.find(
       (entry) => entry.botId === game.winnerBotId,
     );
-    // A player's accent is their own pick, so it is legitimate chroma here: it is the one
-    // thing on the page that means "this bot", not "this state".
     return (
-      <BotIdentity
-        name={participant?.nameSnapshot ?? winner?.name ?? 'A removed bot'}
-        accent={participant?.accentSnapshot ?? winner?.accent}
-        lookId={participant?.lookIdSnapshot ?? winner?.lookId}
-        size="xs"
-        className="min-w-0"
-        nameClassName="overflow-visible whitespace-normal text-clip"
-      />
+      <span className="t-body text-arena-dim">
+        <span className="font-semibold text-arena-text">
+          {participant?.nameSnapshot ?? winner?.name ?? 'A removed bot'}
+        </span>{' '}
+        wins
+      </span>
     );
   }
   return <span className="val">{game.status.toLowerCase()}</span>;
-}
-
-function Verdict({ verdict }: { verdict: PairVerdict | null }) {
-  if (verdict === null) return <span className="val">—</span>;
-  return (
-    <span className="flex flex-wrap items-baseline gap-x-1.5">
-      <span className="val text-arena-text">{verdict.score}</span>
-      {verdict.word !== null && <span className="t-micro">{verdict.word}</span>}
-    </span>
-  );
 }
 
 function RatingDelta({ change, before }: { change: number | null; before: number | null }) {
@@ -409,17 +367,6 @@ function RatingDelta({ change, before }: { change: number | null; before: number
 }
 
 /* ------------------------------------------------------------------ derivations ----- */
-
-/**
- * How many games make a pair.
- *
- * `RankedEndpoints` draws three maps and plays each twice with mirrored starting slots, so
- * pairs are formed **by game index** — `pair = ceil(game / 2)` — and never by `mapId`.
- * Today the pool draws without replacement so grouping by map happens to work; the day it
- * draws with replacement, map-grouping silently collapses two pairs into one and renders
- * four columns of nonsense. Group by the index the server actually assigned.
- */
-const GAMES_PER_PAIR = 2;
 
 interface SetSide {
   id: string;
@@ -431,25 +378,6 @@ interface SetSide {
   points: number | null;
   ratingChange: number | null;
   ratingBefore: number | null;
-}
-
-interface MirrorPair {
-  number: number;
-  mapId: string;
-  seed: string | null;
-  games: SetGame[];
-}
-
-interface Arrangement {
-  key: string;
-  name: string | null;
-  accent: string | null;
-  lookId: string | null;
-}
-
-interface PairVerdict {
-  score: string;
-  word: string | null;
 }
 
 /**
@@ -480,89 +408,20 @@ function setSides(set: MatchSetDetail): SetSide[] {
   }));
 }
 
-function mirrorPairs(set: MatchSetDetail): MirrorPair[] {
-  const byPair = new Map<number, SetGame[]>();
-  set.games.forEach((game, index) => {
-    // A game with no number is not a shape the server produces; ordering position is the
-    // only honest stand-in, and it keeps a malformed payload rendering rather than empty.
-    const number = game.game ?? index + 1;
-    const pair = Math.ceil(number / GAMES_PER_PAIR);
-    byPair.set(pair, [...(byPair.get(pair) ?? []), game]);
-  });
-  return [...byPair.entries()]
-    .sort(([left], [right]) => left - right)
-    .map(([number, games]) => {
-      const ordered = [...games].sort(
-        (left, right) => (left.game ?? 0) - (right.game ?? 0),
-      );
-      return {
-        number,
-        mapId: ordered[0]?.mapId ?? '—',
-        seed: gameSeed(ordered[0]),
-        games: ordered,
-      };
-    });
-}
-
-/**
- * Who moved first in each arrangement, derived from the games rather than assumed.
- *
- * Column `n` is the participant at `slot === 0` in every pair's `n`th game — which is what
- * "mirrored starts" means on the wire. There are as many columns as a pair has games:
- * today two, and nothing here says two.
- */
-function startingArrangements(pairs: readonly MirrorPair[]): Arrangement[] {
-  const width = pairs.reduce((widest, pair) => Math.max(widest, pair.games.length), 0);
-  return Array.from({ length: width }, (_, column) => {
-    const leader = pairs
-      .map((pair) => pair.games[column]?.participants.find((entry) => entry.slot === 0))
-      .find((entry) => entry !== undefined);
-    return {
-      key: `start-${column}`,
-      name: leader?.nameSnapshot ?? null,
-      accent: leader?.accentSnapshot ?? null,
-      lookId: leader?.lookIdSnapshot ?? null,
-    };
-  });
-}
-
-/**
- * What the pair says, which is the only genuinely new fact on the page — and it is derived
- * entirely from data already on the wire (`winnerBotId` plus the slot-0 participant).
- *
- * "Swept" means one bot is better on that map and seed regardless of position. "First
- * move" means the position decided it, and the mirror earned its keep.
- */
-function pairVerdict(pair: MirrorPair, sides: readonly SetSide[]): PairVerdict | null {
-  const games = pair.games;
-  if (games.length === 0) return null;
-  const decided = games.every((game) => game.winnerBotId !== null || game.draw);
-  if (!decided) return null;
-
-  // The set's own scoring, applied to a pair: 1 for a win, 0.5 each for a draw.
-  const tally = sides.map((side) =>
-    games.reduce(
-      (total, game) =>
-        total + (game.winnerBotId === side.id ? 1 : game.draw ? 0.5 : 0),
-      0,
-    ),
+function orderedSetGames(set: MatchSetDetail): SetGame[] {
+  return [...set.games].sort(
+    (left, right) => (left.game ?? Number.MAX_SAFE_INTEGER) -
+      (right.game ?? Number.MAX_SAFE_INTEGER),
   );
-  const score = tally.map(points).join('–');
+}
 
-  // Every one of the words is a claim about *both* sides of the same map and seed, so a
-  // half-built pair gets the score and no word rather than "swept" off a single game.
-  if (games.length < 2) return { score, word: null };
-  if (games.every((game) => game.draw)) return { score, word: 'drawn' };
-  if (sides.some((side) => games.every((game) => game.winnerBotId === side.id)))
-    return { score, word: 'swept' };
-  const wonByStarter = (game: SetGame) =>
-    game.winnerBotId !== null &&
-    game.participants.find((entry) => entry.slot === 0)?.botId === game.winnerBotId;
-  if (games.every(wonByStarter)) return { score, word: 'first move' };
-  if (games.every((game) => game.winnerBotId !== null && !wonByStarter(game)))
-    return { score, word: 'second move' };
-  // A pair that mixes a win with a draw is none of the four; the score still says it.
-  return { score, word: null };
+function gameWinnerSlot(game: SetGame): number | null {
+  if (game.winnerBotId === null) return null;
+  return (
+    game.participants.find(
+      (participant) => participant.botId === game.winnerBotId,
+    )?.slot ?? null
+  );
 }
 
 function points(value: number): string {
@@ -585,15 +444,3 @@ function shortDate(iso: string): string {
 }
 
 type SetSideWire = MatchSetDetail['botA'];
-
-/**
- * The generated set contract does not carry seeds, generation snapshots, starting
- * ratings, or a generalized sides collection yet.
- *
- * These presentation seams stay visibly empty rather than accepting arbitrary extra JSON
- * that bypasses the generated schema. When the contract grows, regenerate it and map the
- * typed fields in `setSides`, `sideLabel`, and `gameSeed`.
- */
-function gameSeed(_game: SetGame | undefined): string | null {
-  return null;
-}

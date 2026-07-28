@@ -443,11 +443,38 @@ export function useCreateLabsMatch() {
 }
 
 export function useRegister() {
-  return useMutation({ mutationFn: endpoints.register });
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.register,
+    onSuccess: () => refreshSessionBoundQueries(client),
+  });
 }
 
 export function useLogin() {
-  return useMutation({ mutationFn: endpoints.login });
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.login,
+    onSuccess: () => refreshSessionBoundQueries(client),
+  });
+}
+
+/**
+ * A password login changes the meaning of cached public-looking responses: bot detail,
+ * Arena capability, shop and cosmetics payloads all contain ownership. Invalidate those
+ * resources before returning to the page that sent the player to sign in.
+ */
+function refreshSessionBoundQueries(client: ReturnType<typeof useQueryClient>) {
+  return Promise.all([
+    client.invalidateQueries({ queryKey: keys.bots }),
+    client.invalidateQueries({ queryKey: ['bot'] }),
+    client.invalidateQueries({ queryKey: keys.arena }),
+    client.invalidateQueries({ queryKey: keys.labs }),
+    client.invalidateQueries({ queryKey: keys.myBots }),
+    client.invalidateQueries({ queryKey: keys.store }),
+    client.invalidateQueries({ queryKey: ['cosmetics'] }),
+    client.invalidateQueries({ queryKey: ['leaderboard'] }),
+    client.invalidateQueries({ queryKey: keys.notifications }),
+  ]);
 }
 
 /**

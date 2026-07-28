@@ -288,7 +288,7 @@ function UnlockToast({
           onClick={onDismiss}
           className="btn mt-3 inline-flex items-center gap-1"
         >
-          Equip in my garage <span aria-hidden>→</span>
+          Choose a bot to equip <span aria-hidden>→</span>
         </Link>
       }
       queuedLabel={

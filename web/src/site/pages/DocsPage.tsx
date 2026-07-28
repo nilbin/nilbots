@@ -27,7 +27,7 @@ export default function DocsPage() {
       <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
           <li>
-            <Link to="/login" className="text-link">Create an account</Link> and
+            <Link to="/login?mode=register" className="text-link">Create an account</Link> and
             install the CLI.
           </li>
           <li>
@@ -37,7 +37,7 @@ export default function DocsPage() {
           </li>
           <li>
             Open your <Link to="/garage" className="text-link">Garage</Link>, choose
-            the bot, then use <b>Play</b> for a ranked 6-game set or a one-off
+            the bot, then use <b>Play</b> for a ranked set or a one-off
             challenge.
           </li>
           <li>
@@ -86,7 +86,7 @@ public sealed class MyBot : IBot
           (docs/PLAYER-GUIDE.md) that also backs /llms-full.txt and every scaffolded
           README, so the site cannot drift from the game — which it did once, teaching
           a retired zone-tick win condition for two days. */}
-      <Doc title={`Rules of the arena (v${RULES_VERSION})`}>
+      <Doc title={`Duel ruleset reference (v${RULES_VERSION})`}>
         <Markdown source={playerGuide} headingOffset={2} />
       </Doc>
 
@@ -124,13 +124,12 @@ curl -b jar -H 'Content-Type: application/json' \\
   -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
 curl -b jar -H 'Content-Type: application/json' \\
-  -d '{"botId":"...","rules":"0.5"}' \\
-  <server>/api/matches/ranked          # opponent is matchmade by rating; rules optional
-                                       # (only the live ladder takes new sets)
+  -d '{"botId":"..."}' \\
+  <server>/api/matches/ranked          # opponent is matchmade on the current ladder
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"botId":"...","opponentBotId":"...","mapId":"arena-01"}' \\
   <server>/api/matches/challenge       # unranked: you pick, nothing touches the ladder
-curl <server>/api/leaderboard?rules=0.5      # pick a ladder; default = current rules
+curl <server>/api/leaderboard                # current standings
 curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>
         <p className="mt-2 text-arena-dim">
           <code className="font-mono">/build-status</code> is the slim polling view — it returns an
@@ -138,10 +137,9 @@ curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals
           not <code className="font-mono">.status</code>. The CLI's
           <code className="font-mono"> nilbots submit</code> wraps this flow plus artifact-parity checking.
           Lancer unlocks on the first successful build; Arc Spark unlocks after
-          the first completed unranked challenge; Aureate Warden and its Regent
-          Lance projectile unlock together after 100 completed ranked matches
-          (each ranked match is a full six-game mirrored set). Payments are not
-          part of the current entitlement system.
+          the first completed unranked match. Other milestones and their progress
+          appear in the server-provided appearance catalog. Payments are not part
+          of the current entitlement system.
         </p>
       </Doc>
 

@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
-import { botLook, projectileLook } from '../../render/arenaThemes';
+import {
+  botLook,
+  botLookOptions,
+  projectileLook,
+  projectileLookOptions,
+} from '../../render/arenaThemes';
 import AppearanceFields, {
   appearanceSelectionOwned,
 } from '../components/AppearanceFields';
@@ -11,14 +16,17 @@ import FirstRun from '../components/FirstRun';
 import { ErrorState, LoadingState } from '../components/StateView';
 import { useAuth } from '../auth';
 import {
-  useArenaCapabilities,
   useCreateBot,
   useMyBots,
 } from '../queries';
 import { errorMessage } from '../errorMessage';
-import { useCosmeticCatalog } from '../cosmetics';
+import {
+  BOT_LOOK_KIND,
+  cosmeticItem,
+  PROJECTILE_LOOK_KIND,
+  useCosmeticCatalog,
+} from '../cosmetics';
 import CosmeticUnlocks from '../components/CosmeticUnlocks';
-import { ownedPlayableArenaBotIds } from '../arenaCapabilities';
 
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
@@ -46,18 +54,35 @@ export default function GaragePage() {
     error: botsError,
     refetch: refetchBots,
   } = useMyBots(Boolean(user));
-  const {
-    data: arena = null,
-    error: arenaError,
-    refetch: refetchArena,
-  } = useArenaCapabilities(Boolean(user));
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('#22d3ee');
-  const [lookId, setLookId] = useState('vanguard');
-  const [projectileLookId, setProjectileLookId] = useState('pulse-bolt');
+  const [lookId, setLookId] = useState('');
+  const [projectileLookId, setProjectileLookId] = useState('');
   const { catalog, error: catalogError } = useCosmeticCatalog();
   const navigate = useNavigate();
   const creation = useCreateBot();
+
+  useEffect(() => {
+    if (catalog === null) return;
+    if (cosmeticItem(catalog, BOT_LOOK_KIND, lookId)?.owned !== true) {
+      setLookId(
+        botLookOptions().find(
+          (look) => cosmeticItem(catalog, BOT_LOOK_KIND, look.id)?.owned,
+        )?.id ?? '',
+      );
+    }
+    if (
+      cosmeticItem(catalog, PROJECTILE_LOOK_KIND, projectileLookId)?.owned !==
+      true
+    ) {
+      setProjectileLookId(
+        projectileLookOptions().find(
+          (look) =>
+            cosmeticItem(catalog, PROJECTILE_LOOK_KIND, look.id)?.owned,
+        )?.id ?? '',
+      );
+    }
+  }, [catalog, lookId, projectileLookId]);
 
   if (loading) return <LoadingState label="Loading your account…" />;
   if (!user) {
@@ -87,41 +112,15 @@ export default function GaragePage() {
     lookId,
     projectileLookId,
   );
-  const duelReadyIds = ownedPlayableArenaBotIds(arena);
-
   return (
     <div className="flex flex-col gap-8">
       <h1 className="type-display text-[30px]">Garage</h1>
       <section>
         <h2 className="lab mb-3">My bots</h2>
-        {arena === null && arenaError === null && (
-          <p className="t-meta mb-3" role="status">
-            Checking Arena availability…
-          </p>
-        )}
-        {arenaError && (
-          <div
-            className="panel-quiet pad mb-3 flex flex-wrap items-center gap-2"
-            role="alert"
-          >
-            <p className="t-meta min-w-0 grow text-arena-hot">
-              Arena availability could not be loaded. Your bots are still available
-              below.
-            </p>
-            <button
-              type="button"
-              onClick={() => void refetchArena()}
-              className="btn"
-            >
-              Try again
-            </button>
-          </div>
-        )}
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {bots.map((bot) => {
             const look = botLook(bot.lookId);
             const projectile = projectileLook(bot.projectileLookId);
-            const ready = duelReadyIds.has(bot.id);
             return (
               <li
                 key={bot.id}
@@ -129,6 +128,7 @@ export default function GaragePage() {
               >
                 <Link
                   to={`/bots/${bot.slug}`}
+                  state={{ returnTo: '/garage', returnLabel: 'Garage' }}
                   className="flex min-w-0 grow items-center gap-3 transition-opacity hover:opacity-80"
                 >
                   <BotIdentity
@@ -154,7 +154,7 @@ export default function GaragePage() {
                       : 'no versions'}
                   </span>
                 </Link>
-                {ready && (
+                <span className="flex shrink-0 flex-wrap gap-1.5">
                   <ArenaAction
                     bot={{
                       id: bot.id,
@@ -165,9 +165,15 @@ export default function GaragePage() {
                       isOwner: true,
                     }}
                     triggerLabel="Play"
-                    className="shrink-0"
                   />
-                )}
+                  <Link
+                    to={`/bots/${bot.slug}/appearance`}
+                    className="btn"
+                    aria-label={`Change ${bot.name}'s appearance`}
+                  >
+                    Appearance
+                  </Link>
+                </span>
               </li>
             );
           })}

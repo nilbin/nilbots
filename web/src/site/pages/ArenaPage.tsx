@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import Matchup from '../components/Matchup';
 import { ErrorState, LoadingState } from '../components/StateView';
@@ -356,6 +356,7 @@ function FeatureCard({
   match: MatchSummary;
   followClock: boolean;
 }) {
+  const location = useLocation();
   const live = match.broadcasting;
   const outcome = revealedOutcome(match);
   const clock = useMatchLive(followClock ? match.id : undefined).data;
@@ -364,6 +365,10 @@ function FeatureCard({
   return (
     <Link
       to={`/matches/${match.id}`}
+      state={{
+        returnTo: `${location.pathname}${location.search}`,
+        returnLabel: 'Watch',
+      }}
       className="panel group flex flex-col gap-3 bg-arena-raise px-3 py-3 transition-colors hover:border-arena-edge2"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -424,6 +429,7 @@ function FeatureCard({
  * chip beside it.
  */
 function FeedRow({ match, me }: { match: MatchSummary; me: Me | null }) {
+  const location = useLocation();
   const outcome = revealedOutcome(match);
   const when = match.completedAt ?? match.createdAt;
   const ended = endedItems(outcome);
@@ -460,6 +466,10 @@ function FeedRow({ match, me }: { match: MatchSummary; me: Me | null }) {
         {/* Deliberately not `relative`: the overlay has to resolve against the row. */}
         <Link
           to={`/matches/${match.id}`}
+          state={{
+            returnTo: `${location.pathname}${location.search}`,
+            returnLabel: 'Watch',
+          }}
           className="flex min-w-0 after:absolute after:inset-0 after:content-['']"
         >
           <Matchup
@@ -521,7 +531,8 @@ function NeverFought() {
     <section className="panel pad">
       <p className="lab mb-2">Nothing has fought yet</p>
       <p className="t-body mb-3 max-w-[52ch]">
-        The arena fills when someone throws a challenge.
+        The arena fills when someone starts a ranked set, a one-off challenge, or
+        an experiment.
       </p>
       <p className="t-meta mb-4 max-w-[62ch]">
         Every match here is a deterministic record — same bots, same map, same seed, same

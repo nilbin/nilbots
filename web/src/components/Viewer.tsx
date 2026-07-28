@@ -308,7 +308,7 @@ export default function Viewer({
               <dd className="val text-arena-text">{replay.map.mapId}</dd>
               <dt className="lab">Seed</dt>
               <dd className="val text-arena-text">{String(replay.seed)}</dd>
-              <dt className="lab">Rules</dt>
+              <dt className="lab">Ruleset</dt>
               <dd className="val text-arena-text">
                 {replay.versions.gameRulesVersion}
               </dd>

@@ -45,8 +45,8 @@ function BotStatisticsContent({
         </p>
       </div>
       <p className="t-meta mt-2">
-        A ranked set and an unranked challenge each count as one match. Combat
-        totals retain all six arena games inside every ranked set.
+        A ranked set and an unranked fight each count as one match. Combat
+        totals retain every Arena game inside each ranked set.
       </p>
     </>
   );

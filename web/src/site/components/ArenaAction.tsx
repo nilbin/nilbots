@@ -12,26 +12,36 @@ import clsx from 'clsx';
 import {
   type ArenaCapabilities,
   type BotSummary,
+  type LabsPlaylist,
   type MatchPlayability,
 } from '../api';
 import {
   arenaOpponents,
   indexArenaPlayability,
+  ownedArenaBotIds,
   ownedPlayableArenaRoster,
   playableArenaRoster,
 } from '../arenaCapabilities';
 import { useAuth } from '../auth';
 import { errorMessage } from '../errorMessage';
 import {
+  createLabsMatchRequest,
+  eligibleLabsOpponents,
+  eligibleLabsPlaylistsForRosterBot,
+  eligibleOwnedLabsRoster,
+} from '../labs';
+import {
   useArenaCapabilities,
   useBots,
   useChallenge,
+  useCreateLabsMatch,
+  useLabsCatalog,
   useMeta,
   useRankedChallenge,
 } from '../queries';
 import BotIdentity from './BotIdentity';
 
-export type ArenaMode = 'ranked' | 'challenge';
+export type ArenaMode = 'ranked' | 'challenge' | 'labs';
 
 export interface ArenaActionBot {
   id: string;
@@ -78,7 +88,8 @@ const ArenaActionContext = createContext<ArenaActions | null>(null);
  * Every trigger sends typed context here. Queries, mutation state, focus restoration and
  * the modal exist once rather than once per roster row; data is enabled only while the
  * composer is open. `/api/arena` is the authority for bot admission, effective
- * allowances and format; the public roster contributes display identity only.
+ * allowances and Duel format. Labs eligibility joins that authoritative ownership with
+ * active artifact profiles from the roster and hosted playlist versions from the catalog.
  */
 export function ArenaActionProvider({ children }: { children: React.ReactNode }) {
   const [launch, setLaunch] = useState<ArenaLaunch | null>(null);
@@ -86,6 +97,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   const [selectedBotId, setSelectedBotId] = useState('');
   const [opponentId, setOpponentId] = useState('');
   const [mapId, setMapId] = useState('');
+  const [playlistId, setPlaylistId] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const titleId = useId();
@@ -94,6 +106,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   const { user, loading: authLoading } = useAuth();
   const challenge = useChallenge();
   const rankedChallenge = useRankedChallenge();
+  const labsMatch = useCreateLabsMatch();
 
   const needsArena = launch !== null && Boolean(user);
   const {
@@ -108,6 +121,13 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     error: rosterError,
     refetch: refetchRoster,
   } = useBots(needsRoster);
+  const needsLabs =
+    needsArena && launch?.modes.includes('labs') === true;
+  const {
+    data: labsCatalog = null,
+    error: labsError,
+    refetch: refetchLabs,
+  } = useLabsCatalog(needsLabs);
   const playabilityById = useMemo(
     () => indexArenaPlayability(capabilities?.bots ?? []),
     [capabilities],
@@ -126,8 +146,30 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         : ownedPlayableArenaRoster(roster ?? [], capabilities),
     [capabilities, roster],
   );
+  const ownedBotIds = useMemo(
+    () => ownedArenaBotIds(capabilities),
+    [capabilities],
+  );
+  const labsOwnedBots = useMemo(
+    () =>
+      labsCatalog === null
+        ? []
+        : eligibleOwnedLabsRoster(
+            roster ?? [],
+            labsCatalog,
+            ownedBotIds,
+          ),
+    [labsCatalog, ownedBotIds, roster],
+  );
+  const ownedPlayBots = useMemo(() => {
+    const playableIds = new Set([
+      ...readyOwnedBots.map((candidate) => candidate.id),
+      ...labsOwnedBots.map((candidate) => candidate.id),
+    ]);
+    return (roster ?? []).filter((candidate) => playableIds.has(candidate.id));
+  }, [labsOwnedBots, readyOwnedBots, roster]);
   const selectedOwnedBot =
-    readyOwnedBots.find((candidate) => candidate.id === selectedBotId) ?? null;
+    ownedPlayBots.find((candidate) => candidate.id === selectedBotId) ?? null;
   const launchPlayability =
     launch?.bot === null || launch?.bot === undefined
       ? null
@@ -145,17 +187,61 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
           isOwner: true,
         }
       : null;
-  const launchBotEligible =
-    launch?.bot === null ||
-    launchPlayability?.playable === true;
-  const availableModes = useMemo(
+  const rosterBot =
+    bot === null
+      ? null
+      : (roster ?? []).find((candidate) => candidate.id === bot.id) ?? null;
+  const labsPlaylists = useMemo(
     () =>
-      launch?.bot &&
-      capabilities !== null &&
-      launchPlayability?.isOwned !== true
-        ? launch.modes.filter((candidate) => candidate !== 'ranked')
-        : launch?.modes ?? [],
-    [capabilities, launch, launchPlayability?.isOwned],
+      rosterBot !== null && labsCatalog !== null
+        ? eligibleLabsPlaylistsForRosterBot(rosterBot, labsCatalog)
+        : [],
+    [labsCatalog, rosterBot],
+  );
+  const playlist =
+    labsPlaylists.find(
+      (candidate) => candidate.playlistVersionId === playlistId,
+    ) ?? labsPlaylists[0] ?? null;
+  const labsOpponents = useMemo(
+    () =>
+      playlist === null || bot === null
+        ? []
+        : eligibleLabsOpponents(
+            roster ?? [],
+            bot.id,
+            playlist.requiredContractProfileId,
+          ),
+    [bot, playlist, roster],
+  );
+  const duelEligible = launchPlayability?.playable === true ||
+    (launch?.bot === null &&
+      bot !== null &&
+      playabilityById.get(bot.id)?.playable === true);
+  const labsEligible = bot?.isOwner === true && labsPlaylists.length > 0;
+  const availableModes = useMemo(
+    () => {
+      if (!launch) return [];
+      if (!bot) {
+        return launch.modes.filter((candidate) =>
+          candidate === 'labs'
+            ? labsOwnedBots.length > 0
+            : readyOwnedBots.length > 0,
+        );
+      }
+      return launch.modes.filter((candidate) => {
+        if (candidate === 'labs') return labsEligible;
+        if (candidate === 'ranked') return bot.isOwner && duelEligible;
+        return duelEligible;
+      });
+    },
+    [
+      bot,
+      duelEligible,
+      labsEligible,
+      labsOwnedBots.length,
+      launch,
+      readyOwnedBots.length,
+    ],
   );
   const challengeOpen =
     launch !== null && mode === 'challenge' && Boolean(user) && bot !== null;
@@ -168,6 +254,10 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     () => arenaOpponents(duelRoster, bot?.id),
     [bot?.id, duelRoster],
   );
+  const selectableOwnedBots =
+    launch?.bot && launchPlayability?.isOwned !== true
+      ? readyOwnedBots
+      : ownedPlayBots;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -183,14 +273,14 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
       !launch ||
       launchPlayability?.isOwned ||
       selectedBotId !== '' ||
-      readyOwnedBots.length !== 1
+      selectableOwnedBots.length !== 1
     )
       return;
-    setSelectedBotId(readyOwnedBots[0].id);
+    setSelectedBotId(selectableOwnedBots[0].id);
   }, [
     launch,
     launchPlayability?.isOwned,
-    readyOwnedBots,
+    selectableOwnedBots,
     selectedBotId,
   ]);
 
@@ -221,6 +311,16 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (
+      mode === 'labs' &&
+      roster !== null &&
+      opponentId !== '' &&
+      !labsOpponents.some((candidate) => candidate.id === opponentId)
+    )
+      setOpponentId('');
+  }, [labsOpponents, mode, opponentId, roster]);
+
+  useEffect(() => {
+    if (
       mode === 'challenge' &&
       meta !== null &&
       mapId !== '' &&
@@ -232,8 +332,10 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   const close = () => setLaunch(null);
   const chooseMode = (next: ArenaMode) => {
     setMode(next);
+    setOpponentId('');
     challenge.reset();
     rankedChallenge.reset();
+    labsMatch.reset();
   };
   const actions = useMemo<ArenaActions>(
     () => ({
@@ -244,21 +346,26 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         setSelectedBotId('');
         setOpponentId(request.initialOpponentId);
         setMapId(request.initialMapId);
+        setPlaylistId('');
         challenge.reset();
         rankedChallenge.reset();
+        labsMatch.reset();
       },
     }),
     // Mutations remain mounted with the provider and their reset functions are stable.
     // The context value changes only if either hook replaces that function.
-    [challenge.reset, rankedChallenge.reset],
+    [challenge.reset, labsMatch.reset, rankedChallenge.reset],
   );
+
+  const selectedModeEligible =
+    mode === 'labs' ? labsEligible : duelEligible;
 
   const play = async (event: React.FormEvent) => {
     event.preventDefault();
     if (
       !launch ||
       !bot ||
-      !launchBotEligible ||
+      !selectedModeEligible ||
       !availableModes.includes(mode) ||
       !capabilities ||
       !(mode === 'ranked'
@@ -271,6 +378,19 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
         const set = await rankedChallenge.mutateAsync({ botId: bot.id });
         close();
         navigate(`/sets/${set.id}`);
+        return;
+      }
+      if (mode === 'labs') {
+        if (playlist === null || opponentId === '') return;
+        const match = await labsMatch.mutateAsync(
+          createLabsMatchRequest(
+            playlist.playlistVersionId,
+            bot.id,
+            opponentId,
+          ),
+        );
+        close();
+        navigate(`/matches/${match.id}`);
         return;
       }
       const match = await challenge.mutateAsync({
@@ -287,8 +407,12 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
   };
 
   const returnUrl = `${location.pathname}${location.search}${location.hash}`;
-  const failure = challenge.error ?? rankedChallenge.error;
-  const busy = challenge.isPending || rankedChallenge.isPending;
+  const failure =
+    challenge.error ?? rankedChallenge.error ?? labsMatch.error;
+  const busy =
+    challenge.isPending ||
+    rankedChallenge.isPending ||
+    labsMatch.isPending;
   const challenger = bot?.isOwner ? bot.id : selectedBotId;
   const opponent = bot?.isOwner ? opponentId : bot?.id ?? '';
   const arenaLoading =
@@ -297,6 +421,8 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
     capabilitiesError === null;
   const rosterLoading =
     needsRoster && roster === null && rosterError === null;
+  const labsLoading =
+    needsLabs && labsCatalog === null && labsError === null;
 
   return (
     <ArenaActionContext.Provider value={actions}>
@@ -380,9 +506,22 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                 fallback="Arena eligibility could not be loaded."
                 onRetry={() => void refetchRoster()}
               />
-            ) : launch.bot && !launchBotEligible ? (
+            ) : labsLoading && availableModes.length === 0 ? (
+              <p className="t-meta px-4 py-8 text-center" role="status">
+                Checking hosted experiments…
+              </p>
+            ) : labsError &&
+              availableModes.length === 0 &&
+              launch.modes.includes('labs') ? (
+              <QueryIssue
+                error={labsError}
+                fallback="Hosted experiments could not be loaded."
+                onRetry={() => void refetchLabs()}
+              />
+            ) : launch.bot && availableModes.length === 0 ? (
               <Unavailable
                 bot={bot ?? launch.bot}
+                mode={mode}
                 playability={launchPlayability}
                 onClose={close}
                 onRetry={() => {
@@ -390,7 +529,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                   void refetchRoster();
                 }}
               />
-            ) : launch.bot === null && readyOwnedBots.length === 0 ? (
+            ) : launch.bot === null && ownedPlayBots.length === 0 ? (
               <NoOwnedBot onClose={close} />
             ) : capabilities !== null ? (
               <form onSubmit={play} className="pad flex flex-col gap-4">
@@ -399,13 +538,23 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                     Play with
                     <select
                       value={selectedBotId}
-                      onChange={(event) => setSelectedBotId(event.target.value)}
+                      onChange={(event) => {
+                        setSelectedBotId(event.target.value);
+                        setOpponentId('');
+                        setPlaylistId('');
+                        challenge.reset();
+                        rankedChallenge.reset();
+                        labsMatch.reset();
+                      }}
                       className="field"
                     >
                       <option value="">Choose your bot…</option>
-                      {readyOwnedBots.map((candidate) => (
+                      {ownedPlayBots.map((candidate) => (
                         <option key={candidate.id} value={candidate.id}>
                           {candidate.name}
+                          {playabilityById.get(candidate.id)?.playable !== true
+                            ? ' · Labs'
+                            : ''}
                         </option>
                       ))}
                     </select>
@@ -414,7 +563,12 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
 
                 {availableModes.length > 1 && (
                   <div
-                    className="grid grid-cols-2 gap-1"
+                    className={clsx(
+                      'grid gap-1',
+                      availableModes.length === 3
+                        ? 'grid-cols-3'
+                        : 'grid-cols-2',
+                    )}
                     role="group"
                     aria-label="How to play"
                   >
@@ -429,7 +583,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                           mode === candidate && 'btn-on',
                         )}
                       >
-                        {candidate === 'ranked' ? 'Ranked set' : 'Challenge'}
+                        {arenaModeLabel(candidate)}
                       </button>
                     ))}
                   </div>
@@ -437,6 +591,28 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
 
                 {mode === 'ranked' ? (
                   <RankedChoice format={capabilities.format.ranked} />
+                ) : mode === 'labs' ? (
+                  bot === null ? (
+                    <>
+                      <LabsSummary />
+                      <p className="t-meta">
+                        Choose a compatible bot to see its experiments.
+                      </p>
+                    </>
+                  ) : (
+                    <LabsChoice
+                      playlists={labsPlaylists}
+                      playlist={playlist}
+                      opponentId={opponentId}
+                      opponents={labsOpponents}
+                      onPlaylistChange={(nextPlaylistId) => {
+                        setPlaylistId(nextPlaylistId);
+                        setOpponentId('');
+                        labsMatch.reset();
+                      }}
+                      onOpponentChange={setOpponentId}
+                    />
+                  )
                 ) : bot === null ? (
                   <>
                     <ChallengeSummary
@@ -486,6 +662,22 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                     compact
                   />
                 )}
+                {labsLoading && launch.modes.includes('labs') && (
+                  <p className="t-meta" role="status">
+                    Checking hosted experiments… Available Arena play can start
+                    now.
+                  </p>
+                )}
+                {labsError &&
+                  availableModes.length > 0 &&
+                  launch.modes.includes('labs') && (
+                    <QueryIssue
+                      error={labsError}
+                      fallback="Hosted experiments could not be loaded. Other available Play modes still work."
+                      onRetry={() => void refetchLabs()}
+                      compact
+                    />
+                  )}
                 <ArenaAllowanceStatus
                   mode={mode}
                   capabilities={capabilities}
@@ -496,7 +688,7 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                   <p className="t-body text-arena-hot" role="alert">
                     {errorMessage(
                       failure,
-                      'The arena could not start this fight.',
+                      'The match could not be started.',
                     )}
                   </p>
                 )}
@@ -507,14 +699,16 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                     disabled={
                       busy ||
                       !bot ||
-                      !launchBotEligible ||
+                      !selectedModeEligible ||
                       !availableModes.includes(mode) ||
                       challenger === '' ||
                       !(mode === 'ranked'
                         ? capabilities.rankedAllowance.canStart
                         : capabilities.unrankedAllowance.canStart) ||
                       (mode === 'challenge' &&
-                        opponent === '')
+                        opponent === '') ||
+                      (mode === 'labs' &&
+                        (playlist === null || opponent === ''))
                     }
                     className="btn btn-on min-h-10"
                   >
@@ -522,7 +716,9 @@ export function ArenaActionProvider({ children }: { children: React.ReactNode })
                       ? 'Starting…'
                       : mode === 'ranked'
                         ? 'Start ranked set'
-                        : 'Start challenge'}
+                        : mode === 'labs'
+                          ? 'Run lab match'
+                          : 'Start challenge'}
                   </button>
                 </span>
               </form>
@@ -552,7 +748,8 @@ export default function ArenaAction({
 }: ArenaActionProps) {
   const actions = useArenaActions();
   const modes =
-    requestedModes ?? (bot.isOwner ? ['ranked', 'challenge'] : ['challenge']);
+    requestedModes ??
+    (bot.isOwner ? ['ranked', 'challenge', 'labs'] : ['challenge']);
   const normalizedModes = modes as readonly ArenaMode[];
   const firstMode =
     initialMode && normalizedModes.includes(initialMode)
@@ -579,14 +776,14 @@ export default function ArenaAction({
   );
 }
 
-/** Always-available entry: the dialog first asks which ready owned bot should play. */
+/** Always-available entry: the dialog first asks which compatible owned bot should play. */
 export function GlobalArenaAction({
   className,
 }: {
   className?: string;
 }) {
   const actions = useArenaActions();
-  const modes: readonly ArenaMode[] = ['ranked', 'challenge'];
+  const modes: readonly ArenaMode[] = ['ranked', 'challenge', 'labs'];
   const launch: ArenaLaunch = {
     bot: null,
     modes,
@@ -648,10 +845,14 @@ function ArenaTriggers({
             onClick={(event) => onOpen(mode, event.currentTarget)}
             className={clsx(
               'btn btn-on min-h-10',
-              index === 0 ? 'rounded-r-none' : '-ml-px rounded-l-none',
+              index === 0
+                ? 'rounded-r-none'
+                : index === modes.length - 1
+                  ? '-ml-px rounded-l-none'
+                  : '-ml-px rounded-none',
             )}
           >
-            {mode === 'ranked' ? 'Ranked set' : 'Challenge'}
+            {arenaModeLabel(mode)}
           </button>
         ))}
       </span>
@@ -663,9 +864,7 @@ function ArenaTriggers({
     triggerLabel ??
     (modes.length > 1
       ? 'Play'
-      : mode === 'ranked'
-        ? 'Ranked set'
-        : 'Challenge');
+      : arenaModeLabel(mode));
   return (
     <button
       type="button"
@@ -724,6 +923,93 @@ function ChallengeSummary({
         does not move either bot's rating.
       </p>
     </section>
+  );
+}
+
+function LabsSummary({ name }: { name?: string }) {
+  return (
+    <section className="panel-quiet pad">
+      <h2 className="lab mb-2">
+        {name ? `${name} · unranked` : 'Labs · unranked'}
+      </h2>
+      <p className="t-meta">
+        Run an experimental two-bot game. Results do not move either bot&apos;s
+        rating.
+      </p>
+    </section>
+  );
+}
+
+function LabsChoice({
+  playlists,
+  playlist,
+  opponentId,
+  opponents,
+  onPlaylistChange,
+  onOpponentChange,
+}: {
+  playlists: readonly LabsPlaylist[];
+  playlist: LabsPlaylist | null;
+  opponentId: string;
+  opponents: readonly BotSummary[];
+  onPlaylistChange: (id: string) => void;
+  onOpponentChange: (id: string) => void;
+}) {
+  if (playlist === null) {
+    return (
+      <section className="panel-quiet pad">
+        <h2 className="lab mb-2">No compatible experiment</h2>
+        <p className="t-meta">
+          This active generation cannot run a hosted experiment right now.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <LabsSummary name={playlist.displayName} />
+      {playlists.length > 1 && (
+        <label className="t-meta flex flex-col gap-1">
+          Experiment
+          <select
+            value={playlist.playlistVersionId}
+            onChange={(event) => onPlaylistChange(event.target.value)}
+            className="field"
+          >
+            {playlists.map((candidate) => (
+              <option
+                key={candidate.playlistVersionId}
+                value={candidate.playlistVersionId}
+              >
+                {candidate.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {opponents.length === 0 ? (
+        <p className="t-meta">
+          No compatible opponent is active yet.
+        </p>
+      ) : (
+        <label className="t-meta flex flex-col gap-1">
+          Opponent
+          <select
+            value={opponentId}
+            onChange={(event) => onOpponentChange(event.target.value)}
+            className="field"
+          >
+            <option value="">Choose a bot…</option>
+            {opponents.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name} · {candidate.owner}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </div>
   );
 }
 
@@ -857,16 +1143,23 @@ function ArenaAllowanceStatus({
     mode === 'ranked'
       ? capabilities.rankedAllowance
       : capabilities.unrankedAllowance;
-  const units = mode === 'ranked' ? 'ranked sets' : 'challenges';
+  const units =
+    mode === 'ranked'
+      ? 'ranked sets'
+      : mode === 'labs'
+        ? 'unranked matches'
+        : 'challenges';
   const window = `${allowance.rollingWindowHours}h rolling window`;
 
   return (
     <section
       className="border-y border-arena-edge py-2.5"
-      aria-label={`${mode === 'ranked' ? 'Ranked' : 'Challenge'} allowance`}
+      aria-label={`${arenaModeLabel(mode)} allowance`}
     >
       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="lab">Allowance</span>
+        <span className="lab">
+          {mode === 'labs' ? 'Shared allowance' : 'Allowance'}
+        </span>
         <span className="val text-arena-text">
           {allowance.remaining}/{allowance.limit}
         </span>
@@ -879,6 +1172,12 @@ function ArenaAllowanceStatus({
           {capabilities.rankedAllowance.inProgress}/
           {capabilities.rankedAllowance.concurrencyLimit} ranked sets in
           progress
+        </p>
+      )}
+      {mode === 'labs' && (
+        <p className="t-micro mt-1">
+          Labs and one-off challenges share this unranked allowance.
+          Experiments may apply additional run limits when they start.
         </p>
       )}
       {!allowance.canStart && (
@@ -954,9 +1253,10 @@ function QueryIssue({
 function NoOwnedBot({ onClose }: { onClose: () => void }) {
   return (
     <section className="pad">
-      <h2 className="lab mb-2">You need a ready bot</h2>
+      <h2 className="lab mb-2">You need a compatible bot</h2>
       <p className="t-meta">
-        Submit and activate a successful generation before entering the arena.
+        Submit and activate a generation that supports Duel or a hosted
+        experiment before entering the arena.
       </p>
       <Link to="/garage" onClick={onClose} className="btn mt-3 inline-flex">
         Open your Garage
@@ -967,11 +1267,13 @@ function NoOwnedBot({ onClose }: { onClose: () => void }) {
 
 function Unavailable({
   bot,
+  mode,
   playability,
   onClose,
   onRetry,
 }: {
   bot: ArenaActionBot;
+  mode: ArenaMode;
   playability: MatchPlayability | null;
   onClose: () => void;
   onRetry: () => void;
@@ -982,25 +1284,30 @@ function Unavailable({
     playability?.refusalCode === 'matches.contract_profile_required';
   const appearanceIssue =
     playability?.refusalCode?.startsWith('appearance.') === true;
+  const labsUnavailable = mode === 'labs' && !missingBuild;
   const botKey = bot.slug ?? bot.id;
   return (
     <section className="pad">
       <h2 className="lab mb-2">
         {playability === null
           ? 'Arena eligibility changed'
+          : labsUnavailable
+            ? 'No compatible experiment'
           : incompatible
-          ? 'Not available in Duel'
-          : missingBuild
+            ? 'Not available in Duel'
+            : missingBuild
             ? 'No active generation'
             : 'Unavailable in the Arena'}
       </h2>
       <p className="t-meta">
-        {playability?.refusalDetail ??
-          (playability === null
-            ? `${bot.name} is missing from the current Arena roster. Reload its eligibility before trying again.`
-            : incompatible
-            ? `${bot.name}'s active generation targets another game mode.`
-            : `${bot.name} cannot enter the Arena right now.`)}
+        {labsUnavailable
+          ? `${bot.name}'s active generation does not match an experiment running right now.`
+          : playability?.refusalDetail ??
+            (playability === null
+              ? `${bot.name} is missing from the current Arena roster. Reload its eligibility before trying again.`
+              : incompatible
+                ? `${bot.name}'s active generation targets another game mode.`
+                : `${bot.name} cannot enter the Arena right now.`)}
       </p>
       <span className="mt-3 flex flex-wrap gap-2">
         {playability === null && (
@@ -1035,10 +1342,19 @@ function arenaDialogTitle(bot: ArenaActionBot | null, mode: ArenaMode) {
   if (!bot) {
     return mode === 'ranked'
       ? 'Choose a bot for a ranked set'
-      : 'Choose a bot for a one-off challenge';
+      : mode === 'labs'
+        ? 'Choose a bot for a lab match'
+        : 'Choose a bot for a one-off challenge';
   }
   if (mode === 'ranked') return `Ranked set with ${bot.name}`;
+  if (mode === 'labs') return `Lab match with ${bot.name}`;
   return bot.isOwner ? `Challenge with ${bot.name}` : `Challenge ${bot.name}`;
+}
+
+function arenaModeLabel(mode: ArenaMode) {
+  if (mode === 'ranked') return 'Ranked set';
+  if (mode === 'labs') return 'Labs';
+  return 'Challenge';
 }
 
 function countLabel(count: number, singular: string) {
@@ -1065,5 +1381,7 @@ function allowanceRefusalMessage(
   }
   return mode === 'ranked'
     ? 'A ranked set cannot start right now.'
-    : 'A challenge cannot start right now.';
+    : mode === 'labs'
+      ? 'A lab match cannot start right now.'
+      : 'A challenge cannot start right now.';
 }

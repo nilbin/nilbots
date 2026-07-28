@@ -28,13 +28,13 @@ const shots = resolve(
 );
 const healthUrl = `${base}/__site-review/health`;
 const pages = [
-  ['season', '/'],
+  ['rankings', '/'],
   [
     'arena-global',
     '/',
     async (page) => {
       await page.getByRole('button', { name: 'Play', exact: true }).click();
-      await page.getByLabel('Ranked allowance').waitFor();
+      await page.getByLabel('Ranked set allowance').waitFor();
     },
   ],
   ['bots', '/bots'],
@@ -51,7 +51,7 @@ const pages = [
       await page
         .getByRole('button', { name: 'Ranked set', exact: true })
         .click();
-      await page.getByLabel('Ranked allowance').waitFor();
+      await page.getByLabel('Ranked set allowance').waitFor();
     },
   ],
   [

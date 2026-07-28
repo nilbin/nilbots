@@ -1,167 +1,162 @@
-import { useId, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useMemo } from 'react';
 import type { BotDetail } from '../api';
 import { errorMessage } from '../errorMessage';
-import {
-  createLabsMatchRequest,
-  eligibleLabsOpponents,
-  eligibleLabsPlaylists,
-} from '../labs';
-import {
-  useBots,
-  useCreateLabsMatch,
-  useLabsCatalog,
-} from '../queries';
+import { eligibleLabsPlaylists } from '../labs';
+import { useLabsCatalog } from '../queries';
+import ArenaAction from './ArenaAction';
 
+/**
+ * Bot-page Labs discovery.
+ *
+ * Match setup belongs to the shared Play composer so this panel cannot drift from its
+ * allowance, mutation, focus or error behavior. The panel answers only whether this
+ * active generation has an experiment worth opening.
+ */
 export default function LabsPanel({ bot }: { bot: BotDetail }) {
-  const { data: catalog } = useLabsCatalog(bot.isOwner);
+  const catalog = useLabsCatalog(bot.isOwner);
   const playlists = useMemo(
-    () => (catalog ? eligibleLabsPlaylists(bot, catalog) : []),
-    [bot, catalog],
-  );
-  const [playlistId, setPlaylistId] = useState('');
-  const playlist =
-    playlists.find(
-      (candidate) => candidate.playlistVersionId === playlistId,
-    ) ?? playlists[0];
-  const roster = useBots(Boolean(playlist));
-  const opponents = useMemo(
     () =>
-      playlist
-        ? eligibleLabsOpponents(
-            roster.data ?? [],
-            bot.id,
-            playlist.requiredContractProfileId,
-          )
-        : [],
-    [bot.id, playlist, roster.data],
+      catalog.data ? eligibleLabsPlaylists(bot, catalog.data) : [],
+    [bot, catalog.data],
   );
-  const [opponentId, setOpponentId] = useState('');
   const headingId = useId();
-  const navigate = useNavigate();
-  const creation = useCreateLabsMatch();
 
-  if (!playlist) return null;
+  if (!bot.isOwner) return null;
 
-  const selectedOpponent = opponents.some(
-    (opponent) => opponent.id === opponentId,
-  )
-    ? opponentId
-    : '';
-
-  const startMatch = () => {
-    if (!selectedOpponent) return;
-    creation.mutate(
-      createLabsMatchRequest(
-        playlist.playlistVersionId,
-        bot.id,
-        selectedOpponent,
-      ),
-      {
-        onSuccess: (match) => navigate(`/matches/${match.id}`),
-      },
+  if (catalog.isPending) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="Checking experiments…"
+        detail="Finding hosted game modes this active generation can run."
+        status
+      />
     );
-  };
+  }
 
-  return (
-    <section
-      aria-labelledby={headingId}
-      className="panel pad flex flex-col gap-3"
-    >
-      <header>
-        <p
-          className="lab mb-1 text-arena-accent"
-        >
-          Labs · unranked
-        </p>
-        <h2 id={headingId} className="t-body font-semibold text-arena-text">
-          {playlist.displayName}
-        </h2>
-        <p className="t-meta mt-1">
-          Experimental two-bot match. Results do not move either bot's rating.
-        </p>
-      </header>
-
-      {playlists.length > 1 && (
-        <label className="t-meta flex flex-col gap-1">
-          Experiment
-          <select
-            aria-label="Labs experiment"
-            value={playlist.playlistVersionId}
-            onChange={(event) => {
-              setPlaylistId(event.target.value);
-              setOpponentId('');
-              creation.reset();
-            }}
-            className="field"
-          >
-            {playlists.map((candidate) => (
-              <option
-                key={candidate.playlistVersionId}
-                value={candidate.playlistVersionId}
-              >
-                {candidate.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      {roster.isPending ? (
-        <p className="t-meta" role="status">
-          Finding compatible bots…
-        </p>
-      ) : roster.error ? (
-        <div className="flex flex-wrap items-center gap-2" role="alert">
-          <p className="t-meta min-w-0 grow text-arena-hot">
-            {errorMessage(roster.error, 'Compatible bots could not be loaded.')}
-          </p>
+  if (catalog.error) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="Experiments unavailable"
+        detail={errorMessage(
+          catalog.error,
+          'The Labs catalog could not be loaded.',
+        )}
+        error
+        action={
           <button
             type="button"
-            onClick={() => void roster.refetch()}
+            onClick={() => void catalog.refetch()}
             className="btn"
           >
             Try again
           </button>
-        </div>
-      ) : opponents.length === 0 ? (
-        <p className="t-meta">
-          No compatible opponent is active yet.
+        }
+      />
+    );
+  }
+
+  if (!catalog.data?.enabled) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="No experiments are running"
+        detail="Labs will appear here when a hosted experimental game mode is available."
+      />
+    );
+  }
+
+  if (playlists.length === 0) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="No compatible experiment"
+        detail="This active generation does not support any of the experiments running right now."
+      />
+    );
+  }
+
+  return (
+    <section
+      id="labs"
+      aria-labelledby={headingId}
+      className="panel pad flex flex-col gap-3"
+    >
+      <header>
+        <p className="lab mb-1 text-arena-material">Labs · unranked</p>
+        <h2 id={headingId} className="t-body font-semibold text-arena-text">
+          {playlists.length === 1
+            ? playlists[0].displayName
+            : `${playlists.length} experiments available`}
+        </h2>
+        <p className="t-meta mt-1">
+          Experimental two-bot matches do not move either bot&apos;s rating.
         </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <label className="t-meta flex flex-col gap-1">
-            Opponent
-            <select
-              aria-label="Labs opponent"
-              value={selectedOpponent}
-              onChange={(event) => setOpponentId(event.target.value)}
-              className="field"
-            >
-              <option value="">Choose a bot…</option>
-              {opponents.map((opponent) => (
-                <option key={opponent.id} value={opponent.id}>
-                  {opponent.name} ({opponent.owner})
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={startMatch}
-            disabled={creation.isPending || !selectedOpponent}
-            className="btn btn-on self-start"
-          >
-            {creation.isPending ? 'Starting…' : 'Run lab match'}
-          </button>
-        </div>
+      </header>
+
+      {playlists.length > 1 && (
+        <ul className="t-meta flex flex-wrap gap-x-3 gap-y-1">
+          {playlists.map((playlist) => (
+            <li key={playlist.playlistVersionId}>{playlist.displayName}</li>
+          ))}
+        </ul>
       )}
 
-      {creation.error && (
-        <p className="t-meta text-arena-hot" role="alert">
-          {errorMessage(creation.error, 'Labs match could not be started.')}
-        </p>
-      )}
+      <ArenaAction
+        bot={{
+          id: bot.id,
+          slug: bot.slug,
+          name: bot.name,
+          accent: bot.accent,
+          lookId: bot.lookId,
+          isOwner: true,
+        }}
+        modes={['labs']}
+        initialMode="labs"
+        triggerLabel={
+          playlists.length === 1 ? 'Run lab match' : 'Choose experiment'
+        }
+        className="self-start"
+      />
+    </section>
+  );
+}
+
+function LabsState({
+  headingId,
+  title,
+  detail,
+  status = false,
+  error = false,
+  action,
+}: {
+  headingId: string;
+  title: string;
+  detail: string;
+  status?: boolean;
+  error?: boolean;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section
+      id="labs"
+      aria-labelledby={headingId}
+      className="panel pad flex flex-col gap-3"
+    >
+      <header>
+        <p className="lab mb-1 text-arena-material">Labs · unranked</p>
+        <h2 id={headingId} className="t-body font-semibold text-arena-text">
+          {title}
+        </h2>
+      </header>
+      <p
+        className={`t-meta${error ? ' text-arena-hot' : ''}`}
+        role={error ? 'alert' : status ? 'status' : undefined}
+      >
+        {detail}
+      </p>
+      {action}
     </section>
   );
 }

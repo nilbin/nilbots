@@ -1,15 +1,12 @@
 import { Fragment, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import ProjectilePreview from '../../components/ProjectilePreview';
 import { botLook, projectileLook } from '../../render/arenaThemes';
 import AppearanceCard from '../components/AppearanceCard';
-import ArenaAction from '../components/ArenaAction';
+import ArenaAction, { type ArenaMode } from '../components/ArenaAction';
 import BotIdentity from '../components/BotIdentity';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import CurrentLadderStanding from '../components/CurrentLadderStanding';
-import GenerationsChart, {
-  type GenerationRatings,
-} from '../components/GenerationsChart';
 import LabsPanel from '../components/LabsPanel';
 import MatchHistory from '../components/MatchHistory';
 import { ErrorState, LoadingState } from '../components/StateView';
@@ -19,22 +16,12 @@ import SubmitPanel from '../components/SubmitPanel';
 import { ApiError } from '../api';
 import { detailBotSupportsLegacyDuel } from '../botContractProfiles';
 import { useBot } from '../queries';
-
-/**
- * Each generation's ratings, oldest generation first.
- *
- * Always empty today, and deliberately: nothing on the server records a rating per
- * generation. `currentStanding` is one number for the bot as a whole, and a version row
- * knows when it was submitted and nothing about how it did — so a line drawn from what
- * exists would be a picture of an improvement nobody measured. This typed empty seam is
- * replaced with generated-contract data when an endpoint exists; arbitrary extra JSON
- * fields must never turn review fixtures into production behavior.
- */
-const generationHistory: readonly GenerationRatings[] = [];
+import { internalReturnTarget } from '../returnTarget';
 
 export default function BotDetailPage() {
   // Slug or id — the API resolves either, so old GUID links keep working.
   const { botKey } = useParams<{ botKey: string }>();
+  const location = useLocation();
   const { data: bot, error, refetch } = useBot(botKey);
   const [expanded, setExpanded] = useState<string | null>(null);
   const missing = error instanceof ApiError && error.status === 404;
@@ -60,16 +47,32 @@ export default function BotDetailPage() {
   const projectile = projectileLook(bot.projectileLookId);
   const liveVersion = bot.versions.find((version) => version.isActive) ?? null;
   const duelCompatible = detailBotSupportsLegacyDuel(bot);
-  // A built generic-actor bot belongs to Labs, not legacy Duel. Before a build exists,
-  // the Arena action remains useful because its unavailable state points to submission.
-  const showArenaAction =
-    liveVersion?.status !== 'Built' || duelCompatible;
+  // A built generic-only bot gets its prominent, catalog-aware Play action in the Labs
+  // panel immediately below. Keeping a second Labs-only hero trigger would duplicate the
+  // same action without adding context. Before a build exists, the Duel action remains
+  // useful because its unavailable state points to submission.
+  const arenaModes: readonly ArenaMode[] =
+    liveVersion?.status !== 'Built'
+      ? bot.isOwner
+        ? ['ranked', 'challenge']
+        : []
+      : duelCompatible
+        ? bot.isOwner
+          ? ['ranked', 'challenge']
+          : ['challenge']
+        : [];
+  const returnTarget = internalReturnTarget(
+    location.state,
+    bot.isOwner
+      ? { to: '/garage', label: 'Garage' }
+      : { to: '/bots', label: 'All bots' },
+  );
 
   return (
     <div className="flex flex-col gap-3.5">
       <nav aria-label="Breadcrumb">
-        <Link to="/bots" className="t-meta text-link">
-          ← Bots
+        <Link to={returnTarget.to} className="t-meta text-link">
+          ← {returnTarget.label}
         </Link>
       </nav>
       {/* The hero states who this bot is and what you can do to it. Everything below
@@ -102,7 +105,7 @@ export default function BotDetailPage() {
           </span>
         </div>
         <span className="flex flex-wrap items-center gap-2">
-          {showArenaAction && (
+          {arenaModes.length > 0 && (
             <ArenaAction
               bot={{
                 id: bot.id,
@@ -112,6 +115,8 @@ export default function BotDetailPage() {
                 lookId: bot.lookId,
                 isOwner: bot.isOwner,
               }}
+              modes={arenaModes}
+              initialMode={arenaModes[0]}
               variant={bot.isOwner ? 'multi' : 'compact'}
             />
           )}
@@ -129,29 +134,6 @@ export default function BotDetailPage() {
           column below 900px rather than at Tailwind's 1024. */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-3 min-[900px]:grid-cols-[minmax(0,1fr)_340px] min-[900px]:items-start">
         <div className="flex min-w-0 flex-col gap-3.5">
-          {/* First in the column because it is the question the page is opened with:
-              the submit just landed, is this generation better than the last one. */}
-          <GenerationsChart
-            series={generationHistory}
-            accent={bot.accent}
-            liveGeneration={liveVersion?.versionNumber ?? null}
-            note={
-              liveVersion
-                ? `submitted ${new Date(liveVersion.createdAt).toLocaleDateString()}`
-                : null
-            }
-            emptyTitle={
-              bot.versions.length === 0
-                ? 'Nothing submitted yet'
-                : 'No rating per generation yet'
-            }
-            emptyDetail={
-              bot.versions.length === 0
-                ? 'The first generation appears here once nilbots submit has built one.'
-                : 'The ladder records a rating for the bot, not for the generation that earned it, so there is no series to draw against these generations.'
-            }
-          />
-
           <BotStatisticsPanel botId={bot.id} />
 
           {/* The document's table panel: the label sits in its own padded block above
@@ -260,15 +242,19 @@ export default function BotDetailPage() {
             </div>
           </section>
 
-          <MatchHistory botId={bot.id} botSlug={bot.slug} />
+          <MatchHistory
+            botId={bot.id}
+            botSlug={bot.slug}
+            botName={bot.name}
+          />
         </div>
 
         {/* The rail is what you *do*, and it leads with the terminal — because that is
             where building happens, so the page's job is to hand you the right command
             for the bot you are looking at rather than to reproduce the CLI in HTML. */}
-        <aside className="flex flex-col gap-3.5">
-          <WorkOnThisBot />
+        <aside className="order-first flex flex-col gap-3.5 min-[900px]:order-none">
           {bot.isOwner && <LabsPanel bot={bot} />}
+          <WorkOnThisBot />
         </aside>
       </div>
 

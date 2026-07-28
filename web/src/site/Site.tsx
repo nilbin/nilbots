@@ -20,7 +20,7 @@ import BotDetailPage from './pages/BotDetailPage';
 import GaragePage from './pages/GaragePage';
 import MatchPage from './pages/MatchPage';
 import MatchSetPage from './pages/MatchSetPage';
-import SeasonPage from './pages/SeasonPage';
+import RankingsPage from './pages/RankingsPage';
 import DocsPage from './pages/DocsPage';
 
 export default function Site() {
@@ -55,8 +55,8 @@ export default function Site() {
               <Route
                 index
                 element={
-                  <TitledPage title="Season">
-                    <SeasonPage />
+                  <TitledPage title="Rankings">
+                    <RankingsPage />
                   </TitledPage>
                 }
               />
@@ -130,6 +130,7 @@ export default function Site() {
               />
               {/* The ladder used to live here and be called the leaderboard. Old links
                   and bookmarks still resolve rather than 404. */}
+              <Route path="/rankings" element={<Navigate to="/" replace />} />
               <Route path="/leaderboard" element={<Navigate to="/" replace />} />
               <Route path="/looks" element={<Navigate to="/store" replace />} />
               <Route
@@ -196,7 +197,7 @@ function NotFoundPage() {
         The page may have moved, or the address may be incomplete.
       </p>
       <Link to="/" className="btn btn-on mt-4 inline-flex">
-        Return to Season
+        Return to Rankings
       </Link>
     </section>
   );
