@@ -58,6 +58,12 @@ class LabsReplayEvalTests(unittest.TestCase):
             row["activity"]["longestCombatEventFreeRunTicks"],
         )
         self.assertEqual(2, len(row["participants"]))
+        self.assertEqual(1, row["opening"]["ticks"])
+        self.assertEqual(0, row["opening"]["damageAmount"])
+        self.assertEqual(
+            {"territorial-progress": 1},
+            row["opening"]["boundaryScores"]["0"],
+        )
         self.assertEqual(
             1.0,
             row["participants"][0]["population"]["averageBodies"],
@@ -76,6 +82,7 @@ class LabsReplayEvalTests(unittest.TestCase):
         self.assertEqual(2, len(summary["entrants"]))
         self.assertEqual(1, summary["activity"]["gamesWithoutCombatEvents"])
         self.assertEqual(0.0, summary["combat"]["attacksPer100Ticks"])
+        self.assertEqual(0, summary["opening"]["gamesWithDamage"])
 
     def test_ready_slots_are_population_debt_not_inactive_locked_slots(
         self,
@@ -127,6 +134,49 @@ class LabsReplayEvalTests(unittest.TestCase):
             participant["population"]["activeEligibleSlotShare"],
         )
         self.assertEqual(1, participant["population"]["terminalReadyEpisodes"])
+
+    def test_opening_classifies_straight_and_curved_shot_decisions(
+        self,
+    ) -> None:
+        candidate = copy.deepcopy(self.document)
+        decision = candidate["ticks"][0]["actorTurns"][0][
+            "submittedDecision"
+        ]
+        decision.update(
+            {
+                "actionId": "shoot",
+                "actionCode": 4,
+                "arguments": [
+                    {
+                        "kind": "shot-program",
+                        "value": {
+                            "initialAimOffset": 0,
+                            "bendDirection": 1,
+                            "bendAfterTiles": 2,
+                            "bendEveryTiles": 1,
+                            "bendCount": 1,
+                        },
+                    }
+                ],
+            }
+        )
+
+        row = EVALUATOR.analyze_replay(candidate)
+        participant = next(
+            value
+            for value in row["participants"]
+            if value["participantId"] == 10
+        )
+
+        self.assertEqual(1, participant["opening"]["attackDecisions"])
+        self.assertEqual(
+            1,
+            participant["opening"]["curvedAttackDecisions"],
+        )
+        self.assertEqual(
+            0,
+            participant["opening"]["straightAttackDecisions"],
+        )
 
     def test_direct_shot_and_imminent_projectile_metrics_are_narrow(
         self,

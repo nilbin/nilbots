@@ -62,6 +62,26 @@ class LabsCohortDriveTests(unittest.TestCase):
         self.assertIn(("b", "a", 104729), assignments)
         self.assertEqual(len(assignments), len(plan))
 
+    def test_pairing_extra_seeds_only_expand_the_named_pair(self) -> None:
+        entrants = [{"id": value} for value in ("a", "b", "c", "d")]
+
+        plan = DRIVER.build_plan(
+            entrants,
+            [104729],
+            {"a:d": [130363, 155921]},
+        )
+
+        self.assertEqual(16, len(plan))
+        expanded = [
+            row
+            for row in plan
+            if {row["bot"], row["opponent"]} == {"a", "d"}
+        ]
+        self.assertEqual(
+            [104729, 104729, 130363, 130363, 155921, 155921],
+            [row["seed"] for row in expanded],
+        )
+
     def test_manifest_freezes_every_source_dx_and_artifact(self) -> None:
         head = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -173,6 +193,80 @@ class LabsCohortDriveTests(unittest.TestCase):
                 run["repositorySource"],
             )
             self.assertFalse(Path(run["sourceManifest"]).is_absolute())
+
+    def test_manifest_accepts_registered_micro_cohort_doctrines(
+        self,
+    ) -> None:
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            doctrines = ["adaptive", "geometry", "prediction", "territory"]
+            entrants = []
+            for doctrine in doctrines:
+                entrant_root = root / doctrine
+                entrant_root.mkdir()
+                (entrant_root / "Bot.cs").write_text(
+                    f"// {doctrine}\n",
+                    encoding="utf-8",
+                )
+                (entrant_root / "DX.md").write_text(
+                    "Frozen DX\n",
+                    encoding="utf-8",
+                )
+                artifact = entrant_root / "built.wasm"
+                artifact.write_bytes(doctrine.encode("utf-8"))
+                source_revision = DRIVER._source_tree_sha256(entrant_root)
+                entrants.append(
+                    {
+                        "id": doctrine,
+                        "name": doctrine.title(),
+                        "doctrine": doctrine,
+                        "root": doctrine,
+                        "artifact": f"{doctrine}/built.wasm",
+                        "artifactSha256": hashlib.sha256(
+                            doctrine.encode("utf-8")
+                        ).hexdigest(),
+                        "sourceRevision": source_revision,
+                        "sourceTreeSha256": source_revision,
+                        "implementationPasses": 1,
+                        "repairPasses": 0,
+                        "dxReport": f"{doctrine}/DX.md",
+                    }
+                )
+            manifest_path = root / "cohort.json"
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "cohortId": "micro-cohort",
+                        "engineCommit": head,
+                        "playlist": self.playlist(),
+                        "seeds": [104729],
+                        "pairingExtraSeeds": {
+                            "adaptive:prediction": [130363, 155921]
+                        },
+                        "registeredDoctrines": doctrines,
+                        "entrants": entrants,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            manifest = DRIVER.load_manifest(manifest_path, ROOT)
+            plan = DRIVER.build_plan(
+                manifest["entrants"],
+                manifest["seeds"],
+                manifest["pairingExtraSeeds"],
+            )
+
+            self.assertEqual(16, len(plan))
+            self.assertEqual(doctrines, manifest["registeredDoctrines"])
 
     def test_result_replay_path_is_archive_relative(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

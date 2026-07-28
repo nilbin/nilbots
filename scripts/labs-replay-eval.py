@@ -23,7 +23,7 @@ from typing import Any, Iterable
 
 
 REPORT_SCHEMA_VERSION = 2
-METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-5"
+METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-6"
 PRESENTATION_TICKS_PER_SECOND = 5
 STALL_TICKS = 20
 RECENT_FRAME_WINDOW = 20
@@ -541,6 +541,10 @@ def analyze_replay(
         }
     )
     phase_boundaries = [0, *unlock_ticks]
+    first_unlock_tick = (
+        unlock_ticks[0] if unlock_ticks else duration_ticks
+    )
+    opening_ticks = min(duration_ticks, first_unlock_tick)
 
     submitted_actions: Counter[str] = Counter()
     successful_actions: Counter[str] = Counter()
@@ -587,6 +591,12 @@ def analyze_replay(
         participant_id: Counter()
         for participant_id in participant_team
     }
+    opening_participant_stats: dict[int, Counter[str]] = {
+        participant_id: Counter()
+        for participant_id in participant_team
+    }
+    opening_objective = Counter()
+    opening_boundary_scores = _score_values(initial_state)
     ready_episode_start: dict[tuple[int, int], int] = {}
     ready_latencies: dict[int, list[int]] = defaultdict(list)
     actor_participant: dict[tuple[int, int, int], int] = {}
@@ -650,6 +660,7 @@ def analyze_replay(
             )
 
         phase = _phase_label(tick_number, unlock_ticks)
+        in_opening = tick_number < first_unlock_tick
         phase_ticks[phase] += 1
         active_slots_by_participant: Counter[int] = Counter()
         eligible_slots_by_participant: Counter[int] = Counter()
@@ -744,6 +755,10 @@ def analyze_replay(
                 participant_id = actor_participant.get(source_key)
                 if participant_id is not None:
                     participant_stats[participant_id]["attacksLaunched"] += 1
+                    if in_opening:
+                        opening_participant_stats[participant_id][
+                            "attacksLaunched"
+                        ] += 1
                     projectile_participant[str(payload.get("projectileId"))] = (
                         participant_id
                     )
@@ -767,6 +782,16 @@ def analyze_replay(
                     participant_stats[participant_id]["damageAmount"] += (
                         _integer(payload.get("amount"), "damage.amount")
                     )
+                    if in_opening:
+                        opening_participant_stats[participant_id][
+                            "damageEvents"
+                        ] += 1
+                        opening_participant_stats[participant_id][
+                            "damageAmount"
+                        ] += _integer(
+                            payload.get("amount"),
+                            "damage.amount",
+                        )
             elif kind == "movement":
                 source_key = _actor_key(
                     _object(payload.get("actorId"), "movement.actorId"),
@@ -1056,6 +1081,44 @@ def analyze_replay(
             action_id = str(decision.get("actionId"))
             family = action_kinds.get(action_id, "unknown")
             stats[f"{family}Decisions"] += 1
+            if in_opening:
+                opening_stats = opening_participant_stats[participant_id]
+                opening_stats["turns"] += 1
+                opening_stats[f"{family}Decisions"] += 1
+                if family == "attack":
+                    shot_program = next(
+                        (
+                            _object(
+                                argument.get("value"),
+                                "shot-program.value",
+                            )
+                            for raw_argument in _array(
+                                decision.get("arguments"),
+                                "submittedDecision.arguments",
+                            )
+                            for argument in [
+                                _object(
+                                    raw_argument,
+                                    "decision argument",
+                                )
+                            ]
+                            if argument.get("kind") == "shot-program"
+                        ),
+                        None,
+                    )
+                    bend_count = (
+                        0
+                        if shot_program is None
+                        else _integer(
+                            shot_program.get("bendCount"),
+                            "shot-program.bendCount",
+                        )
+                    )
+                    opening_stats[
+                        "curvedAttackDecisions"
+                        if bend_count > 0
+                        else "straightAttackDecisions"
+                    ] += 1
             stats["attackOpportunityUses"] += int(
                 enemies_visible
                 and attack_available
@@ -1182,6 +1245,10 @@ def analyze_replay(
         objective_contested_ticks += int(contested)
         objective_sole_ticks += int(sole)
         objective_empty_ticks += int(not occupying_teams)
+        if in_opening:
+            opening_objective["contestedTicks"] += int(contested)
+            opening_objective["soleControlTicks"] += int(sole)
+            opening_objective["emptyTicks"] += int(not occupying_teams)
         if contested:
             objective_weights = [
                 objective_weight_by_team[team_id]
@@ -1220,8 +1287,14 @@ def analyze_replay(
             push_directions.append(
                 1 if position_index > start_index else -1
             )
+            if in_opening:
+                opening_objective["pushes"] += abs(
+                    position_index - start_index
+                )
 
         scores = _score_values(post_state)
+        if in_opening:
+            opening_boundary_scores = scores
         progress = {
             team_id: scores.get((team_id, "territorial-progress"), 0)
             for team_id in topology_team_ids
@@ -1389,6 +1462,7 @@ def analyze_replay(
         stats = participant_stats[participant_id]
         latencies = ready_latencies[participant_id]
         participant = provenance_by_id[participant_id]
+        opening_stats = opening_participant_stats[participant_id]
         phase_rows = {
             phase: {
                 "ticks": phase_ticks[phase],
@@ -1544,6 +1618,22 @@ def analyze_replay(
                     "lateral": stats["lateralObjectiveMoves"],
                     "away": stats["awayFromObjectiveMoves"],
                 },
+                "opening": {
+                    "turns": opening_stats["turns"],
+                    "attackDecisions": opening_stats["attackDecisions"],
+                    "straightAttackDecisions": opening_stats[
+                        "straightAttackDecisions"
+                    ],
+                    "curvedAttackDecisions": opening_stats[
+                        "curvedAttackDecisions"
+                    ],
+                    "attacksLaunched": opening_stats["attacksLaunched"],
+                    "damageEvents": opening_stats["damageEvents"],
+                    "damageAmount": opening_stats["damageAmount"],
+                    "movementDecisions": opening_stats[
+                        "movementDecisions"
+                    ],
+                },
             }
         )
 
@@ -1585,6 +1675,38 @@ def analyze_replay(
                 _phase_label(boundary, unlock_ticks)
                 for boundary in phase_boundaries
             ],
+        },
+        "opening": {
+            "endsBeforeTick": first_unlock_tick,
+            "ticks": opening_ticks,
+            "matchEndedBeforeFirstUnlock": (
+                bool(unlock_ticks)
+                and end_tick is not None
+                and end_tick < first_unlock_tick
+            ),
+            "damageEvents": sum(
+                stats["damageEvents"]
+                for stats in opening_participant_stats.values()
+            ),
+            "damageAmount": sum(
+                stats["damageAmount"]
+                for stats in opening_participant_stats.values()
+            ),
+            "objective": {
+                "contestedTicks": opening_objective["contestedTicks"],
+                "soleControlTicks": opening_objective["soleControlTicks"],
+                "emptyTicks": opening_objective["emptyTicks"],
+                "pushes": opening_objective["pushes"],
+            },
+            "boundaryScores": {
+                str(team_id): {
+                    channel: value
+                    for (score_team_id, channel), value
+                    in sorted(opening_boundary_scores.items())
+                    if score_team_id == team_id
+                }
+                for team_id in topology_team_ids
+            },
         },
         "safety": {
             "runtimeFaultEvents": runtime_fault_events,
@@ -1700,6 +1822,7 @@ def _summarize_entrants(
                     "latencies": [],
                     "combat": Counter(),
                     "movement": Counter(),
+                    "opening": Counter(),
                     "phases": defaultdict(Counter),
                 },
             )
@@ -1763,6 +1886,8 @@ def _summarize_entrants(
                 bucket["combat"][field] += combat[field]
             for field, value in participant["objectiveMovement"].items():
                 bucket["movement"][field] += value
+            for field, value in participant["opening"].items():
+                bucket["opening"][field] += value
 
     entrants = []
     for bucket in sorted(
@@ -1867,6 +1992,7 @@ def _summarize_entrants(
                     ),
                 },
                 "objectiveMovement": dict(bucket["movement"]),
+                "opening": dict(bucket["opening"]),
             }
         )
     return entrants
@@ -1980,6 +2106,21 @@ def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         "completionReasons": dict(sorted(reasons.items())),
         "completionPhases": dict(sorted(completion_phases.items())),
         "drawRate": _fraction(outcomes["draw"], len(rows)),
+        "opening": {
+            "gamesWithDamage": sum(
+                row["opening"]["damageEvents"] > 0 for row in rows
+            ),
+            "gamesEndingBeforeFirstUnlock": sum(
+                row["opening"]["matchEndedBeforeFirstUnlock"]
+                for row in rows
+            ),
+            "damageAmount": sum(
+                row["opening"]["damageAmount"] for row in rows
+            ),
+            "pushes": sum(
+                row["opening"]["objective"]["pushes"] for row in rows
+            ),
+        },
         "duration": {
             "medianTicks": statistics.median(durations),
             "p10Ticks": _nearest_rank(durations, 0.10),
@@ -2140,6 +2281,7 @@ def _print_report(groups: list[dict[str, Any]]) -> None:
         activity = group["activity"]
         mechanics = group["mechanics"]
         objective = group["objective"]
+        opening = group["opening"]
         print()
         print(
             f"{group['name']}: {group['matches']} matches  "
@@ -2169,6 +2311,14 @@ def _print_report(groups: list[dict[str, Any]]) -> None:
             f"damage/100t={combat['damagePer100Ticks']:.1f} "
             f"damage={combat['damageAmount']} "
             f"destructions={combat['destructions']}"
+        )
+        print(
+            "  opening   "
+            f"damage-games={opening['gamesWithDamage']}/"
+            f"{group['matches']} "
+            f"damage={opening['damageAmount']} "
+            f"pushes={opening['pushes']} "
+            f"early-finishes={opening['gamesEndingBeforeFirstUnlock']}"
         )
         print(
             "  mechanics "
@@ -2210,7 +2360,11 @@ def _print_report(groups: list[dict[str, Any]]) -> None:
                 f"direct-shot-use="
                 f"{policy['directAttackOpportunityUseShare']:.1%} "
                 f"imminent-threat-move="
-                f"{policy['imminentThreatMovementResponseShare']:.1%}"
+                f"{policy['imminentThreatMovementResponseShare']:.1%} "
+                f"opening-curves="
+                f"{entrant['opening'].get('curvedAttackDecisions', 0)} "
+                f"opening-damage="
+                f"{entrant['opening'].get('damageAmount', 0)}"
             )
 
 

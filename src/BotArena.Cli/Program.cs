@@ -226,6 +226,7 @@ static int CommandHelp(string command)
                    [--mobilize-turrets]
                    [--remote-fabrication]
                    [--net-control]
+                   [--one-bend-shots]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -241,6 +242,8 @@ static int CommandHelp(string command)
             from any walkable tile while retaining the protected home output.
             --net-control lets surplus objective weight create capture pressure
             instead of treating every two-team presence as a complete contest.
+            --one-bend-shots limits mobile fire to straight or one private
+            45-degree bend after 1-4 tiles for the duel-depth screen.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             """,

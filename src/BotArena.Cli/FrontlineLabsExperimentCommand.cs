@@ -29,7 +29,8 @@ public static class FrontlineLabsExperimentCommand
             "capture-gain-phase",
             "mobilize-turrets",
             "remote-fabrication",
-            "net-control");
+            "net-control",
+            "one-bend-shots");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
             throw new InvalidOperationException(
@@ -72,12 +73,16 @@ public static class FrontlineLabsExperimentCommand
         bool netControl = OptionalFlag(
             options,
             "net-control");
+        bool oneBendShots = OptionalFlag(
+            options,
+            "one-bend-shots");
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
             + (mobilizeTurrets ? 1 : 0)
             + (remoteFabrication ? 1 : 0)
-            + (netControl ? 1 : 0);
+            + (netControl ? 1 : 0)
+            + (oneBendShots ? 1 : 0);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
@@ -106,7 +111,10 @@ public static class FrontlineLabsExperimentCommand
                     : netControl
                         ? FrontlineLabsDefinition
                             .CreateNetControlExperiment()
-                        : FrontlineLabsDefinition.Create();
+                        : oneBendShots
+                            ? FrontlineLabsDefinition
+                                .CreateOneBendShotsExperiment()
+                            : FrontlineLabsDefinition.Create();
         }
         Console.WriteLine(
             experimentCount == 0

@@ -252,6 +252,23 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
     entrants = document.get("entrants")
     if not isinstance(entrants, list) or len(entrants) != 4:
         raise ValueError("entrants must contain exactly four bots")
+    registered_doctrines = document.get(
+        "registeredDoctrines",
+        sorted(EXPECTED_DOCTRINES),
+    )
+    if (
+        not isinstance(registered_doctrines, list)
+        or len(registered_doctrines) != 4
+        or len(set(registered_doctrines)) != len(registered_doctrines)
+        or any(
+            not isinstance(doctrine, str)
+            or _slug(doctrine) != doctrine
+            for doctrine in registered_doctrines
+        )
+    ):
+        raise ValueError(
+            "registeredDoctrines must contain four unique kebab-case slugs"
+        )
     doctrines = [
         entrant.get("doctrine")
         for entrant in entrants
@@ -260,7 +277,7 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
     if (
         len(doctrines) != len(entrants)
         or any(not isinstance(doctrine, str) for doctrine in doctrines)
-        or set(doctrines) != EXPECTED_DOCTRINES
+        or set(doctrines) != set(registered_doctrines)
     ):
         raise ValueError(
             "entrants must contain each registered doctrine exactly once"
@@ -338,6 +355,47 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
         normalized,
         key=lambda entrant: entrant["id"],
     )
+    document["registeredDoctrines"] = sorted(registered_doctrines)
+    pairing_extra_seeds = document.get("pairingExtraSeeds", {})
+    if not isinstance(pairing_extra_seeds, dict):
+        raise ValueError("pairingExtraSeeds must be an object")
+    normalized_extra_seeds: dict[str, list[int]] = {}
+    for raw_pair, extra_seeds in pairing_extra_seeds.items():
+        if not isinstance(raw_pair, str):
+            raise ValueError("pairingExtraSeeds keys must be strings")
+        first, separator, second = raw_pair.partition(":")
+        if (
+            separator != ":"
+            or not first
+            or not second
+            or first >= second
+            or first not in ids
+            or second not in ids
+        ):
+            raise ValueError(
+                "pairingExtraSeeds keys must be canonical "
+                "'lower-id:higher-id' entrant pairs"
+            )
+        if (
+            not isinstance(extra_seeds, list)
+            or not extra_seeds
+            or any(
+                not isinstance(seed, int)
+                or isinstance(seed, bool)
+                or seed < 0
+                for seed in extra_seeds
+            )
+            or len(set(extra_seeds)) != len(extra_seeds)
+            or set(extra_seeds).intersection(seeds)
+        ):
+            raise ValueError(
+                f"{raw_pair}: extra seeds must be distinct non-negative "
+                "integers not present in seeds"
+            )
+        normalized_extra_seeds[raw_pair] = extra_seeds
+    document["pairingExtraSeeds"] = dict(
+        sorted(normalized_extra_seeds.items())
+    )
     document["repositorySource"] = _repository_source_identity(repository_root)
     return document
 
@@ -345,11 +403,15 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
 def build_plan(
     entrants: list[dict[str, Any]],
     seeds: list[int],
+    pairing_extra_seeds: dict[str, list[int]] | None = None,
 ) -> list[dict[str, Any]]:
+    pairing_extra_seeds = pairing_extra_seeds or {}
     plan = []
     sequence = 0
     for first, second in itertools.combinations(entrants, 2):
-        for seed in seeds:
+        pair = ":".join(sorted((first["id"], second["id"])))
+        pair_seeds = [*seeds, *pairing_extra_seeds.get(pair, [])]
+        for seed in pair_seeds:
             for bot, opponent in ((first, second), (second, first)):
                 sequence += 1
                 match_id = (
@@ -437,6 +499,8 @@ def freeze_run(
         "playlist": manifest.get("playlist"),
         "authoringBudget": manifest.get("authoringBudget"),
         "seeds": manifest["seeds"],
+        "pairingExtraSeeds": manifest["pairingExtraSeeds"],
+        "registeredDoctrines": manifest["registeredDoctrines"],
         "runtime": "wasm",
         "runnerCommand": runner_command,
         "verifyCommand": verify_command,
@@ -988,7 +1052,11 @@ def main(argv: list[str] | None = None) -> int:
     manifest_path = args.manifest.resolve()
     output = args.output.resolve()
     manifest = load_manifest(manifest_path, repository_root)
-    plan = build_plan(manifest["entrants"], manifest["seeds"])
+    plan = build_plan(
+        manifest["entrants"],
+        manifest["seeds"],
+        manifest["pairingExtraSeeds"],
+    )
     if args.resume:
         artifacts = resume_run(
             output,

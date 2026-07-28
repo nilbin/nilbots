@@ -150,6 +150,21 @@ public static class FrontlineLabsDefinition
                 FrontlineCaptureDefinition.ControlPolicyKind
                     .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral);
 
+    /// <summary>
+    /// Creates a local-only duel-depth arm. Mobile attacks may remain
+    /// straight or commit one private 45-degree bend after one to four tiles;
+    /// initial aim offsets and repeated bends are unavailable.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateOneBendShotsExperiment() =>
+        CreateResolved(
+            $"{RulesetId}-experiment-one-bend-shots",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            oneBendShots: true);
+
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
         int captureThreshold,
@@ -159,7 +174,8 @@ public static class FrontlineLabsDefinition
         bool remoteFabrication,
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy =
             FrontlineCaptureDefinition.ControlPolicyKind
-                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral)
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
+        bool oneBendShots = false)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -167,7 +183,8 @@ public static class FrontlineLabsDefinition
             captureGainSchedule,
             enableMobilize,
             remoteFabrication,
-            controlPolicy);
+            controlPolicy,
+            oneBendShots);
         ActorMapDefinition map = CreateMap(remoteFabrication);
         PublicMatchTopology topology = CreateTopology();
         InitialDeploymentDefinition deployment =
@@ -220,7 +237,8 @@ public static class FrontlineLabsDefinition
             captureGainSchedule,
         bool enableMobilize,
         bool remoteFabrication,
-        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy)
+        FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
+        bool oneBendShots)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -252,7 +270,9 @@ public static class FrontlineLabsDefinition
             attackEnergyCost: 0,
             energyRegenerationIntervalTicks: 0,
             energyRegenerationAmount: 0,
-            ShotProgram(enabled: true));
+            ShotProgram(
+                enabled: true,
+                oneBendOnly: oneBendShots));
         var turretAttack = new ActorAttackProfileDefinition(
             TurretAttackId,
             omnidirectionalAim: true,
@@ -262,7 +282,9 @@ public static class FrontlineLabsDefinition
             attackEnergyCost: 0,
             energyRegenerationIntervalTicks: 0,
             energyRegenerationAmount: 0,
-            ShotProgram(enabled: false));
+            ShotProgram(
+                enabled: false,
+                oneBendOnly: false));
         ActorTransitionWindupDefinition anchorWindup = Windup(
             ActorTransitionWindupDefinition.ActorTransitionCompletionKind
                 .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate);
@@ -585,22 +607,24 @@ public static class FrontlineLabsDefinition
                 ActorAudibleEventKind.Attack,
             ]);
 
-    private static ActorShotProgramDefinition ShotProgram(bool enabled) =>
+    private static ActorShotProgramDefinition ShotProgram(
+        bool enabled,
+        bool oneBendOnly) =>
         new(
             enabled,
             headingSectors: 8,
             ActorShotHeadingModel.EightWayClockwiseModuloV1,
             bendStepSectors: 1,
-            minInitialAimSteps: enabled ? -1 : 0,
-            maxInitialAimSteps: enabled ? 1 : 0,
+            minInitialAimSteps: enabled && !oneBendOnly ? -1 : 0,
+            maxInitialAimSteps: enabled && !oneBendOnly ? 1 : 0,
             new ActorAimOnlyShotProgramDefinition(0, 0, 1, 0),
             allowedCurvedBendDirections: [-1, 1],
             minBendAfterTiles: 1,
             maxBendAfterTiles: enabled ? 4 : 1,
             minBendEveryTiles: 1,
-            maxBendEveryTiles: enabled ? 3 : 1,
+            maxBendEveryTiles: enabled && !oneBendOnly ? 3 : 1,
             minBendCount: 1,
-            maxBendCount: enabled ? 3 : 1,
+            maxBendCount: enabled && !oneBendOnly ? 3 : 1,
             launchTiles: 1,
             payloadOptional: enabled,
             defaultProgram: new ActorShotProgramValue(0, 0, 0, 1, 0),

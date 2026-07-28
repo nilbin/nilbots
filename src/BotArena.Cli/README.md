@@ -117,6 +117,13 @@ still contests the objective, while a positive weight surplus applies capture
 gain multiplied by that surplus. It uses the distinct ruleset
 `frontline-labs-1-experiment-net-control`.
 
+For the duel-depth arm, `--one-bend-shots` keeps the map, topology, objective,
+combat cadence, and lifecycle fixed while simplifying mobile programs to
+straight or one private 45-degree bend after one to four tiles. Initial aim
+offsets and repeated bends are unavailable. It uses ruleset
+`frontline-labs-1-experiment-one-bend-shots`; the opening through tick 119 is
+the native Prime-versus-Prime isolation window before companion unlocks.
+
 Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract

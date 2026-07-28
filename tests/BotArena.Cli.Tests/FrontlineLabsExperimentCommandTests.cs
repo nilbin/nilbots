@@ -159,6 +159,16 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "--mobilize-turrets",
                     "--remote-fabrication",
                 ]));
+        Assert.Throws<InvalidOperationException>(
+            () => FrontlineLabsExperimentCommand.Run(
+                [
+                    "--bot",
+                    ".",
+                    "--opponent",
+                    ".",
+                    "--net-control",
+                    "--one-bend-shots",
+                ]));
     }
 
     [Fact]
@@ -399,6 +409,54 @@ public sealed class FrontlineLabsExperimentCommandTests
         }
     }
 
+    [Fact]
+    public void OneBendShotsArm_WritesSmallPrivateProgramEnvelope()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-one-bend-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "one-bend");
+
+            Assert.Equal(
+                0,
+                Run(alpha, beta, output, oneBendShots: true));
+
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(output, "replay.json")));
+            JsonElement rules = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract")
+                .GetProperty("rules");
+            Assert.Equal(
+                "frontline-labs-1-experiment-one-bend-shots",
+                rules.GetProperty("rulesetId").GetString());
+            JsonElement program = rules.GetProperty("attackProfiles")
+                .EnumerateArray()
+                .Single(profile =>
+                    profile.GetProperty("id").GetString()
+                    == "mobile-bolt")
+                .GetProperty("shotProgram");
+            Assert.Equal(0, program
+                .GetProperty("minInitialAimSteps").GetInt32());
+            Assert.Equal(0, program
+                .GetProperty("maxInitialAimSteps").GetInt32());
+            Assert.Equal(1, program
+                .GetProperty("minBendCount").GetInt32());
+            Assert.Equal(1, program
+                .GetProperty("maxBendCount").GetInt32());
+            Assert.True(program.GetProperty("payloadOptional").GetBoolean());
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
     private static int Run(
         string bot,
         string opponent,
@@ -407,7 +465,8 @@ public sealed class FrontlineLabsExperimentCommandTests
         string? captureGainPhase = null,
         bool mobilizeTurrets = false,
         bool remoteFabrication = false,
-        bool netControl = false)
+        bool netControl = false,
+        bool oneBendShots = false)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -444,6 +503,8 @@ public sealed class FrontlineLabsExperimentCommandTests
                 arguments.Add("--remote-fabrication");
             if (netControl)
                 arguments.Add("--net-control");
+            if (oneBendShots)
+                arguments.Add("--one-bend-shots");
             return FrontlineLabsExperimentCommand.Run(arguments);
         }
         finally
