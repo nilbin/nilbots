@@ -47,15 +47,19 @@ docker run -d \
   -c shared_preload_libraries=pg_stat_statements \
   -c compute_query_id=on >/dev/null
 
-for _ in {1..40}; do
+for _ in {1..60}; do
+  # pg_isready reports that the temporary initialization server accepts
+  # connections before POSTGRES_DB has necessarily been created. Require a
+  # real query against the intended database so fast fresh-image CI runners
+  # cannot race docker-entrypoint's CREATE DATABASE step.
   if docker exec "$postgres_container" \
-    pg_isready -U botarena -d botarena >/dev/null 2>&1; then
+    psql -U botarena -d botarena -Atqc 'select 1' >/dev/null 2>&1; then
     break
   fi
   sleep 0.5
 done
 docker exec "$postgres_container" \
-  pg_isready -U botarena -d botarena >/dev/null
+  psql -U botarena -d botarena -Atqc 'select 1' >/dev/null
 docker exec "$postgres_container" \
   psql -U botarena -d botarena -v ON_ERROR_STOP=1 -Atqc \
   'create extension if not exists pg_stat_statements'
