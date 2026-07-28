@@ -58,11 +58,12 @@ chmod 600 "$temporary"
 
 target_group="$(stat -c '%g' "$secret_dir")"
 if [[ "$(id -u)" -eq 0 ]]; then
-  install -o 1654 -g "$target_group" -m 600 "$temporary" "${target}.new"
+  install -m 600 "$temporary" "${target}.new"
+  chown "1654:$target_group" "${target}.new"
   mv -f -- "${target}.new" "$target"
 else
-  sudo -n install -o 1654 -g "$target_group" -m 600 \
-    "$temporary" "${target}.new"
+  sudo -n install -m 600 "$temporary" "${target}.new"
+  sudo -n chown "1654:$target_group" "${target}.new"
   sudo -n mv -f -- "${target}.new" "$target"
 fi
 
