@@ -3167,6 +3167,40 @@ smoke ran in the pre-registered direction (control max-ticks; ratchet
 breach at 354; ratchet-contest breach at 206) and is recorded here as
 direction, not evidence. CLI 0.9.8.
 
+## 161. The prototype skills exist as arms; adoption awaits the watchability screen
+
+The three kit candidates from the slate are implemented as composable
+`--skills` arms (CLI 0.9.9), proven firing end-to-end in verified
+replays, in-process and WASM behavior byte-identical, pinned goldens
+unmodified. VOLLEY: a reversible striker stance (windup 2 in / 1 out,
+immobile, objective weight 1) whose gun fires three damage-1 straight
+bolts across adjacent headings at cooldown 5 — multi-projectile-per-
+attack (`ActorAttackVolleyDefinition`) is the one new engine
+capability; bolts are ordinary projectiles with contiguous launch-order
+IDs. SHELL: a reversible bulwark stance (windup 1 each way, no attack,
+objective weight 1, no health gain so cycling can never heal) whose
+form consumes hostile contacts arriving in its facing quadrant,
+evaluated on the projectile's approach vector; absorptions publish
+`projectile-absorbed`. FIVE SLOTS: fabricator teams field prime + four
+children on a continued 120-tick cadence (60/180/300/420) with late
+slots on slow 30-tick rebuilds — count without tempo, honoring the
+surge critique; mints five-slot and asymmetric 5-3 topology profiles,
+the deliberate #153 amendment. Ablation-debt entries registered per
+skill (each flag is one factor to the CLI, three to the measurement).
+
+Two probe findings scope the watchability screen: the naive shell
+probe produced 121 absorptions and **zero damage events in the entire
+match** — the reactive-parry degeneracy named in the slate, observed
+on day one (fix ladder if it survives smarter drivers: longer entry
+windup, minimum tenure, then cooldown machinery); and the fifth
+fabricator body cannot exist before tick 429, while ratchet-arm
+matches can end by tick ~206 — the unlock schedule is a data knob if
+the numbers-fantasy fails to materialize on screen. Latent three-slot
+assumptions in qualification probe trimming and prose are flagged in
+the implementation report; unreachable today, they bill to any future
+five-slot qualification work. Kit adoption is NOT decided here — it
+waits on the owner's outcome-blind prototype gallery.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
