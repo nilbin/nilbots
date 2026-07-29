@@ -230,7 +230,8 @@ refresh();window.addEventListener('pageshow',refresh);
 <p>Outcome-blind review: outcomes are hidden. Watch at normal speed and give
 two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy to follow
 &mdash; plus any notes.</p>
-<ul>{items}</ul>{review_block}
+{review_block}
+<ul>{items}</ul>
 """, encoding="utf-8")
     mode = ("hosted (serve it — file:// will not load modules)"
             if args.viewer == "hosted" else "self-contained")
