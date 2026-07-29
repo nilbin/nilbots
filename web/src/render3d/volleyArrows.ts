@@ -183,10 +183,11 @@ export function buildVolleyArrows(replay: ReplayModel): VolleyArrows {
         const shard = borrowShard(usedShards++);
         shard.visible = true;
         shard.position.set(member.x + 0.5, PROJECTILE_HOVER, member.y + 0.5);
-        // Eaten collapses inward; shattered flies apart. Same ring, opposite direction,
-        // so which of the two happened is legible without a second effect.
+        // Turned collapses inward (the return bolt carries the energy on);
+        // shattered flies apart. Same ring, opposite direction, so which of
+        // the two happened is legible without a second effect.
         shard.scale.setScalar(
-          member.breakKind === 'absorbed'
+          member.breakKind === 'deflected'
             ? 1.1 * (1 - age * 0.8)
             : 0.8 + age * SHARD_REACH * 3.2,
         );

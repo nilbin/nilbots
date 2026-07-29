@@ -569,7 +569,7 @@ function buildAbsorptions(
     let usedSparks = 0;
     const current = replay.ticks[tick];
     for (const event of current?.events ?? []) {
-      if (event.type !== 'projectile-absorbed') continue;
+      if (event.type !== 'projectile-deflected') continue;
       // The same late-tick window every other contact uses, so an absorption and a hit
       // landing on the same tick happen at the same instant.
       const since = (fraction - 0.6) / 0.4;
@@ -588,7 +588,7 @@ function buildAbsorptions(
             null);
 
       if (at && event.toFacing !== null) {
-        const arc = borrow(arcs, geometry, usedArcs++, 'absorb-arc');
+        const arc = borrow(arcs, geometry, usedArcs++, 'deflect-arc');
         arc.visible = true;
         arc.position.set(at.x + 0.5, 0.07, at.y + 0.5);
         arc.rotation.y = GUARD_FACING[event.toFacing] ?? 0;
@@ -608,16 +608,36 @@ function buildAbsorptions(
       }
 
       if (contact) {
-        const spark = borrow(sparks, sparkGeometry, usedSparks++, 'absorb-contact');
+        // The handoff: the spark leaves the plate back along the reversed
+        // approach while its color flips from the shooter's accent to the
+        // guard's — the ownership flip, said in paint. The return bolt itself
+        // is an ordinary projectile the pipeline already draws.
+        const spark = borrow(sparks, sparkGeometry, usedSparks++, 'deflect-contact');
         spark.visible = true;
-        spark.position.set(contact.x + 0.5, PROJECTILE_HOVER, contact.y + 0.5);
-        spark.scale.setScalar(1.5 * (1 - since * 0.7));
+        const approach = event.from;
+        const hasRun =
+          approach && (approach.x !== contact.x || approach.y !== contact.y);
+        const run = hasRun ? since * 0.6 : 0;
+        const dx = hasRun ? Math.sign(approach.x - contact.x) : 0;
+        const dy = hasRun ? Math.sign(approach.y - contact.y) : 0;
+        spark.position.set(
+          contact.x + 0.5 + dx * run,
+          PROJECTILE_HOVER,
+          contact.y + 0.5 + dy * run,
+        );
+        spark.scale.setScalar(1.5 * (1 - since * 0.55));
         const material = spark.material as THREE.MeshBasicMaterial;
         material.color.set(
           event.sourceActor
             ? accentForUnit(replay, event.sourceActor.unitKey)
             : '#22d3ee',
         );
+        if (guard) {
+          material.color.lerp(
+            new THREE.Color(accentForUnit(replay, guard.unitKey)),
+            since,
+          );
+        }
         material.opacity = (1 - since) ** 2 * 0.9;
       }
     }

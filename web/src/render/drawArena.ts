@@ -1031,8 +1031,9 @@ export function drawArena(
     ctx.shadowColor = accent;
     ctx.shadowBlur = Math.max(4, tile * 0.2);
     ctx.lineCap = 'round';
-    if (member.breakKind === 'absorbed') {
-      // Eaten, not broken: the blade folds in on itself where the shell stopped it.
+    if (member.breakKind === 'deflected') {
+      // Turned, not broken: the blade folds where the shell caught it — the
+      // return bolt the deflection launched renders itself.
       ctx.strokeStyle = hexWithAlpha(accent, 0.8 * fade);
       ctx.lineWidth = Math.max(2, tile * 0.07 * (1 - age * 0.6));
       const shrink = tile * 0.34 * (1 - age);
@@ -1662,8 +1663,8 @@ export function drawArena(
         drawSparks(at.x, at.y, flash, ownerAccent, 7);
         ctx.restore();
       }
-      if (event.type === 'projectile-absorbed') {
-        drawAbsorption(event, flash);
+      if (event.type === 'projectile-deflected') {
+        drawDeflection(event, flash);
         continue;
       }
       if (isDestructionEvent(event.type)) {
@@ -1685,26 +1686,21 @@ export function drawArena(
   }
 
   /**
-   * A bolt dying on a shell, which is emphatically not a hit.
+   * A bolt turned on a shell, which is emphatically not a hit on the guard.
    *
-   * A damage impact throws a shockwave out and sparks off the victim: something was spent
-   * and something was taken. This has to say the opposite — the bolt stopped and *nothing
-   * happened* — so nothing here expands outward and nothing is thrown. The guarded arc
-   * lights up along its whole length, hard and briefly, the way a struck plate rings; the
-   * bolt crumples inward at the exact contact tile; and the camera does not move, because
-   * `shakeOffset` reacts to damage and destruction only.
+   * A damage impact throws a shockwave out and sparks off the victim. This says
+   * something different: the bolt was *taken and returned*. The guarded arc lights
+   * along its whole length, the way a struck plate rings; the incoming bolt folds at
+   * the contact tile and hands off — a short streak leaves the plate back the way the
+   * bolt came, in the *defender's* accent, into the return projectile the deflection
+   * launched (an ordinary bolt the pipeline draws from this same tick). The camera
+   * does not move, because `shakeOffset` reacts to damage and destruction only.
    *
-   * The arc is drawn from the *defender's* facing rather than the contact bearing. That is
-   * the point of the effect: every absorption re-states which quadrant is covered, so a
-   * player watching a shell get poked repeatedly learns where to go instead.
-   *
-   * **This says "nothing was transferred", and the slate's deflection ruling would make
-   * that wrong.** If the shell starts launching a team-flipped bolt back along the
-   * reversed heading, the return bolt renders itself — it is an ordinary projectile owned
-   * by the guard — but the collapse below must become a *redirect*, or the arena will
-   * show a bolt dying and an unrelated one appearing. The arc flash stays either way.
+   * The arc is drawn from the defender's facing rather than the contact bearing. That
+   * is the point of the effect: every deflection re-states which quadrant is covered,
+   * so a player watching a shell get poked repeatedly learns where to go instead.
    */
-  function drawAbsorption(event: ReplayCausalEvent, flash: number): void {
+  function drawDeflection(event: ReplayCausalEvent, flash: number): void {
     const target = event.targetActor;
     const contact = eventPoint(event.to ?? event.from);
     if (!contact) return;
@@ -1748,21 +1744,54 @@ export function drawArena(
       ctx.restore();
     }
 
-    // The bolt itself, collapsing where it stopped. Inward and shrinking: a shard thrown
-    // outward would read as a fragment that got through.
+    // The bolt folds at the plate, then hands off: a short streak leaves the contact
+    // tile back along the reversed approach, in the defender's accent — into the
+    // return projectile the same tick launches. The fold is quick (first half of the
+    // flash) so the streak owns the beat.
+    const fold = Math.min(1, flash * 2);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.shadowColor = boltAccent;
     ctx.shadowBlur = Math.max(4, tile * 0.2);
-    ctx.strokeStyle = hexWithAlpha(boltAccent, 0.9 * ring);
+    ctx.strokeStyle = hexWithAlpha(boltAccent, 0.9 * (1 - fold));
     ctx.lineWidth = Math.max(2, tile * 0.06);
     ctx.beginPath();
-    ctx.arc(contact.x, contact.y, tile * 0.3 * (1 - flash * 0.75), 0, Math.PI * 2);
+    ctx.arc(contact.x, contact.y, tile * 0.3 * (1 - fold * 0.75), 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = `rgba(233, 247, 255, ${0.8 * ring})`;
-    ctx.beginPath();
-    ctx.arc(contact.x, contact.y, tile * 0.07 * (1 - flash), 0, Math.PI * 2);
-    ctx.fill();
+
+    const origin = eventPoint(event.from);
+    const away =
+      origin && (origin.x !== contact.x || origin.y !== contact.y)
+        ? Math.atan2(origin.y - contact.y, origin.x - contact.x)
+        : null;
+    if (away !== null && flash > 0.35) {
+      const run = (flash - 0.35) / 0.65;
+      const reach = tile * (0.2 + run * 0.75);
+      ctx.shadowColor = guardAccent;
+      ctx.strokeStyle = hexWithAlpha(guardAccent, 0.95 * (1 - run * 0.6));
+      ctx.lineCap = 'round';
+      ctx.lineWidth = Math.max(2.5, tile * 0.09) * (1 - run * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(
+        contact.x + Math.cos(away) * tile * 0.08,
+        contact.y + Math.sin(away) * tile * 0.08,
+      );
+      ctx.lineTo(
+        contact.x + Math.cos(away) * reach,
+        contact.y + Math.sin(away) * reach,
+      );
+      ctx.stroke();
+      ctx.fillStyle = `rgba(233, 247, 255, ${0.9 * (1 - run)})`;
+      ctx.beginPath();
+      ctx.arc(
+        contact.x + Math.cos(away) * reach,
+        contact.y + Math.sin(away) * reach,
+        tile * 0.07,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
     ctx.restore();
   }
 

@@ -36,7 +36,7 @@ import {
  *   omnidirectional emplacement, and it keeps a facing because both stances are about one;
  * - a volley is **one glyph**, recovered from same-owner / same-tick / contiguous-ID
  *   projectiles and cut when a member terminates;
- * - an absorption is **not a hit**, and it happens on the guard.
+ * - a deflection is **not a hit on the guard**: it turns the bolt back.
  */
 
 const here = import.meta.dirname;
@@ -444,7 +444,7 @@ test('a generation-3 replay gets the same muzzle flash and death as a duel', () 
     );
 });
 
-test('an absorption is drawn on the guard, and is not a damage impact', () => {
+test('a deflection is drawn on the guard, and is not a damage impact', () => {
   const arm = asVolleyArm(frontline);
   const guarded = structuredClone(arm) as ReplayModel;
   const tick = guarded.ticks[LAUNCH];
@@ -452,23 +452,24 @@ test('an absorption is drawn on the guard, and is not a damage impact', () => {
   const target = guarded.ticks[LAUNCH].after.actors.find(
     (actor) => actor.actorKey !== SHOOTER,
   )!;
-  const absorbed = {
+  // `from` stays the shooter-side point from the template so the redirect
+  // streak (contact, back along the reversed approach) is part of the frame.
+  const deflected = {
     ...structuredClone(template),
-    eventId: 'synthetic:absorbed',
-    type: 'projectile-absorbed',
+    eventId: 'synthetic:deflected',
+    type: 'projectile-deflected',
     targetActor: target.identity,
     toFacing: 'west',
     to: target.position,
-    from: null,
     toFormId: 'striker-child-volley-stance',
   } as ReplayCausalEvent;
-  tick.events.push(absorbed);
+  tick.events.push(deflected);
 
   // Contacts resolve late in the tick, so before that instant nothing may be showing.
   assert.equal(
     frameHash(guarded, LAUNCH + 0.2),
     frameHash(arm, LAUNCH + 0.2),
-    'an absorption does not leak into the first half of its tick',
+    'a deflection does not leak into the first half of its tick',
   );
   assert.notEqual(
     frameHash(guarded, LAUNCH + 0.85),
@@ -477,11 +478,11 @@ test('an absorption is drawn on the guard, and is not a damage impact', () => {
   );
 
   // The same event as a hit is a different picture: a shockwave and sparks, on the
-  // shooter's colour, plus a camera knock. If these ever matched, "that did nothing"
-  // would be rendered as "that did something".
+  // shooter's colour, plus a camera knock. If these ever matched, "the guard turned
+  // that" would be rendered as "the guard was hit by that".
   const damaged = structuredClone(arm) as ReplayModel;
   damaged.ticks[LAUNCH].events.push({
-    ...structuredClone(absorbed),
+    ...structuredClone(deflected),
     type: 'damage',
     amount: 1,
     newHealth: 2,

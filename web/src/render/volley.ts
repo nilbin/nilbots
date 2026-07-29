@@ -59,7 +59,7 @@ export interface VolleyMember {
   /** 0 → 1 while a segment that broke off scatters; null while it is still flying. */
   breakAge: number | null;
   /** Why it broke, when it broke. A shell eats a bolt; a wall shatters one. */
-  breakKind: 'absorbed' | 'spent' | null;
+  breakKind: 'deflected' | 'spent' | null;
 }
 
 export interface VolleyPose {
@@ -91,7 +91,7 @@ interface VolleyTrack {
   deathTime: number | null;
   deathAt: ReplayPosition | null;
   deathHeading: ReplayProjectileHeading | null;
-  deathKind: 'absorbed' | 'spent';
+  deathKind: 'deflected' | 'spent';
   /** True when it was consumed on its launch tick without entering a tile. */
   diedAtMuzzle: boolean;
 }
@@ -230,7 +230,7 @@ function volleyIndex(replay: ReplayModel): VolleyIndex {
   // Where and when each member stopped existing. Derived from authoritative state — the
   // last tile a traversal entered, and the first tick that state no longer carries it —
   // never accumulated while drawing, so scrubbing backwards produces the same picture.
-  const absorbed = new Set<string>();
+  const deflected = new Set<string>();
   for (const [index, tick] of replay.ticks.entries()) {
     const surviving = new Set(
       (tick.after.projectiles ?? []).map(
@@ -264,9 +264,9 @@ function volleyIndex(replay: ReplayModel): VolleyIndex {
       });
     }
     for (const event of tick.events) {
-      if (event.type !== 'projectile-absorbed') continue;
+      if (event.type !== 'projectile-deflected') continue;
       if (event.projectileId !== null && tracks.has(event.projectileId))
-        absorbed.add(event.projectileId);
+        deflected.add(event.projectileId);
     }
     for (const [id, state] of touched) {
       const track = tracks.get(id)!;
@@ -276,7 +276,7 @@ function volleyIndex(replay: ReplayModel): VolleyIndex {
       track.deathTime = state.moved ? index + 1 : index + MUZZLE_DEATH;
       track.deathAt = state.at;
       track.deathHeading = state.heading;
-      track.deathKind = absorbed.has(id) ? 'absorbed' : 'spent';
+      track.deathKind = deflected.has(id) ? 'deflected' : 'spent';
     }
   }
 
