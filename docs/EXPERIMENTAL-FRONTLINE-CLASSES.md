@@ -22,7 +22,7 @@ recognizes the opposing class and adapts instead of hard-coding.
 | Fire cooldown | 2 | 3 | 2 |
 | Projectile range | 8 | 6 | 7 |
 | Other fire | — | straight only (`shoot-straight`) | straight only (`shoot-straight`) |
-| Turret forms | — | HP 7, omni fire; windup **3** (prime) / **1** (child) | — |
+| Turret forms | — | HP 7; **its own gun: travel 8, cooldown 1, eight headings** (not the mobile gun); windup **3** (prime) / **1** (child) | — |
 | Companions | automatic at 120 / 260, auto-rebuild 30 | automatic at 120 / 260, auto-rebuild 30 | **explicit** at 60 / 180, Ready again after 15 |
 
 Shared by every class: one tile of movement per tick, projectile speed two

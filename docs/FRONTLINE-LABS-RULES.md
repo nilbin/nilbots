@@ -102,7 +102,17 @@ Three facts authors repeatedly rediscover the hard way:
   pre-tick observation drew them.
 - **Omnidirectional vision and turret fire are eight rays, not a filled
   radius.** A tile "in range" is only seen or hittable along one of the
-  eight headings.
+  eight headings. The same discipline applies harder to a straight-only
+  mobile gun: it fires along exactly the four cardinals from your tile,
+  so at any distance half the tiles are permanently unreachable — stand
+  on a lane or you are not armed.
+- **"Range" is three different numbers.** Vision range, projectile
+  travel, and hearing radius are independent per-form values (a bulwark
+  sees 4, shoots 6, and hears 8); read each from its own profile.
+- **Under `facing-locked`, rotate to unlock a step.** The movement
+  legality mask offers only your current facing each tick — a route
+  search seeded from currently-legal directions makes your bot immobile,
+  not slower. Plan on map geometry and spend the rotation.
 
 Availability and typed constraints are authoritative. An action may be absent
 from a future form or contract. `Available` includes source-local and stable
