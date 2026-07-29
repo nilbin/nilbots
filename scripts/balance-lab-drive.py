@@ -1886,10 +1886,14 @@ def _seed_variance(valid: list[dict[str, Any]]) -> dict[str, Any]:
     # the row count read as sample size.
     hashes_by_assignment: dict[str, set[str]] = defaultdict(set)
     seeds_by_assignment: dict[str, set[Any]] = defaultdict(set)
-    for row in valid:
+    for index, row in enumerate(valid):
         key = json.dumps(row["teamAssignments"], sort_keys=True)
+        # A row without a hash must never collapse with another row, so
+        # the placeholder is unique per row, not per match id (synthetic
+        # rows may carry neither).
         hashes_by_assignment[key].add(
-            row.get("replayHash") or f"missing:{row['matchId']}"
+            row.get("replayHash")
+            or f"missing:{row.get('matchId', index)}:{index}"
         )
         seeds_by_assignment[key].add(row.get("seed"))
     collapsed = sorted(
