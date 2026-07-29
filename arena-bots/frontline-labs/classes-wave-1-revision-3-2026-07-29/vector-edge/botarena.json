@@ -1,0 +1,11 @@
+{
+  "name": "VectorEdge",
+  "entryType": "VectorEdge",
+  "sdkVersion": "0.10.4",
+  "class": "striker",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}
