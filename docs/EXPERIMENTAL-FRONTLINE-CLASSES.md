@@ -120,7 +120,7 @@ resolved contract:
 | `enemy-sole-decay` | `capture.decayClock` | empty and contested ticks stop eroding progress; only an enemy standing alone on the objective does |
 | `ratchet` | sticky-frontline + forward-rally | the registered structural level |
 | `ratchet-contest` | ratchet + contest-majority | the registered structural level with contest cost |
-| `keel` | ratchet-contest + enemy-sole-decay | every counterweight at once — the registered phase-1b level |
+| `keel` | ratchet-contest + enemy-sole-decay | every counterweight at once — the registered phase-1b level, and the phase-2 baseline |
 
 Any other ablation is spelled with comma-separated single-factor tokens.
 A level is identified by *what it composes*, never by how you typed it:
@@ -128,7 +128,10 @@ A level is identified by *what it composes*, never by how you typed it:
 `--pendulum sticky-frontline,forward-rally,contest-majority,enemy-sole-decay`
 are the same ruleset with the same fingerprint, and it is the short
 registered token that appears in the ID either way — the spelled-out form
-does not fit the 64-character canonical budget beside a class pair.
+does not fit the 64-character canonical budget beside a class pair. Keel
+composed with the skill kit or the bend envelope has registered identities of
+its own for the same reason — see
+[Phase-2 cells have registered identities](#phase-2-cells-have-registered-identities).
 
 `--capture-threshold` and `--prime-respawn-ticks` are the numbers-only
 level and compose the same way. None of these arms changes the observation
@@ -258,3 +261,39 @@ nilbots experiment frontline-labs \
   --classes bulwark-vs-striker --skills kit --bend universal \
   --seed 42 --runtime wasm --out /tmp/kit
 ```
+
+## Phase-2 cells have registered identities
+
+Phase 2 (DECISIONS #169) runs every cell on **keel + facing-locked** and
+factors only the kit (off/on) and the bend envelope
+(striker-only/universal) across the six class pairs. Spell those cells the
+ordinary way — the flags do not change — but the ruleset ID that comes back
+is a single **registered composite token**, because the per-factor spelling
+does not fit: `keel-bend` beside `fabricator-vs-fabricator` and
+`facing-locked` needs 65 of the 64 canonical characters, and the full
+candidate game needs 74.
+
+| token | the combination it names | spelled form |
+| --- | --- | --- |
+| `keel` | the pendulum alone — the phase-1b replication anchor | `--pendulum keel` |
+| `helm` | keel + the whole skill kit. The keel holds the course; the helm is what you steer with, which is what the per-class verbs are | `--pendulum keel --skills kit` |
+| `veer` | keel + the universal bend envelope. Every class's mobile gun may bend, so every bolt may veer | `--pendulum keel --bend universal` |
+| `rig` | keel + the kit + the universal bend: the whole working rig, and the phase-2 candidate game | `--pendulum keel --skills kit --bend universal` |
+
+The rules are the same ones the other registered tokens follow.
+
+- **The token names the combination, not the spelling.** `--skills kit`
+  resolves per class, so on `fabricator-vs-fabricator` the whole kit *is*
+  FIVE SLOTS — and asking for `--skills kit` and asking for
+  `--skills five-slots` there produce one ruleset with one fingerprint,
+  named `rig` (or `helm`) either way.
+- **A partial kit gets no name and keeps spelling itself out.** Half a kit is
+  not a registered level, so `--pendulum keel --skills five-slots` on
+  `bulwark-vs-fabricator` stays
+  `frontline-labs-1-bulwark-vs-fabricator-keel-slot5-facing-locked`, and
+  adding `--bend universal` to that combination overflows and tells you so.
+- **A lesser pendulum never borrows the name.** Every composite is keel-based;
+  `--pendulum ratchet --skills kit --bend universal` spells itself
+  `ratchet-cast-bend`.
+- The map, the format, and the seed profile are held constant across all 24
+  cells, so the only moving parts are the two factors under measurement.

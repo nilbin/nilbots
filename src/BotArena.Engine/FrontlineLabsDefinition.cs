@@ -588,15 +588,7 @@ public static class FrontlineLabsDefinition
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
         string[] tokens =
         [
-            .. PendulumToken(pendulum, composed) is { Length: > 0 } arm
-                ? new[] { arm }
-                : [],
-            .. SkillsToken(skills) is { Length: > 0 } kit
-                ? new[] { kit }
-                : [],
-            .. bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
-                ? []
-                : new[] { BendEnvelopeToken },
+            .. ArmTokens(pendulum, skills, bendEnvelope, classes, composed),
             .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
                 is { Length: > 0 } numbers
                 ? new[] { numbers }
@@ -620,10 +612,96 @@ public static class FrontlineLabsDefinition
                 $"The candidate ID '{id}' needs {id.Length} of the "
                 + $"{MaxRulesetIdLength} canonical characters. Drop one "
                 + "factor from this cell — the class pair, the movement "
-                + "coupling, or a pendulum arm — or register the "
-                + "combination under a shorter token.");
+                + "coupling, a pendulum arm, a class skill, or the bend "
+                + "envelope — or register the combination under a shorter "
+                + "token.");
         }
         return id;
+    }
+
+    /// <summary>
+    /// The rules-side arm tokens for one cell: a registered composite
+    /// identity when the combination has one, otherwise the per-factor
+    /// spelling in the declared order (pendulum, skills, bend).
+    /// </summary>
+    private static string[] ArmTokens(
+        FrontlineLabsPendulumArm pendulum,
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsBendEnvelopeArm bendEnvelope,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes,
+        bool composed)
+    {
+        if (CompositeArmToken(pendulum, skills, bendEnvelope, classes)
+            is { Length: > 0 } registered)
+        {
+            return [registered];
+        }
+        return
+        [
+            .. PendulumToken(pendulum, composed) is { Length: > 0 } arm
+                ? new[] { arm }
+                : [],
+            .. SkillsToken(skills) is { Length: > 0 } kit
+                ? new[] { kit }
+                : [],
+            .. bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
+                ? []
+                : new[] { BendEnvelopeToken },
+        ];
+    }
+
+    /// <summary>
+    /// The phase-2 composite identities (DECISIONS #169). Every phase-2 cell
+    /// is keel plus some of {the class-skill kit, the universal bend}, and the
+    /// per-factor spelling of even the smallest of those overflows the
+    /// canonical ID budget in the worst class cell — <c>keel-bend</c> beside
+    /// <c>fabricator-vs-fabricator</c> and <c>facing-locked</c> needs 65 of
+    /// 64 characters, and the full candidate game needs 74. So the three
+    /// combinations the factorial actually runs are registered under one
+    /// token each, exactly as <c>keel</c> itself was:
+    /// <list type="bullet">
+    /// <item><c>helm</c> — keel plus the whole kit. The keel holds the course
+    /// and the helm is what the crew steers with, which is what the per-class
+    /// verbs are.</item>
+    /// <item><c>veer</c> — keel plus the universal bend envelope. Every
+    /// class's mobile gun may now bend its bolt, so every bolt may veer.</item>
+    /// <item><c>rig</c> — keel plus the kit plus the universal bend: the whole
+    /// working rig, and the phase-2 candidate game.</item>
+    /// </list>
+    /// The kit resolves per class exactly as <c>--skills kit</c> already does:
+    /// an arm carries only the skills whose owning class is present, so the
+    /// registered token means "every skill this cell can carry", and on
+    /// <c>fabricator-vs-fabricator</c> that is <c>slot5</c> alone. The name is
+    /// a property of the combination rather than of how it was spelled, so
+    /// asking for the whole kit and asking for exactly that cell's skills are
+    /// the same content-identified ruleset — which is also why a PARTIAL kit
+    /// gets no registered name and keeps spelling itself out.
+    /// </summary>
+    private static string CompositeArmToken(
+        FrontlineLabsPendulumArm pendulum,
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsBendEnvelopeArm bendEnvelope,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes)
+    {
+        // Every registered composite is keel-based and class-composed: the
+        // kit and the bend envelope are both class capabilities, so neither
+        // exists without a pair.
+        if (pendulum != AllPendulumArms || classes is not { } pair)
+            return string.Empty;
+
+        bool wholeKit =
+            skills == (pair.TeamZero.Skill | pair.TeamOne.Skill);
+        bool universalBend =
+            bendEnvelope == FrontlineLabsBendEnvelopeArm.Universal;
+        return (wholeKit, skills, universalBend) switch
+        {
+            (true, _, false) => "helm",
+            (false, FrontlineLabsSkillKit.None, true) => "veer",
+            (true, _, true) => "rig",
+            _ => string.Empty,
+        };
     }
 
     /// <summary>

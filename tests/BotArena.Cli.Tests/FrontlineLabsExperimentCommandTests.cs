@@ -559,6 +559,90 @@ public sealed class FrontlineLabsExperimentCommandTests
             spelled.GetProperty("matchContractFingerprint").GetString());
     }
 
+    /// <summary>
+    /// Phase 2 (DECISIONS #169) keeps the spelled flag form — the factors are
+    /// still three separate options on the command line — and resolves it to
+    /// the registered composite identity, which is what makes the widest cells
+    /// expressible at all. The kit resolves per class exactly as
+    /// <c>--skills kit</c> already does, so on a single-class pair the whole
+    /// kit and that class's one skill are the same ruleset.
+    /// </summary>
+    [Fact]
+    public void PhaseTwoFlagsComposeIntoTheRegisteredCompositeIdentities()
+    {
+        (string Skills, string Bend, string Token)[] cells =
+        [
+            ("none", "striker-only", "keel"),
+            ("kit", "striker-only", "helm"),
+            ("none", "universal", "veer"),
+            ("kit", "universal", "rig"),
+        ];
+        var fingerprints = new HashSet<string>();
+        foreach (var cell in cells)
+        {
+            JsonElement contract = PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--pendulum",
+                    "keel",
+                    "--skills",
+                    cell.Skills,
+                    "--bend",
+                    cell.Bend,
+                    "--classes",
+                    "fabricator-vs-fabricator",
+                    "--movement",
+                    "facing-locked",
+                ]);
+            Assert.Equal(
+                "frontline-labs-1-fabricator-vs-fabricator-"
+                + $"{cell.Token}-facing-locked",
+                contract.GetProperty("rulesetId").GetString());
+            Assert.True(
+                fingerprints.Add(
+                    contract.GetProperty("matchContractFingerprint")
+                        .GetString()
+                    ?? string.Empty),
+                $"duplicate contract bytes for {cell.Token}");
+        }
+
+        // Named kit and per-class kit are one ruleset: this cell can only
+        // carry FIVE SLOTS, so asking for all three asks for exactly that.
+        JsonElement wholeKit = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--pendulum",
+                "keel",
+                "--skills",
+                "kit",
+                "--bend",
+                "universal",
+                "--classes",
+                "fabricator-vs-fabricator",
+            ]);
+        JsonElement cellSkill = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--pendulum",
+                "keel",
+                "--skills",
+                "five-slots",
+                "--bend",
+                "universal",
+                "--classes",
+                "fabricator-vs-fabricator",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-fabricator-vs-fabricator-rig",
+            wholeKit.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            wholeKit.GetProperty("rulesetId").GetString(),
+            cellSkill.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            wholeKit.GetProperty("matchContractFingerprint").GetString(),
+            cellSkill.GetProperty("matchContractFingerprint").GetString());
+    }
+
     [Fact]
     public void PendulumArms_RejectUnknownTokensAndIncompatibleArms()
     {
