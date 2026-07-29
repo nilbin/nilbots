@@ -3040,6 +3040,21 @@ mirror-decisiveness gain, and the rotation tax of facing-locked are
 robust findings; the bulwark-fabricator boundary is measured as
 genuinely contested.
 
+**Outcome-blind viewing pass (appended; full record in
+`BLIND-REVIEW-MOVEMENT-FACTORIAL-2026-07-29.md`).** Twelve samples,
+four per arm, arm- and outcome-blind. The arms do not separate on
+watchability (mean fun 2.75 on all three; clarity 3.75–4.0), so
+facing-locked's rotation tax carries no measured viewing penalty, and
+both explicit negative reactions targeted preserve-facing strafing.
+The watchability driver the pass did detect is the bend: the only two
+fun-4 games are the only two featuring the high-bend striker, and the
+owner's verdict — recorded blind, then confirmed — is that curved
+shots deliver dynamism and that striker-exclusivity of the bend
+envelope is itself in question. Dullness is quantified at mean fun
+2.75 with no 5s while clarity never fell below 3: presentation is no
+longer the bottleneck, the game is. The owner also ruled energy out as
+a mechanism candidate, citing #47/#48's closed verdict.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
