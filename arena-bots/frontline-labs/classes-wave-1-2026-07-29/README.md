@@ -20,3 +20,20 @@ internals, other entrants' source, or aggregate results.
 | iron-root | bulwark | iron-root-v1 | Fortress rotator: prime anchors forward behind cover through the long windup, mobilizes to rotate the front when flanked |
 | spark-line | fabricator | spark-line-v1 | Tempo engine: queues on unlock, bodies forward immediately, wins the objective clock with presence |
 | ledger-fly | fabricator | ledger-fly-v1 | Attrition banker: prime stays deep and safe, queues reactively to replace losses, plays the long clock |
+
+## Known viewer/tooling issues (2026-07-29 blind review)
+
+- `nilbots replay <replay.json> --out` cannot export replay-v3 viewers (v1
+  deserializer only). Regenerate v3 viewers by injecting the replay at the
+  `<!--BOTARENA_REPLAY-->` marker of a built viewer template
+  (`ReplayOutput.WriteViewer` semantics); self-contained `web/dist-cli`
+  excludes Three.js by design, so serve `web/dist` when review needs WebGL.
+- The web validator rejected every automatic-activation replay until the
+  availability-pending -> active transition was taught to it (fixed in this
+  commit); no auto-companions replay had ever been opened in a browser.
+- Mobilize (turret -> mobile) does not visually restore the mobile form in
+  the viewer, class forms have no presentation metadata, and teams/classes
+  are visually indistinguishable — class chassis looks and team tint are
+  open work before any entertainment verdict leans on the viewer.
+- Generic-actor movement does not rotate the body (contract behavior, not
+  the removed legacy strafe actions) — reads as "strafing" in review.

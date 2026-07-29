@@ -35,9 +35,27 @@ production URL and project ID; never create a second site for another batch.
    return the production URL only after success.
 
 On a fresh machine, obtain a source-repository credential and clone the site
-source into the ignored worktree before step 4. If the Sites integration is
-unavailable, prepare and validate the gallery but report the publishing
-blocker; do not silently switch to a public host.
+source into the ignored worktree before step 4.
+
+## Without the Sites integration
+
+The hosted deploy above needs the Sites integration, which only some agent
+environments carry (Codex sessions normally do; Claude Code sessions normally
+do not). When it is absent, do not silently switch to another public host —
+serve the already-built tree directly instead:
+
+```bash
+(cd out/replay-highlights-site/.open-next/assets && python3 -m http.server 8917)
+cloudflared tunnel --url http://127.0.0.1:8917   # optional public HTTPS URL
+```
+
+The LAN URL (`http://<machine-ip>:8917/index.html`) covers same-network
+review; the cloudflared quick tunnel adds an off-network HTTPS link. A quick
+tunnel is **public and unauthenticated** — say so when handing over the link,
+and stop both processes when the review is done. Keep the assembled gallery
+(viewers plus `gallery.json`) in an ignored scratch directory that no build
+clears — `web/dist-review` and other build outputs are wiped on rebuild and
+will eat manually placed files.
 
 ## Latency rules
 

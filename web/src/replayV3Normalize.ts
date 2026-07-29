@@ -3089,6 +3089,30 @@ export function validateReplayV3TickStartBoundary(
 
     if (
       sameStableFields &&
+      beforeSlot.state.kind === 'availability-pending' &&
+      beforeSlot.state.dueTick === tickStart.tick &&
+      afterSlot.nextLifeId === beforeSlot.nextLifeId + 1 &&
+      afterSlot.state.kind === 'active' &&
+      afterSlot.pendingParentActorId === null &&
+      afterSlot.splitReservation === null
+    ) {
+      // Declared automatic activation: a dormant slot's first life spawns
+      // at its exact unlock tick (the auto-companions and class arms)
+      // instead of merely becoming ready for explicit fabrication.
+      const actor = actorValue(afterSlot.state.actorId);
+      const start = starts.get(actor);
+      if (
+        afterSlot.state.actorId.teamId === beforeSlot.teamId &&
+        afterSlot.state.actorId.unitId === beforeSlot.unitId &&
+        afterSlot.state.actorId.lifeId === beforeSlot.nextLifeId &&
+        start?.origin.reason === 'automatic-activation'
+      ) {
+        continue;
+      }
+    }
+
+    if (
+      sameStableFields &&
       (beforeSlot.state.kind === 'automatic-return-pending' ||
         beforeSlot.state.kind === 'fabrication-pending' ||
         beforeSlot.state.kind === 'replication-pending') &&

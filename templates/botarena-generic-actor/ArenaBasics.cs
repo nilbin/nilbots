@@ -217,8 +217,13 @@ internal static class ArenaBasics
                 {
                     continue;
                 }
+                // A facing-aligned shot needs no payload when programs are
+                // optional — or when they are disabled entirely, which is
+                // how straight-only chassis (their attack action declares no
+                // parameters at all) fire every shot.
                 if (aimOffset == 0
-                    && attack.ShotProgram.PayloadOptional)
+                    && (attack.ShotProgram.PayloadOptional
+                        || !attack.ShotProgram.Enabled))
                 {
                     return GenericActorDecision.WithoutArguments(
                         action.ActionId,
@@ -282,9 +287,19 @@ internal static class ArenaBasics
         if (move is null || constraint is null)
             return null;
 
+        // Hostile projectiles always block or hit. Whether ALLIED bolts do is
+        // the contract's allied-contact policy — read it rather than assume
+        // pass-through, so this helper survives a future collision arm.
+        bool alliedBoltsPass = contract.Rules.Collisions
+            .AlliedProjectileContact
+            .Contains("pass-through", StringComparison.Ordinal);
         HashSet<Position> occupied = Occupied(
             context,
-            context.VisibleProjectiles ?? []);
+            (context.VisibleProjectiles ?? [])
+                .Where(projectile =>
+                    !alliedBoltsPass
+                    || projectile.OwnerTeamId
+                        != context.Self.ActorId.TeamId));
         if (temporarilyBlocked is not null)
             occupied.UnionWith(temporarilyBlocked);
         if (
@@ -325,15 +340,27 @@ internal static class ArenaBasics
         GenericActorContext context,
         string reason)
     {
-        GenericActorActionLegality wait = context.ActionLegalities
-            .Where(action => action.Available)
+        // Never throw: a deliberate fault is a protocol violation, while a
+        // Blocked outcome is safe. Prefer an available wait, then an
+        // unavailable one, then any available parameterless action, and as
+        // a last resort the first declared action.
+        GenericActorActionLegality? wait = context.ActionLegalities
             .FirstOrDefault(action =>
-                string.Equals(
+                action.Available
+                && string.Equals(
                     action.ActionId,
                     "wait",
                     StringComparison.Ordinal))
-            ?? throw new InvalidOperationException(
-                "No available wait action.");
+            ?? context.ActionLegalities
+                .FirstOrDefault(action =>
+                    string.Equals(
+                        action.ActionId,
+                        "wait",
+                        StringComparison.Ordinal))
+            ?? context.ActionLegalities
+                .FirstOrDefault(action =>
+                    action.Available && action.Constraints.IsEmpty)
+            ?? context.ActionLegalities.First();
         return GenericActorDecision.WithoutArguments(
             wait.ActionId,
             wait.ActionCode,
@@ -556,5 +583,88 @@ internal static class ArenaBasics
     {
         int difference = ((int)to - (int)from + 8) % 8;
         return difference > 4 ? difference - 8 : difference;
+    }
+
+    /// <summary>
+    /// The class of the team controlling <paramref name="teamId"/>, derived
+    /// from the contract: class chassis name every form
+    /// <c>&lt;class&gt;-&lt;role&gt;</c> (the pinned convention), so the
+    /// shared prefix of a team's slot forms is its class. Returns null on
+    /// contracts without class chassis (the base arms) — write doctrine
+    /// against the stats and routes either way; a typed classId replaces
+    /// this helper's body in a later contract generation.
+    /// </summary>
+    public static string? ClassOf(
+        GenericActorResolvedMatchContract contract,
+        int teamId)
+    {
+        string[] prefixes = contract.LifecycleAssignments
+            .Where(assignment => assignment.TeamId == teamId)
+            .SelectMany(assignment => assignment.AllowedFormIds)
+            .Select(formId => formId.Split('-')[0])
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (prefixes.Length != 1)
+            return null;
+        string prefix = prefixes[0];
+        bool isBaseCatalog = contract.Rules.Forms.Any(form =>
+            string.Equals(form.Id, "prime-mobile", StringComparison.Ordinal));
+        return isBaseCatalog ? null : prefix;
+    }
+
+    /// <summary>
+    /// Contract capabilities a doctrine usually branches on, gathered in one
+    /// place so bots read the contract instead of assuming an arm: whether
+    /// this form's attack takes shot programs, whether any same-life route
+    /// leads into a zero-weight (fortified) form, whether an explicit
+    /// fabrication route exists for this form, and this slot's unlock tick.
+    /// </summary>
+    public static (
+        bool ShotPrograms,
+        bool AnchorRoute,
+        bool FabricationRoute,
+        int? UnlockTick)
+        Capabilities(
+            GenericActorResolvedMatchContract contract,
+            GenericActorContext context)
+    {
+        string formId = context.Self.FormId;
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate =>
+                string.Equals(
+                    candidate.Id, formId, StringComparison.Ordinal));
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    string.Equals(
+                        candidate.Id, attackId, StringComparison.Ordinal))
+                : null;
+        HashSet<string> fortifiedForms = contract.Rules.Forms
+            .Where(candidate => candidate.ObjectiveWeight == 0)
+            .Select(candidate => candidate.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        bool anchorRoute = contract.Rules.SameLifeTransitions
+            .OfType<GenericActorRulesContract.FormTransition>()
+            .Any(transition =>
+                string.Equals(
+                    transition.SourceFormId,
+                    formId,
+                    StringComparison.Ordinal)
+                && fortifiedForms.Contains(transition.TargetFormId));
+        bool fabricationRoute = contract.Rules.FabricationTransitions
+            .OfType<GenericActorRulesContract
+                .BoundedChildFabricationTransition>()
+            .Any(transition =>
+                transition.SourceFormIds.Contains(formId));
+        int? unlockTick = contract.LifecycleAssignments
+            .FirstOrDefault(assignment =>
+                assignment.TeamId == context.Self.ActorId.TeamId
+                && assignment.UnitId == context.Self.ActorId.UnitId)
+            ?.UnlockTick;
+        return (
+            attack?.ShotProgram.Enabled == true,
+            anchorRoute,
+            fabricationRoute,
+            unlockTick);
     }
 }
