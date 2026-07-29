@@ -3139,6 +3139,34 @@ dodge tax that halved class spread is unchanged). If facing-locked
 fails those gates the question reopens explicitly rather than falling
 back to strafe by default.
 
+## 160. Pendulum counterweights exist as typed rules-side arms; measurement may begin
+
+The phase-1 structural interventions from #158 are implemented as
+pre-registered candidate arms on the existing capture/lifecycle policy
+seams, with zero observation-schema change and the pinned goldens
+unmodified (hosted `frontline-labs-1` byte-identical). Composable
+`--pendulum` tokens: `sticky-frontline` (a completed advance holds for
+`ratchetHoldTicks` = 40 — derived from the corpus's 33-tick reversal
+latency — and an enemy capture inside the hold is spent, moving
+nothing; breach is never denied), `forward-rally` (automatic returns
+and activations place on the own-side chain-adjacent objective region,
+derived from the chain, no new map regions), `contest-majority` (the
+existing net-objective-weight control policy composed in: surplus
+weight scales capture pressure, one body no longer nulls two), and
+`enemy-sole-decay` (empty and contested ticks preserve claim; only
+enemy sole erosion reduces it). Registered levels: `ratchet` =
+sticky + rally; `ratchet-contest` = ratchet + majority; numbers-only
+runs on `--capture-threshold` / `--prime-respawn-ticks`. The one new
+canonical field (`ratchetHoldTicks`) follows the #156 additive
+pattern, so frozen artifacts fault on sticky-carrying arms until
+rebuilt — the same accepted consequence facing-locked already
+established. The dynamics gates are machine-checkable via
+`labs-replay-eval.py --dynamics`, which reproduced all 27 baseline
+expectations on the wave-2 corpus before gating anything. A one-seed
+smoke ran in the pre-registered direction (control max-ticks; ratchet
+breach at 354; ratchet-contest breach at 206) and is recorded here as
+direction, not evidence. CLI 0.9.8.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
