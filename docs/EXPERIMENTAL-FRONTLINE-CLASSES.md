@@ -115,7 +115,7 @@ resolved contract:
 | --- | --- | --- |
 | `control` (default) | nothing | today's measured baseline |
 | `sticky-frontline` | `capture.redeployPolicy` + `capture.ratchetHoldTicks` | a completed advance holds for 40 ticks; an enemy capture inside the hold clears its own claim and moves nothing |
-| `forward-rally` | `lifecycle.automaticReturnPlacement` | respawns and companion arrivals appear on your own side of the active objective, not at home |
+| `forward-rally` | `lifecycle.automaticReturnPlacement` | respawns and companion arrivals appear on your own side of the active objective, not at home — on the rear-most free tile of that region measured along your own advance direction, so both sides arrive at mirrored distances |
 | `contest-majority` | `capture.controlPolicy` | surplus objective weight scales capture pressure, so one body no longer nulls two |
 | `enemy-sole-decay` | `capture.decayClock` | empty and contested ticks stop eroding progress; only an enemy standing alone on the objective does |
 | `ratchet` | sticky-frontline + forward-rally | the registered structural level |
@@ -126,7 +126,12 @@ level and compose the same way. None of these arms changes the observation
 schema, the action catalog, or any class stat, so a contract-driven bot
 needs no re-authoring: read `gameMode.capture` and `lifecycle` from
 MatchStart if you want to adapt, and expect a respawn to put you near the
-fight under `forward-rally`.
+fight under `forward-rally`. The arrival tile is derived from the objective
+chain and the placing team's own advance direction — never from the team ID
+— so the two sides' arrivals are exact reflections of each other. An older
+`automaticReturnPlacement` value names the same forward rally ordered by
+absolute map order instead; it is historical, still resolvable for archived
+replays, and selected by no arm.
 
 ```bash
 nilbots experiment frontline-labs \

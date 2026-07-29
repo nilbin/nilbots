@@ -566,7 +566,8 @@ public sealed class FrontlineLabsExperimentCommandTests
                 "to-neutral",
                 capture.GetProperty("controlPolicy").GetString());
             Assert.Equal(
-                "own-side-chain-adjacent-objective-tile-then-assigned-spawn",
+                "own-side-chain-adjacent-objective-tile-in-team-advance-" +
+                "order-then-assigned-spawn",
                 rules.GetProperty("lifecycle")
                     .GetProperty("automaticReturnPlacement")
                     .GetString());

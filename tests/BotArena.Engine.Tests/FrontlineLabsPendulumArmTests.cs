@@ -196,9 +196,12 @@ public sealed class FrontlineLabsPendulumArmTests
         Assert.Equal(
             FrontlineLabsDefinition.RatchetHoldTicksDefault,
             Capture(sticky).RatchetHoldTicks);
+        // The rally arms select the mirror-fair team-advance order; the
+        // historical map-absolute value stays defined for archived replays
+        // but is selected by no arm.
         Assert.Equal(
             ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
-                .OwnSideChainAdjacentObjectiveTileThenAssignedSpawn,
+                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn,
             rally.Rules.Lifecycle.AutomaticReturnPlacement);
         Assert.Equal(
             FrontlineCaptureDefinition.ControlPolicyKind

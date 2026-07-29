@@ -53,6 +53,23 @@ the cautionary tale).
 Land window: anytime — presentation-only, no schema. Integration is a
 normal merge.
 
+**Renderer scope note (added after the brief's first commit):** the
+renderer surface (web/src/render/, render3d/, unitPresentation,
+presentation/) is Codex's lane until this branch merges — the Claude
+session will not touch it. Re-branch from the CURRENT
+agent/frontline-duel-depth tip: since the brief was first committed,
+the branch gained the follow-camera + fit toggle, arrival
+materialization (condensing spawn effects), and the deflection redirect
+cue — style around them, don't rediscover them. Additional item handed
+over: the new transport Timeline has no mark kind for
+`projectile-deflected` (it is prose-only in the event feed; the arena
+cue exists). Give it a mark consistent with the design language — it
+is the counter-play beat for the bulwark's adopted skill. Discipline
+reminders: golden frames pin the no-camera transform (the camera is a
+`frame?` option — keep it that way), frameHash tests are the precedent
+for new-cue tests, and CliVersion bumps happen at integration because
+the viewer rides the CLI compatibility surface.
+
 ## Assignment 2 — class as a first-class citizen (`codex/class-first-class`)
 
 Phase B of DECISIONS #153: promote class from manifest string + form-ID

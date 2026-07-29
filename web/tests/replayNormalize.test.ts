@@ -886,6 +886,34 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
   }
 });
 
+test('replay-v3 carries every automatic-return placement policy', () => {
+  // The lifecycle policy is contract data the viewer relays rather than
+  // re-decides, so a new placement must normalize without a viewer change and
+  // the historical one must keep normalizing — archived replays name it.
+  const placements = [
+    'own-side-chain-adjacent-objective-tile-in-team-advance-order-then-assigned-spawn',
+    'own-side-chain-adjacent-objective-tile-then-assigned-spawn',
+    'assigned-spawn-permanently-reserved-for-slot-against-other-actors-and-lifecycle-claims',
+  ];
+  for (const placement of placements) {
+    const raw = replayV3FixtureText().replace(
+      /"automaticReturnPlacement":"[^"]*"/,
+      `"automaticReturnPlacement":"${placement}"`,
+    );
+    const decoded = decodeReplayJson(raw);
+    assert.equal(decoded.replayVersion, 3);
+    const contract = decoded.replay.contract;
+    assert.equal(contract.kind, 'v3-generic');
+    if (contract.kind === 'v3-generic') {
+      assert.equal(
+        (contract.rawContract.rules.lifecycle as Record<string, unknown>)
+          .automaticReturnPlacement,
+        placement,
+      );
+    }
+  }
+});
+
 test('replay-v3 accepts a declared automatic return at the tick-start boundary', () => {
   const fixture = replayV3FixtureInput();
   const before = structuredClone(fixture.initialFrame.state);
