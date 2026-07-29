@@ -95,3 +95,17 @@ Do not assume all forms expose all actions. See
 rule card and `docs/EXPERIMENTAL-FRONTLINE.md` for its product/authoring
 boundary. The exact contract delivered to the bot and embedded in the replay
 remains authoritative.
+
+## Helpers worth knowing before you write your own
+
+- `ShotPaths.Preview` replays the engine's exact bend rule for a candidate
+  program — the most useful single call in the SDK for aiming and
+  interception. Trust it over your own geometry.
+- `ArenaBasics.Capabilities(contract, context)` answers the questions a
+  doctrine branches on (shot programs? anchor route? fabrication route?
+  unlock tick?) straight from the contract; `ArenaBasics.ClassOf` reads a
+  team's class chassis. Prefer these over hard-coded assumptions — arms
+  differ, and the qualification profile is not your class arm.
+- When a probe or match behaves inexplicably, dump the resolved contract
+  from your own replay's `header.contract` — it is the authoritative
+  ruleset, and reading it beats guessing from prose every time.

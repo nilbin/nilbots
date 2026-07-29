@@ -89,6 +89,21 @@ tick's `GenericActorActionLegality`. The current stable IDs are:
 - `transform`, with a form target;
 - `shoot-direction`, with one absolute eight-way projectile heading.
 
+Three facts authors repeatedly rediscover the hard way:
+
+- **`move` does not change your facing** and `rotate` does not move you;
+  `rotate` sets an absolute facing in one action (no 90° stepping). A body
+  can therefore move any cardinal direction while facing another — that is
+  the contract, not the historical strafe actions. Experiment arms may
+  couple facing to movement; read the contract, not this sentence.
+- **Within one tick, movement resolves before combat.** The enemy you
+  observed has already moved by the time projectiles advance and new shots
+  launch — aim at where bodies will be after movement, not where the
+  pre-tick observation drew them.
+- **Omnidirectional vision and turret fire are eight rays, not a filled
+  radius.** A tile "in range" is only seen or hittable along one of the
+  eight headings.
+
 Availability and typed constraints are authoritative. An action may be absent
 from a future form or contract. `Available` includes source-local and stable
 slot prerequisites: for example, Fabricate is unavailable away from its

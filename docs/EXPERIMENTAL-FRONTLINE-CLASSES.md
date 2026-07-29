@@ -43,6 +43,22 @@ any class arm.
   every queue costs a combat action, and a Fabricator that never queues gets
   no companions at all. Lowest floor, highest ceiling.
 
+## The turret bargain, stated plainly
+
+A turret has **objective weight zero**: fortifying removes that body from
+every capture and contest count. A bulwark that anchors before relief
+exists has deleted its only scoring presence — this single fact is most of
+the class's strategic depth, and both mirror stalemates and thrown games
+trace back to ignoring it.
+
+## Qualification runs a different contract than your class
+
+The cumulative suites qualify your WASM on the **duel-depth union
+profile**, not your class arm: it carries verbs your chassis may lack
+(`fabricate` on the pad, shot programs) and lacks your class routes.
+A class-armed bot must stay contract-driven to pass — read the action
+catalog, routes, and legality masks; never assume your class's shape.
+
 ## Reading the class from the contract
 
 - Your forms carry your class prefix (`striker-prime`, `bulwark-child-turret`,
