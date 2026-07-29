@@ -17,6 +17,7 @@ import os
 import re
 import shlex
 import shutil
+import concurrent.futures
 import subprocess
 import sys
 from collections import Counter, defaultdict
@@ -728,10 +729,11 @@ def execute_plan(
     dry_run: bool,
     reverify_existing: bool = False,
     extra_values: dict[str, Any] | None = None,
+    jobs: int = 1,
 ) -> list[dict[str, Any]]:
     extra_values = extra_values or {}
-    executions = []
-    for item in plan:
+
+    def execute_item(item: dict[str, Any]) -> dict[str, Any]:
         match_dir = output / "matches" / item["id"]
         values = {
             **extra_values,
@@ -749,10 +751,7 @@ def execute_plan(
             reverify=reverify_existing and not dry_run,
         )
         if verified is not None:
-            executions.append(
-                {"plan": item, "attempt": verified, "status": "verified"}
-            )
-            continue
+            return {"plan": item, "attempt": verified, "status": "verified"}
         attempt_number = len(list(match_dir.glob("attempt-*"))) + 1
         attempt = match_dir / f"attempt-{attempt_number:02}"
         attempt.mkdir(parents=True)
@@ -772,10 +771,7 @@ def execute_plan(
             encoding="utf-8",
         )
         if dry_run:
-            executions.append(
-                {"plan": item, "attempt": attempt, "status": "planned"}
-            )
-            continue
+            return {"plan": item, "attempt": attempt, "status": "planned"}
         with (attempt / "runner.stdout.log").open("w") as stdout, (
             attempt / "runner.stderr.log"
         ).open("w") as stderr:
@@ -788,15 +784,12 @@ def execute_plan(
                 text=True,
             )
         if completed.returncode != 0 or not (attempt / "replay.json").is_file():
-            executions.append(
-                {
-                    "plan": item,
-                    "attempt": attempt,
-                    "status": "runner-failed",
-                    "exitCode": completed.returncode,
-                }
-            )
-            continue
+            return {
+                "plan": item,
+                "attempt": attempt,
+                "status": "runner-failed",
+                "exitCode": completed.returncode,
+            }
         verification_status = _run_verifier(
             attempt,
             verifier,
@@ -812,15 +805,23 @@ def execute_plan(
             ) + "\n",
             encoding="utf-8",
         )
-        executions.append(
-            {
-                "plan": item,
-                "attempt": attempt,
-                "status": "verified" if verified_ok else "verify-failed",
-                "exitCode": verification_status["exitCode"],
-            }
-        )
-    return executions
+        return {
+            "plan": item,
+            "attempt": attempt,
+            "status": "verified" if verified_ok else "verify-failed",
+            "exitCode": verification_status["exitCode"],
+        }
+
+    # Matches are independent processes writing disjoint attempt
+    # directories, so parallel lanes are provenance-safe. pool.map
+    # preserves plan order, keeping reports byte-stable regardless of
+    # completion order.
+    if jobs <= 1:
+        return [execute_item(item) for item in plan]
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=jobs,
+    ) as pool:
+        return list(pool.map(execute_item, plan))
 
 
 def replay_identity_issues(

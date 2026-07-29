@@ -2909,6 +2909,7 @@ def run(
     *,
     dry_run: bool,
     resume: bool,
+    jobs: int = 1,
 ) -> dict[str, Any]:
     spec = load_spec(spec_path)
     plan = build_plan(spec)
@@ -2969,6 +2970,7 @@ def run(
                     dry_run=dry_run,
                     reverify_existing=resume,
                     extra_values=toolchain_values,
+                    jobs=jobs,
                 )
                 _assert_frozen_toolchain(
                     spec,
@@ -3228,6 +3230,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        help="parallel match lanes per cell (matches are independent "
+        "processes with disjoint output directories; report order stays "
+        "deterministic)")
     args = parser.parse_args(argv)
     if args.dry_run and args.resume:
         parser.error("--dry-run and --resume cannot be combined")
@@ -3236,6 +3245,7 @@ def main(argv: list[str] | None = None) -> int:
         args.output.resolve(),
         dry_run=args.dry_run,
         resume=args.resume,
+        jobs=max(1, args.jobs),
     )
     valid = sum(cell["validMatches"] for cell in report["cells"])
     planned = sum(cell["plannedMatches"] for cell in report["cells"])

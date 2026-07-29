@@ -41,10 +41,12 @@ public sealed class WasmActorRuntimeFactory : IActorRuntimeFactory
         Module? module = null;
         try
         {
-            module = Module.FromBytes(
+            module = WasmModuleCache.LoadOrCompile(
                 engine,
                 Path.GetFileName(options.ModulePath),
-                artifactBytes);
+                artifactBytes,
+                ArtifactHash,
+                configTag: "fuel-epoch");
             WasmArtifactValidator.Validate(module, artifactBytes);
             _engine = engine;
             _module = module;
