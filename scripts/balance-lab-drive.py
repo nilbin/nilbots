@@ -1875,6 +1875,34 @@ def _result_row(
     }
 
 
+def _seed_variance(valid: list[dict[str, Any]]) -> dict[str, Any]:
+    # Deterministic entrants that never draw from context.Random produce
+    # byte-identical replays for every seed, so a multi-seed pairing is one
+    # observation, not len(seeds). Disclose the collapse instead of letting
+    # the row count read as sample size.
+    hashes_by_assignment: dict[str, set[str]] = defaultdict(set)
+    seeds_by_assignment: dict[str, set[Any]] = defaultdict(set)
+    for row in valid:
+        key = json.dumps(row["teamAssignments"], sort_keys=True)
+        hashes_by_assignment[key].add(
+            row.get("replayHash") or f"missing:{row['matchId']}"
+        )
+        seeds_by_assignment[key].add(row.get("seed"))
+    collapsed = sorted(
+        key
+        for key, hashes in hashes_by_assignment.items()
+        if len(seeds_by_assignment[key]) > 1 and len(hashes) == 1
+    )
+    return {
+        "distinctReplayHashes": len(
+            {value for values in hashes_by_assignment.values()
+             for value in values}
+        ),
+        "validMatches": len(valid),
+        "assignmentsWithCollapsedSeeds": collapsed,
+    }
+
+
 def _payoff_matrix(
     rows: list[dict[str, Any]],
     entrant_ids: list[str],
@@ -2583,6 +2611,7 @@ def _cell_report(
         },
         "plannedMatches": len(rows),
         "validMatches": len(valid),
+        "seedVariance": _seed_variance(valid),
         "payoffMatrix": payoff_matrix,
         "balanceVector": {
             "sideSpawnFairness": {
@@ -2868,8 +2897,8 @@ def _write_report(output: Path, report: dict[str, Any]) -> None:
             f"`{str(report['candidatePromotionEligible']).lower()}`."
         ),
         "",
-        "| Study | Candidate | Population | Valid | Effective doctrines | Side effect | Median ticks |",
-        "| --- | --- | --- | ---: | ---: | ---: | ---: |",
+        "| Study | Candidate | Population | Valid | Distinct replays | Effective doctrines | Side effect | Median ticks |",
+        "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for cell in report["cells"]:
         vector = cell["balanceVector"]
@@ -2879,10 +2908,17 @@ def _write_report(output: Path, report: dict[str, Any]) -> None:
             if side_delta is not None
             else "not estimable"
         )
+        variance = cell["seedVariance"]
+        variance_text = (
+            f"{variance['distinctReplayHashes']}/{variance['validMatches']}"
+        )
+        if variance["assignmentsWithCollapsedSeeds"]:
+            variance_text += " ⚠"
         lines.append(
             f"| {cell['studyBlockId']} | {cell['candidateId']} | "
             f"{cell['populationId']} | "
             f"{cell['validMatches']}/{cell['plannedMatches']} | "
+            f"{variance_text} | "
             f"{vector['strategicDiversity']['doctrineRedundancy']['effectiveDoctrineEstimate']}"
             f"/{vector['strategicDiversity']['doctrineRedundancy']['artifactCount']} | "
             f"{side_delta_text} | "
