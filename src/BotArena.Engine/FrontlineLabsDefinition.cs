@@ -644,7 +644,14 @@ public static class FrontlineLabsDefinition
         skill switch
         {
             FrontlineLabsSkillKit.StrikerVolley => "fan",
-            FrontlineLabsSkillKit.BulwarkAegisShell => "shell",
+            // The token names the behaviour, not the silhouette: the arm that
+            // absorbed was `shell`, the arm that returns the bolt is `parry`,
+            // so the two are never confusable as one ruleset identity. It is
+            // `parry` rather than the plainer `deflect` for the reason #156
+            // already recorded — the longest cell
+            // (bulwark-vs-fabricator + slot5 + facing-locked) leaves exactly
+            // five characters here, and `deflect` needs seven.
+            FrontlineLabsSkillKit.BulwarkAegisShell => "parry",
             FrontlineLabsSkillKit.FabricatorFiveSlots => "slot5",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(skill),
@@ -1493,9 +1500,15 @@ public static class FrontlineLabsDefinition
             {
                 // The stance forfeits mobility and keeps objective weight 1 —
                 // the deliberate half of the turret bargain the slate's design
-                // guard demands a skill choose explicitly. Rotation stays so
-                // the stance remains aimable rather than a second turret.
+                // guard demands a skill choose explicitly. The volley stance
+                // keeps rotation so it stays aimable rather than a second
+                // turret; the deflecting shell does NOT, because its arc locks
+                // on entry (owner ruling: a weight-1 shield with a tracking
+                // arc would be an invincible capturer, and flanking has to
+                // stay real even 1v1). The protected quadrant is chosen before
+                // the shield rises, in the mobile form.
                 bool volley = HasVolley(entry);
+                bool lockedArc = HasShell(entry);
                 foreach ((string stanceFormId, int maxHealth) in new[]
                          {
                              (entry.PrimeStanceFormId, entry.PrimeMaxHealth),
@@ -1512,15 +1525,15 @@ public static class FrontlineLabsDefinition
                             objectiveWeight: 1,
                             [
                                 "wait",
-                                "rotate",
+                                .. lockedArc ? [] : new[] { "rotate" },
                                 .. volley
                                     ? new[] { ShootStraightActionId }
                                     : [],
                                 MobilizeActionId,
                             ],
-                            HasShell(entry)
+                            lockedArc
                                 ? ActorFormProjectileGuardKind
-                                    .FacingQuadrantContactsConsumedWithoutDamage
+                                    .FacingQuadrantContactsDeflected
                                 : ActorFormProjectileGuardKind.None));
                 }
                 sameLifeTransitions.Add(

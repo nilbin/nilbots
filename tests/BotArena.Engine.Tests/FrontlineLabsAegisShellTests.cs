@@ -72,7 +72,7 @@ public sealed class FrontlineLabsAegisShellTests
             Assert.Equal(1, form.ObjectiveWeight);
             Assert.Equal(
                 ActorFormProjectileGuardKind
-                    .FacingQuadrantContactsConsumedWithoutDamage,
+                    .FacingQuadrantContactsDeflected,
                 form.ProjectileGuard);
             // Tenure is priced, never clock-enforced: no rule caps it.
             Assert.Contains("wait", form.AllowedActionIds);
@@ -122,10 +122,10 @@ public sealed class FrontlineLabsAegisShellTests
             Direction.West);
 
         GenericActorMatchTickFrame frame = chronology.Ticks.First(item =>
-            FrontlineLabsSkillArmTestFixture.Absorptions(item).Length > 0);
-        GenericActorRuntimeObservation.EventPayload.ProjectileAbsorbed
+            FrontlineLabsSkillArmTestFixture.Deflections(item).Length > 0);
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
             absorbed = FrontlineLabsSkillArmTestFixture
-                .Absorptions(frame)
+                .Deflections(frame)
                 .Single();
 
         Assert.Equal(0, absorbed.SourceTeamId);
@@ -167,7 +167,7 @@ public sealed class FrontlineLabsAegisShellTests
         Assert.DoesNotContain(
             chronology.Ticks,
             frame => FrontlineLabsSkillArmTestFixture
-                .Absorptions(frame)
+                .Deflections(frame)
                 .Length > 0);
         GenericActorRuntimeObservation.EventPayload.Damage first = chronology
             .Ticks
@@ -217,7 +217,7 @@ public sealed class FrontlineLabsAegisShellTests
             plain,
             StringComparison.Ordinal);
         Assert.Contains(
-            "\"projectileGuard\":\"facing-quadrant-contacts-consumed-without-damage\"",
+            "\"projectileGuard\":\"facing-quadrant-contacts-deflected\"",
             guarded,
             StringComparison.Ordinal);
 
@@ -245,7 +245,7 @@ public sealed class FrontlineLabsAegisShellTests
                 FrontlineLabsClassDefinition.Bulwark);
 
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-bulwark-shell",
+            "frontline-labs-1-bulwark-vs-bulwark-parry",
             arm.Rules.RulesetId);
         Assert.True(arm.Rules.RulesetId.Length <= 64);
         Assert.NotEqual(

@@ -123,16 +123,16 @@ internal static class FrontlineLabsSkillArmTestFixture
         ];
 
     public static ImmutableArray<
-            GenericActorRuntimeObservation.EventPayload.ProjectileAbsorbed>
-        Absorptions(GenericActorMatchTickFrame frame) =>
+            GenericActorRuntimeObservation.EventPayload.ProjectileDeflected>
+        Deflections(GenericActorMatchTickFrame frame) =>
         [
             .. frame.Events
                 .Where(item => item.Kind
                     == GenericActorRuntimeObservation.EventKind
-                        .ProjectileAbsorbed)
+                        .ProjectileDeflected)
                 .Select(item =>
                     (GenericActorRuntimeObservation.EventPayload
-                        .ProjectileAbsorbed)item.Payload),
+                        .ProjectileDeflected)item.Payload),
         ];
 
     public static ImmutableArray<

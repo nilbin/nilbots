@@ -534,13 +534,14 @@ public sealed class GenericActorChronologyFoundationTests
                         "participant-disqualified")),
             new(
                 19,
-                GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed,
+                GenericActorRuntimeObservation.EventKind.ProjectileDeflected,
                 new GenericActorRuntimeObservation.EventPayload
-                    .ProjectileAbsorbed(
+                    .ProjectileDeflected(
                         0,
                         actor,
                         target,
                         12,
+                        13,
                         "bulwark-prime-aegis-shell",
                         Direction.West,
                         ProjectileHeading.East,
@@ -603,9 +604,9 @@ public sealed class GenericActorChronologyFoundationTests
                     .LifecycleClockCancelled =>
                 typeof(GenericActorRuntimeObservation.EventPayload
                     .LifecycleClockCancelled),
-            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed =>
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
                 typeof(GenericActorRuntimeObservation.EventPayload
-                    .ProjectileAbsorbed),
+                    .ProjectileDeflected),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 

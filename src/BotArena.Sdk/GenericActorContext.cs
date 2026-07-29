@@ -1294,28 +1294,36 @@ public sealed record GenericActorContext
         }
 
         /// <summary>
-        /// A hostile projectile was consumed by the target form's declared
-        /// projectile guard instead of damaging it. Contracts whose forms
-        /// declare no guard never produce this event.
+        /// A hostile projectile died on the target form's declared projectile
+        /// guard instead of damaging it, and the guard returned a new bolt
+        /// from its own tile along the exactly reversed heading under its own
+        /// team's ownership. Contracts whose forms declare no guard never
+        /// produce this event.
         /// </summary>
-        public sealed record ProjectileAbsorbed : EventPayload
+        public sealed record ProjectileDeflected : EventPayload
         {
-            /// <summary>Creates a projectile-absorption payload.</summary>
-            /// <param name="sourceTeamId">Projectile's owning scoring team.</param>
+            /// <summary>Creates a projectile-deflection payload.</summary>
+            /// <param name="sourceTeamId">Consumed bolt's owning scoring team.</param>
             /// <param name="sourceActorId">
             /// Exact firing life when visible, otherwise <see langword="null"/>.
             /// </param>
-            /// <param name="targetActorId">Life whose guard consumed the bolt.</param>
-            /// <param name="projectileId">Projectile consumed without damage.</param>
+            /// <param name="targetActorId">Life whose guard turned the bolt.</param>
+            /// <param name="projectileId">Incoming projectile consumed without damage.</param>
+            /// <param name="deflectedProjectileId">
+            /// Returned projectile launched by the guard. It belongs to the
+            /// guard's team and flies the reverse of <paramref name="heading"/>
+            /// from <paramref name="position"/>.
+            /// </param>
             /// <param name="targetFormId">Guarding form at contact.</param>
             /// <param name="targetFacing">Guard facing at contact.</param>
-            /// <param name="heading">Projectile travel heading at contact.</param>
-            /// <param name="position">Contact tile.</param>
-            public ProjectileAbsorbed(
+            /// <param name="heading">Incoming travel heading at contact.</param>
+            /// <param name="position">Contact tile, and the return's origin.</param>
+            public ProjectileDeflected(
                 int sourceTeamId,
                 ActorIdentity? sourceActorId,
                 ActorIdentity targetActorId,
                 long projectileId,
+                long deflectedProjectileId,
                 string targetFormId,
                 Direction targetFacing,
                 ProjectileHeading heading,
@@ -1333,6 +1341,17 @@ public sealed record GenericActorContext
                 }
                 if (projectileId < 0)
                     throw new ArgumentOutOfRangeException(nameof(projectileId));
+                if (deflectedProjectileId < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(deflectedProjectileId));
+                }
+                if (deflectedProjectileId == projectileId)
+                {
+                    throw new ArgumentException(
+                        "A deflection returns a new projectile identity, never the consumed one.",
+                        nameof(deflectedProjectileId));
+                }
                 if (!Enum.IsDefined(targetFacing))
                     throw new ArgumentOutOfRangeException(nameof(targetFacing));
                 if (!Enum.IsDefined(heading))
@@ -1342,6 +1361,7 @@ public sealed record GenericActorContext
                 SourceActorId = sourceActorId;
                 TargetActorId = targetActorId;
                 ProjectileId = projectileId;
+                DeflectedProjectileId = deflectedProjectileId;
                 TargetFormId = GenericActorDynamicValueRules.SemanticId(
                     targetFormId,
                     nameof(targetFormId));
@@ -1350,28 +1370,34 @@ public sealed record GenericActorContext
                 Position = position;
             }
 
-            /// <summary>Projectile's owning scoring team.</summary>
+            /// <summary>Consumed bolt's owning scoring team.</summary>
             public int SourceTeamId { get; }
             /// <summary>
             /// Exact firing life when observation policy reveals it; otherwise
             /// <see langword="null"/>.
             /// </summary>
             public ActorIdentity? SourceActorId { get; }
-            /// <summary>Life whose guard consumed the bolt.</summary>
+            /// <summary>Life whose guard turned the bolt.</summary>
             public ActorIdentity TargetActorId { get; }
-            /// <summary>Projectile consumed without damage.</summary>
+            /// <summary>Incoming projectile consumed without damage.</summary>
             public long ProjectileId { get; }
+            /// <summary>
+            /// Returned projectile: owned by the deflecting life's team,
+            /// launched from <see cref="Position"/> along the reverse of
+            /// <see cref="Heading"/>, and lethal to whoever fired the original.
+            /// </summary>
+            public long DeflectedProjectileId { get; }
             /// <summary>Guarding form at contact.</summary>
             public string TargetFormId { get; }
             /// <summary>Guard facing at contact.</summary>
             public Direction TargetFacing { get; }
-            /// <summary>Projectile travel heading at contact.</summary>
+            /// <summary>Incoming projectile travel heading at contact.</summary>
             public ProjectileHeading Heading { get; }
-            /// <summary>Contact map tile.</summary>
+            /// <summary>Contact map tile, and the return bolt's origin.</summary>
             public Position Position { get; }
 
             internal override bool Supports(EventKind kind) =>
-                kind == EventKind.ProjectileAbsorbed;
+                kind == EventKind.ProjectileDeflected;
         }
 
         /// <summary>One body life reached the ruleset's destruction condition.</summary>
@@ -1966,10 +1992,11 @@ public sealed record GenericActorContext
         /// <summary>A pending stable-slot lifecycle clock was cancelled.</summary>
         LifecycleClockCancelled = 18,
         /// <summary>
-        /// A form's projectile guard consumed a hostile bolt without damage.
-        /// Inert on every contract whose forms declare no guard.
+        /// A form's projectile guard killed a hostile bolt on its arc and
+        /// returned a team-flipped bolt along the reversed heading. Inert on
+        /// every contract whose forms declare no guard.
         /// </summary>
-        ProjectileAbsorbed = 19,
+        ProjectileDeflected = 19,
     }
 
     /// <summary>Authoritative score channels for every public scoring team.</summary>

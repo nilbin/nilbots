@@ -57,9 +57,9 @@ public sealed class FrontlineLabsSkillChronologyTests
         GenericActorMatchChronology chronology = ShellChronology();
         GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
-            .ProjectileAbsorbed)frame.Events.First(item => item.Kind
+            .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
-                    .ProjectileAbsorbed).Payload;
+                    .ProjectileDeflected).Payload;
 
         Assert.Contains(
             "facing quadrant",
@@ -77,9 +77,9 @@ public sealed class FrontlineLabsSkillChronologyTests
         GenericActorMatchChronology chronology = ShellChronology();
         GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
-            .ProjectileAbsorbed)frame.Events.First(item => item.Kind
+            .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
-                    .ProjectileAbsorbed).Payload;
+                    .ProjectileDeflected).Payload;
 
         Assert.Contains(
             "declared guard",
@@ -101,9 +101,9 @@ public sealed class FrontlineLabsSkillChronologyTests
         GenericActorMatchChronology chronology = ShellChronology();
         GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
-            .ProjectileAbsorbed)frame.Events.First(item => item.Kind
+            .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
-                    .ProjectileAbsorbed).Payload;
+                    .ProjectileDeflected).Payload;
 
         Assert.Contains(
             "hostile fire",
@@ -125,9 +125,9 @@ public sealed class FrontlineLabsSkillChronologyTests
         GenericActorMatchChronology chronology = ShellChronology();
         GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
-            .ProjectileAbsorbed)frame.Events.First(item => item.Kind
+            .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
-                    .ProjectileAbsorbed).Payload;
+                    .ProjectileDeflected).Payload;
 
         Assert.Contains(
             "contact traversal",
@@ -280,5 +280,5 @@ public sealed class FrontlineLabsSkillChronologyTests
     private static GenericActorMatchTickFrame FirstAbsorption(
         GenericActorMatchChronology chronology) =>
         chronology.Ticks.First(frame =>
-            FrontlineLabsSkillArmTestFixture.Absorptions(frame).Length > 0);
+            FrontlineLabsSkillArmTestFixture.Deflections(frame).Length > 0);
 }

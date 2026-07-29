@@ -221,10 +221,14 @@ public sealed record GenericActorMatchChronology
     /// launch order and, for a symmetric fan, consecutive heading sectors
     /// centred on the first bolt's heading.
     ///
-    /// AEGIS SHELL — an absorption is published exactly when a hostile
+    /// AEGIS SHELL — a deflection is published exactly when a hostile
     /// projectile is consumed without damage by a target whose form declares
-    /// the guard and whose facing quadrant contains the approach, and the
-    /// traversal that consumed it must agree that no damage was applied.
+    /// the guard and whose facing quadrant contains the approach; the
+    /// traversal that consumed it must agree that no damage was applied; and
+    /// the returned bolt must exist with the guard's ownership, the guard's
+    /// tile as origin, the exactly reversed heading, and a fresh budget.
+    /// Symmetrically, no projectile may enter the world during resolution
+    /// without either an attack or a deflection naming it.
     /// </summary>
     private static void ValidateProjectileSkillEvidence(
         ActorResolvedMatchDefinition definition,
@@ -250,8 +254,9 @@ public sealed record GenericActorMatchChronology
                 lives,
                 frame,
                 parameterName);
-            ValidateAbsorptionEvidence(
+            ValidateDeflectionEvidence(
                 forms,
+                attacks,
                 lives,
                 frame,
                 parameterName);
@@ -330,8 +335,9 @@ public sealed record GenericActorMatchChronology
         }
     }
 
-    private static void ValidateAbsorptionEvidence(
+    private static void ValidateDeflectionEvidence(
         IReadOnlyDictionary<string, ActorFormDefinition> forms,
+        IReadOnlyDictionary<string, ActorAttackProfileDefinition> attacks,
         IReadOnlyDictionary<
             ActorIdentity,
             GenericActorWorldSnapshot.LifeSnapshot> lives,
@@ -345,66 +351,216 @@ public sealed record GenericActorMatchChronology
                 ((GenericActorRuntimeObservation.EventPayload.Damage)
                     item.Payload).ProjectileId)
             .ToHashSet();
-        foreach (GenericActorRuntimeObservation.EventPayload.ProjectileAbsorbed
-                 absorbed in frame.Events
-                     .Where(item => item.Kind
-                         == GenericActorRuntimeObservation.EventKind
-                             .ProjectileAbsorbed)
-                     .Select(item =>
-                         (GenericActorRuntimeObservation.EventPayload
-                             .ProjectileAbsorbed)item.Payload))
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected[]
+            deflections =
+            [
+                .. frame.Events
+                    .Where(item => item.Kind
+                        == GenericActorRuntimeObservation.EventKind
+                            .ProjectileDeflected)
+                    .Select(item =>
+                        (GenericActorRuntimeObservation.EventPayload
+                            .ProjectileDeflected)item.Payload),
+            ];
+        Dictionary<long, GenericActorWorldSnapshot.ProjectileSnapshot>
+            survivors = frame.PostState.Projectiles.ToDictionary(
+                projectile => projectile.ProjectileId);
+        HashSet<long> carried = frame.TickStart.State.Projectiles
+            .Select(projectile => projectile.ProjectileId)
+            .ToHashSet();
+        ILookup<long, GenericActorProjectileTraversal> returnLaunches =
+            frame.Traversals
+                .Where(traversal => traversal.Trigger
+                    == GenericActorProjectileTraversal.TraversalTrigger
+                        .GuardDeflection)
+                .ToLookup(traversal => traversal.ProjectileId);
+        HashSet<long> returned = deflections
+            .Select(item => item.DeflectedProjectileId)
+            .ToHashSet();
+        if (returnLaunches.Any(group => !returned.Contains(group.Key)))
         {
-            if (!lives.ContainsKey(absorbed.TargetActorId)
+            throw new ArgumentException(
+                "A guard-deflection launch must be named by a deflection event in its own tick.",
+                parameterName);
+        }
+
+        foreach (GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+                 deflected in deflections)
+        {
+            if (!lives.ContainsKey(deflected.TargetActorId)
                 || !forms.TryGetValue(
-                    absorbed.TargetFormId,
+                    deflected.TargetFormId,
                     out ActorFormDefinition? guardForm)
                 || guardForm.ProjectileGuard
                     != ActorFormProjectileGuardKind
-                        .FacingQuadrantContactsConsumedWithoutDamage)
+                        .FacingQuadrantContactsDeflected)
             {
                 throw new ArgumentException(
-                    "An absorption must name an active life in a form whose declared guard consumes contacts.",
+                    "A deflection must name an active life in a form whose declared guard deflects contacts.",
                     parameterName);
             }
-            if (absorbed.SourceTeamId == absorbed.TargetActorId.TeamId)
+            if (deflected.SourceTeamId == deflected.TargetActorId.TeamId)
             {
                 throw new ArgumentException(
-                    "A projectile guard consumes hostile fire only.",
+                    "A projectile guard deflects hostile fire only.",
                     parameterName);
             }
-            var (dx, dy) = absorbed.Heading.Vector();
-            if (!Visibility.InQuadrant(-dx, -dy, absorbed.TargetFacing))
+            var (dx, dy) = deflected.Heading.Vector();
+            if (!Visibility.InQuadrant(-dx, -dy, deflected.TargetFacing))
             {
                 throw new ArgumentException(
-                    "An absorbed contact must approach from inside the guard's facing quadrant.",
+                    "A deflected contact must approach from inside the guard's facing quadrant.",
                     parameterName);
             }
-            if (damaged.Contains(absorbed.ProjectileId))
+            if (damaged.Contains(deflected.ProjectileId))
             {
                 throw new ArgumentException(
-                    "An absorbed projectile cannot also have applied damage.",
+                    "A deflected projectile cannot also have applied damage.",
+                    parameterName);
+            }
+            if (returned.Contains(deflected.ProjectileId))
+            {
+                throw new ArgumentException(
+                    "A bolt returned this tick cannot be deflected again on the same tick.",
                     parameterName);
             }
             bool consumedWithoutDamage = frame.Traversals.Any(traversal =>
-                traversal.ProjectileId == absorbed.ProjectileId
+                traversal.ProjectileId == deflected.ProjectileId
                 && traversal.Terminal switch
                 {
                     GenericActorProjectileTraversal.TerminalDisposition
                         .ActorContact contact =>
-                        contact.TargetActorId == absorbed.TargetActorId
+                        contact.TargetActorId == deflected.TargetActorId
                         && !contact.AppliedDamage,
                     GenericActorProjectileTraversal.TerminalDisposition
                         .MovementContact contact =>
-                        contact.TargetActorId == absorbed.TargetActorId
+                        contact.TargetActorId == deflected.TargetActorId
                         && !contact.AppliedDamage,
                     _ => false,
                 });
             if (!consumedWithoutDamage)
             {
                 throw new ArgumentException(
-                    "Every absorption must have exactly one contact traversal that consumed the projectile without damage.",
+                    "Every deflection must have exactly one contact traversal that consumed the incoming projectile without damage.",
                     parameterName);
             }
+            ValidateDeflectedLaunch(
+                attacks,
+                frame,
+                survivors,
+                carried,
+                returnLaunches,
+                deflected,
+                parameterName);
+        }
+
+        // The converse of the deflection rule: resolution may only add a
+        // projectile the tick can account for. Every bolt that survives to the
+        // post-state without having been carried in must be named either by an
+        // attack action or by a deflection.
+        HashSet<long> launched = frame.Events
+            .Where(item => item.Kind
+                == GenericActorRuntimeObservation.EventKind.Attack)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.Attack)
+                    item.Payload).ProjectileId)
+            .Concat(deflections.Select(item => item.DeflectedProjectileId))
+            .ToHashSet();
+        if (survivors.Keys.Any(id =>
+                !carried.Contains(id) && !launched.Contains(id)))
+        {
+            throw new ArgumentException(
+                "A projectile that entered the world during resolution must be evidenced by an attack or a deflection.",
+                parameterName);
+        }
+    }
+
+    /// <summary>
+    /// The returned bolt is the deflection's second authoritative fact, and it
+    /// is checked as strictly as the consumed one: it has its own launch
+    /// traversal from the guard's own tile along the exactly reversed heading,
+    /// under the guard's team and life, and if it survives the tick its
+    /// snapshot repeats those facts with a fresh travel budget.
+    /// </summary>
+    private static void ValidateDeflectedLaunch(
+        IReadOnlyDictionary<string, ActorAttackProfileDefinition> attacks,
+        GenericActorMatchTickFrame frame,
+        IReadOnlyDictionary<long, GenericActorWorldSnapshot.ProjectileSnapshot>
+            survivors,
+        IReadOnlySet<long> carried,
+        ILookup<long, GenericActorProjectileTraversal> returnLaunches,
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            deflected,
+        string parameterName)
+    {
+        if (deflected.DeflectedProjectileId == deflected.ProjectileId
+            || carried.Contains(deflected.DeflectedProjectileId))
+        {
+            throw new ArgumentException(
+                "A deflection must return a new projectile identity, not the consumed one or a carried one.",
+                parameterName);
+        }
+        if (returnLaunches[deflected.DeflectedProjectileId].Count() != 1)
+        {
+            throw new ArgumentException(
+                "A deflection must be evidenced by exactly one guard-deflection launch of the projectile it names.",
+                parameterName);
+        }
+        GenericActorProjectileTraversal launch =
+            returnLaunches[deflected.DeflectedProjectileId].Single();
+        if (!attacks.TryGetValue(
+                launch.AttackProfileId,
+                out ActorAttackProfileDefinition? profile))
+        {
+            throw new ArgumentException(
+                "A returned projectile must carry a declared attack profile.",
+                parameterName);
+        }
+        if (launch.OwnerTeamId != deflected.TargetActorId.TeamId
+            || launch.OwnerActorId != deflected.TargetActorId)
+        {
+            throw new ArgumentException(
+                "A returned projectile belongs to the deflecting life and its team.",
+                parameterName);
+        }
+        if (launch.From != deflected.Position)
+        {
+            throw new ArgumentException(
+                "A returned projectile launches from the deflecting life's own tile.",
+                parameterName);
+        }
+        if (launch.LaunchHeading != deflected.Heading.Reversed())
+        {
+            throw new ArgumentException(
+                "A returned projectile flies the exactly reversed heading.",
+                parameterName);
+        }
+        if (!survivors.TryGetValue(
+                deflected.DeflectedProjectileId,
+                out GenericActorWorldSnapshot.ProjectileSnapshot? returned))
+        {
+            // A return that died on its own launch step — a wall, a body, or a
+            // disqualification purge — leaves the traversal above as its whole
+            // evidence, which is exactly what an attack-launched bolt leaves.
+            return;
+        }
+        if (returned.OwnerTeamId != deflected.TargetActorId.TeamId
+            || returned.OwnerActorId != deflected.TargetActorId
+            || returned.Origin != deflected.Position
+            || returned.LaunchHeading != deflected.Heading.Reversed())
+        {
+            throw new ArgumentException(
+                "A surviving returned projectile must keep the deflection's owner, origin, and heading.",
+                parameterName);
+        }
+        if (returned.SpawnedAtTick != frame.Tick
+            || returned.RemainingTiles
+                != profile.Projectile.MaxTravelTiles
+                    - profile.Projectile.LaunchTiles)
+        {
+            throw new ArgumentException(
+                "A returned projectile is launched on the deflection tick with a fresh travel budget.",
+                parameterName);
         }
     }
 
