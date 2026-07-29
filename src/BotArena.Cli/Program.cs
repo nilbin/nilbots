@@ -239,6 +239,8 @@ static int CommandHelp(string command)
                    [--duel-map current|thin-fronts|outer-shoulder-bypass]
                    [--classes <class>-vs-<class>]
                    [--movement preserve-facing|move-sets-facing|facing-locked]
+                   [--pendulum control|ratchet|ratchet-contest|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
+                   [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
@@ -286,8 +288,26 @@ static int CommandHelp(string command)
             turn a separate decision. Absolute rotate is unchanged in every
             arm. It composes with --classes and with --duel-map (declared
             manifest classes compose the same way); it is exclusive only
-            with the unrelated numeric arms such as --capture-threshold or
+            with the unrelated numeric arms such as --capture-gain-phase or
             --net-control.
+            --pendulum selects one pre-registered structural counterweight to
+            the mean-reverting frontline. control is the measured baseline and
+            adds no ruleset suffix. sticky-frontline holds a completed advance
+            against enemy regression for 40 ticks. forward-rally lands
+            respawns and companion arrivals on the own-side objective beside
+            the fight instead of at home. contest-majority makes surplus
+            objective weight create pressure, so a lone body no longer nulls a
+            committed force for free. enemy-sole-decay stops empty and
+            contested ticks from destroying capture progress. ratchet is
+            sticky-frontline plus forward-rally, and ratchet-contest adds
+            contest-majority; those two are the registered factor levels, and
+            comma-separated tokens compose any other ablation.
+            --prime-respawn-ticks retunes the Prime automatic-return delay
+            (18 by default); with --capture-threshold it is the numbers-only
+            factor level. Both compose with --pendulum, --classes,
+            --movement, and --duel-map, and none of them is compatible with
+            --capture-gain-phase, --mobilize-turrets, --remote-fabrication,
+            --net-control, --one-bend-shots, or --auto-companions.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             --print-candidate-contract emits the exact resolved candidate

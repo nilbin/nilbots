@@ -99,3 +99,35 @@ Your bot has **one class, chosen at creation**: declare it in
 `--classes` flag at all — the arm resolves from the manifests and each bot
 is bound to its class's canonical team side automatically. A declared class
 must agree with any explicit `--classes`.
+
+## Pendulum arms compose with your class
+
+`--pendulum` adds one pre-registered structural counterweight to the
+mean-reverting frontline (DECISIONS #158) on top of any class pair,
+`--movement` arm, and `--duel-map`. Nothing about your class changes; what
+changes is how territory is won and kept, and all of it is readable from the
+resolved contract:
+
+| token | what moves in the contract | what it means at the objective |
+| --- | --- | --- |
+| `control` (default) | nothing | today's measured baseline |
+| `sticky-frontline` | `capture.redeployPolicy` + `capture.ratchetHoldTicks` | a completed advance holds for 40 ticks; an enemy capture inside the hold clears its own claim and moves nothing |
+| `forward-rally` | `lifecycle.automaticReturnPlacement` | respawns and companion arrivals appear on your own side of the active objective, not at home |
+| `contest-majority` | `capture.controlPolicy` | surplus objective weight scales capture pressure, so one body no longer nulls two |
+| `enemy-sole-decay` | `capture.decayClock` | empty and contested ticks stop eroding progress; only an enemy standing alone on the objective does |
+| `ratchet` | sticky-frontline + forward-rally | the registered structural level |
+| `ratchet-contest` | ratchet + contest-majority | the registered structural level with contest cost |
+
+`--capture-threshold` and `--prime-respawn-ticks` are the numbers-only
+level and compose the same way. None of these arms changes the observation
+schema, the action catalog, or any class stat, so a contract-driven bot
+needs no re-authoring: read `gameMode.capture` and `lifecycle` from
+MatchStart if you want to adapt, and expect a respawn to put you near the
+fight under `forward-rally`.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --pendulum ratchet-contest \
+  --seed 42 --runtime wasm --out /tmp/pendulum
+```

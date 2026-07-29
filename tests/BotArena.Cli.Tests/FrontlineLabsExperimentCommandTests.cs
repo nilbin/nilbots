@@ -397,6 +397,189 @@ public sealed class FrontlineLabsExperimentCommandTests
     }
 
     [Fact]
+    public void PendulumArms_ComposeIntoTheFourPhaseOneFactorLevels()
+    {
+        JsonElement control = PrintedContract(
+            ["--print-candidate-contract", "--pendulum", "control"]);
+        JsonElement ratchet = PrintedContract(
+            ["--print-candidate-contract", "--pendulum", "ratchet"]);
+        JsonElement ratchetContest = PrintedContract(
+            ["--print-candidate-contract", "--pendulum", "ratchet-contest"]);
+        JsonElement numbersOnly = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--capture-threshold",
+                "9",
+                "--prime-respawn-ticks",
+                "9",
+            ]);
+
+        // The explicit control token is the hosted contract, byte for byte.
+        Assert.Equal(
+            FrontlineLabsDefinition.RulesetId,
+            control.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-experiment-ratchet",
+            ratchet.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-experiment-ratchet-contest",
+            ratchetContest.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-experiment-capture-9-respawn-9",
+            numbersOnly.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            4,
+            new HashSet<string?>
+            {
+                control.GetProperty("rulesFingerprint").GetString(),
+                ratchet.GetProperty("rulesFingerprint").GetString(),
+                ratchetContest.GetProperty("rulesFingerprint").GetString(),
+                numbersOnly.GetProperty("rulesFingerprint").GetString(),
+            }.Count);
+        // Only the rules move: every level plays the same map.
+        Assert.Single(
+            new HashSet<string?>
+            {
+                control.GetProperty("mapFingerprint").GetString(),
+                ratchet.GetProperty("mapFingerprint").GetString(),
+                ratchetContest.GetProperty("mapFingerprint").GetString(),
+                numbersOnly.GetProperty("mapFingerprint").GetString(),
+            });
+    }
+
+    [Fact]
+    public void PendulumArms_ComposeWithClassesMovementAndDuelMap()
+    {
+        JsonElement cell = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--pendulum",
+                "ratchet-contest",
+                "--classes",
+                "bulwark-vs-striker",
+                "--movement",
+                "facing-locked",
+                "--duel-map",
+                "thin-fronts",
+            ]);
+
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-contest-facing-locked",
+            cell.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-01-thin-fronts-classes",
+            cell.GetProperty("mapId").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.ClassesSeedProfileId,
+            cell.GetProperty("seedProfileId").GetString());
+
+        JsonElement numbersCell = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--capture-threshold",
+                "9",
+                "--prime-respawn-ticks",
+                "9",
+            ]);
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-c9-r9",
+            numbersCell.GetProperty("rulesetId").GetString());
+    }
+
+    [Fact]
+    public void PendulumArms_RejectUnknownTokensAndIncompatibleArms()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                [
+                    "--print-candidate-contract",
+                    "--pendulum",
+                    "overtime",
+                ]));
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                [
+                    "--print-candidate-contract",
+                    "--pendulum",
+                    "control,ratchet",
+                ]));
+        InvalidOperationException exclusive =
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--pendulum",
+                        "ratchet",
+                        "--net-control",
+                    ]));
+        Assert.Contains(
+            "one Frontline Labs experiment option at a time",
+            exclusive.Message);
+    }
+
+    [Fact]
+    public void PendulumRatchetArm_WritesItsTypedPoliciesIntoTheReplay()
+    {
+        string temporary = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-frontline-labs-pendulum-{Guid.NewGuid():N}");
+        try
+        {
+            string alpha = CreateWaitBot(temporary, "Alpha");
+            string beta = CreateWaitBot(temporary, "Beta");
+            string output = Path.Combine(temporary, "ratchet-contest");
+
+            Assert.Equal(
+                0,
+                Run(
+                    alpha,
+                    beta,
+                    output,
+                    pendulum: "ratchet-contest"));
+
+            string replayPath = Path.Combine(output, "replay.json");
+            using JsonDocument document = JsonDocument.Parse(
+                File.ReadAllText(replayPath));
+            JsonElement rules = document.RootElement
+                .GetProperty("header")
+                .GetProperty("contract")
+                .GetProperty("rules");
+            JsonElement capture = rules
+                .GetProperty("gameMode")
+                .GetProperty("capture");
+
+            Assert.Equal(
+                "frontline-labs-1-experiment-ratchet-contest",
+                rules.GetProperty("rulesetId").GetString());
+            Assert.Equal(
+                "advance-immediately-then-deny-enemy-regression-past-the-" +
+                "high-water-mark-through-configured-hold-ticks",
+                capture.GetProperty("redeployPolicy").GetString());
+            Assert.Equal(
+                40,
+                capture.GetProperty("ratchetHoldTicks").GetInt32());
+            Assert.Equal(
+                "net-positive-objective-weight-difference-scales-gain-" +
+                "non-positive-applies-configured-decay-opposition-erodes-" +
+                "to-neutral",
+                capture.GetProperty("controlPolicy").GetString());
+            Assert.Equal(
+                "own-side-chain-adjacent-objective-tile-then-assigned-spawn",
+                rules.GetProperty("lifecycle")
+                    .GetProperty("automaticReturnPlacement")
+                    .GetString());
+            Assert.Equal(0, Verify(replayPath));
+        }
+        finally
+        {
+            if (Directory.Exists(temporary))
+                Directory.Delete(temporary, recursive: true);
+        }
+    }
+
+    [Fact]
     public void MovementArm_WritesDistinctKinematicsIdentity()
     {
         JsonElement baseline =
@@ -928,7 +1111,8 @@ public sealed class FrontlineLabsExperimentCommandTests
         bool netControl = false,
         bool oneBendShots = false,
         bool automaticCompanions = false,
-        string? duelMap = null)
+        string? duelMap = null,
+        string? pendulum = null)
     {
         TextWriter originalOut = Console.Out;
         TextWriter originalError = Console.Error;
@@ -973,6 +1157,11 @@ public sealed class FrontlineLabsExperimentCommandTests
             {
                 arguments.Add("--duel-map");
                 arguments.Add(duelMap);
+            }
+            if (pendulum is not null)
+            {
+                arguments.Add("--pendulum");
+                arguments.Add(pendulum);
             }
             return FrontlineLabsExperimentCommand.Run(arguments);
         }

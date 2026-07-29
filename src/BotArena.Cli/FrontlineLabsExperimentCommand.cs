@@ -29,6 +29,8 @@ public static class FrontlineLabsExperimentCommand
             "open",
             "capture-threshold",
             "capture-gain-phase",
+            "prime-respawn-ticks",
+            "pendulum",
             "mobilize-turrets",
             "remote-fabrication",
             "net-control",
@@ -65,6 +67,10 @@ public static class FrontlineLabsExperimentCommand
         int? captureThreshold = OptionalPositiveInt(
             options,
             "capture-threshold");
+        int? primeRespawnTicks = OptionalPositiveInt(
+            options,
+            "prime-respawn-ticks");
+        FrontlineLabsPendulumArm pendulum = OptionalPendulumArm(options);
         (int StartsAtTick, int Gain)? captureGainPhase =
             OptionalCaptureGainPhase(options);
         bool mobilizeTurrets = OptionalFlag(
@@ -185,27 +191,51 @@ public static class FrontlineLabsExperimentCommand
         bool standaloneMovementArm =
             movementCoupling != ActorMovementFacingCoupling.PreserveFacing
             && classPair is null;
+        // A pendulum level, a Prime-respawn retune, or a capture threshold
+        // carried alongside a class or movement factor is one cell of the
+        // pre-registered phase-1 factorial (DECISIONS #158) rather than a
+        // standalone arm, so those factors compose instead of excluding
+        // each other.
+        bool pendulumCell =
+            pendulum != FrontlineLabsPendulumArm.None
+            || primeRespawnTicks is not null
+            || (captureThreshold is not null
+                && (classPair is not null || standaloneMovementArm));
         bool duelExperiment = oneBendShots
             || automaticCompanions
             || (duelMapArm is not null
                 && classPair is null
-                && !standaloneMovementArm);
+                && !standaloneMovementArm
+                && !pendulumCell);
         int experimentCount =
-            (captureThreshold is null ? 0 : 1)
+            (captureThreshold is null || pendulumCell ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
             + (mobilizeTurrets ? 1 : 0)
             + (remoteFabrication ? 1 : 0)
             + (netControl ? 1 : 0)
             + (duelExperiment ? 1 : 0)
-            + (classPair is null ? 0 : 1)
-            + (standaloneMovementArm ? 1 : 0);
+            + (classPair is null || pendulumCell ? 0 : 1)
+            + (standaloneMovementArm && !pendulumCell ? 1 : 0)
+            + (pendulumCell ? 1 : 0);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
                 "Use one Frontline Labs experiment option at a time.");
         }
         ActorResolvedMatchDefinition definition;
-        if (captureThreshold is int threshold)
+        if (pendulumCell)
+        {
+            definition = FrontlineLabsDefinition.CreatePendulumExperiment(
+                pendulum,
+                classPair,
+                duelMapArm ?? FrontlineLabsDuelMapArm.Current,
+                movementCoupling,
+                captureThreshold
+                    ?? FrontlineLabsDefinition.DefaultCaptureThreshold,
+                primeRespawnTicks
+                    ?? FrontlineLabsDefinition.DefaultPrimeRespawnTicks);
+        }
+        else if (captureThreshold is int threshold)
         {
             definition = FrontlineLabsDefinition
                 .CreateCaptureThresholdExperiment(threshold);
@@ -582,6 +612,70 @@ public static class FrontlineLabsExperimentCommand
                 $"Unknown --movement '{value}' " +
                 "(use preserve-facing, move-sets-facing, or facing-locked)."),
         };
+    }
+
+    /// <summary>
+    /// Reads the pre-registered pendulum level (DECISIONS #158). Omitting the
+    /// option — or naming <c>control</c> explicitly — selects today's measured
+    /// baseline and adds no ruleset suffix. <c>ratchet</c> and
+    /// <c>ratchet-contest</c> are the registered composite levels; the four
+    /// single-factor tokens may also be combined with commas for an ablation.
+    /// </summary>
+    private static FrontlineLabsPendulumArm OptionalPendulumArm(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("pendulum", out string? value))
+            return FrontlineLabsPendulumArm.None;
+
+        string[] tokens = value
+            .ToLowerInvariant()
+            .Split(',', StringSplitOptions.TrimEntries
+                | StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0
+            || tokens.Distinct(StringComparer.Ordinal).Count()
+                != tokens.Length)
+        {
+            throw new InvalidOperationException(
+                "--pendulum takes one or more distinct arm tokens.");
+        }
+        if (tokens.Contains("control", StringComparer.Ordinal))
+        {
+            if (tokens.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    "--pendulum control is the measured baseline and cannot "
+                    + "be combined with another arm.");
+            }
+            return FrontlineLabsPendulumArm.None;
+        }
+
+        FrontlineLabsPendulumArm arm = FrontlineLabsPendulumArm.None;
+        foreach (string token in tokens)
+        {
+            FrontlineLabsPendulumArm selected = token switch
+            {
+                "ratchet" => FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally,
+                "ratchet-contest" =>
+                    FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority,
+                "sticky-frontline" =>
+                    FrontlineLabsPendulumArm.StickyFrontline,
+                "forward-rally" => FrontlineLabsPendulumArm.ForwardRally,
+                "contest-majority" =>
+                    FrontlineLabsPendulumArm.ContestMajority,
+                "enemy-sole-decay" =>
+                    FrontlineLabsPendulumArm.EnemySoleDecay,
+                _ => throw new InvalidOperationException(
+                    $"Unknown --pendulum arm '{token}' (use control, "
+                    + "ratchet, ratchet-contest, sticky-frontline, "
+                    + "forward-rally, contest-majority, or "
+                    + "enemy-sole-decay)."),
+            };
+            arm |= selected;
+        }
+        return arm;
     }
 
     /// <summary>Reads a project spec's declared class from botarena.json.
