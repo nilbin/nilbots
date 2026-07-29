@@ -3021,6 +3021,25 @@ balance-eligible registration path worked end to end for the first time,
 after normalizing the null-vs-"unqualified" coordination-grade mismatch
 it had never exercised.
 
+**Holdout replication (appended after the above was committed).** The
+commitment was consumed and its two sealed seeds ran the identical
+54-cell matrix as the registered derived spec
+`frontline-classes-wave-2-movement-factorial-v1-holdout` (324/324
+verified). Four of the five pre-registered replication targets hold on
+unseen seeds: the class-spread ordering with facing-locked smallest
+(1.35 / 1.15 / 0.75 vs main 1.36 / 1.29 / 0.67), bulwark-mirror
+decisiveness maximal under facing-locked (12/12), the rotation-tax
+ordering nearly digit for digit (10.9% / 17.2% / 37.3%), and the bend
+decline (42.6% → 32.0% → 32.2%). The sign-stability target fails in one
+column: **bulwark-vs-fabricator flips** (+0.33 bulwark-favored on main
+seeds, −0.29 fabricator-favored on holdout at preserve-facing) — that
+matchup is the closest to balanced and its per-run sign is seed noise;
+no verdict should cite its direction. Every striker matchup's sign and
+gradient replicates. Net: the striker-dominance compression, the
+mirror-decisiveness gain, and the rotation tax of facing-locked are
+robust findings; the bulwark-fabricator boundary is measured as
+genuinely contested.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
