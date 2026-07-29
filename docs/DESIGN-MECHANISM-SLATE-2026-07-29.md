@@ -88,31 +88,50 @@ same value).
 
 ## Current kit (owner-iterated, pending the DECISIONS entry)
 
-Every class keeps its existing special and ends at two; bends become
-shared grammar on mobile facing-aimed guns only (never turret, never
-lance). Four new mechanics:
+Owner-directed rebuild from the three blind-validated fun primitives —
+turret-feel, curve-feel, numbers-feel — with the counter-cycle traced
+per edge and capped ("the factor can't be TOO weighing"). Bends become
+shared grammar on mobile facing-aimed guns (never on specials).
 
-- **Striker LANCE** — public 2-tick windup, then a damage-2 piercing
-  bolt (passes through bodies), straight only. Shreds fabricator
-  clumps; the windup is the bulwark's punish window.
-- **Striker CHARGE** — committed straight-line stance (facing-locked
-  movement profile, no turning), entry windup 2, exit 1, small capped
-  HP gain. Closes on soft bodies; charging into turret/barrage range
-  is suicide.
-- **Bulwark SUPPRESSION BARRAGE** — brief anchored stance firing all
-  headings for a few ticks, **objective weight 1**, entry/exit
-  windups, bounded tenure. Prices the striker's walk-up and lanes;
-  wasted on multi-angle fabricator bodies.
-- **Fabricator SURGE** — windup-1 overclock stance: fabrication
-  accelerated (or a queued child arrives at once) while the prime's
-  gun is disabled; exit windup. Out-bodies the cooldown-3 fortress;
-  a gunless 2-HP prime in striker sight is throwing. Promoted from
-  the bench after the barricade kill — with one tool, the
-  cycle-degeneracy objection is void.
+- **Striker VOLLEY** (renamed from lance on owner review — the
+  telegraphed 1-wide piercing line is dodged for free; width is what
+  beats the covering number). Public windup, then simultaneous
+  damage-1 bolts down three adjacent lanes. Tuned as zoning, not a
+  wipe: it must *soften* striker-vs-fabricator toward the band, not
+  deepen the game's most lopsided edge. Open question: striker also
+  keeps the deepest curve envelope as heritage.
+- **Bulwark AEGIS SHELL** (barrage benched on owner review, and the
+  RPS trace agrees: a radial proximity burst punishes whoever stands
+  CLOSE — fabricator bodies, the class bulwark must lose to — while
+  the range-8 striker it exists to blunt never enters the radius).
+  Reversible windup stance absorbing projectiles in its facing arc;
+  slow or immobile; bounded tenure. Blanks poke, loses to flanks and
+  multi-angle bodies. The staring-contest objection that benched
+  shell was priced before the pendulum fix; with ratchet +
+  contest-majority attacking passivity structurally, skills no longer
+  carry the pacing burden.
+- **Fabricator FIVE SLOTS** (surge died with the treadmill critique:
+  faster replacement of free bodies accelerates the exact loop the
+  dynamics report convicted). The fabricator simply has more unit
+  slots than any other class — the numbers class literally has
+  numbers. Slot counts are contract data, not array shapes; this is a
+  new topology profile for fabricator arms, deliberately amending
+  #153's same-topology reading as the good asymmetry (the barricade
+  was the bad one). Out-bodies the fortress arithmetically; each body
+  stays the weakest in the game, so volleys and cadence still farm
+  them.
 
-Fallbacks stay pre-registered: AEGIS SHELL if barrage fails its gate;
-DASH as a later numeric widening of charge. Barricade is dead
-(dominated), energy closed (#47/#48), split parked (swarm class).
+**Cycle-magnitude band (pre-registration guard):** every cross-class
+edge on the presumptive arm must land at |payoff| ∈ [0.15, 0.40] —
+below-band is no cycle, above-band means the matchup screen decides
+the game (today's +0.67 striker-vs-fabricator fails high). Public
+windups on every skill are the deeper guard: a punishable commitment
+keeps doctrine stronger than matchup.
+
+Benched, pre-registered as fallbacks: SUPPRESSION BARRAGE, CHARGE,
+DASH. Dead: barricade (dominated), surge (treadmill accelerant),
+lance-as-line (free dodge), energy (#47/#48). Split stays parked for
+a future swarm class.
 
 ## Design guards (owner rulings)
 
