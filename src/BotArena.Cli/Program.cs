@@ -297,7 +297,10 @@ static int CommandHelp(string command)
             adds no ruleset suffix. sticky-frontline holds a completed advance
             against enemy regression for 40 ticks. forward-rally lands
             respawns and companion arrivals on the own-side objective beside
-            the fight instead of at home. contest-majority makes surplus
+            the fight instead of at home, on the rear-most free tile of that
+            region measured along your own advance direction, so both sides
+            arrive at mirrored distances from the fight. contest-majority
+            makes surplus
             objective weight create pressure, so a lone body no longer nulls a
             committed force for free. enemy-sole-decay stops empty and
             contested ticks from destroying capture progress. ratchet is

@@ -551,12 +551,19 @@ public static class FrontlineLabsDefinition
             ? RatchetHoldTicksDefault
             : 0;
 
+    /// <summary>
+    /// The rally arms select the team-advance-ordered placement. The
+    /// historical map-absolute value stays defined and resolvable for
+    /// archived replays, but no arm selects it: one absolute scan handed the
+    /// two mirror-image rally regions non-mirrored tiles, which a
+    /// facing-locked identical-bot mirror probe measured as a 4/4 side sweep.
+    /// </summary>
     private static ActorLifecycleDefinition
         .ActorAutomaticReturnPlacementKind AutomaticReturnPlacement(
             FrontlineLabsPendulumArm pendulum) =>
         pendulum.HasFlag(FrontlineLabsPendulumArm.ForwardRally)
             ? ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
-                .OwnSideChainAdjacentObjectiveTileThenAssignedSpawn
+                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn
             : ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
                 .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims;
 

@@ -73,10 +73,18 @@ public static class ToolchainInfo
     /// the packaged viewer's camera (follows the active lives, with manual
     /// override and a fit toggle) and arrival materialization for
     /// fabrication, automatic return, and automatic activation — viewer
-    /// changes ride the CLI compatibility surface. Keep in lockstep with
+    /// changes ride the CLI compatibility surface. 0.9.12 makes the forward
+    /// rally mirror-fair: the rally arms select a new lifecycle placement
+    /// that orders the own-side objective region along the placing team's own
+    /// advance axis instead of by absolute map order, so the two mirror-image
+    /// rally regions hand the two sides reflected tiles. The historical
+    /// absolute-order placement stays defined and resolvable for archived
+    /// replays; rally-carrying arm fingerprints move, every other arm and the
+    /// hosted contract stay byte-identical, and player artifact bytes and
+    /// cache keys are unchanged. Keep in lockstep with
     /// BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.11";
+    public const string CliVersion = "0.9.12";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

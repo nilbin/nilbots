@@ -226,6 +226,9 @@ internal static class ActorContractCanonicalIds
         ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
                 .OwnSideChainAdjacentObjectiveTileThenAssignedSpawn =>
             "own-side-chain-adjacent-objective-tile-then-assigned-spawn",
+        ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn =>
+            "own-side-chain-adjacent-objective-tile-in-team-advance-order-then-assigned-spawn",
         ActorLifecycleDefinition.TickStartLifecycleOrderKind
                 .DueTickThenReturnsAndReadinessThenFabricationThenReplicationCanonicalActorOrder =>
             "due-tick-then-returns-and-readiness-then-fabrication-then-replication-canonical-actor-order",
