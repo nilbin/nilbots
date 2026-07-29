@@ -456,6 +456,13 @@ round go six-for-six:
 - **Fresh tooling**: republish the sandbox CLI authors will use; clear
   any DX-ledger items that would block or mislead authors.
 
+`python3 scripts/preflight-authoring-gate.py --arm "" --arm "--pendulum
+ratchet" …` mechanizes every item above except the prose read — per-arm
+contract identity, a starter self-match that must ACT, a foreign-doctrine
+smoke, a rebuild of every frozen cohort artifact, doc-vs-CLI token
+agreement, and published-CLI freshness — with evidence paths and a
+nonzero exit on any FAIL.
+
 If any item fails, fix it first. Commissioning "to see what the agents
 hit" is strictly worse than one probe match — agents report friction at
 the END, in their DX notes, after the budget is spent.
