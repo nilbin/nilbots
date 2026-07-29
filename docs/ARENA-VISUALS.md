@@ -505,8 +505,9 @@ production candidates, then normalized locally:
   deliberately near-square where the other looks are longer along their facing,
   and Talon repeats its recurved claw in the projectile mask. They share the
   1300-rating unlock, but the chassis manifest does not name Talon as a
-  companion: per DECISIONS #106 that recommendation stays unique to Aureate
-  Warden.
+  companion. The six Frontline class packs are the later, owner-approved
+  exception: each intentionally recommends the projectile sold in the same
+  pack, while equipped chassis and projectile choices remain independent.
 - Aureate Warden and Regent Lance were authored as genuine SVG from separate
   generated concept references. Eclipse Bloom + Null Seed and Redshift Crucible
   + Crucible Splitter are retained under `art/` as reserved, unavailable
