@@ -3055,6 +3055,63 @@ envelope is itself in question. Dullness is quantified at mean fun
 longer the bottleneck, the game is. The owner also ruled energy out as
 a mechanism candidate, citing #47/#48's closed verdict.
 
+## 158. Dullness diagnosed: a mean-reverting pendulum, a capped skill shot, and a skills-shaped remedy
+
+Three parallel forensic passes over the full 810-replay movement-
+factorial corpus (full reports:
+`DESIGN-FORENSICS-DYNAMICS-2026-07-29.md`,
+`DESIGN-FORENSICS-SKILLSHOTS-2026-07-29.md`,
+`DESIGN-MECHANISM-SLATE-2026-07-29.md`) converge with the outcome-blind
+viewing pass on one diagnosis. This entry records the measured facts
+and the owner's design rulings; pilot selection is deferred to the
+owner.
+
+**The pacing fact.** The game is a mean-reverting pendulum:
+`P(the leading side pushes further) = 0.350`, manufactured by the
+objective walking toward the loser's spawn (reinforcement transit 4
+ticks when trailing by 2 vs 20 when leading by 2) while death is free
+(automatic full-health return). Kills don't convert (half leave a
+contester in the doorway; contest nulls for free — 83% of contested
+ticks are 1v1), 48% of capture progress decays away, and 22% of viewing
+time is bodies within 3 tiles doing no damage. The corpus contains the
+numbers-only disproof: thin-fronts fixed every stall symptom and
+produced the *worst* cap share — cheaper captures raise the pendulum's
+frequency, not its amplitude. Movement arms relabel the loop
+(facing-locked: strafe-dance 16%→0% but stand-and-spin dwell up, worst
+cap share 0.804); coupling is a texture knob, not a pacing knob.
+
+**The skill-shot fact.** The bend mechanic is used near-optimally by
+the bots (52% correct-program selection vs 11% blind) and contributes
+28.5% of striker damage — but its equilibrium value is a covering
+number, capped at 1/3 inside a two-tile annulus and **invariant to the
+envelope** (9, 17, and 217 programs solve identically), it decays as
+opponents dodge better, 80% of bends render too short to read as
+curves, and facing-locked mechanically suppresses the mixup
+(V(straight)→1 on the lane). Its real function is off-axis access for
+a four-cardinal gun. No numeric tuning changes any of this.
+
+**The owner's rulings** (recorded across this session's review): energy
+stays closed per #47/#48; curved shots deliver blind-validated
+watchable value and their striker-exclusivity is in question; and the
+design direction is **"more skills like the turret — not necessarily
+static"**: public, telegraphed, cooldown-cycled, visually
+state-changing abilities. The engine already carries the machinery
+(reversible windup-gated same-life transitions with public
+`ObservedFormTransition` start/completion ticks); the turret is today
+its only instance, invoked in 0.13% of decisions largely because its
+objective-weight-0 bargain is priced in the scoring currency.
+
+**Direction of travel, pending owner pilot selection:** (a) a
+structural pendulum counterweight — territory ratchet + lead-independent
+reinforcement + contest-costs-something, with the dynamics report's
+pass/fail metrics as pre-registration targets; (b) a per-class public
+skill kit on the transition machinery (the turret shape generalized:
+windup in, visible form, cooldown out), with barricades and
+telegraphed charged/area shots as the leading candidates because they
+also attack the covering number and the eviction problem; (c) the
+numbers-only lethality/respawn arm runs as the control factor in the
+same factorial. Split remains parked; energy remains closed.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
