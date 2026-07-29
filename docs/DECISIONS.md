@@ -3331,6 +3331,43 @@ occurrences, time-zone/DST policy, worker leases, bounded retries, entitlement
 revocation and idempotent creation are not implied by the manual capability
 projection. Match-creation idempotency also remains a required follow-up.
 
+## 165. The skill kit is adopted for phase-2 measurement, as rules rather than etiquette
+
+The mechanism screen passed (owner verdict on the prototype gallery:
+"definitely more entertaining", correctly scoped as a mechanism screen —
+driver bots, not candidates) and every kit question is owner-ruled, so
+the kit graduates to adoption-grade mechanics. One primitive serves
+both stances: a threshold-triggered automatic return on the same-life
+return route (`automaticReturn: {counter, threshold}`, inert-omitted),
+with the cause published as a typed `automatic-threshold-return`
+form-transition reason following the automatic-activation precedent,
+counters life-scoped and blocked-queue-proof, lethal damage cancelling
+through the ordinary destruction path, and the chronology validator
+re-deriving counts to refuse forged, early, suppressed, or mislabelled
+returns. VOLLEY casts (auto-return after one fan — squatting is
+impossible by rule); AEGIS SHELL breaks (forced return on the third
+deflection); FIVE SLOTS stays 60/180/300/420. The stance arms are
+reidentified `cast` and `break` because behaviour changed; the curve
+grammar ships as a separable `--bend striker-only|universal` factor
+with per-class depth (striker bend-after 1–4, bulwark/fabricator 1–2;
+specials never curve). Baseline and every prior arm keep byte-identical
+fingerprints; probes verify the cast timeline, the shatter, and a
+bulwark bolt genuinely curving on the universal arm.
+
+Adoption is a gate to MEASUREMENT, not a ship decision: the phase-2
+factorial still owns the verdict via the pre-registered counter-cycle
+sign predictions, the 0.15–0.40 edge band, the do-no-harm pendulum
+gates, and a watchability pass on a real T4+ population. Benched
+fallbacks (barrage, charge, dash, shell-as-absorption) stay registered.
+Two registered ablation debts scope the evidence: one primitive at two
+thresholds means a result on one stance is weak evidence about the
+other, and gaining the bend grammar also changes which action a gun
+uses. Known constraint for the phase-2 pre-registration: the 64-char
+canonical ID cap overflows on the widest composed cells
+(bulwark-vs-fabricator + break + slot5 + bend + facing-locked), so the
+factorial needs a shorter token scheme or a registered combination
+identity before every cell can run.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
