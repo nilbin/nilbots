@@ -3255,6 +3255,15 @@ the map allows is one tick of three lanes. And the naive shell probe is
 never flanked (#161's zero-damage finding), so the arc's *cost* is
 unproven on screen even though its extent is legible.
 
+The absorption cue is written against the rule as the engine emits it
+today, and the slate's later deflection ruling would invert its
+sentence: a shell that launches a team-flipped bolt back has not
+nullified anything. The return bolt needs no presentation work — it is
+an ordinary projectile owned by the guard — but the bolt's inward
+collapse would have to become a redirect, or the arena would show one
+bolt dying and an unrelated one appearing. The arc flash survives
+either ruling; both renderers carry the note at the effect.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

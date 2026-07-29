@@ -524,6 +524,11 @@ const GUARD_FACING: Record<string, number> = {
  *
  * The bolt gets its own end: a small hard flare exactly on the contact tile, so it reads
  * as having died there rather than as having been forgotten by the renderer.
+ *
+ * The slate's deflection ruling would invert the sentence: a shell that launches a
+ * team-flipped bolt back has not nullified anything. The return bolt needs no work here —
+ * it is an ordinary projectile owned by the guard — but the contact flare would have to
+ * read as a bounce rather than a stop. See the flat renderer's `drawAbsorption`.
  */
 function buildAbsorptions(
   replay: ReplayModel,

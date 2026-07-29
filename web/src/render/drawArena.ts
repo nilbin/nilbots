@@ -1697,6 +1697,12 @@ export function drawArena(
    * The arc is drawn from the *defender's* facing rather than the contact bearing. That is
    * the point of the effect: every absorption re-states which quadrant is covered, so a
    * player watching a shell get poked repeatedly learns where to go instead.
+   *
+   * **This says "nothing was transferred", and the slate's deflection ruling would make
+   * that wrong.** If the shell starts launching a team-flipped bolt back along the
+   * reversed heading, the return bolt renders itself — it is an ordinary projectile owned
+   * by the guard — but the collapse below must become a *redirect*, or the arena will
+   * show a bolt dying and an unrelated one appearing. The arc flash stays either way.
    */
   function drawAbsorption(event: ReplayCausalEvent, flash: number): void {
     const target = event.targetActor;
