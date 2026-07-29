@@ -37,6 +37,27 @@ production URL and project ID; never create a second site for another batch.
 On a fresh machine, obtain a source-repository credential and clone the site
 source into the ignored worktree before step 4.
 
+## Outcome-blind review galleries
+
+For a methodology blind-review sample (the manifest from
+`scripts/replay-review-sample.py`), do not hand-assemble pages — use:
+
+```bash
+python3 scripts/build-review-gallery.py \
+  --sample <blind-review-sample.json> --output <dir> \
+  --title "<experiment> — blind review" --review-panel
+```
+
+It injects each replay into the built viewer at the CLI's marker
+(`ReplayOutput.WriteViewer` semantics), hides outcomes, and embeds the
+rating panel (methodology dimensions, tick notes, localStorage autosave,
+JSON export). Default `--viewer hosted` uses the full WebGL bundle and must
+be served; `--viewer self-contained` produces portable Canvas2D pages.
+Rebuild `web/` first when the viewer changed; rerunning the script is the
+canonical way to refresh a gallery after viewer fixes. Note
+`nilbots replay --out` cannot export replay-v3 viewers (v1 only) — the
+script's marker injection is the v3 path.
+
 ## Without the Sites integration
 
 The hosted deploy above needs the Sites integration, which only some agent
