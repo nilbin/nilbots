@@ -2960,6 +2960,67 @@ frontline-labs --movement <preserve-facing|move-sets-facing|facing-locked>`
 selects the arm and composes with `--classes` and `--duel-map`; the default
 adds no ruleset suffix and leaves every existing arm identity unchanged.
 
+## 157. Movement factorial evidence: facing-locked halves class imbalance; the bend prediction failed
+
+The pre-registered classes × movement × maps factorial
+(`frontline-classes-wave-2-movement-factorial-v1`, 54 cells, 486/486
+verified matches, seeds 180001/210011/240007, unopened sha256
+commit-reveal holdout) ran on the `classes-wave-1-r2` population — six
+frozen revision-2 lineages, two per class, all cumulative T4 on
+`frontline-duel-depth-union-t4-v1`. It is the first run whose cells are
+balance-verdict eligible (six voting lineages against a four-lineage
+floor, `bonferroni-all-contrasts-v1`); candidate promotion correctly
+remains gated on the unmeasured layers. This entry is the measurement
+record. **Selecting a hosted movement coupling is a product-owner call
+that this entry deliberately does not make**, and the holdout reveal is
+appended below once consumed.
+
+Scored against the pre-registered hypothesis:
+
+1. *Coupling shifts payoffs toward fortification and presence, away from
+   maneuver; facing-locked further than move-sets-facing.* **Partial.**
+   Under facing-locked both anti-striker matchups improve (bulwark
+   −0.50 → −0.19; fabricator −0.94 → −0.67 mean payoff) and
+   bulwark-vs-fabricator crosses zero toward the fabricator
+   (+0.33 → −0.28). But move-sets-facing is not the midpoint the
+   hypothesis assumed: the bulwark does *worse* there than at baseline
+   (−0.50 → −0.69 vs striker) — half-coupling taxes the wall's rotations
+   while leaving the dodger's one-action escapes intact.
+2. *The wave-1 counter-cycle direction persists under every arm.*
+   **Partial.** Striker-beats-fabricator holds everywhere;
+   fabricator-out-bodies-bulwark only materializes under facing-locked;
+   bulwark-blunts-striker is refuted in every arm by this population.
+3. *Striker bend usage rises under coupling.* **Refuted**, and the
+   refutation is the finding: bend share falls 42.4% → 34.1% → 33.3%
+   (still-water 56% → 40%; vector-edge flat at 26%). Coupling suppresses
+   dodging, which raises the value of the straight bolt, which reduces
+   the need for bends. The mechanism the hypothesis named is real; it
+   moves the observable the other way.
+4. *No arm collapses into fortress stalemates.* **Confirmed.** Bulwark
+   mirrors are 13/18 decisive at baseline and 18/18 under facing-locked
+   — the historically stalest cell becomes the most decisive.
+
+The cross-cutting numbers. Class payoff spread (best class minus worst,
+mean over cross-class cells): preserve-facing 1.36, move-sets-facing
+1.28, **facing-locked 0.67** — the deep coupling halves the class
+imbalance while the striker stays on top in every arm (+0.72/+0.82/+0.43).
+The cost is a rotation tax: rotations are 10.7% of active decisions at
+baseline, 17.4% under move-sets-facing, and 37.2% under facing-locked —
+over a third of everything bots do on that arm is turning, which is
+either tank-game texture or dead air and is exactly what the
+outcome-blind viewing pass must judge. Median cell duration stays at the
+500-tick cap in most cells on every arm, so no coupling fixes pacing by
+itself; the shortest cells (bulwark-vs-striker at 429.5 median under
+move-sets-facing) shorten through kills, not captures.
+
+Two harness facts this run established: the revision-2 population fully
+restores seed variance (every cell 6/6 or 12/12 distinct replay hashes —
+wave-1's three-seeds-one-observation collapse was a population property,
+now disclosed per cell by the `seedVariance` block), and the
+balance-eligible registration path worked end to end for the first time,
+after normalizing the null-vs-"unqualified" coordination-grade mismatch
+it had never exercised.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
