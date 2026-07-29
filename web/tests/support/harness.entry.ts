@@ -13,6 +13,13 @@ export {
 } from '../../src/render/interpolate';
 export { createPresenter } from '../../src/replayPresentation';
 export {
+  classFamilyForForm,
+  fallbackLookIdForForm,
+  unitAccent,
+  unitEmplacedLook,
+  unitLook,
+} from '../../src/render/unitPresentation';
+export {
   buildAdaptiveTimeline,
   sampleAdaptiveTimeline,
 } from '../../src/soundtrack/director';

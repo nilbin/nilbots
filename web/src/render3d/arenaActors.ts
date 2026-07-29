@@ -4,7 +4,13 @@ import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../replayModel';
-import { botLook, projectileLook, presentationAccent } from '../render/arenaThemes';
+import { projectileLook } from '../render/arenaThemes';
+import {
+  defaultFormIdForUnit,
+  unitAccent,
+  unitEmplacedLook,
+  unitLook,
+} from '../render/unitPresentation';
 import {
   boltsAt,
   directionAngle,
@@ -15,10 +21,7 @@ import {
   maxHealthForActor,
   replayMaxHealth,
 } from '../replayMetadata';
-import {
-  participantForUnit,
-  visualIndexForUnit,
-} from '../replayParticipants';
+import { participantForUnit } from '../replayParticipants';
 import { chassisModel } from './chassisModel';
 import { CAMERA_PITCH } from './arenaScene';
 
@@ -182,12 +185,15 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
 
   const bots = replay.units.map((unit) => {
-    const participant = participantForUnit(replay, unit.unitKey);
-    const visualIndex = visualIndexForUnit(replay, unit.unitKey);
-    const look = botLook(participant?.lookId ?? undefined, visualIndex);
-    const accent = new THREE.Color(
-      presentationAccent(look, participant?.accent ?? '#38bdf8'),
-    );
+    // A unit's chassis is built once, so it is resolved from the form the unit starts the
+    // match in rather than per tick. That is exact rather than approximate for the class
+    // arms this exists for: a form transition moves a life between the mobile and emplaced
+    // members of **one** family, so the family — and therefore the artwork — is fixed for
+    // the unit even though the effective form is not.
+    const defaultFormId = defaultFormIdForUnit(replay, unit.unitKey);
+    const look = unitLook(replay, unit.unitKey, defaultFormId);
+    const emplacedLook = unitEmplacedLook(replay, unit.unitKey, defaultFormId);
+    const accent = new THREE.Color(unitAccent(replay, unit.unitKey, defaultFormId));
     const size = Math.max(0.82, look.scale * 0.9);
 
     // A bot is an object standing on the floor, so it gets a body. Laying the sprite flat
@@ -239,6 +245,36 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     lid.position.y = BOT_HEIGHT + 0.004;
     body.add(lid);
 
+    // The nose: which way this machine is pointing, said outright.
+    //
+    // Facing and movement are decoupled by the generic contract — a bot can step north
+    // while still facing east — and a chassis alone does not carry that at arena scale from
+    // a raised camera, so reviewers read the result as the strafing that was removed. A
+    // small lit wedge on the leading edge fixes it, and it is the one accent-coloured piece
+    // *on* a bot here: DECISIONS #127 removed the accent **wash**, which flattened twelve
+    // chassis into one glowing lozenge. A marker the size of a headlight is the opposite of
+    // that — it adds a bit of information rather than removing all of it — and it doubles as
+    // the team's colour on the body, which the pool of light underneath cannot do when the
+    // bot is standing on a lit floor.
+    //
+    // It belongs to `body`, so an emplaced form loses it along with the rest of the mobile
+    // chassis. A turret has no facing to show.
+    const noseGeometry = new THREE.ConeGeometry(size * 0.13, size * 0.26, 4);
+    // Cones point +Y; the sprites are drawn facing east, which is +X here.
+    noseGeometry.rotateZ(-Math.PI / 2);
+    const noseMaterial = new THREE.MeshStandardMaterial({
+      color: accent,
+      emissive: accent,
+      emissiveIntensity: 1.5,
+      roughness: 0.3,
+      metalness: 0.2,
+    });
+    const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+    nose.userData.cue = 'facing-marker';
+    nose.position.set(size * 0.46, BOT_HEIGHT + 0.02, 0);
+    nose.castShadow = true;
+    body.add(nose);
+
     // A turret is deliberately a different silhouette, not the mobile chassis with its
     // movement disabled: it has no privileged facing, which is what a form that sees and
     // fires in every direction actually looks like.
@@ -254,7 +290,15 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     turret.userData.renderForm = 'stationary-omnidirectional';
     const spokes: THREE.Group[] = [];
 
-    void chassisModel(look.imageUrl, undefined, 'front').then((model) => {
+    // Built from the family's **emplaced** look when the fallback supplies one, and from
+    // the unit's own chassis otherwise. A class form that has no artwork of its own gets
+    // an emplacement that is unmistakably an emplacement; a legacy `turret` form keeps the
+    // silhouette it has always had.
+    void chassisModel(
+      (emplacedLook ?? look).imageUrl,
+      undefined,
+      'front',
+    ).then((model) => {
       if (!live || !model) return;
       for (let arm = 0; arm < TURRET_ARMS; arm++) {
         const spoke = new THREE.Group();
@@ -386,6 +430,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     }[] = [
       { material: hullMaterial, base: 1 },
       { material: lidMaterial, base: 1 },
+      { material: noseMaterial, base: 1 },
       glowFade,
     ];
 
@@ -406,6 +451,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       });
     tintable(hullMaterial);
     tintable(lidMaterial);
+    tintable(noseMaterial);
 
     // Swap the box for the real thing once the sprite has been parsed and triangulated.
     //
@@ -538,6 +584,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       hullMaterial,
       lidGeometry,
       lidMaterial,
+      noseGeometry,
+      noseMaterial,
       anchorGeometry,
       anchorMaterial,
       glowGeometry,
@@ -580,32 +628,96 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       fade,
     };
   });
-  /**
-   * When each life deploys into an immobile form, and for how long.
-   *
-   * One source, computed once. Driven from both the tick's pending transition and a span
-   * from the change event, the two disagreed about the length and handed over mid-way, so
-   * the deploy ran two thirds, jumped back, and ran again.
-   */
   /** Is this tile solid? Out of bounds counts as solid — the arena is enclosed. */
   const solid = (x: number, y: number) => {
     const row = replay.map.tileRows[y];
     return row === undefined || row[x] === undefined || row[x] === '#';
   };
 
-  const deploys = new Map<string, { at: number; span: number }>();
+  /**
+   * Every form change a life goes through, in order, with the direction it goes in.
+   *
+   * This used to be a single first-only "when did this life deploy" entry per actor, and
+   * that shape could not express a life going back: once an entry existed, the deploy
+   * clock was clamped at 1 for the rest of the match, so a bulwark that mobilized out of
+   * its turret kept the turret geometry and the scan wedge forever while its authoritative
+   * form, its health maximum and its move events all said otherwise. Same-life transitions
+   * are reversible by rule (`mobilize` is `transform` run backwards) and a life may make
+   * the round trip more than once, so the renderer keeps the whole sequence and reads the
+   * segment covering the playhead.
+   *
+   * `stationary` is the *target's* mobility, so a segment says which way the animation is
+   * running rather than what the form is right now — during a windup the life is still
+   * legally in its source form, which is exactly the part worth watching.
+   *
+   * A cancelled transition (lethal damage during a windup) is recorded as a segment back
+   * toward the form the life kept, so a half-raised chassis settles instead of finishing a
+   * deploy that never happened.
+   */
+  type FormSegment = { at: number; span: number; stationary: boolean };
+  const formTimelines = new Map<ReplayActorLifeKey, FormSegment[]>();
+  const stationaryForm = (formId: string | null) =>
+    formId === null
+      ? null
+      : (replay.forms.find((form) => form.formId === formId)?.canMove ??
+          true) === false;
   for (const tick of replay.ticks)
     for (const event of tick.events) {
-      if (!event.sourceActor || !event.toFormId) continue;
-      if (event.type !== 'form-transition-started' && event.type !== 'form-changed') continue;
-      const target = replay.forms.find((form) => form.formId === event.toFormId);
-      if (target?.canMove !== false) continue;
+      if (!event.sourceActor) continue;
+      const cancelled = event.type === 'form-transition-cancelled';
+      if (
+        !cancelled &&
+        event.type !== 'form-transition-started' &&
+        event.type !== 'form-changed'
+      )
+        continue;
+      // A cancel leaves the life in the form it started from; everything else moves it to
+      // the form the transition targets.
+      const stationary = stationaryForm(
+        cancelled ? event.fromFormId : event.toFormId,
+      );
+      if (stationary === null) continue;
+      const at = cancelled
+        ? event.tick
+        : (event.formTransitionStartedAtTick ?? event.tick);
+      const completes = cancelled
+        ? event.tick
+        : (event.formTransitionCompletesAtTick ?? event.tick);
       const key = event.sourceActor.actorKey;
-      if (deploys.has(key)) continue;
-      const at = event.formTransitionStartedAtTick ?? event.tick;
-      const completes = event.formTransitionCompletesAtTick ?? event.tick;
-      deploys.set(key, { at, span: Math.max(completes - at + 1, DEPLOY_TICKS) });
+      const timeline = formTimelines.get(key) ?? [];
+      // `form-transition-started` and the replay-v2 `form-changed` both describe one
+      // transition, and a replay carrying both must not queue it twice.
+      if (
+        timeline.some(
+          (segment) =>
+            segment.at === at && segment.stationary === stationary,
+        )
+      )
+        continue;
+      timeline.push({
+        at,
+        span: Math.max(completes - at + 1, DEPLOY_TICKS),
+        stationary,
+      });
+      formTimelines.set(key, timeline);
     }
+  for (const timeline of formTimelines.values())
+    timeline.sort((left, right) => left.at - right.at);
+
+  /** The transition covering the playhead for this life, or null before its first one. */
+  const segmentAt = (
+    actorKey: ReplayActorLifeKey,
+    time: number,
+  ): FormSegment | null => {
+    const timeline = formTimelines.get(actorKey);
+    if (!timeline) return null;
+    let current: FormSegment | null = null;
+    for (const segment of timeline) {
+      if (segment.at > time) break;
+      current = segment;
+    }
+    return current;
+  };
 
   const botsByUnit = new Map(
     bots.map((bot) => [bot.unitKey, bot]),
@@ -632,14 +744,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   );
   const arsenals = replay.units.map((unit) => {
     const participant = participantForUnit(replay, unit.unitKey);
-    const visualIndex = visualIndexForUnit(replay, unit.unitKey);
     const look = projectileLook(participant?.projectileLookId ?? undefined);
-    const accent = new THREE.Color(
-      presentationAccent(
-        botLook(participant?.lookId ?? undefined, visualIndex),
-        participant?.accent ?? '#38bdf8',
-      ),
-    );
+    const accent = new THREE.Color(unitAccent(replay, unit.unitKey));
     const tracerMaterial = new THREE.MeshBasicMaterial({
       map: tracerTexture(accent),
       transparent: true,
@@ -884,12 +990,24 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // then the turret takes over and its arms unfold from folded-onto-one out to
       // quarters. Overlapping them — a turret growing inside a rotating chassis — read as
       // something extruding out of the bot's head, because that is what it was.
-      const deploy = deploys.get(pose.actorKey);
-      const raising = deploy
-        ? Math.max(0, Math.min((time - deploy.at) / deploy.span, 1))
-        : stationary
-          ? 1
-          : 0;
+      //
+      // The clock runs **both ways**. A mobilize is the same animation played backwards, so
+      // it is the same segment with its direction flipped rather than a second mechanism —
+      // and once a segment has finished, the authoritative form takes over from the
+      // animation outright, which is what keeps a transition the replay cancelled, or one
+      // whose events a partial replay never carried, from stranding a body mid-deploy.
+      const deploy = segmentAt(pose.actorKey, time);
+      const deployProgress = deploy
+        ? (time - deploy.at) / deploy.span
+        : Number.POSITIVE_INFINITY;
+      const raising =
+        deploy === null || deployProgress >= 1
+          ? stationary
+            ? 1
+            : 0
+          : deploy.stationary
+            ? Math.max(0, deployProgress)
+            : Math.min(1, 1 - deployProgress);
       const upright = easeInOut(raising);
       const tipping = Math.min(upright / TURRET_TAKEOVER, 1);
       const unfolding = Math.max(0, (upright - TURRET_TAKEOVER) / (1 - TURRET_TAKEOVER));
@@ -928,16 +1046,18 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
       }
 
-      // The windup cue runs on the deploy's clock, for exactly as long as the deploy does.
+      // The windup cue runs on the transition's clock, for exactly as long as it does — in
+      // either direction, because mobilizing has a windup the bot cannot act through just
+      // as anchoring does.
       //
       // Reading `pendingFormTransition` instead — which is what this did — meant it never
       // appeared at all on a replay whose form change completes in the tick it started, and
       // Frontline's own fixture is exactly that: `started=9 done=9`, pending never set.
       // Tracked unclamped past completion so the circle reaches full and holds a moment
       // rather than blinking out a hair before it closes.
-      const anchorProgress = deploy ? (time - deploy.at) / deploy.span : 0;
+      const anchorProgress = deploy ? deployProgress : 0;
       bot.anchorRing.visible =
-        deploy !== undefined &&
+        deploy !== null &&
         anchorProgress > 0 &&
         anchorProgress < 1 + RING_HOLD &&
         bot.chassis.visible;

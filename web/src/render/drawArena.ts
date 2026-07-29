@@ -8,18 +8,16 @@ import type {
 } from '../replayModel';
 import {
   arenaTheme,
-  botLook,
-  presentationAccent,
   projectileLook,
   type ProjectileLook,
 } from './arenaThemes';
+import { unitAccent, unitLook } from './unitPresentation';
 import {
   adjustAccentForLuminance,
   sampleCanvasLuminance,
 } from './adaptiveAccent';
 import { maxHealthForActor } from '../replayMetadata';
 import {
-  participantForActor,
   participantForUnit,
   visualIndexForUnit,
 } from '../replayParticipants';
@@ -178,21 +176,12 @@ export function drawArena(
     interiorWall,
     (family) => validWallFamily(family, interiorWall),
   );
-  const lookFor = (unitKey: ReplayStableUnitKey) => {
-    const participant = participantForUnit(replay, unitKey);
-    return botLook(
-      participant?.lookId ?? undefined,
-      visualIndexForUnit(replay, unitKey),
-    );
-  };
-  const accentFor = (unitKey: ReplayStableUnitKey | null): string => {
-    if (unitKey === null) return '#ffffff';
-    const participant = participantForUnit(replay, unitKey);
-    return presentationAccent(
-      lookFor(unitKey),
-      participant?.accent ?? '#38bdf8',
-    );
-  };
+  // Look and accent both come from `unitPresentation`, which is also what the 2.5D
+  // renderer and the bot panel ask — a class form with no authored art, or two teams that
+  // submitted the same accent, must not be resolved differently depending on which
+  // renderer happens to be running.
+  const accentFor = (unitKey: ReplayStableUnitKey | null): string =>
+    unitKey === null ? '#ffffff' : unitAccent(replay, unitKey);
   const accentAt = (accent: string, x: number, y: number): string => {
     const background = sampleCanvasLuminance(ctx, x, y, width, height);
     return background === null
@@ -453,14 +442,11 @@ export function drawArena(
    */
   function drawSpill(): void {
     const sources: LightSource[] = [];
+    // Through the same resolution as the bots themselves: light thrown by a shot is that
+    // team's light, and reading the participant accent straight made it white-on-white
+    // once two teams submitted the same colour.
     const eventAccent = (event: ReplayCausalEvent) =>
-      event.sourceActor ?? event.targetActor
-        ? (participantForActor(
-            replay,
-            (event.sourceActor ?? event.targetActor)!,
-          )?.accent ??
-          '#ffffff')
-        : '#ffffff';
+      accentFor((event.sourceActor ?? event.targetActor)?.unitKey ?? null);
 
     const collect = (index: number, age: number) => {
       const at = replay.ticks[index];
@@ -971,7 +957,11 @@ export function drawArena(
     const participant = participantForUnit(replay, pose.unitKey);
     const accent = accentFor(pose.unitKey);
     const visualIndex = visualIndexForUnit(replay, pose.unitKey);
-    const look = botLook(participant?.lookId ?? undefined, visualIndex);
+    // The **effective** form, every tick. A life that mobilizes back out of a turret is
+    // wearing a mobile form again from that tick on, and the chassis has to say so; the
+    // pose already carries the authoritative form, so nothing here is remembered between
+    // frames.
+    const look = unitLook(replay, pose.unitKey, pose.formId);
     const form = replay.forms.find(
       (candidate) => candidate.formId === pose.formId,
     );
@@ -1119,6 +1109,20 @@ export function drawArena(
       drawFallbackChassis(participant?.name ?? '', radius, accent, destroyed);
     }
 
+    // Which way this machine is pointing, stated outright.
+    //
+    // Facing and movement are decoupled by the generic contract — a bot may step north
+    // while facing east, and it stays facing east until it spends an action turning. Read
+    // off a chassis alone that is nearly invisible: several looks are close to
+    // symmetrical, one is a disc on purpose, and reviewers consistently read the result as
+    // the strafing that was removed. So the nose carries a marker: a bright wedge riding
+    // the hull's leading edge, in the owner's accent, which also puts team colour on the
+    // body itself rather than only under it.
+    //
+    // Not drawn on a stationary form, which has no facing to show — an emplacement that
+    // sees and fires in every direction pointing somewhere would be a lie about the rules.
+    if (!destroyed && form?.canMove !== false) drawFacingMarker(radius, accent);
+
     ctx.restore();
 
     if (!destroyed && !ghosted)
@@ -1132,6 +1136,39 @@ export function drawArena(
           health: pose.health,
         }),
       );
+  }
+
+  /**
+   * The heading wedge, drawn in the bot's already-rotated frame so +x is its facing.
+   *
+   * Outlined in the arena's near-black before it is filled: the marker has to survive
+   * landing on a pale hull plate as well as on the floor, and an unoutlined accent chevron
+   * disappears into the Aureate Warden's gold the moment it is drawn over it.
+   */
+  function drawFacingMarker(radius: number, accent: string): void {
+    const tip = radius * 1.62;
+    const base = radius * 1.08;
+    const half = radius * 0.44;
+    ctx.beginPath();
+    ctx.moveTo(tip, 0);
+    ctx.lineTo(base, -half);
+    ctx.lineTo(base, half);
+    ctx.closePath();
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(1.5, tile * 0.045);
+    ctx.strokeStyle = 'rgba(6, 11, 18, 0.85)';
+    ctx.stroke();
+    ctx.fillStyle = accent;
+    ctx.fill();
+    // A short spine back from the wedge, so the heading still reads when the wedge itself
+    // is behind a wall's overhang at the top of the arena.
+    ctx.beginPath();
+    ctx.moveTo(base, 0);
+    ctx.lineTo(radius * 0.12, 0);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(1.5, tile * 0.05);
+    ctx.strokeStyle = hexWithAlpha(accent, 0.55);
+    ctx.stroke();
   }
 
   function drawFallbackChassis(

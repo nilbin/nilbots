@@ -6,11 +6,7 @@ import type {
 } from '../replayModel';
 import { spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
-import { presentationAccent, botLook } from '../render/arenaThemes';
-import {
-  participantForUnit,
-  visualIndexForUnit,
-} from '../replayParticipants';
+import { unitAccent } from '../render/unitPresentation';
 import {
   createPresenter,
   type TickPresentation,
@@ -648,15 +644,7 @@ function accentForUnit(
   replay: ReplayModel,
   unitKey: ReplayStableUnitKey,
 ): string {
-  const participant = participantForUnit(replay, unitKey);
-  const look = botLook(
-    participant?.lookId ?? undefined,
-    visualIndexForUnit(replay, unitKey),
-  );
-  return presentationAccent(
-    look,
-    participant?.accent ?? '#38bdf8',
-  );
+  return unitAccent(replay, unitKey);
 }
 
 /** A soft round flare, drawn rather than shipped. */

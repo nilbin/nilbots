@@ -8,15 +8,14 @@ import type {
   ReplayUnitLifecycleStatus,
   ReplayWorldSnapshot,
 } from './replayModel';
-import { botLook, presentationAccent } from './render/arenaThemes';
 import { adjustAccentForBackground } from './render/adaptiveAccent';
+import { unitAccent, unitLook } from './render/unitPresentation';
 import { replayMaxHealth } from './replayMetadata';
 import {
   legacySlotForUnit,
   participantForUnit,
   teamName,
   unitName,
-  visualIndexForUnit,
 } from './replayParticipants';
 
 /**
@@ -186,8 +185,10 @@ function presentUnit(
     (candidate) => candidate.formId === formId,
   );
   const participant = participantForUnit(replay, unitKey);
-  const visualIndex = visualIndexForUnit(replay, unitKey);
-  const look = botLook(participant?.lookId ?? undefined, visualIndex);
+  // Resolved through the same place the arena resolves it, for the effective form: a card
+  // showing a different chassis or a different colour from the bot it names is worse than
+  // no card.
+  const look = unitLook(replay, unitKey, formId);
   const status =
     afterUnit?.lifecycleStatus ?? actor?.status ?? 'respawning';
   const position = activeActor?.position ?? actor?.position ?? null;
@@ -225,7 +226,7 @@ function presentUnit(
     legacySlot: legacySlotForUnit(replay, unitKey),
     name: unitName(replay, unitKey),
     accent: adjustAccentForBackground(
-      presentationAccent(look, participant?.accent ?? undefined),
+      unitAccent(replay, unitKey, formId),
       '#111823',
     ),
     lookLabel: look.label,

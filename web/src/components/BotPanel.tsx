@@ -4,12 +4,8 @@ import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../replayModel';
-import { botLook } from '../render/arenaThemes';
+import { unitLook } from '../render/unitPresentation';
 import { createPresenter } from '../replayPresentation';
-import {
-  participantForUnit,
-  visualIndexForUnit,
-} from '../replayParticipants';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -115,11 +111,9 @@ export default function BotPanel({
                   ? `SPAWN T${unit.fabricationAtTick}`
                   : null;
         const formTransition = unit.pendingFormTransition;
-        const participant = participantForUnit(replay, unit.unitKey);
-        const look = botLook(
-          participant?.lookId ?? undefined,
-          visualIndexForUnit(replay, unit.unitKey),
-        );
+        // The card wears the effective form's chassis, so anchoring and mobilizing show
+        // up in the panel at the same tick they show up in the arena.
+        const look = unitLook(replay, unit.unitKey, unit.formId);
         return (
           <button
             key={unit.unitKey}
