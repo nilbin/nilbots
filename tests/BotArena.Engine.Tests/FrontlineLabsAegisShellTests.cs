@@ -5,8 +5,9 @@ namespace BotArena.Engine.Tests;
 /// <summary>
 /// Pins BULWARK AEGIS SHELL: the reversible stance whose price is the form
 /// (immobile, gunless, objective weight 1 — tenure is not clock-bounded), the
-/// typed form-level guard that blanks frontal fire, the observed event that
-/// makes the blank renderable, and the fingerprint discipline around both.
+/// typed form-level guard that turns frontal fire, the observed event that
+/// makes the exchange renderable, and the fingerprint discipline around both.
+/// What the turned bolt then does is FrontlineLabsDeflectionTests.
 /// </summary>
 public sealed class FrontlineLabsAegisShellTests
 {
@@ -116,7 +117,7 @@ public sealed class FrontlineLabsAegisShellTests
     }
 
     [Fact]
-    public void AFrontalContactIsConsumedAndPublishedWithoutDamage()
+    public void AFrontalContactIsTurnedAndPublishedWithoutDamage()
     {
         GenericActorMatchChronology chronology = RunShellProbe(
             Direction.West);
@@ -124,25 +125,25 @@ public sealed class FrontlineLabsAegisShellTests
         GenericActorMatchTickFrame frame = chronology.Ticks.First(item =>
             FrontlineLabsSkillArmTestFixture.Deflections(item).Length > 0);
         GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
-            absorbed = FrontlineLabsSkillArmTestFixture
+            turned = FrontlineLabsSkillArmTestFixture
                 .Deflections(frame)
                 .Single();
 
-        Assert.Equal(0, absorbed.SourceTeamId);
-        Assert.Equal(1, absorbed.TargetActorId.TeamId);
+        Assert.Equal(0, turned.SourceTeamId);
+        Assert.Equal(1, turned.TargetActorId.TeamId);
         Assert.Equal(
             FrontlineLabsClassDefinition.Bulwark.PrimeStanceFormId,
-            absorbed.TargetFormId);
-        Assert.Equal(Direction.West, absorbed.TargetFacing);
-        Assert.Equal(ProjectileHeading.East, absorbed.Heading);
-        Assert.Equal(ShellTile, absorbed.Position);
-        // No damage, anywhere in the match, from a blanked bolt.
+            turned.TargetFormId);
+        Assert.Equal(Direction.West, turned.TargetFacing);
+        Assert.Equal(ProjectileHeading.East, turned.Heading);
+        Assert.Equal(ShellTile, turned.Position);
+        // The consumed bolt never damages: it dies on the arc.
         Assert.DoesNotContain(
             FrontlineLabsSkillArmTestFixture.Damages(frame),
-            damage => damage.ProjectileId == absorbed.ProjectileId);
+            damage => damage.ProjectileId == turned.ProjectileId);
         Assert.Contains(
             frame.Traversals,
-            traversal => traversal.ProjectileId == absorbed.ProjectileId
+            traversal => traversal.ProjectileId == turned.ProjectileId
                 && traversal.Terminal is GenericActorProjectileTraversal
                     .TerminalDisposition.ActorContact
                     {

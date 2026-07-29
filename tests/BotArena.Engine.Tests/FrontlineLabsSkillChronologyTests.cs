@@ -52,10 +52,10 @@ public sealed class FrontlineLabsSkillChronologyTests
     }
 
     [Fact]
-    public void RejectsAnAbsorptionFromOutsideTheGuardArc()
+    public void RejectsADeflectionFromOutsideTheGuardArc()
     {
         GenericActorMatchChronology chronology = ShellChronology();
-        GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
             .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
@@ -72,10 +72,10 @@ public sealed class FrontlineLabsSkillChronologyTests
     }
 
     [Fact]
-    public void RejectsAnAbsorptionByAFormThatDeclaresNoGuard()
+    public void RejectsADeflectionByAFormThatDeclaresNoGuard()
     {
         GenericActorMatchChronology chronology = ShellChronology();
-        GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
             .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
@@ -96,10 +96,10 @@ public sealed class FrontlineLabsSkillChronologyTests
     }
 
     [Fact]
-    public void RejectsAnAbsorptionOfOwnTeamFire()
+    public void RejectsADeflectionOfOwnTeamFire()
     {
         GenericActorMatchChronology chronology = ShellChronology();
-        GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
             .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
@@ -120,10 +120,10 @@ public sealed class FrontlineLabsSkillChronologyTests
     }
 
     [Fact]
-    public void RejectsAnAbsorptionWithNoConsumingTraversal()
+    public void RejectsADeflectionWithNoConsumingTraversal()
     {
         GenericActorMatchChronology chronology = ShellChronology();
-        GenericActorMatchTickFrame frame = FirstAbsorption(chronology);
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
         var original = (GenericActorRuntimeObservation.EventPayload
             .ProjectileDeflected)frame.Events.First(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
@@ -139,6 +139,119 @@ public sealed class FrontlineLabsSkillChronologyTests
                 {
                     ProjectileId = original.ProjectileId + 1_000,
                 }).Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The return is the deflection's second fact and is checked as hard as
+    /// the first: a deflection that names a bolt nothing launched is refused.
+    /// </summary>
+    [Fact]
+    public void RejectsADeflectionWhoseReturnWasNeverLaunched()
+    {
+        GenericActorMatchChronology chronology = ShellChronology();
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            original = FirstDeflectedPayload(frame);
+
+        Assert.Contains(
+            "guard-deflection launch",
+            RebuildWithoutTraversal(
+                chronology,
+                frame,
+                original.DeflectedProjectileId).Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// And the converse: a launch nobody deflected is a projectile appearing
+    /// from nowhere, which is exactly the forgery the ownership flip would
+    /// make profitable.
+    /// </summary>
+    [Fact]
+    public void RejectsAGuardDeflectionLaunchNoEventNames()
+    {
+        GenericActorMatchChronology chronology = ShellChronology();
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            original = FirstDeflectedPayload(frame);
+
+        Assert.Contains(
+            "named by a deflection event",
+            Rebuild(
+                chronology,
+                frame,
+                original,
+                original with
+                {
+                    DeflectedProjectileId =
+                        original.DeflectedProjectileId + 5_000,
+                }).Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RejectsADeflectionWhoseReturnLeavesTheWrongTile()
+    {
+        GenericActorMatchChronology chronology = ShellChronology();
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            original = FirstDeflectedPayload(frame);
+
+        Assert.Contains(
+            "own tile",
+            Rebuild(
+                chronology,
+                frame,
+                original,
+                original with
+                {
+                    Position = original.Position.Offset(0, -1),
+                }).Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The forged heading stays inside the guard's quadrant, so only the
+    /// reversal rule can catch it — which is the point of stating the return
+    /// as the exact reverse rather than as "roughly back".
+    /// </summary>
+    [Fact]
+    public void RejectsADeflectionWhoseReturnDoesNotReverseTheApproach()
+    {
+        GenericActorMatchChronology chronology = ShellChronology();
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            original = FirstDeflectedPayload(frame);
+
+        Assert.Contains(
+            "exactly reversed heading",
+            Rebuild(
+                chronology,
+                frame,
+                original,
+                original with
+                {
+                    Heading = original.Heading.Turned(1),
+                }).Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RejectsADeflectionWhoseReturnIsOwnedByTheShooter()
+    {
+        GenericActorMatchChronology chronology = ShellChronology();
+        GenericActorMatchTickFrame frame = FirstDeflection(chronology);
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            original = FirstDeflectedPayload(frame);
+
+        Assert.Contains(
+            "deflecting life and its team",
+            RebuildWithReassignedLaunch(
+                chronology,
+                frame,
+                original.DeflectedProjectileId,
+                original.SourceActorId!).Message,
             StringComparison.Ordinal);
     }
 
@@ -178,6 +291,85 @@ public sealed class FrontlineLabsSkillChronologyTests
                     item.Tick == frame.Tick ? edited : item)],
                 result: null));
     }
+
+    /// <summary>
+    /// Rebuilds the chronology with the named projectile's guard-deflection
+    /// launch deleted, leaving every other fact exactly as recorded.
+    /// </summary>
+    private static ArgumentException RebuildWithoutTraversal(
+        GenericActorMatchChronology chronology,
+        GenericActorMatchTickFrame frame,
+        long projectileId) =>
+        RebuildTraversals(
+            chronology,
+            frame,
+            [
+                .. frame.Traversals.Where(traversal =>
+                    traversal.ProjectileId != projectileId),
+            ]);
+
+    /// <summary>
+    /// Rebuilds the chronology with the named return's launch reassigned to
+    /// another life — the forgery that would let the shooter's own bolt come
+    /// back under the shooter's colours.
+    /// </summary>
+    private static ArgumentException RebuildWithReassignedLaunch(
+        GenericActorMatchChronology chronology,
+        GenericActorMatchTickFrame frame,
+        long projectileId,
+        ActorIdentity owner) =>
+        RebuildTraversals(
+            chronology,
+            frame,
+            [
+                .. frame.Traversals.Select(traversal =>
+                    traversal.ProjectileId == projectileId
+                        ? new GenericActorProjectileTraversal(
+                            traversal.Tick,
+                            traversal.GlobalOrdinal,
+                            traversal.Phase,
+                            traversal.Trigger,
+                            traversal.ProjectileId,
+                            traversal.OwnerParticipantId,
+                            owner.TeamId,
+                            owner,
+                            traversal.AttackProfileId,
+                            traversal.From,
+                            traversal.Path,
+                            traversal.LaunchHeading,
+                            traversal.FinalHeading,
+                            traversal.ShotProgram,
+                            traversal.Terminal)
+                        : traversal),
+            ]);
+
+    private static ArgumentException RebuildTraversals(
+        GenericActorMatchChronology chronology,
+        GenericActorMatchTickFrame frame,
+        GenericActorProjectileTraversal[] traversals)
+    {
+        var edited = new GenericActorMatchTickFrame(
+            frame.TickStart,
+            frame.ActorTurns,
+            frame.Events,
+            traversals,
+            frame.PostState);
+        return Assert.Throws<ArgumentException>(() =>
+            new GenericActorMatchChronology(
+                chronology.Descriptor,
+                chronology.InitialFrame,
+                [.. chronology.Ticks.Select(item =>
+                    item.Tick == frame.Tick ? edited : item)],
+                result: null));
+    }
+
+    private static GenericActorRuntimeObservation.EventPayload
+        .ProjectileDeflected FirstDeflectedPayload(
+            GenericActorMatchTickFrame frame) =>
+        (GenericActorRuntimeObservation.EventPayload.ProjectileDeflected)
+        frame.Events.First(item => item.Kind
+            == GenericActorRuntimeObservation.EventKind.ProjectileDeflected)
+            .Payload;
 
     private static GenericActorMatchChronology VolleyChronology()
     {
@@ -277,7 +469,7 @@ public sealed class FrontlineLabsSkillChronologyTests
         chronology.Ticks.First(frame =>
             FrontlineLabsSkillArmTestFixture.Attacks(frame).Length == 3);
 
-    private static GenericActorMatchTickFrame FirstAbsorption(
+    private static GenericActorMatchTickFrame FirstDeflection(
         GenericActorMatchChronology chronology) =>
         chronology.Ticks.First(frame =>
             FrontlineLabsSkillArmTestFixture.Deflections(frame).Length > 0);
