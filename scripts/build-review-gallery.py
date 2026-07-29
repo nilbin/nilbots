@@ -9,9 +9,13 @@ semantics, including the ``</`` escape), and emit an index. Two viewer
 modes:
 
 - ``--viewer hosted`` (default): inject into ``web/dist/index.html`` and
-  copy its hashed assets beside the pages. Full renderer (lazy WebGL);
-  must be SERVED (http.server / cloudflared per the replay-highlights
-  skill) — file:// blocks module loading.
+  copy everything ``dist`` ships beside it — the hashed ``assets/`` *and*
+  the ``public/`` passthrough the viewer fetches at runtime, which is
+  where the soundtrack lives (``soundtracks/index.json``). Full renderer
+  (lazy WebGL); must be SERVED (http.server / cloudflared per the
+  replay-highlights skill) — file:// blocks module loading, and the
+  pages reference ``/assets`` and ``/soundtracks`` absolutely, so serve
+  the gallery directory as the server root.
 - ``--viewer self-contained``: inject into a ``web/dist-cli/<theme>``
   template. Portable single files, Canvas2D only (dist-cli excludes
   Three.js by design).
@@ -148,13 +152,25 @@ def build(args: argparse.Namespace) -> None:
         if not template_path.exists():
             raise SystemExit(
                 "web/dist/index.html missing — run `npm run build` in web/")
-        assets = output / "assets"
-        if assets.exists():
-            shutil.rmtree(assets)
-        shutil.copytree(dist / "assets", assets)
+        # Everything `web/dist` ships beside the entry point comes along,
+        # DIRECTORIES INCLUDED. Copying `assets/` plus the loose files was
+        # the whole gallery's audio bug: Vite bundles the three sound-effect
+        # cues into `assets/` (they are imported), but the 22 MB adaptive
+        # soundtrack is a `public/` passthrough served from
+        # `dist/soundtracks/`, and `useAdaptiveSoundtrack` fetches it at
+        # `<base>soundtracks/index.json`. A directory-blind copy left every
+        # gallery page with working effects and a soundtrack that 404'd into
+        # "SCORE ERROR" no matter how the reviewer interacted with it.
         for extra in dist.iterdir():
-            if extra.is_file() and extra.name != "index.html":
-                shutil.copy2(extra, output / extra.name)
+            if extra.name == "index.html":
+                continue
+            target = output / extra.name
+            if extra.is_dir():
+                if target.exists():
+                    shutil.rmtree(target)
+                shutil.copytree(extra, target)
+            else:
+                shutil.copy2(extra, target)
     else:
         template_path = (
             REPO / "web" / "dist-cli" / args.theme / "index.html")

@@ -58,6 +58,13 @@ canonical way to refresh a gallery after viewer fixes. Note
 `nilbots replay --out` cannot export replay-v3 viewers (v1 only) — the
 script's marker injection is the v3 path.
 
+A hosted gallery carries the whole of `web/dist`, and **the soundtrack is a
+directory, not a bundled asset**: the score is fetched at runtime from
+`soundtracks/index.json`, alongside `/assets`, both by absolute path. So serve
+the gallery directory *as the server root*, and if the viewer's music control
+reads `SCORE ERROR` while the sound effects still fire, the catalog 404'd —
+the pages are fine, the tree beside them is not.
+
 ## Without the Sites integration
 
 The hosted deploy above needs the Sites integration, which only some agent
