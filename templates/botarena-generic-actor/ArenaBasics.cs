@@ -320,15 +320,49 @@ internal static class ArenaBasics
             occupied.Add(
                 context.Self.Position.Offset(dx, dy));
         }
+        // The legality mask says what is legal THIS tick, not where routes
+        // may go: under a facing-coupled arm it offers only the current
+        // facing, and seeding the search from it prunes every turn-requiring
+        // route — the bot freezes instead of turning. Plan on map geometry;
+        // when the mask refuses the planned step, spend a rotation to
+        // unlock it next tick.
         Direction? step = FindFirstStep(
             contract.Map,
             context.Self.Position,
             goals.ToHashSet(),
             occupied,
-            constraint.AllowedValues.ToHashSet(),
+            Directions.ToHashSet(),
             OrderedDirections(contract, context));
         if (step is not Direction direction)
             return null;
+
+        if (!constraint.AllowedValues.Contains(direction))
+        {
+            GenericActorActionLegality? rotate = AvailableAction(
+                contract,
+                context,
+                GenericActorRulesContract.ActionKind.Rotation);
+            GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+                heading = rotate?.Constraints
+                    .OfType<GenericActorActionLegality.ArgumentConstraint
+                        .DirectionConstraint>()
+                    .SingleOrDefault();
+            if (rotate is null
+                || heading is null
+                || !heading.AllowedValues.Contains(direction)
+                || context.Self.Facing == direction)
+            {
+                return null;
+            }
+            return new GenericActorDecision(
+                rotate.ActionId,
+                rotate.ActionCode,
+                [
+                    new GenericActorActionArgument.DirectionArgument(
+                        direction),
+                ],
+                $"rotating toward {direction} to unlock the next step");
+        }
 
         return new GenericActorDecision(
             move.ActionId,

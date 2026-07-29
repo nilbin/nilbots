@@ -76,7 +76,9 @@ catalog, routes, and legality masks; never assume your class's shape.
   read it as "missing means preserve-facing", and never plan routes
   against the movement legality mask under `facing-locked`: the mask
   offers only your current facing each tick; plan on map geometry and
-  spend rotations explicitly.
+  spend rotations explicitly. The scaffold's
+  `TryAdvanceToActiveObjective` does this — it searches all cardinals
+  and emits the unlocking rotation when the mask refuses its step.
 
 ## Running matches
 
