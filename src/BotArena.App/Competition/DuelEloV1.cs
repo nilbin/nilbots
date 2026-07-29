@@ -10,9 +10,9 @@ namespace BotArena.App.Competition;
 public sealed class DuelEloV1 : IRatingPolicy
 {
     public const string Id = "duel-elo-v1";
-    public const int Games = 6;
+    public const int Games = DuelMirrored6V1.GameCount;
     public const double KFactor = 32;
-    public const double MinimumRating = 100;
+    public const double MinimumRating = EloAdjustment.Floor;
 
     public string PolicyId => Id;
 

@@ -68,13 +68,32 @@ public sealed record RankedSetSnapshot(int AccountDailyCount, int AccountUnfinis
 public static class RankedSetPolicy
 {
     /// <summary>The reason a set cannot start, or null.</summary>
-    public static string? Evaluate(RankedSetSnapshot snapshot, RankedSetLimits limits)
+    public static string? Evaluate(
+        RankedSetSnapshot snapshot,
+        RankedSetLimits limits) =>
+        EvaluateError(snapshot, limits)?.Detail;
+
+    /// <summary>The stable application refusal for a set, or null.</summary>
+    public static ApplicationError? EvaluateError(
+        RankedSetSnapshot snapshot,
+        RankedSetLimits limits)
     {
         if (snapshot.AccountUnfinishedCount >= limits.AccountConcurrentLimit)
-            return $"You already have {limits.AccountConcurrentLimit} ranked sets in progress. " +
-                   "Wait for one to finish.";
+        {
+            return new ApplicationError(
+                ApplicationErrorCodes.MatchRankedConcurrentLimit,
+                ApplicationErrorType.RateLimit,
+                $"You already have {limits.AccountConcurrentLimit} ranked sets in " +
+                "progress. Wait for one to finish.");
+        }
         if (snapshot.AccountDailyCount >= limits.AccountDailyLimit)
-            return $"Accounts may start at most {limits.AccountDailyLimit} ranked sets per 24 hours.";
+        {
+            return new ApplicationError(
+                ApplicationErrorCodes.MatchRankedDailyLimit,
+                ApplicationErrorType.RateLimit,
+                $"Accounts may start at most {limits.AccountDailyLimit} ranked sets " +
+                "per 24 hours.");
+        }
         return null;
     }
 }

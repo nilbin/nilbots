@@ -120,6 +120,13 @@ Protocol/configuration 0.1 remains the exact shipped Duel contract.
 - [`ARENA-VISUALS.md`](ARENA-VISUALS.md), [`AUDIO-DESIGN.md`](AUDIO-DESIGN.md),
   and [`COSMETICS-ENTITLEMENTS.md`](COSMETICS-ENTITLEMENTS.md) — current
   presentation/content contracts and implementation status.
+- [`design/`](design/README.md) — the web and mobile design reference:
+  colour and type policy, the Forge ground, the logotype, and redesigns of
+  the viewer, bot page, first run and CLI output. Open `design/climb.html`
+  from disk. **Specification, not shipped state** — its Open section lists
+  what is undecided. 3D as the only web renderer has since landed; replacing
+  the mobile WebView with a shared native renderer is deferred — the app keeps
+  the shared web viewer for now, and the web redesign goes first.
 - [`USER-NOTIFICATIONS.md`](USER-NOTIFICATIONS.md) — shipped entitlement
   notification behavior.
 

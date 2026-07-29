@@ -30,6 +30,7 @@ import {
 const keys = {
   meta: ['meta'] as const,
   bots: ['bots'] as const,
+  arena: ['arena'] as const,
   labs: ['labs'] as const,
   bot: (key: string) => ['bot', key] as const,
   botMatches: (botId: string) => ['bot', botId, 'matches'] as const,
@@ -115,12 +116,32 @@ export function useNotifications(enabled: boolean) {
 }
 
 /** Versions and rules; changes about as often as a deploy. */
-export function useMeta() {
-  return useQuery({ queryKey: keys.meta, queryFn: endpoints.meta, staleTime: 5 * 60_000 });
+export function useMeta(enabled = true) {
+  return useQuery({
+    queryKey: keys.meta,
+    queryFn: endpoints.meta,
+    staleTime: 5 * 60_000,
+    enabled,
+  });
 }
 
 export function useBots(enabled = true) {
   return useQuery({ queryKey: keys.bots, queryFn: endpoints.bots, enabled });
+}
+
+/**
+ * The signed-in player's Arena authority: format, effective allowances and batch bot
+ * admission. A short freshness window lets a page and the composer share one request;
+ * focus, explicit refreshes and successful Arena writes still revalidate it.
+ */
+export function useArenaCapabilities(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.arena,
+    queryFn: endpoints.arena,
+    enabled,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+  });
 }
 
 /** Hosted experiments available on this deployment; disabled deployments return an empty catalog. */
@@ -206,9 +227,15 @@ export function useMatches(filters: MatchFilters) {
     // A short page means the end of the feed; anything else may have more behind it.
     getNextPageParam: (last: MatchSummary[], all) =>
       last.length < MATCH_PAGE ? undefined : all.flat().length,
-    // Only follow a feed that has something moving in it.
+    // Only follow a feed that has something moving in it — and a broadcast is moving.
+    // Status alone stops too early here for exactly the reason it does on `useMatch`: a
+    // match reaches Completed while its broadcast is still playing out and its result is
+    // still withheld, so a feed that stopped there would leave Watch's live cards frozen
+    // and never reveal the winner they are holding back.
     refetchInterval: (query) =>
-      query.state.data?.pages.flat().some((m) => m.status === 'Pending' || m.status === 'Running')
+      query.state.data?.pages
+        .flat()
+        .some((m) => m.broadcasting || m.status === 'Pending' || m.status === 'Running')
         ? 2_500
         : false,
   });
@@ -286,8 +313,23 @@ export function useMatchReplay(matchId: string | undefined, live: MatchLive | un
   });
 }
 
+/**
+ * The bots this account owns.
+ *
+ * Polls only while it owns none. The first-run screen's last step happens in a terminal
+ * rather than in the page, and it promises the page turns over on its own when the
+ * submission lands — so the empty answer is the one answer worth re-asking. The condition
+ * stops the interval on the first bot, which means no account that has ever shipped one
+ * pays for it.
+ */
 export function useMyBots(enabled: boolean) {
-  return useQuery({ queryKey: keys.myBots, queryFn: endpoints.myBots, enabled });
+  return useQuery({
+    queryKey: keys.myBots,
+    queryFn: endpoints.myBots,
+    enabled,
+    refetchInterval: (query) =>
+      query.state.data?.length === 0 ? 10_000 : false,
+  });
 }
 
 /**
@@ -325,6 +367,7 @@ export function useCreateBot() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.myBots });
       void client.invalidateQueries({ queryKey: keys.bots });
+      void client.invalidateQueries({ queryKey: keys.arena });
     },
   });
 }
@@ -337,17 +380,24 @@ export function useSubmitVersion(botKey: string, botId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: SubmitVersionRequest) => endpoints.submitVersion(botId, body),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.bot(botKey) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.bot(botKey) });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
   });
 }
 
-/** Appearance is drawn from `bot.accent`/`lookId` everywhere, so the bot is what stales. */
+/** Appearance is drawn on both the detail and owned-bot roster, so both views stale. */
 export function useUpdateAppearance(botKey: string, botId: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (body: UpdateBotAppearanceRequest) =>
       endpoints.updateAppearance(botId, body),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.bot(botKey) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.bot(botKey) });
+      void client.invalidateQueries({ queryKey: keys.myBots });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
   });
 }
 
@@ -355,7 +405,12 @@ export function useChallenge() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.challenge,
-    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
+    onError: () =>
+      client.invalidateQueries({ queryKey: keys.arena }),
   });
 }
 
@@ -364,7 +419,12 @@ export function useRankedChallenge() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.rankedChallenge,
-    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
+    onError: () =>
+      client.invalidateQueries({ queryKey: keys.arena }),
   });
 }
 
@@ -372,16 +432,49 @@ export function useCreateLabsMatch() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: endpoints.createLabsMatch,
-    onSuccess: () => client.invalidateQueries({ queryKey: ['matches'] }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+      // Labs consumes the same durable unranked allowance as one-off Duel.
+      void client.invalidateQueries({ queryKey: keys.arena });
+    },
+    onError: () =>
+      client.invalidateQueries({ queryKey: keys.arena }),
   });
 }
 
 export function useRegister() {
-  return useMutation({ mutationFn: endpoints.register });
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.register,
+    onSuccess: () => refreshSessionBoundQueries(client),
+  });
 }
 
 export function useLogin() {
-  return useMutation({ mutationFn: endpoints.login });
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.login,
+    onSuccess: () => refreshSessionBoundQueries(client),
+  });
+}
+
+/**
+ * A password login changes the meaning of cached public-looking responses: bot detail,
+ * Arena capability, shop and cosmetics payloads all contain ownership. Invalidate those
+ * resources before returning to the page that sent the player to sign in.
+ */
+function refreshSessionBoundQueries(client: ReturnType<typeof useQueryClient>) {
+  return Promise.all([
+    client.invalidateQueries({ queryKey: keys.bots }),
+    client.invalidateQueries({ queryKey: ['bot'] }),
+    client.invalidateQueries({ queryKey: keys.arena }),
+    client.invalidateQueries({ queryKey: keys.labs }),
+    client.invalidateQueries({ queryKey: keys.myBots }),
+    client.invalidateQueries({ queryKey: keys.store }),
+    client.invalidateQueries({ queryKey: ['cosmetics'] }),
+    client.invalidateQueries({ queryKey: ['leaderboard'] }),
+    client.invalidateQueries({ queryKey: keys.notifications }),
+  ]);
 }
 
 /**

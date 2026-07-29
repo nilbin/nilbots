@@ -1,0 +1,366 @@
+  <!-- ========================================================== VIEWER ==== -->
+  <section>
+    <h2>Viewer</h2>
+    <h3>A replay is a record, not a video</h3>
+    <p class="note">
+      The arena below is a real frame from the 2.5D renderer — bastion-01, tick 30, Pincer
+      gen-10 against Bastille gen-5, a bolt in flight and the damage glow on a bot at one
+      hit from dead. <strong>The renderer is not what needs redesigning.</strong> Everything
+      around it is: the header is a debug string, the bot cards are a status dump, the event
+      feed is an undifferentiated list, and the timeline is a bare slider.
+    </p>
+    <p class="note">
+      The idea the chrome is missing is the one thing this game has that a video does not.
+      <strong>Every match is deterministic, hashed, and exactly indexable.</strong> So the
+      timeline becomes the spine: events are marks on it, the feed is an index into it, and
+      selecting a bot filters both. “Watch 39 ticks” turns into “jump to the four moments
+      that mattered”, and the shape of the fight is visible before you press play.
+    </p>
+
+    <div class="scroll">
+    <div class="app climb viewer">
+      <div class="topbar">
+        <span style="--wm-size:17px; --wm:#c8763c; display:contents">{{wordmark}}</span>
+        <span class="matchup">
+          {{bot_pincer_sm}}<span class="vs">vs</span>{{bot_bastille_sm}}
+        </span>
+        <span class="pill">Season 3 · ranked</span>
+        <nav class="tabs"><a href="#v">Verify</a><a href="#v">Share</a></nav>
+      </div>
+
+      <div class="vbody">
+        <div class="vmain">
+          <figure class="arena">
+            <img src="{{arena_hero}}" alt="The 2.5D renderer: two bots engaged on bastion-01, a bolt in flight, one bot glowing from damage.">
+            <figcaption class="tickbadge"><span class="val">030</span> / 039</figcaption>
+          </figure>
+
+          <div class="transport panel">
+            <div class="tbar">
+              <button class="play" type="button" aria-label="Pause">❚❚</button>
+              <button class="step" type="button" aria-label="Previous event">◀|</button>
+              <button class="step" type="button" aria-label="Next event">|▶</button>
+              <div class="track">{{timeline}}</div>
+              <button class="btn speed" type="button">1×</button>
+              <button class="step" type="button" aria-label="Full screen">⤢</button>
+            </div>
+            <p class="legend" style="margin:8px 0 0">
+              <span><i class="mk fire"></i>fired</span>
+              <span><i class="mk hit"></i>took a hit</span>
+              <span><i class="mk kill"></i>destroyed</span>
+              <span style="margin-left:auto">click a mark to seek · ← → step a tick</span>
+            </p>
+          </div>
+        </div>
+
+        <aside class="vside">
+          <div class="panel pad card-bot">
+            <div class="row spread">{{bot_pincer_lg}}<span class="pill live">acting</span></div>
+            <div class="stat"><span class="k">Health</span>
+              <span class="hp"><i class="on"></i><i class="on"></i><i></i></span>
+              <span class="val">2/3</span></div>
+            <div class="stat"><span class="k">Cooldown</span>
+              <span class="cd"><i style="width:33%"></i></span>
+              <span class="val">2t</span></div>
+            <div class="stat"><span class="k">Doing</span>
+              <span class="doing">Shooting east</span><span class="pill">hold</span></div>
+          </div>
+
+          <div class="panel pad card-bot dead">
+            <div class="row spread">{{bot_bastille_lg}}<span class="pill">destroyed</span></div>
+            <div class="stat"><span class="k">Health</span>
+              <span class="hp"><i></i><i></i><i></i></span>
+              <span class="val">0/3</span></div>
+            <div class="stat"><span class="k">Ended</span>
+              <span class="doing">Tick 38 — hit by Pincer gen-10</span></div>
+          </div>
+
+          <div class="panel feed">
+            <div class="pad" style="padding-bottom:8px">
+              <div class="row spread">
+                <p class="lab" style="margin:0">Index · 13 events</p>
+                <span class="row" style="gap:4px">
+                  <button class="chip-f on" type="button">all</button>
+                  <button class="chip-f" type="button">mine</button>
+                </span>
+              </div>
+            </div>
+            <ol class="events">
+              <li><span class="val">038</span><span><b>Bastille gen-5 destroyed</b><em>hit by Pincer gen-10</em></span></li>
+              <li><span class="val">027</span><span>Bastille gen-5 down to 1 hp<em>hit by Pincer gen-10</em></span></li>
+              <li class="here"><span class="val">020</span><span>Both bots hit<em>2 hp each — the trade</em></span></li>
+              <li><span class="val">014</span><span>Bastille gen-5 fires<em>first shot of the match</em></span></li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+    </div>
+    </div>
+
+    <div class="row2" style="margin-top:16px">
+      <div class="swatchbox">
+        <p class="cap">Provenance · what the hash is for</p>
+        <div class="pad climb" style="background:#0b0705; color:#e6ddd4">
+          <p class="lab" style="margin-bottom:10px">Match record</p>
+          <div class="prov">
+            <div><span class="k">Map</span><span class="val">bastion-01</span></div>
+            <div><span class="k">Seed</span><span class="val">4711</span></div>
+            <div><span class="k">Rules</span><span class="val">0.5</span></div>
+            <div><span class="k">Replay</span><span class="val">de24f5aa1cbb…</span></div>
+          </div>
+          <pre class="term"><span class="p">$</span> nilbots replay bastion-4711.nbr --summary
+<span class="ok">ok</span> hash matches · 39 ticks · elimination · Pincer gen-10</pre>
+          <p class="micro">Anyone can check this. That is the product's core claim, and today it
+          is a grey <code>#de24f5aa</code> in the corner of the header.</p>
+        </div>
+      </div>
+      <div class="swatchbox">
+        <p class="cap">The chrome cannot assume a dark arena</p>
+        <div class="pad climb" style="background:#0b0705">
+          <img class="alt" src="{{arena_alt}}" alt="The same renderer on gallery-01, an almost white map theme.">
+          <p class="micro">gallery-01 is nearly white. Overlays, the tick badge and the end card
+          all sit over the arena, so each needs its own contrast — a translucent dark panel
+          disappears on this map. Either they move off the arena, or they carry a scrim.</p>
+        </div>
+      </div>
+    </div>
+
+    <h4 class="sub">Full screen — the chrome moves into the letterbox</h4>
+    <p class="note">
+      This is the case the current viewer answers weakest, and it is the one people will spend
+      the most time in. Today the transport floats over the arena, dims to nothing after 2.8
+      seconds of playback, and comes back on any touch. That is a reasonable answer to the
+      wrong question. <strong>A phone in landscape is about 2.17:1 and the arena is 16:10, so
+      roughly a quarter of the screen is already letterbox</strong> — space the app owns and is
+      currently painting black.
+    </p>
+    <p class="note">
+      Put the chrome there and three problems disappear at once: nothing is ever drawn over the
+      game, so nothing has to fade and the auto-hide can go; the controls sit on the app's own
+      ground rather than on an arena whose theme might be nearly white; and the timeline gets
+      the full width of the frame, which is where it is most useful, because there is no event
+      index to reach for.
+    </p>
+
+    <div class="swatchbox">
+      <p class="cap">Phone · landscape · nothing overlaps the arena</p>
+      <div class="pad climb" style="background:#0b0705; display:flex; justify-content:center">
+        <div class="fs" style="max-width:880px; width:100%">
+          <div class="fs-bar">
+            <p class="fs-tick"><b>030</b> / 039</p>
+            <div class="fs-bot" style="--accent:#22d3ee">
+              <span class="who2"><i class="dot"></i>Pincer gen-10</span>
+              <span class="hp"><i class="on"></i><i class="on"></i><i></i></span>
+            </div>
+            <div class="fs-bot" style="--accent:#ef4444">
+              <span class="who2"><i class="dot"></i>Bastille gen-5</span>
+              <span class="hp"><i></i><i></i><i></i></span>
+            </div>
+          </div>
+          <div class="fs-col">
+            <img src="{{arena_hero}}" alt="The arena filling the height of a landscape phone.">
+            <div class="fs-time">{{timeline}}</div>
+          </div>
+          <div class="fs-bar right">
+            <span class="fs-exit">exit</span>
+            <span class="foot">
+              <button class="fs-play" type="button" aria-label="Pause">❚❚</button>
+              <button class="fs-chip" type="button">1×</button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rules" style="margin-top:18px">
+      <div><span class="k">When there is no letterbox</span><span>A tablet at 4:3 is narrower than the arena, so the bars vanish. Below about 80px a side, fall back to an overlay — but a <em>gradient scrim</em> down to the field colour, never a translucent panel, because on <code>frost-relay</code> a dark panel disappears into a white arena.</span></div>
+      <div><span class="k">What never hides</span><span>The tick and both health bars. If the chrome can fade to nothing you can no longer tell who is winning, which is the one thing a spectator needs. Everything else may go to zero; those two go to 40%.</span></div>
+      <div><span class="k">Exit</span><span>Unchanged, and it was right: on a phone the way out is turning the device, because a button would be overruled by the hardware the moment they disagreed. Pointer devices keep the button, top-right of the bar.</span></div>
+      <div><span class="k">Targets</span><span>Play/pause is 52px, the speed chip 32px, both inside the bar and away from the screen edge where a landscape grip already sits.</span></div>
+      <div><span class="k">Top and bottom</span><span>Everything you read sits at the top of a bar; everything you press sits at the bottom. In landscape both thumbs are in the bottom corners, so information placed there is information under a hand.</span></div>
+    </div>
+
+    <div class="rules" style="margin-top:22px">
+      <div><span class="k">Header</span><span>Who is fighting and what it counted for, as two identity chips. The seed, rules version and hash move into Verify — they matter, but they are provenance, not a headline.</span></div>
+      <div><span class="k">Timeline</span><span>One lane per bot, marks in that bot's accent: a hairline for a shot, a notch for a hit taken, a block for a destruction. The lane shape is the match summary.</span></div>
+      <div><span class="k">Bot card</span><span>Health as segments, cooldown as a draining bar, and one plain sentence for what it is doing. Not <code>♥♥♥ · CD 0 · ⬢ idle · → wait</code>, which is four encodings of the same idea.</span></div>
+      <div><span class="k">Index</span><span>The feed is a seek control. Newest first, grouped by tick, each row jumps. Filter to the selected bot rather than scrolling past the other one.</span></div>
+      <div><span class="k">Renderer</span><span>2.5D is a remembered preference, not a header toggle — and it needs a name a player recognizes, not a dimension count.</span></div>
+      <div><span class="k">Immersive</span><span>Unchanged. Landscape is the trigger on a phone, the transport floats, and the timeline marks come with it — they are more useful there, not less.</span></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== OTHER VIEWS ==== -->
+  <section>
+    <h2>Before building</h2>
+    <h3>Three more surfaces worth deciding on paper</h3>
+    <p class="note">
+      The ladder and the viewer are where people spend time, but they are not where the
+      product is won or lost. These three are, and all three are currently whatever the
+      implementation made them.
+    </p>
+
+    <h4 class="sub">1 · The bot page — the screen a player returns to</h4>
+    <p class="note">
+      A bot is not one thing; it is a line of generations. The page has to answer “is the new
+      one better than the old one” without a spreadsheet, which is the actual question every
+      player has after every submit.
+    </p>
+    <div class="scroll">
+    <div class="app climb">
+      <div class="topbar">
+        <span style="--wm-size:17px; --wm:#c8763c; display:contents">{{wordmark}}</span>
+        <nav class="tabs"><a href="#b">Season</a><a class="on" href="#b">Bots</a><a href="#b">Watch</a><a href="#b">Docs</a></nav>
+      </div>
+      <div class="body">
+        <div class="row spread" style="align-items:flex-end">
+          {{bot_pincer_hero}}
+          <span class="row" style="gap:8px"><button class="btn" type="button">Challenge</button><button class="btn" type="button">Appearance</button></span>
+        </div>
+
+        <div class="panel pad">
+          <div class="row spread" style="margin-bottom:10px">
+            <p class="lab" style="margin:0">Rating · every generation on one axis</p>
+            <span class="pill">gen-10 live</span>
+          </div>
+          {{gens_chart}}
+          <div class="legend" style="margin-top:8px">
+            <span><i style="background:#22d3ee"></i>gen-10 · 1284</span>
+            <span><i style="background:#4a3527"></i>gen-9 · 1231</span>
+            <span><i style="background:#4a3527"></i>gen-8 · 1198</span>
+            <span style="margin-left:auto">submitted 11 days ago · 214 matches</span>
+          </div>
+        </div>
+
+        <div class="two-up">
+          <div class="panel">
+            <div class="pad" style="padding-bottom:8px"><p class="lab" style="margin:0">Recent matches</p></div>
+            <div class="pad" style="padding-top:6px">
+              <table class="tbl">
+                <thead><tr><th>Opponent</th><th style="width:64px">Result</th><th class="num" style="width:64px">Rating</th><th style="width:74px">Map</th></tr></thead>
+                <tbody>
+                  <tr><td>{{bot_bastille}}</td><td><span class="move up">win</span></td><td class="num">+8</td><td class="num">bastion-01</td></tr>
+                  <tr><td>{{bot_warden}}</td><td><span class="move dn">loss</span></td><td class="num">−6</td><td class="num">arena-01</td></tr>
+                  <tr><td>{{bot_rampart}}</td><td><span class="move up">win</span></td><td class="num">+5</td><td class="num">gallery-01</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Work on this bot</p>
+            <pre class="term"><span class="p">$</span> nilbots play --bot . --opponent hunter
+<span class="p">$</span> nilbots set --opponent champions
+<span class="p">$</span> nilbots submit</pre>
+            <p class="micro">Building happens in the terminal, so the page's job is to hand you
+            the right command for the bot you are looking at — not to reproduce the CLI in
+            HTML.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <h4 class="sub">2 · First run — the screen that decides whether anyone ever ships a bot</h4>
+    <p class="note">
+      A signed-in account with no bots is the highest-leverage empty state in the product, and
+      it is the one hand-off from the website to the CLI. It is genuinely a sequence, so it is
+      genuinely numbered — and the last step is not “read the docs”, it is a live indicator
+      that turns over the moment the server sees your first artifact.
+    </p>
+    <div class="scroll">
+    <div class="app climb">
+      <div class="topbar">
+        <span style="--wm-size:17px; --wm:#c8763c; display:contents">{{wordmark}}</span>
+        <nav class="tabs"><a href="#f">Season</a><a class="on" href="#f">Bots</a><a href="#f">Watch</a><a href="#f">Docs</a></nav>
+      </div>
+      <div class="body">
+        <div class="panel pad first">
+          <div class="first-grid">
+          <div>
+          <p class="lab">No bots yet</p>
+          <p class="head">Write a bot in C#. It compiles to WebAssembly and fights on a deterministic grid.</p>
+          <ol class="steps">
+            <li><span class="n">1</span><span><b>Install the CLI</b>
+              <pre class="term"><span class="p">$</span> brew install nilbots</pre></span></li>
+            <li><span class="n">2</span><span><b>Start from a template</b>
+              <pre class="term"><span class="p">$</span> nilbots new my-bot &amp;&amp; cd my-bot</pre>
+              <em>A working bot that moves and shoots. Change one method and it is yours.</em></span></li>
+            <li><span class="n">3</span><span><b>Watch it fight, locally</b>
+              <pre class="term"><span class="p">$</span> nilbots play --bot . --opponent hunter --seed 42</pre>
+              <em>Opens a replay you can scrub. No account needed, nothing uploaded.</em></span></li>
+            <li class="waiting"><span class="n">4</span><span><b>Put it on the ladder</b>
+              <pre class="term"><span class="p">$</span> nilbots submit</pre>
+              <em class="pulse">Waiting for your first submission — this page turns over on its own.</em></span></li>
+          </ol>
+          </div>
+          <div class="peek">
+            <p class="lab">What you actually write</p>
+<pre class="term"><span class="kw">public sealed class</span> MyBot : IBot
+{
+  <span class="kw">public</span> BotAction Tick(BotContext ctx)
+  {
+    <span class="kw">var</span> enemies = ctx.VisibleEnemies;
+    <span class="kw">if</span> (enemies.Count &gt; 0 &amp;&amp; ctx.CanShoot)
+      <span class="kw">return</span> Actions.Shoot();
+
+    <span class="kw">return</span> ctx.IsWallAhead()
+      ? Actions.TurnRight()
+      : Actions.MoveForward();
+  }
+}</pre>
+            <p class="micro">The real template is a little longer — it remembers what it has seen
+            between ticks, because fields persist for the whole match. Showing the code is the
+            argument; a paragraph about C# is not.</p>
+            <p class="micro">Syntax colour is deliberately absent. In this system colour means a
+            player chose it, so code separates by weight instead.</p>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <h4 class="sub">3 · The CLI — the primary building surface, and the one nobody designs</h4>
+    <p class="note">
+      Most of the work happens here, which makes terminal output a designed surface with the
+      same rules as any other: one column of verbs, values aligned so a change is visible
+      between runs, colour reserved for state, and a failure that prints the fix rather than a
+      stack trace.
+    </p>
+    <div class="swatchbox">
+      <p class="cap">nilbots submit · the whole loop in one screen</p>
+      <div class="pad climb" style="background:#0b0705">
+<pre class="term big"><span class="p">$</span> nilbots submit
+  build      Pincer gen-11 · 4 sources · sdk 0.5.6         <span class="d">2.8s</span>
+  artifact   wasm 412 KB · sha256 9f31c0a…                 <span class="d">cached</span>
+  verify     server sdk 0.5.6 · pipeline 3 · byte-match    <span class="ok">ok</span>
+  submit     queued as gen-11                              <span class="ok">ok</span>
+  placement  <span class="bar"><i style="width:58%"></i></span>  7/12 · 4W 3L · ~1200
+
+  gen-11 is live — nilbots.dev/bots/pincer</pre>
+<pre class="term big" style="margin-top:14px"><span class="p">$</span> nilbots submit
+  build      Pincer gen-12 · 4 sources                     <span class="bad">failed</span>
+
+  Bot.cs(31,17): 'BotContext' has no member 'NearestEnemy'.
+                 Did you mean 'VisibleEnemies'? It is a list, closest first.
+                 <span class="d">nilbots doctor</span> shows the sdk you build against.</pre>
+      </div>
+    </div>
+    <div class="rules" style="margin-top:18px">
+      <div><span class="k">Alignment</span><span>Verb column fixed width, values in the same place every run, so a diff between two runs is visible without reading.</span></div>
+      <div><span class="k">Colour</span><span>Only state: green for a pass, red for a stop, dim for anything the machine is telling itself. Never for decoration, and never the only signal.</span></div>
+      <div><span class="k">Failure</span><span>What broke, on which line, and the change that fixes it. A compiler error is a design surface — it is the most-read text in the product.</span></div>
+      <div><span class="k">Symmetry</span><span>Every noun the CLI prints is a noun the website uses. <em>generation</em>, <em>placement</em>, <em>ranked</em> — one vocabulary or two products.</span></div>
+    </div>
+
+    <h4 class="sub">Also worth a pass, lower priority</h4>
+    <p class="note">
+      <strong>The appearance editor</strong>, because the whole colour policy rests on it: it
+      currently offers a raw <code>&lt;input type="color"&gt;</code>, which is why any accent
+      is possible and why none can be reserved. It should show the pick where it will actually
+      be seen — on a ladder row, on a bot card, and as the ring on the identity chip — and it
+      should refuse contrast it cannot fix. <strong>The watch feed</strong> is the other one:
+      it is a list of matches today, and it is the only place a spectator ever arrives without
+      already knowing what they came for.
+    </p>
+  </section>

@@ -41,41 +41,43 @@ export default function SubmitPanel({ bot, botKey }: { bot: BotDetail; botKey: s
     submission.mutate({ entryType, files: [{ name: 'Bot.cs', content: source }] });
 
   return (
-    <section className="rounded-xl border border-arena-edge bg-arena-panel p-5">
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
-        SUBMIT NEW VERSION
-      </h2>
-      <p className="mb-3 text-xs text-arena-dim">
+    <section id="submit" className="panel pad scroll-mt-4">
+      <h2 className="lab mb-2">Submit new version</h2>
+      <p className="t-meta mb-3">
         Paste your bot's C# source. The server compiles it to WebAssembly with the
         official toolchain and runs a validation match; the newest successful build
-        becomes your active version. Use <code className="font-mono">context.Random</code>{' '}
-        for randomness — system clocks and <code className="font-mono">System.Random</code>{' '}
+        becomes your active version. Use <code className="val">context.Random</code>{' '}
+        for randomness — system clocks and <code className="val">System.Random</code>{' '}
         are neutralized in the sandbox.
       </p>
-      <label className="mb-3 flex items-center gap-2 text-xs text-arena-dim">
+      <label className="t-meta mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
         Entry class
         <input
           value={entryType}
           onChange={(e) => setEntryType(e.target.value)}
-          className="rounded-md border border-arena-edge bg-arena-bg px-2 py-1 font-mono text-sm text-arena-text outline-none focus:border-arena-accent"
+          className="field min-w-0 font-mono sm:w-48"
         />
       </label>
-      <textarea
-        value={source}
-        onChange={(e) => setSource(e.target.value)}
-        spellCheck={false}
-        rows={18}
-        className="w-full rounded-md border border-arena-edge bg-arena-bg p-3 font-mono text-xs text-arena-text outline-none focus:border-arena-accent"
-      />
+      <label className="flex flex-col gap-1.5">
+        <span className="lab">Source</span>
+        <textarea
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          spellCheck={false}
+          rows={18}
+          className="field term w-full resize-y text-arena-text"
+        />
+      </label>
       {submission.isError && (
-        <p className="mt-2 text-sm text-red-400">
+        <p className="t-body mt-2 text-arena-hot">
           {errorMessage(submission.error, 'Submission failed.')}
         </p>
       )}
       <button
+        type="button"
         onClick={submit}
         disabled={submission.isPending || building}
-        className="mt-3 rounded-md bg-arena-accent px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-50"
+        className="btn btn-strong mt-3 min-h-11 disabled:opacity-50"
       >
         {building
           ? 'Build in progress…'

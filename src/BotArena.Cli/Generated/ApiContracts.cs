@@ -29,6 +29,170 @@ namespace BotArena.Cli.Generated
     
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ApplicationProblemResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public int Status { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("detail")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Detail { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Code { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("traceId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TraceId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("retryAfterSeconds")]
+        public int? RetryAfterSeconds { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArenaAllowanceResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("used")]
+        public int Used { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("limit")]
+        public int Limit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("remaining")]
+        public int Remaining { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rollingWindowHours")]
+        public int RollingWindowHours { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("nextDailySlotAt")]
+        public System.DateTimeOffset? NextDailySlotAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canStart")]
+        public bool CanStart { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refusalCode")]
+        public string? RefusalCode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("retryAt")]
+        public System.DateTimeOffset? RetryAt { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArenaCapabilitiesResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("format")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public DuelArenaFormatResponse Format { get; set; } = new DuelArenaFormatResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("unrankedAllowance")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ArenaAllowanceResponse UnrankedAllowance { get; set; } = new ArenaAllowanceResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("rankedAllowance")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public RankedArenaAllowanceResponse RankedAllowance { get; set; } = new RankedArenaAllowanceResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("bots")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<MatchPlayabilityResponse> Bots { get; set; } = new System.Collections.Generic.List<MatchPlayabilityResponse>();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArenaRankedFormatResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("gamesPerSet")]
+        public int GamesPerSet { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mapSeedPairs")]
+        public int MapSeedPairs { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mirroredSlots")]
+        public bool MirroredSlots { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mapPool")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<string> MapPool { get; set; } = new System.Collections.Generic.List<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchmakingPoolSize")]
+        public int MatchmakingPoolSize { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ArenaUnrankedFormatResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("gamesPerMatch")]
+        public int GamesPerMatch { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaultMapId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DefaultMapId { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AuthProvidersResponse
     {
 
@@ -849,6 +1013,37 @@ namespace BotArena.Cli.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class DuelArenaFormatResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("rulesVersion")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string RulesVersion { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("requiredContractProfileId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string RequiredContractProfileId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("unranked")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ArenaUnrankedFormatResponse Unranked { get; set; } = new ArenaUnrankedFormatResponse();
+
+        [System.Text.Json.Serialization.JsonPropertyName("ranked")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ArenaRankedFormatResponse Ranked { get; set; } = new ArenaRankedFormatResponse();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EntitlementNotificationItem
     {
 
@@ -1255,6 +1450,37 @@ namespace BotArena.Cli.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("countdownMs")]
         public int CountdownMs { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MatchPlayabilityResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("botId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid BotId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isOwned")]
+        public bool IsOwned { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("playable")]
+        public bool Playable { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refusalCode")]
+        public string? RefusalCode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refusalDetail")]
+        public string? RefusalDetail { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -1741,6 +1967,51 @@ namespace BotArena.Cli.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("pushEnabled")]
         public bool PushEnabled { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RankedArenaAllowanceResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("used")]
+        public int Used { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("limit")]
+        public int Limit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("remaining")]
+        public int Remaining { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rollingWindowHours")]
+        public int RollingWindowHours { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("nextDailySlotAt")]
+        public System.DateTimeOffset? NextDailySlotAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inProgress")]
+        public int InProgress { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("concurrencyLimit")]
+        public int ConcurrencyLimit { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("canStart")]
+        public bool CanStart { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("refusalCode")]
+        public string? RefusalCode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("retryAt")]
+        public System.DateTimeOffset? RetryAt { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

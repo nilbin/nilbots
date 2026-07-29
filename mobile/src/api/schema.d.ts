@@ -122,6 +122,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/arena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArenaCapabilitiesResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/matches/ranked": {
         parameters: {
             query?: never;
@@ -151,6 +193,51 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["CreatedMatchSetResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
                     };
                 };
             };
@@ -1027,6 +1114,51 @@ export interface paths {
                         "application/json": components["schemas"]["CreatedMatchResponse"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApplicationProblemResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1463,6 +1595,54 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApplicationProblemResponse: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number;
+            detail: string;
+            code: string;
+            traceId: string;
+            /** Format: int32 */
+            retryAfterSeconds: null | number;
+        };
+        ArenaAllowanceResponse: {
+            /** Format: int32 */
+            used: number;
+            /** Format: int32 */
+            limit: number;
+            /** Format: int32 */
+            remaining: number;
+            /** Format: int32 */
+            rollingWindowHours: number;
+            /** Format: date-time */
+            nextDailySlotAt: null | string;
+            canStart: boolean;
+            refusalCode: null | string;
+            /** Format: date-time */
+            retryAt: null | string;
+        };
+        ArenaCapabilitiesResponse: {
+            format: components["schemas"]["DuelArenaFormatResponse"];
+            unrankedAllowance: components["schemas"]["ArenaAllowanceResponse"];
+            rankedAllowance: components["schemas"]["RankedArenaAllowanceResponse"];
+            bots: components["schemas"]["MatchPlayabilityResponse"][];
+        };
+        ArenaRankedFormatResponse: {
+            /** Format: int32 */
+            gamesPerSet: number;
+            /** Format: int32 */
+            mapSeedPairs: number;
+            mirroredSlots: boolean;
+            mapPool: string[];
+            /** Format: int32 */
+            matchmakingPoolSize: number;
+        };
+        ArenaUnrankedFormatResponse: {
+            /** Format: int32 */
+            gamesPerMatch: number;
+            defaultMapId: string;
+        };
         AuthProvidersResponse: {
             google: boolean;
         };
@@ -1623,9 +1803,9 @@ export interface components {
             botId: string;
             /** Format: uuid */
             opponentBotId: string;
-            mapId: null | string;
+            mapId?: null | string;
             /** Format: int64 */
-            seed: null | number;
+            seed?: null | number;
         };
         CosmeticCatalogEntry: {
             key: string;
@@ -1683,6 +1863,12 @@ export interface components {
         CreatedMatchSetResponse: {
             /** Format: uuid */
             id: string;
+        };
+        DuelArenaFormatResponse: {
+            rulesVersion: string;
+            requiredContractProfileId: string;
+            unranked: components["schemas"]["ArenaUnrankedFormatResponse"];
+            ranked: components["schemas"]["ArenaRankedFormatResponse"];
         };
         EntitlementNotificationItem: {
             key: string;
@@ -1813,6 +1999,14 @@ export interface components {
             broadcastComplete: boolean;
             /** Format: int32 */
             countdownMs: number;
+        };
+        MatchPlayabilityResponse: {
+            /** Format: uuid */
+            botId: string;
+            isOwned: boolean;
+            playable: boolean;
+            refusalCode: null | string;
+            refusalDetail: null | string;
         };
         MatchSetBotResponse: {
             /** Format: uuid */
@@ -1948,6 +2142,26 @@ export interface components {
         NotificationPreferenceResponse: {
             kind: string;
             pushEnabled: boolean;
+        };
+        RankedArenaAllowanceResponse: {
+            /** Format: int32 */
+            used: number;
+            /** Format: int32 */
+            limit: number;
+            /** Format: int32 */
+            remaining: number;
+            /** Format: int32 */
+            rollingWindowHours: number;
+            /** Format: date-time */
+            nextDailySlotAt: null | string;
+            /** Format: int32 */
+            inProgress: number;
+            /** Format: int32 */
+            concurrencyLimit: number;
+            canStart: boolean;
+            refusalCode: null | string;
+            /** Format: date-time */
+            retryAt: null | string;
         };
         RankedChallengeRequest: {
             /** Format: uuid */

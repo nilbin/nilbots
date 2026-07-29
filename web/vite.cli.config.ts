@@ -46,7 +46,7 @@ export default defineConfig({
 });
 
 /**
- * Replace the 2.5D renderer with a stub.
+ * Replace the 3D renderer with a stub.
  *
  * `viteSingleFile` inlines every chunk, so a dynamic import is not a saving here the way it
  * is on the web — three.js would land inside the artifact whether or not anyone switches

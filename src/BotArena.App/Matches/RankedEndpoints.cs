@@ -19,14 +19,6 @@ public sealed record RankedChallengeRequest(Guid BotId, Guid? OpponentBotId = nu
 
 public static class RankedEndpoints
 {
-    /// <summary>The ranked map pool: each set samples 3 distinct maps, each played
-    /// twice with mirrored slots. crossfire-01 joined with rules 0.3 (broken
-    /// sightlines, RULES-0.3-DESIGN §F). causeway remains available as an
-    /// adversarial narrow-zone test map but left ranked play after the gen-7
-    /// geometry review (DECISIONS #62).</summary>
-    private static readonly string[] MapPool =
-        ["basic-01", "arena-01", "crossfire-01", "bastion-01", "gallery-01"];
-
     public static void MapRanked(this IEndpointRouteBuilder routes)
     {
         routes.MapPost("/api/matches/ranked",
@@ -75,11 +67,12 @@ public static class RankedEndpoints
                 .Select(grant => grant.EntitlementKey)
                 .ToListAsync(cancellationToken);
 
-            if (RankedSetPolicy.Evaluate(
+            if (RankedSetPolicy.EvaluateError(
                     rankedSnapshot,
-                    rankedLimits.ForAccount(rankedEntitlements)) is string refusal)
+                    rankedLimits.ForAccount(rankedEntitlements)) is
+                ApplicationError refusal)
             {
-                return Results.Problem(refusal, statusCode: 429);
+                return refusal.ToProblemDetails(http);
             }
             ApplicationResult<AdmittedMatchBot> admittedA =
                 await admission.AdmitAsync(
@@ -103,11 +96,19 @@ public static class RankedEndpoints
                     setRules = Engine.GameRules.Resolve(rulesName);
                     if (setRules.RulesVersion != matchSettings.MatchRules.RulesVersion &&
                         !AllowsPinnedOpponents(mode, configuration))
-                        return Results.Problem(
-                            $"The {setRules.RulesVersion} ladder is closed to new sets — this " +
-                            $"server plays {matchSettings.MatchRules.RulesVersion}. Past results and " +
-                            "ratings stay visible at /api/leaderboard?rules=" + setRules.RulesVersion + ".",
-                            statusCode: 400);
+                    {
+                        return new ApplicationError(
+                            ApplicationErrorCodes.MatchRankedLadderClosed,
+                            ApplicationErrorType.Validation,
+                            $"The {setRules.RulesVersion} ladder is closed to new " +
+                            $"sets — this server plays " +
+                            $"{matchSettings.MatchRules.RulesVersion}. Past results " +
+                            "and ratings stay visible at " +
+                            "/api/leaderboard?rules=" +
+                            setRules.RulesVersion +
+                            ".")
+                            .ToProblemDetails(http);
+                    }
                 }
                 else
                 {
@@ -116,44 +117,65 @@ public static class RankedEndpoints
             }
             catch (ArgumentException ex)
             {
-                return Results.Problem(ex.Message, statusCode: 400);
+                return new ApplicationError(
+                    ApplicationErrorCodes.MatchRankedRulesUnknown,
+                    ApplicationErrorType.Validation,
+                    ex.Message)
+                    .ToProblemDetails(http);
             }
 
-            Guid botBId;
+            AdmittedMatchBot participantB;
             if (request.OpponentBotId is Guid pinned)
             {
                 if (!AllowsPinnedOpponents(mode, configuration))
-                    return Results.Problem(
-                        "Ranked opponents are matchmade by rating; omit opponentBotId. " +
-                        "To choose who you play, use an unranked match (POST /api/matches/challenge).",
-                        statusCode: 400);
+                {
+                    return new ApplicationError(
+                        ApplicationErrorCodes
+                            .MatchRankedOpponentSelectionForbidden,
+                        ApplicationErrorType.Validation,
+                        "Ranked opponents are matchmade by rating; omit " +
+                        "opponentBotId. To choose who you play, use an unranked " +
+                        "match (POST /api/matches/challenge).")
+                        .ToProblemDetails(http);
+                }
                 if (pinned == request.BotId)
-                    return Results.Problem("A bot cannot play a ranked set against itself.", statusCode: 400);
-                botBId = pinned;
+                {
+                    return new ApplicationError(
+                        ApplicationErrorCodes.MatchSelfChallenge,
+                        ApplicationErrorType.Validation,
+                        "A bot cannot play a ranked set against itself.")
+                        .ToProblemDetails(http);
+                }
+                ApplicationResult<AdmittedMatchBot> admittedB =
+                    await admission.AdmitAsync(
+                        pinned,
+                        requiredOwnerUserId: null,
+                        cancellationToken);
+                if (!admittedB.Succeeded)
+                    return admittedB.Error!.ToProblemDetails(http);
+                participantB = admittedB.Value!;
             }
             else
             {
-                Guid? opponentId = await MatchmakeAsync(
+                AdmittedMatchBot? matchmade = await MatchmakeAsync(
                     db,
+                    admission,
                     botA,
                     userId,
                     setRules.RulesVersion,
                     cancellationToken);
-                if (opponentId is null)
-                    return Results.Problem(
-                        "No opponent is available on this ladder yet — every ranked set needs " +
-                        "another bot with a successfully built version.", statusCode: 409);
-                botBId = opponentId.Value;
+                if (matchmade is null)
+                {
+                    return new ApplicationError(
+                        ApplicationErrorCodes.MatchRankedOpponentUnavailable,
+                        ApplicationErrorType.Conflict,
+                        "No opponent is available on this ladder yet — every " +
+                        "ranked set needs another playable bot.")
+                        .ToProblemDetails(http);
+                }
+                participantB = matchmade;
             }
 
-            ApplicationResult<AdmittedMatchBot> admittedB =
-                await admission.AdmitAsync(
-                    botBId,
-                    requiredOwnerUserId: null,
-                    cancellationToken);
-            if (!admittedB.Succeeded)
-                return admittedB.Error!.ToProblemDetails(http);
-            AdmittedMatchBot participantB = admittedB.Value!;
             Bot botB = participantB.Bot;
             LegacyCompetitionIdentity identity =
                 await identityResolver.ResolveOrCreateAsync(
@@ -184,41 +206,51 @@ public static class RankedEndpoints
             };
             db.MatchSets.Add(set);
 
-            string[] setMaps = [.. MapPool.OrderBy(_ => Random.Shared.Next()).Take(3)];
-            int game = 0;
-            foreach (string mapId in setMaps)
+            foreach (DuelMirrored6V1.ScheduledGame scheduled in
+                     DuelArenaDefinition.Official.CreateRankedSchedule(Random.Shared))
             {
-                long seed = Random.Shared.NextInt64();
-                foreach (bool mirrored in new[] { false, true })
+                var match = new Match
                 {
-                    game++;
-                    var match = new Match
-                    {
-                        MapId = mapId,
-                        Seed = seed,
-                        MatchSetId = set.Id,
-                        SetGame = game,
-                        GameRulesVersion = setRules.RulesVersion,
-                        PlaylistVersionId = identity.PlaylistVersionId,
-                        RuntimeConfigurationVersion =
-                            set.RuntimeConfigurationVersion,
-                    };
-                    AdmittedMatchBot first =
-                        mirrored ? participantB : participantA;
-                    AdmittedMatchBot second =
-                        mirrored ? participantA : participantB;
-                    match.Participants.Add(snapshots.Create(match.Id, 0, first));
-                    match.Participants.Add(snapshots.Create(match.Id, 1, second));
-                    db.Matches.Add(match);
-                    db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
-                }
+                    MapId = scheduled.MapId,
+                    Seed = scheduled.Seed,
+                    MatchSetId = set.Id,
+                    SetGame = scheduled.GameNumber,
+                    GameRulesVersion = setRules.RulesVersion,
+                    PlaylistVersionId = identity.PlaylistVersionId,
+                    RuntimeConfigurationVersion =
+                        set.RuntimeConfigurationVersion,
+                };
+                AdmittedMatchBot first =
+                    scheduled.Mirrored ? participantB : participantA;
+                AdmittedMatchBot second =
+                    scheduled.Mirrored ? participantA : participantB;
+                match.Participants.Add(snapshots.Create(match.Id, 0, first));
+                match.Participants.Add(snapshots.Create(match.Id, 1, second));
+                db.Matches.Add(match);
+                db.BackgroundJobs.Add(BackgroundJob.ExecuteMatch(match.Id));
             }
             await db.SaveChangesAsync(cancellationToken);
             // Committed only now: the count the next request reads has to include this set,
             // and the lock has to survive until it does.
             await admissionScope.CommitAsync(cancellationToken);
             return Results.Ok(new CreatedMatchSetResponse(set.Id));
-        }).Produces<CreatedMatchSetResponse>()
+        })
+          .Produces<CreatedMatchSetResponse>()
+          .Produces<ApplicationProblemResponse>(
+              StatusCodes.Status400BadRequest,
+              "application/problem+json")
+          .Produces<ApplicationProblemResponse>(
+              StatusCodes.Status403Forbidden,
+              "application/problem+json")
+          .Produces<ApplicationProblemResponse>(
+              StatusCodes.Status404NotFound,
+              "application/problem+json")
+          .Produces<ApplicationProblemResponse>(
+              StatusCodes.Status409Conflict,
+              "application/problem+json")
+          .Produces<ApplicationProblemResponse>(
+              StatusCodes.Status429TooManyRequests,
+              "application/problem+json")
           .RequireAuthorization()
           .RequireRateLimiting(RateLimitPolicies.Ranked);
 
@@ -322,14 +354,15 @@ public static class RankedEndpoints
 
     /// <summary>Everyone with a playable bot, reduced to what the selection rule needs,
     /// then handed to <see cref="RankedMatchmaking"/>.</summary>
-    private static async Task<Guid?> MatchmakeAsync(
+    private static async Task<AdmittedMatchBot?> MatchmakeAsync(
         AppDbContext db,
+        MatchAdmissionService admission,
         Bot challenger,
         Guid userId,
         string rulesVersion,
         CancellationToken cancellationToken)
     {
-        var candidates = await db.Bots
+        List<MatchmakingCandidate> candidates = await db.Bots
             .Where(b => b.Id != challenger.Id)
             .Where(b => b.Versions.Any(v =>
                 v.IsActive &&
@@ -343,12 +376,42 @@ public static class RankedEndpoints
                     .Select(r => (double?)r.Rating).FirstOrDefault() ?? BotRating.DefaultRating,
                 b.OwnerUserId == userId))
             .ToListAsync(cancellationToken);
+        IReadOnlyDictionary<
+            Guid,
+            ApplicationResult<AdmittedMatchBot>> admissions =
+            await admission.AdmitManyAsync(
+                candidates.Select(candidate => candidate.BotId).ToArray(),
+                cancellationToken);
+        var admittedById =
+            new Dictionary<Guid, AdmittedMatchBot>(candidates.Count);
+        foreach (MatchmakingCandidate candidate in candidates)
+        {
+            ApplicationResult<AdmittedMatchBot> admitted =
+                admissions[candidate.BotId];
+            if (admitted.Succeeded)
+                admittedById.Add(candidate.BotId, admitted.Value!);
+        }
+
         double mine = await LadderRating(
             db,
             challenger.Id,
             rulesVersion,
             cancellationToken);
-        return RankedMatchmaking.Choose(candidates, mine, Random.Shared.Next);
+        Guid? chosen = RankedMatchmaking.Choose(
+            candidates
+                .Where(candidate => admittedById.ContainsKey(candidate.BotId))
+                .ToArray(),
+            mine,
+            Random.Shared.Next);
+        if (chosen is not Guid botId)
+            return null;
+
+        ApplicationTelemetry.Record(
+            "matches.admit_participant",
+            "admitted",
+            accountId: null,
+            botId: botId);
+        return admittedById[botId];
     }
 
     private static async Task<double> LadderRating(

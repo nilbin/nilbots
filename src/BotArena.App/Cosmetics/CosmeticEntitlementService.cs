@@ -12,6 +12,11 @@ public sealed record CosmeticAccess(
     CosmeticCatalogItem? Item,
     bool Owned);
 
+public readonly record struct CosmeticAccessRequest(
+    Guid UserId,
+    string Kind,
+    string Id);
+
 public sealed record CosmeticCatalogEntry(
     string Key,
     string Kind,
@@ -60,6 +65,90 @@ public sealed class CosmeticEntitlementService
                     grant.RevokedAt == null))
             .SingleOrDefaultAsync(cancellationToken);
         return new CosmeticAccess(item, owned);
+    }
+
+    /// <summary>
+    /// Resolves many account/item checks with a constant number of database
+    /// queries. This is the batch counterpart to <see cref="CheckAccessAsync"/>
+    /// for roster and matchmaking projections; catalog-only starter and unknown
+    /// items still require no database access.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<CosmeticAccessRequest, CosmeticAccess>>
+        CheckAccessBatchAsync(
+            IReadOnlyCollection<CosmeticAccessRequest> requests,
+            CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(requests);
+
+        CosmeticAccessRequest[] distinctRequests =
+            [.. requests.Distinct()];
+        if (distinctRequests.Length == 0)
+        {
+            return new Dictionary<CosmeticAccessRequest, CosmeticAccess>();
+        }
+
+        var items = distinctRequests.ToDictionary(
+            request => request,
+            request => catalog.Find(request.Kind, request.Id));
+        CosmeticAccessRequest[] gatedRequests =
+        [
+            .. distinctRequests.Where(request =>
+                items[request] is
+                {
+                    Availability: not CosmeticCatalog.StarterAvailability,
+                }),
+        ];
+        if (gatedRequests.Length == 0)
+        {
+            return distinctRequests.ToDictionary(
+                request => request,
+                request => new CosmeticAccess(
+                    items[request],
+                    items[request] is not null));
+        }
+
+        Guid[] accountIds =
+            [.. gatedRequests.Select(request => request.UserId).Distinct()];
+        HashSet<Guid> systemAccounts = (await db.Users
+                .Where(user =>
+                    accountIds.Contains(user.Id) &&
+                    user.IsSystem)
+                .Select(user => user.Id)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+        string[] entitlementKeys =
+        [
+            .. gatedRequests
+                .Select(request => items[request]!.Key)
+                .Distinct(StringComparer.Ordinal),
+        ];
+        var activeGrants = (await db.EntitlementGrants
+                .Where(grant =>
+                    accountIds.Contains(grant.UserId) &&
+                    entitlementKeys.Contains(grant.EntitlementKey) &&
+                    grant.RevokedAt == null)
+                .Select(grant => new
+                {
+                    grant.UserId,
+                    grant.EntitlementKey,
+                })
+                .Distinct()
+                .ToListAsync(cancellationToken))
+            .Select(grant => (grant.UserId, grant.EntitlementKey))
+            .ToHashSet();
+
+        return distinctRequests.ToDictionary(
+            request => request,
+            request =>
+            {
+                CosmeticCatalogItem? item = items[request];
+                bool owned = item is not null &&
+                    (item.Availability ==
+                        CosmeticCatalog.StarterAvailability ||
+                     systemAccounts.Contains(request.UserId) ||
+                     activeGrants.Contains((request.UserId, item.Key)));
+                return new CosmeticAccess(item, owned);
+            });
     }
 
     public async Task<IReadOnlyList<CosmeticCatalogEntry>> CatalogForAsync(

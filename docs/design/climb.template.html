@@ -1,0 +1,836 @@
+<title>nilbots — Climb</title>
+
+<style>
+  :root {
+    --page:#f6f3ef; --page-2:#ece7e0; --ink:#191411; --ink-2:#6b5f55; --rule:#d8d0c6;
+  }
+{{typography}}
+  @media (prefers-color-scheme: dark) {
+    :root { --page:#0e0908; --page-2:#191210; --ink:#e6ddd4; --ink-2:#94806f; --rule:#33251c; }
+  }
+  :root[data-theme="dark"] { --page:#0e0908; --page-2:#191210; --ink:#e6ddd4; --ink-2:#94806f; --rule:#33251c; }
+  :root[data-theme="light"] { --page:#f6f3ef; --page-2:#ece7e0; --ink:#191411; --ink-2:#6b5f55; --rule:#d8d0c6; }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:40px 20px 110px; }
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-2); margin:0 0 14px; }
+  .lede { max-width:64ch; font-size:16.5px; margin:0 0 14px; }
+  .lede.sub { color:var(--ink-2); }
+  section { margin-top:66px; border-top:1px solid var(--rule); padding-top:18px; }
+  .note { max-width:66ch; color:var(--ink-2); font-size:14.5px; margin:0 0 16px; }
+  .note strong { color:var(--ink); font-weight:600; }
+
+  .correction { border:1px solid var(--rule); border-left:3px solid #d97706; background:var(--page-2);
+                border-radius:0 6px 6px 0; padding:14px 18px; margin:0 0 18px; max-width:70ch; }
+  .correction p { margin:0; font-size:14.5px; }
+  .correction p + p { margin-top:8px; color:var(--ink-2); }
+
+  /* ---------------------------------------------------------- logotype --- */
+  .marks { display:grid; gap:16px; }
+  @media (min-width:760px){ .marks { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .swatchbox { border:1px solid var(--rule); border-radius:8px; overflow:hidden; }
+  .swatchbox .cap { font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+                    color:var(--ink-2); padding:8px 12px; border-bottom:1px solid var(--rule); background:var(--page-2); }
+  .stage { padding:30px 22px; display:flex; align-items:center; justify-content:center; gap:26px; flex-wrap:wrap; }
+  .stage.dark { background:#0b0705; }
+  .stage.light { background:#d7dde3; }
+
+  /* The wordmark is not set in a typeface — it is constructed on the arena's tile
+     grid. Letters are polylines through tile centres, rasterised to tiles, traced,
+     and chamfered at the radius the renderer mills wall corners with. One path,
+     one colour, no font dependency. */
+  svg.wm { display:block; width:auto; height:var(--wm-size,38px); color:var(--wm,#e6ddd4); }
+  svg.wm.tall { height:calc(var(--wm-size,38px) * 9 / 7); }
+
+  .tile { display:block; border-radius:22.4%; overflow:hidden; flex:none; }
+  .tile svg { display:block; width:100%; height:100%; color:var(--wm,#e6ddd4); }
+
+  .rules { display:grid; gap:9px; margin-top:16px; font-size:14px; color:var(--ink-2); }
+  .rules div { display:grid; grid-template-columns:118px 1fr; gap:12px; align-items:baseline; }
+  .rules .k { color:var(--ink-2); font-size:11px; font-stretch:82%; font-weight:550;
+              letter-spacing:.13em; text-transform:uppercase; }
+
+
+  /* The palette this replaced, kept only so the two can be compared. */
+  .steel { --t-bg:#0b1017; --t-panel:#101823; --t-raise:#16202d; --t-edge:#202c3d;
+           --t-field:#0b1017; --t-accent:#38bdf8; --t-text:#ccd8e6; --t-dim:#657485;
+           --t-ok:#3fd97a; --t-hot:#ff6b62; --t-radius:5px;
+           --t-mono:var(--mono); --t-sans:var(--sans); }
+  .ground { display:grid; gap:0; grid-template-columns:1fr; }
+  @media (min-width:720px){ .ground { grid-template-columns:1fr 1fr; } }
+  .ground > div { padding:22px; background:var(--t-field, var(--t-bg)); color:var(--t-text);
+                  font-family:var(--t-sans); }
+  .ground > div + div { border-left:1px solid var(--rule); }
+  @media (max-width:719px){ .ground > div + div { border-left:0; border-top:1px solid var(--rule); } }
+  .ground .lab { margin-bottom:14px; }
+  .chips { display:grid; gap:11px; }
+  .swatchline { display:flex; align-items:center; gap:10px; }
+  .swatchline .hex { font-family:var(--t-mono); font-size:11px; color:var(--t-dim);
+                     margin-left:auto; font-variant-numeric:tabular-nums; }
+
+  ul.spec2 { list-style:none; padding:0; margin:0 0 18px; display:grid; gap:11px; max-width:74ch; }
+  ul.spec2 li { display:grid; grid-template-columns:132px 1fr; gap:14px; align-items:baseline;
+                font-size:14.5px; color:var(--ink-2); border-top:1px solid var(--rule);
+                padding-top:11px; }
+  ul.spec2 b { font-stretch:82%; font-size:11px; letter-spacing:.13em; text-transform:uppercase;
+               color:var(--ink-2); font-weight:550; }
+  ul.spec2 span strong { color:var(--ink); font-weight:600; }
+  @media (max-width:560px){ ul.spec2 li { grid-template-columns:1fr; gap:5px; } }
+
+  /* ------------------------------------------------------------ immersive --- */
+  /* Landscape leaves letterbox on both sides of a 16:10 arena. That space is the
+     app's own ground, so the chrome goes there and nothing is ever drawn over the
+     game — which also means nothing has to fade. */
+  .fs { display:flex; gap:0; background:var(--t-field, var(--t-bg)); color:var(--t-text);
+        border-radius:20px; overflow:hidden; border:1px solid var(--rule);
+        font-family:var(--t-sans); }
+  .fs-bar { width:132px; flex:none; padding:14px 12px; display:flex; flex-direction:column; }
+  .fs-bar.right { align-items:center; justify-content:space-between; }
+  .fs-bar .foot { display:grid; gap:12px; justify-items:center; }
+  .fs-col { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .fs-col img { display:block; width:100%; height:auto; }
+  .fs-time { padding:7px 10px 9px; }
+  .fs-time svg { display:block; width:100%; height:auto; }
+  .fs-tick { font-family:var(--t-mono); font-size:12px; font-variant-numeric:tabular-nums;
+             color:var(--t-dim); margin:0; }
+  .fs-tick b { color:var(--t-text); font-weight:400; }
+  .fs-bot { display:grid; gap:5px; margin-top:14px; }
+  .fs-bot .who2 { display:flex; align-items:center; gap:7px; font-size:11.5px; }
+  .fs-bot .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex:none; }
+  .fs-bot .hp { gap:2px; }
+  .fs-bot .hp i { height:5px; }
+  .fs-play { width:52px; height:52px; border-radius:50%; border:1px solid var(--t-edge2);
+             background:var(--t-raise); color:var(--t-text); font-size:13px; letter-spacing:.1em;
+             display:grid; place-items:center; cursor:default; }
+  .fs-chip { font-family:var(--t-mono); font-size:11.5px; color:var(--t-dim);
+             border:1px solid var(--t-edge); border-radius:99px; padding:3px 10px;
+             background:transparent; cursor:default; }
+  .fs-exit { align-self:flex-end; font-size:11px; color:var(--t-dim); border:1px solid var(--t-edge);
+             border-radius:var(--t-radius); padding:3px 8px; }
+
+  /* ---------------------------------------------------------------- views --- */
+  h4.sub { font-stretch:110%; font-weight:620; font-size:17.5px; letter-spacing:-.012em;
+           margin:34px 0 10px; }
+  .scroll > .app.viewer { min-width:880px; }
+  .two-up { display:grid; gap:12px; grid-template-columns:minmax(0,1fr); }
+  @media (min-width:900px){ .two-up { grid-template-columns:minmax(0,1fr) 340px; } }
+  svg.chart { display:block; width:100%; height:auto; }
+  .first-grid { display:grid; gap:26px; grid-template-columns:minmax(0,1fr); }
+  @media (min-width:940px){ .first-grid { grid-template-columns:minmax(0,1fr) 400px; } }
+  .peek { border-left:1px solid var(--t-edge); padding-left:22px; }
+  @media (max-width:939px){ .peek { border-left:0; padding-left:0; } }
+  pre.term .kw { color:#9a8570; }
+
+  .matchup { display:flex; align-items:center; gap:12px; min-width:0; }
+  .matchup .vs { font-stretch:82%; font-weight:550; font-size:10.5px; letter-spacing:.16em;
+                 text-transform:uppercase; color:var(--t-dim); }
+
+  .vbody { padding:12px; display:grid; gap:12px; grid-template-columns:minmax(0,1fr) 300px;
+           align-items:start; }
+  .vmain { display:flex; flex-direction:column; gap:10px; min-width:0; }
+  .vside { display:flex; flex-direction:column; gap:10px; min-width:0; }
+
+  .arena { margin:0; position:relative; border:1px solid var(--t-edge);
+           border-radius:var(--t-radius); overflow:hidden; background:#060302; }
+  .arena img { display:block; width:100%; height:auto; }
+  .tickbadge { position:absolute; top:8px; left:8px; font-family:var(--t-mono); font-size:11px;
+               color:var(--t-dim); background:rgba(5,8,12,.72); border:1px solid var(--t-edge);
+               border-radius:99px; padding:2px 9px; backdrop-filter:blur(3px);
+               font-variant-numeric:tabular-nums; }
+  .tickbadge .val { color:var(--t-text); font-size:12px; }
+  img.alt { display:block; width:100%; height:auto; border-radius:var(--t-radius);
+            border:1px solid var(--t-edge); }
+
+  .transport { padding:10px 12px; }
+  .tbar { display:flex; align-items:center; gap:10px; }
+  .tbar .track { flex:1; min-width:0; }
+  .tbar .track svg { display:block; width:100%; height:auto; }
+  .play, .step { background:transparent; border:1px solid var(--t-edge); color:var(--t-text);
+                 border-radius:var(--t-radius); cursor:default; font-size:12px; flex:none; }
+  .play { width:38px; height:32px; font-size:11px; letter-spacing:.1em; }
+  .step { width:30px; height:30px; color:var(--t-dim); }
+  .speed { flex:none; font-family:var(--t-mono); font-size:11.5px; padding:5px 9px; }
+  .mk { width:10px; height:10px; display:block; flex:none; }
+  .mk.fire { width:2px; height:11px; background:#7d6a58; }
+  .mk.hit { width:5px; height:11px; border-radius:2px; background:#94806f; }
+  .mk.kill { width:10px; height:10px; border-radius:2px; background:#f4526b; }
+
+  /* bot card ---------------------------------------------------------------- */
+  .card-bot .stat { display:grid; grid-template-columns:64px 1fr auto; gap:10px;
+                    align-items:center; margin-top:9px; }
+  .card-bot .stat .k { font-stretch:82%; font-weight:550; font-size:10px; letter-spacing:.13em;
+                       text-transform:uppercase; color:var(--t-dim); }
+  .card-bot .stat .val { font-family:var(--t-mono); font-size:11.5px; color:var(--t-dim);
+                         font-variant-numeric:tabular-nums; }
+  .card-bot .doing { font-size:13px; color:var(--t-text); }
+  .hp { display:flex; gap:3px; }
+  .hp i { display:block; height:9px; flex:1; border-radius:2px; border:1px solid var(--t-edge);
+          background:transparent; }
+  .hp i.on { background:var(--t-text); border-color:var(--t-text); }
+  .cd { display:block; height:5px; border-radius:3px; background:var(--t-edge); overflow:hidden; }
+  .cd i { display:block; height:100%; background:var(--t-dim); }
+  .card-bot.dead { opacity:.62; }
+  .card-bot.dead .hp i { border-style:dashed; }
+  .pill.live { color:var(--t-text); }
+
+  /* event index ------------------------------------------------------------- */
+  .events { list-style:none; margin:0; padding:0 12px 12px; display:grid; gap:1px; }
+  .events li { display:grid; grid-template-columns:38px 1fr; gap:10px; align-items:baseline;
+               padding:7px 8px; border-radius:var(--t-radius); font-size:13px;
+               border:1px solid transparent; }
+  .events li .val { font-family:var(--t-mono); font-size:11px; color:var(--t-dim);
+                    font-variant-numeric:tabular-nums; }
+  .events li em { display:block; font-style:normal; font-size:11.5px; color:var(--t-dim);
+                  margin-top:1px; }
+  .events li b { font-weight:600; }
+  .events li.here { background:var(--t-raise); border-color:var(--t-edge); }
+  .chip-f { font-stretch:82%; font-weight:550; font-size:10px; letter-spacing:.12em;
+            text-transform:uppercase; background:transparent; border:1px solid var(--t-edge);
+            color:var(--t-dim); border-radius:99px; padding:2px 9px; cursor:default; }
+  .chip-f.on { color:var(--t-text); background:var(--t-raise); }
+
+  /* provenance and terminal -------------------------------------------------- */
+  .prov { display:grid; gap:7px; margin-bottom:12px; }
+  .prov div { display:grid; grid-template-columns:70px 1fr; gap:12px; align-items:baseline; }
+  .prov .k { font-stretch:82%; font-weight:550; font-size:10px; letter-spacing:.13em;
+             text-transform:uppercase; color:var(--t-dim); }
+  .prov .val { font-family:var(--t-mono, var(--mono)); font-size:12px;
+               color:var(--t-text, var(--ink)); }
+  pre.term { font-family:var(--t-mono, var(--mono)); font-size:11.5px; line-height:1.75; margin:0;
+             padding:11px 13px; background:#080504; border:1px solid var(--t-edge);
+             border-radius:var(--t-radius); color:#d6c7b6; overflow-x:auto;
+             white-space:pre; tab-size:2; }
+  pre.term.big { font-size:12.5px; line-height:1.85; padding:16px 18px; }
+  pre.term .p { color:#6b5647; }
+  pre.term .ok { color:#38d9c5; }
+  pre.term .bad { color:#f4526b; }
+  pre.term .d { color:#8a7561; }
+  .micro { font-size:12.5px; color:var(--t-dim, var(--ink-2)); margin:11px 0 0; }
+  .bar { display:inline-block; width:150px; height:8px; border-radius:2px;
+         background:#221913; border:1px solid #33241b; vertical-align:-1px;
+         overflow:hidden; }
+  .bar i { display:block; height:100%; background:#7d6552; }
+
+  /* first run ---------------------------------------------------------------- */
+  .first .head { font-stretch:112%; font-weight:620; font-size:21px; letter-spacing:-.015em;
+                 margin:0 0 20px; color:var(--t-text); max-width:34ch; }
+  .steps { list-style:none; margin:0; padding:0; display:grid; gap:16px; max-width:640px; }
+  .steps li { display:grid; grid-template-columns:26px 1fr; gap:14px; align-items:start; }
+  .steps .n { font-family:var(--t-mono); font-size:11px; color:var(--t-dim); border:1px solid var(--t-edge);
+              border-radius:50%; width:24px; height:24px; display:grid; place-items:center; }
+  .steps b { display:block; font-size:14px; font-weight:600; margin-bottom:7px; }
+  .steps em { display:block; font-style:normal; font-size:12.5px; color:var(--t-dim); margin-top:7px; }
+  .steps .waiting .n { border-color:var(--t-text); color:var(--t-text); }
+  .pulse::before { content:""; display:inline-block; width:6px; height:6px; border-radius:50%;
+                   background:var(--t-ok); margin-right:7px; vertical-align:middle;
+                   animation:beat 1.9s ease-in-out infinite; }
+  @keyframes beat { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+  @media (prefers-reduced-motion:reduce){ .pulse::before { animation:none } }
+
+  /* -------------------------------------------------------------- specimen --- */
+  .cuts { display:grid; gap:0; border:1px solid var(--rule); border-radius:8px; overflow:hidden; }
+  .cuts > div { display:grid; grid-template-columns:104px 1fr; gap:18px; align-items:baseline;
+                padding:16px 18px; border-top:1px solid var(--rule); }
+  .cuts > div:first-child { border-top:0; }
+  .cuts .k { font-stretch:82%; font-weight:550; font-size:10.5px; letter-spacing:.14em;
+             text-transform:uppercase; color:var(--ink-2); }
+  .cuts .sample { min-width:0; }
+  .cuts .sample p { margin:6px 0 0; font-size:13.5px; color:var(--ink-2); font-stretch:100%;
+                    font-weight:400; letter-spacing:0; text-transform:none; }
+  .cut-label { font-stretch:82%; font-weight:550; font-size:15px; letter-spacing:.15em;
+               text-transform:uppercase; }
+  .cut-text { font-stretch:100%; font-weight:400; font-size:17px; }
+  .cut-display { font-stretch:117%; font-weight:640; font-size:27px; letter-spacing:-.022em; }
+  .cut-val { font-family:var(--mono); font-size:17px; font-variant-numeric:tabular-nums; }
+
+  /* ---------------------------------------------------- product surface --- */
+  .climb {
+    --t-bg:#0b0705; --t-panel:#191210; --t-raise:#221913; --t-edge:#3b2a20;
+    /* A forge is lit from somewhere. One warm lift across the frame gives the ground
+       depth without spending a signal colour on it. */
+    --t-field:linear-gradient(168deg,#150e08 0%,#0b0705 46%,#090504 100%);
+    /* Burnt orange is the shop, not a signal: it is allowed in the ground, the
+       structure and the mark, and nowhere that means anything. */
+    --t-accent:#c8763c;
+    --t-text:#e6ddd4; --t-dim:#94806f; --t-ok:#38d9c5; --t-hot:#f4526b;
+    --t-radius:3px; --t-mono:var(--mono); --t-sans:var(--sans);
+  }
+  .app, .phone { background:var(--t-bg); color:var(--t-text); font-family:var(--t-sans);
+                 border:1px solid var(--rule); border-radius:10px; overflow:hidden; }
+  .phone { border-radius:22px; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:10px 14px;
+            border-bottom:1px solid var(--t-edge); background:var(--t-panel);
+            box-shadow:inset 0 -1px 0 rgba(200,118,60,.14); }
+  .tabs { display:flex; gap:2px; margin-left:auto; flex-wrap:nowrap; }
+  .tabs a { font-size:12.5px; font-weight:500; color:var(--t-dim); padding:5px 10px;
+            border-radius:var(--t-radius); text-decoration:none; border:1px solid transparent;
+            white-space:nowrap; }
+  .tabs a.on { color:var(--t-text); border-color:var(--t-edge); background:var(--t-raise); }
+  .body { padding:14px; display:grid; gap:14px; }
+  .lab { font-stretch:82%; font-weight:550; font-size:10.5px; letter-spacing:.15em;
+         text-transform:uppercase; color:var(--t-dim); margin:0 0 8px; }
+  .panel { background:var(--t-panel); border:1px solid var(--t-edge); border-radius:var(--t-radius); }
+  .pad { padding:12px 14px; }
+  .row { display:flex; align-items:center; gap:10px; }
+  .spread { justify-content:space-between; }
+
+  .look { display:block; }
+  /* Identity = the chassis the player chose, ringed in the accent they chose.
+     Two independent picks, shown as two independent parts of one chip. */
+  .ident { display:flex; align-items:center; justify-content:center; padding:2px;
+           border:1.5px solid var(--accent); border-radius:50%; flex:none;
+           background:var(--t-bg, #0b0705); }
+  .who { display:flex; align-items:center; gap:9px; min-width:0; }
+  .who .stack { min-width:0; }
+  .who .n { display:block; font-size:14px; font-weight:600; letter-spacing:-.005em; color:var(--t-text);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .who .s { display:block; font-stretch:84%; font-size:11.5px; letter-spacing:.04em;
+           color:var(--t-dim); }
+
+  table.tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  table.tbl th { text-align:left; font-stretch:82%; font-weight:550; color:var(--t-dim);
+                 font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+                 padding:0 8px 8px; border-bottom:1px solid var(--t-edge); }
+  table.tbl td { padding:8px; border-bottom:1px solid var(--t-edge); vertical-align:middle; }
+  table.tbl tr:last-child td { border-bottom:0; }
+  .num { font-family:var(--t-mono); font-variant-numeric:tabular-nums; text-align:right;
+         font-size:12px; white-space:nowrap; }
+  .rank { font-size:22px; font-stretch:115%; font-weight:680; letter-spacing:-.03em;
+          color:var(--t-text); font-variant-numeric:tabular-nums; }
+  /* Yours is marked by a rule in that bot's own accent — the only chroma the table
+     spends, and it is always somebody's choice rather than a system opinion. */
+  tr.mine td:first-child { box-shadow:inset 2px 0 0 var(--mine-accent); }
+  tr.mine { background:rgba(255,255,255,.028); }
+  .move { font-family:var(--t-mono); font-size:11.5px; font-variant-numeric:tabular-nums;
+          white-space:nowrap; color:var(--t-dim); }
+  .move.up::before { content:"▲ "; color:var(--t-ok); }
+  .move.dn::before { content:"▼ "; color:var(--t-hot); }
+  .move.flat::before { content:"— "; }
+  .band td { padding:3px 8px !important; }
+  .band span { font-stretch:82%; font-weight:550; font-size:10px; letter-spacing:.14em;
+               text-transform:uppercase; color:var(--t-dim); display:block;
+               border-top:1px dashed var(--t-edge); padding-top:4px; }
+  .pill { font-stretch:82%; font-weight:550; font-size:10.5px; letter-spacing:.12em;
+          text-transform:uppercase; border:1px solid currentColor; border-radius:99px;
+          padding:1px 8px; color:var(--t-dim); white-space:nowrap; }
+  .btn { font-size:12.5px; font-weight:500; border:1px solid var(--t-edge); background:transparent;
+         color:var(--t-text); border-radius:var(--t-radius); padding:5px 11px; cursor:default; }
+
+  .fleet { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+  .fleet .card { border:1px solid var(--t-edge); border-radius:var(--t-radius); background:var(--t-panel); padding:11px 12px; }
+  .fleet .card .top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--t-dim); }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .spark { display:block; }
+  .legend i { width:14px; height:2px; display:block; border-radius:2px; }
+
+  .phone .status { height:22px; background:var(--t-panel); border-bottom:1px solid var(--t-edge); }
+  .phone .screen { padding:12px; display:grid; gap:12px; align-content:start; min-height:340px; }
+  .phone .tabbar { display:flex; border-top:1px solid var(--t-edge); background:var(--t-panel); }
+  .phone .tabbar div { flex:1; text-align:center; padding:9px 2px 11px; font-family:var(--t-mono);
+                       font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--t-dim); }
+  .phone .tabbar div.on { color:var(--t-text); box-shadow:inset 0 2px 0 var(--t-text); }
+
+  /* The app frame is a fixed desktop layout. On a narrow screen it scrolls
+     sideways inside its own container rather than wrapping into a shape the
+     product would never actually render. */
+  .scroll { overflow-x:auto; border-radius:10px; }
+  .scroll > .app { min-width:660px; }
+  .two { display:grid; gap:16px; }
+  @media (min-width:1000px){ .two { grid-template-columns:minmax(0,1fr) 290px; align-items:start; } }
+  .phones { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+</style>
+
+<!--SPRITE-SHEET-->
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">nilbots · climb · specification</p>
+    <h1>The table is the season.</h1>
+    <p class="lede">
+      A ladder alone is a snapshot — it says where you are and nothing about whether you are
+      going anywhere. A season alone is a story without stakes. Climb puts the time axis
+      inside the standings: every row carries where it opened, where it is now, and the shape
+      of the journey between.
+    </p>
+    <p class="lede sub">
+      What follows is the part that needs deciding before any of it gets built: the
+      logotype, what colour is allowed to mean, and how the screen behaves when a player has
+      six bots instead of one.
+    </p>
+  </header>
+
+  <!-- ================================================== COLOUR POLICY ==== -->
+  <section>
+    <h2>Correction</h2>
+    <h3>Colour belongs to players, not to the system</h3>
+    <div class="correction">
+      <p>
+        I previously picked magenta for the season layer on the grounds that it was 77° from
+        the nearest chassis trim. That analysis measured the wrong set. Accent is not derived
+        from the chassis — <code>AppearanceEditor</code> gives every bot an
+        <code>&lt;input type="color"&gt;</code>, so a player picks the look and the accent
+        independently and can choose any hex, including that magenta.
+      </p>
+      <p>
+        There is therefore no safe hue to reserve, and the rule has to come from the other
+        direction.
+      </p>
+    </div>
+    <p class="note">
+      <strong>Chroma means somebody chose it.</strong> Player accents are the only saturated
+      colour on the screen. Everything the system says — the season, the deadline, the
+      qualifying band, structure, rules — is achromatic and expressed as <em>form</em>: a
+      dashed rule, a sparkline's shape, a weight change. The two cannot collide because they
+      are not competing on the same channel.
+    </p>
+    <p class="note">
+      Outcome keeps one exception. A rise and a fall carry a green or red <em>glyph</em>,
+      never a fill or a row tint, so they read at a glance without ever sitting behind a
+      player's colour. Every accent still passes through
+      <code>adjustAccentForBackground</code> before it is drawn, which the codebase already
+      does — a player who picks near-black is still legible on a near-black field.
+    </p>
+    <p class="note">
+      One consequence worth noticing: the identity chip now shows <strong>both</strong>
+      choices — the chassis inside a ring of the accent. Today the accent is a small dot
+      beside a name, which wastes the more distinctive of the two picks.
+    </p>
+  </section>
+
+  <!-- ========================================================== GROUND ==== -->
+  <section>
+    <h2>Ground</h2>
+    <h3>Forge — the arena is a machine shop, so the chrome is the shop</h3>
+    <p class="note">
+      The palette is not invented. It is <code>arena-01</code>'s own map theme:
+      <code>ember-forge/theme.json</code> gives canvas <code>#090504</code>, frame
+      <code>#684229</code> and zone <code>#38d9c5</code>, and those three become the field,
+      the structure and the rise colour. The chrome is made of the material the game is made
+      of, which is the whole argument for it.
+    </p>
+    <p class="note">
+      <strong>Burnt orange <code>#c8763c</code> is a material, not a signal.</strong> It is in
+      the ground, the hairline under the top bar and the wordmark — places that mean nothing.
+      It never marks state, never marks “yours”, never marks a bot. The policy above is
+      unchanged: the only chroma that <em>means</em> something is a player's accent.
+    </p>
+
+    <div class="swatchbox">
+      <p class="cap">Do player accents survive the move? · left, what it was · right, Forge</p>
+      <div class="ground">
+        <div class="steel">
+          <p class="lab">Steel</p>
+          <div class="chips">
+            {{bot_pincer_sm}}{{bot_roomba_sm}}{{bot_sprig_sm}}{{bot_bastille_sm}}
+          </div>
+        </div>
+        <div class="climb">
+          <p class="lab">Forge</p>
+          <div class="chips">
+            {{bot_pincer_sm}}{{bot_roomba_sm}}{{bot_sprig_sm}}{{bot_bastille_sm}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:18px">
+      <strong>Warm accents lose their edge.</strong> Murder Roomba's <code>#f5a623</code> sits
+      near the ground's own hue, so on a warm panel it starts reading as furniture. Two things
+      answer it: <code>adjustAccentForBackground</code> already exists and simply has more work
+      to do here, and the identity chip now keeps a near-black disc behind the ring so a warm
+      accent always has a cold field to sit on. A player who picks something close to
+      <code>#c8763c</code> is still the hard case, and no adjustment makes their bot feel like
+      a choice on this ground.
+    </p>
+    <p class="note">
+      <strong>Rise and fall had to move.</strong> Rise is now <code>#38d9c5</code>, the theme's
+      own zone teal, which ties it to the arena instead of being a generic green. Fall was
+      <code>#ff6b62</code> — close enough to the ground's family that it stopped reading as an
+      alarm — and moves to <code>#f4526b</code>, pushed toward rose so it separates. Player
+      accents are untouched, so Bastille's <code>#ef4444</code> is exactly what its owner
+      picked. <strong>That means a player's red and the system's fall glyph now sit close
+      together, which is the sharpest argument against Forge</strong> and worth seeing before
+      you commit to it.
+    </p>
+    <p class="note">
+      One more thing that does not change: the arena themes. bastion-01 is
+      <code>control-room</code>, which is cold blue; gallery-01 is <code>frost-relay</code>,
+      which is nearly white. Warm chrome around a cold arena is the common case rather than the
+      exception — the viewer further down is exactly that, and it is the honest test.
+    </p>
+  </section>
+
+  <!-- ======================================================== LOGOTYPE ==== -->
+  <section>
+    <h2>Logotype</h2>
+    <h3>Path, wall, floor — one set of tiles, three ways</h3>
+    <p class="note">
+      The current mark sets two spans and hard-codes <code>#38bdf8</code> on the word “bots”,
+      which breaks the moment the accent belongs to a player and disappears entirely in
+      one-colour contexts — a favicon, a CLI banner, an embroidered patch. The replacement is
+      not drawn. It is <strong>constructed on the arena's own grid</strong>.
+    </p>
+    <p class="note">
+      Letters are polylines through tile centres, right angles only, because that is how a bot
+      moves. Rasterise the polyline and you have the tiles; trace the tiles and you have the
+      outline; round every corner — convex and concave alike, at the radius
+      <code>wallSolids.ts</code> chamfers walls with — and the letterform is finished. The
+      payoff is that one cell set renders as the arena's three primitives: the
+      <strong>trace</strong> is the route, the <strong>matter</strong> is the wall, and the
+      <strong>plan</strong> is the floor.
+    </p>
+    <p class="note">
+      Matter is the wordmark, the plan mark is the icon, and the trace is what the wordmark
+      does while a season loads. The construction, the alphabet and the size tests are
+      <a href="https://claude.ai/code/artifact/62508eef-fd28-4a63-9cd4-7f5d17ca0916">on their
+      own page</a>.
+    </p>
+
+    <div class="marks">
+      <div class="swatchbox">
+        <p class="cap">Primary lockup · on field</p>
+        <div class="stage dark">{{wordmark}}</div>
+      </div>
+      <div class="swatchbox">
+        <p class="cap">Primary lockup · on plate</p>
+        <div class="stage light" style="--wm:#1d1410">{{wordmark}}</div>
+      </div>
+      <div class="swatchbox">
+        <p class="cap">Scale · 38 / 22 / 15 px</p>
+        <div class="stage dark" style="gap:20px; align-items:flex-end">
+          <span style="--wm-size:38px; display:contents">{{wordmark}}</span>
+          <span style="--wm-size:22px; display:contents">{{wordmark}}</span>
+          <span style="--wm-size:15px; --wm:#94806f; display:contents">{{wordmark}}</span>
+        </div>
+      </div>
+      <div class="swatchbox">
+        <p class="cap">Mark alone · app icon, favicon, CLI</p>
+        <div class="stage dark" style="gap:22px; align-items:flex-end">
+          <span class="tile" style="width:64px;height:64px">{{mark}}</span>
+          <span class="tile" style="width:26px;height:26px">{{mark}}</span>
+          <span class="tile" style="width:16px;height:16px">{{mark}}</span>
+        </div>
+      </div>
+      <div class="swatchbox">
+        <p class="cap">Plan · the letters are the walkable space</p>
+        <div class="stage dark">{{plan}}</div>
+      </div>
+      <div class="swatchbox">
+        <p class="cap">Ground · nil is the empty tile, bots stands on it</p>
+        <div class="stage dark">{{ground}}</div>
+      </div>
+    </div>
+
+    <div class="rules">
+      <div><span class="k">One colour</span><span>Always. A single <code>&lt;path fill="currentColor"&gt;</code>, so a player's accent can never fight it and both themes need one asset.</span></div>
+      <div><span class="k">Construction</span><span>Stroke one tile; x-height five, ascender seven; every corner chamfered at 0.32 of a tile, convex and concave alike.</span></div>
+      <div><span class="k">Minimum</span><span>15px for the lockup, 90px for Ground. Below that the mark goes alone.</span></div>
+      <div><span class="k">Clear space</span><span>One tile on every side — the same tile the letters are built from.</span></div>
+      <div><span class="k">Never</span><span>Colour part of the word, outline it, put it on a photograph, or set it in a real typeface. It has no typeface; it has a grid.</span></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ TYPE ==== -->
+  <section>
+    <h2>Type</h2>
+    <h3>One family, three cuts, and one machine voice</h3>
+    <p class="note">
+      The screen was nearly all monospace: navigation, buttons, pills, the whole table body,
+      legends, captions, and even running prose. Mono carries a meaning — <em>a machine wrote
+      this</em> — and when everything is mono, nothing is. It also costs real room: a ladder
+      set in a fixed-width face spends horizontal space that long bot names need.
+    </p>
+    <p class="note">
+      <strong>Archivo has a width axis</strong>, so one variable file gives three voices —
+      condensed for labels, normal for reading, expanded for display. That is the same economy
+      as one cell set with three finishes, and it leaves mono with exactly one job.
+    </p>
+
+    <div class="cuts">
+      <div><span class="k">Condensed 82%</span>
+        <span class="sample"><span class="cut-label">Ranked ladder · 214 bots</span>
+          <p>Labels, column heads, pills, the qualifying band — anything that names a region of
+          the screen rather than saying something.</p></span></div>
+      <div><span class="k">Normal 100%</span>
+        <span class="sample"><span class="cut-text">Pincer gen-10 climbed 14 places this season.</span>
+          <p>Everything a person reads or clicks: bot names, navigation, buttons, prose, empty
+          states, errors.</p></span></div>
+      <div><span class="k">Expanded 117%</span>
+        <span class="sample"><span class="cut-display">Season 3 · 11 days left</span>
+          <p>Display only: page titles, section heads, ranks, the season number. Never below
+          about 18px, where the extra width just reads as loose.</p></span></div>
+      <div><span class="k">Mono</span>
+        <span class="sample"><span class="cut-val">1284 · ▲14 · 48–22 · seed 0x7f31a</span>
+          <p>Values a machine wrote: ratings, deltas, records, tick counts, seeds, match ids,
+          code. Nothing else — not a label, not a name, not a button, not a sentence.</p></span></div>
+    </div>
+
+    <div class="rules">
+      <div><span class="k">Why width</span><span>It separates label from content without a second family and without colour, which the accent policy already spends.</span></div>
+      <div><span class="k">Numbers</span><span>Mono for values, and <code>tabular-nums</code> everywhere else digits line up in a column.</span></div>
+      <div><span class="k">Weight</span><span>400 for text, 550 for labels, 640–680 for display. Nothing is bolder than a rank.</span></div>
+      <div><span class="k">Cost</span><span>One 90 KB variable file plus a 23 KB mono, self-hosted. No CDN, no second family, no fallback flash if both are preloaded.</span></div>
+    </div>
+  </section>
+
+  <!-- ==================================================== MULTIPLE BOTS === -->
+  <section>
+    <h2>Several bots</h2>
+    <h3>A player is a stable, not a competitor</h3>
+    <p class="note">
+      A player owns many bots at once, so “your standing” is not one number. Climb answers
+      that in three places: a fleet strip that shows every bot's position at once, one chart
+      with a line <em>per</em> bot in that bot's own accent, and a ladder that marks every
+      row of yours rather than pinning a single favourite.
+    </p>
+    <p class="note">
+      This is where player-picked accents earn their keep. Six overlaid trajectories are
+      unreadable in one colour and instantly separable in six — and because the grid, the
+      axis and the labels are achromatic, the only thing colour distinguishes is which bot
+      is which.
+    </p>
+
+    <p class="note">
+      <strong>The top bar does not wrap.</strong> The frame below is a desktop screen, so on a
+      phone it scrolls sideways inside its own container rather than reflowing into a shape the
+      product would never render — which is what the mock was doing, and it is the one wrong
+      answer, because it changes the height of the chrome as the window resizes. Below 640px the
+      real rule is to drop the tab row from the top bar entirely and use the bottom tab bar the
+      phone already has; the top bar keeps the wordmark, the season, and nothing else.
+    </p>
+
+    <div class="two">
+      <div class="scroll">
+      <div class="app climb">
+        <div class="topbar">
+          <span style="--wm-size:17px; --wm:#c8763c; display:contents">{{wordmark}}</span>
+          <nav class="tabs"><a class="on" href="#s">Season</a><a href="#s">Bots</a><a href="#s">Watch</a><a href="#s">Docs</a></nav>
+        </div>
+        <div class="body">
+
+          <div class="panel pad">
+            <div class="row spread" style="margin-bottom:10px">
+              <p class="lab" style="margin:0">Season 3 · 11 days left · your 3 ranked bots</p>
+              <span class="pill">best rank 7</span>
+            </div>
+            <div class="fleet">
+              <div class="card">
+                <div class="top">{{bot_pincer_lg}}<span class="rank">7</span></div>
+                <div class="row spread"><span class="move up">14 places</span><span style="font-family:var(--t-mono);font-size:11px">1284</span></div>
+              </div>
+              <div class="card">
+                <div class="top">{{bot_roomba_lg}}<span class="rank">22</span></div>
+                <div class="row spread"><span class="move dn">5 places</span><span style="font-family:var(--t-mono);font-size:11px">1147</span></div>
+              </div>
+              <div class="card">
+                <div class="top">{{bot_sprig_lg}}<span class="rank">—</span></div>
+                <div class="row spread"><span class="move flat">7 to rank</span><span style="font-family:var(--t-mono);font-size:11px">—</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel pad">
+            <p class="lab">Your season · one line per bot</p>
+            <svg viewBox="0 0 600 130" width="100%" height="130" role="img"
+                 aria-label="Season trajectories: Pincer gen-10 rising to 1284, Murder Roomba falling to 1147, Sprig gen-2 new and climbing">
+              <g stroke="#33241b" stroke-width="1">
+                <line x1="0" y1="26" x2="600" y2="26"></line><line x1="0" y1="62" x2="600" y2="62"></line>
+                <line x1="0" y1="98" x2="600" y2="98"></line></g>
+              <text x="4" y="20" fill="#94806f" style="font-family:var(--t-mono)" font-size="9">1300</text>
+              <text x="4" y="56" fill="#94806f" style="font-family:var(--t-mono)" font-size="9">1200</text>
+              <text x="4" y="92" fill="#94806f" style="font-family:var(--t-mono)" font-size="9">1100</text>
+
+              <path d="M0 96 L75 90 L150 74 L225 80 L300 58 L375 62 L450 40 L525 34 L600 22"
+                    fill="none" stroke="#22d3ee" stroke-width="2" stroke-linejoin="round"></path>
+              <circle cx="600" cy="22" r="4" fill="#0b0705" stroke="#22d3ee" stroke-width="2.5"></circle>
+
+              <path d="M0 62 L75 58 L150 66 L225 62 L300 74 L375 78 L450 76 L525 84 L600 86"
+                    fill="none" stroke="#f5a623" stroke-width="2" stroke-linejoin="round"></path>
+              <circle cx="600" cy="86" r="4" fill="#0b0705" stroke="#f5a623" stroke-width="2.5"></circle>
+
+              <path d="M375 116 L450 108 L525 104 L600 98" fill="none" stroke="#a855f7"
+                    stroke-width="2" stroke-linejoin="round" stroke-dasharray="0"></path>
+              <circle cx="600" cy="98" r="4" fill="#0b0705" stroke="#a855f7" stroke-width="2.5"></circle>
+              <text x="378" y="128" fill="#94806f" style="font-family:var(--t-mono)" font-size="9">Sprig submitted</text>
+            </svg>
+            <div class="legend" style="margin-top:6px">
+              <span><i style="background:#22d3ee"></i>Pincer gen-10</span>
+              <span><i style="background:#f5a623"></i>Murder Roomba</span>
+              <span><i style="background:#a855f7"></i>Sprig gen-2</span>
+              <span style="margin-left:auto">day 1 → day 31 of 42</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="pad" style="padding-bottom:0">
+              <div class="row spread">
+                <p class="lab" style="margin:0">Ranked ladder · 214 bots</p>
+                <span class="row" style="gap:6px">
+                  <button class="btn" type="button" style="border-color:var(--t-text)">rating</button>
+                  <button class="btn" type="button">movement</button>
+                  <button class="btn" type="button">mine only</button></span>
+              </div>
+            </div>
+            <div class="pad" style="padding-top:10px">
+              <table class="tbl">
+                <thead><tr>
+                  <th style="width:30px">#</th><th style="width:78px">Season</th><th>Bot</th>
+                  <th style="width:80px">Across S3</th><th class="num">Rating</th><th class="num">W–L</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="rank">5</td><td><span class="move up">3</span></td><td>{{bot_warden}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,14 12,11 24,13 36,8 48,6 60,4 72,3" fill="none" stroke="#94806f" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1341</td><td class="num">62–29</td></tr>
+                  <tr><td class="rank">6</td><td><span class="move dn">2</span></td><td>{{bot_bastille}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,4 12,6 24,5 36,9 48,8 60,12 72,13" fill="none" stroke="#94806f" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1309</td><td class="num">54–31</td></tr>
+                  <tr class="mine" style="--mine-accent:#22d3ee"><td class="rank">7</td>
+                    <td><span class="move up">14</span></td><td>{{bot_pincer}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,17 12,15 24,12 36,13 48,8 60,6 72,2" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1284</td><td class="num">48–22</td></tr>
+                  <tr><td class="rank">8</td><td><span class="move dn">6</span></td><td>{{bot_rampart}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,6 12,8 24,7 36,11 48,10 60,14 72,15" fill="none" stroke="#94806f" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1250</td><td class="num">41–38</td></tr>
+                  <tr class="band"><td colspan="6"><span>top 8 seed into season 4</span></td></tr>
+                  <tr><td class="rank">9</td><td><span class="move flat">0</span></td><td>{{bot_halyard}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,10 12,9 24,11 36,10 48,11 60,9 72,10" fill="none" stroke="#94806f" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1238</td><td class="num">39–35</td></tr>
+                  <tr class="mine" style="--mine-accent:#f5a623"><td class="rank">22</td>
+                    <td><span class="move dn">5</span></td><td>{{bot_roomba}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,5 12,7 24,6 36,10 48,12 60,11 72,14" fill="none" stroke="#f5a623" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1147</td><td class="num">28–26</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="phones" style="grid-template-columns:1fr">
+        <div class="phone climb">
+          <div class="status"></div>
+          <div class="screen">
+            <div class="panel pad">
+              <p class="lab">Season 3 · 11 days</p>
+              <svg viewBox="0 0 260 60" width="100%" height="60" role="img" aria-label="Your three bots across the season">
+                <g stroke="#33241b" stroke-width="1"><line x1="0" y1="16" x2="260" y2="16"></line>
+                  <line x1="0" y1="38" x2="260" y2="38"></line></g>
+                <path d="M0 46 L52 40 L104 30 L156 24 L208 16 L260 10" fill="none" stroke="#22d3ee" stroke-width="1.8"></path>
+                <path d="M0 30 L52 32 L104 38 L156 40 L208 44 L260 46" fill="none" stroke="#f5a623" stroke-width="1.8"></path>
+                <path d="M156 56 L208 52 L260 48" fill="none" stroke="#a855f7" stroke-width="1.8"></path>
+              </svg>
+            </div>
+            <div class="panel pad">
+              <p class="lab">Your bots</p>
+              <div style="display:grid;gap:9px">
+                <div class="row spread">{{bot_pincer}}<span class="row" style="gap:8px"><span class="move up">14</span><b style="font-family:var(--t-mono);font-size:12px">7</b></span></div>
+                <div class="row spread">{{bot_roomba}}<span class="row" style="gap:8px"><span class="move dn">5</span><b style="font-family:var(--t-mono);font-size:12px">22</b></span></div>
+                <div class="row spread">{{bot_sprig}}<span class="row" style="gap:8px"><span class="move flat">7 to rank</span><b style="font-family:var(--t-mono);font-size:12px">—</b></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar"><div class="on">Season</div><div>Bots</div><div>Watch</div><div>Docs</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!--VIEWS-->
+
+  <section>
+    <h2>Open</h2>
+    <h3>What this needs before it can be built</h3>
+    <p class="note">
+      <strong>Seasons do not exist yet.</strong> Everything else here is already in the
+      database — ratings over time, rank movement, per-bot history, several bots per player.
+      The season boundary, its length, and whether the top of the table carries any
+      consequence are product decisions, and the qualifying band shown above is a placeholder
+      I invented to demonstrate the form.
+    </p>
+    <p class="note">
+      <strong>Movement needs a rank snapshot.</strong> “▲14 places” requires the rank at
+      season open, which nothing records today. It is one column on a table, but it has to
+      start being written before the first season can report it.
+    </p>
+    <p class="note">
+      <strong>2.5D becomes the default.</strong> Decided — but the change is “default to the
+      dimensional renderer <em>where it exists</em>”, not “default to it”. Three things follow.
+      The CLI's single-file artifact stubs three.js out entirely in
+      <code>vite.cli.config.ts</code>, so <code>DIMENSIONAL_RENDERER_AVAILABLE</code> is false
+      there and that build must stay flat — which also means Canvas2D can only be demoted,
+      not deleted, until three.js is allowed into the single-file artifact. The golden-frame
+      tests turned out <em>not</em> to be exposed: they import <code>drawArena</code> from the
+      SSR harness and call it directly, so they never go through the viewer's renderer choice
+      and need no pin. And the viewer is on the CLI compatibility surface:
+      <code>CliVersion</code> gets bumped and <code>publish-cli</code> runs before
+      <code>publish-and-deploy</code>, or <code>assert-cli-release.sh</code> refuses the deploy.
+    </p>
+    <p class="note">
+      <strong>Dropping the mobile WebView: yes, and almost all of the renderer is shared.</strong>
+      The prize is the hand-mirrored bridge in
+      <code>mobile/src/components/arena/protocol.ts</code>, <code>HostedViewer</code> and the
+      whole WebView lifecycle. The DOM is not woven through the renderer — it sits in three
+      seams at the edges, and the measurements are below rather than an impression.
+      <strong>Of 3,244 lines in <code>render3d/</code>, about 2,520 are already
+      platform-neutral</strong>, and the 2,100 lines it imports —
+      <code>replayModel</code>, <code>replayPresentation</code>, <code>interpolate</code>,
+      <code>wallTopology</code>, <code>replayParticipants</code> — contain zero DOM references
+      today.
+    </p>
+    <ul class="spec2">
+      <li><b>Textures in</b><span><code>render/arenaThemes.ts</code> loads the atlases (10 DOM
+        references) and two signatures type them as <code>HTMLImageElement</code>. Take a
+        <code>THREE.Texture</code> instead: <code>new Image()</code> on web,
+        <code>expo-asset</code> + <code>expo-three</code>'s <code>loadAsync</code> on
+        native.</span></li>
+      <li><b>Textures made</b><span>181 lines in five canvas factories — <code>progressRing</code>,
+        <code>radialGlow</code>, <code>tracerTexture</code>, <code>spriteTexture</code>,
+        <code>flare</code>. Two depend on a player's accent so they cannot simply be baked, but
+        they are a gradient and a distance field: a <code>DataTexture</code> or a short shader
+        replaces both.</span></li>
+      <li><b>Geometry derived</b><span><code>chassisModel.ts</code>, 312 lines, all
+        <code>SVGLoader</code> and <code>DOMParser</code>. Deterministic, so it moves to build
+        time and ships geometry JSON — which also deletes SVGLoader from the web bundle and
+        takes SVG parsing out of the viewer's cold start. A win on both platforms rather than a
+        tax mobile pays alone.</span></li>
+      <li><b>Written twice</b><span><code>ArenaCanvas3D.tsx</code>, 227 lines: canvas,
+        <code>WebGLRenderer</code>, <code>ResizeObserver</code>, raycaster. Native gets a
+        <code>&lt;GLView&gt;</code> of the same shape. This one <em>should</em> be written
+        twice — it is the part that is the platform.</span></li>
+    </ul>
+    <p class="note">
+      Two consequences beyond the arithmetic. Extracting <code>wallTopology</code> into the
+      shared package <strong>forces a dedup already owed</strong> — the flat renderer re-inlined
+      its own copy and it was never re-extracted. And the Canvas2D renderer cannot come along;
+      it is <code>CanvasRenderingContext2D</code>. Native means mobile has only the 3D path and
+      loses what <code>onUnavailable</code> falls back to, which is consistent with making 2.5D
+      the default but is real exposure on a weak Android GPU — and issue #16's fullscreen lag
+      says the budget is not generous today.
+    </p>
+    <p class="note">
+      <strong>The renderer toggle needs a name and a home.</strong> “2.5D” is a dimension
+      count, not something a player recognizes, and a header button is the wrong place for a
+      preference that should be remembered. Naming it is a product decision I did not want to
+      make on your behalf.
+    </p>
+    <p class="note">
+      <strong>The timeline needs no new data.</strong> Every mark in it — fires, hits,
+      destructions, with actor and tick — is already in the replay's causal events; the feed
+      is rendering exactly those today, just as a flat list. What it does need is a decision
+      about which kinds earn a mark once a Frontline match has six lives instead of two, or
+      the lanes stop being readable.
+    </p>
+    <p class="note">
+      <strong>The first-run screen assumes an installer that may not exist.</strong>
+      <code>brew install nilbots</code> and <code>nilbots new</code> are written as though
+      they ship; check both before this goes near a build, because the whole screen's value is
+      that every command on it works when typed.
+    </p>
+    <p class="note">
+      <strong>The logotype is a component, not an asset.</strong> It replaces
+      <code>web/src/components/Logo.tsx</code> and its mobile counterpart, and the favicon in
+      <code>index.html</code> — all three currently hard-code <code>#38bdf8</code>, which is
+      the accent this design stops treating as a brand colour. Each becomes one
+      <code>&lt;svg&gt;</code> holding a single path: under a kilobyte, no font dependency,
+      and correct in both themes without a second file.
+    </p>
+  </section>
+</div>

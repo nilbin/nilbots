@@ -201,20 +201,25 @@ export default function App() {
 
   if (loadError) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p className="max-w-md font-mono text-sm text-arena-dim">
+      <main className="flex min-h-[100dvh] items-center justify-center">
+        <h1 className="sr-only">Replay could not be loaded</h1>
+        <p
+          role="alert"
+          className="max-w-md font-mono text-sm text-arena-dim"
+        >
           {loadError}
         </p>
-      </div>
+      </main>
     );
   }
   if (!loadedReplay) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p className="font-mono text-sm text-arena-dim">
+      <main className="flex min-h-[100dvh] items-center justify-center">
+        <h1 className="sr-only">Loading nilbots replay</h1>
+        <p role="status" className="font-mono text-sm text-arena-dim">
           Loading replay…
         </p>
-      </div>
+      </main>
     );
   }
 
@@ -228,9 +233,18 @@ export default function App() {
       />
     );
   }
-  if (choices.length < 2) return <Viewer replay={replay} />;
+  if (choices.length < 2)
+    return (
+      <main className="flex min-h-[100dvh] flex-col lg:h-[100dvh]">
+        <h1 className="sr-only">nilbots replay viewer</h1>
+        <div className="min-h-0 flex-1">
+          <Viewer replay={replay} />
+        </div>
+      </main>
+    );
   return (
-    <div className="flex h-full flex-col gap-2 p-3 pb-0 md:p-5 md:pb-0">
+    <main className="flex min-h-[100dvh] flex-col gap-2 p-3 pb-0 md:p-5 md:pb-0 lg:h-[100dvh]">
+      <h1 className="sr-only">nilbots replay viewer</h1>
       <ReplayPicker
         choices={choices}
         activeId={activeId}
@@ -239,7 +253,7 @@ export default function App() {
       <div className="min-h-0 flex-1">
         <Viewer replay={replay} />
       </div>
-    </div>
+    </main>
   );
 }
 

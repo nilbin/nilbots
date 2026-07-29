@@ -28,7 +28,7 @@ the plan left choices open (cite/extend it when making new ones).
 
 Fresh environments are scripted. Linux x64 uses NativeAOT-LLVM natively when
 wasi-sdk is installed; macOS and Linux arm64 automatically use the focused
-cached Docker builder matched to the host CPU (DECISIONS #145):
+cached Docker builder matched to the host CPU (DECISIONS #151):
 
 ```bash
 bash scripts/setup.sh          # platform-aware .NET/WASM/web bootstrap
@@ -125,11 +125,12 @@ Project boundaries that must not be violated:
   per-life Anchor/turret forms, experimental replay v2, engine-independent
   actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
   isolated WASM life instances exist. Web/mobile can present v2 through their
-  version-neutral replay model; the hosted web viewer defaults to the lazy
-  WebGL 2.5D renderer and falls back to Canvas2D when WebGL is unavailable.
-  The self-contained CLI viewer excludes Three.js. Manual GPU/mobile QA
-  remains required for the hosted renderer. Package 8 now exposes this only
-  through the explicit local
+  version-neutral replay model; the web viewer's lazy WebGL 3D renderer and the
+  Canvas2D renderer share those derivations. **3D is the web viewer**, with no
+  mode to choose: Canvas2D is retained only as the floor for the self-contained
+  CLI viewer, which excludes Three.js, and for a device that gives no WebGL
+  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains
+  required. Package 8 now exposes this only through the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
   separate descriptive evaluation tool. Historical `play`, replay-v1
   summary/verification, and ladders still do not select this frozen alpha;

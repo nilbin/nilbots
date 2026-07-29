@@ -1,0 +1,966 @@
+<title>nilbots — nine redesigns of the web and mobile chrome</title>
+
+<style>
+  :root {
+    --page:#f4f5f7; --page-2:#eaecef; --ink:#12161b; --ink-2:#5c666f; --rule:#d0d5db;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --page:#0f1216; --page-2:#171c22; --ink:#dce2e9; --ink-2:#8a97a4; --rule:#252e38; }
+  }
+  :root[data-theme="dark"] { --page:#0f1216; --page-2:#171c22; --ink:#dce2e9; --ink-2:#8a97a4; --rule:#252e38; }
+  :root[data-theme="light"] { --page:#f4f5f7; --page-2:#eaecef; --ink:#12161b; --ink-2:#5c666f; --rule:#d0d5db; }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1240px; margin:0 auto; padding:40px 20px 110px; }
+
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-2); margin:0 0 14px; }
+  h1 { font-size:clamp(28px,4.2vw,46px); line-height:1.08; letter-spacing:-.022em; margin:0 0 18px; text-wrap:balance; font-weight:640; }
+  .lede { max-width:64ch; font-size:16.5px; margin:0 0 16px; }
+  .lede.sub { color:var(--ink-2); }
+  code { font-family:var(--mono); font-size:.88em; }
+  .wrap > header { border-bottom:1px solid var(--rule); padding-bottom:30px; }
+
+  .audit { margin-top:26px; display:grid; gap:14px; }
+  @media (min-width:820px){ .audit { grid-template-columns:1fr 1fr; } }
+  .box { border:1px solid var(--rule); background:var(--page-2); border-radius:7px; padding:16px 18px; }
+  .box h3 { margin:0 0 10px; font-family:var(--mono); font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-2); font-weight:500; }
+  .navrow { display:flex; flex-wrap:wrap; gap:6px; font-family:var(--mono); font-size:12px; }
+  .navrow span { border:1px solid var(--rule); border-radius:4px; padding:3px 8px; background:var(--page); }
+  .navrow span.gone { opacity:.42; text-decoration:line-through; }
+  .box p { margin:10px 0 0; font-size:13.5px; color:var(--ink-2); }
+  .loop { font-family:var(--mono); font-size:12.5px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .loop b { font-weight:400; border:1px solid var(--rule); border-radius:4px; padding:3px 8px; background:var(--page); }
+  .loop i { color:var(--ink-2); font-style:normal; }
+  .loop b.missing { border-style:dashed; color:var(--ink-2); }
+
+  .tier { margin-top:78px; border-top:1px solid var(--rule); padding-top:16px; }
+  .tier p { max-width:66ch; color:var(--ink-2); margin:8px 0 0; font-size:14.5px; }
+  .tier h2 { font-size:13px; font-family:var(--mono); letter-spacing:.16em; text-transform:uppercase; margin:0; color:var(--ink-2); font-weight:500; }
+
+  .dir { margin-top:60px; }
+  .dir > .head { border-top:2px solid var(--ink); padding-top:15px; }
+  .dir .name { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:10px; }
+  .dir h3 { font-size:29px; margin:0; letter-spacing:-.018em; font-weight:640; }
+  .dir.small h3 { font-size:23px; }
+  .dir .tag { font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); }
+  .dir .thesis { max-width:68ch; margin:0; }
+  .dir .moves { max-width:68ch; margin:12px 0 0; padding-left:18px; color:var(--ink-2); font-size:14.5px; }
+  .dir .moves li { margin-bottom:5px; }
+  .ia { display:grid; gap:10px; margin:20px 0 0; font-family:var(--mono); font-size:12px; }
+  .ia .r { display:grid; grid-template-columns:64px 1fr; gap:12px; align-items:start; }
+  .ia .k { color:var(--ink-2); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; padding-top:4px; }
+
+  .screens { display:grid; gap:16px; margin-top:22px; }
+  @media (min-width:1000px){ .screens { grid-template-columns:minmax(0,1fr) 300px; align-items:start; } }
+  .screens.solo { grid-template-columns:minmax(0,1fr); }
+
+  /* ---------------- shared components, entirely token-driven ---------------- */
+  .app, .phone { background:var(--t-bg); color:var(--t-text); font-family:var(--t-sans);
+                 border:1px solid var(--rule); border-radius:10px; overflow:hidden; }
+  .phone { border-radius:22px; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:10px 14px;
+            border-bottom:1px solid var(--t-edge); background:var(--t-panel); }
+  .brand { font-family:var(--t-display); font-weight:var(--t-brand-w); letter-spacing:var(--t-brand-track);
+           text-transform:var(--t-brand-case); font-size:16px; color:var(--t-text); }
+  .tabs { display:flex; gap:2px; margin-left:auto; flex-wrap:wrap; }
+  .tabs a { font-family:var(--t-nav-face); font-size:var(--t-nav-size); letter-spacing:var(--t-nav-track);
+            text-transform:var(--t-nav-case); color:var(--t-dim); padding:5px 10px;
+            border-radius:var(--t-radius); text-decoration:none; border:1px solid transparent; }
+  .tabs a.on { color:var(--t-accent); border-color:var(--t-edge); background:var(--t-raise); }
+  .body { padding:14px; display:grid; gap:14px; }
+  .lab { font-family:var(--t-mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--t-dim); margin:0 0 8px; }
+  .panel { background:var(--t-panel); border:1px solid var(--t-edge); border-radius:var(--t-radius); }
+  .pad { padding:12px 14px; }
+
+  .look { display:block; flex:none; }
+  .who { display:flex; align-items:center; gap:9px; min-width:0; }
+  .who .stack { min-width:0; }
+  .who .n { display:block; font-family:var(--t-display); font-weight:var(--t-name-w);
+            letter-spacing:var(--t-name-track); font-size:14px; color:var(--t-text);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .who .s { display:block; font-family:var(--t-mono); font-size:10.5px; color:var(--t-dim); }
+
+  table.tbl { width:100%; border-collapse:collapse; font-family:var(--t-mono); font-size:12px; }
+  table.tbl th { text-align:left; font-weight:400; color:var(--t-dim); font-size:9.5px;
+                 letter-spacing:.16em; text-transform:uppercase; padding:0 8px 8px; border-bottom:1px solid var(--t-edge); }
+  table.tbl td { padding:8px; border-bottom:1px solid var(--t-edge); vertical-align:middle; }
+  table.tbl tr:last-child td { border-bottom:0; }
+  .num { font-variant-numeric:tabular-nums; text-align:right; }
+  .rank { font-family:var(--t-display); font-size:var(--t-rank-size); font-weight:var(--t-rank-w);
+          letter-spacing:-.03em; color:var(--t-text); font-variant-numeric:tabular-nums; }
+  .delta.up { color:var(--t-ok); } .delta.dn { color:var(--t-hot); }
+  .mine { background:var(--t-mine); }
+  .pill { font-family:var(--t-mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+          border:1px solid currentColor; border-radius:99px; padding:1px 7px; white-space:nowrap; }
+  .pill.live { color:var(--t-hot); } .pill.ok { color:var(--t-ok); } .pill.mute { color:var(--t-dim); }
+  .btn { font-family:var(--t-mono); font-size:11px; letter-spacing:.06em; border:1px solid var(--t-edge);
+         background:transparent; color:var(--t-text); border-radius:var(--t-radius); padding:6px 11px; cursor:default; }
+  .btn.solid { background:var(--t-accent); color:var(--t-on-accent); border-color:var(--t-accent); }
+  .row { display:flex; align-items:center; gap:10px; }
+  .spread { justify-content:space-between; }
+
+  .still { border-radius:var(--t-radius); border:1px solid var(--t-edge); aspect-ratio:16/10;
+           background:var(--t-still); position:relative; overflow:hidden; }
+  .still::after { content:""; position:absolute; inset:32% 38% 30% 30%; border:1px solid var(--t-edge2); border-radius:2px; }
+  .still .dotA, .still .dotB { position:absolute; width:8px; height:8px; border-radius:50%; }
+  .still .dotA { background:#1acbe6; left:34%; top:44%; box-shadow:0 0 10px #1acbe6; }
+  .still .dotB { background:#ff4f47; left:62%; top:58%; box-shadow:0 0 10px #ff4f47; }
+
+  .phone .status { height:22px; background:var(--t-panel); border-bottom:1px solid var(--t-edge); }
+  .phone .screen { padding:12px; display:grid; gap:12px; min-height:330px; align-content:start; }
+  .phone .tabbar { display:flex; border-top:1px solid var(--t-edge); background:var(--t-panel); }
+  .phone .tabbar div { flex:1; text-align:center; padding:9px 2px 11px; font-family:var(--t-mono);
+                       font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--t-dim); }
+  .phone .tabbar div.on { color:var(--t-accent); box-shadow:inset 0 2px 0 var(--t-accent); }
+
+  .scale { display:grid; gap:6px; margin-top:14px; }
+  .scale div { display:grid; grid-template-columns:92px 1fr; gap:12px; align-items:baseline; }
+  .scale .k { font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); }
+
+  /* ------------------------------- palettes ------------------------------- */
+  .ladder { --t-bg:#0b1017; --t-panel:#101823; --t-raise:#16202d; --t-edge:#202c3d; --t-edge2:#2b3a4d;
+    --t-text:#ccd8e6; --t-dim:#657485; --t-accent:#1acbe6; --t-on-accent:#06131a; --t-ok:#3fd97a;
+    --t-hot:#ff6b62; --t-mine:rgba(26,203,230,.07); --t-still:linear-gradient(160deg,#0d141d,#141d29);
+    --t-radius:5px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.03em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.1em; --t-nav-case:uppercase; --t-name-w:600;
+    --t-name-track:-.005em; --t-rank-size:22px; --t-rank-w:700; }
+  .ladder .standing { border-left:2px solid var(--t-accent); }
+
+  .bench { --t-bg:#d9dee3; --t-panel:#e9edf1; --t-raise:#dfe5ea; --t-edge:#aab6c1; --t-edge2:#8e9daa;
+    --t-text:#0f151d; --t-dim:#54626e; --t-accent:#0d5c73; --t-on-accent:#eef4f7; --t-ok:#1c6b3e;
+    --t-hot:#9a2d28; --t-mine:rgba(13,92,115,.08); --t-still:linear-gradient(160deg,#101821,#1a242f);
+    --t-radius:2px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--mono);
+    --t-brand-w:600; --t-brand-track:.16em; --t-brand-case:uppercase; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.13em; --t-nav-case:uppercase; --t-name-w:600;
+    --t-name-track:.01em; --t-rank-size:17px; --t-rank-w:600; }
+  .bench .stage { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--t-edge); border:1px solid var(--t-edge); }
+  .bench .stage > div { background:var(--t-panel); padding:9px 10px; }
+  .bench .stage .on { background:var(--t-raise); box-shadow:inset 0 -2px 0 var(--t-accent); }
+  .bench .stage .k { font-family:var(--t-mono); font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--t-dim); margin:0; }
+  .bench .stage .v { font-family:var(--t-mono); font-size:12px; color:var(--t-text); margin:0; }
+  .diff { font-family:var(--t-mono); font-size:11.5px; }
+  .diff div { padding:2px 8px; border-left:2px solid transparent; }
+  .diff .add { border-left-color:var(--t-ok); background:rgba(28,107,62,.08); }
+  .diff .rm { border-left-color:var(--t-hot); background:rgba(154,45,40,.07); }
+
+  .cast { --t-bg:#0b0705; --t-panel:#17110e; --t-raise:#211814; --t-edge:#3a2a20; --t-edge2:#4d382a;
+    --t-text:#e8dfd6; --t-dim:#95826f; --t-accent:#38d9c5; --t-on-accent:#08201d; --t-ok:#38d9c5;
+    --t-hot:#ff7a4d; --t-mine:rgba(56,217,197,.07); --t-still:linear-gradient(160deg,#120c09,#1d1410);
+    --t-radius:3px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:780; --t-brand-track:-.045em; --t-brand-case:none; --t-nav-face:var(--sans);
+    --t-nav-size:13px; --t-nav-track:-.01em; --t-nav-case:none; --t-name-w:700;
+    --t-name-track:-.02em; --t-rank-size:17px; --t-rank-w:600; }
+  .cast .feature { display:grid; gap:12px; }
+  @media (min-width:640px){ .cast .feature { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); align-items:center; } }
+  .cast .feature h4 { font-family:var(--t-display); font-size:24px; font-weight:780; letter-spacing:-.03em; margin:0 0 6px; color:var(--t-text); }
+  .strip { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(150px,1fr); gap:10px; overflow-x:auto; padding-bottom:4px; }
+
+  /* rack — physical shelf of machines */
+  .rack { --t-bg:#12100e; --t-panel:#1c1916; --t-raise:#241f1b; --t-edge:#332c26; --t-edge2:#453b33;
+    --t-text:#ece6df; --t-dim:#8e8378; --t-accent:#d9a441; --t-on-accent:#1a1408; --t-ok:#7bb661;
+    --t-hot:#d4643c; --t-mine:rgba(217,164,65,.08); --t-still:linear-gradient(160deg,#151210,#211b17);
+    --t-radius:4px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.02em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.12em; --t-nav-case:uppercase; --t-name-w:640;
+    --t-name-track:-.01em; --t-rank-size:18px; --t-rank-w:640; }
+  .bay { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+  .bay .slotcard { border:1px solid var(--t-edge); border-radius:var(--t-radius); background:var(--t-panel);
+                   padding:12px; display:grid; gap:8px; justify-items:center; text-align:center; }
+  .bay .slotcard.empty { border-style:dashed; color:var(--t-dim); align-content:center; min-height:150px; }
+  .bay .slotcard .nm { font-family:var(--t-display); font-weight:640; font-size:13.5px; }
+  .bay .slotcard .mt { font-family:var(--t-mono); font-size:10px; color:var(--t-dim); }
+
+  /* guide — catalogue of chassis */
+  .guide { --t-bg:#e8e4dc; --t-panel:#f3f0ea; --t-raise:#e2ded4; --t-edge:#bdb6a8; --t-edge2:#a49b8a;
+    --t-text:#191713; --t-dim:#5f594d; --t-accent:#7a3b1f; --t-on-accent:#f6f2ea; --t-ok:#2f6b3a;
+    --t-hot:#9c3327; --t-mine:rgba(122,59,31,.08); --t-still:linear-gradient(160deg,#14110e,#1f1a15);
+    --t-radius:1px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.02em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.14em; --t-nav-case:uppercase; --t-name-w:660;
+    --t-name-track:-.01em; --t-rank-size:17px; --t-rank-w:640; }
+  .entry { display:grid; gap:16px; }
+  @media (min-width:640px){ .entry { grid-template-columns:120px minmax(0,1fr); } }
+  .entry h4 { margin:0; font-size:26px; letter-spacing:-.02em; font-weight:660; }
+  .bars { display:grid; gap:6px; font-family:var(--t-mono); font-size:10.5px; }
+  .bars .b { display:grid; grid-template-columns:70px 1fr 34px; gap:10px; align-items:center; }
+  .bars .track { height:6px; background:var(--t-raise); border:1px solid var(--t-edge); }
+  .bars .fill { height:100%; background:var(--t-accent); }
+
+  /* term — the site as an extension of the CLI */
+  .term { --t-bg:#07090c; --t-panel:#0d1116; --t-raise:#141a21; --t-edge:#1c242e; --t-edge2:#27313d;
+    --t-text:#c6d0da; --t-dim:#5d6b7a; --t-accent:#8ce99a; --t-on-accent:#08120a; --t-ok:#8ce99a;
+    --t-hot:#ff8f7a; --t-mine:rgba(140,233,154,.07); --t-still:linear-gradient(160deg,#0a0e12,#121820);
+    --t-radius:2px; --t-sans:var(--mono); --t-mono:var(--mono); --t-display:var(--mono);
+    --t-brand-w:600; --t-brand-track:.1em; --t-brand-case:lowercase; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.06em; --t-nav-case:lowercase; --t-name-w:600;
+    --t-name-track:0; --t-rank-size:16px; --t-rank-w:600; }
+  .prompt { font-family:var(--t-mono); font-size:13px; display:flex; gap:8px; align-items:center;
+            border:1px solid var(--t-edge); background:var(--t-panel); border-radius:var(--t-radius); padding:9px 12px; }
+  .prompt .c { color:var(--t-accent); }
+  .prompt .caret { width:7px; height:15px; background:var(--t-accent); opacity:.75; }
+  .out { font-family:var(--t-mono); font-size:12px; border-left:2px solid var(--t-edge); padding-left:12px; }
+  .out .cmd { color:var(--t-dim); margin-bottom:8px; }
+
+  /* season — a competition with an arc */
+  .season { --t-bg:#0d0b14; --t-panel:#151222; --t-raise:#1c1830; --t-edge:#282243; --t-edge2:#372f5a;
+    --t-text:#ddd8ec; --t-dim:#7d759b; --t-accent:#c4b5fd; --t-on-accent:#130f22; --t-ok:#6ee7b7;
+    --t-hot:#fb7185; --t-mine:rgba(196,181,253,.08); --t-still:linear-gradient(160deg,#0f0d18,#191426);
+    --t-radius:8px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:720; --t-brand-track:-.03em; --t-brand-case:none; --t-nav-face:var(--sans);
+    --t-nav-size:13px; --t-nav-track:-.005em; --t-nav-case:none; --t-name-w:640;
+    --t-name-track:-.01em; --t-rank-size:30px; --t-rank-w:720; }
+
+  /* counter — the matchup matrix */
+  .counter { --t-bg:#0a0f0e; --t-panel:#101817; --t-raise:#16211f; --t-edge:#1f2c2a; --t-edge2:#2b3b38;
+    --t-text:#cfe0dc; --t-dim:#65817b; --t-accent:#5eead4; --t-on-accent:#041512; --t-ok:#5eead4;
+    --t-hot:#f87171; --t-mine:rgba(94,234,212,.08); --t-still:linear-gradient(160deg,#0b1211,#131c1a);
+    --t-radius:3px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.025em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.11em; --t-nav-case:uppercase; --t-name-w:620;
+    --t-name-track:-.005em; --t-rank-size:17px; --t-rank-w:620; }
+  .matrix { display:grid; grid-template-columns:auto repeat(5,1fr); gap:3px; font-family:var(--t-mono); font-size:10.5px; }
+  .matrix .h { color:var(--t-dim); font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+               display:flex; align-items:center; justify-content:center; padding:2px; }
+  .matrix .rh { color:var(--t-dim); display:flex; align-items:center; gap:6px; padding-right:6px; }
+  .matrix .cell { aspect-ratio:1.6; display:flex; align-items:center; justify-content:center;
+                  border-radius:2px; color:var(--t-bg); font-variant-numeric:tabular-nums; font-weight:600; }
+
+
+  /* climb — the ladder with a time axis. Identity stays per-chassis, so the season
+     layer needs a hue no chassis owns: #d6296f is the only one in the game that
+     qualifies, 77 degrees from its nearest neighbour. Every other zone colour sits
+     within 12 degrees of a trim and would read as "some bot" instead of "the season". */
+  .climb { --t-bg:#0b1017; --t-panel:#101823; --t-raise:#16202d; --t-edge:#202c3d; --t-edge2:#2b3a4d;
+    --t-text:#ccd8e6; --t-dim:#657485; --t-accent:#d6296f; --t-on-accent:#fdeaf1; --t-ok:#3fd97a;
+    --t-hot:#ff6b62; --t-mine:rgba(214,41,111,.09); --t-still:linear-gradient(160deg,#0d141d,#141d29);
+    --t-radius:5px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.03em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.1em; --t-nav-case:uppercase; --t-name-w:600;
+    --t-name-track:-.005em; --t-rank-size:22px; --t-rank-w:700; }
+  .climb .seasonbar { border-left:2px solid var(--t-accent); }
+  .spark { display:block; }
+  .move { font-family:var(--t-mono); font-size:11px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .move.up { color:var(--t-ok); } .move.dn { color:var(--t-hot); } .move.flat { color:var(--t-dim); }
+  .band { font-family:var(--t-mono); font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+          color:var(--t-accent); border-top:1px dashed var(--t-accent); padding-top:3px; opacity:.85; }
+
+  .close { margin-top:80px; border-top:1px solid var(--rule); padding-top:28px; }
+  .close h2 { font-size:21px; margin:0 0 14px; letter-spacing:-.01em; }
+  .close ul { max-width:70ch; margin:0; padding-left:18px; }
+  .close li { margin-bottom:9px; }
+</style>
+
+<!--SPRITE-SHEET-->
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">nilbots · redesign study · web + mobile chrome · renderers untouched</p>
+    <h1>Six nav items, four tabs, and nowhere does it say what you came to do.</h1>
+    <p class="lede">
+      The chrome today is a set of destinations — Arena, Bots, Leaderboard, Store, Docs, My
+      garage — six different <em>kinds</em> of thing given equal weight in one row. Mobile
+      keeps four and silently drops the rest.
+    </p>
+    <p class="lede sub">
+      Nine directions follow: three worked through in depth, five shorter ones, and a ninth that
+      fuses two of them. Every one changes navigation and page
+      composition, not just palette. Chassis art is the real sprite throughout — it is the
+      strongest identifier the product owns, and it belongs next to a bot's name everywhere.
+    </p>
+
+    <div class="audit">
+      <div class="box">
+        <h3>Today — web, then mobile</h3>
+        <div class="navrow" style="margin-bottom:8px">
+          <span>Arena</span><span>Bots</span><span>Leaderboard</span><span>Store</span><span>Docs</span><span>My garage</span>
+        </div>
+        <div class="navrow">
+          <span>Home</span><span>Arena</span><span>Bots</span><span>Garage</span>
+          <span class="gone">Leaderboard</span><span class="gone">Store</span><span class="gone">Docs</span>
+        </div>
+        <p>Two products with the same name. Someone who learns the app cannot navigate the site.</p>
+      </div>
+      <div class="box">
+        <h3>The loop, and who owns each stage</h3>
+        <div class="loop">
+          <b>write</b><i>→</i><b>submit</b><i>→</i><b>fight</b><i>→</i><b>read it back</b><i>→</i><b class="missing">decide what to change</b>
+        </div>
+        <p>
+          The first two belong to the editor and <code>nilbots submit</code> and should stay
+          there. The server runs the fight. These surfaces own one stage — reading a match
+          back — and not the one after it. No direction below moves building into a browser.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================== TIER ONE ==== -->
+  <section class="tier">
+    <h2>Worked through</h2>
+    <p>Nav, home screen, phone screen, type scale and density.</p>
+  </section>
+
+  <!-- 1 — LADDER -->
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Ladder</h3><span class="tag">the product is a competition</span></div>
+      <p class="thesis">
+        Standing is the spine. Home is the ladder itself with your row pinned wherever you
+        scroll, and every match is reached <em>from</em> a row as evidence of how a rank was
+        earned. Recent form sits inline, so the table answers “who is climbing” without a
+        second page.
+      </p>
+      <ul class="moves">
+        <li>Six nav items become four; the store folds into a bot's appearance and docs becomes a utility link.</li>
+        <li>The arena feed stops being a destination — it becomes the per-row form strip and a “just finished” rail.</li>
+        <li>Mobile gets the same four, so the surfaces stop disagreeing.</li>
+        <li>Rank is the display type: large tabular numerals carry hierarchy instead of headings.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Ladder · Bots · Watch · Docs</span></div>
+        <div class="r"><span class="k">Home</span><span>Ladder · your row pinned · form per bot · just-finished rail</span></div>
+      </div>
+    </div>
+    <div class="screens">
+      <div class="app ladder">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#a">Ladder</a><a href="#a">Bots</a><a href="#a">Watch</a><a href="#a">Docs</a></nav></div>
+        <div class="body">
+          <div class="panel pad standing row spread">
+            {{who_pincer_sub}}
+            <span class="row" style="gap:18px">
+              <span><p class="lab" style="margin:0">rank</p><span class="rank">7</span></span>
+              <span><p class="lab" style="margin:0">rating</p><span class="rank">1284</span></span>
+              <span class="delta up" style="font-family:var(--t-mono);font-size:12px">▲ 31 this week</span>
+            </span>
+          </div>
+          <div class="panel">
+            <div class="pad" style="padding-bottom:0"><p class="lab">Ranked ladder · 214 bots</p></div>
+            <div class="pad" style="padding-top:8px">
+              <table class="tbl">
+                <thead><tr><th style="width:34px">#</th><th>Bot</th><th>Form</th><th class="num">Rating</th><th class="num">W–L</th></tr></thead>
+                <tbody>
+                  <tr><td class="rank">5</td><td>{{who_warden}}</td><td><span class="delta up">W W L W W</span></td><td class="num">1341</td><td class="num">62–29</td></tr>
+                  <tr><td class="rank">6</td><td>{{who_bastille}}</td><td><span class="delta dn">L W L L W</span></td><td class="num">1309</td><td class="num">54–31</td></tr>
+                  <tr class="mine"><td class="rank">7</td><td>{{who_pincer}}</td><td><span class="delta up">W W W L W</span></td><td class="num">1284</td><td class="num">48–22</td></tr>
+                  <tr><td class="rank">8</td><td>{{who_rampart}}</td><td><span class="delta dn">L L W L L</span></td><td class="num">1250</td><td class="num">41–38</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Just finished</p>
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <span class="pill live">live</span>
+              <span style="font-family:var(--t-mono);font-size:12px">Warden gen-1 beat Rampart gen-2 · crossfire-01 · 243t</span>
+              <button class="btn" type="button" style="margin-left:auto">Watch</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone ladder">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="panel pad standing">
+            <p class="lab">Your standing</p>
+            <div class="row spread"><span class="rank">7</span><span class="rank">1284</span></div>
+            <p style="margin:4px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">Pincer gen-10 · ▲31</p>
+          </div>
+          <table class="tbl"><tbody>
+            <tr><td class="rank">5</td><td>{{who_warden}}</td><td class="num">1341</td></tr>
+            <tr><td class="rank">6</td><td>{{who_bastille}}</td><td class="num">1309</td></tr>
+            <tr class="mine"><td class="rank">7</td><td>{{who_pincer}}</td><td class="num">1284</td></tr>
+            <tr><td class="rank">8</td><td>{{who_rampart}}</td><td class="num">1250</td></tr>
+          </tbody></table>
+        </div>
+        <div class="tabbar"><div class="on">Ladder</div><div>Bots</div><div>Watch</div><div>Docs</div></div>
+      </div>
+    </div>
+    <div class="scale">
+      <div><span class="k">Display</span><span>Rank numerals 22/700, tabular. The largest type on the page is a number.</span></div>
+      <div><span class="k">Density</span><span>8px rows — a full ladder fits without scrolling on desktop.</span></div>
+    </div>
+  </section>
+
+  <!-- 2 — READOUT -->
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Readout</h3><span class="tag">the half of the loop the CLI cannot show you</span></div>
+      <p class="thesis">
+        You build in the CLI, and this does not argue with that. It designs the other half:
+        what you open <em>after</em> <code>nilbots submit</code> to find out whether the
+        change worked. Home is the current generation's readout — what is live, what it
+        changed against the generation before, and what the rating did about it. That last
+        part exists nowhere today, in the CLI or here.
+      </p>
+      <ul class="moves">
+        <li>Nav is the readback, not the build: Bot · Results · Compare · Docs.</li>
+        <li>Home pairs the diff between submitted generations with the rating delta over the games since.</li>
+        <li>Light ground, mono promoted to display, so it matches the terminal beside it rather than the arena it reports on.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Bot · Results · Compare · Docs — building stays in the CLI, deliberately</span></div>
+        <div class="r"><span class="k">New</span><span>Compare — the generation diff, on the only surface that has the ratings to score it</span></div>
+      </div>
+    </div>
+    <div class="screens">
+      <div class="app bench">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#b">Bot</a><a href="#b">Results</a><a href="#b">Compare</a><a href="#b">Docs</a></nav></div>
+        <div class="body">
+          <div class="stage">
+            <div><p class="k">Built in CLI</p><p class="v">gen-10 · 41s</p></div>
+            <div class="on"><p class="k">Live</p><p class="v">28 games</p></div>
+            <div><p class="k">Queued</p><p class="v">12 ranked</p></div>
+            <div><p class="k">Rules</p><p class="v">0.5</p></div>
+          </div>
+          <div class="panel pad">
+            <div class="row spread" style="margin-bottom:10px">
+              {{who_pincer_cli}}<span class="pill ok">live on ladder</span>
+            </div>
+            <p class="lab">Changed since gen-9</p>
+            <div class="diff">
+              <div class="rm">− if (enemy.distance &lt; 3) Shoot();</div>
+              <div class="add">+ if (enemy.distance &lt; 5 &amp;&amp; cooldown == 0) Shoot();</div>
+              <div class="add">+ if (health &lt; 2) Retreat(cover);</div>
+            </div>
+            <div class="row" style="margin-top:12px;gap:16px;font-family:var(--t-mono);font-size:12px">
+              <span>rating <b class="delta up">+31</b> since</span>
+              <span>win rate <b class="delta up">62% → 68%</b></span>
+              <span class="pill mute">28 ranked games</span>
+            </div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Last fights</p>
+            <table class="tbl"><tbody>
+              <tr><td><span class="pill ok">win</span></td><td>{{who_bastille}}</td><td style="color:var(--t-dim)">elimination · 38t</td><td class="num delta up">+11</td></tr>
+              <tr><td><span class="pill mute">loss</span></td><td>{{who_warden}}</td><td style="color:var(--t-dim)">domination · 121t</td><td class="num delta dn">−8</td></tr>
+              <tr><td><span class="pill ok">win</span></td><td>{{who_rampart}}</td><td style="color:var(--t-dim)">elimination · 97t</td><td class="num delta up">+9</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="phone bench">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="panel pad">
+            <p class="lab">Current build</p>
+            {{who_pincer}}
+            <p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">live · 28 games · ▲31</p>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Since gen-9</p>
+            <div class="diff"><div class="rm">− distance &lt; 3</div><div class="add">+ distance &lt; 5</div><div class="add">+ retreat at 1 hp</div></div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Next generation</p>
+            <p style="margin:0;font-family:var(--t-mono);font-size:11px">nilbots submit</p>
+            <p style="margin:4px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">from your machine · appears here when it builds</p>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on">Bot</div><div>Results</div><div>Compare</div><div>Docs</div></div>
+      </div>
+    </div>
+    <div class="scale">
+      <div><span class="k">Display</span><span>Mono, uppercase, tracked +.16em — the interface speaks in the same face as the code.</span></div>
+      <div><span class="k">Density</span><span>Tight; 2px radii, rules instead of shadows. An instrument, not a page.</span></div>
+    </div>
+  </section>
+
+  <!-- 3 — BROADCAST -->
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Broadcast</h3><span class="tag">the product is the match</span></div>
+      <p class="thesis">
+        The thing worth showing someone is a fight. Home leads with one featured match at
+        full width — live if anything is live, otherwise the best recent one — and everything
+        else is a rail beneath it. The ladder becomes context you can open, not the spine.
+      </p>
+      <ul class="moves">
+        <li>Home is a feature plus rails: the shape of a schedule, not a table.</li>
+        <li>Matches get titles, with map and rules as a byline.</li>
+        <li>Warm ground from ember-forge, one cold teal reserved for what is live right now.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Live · Bots · Ladder · Store</span></div>
+        <div class="r"><span class="k">Risk</span><span>Worst fit mid-loop: your own bot is not on the home screen</span></div>
+      </div>
+    </div>
+    <div class="screens">
+      <div class="app cast">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#c">Live</a><a href="#c">Bots</a><a href="#c">Ladder</a><a href="#c">Store</a></nav></div>
+        <div class="body">
+          <div class="feature">
+            <div class="still"><span class="dotA"></span><span class="dotB"></span></div>
+            <div>
+              <span class="pill live">on now · 41 watching</span>
+              <h4 style="margin-top:8px">Warden gen-1<br>vs Rampart gen-2</h4>
+              <div class="row" style="margin-bottom:10px">{{look_warden_lg}}{{look_orbiter_lg}}</div>
+              <p style="font-family:var(--t-mono);font-size:11.5px;color:var(--t-dim);margin:0 0 12px">
+                crossfire-01 · rules 0.5 · tick 128 of 243 · domination</p>
+              <div class="row"><button class="btn solid" type="button">Watch live</button>
+                <button class="btn" type="button">Ladder context</button></div>
+            </div>
+          </div>
+          <div>
+            <p class="lab">Finished today</p>
+            <div class="strip">
+              <div class="panel">
+                <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+                <div class="pad" style="padding:9px 10px">
+                  <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:13px">Pincer beat Bastille</p>
+                  <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">bastion-01 · 38t</p></div>
+              </div>
+              <div class="panel">
+                <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+                <div class="pad" style="padding:9px 10px">
+                  <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:13px">Warden held the zone</p>
+                  <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">arena-01 · 121t</p></div>
+              </div>
+              <div class="panel">
+                <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+                <div class="pad" style="padding:9px 10px">
+                  <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:13px">Rampart, 3 in a row</p>
+                  <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">gallery-01 · 46t</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone cast">
+        <div class="status"></div>
+        <div class="screen" style="gap:10px">
+          <div class="panel">
+            <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+            <div class="pad" style="padding:10px">
+              <span class="pill live">on now</span>
+              <p style="margin:6px 0 0;font-family:var(--t-display);font-weight:700;font-size:15px">Warden vs Rampart</p>
+              <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">crossfire-01 · t128</p></div>
+          </div>
+          <div class="panel">
+            <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+            <div class="pad" style="padding:10px">
+              <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:15px">Pincer beat Bastille</p>
+              <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">bastion-01 · 38t</p></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on">Live</div><div>Bots</div><div>Ladder</div><div>Store</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== TIER TWO ==== -->
+  <section class="tier">
+    <h2>Five more</h2>
+    <p>
+      Shorter, but each is a different answer to what the product is, not a restyle of the
+      three above. One screen each, at the moment that makes the case.
+    </p>
+  </section>
+
+  <!-- 4 — RACK -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Rack</h3><span class="tag">the product is your machines</span></div>
+      <p class="thesis">
+        You own a stable of bots and you dress them. Home is the rack: every chassis at
+        size, because the sprite is the best thing the product owns and a 22-pixel version
+        of it wastes that. Locked chassis sit in the same grid as empty bays, so the store
+        stops being a separate place you visit and becomes the obvious next slot.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Rack · Ladder · Watch · Docs — store is the empty bay</span></div>
+        <div class="r"><span class="k">Suits</span><span>Selling cosmetics: the shop is where you already are</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app rack">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#d">Rack</a><a href="#d">Ladder</a><a href="#d">Watch</a><a href="#d">Docs</a></nav></div>
+        <div class="body">
+          <p class="lab">Your rack · 4 of 6 bays</p>
+          <div class="bay">
+            <div class="slotcard">{{look_vanguard_lg}}<span class="nm">Pincer gen-10</span>
+              <span class="mt">Vanguard · 1284 · ▲31</span><span class="pill ok">ranked</span></div>
+            <div class="slotcard">{{look_needle_lg}}<span class="nm">Warden gen-1</span>
+              <span class="mt">Needle · 1341 · ▲12</span><span class="pill ok">ranked</span></div>
+            <div class="slotcard">{{look_bulwark_lg}}<span class="nm">Bastille gen-5</span>
+              <span class="mt">Bulwark · 1309 · ▼4</span><span class="pill mute">idle 3d</span></div>
+            <div class="slotcard">{{look_mantis_lg}}<span class="nm">Sprig gen-2</span>
+              <span class="mt">Mantis · unranked</span><span class="pill mute">7 games to rank</span></div>
+            <div class="slotcard empty"><span class="mt">empty bay</span><button class="btn" type="button">nilbots submit</button></div>
+            <div class="slotcard empty" style="border-color:var(--t-accent);color:var(--t-accent)">
+              {{look_orbiter_lg}}<span class="mt">Orbiter · locked</span><button class="btn solid" type="button">Unlock</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — FIELD GUIDE -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Field guide</h3><span class="tag">the product is knowledge about the meta</span></div>
+      <p class="thesis">
+        Twelve chassis, four maps, one rules version — that is a subject with a literature.
+        Home is a catalogue: each chassis an entry with its silhouette, what it is good at,
+        how many bots run it and how they are doing. It is the only direction that helps
+        someone decide <em>what to build</em> rather than reporting what they built.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Guide · Ladder · Watch · Your bots</span></div>
+        <div class="r"><span class="k">Risk</span><span>Needs real analysis behind it, or the entries are decoration</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app guide">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#e">Guide</a><a href="#e">Ladder</a><a href="#e">Watch</a><a href="#e">Your bots</a></nav></div>
+        <div class="body">
+          <div class="panel pad">
+            <div class="entry">
+              <div>{{look_mantis_xl}}<p style="font-family:var(--t-mono);font-size:10px;color:var(--t-dim);margin:6px 0 0">chassis 06 · mantis</p></div>
+              <div>
+                <h4>Mantis</h4>
+                <p style="margin:4px 0 12px;font-size:14px;max-width:52ch">
+                  Fast, fragile, and the only light chassis that keeps its cooldown under
+                  pressure. Runs well on open maps and badly in corridors, where its turn
+                  radius shows.</p>
+                <div class="bars">
+                  <div class="b"><span>win rate</span><span class="track"><span class="fill" style="width:58%"></span></span><span class="num">58%</span></div>
+                  <div class="b"><span>open maps</span><span class="track"><span class="fill" style="width:71%"></span></span><span class="num">71%</span></div>
+                  <div class="b"><span>corridors</span><span class="track"><span class="fill" style="width:34%"></span></span><span class="num">34%</span></div>
+                  <div class="b"><span>adoption</span><span class="track"><span class="fill" style="width:22%"></span></span><span class="num">47</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="strip">
+            <div class="panel pad" style="text-align:center">{{look_vanguard_lg}}<p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Vanguard · 61%</p></div>
+            <div class="panel pad" style="text-align:center">{{look_needle_lg}}<p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Needle · 54%</p></div>
+            <div class="panel pad" style="text-align:center">{{look_bulwark_lg}}<p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Bulwark · 49%</p></div>
+            <div class="panel pad" style="text-align:center">{{look_orbiter_lg}}<p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Orbiter · 44%</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — TERMINAL -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Terminal</h3><span class="tag">the product is the CLI, continued</span></div>
+      <p class="thesis">
+        If building happens at a prompt, the site can share its grammar instead of inventing
+        a second one. Navigation is a command line; pages are output blocks you can stack and
+        scroll back through. Everything has a copyable equivalent you could have typed
+        locally, which makes the web surface a teaching tool for the CLI rather than a rival.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>A prompt, plus recent commands as history</span></div>
+        <div class="r"><span class="k">Risk</span><span>Hostile to anyone who has not used the CLI — and to phones</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app term">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#f">~/arena</a><a href="#f">history</a><a href="#f">docs</a></nav></div>
+        <div class="body">
+          <div class="prompt"><span class="c">›</span><span>ladder --near me</span><span class="caret"></span></div>
+          <div class="out">
+            <p class="cmd">› ladder --near me</p>
+            <table class="tbl"><tbody>
+              <tr><td class="num" style="width:28px">5</td><td>{{who_warden}}</td><td class="num">1341</td></tr>
+              <tr><td class="num">6</td><td>{{who_bastille}}</td><td class="num">1309</td></tr>
+              <tr class="mine"><td class="num">7</td><td>{{who_pincer}}</td><td class="num">1284</td></tr>
+              <tr><td class="num">8</td><td>{{who_rampart}}</td><td class="num">1250</td></tr>
+            </tbody></table>
+          </div>
+          <div class="out">
+            <p class="cmd">› bot pincer --since gen-9</p>
+            <div class="diff"><div class="rm">− enemy.distance &lt; 3</div><div class="add">+ enemy.distance &lt; 5</div></div>
+            <p style="margin:8px 0 0;font-family:var(--t-mono);font-size:12px">rating <span class="delta up">+31</span> over 28 games</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — SEASON -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Season</h3><span class="tag">the product is an arc, not a snapshot</span></div>
+      <p class="thesis">
+        A rating is a number today and a story over six weeks. Home is your trajectory —
+        where you were, what each submission did to it, and how long is left — with the
+        ladder as the endpoint rather than the subject. It is the only direction that gives
+        a reason to come back on a day you did not submit anything.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Season · Bots · Watch · Docs</span></div>
+        <div class="r"><span class="k">Needs</span><span>Seasons to exist — this is a product decision before it is a design one</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app season">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#g">Season</a><a href="#g">Bots</a><a href="#g">Watch</a><a href="#g">Docs</a></nav></div>
+        <div class="body">
+          <div class="panel pad">
+            <div class="row spread" style="align-items:flex-end;margin-bottom:12px">
+              <div>
+                <p class="lab">Season 3 · 11 days left</p>
+                <div class="row" style="gap:14px">{{look_vanguard_lg}}
+                  <div><span class="rank">1284</span>
+                    <p style="margin:0;font-family:var(--t-mono);font-size:11px;color:var(--t-dim)">Pincer gen-10 · rank 7 of 214</p></div></div>
+              </div>
+              <span class="pill ok">▲ 31 this week</span>
+            </div>
+            <svg viewBox="0 0 600 120" width="100%" height="120" role="img" aria-label="Rating over the season, rising from 1120 to 1284">
+              <defs><linearGradient id="seasonfill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#c4b5fd" stop-opacity=".38"></stop>
+                <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0"></stop></linearGradient></defs>
+              <g stroke="#282243" stroke-width="1">
+                <line x1="0" y1="30" x2="600" y2="30"></line><line x1="0" y1="60" x2="600" y2="60"></line>
+                <line x1="0" y1="90" x2="600" y2="90"></line></g>
+              <path d="M0 96 L70 92 L140 78 L210 84 L280 62 L350 66 L420 44 L490 38 L560 22 L600 18 L600 120 L0 120 Z" fill="url(#seasonfill)"></path>
+              <path d="M0 96 L70 92 L140 78 L210 84 L280 62 L350 66 L420 44 L490 38 L560 22 L600 18"
+                    fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linejoin="round"></path>
+              <g fill="#6ee7b7"><circle cx="280" cy="62" r="3.5"></circle><circle cx="420" cy="44" r="3.5"></circle></g>
+              <circle cx="600" cy="18" r="4.5" fill="#0d0b14" stroke="#c4b5fd" stroke-width="2.5"></circle>
+            </svg>
+            <div class="row spread" style="font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim);margin-top:6px">
+              <span>gen-6 submitted</span><span>gen-8</span><span>gen-10 · now</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — COUNTER -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Counter</h3><span class="tag">the product is the matchup</span></div>
+      <p class="thesis">
+        Rating tells you that you lost; it never tells you to whom, repeatedly. Home is the
+        matrix: your bot against the ladder, cell by cell, so a losing streak resolves into
+        “Warden beats you 7 times in 9 and nobody else does”. That is the most actionable
+        thing this product could show a person who writes bots.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Matchups · Ladder · Watch · Docs</span></div>
+        <div class="r"><span class="k">New</span><span>Head-to-head aggregation — the data exists, nothing surfaces it</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app counter">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#h">Matchups</a><a href="#h">Ladder</a><a href="#h">Watch</a><a href="#h">Docs</a></nav></div>
+        <div class="body">
+          <div class="panel pad">
+            <p class="lab">Pincer gen-10 · win rate against the top of the ladder</p>
+            <div class="matrix">
+              <span></span>
+              <span class="h">Warden</span><span class="h">Bastille</span><span class="h">Rampart</span><span class="h">Sprig</span><span class="h">Halyard</span>
+              <span class="rh">{{look_vanguard_sm}} on arena-01</span>
+              <span class="cell" style="background:#f87171">22%</span><span class="cell" style="background:#5eead4">71%</span>
+              <span class="cell" style="background:#5eead4">64%</span><span class="cell" style="background:#a7c8bd">50%</span>
+              <span class="cell" style="background:#5eead4">68%</span>
+              <span class="rh">{{look_vanguard_sm}} on bastion-01</span>
+              <span class="cell" style="background:#f87171">18%</span><span class="cell" style="background:#5eead4">66%</span>
+              <span class="cell" style="background:#a7c8bd">52%</span><span class="cell" style="background:#5eead4">61%</span>
+              <span class="cell" style="background:#5eead4">74%</span>
+              <span class="rh">{{look_vanguard_sm}} on gallery-01</span>
+              <span class="cell" style="background:#f0a0a0">38%</span><span class="cell" style="background:#5eead4">70%</span>
+              <span class="cell" style="background:#5eead4">63%</span><span class="cell" style="background:#5eead4">59%</span>
+              <span class="cell" style="background:#a7c8bd">49%</span>
+            </div>
+            <p style="margin:14px 0 0;font-family:var(--t-mono);font-size:12px;color:var(--t-text)">
+              <span class="pill live">pattern</span>
+              &nbsp;Warden gen-1 beats you on every map — worst on bastion-01, 18% over 22 games.</p>
+            <div class="row" style="margin-top:10px"><button class="btn solid" type="button">Watch the 4 you lost</button>
+              <button class="btn" type="button">Compare gen-9 → gen-10 on this matchup</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================= SYNTHESIS ==== -->
+  <section class="tier">
+    <h2>The two you pointed at, put together</h2>
+    <p>
+      Ladder gives the season stakes; the season gives the ladder a memory. Worked through
+      as one direction rather than two features bolted together, because the fusion forces a
+      decision neither made alone.
+    </p>
+  </section>
+
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Climb</h3><span class="tag">standing, with a time axis</span></div>
+      <p class="thesis">
+        A ladder alone is a snapshot: it tells you where you are and nothing about whether
+        you are going anywhere. A season alone is a story with no stakes. Together, the table
+        <em>is</em> the season — every row carries where it started, where it is now and the
+        shape of the journey between, so “who is climbing” is legible without opening
+        anything.
+      </p>
+      <ul class="moves">
+        <li>Each row gains two columns that only exist because of the season: movement since it opened, and a sparkline of that bot's rating across it.</li>
+        <li>Your row expands in place into the full trajectory, with your submissions marked on it — the season chart is not a separate screen.</li>
+        <li>The season frame gives the ladder a deadline, which is what makes a rank worth defending.</li>
+        <li>Rows sort by rating but can re-sort by movement, which turns the same table into “who is hot right now”.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Season · Bots · Watch · Docs</span></div>
+        <div class="r"><span class="k">Home</span><span>Season header · your trajectory inline · ladder with movement and sparklines</span></div>
+        <div class="r"><span class="k">Colour</span><span>Chassis trim = identity · magenta #d6296f = the season layer · green/red = outcomes. Three roles, no collisions</span></div>
+        <div class="r"><span class="k">Needs</span><span>Seasons to exist. Everything else here is already in the database</span></div>
+      </div>
+    </div>
+
+    <div class="screens">
+      <div class="app climb">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#i">Season</a><a href="#i">Bots</a><a href="#i">Watch</a><a href="#i">Docs</a></nav></div>
+        <div class="body">
+
+          <div class="panel pad seasonbar">
+            <div class="row spread" style="align-items:flex-start;gap:20px;flex-wrap:wrap">
+              <div style="min-width:0">
+                <p class="lab" style="color:var(--t-accent)">Season 3 · 11 days left</p>
+                <div class="row" style="gap:14px">
+                  {{look_vanguard_lg}}
+                  <div>
+                    <div class="row" style="gap:16px;align-items:baseline">
+                      <span><span class="rank">7</span><span style="font-family:var(--t-mono);font-size:11px;color:var(--t-dim)"> of 214</span></span>
+                      <span class="rank">1284</span>
+                      <span class="move up">▲ 14 places</span>
+                    </div>
+                    <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:11px;color:var(--t-dim)">
+                      Pincer gen-10 · opened at 1120 · peak 1291 on day 24</p>
+                  </div>
+                </div>
+              </div>
+              <div style="flex:1;min-width:240px">
+                <svg viewBox="0 0 600 96" width="100%" height="96" role="img"
+                     aria-label="Your rating across season 3, rising from 1120 to 1284 with submissions marked">
+                  <defs><linearGradient id="climbfill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#d6296f" stop-opacity=".34"></stop>
+                    <stop offset="100%" stop-color="#d6296f" stop-opacity="0"></stop></linearGradient></defs>
+                  <g stroke="#202c3d" stroke-width="1">
+                    <line x1="0" y1="24" x2="600" y2="24"></line>
+                    <line x1="0" y1="52" x2="600" y2="52"></line>
+                    <line x1="0" y1="80" x2="600" y2="80"></line></g>
+                  <path d="M0 80 L70 76 L140 62 L210 68 L280 48 L350 52 L420 32 L490 28 L560 16 L600 14 L600 96 L0 96 Z"
+                        fill="url(#climbfill)"></path>
+                  <path d="M0 80 L70 76 L140 62 L210 68 L280 48 L350 52 L420 32 L490 28 L560 16 L600 14"
+                        fill="none" stroke="#d6296f" stroke-width="2" stroke-linejoin="round"></path>
+                  <g fill="#657485">
+                    <circle cx="140" cy="62" r="3"></circle><circle cx="280" cy="48" r="3"></circle>
+                    <circle cx="420" cy="32" r="3"></circle></g>
+                  <circle cx="600" cy="14" r="4.5" fill="#0b1017" stroke="#d6296f" stroke-width="2.5"></circle>
+                </svg>
+                <div class="row spread" style="font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">
+                  <span>gen-6</span><span>gen-8</span><span>gen-9</span><span>gen-10 · now</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="pad" style="padding-bottom:0">
+              <div class="row spread">
+                <p class="lab" style="margin:0">Ranked ladder</p>
+                <span class="row" style="gap:6px">
+                  <button class="btn" type="button" style="border-color:var(--t-accent);color:var(--t-accent)">rating</button>
+                  <button class="btn" type="button">movement</button></span>
+              </div>
+            </div>
+            <div class="pad" style="padding-top:10px">
+              <table class="tbl">
+                <thead><tr>
+                  <th style="width:32px">#</th><th style="width:74px">Season</th><th>Bot</th>
+                  <th style="width:84px">Across S3</th><th class="num">Rating</th><th class="num">W–L</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="rank">5</td><td><span class="move up">▲ 3</span></td><td>{{who_warden}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,14 12,11 24,13 36,8 48,6 60,4 72,3" fill="none" stroke="var(--t-ok)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1341</td><td class="num">62–29</td></tr>
+                  <tr><td class="rank">6</td><td><span class="move dn">▼ 2</span></td><td>{{who_bastille}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,4 12,6 24,5 36,9 48,8 60,12 72,13" fill="none" stroke="var(--t-hot)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1309</td><td class="num">54–31</td></tr>
+                  <tr class="mine"><td class="rank">7</td><td><span class="move up">▲ 14</span></td>
+                    <td>{{who_pincer}}</td><td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,17 12,15 24,12 36,13 48,8 60,6 72,2" fill="none" stroke="var(--t-accent)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1284</td><td class="num">48–22</td></tr>
+                  <tr><td class="rank">8</td><td><span class="move dn">▼ 6</span></td><td>{{who_rampart}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,6 12,8 24,7 36,11 48,10 60,14 72,15" fill="none" stroke="var(--t-hot)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1250</td><td class="num">41–38</td></tr>
+                  <tr><td colspan="6" style="padding:2px 8px"><span class="band">top 8 qualify for season 4 seeding</span></td></tr>
+                  <tr><td class="rank">9</td><td><span class="move flat">—</span></td><td>{{who_warden_n}}</td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,10 12,9 24,11 36,10 48,11 60,9 72,10" fill="none" stroke="var(--t-dim)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1238</td><td class="num">39–35</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone climb">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="panel pad seasonbar">
+            <p class="lab" style="color:var(--t-accent)">Season 3 · 11 days</p>
+            <div class="row spread" style="align-items:baseline">
+              <span class="rank">7</span><span class="rank">1284</span><span class="move up">▲14</span></div>
+            <svg viewBox="0 0 260 48" width="100%" height="48" role="img" aria-label="Your season trajectory, rising">
+              <path d="M0 40 L32 38 L64 30 L96 33 L128 23 L160 25 L192 15 L224 13 L260 6 L260 48 L0 48 Z"
+                    fill="#d6296f" fill-opacity=".22"></path>
+              <path d="M0 40 L32 38 L64 30 L96 33 L128 23 L160 25 L192 15 L224 13 L260 6"
+                    fill="none" stroke="#d6296f" stroke-width="1.8"></path>
+              <circle cx="260" cy="6" r="3.5" fill="#0b1017" stroke="#d6296f" stroke-width="2"></circle>
+            </svg>
+            <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">
+              opened 1120 · peak 1291</p>
+          </div>
+          <table class="tbl"><tbody>
+            <tr><td class="rank">5</td><td><span class="move up">▲3</span></td><td>{{who_warden}}</td><td class="num">1341</td></tr>
+            <tr><td class="rank">6</td><td><span class="move dn">▼2</span></td><td>{{who_bastille}}</td><td class="num">1309</td></tr>
+            <tr class="mine"><td class="rank">7</td><td><span class="move up">▲14</span></td><td>{{who_pincer}}</td><td class="num">1284</td></tr>
+            <tr><td class="rank">8</td><td><span class="move dn">▼6</span></td><td>{{who_rampart}}</td><td class="num">1250</td></tr>
+          </tbody></table>
+        </div>
+        <div class="tabbar"><div class="on">Season</div><div>Bots</div><div>Watch</div><div>Docs</div></div>
+      </div>
+    </div>
+
+    <div class="scale">
+      <div><span class="k">Display</span><span>Rank and rating as tabular numerals, 22/700 — the biggest type is still a number.</span></div>
+      <div><span class="k">Season</span><span>Magenta carries time only: the trajectory, the deadline, the qualifying band. It never marks a bot.</span></div>
+      <div><span class="k">Density</span><span>Two extra columns fit because movement is a glyph and history is 72&#215;20 pixels.</span></div>
+    </div>
+  </section>
+
+  <section class="close">
+    <h2>How they differ, in one line each</h2>
+    <ul>
+      <li><strong>Ladder</strong> — for players who already have a bot; smallest build, best density, nothing for newcomers.</li>
+      <li><strong>Readout</strong> — the only one that answers “did my last change help”; most work, and the one thing the CLI structurally cannot do.</li>
+      <li><strong>Broadcast</strong> — for people who will never write a bot; best for sharing a link, worst mid-loop.</li>
+      <li><strong>Rack</strong> — puts the chassis art at the size it deserves and makes the store the obvious empty slot rather than a separate errand.</li>
+      <li><strong>Field guide</strong> — the only one that helps someone decide what to build; needs real matchup analysis behind it or it is decoration.</li>
+      <li><strong>Terminal</strong> — the most coherent with how people actually build, and the least welcoming to anyone who has not started.</li>
+      <li><strong>Season</strong> — the only one giving a reason to return on a day you did not submit; depends on seasons existing first.</li>
+      <li><strong>Counter</strong> — the most actionable screen in the set, and the data is already in the database.</li>
+      <li><strong>Climb</strong> — Ladder and Season as one thing: the table becomes the season, and your trajectory lives inside your own row rather than on a page of its own.</li>
+    </ul>
+    <p class="lede sub" style="margin-top:18px">
+      The identity chip, state pill and tabular treatment are the same in all nine and would
+      land as shared primitives whichever wins. Two of these — <strong>Counter</strong> and
+      <strong>Readout</strong> — are the only ones that show something the product does not
+      currently know how to say; the other six rearrange what is already there.
+    </p>
+  </section>
+</div>

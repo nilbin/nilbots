@@ -8,7 +8,7 @@ import type {
   ReplayUnitLifecycleStatus,
   ReplayWorldSnapshot,
 } from './replayModel';
-import { adjustAccentForBackground } from './render/adaptiveAccent';
+import { playerAccent } from './presentation/playerAccent';
 import { unitAccent, unitLook } from './render/unitPresentation';
 import { replayMaxHealth } from './replayMetadata';
 import {
@@ -225,10 +225,7 @@ function presentUnit(
     participantId: unit.controllerParticipantId,
     legacySlot: legacySlotForUnit(replay, unitKey),
     name: unitName(replay, unitKey),
-    accent: adjustAccentForBackground(
-      unitAccent(replay, unitKey, formId),
-      '#111823',
-    ),
+    accent: playerAccent(unitAccent(replay, unitKey, formId)),
     lookLabel: look.label,
     runtimeKind: participant?.runtimeKind ?? 'unknown',
     formId,

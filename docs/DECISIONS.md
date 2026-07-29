@@ -2763,20 +2763,28 @@ stall, but serialized the framework-object clang compiles behind
 `BuildInParallel` and doubled the build to 36 s.
 
 The structural fix: the pinned NativeAOT-LLVM release also publishes a
-`runtime.linux-arm64` compiler host, and it emits byte-identical modules.
-`run-wasm-publish.sh` selects the container platform matching the host CPU,
-keys the cached builder image per architecture, and selects the compiler host
-package from the build-process architecture. A native-arm64 `nilbots build`
-measures 9 seconds end-to-end versus 18 seconds under emulation. The
-single-node, no-build-server, and W^X guards remain only for an explicitly
-emulated fallback. `WasmPublishEmulationGuardTests` pins both command shapes.
+`runtime.linux-arm64` compiler host (the historical "Linux x64 only" note was
+stale), and it emits **byte-identical** modules — verified by full SHA-256
+equality on the same sources. `run-wasm-publish.sh` selects the container
+platform matching the host CPU (override: `BOTARENA_WASM_DOCKER_PLATFORM`),
+keys the cached builder image per architecture, and the generated workspace
+plus `BotArena.WasmGuest` reference the compiler host package conditionally on
+the build-process architecture. A native-arm64 `nilbots build` measures 9
+seconds end-to-end versus 18 seconds under emulation, and no platform-matched
+configuration emulates at all. The single-node, no-build-server, and W^X
+guards remain only for an explicitly emulated fallback.
+`WasmPublishEmulationGuardTests` pins both command shapes; the emulated
+fallback was re-verified against the prior amd64 image with identical hashes.
 
 `BuildPipelineVersion` stays at 1 because player artifact bytes and cache keys
 are unchanged. In the composed qualification branch the CLI compatibility
-version advances to 0.9.7, after the 0.9.6 qualification release. `BotBuilder`
-also empties the existing bind-mount workspace in place: deleting and
-recreating its inode occasionally exposed a transient empty directory through
-macOS virtiofs.
+version advances to 0.9.7, after the 0.9.6 qualification release. The
+campaigns also surfaced a second, independent fault: deleting and recreating
+the workspace directory between builds occasionally raced macOS virtiofs into
+a transient empty container view (`MSB1009`, roughly 2% of Docker builds), so
+`BotBuilder` now empties the bind-mount root in place instead of replacing its
+inode. If an `osx-arm64` compiler host ever ships upstream, the Docker
+requirement itself could be revisited.
 
 ## 152. Cumulative T4 measures positional commitment and gates entrant evidence
 
@@ -3263,6 +3271,65 @@ an ordinary projectile owned by the guard — but the bolt's inward
 collapse would have to become a redirect, or the arena would show one
 bolt dying and an unrelated one appearing. The arc flash survives
 either ruling; both renderers carry the note at the effect.
+
+## 163. 3D is the viewer, and Canvas2D is a floor rather than a mode
+
+The 2D/2.5D toggle is gone. It asked a player to choose between a fidelity and a
+dimension count, which is not a decision anyone wanted to make, and the flat renderer
+was only ever the safer default rather than the better one. Extending #127 and #128, the
+WebGL renderer under `web/src/render3d/` is simply what the web viewer draws with, and
+the name in prose is **3D** — "2.5D" described how it was built, not what it is.
+
+Canvas2D is not deleted. It is demoted from a mode to a floor for the two cases where
+3D cannot draw at all, both of which fall back without asking:
+
+- the CLI's self-contained artifact, where `vite.cli.config.ts` stubs the dynamic import
+  and sets `__BOTARENA_DIMENSIONAL_RENDERER__` false so Three.js never enters a copied
+  replay — verified by every `dist-cli/<theme>` containing zero `WebGLRenderer`;
+- a device that yields no WebGL context, which `ArenaCanvas3D`'s `onUnavailable` already
+  catches.
+
+So Canvas2D can only be removed once Three.js is allowed into the CLI artifact, which is
+a size decision about `nilbots play`, not a rendering one.
+
+Two things this deliberately does not change. `HostedViewer`, the mobile WebView path,
+still renders Canvas2D unconditionally: switching it alters mobile rendering with no
+device QA behind it, and the web redesign goes first. And the golden frames are not
+exposed to any of this — `goldenFrames.test.ts` imports `drawArena` from the SSR harness
+and calls it directly, never passing through the viewer's renderer choice, so no harness
+pin was needed.
+
+Replacing the WebView with a shared native renderer (expo-gl) is **deferred**: the app
+keeps the shared web viewer for now.
+
+## 164. The Arena UI reads one advisory server authority without relabeling legacy Duel
+
+The authenticated `GET /api/arena` projection is the single UI authority for
+the current official Duel format, effective rolling allowances, ranked
+concurrency, and batch bot ownership/playability. Public roster profile data
+may retain a signed-out presentation hint, but it never authorizes a submitted
+match. The generated contract drives the shared Arena composer and signed-in
+Garage/Bots actions. Successful or refused creation refreshes it.
+
+The projection is advisory. Ranked and unranked POST operations retain their
+transactional account locks and re-evaluate quota and participant admission
+before creating work. Deliberate Arena refusals use stable application codes
+inside one named problem response, including burst-limit rejections produced
+before an endpoint runs. Roster and matchmaking admission use bounded batch
+queries rather than one admission query chain per global bot. A one-off request
+with no map selects the existing fixed `arena-01` default; the frontend no
+longer calls that behavior random. Self-challenges are invalid.
+
+`DuelArenaDefinition.Official` and `DuelMirrored6V1` name the already-shipped
+default map, ranked pool and six-game mirrored schedule so creation, scoring
+and presentation project the same policy. They do not mutate
+`LegacyCompetitionDefinition`, register Duel as a hosted generic match, or
+change historical playlist/ladder identity.
+
+Automatic Arena remains a separate package. Durable schedules, local-date
+occurrences, time-zone/DST policy, worker leases, bounded retries, entitlement
+revocation and idempotent creation are not implied by the manual capability
+projection. Match-creation idempotency also remains a required follow-up.
 
 ## Deferred decisions
 

@@ -110,7 +110,9 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
   bots/submissions/challenges, PostgreSQL-backed compile and match jobs,
   stable artifact/replay object keys, and the SPA. It also owns the
   off-by-default Frontline Labs playlist/admission/execution path, exact bot
-  contract-profile attestations, and normalized match-team results. Explicit
+  contract-profile attestations, normalized match-team results, and an
+  authenticated Arena projection for the official Duel format, effective
+  allowances, concurrency and batch playability. Explicit
   web, compile, match, and migration roles share the same model without
   becoming services.
 - `deploy/` — the scale-ready multi-VPS baseline: primary Caddy/stateful
@@ -127,10 +129,13 @@ then health, then damage dealt, else draw. Faults: failed tick = Wait,
 - `web/` — one React build, two modes: the nilbots site (router) and the
   standalone replay viewer the CLI embeds replays into. One normalized model
   preserves replay v1 and presents local experimental Frontline replay v2
-  through the default Canvas2D renderer or an optional lazy WebGL 2.5D
-  renderer. The same model presents hosted generic replay 3, and an isolated
-  bot-detail Labs panel can create a direct unranked match when the server
-  advertises the feature. The CLI artifact excludes Three.js.
+  and hosted generic replay 3 through the lazy WebGL 3D renderer, with
+  Canvas2D retained as the floor where 3D cannot draw. An isolated bot-detail
+  Labs panel can create a direct unranked match when the server advertises the
+  feature. The Climb-derived site uses one global/contextual Arena composer
+  driven by the generated server capability contract, a Shop plus per-bot rich
+  appearance picker, and closed Match/Set continuation flows. The CLI artifact
+  excludes Three.js.
 - `tests/` — engine, determinism, WASM contract, Frontline lifecycle/combat,
   and replay-viewer suites, including DocDrift tests that pin mechanical
   docs/mirrors to the engine.
@@ -171,9 +176,10 @@ absolute eight-way turret fire. Replay v2 snapshots those exact observations,
 decisions, masks, lifecycle facts, post-state, and terminal stable-unit rows.
 The web viewer and mobile bridge consume the same version-neutral normalized
 model and visualize the five-position objective, lifecycle, Anchor windup, and
-turret state. Canvas2D remains the default; the optional WebGL 2.5D renderer
-shares those derivations, loads lazily, and still requires manual GPU/mobile
-QA.
+turret state. The WebGL 3D renderer is the web viewer and offers no mode toggle;
+Canvas2D shares those derivations and remains the floor for the CLI artifact, for
+a missing WebGL context, and for the mobile WebView. Manual GPU/mobile QA
+remains.
 
 This is still not a shipped gameplay path. Historical `play`, general
 replay-v2 summary/verification, dataset/corpus/model tooling, independently

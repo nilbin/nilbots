@@ -18,7 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" />
-    <!-- Host-matched compiler package (platform-matched Docker builder, DECISIONS #145):
+    <!-- Host-matched compiler package (platform-matched Docker builder, DECISIONS #151):
          linux-x64 and linux-arm64 hosts emit byte-identical modules. -->
     <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' != 'Arm64'" />
     <PackageReference Include="runtime.linux-arm64.Microsoft.DotNet.ILCompiler.LLVM" Version="$(IlcLlvmVersion)" Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'" />

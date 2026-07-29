@@ -1,4 +1,6 @@
 import clsx from 'clsx';
+import IdentityChip from './IdentityChip';
+import { visualIndexForUnit } from '../replayParticipants';
 import { useMemo } from 'react';
 import type {
   ReplayModel,
@@ -6,6 +8,8 @@ import type {
 } from '../replayModel';
 import { unitLook } from '../render/unitPresentation';
 import { createPresenter } from '../replayPresentation';
+import { playerAccent } from '../presentation/playerAccent';
+import { styleVariables } from '../presentation/styleVariables';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -14,6 +18,54 @@ interface BotPanelProps {
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onToggleVisibility: () => void;
+}
+
+/**
+ * One plain sentence for what a bot is doing this tick.
+ *
+ * Action ids are engine vocabulary — `turn-left`, `shoot`, `wait` — and the panel used
+ * to print them raw behind an arrow. They are generated from the id rather than mapped
+ * by hand, so a new action reads sensibly the day it lands instead of falling through
+ * to a code.
+ *
+ * How it went is not part of the sentence: it is a standing fact about the action, so it
+ * stands beside it as a pill rather than turning one clause into two.
+ */
+function describeAction(
+  actionId: string,
+  heading: string | null,
+): string {
+  const words = actionId.replace(/[-_]/g, ' ');
+  const phrase =
+    words === 'wait'
+      ? 'Holding position'
+      : words.charAt(0).toUpperCase() + words.slice(1);
+  return heading ? `${phrase} ${heading.toLowerCase()}` : phrase;
+}
+
+/**
+ * How long a full reload is, so the cooldown bar has a denominator.
+ *
+ * `form.shootCooldownTicks` is the declared value and replay v2/v3 carry it — replay v1,
+ * which is every shipped duel, leaves it null. The longest cooldown a unit is ever seen
+ * holding is the same number observed rather than declared, so the bar drains truthfully
+ * in both. Computed once per replay, not per tick.
+ */
+function useCooldownScale(
+  replay: ReplayModel,
+): Map<ReplayStableUnitKey, number> {
+  return useMemo(() => {
+    const observed = new Map<ReplayStableUnitKey, number>();
+    for (const replayTick of replay.ticks) {
+      for (const actor of replayTick.after.actors) {
+        observed.set(
+          actor.unitKey,
+          Math.max(observed.get(actor.unitKey) ?? 0, actor.cooldown),
+        );
+      }
+    }
+    return observed;
+  }, [replay]);
 }
 
 export default function BotPanel({
@@ -26,26 +78,33 @@ export default function BotPanel({
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const { objective, units } = presenter.at(tick);
+  const cooldownScale = useCooldownScale(replay);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-2.5">
       {objective?.kind === 'legacy-control' && (
-        <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
-          <div className="flex justify-between font-mono text-[11px] text-arena-dim">
-            <span>{objective.names[0]}</span>
-            <span>
-              {objective.overtime ? 'OVERTIME ' : ''}CONTROL{' '}
-              {objective.pressure > 0 ? '+' : ''}
-              {objective.pressure} / ±{objective.limit}
+        <div className="panel-quiet pad">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="t-body truncate text-arena-text">
+              {objective.names[0]}
             </span>
-            <span>{objective.names[1]}</span>
+            <span className="lab shrink-0">
+              {objective.overtime ? 'Overtime · ' : ''}Control{' '}
+              <span className="val tracking-normal text-arena-text">
+                {objective.pressure > 0 ? '+' : ''}
+                {objective.pressure}/{objective.limit}
+              </span>
+            </span>
+            <span className="t-body truncate text-right text-arena-text">
+              {objective.names[1]}
+            </span>
           </div>
-          <div className="relative mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
+          <div className="relative mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
             <div className="absolute inset-y-0 left-1/2 w-px bg-arena-dim" />
             <div
-              className="absolute top-0 h-full w-1 rounded bg-yellow-400 transition-[left]"
-              style={{
-                left: `${Math.max(
+              className="runtime-position absolute top-0 h-full w-1 rounded-[2px] bg-arena-text transition-[left]"
+              style={styleVariables({
+                '--runtime-position': `${Math.max(
                   0,
                   Math.min(
                     100,
@@ -54,50 +113,52 @@ export default function BotPanel({
                         Math.max(1, objective.limit),
                   ),
                 )}%`,
-              }}
+              })}
             />
           </div>
           {objective.phase && (
-            <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
-              {objective.phase}
-            </p>
+            <p className="lab mt-2 text-center">{objective.phase}</p>
           )}
         </div>
       )}
 
       {objective?.kind === 'frontline' && (
-        <div className="rounded-lg border border-arena-edge bg-arena-panel/70 p-3">
-          <div className="flex items-center justify-between font-mono text-[11px] text-arena-dim">
-            <span>FRONTLINE</span>
-            <span>
-              POSITION {objective.activePositionIndex + 1}/
-              {objective.positionCount}
+        <div className="panel-quiet pad">
+          <div className="flex items-center justify-between">
+            <span className="lab">Frontline</span>
+            <span className="lab">
+              Position{' '}
+              <span className="val tracking-normal text-arena-text">
+                {objective.activePositionIndex + 1}/{objective.positionCount}
+              </span>
             </span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-arena-bg">
+          <div className="mt-2 h-[5px] overflow-hidden rounded-[3px] bg-arena-edge">
             <div
               className={clsx(
-                'h-full transition-[width]',
+                'runtime-progress h-full transition-[width]',
                 objective.claimingTeamId === null
-                  ? 'bg-arena-dim'
-                  : 'bg-yellow-400',
+                  ? 'bg-arena-edge2'
+                  : 'bg-arena-dim',
               )}
-              style={{
-                width: `${
+              style={styleVariables({
+                '--runtime-progress': `${
                   (100 * Math.abs(objective.captureProgress)) /
                   Math.max(1, objective.captureThreshold)
                 }%`,
-              }}
+              })}
             />
           </div>
-          <p className="mt-2 text-center font-mono text-[10px] tracking-wide text-arena-dim">
-            {objective.phase}
-          </p>
+          <p className="lab mt-2 text-center">{objective.phase}</p>
         </div>
       )}
 
       {units.map((unit) => {
         const selected = selectedUnitKey === unit.unitKey;
+        // Out of the game, as the design's dead card reads it: the whole card recedes
+        // rather than one word turning a colour.
+        const out =
+          unit.status === 'destroyed' || unit.status === 'disqualified';
         const transition =
           unit.status === 'respawning' && unit.respawnAtTick !== null
             ? `RESPAWN T${unit.respawnAtTick}`
@@ -111,134 +172,198 @@ export default function BotPanel({
                   ? `SPAWN T${unit.fabricationAtTick}`
                   : null;
         const formTransition = unit.pendingFormTransition;
-        // The card wears the effective form's chassis, so anchoring and mobilizing show
-        // up in the panel at the same tick they show up in the arena.
+        const declaredCooldown =
+          replay.forms.find((form) => form.formId === unit.formId)
+            ?.shootCooldownTicks ?? 0;
+        const cooldownMax = Math.max(
+          1,
+          declaredCooldown,
+          cooldownScale.get(unit.unitKey) ?? 0,
+        );
+        const actionResult =
+          unit.actionResult &&
+          unit.actionResult !== 'success' &&
+          unit.actionResult !== 'none'
+            ? unit.actionResult
+            : null;
+        const visibleAccent = playerAccent(unit.accent, 'panel');
+        // The card wears the effective form's chassis, so anchoring, mobilizing and
+        // entering a stance show up in the panel at the same tick they show up in the
+        // arena.
         const look = unitLook(replay, unit.unitKey, unit.formId);
         return (
-          <button
+          <article
             key={unit.unitKey}
-            onClick={() =>
-              onSelectUnit(selected ? null : unit.unitKey)
-            }
-            aria-pressed={selected}
             className={clsx(
-              'rounded-lg border p-3 text-left transition-colors',
+              'panel pad min-w-0 transition-colors',
+              out && 'opacity-[0.62]',
+              // Selection is a state, and state is never the accent here — the accent is
+              // the shop's own colour. Raised ground and a brighter edge say it instead.
               selected
-                ? 'border-arena-accent/70 bg-arena-panel'
-                : 'border-arena-edge bg-arena-panel/60 hover:border-arena-dim',
+                ? 'border-arena-edge2 bg-arena-raise'
+                : 'hover:border-arena-edge2',
             )}
           >
-            <div className="flex items-center gap-2">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-arena-bg/85">
-                {look.image && (
-                  <img
-                    src={look.imageUrl}
-                    alt={`${unit.lookLabel} chassis`}
-                    className="size-9 object-contain"
-                  />
-                )}
-              </span>
-              <span>
-                <span className="block font-semibold">{unit.name}</span>
-                <span className="block font-mono text-[10px] text-arena-dim">
-                  {unit.lookLabel} ·{' '}
-                  {unit.legacySlot === null
+            <div className="flex min-w-0 items-center gap-2.5">
+              <IdentityChip
+                lookId={look.id}
+                visualIndex={visualIndexForUnit(replay, unit.unitKey)}
+                accent={unit.accent}
+                name={unit.name}
+                nameClassName="text-[14px]"
+                sub={`${unit.lookLabel} · ${
+                  unit.legacySlot === null
                     ? `team ${unit.teamId} · unit ${unit.unitId}${unit.lifeId === null ? '' : ` · life ${unit.lifeId}`}`
-                    : `slot ${unit.legacySlot}`}{' '}
-                  · {unit.runtimeKind}
+                    : `slot ${unit.legacySlot}`
+                }`}
+              />
+              {/* Eight statuses had eight hues, which is eight things competing with the
+                  one colour that means something — the player's accent. Out of the game
+                  a unit is out; everything else is a state it is passing through, and
+                  the word already says which. */}
+              <span className="ml-auto flex shrink-0 items-center gap-1.5">
+                <span
+                  className={clsx(
+                    'pill',
+                    out
+                      ? 'text-arena-hot'
+                      : unit.status === 'active'
+                        ? 'text-arena-text'
+                        : 'text-arena-dim',
+                  )}
+                >
+                  {unit.status}
+                  {transition ? ` · ${transition}` : ''}
                 </span>
-              </span>
-              <span
-                className={clsx('ml-auto font-mono text-[11px]', {
-                  'text-emerald-400': unit.status === 'active',
-                  'text-red-400': unit.status === 'destroyed',
-                  'text-amber-400': unit.status === 'disqualified',
-                  'text-cyan-300': unit.status === 'respawning',
-                  'text-arena-dim': unit.status === 'locked',
-                  'text-emerald-300': unit.status === 'ready',
-                  'text-violet-300':
-                    unit.status === 'fabrication-queued',
-                  'text-amber-300': unit.status === 'rebuilding',
-                })}
-              >
-                {unit.status.toUpperCase()}
-                {transition ? ` · ${transition}` : ''}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelectUnit(selected ? null : unit.unitKey)
+                  }
+                  aria-pressed={selected}
+                  className={clsx('btn', selected && 'btn-on')}
+                >
+                  {selected ? 'Close' : 'Inspect'}
+                </button>
               </span>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-xs">
-              <span aria-label={`Health ${unit.health} of ${unit.maxHealth}`}>
+            {/* Health, cooldown and what it is doing — three rows, one idea each.
+                This was `♥♥♥ · CD 0 · ⬢ idle · → turn-left`: four encodings of state
+                on one line, three of them abbreviations only the author knew. */}
+            <dl className="mt-[9px] grid grid-cols-[64px_1fr_auto] items-center gap-x-[10px] gap-y-[9px]">
+              <dt className="lab">Health</dt>
+              <dd
+                className="flex gap-[3px]"
+                aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
+              >
                 {Array.from({ length: unit.maxHealth }, (_, index) => (
                   <span
                     key={index}
-                    style={{
-                      color:
-                        index < unit.health ? unit.accent : undefined,
-                    }}
-                    className={
-                      index < unit.health ? '' : 'text-arena-edge'
+                    className={clsx(
+                      'h-[9px] flex-1 rounded-[2px] border',
+                      index >= unit.health && 'border-arena-edge',
+                      index >= unit.health && out && 'border-dashed',
+                      index < unit.health &&
+                        'player-accent-border player-accent-fill',
+                    )}
+                    style={
+                      index < unit.health
+                        ? styleVariables({
+                            '--player-accent': visibleAccent,
+                          })
+                        : undefined
                     }
-                  >
-                    ♥
-                  </span>
+                  />
                 ))}
-              </span>
-              <span className="text-arena-dim">
-                CD <span className="text-arena-text">{unit.cooldown}</span>
-              </span>
+              </dd>
+              <dd className="val">
+                {unit.health}/{unit.maxHealth}
+              </dd>
+
+              {/* A draining bar, not a sentence: how much of the reload is left is a
+                  quantity, and a quantity is faster to see than to read. */}
+              <dt className="lab">Cooldown</dt>
+              <dd>
+                <span
+                  className="block h-[5px] overflow-hidden rounded-[3px] bg-arena-edge"
+                  aria-hidden
+                >
+                  <span
+                    className="runtime-progress block h-full bg-arena-dim transition-[width]"
+                    style={styleVariables({
+                      '--runtime-progress': `${Math.min(
+                        100,
+                        (100 * unit.cooldown) / cooldownMax,
+                      )}%`,
+                    })}
+                  />
+                </span>
+              </dd>
+              <dd className="val">{unit.cooldown}t</dd>
+
               {unit.energy !== null && (
-                <span
-                  className="text-arena-dim"
-                  aria-label={`Energy ${unit.energy}`}
-                >
-                  ⚡ <span className="text-arena-text">{unit.energy}</span>
-                </span>
+                <>
+                  <dt className="lab">Energy</dt>
+                  <dd className="val col-span-2">{unit.energy}</dd>
+                </>
               )}
-              {objective === null && unit.zoneTicks === null ? null : (
-                <span
-                  className={clsx(
-                    unit.holdingObjective
-                      ? 'text-yellow-400'
-                      : 'text-arena-dim',
-                  )}
-                  aria-label="Objective presence"
-                >
-                  ⬢{' '}
-                  <span className="text-arena-text">
-                    {unit.zoneTicks ??
-                      (unit.holdingObjective ? 'HOLD' : 'idle')}
-                  </span>
-                </span>
-              )}
+
               {unit.actionId && (
-                <span className="text-arena-dim">
-                  → <span className="text-arena-text">{unit.actionId}</span>
-                  {unit.actionLaunchHeading && (
-                    <span className="text-cyan-200">
-                      {' '}
-                      · {unit.actionLaunchHeading.toUpperCase()}
-                    </span>
+                <>
+                  <dt className="lab">Doing</dt>
+                  <dd
+                    className={clsx(
+                      't-body text-arena-text',
+                      actionResult === null && 'col-span-2',
+                    )}
+                  >
+                    {describeAction(
+                      unit.actionId,
+                      unit.actionLaunchHeading,
+                    )}
+                  </dd>
+                  {actionResult !== null && (
+                    <dd>
+                      <span className="pill">{actionResult}</span>
+                    </dd>
                   )}
-                  {unit.actionResult !== 'success' && (
-                    <span className="text-amber-400">
-                      {' '}
-                      ({unit.actionResult})
-                    </span>
-                  )}
-                </span>
+                </>
               )}
-            </div>
+
+              {(objective !== null || unit.zoneTicks !== null) && (
+                <>
+                  <dt className="lab">Objective</dt>
+                  <dd className="t-body col-span-2 text-arena-text">
+                    {unit.zoneTicks !== null ? (
+                      <>
+                        <span className="val text-arena-text">
+                          {unit.zoneTicks}
+                        </span>{' '}
+                        <span className="text-arena-dim">
+                          tick{unit.zoneTicks === 1 ? '' : 's'} held
+                        </span>
+                      </>
+                    ) : unit.holdingObjective ? (
+                      'Holding'
+                    ) : (
+                      <span className="text-arena-dim">Not on it</span>
+                    )}
+                  </dd>
+                </>
+              )}
+            </dl>
 
             {formTransition && (
-              <p className="mt-2 font-mono text-[10px] tracking-wide text-violet-300">
-                TRANSFORMING · {formTransition.fromFormId.toUpperCase()} →{' '}
-                {formTransition.toFormId.toUpperCase()} · COMPLETES T
+              <p className="lab mt-2">
+                Transforming · {formTransition.fromFormId} →{' '}
+                {formTransition.toFormId} · completes T
                 {formTransition.completesAtTick}
               </p>
             )}
 
             {!unit.canMove && (
-              <p className="mt-2 font-mono text-[10px] tracking-wide text-cyan-300">
+              <p className="lab mt-2">
                 STATIONARY ·{' '}
                 {unit.omnidirectionalVision ? '360° VISION' : 'DIRECTED VISION'}
                 {' · '}
@@ -249,28 +374,28 @@ export default function BotPanel({
             )}
 
             {selected && unit.debug && (
-              <pre className="mt-2 overflow-x-auto rounded bg-arena-bg/80 p-2 font-mono text-[11px] whitespace-pre-wrap text-arena-dim">
+              <pre className="term mt-2 whitespace-pre-wrap text-arena-dim">
                 {unit.debug}
               </pre>
             )}
             {selected && unit.actionId && (
-              <div className="mt-2 font-mono text-[11px] text-arena-dim">
+              <p className="val mt-2">
                 sees {unit.visibleTiles} tiles ·{' '}
                 {unit.visibleEnemies.length > 0
                   ? `enemy at ${unit.visibleEnemies.map((enemy) => `(${enemy.x},${enemy.y})`).join(' ')}`
                   : 'no enemies visible'}
-              </div>
+              </p>
             )}
-          </button>
+          </article>
         );
       })}
 
-      <label className="flex cursor-pointer items-center gap-2 px-1 text-xs text-arena-dim select-none">
+      <label className="t-meta flex cursor-pointer items-center gap-2 px-1 select-none">
         <input
           type="checkbox"
           checked={showVisibility}
           onChange={onToggleVisibility}
-          className="accent-(--color-arena-accent)"
+          className="accent-(--color-arena-text)"
         />
         Show selected unit&apos;s field of view
       </label>

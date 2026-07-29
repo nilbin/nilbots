@@ -138,7 +138,7 @@ docker info >/dev/null 2>&1 || {
 }
 
 # The pinned NativeAOT-LLVM compiler host ships for both linux-x64 and
-# linux-arm64, and both emit byte-identical modules (DECISIONS #145). Matching
+# linux-arm64, and both emit byte-identical modules (DECISIONS #151). Matching
 # the container platform to the host CPU keeps the compiler native: an
 # emulated (Rosetta/qemu) builder is slower and can deadlock, so emulation is
 # reserved for an explicit BOTARENA_WASM_DOCKER_PLATFORM override.
@@ -191,7 +191,7 @@ if [ "$emulated" -eq 1 ]; then
   # Under CPU emulation (Rosetta/qemu), MSBuild's multi-node fan-out
   # intermittently deadlocks at 0% CPU: the entry node blocks in
   # rt_mutex_schedule while a freshly spawned worker never completes its
-  # handshake (DECISIONS #145). Single-node, in-process compilation removes
+  # handshake (DECISIONS #151). Single-node, in-process compilation removes
   # every cross-process handshake; ilc keeps its internal parallelism and the
   # emitted artifact bytes are unchanged. Native platform-matched builds must
   # not inherit these flags — they are slower and pointless there.

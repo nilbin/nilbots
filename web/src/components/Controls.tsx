@@ -1,64 +1,78 @@
-import * as Slider from '@radix-ui/react-slider';
 import clsx from 'clsx';
 import type { PlaybackState } from '../playback';
+import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
+import Timeline from './Timeline';
 
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
 
-export default function Controls({ playback }: { playback: PlaybackState }) {
+/**
+ * The transport: one bar, then a legend for the marks in it.
+ *
+ * Everything sits on a single row because the timeline is the spine — buttons on their
+ * own line above it made the track look like a caption of the controls rather than the
+ * thing they move through. The track drops to a full-width line of its own below about
+ * 640px instead of squeezing to nothing: the page may not scroll sideways at 390px.
+ *
+ * The tick is not here. It reads over the arena, where the eye already is, which is also
+ * what keeps it visible when this bar is not (`Viewer`'s tick badge).
+ */
+export default function Controls({
+  playback,
+  replay,
+  selectedUnitKey,
+}: {
+  playback: PlaybackState;
+  replay: ReplayModel;
+  selectedUnitKey: ReplayStableUnitKey | null;
+}) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4">
-      <div className="flex items-center gap-4">
-        <span className="font-mono text-xs text-arena-dim">
-          TICK{' '}
-          <span className="text-arena-text">
-            {String(playback.tick).padStart(3, '0')}
-          </span>
-          /{String(playback.tickCount - 1).padStart(3, '0')}
-        </span>
-        <Slider.Root
-          className="relative flex h-5 flex-1 touch-none items-center select-none"
-          min={0}
-          max={playback.tickCount}
-          step={0.01}
-          value={[Math.min(playback.time, playback.tickCount)]}
-          onValueChange={([value]) => playback.seek(value)}
-          aria-label="Match timeline"
-        >
-          <Slider.Track className="relative h-1.5 grow rounded-full bg-arena-edge">
-            <Slider.Range className="absolute h-full rounded-full bg-arena-accent" />
-          </Slider.Track>
-          <Slider.Thumb className="block size-4 rounded-full border-2 border-arena-accent bg-arena-panel shadow focus:outline-2 focus:outline-arena-accent" />
-        </Slider.Root>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <ControlButton label="Restart" onClick={playback.restart}>
+    <div className="panel min-w-0 px-3 py-2.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+        <TransportButton label="Restart" onClick={playback.restart}>
           ⟲
-        </ControlButton>
-        <ControlButton label="Step back one tick" onClick={() => playback.step(-1)}>
-          ⏮
-        </ControlButton>
-        <ControlButton
+        </TransportButton>
+        <TransportButton
+          label="Step back one tick"
+          onClick={() => playback.step(-1)}
+        >
+          ◀|
+        </TransportButton>
+        <TransportButton
           label={playback.playing ? 'Pause' : 'Play'}
           onClick={playback.toggle}
-          primary
+          wide
         >
-          {playback.playing ? '⏸' : '▶'}
-        </ControlButton>
-        <ControlButton label="Step forward one tick" onClick={() => playback.step(1)}>
-          ⏭
-        </ControlButton>
+          {playback.playing ? '❚❚' : '▶'}
+        </TransportButton>
+        <TransportButton
+          label="Step forward one tick"
+          onClick={() => playback.step(1)}
+        >
+          |▶
+        </TransportButton>
 
-        <div className="ml-auto flex items-center gap-1" role="group" aria-label="Playback speed">
+        <div className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
+          <Timeline
+            replay={replay}
+            playback={playback}
+            selectedUnitKey={selectedUnitKey}
+          />
+        </div>
+
+        <div
+          className="ml-auto flex flex-none items-center gap-1"
+          role="group"
+          aria-label="Playback speed"
+        >
           {SPEEDS.map((speed) => (
             <button
               key={speed}
+              type="button"
               onClick={() => playback.setSpeed(speed)}
+              aria-pressed={playback.speed === speed}
               className={clsx(
-                'rounded px-2 py-1 font-mono text-xs transition-colors',
-                playback.speed === speed
-                  ? 'bg-arena-accent text-slate-950'
-                  : 'text-arena-dim hover:bg-arena-edge hover:text-arena-text',
+                'btn val px-[9px] py-[5px]',
+                playback.speed === speed && 'btn-on text-arena-text',
               )}
             >
               {speed}×
@@ -66,31 +80,60 @@ export default function Controls({ playback }: { playback: PlaybackState }) {
           ))}
         </div>
       </div>
+
+      {/* What the marks on the track mean. The swatches are shapes, not colours: a mark
+          is drawn in the accent of whoever it happened to, and no legend can stand in
+          for somebody's own colour — so weight carries the meaning here as it does
+          there. */}
+      <p className="t-meta mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1">
+        <span className="inline-flex items-center gap-1.5">
+          <i aria-hidden className="block h-[11px] w-[2px] bg-arena-dim/70" />
+          fired
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <i
+            aria-hidden
+            className="block h-[11px] w-[5px] rounded-[2px] bg-arena-dim"
+          />
+          took a hit
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <i aria-hidden className="block size-2.5 rounded-[2px] bg-arena-hot" />
+          destroyed
+        </span>
+        <span className="ml-auto">click a mark to seek · ← → step a tick</span>
+      </p>
     </div>
   );
 }
 
-function ControlButton({
+/**
+ * Play is wider and carries the text colour; a step is a square and sits back in dim.
+ * The size difference is the hierarchy — the two never needed a second one in colour,
+ * least of all the accent, which in this palette is the shop rather than a signal.
+ */
+function TransportButton({
   children,
   label,
   onClick,
-  primary,
+  wide,
 }: {
   children: React.ReactNode;
   label: string;
   onClick: () => void;
-  primary?: boolean;
+  wide?: boolean;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={label}
       title={label}
       className={clsx(
-        'flex size-9 items-center justify-center rounded-md border text-sm transition-colors',
-        primary
-          ? 'border-arena-accent bg-arena-accent/15 text-arena-accent hover:bg-arena-accent/25'
-          : 'border-arena-edge text-arena-text hover:bg-arena-edge',
+        'btn grid flex-none place-items-center p-0',
+        wide
+          ? 'h-8 w-[38px] text-[11px] tracking-[0.1em]'
+          : 'size-[30px] text-arena-dim',
       )}
     >
       {children}

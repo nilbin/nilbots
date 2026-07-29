@@ -1,181 +1,446 @@
-
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import BotIdentity from '../components/BotIdentity';
-import type { MatchSetDetail, SetGame } from '../api';
-import { useMatchSet } from '../queries';
+import Matchup from '../components/Matchup';
+import LiveStatus from '../../components/LiveStatus';
+import ArenaAction from '../components/ArenaAction';
 import { ErrorState, LoadingState } from '../components/StateView';
+import Movement from '../components/Movement';
+import Th from '../components/TableHeader';
+import { ApiError, type MatchSetDetail, type SetGame } from '../api';
+import { useAuth } from '../auth';
+import { useMatchSet, useMyBots } from '../queries';
+import { internalReturnTarget } from '../returnTarget';
 
-/// A ranked set: six games, three map/seed pairs with mirrored starts. Outcomes and
-/// the rating swing reveal only as broadcasts finish — no spoilers from this page.
+/**
+ * A ranked set: authoritative standings and its exact ordered game schedule.
+ *
+ * Playlist versions can define different schedules. The response does not currently
+ * project scheduler grouping or seeds, so this page deliberately renders games flat
+ * rather than guessing which adjacent games form a mirrored pair.
+ */
 export default function MatchSetPage() {
   const { setId } = useParams<{ setId: string }>();
+  const location = useLocation();
+  const returnTarget = internalReturnTarget(location.state, {
+    to: '/watch',
+    label: 'Watch',
+  });
   const { data: set, error, refetch } = useMatchSet(setId);
+  const { user } = useAuth();
+  const { data: myBots = [] } = useMyBots(Boolean(user));
 
-  if (error !== null)
-    return <ErrorState error={error} onRetry={() => void refetch()} />;
+  // A mistyped id is an answer, not an alarm.
+  if (error instanceof ApiError && error.status === 404)
+    return (
+      <div className="mx-auto max-w-4xl py-10 text-center">
+        <p className="t-body font-semibold text-arena-dim">No such set</p>
+        <p className="t-micro mt-1">
+          This set id does not exist.{' '}
+          <Link to={returnTarget.to} className="text-link">
+            Back to {returnTarget.label}
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  if (error !== null) return <ErrorState error={error} onRetry={() => void refetch()} />;
   if (!set) return <LoadingState label="Loading the set…" />;
 
-  const winner =
-    set.winnerBotId === set.botA.id ? set.botA : set.winnerBotId === set.botB.id ? set.botB : null;
+  const sides = setSides(set);
+  const games = orderedSetGames(set);
+  const standings = [...sides].sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+  const drawn =
+    set.revealed && set.status === 'Completed' && set.winnerBotId === null;
+  const myIds = new Set(myBots.map((bot) => bot.id));
+  const ownedSide = sides.find((side) => myIds.has(side.id));
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="rounded-xl border border-arena-edge bg-arena-panel p-6">
-        <p className="mb-2 font-mono text-xs tracking-widest text-arena-dim">
-          RANKED MATCH SET · 6 GAMES · MIRRORED STARTS
+    <div className="mx-auto flex max-w-4xl flex-col gap-3.5">
+      <nav aria-label="Breadcrumb">
+        <Link to={returnTarget.to} className="t-meta text-link">
+          ← {returnTarget.label}
+        </Link>
+      </nav>
+      <h1 className="sr-only">
+        Ranked set: {set.botA.name ?? 'removed bot'} vs{' '}
+        {set.botB.name ?? 'removed bot'}
+      </h1>
+      <header className="flex flex-col gap-2.5">
+        <p className="lab">
+          Ranked set · {shortDate(set.createdAt)}
         </p>
-        <div className="flex flex-wrap items-center gap-4 text-2xl font-black">
-          <BotIdentity
-            name={set.botA.name}
-            accent={set.botA.accent}
-            lookId={set.botA.lookId}
-            size="lg"
-            nameClassName="font-black"
-          />
-          <span className="font-mono text-lg text-arena-dim">
-            {set.scoreA !== null ? `${set.scoreA} : ${set.scoreB}` : 'vs'}
-          </span>
-          <BotIdentity
-            name={set.botB.name}
-            accent={set.botB.accent}
-            lookId={set.botB.lookId}
-            size="lg"
-            nameClassName="font-black"
-          />
-        </div>
-        {set.revealed && set.status === 'Completed' && (
-          <p className="mt-3 text-sm">
-            {winner ? (
-              <>
-                {/* Name and accent are null when a bot has been deleted and the set
-                    carries no participant snapshot for it (MatchPublicProjection.ToSetBot). */}
-                <span style={{ color: winner.accent ?? '#38bdf8' }} className="font-bold">
-                  {winner.name ?? 'A removed bot'}
-                </span>{' '}
-                takes the set.
-              </>
-            ) : (
-              'The set is drawn.'
-            )}{' '}
-            <span className="font-mono text-xs text-arena-dim">
-              rules {set.rulesVersion} ladder: {set.botA.name} {formatDelta(set.ratingChangeA)} ·{' '}
-              {set.botB.name} {formatDelta(set.ratingChangeB)}
-            </span>
-          </p>
-        )}
-        {set.status === 'Failed' && (
-          <p className="mt-3 text-sm text-red-400">
-            A game in this set failed to execute; no ratings were changed.
-          </p>
-        )}
-        {!set.revealed && set.status !== 'Failed' && (
-          <p className="mt-3 flex items-center gap-2 font-mono text-xs text-arena-dim">
-            <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
-            Games are still broadcasting — results reveal as you watch them.
-          </p>
-        )}
+        {/* The matchup is the page title, walked rather than destructured — the same
+            component the feed uses, so a set of three sides would render three chips. */}
+        <Matchup
+          participants={sides.map((side, index) => ({
+            slot: index,
+            nameSnapshot: side.name ?? 'A removed bot',
+            ownerDisplayNameSnapshot: side.owner ?? '',
+            accentSnapshot: side.accent ?? '',
+            lookIdSnapshot: side.lookId ?? '',
+          }))}
+          size="lg"
+          className="type-display"
+        />
+
+        <section className="panel pad flex flex-col gap-2">
+          <p className="lab">Standings</p>
+          {/* One row per side, ordered by set points — so the score is a column read down,
+              which is what a standing is, rather than a `4 – 2` banner welded to exactly
+              two competitors. */}
+          {standings.map((side) => (
+            <div key={side.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {side.name === null ? (
+                <BotIdentity
+                  name="A removed bot"
+                  accent={side.accent}
+                  lookId={side.lookId}
+                  size="md"
+                  emphasized={set.winnerBotId === side.id}
+                  className="min-w-0"
+                />
+              ) : (
+                <Link
+                  to={`/bots/${side.id}`}
+                  state={{
+                    returnTo: `/sets/${set.id}`,
+                    returnLabel: 'Ranked set',
+                  }}
+                  className="inline-flex min-w-0 transition-opacity hover:opacity-80"
+                >
+                  <BotIdentity
+                    name={side.name}
+                    accent={side.accent}
+                    lookId={side.lookId}
+                    size="md"
+                    emphasized={set.winnerBotId === side.id}
+                    className="min-w-0"
+                  />
+                </Link>
+              )}
+              {side.owner !== null && (
+                <span className="t-micro hidden min-w-0 truncate sm:block">{side.owner}</span>
+              )}
+              {/* Points take the display cut, the same move the ladder's rank makes: a
+                  standing is a position, not a value the engine computed. */}
+              <span className="type-display tabular ml-auto shrink-0 text-[30px] text-arena-text">
+                {side.points === null ? '—' : points(side.points)}
+              </span>
+              <RatingDelta change={side.ratingChange} before={side.ratingBefore} />
+              {set.winnerBotId === side.id && <span className="pill">Takes the set</span>}
+            </div>
+          ))}
+          {drawn && <p className="t-micro">Neither bot separated: the set is drawn.</p>}
+        </section>
+        <p className="t-micro">Ratings move only when a whole set completes.</p>
       </header>
 
-      <section>
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-mono text-xs tracking-widest text-arena-dim">
-            GAMES
-          </h2>
-          <p className="text-xs text-arena-dim">
-            Open any game to watch its live broadcast or replay.
+      {set.status === 'Failed' && (
+        <p className="panel-quiet t-body border-l-2 border-l-arena-hot px-3 py-2 text-arena-dim">
+          A game in this set failed to execute, so no ratings changed. The games that did
+          run are below — a failed set that rendered nothing would hide them.
+        </p>
+      )}
+
+      {!set.revealed && set.status !== 'Failed' && (
+        // The meaningful empty on this page is the *unrevealed* set, and it has to read as
+        // intent rather than as a value that failed to arrive.
+        <div className="panel-quiet pad flex flex-col gap-1.5">
+          <p className="t-body">
+            <b>No score yet — and not because it isn’t decided.</b>
+          </p>
+          <p className="t-body max-w-[62ch] text-arena-dim">
+            The result is held until every game has finished broadcasting, so the first
+            person to watch is not the first person to know. Open any game below; the
+            schedule fills in as broadcasts finish.
           </p>
         </div>
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {set.games.map((game) => (
-            <GameCard key={game.id} game={game} set={set} />
-          ))}
-        </ul>
+      )}
+
+      <section className="panel">
+        <div className="pad pb-2.5">
+          <h2 className="lab">
+            Schedule · {set.games.length}{' '}
+            {set.games.length === 1 ? 'game' : 'games'}
+          </h2>
+        </div>
+
+        {games.length === 0 ? (
+          <p className="pad t-body pt-0 text-arena-dim">
+            The games for this set have not been created yet.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2.5 px-3.5 pb-3.5 sm:hidden">
+              {games.map((game, index) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  fallbackNumber={index + 1}
+                  sides={sides}
+                  setId={set.id}
+                />
+              ))}
+            </div>
+
+            <div className="hidden px-3.5 pb-3.5 sm:block">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <Th className="w-[64px]">Game</Th>
+                    <Th>Matchup</Th>
+                    <Th className="w-[120px]">Map</Th>
+                    <Th className="w-[150px]">Result</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {games.map((game, index) => (
+                    <tr key={game.id} className="border-b border-arena-edge last:border-b-0">
+                      <td className="val py-2.5 pr-2 align-top text-arena-text">
+                        {game.game ?? index + 1}
+                      </td>
+                      <td className="py-2.5 pr-2 align-top">
+                        <Matchup
+                          participants={game.participants}
+                          winnerSlot={gameWinnerSlot(game)}
+                          size="xs"
+                        />
+                      </td>
+                      <td className="val py-2.5 pr-2 align-top text-arena-text">
+                        {game.mapId}
+                      </td>
+                      <td className="py-2.5 align-top">
+                        <GameCell game={game} sides={sides} setId={set.id} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
+
+      <section className="panel-quiet pad flex flex-wrap items-center gap-2">
+        <span className="t-meta mr-auto">
+          {ownedSide
+            ? 'The next ranked set is matchmade again from the current ladder.'
+            : 'Follow another fight from the public feed.'}
+        </span>
+        <Link to="/watch" className="btn">
+          Watch more
+        </Link>
+        <Link to="/" className="btn">
+          View rankings
+        </Link>
+        {ownedSide && (
+          <ArenaAction
+            bot={{
+              id: ownedSide.id,
+              name: ownedSide.name ?? 'Your bot',
+              accent: ownedSide.accent,
+              lookId: ownedSide.lookId,
+              isOwner: true,
+            }}
+            modes={['ranked']}
+            initialMode="ranked"
+            triggerLabel="Start another matchmade set"
+          />
+        )}
+      </section>
+
+      <details className="panel-quiet px-3 py-2">
+        <summary className="lab cursor-pointer">Technical details</summary>
+        <dl className="t-micro mt-2 grid grid-cols-[62px_minmax(0,1fr)] gap-x-2 gap-y-1">
+          <dt>Set</dt>
+          <dd className="val break-all">{set.id}</dd>
+          <dt>Ruleset ID</dt>
+          <dd className="val break-all">{set.rulesVersion}</dd>
+          <dt>Created</dt>
+          <dd>{shortDate(set.createdAt)}</dd>
+        </dl>
+      </details>
     </div>
   );
 }
 
-function GameCard({ game, set }: { game: SetGame; set: MatchSetDetail }) {
-  const winnerName =
-    game.winnerBotId === set.botA.id
-      ? set.botA.name
-      : game.winnerBotId === set.botB.id
-        ? set.botB.name
-        : null;
-  const [first, second] = game.participants;
-  const action =
-    game.status === 'Failed'
-      ? 'View details'
-      : game.broadcasting
-        ? 'Watch live'
-        : game.status === 'Completed'
-          ? 'Watch replay'
-          : 'Open game';
+/* -------------------------------------------------------------------- schedule ----- */
 
+function GameCard({
+  game,
+  fallbackNumber,
+  sides,
+  setId,
+}: {
+  game: SetGame;
+  fallbackNumber: number;
+  sides: readonly SetSide[];
+  setId: string;
+}) {
+  const number = game.game ?? fallbackNumber;
   return (
-    <li>
-      <Link
-        to={`/matches/${game.id}`}
-        aria-label={`${action}: game ${game.game} on ${game.mapId}`}
-        className="group flex h-full flex-col gap-2 rounded-lg border border-arena-edge bg-arena-panel/60 p-4 transition-colors hover:border-arena-accent/70 hover:bg-arena-panel focus-visible:border-arena-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-arena-accent/40"
-      >
-        <div className="flex items-center gap-2 font-mono text-[11px] text-arena-dim">
-          GAME {game.game} · {game.mapId}
-          <span className="ml-auto">
-            {game.broadcasting ? (
-              <span className="flex items-center gap-1 font-bold text-red-400">
-                <span className="inline-block size-1.5 animate-pulse rounded-full bg-red-500" />
-                LIVE
-              </span>
-            ) : game.status !== 'Completed' ? (
-              game.status.toLowerCase()
-            ) : null}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <BotIdentity
-            name={first?.nameSnapshot}
-            accent={first?.accentSnapshot}
-            lookId={first?.lookIdSnapshot}
-            size="xs"
-            emphasized={winnerName === first?.nameSnapshot}
-          />
-          <span className="font-mono text-xs text-arena-dim"> vs </span>
-          <BotIdentity
-            name={second?.nameSnapshot}
-            accent={second?.accentSnapshot}
-            lookId={second?.lookIdSnapshot}
-            size="xs"
-            emphasized={winnerName === second?.nameSnapshot}
-          />
-        </div>
-        <div className="mt-auto flex items-center justify-between gap-3 font-mono text-xs">
-          <span className={winnerName ? 'text-arena-text' : 'text-arena-dim'}>
-            {winnerName
-              ? `${winnerName} wins`
-              : game.draw
-                ? 'draw'
-                : game.broadcasting
-                  ? 'result pending'
-                  : game.status.toLowerCase()}
-          </span>
-          <span className="whitespace-nowrap text-arena-accent">
-            {action}{' '}
-            <span
-              aria-hidden
-              className="inline-block transition-transform group-hover:translate-x-0.5"
-            >
-              →
-            </span>
-          </span>
-        </div>
-      </Link>
-    </li>
+    <div className="panel-quiet flex flex-col gap-2 px-3 py-2.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+        <p className="lab">Game {number}</p>
+        <span className="val">{game.mapId}</span>
+      </div>
+      <hr className="border-arena-edge" />
+      <Matchup
+        participants={game.participants}
+        winnerSlot={gameWinnerSlot(game)}
+        size="xs"
+        layout="stack"
+      />
+      <GameCell game={game} sides={sides} setId={setId} />
+    </div>
   );
 }
 
-function formatDelta(value: number | null): string {
-  if (value === null) return '';
-  const rounded = Math.round(value * 10) / 10;
-  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
+/**
+ * One scheduled game: its current outcome and a way into the broadcast or replay.
+ *
+ * The cell links out rather than expanding, which is the deliberate consequence of the set
+ * projection carrying no `endReason`/`endTick` per game — the match page has them, and it
+ * has the arena too.
+ */
+function GameCell({
+  game,
+  sides,
+  setId,
+}: {
+  game: SetGame;
+  sides: readonly SetSide[];
+  setId: string;
+}) {
+  const number = game.game;
+  return (
+    <Link
+      to={`/matches/${game.id}`}
+      state={{
+        returnTo: `/sets/${setId}`,
+        returnLabel: 'Ranked set',
+      }}
+      aria-label={`Game ${number ?? ''} on ${game.mapId}`}
+      className="group flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80"
+    >
+      <GameOutcome game={game} sides={sides} />
+      <span className="val ml-auto shrink-0 text-arena-text">
+        {number === null ? 'open' : `g${number}`}{' '}
+        <span aria-hidden className="inline-block transition-transform group-hover:translate-x-0.5">
+          →
+        </span>
+      </span>
+    </Link>
+  );
 }
+
+function GameOutcome({ game, sides }: { game: SetGame; sides: readonly SetSide[] }) {
+  if (game.status === 'Failed') return <span className="val text-arena-hot">did not run</span>;
+  if (game.broadcasting)
+    return <LiveStatus />;
+  if (game.draw)
+    return (
+      <span className="flex items-baseline gap-1.5">
+        <span className="val text-arena-text">—</span>
+        <span className="t-micro">drawn</span>
+      </span>
+    );
+  if (game.winnerBotId !== null) {
+    const winner = sides.find((side) => side.id === game.winnerBotId);
+    const participant = game.participants.find(
+      (entry) => entry.botId === game.winnerBotId,
+    );
+    return (
+      <span className="t-body text-arena-dim">
+        <span className="font-semibold text-arena-text">
+          {participant?.nameSnapshot ?? winner?.name ?? 'A removed bot'}
+        </span>{' '}
+        wins
+      </span>
+    );
+  }
+  return <span className="val">{game.status.toLowerCase()}</span>;
+}
+
+function RatingDelta({ change, before }: { change: number | null; before: number | null }) {
+  return <Movement change={change} before={before} />;
+}
+
+/* ------------------------------------------------------------------ derivations ----- */
+
+interface SetSide {
+  id: string;
+  name: string | null;
+  accent: string | null;
+  lookId: string | null;
+  /** Derived, not invented: the owner as the first game that names this bot recorded it. */
+  owner: string | null;
+  points: number | null;
+  ratingChange: number | null;
+  ratingBefore: number | null;
+}
+
+/**
+ * The sides of a set, in order.
+ *
+ * `MatchSetResponse` is `botA`/`botB` — the one place the wire asserts an arity, while
+ * `participants` and `games` are already lists. The page must not inherit the assertion,
+ * so it walks this instead. The day the field becomes `sides[]` this returns it and no
+ * markup changes; the score and rating fields are the same assertion and move with it.
+ */
+function setSides(set: MatchSetDetail): SetSide[] {
+  const wire = [set.botA, set.botB];
+  const scores = [set.scoreA, set.scoreB];
+  const changes = [set.ratingChangeA, set.ratingChangeB];
+  return wire.map((bot, index) => ({
+    id: bot.id,
+    name: sideLabel(bot),
+    accent: bot.accent,
+    lookId: bot.lookId,
+    owner:
+      set.games
+        .flatMap((game) => game.participants)
+        .find((participant) => participant.botId === bot.id)
+        ?.ownerDisplayNameSnapshot ?? null,
+    points: scores[index] ?? null,
+    ratingChange: changes[index] ?? null,
+    ratingBefore: null,
+  }));
+}
+
+function orderedSetGames(set: MatchSetDetail): SetGame[] {
+  return [...set.games].sort(
+    (left, right) => (left.game ?? Number.MAX_SAFE_INTEGER) -
+      (right.game ?? Number.MAX_SAFE_INTEGER),
+  );
+}
+
+function gameWinnerSlot(game: SetGame): number | null {
+  if (game.winnerBotId === null) return null;
+  return (
+    game.participants.find(
+      (participant) => participant.botId === game.winnerBotId,
+    )?.slot ?? null
+  );
+}
+
+function points(value: number): string {
+  return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10);
+}
+
+function sideLabel(bot: SetSideWire): string | null {
+  // Name and accent are null when a bot has been deleted and the set carries no participant
+  // snapshot for it (`MatchPublicProjection.ToSetBot`).
+  if (bot.name === null) return null;
+  return bot.name;
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+type SetSideWire = MatchSetDetail['botA'];

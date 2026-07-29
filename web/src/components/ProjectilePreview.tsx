@@ -1,5 +1,7 @@
-import type { CSSProperties } from 'react';
+import clsx from 'clsx';
 import type { ProjectileLook } from '../render/arenaThemes';
+import { playerAccent } from '../presentation/playerAccent';
+import { styleVariables } from '../presentation/styleVariables';
 
 interface ProjectilePreviewProps {
   look: ProjectileLook;
@@ -12,17 +14,15 @@ export default function ProjectilePreview({
   accent,
   className = 'size-10',
 }: ProjectilePreviewProps) {
-  const mask: CSSProperties = {
-    backgroundColor: accent,
-    maskImage: `url("${look.imageUrl}")`,
-    WebkitMaskImage: `url("${look.imageUrl}")`,
-    maskPosition: 'center',
-    WebkitMaskPosition: 'center',
-    maskRepeat: 'no-repeat',
-    WebkitMaskRepeat: 'no-repeat',
-    maskSize: 'contain',
-    WebkitMaskSize: 'contain',
-    filter: `drop-shadow(0 0 5px ${accent})`,
-  };
-  return <span aria-hidden className={`inline-block ${className}`} style={mask} />;
+  const drawn = playerAccent(accent);
+  return (
+    <span
+      aria-hidden
+      className={clsx('projectile-preview inline-block', className)}
+      style={styleVariables({
+        '--player-accent': drawn,
+        '--projectile-image': `url("${look.imageUrl}")`,
+      })}
+    />
+  );
 }

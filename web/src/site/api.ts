@@ -9,12 +9,26 @@ import { loadReplayJson, type LoadedReplay } from '../replayIngress';
  */
 type Schemas = components['schemas'];
 
+export type ApplicationProblem = Schemas['ApplicationProblemResponse'];
+
 export class ApiError extends Error {
+  public status: number;
+  public code: string | null;
+  public traceId: string | null;
+  public retryAfterSeconds: number | null;
+
   constructor(
-    public status: number,
+    status: number,
     message: string,
+    code: string | null = null,
+    traceId: string | null = null,
+    retryAfterSeconds: number | null = null,
   ) {
     super(message);
+    this.status = status;
+    this.code = code;
+    this.traceId = traceId;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -42,13 +56,30 @@ async function responseFor(
   });
   if (!response.ok) {
     let message = response.statusText;
+    let code: string | null = null;
+    let traceId: string | null = null;
+    let retryAfterSeconds: number | null = null;
     try {
-      const problem = await response.json();
+      const problem =
+        (await response.json()) as Partial<ApplicationProblem>;
       message = problem.detail ?? problem.title ?? message;
+      code = typeof problem.code === 'string' ? problem.code : null;
+      traceId =
+        typeof problem.traceId === 'string' ? problem.traceId : null;
+      retryAfterSeconds =
+        typeof problem.retryAfterSeconds === 'number'
+          ? problem.retryAfterSeconds
+          : null;
     } catch {
       /* not json */
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(
+      response.status,
+      message,
+      code,
+      traceId,
+      retryAfterSeconds,
+    );
   }
   return response;
 }
@@ -108,6 +139,11 @@ export type MatchLive = Schemas['MatchLiveResponse'];
 
 export type Meta = Schemas['MetaResponse'];
 export type MetaMap = Schemas['MetaMapResponse'];
+export type ArenaCapabilities = Schemas['ArenaCapabilitiesResponse'];
+export type ArenaAllowance = Schemas['ArenaAllowanceResponse'];
+export type RankedArenaAllowance =
+  Schemas['RankedArenaAllowanceResponse'];
+export type MatchPlayability = Schemas['MatchPlayabilityResponse'];
 
 export type SetGame = Schemas['MatchSetGameResponse'];
 export type MatchSetDetail = Schemas['MatchSetResponse'];
@@ -161,6 +197,7 @@ export const endpoints = {
   bot: (key: string) => api.get<BotDetail>(`/api/bots/${key}`),
   botMatches: (botId: string) => api.get<BotMatchHistory>(`/api/bots/${botId}/matches`),
   botStats: (botId: string) => api.get<BotStatistics>(`/api/bots/${botId}/stats`),
+  arena: () => api.get<ArenaCapabilities>('/api/arena'),
   labs: () => api.get<LabsCatalog>('/api/labs'),
   leaderboard: (rules?: string | null) =>
     api.get<Leaderboard>(

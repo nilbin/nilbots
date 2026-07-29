@@ -79,7 +79,7 @@ public static class BotBuilder
         // Empty the workspace without deleting the directory itself: it becomes a
         // Docker bind-mount source moments later, and replacing the mount root's
         // inode races macOS virtiofs into a transient empty container view
-        // (MSB1009; DECISIONS #145).
+        // (MSB1009; DECISIONS #151).
         Directory.CreateDirectory(workspace);
         foreach (string entry in Directory.EnumerateFileSystemEntries(workspace))
         {
@@ -153,7 +153,7 @@ public static class BotBuilder
               <ItemGroup>
                 <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" />
                 <!-- Host-matched compiler package: the build may run on a linux-x64 or
-                     linux-arm64 host (platform-matched Docker builder, DECISIONS #145);
+                     linux-arm64 host (platform-matched Docker builder, DECISIONS #151);
                      both emit byte-identical modules. The condition evaluates in the
                      build process, so one workspace stays correct on every host. -->
                 <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' != 'Arm64'" />

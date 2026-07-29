@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Markdown from '../components/Markdown';
 // The one source of rules prose. Imported raw at build time, so the site, the text
 // mirror at /llms-full.txt and the README written by `nilbots new` are the same words
@@ -13,9 +14,9 @@ const RULES_VERSION = '0.5';
 /// submitted bot without reading the repository.
 export default function DocsPage() {
   return (
-    <div className="prose-invert mx-auto flex max-w-3xl flex-col gap-8 text-sm leading-relaxed">
+    <div className="t-body mx-auto flex max-w-3xl flex-col gap-3.5 leading-relaxed">
       <section>
-        <h1 className="mb-2 text-2xl font-black tracking-wide">How to play</h1>
+        <h1 className="mb-2 type-display text-[26px]">How to play</h1>
         <p className="text-arena-dim">
           Write a C# bot, submit it, and watch it fight. Matches are deterministic:
           the same bots, map and seed always produce the same battle — so when your
@@ -23,20 +24,31 @@ export default function DocsPage() {
         </p>
       </section>
 
-      <Doc title="Quick start (browser only)">
+      <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
-          <li>Create an account and open <b>My garage</b>.</li>
-          <li>Create a bot, then paste your C# into <b>Submit new version</b> — the
-            server compiles it to WebAssembly and validates it.</li>
-          <li>Open any bot's page and hit <b>FIGHT</b> — or <b>FIGHT FOR RATING</b>
-            for a ranked 6-game set that moves elo.</li>
-          <li>Watch the broadcast live; click your bot in the viewer to see exactly
-            what it saw and why it acted.</li>
+          <li>
+            <Link to="/login?mode=register" className="text-link">Create an account</Link> and
+            install the CLI.
+          </li>
+          <li>
+            Run <code className="font-mono">nilbots new</code>, iterate locally, then{' '}
+            <code className="font-mono">nilbots submit</code>. The first bot reaches
+            the site from that terminal hand-off.
+          </li>
+          <li>
+            Open your <Link to="/garage" className="text-link">Garage</Link>, choose
+            the bot, then use <b>Play</b> for a ranked set or a one-off
+            challenge.
+          </li>
+          <li>
+            Follow the broadcast in <Link to="/watch" className="text-link">Watch</Link>;
+            click either bot in the result to inspect its generations and history.
+          </li>
         </ol>
       </Doc>
 
       <Doc title="The bot API">
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`using BotArena.Sdk;
+        <pre className="term">{`using BotArena.Sdk;
 
 public sealed class MyBot : IBot
 {
@@ -74,8 +86,8 @@ public sealed class MyBot : IBot
           (docs/PLAYER-GUIDE.md) that also backs /llms-full.txt and every scaffolded
           README, so the site cannot drift from the game — which it did once, teaching
           a retired zone-tick win condition for two days. */}
-      <Doc title={`Rules of the arena (v${RULES_VERSION})`}>
-        <Markdown source={playerGuide} />
+      <Doc title={`Duel ruleset reference (v${RULES_VERSION})`}>
+        <Markdown source={playerGuide} headingOffset={2} />
       </Doc>
 
       <Doc title="Determinism (why replays are trustworthy)">
@@ -103,7 +115,7 @@ public sealed class MyBot : IBot
           Everything the site does goes through the JSON API, and cookie auth works
           headless — no browser needed:
         </p>
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`curl -c jar -H 'Content-Type: application/json' \\
+        <pre className="term">{`curl -c jar -H 'Content-Type: application/json' \\
   -d '{"displayName":"Me","email":"me@x","password":"..."}' <server>/api/accounts/register
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"name":"MyBot","accent":"#22d3ee","lookId":"vanguard","projectileLookId":"pulse-bolt"}' <server>/api/bots
@@ -112,13 +124,12 @@ curl -b jar -H 'Content-Type: application/json' \\
   -d '{"entryType":"MyBot","files":[{"name":"MyBot.cs","content":"..."}]}' \\
   <server>/api/bots/<id>/versions        # then poll /api/bots/<id>/build-status
 curl -b jar -H 'Content-Type: application/json' \\
-  -d '{"botId":"...","rules":"0.5"}' \\
-  <server>/api/matches/ranked          # opponent is matchmade by rating; rules optional
-                                       # (only the live ladder takes new sets)
+  -d '{"botId":"..."}' \\
+  <server>/api/matches/ranked          # opponent is matchmade on the current ladder
 curl -b jar -H 'Content-Type: application/json' \\
   -d '{"botId":"...","opponentBotId":"...","mapId":"arena-01"}' \\
   <server>/api/matches/challenge       # unranked: you pick, nothing touches the ladder
-curl <server>/api/leaderboard?rules=0.5      # pick a ladder; default = current rules
+curl <server>/api/leaderboard                # current standings
 curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals it`}</pre>
         <p className="mt-2 text-arena-dim">
           <code className="font-mono">/build-status</code> is the slim polling view — it returns an
@@ -126,15 +137,14 @@ curl <server>/api/matches/<matchId>/replay   # public once the broadcast reveals
           not <code className="font-mono">.status</code>. The CLI's
           <code className="font-mono"> nilbots submit</code> wraps this flow plus artifact-parity checking.
           Lancer unlocks on the first successful build; Arc Spark unlocks after
-          the first completed unranked challenge; Aureate Warden and its Regent
-          Lance projectile unlock together after 100 completed ranked matches
-          (each ranked match is a full six-game mirrored set). Payments are not
-          part of the current entitlement system.
+          the first completed unranked match. Other milestones and their progress
+          appear in the server-provided appearance catalog. Payments are not part
+          of the current entitlement system.
         </p>
       </Doc>
 
       <Doc title="Local development (CLI)">
-        <pre className="overflow-x-auto rounded bg-arena-bg p-3 font-mono text-xs">{`dotnet tool install --global Nilbots
+        <pre className="term">{`dotnet tool install --global Nilbots
 nilbots register                                   # create account + OAuth/PKCE sign-in
 nilbots new MyBot && cd MyBot
 nilbots play --runtime in-process --bot . --opponent hunter   # fastest — iterate here
@@ -155,8 +165,8 @@ nilbots submit .                                   # creates bot + official buil
 
 function Doc({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-arena-edge bg-arena-panel/60 p-5">
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim uppercase">{title}</h2>
+    <section className="panel pad">
+      <h2 className="lab mb-3">{title}</h2>
       {children}
     </section>
   );

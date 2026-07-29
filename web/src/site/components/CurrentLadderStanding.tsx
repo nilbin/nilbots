@@ -1,4 +1,5 @@
 import type { BotDetail } from '../api';
+import { Link } from 'react-router-dom';
 
 export default function CurrentLadderStanding({
   standing,
@@ -8,35 +9,41 @@ export default function CurrentLadderStanding({
   return (
     <section
       className={
-        'flex flex-wrap items-center gap-x-5 gap-y-1 rounded-lg border px-4 py-3 ' +
-        (standing
-          ? 'border-arena-accent/50 bg-arena-accent/5'
-          : 'border-arena-edge bg-arena-panel/40')
+        'panel-quiet pad flex flex-wrap items-center gap-x-3.5 gap-y-1.5 ' +
+        (standing ? 'border-arena-edge2 bg-arena-raise' : '')
       }
     >
-      <span className="font-mono text-[11px] tracking-wider text-arena-dim">
-        CURRENT LADDER
-      </span>
+      <h2 className="lab">Duel standing</h2>
       {standing ? (
         <>
-          <strong className="text-xl text-arena-accent">#{standing.rank}</strong>
-          <span className="font-mono text-sm">
-            {standing.rating.toLocaleString()} rating
+          <strong className="type-display tabular text-[22px] text-arena-text">
+            #{standing.rank}
+          </strong>
+          <span className="t-meta">
+            <span className="val text-arena-text">
+              {standing.rating.toLocaleString()}
+            </span>{' '}
+            rating
           </span>
-          <span className="text-xs text-arena-dim">
-            {standing.rankedSets.toLocaleString()} ranked{' '}
-            {standing.rankedSets === 1 ? 'set' : 'sets'} · rules{' '}
-            {standing.rulesVersion}
+          <span className="t-meta">
+            <span className="val">
+              {standing.rankedSets.toLocaleString()}
+            </span>{' '}
+            ranked{' '}
+            {standing.rankedSets === 1 ? 'set' : 'sets'}
           </span>
         </>
       ) : (
         <>
-          <strong className="text-sm">Unranked</strong>
-          <span className="text-xs text-arena-dim">
-            No completed ranked set on the current rules ladder yet.
+          <strong className="t-body font-semibold text-arena-text">Unranked</strong>
+          <span className="t-meta">
+            No completed ranked set on the live Duel ladder yet.
           </span>
         </>
       )}
+      <Link to="/" className="t-meta ml-auto text-link">
+        View Duel rankings
+      </Link>
     </section>
   );
 }
