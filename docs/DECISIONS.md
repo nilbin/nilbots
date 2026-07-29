@@ -3368,6 +3368,50 @@ canonical ID cap overflows on the widest composed cells
 factorial needs a shorter token scheme or a registered combination
 identity before every cell can run.
 
+## 166. Phase 1 verdict: the pendulum survived the registered dose; sticky ground without contest cost backfires
+
+`frontline-pendulum-wave-3-v1` ran 216/216 verified matches (24 cells,
+four levels × six class pairs, facing-locked, classes-wave-1-r3
+population) plus a 144-match sealed-seed holdout, and the pre-registered
+gates FAILED — replicated on both seed sets, published as measured.
+
+The instructive failure: **plain ratchet (sticky + rally, no contest
+cost) made the game worse** — cap share rose 0.685 → 0.796 (holdout
+0.750 → 0.778) and draws exploded 9.3% → 29.6% (8.3% → 25.0%). The
+mechanism is legible in its own metrics: the ratchet did its literal
+job (reversal rate 0.69 → 0.51), but with one body still nulling any
+number at the objective, blocking regression froze the front rather
+than freeing it — nobody can lose ground, so nobody gains any.
+**Contest-majority is not an enhancement to the ratchet; it is a
+precondition.** Ratchet-contest moved every H1/H3 metric the right
+direction on both seed sets (leader-extends 0.466/0.474 vs control
+0.359/0.346; cap share 0.444/0.472; draws 7.4%/2.8%; the frozen-
+scoreboard gate actually passed at 0.111 twice) and missed every other
+threshold. H2's transit spread halved (14 → 6-7 ticks), not flattened —
+forward rally helps but the placement region still trails the front.
+**H4 passed exactly as registered**: numbers-only left the reversal
+median at ~0.65-0.67 and leader-extends at 0.29-0.32 on both seed sets
+— cheap numbers do not touch the pendulum, so the structural diagnosis
+survives its own falsification test. The dose was insufficient, not the
+theory.
+
+H5 also failed with a population finding attached: the r3 revisions,
+proven decision-identical to their predecessors only on pendulum-free
+contracts, shifted cross-class balance — control-cell spread is 1.56-
+1.62 (striker sweeping both classes outright) versus wave-2's 0.67 with
+the r2 population. Cross-class balance claims from this run are
+population-confounded and none are made; the phase-2 population plan
+(fresh skill-native lineages) was already the answer.
+
+Disposition: phase 2 does not start on this baseline, per the
+registered gate. The next registered dose is **phase-1b**: compose
+`enemy-sole-decay` into the winning level (`ratchet-contest` +
+enemy-sole-decay — one factor delta, per attribution discipline),
+targeting the wasted-sole share that stayed at 45-60% across all
+levels while being the one built counterweight the registered levels
+never included. Same gates, unchanged thresholds — a failed gate is
+answered with a stronger dose, never a softer bar.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
