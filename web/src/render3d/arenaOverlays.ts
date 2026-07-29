@@ -52,6 +52,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const fog = buildFog(mapWidth, mapHeight, disposables);
   group.add(fog.mesh);
 
+  const spawnPads = buildSpawnPads(replay, disposables);
+  group.add(spawnPads.group);
+
   const objective = buildObjective(replay, disposables);
   group.add(objective.group);
 
@@ -103,7 +106,8 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
       );
     }
 
-    objective.update(presentation);
+    spawnPads.update(presentation);
+    objective.update(presentation, time);
     lifecycle.update(presentation, time);
     flashes.update(tick, fraction);
     impacts.update(tick, fraction);
@@ -220,6 +224,96 @@ function buildFog(
 }
 
 /**
+ * Authored Frontline homes as inset service pads.
+ *
+ * The replay map owns every tile. These meshes are deliberately flat, non-colliding
+ * presentation layered over the continuous floor: a dark neutral bed, an exposed-edge
+ * seal, and small service hatches. Team identity is applied here from the presentation,
+ * never baked into a map texture or asset.
+ */
+function buildSpawnPads(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): {
+  group: THREE.Group;
+  update: (presentation: TickPresentation) => void;
+} {
+  const group = new THREE.Group();
+  group.userData.kind = 'frontline-spawn-pads';
+  const homes = replay.map.frontline?.teamHomes ?? [];
+  const entries = homes
+    .filter((home) => home.protectedSpawnPad.length > 0)
+    .map((home) => {
+      const pad = new THREE.Group();
+      pad.userData.kind = 'frontline-spawn-pad';
+      pad.userData.teamId = home.teamId;
+
+      const bedGeometry = tiledInsetGeometry(home.protectedSpawnPad, 0.055);
+      const bedMaterial = new THREE.MeshBasicMaterial({
+        color: '#211b18',
+        transparent: true,
+        opacity: 0.34,
+        depthWrite: false,
+      });
+      const bed = new THREE.Mesh(bedGeometry, bedMaterial);
+      bed.position.y = 0.012;
+      pad.add(bed);
+
+      const sealGeometry = tileBoundaryGeometry(
+        home.protectedSpawnPad,
+        0.055,
+        0.045,
+      );
+      const sealMaterial = new THREE.MeshBasicMaterial({
+        color: '#b27a43',
+        transparent: true,
+        opacity: 0.23,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const seal = new THREE.Mesh(sealGeometry, sealMaterial);
+      seal.position.y = 0.018;
+      pad.add(seal);
+
+      const hatchGeometry = serviceHatchGeometry(home.protectedSpawnPad);
+      const hatchMaterial = new THREE.MeshBasicMaterial({
+        color: '#b27a43',
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const hatches = new THREE.Mesh(hatchGeometry, hatchMaterial);
+      hatches.position.y = 0.02;
+      pad.add(hatches);
+
+      group.add(pad);
+      disposables.push(
+        bedGeometry,
+        bedMaterial,
+        sealGeometry,
+        sealMaterial,
+        hatchGeometry,
+        hatchMaterial,
+      );
+      return { teamId: home.teamId, pad, sealMaterial, hatchMaterial };
+    });
+
+  const update = (presentation: TickPresentation) => {
+    for (const entry of entries) {
+      const accent =
+        presentation.units.find((unit) => unit.teamId === entry.teamId)
+          ?.accent ?? '#b27a43';
+      entry.sealMaterial.color.set(accent);
+      entry.hatchMaterial.color.set(accent);
+      entry.pad.userData.accent = accent;
+    }
+  };
+
+  return { group, update };
+}
+
+/**
  * Objective geometry for both normalized formats.
  *
  * A duel has one static zone. Frontline keeps every authored position visible as a faint
@@ -231,7 +325,7 @@ function buildObjective(
   disposables: { dispose: () => void }[],
 ): {
   group: THREE.Group;
-  update: (presentation: TickPresentation) => void;
+  update: (presentation: TickPresentation, time: number) => void;
 } {
   const group = new THREE.Group();
   const frontline = replay.map.frontline;
@@ -243,41 +337,102 @@ function buildObjective(
   ];
   group.userData.positionCount = positions.length;
 
+  if (!frontline) {
+    if (replay.map.objectiveTiles.length === 0)
+      return { group, update: () => {} };
+    const geometry = tiledGeometry(replay.map.objectiveTiles);
+    const material = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#22d3ee'),
+      transparent: true,
+      opacity: 0.14,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.y = 0.024;
+    mesh.userData.positionIndex = 0;
+    mesh.userData.active = true;
+    group.add(mesh);
+    disposables.push(geometry, material);
+    return { group, update: () => {} };
+  }
+
   const entries = positions
     .filter((position) => position.tiles.length > 0)
     .map((position) => {
-      const geometry = tiledGeometry(position.tiles);
-      const material = new THREE.MeshBasicMaterial({
-        color: new THREE.Color('#22d3ee'),
+      const field = new THREE.Group();
+      field.userData.kind = 'frontline-capture-field';
+      field.userData.positionIndex = position.positionIndex;
+      field.userData.active = false;
+      field.userData.state = 'inactive';
+
+      const bedGeometry = tiledInsetGeometry(position.tiles, 0.075);
+      const bedMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#241c17'),
         transparent: true,
-        opacity: frontline ? 0.045 : 0.14,
+        opacity: 0.11,
+        depthWrite: false,
+      });
+      const bed = new THREE.Mesh(bedGeometry, bedMaterial);
+      bed.position.y = 0.014;
+      field.add(bed);
+
+      const boundaryGeometry = tileBoundaryGeometry(position.tiles, 0.075, 0.05);
+      const signalGeometry = captureSignalGeometry(position.tiles);
+      const signalMaterial = new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#b8844f'),
+        transparent: true,
+        opacity: 0.055,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.y = 0.024;
-      mesh.userData.positionIndex = position.positionIndex;
-      mesh.userData.active = !frontline;
-      group.add(mesh);
-      disposables.push(geometry, material);
-      return { positionIndex: position.positionIndex, mesh, material };
+      const boundary = new THREE.Mesh(boundaryGeometry, signalMaterial);
+      boundary.position.y = 0.021;
+      field.add(boundary);
+      const signal = new THREE.Mesh(signalGeometry, signalMaterial);
+      signal.position.y = 0.023;
+      field.add(signal);
+
+      group.add(field);
+      disposables.push(
+        bedGeometry,
+        bedMaterial,
+        boundaryGeometry,
+        signalGeometry,
+        signalMaterial,
+      );
+      return {
+        positionIndex: position.positionIndex,
+        field,
+        bedMaterial,
+        signalMaterial,
+      };
     });
 
-  const update = (presentation: TickPresentation) => {
-    if (!frontline) return;
+  const update = (presentation: TickPresentation, time: number) => {
     const objective =
       presentation.objective?.kind === 'frontline'
         ? presentation.objective
         : null;
     if (!objective) {
       for (const entry of entries) {
-        entry.mesh.userData.active = false;
-        entry.material.opacity = 0.045;
-        entry.material.color.set('#22d3ee');
+        entry.field.userData.active = false;
+        entry.field.userData.state = 'inactive';
+        entry.bedMaterial.opacity = 0.11;
+        entry.signalMaterial.opacity = 0.055;
+        entry.signalMaterial.color.set('#b8844f');
       }
       return;
     }
     const activePositionIndex = objective.activePositionIndex;
+    const presentTeams = new Set(
+      presentation.units
+        .filter(
+          (unit) => unit.status === 'active' && unit.holdingObjective,
+        )
+        .map((unit) => unit.teamId),
+    );
+    const contested = presentTeams.size > 1;
     const claimingAccent =
       objective?.claimingTeamId === null ||
       objective?.claimingTeamId === undefined
@@ -285,13 +440,48 @@ function buildObjective(
         : presentation.units.find(
             (unit) => unit.teamId === objective.claimingTeamId,
           )?.accent ?? null;
+    const solePresentTeamId =
+      presentTeams.size === 1 ? [...presentTeams][0] : null;
+    const presenceAccent =
+      solePresentTeamId === null
+        ? null
+        : presentation.units.find(
+            (unit) => unit.teamId === solePresentTeamId,
+          )?.accent ?? null;
+    const progress =
+      objective.captureThreshold > 0
+        ? Math.min(1, objective.captureProgress / objective.captureThreshold)
+        : 0;
+    const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.2);
 
     for (const entry of entries) {
       const active = entry.positionIndex === activePositionIndex;
-      entry.mesh.userData.active = active;
-      entry.material.opacity = active ? 0.24 : 0.045;
-      entry.material.color.set(
-        active && claimingAccent ? claimingAccent : '#22d3ee',
+      const state = !active
+        ? 'inactive'
+        : contested
+          ? 'contested'
+          : claimingAccent
+            ? 'claiming'
+            : 'neutral';
+      entry.field.userData.active = active;
+      entry.field.userData.state = state;
+      entry.field.userData.captureProgress = active
+        ? objective.captureProgress
+        : 0;
+      entry.bedMaterial.opacity = active ? 0.2 : 0.11;
+      entry.signalMaterial.opacity = !active
+        ? 0.055
+        : contested
+          ? 0.46 + pulse * 0.18
+          : claimingAccent || presenceAccent
+            ? 0.32 + progress * 0.28
+            : 0.25;
+      entry.signalMaterial.color.set(
+        active && contested
+          ? '#f4c477'
+          : active && (claimingAccent || presenceAccent)
+            ? (claimingAccent ?? presenceAccent)!
+            : '#b8844f',
       );
     }
   };
@@ -416,6 +606,109 @@ function tiledGeometry(
     quad.rotateX(-Math.PI / 2);
     quad.translate(x + 0.5, 0, y + 0.5);
     return quad;
+  });
+  const geometry = mergeQuads(parts);
+  for (const part of parts) part.dispose();
+  return geometry;
+}
+
+function tiledInsetGeometry(
+  tiles: readonly ReplayPosition[],
+  inset: number,
+): THREE.BufferGeometry {
+  const size = 1 - inset * 2;
+  const parts = tiles.map(({ x, y }) => {
+    const quad = new THREE.PlaneGeometry(size, size);
+    quad.rotateX(-Math.PI / 2);
+    quad.translate(x + 0.5, 0, y + 0.5);
+    return quad;
+  });
+  const geometry = mergeQuads(parts);
+  for (const part of parts) part.dispose();
+  return geometry;
+}
+
+/** Exposed edges only, so a multi-tile field reads as one authored footprint. */
+function tileBoundaryGeometry(
+  tiles: readonly ReplayPosition[],
+  inset: number,
+  thickness: number,
+): THREE.BufferGeometry {
+  const occupied = new Set(tiles.map(({ x, y }) => `${x},${y}`));
+  const parts: THREE.PlaneGeometry[] = [];
+  const horizontalLength = 1 - inset * 2;
+  const verticalLength = 1 - inset * 2;
+  const add = (
+    width: number,
+    depth: number,
+    x: number,
+    y: number,
+  ) => {
+    const quad = new THREE.PlaneGeometry(width, depth);
+    quad.rotateX(-Math.PI / 2);
+    quad.translate(x, 0, y);
+    parts.push(quad);
+  };
+  for (const tile of tiles) {
+    if (!occupied.has(`${tile.x},${tile.y - 1}`))
+      add(
+        horizontalLength,
+        thickness,
+        tile.x + 0.5,
+        tile.y + inset + thickness / 2,
+      );
+    if (!occupied.has(`${tile.x},${tile.y + 1}`))
+      add(
+        horizontalLength,
+        thickness,
+        tile.x + 0.5,
+        tile.y + 1 - inset - thickness / 2,
+      );
+    if (!occupied.has(`${tile.x - 1},${tile.y}`))
+      add(
+        thickness,
+        verticalLength,
+        tile.x + inset + thickness / 2,
+        tile.y + 0.5,
+      );
+    if (!occupied.has(`${tile.x + 1},${tile.y}`))
+      add(
+        thickness,
+        verticalLength,
+        tile.x + 1 - inset - thickness / 2,
+        tile.y + 0.5,
+      );
+  }
+  const geometry = mergeQuads(parts);
+  for (const part of parts) part.dispose();
+  return geometry;
+}
+
+function serviceHatchGeometry(
+  tiles: readonly ReplayPosition[],
+): THREE.BufferGeometry {
+  const parts = tiles.flatMap(({ x, y }) =>
+    [-0.055, 0.055].map((offset) => {
+      const slit = new THREE.PlaneGeometry(0.28, 0.028);
+      slit.rotateX(-Math.PI / 2);
+      slit.translate(x + 0.5, 0, y + 0.5 + offset);
+      return slit;
+    }),
+  );
+  const geometry = mergeQuads(parts);
+  for (const part of parts) part.dispose();
+  return geometry;
+}
+
+function captureSignalGeometry(
+  tiles: readonly ReplayPosition[],
+): THREE.BufferGeometry {
+  const parts = tiles.map(({ x, y }) => {
+    const ring = new THREE.RingGeometry(0.19, 0.245, 6);
+    ring.rotateX(-Math.PI / 2);
+    ring.rotateY(Math.PI / 6);
+    ring.translate(x + 0.5, 0, y + 0.5);
+    return ring;
   });
   const geometry = mergeQuads(parts);
   for (const part of parts) part.dispose();

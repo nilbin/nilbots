@@ -489,10 +489,13 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
   overlays.update(1.5, null, false);
 
   const positionMeshes: THREE.Object3D[] = [];
+  const spawnPads: THREE.Object3D[] = [];
   const lifecycleMeshes: THREE.Object3D[] = [];
   overlays.group.traverse((node) => {
     if (typeof node.userData.positionIndex === 'number')
       positionMeshes.push(node);
+    if (node.userData.kind === 'frontline-spawn-pad')
+      spawnPads.push(node);
     if (typeof node.userData.lifecycleStatus === 'string')
       lifecycleMeshes.push(node);
   });
@@ -500,6 +503,19 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
   assert.equal(
     positionMeshes.filter((mesh) => mesh.userData.active).length,
     1,
+  );
+  assert.equal(spawnPads.length, 2, 'both authored home pads are visible');
+  assert.deepEqual(
+    spawnPads.map((pad) => pad.userData.teamId).sort(),
+    [0, 1],
+  );
+  assert.ok(
+    spawnPads.every(
+      (pad) =>
+        typeof pad.userData.accent === 'string' &&
+        pad.userData.accent.length > 0,
+    ),
+    'spawn-pad team colour comes from renderer presentation',
   );
   const queued = lifecycleMeshes.find(
     (mesh) =>
@@ -524,6 +540,37 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
     false,
     'the lifecycle cue yields to the authoritative new body',
   );
+
+  overlays.dispose();
+});
+
+test('Frontline capture fields derive contested state from authoritative occupancy', () => {
+  const contestedReplay = structuredClone(frontline) as ReplayModel;
+  const definition = contestedReplay.map.frontline;
+  assert.ok(definition);
+  const active = definition.positions.find(
+    (position) => position.positionIndex === 1,
+  );
+  assert.ok(active);
+  // Both active Prime positions at tick zero, expressed as an authored
+  // multi-tile objective footprint rather than an invented overlay position.
+  active.tiles = [
+    { x: 1, y: 4 },
+    { x: 13, y: 4 },
+  ];
+
+  const overlays = buildOverlays(contestedReplay);
+  overlays.update(0.5, null, false);
+
+  const fields: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => {
+    if (node.userData.kind === 'frontline-capture-field')
+      fields.push(node);
+  });
+  const activeField = fields.find((field) => field.userData.active);
+  assert.ok(activeField);
+  assert.equal(activeField.userData.positionIndex, 1);
+  assert.equal(activeField.userData.state, 'contested');
 
   overlays.dispose();
 });

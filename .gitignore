@@ -55,3 +55,10 @@ arena-bots/frontline-labs/**/evidence/
 arena-bots/frontline-labs/**/smoke/
 arena-bots/frontline-labs/**/revisions/
 balance/private/
+
+# Frontline map provider masters are retained locally for technical-art
+# handoff, but are too large (and provider task URLs too ephemeral) for source
+# control. Commit compact manifests, hashes, previews, and review renders.
+art/frontline-map-models/provider-runs/**/raw-model.glb
+art/frontline-map-models/provider-runs/**/texture-*.png
+art/frontline-map-models/provider-runs/**/task.raw.json
