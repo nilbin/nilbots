@@ -48,6 +48,13 @@ export default function EventFeed({
         return event.targetActor
           ? `${actorName(replay, event.sourceActor)} hits ${actorName(replay, event.targetActor)}`
           : `${actorName(replay, event.sourceActor)} fires`;
+      case 'projectile-absorbed':
+        // Named for what it costs the shooter, not for what it does to the guard: the
+        // whole point of the event is that the target's health is unchanged.
+        return (
+          `${actorName(replay, event.targetActor)} shrugs off a shot` +
+          (event.toFacing ? ` · guarding ${event.toFacing}` : '')
+        );
       case 'damage':
         return (
           `${actorName(replay, event.targetActor)} takes ${event.amount ?? '?'} damage` +
@@ -167,6 +174,7 @@ export default function EventFeed({
                 event.type === 'form-changed',
               'text-amber-200':
                 event.type === 'form-transition-cancelled',
+              'text-sky-200': event.type === 'projectile-absorbed',
               'text-arena-text':
                 event.type === 'shot' ||
                 event.type === 'move-blocked',

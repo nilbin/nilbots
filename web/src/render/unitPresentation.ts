@@ -48,15 +48,46 @@ import { botLook, presentationAccent, type BotLook } from './arenaThemes';
  * and reads as a builder. The emplaced picks are the two radially symmetric chassis in
  * the library — a shape with no front, which is exactly what an objective-weight-zero
  * turret that sees and fires in every direction is.
+ *
+ * `stance` is the third shape a class-skill arm can put a life in, and the picks follow
+ * the same rule. `rift-runner` is a swept rack of blades — a fan, which is what the
+ * volley gun fires; `mossback` is a blunt plated carapace, which is what a shell is.
+ * Neither is the eventual answer any more than the other two are; both exist so a
+ * transformation is a transformation on screen and not a ring around an unchanged bot.
+ * A family with no stance skill has no entry, and nothing ever asks it for one.
  */
 const CLASS_FORM_LOOK_FALLBACK: ReadonlyMap<
   string,
-  { readonly mobile: string; readonly emplaced: string }
+  {
+    readonly mobile: string;
+    readonly emplaced: string;
+    readonly stance?: string;
+  }
 > = new Map([
-  ['striker', { mobile: 'needle', emplaced: 'orbiter' }],
-  ['bulwark', { mobile: 'aureate-warden', emplaced: 'bulwark' }],
+  ['striker', { mobile: 'needle', emplaced: 'orbiter', stance: 'rift-runner' }],
+  [
+    'bulwark',
+    { mobile: 'aureate-warden', emplaced: 'bulwark', stance: 'mossback' },
+  ],
   ['fabricator', { mobile: 'mantis', emplaced: 'orbiter' }],
 ]);
+
+/**
+ * The same-life stances the class-skill kit adds, keyed by the token the engine appends
+ * to the source form ID (`striker-prime` → `striker-prime-volley-stance`).
+ *
+ * Read off the form ID because that is the only thing in the document that says which
+ * stance this is: the contract's own `projectileGuard` and `volley` blocks sit on the
+ * form and attack profile, and neither survives into the version-neutral model. The
+ * token is contract-visible and exact, and an unknown one simply is not a stance here —
+ * it falls through to the emplacement treatment rather than being guessed at.
+ */
+export type StanceKind = 'volley' | 'aegis';
+
+const STANCE_TOKENS: readonly (readonly [string, StanceKind])[] = [
+  ['volley-stance', 'volley'],
+  ['aegis-shell', 'aegis'],
+];
 
 /**
  * Team colours used only when the replay's own accents cannot tell the teams apart.
@@ -93,13 +124,30 @@ export function isEmplacedFormId(formId: string | null | undefined): boolean {
   return typeof formId === 'string' && formId.endsWith('-turret');
 }
 
-/** The stand-in look for a class form, turret variants included, or null. */
+/**
+ * Which same-life stance a form ID names, or null when it names no stance.
+ *
+ * Deliberately independent of the class family: a stance token is the whole claim, so a
+ * future family reusing one renders like the stance it is rather than like nothing.
+ */
+export function stanceKindForForm(
+  formId: string | null | undefined,
+): StanceKind | null {
+  if (typeof formId !== 'string') return null;
+  for (const [token, kind] of STANCE_TOKENS)
+    if (formId.endsWith(`-${token}`)) return kind;
+  return null;
+}
+
+/** The stand-in look for a class form, turret and stance variants included, or null. */
 export function fallbackLookIdForForm(
   formId: string | null | undefined,
 ): string | null {
   const family = classFamilyForForm(formId);
   if (family === null) return null;
   const looks = CLASS_FORM_LOOK_FALLBACK.get(family)!;
+  if (stanceKindForForm(formId) !== null)
+    return looks.stance ?? looks.emplaced;
   return isEmplacedFormId(formId) ? looks.emplaced : looks.mobile;
 }
 
@@ -116,6 +164,16 @@ export function fallbackEmplacedLookIdForForm(
   return family === null
     ? null
     : CLASS_FORM_LOOK_FALLBACK.get(family)!.emplaced;
+}
+
+/** The stand-in look for a class family's stance form, or null when it has no stance. */
+export function fallbackStanceLookIdForForm(
+  formId: string | null | undefined,
+): string | null {
+  const family = classFamilyForForm(formId);
+  return family === null
+    ? null
+    : (CLASS_FORM_LOOK_FALLBACK.get(family)!.stance ?? null);
 }
 
 /** The look ID the replay itself authored for a form, when it authored one. */
@@ -184,6 +242,49 @@ export function unitEmplacedLook(
     fallbackEmplacedLookIdForForm(effectiveFormId) ??
     undefined;
   return resolved === undefined
+    ? null
+    : botLook(resolved, visualIndexForUnit(replay, unitKey));
+}
+
+/**
+ * The stance form a unit can enter from a given form, read out of the replay's own
+ * catalog rather than assembled from a naming rule.
+ *
+ * The engine names a stance form `<source form>-<stance token>`, so the catalog entry is
+ * findable by prefix — and finding it, rather than composing the string, is what keeps a
+ * unit whose ruleset carries no stance from being handed one. The 2.5D renderer needs
+ * this because it builds a unit's bodies once, before the life has worn any of them.
+ */
+export function stanceFormForUnit(
+  replay: ReplayModel,
+  unitKey: ReplayStableUnitKey,
+  formId?: string | null,
+): { readonly formId: string; readonly kind: StanceKind } | null {
+  const effectiveFormId =
+    formId ?? defaultFormIdForUnit(replay, unitKey);
+  if (!effectiveFormId) return null;
+  const own = stanceKindForForm(effectiveFormId);
+  if (own !== null) return { formId: effectiveFormId, kind: own };
+  for (const form of replay.forms) {
+    if (!form.formId.startsWith(`${effectiveFormId}-`)) continue;
+    const kind = stanceKindForForm(form.formId);
+    if (kind !== null) return { formId: form.formId, kind };
+  }
+  return null;
+}
+
+/** The look a unit's stance form wears, or null when its ruleset gives it no stance. */
+export function unitStanceLook(
+  replay: ReplayModel,
+  unitKey: ReplayStableUnitKey,
+  formId?: string | null,
+): BotLook | null {
+  const stance = stanceFormForUnit(replay, unitKey, formId);
+  if (stance === null) return null;
+  const resolved =
+    authoredLookIdForForm(replay, stance.formId) ??
+    fallbackStanceLookIdForForm(stance.formId);
+  return resolved === null
     ? null
     : botLook(resolved, visualIndexForUnit(replay, unitKey));
 }

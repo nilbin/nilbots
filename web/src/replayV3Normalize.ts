@@ -6184,7 +6184,12 @@ function eventFromV3(
     ) as Model.ReplayDirection | null,
     toFacing:
       (stringField(payload, 'toFacing') as Model.ReplayDirection | null) ??
-      (stringField(payload, 'facing') as Model.ReplayDirection | null),
+      (stringField(payload, 'facing') as Model.ReplayDirection | null) ??
+      // `projectile-absorbed` carries the guard's own facing, and it is the
+      // load-bearing field of the event: the shell consumes contacts arriving in
+      // that quadrant and nothing else. Surfaced beside `targetFormId` below,
+      // which the same event uses the same way.
+      (stringField(payload, 'targetFacing') as Model.ReplayDirection | null),
     projectileHeading: stringField(
       payload,
       'heading',

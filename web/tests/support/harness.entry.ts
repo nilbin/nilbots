@@ -15,10 +15,18 @@ export { createPresenter } from '../../src/replayPresentation';
 export {
   classFamilyForForm,
   fallbackLookIdForForm,
+  stanceFormForUnit,
+  stanceKindForForm,
   unitAccent,
   unitEmplacedLook,
   unitLook,
+  unitStanceLook,
 } from '../../src/render/unitPresentation';
+export {
+  volleyArrowOutline,
+  volleyLanes,
+  volleysAt,
+} from '../../src/render/volley';
 export {
   buildAdaptiveTimeline,
   sampleAdaptiveTimeline,

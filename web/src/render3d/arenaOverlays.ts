@@ -66,6 +66,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const spent = buildSpentBolts(replay, disposables);
   group.add(spent.group);
 
+  const absorptions = buildAbsorptions(replay, disposables);
+  group.add(absorptions.group);
+
   let painted = '';
 
   const update = (
@@ -101,6 +104,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     flashes.update(tick, fraction);
     impacts.update(tick, fraction);
     spent.update(time);
+    absorptions.update(tick, fraction);
   };
 
   /**
@@ -494,6 +498,127 @@ function buildImpacts(
       }
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/** Which way a guard was pointing, as a rotation about the vertical axis. */
+const GUARD_FACING: Record<string, number> = {
+  east: 0,
+  south: -Math.PI / 2,
+  west: Math.PI,
+  north: Math.PI / 2,
+};
+
+/**
+ * A bolt dying on an aegis shell.
+ *
+ * Everything else that stops a projectile here expands: an impact throws a shockwave, a
+ * kill throws two, a spent bolt dissipates outward. This one must not, because the whole
+ * content of the event is that *nothing was transferred* — so the guarded quadrant simply
+ * rings, at its own radius, and goes out. It is also drawn on the defender's facing rather
+ * than on the bolt's bearing, which makes every absorption a restatement of where the
+ * shield is and, by omission, where it is not.
+ *
+ * The bolt gets its own end: a small hard flare exactly on the contact tile, so it reads
+ * as having died there rather than as having been forgotten by the renderer.
+ */
+function buildAbsorptions(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (tick: number, fraction: number) => void } {
+  const group = new THREE.Group();
+  // Exactly the quadrant the guard covers, at the radius the plate stands on.
+  const geometry = new THREE.RingGeometry(0.42, 0.94, 24, 1, -Math.PI / 4, Math.PI / 2);
+  geometry.rotateX(-Math.PI / 2);
+  const sparkGeometry = new THREE.RingGeometry(0.04, 0.2, 16);
+  sparkGeometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry, sparkGeometry);
+
+  const arcs: THREE.Mesh[] = [];
+  const sparks: THREE.Mesh[] = [];
+  const borrow = (pool: THREE.Mesh[], shape: THREE.BufferGeometry, index: number, cue: string) => {
+    while (pool.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(shape, material);
+      mesh.userData.cue = cue;
+      mesh.visible = false;
+      group.add(mesh);
+      pool.push(mesh);
+      disposables.push(material);
+    }
+    return pool[index];
+  };
+
+  const ring = new THREE.Color('#e6f6ff');
+
+  const update = (tick: number, fraction: number) => {
+    let usedArcs = 0;
+    let usedSparks = 0;
+    const current = replay.ticks[tick];
+    for (const event of current?.events ?? []) {
+      if (event.type !== 'projectile-absorbed') continue;
+      // The same late-tick window every other contact uses, so an absorption and a hit
+      // landing on the same tick happen at the same instant.
+      const since = (fraction - 0.6) / 0.4;
+      if (since < 0 || since > 1) continue;
+      const contact = event.to ?? event.from;
+      const guard = event.targetActor;
+      const at =
+        guard === undefined || guard === null
+          ? null
+          : ((current?.after.actors ?? []).find(
+              (actor) => actor.actorKey === guard.actorKey,
+            )?.position ??
+            (current?.before.actors ?? []).find(
+              (actor) => actor.actorKey === guard.actorKey,
+            )?.position ??
+            null);
+
+      if (at && event.toFacing !== null) {
+        const arc = borrow(arcs, geometry, usedArcs++, 'absorb-arc');
+        arc.visible = true;
+        arc.position.set(at.x + 0.5, 0.07, at.y + 0.5);
+        arc.rotation.y = GUARD_FACING[event.toFacing] ?? 0;
+        // It rings; it does not grow. A hair of swell only, so the plate reads as struck
+        // rather than as a second shockwave.
+        arc.scale.setScalar(1 + since * 0.09);
+        const material = arc.material as THREE.MeshBasicMaterial;
+        material.color
+          .copy(ring)
+          .lerp(
+            new THREE.Color(
+              guard ? accentForUnit(replay, guard.unitKey) : '#22d3ee',
+            ),
+            since,
+          );
+        material.opacity = (1 - since) ** 1.4 * 0.95;
+      }
+
+      if (contact) {
+        const spark = borrow(sparks, sparkGeometry, usedSparks++, 'absorb-contact');
+        spark.visible = true;
+        spark.position.set(contact.x + 0.5, PROJECTILE_HOVER, contact.y + 0.5);
+        spark.scale.setScalar(1.5 * (1 - since * 0.7));
+        const material = spark.material as THREE.MeshBasicMaterial;
+        material.color.set(
+          event.sourceActor
+            ? accentForUnit(replay, event.sourceActor.unitKey)
+            : '#22d3ee',
+        );
+        material.opacity = (1 - since) ** 2 * 0.9;
+      }
+    }
+    for (let index = usedArcs; index < arcs.length; index++)
+      arcs[index].visible = false;
+    for (let index = usedSparks; index < sparks.length; index++)
+      sparks[index].visible = false;
   };
 
   return { group, update };

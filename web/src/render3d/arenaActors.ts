@@ -7,9 +7,12 @@ import type {
 import { projectileLook } from '../render/arenaThemes';
 import {
   defaultFormIdForUnit,
+  stanceFormForUnit,
+  stanceKindForForm,
   unitAccent,
   unitEmplacedLook,
   unitLook,
+  unitStanceLook,
 } from '../render/unitPresentation';
 import {
   boltsAt,
@@ -17,6 +20,8 @@ import {
   headingAngle,
   posesAt,
 } from '../render/interpolate';
+import { volleyLanes } from '../render/volley';
+import { buildVolleyArrows } from './volleyArrows';
 import {
   maxHealthForActor,
   replayMaxHealth,
@@ -53,6 +58,28 @@ const TURRET_LIFT = 0.5;
 const TURRET_SHIFT = 0.16;
 const TURRET_SCALE = 0.82;
 const TURRET_SPIN = 0.55;
+
+/**
+ * The stance bodies: a third shape, and deliberately not a turret.
+ *
+ * A turret earns its radial symmetry from the rules — it sees and fires in every
+ * direction. Both class stances keep a facing and both are *about* that facing: the
+ * volley gun's three bolts leave along it, and the aegis shell consumes only what arrives
+ * inside the quadrant it points at. Rearing a stance up on its nose and spinning it would
+ * therefore be a lie about the one thing the viewer needs, so a stance stays flat on the
+ * floor, keeps its nose, and grows hardware instead.
+ *
+ * The half-angle is a quarter turn either side, because that is the fan the volley
+ * profile fires and the quadrant the guard covers. It is not a styling choice; changing
+ * it would misstate the rule.
+ */
+const STANCE_HALF_ANGLE = Math.PI / 4;
+/** Barrel length and thickness, in chassis widths. */
+const BARREL_REACH = 1.15;
+const BARREL_GAUGE = 0.1;
+/** How tall the aegis plate stands, and where its face sits. */
+const PLATE_HEIGHT = 0.34;
+const PLATE_RADIUS = 0.72;
 
 /**
  * When the turret takes over from the chassis, as a share of the deploy, and how long the
@@ -193,6 +220,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const defaultFormId = defaultFormIdForUnit(replay, unit.unitKey);
     const look = unitLook(replay, unit.unitKey, defaultFormId);
     const emplacedLook = unitEmplacedLook(replay, unit.unitKey, defaultFormId);
+    const stanceForm = stanceFormForUnit(replay, unit.unitKey, defaultFormId);
+    const stanceLook = unitStanceLook(replay, unit.unitKey, defaultFormId);
     const accent = new THREE.Color(unitAccent(replay, unit.unitKey, defaultFormId));
     const size = Math.max(0.82, look.scale * 0.9);
 
@@ -323,6 +352,18 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     });
     chassis.add(turret);
 
+    // The stance body. Built only for a unit whose ruleset actually has one, so a duel or
+    // a skill-free class arm allocates nothing and behaves exactly as it did.
+    const stance = new THREE.Group();
+    stance.visible = false;
+    stance.userData.renderForm = 'stance-directional';
+    stance.userData.stanceKind = stanceForm?.kind ?? null;
+    /** Hinges the deploy swings open, and the plate it raises. */
+    const barrels: THREE.Group[] = [];
+    let plate: THREE.Object3D | null = null;
+    let guardArc: THREE.Mesh | null = null;
+    chassis.add(stance);
+
     // Anchor windup is state, not a guessed animation: the ring appears only while the
     // normalized actor carries an authoritative pending transition.
     // The windup cue: a ring that fills as the deploy completes.
@@ -452,6 +493,123 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     tintable(hullMaterial);
     tintable(lidMaterial);
     tintable(noseMaterial);
+
+    // The stance hardware. Built here rather than beside the empty group above because it
+    // enrols in `fading` and `tinting`, and both of those are declared with the rest of
+    // the bot's paint — a stance still has to ghost under fog and light up when followed.
+    if (stanceForm !== null) {
+      // The stance's own silhouette, extruded from the stance look exactly as the mobile
+      // body is from the chassis look. A form change swaps the machine, not its paint.
+      void chassisModel((stanceLook ?? look).imageUrl).then((model) => {
+        if (!live || !model) return;
+        const solid = model.clone();
+        solid.scale.setScalar(size * 0.94);
+        solid.traverse((node) => {
+          const mesh = node as THREE.Mesh;
+          if (!mesh.isMesh || Array.isArray(mesh.material)) return;
+          mesh.material = mesh.material.clone();
+          fading.push({ material: mesh.material, base: 1 });
+          tintable(mesh.material as THREE.MeshStandardMaterial);
+          disposables.push(mesh.material);
+          repaint();
+        });
+        stance.add(solid);
+      });
+    }
+
+    if (stanceForm?.kind === 'volley') {
+      // Three barrels on three hinges, at the exact headings the profile fires. Local −Y
+      // rotation is the screen-space fan angle: the chassis is turned by `-pose.angle`,
+      // so world (x, z) and screen (x, y) are the same plane in the same order.
+      const barrelGeometry = new THREE.BoxGeometry(
+        size * BARREL_REACH,
+        size * BARREL_GAUGE,
+        size * BARREL_GAUGE * 1.2,
+      );
+      const barrelMaterial = new THREE.MeshStandardMaterial({
+        color: accent.clone().multiplyScalar(0.45),
+        emissive: accent,
+        emissiveIntensity: 1.1,
+        roughness: 0.35,
+        metalness: 0.6,
+      });
+      disposables.push(barrelGeometry, barrelMaterial);
+      fading.push({ material: barrelMaterial, base: 1 });
+      tintable(barrelMaterial);
+      for (const fan of [-STANCE_HALF_ANGLE, 0, STANCE_HALF_ANGLE]) {
+        const hinge = new THREE.Group();
+        hinge.userData.fanAngle = fan;
+        const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+        barrel.position.set(size * BARREL_REACH * 0.5, BOT_HEIGHT * 0.9, 0);
+        barrel.castShadow = true;
+        hinge.add(barrel);
+        stance.add(hinge);
+        barrels.push(hinge);
+      }
+    }
+
+    if (stanceForm?.kind === 'aegis') {
+      // A standing curved plate across the guarded quadrant. Open-ended, so it is a wall
+      // rather than a tube, and it stops hard at ±45° — the edge is the counter-play.
+      const plateGeometry = new THREE.CylinderGeometry(
+        size * PLATE_RADIUS,
+        size * PLATE_RADIUS,
+        size * PLATE_HEIGHT,
+        20,
+        1,
+        true,
+        // Cylinder theta runs from +Z; the guarded quadrant is centred on +X.
+        Math.PI / 2 - STANCE_HALF_ANGLE,
+        STANCE_HALF_ANGLE * 2,
+      );
+      const plateMaterial = new THREE.MeshStandardMaterial({
+        color: accent.clone().multiplyScalar(0.5),
+        emissive: accent,
+        emissiveIntensity: 0.9,
+        roughness: 0.3,
+        metalness: 0.65,
+        side: THREE.DoubleSide,
+      });
+      disposables.push(plateGeometry, plateMaterial);
+      fading.push({ material: plateMaterial, base: 1 });
+      tintable(plateMaterial);
+      const plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
+      plateMesh.userData.cue = 'aegis-plate';
+      plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
+      plateMesh.castShadow = true;
+      stance.add(plateMesh);
+      plate = plateMesh;
+
+      // And the same quadrant on the floor, because from a raised camera an upright plate
+      // foreshortens and the *extent* of the guard is what a flanker is judging.
+      const arcGeometry = new THREE.RingGeometry(
+        size * 0.5,
+        size * (PLATE_RADIUS + 0.16),
+        28,
+        1,
+        -STANCE_HALF_ANGLE,
+        STANCE_HALF_ANGLE * 2,
+      );
+      arcGeometry.rotateX(-Math.PI / 2);
+      const arcMaterial = new THREE.MeshBasicMaterial({
+        color: accent,
+        transparent: true,
+        opacity: 0.42,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const arcMesh = new THREE.Mesh(arcGeometry, arcMaterial);
+      arcMesh.userData.cue = 'aegis-guard-arc';
+      arcMesh.position.y = 0.03;
+      stance.add(arcMesh);
+      disposables.push(arcGeometry, arcMaterial);
+      // Deliberately NOT in `fading`: the guard arc's opacity carries the unfold ramp,
+      // and `fade` assigns rather than multiplies, so enrolling it would overwrite the
+      // ramp every frame with a flat base. It composes with fog after the fade instead,
+      // exactly like the anchor dial and the turret scan do.
+      guardArc = arcMesh;
+    }
 
     // Swap the box for the real thing once the sprite has been parsed and triangulated.
     //
@@ -612,6 +770,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       body,
       turret,
       spokes,
+      stance,
+      stanceKind: stanceForm?.kind ?? null,
+      barrels,
+      plate,
+      guardArc,
       anchorRing,
       paintAnchor,
       scan,
@@ -653,14 +816,33 @@ export function buildActors(replay: ReplayModel): ArenaActors {
    * A cancelled transition (lethal damage during a windup) is recorded as a segment back
    * toward the form the life kept, so a half-raised chassis settles instead of finishing a
    * deploy that never happened.
+   *
+   * A segment also carries which *shape* each end of it is, because "stationary" stopped
+   * being enough the moment a class could be stationary in two different ways. Entering a
+   * stance and anchoring are both `canMove === false` and they are not the same machine;
+   * worse, the source shape is what a mobilize has to collapse, and by the time the
+   * effective form flips back the source is no longer readable from the pose.
    */
-  type FormSegment = { at: number; span: number; stationary: boolean };
+  type FormShape = 'mobile' | 'turret' | 'stance';
+  type FormSegment = {
+    at: number;
+    span: number;
+    stationary: boolean;
+    shape: FormShape;
+    sourceShape: FormShape;
+  };
   const formTimelines = new Map<ReplayActorLifeKey, FormSegment[]>();
   const stationaryForm = (formId: string | null) =>
     formId === null
       ? null
       : (replay.forms.find((form) => form.formId === formId)?.canMove ??
           true) === false;
+  const shapeOfForm = (formId: string | null): FormShape =>
+    stanceKindForForm(formId) !== null
+      ? 'stance'
+      : stationaryForm(formId) === true
+        ? 'turret'
+        : 'mobile';
   for (const tick of replay.ticks)
     for (const event of tick.events) {
       if (!event.sourceActor) continue;
@@ -698,6 +880,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         at,
         span: Math.max(completes - at + 1, DEPLOY_TICKS),
         stationary,
+        shape: shapeOfForm(cancelled ? event.fromFormId : event.toFormId),
+        sourceShape: shapeOfForm(
+          cancelled ? event.toFormId : event.fromFormId,
+        ),
       });
       formTimelines.set(key, timeline);
     }
@@ -794,6 +980,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   // bolt's turn-in-progress to an unrelated one.
   const heading = new Map<string, number>();
   let lastTime = Number.NaN;
+
+  // Volleys are a second kind of thing in the air, with their own pooled geometry, and
+  // they live beside the bolt rigs because they are fed by the same interpolation.
+  const arrows = buildVolleyArrows(replay);
+  group.add(arrows.group);
 
   function dressHead(arsenal: Arsenal, head: THREE.Group): void {
     head.clear();
@@ -948,6 +1139,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.pips.visible = false;
       bot.anchorRing.visible = false;
       bot.scan.visible = false;
+      bot.stance.visible = false;
       bot.highlight(false);
       bot.flash(0);
     }
@@ -1009,18 +1201,50 @@ export function buildActors(replay: ReplayModel): ArenaActors {
             ? Math.max(0, deployProgress)
             : Math.min(1, 1 - deployProgress);
       const upright = easeInOut(raising);
-      const tipping = Math.min(upright / TURRET_TAKEOVER, 1);
-      const unfolding = Math.max(0, (upright - TURRET_TAKEOVER) / (1 - TURRET_TAKEOVER));
+      // Which of the two stationary shapes this deploy is running between. A stance never
+      // tips onto its nose and never spins, so every turret step below is gated on it.
+      const shape: FormShape =
+        raising <= 0
+          ? 'mobile'
+          : deploy === null
+            ? stanceKindForForm(pose.formId) !== null
+              ? 'stance'
+              : 'turret'
+            : deploy.stationary
+              ? deploy.shape
+              : deploy.sourceShape;
+      const emplacing = shape === 'turret';
+      const stancing = shape === 'stance' && bot.stanceKind !== null;
+      const tipping = emplacing ? Math.min(upright / TURRET_TAKEOVER, 1) : 0;
+      const unfolding = emplacing
+        ? Math.max(0, (upright - TURRET_TAKEOVER) / (1 - TURRET_TAKEOVER))
+        : 0;
+      // A stance takes over halfway through, so the mobile body is seen folding away and
+      // the stance is seen opening rather than one blinking into the other.
+      const stanceOut = stancing ? upright : 0;
+      const stanceTakeover = stanceOut > 0.5;
 
-      bot.body.visible = unfolding <= 0;
+      bot.body.visible = unfolding <= 0 && !stanceTakeover;
       bot.turret.visible = unfolding > 0;
+      bot.stance.visible = stanceTakeover;
       bot.body.rotation.z = (Math.PI / 2) * tipping;
       bot.body.position.y = TURRET_LIFT * bot.size * tipping;
+      // Folding away and opening out are the same curve either side of the handover, which
+      // is what makes the swap read as one machine changing rather than two objects.
+      const folded = 1 - Math.min(1, stanceOut / 0.5) * 0.42;
+      bot.body.scale.setScalar(stancing ? folded : 1);
+      const opened = Math.max(0, (stanceOut - 0.5) / 0.5);
+      bot.stance.scale.setScalar(0.7 + 0.3 * easeInOut(opened));
+      for (const hinge of bot.barrels)
+        hinge.rotation.y =
+          -(hinge.userData.fanAngle as number) * easeInOut(opened);
+      if (bot.plate) bot.plate.scale.y = 0.12 + 0.88 * easeInOut(opened);
+      const guardOpacity = 0.42 * (0.35 + 0.65 * easeInOut(opened));
       for (const [arm, spoke] of bot.spokes.entries())
         spoke.rotation.y = ((arm * Math.PI * 2) / TURRET_ARMS) * easeInOut(unfolding);
       // It only turns once it is out; something spinning while it unfolds reads as falling
       // over rather than deploying.
-      bot.turret.rotation.y = raising >= 1 ? time * TURRET_SPIN : 0;
+      bot.turret.rotation.y = raising >= 1 && emplacing ? time * TURRET_SPIN : 0;
       const glide = glideAt(pose.actorKey, pose);
       bot.chassis.position.set(glide.x + 0.5, 0, glide.y + 0.5);
       bot.highlight(
@@ -1071,7 +1295,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
       // The scan appears once the turret is most of the way out, and turns against the
       // ring, so the two read as one machine rather than two things that happen to move.
-      bot.scan.visible = upright > 0.6 && bot.chassis.visible;
+      // Only an emplacement scans. A stance has a facing and shows it with its nose; a
+      // sweeping wedge on one would claim the omnidirectional vision it does not have.
+      bot.scan.visible = emplacing && upright > 0.6 && bot.chassis.visible;
       if (bot.scan.visible) bot.scan.rotation.y = -time * Math.PI * 0.22;
 
       bot.flash(
@@ -1086,6 +1312,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (bot.anchorRing.visible)
         bot.anchorMaterial.opacity *= visibility * (1 - collapse);
       if (bot.scan.visible) bot.scanMaterial.opacity = 0.34 * visibility * (1 - collapse);
+      if (bot.guardArc)
+        (bot.guardArc.material as THREE.MeshBasicMaterial).opacity =
+          guardOpacity * visibility * (1 - collapse);
 
       // Circular turret geometry has no privileged facing; keeping the authoritative
       // body rotation still makes a form change preserve exactly the life state recorded.
@@ -1190,16 +1419,22 @@ export function buildActors(replay: ReplayModel): ArenaActors {
               .map((alias) => alias.projectileId),
           );
 
+    const boltHidden = (id: string, x: number, y: number) =>
+      seenProjectileIds !== null
+        ? !seenProjectileIds.has(id)
+        : seenTiles !== null &&
+          !seenTiles.has(`${Math.round(x)},${Math.round(y)}`);
+
+    // A volley's members are drawn as its arrow and nowhere else — three bolts sitting
+    // inside the glyph would undo the one thing the glyph is for.
+    const grouped = volleyLanes(replay);
+    arrows.update(time, boltHidden);
+
     const flying = arsenals.map(() => 0);
     const alive = new Set<string>();
     for (const bolt of boltsAt(replay, time)) {
-      if (
-        seenProjectileIds !== null
-          ? !seenProjectileIds.has(bolt.id)
-          : seenTiles !== null &&
-            !seenTiles.has(`${Math.round(bolt.x)},${Math.round(bolt.y)}`)
-      )
-        continue;
+      if (grouped.has(bolt.id)) continue;
+      if (boltHidden(bolt.id, bolt.x, bolt.y)) continue;
       const arsenalIndex =
         arsenalIndexByUnit.get(bolt.ownerActor.unitKey) ?? 0;
       const rig = borrow(
@@ -1282,6 +1517,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     pick,
     dispose: () => {
       live = false;
+      arrows.dispose();
       for (const item of disposables) item.dispose();
       // Chassis geometry and materials are deliberately not disposed here: they are owned
       // by the module-level parse cache and shared by every replay this page opens. Freeing

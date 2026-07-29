@@ -11,7 +11,18 @@ import {
   projectileLook,
   type ProjectileLook,
 } from './arenaThemes';
-import { unitAccent, unitLook } from './unitPresentation';
+import {
+  stanceKindForForm,
+  unitAccent,
+  unitLook,
+  type StanceKind,
+} from './unitPresentation';
+import {
+  volleyArrowOutline,
+  volleyLanes,
+  volleysAt,
+  type VolleyMember,
+} from './volley';
 import {
   adjustAccentForLuminance,
   sampleCanvasLuminance,
@@ -213,6 +224,42 @@ export function drawArena(
           enemy.actor.unitId === pose.unitId,
     );
 
+  // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
+  // (an unseen bolt is precisely the threat it doesn't know about). Derived here rather
+  // than inside the projectile pass because a volley's arrow has to obey exactly the same
+  // rule its bolts do, and two copies of this would eventually stop agreeing.
+  const seenTiles =
+    fogSource !== undefined
+      ? new Set(
+          fogSource.observation.visibleTiles.map(
+            ({ position }) => `${position.x},${position.y}`,
+          ),
+        )
+      : null;
+  const seenProjectileIds =
+    fogSource?.observation.visibleProjectiles === null ||
+    fogSource === undefined
+      ? null
+      : new Set(
+          fogSource.aliases.projectiles
+            .filter((alias) =>
+              fogSource.observation.visibleProjectiles!.some(
+                (projectile) =>
+                  projectile.projectileHandle === alias.projectileHandle,
+              ),
+            )
+            .map((alias) => alias.projectileId),
+        );
+  const boltHidden = (
+    projectileId: string,
+    x: number,
+    y: number,
+  ): boolean =>
+    seenProjectileIds !== null
+      ? !seenProjectileIds.has(projectileId)
+      : seenTiles !== null &&
+        !seenTiles.has(`${Math.round(x)},${Math.round(y)}`);
+
   // A knock on impact, decaying across the tick it happened in.
   //
   // Derived from the tick rather than accumulated in a variable: this renderer is called
@@ -234,6 +281,7 @@ export function drawArena(
   if (showVisibility && selectedUnitKey !== null)
     drawFog(selectedUnitKey);
   drawProjectiles();
+  drawVolleys();
   drawHeardSounds();
   drawShadowsAndBots();
   drawShots();
@@ -689,33 +737,11 @@ export function drawArena(
 
   function drawProjectiles(): void {
     // Both renderers consume the same normalized authoritative substep interpolation.
-    const bolts = boltsAt(replay, time);
+    const grouped = volleyLanes(replay);
+    const bolts = boltsAt(replay, time).filter(
+      (bolt) => !grouped.has(bolt.id),
+    );
     if (bolts.length === 0) return;
-    // FOV mode stays honest: bolts the selected bot can't see aren't drawn at all
-    // (an unseen bolt is precisely the threat it doesn't know about).
-    const seenTiles =
-      fogSource !== undefined
-        ? new Set(
-            fogSource.observation.visibleTiles.map(
-              ({ position }) => `${position.x},${position.y}`,
-            ),
-          )
-        : null;
-    const seenProjectileIds =
-      fogSource?.observation.visibleProjectiles === null ||
-      fogSource === undefined
-        ? null
-        : new Set(
-            fogSource.aliases.projectiles
-              .filter((alias) =>
-                fogSource.observation.visibleProjectiles!.some(
-                  (projectile) =>
-                    projectile.projectileHandle ===
-                    alias.projectileHandle,
-                ),
-              )
-              .map((alias) => alias.projectileId),
-          );
     // Omniscient spectators see the locked future arc. A selected defender
     // sees only physically manifested segments; the owner authored the plan.
     const programmed = new Map<
@@ -779,13 +805,7 @@ export function drawArena(
       imminent: boolean,
       tilesPerAdvance: number,
     ): void {
-      if (
-        seenProjectileIds !== null
-          ? !seenProjectileIds.has(projectileId)
-          : seenTiles !== null &&
-            !seenTiles.has(`${Math.round(x)},${Math.round(y)}`)
-      )
-        return;
+      if (boltHidden(projectileId, x, y)) return;
       const cx = px(x) + tile / 2;
       const cy = py(y) + tile / 2;
       const accent = accentAt(accentFor(ownerActor.unitKey), cx, cy);
@@ -881,6 +901,190 @@ export function drawArena(
     ctx.restore();
   }
 
+  /**
+   * A volley, drawn as one wide arrow sweeping forward rather than as three bolts.
+   *
+   * The glyph is a filled crescent: the leading edge runs through every surviving blade's
+   * forward point, the trailing edge behind them, and the two are joined with a curve so
+   * the fan reads as one connected thing at gameplay zoom. The blades themselves are
+   * bright nodes on the spine — the count stays legible, which matters because "three
+   * lanes, one gone" is the whole story of a volley meeting cover.
+   *
+   * When a blade terminates its run is cut, so the picture states it: the remaining
+   * segments carry on as their own arrows and the lost one throws a shard backwards along
+   * its heading. A shell-eaten blade breaks differently from a wall-shattered one — it
+   * collapses in place instead of scattering, because nothing about it was violent.
+   */
+  function drawVolleys(): void {
+    const volleys = volleysAt(replay, time);
+    if (volleys.length === 0) return;
+    for (const volley of volleys) {
+      const accent = accentFor(volley.ownerActor.unitKey);
+      for (const run of volley.runs) {
+        const visible = run.filter(
+          (member) => !boltHidden(member.id, member.x, member.y),
+        );
+        if (visible.length !== run.length) continue;
+        drawVolleyRun(run, accent);
+      }
+      for (const member of volley.broken) {
+        if (boltHidden(member.id, member.x, member.y)) continue;
+        drawBrokenSegment(member, accent);
+      }
+    }
+  }
+
+  function drawVolleyRun(
+    run: readonly VolleyMember[],
+    authoredAccent: string,
+  ): void {
+    const outline = volleyArrowOutline(run, 0.46, 0.62);
+    const mid = run[Math.floor(run.length / 2)];
+    const accent = accentAt(
+      authoredAccent,
+      px(mid.x) + tile / 2,
+      py(mid.y) + tile / 2,
+    );
+    const toX = (point: { x: number }) => px(point.x) + tile / 2;
+    const toY = (point: { y: number }) => py(point.y) + tile / 2;
+    const pulse = 0.78 + 0.22 * Math.sin(fraction * Math.PI);
+
+    // One closed ribbon: forward edge left-to-right, rear edge back again. Curved rather
+    // than polygonal — a fan of three headings gives three points, and a hard chevron
+    // through them reads as a crude polygon where the sweep should be.
+    const ribbon = new Path2D();
+    curveThrough(ribbon, outline.leading.map((p) => ({ x: toX(p), y: toY(p) })), true);
+    curveThrough(
+      ribbon,
+      [...outline.trailing].reverse().map((p) => ({ x: toX(p), y: toY(p) })),
+      false,
+    );
+    ribbon.closePath();
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // Light, not a plate: the ribbon can span four tiles once the fan has spread, and at
+    // that width anything opaque enough to read as a surface hides the arena under it.
+    // The body is therefore unlit — only the leading edge and the blades glow.
+    ctx.fillStyle = hexWithAlpha(accent, 0.13 * pulse);
+    ctx.fill(ribbon);
+    // The forward edge is the part that has to arrive first, so it carries the hard line.
+    const edge = new Path2D();
+    curveThrough(edge, outline.leading.map((p) => ({ x: toX(p), y: toY(p) })), true);
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = Math.max(6, tile * 0.3);
+    ctx.strokeStyle = hexWithAlpha(accent, 0.95 * pulse);
+    ctx.lineWidth = Math.max(2.5, tile * 0.085);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke(edge);
+    ctx.strokeStyle = `rgba(240, 251, 255, ${0.85 * pulse})`;
+    ctx.lineWidth = Math.max(1, tile * 0.022);
+    ctx.stroke(edge);
+    ctx.restore();
+
+    // A node per blade. Without them a three-lane arrow and a two-lane arrow are the same
+    // shape at slightly different widths, and losing a lane is the event worth seeing.
+    for (const node of outline.nodes) {
+      const cx = px(node.x) + tile / 2;
+      const cy = py(node.y) + tile / 2;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(4, tile * 0.2);
+      ctx.fillStyle = hexWithAlpha(accent, 0.9 * pulse);
+      ctx.beginPath();
+      ctx.ellipse(
+        cx,
+        cy,
+        tile * 0.13,
+        tile * 0.09,
+        Math.atan2(node.ny, node.nx),
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.fillStyle = `rgba(245, 252, 255, ${0.85 * pulse})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy, tile * 0.045, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawBrokenSegment(
+    member: VolleyMember,
+    authoredAccent: string,
+  ): void {
+    const age = member.breakAge ?? 0;
+    const cx = px(member.x) + tile / 2;
+    const cy = py(member.y) + tile / 2;
+    const accent = accentAt(authoredAccent, cx, cy);
+    const [sx, sy] = projectileStep[member.heading];
+    const length = Math.hypot(sx, sy) || 1;
+    const nx = sx / length;
+    const ny = sy / length;
+    const fade = (1 - age) ** 2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = Math.max(4, tile * 0.2);
+    ctx.lineCap = 'round';
+    if (member.breakKind === 'absorbed') {
+      // Eaten, not broken: the blade folds in on itself where the shell stopped it.
+      ctx.strokeStyle = hexWithAlpha(accent, 0.8 * fade);
+      ctx.lineWidth = Math.max(2, tile * 0.07 * (1 - age * 0.6));
+      const shrink = tile * 0.34 * (1 - age);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, shrink, shrink * 0.55, Math.atan2(ny, nx), 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      // Three shards thrown back off the point of contact, spreading and dimming.
+      for (const spread of [-0.55, 0, 0.55]) {
+        const angle = Math.atan2(ny, nx) + Math.PI + spread * (0.4 + age);
+        const reach = tile * (0.16 + age * 0.55);
+        ctx.strokeStyle = hexWithAlpha(accent, 0.85 * fade);
+        ctx.lineWidth = Math.max(1.5, tile * 0.05 * (1 - age));
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * reach * 0.35, cy + Math.sin(angle) * reach * 0.35);
+        ctx.lineTo(cx + Math.cos(angle) * reach, cy + Math.sin(angle) * reach);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  /**
+   * A smooth curve through the given points, appended to `path`.
+   *
+   * Midpoint-quadratic rather than Catmull-Rom: three points is the common case and the
+   * cheap construction is indistinguishable there, while never overshooting outside the
+   * hull — an arrow that bulges past its own outermost blade would be claiming reach the
+   * volley does not have.
+   */
+  function curveThrough(
+    path: Path2D,
+    points: readonly { x: number; y: number }[],
+    start: boolean,
+  ): void {
+    if (points.length === 0) return;
+    if (start) path.moveTo(points[0].x, points[0].y);
+    else path.lineTo(points[0].x, points[0].y);
+    if (points.length === 1) return;
+    for (let index = 1; index < points.length - 1; index++) {
+      const current = points[index];
+      const next = points[index + 1];
+      path.quadraticCurveTo(
+        current.x,
+        current.y,
+        (current.x + next.x) / 2,
+        (current.y + next.y) / 2,
+      );
+    }
+    const last = points[points.length - 1];
+    path.lineTo(last.x, last.y);
+  }
+
   function drawHeardSounds(): void {
     // Redacted hearing, made visible: the selected bot's heard sounds render as
     // neutral arcs on the bearing octant, at a radius keyed to the distance band.
@@ -965,6 +1169,10 @@ export function drawArena(
     const form = replay.forms.find(
       (candidate) => candidate.formId === pose.formId,
     );
+    // Which turret-shaped skill this life is standing in, if any. A stance is a third
+    // body — not a mobile chassis and not an omnidirectional emplacement — and every
+    // decision below that used to be "can it move?" has to ask this too.
+    const stance = stanceKindForForm(pose.formId);
     const cx = px(pose.x) + tile / 2;
     const hover =
       pose.status === 'active' && form?.canMove !== false
@@ -1053,7 +1261,9 @@ export function drawArena(
       ctx.restore();
     }
 
-    if (!destroyed && form?.canMove === false) {
+    // An emplacement ring, for an emplacement. A stance is *not* one: it keeps a facing,
+    // and a radial ring around it would say the opposite of the rule it is under.
+    if (!destroyed && form?.canMove === false && stance === null) {
       ctx.save();
       ctx.strokeStyle = hexWithAlpha(accent, 0.58);
       ctx.fillStyle = hexWithAlpha(accent, 0.08);
@@ -1121,7 +1331,13 @@ export function drawArena(
     //
     // Not drawn on a stationary form, which has no facing to show — an emplacement that
     // sees and fires in every direction pointing somewhere would be a lie about the rules.
-    if (!destroyed && form?.canMove !== false) drawFacingMarker(radius, accent);
+    //
+    // A stance is stationary and still very much has one: the volley gun fires along it
+    // and the shell only guards the quadrant in front of it, so the marker stays.
+    if (!destroyed && (form?.canMove !== false || stance !== null))
+      drawFacingMarker(radius, accent);
+    if (!destroyed && !ghosted && stance !== null)
+      drawStance(stance, radius, accent);
 
     ctx.restore();
 
@@ -1169,6 +1385,115 @@ export function drawArena(
     ctx.lineWidth = Math.max(1.5, tile * 0.05);
     ctx.strokeStyle = hexWithAlpha(accent, 0.55);
     ctx.stroke();
+  }
+
+  /**
+   * The hardware a stance bolts on, drawn in the bot's already-rotated frame so +x is its
+   * facing.
+   *
+   * The stance forms swap chassis art like an Anchor does, and that alone was not enough:
+   * two class fallbacks at gameplay zoom are two dark silhouettes of similar mass, and a
+   * reviewer watching a match cannot be asked to tell them apart from memory. So each
+   * stance also grows *structure* in the owner's accent, and the structure is the rule:
+   *
+   * - **Volley** puts three barrels where the three bolts come out — at the fan's own
+   *   −45°, 0°, +45° — so the shape predicts the shot before it is fired.
+   * - **Aegis** fills the facing quadrant and only the facing quadrant. Flanking is the
+   *   counter-play, so the arc has to be a *boundary* a viewer can see the edge of: the
+   *   plate stops hard at ±45°, and the unguarded rear carries a thin broken line that
+   *   says "nothing here" rather than nothing at all, which reads as forgotten.
+   */
+  function drawStance(
+    kind: StanceKind,
+    radius: number,
+    accent: string,
+  ): void {
+    const shimmer = 0.82 + 0.18 * Math.sin(time * Math.PI * 1.6);
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (kind === 'volley') {
+      const inner = radius * 0.48;
+      const outer = radius * 1.62;
+      for (const angle of [-Math.PI / 4, 0, Math.PI / 4]) {
+        const dx = Math.cos(angle);
+        const dy = Math.sin(angle);
+        ctx.strokeStyle = 'rgba(6, 11, 18, 0.9)';
+        ctx.lineWidth = Math.max(4, tile * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(dx * inner, dy * inner);
+        ctx.lineTo(dx * outer, dy * outer);
+        ctx.stroke();
+        ctx.strokeStyle = hexWithAlpha(accent, 0.95);
+        ctx.lineWidth = Math.max(2.5, tile * 0.09);
+        ctx.beginPath();
+        ctx.moveTo(dx * inner, dy * inner);
+        ctx.lineTo(dx * outer, dy * outer);
+        ctx.stroke();
+        // A muzzle bead, so an unfired barrel still reads as a barrel.
+        ctx.fillStyle = `rgba(240, 251, 255, ${0.9 * shimmer})`;
+        ctx.beginPath();
+        ctx.arc(dx * outer, dy * outer, Math.max(1.5, tile * 0.045), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // The brace the three barrels are mounted on: an arc behind them, closing the fan
+      // into one machine rather than three sticks pushed into a bot.
+      ctx.strokeStyle = hexWithAlpha(accent, 0.7);
+      ctx.lineWidth = Math.max(2.5, tile * 0.06);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.92, -Math.PI / 4, Math.PI / 4);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    const guardInner = radius * 0.82;
+    const guardOuter = radius * 1.55;
+    const half = Math.PI / 4;
+    // The protected quadrant, filled. Additive so it lifts off the floor without hiding
+    // whatever is standing on it.
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = hexWithAlpha(accent, 0.3 * shimmer);
+    ctx.beginPath();
+    ctx.arc(0, 0, guardOuter, -half, half);
+    ctx.arc(0, 0, guardInner, half, -half, true);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // Its outer face: the plate itself, thick and unmistakable.
+    ctx.strokeStyle = 'rgba(6, 11, 18, 0.85)';
+    ctx.lineWidth = Math.max(5, tile * 0.19);
+    ctx.beginPath();
+    ctx.arc(0, 0, guardOuter, -half, half);
+    ctx.stroke();
+    ctx.strokeStyle = hexWithAlpha(accent, 0.98);
+    ctx.lineWidth = Math.max(3, tile * 0.12);
+    ctx.beginPath();
+    ctx.arc(0, 0, guardOuter, -half, half);
+    ctx.stroke();
+    // Where the guard stops. Both edges get a rib running out past the plate, because
+    // "the shield ends here" is the sentence a flanker is reading.
+    for (const edge of [-half, half]) {
+      ctx.strokeStyle = hexWithAlpha(accent, 0.9);
+      ctx.lineWidth = Math.max(2, tile * 0.06);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(edge) * radius * 0.45, Math.sin(edge) * radius * 0.45);
+      ctx.lineTo(
+        Math.cos(edge) * guardOuter * 1.12,
+        Math.sin(edge) * guardOuter * 1.12,
+      );
+      ctx.stroke();
+    }
+    // And the open three quarters, stated rather than left blank.
+    ctx.strokeStyle = hexWithAlpha(accent, 0.2);
+    ctx.lineWidth = Math.max(1.5, tile * 0.03);
+    ctx.setLineDash([tile * 0.07, tile * 0.09]);
+    ctx.beginPath();
+    ctx.arc(0, 0, guardOuter * 0.94, half, Math.PI * 2 - half);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
   }
 
   function drawFallbackChassis(
@@ -1336,6 +1661,10 @@ export function drawArena(
         drawSparks(at.x, at.y, flash, ownerAccent, 7);
         ctx.restore();
       }
+      if (event.type === 'projectile-absorbed') {
+        drawAbsorption(event, flash);
+        continue;
+      }
       if (event.type === 'destroyed') {
         const at = eventPoint(event.from);
         if (!at) continue;
@@ -1352,6 +1681,82 @@ export function drawArena(
         ctx.restore();
       }
     }
+  }
+
+  /**
+   * A bolt dying on a shell, which is emphatically not a hit.
+   *
+   * A damage impact throws a shockwave out and sparks off the victim: something was spent
+   * and something was taken. This has to say the opposite — the bolt stopped and *nothing
+   * happened* — so nothing here expands outward and nothing is thrown. The guarded arc
+   * lights up along its whole length, hard and briefly, the way a struck plate rings; the
+   * bolt crumples inward at the exact contact tile; and the camera does not move, because
+   * `shakeOffset` reacts to damage and destruction only.
+   *
+   * The arc is drawn from the *defender's* facing rather than the contact bearing. That is
+   * the point of the effect: every absorption re-states which quadrant is covered, so a
+   * player watching a shell get poked repeatedly learns where to go instead.
+   */
+  function drawAbsorption(event: ReplayCausalEvent, flash: number): void {
+    const target = event.targetActor;
+    const contact = eventPoint(event.to ?? event.from);
+    if (!contact) return;
+    const guardAccent = accentFor(target?.unitKey ?? null);
+    const boltAccent = accentFor(event.sourceActor?.unitKey ?? null);
+    const defender = target
+      ? poses.find((pose) => pose.actorKey === target.actorKey)
+      : undefined;
+    const ring = 1 - flash;
+
+    if (defender) {
+      const cx = px(defender.x) + tile / 2;
+      const cy = py(defender.y) + tile / 2;
+      // The authoritative facing the guard was wearing when it ate the bolt, straight off
+      // the event — not re-derived from where the bolt came from, which is exactly the
+      // thing the viewer must not guess at.
+      const facing = event.toFacing ?? null;
+      const angle =
+        facing !== null ? directionAngle[facing] : defender.angle;
+      const half = Math.PI / 4;
+      const radius = tile * 0.38 * 1.46;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = guardAccent;
+      ctx.shadowBlur = Math.max(6, tile * 0.34);
+      ctx.lineCap = 'butt';
+      // Rings along the plate rather than out from it: same radius throughout, only the
+      // brightness moves.
+      ctx.strokeStyle = `rgba(226, 245, 255, ${0.95 * ring})`;
+      ctx.lineWidth = Math.max(4, tile * 0.16) * (0.6 + 0.4 * ring);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, -half, half);
+      ctx.stroke();
+      ctx.strokeStyle = hexWithAlpha(guardAccent, 0.85 * ring);
+      ctx.lineWidth = Math.max(7, tile * 0.28) * (0.5 + 0.5 * ring);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, -half, half);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // The bolt itself, collapsing where it stopped. Inward and shrinking: a shard thrown
+    // outward would read as a fragment that got through.
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = boltAccent;
+    ctx.shadowBlur = Math.max(4, tile * 0.2);
+    ctx.strokeStyle = hexWithAlpha(boltAccent, 0.9 * ring);
+    ctx.lineWidth = Math.max(2, tile * 0.06);
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, tile * 0.3 * (1 - flash * 0.75), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(233, 247, 255, ${0.8 * ring})`;
+    ctx.beginPath();
+    ctx.arc(contact.x, contact.y, tile * 0.07 * (1 - flash), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawSparks(
