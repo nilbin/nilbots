@@ -59,3 +59,20 @@ Raw export JSON is preserved in the run directory as
 `blind-review-notes-2026-07-29.json`; the sample manifests and gallery
 are reproducible from the run directory and
 `scripts/build-review-gallery.py`.
+
+## Addendum (2026-07-29, after commit `db07c2d`)
+
+This gallery was rendered with a defect discovered later the same day:
+every presentation surface compared event types against the v1/v2
+spellings, so **replay-v3 pages carried no muzzle flashes, kill
+flares, shockwaves, recoil, death collapse, camera knocks, or sound
+cues** — combat read as silent gliding bolts and shrinking health
+bars. The structural findings above (arm equivalence, the anti-strafe
+notes, the bend-density signal) rest on replay data and comparative
+scores within one broken baseline, and stand. But the **absolute fun
+level (mean 2.75, no 5s) is a floor, not a calibrated measurement**,
+and the finding "presentation is no longer the bottleneck" is
+partially retracted: one presentation bottleneck was invisible
+because it was uniformly missing. Future galleries render with
+effects restored and are not comparable to these numbers; watchability
+gates set against this baseline should be read accordingly.
