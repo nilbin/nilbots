@@ -106,6 +106,50 @@ modeling method. Pilot it on Striker only before changing the wider workflow.
    bytes with the current fallback. Only then decide whether to pin the route
    as a repeatable skill.
 
+#### Meshy 6 pilot recipe
+
+The first provider trial is Meshy 6 Multi-Image to 3D. This pins a reproducible
+experiment, not a provider endorsement or an approved production method.
+
+1. Keep the API credential out of the repository, shell profiles, command
+   history, screenshots, logs, and generated provenance. On the Nilbots macOS
+   workstation it lives in Login Keychain under service
+   `nilbots.meshy.api` and the current login account. Read it inside the
+   calling process with `/usr/bin/security`; never print the returned value.
+   Other environments inject `MESHY_API_KEY` from their secret manager rather
+   than adding an `.env` file.
+2. Check `GET https://api.meshy.ai/openapi/v1/balance` before a paid request
+   and record only the numeric balance. Re-check Meshy's official pricing and
+   parameter documentation when the experiment is run; provider contracts can
+   change independently of this repository.
+3. Upload one object per task as separate images. Do not upload a contact sheet
+   as one image, and never mix a bot, projectile, detached weapon, or scenery
+   in the same multi-image task. For Striker use the four lossless images under
+   `art/class-models/concept-targets/meshy-striker-v1/`.
+4. The first proof uses `ai_model: "meshy-6"`,
+   `should_texture: true`, `enable_pbr: true`,
+   `texture_resolution: "4k"`, `should_remesh: false`,
+   `image_enhancement: false`, `remove_lighting: true`,
+   `pose_mode: ""`, and `target_formats: ["glb"]`. Do not enable Smart
+   Topology, Auto Split, pose control, remesh, or 8K for this proof. The first
+   goal is maximum recoverable form/material evidence, including emission;
+   optimization happens after approval.
+5. Keep the texture prompt descriptive and prohibitive, not redesigning:
+   preserve the approved graphite, weathered bronze, panel seams, vents,
+   cyan team inlays, and amber core/engine emission; add no weapons, landing
+   gear, text, logos, supports, scenery, or ornament.
+6. Record the task ID, image filenames and SHA-256 hashes, sanitized request
+   settings, numeric balance before/after, `consumed_credits`, full task JSON,
+   provider/model version, license terms, and downloaded artifacts under
+   `art/class-models/provider-runs/meshy/<look-id>/<task-id>/`. Never record
+   the Authorization header or a data-URI copy of the input images.
+7. Download every output immediately. Meshy's non-Enterprise API retention is
+   short and must not be treated as storage. Keep raw provider output
+   art-side; only a corrected, reviewed derivative may enter a runtime look.
+8. A default projectile is a second, separately charged task after its bot
+   proof passes. Its input shows only the projectile head; Nilbots continues
+   to own trail, glow pool, travel, impact, hitbox, and team tint.
+
 ## Bot-look workflow
 
 1. Start with genuine SVG. Treat PNG as an exception that requires
