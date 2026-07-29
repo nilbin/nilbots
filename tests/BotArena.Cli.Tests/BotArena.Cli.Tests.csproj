@@ -14,4 +14,14 @@
   <ItemGroup>
     <ProjectReference Include="../../src/BotArena.Cli/BotArena.Cli.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The scaffold's helpers, compiled here as the player compiles them.
+         GenericActorScaffoldTests proves the template builds standalone;
+         linking the same file lets ArenaBasicsTemplateTests assert what it
+         READS out of a real resolved contract, which is the part a compile
+         cannot check. -->
+    <Compile
+      Include="../../templates/botarena-generic-actor/ArenaBasics.cs"
+      Link="Template/ArenaBasics.cs" />
+  </ItemGroup>
 </Project>

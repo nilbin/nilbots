@@ -265,6 +265,16 @@ internal static class ArenaBasics
         return null;
     }
 
+    /// <summary>
+    /// One step toward the currently active objective, or the rotation that
+    /// unlocks that step. Every input is observed or chain-derived: the route
+    /// starts at <c>context.Self.Position</c> and ends on the active
+    /// objective's tiles, so it is correct wherever a life happens to appear.
+    /// Do not replace that with a home-relative plan — contracts differ in
+    /// where automatic arrivals land (see
+    /// <see cref="ExpectedArrivalTiles"/>), and "spawn at home, walk to the
+    /// front" is a plan that only some of them honour.
+    /// </summary>
     public static GenericActorDecision? TryAdvanceToActiveObjective(
         GenericActorResolvedMatchContract contract,
         GenericActorContext context,
@@ -421,24 +431,38 @@ internal static class ArenaBasics
             .FirstOrDefault();
     }
 
-    private static Position[] ActiveObjectiveTiles(
+    /// <summary>
+    /// Tiles of the objective the match is currently fought over, taken from
+    /// the observed active index rather than any fixed position. Empty when
+    /// the mode declares no ordered objectives.
+    /// </summary>
+    public static Position[] ActiveObjectiveTiles(
         GenericActorResolvedMatchContract contract,
-        GenericActorContext context)
+        GenericActorContext context) =>
+        context.Mode
+            is GenericActorContext.ModeObservationState.Frontline mode
+            ? ObjectiveTiles(contract, mode.ActivePositionIndex)
+            : [];
+
+    /// <summary>
+    /// Tiles of one objective in the ordered chain. Empty for an index outside
+    /// the chain, which is the honest answer for "one step past the end" —
+    /// callers walking the chain do not need their own bounds check.
+    /// </summary>
+    public static Position[] ObjectiveTiles(
+        GenericActorResolvedMatchContract contract,
+        int positionIndex)
     {
-        if (context.Mode
-                is not GenericActorContext.ModeObservationState.Frontline mode
-            || contract.ModeMapBinding
+        if (contract.ModeMapBinding
                 is not GenericActorResolvedMatchContract
                     .FrontlineModeMapBinding binding
-            || mode.ActivePositionIndex < 0
-            || mode.ActivePositionIndex
-                >= binding.OrderedObjectiveRegionIds.Length)
+            || positionIndex < 0
+            || positionIndex >= binding.OrderedObjectiveRegionIds.Length)
         {
             return [];
         }
 
-        string regionId =
-            binding.OrderedObjectiveRegionIds[mode.ActivePositionIndex];
+        string regionId = binding.OrderedObjectiveRegionIds[positionIndex];
         return contract.Map.Regions
             .FirstOrDefault(region =>
                 string.Equals(
@@ -450,6 +474,254 @@ internal static class ArenaBasics
             ?? [];
     }
 
+    /// <summary>
+    /// Tiles of the objective one step BEHIND this team's advance — the ground
+    /// it already took. Derived from the chain and the team's declared index
+    /// delta, never from a spawn, so it moves with the front. Empty when the
+    /// team is already at its end of the chain or the mode declares no ordered
+    /// objectives.
+    /// </summary>
+    public static Position[] OwnSideObjectiveTiles(
+        GenericActorResolvedMatchContract contract,
+        GenericActorContext context) =>
+        context.Mode
+            is GenericActorContext.ModeObservationState.Frontline mode
+            ? OwnSideObjectiveTiles(
+                contract,
+                context.Self.ActorId.TeamId,
+                mode.ActivePositionIndex)
+            : [];
+
+    /// <summary>
+    /// Any team's own-side objective, so the same question can be asked about
+    /// where the opposition falls back to.
+    /// </summary>
+    public static Position[] OwnSideObjectiveTiles(
+        GenericActorResolvedMatchContract contract,
+        int teamId,
+        int activePositionIndex)
+    {
+        if (contract.ModeMapBinding
+            is not GenericActorResolvedMatchContract
+                .FrontlineModeMapBinding binding)
+        {
+            return [];
+        }
+        var advance = binding.TeamAdvances.FirstOrDefault(entry =>
+            entry.TeamId == teamId);
+        return advance is null
+            ? []
+            : ObjectiveTiles(
+                contract,
+                activePositionIndex - advance.ObjectiveIndexDelta);
+    }
+
+    /// <summary>
+    /// Whether this contract places automatic returns and activations by the
+    /// objective chain instead of by the slot's spawn anchor. Read
+    /// <c>lifecycle.automaticReturnPlacement</c> — it is a policy ID, and the
+    /// chain-derived value names the own-side chain-adjacent objective.
+    /// Nothing in the observation schema changes with it, so a bot that never
+    /// reads it simply believes the wrong thing about where it will reappear.
+    /// </summary>
+    public static bool ArrivalsRallyForward(
+        GenericActorResolvedMatchContract contract) =>
+        contract.Rules.Lifecycle.AutomaticReturnPlacement.Contains(
+            "own-side-chain-adjacent-objective",
+            StringComparison.Ordinal);
+
+    /// <summary>
+    /// Where this life's slot can expect its next automatic arrival: the
+    /// own-side chain-adjacent objective region when the contract rallies
+    /// arrivals forward, otherwise the slot's declared spawn anchor. This is
+    /// the contract's INTENT — a chain-deriving host still falls back to the
+    /// anchor when the derived region offers no free tile, and only
+    /// <c>context.Self.Position</c> on a life's first tick is the fact. Use
+    /// this to price a death before it happens ("how far from the fight does
+    /// dying put me?"); use the observed position to plan once it has.
+    /// Empty when the contract declares neither an anchor nor a chain.
+    /// </summary>
+    public static Position[] ExpectedArrivalTiles(
+        GenericActorResolvedMatchContract contract,
+        GenericActorContext context) =>
+        context.Mode
+            is GenericActorContext.ModeObservationState.Frontline mode
+            ? ExpectedArrivalTiles(
+                contract,
+                context.Self.ActorId.TeamId,
+                context.Self.ActorId.UnitId,
+                mode.ActivePositionIndex)
+            : ExpectedArrivalTiles(
+                contract,
+                context.Self.ActorId.TeamId,
+                context.Self.ActorId.UnitId,
+                activePositionIndex: -1);
+
+    /// <summary>
+    /// Any slot's expected arrival, so the same question can be asked about an
+    /// enemy slot whose reinforcement timing you already read from the
+    /// lifecycle assignments.
+    /// </summary>
+    public static Position[] ExpectedArrivalTiles(
+        GenericActorResolvedMatchContract contract,
+        int teamId,
+        int unitId,
+        int activePositionIndex)
+    {
+        Position[] rally = ArrivalsRallyForward(contract)
+            ? OwnSideObjectiveTiles(contract, teamId, activePositionIndex)
+            : [];
+        if (rally.Length > 0)
+            return rally;
+
+        string? spawnId = contract.LifecycleAssignments
+            .FirstOrDefault(assignment =>
+                assignment.TeamId == teamId
+                && assignment.UnitId == unitId)
+            ?.AssignedRespawnSpawnId;
+        if (spawnId is null)
+            return [];
+        return contract.InitialDeployment.Spawns
+            .Where(spawn =>
+                string.Equals(
+                    spawn.SpawnId,
+                    spawnId,
+                    StringComparison.Ordinal))
+            .Select(spawn => spawn.Position)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Objective weight standing on the active objective right now, split by
+    /// side, plus whether this life is one of the bodies counted. Weight comes
+    /// from each observed body's form, because a form may declare weight zero
+    /// and hold ground for nothing.
+    /// <para>
+    /// What the numbers are worth is a contract fact, not a constant: read
+    /// <see cref="CaptureRules.SurplusWeightScalesGain"/> to learn whether a
+    /// second body adds pressure or is merely a second body, and
+    /// <see cref="CaptureRules.OnlyEnemySolePresenceDecays"/> to learn whether
+    /// standing contested is costing your claim or preserving it.
+    /// </para>
+    /// <para>
+    /// Enemy weight counts only what your team currently SEES. An unobserved
+    /// body on the objective still contests it, so treat this as a lower
+    /// bound on the opposition.
+    /// </para>
+    /// </summary>
+    public static (int OwnWeight, int EnemyWeight, bool SelfPresent)
+        ObjectivePresence(
+            GenericActorResolvedMatchContract contract,
+            GenericActorContext context)
+    {
+        HashSet<Position> tiles =
+            ActiveObjectiveTiles(contract, context).ToHashSet();
+        if (tiles.Count == 0)
+            return (0, 0, false);
+
+        int Weight(string formId) => contract.Rules.Forms
+            .FirstOrDefault(form =>
+                string.Equals(form.Id, formId, StringComparison.Ordinal))
+            ?.ObjectiveWeight
+            ?? 0;
+
+        bool selfPresent = tiles.Contains(context.Self.Position);
+        int own = selfPresent ? Weight(context.Self.FormId) : 0;
+        own += context.Allies
+            .Where(ally => tiles.Contains(ally.Position))
+            .Sum(ally => Weight(ally.FormId));
+        int enemy = context.Enemies
+            .Where(enemy => tiles.Contains(enemy.Position))
+            .Sum(enemy => Weight(enemy.FormId));
+        return (own, enemy, selfPresent);
+    }
+
+    /// <summary>
+    /// The capture policy VALUES this contract plays by, gathered so a
+    /// doctrine prices pushes from the contract instead of from habit. None of
+    /// these fields changes the observation schema, so reading them is the
+    /// only way to tell one capture policy from another.
+    /// Null when the mode is not objective-based — a deathmatch contract
+    /// carries no capture definition at all.
+    /// </summary>
+    public static CaptureRules? Capture(
+        GenericActorResolvedMatchContract contract)
+    {
+        if (contract.Rules.GameMode
+            is not GenericActorRulesContract.FrontlineGameMode frontline)
+        {
+            return null;
+        }
+
+        GenericActorRulesContract.FrontlineCapture capture = frontline.Capture;
+        return new CaptureRules(
+            capture.Threshold,
+            capture.GainPerSoleTeamTick,
+            capture.DecayAmount,
+            capture.DecayIntervalTicks,
+            capture.RedeployPauseTicks,
+            capture.RatchetHoldTicks > 0 ? capture.RatchetHoldTicks : null,
+            capture.ControlPolicy.Contains(
+                "net-positive-objective-weight-difference",
+                StringComparison.Ordinal),
+            capture.DecayClock.Contains(
+                "enemy-sole-erosion-only",
+                StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// What one objective push costs and what protects it, read from the
+    /// capture definition. Canonical contracts omit inert fields, so an
+    /// ABSENT value is a real answer rather than a gap.
+    /// </summary>
+    /// <param name="Threshold">
+    /// Progress required to complete one capture.
+    /// </param>
+    /// <param name="GainPerSoleTeamTick">
+    /// Base progress per tick of control. The control policy decides whether
+    /// that base is multiplied by surplus weight; see
+    /// <paramref name="SurplusWeightScalesGain"/>.
+    /// </param>
+    /// <param name="DecayAmount">Progress removed at each decay application.</param>
+    /// <param name="DecayIntervalTicks">Ticks between decay applications.</param>
+    /// <param name="RedeployPauseTicks">
+    /// Ticks after an advance during which control cannot resume. The
+    /// observation's <c>ControlResumesAtTick</c> is the live clock.
+    /// </param>
+    /// <param name="HoldTicks">
+    /// How long a completed advance is protected from being pushed back, or
+    /// <see langword="null"/> when the capture definition declares no hold at
+    /// all — an absent hold field means captures never lock, and the front can
+    /// come straight back. When a hold IS declared, a capture completed inside
+    /// another team's live hold is SPENT: the claim resets exactly as a
+    /// successful capture does and the objective does not move. Pricing a push
+    /// as if every capture advances the front is the mistake this field
+    /// exists to prevent; the advance itself is observable as a change in the
+    /// active position index, so track when the hold started.
+    /// </param>
+    /// <param name="SurplusWeightScalesGain">
+    /// True when net objective weight scales capture pressure, so a second
+    /// body on the objective is worth more than the first body's presence.
+    /// False when control is binary: one body of positive weight nulls any
+    /// number of opposing bodies, and reinforcing a contested objective buys
+    /// nothing but survivability.
+    /// </param>
+    /// <param name="OnlyEnemySolePresenceDecays">
+    /// True when empty and contested ticks preserve a claim and only an enemy
+    /// standing alone erodes it — leaving an objective is then cheap, and
+    /// contesting one is a full stop rather than a slow bleed. False when the
+    /// decay clock also runs while the objective is empty or contested.
+    /// </param>
+    public sealed record CaptureRules(
+        int Threshold,
+        int GainPerSoleTeamTick,
+        int DecayAmount,
+        int DecayIntervalTicks,
+        int RedeployPauseTicks,
+        int? HoldTicks,
+        bool SurplusWeightScalesGain,
+        bool OnlyEnemySolePresenceDecays);
+
     private static HashSet<Position> Occupied(
         GenericActorContext context,
         IEnumerable<GenericActorContext.ObservedProjectile> projectiles) =>
@@ -459,11 +731,23 @@ internal static class ArenaBasics
             .Concat(projectiles.Select(projectile => projectile.Position))
             .ToHashSet();
 
+    /// <summary>
+    /// The first step of a shortest route to <paramref name="goals"/>.
+    /// <paramref name="blockedNow"/> holds this tick's transient occupants —
+    /// bodies and bolts — and applies to the first step ONLY, because only the
+    /// first step is executed: the route is replanned from scratch next tick,
+    /// by which time those tiles have moved. Treating transient occupants as
+    /// permanent walls makes the router surrender routes that will be open
+    /// long before the body arrives, and it surrenders them exactly when
+    /// bodies are densest — which is the state a contract that rallies
+    /// arrivals onto one objective region produces on purpose. Walls block at
+    /// every depth; they are the only thing that does.
+    /// </summary>
     private static Direction? FindFirstStep(
         GenericActorMapContract map,
         Position start,
         IReadOnlySet<Position> goals,
-        IReadOnlySet<Position> occupied,
+        IReadOnlySet<Position> blockedNow,
         IReadOnlySet<Direction> allowedFirstSteps,
         Direction[]? searchOrder = null)
     {
@@ -478,7 +762,7 @@ internal static class ArenaBasics
             if (!allowedFirstSteps.Contains(direction))
                 continue;
             Position next = Offset(start, direction);
-            if (!CanEnter(map, next, occupied)
+            if (!CanEnter(map, next, blockedNow)
                 || !visited.Add(next))
             {
                 continue;
@@ -494,7 +778,7 @@ internal static class ArenaBasics
             foreach (Direction direction in order)
             {
                 Position next = Offset(current.Position, direction);
-                if (!CanEnter(map, next, occupied)
+                if (!CanEnter(map, next, NoPositions)
                     || !visited.Add(next))
                 {
                     continue;
@@ -630,12 +914,24 @@ internal static class ArenaBasics
     /// <summary>
     /// This team's advance direction as a map heading, derived from the
     /// ordered objective regions and the team's declared index direction.
+    /// Chain-derived on purpose: "away from my spawn" agrees with it only on
+    /// contracts that put spawns behind the chain, and a bot that reappears
+    /// beside the fight has no home vector to reason from.
     /// Null when the mode declares no advance (deathmatch, or degenerate
     /// geometry).
     /// </summary>
     public static Direction? AdvanceDirection(
         GenericActorResolvedMatchContract contract,
-        GenericActorContext context)
+        GenericActorContext context) =>
+        AdvanceDirection(contract, context.Self.ActorId.TeamId);
+
+    /// <summary>
+    /// Any team's advance direction, so a doctrine can reason about where the
+    /// opposition is pushing from as easily as about its own front.
+    /// </summary>
+    public static Direction? AdvanceDirection(
+        GenericActorResolvedMatchContract contract,
+        int teamId)
     {
         if (contract.ModeMapBinding
             is not GenericActorResolvedMatchContract
@@ -645,7 +941,7 @@ internal static class ArenaBasics
             return null;
         }
         var advance = binding.TeamAdvances.FirstOrDefault(entry =>
-            entry.TeamId == context.Self.ActorId.TeamId);
+            entry.TeamId == teamId);
         if (advance is null)
             return null;
 

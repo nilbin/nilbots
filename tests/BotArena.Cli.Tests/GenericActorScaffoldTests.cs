@@ -37,6 +37,11 @@ public sealed class GenericActorScaffoldTests
             Assert.Contains("TryDirectShot", source);
             Assert.Contains("TryAdvanceToActiveObjective", source);
             Assert.Contains("action.ActionCode", basics);
+            // The contract readers ArenaBasicsTemplateTests exercises must
+            // reach the player, not just the test project's linked copy.
+            Assert.Contains("CaptureRules", basics);
+            Assert.Contains("ObjectivePresence", basics);
+            Assert.Contains("ExpectedArrivalTiles", basics);
 
             ProcessResult built = Run(
                 project,

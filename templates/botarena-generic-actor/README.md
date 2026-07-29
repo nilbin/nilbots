@@ -106,6 +106,31 @@ remains authoritative.
   unlock tick?) straight from the contract; `ArenaBasics.ClassOf` reads a
   team's class chassis. Prefer these over hard-coded assumptions — arms
   differ, and the qualification profile is not your class arm.
+- `ArenaBasics.Capture(contract)` reads what a push is worth: capture
+  threshold, gain, decay, redeploy pause, whether surplus objective weight
+  scales capture pressure, whether only enemy sole presence erodes a claim,
+  and how long a completed advance holds. That last one is `null` when the
+  capture definition declares no hold at all — canonical contracts omit inert
+  fields, so an absent hold means captures never lock and the front can come
+  straight back. When a hold IS declared, a capture completed inside an
+  enemy hold is spent: the claim resets and the objective does not move.
+  Pricing every capture as an advance is how a bot overpays for a push.
+- `ArenaBasics.ObjectivePresence(contract, context)` counts objective weight
+  on the active objective by side (a form may declare weight zero and hold
+  ground for nothing) — the number that matters when control is weight-scaled
+  rather than binary. It sees only what your team observes, so read enemy
+  weight as a lower bound.
+- `ArenaBasics.ExpectedArrivalTiles(contract, context)` says where your
+  slot's next automatic arrival is intended to land. Read
+  `lifecycle.automaticReturnPlacement`: some contracts place returns and
+  activations on your own side of the *active objective* rather than at your
+  spawn, which makes "I respawn at home and walk to the front" wrong. Plan
+  from your life's actual first-tick `Self.Position`; use this helper only to
+  price a death before it happens.
+- `ArenaBasics.ActiveObjectiveTiles`, `ObjectiveTiles`,
+  `OwnSideObjectiveTiles`, and `AdvanceDirection(contract, teamId)` are the
+  chain-derived geometry — front, rear, and either team's push direction —
+  with no home-relative assumption in any of them.
 - When a probe or match behaves inexplicably, dump the resolved contract
   from your own replay's `header.contract` — it is the authoritative
   ruleset, and reading it beats guessing from prose every time.
