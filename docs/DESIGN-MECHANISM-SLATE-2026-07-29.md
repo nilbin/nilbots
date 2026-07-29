@@ -26,13 +26,23 @@ currency (turret = objective weight 0; fabricate = a combat action).
 1. ~~Energy budget~~ — **struck by owner ruling** (#47/#48 precedent:
    punishes pushing, rewards camping; dormant fields stay dormant).
 2. **Deployable barricade** — a fabricatable 3-HP wall body on the
-   existing bounded-fabrication machinery (fourth slot, wait-only form,
-   objective weight 0, facing-relative placement; objective tiles must
-   be transition/placement-forbidden). Creates eviction pressure, is
+   existing bounded-fabrication machinery (wait-only form, objective
+   weight 0, facing-relative placement; objective tiles must be
+   transition/placement-forbidden). Creates eviction pressure, is
    the best spectator mechanic on the slate, and manufactures organic
    demand for bends (cover deletes the straight lane). Zero
    observation-schema change. Cost S/M. Risks: turtling, objective
    denial — both have pre-registered detector metrics.
+   **Slot economics (owner-reviewed):** the wall CONSUMES an existing
+   child slot — a dedicated wall slot would make topology vary by
+   class (breaking #153's shared-chassis principle), and a free wall
+   would repeat the striker free-option mistake; body-or-wall is the
+   scarce-alternative decision #154 demands of the verb. Because
+   allied bolts pass through allies, a fabricator cannot destroy its
+   own misplaced wall — so the barricade form carries a `dismantle`
+   action (self-terminating transition; the slot returns to Ready
+   after the normal rebuild delay). Without the release valve a
+   misplaced wall is a permanent self-inflicted body deficit.
 3. **Public stances / class skills** — generalize Anchor's machinery
    (reversible windup-gated same-life transitions; `ObservedFormTransition`
    is already public to enemies with start/completion ticks) into a
