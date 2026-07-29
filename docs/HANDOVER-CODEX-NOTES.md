@@ -32,4 +32,3 @@ it only in the single SDK-bump window between phase 1 and phase 2.
 
 Direct coverage includes a real profile-3 fabrication reservation observation
 and a direct chronology rejection for a forged Frontline hold boundary.
-
