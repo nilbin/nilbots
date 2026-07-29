@@ -105,11 +105,16 @@ shared grammar on mobile facing-aimed guns (never on specials).
   into the striker's kit. The prototype implements it on stance
   machinery (the engine's only public-windup primitive), so gallery
   drivers must play it enter→fire-once→exit, never squatting; if the
-  skill survives the screen, adoption requires the honest primitive —
-  a windup-bearing attack on the mobile form (telegraph, one fan,
-  back in motion, cooldown) — so authors get an action, not stance
-  bookkeeping. Renderer note: the wide-arrow glyph is the skill's
-  identity; the stance silhouette is transitional plumbing.
+  skill survives the screen, the adoption-grade mechanism is
+  **auto-exit (owner-chosen)**: firing the fan automatically triggers
+  the return transition (a new causal fact with its own reason code —
+  the validator-teaching pattern #156 and automatic-activation already
+  established), which is both smaller than a windup-bearing attack
+  primitive and stronger than it — artillery squatting becomes
+  impossible by rule, not by driver etiquette. Authors submit enter
+  (aiming by facing) then shoot; no exit bookkeeping. Renderer note:
+  the wide-arrow glyph is the skill's identity; the stance silhouette
+  is transitional plumbing.
 - **Bulwark AEGIS SHELL** (barrage benched on owner review, and the
   RPS trace agrees: a radial proximity burst punishes whoever stands
   CLOSE — fabricator bodies, the class bulwark must lose to — while
