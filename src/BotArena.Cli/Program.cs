@@ -269,10 +269,13 @@ static int CommandHelp(string command)
             declare its class in botarena.json ("class": "striker"): declared
             classes select the arm automatically, always bind each bot to its
             class's canonical team side, and must agree with an explicit
-            --classes. Movement and projectile kinematics stay shared;
-            classes differ in durability, vision, fire tempo, shot language,
-            anchor play, and fabrication economics. May be paired with
-            --duel-map.
+            --classes. --ignore-declared-classes runs classed projects on the
+            explicit or base contract instead (the contract qualification
+            exercises). --print-candidate-contract honors declared classes
+            when bot specs are given. Movement and projectile kinematics stay
+            shared; classes differ in durability, vision, fire tempo, shot
+            language, anchor play, and fabrication economics. May be paired
+            with --duel-map.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             --print-candidate-contract emits the exact resolved candidate

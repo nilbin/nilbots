@@ -36,6 +36,7 @@ public static class FrontlineLabsExperimentCommand
             "auto-companions",
             "duel-map",
             "classes",
+            "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
         {
@@ -93,8 +94,35 @@ public static class FrontlineLabsExperimentCommand
         // plays its declared chassis. Declared classes select the arm when
         // --classes is absent, must agree with it when present, and always
         // bind each bot to its class's canonical team side.
+        // --ignore-declared-classes runs classed projects on the explicit or
+        // base contract instead — the path qualification exercises.
+        bool ignoreDeclaredClasses = OptionalFlag(
+            options,
+            "ignore-declared-classes");
         string? botSpec = null;
         string? opponentSpec = null;
+        if (printCandidateContract
+            && !ignoreDeclaredClasses
+            && classPair is null
+            && options.ContainsKey("bot")
+            && options.ContainsKey("opponent"))
+        {
+            // Print mode takes no bots normally, but when specs are given
+            // their declared classes resolve the printed identity exactly as
+            // a run would — the one command whose job is "show the resolved
+            // contract" must not silently show a different one.
+            FrontlineLabsClassDefinition? printDeclared0 =
+                DeclaredClass(options["bot"]);
+            FrontlineLabsClassDefinition? printDeclared1 =
+                DeclaredClass(options["opponent"]);
+            if (printDeclared0 is not null && printDeclared1 is not null)
+            {
+                classPair = string.CompareOrdinal(
+                        printDeclared0.Id, printDeclared1.Id) <= 0
+                    ? (printDeclared0, printDeclared1)
+                    : (printDeclared1, printDeclared0);
+            }
+        }
         if (!printCandidateContract)
         {
             botSpec = RequiredOption(options, "bot");
@@ -102,9 +130,9 @@ public static class FrontlineLabsExperimentCommand
             if (options.ContainsKey("swap"))
                 (botSpec, opponentSpec) = (opponentSpec, botSpec);
             FrontlineLabsClassDefinition? declared0 =
-                DeclaredClass(botSpec);
+                ignoreDeclaredClasses ? null : DeclaredClass(botSpec);
             FrontlineLabsClassDefinition? declared1 =
-                DeclaredClass(opponentSpec);
+                ignoreDeclaredClasses ? null : DeclaredClass(opponentSpec);
             if (classPair is null
                 && declared0 is not null
                 && declared1 is not null)
