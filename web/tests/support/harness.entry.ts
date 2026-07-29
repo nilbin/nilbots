@@ -7,10 +7,20 @@
  */
 export { drawArena } from '../../src/render/drawArena';
 export {
+  arrivalsAt,
   boltsAt,
   posesAt,
   spentBoltsAt,
 } from '../../src/render/interpolate';
+export {
+  ARENA_MARGIN_TILES,
+  ArenaCamera,
+  arenaViewport,
+  focusFrame,
+  focusPointsAt,
+  frameEscapes,
+  fullArenaFrame,
+} from '../../src/render/arenaCamera';
 export { createPresenter } from '../../src/replayPresentation';
 export {
   classFamilyForForm,

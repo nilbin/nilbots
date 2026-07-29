@@ -19,6 +19,7 @@ import { useImmersive } from './useImmersive';
 import ArenaCanvas from './ArenaCanvas';
 
 import SoundEffectsControl from './SoundEffectsControl';
+import CameraFitToggle from './CameraFitToggle';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
@@ -71,6 +72,12 @@ export default function Viewer({
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+  // The camera follows the fight by default, and any pan or zoom gesture drops that until
+  // the toggle in the transport hands it back. Owned here rather than inside either
+  // renderer because the two must never disagree about it — a device that loses its WebGL
+  // context falls back to Canvas2D mid-replay, and the camera should not change its mind
+  // about following at the same moment the arena changes how it is drawn.
+  const [autoFit, setAutoFit] = useState(true);
   // The 3D renderer is the viewer now, and there is no way to ask for the flat one:
   // a dimension count was never a choice a player wanted to make.
   //
@@ -224,16 +231,26 @@ export default function Viewer({
     ? unitAccent(replay, winnerUnit.unitKey)
     : null;
   const transport = isLive ? (
+    // A live broadcast has no transport — every viewer is at the same tick — but the
+    // camera is not transport, it is how this viewer is looking, so it stays offered.
     <div className="panel pad val flex min-w-0 items-center gap-2.5">
       <LiveDot className="size-2" />
       Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees
       this moment.
+      <span className="ml-auto">
+        <CameraFitToggle
+          enabled={autoFit}
+          onToggle={() => setAutoFit((value) => !value)}
+        />
+      </span>
     </div>
   ) : (
     <Controls
       playback={playback}
       replay={replay}
       selectedUnitKey={selectedUnitKey}
+      autoFit={autoFit}
+      onToggleAutoFit={() => setAutoFit((value) => !value)}
     />
   );
 
@@ -411,6 +428,8 @@ export default function Viewer({
                 showVisibility={showVisibility}
                 onSelectUnit={setSelectedUnitKey}
                 onUnavailable={() => setDimensional(false)}
+                autoFit={autoFit}
+                onManualCamera={() => setAutoFit(false)}
               />
             </Suspense>
           ) : (
@@ -420,6 +439,8 @@ export default function Viewer({
               selectedUnitKey={selectedUnitKey}
               showVisibility={showVisibility}
               onSelectUnit={setSelectedUnitKey}
+              autoFit={autoFit}
+              onManualCamera={() => setAutoFit(false)}
             />
           )}
           {/* Where we are, over the game rather than under it: the eye is on the arena,

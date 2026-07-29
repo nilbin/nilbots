@@ -33,7 +33,14 @@ import {
   participantForUnit,
   visualIndexForUnit,
 } from '../replayParticipants';
-import { boltsAt, posesAt, type BotPose } from './interpolate';
+import {
+  arrivalsAt,
+  boltsAt,
+  posesAt,
+  type Arrival,
+  type BotPose,
+} from './interpolate';
+import { arenaViewport, type ArenaFrame } from './arenaCamera';
 import { wallAtlasDestination } from './wallAtlasGeometry';
 import { WallLayout } from './wallTopology';
 import { drawFogMask } from './fogMask';
@@ -112,13 +119,19 @@ export interface DrawOptions {
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
+  /**
+   * Where the camera is looking, in tiles. Absent means the whole arena, framed the way
+   * this renderer always framed it — which is what every golden frame is recorded at, and
+   * what a caller that does not want a moving camera gets by saying nothing.
+   */
+  frame?: ArenaFrame | null;
 }
 
 /** Pure canvas renderer: consumes replay data, never computes game rules (plan §32). */
 export function drawArena(
   ctx: CanvasRenderingContext2D,
   replay: ReplayModel,
-  { time, selectedUnitKey, showVisibility }: DrawOptions,
+  { time, selectedUnitKey, showVisibility, frame = null }: DrawOptions,
   width: number,
   height: number,
 ): void {
@@ -127,16 +140,17 @@ export function drawArena(
     height: mapHeight,
     tileRows: mapTiles,
   } = replay.map;
-  // A margin so edge walls are not flush with the canvas. Fractional rather than a whole
-  // tile: at 24x18 a full tile is 4% of width and 5.5% of height given away to black, and
-  // on a letterboxed phone every pixel of arena is already scarce. Must match
-  // ArenaCanvas's hit-test, which converts clicks back to tiles with the same figure.
-  const MARGIN_TILES = 0.4;
-  const tile = Math.floor(
-    Math.min(width / (mapWidth + MARGIN_TILES), height / (mapHeight + MARGIN_TILES)),
+  // The tile size and origin the camera asks for. `arenaViewport` also owns the whole-map
+  // fallback and its margin, so `ArenaCanvas`'s hit-test converts a click back to a tile
+  // through the same arithmetic — the two used to state it separately, with a comment on
+  // each asking the other not to drift.
+  const { tile, originX, originY } = arenaViewport(
+    frame,
+    mapWidth,
+    mapHeight,
+    width,
+    height,
   );
-  const originX = Math.floor((width - tile * mapWidth) / 2);
-  const originY = Math.floor((height - tile * mapHeight) / 2);
   const px = (x: number) => originX + x * tile;
   const py = (y: number) => originY + y * tile;
 
@@ -173,6 +187,12 @@ export function drawArena(
     tickCount === 0 ? 0 : Math.max(0, Math.min(time - tick, 1));
   const currentTick = replay.ticks[tick];
   const poses = posesAt(replay, time);
+  // Lives that materialized at the start of this tick, by the life they belong to, so the
+  // body pass can condense the chassis and the effect pass can ring it without either
+  // asking the model the same question twice.
+  const arrivals = new Map<string, Arrival>(
+    arrivalsAt(replay, time).map((arrival) => [arrival.actorKey, arrival]),
+  );
   const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const boundaryWall = validWallFamily(
     replay.map.presentation?.boundaryWall ?? undefined,
@@ -284,6 +304,10 @@ export function drawArena(
   drawProjectiles();
   drawVolleys();
   drawHeardSounds();
+  // Before the bodies, because it happens on the floor: the 3D renderer puts the same ring
+  // on the ground plane, so drawing it over the chassis here would make the flat viewer
+  // paint over the machine it is delivering while the other one lights it from below.
+  drawArrivals();
   drawShadowsAndBots();
   drawShots();
   drawImpacts();
@@ -1129,6 +1153,17 @@ export function drawArena(
     }
   }
 
+  /**
+   * How much of this body is here yet: 1 unless it is materializing on this very tick.
+   *
+   * One number, asked by the chassis and by its shadow, so the two cannot come up out of
+   * the pad at different rates.
+   */
+  function emergence(pose: BotPose): number {
+    const arrival = arrivals.get(pose.actorKey);
+    return arrival ? 0.35 + 0.65 * easeOut(arrival.age) : 1;
+  }
+
   function drawShadow(pose: BotPose): void {
     const cx = px(pose.x) + tile / 2;
     const cy = py(pose.y) + tile / 2 + tile * 0.2;
@@ -1142,15 +1177,17 @@ export function drawArena(
           tile *
           0.018
         : 0;
+    // A materializing body has a materializing shadow, or it stands on somebody else's.
+    const emerge = emergence(pose);
     ctx.save();
     ctx.filter = `blur(${Math.max(1, tile * 0.045)}px)`;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.52)';
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.52 * emerge})`;
     ctx.beginPath();
     ctx.ellipse(
       cx,
       cy - hover,
-      tile * 0.36,
-      tile * 0.17,
+      tile * 0.36 * emerge,
+      tile * 0.17 * emerge,
       0,
       0,
       Math.PI * 2,
@@ -1213,6 +1250,16 @@ export function drawArena(
 
     ctx.save();
     ctx.translate(cx, cy);
+
+    // Arriving: the body scales up out of the pad and settles, under the ring closing on
+    // it. Applied to the whole chassis transform so every cue drawn below — the selection
+    // ring, the emplacement collar, the health bar — comes up with it as one machine.
+    const emerge = emergence(pose);
+    if (emerge < 1) {
+      ctx.translate(0, tile * 0.3 * (1 - emerge));
+      ctx.globalAlpha *= Math.min(1, emerge * 1.4);
+      ctx.scale(emerge, emerge);
+    }
 
     if (!destroyed && !ghosted && pose.pendingFormTransition) {
       const transition = pose.pendingFormTransition;
@@ -1640,6 +1687,77 @@ export function drawArena(
     ctx.stroke();
   }
 
+  /**
+   * A life materializing, which is the exact opposite picture from a life ending.
+   *
+   * Destruction throws outward: sparks fly off, a shockwave expands, the body tips and
+   * fades. So an arrival **condenses**. A wide ring collapses onto the pad and lands as a
+   * flash at the moment the body reaches full size, and the accent is the unit's own —
+   * through `unitPresentation`, like everything else, so a class arm whose participants
+   * all submitted the same colour still arrives in its team's.
+   *
+   * It matters most under forward rally, where bodies arrive *at the front* rather than
+   * behind the line: without this, a machine simply exists mid-fight one frame after it
+   * did not, and the fabrication that paid for it is invisible.
+   */
+  function drawArrivals(): void {
+    for (const arrival of arrivals.values()) {
+      const centreX = px(arrival.x) + tile / 2;
+      const centreY = py(arrival.y) + tile / 2;
+      const accent = accentAt(
+        accentFor(arrival.unitKey),
+        centreX,
+        centreY,
+      );
+      const collapse = easeOut(arrival.age);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = Math.max(4, tile * 0.24);
+
+      // The ring: wide and faint, closing on the body and brightening as it goes.
+      const radius = tile * (1.15 - 0.78 * collapse);
+      ctx.strokeStyle = hexWithAlpha(accent, 0.25 + 0.6 * collapse);
+      ctx.lineWidth = Math.max(1.5, tile * (0.03 + 0.05 * collapse));
+      ctx.beginPath();
+      ctx.arc(centreX, centreY, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Four marks riding the ring in, so the collapse has a direction and does not read
+      // as a circle simply getting smaller.
+      ctx.strokeStyle = hexWithAlpha(accent, 0.75 * (1 - collapse));
+      ctx.lineWidth = Math.max(1.5, tile * 0.045);
+      ctx.lineCap = 'round';
+      for (let index = 0; index < 4; index++) {
+        const angle = index * (Math.PI / 2) + Math.PI / 4;
+        ctx.beginPath();
+        ctx.moveTo(
+          centreX + Math.cos(angle) * radius,
+          centreY + Math.sin(angle) * radius,
+        );
+        ctx.lineTo(
+          centreX + Math.cos(angle) * (radius + tile * 0.3),
+          centreY + Math.sin(angle) * (radius + tile * 0.3),
+        );
+        ctx.stroke();
+      }
+
+      // And the landing: a short bloom at the tile, brightest as the ring arrives.
+      const landing = Math.max(0, (arrival.age - 0.55) / 0.45);
+      if (landing > 0) {
+        // Bright enough to land, not so bright that it paints over the machine it just
+        // delivered — the body has to be readable the instant it can act.
+        const bloom = Math.sin(landing * Math.PI);
+        ctx.fillStyle = hexWithAlpha(accent, 0.34 * bloom);
+        ctx.beginPath();
+        ctx.arc(centreX, centreY, tile * 0.42 * (0.6 + 0.4 * bloom), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   function drawImpacts(): void {
     const progress = shotProgress();
     if (progress < 0.6) return;
@@ -1837,6 +1955,12 @@ function nameHash(name: string): number {
   let hash = 2166136261;
   for (let i = 0; i < name.length; i++) hash = ((hash ^ name.charCodeAt(i)) * 16777619) >>> 0;
   return hash;
+}
+
+/** Fast then settling — an arrival lands rather than easing to a stop. */
+function easeOut(t: number): number {
+  const clamped = Math.max(0, Math.min(t, 1));
+  return 1 - (1 - clamped) ** 3;
 }
 
 function hexWithAlpha(hex: string, alpha: number): string {

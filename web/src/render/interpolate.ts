@@ -1,6 +1,7 @@
 import type {
   ReplayActorIdentity,
   ReplayActorLifeKey,
+  ReplayActorSpawnReason,
   ReplayDirection,
   ReplayFormTransition,
   ReplayModel,
@@ -10,6 +11,7 @@ import type {
   ReplayUnitLifecycleStatus,
   ReplayWorldSnapshot,
 } from '../replayModel';
+import { isArrivalEvent } from '../replayModel';
 
 export interface BotPose {
   actorKey: ReplayActorLifeKey;
@@ -322,6 +324,77 @@ export function spentBoltsAt(
     });
   }
   return spent;
+}
+
+export interface Arrival {
+  actorKey: ReplayActorLifeKey;
+  unitKey: ReplayStableUnitKey;
+  teamId: number;
+  /** Tile the life materialized on. */
+  x: number;
+  y: number;
+  /** Why it arrived, in the source document's own vocabulary. Never keyed off. */
+  reason: ReplayActorSpawnReason | null;
+  /** 0 the instant it appears, 1 when the materialization is over. */
+  age: number;
+}
+
+/**
+ * How far the materialization runs through the tick that carries it.
+ *
+ * It has to be over well before the tick is, because a life that arrives may act on its
+ * creation tick: a child fabricated at the front can be shooting by the time this
+ * finishes, and a body still condensing while it fires reads as a rendering bug.
+ */
+const ARRIVAL_SPAN = 0.75;
+
+/**
+ * Lives that materialized at the start of this tick.
+ *
+ * The mirror of `spentBoltsAt`, and derived the same way — from the normalized document,
+ * never accumulated — so seeking backwards into a tick before a fabrication cannot leave a
+ * spawn ring hanging in the air.
+ *
+ * Lifecycle is applied at *tick start*, so an arriving life is already in this tick's
+ * opening state and its position comes from there rather than from the event: replay-v2
+ * carries the pad in `to` and generation-3 carries it in the payload's `position`, and the
+ * authoritative state is the one thing that says the same thing in both. The event is
+ * still what decides *that* it arrived, through the model's predicate, because a life
+ * appearing between two snapshots is an inference and a lifecycle event is a fact.
+ */
+export function arrivalsAt(replay: ReplayModel, time: number): Arrival[] {
+  const tickCount = replay.ticks.length;
+  if (tickCount === 0) return [];
+  const clamped = Math.max(0, Math.min(time, tickCount));
+  const index = Math.min(Math.floor(clamped), tickCount - 1);
+  const fraction = Math.max(0, Math.min(clamped - index, 1));
+  const age = fraction / ARRIVAL_SPAN;
+  if (age > 1) return [];
+
+  const tick = replay.ticks[index];
+  const arrivals: Arrival[] = [];
+  const seen = new Set<ReplayActorLifeKey>();
+  for (const event of [...tick.lifecycleEvents, ...tick.events]) {
+    if (!isArrivalEvent(event.type)) continue;
+    const actor = event.sourceActor ?? event.targetActor;
+    if (!actor || seen.has(actor.actorKey)) continue;
+    const state = tick.before.actors.find(
+      (candidate) => candidate.actorKey === actor.actorKey,
+    );
+    const position = state?.position ?? event.to ?? event.from;
+    if (!position) continue;
+    seen.add(actor.actorKey);
+    arrivals.push({
+      actorKey: actor.actorKey,
+      unitKey: actor.unitKey,
+      teamId: actor.teamId,
+      x: position.x,
+      y: position.y,
+      reason: event.spawnReason,
+      age,
+    });
+  }
+  return arrivals;
 }
 
 export function headingBetween(

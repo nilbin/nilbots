@@ -5,7 +5,7 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
-import { spentBoltsAt } from '../render/interpolate';
+import { arrivalsAt, spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { unitAccent } from '../render/unitPresentation';
 import {
@@ -70,6 +70,9 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
   const absorptions = buildAbsorptions(replay, disposables);
   group.add(absorptions.group);
 
+  const arrivals = buildArrivals(replay, disposables);
+  group.add(arrivals.group);
+
   let painted = '';
 
   const update = (
@@ -106,6 +109,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     impacts.update(tick, fraction);
     spent.update(time);
     absorptions.update(tick, fraction);
+    arrivals.update(time);
   };
 
   /**
@@ -786,6 +790,96 @@ function buildSpentBolts(
       material.opacity = (1 - bolt.age) ** 2 * 0.9;
     }
     for (let index = used; index < pool.length; index++) pool[index].visible = false;
+  };
+
+  return { group, update };
+}
+
+/**
+ * A life materializing — the arena's one effect that runs *inward*.
+ *
+ * Everything else here expands. An impact throws a shockwave, a kill throws two, a spent
+ * bolt dissipates. That vocabulary is consistent and it means one thing: something came
+ * apart here. An arrival is the opposite sentence, so it is drawn as the opposite motion —
+ * a wide ring closing onto the pad and landing as a flash under a body that is scaling up
+ * out of the floor (`arenaActors` owns that half). Nothing about it is borrowed from a
+ * destruction, which is exactly why the two can never be confused at a glance.
+ *
+ * It reads doubly under a forward rally, where fabricated bodies arrive at the front line
+ * rather than safely behind it: without this, a machine simply exists mid-fight one frame
+ * after it did not.
+ */
+function buildArrivals(
+  replay: ReplayModel,
+  disposables: { dispose: () => void }[],
+): { group: THREE.Group; update: (time: number) => void } {
+  const group = new THREE.Group();
+  // Thick relative to its radius, so a *closing* ring reads as material arriving rather
+  // than as the thin wave an impact throws off.
+  const geometry = new THREE.RingGeometry(0.62, 1, 40);
+  geometry.rotateX(-Math.PI / 2);
+  const coreGeometry = new THREE.RingGeometry(0, 0.5, 24);
+  coreGeometry.rotateX(-Math.PI / 2);
+  disposables.push(geometry, coreGeometry);
+
+  const rings: THREE.Mesh[] = [];
+  const cores: THREE.Mesh[] = [];
+  const borrow = (
+    pool: THREE.Mesh[],
+    shape: THREE.BufferGeometry,
+    index: number,
+    cue: string,
+  ) => {
+    while (pool.length <= index) {
+      const material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(shape, material);
+      mesh.userData.cue = cue;
+      mesh.visible = false;
+      group.add(mesh);
+      pool.push(mesh);
+      disposables.push(material);
+    }
+    return pool[index];
+  };
+
+  const update = (time: number) => {
+    let usedRings = 0;
+    let usedCores = 0;
+    for (const arrival of arrivalsAt(replay, time)) {
+      const accent = accentForUnit(replay, arrival.unitKey);
+      // Fast then settling, the same curve the flat renderer condenses on.
+      const closing = 1 - (1 - arrival.age) ** 3;
+
+      const ring = borrow(rings, geometry, usedRings++, 'arrival');
+      ring.visible = true;
+      ring.position.set(arrival.x + 0.5, 0.07, arrival.y + 0.5);
+      ring.scale.setScalar(2.3 - 1.75 * closing);
+      // Turning as it closes, so the collapse has a direction rather than merely a size.
+      ring.rotation.y = closing * Math.PI * 0.6;
+      const ringMaterial = ring.material as THREE.MeshBasicMaterial;
+      ringMaterial.color.set(accent);
+      ringMaterial.opacity = 0.25 + 0.65 * closing;
+
+      const landing = Math.max(0, (arrival.age - 0.55) / 0.45);
+      if (landing <= 0) continue;
+      const core = borrow(cores, coreGeometry, usedCores++, 'arrival-landing');
+      core.visible = true;
+      core.position.set(arrival.x + 0.5, 0.05, arrival.y + 0.5);
+      const bloom = Math.sin(landing * Math.PI);
+      core.scale.setScalar(1.1 + 0.6 * bloom);
+      const coreMaterial = core.material as THREE.MeshBasicMaterial;
+      coreMaterial.color.set(accent);
+      coreMaterial.opacity = 0.7 * bloom;
+    }
+    for (let index = usedRings; index < rings.length; index++)
+      rings[index].visible = false;
+    for (let index = usedCores; index < cores.length; index++)
+      cores[index].visible = false;
   };
 
   return { group, update };

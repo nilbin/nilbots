@@ -181,6 +181,28 @@ export function isDestructionEvent(type: string): boolean {
 }
 
 /**
+ * A life *arriving* — the opposite beat, and the one the viewer had no word for at all.
+ *
+ * Every generation says it differently and says it more than once: a Frontline replay
+ * emits `respawned` when a prime returns to its authored spawn and `fabricated` when a
+ * fabricator builds a child, while a generation-3 replay emits one `life-spawned` whose
+ * payload `reason` carries which of `automatic-return`, `fabrication` or
+ * `automatic-activation` it was. All of them mean the same thing to a spectator: a body
+ * that was not there is there now, and it can act on this tick.
+ *
+ * The reason is presentation-relevant but not presentation-*deciding* — an arrival looks
+ * like an arrival however it was caused — so it stays on the event for anything that wants
+ * to phrase it, and nothing keys an effect off the spelling.
+ */
+export function isArrivalEvent(type: string): boolean {
+  return (
+    type === 'life-spawned' ||
+    type === 'respawned' ||
+    type === 'fabricated'
+  );
+}
+
+/**
  * The same equivalence for the three the *score* reads. The music director counts
  * movement and rotation as activity and treats a destruction or a disqualification as a
  * decisive beat, so a generation-3 match scored as an empty field: no shots, no deaths,

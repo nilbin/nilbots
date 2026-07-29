@@ -16,6 +16,7 @@ import {
   unitStanceLook,
 } from '../render/unitPresentation';
 import {
+  arrivalsAt,
   boltsAt,
   directionAngle,
   headingAngle,
@@ -1064,6 +1065,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
     const events = currentTick?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));
+    // Lives materializing on this tick, so a body that has just arrived can come up out of
+    // the floor under the ring the overlays are closing on it.
+    const arriving = new Map(
+      arrivalsAt(replay, time).map((arrival) => [arrival.actorKey, arrival]),
+    );
     // The facings this tick runs between, so a turn's *rate* can be derived rather than
     // remembered. Frame-to-frame memory would make a scrub read as a violent spin, and
     // would give a paused bot a drift that depended on how the playhead got there.
@@ -1167,6 +1173,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const collapse = dying
         ? Math.max(0, Math.min((fraction - 0.55) / 0.45, 1))
         : 0;
+      // Arriving is the mirror of collapsing: the body comes up through the floor and
+      // scales into place instead of sinking and tipping out of it. Both are the same two
+      // channels — height and scale — so a life can never be mid-arrival and mid-death at
+      // once, and the reader never has to tell two similar animations apart.
+      const arrival = arriving.get(pose.actorKey);
+      const emerge = arrival ? 1 - (1 - arrival.age) ** 3 : 1;
       const form =
         replay.forms.find((candidate) => candidate.formId === pose.formId) ??
         null;
@@ -1307,7 +1319,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           : 0,
       );
       const visibility = hidden(pose) ? 0.15 : 1;
-      bot.fade(visibility * (1 - collapse * 0.75));
+      bot.fade(
+        visibility * (1 - collapse * 0.75) * Math.min(1, emerge * 1.4),
+      );
       // Fog and death dim the cues too, and this runs after them so it composes rather
       // than being overwritten.
       if (bot.anchorRing.visible)
@@ -1365,8 +1379,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
       bot.chassis.rotation.z = collapse * 0.5;
       bot.chassis.rotation.x = collapse * 0.22;
-      bot.chassis.position.y = -collapse * BOT_HEIGHT * 0.55;
-      bot.chassis.scale.setScalar(1 - collapse * 0.16);
+      bot.chassis.position.y =
+        -collapse * BOT_HEIGHT * 0.55 - (1 - emerge) * BOT_HEIGHT * 1.6;
+      bot.chassis.scale.setScalar(
+        (1 - collapse * 0.16) * (0.35 + 0.65 * emerge),
+      );
       bot.turret.scale.setScalar(
         TURRET_SCALE +
           (firing ? Math.sin(shotProgress * Math.PI) * 0.045 : 0),

@@ -158,6 +158,12 @@ export default function HostedViewer({
           setSelectedUnitKey(unitKey);
           post(selectedBridgeMessage(bridgeVersion, replay, unitKey));
         }}
+        // The camera follows the action here as it does everywhere, but this surface
+        // offers no override: the host draws every control natively and the bridge carries
+        // no camera message, so a gesture that paused auto-fit would have nothing to turn
+        // it back on. Adding one is a bridge change, and a bridge change is a mobile
+        // change in the same commit.
+        cameraGestures={false}
       />
     </div>
   );

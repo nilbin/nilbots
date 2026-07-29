@@ -5,6 +5,14 @@ import type {
 } from '../replayModel';
 import { drawArena } from '../render/drawArena';
 import { posesAt } from '../render/interpolate';
+import {
+  ArenaCamera,
+  arenaViewport,
+  focusFrame,
+  focusPointsAt,
+  type ArenaFraming,
+} from '../render/arenaCamera';
+import { attachCameraGestures } from '../render/cameraGestures';
 
 interface ArenaCanvasProps {
   replay: ReplayModel;
@@ -12,6 +20,20 @@ interface ArenaCanvasProps {
   selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
+  /** Follow the action. On by default; a gesture or the chrome's toggle turns it off. */
+  autoFit?: boolean;
+  /** Fired when a gesture takes the camera, so the chrome can show auto-fit as off. */
+  onManualCamera?: () => void;
+  /**
+   * Whether this surface offers pan and zoom at all.
+   *
+   * Off in the mobile app's WebView. There the host draws the transport natively and the
+   * page has no chrome of its own, so a gesture that dropped auto-fit would have nothing to
+   * turn it back on — the camera would silently stop following for the rest of the match.
+   * Auto-fit still runs there; only the override is withheld, because a bridge that carries
+   * no gesture also carries no way to undo one.
+   */
+  cameraGestures?: boolean;
 }
 
 export default function ArenaCanvas({
@@ -20,16 +42,62 @@ export default function ArenaCanvas({
   selectedUnitKey,
   showVisibility,
   onSelectUnit,
+  autoFit = true,
+  onManualCamera,
+  cameraGestures = true,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef({ time, selectedUnitKey, showVisibility });
-  stateRef.current = { time, selectedUnitKey, showVisibility };
+  const stateRef = useRef({ time, selectedUnitKey, showVisibility, autoFit });
+  stateRef.current = { time, selectedUnitKey, showVisibility, autoFit };
+  const overrideRef = useRef(onManualCamera);
+  overrideRef.current = onManualCamera;
+  // Survives re-renders and belongs to the replay, not the frame: the spring's whole job
+  // is to remember where it was going.
+  const cameraRef = useRef<ArenaCamera | null>(null);
+  const framingRef = useRef<ArenaFraming>({
+    mapWidth: replay.map.width,
+    mapHeight: replay.map.height,
+    aspect: 1,
+  });
+
+  const gesturesRef = useRef<{ panned: () => boolean } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
     let frame = 0;
-    const render = () => {
+    let last: number | null = null;
+    let aspect = 0;
+    let lastFit = stateRef.current.autoFit;
+    // A new replay is a new match: the camera must not open framed on the last one's fight.
+    cameraRef.current = null;
+
+    const framing = () => framingRef.current;
+    const scale = () =>
+      arenaViewport(
+        cameraRef.current?.frame ?? null,
+        replay.map.width,
+        replay.map.height,
+        canvas.clientWidth || 1,
+        canvas.clientHeight || 1,
+      ).tile;
+
+    const gestures = cameraGestures
+      ? attachCameraGestures({
+          element: canvas,
+          // Created below on the first frame, which is the first moment the viewport has a
+          // size — so the gesture host reads it lazily rather than capturing it.
+          get camera() {
+            return cameraRef.current!;
+          },
+          framing,
+          scale,
+          onOverride: () => overrideRef.current?.(),
+        })
+      : null;
+    gesturesRef.current = gestures;
+
+    const render = (stamp: number) => {
       const parent = canvas.parentElement!;
       const ratio = window.devicePixelRatio || 1;
       const width = parent.clientWidth;
@@ -41,27 +109,79 @@ export default function ArenaCanvas({
         canvas.style.height = `${height}px`;
       }
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      drawArena(ctx, replay, stateRef.current, width, height);
+
+      const { time: now, selectedUnitKey: followed, showVisibility: fov, autoFit: fit } =
+        stateRef.current;
+      if (width > 0 && height > 0) {
+        framingRef.current = {
+          mapWidth: replay.map.width,
+          mapHeight: replay.map.height,
+          aspect: width / height,
+        };
+        const camera =
+          cameraRef.current ?? (cameraRef.current = new ArenaCamera(framingRef.current));
+        // A resized or rotated viewport re-shapes the frame rather than re-deciding it.
+        if (aspect !== 0 && Math.abs(aspect - framingRef.current.aspect) > 1e-6)
+          camera.reframe(framingRef.current);
+        aspect = framingRef.current.aspect;
+
+        // On the toggle *changing*, never on a mismatch. A gesture drops auto-fit inside
+        // the camera immediately and reports it upward, and React delivers that state a
+        // frame or two later — so a camera that reacted to the mismatch would spend those
+        // frames re-engaging the fit and undoing the gesture that had just been made.
+        if (fit !== lastFit) {
+          lastFit = fit;
+          if (fit) camera.engage();
+          else camera.showEverything(framingRef.current);
+        }
+        if (camera.auto)
+          camera.aim(
+            focusFrame(focusPointsAt(replay, now, followed), framingRef.current),
+          );
+        // Real seconds, so the camera settles at the same rate whatever the playback speed
+        // and whatever the frame rate; the spring clamps a huge step of its own accord.
+        camera.advance(last === null ? 0 : (stamp - last) / 1000);
+        last = stamp;
+      }
+
+      drawArena(
+        ctx,
+        replay,
+        {
+          time: now,
+          selectedUnitKey: followed,
+          showVisibility: fov,
+          frame: cameraRef.current?.frame ?? null,
+        },
+        width,
+        height,
+      );
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(frame);
-  }, [replay]);
+    return () => {
+      cancelAnimationFrame(frame);
+      gestures?.detach();
+      gesturesRef.current = null;
+    };
+  }, [replay, cameraGestures]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    // Hit-test bots at their current interpolated tile.
+    // A drag that moved the camera is not a tap on a bot.
+    if (gesturesRef.current?.panned()) return;
+    // Hit-test bots at their current interpolated tile, through the camera's own transform
+    // — a zoomed-in arena must still pick the bot that is under the cursor.
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
-    const mapWidth = replay.map.width;
-    const mapHeight = replay.map.height;
-    const tile = Math.floor(
-      // Mirrors drawArena's MARGIN_TILES; if they disagree, clicks land on the wrong bot.
-      Math.min(rect.width / (mapWidth + 0.4), rect.height / (mapHeight + 0.4)),
+    const { tile, originX, originY } = arenaViewport(
+      cameraRef.current?.frame ?? null,
+      replay.map.width,
+      replay.map.height,
+      rect.width,
+      rect.height,
     );
-    const originX = Math.floor((rect.width - tile * mapWidth) / 2);
-    const originY = Math.floor((rect.height - tile * mapHeight) / 2);
 
     for (const pose of posesAt(replay, stateRef.current.time)) {
       const cx = originX + pose.x * tile + tile / 2;

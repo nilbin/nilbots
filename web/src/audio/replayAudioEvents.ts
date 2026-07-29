@@ -19,6 +19,13 @@ export interface ReplayAudioEvent {
 
 /**
  * Maps authoritative replay events onto presentation audio.
+ *
+ * **An arrival is deliberately silent.** The approved pack ships exactly three cues and
+ * every one of them is a sound of violence — a launch, a strike, a kill — each already
+ * bound to an event and pitched, panned and prioritized as that event. Spending one of
+ * them on a life materializing would make a fabrication sound like taking a hit, which is
+ * worse than the silence, and a fourth cue is a new audio asset rather than a viewer
+ * change. The arrival is carried entirely by both renderers instead.
  */
 export function replayAudioEventsAt(
   replay: ReplayModel,

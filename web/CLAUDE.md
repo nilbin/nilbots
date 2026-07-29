@@ -65,6 +65,25 @@ rejects v2/v3; bridge v2 remains the stable v1/v2 contract; bridge v3 adds gener
 and scoreboard data. The TypeScript mirror in
 `mobile/src/components/arena/protocol.ts` changes in the same commit.
 
+## One camera, two projections
+
+`render/arenaCamera.ts` decides what the arena is looking at — a centre and a span in
+tiles, fitted to the active lives, sprung toward, and clamped. **Neither renderer owns
+any of that.** `drawArena` turns a frame into a tile size and an origin (`arenaViewport`,
+which the canvas hit-test also uses, so a click still lands on the bot under it);
+`ArenaCanvas3D` turns the same frame into a distance and a look target. A camera decision
+made in one of them is a camera the two viewers disagree about, and a device that loses
+its WebGL context swaps between them mid-replay.
+
+Two consequences worth knowing. **`drawArena` with no `frame` is the historical whole-map
+framing, to the pixel** — that is what the golden frames are recorded at, and what a
+caller who does not want a moving camera gets by saying nothing; the default-on camera
+lives in `ArenaCanvas`, not in the renderer. And the *override* is a contract, not a
+renderer detail (`render/cameraGestures.ts`): wheel and mouse-drag on a pointer device,
+two fingers on a touch one, never one finger — which belongs to the page and to
+selection. The mobile WebView takes auto-fit and **no** gestures, because the bridge
+carries no camera message and a gesture there would have nothing to undo it.
+
 ## Types come from the server
 
 Response types are aliases onto `api/schema.d.ts`, generated from the OpenAPI document.
