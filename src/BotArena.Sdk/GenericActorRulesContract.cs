@@ -422,7 +422,48 @@ public sealed class GenericActorRulesContract
         string VisionProfileId,
         string? AttackProfileId,
         int ObjectiveWeight,
-        ImmutableArray<string> AllowedActionIds);
+        ImmutableArray<string> AllowedActionIds)
+    {
+        /// <summary>
+        /// Optional defensive projectile-contact capability. Contracts that do
+        /// not publish the field use
+        /// <see cref="FormProjectileGuard.None"/>.
+        /// </summary>
+        public FormProjectileGuard ProjectileGuard { get; init; }
+            = FormProjectileGuard.None;
+    }
+
+    /// <summary>
+    /// What a form does with an incoming hostile projectile contact.
+    /// </summary>
+    public enum FormProjectileGuard
+    {
+        /// <summary>
+        /// Contacts resolve by the collision contract alone. This is the inert
+        /// default, and canonical contract bytes omit the field entirely for
+        /// it — an absent field always means this value.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// A hostile projectile approaching from inside the life's facing
+        /// quadrant is consumed without damage and published as a
+        /// <c>ProjectileAbsorbed</c> event; flank and rear contacts damage
+        /// normally.
+        /// </summary>
+        FacingQuadrantContactsConsumedWithoutDamage = 1,
+    }
+
+    /// <summary>
+    /// Multi-projectile launch shape for one successful attack action.
+    /// </summary>
+    /// <param name="ProjectileCount">Projectiles issued by one attack.</param>
+    /// <param name="Spread">Heading-layout policy ID.</param>
+    /// <param name="IdentityOrder">Projectile-ID assignment policy ID.</param>
+    public sealed record AttackVolley(
+        int ProjectileCount,
+        string Spread,
+        string IdentityOrder);
 
     /// <summary>
     /// How a movement profile couples body facing to a movement action.
@@ -538,7 +579,17 @@ public sealed class GenericActorRulesContract
         string EnergyArithmetic,
         string AttackAvailability,
         string CooldownUpdate,
-        ShotProgramDefinition ShotProgram);
+        ShotProgramDefinition ShotProgram)
+    {
+        /// <summary>
+        /// Optional multi-projectile launch shape. Contracts that do not
+        /// publish the field launch exactly one projectile per attack.
+        /// </summary>
+        public AttackVolley? Volley { get; init; }
+
+        /// <summary>Projectiles issued by one successful attack.</summary>
+        public int ProjectilesPerAttack => Volley?.ProjectileCount ?? 1;
+    }
 
     /// <summary>Projectile traversal, range, timing, collision, and damage rules.</summary>
     /// <param name="Mode">Instant-ray or discrete-projectile model.</param>

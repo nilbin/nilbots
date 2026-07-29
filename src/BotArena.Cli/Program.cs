@@ -240,6 +240,7 @@ static int CommandHelp(string command)
                    [--classes <class>-vs-<class>]
                    [--movement preserve-facing|move-sets-facing|facing-locked]
                    [--pendulum control|ratchet|ratchet-contest|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
+                   [--skills none|kit|volley|shell|five-slots]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -302,9 +303,25 @@ static int CommandHelp(string command)
             sticky-frontline plus forward-rally, and ratchet-contest adds
             contest-majority; those two are the registered factor levels, and
             comma-separated tokens compose any other ablation.
+            --skills adds the pre-registered class-skill kit on top of a class
+            pair. Each skill belongs to exactly one class, so a cell carries
+            only the skills whose owning class is in it and kit is shorthand
+            for all three. volley gives the striker a reversible windup-2
+            stance whose gun fires three simultaneous bolts down the facing
+            lane and both adjacent 45-degree headings, straight only, on a
+            slower cadence; the stance is immobile and keeps objective weight
+            1. shell gives the bulwark a reversible windup-1 stance that
+            consumes enemy projectiles arriving inside its facing quadrant
+            without damage while it cannot move or shoot; flank and rear hits
+            still land. five-slots gives a fabricator team five unit slots
+            against the opponent's three, unlocking at 60/180/300/420 with the
+            extra two rebuilding on the slower 30-tick clock; that arm mints
+            its own topology profile and fingerprint. Skills compose with
+            --classes, --movement, --pendulum, the numbers-only factors, and
+            --duel-map, subject to the 64-character canonical ID budget.
             --prime-respawn-ticks retunes the Prime automatic-return delay
             (18 by default); with --capture-threshold it is the numbers-only
-            factor level. Both compose with --pendulum, --classes,
+            factor level. Both compose with --pendulum, --skills, --classes,
             --movement, and --duel-map, and none of them is compatible with
             --capture-gain-phase, --mobilize-turrets, --remote-fabrication,
             --net-control, --one-bend-shots, or --auto-companions.

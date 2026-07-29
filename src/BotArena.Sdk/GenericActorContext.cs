@@ -1293,6 +1293,87 @@ public sealed record GenericActorContext
                 kind == EventKind.Damage;
         }
 
+        /// <summary>
+        /// A hostile projectile was consumed by the target form's declared
+        /// projectile guard instead of damaging it. Contracts whose forms
+        /// declare no guard never produce this event.
+        /// </summary>
+        public sealed record ProjectileAbsorbed : EventPayload
+        {
+            /// <summary>Creates a projectile-absorption payload.</summary>
+            /// <param name="sourceTeamId">Projectile's owning scoring team.</param>
+            /// <param name="sourceActorId">
+            /// Exact firing life when visible, otherwise <see langword="null"/>.
+            /// </param>
+            /// <param name="targetActorId">Life whose guard consumed the bolt.</param>
+            /// <param name="projectileId">Projectile consumed without damage.</param>
+            /// <param name="targetFormId">Guarding form at contact.</param>
+            /// <param name="targetFacing">Guard facing at contact.</param>
+            /// <param name="heading">Projectile travel heading at contact.</param>
+            /// <param name="position">Contact tile.</param>
+            public ProjectileAbsorbed(
+                int sourceTeamId,
+                ActorIdentity? sourceActorId,
+                ActorIdentity targetActorId,
+                long projectileId,
+                string targetFormId,
+                Direction targetFacing,
+                ProjectileHeading heading,
+                Position position)
+            {
+                ArgumentNullException.ThrowIfNull(targetActorId);
+                if (sourceTeamId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(sourceTeamId));
+                if (sourceActorId is not null
+                    && sourceActorId.TeamId != sourceTeamId)
+                {
+                    throw new ArgumentException(
+                        "A visible source actor must belong to the reported source team.",
+                        nameof(sourceActorId));
+                }
+                if (projectileId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(projectileId));
+                if (!Enum.IsDefined(targetFacing))
+                    throw new ArgumentOutOfRangeException(nameof(targetFacing));
+                if (!Enum.IsDefined(heading))
+                    throw new ArgumentOutOfRangeException(nameof(heading));
+                ValidatePosition(position, nameof(position));
+                SourceTeamId = sourceTeamId;
+                SourceActorId = sourceActorId;
+                TargetActorId = targetActorId;
+                ProjectileId = projectileId;
+                TargetFormId = GenericActorDynamicValueRules.SemanticId(
+                    targetFormId,
+                    nameof(targetFormId));
+                TargetFacing = targetFacing;
+                Heading = heading;
+                Position = position;
+            }
+
+            /// <summary>Projectile's owning scoring team.</summary>
+            public int SourceTeamId { get; }
+            /// <summary>
+            /// Exact firing life when observation policy reveals it; otherwise
+            /// <see langword="null"/>.
+            /// </summary>
+            public ActorIdentity? SourceActorId { get; }
+            /// <summary>Life whose guard consumed the bolt.</summary>
+            public ActorIdentity TargetActorId { get; }
+            /// <summary>Projectile consumed without damage.</summary>
+            public long ProjectileId { get; }
+            /// <summary>Guarding form at contact.</summary>
+            public string TargetFormId { get; }
+            /// <summary>Guard facing at contact.</summary>
+            public Direction TargetFacing { get; }
+            /// <summary>Projectile travel heading at contact.</summary>
+            public ProjectileHeading Heading { get; }
+            /// <summary>Contact map tile.</summary>
+            public Position Position { get; }
+
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.ProjectileAbsorbed;
+        }
+
         /// <summary>One body life reached the ruleset's destruction condition.</summary>
         public sealed record Destruction : EventPayload
         {
@@ -1884,6 +1965,11 @@ public sealed record GenericActorContext
         ModeChanged = 17,
         /// <summary>A pending stable-slot lifecycle clock was cancelled.</summary>
         LifecycleClockCancelled = 18,
+        /// <summary>
+        /// A form's projectile guard consumed a hostile bolt without damage.
+        /// Inert on every contract whose forms declare no guard.
+        /// </summary>
+        ProjectileAbsorbed = 19,
     }
 
     /// <summary>Authoritative score channels for every public scoring team.</summary>

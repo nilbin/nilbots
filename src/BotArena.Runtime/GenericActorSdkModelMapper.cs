@@ -331,6 +331,19 @@ internal static class GenericActorSdkModelMapper
                         payload.TargetUnitId,
                         ToSdk(payload.CancelledState),
                         payload.CancellationReason),
+            GenericActorRuntimeObservation.EventPayload
+                .ProjectileAbsorbed payload =>
+                new Sdk.GenericActorContext.EventPayload.ProjectileAbsorbed(
+                    payload.SourceTeamId,
+                    payload.SourceActorId is null
+                        ? null
+                        : ToSdk(payload.SourceActorId),
+                    ToSdk(payload.TargetActorId),
+                    payload.ProjectileId,
+                    payload.TargetFormId,
+                    ToSdk(payload.TargetFacing),
+                    ToSdk(payload.Heading),
+                    ToSdk(payload.Position)),
             _ => throw UnknownUnion(value),
         };
 
@@ -643,6 +656,8 @@ internal static class GenericActorSdkModelMapper
                 Sdk.GenericActorContext.EventKind.ModeChanged,
             GenericActorRuntimeObservation.EventKind.LifecycleClockCancelled =>
                 Sdk.GenericActorContext.EventKind.LifecycleClockCancelled,
+            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed =>
+                Sdk.GenericActorContext.EventKind.ProjectileAbsorbed,
             _ => throw UnknownEnum(value),
         };
 

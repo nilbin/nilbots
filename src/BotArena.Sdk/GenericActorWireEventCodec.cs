@@ -186,6 +186,31 @@ internal static class GenericActorWireEventCodec
                     GenericActorWireCodecValues.EncodePosition(
                         damage.Position));
                 break;
+            case GenericActorContext.EventPayload.ProjectileAbsorbed absorbed:
+                writer.Field(1, ActorWireValue.Int32(absorbed.SourceTeamId));
+                writer.Optional(
+                    2,
+                    absorbed.SourceActorId is null
+                        ? null
+                        : GenericActorWireCodecValues.EncodeIdentity(
+                            absorbed.SourceActorId));
+                writer.Field(
+                    3,
+                    GenericActorWireCodecValues.EncodeIdentity(
+                        absorbed.TargetActorId));
+                writer.Field(
+                    4,
+                    GenericActorWireCodecValues.Int64(absorbed.ProjectileId));
+                writer.Field(
+                    5,
+                    ActorWireValue.String(absorbed.TargetFormId));
+                writer.Field(6, ActorWireValue.Enum(absorbed.TargetFacing));
+                writer.Field(7, ActorWireValue.Enum(absorbed.Heading));
+                writer.Field(
+                    8,
+                    GenericActorWireCodecValues.EncodePosition(
+                        absorbed.Position));
+                break;
             case GenericActorContext.EventPayload.Destruction destruction:
                 writer.Field(
                     1,
@@ -412,6 +437,8 @@ internal static class GenericActorWireEventCodec
                     DecodeAttack(reader, depth),
                 GenericActorContext.EventKind.Damage =>
                     DecodeDamage(reader, depth),
+                GenericActorContext.EventKind.ProjectileAbsorbed =>
+                    DecodeProjectileAbsorbed(reader, depth),
                 GenericActorContext.EventKind.Destruction =>
                     DecodeDestruction(reader, depth),
                 GenericActorContext.EventKind.LifeSpawned =>
@@ -553,6 +580,31 @@ internal static class GenericActorWireEventCodec
             GenericActorWireCodecValues.Int32(reader, 6),
             GenericActorWireCodecValues.DecodePosition(
                 reader.Required(7),
+                depth + 1));
+    }
+
+    private static GenericActorContext.EventPayload.ProjectileAbsorbed
+        DecodeProjectileAbsorbed(
+            ActorWireObjectReader reader,
+            int depth)
+    {
+        byte[]? sourceActorId = reader.Optional(2);
+        return new GenericActorContext.EventPayload.ProjectileAbsorbed(
+            GenericActorWireCodecValues.Int32(reader, 1),
+            sourceActorId is null
+                ? null
+                : GenericActorWireCodecValues.DecodeIdentity(
+                    sourceActorId,
+                    depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(
+                reader.Required(3),
+                depth + 1),
+            GenericActorWireCodecValues.Int64(reader.Required(4)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(5)),
+            GenericActorWireCodecValues.Enum<Direction>(reader, 6),
+            GenericActorWireCodecValues.Enum<ProjectileHeading>(reader, 7),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(8),
                 depth + 1));
     }
 

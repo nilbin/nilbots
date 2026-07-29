@@ -17,6 +17,20 @@ public static class FrontlineLabsDefinition
         HeadToHeadMatchFormatDefinition.Id;
     public const string TopologyProfileId =
         "two-team-one-controller-three-slots-v1";
+
+    /// <summary>
+    /// The five-slot arm's topology profile. A fabricator-controlled team
+    /// fields five stable unit slots against the opposing class's three, so
+    /// the cell is deliberately NOT the same topology on both sides — an
+    /// owner-approved amendment of DECISIONS #153's same-topology reading,
+    /// registered as the good asymmetry in
+    /// <c>docs/DESIGN-MECHANISM-SLATE-2026-07-29.md</c> (the barricade's
+    /// per-class wall slot was the bad one). Slot counts are contract data,
+    /// so consumers resolve slots by their explicit IDs and nothing reads a
+    /// count of three.
+    /// </summary>
+    public const string AsymmetricSlotsTopologyProfileId =
+        "two-team-one-controller-asymmetric-slots-5-3-v1";
     public const string DuelDepthSeedProfileId =
         "frontline-labs-duel-depth-1";
     public const string ClassesSeedProfileId =
@@ -42,6 +56,20 @@ public static class FrontlineLabsDefinition
 
     /// <summary>Canonical IDs are capped at 64 characters.</summary>
     private const int MaxRulesetIdLength = 64;
+
+    /// <summary>
+    /// The topology profile label for one resolved cell. Slot counts are the
+    /// only variable, so read them from the contract rather than from the arm
+    /// flags.
+    /// </summary>
+    public static string TopologyProfileIdFor(PublicMatchTopology topology)
+    {
+        ArgumentNullException.ThrowIfNull(topology);
+        return topology.Teams.All(team =>
+            topology.UnitSlots.Count(slot => slot.TeamId == team.TeamId) == 3)
+            ? TopologyProfileId
+            : AsymmetricSlotsTopologyProfileId;
+    }
 
     private const string PrimeFormId = "prime-mobile";
     private const string ChildFormId = "child-mobile";
@@ -292,13 +320,14 @@ public static class FrontlineLabsDefinition
     }
 
     /// <summary>
-    /// Creates a local-only candidate arm for the pre-registered phase-1
-    /// pendulum factorial (DECISIONS #158). Every factor is rules-side and
-    /// observation-schema-neutral: the structural counterweights select typed
-    /// capture and lifecycle policies, and the numbers-only level retunes the
-    /// capture threshold and the Prime respawn delay. The factors compose
-    /// with each other, with the class slate, with the movement-coupling arm,
-    /// and with the duel maps, so one factorial cell is one call.
+    /// Creates a local-only candidate cell for the pre-registered factorial.
+    /// Phase 1's pendulum counterweights (DECISIONS #158) select typed capture
+    /// and lifecycle policies, the numbers-only level retunes the capture
+    /// threshold and the Prime respawn delay, and phase 2's class skills
+    /// (<c>docs/DESIGN-MECHANISM-SLATE-2026-07-29.md</c>) add per-class stance
+    /// routes and slot topology. Every factor composes with every other, with
+    /// the class slate, with the movement-coupling arm, and with the duel
+    /// maps, so one factorial cell is one call.
     /// </summary>
     public static ActorResolvedMatchDefinition CreatePendulumExperiment(
         FrontlineLabsPendulumArm pendulum,
@@ -308,7 +337,8 @@ public static class FrontlineLabsDefinition
         ActorMovementFacingCoupling movementCoupling =
             ActorMovementFacingCoupling.PreserveFacing,
         int captureThreshold = DefaultCaptureThreshold,
-        int primeRespawnTicks = DefaultPrimeRespawnTicks)
+        int primeRespawnTicks = DefaultPrimeRespawnTicks,
+        FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None)
     {
         if ((pendulum & ~AllPendulumArms) != 0)
         {
@@ -316,6 +346,30 @@ public static class FrontlineLabsDefinition
                 nameof(pendulum),
                 pendulum,
                 "Unknown Frontline Labs pendulum arm.");
+        }
+        if ((skills & ~AllSkills) != 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(skills),
+                skills,
+                "Unknown Frontline Labs class skill.");
+        }
+        FrontlineLabsSkillKit effectiveSkills =
+            EffectiveSkills(skills, classes);
+        if (skills != FrontlineLabsSkillKit.None
+            && effectiveSkills == FrontlineLabsSkillKit.None)
+        {
+            throw new ArgumentException(
+                "Every class skill is owned by exactly one class, and no "
+                + "class in this cell owns the requested skill: "
+                + string.Join(
+                    ", ",
+                    All.Where(skill => skills.HasFlag(skill))
+                        .Select(skill =>
+                            $"{SkillToken(skill)} belongs to "
+                            + $"{OwnerClassId(skill)}"))
+                + ". Pick a cell containing the owning class.",
+                nameof(skills));
         }
         if (captureThreshold <= 0)
         {
@@ -343,6 +397,7 @@ public static class FrontlineLabsDefinition
             && captureThreshold == DefaultCaptureThreshold
             && primeRespawnTicks == DefaultPrimeRespawnTicks
             && classes is null
+            && effectiveSkills == FrontlineLabsSkillKit.None
             && movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
         {
             throw new ArgumentOutOfRangeException(
@@ -358,7 +413,8 @@ public static class FrontlineLabsDefinition
                 classes,
                 movementCoupling,
                 captureThreshold,
-                primeRespawnTicks),
+                primeRespawnTicks,
+                effectiveSkills),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -369,7 +425,8 @@ public static class FrontlineLabsDefinition
             classes: classes,
             movementCoupling: movementCoupling,
             pendulum: pendulum,
-            primeRespawnTicks: primeRespawnTicks);
+            primeRespawnTicks: primeRespawnTicks,
+            skills: effectiveSkills);
     }
 
     private const FrontlineLabsPendulumArm AllPendulumArms =
@@ -377,6 +434,37 @@ public static class FrontlineLabsDefinition
         | FrontlineLabsPendulumArm.ForwardRally
         | FrontlineLabsPendulumArm.ContestMajority
         | FrontlineLabsPendulumArm.EnemySoleDecay;
+
+    private const FrontlineLabsSkillKit AllSkills =
+        FrontlineLabsSkillKit.StrikerVolley
+        | FrontlineLabsSkillKit.BulwarkAegisShell
+        | FrontlineLabsSkillKit.FabricatorFiveSlots;
+
+    /// <summary>Every skill in the pre-registered kit, in flag order.</summary>
+    public static ImmutableArray<FrontlineLabsSkillKit> All { get; } =
+    [
+        FrontlineLabsSkillKit.StrikerVolley,
+        FrontlineLabsSkillKit.BulwarkAegisShell,
+        FrontlineLabsSkillKit.FabricatorFiveSlots,
+    ];
+
+    /// <summary>
+    /// The skills this cell actually carries: a skill is a class capability,
+    /// so requesting one whose owning class is absent changes no contract
+    /// bytes and must therefore change no arm identity either.
+    /// </summary>
+    public static FrontlineLabsSkillKit EffectiveSkills(
+        FrontlineLabsSkillKit requested,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes) =>
+        classes is { } pair
+            ? requested & (pair.TeamZero.Skill | pair.TeamOne.Skill)
+            : FrontlineLabsSkillKit.None;
+
+    private static string OwnerClassId(FrontlineLabsSkillKit skill) =>
+        FrontlineLabsClassDefinition.All
+            .Single(entry => entry.Skill == skill)
+            .Id;
 
     private static FrontlineCaptureDefinition.ControlPolicyKind ControlPolicy(
         FrontlineLabsPendulumArm pendulum) =>
@@ -430,7 +518,8 @@ public static class FrontlineLabsDefinition
             FrontlineLabsClassDefinition TeamOne)? classes,
         ActorMovementFacingCoupling movementCoupling,
         int captureThreshold,
-        int primeRespawnTicks)
+        int primeRespawnTicks,
+        FrontlineLabsSkillKit skills)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -438,6 +527,9 @@ public static class FrontlineLabsDefinition
         [
             .. PendulumToken(pendulum, composed) is { Length: > 0 } arm
                 ? new[] { arm }
+                : [],
+            .. SkillsToken(skills) is { Length: > 0 } kit
+                ? new[] { kit }
                 : [],
             .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
                 is { Length: > 0 } numbers
@@ -499,6 +591,30 @@ public static class FrontlineLabsDefinition
                 }
                     .Where(entry => pendulum.HasFlag(entry.Item1))
                     .Select(entry => entry.Item2)),
+        };
+
+    /// <summary>
+    /// Skill tokens are always composed with a class pair (a skill has no
+    /// meaning without its owning class), and a pair already spends most of
+    /// the 64-character canonical-ID budget — so they are short, exactly as
+    /// #156 shortened the coupling token for the same reason. A cell holds at
+    /// most two classes and therefore at most two skills.
+    /// </summary>
+    private static string SkillsToken(FrontlineLabsSkillKit skills) =>
+        string.Join(
+            "-",
+            All.Where(skill => skills.HasFlag(skill)).Select(SkillToken));
+
+    private static string SkillToken(FrontlineLabsSkillKit skill) =>
+        skill switch
+        {
+            FrontlineLabsSkillKit.StrikerVolley => "fan",
+            FrontlineLabsSkillKit.BulwarkAegisShell => "shell",
+            FrontlineLabsSkillKit.FabricatorFiveSlots => "slot5",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(skill),
+                skill,
+                "Unknown Frontline Labs class skill."),
         };
 
     private static string NumbersToken(
@@ -591,7 +707,8 @@ public static class FrontlineLabsDefinition
         ActorMovementFacingCoupling movementCoupling =
             ActorMovementFacingCoupling.PreserveFacing,
         FrontlineLabsPendulumArm pendulum = FrontlineLabsPendulumArm.None,
-        int primeRespawnTicks = DefaultPrimeRespawnTicks)
+        int primeRespawnTicks = DefaultPrimeRespawnTicks,
+        FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -606,13 +723,14 @@ public static class FrontlineLabsDefinition
             classes,
             movementCoupling,
             pendulum,
-            primeRespawnTicks);
+            primeRespawnTicks,
+            skills);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
             automaticCompanions,
             classes: classes is not null);
-        PublicMatchTopology topology = CreateTopology(classes);
+        PublicMatchTopology topology = CreateTopology(classes, skills);
         InitialDeploymentDefinition deployment =
             CreateInitialDeployment(classes);
 
@@ -622,7 +740,10 @@ public static class FrontlineLabsDefinition
             new HeadToHeadMatchFormatDefinition(),
             topology,
             deployment,
-            CreateLifecycleAssignments(automaticCompanions, classes),
+            CreateLifecycleAssignments(
+                automaticCompanions,
+                classes,
+                skills),
             classes is { } classSelection
                 ? classSelection.TeamZero.ExplicitForwardFabrication
                     || classSelection.TeamOne.ExplicitForwardFabrication
@@ -678,7 +799,8 @@ public static class FrontlineLabsDefinition
             FrontlineLabsClassDefinition TeamOne)? classes,
         ActorMovementFacingCoupling movementCoupling,
         FrontlineLabsPendulumArm pendulum,
-        int primeRespawnTicks)
+        int primeRespawnTicks,
+        FrontlineLabsSkillKit skills)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -693,7 +815,8 @@ public static class FrontlineLabsDefinition
                 classPair,
                 movement,
                 pendulum,
-                primeRespawnTicks);
+                primeRespawnTicks,
+                skills);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1112,12 +1235,25 @@ public static class FrontlineLabsDefinition
             FrontlineLabsClassDefinition TeamOne) classes,
         ActorMovementProfileDefinition movement,
         FrontlineLabsPendulumArm pendulum,
-        int primeRespawnTicks)
+        int primeRespawnTicks,
+        FrontlineLabsSkillKit skills)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
                 ? [classes.TeamZero]
                 : [classes.TeamZero, classes.TeamOne];
+        // A stance is a class skill selected by the arm, so "this class has a
+        // stance here" is the one predicate the catalog builds from.
+        bool HasStance(FrontlineLabsClassDefinition entry) =>
+            entry.Skill is FrontlineLabsSkillKit.StrikerVolley
+                or FrontlineLabsSkillKit.BulwarkAegisShell
+            && skills.HasFlag(entry.Skill);
+        bool HasVolley(FrontlineLabsClassDefinition entry) =>
+            entry.Skill == FrontlineLabsSkillKit.StrikerVolley
+            && skills.HasFlag(entry.Skill);
+        bool HasShell(FrontlineLabsClassDefinition entry) =>
+            entry.Skill == FrontlineLabsSkillKit.BulwarkAegisShell
+            && skills.HasFlag(entry.Skill);
         ActorVisionProfileDefinition turretVision = Vision(
             TurretVisionId,
             ActorVisionShape.Omnidirectional,
@@ -1156,7 +1292,7 @@ public static class FrontlineLabsDefinition
                     ActorActionKind.Attack,
                     [ActorActionParameterKind.ShotProgram]));
         }
-        if (distinct.Any(entry => entry.MayAnchor))
+        if (distinct.Any(entry => entry.MayAnchor || HasStance(entry)))
         {
             actions.Add(
                 new ActorActionDefinition(
@@ -1170,6 +1306,9 @@ public static class FrontlineLabsDefinition
                     104,
                     ActorActionKind.SameLifeTransition,
                     []));
+        }
+        if (distinct.Any(entry => entry.MayAnchor))
+        {
             actions.Add(
                 new ActorActionDefinition(
                     PublicActionIds.ShootDirection,
@@ -1186,7 +1325,11 @@ public static class FrontlineLabsDefinition
                     ActorActionKind.Fabrication,
                     [ActorActionParameterKind.UnitTarget]));
         }
-        if (distinct.Any(entry => !entry.OneBendShotPrograms))
+        // The volley stance fires straight (no shot programs on a special —
+        // the slate's law), so it needs the parameterless action even in a
+        // striker mirror where no chassis otherwise carries it.
+        if (distinct.Any(entry =>
+                !entry.OneBendShotPrograms || HasVolley(entry)))
         {
             actions.Add(
                 new ActorActionDefinition(
@@ -1227,13 +1370,14 @@ public static class FrontlineLabsDefinition
                     ShotProgram(
                         enabled: entry.OneBendShotPrograms,
                         oneBendOnly: true)));
+            bool mayTransform = entry.MayAnchor || HasStance(entry);
             string[] primeActions =
             [
                 "wait",
                 "move",
                 "rotate",
                 shootActionId,
-                .. entry.MayAnchor ? new[] { "transform" } : [],
+                .. mayTransform ? new[] { "transform" } : [],
                 .. entry.ExplicitForwardFabrication
                     ? new[] { "fabricate" }
                     : [],
@@ -1244,7 +1388,7 @@ public static class FrontlineLabsDefinition
                 "move",
                 "rotate",
                 shootActionId,
-                .. entry.MayAnchor ? new[] { "transform" } : [],
+                .. mayTransform ? new[] { "transform" } : [],
             ];
             forms.Add(
                 new ActorFormDefinition(
@@ -1286,6 +1430,106 @@ public static class FrontlineLabsDefinition
                                 MobilizeActionId,
                             ]));
                 }
+            }
+            if (HasVolley(entry))
+            {
+                // VOLLEY: one gun, three simultaneous bolts down adjacent
+                // 45-degree lanes, straight only, on a cadence meaningfully
+                // slower than the mobile gun. Everything else — projectile
+                // speed, damage, range — is the class's own bolt, so the arm
+                // varies exactly width and tempo.
+                attacks.Add(
+                    new ActorAttackProfileDefinition(
+                        entry.StanceAttackProfileId,
+                        omnidirectionalAim: false,
+                        ClassProjectile(entry.MobileMaxTravelTiles),
+                        entry.VolleyCooldownTicks,
+                        maxEnergy: 0,
+                        attackEnergyCost: 0,
+                        energyRegenerationIntervalTicks: 0,
+                        energyRegenerationAmount: 0,
+                        ShotProgram(enabled: false, oneBendOnly: false),
+                        new ActorAttackVolleyDefinition(
+                            entry.VolleyProjectileCount,
+                            ActorAttackVolleyDefinition.VolleySpreadKind
+                                .SymmetricAdjacentHeadingFanAscendingSignedSectorOffset)));
+            }
+            if (HasStance(entry))
+            {
+                // The stance forfeits mobility and keeps objective weight 1 —
+                // the deliberate half of the turret bargain the slate's design
+                // guard demands a skill choose explicitly. Rotation stays so
+                // the stance remains aimable rather than a second turret.
+                bool volley = HasVolley(entry);
+                foreach ((string stanceFormId, int maxHealth) in new[]
+                         {
+                             (entry.PrimeStanceFormId, entry.PrimeMaxHealth),
+                             (entry.ChildStanceFormId, entry.ChildMaxHealth),
+                         })
+                {
+                    forms.Add(
+                        new ActorFormDefinition(
+                            stanceFormId,
+                            maxHealth,
+                            movement.Id,
+                            entry.MobileVisionProfileId,
+                            volley ? entry.StanceAttackProfileId : null,
+                            objectiveWeight: 1,
+                            [
+                                "wait",
+                                "rotate",
+                                .. volley
+                                    ? new[] { ShootStraightActionId }
+                                    : [],
+                                MobilizeActionId,
+                            ],
+                            HasShell(entry)
+                                ? ActorFormProjectileGuardKind
+                                    .FacingQuadrantContactsConsumedWithoutDamage
+                                : ActorFormProjectileGuardKind.None));
+                }
+                sameLifeTransitions.Add(
+                    StanceRoute(
+                        $"{StanceRouteToken(entry)}-{entry.Id}-prime",
+                        entry.PrimeFormId,
+                        entry.PrimeStanceFormId,
+                        entry.StanceEntryWindupTicks));
+                sameLifeTransitions.Add(
+                    StanceRoute(
+                        $"{StanceRouteToken(entry)}-{entry.Id}-child",
+                        entry.ChildFormId,
+                        entry.ChildStanceFormId,
+                        entry.StanceEntryWindupTicks));
+                sameLifeTransitions.Add(
+                    StanceReturnRoute(
+                        $"unstance-{entry.Id}-prime",
+                        entry.PrimeStanceFormId,
+                        entry.PrimeFormId,
+                        entry.StanceExitWindupTicks));
+                sameLifeTransitions.Add(
+                    StanceReturnRoute(
+                        $"unstance-{entry.Id}-child",
+                        entry.ChildStanceFormId,
+                        entry.ChildFormId,
+                        entry.StanceExitWindupTicks));
+            }
+            if (skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
+                && entry.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots)
+            {
+                lifecycleProfiles.Add(
+                    new ActorLifecycleProfileDefinition(
+                        entry.ExtraChildLifecycleProfileId,
+                        entry.ExplicitForwardFabrication
+                            ? ActorLifecycleProfileDefinition
+                                .DestructionPolicyKind
+                                .ReadyForExplicitFabrication
+                            : ActorLifecycleProfileDefinition
+                                .DestructionPolicyKind.AutomaticRespawn,
+                        entry.ExtraChildRebuildDelayTicks,
+                        automaticReturnFormId:
+                            entry.ExplicitForwardFabrication
+                                ? null
+                                : entry.ChildFormId));
             }
             lifecycleProfiles.Add(
                 new ActorLifecycleProfileDefinition(
@@ -1412,6 +1656,98 @@ public static class FrontlineLabsDefinition
                     ActorMapTileTagDefinition.TileTagKind
                         .TransitionPlacementForbidden,
                 ],
+                ActorSameLifePlacementDefinition
+                    .FailedCompletionKind.CancelAndRemainInSourceForm),
+            irreversibleForLife: false);
+
+    private static string StanceRouteToken(
+        FrontlineLabsClassDefinition entry) =>
+        entry.Skill switch
+        {
+            FrontlineLabsSkillKit.StrikerVolley => "volley",
+            FrontlineLabsSkillKit.BulwarkAegisShell => "shell",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(entry),
+                entry.Skill,
+                "This class owns no same-life stance skill."),
+        };
+
+    /// <summary>
+    /// Entering a class stance. Unlike Anchor this grants no health: the
+    /// stance is a public commitment priced in windup and forfeited mobility,
+    /// and a healing entry would turn a reversible cycle into a repair loop.
+    /// Reversible for the life, so the cycle really is a cycle.
+    /// </summary>
+    private static ActorFormTransitionDefinition StanceRoute(
+        string transitionId,
+        string sourceFormId,
+        string stanceFormId,
+        int windupTicks) =>
+        new(
+            transitionId,
+            "transform",
+            sourceFormId,
+            stanceFormId,
+            Windup(
+                ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                    .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate,
+                windupTicks),
+            ActorSameLifeTransitionDefinition.MemoryContinuityKind
+                .PreservePrivateMemory,
+            new ActorSameLifeHealthDefinition(
+                ActorSameLifeHealthDefinition.HealthPolicyKind
+                    .PreserveCurrentCappedToTargetMaximum,
+                flatHealthGain: 0),
+            ActorSameLifeCombatStateDefinition.PreserveWithoutRefillV1,
+            new ActorSameLifePlacementDefinition(
+                ActorSameLifePlacementDefinition
+                    .PositionContinuityKind.SameOccupiedGroundTile,
+                ActorSameLifePlacementDefinition
+                    .LegalityEvaluationKind.QueueAndCompletionTileTags,
+                requiredTileTags: [],
+                forbiddenTileTags:
+                [
+                    ActorMapTileTagDefinition.TileTagKind
+                        .TransitionPlacementForbidden,
+                ],
+                ActorSameLifePlacementDefinition
+                    .FailedCompletionKind.CancelAndRemainInSourceForm),
+            irreversibleForLife: false);
+
+    /// <summary>
+    /// Leaving a class stance through the parameterless Mobilize. Reversible,
+    /// which is what separates a stance from Anchor's once-per-life
+    /// remobilization: the skill is a cooldown-shaped cycle, and its price is
+    /// the two windups plus everything the stance cannot do.
+    /// </summary>
+    private static ActorFormTransitionDefinition StanceReturnRoute(
+        string transitionId,
+        string stanceFormId,
+        string returnFormId,
+        int windupTicks) =>
+        new(
+            transitionId,
+            MobilizeActionId,
+            stanceFormId,
+            returnFormId,
+            Windup(
+                ActorTransitionWindupDefinition.ActorTransitionCompletionKind
+                    .EndOfStartedTickPlusDurationMinusOneAfterModeUpdate,
+                windupTicks),
+            ActorSameLifeTransitionDefinition.MemoryContinuityKind
+                .PreservePrivateMemory,
+            new ActorSameLifeHealthDefinition(
+                ActorSameLifeHealthDefinition.HealthPolicyKind
+                    .PreserveCurrentCappedToTargetMaximum,
+                flatHealthGain: 0),
+            ActorSameLifeCombatStateDefinition.PreserveWithoutRefillV1,
+            new ActorSameLifePlacementDefinition(
+                ActorSameLifePlacementDefinition
+                    .PositionContinuityKind.SameOccupiedGroundTile,
+                ActorSameLifePlacementDefinition
+                    .LegalityEvaluationKind.QueueAndCompletionTileTags,
+                requiredTileTags: [],
+                forbiddenTileTags: [],
                 ActorSameLifePlacementDefinition
                     .FailedCompletionKind.CancelAndRemainInSourceForm),
             irreversibleForLife: false);
@@ -1826,9 +2162,24 @@ public static class FrontlineLabsDefinition
             ]
             : [];
 
+    /// <summary>
+    /// How many stable unit slots one team fields. Three everywhere except a
+    /// five-slot arm's fabricator side, which fields prime plus four children
+    /// (<see cref="AsymmetricSlotsTopologyProfileId"/>).
+    /// </summary>
+    private static int TeamSlotCount(
+        FrontlineLabsClassDefinition? teamClass,
+        FrontlineLabsSkillKit skills) =>
+        teamClass is not null
+        && teamClass.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots
+        && skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
+            ? 1 + teamClass.ExtraChildUnlockTicks.Length + 2
+            : 3;
+
     private static PublicMatchTopology CreateTopology(
         (FrontlineLabsClassDefinition TeamZero,
-            FrontlineLabsClassDefinition TeamOne)? classes) =>
+            FrontlineLabsClassDefinition TeamOne)? classes,
+        FrontlineLabsSkillKit skills) =>
         new()
         {
             Teams = [new PublicScoringTeam(0), new PublicScoringTeam(1)],
@@ -1839,12 +2190,16 @@ public static class FrontlineLabsDefinition
             ],
             UnitSlots =
             [
-                new PublicUnitSlot(0, 0, 0),
-                new PublicUnitSlot(0, 1, 0),
-                new PublicUnitSlot(0, 2, 0),
-                new PublicUnitSlot(1, 0, 1),
-                new PublicUnitSlot(1, 1, 1),
-                new PublicUnitSlot(1, 2, 1),
+                .. Enumerable
+                    .Range(
+                        0,
+                        TeamSlotCount(classes?.TeamZero, skills))
+                    .Select(unitId => new PublicUnitSlot(0, unitId, 0)),
+                .. Enumerable
+                    .Range(
+                        0,
+                        TeamSlotCount(classes?.TeamOne, skills))
+                    .Select(unitId => new PublicUnitSlot(1, unitId, 1)),
             ],
             InitialLives =
             [
@@ -1895,7 +2250,8 @@ public static class FrontlineLabsDefinition
         CreateLifecycleAssignments(
             bool automaticCompanions,
             (FrontlineLabsClassDefinition TeamZero,
-                FrontlineLabsClassDefinition TeamOne)? classes)
+                FrontlineLabsClassDefinition TeamOne)? classes,
+            FrontlineLabsSkillKit skills)
     {
         if (classes is { } pair)
         {
@@ -1909,34 +2265,54 @@ public static class FrontlineLabsDefinition
                 entry.ExplicitForwardFabrication
                     ? null
                     : $"team-{teamId}-child-{unitId}";
+            IEnumerable<ActorUnitSlotLifecycleAssignmentDefinition> Team(
+                int teamId,
+                FrontlineLabsClassDefinition entry)
+            {
+                bool stance =
+                    entry.Skill is FrontlineLabsSkillKit.StrikerVolley
+                        or FrontlineLabsSkillKit.BulwarkAegisShell
+                    && skills.HasFlag(entry.Skill);
+                return
+                [
+                    ClassPrimeAssignment(
+                        teamId,
+                        $"team-{teamId}-prime",
+                        entry,
+                        stance),
+                    ClassChildAssignment(
+                        teamId,
+                        1,
+                        entry,
+                        entry.FirstChildUnlockTick,
+                        AutoSpawn(entry, teamId, 1),
+                        stance),
+                    ClassChildAssignment(
+                        teamId,
+                        2,
+                        entry,
+                        entry.SecondChildUnlockTick,
+                        AutoSpawn(entry, teamId, 2),
+                        stance),
+                    // The five-slot arm's extra slots run their own later
+                    // unlock schedule and their own slower rebuild profile;
+                    // they are ordinary slots in every other respect.
+                    .. Enumerable
+                        .Range(0, TeamSlotCount(entry, skills) - 3)
+                        .Select(index => ClassChildAssignment(
+                            teamId,
+                            3 + index,
+                            entry,
+                            entry.ExtraChildUnlockTicks[index],
+                            AutoSpawn(entry, teamId, 3 + index),
+                            stance,
+                            entry.ExtraChildLifecycleProfileId)),
+                ];
+            }
             return
             [
-                ClassPrimeAssignment(0, "team-0-prime", pair.TeamZero),
-                ClassChildAssignment(
-                    0,
-                    1,
-                    pair.TeamZero,
-                    pair.TeamZero.FirstChildUnlockTick,
-                    AutoSpawn(pair.TeamZero, 0, 1)),
-                ClassChildAssignment(
-                    0,
-                    2,
-                    pair.TeamZero,
-                    pair.TeamZero.SecondChildUnlockTick,
-                    AutoSpawn(pair.TeamZero, 0, 2)),
-                ClassPrimeAssignment(1, "team-1-prime", pair.TeamOne),
-                ClassChildAssignment(
-                    1,
-                    1,
-                    pair.TeamOne,
-                    pair.TeamOne.FirstChildUnlockTick,
-                    AutoSpawn(pair.TeamOne, 1, 1)),
-                ClassChildAssignment(
-                    1,
-                    2,
-                    pair.TeamOne,
-                    pair.TeamOne.SecondChildUnlockTick,
-                    AutoSpawn(pair.TeamOne, 1, 2)),
+                .. Team(0, pair.TeamZero),
+                .. Team(1, pair.TeamOne),
             ];
         }
 
@@ -1979,7 +2355,8 @@ public static class FrontlineLabsDefinition
         ClassPrimeAssignment(
             int teamId,
             string spawnId,
-            FrontlineLabsClassDefinition entry) =>
+            FrontlineLabsClassDefinition entry,
+            bool stance) =>
         new(
             teamId,
             unitId: 0,
@@ -1991,6 +2368,7 @@ public static class FrontlineLabsDefinition
                 .. entry.MayAnchor
                     ? new[] { entry.PrimeTurretFormId }
                     : [],
+                .. stance ? new[] { entry.PrimeStanceFormId } : [],
             ],
             ActorUnitSlotLifecycleAssignmentDefinition
                 .InitialAvailabilityKind.ActiveAtTickZero,
@@ -2003,11 +2381,13 @@ public static class FrontlineLabsDefinition
             int unitId,
             FrontlineLabsClassDefinition entry,
             int unlockTick,
-            string? automaticSpawnId) =>
+            string? automaticSpawnId,
+            bool stance,
+            string? lifecycleProfileId = null) =>
         new(
             teamId,
             unitId,
-            entry.ChildLifecycleProfileId,
+            lifecycleProfileId ?? entry.ChildLifecycleProfileId,
             initialGeneration: automaticSpawnId is null ? null : 0,
             allowedFormIds:
             [
@@ -2015,6 +2395,7 @@ public static class FrontlineLabsDefinition
                 .. entry.MayAnchor
                     ? new[] { entry.ChildTurretFormId }
                     : [],
+                .. stance ? new[] { entry.ChildStanceFormId } : [],
             ],
             automaticSpawnId is null
                 ? ActorUnitSlotLifecycleAssignmentDefinition

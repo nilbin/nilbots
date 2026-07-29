@@ -910,15 +910,25 @@ public static class ActorCanonicalContractReader
 
     private static RulesContract.Form ReadForm(JsonElement element)
     {
+        // Additive optional field, exactly like the movement profile's facing
+        // coupling: the canonical writer omits it while the form declares no
+        // projectile guard, so an absent property means None and an
+        // explicitly-inert "none" is a second, non-canonical encoding.
+        bool hasProjectileGuard = element.TryGetProperty(
+            "projectileGuard",
+            out JsonElement projectileGuard);
         ExactObject(
             element,
-            "id",
-            "maxHealth",
-            "movementProfileId",
-            "visionProfileId",
-            "attackProfileId",
-            "objectiveWeight",
-            "allowedActionIds");
+            [
+                "id",
+                "maxHealth",
+                "movementProfileId",
+                "visionProfileId",
+                "attackProfileId",
+                "objectiveWeight",
+                .. hasProjectileGuard ? new[] { "projectileGuard" } : [],
+                "allowedActionIds",
+            ]);
         return new RulesContract.Form(
             Id(element, "id"),
             Int(element, "maxHealth"),
@@ -926,7 +936,31 @@ public static class ActorCanonicalContractReader
             Id(element, "visionProfileId"),
             NullableId(element, "attackProfileId"),
             Int(element, "objectiveWeight"),
-            Array(Property(element, "allowedActionIds"), Id));
+            Array(Property(element, "allowedActionIds"), Id))
+        {
+            ProjectileGuard = hasProjectileGuard
+                ? FormProjectileGuard(projectileGuard)
+                : RulesContract.FormProjectileGuard.None,
+        };
+    }
+
+    private static RulesContract.FormProjectileGuard FormProjectileGuard(
+        JsonElement element)
+    {
+        string value = element.ValueKind == JsonValueKind.String
+            ? element.GetString()!
+            : throw new FormatException(
+                "A canonical form projectile guard must be a string.");
+        return value switch
+        {
+            "facing-quadrant-contacts-consumed-without-damage" =>
+                RulesContract.FormProjectileGuard
+                    .FacingQuadrantContactsConsumedWithoutDamage,
+            _ => throw new FormatException(
+                "A canonical form omits projectileGuard when it declares no "
+                + "guard; an explicitly inert value is a second encoding of "
+                + $"the same contract (read '{value}')."),
+        };
     }
 
     private static RulesContract.MovementProfile ReadMovementProfile(
@@ -1007,23 +1041,83 @@ public static class ActorCanonicalContractReader
     private static RulesContract.AttackProfile ReadAttackProfile(
         JsonElement element)
     {
+        // Additive optional field: a one-bolt attack carries no volley object,
+        // so its absence means exactly one projectile and an emitted volley
+        // with a count of one is a second encoding of the same contract.
+        bool hasVolley = element.TryGetProperty(
+            "volley",
+            out JsonElement volley);
         ExactObject(
             element,
-            "id",
-            "omnidirectionalAim",
-            "aimInterpretation",
-            "projectile",
-            "cooldownTicks",
-            "maxEnergy",
-            "attackEnergyCost",
-            "energyRegenerationIntervalTicks",
-            "energyRegenerationAmount",
-            "energyRegenerationClock",
-            "energyUpdateOrder",
-            "energyArithmetic",
-            "attackAvailability",
-            "cooldownUpdate",
-            "shotProgram");
+            [
+                "id",
+                "omnidirectionalAim",
+                "aimInterpretation",
+                "projectile",
+                "cooldownTicks",
+                "maxEnergy",
+                "attackEnergyCost",
+                "energyRegenerationIntervalTicks",
+                "energyRegenerationAmount",
+                "energyRegenerationClock",
+                "energyUpdateOrder",
+                "energyArithmetic",
+                "attackAvailability",
+                "cooldownUpdate",
+                "shotProgram",
+                .. hasVolley ? new[] { "volley" } : [],
+            ]);
+        RulesContract.ShotProgramDefinition shotProgram =
+            ReadShotProgram(Property(element, "shotProgram"));
+        RulesContract.AttackVolley? launch =
+            hasVolley ? ReadVolley(volley) : null;
+        if (launch is not null && shotProgram.Enabled)
+        {
+            throw new FormatException(
+                "A canonical volley profile fires straight: programmed shots "
+                + "and multi-projectile volleys are mutually exclusive.");
+        }
+        return BaseAttackProfile(element, shotProgram) with
+        {
+            Volley = launch,
+        };
+    }
+
+    private static RulesContract.AttackVolley ReadVolley(JsonElement element)
+    {
+        ExactObject(element, "projectileCount", "spread", "identityOrder");
+        int count = Int(element, "projectileCount");
+        string spread = EnumId(
+            element,
+            "spread",
+            "shared-resolved-heading",
+            "symmetric-adjacent-heading-fan-ascending-signed-sector-offset");
+        if (count < 2)
+        {
+            throw new FormatException(
+                "A canonical attack volley launches at least two projectiles; "
+                + "a single-bolt attack omits the volley entirely.");
+        }
+        if (spread
+                == "symmetric-adjacent-heading-fan-ascending-signed-sector-offset"
+            && count % 2 == 0)
+        {
+            throw new FormatException(
+                "A canonical symmetric heading fan carries an odd projectile count.");
+        }
+        return new RulesContract.AttackVolley(
+            count,
+            spread,
+            EnumId(
+                element,
+                "identityOrder",
+                "contiguous-ascending-in-launch-order"));
+    }
+
+    private static RulesContract.AttackProfile BaseAttackProfile(
+        JsonElement element,
+        RulesContract.ShotProgramDefinition shotProgram)
+    {
         return new RulesContract.AttackProfile(
             Id(element, "id"),
             Bool(element, "omnidirectionalAim"),
@@ -1044,7 +1138,7 @@ public static class ActorCanonicalContractReader
             Semantic(element, "energyArithmetic"),
             Semantic(element, "attackAvailability"),
             Semantic(element, "cooldownUpdate"),
-            ReadShotProgram(Property(element, "shotProgram")));
+            shotProgram);
     }
 
     private static RulesContract.Projectile ReadProjectile(

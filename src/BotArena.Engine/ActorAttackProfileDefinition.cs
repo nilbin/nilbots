@@ -16,7 +16,8 @@ public sealed record ActorAttackProfileDefinition
         int attackEnergyCost,
         int energyRegenerationIntervalTicks,
         int energyRegenerationAmount,
-        ActorShotProgramDefinition shotProgram)
+        ActorShotProgramDefinition shotProgram,
+        ActorAttackVolleyDefinition? volley = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(projectile);
@@ -66,6 +67,17 @@ public sealed record ActorAttackProfileDefinition
                 "Projectile and programmed-shot corner policies must agree.",
                 nameof(shotProgram));
         }
+        // A shot program is a private per-shot trajectory commitment; a volley
+        // is a public simultaneous fan. Combining them would make the fan a
+        // hidden-information skill, which the slate's design guards forbid on
+        // a special (docs/DESIGN-MECHANISM-SLATE-2026-07-29.md).
+        if (volley is not null && shotProgram.Enabled)
+        {
+            throw new ArgumentException(
+                "A multi-projectile volley fires straight: programmed shots "
+                + "are unavailable on a volley profile.",
+                nameof(volley));
+        }
 
         Id = id;
         OmnidirectionalAim = omnidirectionalAim;
@@ -76,6 +88,7 @@ public sealed record ActorAttackProfileDefinition
         EnergyRegenerationIntervalTicks = energyRegenerationIntervalTicks;
         EnergyRegenerationAmount = energyRegenerationAmount;
         ShotProgram = shotProgram;
+        Volley = volley;
     }
 
     public string Id { get; }
@@ -109,6 +122,15 @@ public sealed record ActorAttackProfileDefinition
                     .CurrentFacingPlusRelativeEightWayShotProgram
                 : AimInterpretationKind.CurrentFacingStraight;
     public ActorShotProgramDefinition ShotProgram { get; }
+
+    /// <summary>
+    /// Multi-projectile launch shape, or null for the historical one-bolt
+    /// attack. Null is the inert default and writes no canonical bytes.
+    /// </summary>
+    public ActorAttackVolleyDefinition? Volley { get; }
+
+    /// <summary>Projectiles issued by one successful attack action.</summary>
+    public int ProjectilesPerAttack => Volley?.ProjectileCount ?? 1;
 
     public enum EnergyRegenerationClockKind
     {

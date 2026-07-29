@@ -54,6 +54,19 @@ public static class Visibility
         int dx = target.X - origin.X, dy = target.Y - origin.Y;
         if (Math.Max(Math.Abs(dx), Math.Abs(dy)) <= 1)
             return true;
+        return InQuadrant(dx, dy, facing);
+    }
+
+    /// <summary>
+    /// The bare facing quadrant of <see cref="InCone"/> — forward ≥ 0 and
+    /// |lateral| ≤ forward, diagonal edges included — evaluated on a delta
+    /// vector and WITHOUT the point-blank proximity exemption. Contacts
+    /// between two bodies happen on one tile, so the arc question there is
+    /// about an approach direction rather than a position, and the proximity
+    /// ring would answer "yes" for every one of them.
+    /// </summary>
+    public static bool InQuadrant(int dx, int dy, Direction facing)
+    {
         var (fx, fy) = facing.Vector();
         int forward = dx * fx + dy * fy;
         int lateral = Math.Abs(dx * fy) + Math.Abs(dy * fx); // one term is always zero

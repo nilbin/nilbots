@@ -7,8 +7,8 @@ class-pair factorial.
 Each team plays one **class**: a chassis with its own stats and exactly one
 exclusive verb family. Classes never change movement speed, projectile
 speed, or damage. Both teams keep the same map family, objective rules,
-scoring, and three-slot topology. Everything below is readable from the
-resolved contract at match start — form stats, allowed actions, transition
+scoring, and — outside the five-slot skill arm — three-slot topology.
+Everything below is readable from the resolved contract at match start — form stats, allowed actions, transition
 routes, unlock ticks, and both teams' form IDs — so a well-written bot
 recognizes the opposing class and adapts instead of hard-coding.
 
@@ -130,4 +130,54 @@ nilbots experiment frontline-labs \
   --bot <generic-spec> --opponent <generic-spec> \
   --classes bulwark-vs-striker --pendulum ratchet-contest \
   --seed 42 --runtime wasm --out /tmp/pendulum
+```
+
+## Class skills compose with your class too
+
+`--skills` adds the pre-registered class-skill kit
+(`docs/DESIGN-MECHANISM-SLATE-2026-07-29.md`) on top of any class pair,
+`--movement` arm, `--pendulum` level, and `--duel-map`. **Each skill is owned
+by exactly one class**, so a cell carries only the skills whose owning class is
+actually in it: `--skills kit` on `bulwark-vs-striker` resolves to
+volley + shell, and the ruleset ID names exactly what resolved. Nothing about
+the classes you already know changes; what changes is what your class can do.
+
+| token | owner | what appears in the contract | what it means on the board |
+| --- | --- | --- | --- |
+| `none` (default) | — | nothing | today's measured baseline |
+| `volley` | striker | `striker-prime-volley-stance` / `striker-child-volley-stance` forms, the `striker-volley` attack profile with `volley.projectileCount = 3`, `volley-striker-*` / `unstance-striker-*` routes | windup **2** into an immobile stance whose gun fires **three simultaneous damage-1 bolts** — your facing lane and both adjacent 45-degree headings — straight only, on cooldown **5** against the mobile gun's 2. Objective weight stays **1**. Windup **1** back out, and the cycle repeats. |
+| `shell` | bulwark | `bulwark-prime-aegis-shell` / `bulwark-child-aegis-shell` forms carrying `projectileGuard`, `shell-bulwark-*` / `unstance-bulwark-*` routes | windup **1** into a stance that **consumes enemy bolts arriving inside its facing quadrant with no damage**; flank and rear contacts hurt normally. The shell cannot move and has no gun; objective weight stays **1**, so it still holds ground. Windup **1** back out; tenure is not clock-limited, it is priced by what the form cannot do. |
+| `five-slots` | fabricator | five `unitSlots` for the fabricator team, the `fabricator-late-child-ready` lifecycle profile, a new topology profile and fingerprint | the fabricator fields **prime plus four children**; the opposing class keeps three. The extra two unlock at **300** and **420** (continuing the class's own 120-tick cadence 60/180/300/420) and rebuild on a **30**-tick clock instead of 15 — more bodies, deliberately not faster bodies. |
+| `kit` | — | all three, filtered to the cell's classes | the whole slate at once |
+
+Reading it from the contract, without hard-coding:
+
+- A stance is an ordinary same-life route. Read `sameLifeTransitions` for its
+  source form, target form, windup, and reversibility, and read the
+  `transform` legality mask for the target forms you may enter this tick. The
+  return is the parameterless `mobilize` — one route per stance form, exactly
+  like turrets.
+- **The volley is public data, not a surprise.** Your form's attack profile
+  carries `volley: { projectileCount, spread, identityOrder }`. The field is
+  **absent** on every ordinary gun — canonical contracts omit inert defaults —
+  so read it as "missing means one bolt". Bolts are ordinary projectiles: they
+  appear in `visibleProjectiles`, each has its own ID, and the IDs are
+  contiguous ascending in launch order (leftmost lane first).
+- **The shell is public data too.** The guarding form carries
+  `projectileGuard: "facing-quadrant-contacts-consumed-without-damage"`, again
+  absent on every unguarded form. An absorption is published as its own
+  observed event kind, `projectile-absorbed`, naming the shell, the shooter,
+  and the projectile — so "my bolt was blanked" is something you can learn and
+  react to. Shoot a shell from the flank or from two angles; poking its face
+  is free for the bulwark.
+- **Never hard-code three slots.** Count your own and the enemy's entries in
+  the topology's `unitSlots`, and take unlock ticks from your slots' lifecycle
+  assignments. In a five-slot arm your fourth and fifth slots become Ready
+  much later and rebuild more slowly than your first two.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --skills kit \
+  --seed 42 --runtime wasm --out /tmp/skills
 ```

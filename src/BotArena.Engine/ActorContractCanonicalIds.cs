@@ -118,6 +118,18 @@ internal static class ActorContractCanonicalIds
         ActorMovementFacingCoupling.FaceMovementDirection =>
             "face-movement-direction",
         ActorMovementFacingCoupling.FacingLocked => "facing-locked",
+        ActorFormProjectileGuardKind.None => "none",
+        ActorFormProjectileGuardKind
+                .FacingQuadrantContactsConsumedWithoutDamage =>
+            "facing-quadrant-contacts-consumed-without-damage",
+        ActorAttackVolleyDefinition.VolleySpreadKind.SharedResolvedHeading =>
+            "shared-resolved-heading",
+        ActorAttackVolleyDefinition.VolleySpreadKind
+                .SymmetricAdjacentHeadingFanAscendingSignedSectorOffset =>
+            "symmetric-adjacent-heading-fan-ascending-signed-sector-offset",
+        ActorAttackVolleyDefinition.IdentityOrderKind
+                .ContiguousAscendingInLaunchOrder =>
+            "contiguous-ascending-in-launch-order",
         ActorMapRegionDefinition.RegionKind.Objective => "objective",
         ActorMapRegionDefinition.RegionKind.TransitionPlacement =>
             "transition-placement",

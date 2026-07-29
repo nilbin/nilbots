@@ -39,6 +39,7 @@ public static class FrontlineLabsExperimentCommand
             "duel-map",
             "classes",
             "movement",
+            "skills",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -71,6 +72,7 @@ public static class FrontlineLabsExperimentCommand
             options,
             "prime-respawn-ticks");
         FrontlineLabsPendulumArm pendulum = OptionalPendulumArm(options);
+        FrontlineLabsSkillKit requestedSkills = OptionalSkillKit(options);
         (int StartsAtTick, int Gain)? captureGainPhase =
             OptionalCaptureGainPhase(options);
         bool mobilizeTurrets = OptionalFlag(
@@ -196,9 +198,32 @@ public static class FrontlineLabsExperimentCommand
         // pre-registered phase-1 factorial (DECISIONS #158) rather than a
         // standalone arm, so those factors compose instead of excluding
         // each other.
+        // A class-skill kit is the phase-2 factor and lands in the same cell
+        // factory: skills are class capabilities, so they only ever appear
+        // alongside a class pair (explicit or manifest-declared).
+        if (requestedSkills != FrontlineLabsSkillKit.None
+            && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--skills selects per-class stance and slot capabilities, so "
+                + "it needs a class pair: pass --classes <a>-vs-<b> or run "
+                + "two class-declaring projects.");
+        }
+        FrontlineLabsSkillKit skills = FrontlineLabsDefinition.EffectiveSkills(
+            requestedSkills,
+            classPair);
+        if (requestedSkills != FrontlineLabsSkillKit.None
+            && skills == FrontlineLabsSkillKit.None)
+        {
+            throw new InvalidOperationException(
+                "No class in this cell owns the requested skill. VOLLEY is "
+                + "the striker's, AEGIS SHELL the bulwark's, and FIVE SLOTS "
+                + "the fabricator's.");
+        }
         bool pendulumCell =
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
+            || skills != FrontlineLabsSkillKit.None
             || (captureThreshold is not null
                 && (classPair is not null || standaloneMovementArm));
         bool duelExperiment = oneBendShots
@@ -233,7 +258,8 @@ public static class FrontlineLabsExperimentCommand
                 captureThreshold
                     ?? FrontlineLabsDefinition.DefaultCaptureThreshold,
                 primeRespawnTicks
-                    ?? FrontlineLabsDefinition.DefaultPrimeRespawnTicks);
+                    ?? FrontlineLabsDefinition.DefaultPrimeRespawnTicks,
+                skills);
         }
         else if (captureThreshold is int threshold)
         {
@@ -311,6 +337,24 @@ public static class FrontlineLabsExperimentCommand
                   "unranked, quota-free, and not the hosted v1 ruleset.");
         Console.WriteLine($"Runtime:           {runtimeKind}");
         Console.WriteLine($"Rules:             {definition.Rules.RulesetId}");
+        if (skills != FrontlineLabsSkillKit.None)
+        {
+            Console.WriteLine(
+                "Skills:            "
+                + string.Join(
+                    ", ",
+                    FrontlineLabsDefinition.All
+                        .Where(skill => skills.HasFlag(skill))
+                        .Select(skill => skill.ToString()))
+                + (skills == requestedSkills
+                    ? string.Empty
+                    : " (requested skills without an owning class in this "
+                        + "cell change no contract bytes and are dropped)"));
+            Console.WriteLine(
+                "Topology profile:  "
+                + FrontlineLabsDefinition.TopologyProfileIdFor(
+                    definition.Topology));
+        }
         Console.WriteLine(
             $"Contract profile:  " +
             $"{definition.CapabilityVersions.ContractProfileId}");
@@ -458,7 +502,8 @@ public static class FrontlineLabsExperimentCommand
             formatFingerprint =
                 ActorContractFingerprint.ComputeFormat(definition.Format),
             topologyProfileId =
-                FrontlineLabsDefinition.TopologyProfileId,
+                FrontlineLabsDefinition.TopologyProfileIdFor(
+                    definition.Topology),
             topologyFingerprint =
                 ActorContractFingerprint.ComputeTopology(
                     definition.Topology),
@@ -612,6 +657,61 @@ public static class FrontlineLabsExperimentCommand
                 $"Unknown --movement '{value}' " +
                 "(use preserve-facing, move-sets-facing, or facing-locked)."),
         };
+    }
+
+    /// <summary>
+    /// Reads the pre-registered class-skill kit
+    /// (<c>docs/DESIGN-MECHANISM-SLATE-2026-07-29.md</c>). Omitting the option
+    /// — or naming <c>none</c> explicitly — selects today's classes and adds
+    /// no ruleset suffix. <c>kit</c> requests all three; because each skill is
+    /// owned by exactly one class and a cell holds at most two, the resolved
+    /// arm carries only the skills whose owning class is present.
+    /// </summary>
+    private static FrontlineLabsSkillKit OptionalSkillKit(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("skills", out string? value))
+            return FrontlineLabsSkillKit.None;
+
+        string[] tokens = value
+            .ToLowerInvariant()
+            .Split(',', StringSplitOptions.TrimEntries
+                | StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0
+            || tokens.Distinct(StringComparer.Ordinal).Count()
+                != tokens.Length)
+        {
+            throw new InvalidOperationException(
+                "--skills takes one or more distinct skill tokens.");
+        }
+        if (tokens.Contains("none", StringComparer.Ordinal))
+        {
+            if (tokens.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    "--skills none is the measured baseline and cannot be "
+                    + "combined with a skill.");
+            }
+            return FrontlineLabsSkillKit.None;
+        }
+
+        FrontlineLabsSkillKit kit = FrontlineLabsSkillKit.None;
+        foreach (string token in tokens)
+        {
+            kit |= token switch
+            {
+                "kit" => FrontlineLabsSkillKit.StrikerVolley
+                    | FrontlineLabsSkillKit.BulwarkAegisShell
+                    | FrontlineLabsSkillKit.FabricatorFiveSlots,
+                "volley" => FrontlineLabsSkillKit.StrikerVolley,
+                "shell" => FrontlineLabsSkillKit.BulwarkAegisShell,
+                "five-slots" => FrontlineLabsSkillKit.FabricatorFiveSlots,
+                _ => throw new InvalidOperationException(
+                    $"Unknown --skills token '{token}' (use none, kit, "
+                    + "volley, shell, or five-slots)."),
+            };
+        }
+        return kit;
     }
 
     /// <summary>

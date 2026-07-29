@@ -343,6 +343,7 @@ public sealed class GenericActorMatchSession : IDisposable
         AdvanceExistingProjectiles(
             contacts,
             ref contactOrdinal,
+            events,
             projectileTransitions);
         ResolveAttacks(
             resolutions,
@@ -1027,6 +1028,10 @@ public sealed class GenericActorMatchSession : IDisposable
                         projectile.Profile.Projectile.DamagePerHit,
                         contactOrdinal++));
                 }
+                else if (contact.Absorbed)
+                {
+                    events.Add(AbsorptionEvent(projectile, life));
+                }
             }
         }
 
@@ -1404,6 +1409,7 @@ public sealed class GenericActorMatchSession : IDisposable
     private void AdvanceExistingProjectiles(
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (ProjectileState projectile in _projectiles
@@ -1420,6 +1426,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 projectile.Profile.Projectile.TilesPerAdvance,
                 contacts,
                 ref contactOrdinal,
+                events,
                 traversals,
                 GenericActorProjectileTraversal.TraversalTrigger
                     .ScheduledAdvance);
@@ -1448,61 +1455,104 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorAttackProfileDefinition profile = AttackFor(shooter)
                 ?? throw new InvalidOperationException(
                     "A successful attack has no form attack profile.");
-            ProjectileHeading heading = ResolveLaunchHeading(
+            ProjectileHeading resolvedHeading = ResolveLaunchHeading(
                 shooter,
                 profile,
                 resolution.ValidatedAction);
             ShotProgram? program = ResolveShotProgram(
                 profile,
                 resolution.ValidatedAction);
-            ImmutableArray<Position> path = TraceProjectilePath(
-                shooter.Position,
-                heading,
-                profile,
-                program);
-            long projectileId = checked(_nextProjectileId++);
-            var projectile = new ProjectileState(
-                projectileId,
-                shooter.ParticipantId,
-                shooter.ActorId.TeamId,
-                shooter.ActorId,
-                Tick,
-                shooter.Position,
-                heading,
-                program,
-                profile,
-                path);
             resolution.SuccessfulAttack = true;
-            events.Add(EmitSpatial(
-                Tick,
-                GenericActorRuntimeObservation.EventKind.Attack,
-                new GenericActorRuntimeObservation.EventPayload.Attack(
-                    shooter.ActorId,
-                    resolution.ValidatedAction,
-                    projectileId,
-                    shooter.Position,
-                    heading),
-                shooter.Position));
 
-            int launchTraversal =
-                profile.Projectile.Mode == ActorProjectileMode.InstantRay
-                    ? profile.Projectile.MaxTravelTiles
-                    : profile.Projectile.LaunchTiles;
-            TraverseProjectile(
-                projectile,
-                launchTraversal,
-                contacts,
-                ref contactOrdinal,
-                traversals,
-                GenericActorProjectileTraversal.TraversalTrigger
-                    .AttackLaunch);
-            if (!projectile.Consumed
-                && projectile.RemainingTiles > 0
-                && profile.Projectile.Mode == ActorProjectileMode.Discrete)
+            // One successful attack action issues the profile's declared
+            // projectile count. Each bolt is an ordinary projectile with its
+            // own ID, Attack event, path, and traversal; the volley shape only
+            // decides the headings and the launch order, and the IDs follow
+            // that order contiguously (ActorAttackVolleyDefinition).
+            foreach (ProjectileHeading heading in VolleyHeadings(
+                         profile,
+                         resolvedHeading))
             {
-                _projectiles.Add(projectile);
+                ImmutableArray<Position> path = TraceProjectilePath(
+                    shooter.Position,
+                    heading,
+                    profile,
+                    program);
+                long projectileId = checked(_nextProjectileId++);
+                var projectile = new ProjectileState(
+                    projectileId,
+                    shooter.ParticipantId,
+                    shooter.ActorId.TeamId,
+                    shooter.ActorId,
+                    Tick,
+                    shooter.Position,
+                    heading,
+                    program,
+                    profile,
+                    path);
+                events.Add(EmitSpatial(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.Attack,
+                    new GenericActorRuntimeObservation.EventPayload.Attack(
+                        shooter.ActorId,
+                        resolution.ValidatedAction,
+                        projectileId,
+                        shooter.Position,
+                        heading),
+                    shooter.Position));
+
+                int launchTraversal =
+                    profile.Projectile.Mode == ActorProjectileMode.InstantRay
+                        ? profile.Projectile.MaxTravelTiles
+                        : profile.Projectile.LaunchTiles;
+                TraverseProjectile(
+                    projectile,
+                    launchTraversal,
+                    contacts,
+                    ref contactOrdinal,
+                    events,
+                    traversals,
+                    GenericActorProjectileTraversal.TraversalTrigger
+                        .AttackLaunch);
+                if (!projectile.Consumed
+                    && projectile.RemainingTiles > 0
+                    && profile.Projectile.Mode == ActorProjectileMode.Discrete)
+                {
+                    _projectiles.Add(projectile);
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// The exact launch headings for one attack, in launch (and therefore
+    /// projectile-ID) order. A profile without a volley yields exactly the
+    /// resolved heading, so every historical contract is unchanged.
+    /// </summary>
+    internal static IEnumerable<ProjectileHeading> VolleyHeadings(
+        ActorAttackProfileDefinition profile,
+        ProjectileHeading resolvedHeading)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (profile.Volley is not { } volley)
+            return [resolvedHeading];
+        return volley.Spread switch
+        {
+            ActorAttackVolleyDefinition.VolleySpreadKind
+                .SharedResolvedHeading =>
+                Enumerable.Repeat(
+                    resolvedHeading,
+                    volley.ProjectileCount),
+            ActorAttackVolleyDefinition.VolleySpreadKind
+                .SymmetricAdjacentHeadingFanAscendingSignedSectorOffset =>
+                Enumerable
+                    .Range(
+                        -volley.FanHalfWidthSectors,
+                        volley.ProjectileCount)
+                    .Select(offset => resolvedHeading.Turned(offset)),
+            _ => throw new InvalidOperationException(
+                "Unknown attack volley spread."),
+        };
     }
 
     private void TraverseProjectile(
@@ -1510,6 +1560,7 @@ public sealed class GenericActorMatchSession : IDisposable
         int maximumTiles,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals,
         GenericActorProjectileTraversal.TraversalTrigger trigger)
     {
@@ -1556,6 +1607,10 @@ public sealed class GenericActorMatchSession : IDisposable
                     projectile.Id,
                     projectile.Profile.Projectile.DamagePerHit,
                     contactOrdinal++));
+            }
+            else if (contact.Absorbed)
+            {
+                events.Add(AbsorptionEvent(projectile, target));
             }
             break;
         }
@@ -2821,7 +2876,14 @@ public sealed class GenericActorMatchSession : IDisposable
             return ProjectileContact.Pass;
         }
         if (target.ActorId.TeamId != projectile.OwnerTeamId)
-            return ProjectileContact.Damage;
+        {
+            // A hostile contact is the only one a projectile guard answers:
+            // the shell blanks incoming enemy fire, it does not filter its own
+            // team's bolts.
+            return AbsorbsFrontalContact(target, projectile)
+                ? ProjectileContact.Absorb
+                : ProjectileContact.Damage;
+        }
         return _definition.Rules.Collisions.AlliedProjectileContact switch
         {
             ActorCollisionDefinition.AlliedProjectileContactKind.PassThrough =>
@@ -2834,6 +2896,44 @@ public sealed class GenericActorMatchSession : IDisposable
                 "Unknown allied projectile policy."),
         };
     }
+
+    /// <summary>
+    /// Whether the target's form guard consumes this hostile contact without
+    /// damage. Contact puts both bodies on one tile, so the arc question is
+    /// asked of the projectile's approach vector — the reverse of its travel
+    /// heading — against the target's facing quadrant.
+    /// </summary>
+    private bool AbsorbsFrontalContact(
+        LifeState target,
+        ProjectileState projectile)
+    {
+        if (_forms[target.FormId].ProjectileGuard
+            != ActorFormProjectileGuardKind
+                .FacingQuadrantContactsConsumedWithoutDamage)
+        {
+            return false;
+        }
+        var (dx, dy) = projectile.Heading.Vector();
+        return Visibility.InQuadrant(-dx, -dy, target.Facing);
+    }
+
+    private GenericActorAuthoritativeEvent AbsorptionEvent(
+        ProjectileState projectile,
+        LifeState target) =>
+        EmitSpatial(
+            Tick,
+            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed,
+            new GenericActorRuntimeObservation.EventPayload
+                .ProjectileAbsorbed(
+                    projectile.OwnerTeamId,
+                    projectile.OwnerActorId,
+                    target.ActorId,
+                    projectile.Id,
+                    target.FormId,
+                    target.Facing,
+                    projectile.Heading,
+                    target.Position),
+            target.Position);
 
     /// <summary>
     /// Where a due automatic return or activation for this slot lands. The
@@ -3977,10 +4077,18 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private readonly record struct ProjectileContact(
         bool Consumes,
-        bool Damages)
+        bool Damages,
+        bool Absorbed = false)
     {
         public static ProjectileContact Pass => new(false, false);
         public static ProjectileContact Block => new(true, false);
         public static ProjectileContact Damage => new(true, true);
+
+        /// <summary>
+        /// Consumed by a form's projectile guard: the bolt is spent, no damage
+        /// is scheduled, and the blank is published as its own event.
+        /// </summary>
+        public static ProjectileContact Absorb =>
+            new(true, false, Absorbed: true);
     }
 }

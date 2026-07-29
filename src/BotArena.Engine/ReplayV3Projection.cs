@@ -665,6 +665,19 @@ internal static class ReplayV3Projection
                     payload.Amount,
                     payload.NewHealth,
                     Position(payload.Position)),
+            GenericActorRuntimeObservation.EventPayload.ProjectileAbsorbed
+                payload =>
+                new ReplayV3.EventPayload.ProjectileAbsorbed(
+                    payload.SourceTeamId,
+                    payload.SourceActorId is null
+                        ? null
+                        : ActorId(payload.SourceActorId),
+                    ActorId(payload.TargetActorId),
+                    Decimal(payload.ProjectileId),
+                    payload.TargetFormId,
+                    Direction(payload.TargetFacing),
+                    ProjectileHeading(payload.Heading),
+                    Position(payload.Position)),
             GenericActorRuntimeObservation.EventPayload.Destruction
                 payload =>
                 new ReplayV3.EventPayload.Destruction(
@@ -1198,6 +1211,8 @@ internal static class ReplayV3Projection
             GenericActorRuntimeObservation.EventKind
                 .LifecycleClockCancelled =>
                 "lifecycle-clock-cancelled",
+            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed =>
+                "projectile-absorbed",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

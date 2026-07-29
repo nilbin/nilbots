@@ -52,6 +52,10 @@ public sealed record GenericActorMatchChronology
             initialFrame,
             tickSnapshot,
             result);
+        ValidateProjectileSkillEvidence(
+            descriptor.Definition,
+            tickSnapshot,
+            nameof(ticks));
         if (descriptor.Definition.Rules.GameMode
             is FrontlineGameModeDefinition)
         {
@@ -203,6 +207,204 @@ public sealed record GenericActorMatchChronology
                     nameof(ticks));
             }
             turn.ValidateAgainst(descriptor);
+        }
+    }
+
+    /// <summary>
+    /// The two causality facts the class-skill kit introduced. Both are the
+    /// same kind of teaching the movement coupling needed in #156: a validator
+    /// that reasonably assumed one cause now has to accept a second declared
+    /// one, and must still reject every history that only looks consistent.
+    ///
+    /// VOLLEY — one successful attack action issues exactly the profile's
+    /// declared projectile count, with contiguous ascending projectile IDs in
+    /// launch order and, for a symmetric fan, consecutive heading sectors
+    /// centred on the first bolt's heading.
+    ///
+    /// AEGIS SHELL — an absorption is published exactly when a hostile
+    /// projectile is consumed without damage by a target whose form declares
+    /// the guard and whose facing quadrant contains the approach, and the
+    /// traversal that consumed it must agree that no damage was applied.
+    /// </summary>
+    private static void ValidateProjectileSkillEvidence(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        string parameterName)
+    {
+        Dictionary<string, ActorFormDefinition> forms =
+            definition.Rules.Forms.ToDictionary(
+                form => form.Id,
+                StringComparer.Ordinal);
+        Dictionary<string, ActorAttackProfileDefinition> attacks =
+            definition.Rules.AttackProfiles.ToDictionary(
+                profile => profile.Id,
+                StringComparer.Ordinal);
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+                lives = frame.TickStart.State.ActiveLives.ToDictionary(
+                    life => life.ActorId);
+            ValidateVolleyEvidence(
+                forms,
+                attacks,
+                lives,
+                frame,
+                parameterName);
+            ValidateAbsorptionEvidence(
+                forms,
+                lives,
+                frame,
+                parameterName);
+        }
+    }
+
+    private static void ValidateVolleyEvidence(
+        IReadOnlyDictionary<string, ActorFormDefinition> forms,
+        IReadOnlyDictionary<string, ActorAttackProfileDefinition> attacks,
+        IReadOnlyDictionary<
+            ActorIdentity,
+            GenericActorWorldSnapshot.LifeSnapshot> lives,
+        GenericActorMatchTickFrame frame,
+        string parameterName)
+    {
+        foreach (IGrouping<
+                     ActorIdentity,
+                     GenericActorRuntimeObservation.EventPayload.Attack>
+                 shots in frame.Events
+                     .Where(item => item.Kind
+                         == GenericActorRuntimeObservation.EventKind.Attack)
+                     .Select(item =>
+                         (GenericActorRuntimeObservation.EventPayload.Attack)
+                         item.Payload)
+                     .GroupBy(payload => payload.ActorId))
+        {
+            GenericActorRuntimeObservation.EventPayload.Attack[] volley =
+                [.. shots];
+            if (!lives.TryGetValue(shots.Key, out
+                    GenericActorWorldSnapshot.LifeSnapshot? shooter)
+                || !forms.TryGetValue(
+                    shooter.FormId,
+                    out ActorFormDefinition? form)
+                || form.AttackProfileId is not string attackProfileId
+                || !attacks.TryGetValue(
+                    attackProfileId,
+                    out ActorAttackProfileDefinition? profile))
+            {
+                throw new ArgumentException(
+                    "An attack fact must come from an active life whose form declares an attack profile.",
+                    parameterName);
+            }
+            if (volley.Length != profile.ProjectilesPerAttack)
+            {
+                throw new ArgumentException(
+                    "One successful attack must issue exactly its profile's declared projectile count.",
+                    parameterName);
+            }
+            for (int index = 1; index < volley.Length; index++)
+            {
+                if (volley[index].ProjectileId
+                    != volley[index - 1].ProjectileId + 1)
+                {
+                    throw new ArgumentException(
+                        "Volley projectile identities must be contiguous and ascending in launch order.",
+                        parameterName);
+                }
+            }
+            if (profile.Volley is not { } shape)
+                continue;
+            for (int index = 0; index < volley.Length; index++)
+            {
+                ProjectileHeading expected = shape.Spread switch
+                {
+                    ActorAttackVolleyDefinition.VolleySpreadKind
+                        .SharedResolvedHeading => volley[0].Heading,
+                    _ => volley[0].Heading.Turned(index),
+                };
+                if (volley[index].Heading != expected)
+                {
+                    throw new ArgumentException(
+                        "Volley headings must follow the profile's declared spread from the first bolt.",
+                        parameterName);
+                }
+            }
+        }
+    }
+
+    private static void ValidateAbsorptionEvidence(
+        IReadOnlyDictionary<string, ActorFormDefinition> forms,
+        IReadOnlyDictionary<
+            ActorIdentity,
+            GenericActorWorldSnapshot.LifeSnapshot> lives,
+        GenericActorMatchTickFrame frame,
+        string parameterName)
+    {
+        HashSet<long> damaged = frame.Events
+            .Where(item => item.Kind
+                == GenericActorRuntimeObservation.EventKind.Damage)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.Damage)
+                    item.Payload).ProjectileId)
+            .ToHashSet();
+        foreach (GenericActorRuntimeObservation.EventPayload.ProjectileAbsorbed
+                 absorbed in frame.Events
+                     .Where(item => item.Kind
+                         == GenericActorRuntimeObservation.EventKind
+                             .ProjectileAbsorbed)
+                     .Select(item =>
+                         (GenericActorRuntimeObservation.EventPayload
+                             .ProjectileAbsorbed)item.Payload))
+        {
+            if (!lives.ContainsKey(absorbed.TargetActorId)
+                || !forms.TryGetValue(
+                    absorbed.TargetFormId,
+                    out ActorFormDefinition? guardForm)
+                || guardForm.ProjectileGuard
+                    != ActorFormProjectileGuardKind
+                        .FacingQuadrantContactsConsumedWithoutDamage)
+            {
+                throw new ArgumentException(
+                    "An absorption must name an active life in a form whose declared guard consumes contacts.",
+                    parameterName);
+            }
+            if (absorbed.SourceTeamId == absorbed.TargetActorId.TeamId)
+            {
+                throw new ArgumentException(
+                    "A projectile guard consumes hostile fire only.",
+                    parameterName);
+            }
+            var (dx, dy) = absorbed.Heading.Vector();
+            if (!Visibility.InQuadrant(-dx, -dy, absorbed.TargetFacing))
+            {
+                throw new ArgumentException(
+                    "An absorbed contact must approach from inside the guard's facing quadrant.",
+                    parameterName);
+            }
+            if (damaged.Contains(absorbed.ProjectileId))
+            {
+                throw new ArgumentException(
+                    "An absorbed projectile cannot also have applied damage.",
+                    parameterName);
+            }
+            bool consumedWithoutDamage = frame.Traversals.Any(traversal =>
+                traversal.ProjectileId == absorbed.ProjectileId
+                && traversal.Terminal switch
+                {
+                    GenericActorProjectileTraversal.TerminalDisposition
+                        .ActorContact contact =>
+                        contact.TargetActorId == absorbed.TargetActorId
+                        && !contact.AppliedDamage,
+                    GenericActorProjectileTraversal.TerminalDisposition
+                        .MovementContact contact =>
+                        contact.TargetActorId == absorbed.TargetActorId
+                        && !contact.AppliedDamage,
+                    _ => false,
+                });
+            if (!consumedWithoutDamage)
+            {
+                throw new ArgumentException(
+                    "Every absorption must have exactly one contact traversal that consumed the projectile without damage.",
+                    parameterName);
+            }
         }
     }
 

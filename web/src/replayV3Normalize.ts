@@ -845,6 +845,80 @@ function validateContract(
     }
   });
 
+  // Two more additive optional contract fields with the facing coupling's
+  // discipline: the engine omits them while they are inert, so an explicitly
+  // inert value is a second, non-canonical encoding of the same contract and
+  // must be rejected rather than normalized away.
+  array(rules.forms, `${path}.rules.forms`, fail).forEach((entry, index) => {
+    const formPath = `${path}.rules.forms[${index}]`;
+    const formValue = object(entry, formPath, fail);
+    if (!own(formValue, 'projectileGuard')) {
+      return;
+    }
+    if (
+      formValue.projectileGuard !==
+      'facing-quadrant-contacts-consumed-without-damage'
+    ) {
+      fail(
+        `${formPath}.projectileGuard`,
+        'must be omitted instead of emitted inert',
+      );
+    }
+  });
+  array(
+    rules.attackProfiles,
+    `${path}.rules.attackProfiles`,
+    fail,
+  ).forEach((entry, index) => {
+    const profilePath = `${path}.rules.attackProfiles[${index}]`;
+    const profileValue = object(entry, profilePath, fail);
+    if (!own(profileValue, 'volley')) {
+      return;
+    }
+    const volleyPath = `${profilePath}.volley`;
+    const volley = exact(
+      profileValue.volley,
+      volleyPath,
+      ['projectileCount', 'spread', 'identityOrder'],
+      fail,
+    );
+    integer(volley.projectileCount, `${volleyPath}.projectileCount`, fail);
+    const SYMMETRIC_FAN =
+      'symmetric-adjacent-heading-fan-ascending-signed-sector-offset';
+    if (
+      !['shared-resolved-heading', SYMMETRIC_FAN].includes(
+        String(volley.spread),
+      )
+    ) {
+      fail(`${volleyPath}.spread`, 'is not a known volley spread');
+    }
+    if (volley.identityOrder !== 'contiguous-ascending-in-launch-order') {
+      fail(
+        `${volleyPath}.identityOrder`,
+        'expected contiguous-ascending-in-launch-order',
+      );
+    }
+    if ((volley.projectileCount as number) < 2) {
+      fail(
+        `${volleyPath}.projectileCount`,
+        'must be omitted instead of emitted inert',
+      );
+    }
+    if (
+      volley.spread === SYMMETRIC_FAN &&
+      (volley.projectileCount as number) % 2 === 0
+    ) {
+      fail(`${volleyPath}.projectileCount`, 'must be odd for a symmetric fan');
+    }
+    const program = object(profileValue.shotProgram, `${profilePath}.shotProgram`, fail);
+    if (program.enabled === true) {
+      fail(
+        volleyPath,
+        'is mutually exclusive with programmed shots',
+      );
+    }
+  });
+
   const map = exact(
     contract.map,
     `${path}.map`,
@@ -1783,6 +1857,33 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       heading(item.heading, `${path}.heading`, fail);
       return;
     }
+    case 'projectile-absorbed': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'sourceTeamId',
+          'sourceActorId',
+          'targetActorId',
+          'projectileId',
+          'targetFormId',
+          'targetFacing',
+          'heading',
+          'position',
+        ],
+        fail,
+      );
+      integer(item.sourceTeamId, `${path}.sourceTeamId`, fail);
+      nullable(item.sourceActorId, `${path}.sourceActorId`, actorId, fail);
+      actorId(item.targetActorId, `${path}.targetActorId`, fail);
+      int64(item.projectileId, `${path}.projectileId`, fail, true);
+      nonEmpty(item.targetFormId, `${path}.targetFormId`, fail);
+      direction(item.targetFacing, `${path}.targetFacing`, fail);
+      heading(item.heading, `${path}.heading`, fail);
+      position(item.position, `${path}.position`, fail);
+      return;
+    }
     case 'damage': {
       const item = exact(
         base,
@@ -2009,6 +2110,7 @@ function validateEventKindAndPayload(
       case 'movement':
       case 'movement-blocked':
       case 'attack':
+      case 'projectile-absorbed':
       case 'damage':
       case 'destruction':
       case 'life-spawned':

@@ -250,6 +250,22 @@ public sealed record GenericActorRuntimeObservation(
             int NewHealth,
             Position Position) : EventPayload;
 
+        /// <summary>
+        /// An enemy projectile was consumed by the target form's declared
+        /// projectile guard instead of damaging it. The absorbing life, the
+        /// firing life, and the projectile are all named so an observer can
+        /// attribute the blank exactly as it attributes a hit.
+        /// </summary>
+        public sealed record ProjectileAbsorbed(
+            int SourceTeamId,
+            ActorIdentity? SourceActorId,
+            ActorIdentity TargetActorId,
+            long ProjectileId,
+            string TargetFormId,
+            Direction TargetFacing,
+            ProjectileHeading Heading,
+            Position Position) : EventPayload;
+
         public sealed record Destruction(
             ActorIdentity ActorId,
             int? SourceTeamId,
@@ -377,6 +393,14 @@ public sealed record GenericActorRuntimeObservation(
         ScoreChanged = 16,
         ModeChanged = 17,
         LifecycleClockCancelled = 18,
+
+        /// <summary>
+        /// Additive append (DECISIONS #156's discipline applied to the
+        /// observed-event enum): a projectile guard consumed an enemy bolt
+        /// without damage. Contracts whose forms declare no guard never emit
+        /// it, so no existing replay or observation changes.
+        /// </summary>
+        ProjectileAbsorbed = 19,
     }
 
     public sealed record ScoreboardState(

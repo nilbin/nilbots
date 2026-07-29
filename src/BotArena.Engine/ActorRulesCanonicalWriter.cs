@@ -383,6 +383,17 @@ internal static class ActorRulesCanonicalWriter
                 "attackProfileId",
                 form.AttackProfileId);
             writer.WriteNumber("objectiveWeight", form.ObjectiveWeight);
+            // Inert-default omission, exactly like the movement profile's
+            // facing coupling and the capture ratchet's hold: a form without a
+            // defensive guard writes no bytes, so every contract authored
+            // before guards existed — the immutable hosted frontline-labs-1
+            // included — keeps its exact fingerprint.
+            if (form.ProjectileGuard != ActorFormProjectileGuardKind.None)
+            {
+                writer.WriteString(
+                    "projectileGuard",
+                    Id(form.ProjectileGuard));
+            }
             writer.WritePropertyName("allowedActionIds");
             writer.WriteStartArray();
             foreach (string actionId in form.AllowedActionIds)
@@ -521,9 +532,28 @@ internal static class ActorRulesCanonicalWriter
                 Id(profile.CooldownUpdate));
             writer.WritePropertyName("shotProgram");
             WriteShotProgram(writer, profile.ShotProgram);
+            // Inert-default omission: a one-bolt attack carries no volley
+            // object at all, so every pre-volley contract keeps its exact
+            // fingerprint (DECISIONS #156's additive pattern).
+            if (profile.Volley is { } volley)
+            {
+                writer.WritePropertyName("volley");
+                WriteVolley(writer, volley);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
+    }
+
+    private static void WriteVolley(
+        Utf8JsonWriter writer,
+        ActorAttackVolleyDefinition volley)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("projectileCount", volley.ProjectileCount);
+        writer.WriteString("spread", Id(volley.Spread));
+        writer.WriteString("identityOrder", Id(volley.IdentityOrder));
+        writer.WriteEndObject();
     }
 
     private static void WriteProjectile(

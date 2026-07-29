@@ -422,6 +422,16 @@ internal sealed record ReplayV3(
             int NewHealth,
             PositionValue Position) : EventPayload("damage");
 
+        internal sealed record ProjectileAbsorbed(
+            int SourceTeamId,
+            ActorId? SourceActorId,
+            ActorId TargetActorId,
+            string ProjectileId,
+            string TargetFormId,
+            string TargetFacing,
+            string Heading,
+            PositionValue Position) : EventPayload("projectile-absorbed");
+
         internal sealed record Destruction(
             ActorId ActorId,
             int? SourceTeamId,

@@ -797,6 +797,17 @@ export type ReplayV3EventPayload =
       targetUnitId: number;
       cancelledState: ReplayV3UnitSlotState;
       cancellationReason: string;
+    }
+  | {
+      kind: 'projectile-absorbed';
+      sourceTeamId: number;
+      sourceActorId: ReplayV3ActorId | null;
+      targetActorId: ReplayV3ActorId;
+      projectileId: string;
+      targetFormId: string;
+      targetFacing: string;
+      heading: string;
+      position: ReplayV3Position;
     };
 
 export type ReplayV3EventKind =
@@ -818,7 +829,8 @@ export type ReplayV3EventKind =
   | 'form-transition-cancelled'
   | 'score-changed'
   | 'mode-changed'
-  | 'lifecycle-clock-cancelled';
+  | 'lifecycle-clock-cancelled'
+  | 'projectile-absorbed';
 
 export interface ReplayV3ObservedEvent {
   eventHandle: string;

@@ -1273,6 +1273,23 @@ internal static class ReplayV3Serializer
                 writer.WritePropertyName("position");
                 WritePosition(writer, payload.Position);
                 break;
+            case ReplayV3.EventPayload.ProjectileAbsorbed payload:
+                writer.WriteNumber("sourceTeamId", payload.SourceTeamId);
+                writer.WritePropertyName("sourceActorId");
+                WriteNullableActorId(writer, payload.SourceActorId);
+                writer.WritePropertyName("targetActorId");
+                WriteActorId(writer, payload.TargetActorId);
+                WriteInt64String(
+                    writer,
+                    "projectileId",
+                    payload.ProjectileId,
+                    nonNegative: true);
+                writer.WriteString("targetFormId", payload.TargetFormId);
+                writer.WriteString("targetFacing", payload.TargetFacing);
+                writer.WriteString("heading", payload.Heading);
+                writer.WritePropertyName("position");
+                WritePosition(writer, payload.Position);
+                break;
             case ReplayV3.EventPayload.Destruction payload:
                 writer.WritePropertyName("actorId");
                 WriteActorId(writer, payload.ActorId);
@@ -4907,6 +4924,7 @@ internal static class ReplayV3Serializer
             "mode-changed" => "mode-changed",
             "lifecycle-clock-cancelled" =>
                 "lifecycle-clock-cancelled",
+            "projectile-absorbed" => "projectile-absorbed",
             _ => throw new ArgumentException(
                 $"Replay-v3 {context} event kind '{kind}' is invalid."),
         };
@@ -4948,6 +4966,14 @@ internal static class ReplayV3Serializer
                 {
                     throw new ArgumentException(
                         $"Replay-v3 {context} attack heading is invalid.");
+                }
+                break;
+            case ReplayV3.EventPayload.ProjectileAbsorbed absorbed:
+                if (!IsProjectileHeading(absorbed.Heading)
+                    || !IsDirection(absorbed.TargetFacing))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} absorbed-projectile heading or facing is invalid.");
                 }
                 break;
             case ReplayV3.EventPayload.LifeSpawned spawned:
@@ -5610,6 +5636,8 @@ internal static class ReplayV3Serializer
                         typeof(
                             ReplayV3.EventPayload
                                 .LifecycleClockCancelled),
+                    ["projectile-absorbed"] =
+                        typeof(ReplayV3.EventPayload.ProjectileAbsorbed),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventAudience>(
