@@ -802,12 +802,14 @@ def _normalize_entrant(
                 f"{population_id}/{entrant_id}.qualification.{field} "
                 "must be a non-empty string or null"
             )
+    # A solo qualification suite awards no coordination grade and reports
+    # null; an unqualified-coordination population must accept exactly that.
     if balance_evidence_eligible and (
         qualification_contract_fingerprint is None
         or evidence_path is None
         or evidence_sha is None
         or qualification.get("tierAwarded") != tier
-        or qualification.get("coordinationGradeAwarded")
+        or (qualification.get("coordinationGradeAwarded") or "unqualified")
             != coordination_grade
         or author_packet_sha is None
     ):
@@ -835,7 +837,9 @@ def _normalize_entrant(
             "passed": True,
             "profileComplete": True,
             "tierAwarded": tier,
-            "coordinationGradeAwarded": coordination_grade,
+            "coordinationGradeAwarded":
+                None if coordination_grade == "unqualified"
+                else coordination_grade,
             "balanceEvidenceEligible": True,
         }
         mismatches = [
