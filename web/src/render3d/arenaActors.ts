@@ -5,7 +5,7 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import { isAttackEvent, isDestructionEvent } from '../replayModel';
-import { projectileLook } from '../render/arenaThemes';
+import { teamAccentedBotImage } from '../render/arenaThemes';
 import {
   defaultFormIdForUnit,
   stanceFormForUnit,
@@ -13,6 +13,7 @@ import {
   unitAccent,
   unitEmplacedLook,
   unitLook,
+  unitProjectileLook,
   unitStanceLook,
 } from '../render/unitPresentation';
 import {
@@ -28,7 +29,6 @@ import {
   maxHealthForActor,
   replayMaxHealth,
 } from '../replayMetadata';
-import { participantForUnit } from '../replayParticipants';
 import { chassisModel } from './chassisModel';
 import { CAMERA_PITCH } from './arenaScene';
 
@@ -224,7 +224,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const emplacedLook = unitEmplacedLook(replay, unit.unitKey, defaultFormId);
     const stanceForm = stanceFormForUnit(replay, unit.unitKey, defaultFormId);
     const stanceLook = unitStanceLook(replay, unit.unitKey, defaultFormId);
-    const accent = new THREE.Color(unitAccent(replay, unit.unitKey, defaultFormId));
+    const accentValue = unitAccent(replay, unit.unitKey, defaultFormId);
+    const accent = new THREE.Color(accentValue);
     const size = Math.max(0.82, look.scale * 0.9);
 
     // A bot is an object standing on the floor, so it gets a body. Laying the sprite flat
@@ -262,7 +263,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const lidGeometry = new THREE.PlaneGeometry(size, size);
     lidGeometry.rotateX(-Math.PI / 2);
     const lidMaterial = new THREE.MeshStandardMaterial({
-      map: spriteTexture(look.image),
+      map: spriteTexture(teamAccentedBotImage(look, accentValue)),
       transparent: true,
       // Sprites have hard alpha edges; testing rather than blending keeps them from
       // sorting against each other and the floor.
@@ -329,6 +330,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       (emplacedLook ?? look).imageUrl,
       undefined,
       'front',
+      accent,
     ).then((model) => {
       if (!live || !model) return;
       for (let arm = 0; arm < TURRET_ARMS; arm++) {
@@ -502,7 +504,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     if (stanceForm !== null) {
       // The stance's own silhouette, extruded from the stance look exactly as the mobile
       // body is from the chassis look. A form change swaps the machine, not its paint.
-      void chassisModel((stanceLook ?? look).imageUrl).then((model) => {
+      void chassisModel(
+        (stanceLook ?? look).imageUrl,
+        undefined,
+        undefined,
+        accent,
+      ).then((model) => {
         if (!live || !model) return;
         const solid = model.clone();
         solid.scale.setScalar(size * 0.94);
@@ -619,7 +626,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // fetch and a first frame with nothing on the floor is worse than a first frame with a
     // block on it — but a block is what a chassis looks like when this step is missing,
     // which is exactly how it shipped once.
-    void chassisModel(look.imageUrl).then((model) => {
+    void chassisModel(
+      look.imageUrl,
+      undefined,
+      undefined,
+      accent,
+    ).then((model) => {
       if (!live || !model) return;
       // Cloned because the parse is cached per look, and a mirror match would otherwise
       // have both bots claiming one Group — three.js reparents rather than shares, so the
@@ -931,8 +943,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     replay.units.map((unit, index) => [unit.unitKey, index]),
   );
   const arsenals = replay.units.map((unit) => {
-    const participant = participantForUnit(replay, unit.unitKey);
-    const look = projectileLook(participant?.projectileLookId ?? undefined);
+    const look = unitProjectileLook(replay, unit.unitKey);
     const accent = new THREE.Color(unitAccent(replay, unit.unitKey));
     const tracerMaterial = new THREE.MeshBasicMaterial({
       map: tracerTexture(accent),

@@ -271,27 +271,30 @@ test('a stance is a third body, not the turret and not the chassis', () => {
   ])
     assert.equal(stanceKindForForm(formId), null, String(formId));
 
-  for (const [family, mobile] of [
-    ['striker', 'striker-prime'],
-    ['bulwark', 'bulwark-prime'],
-  ] as const) {
-    const looks = [
-      fallbackLookIdForForm(mobile),
-      fallbackLookIdForForm(`${mobile}-turret`),
-      fallbackLookIdForForm(
-        family === 'striker'
-          ? `${mobile}-volley-stance`
-          : `${mobile}-aegis-shell`,
-      ),
-    ];
-    assert.equal(
-      new Set(looks).size,
-      3,
-      `${family} wears three silhouettes (${looks.join(', ')})`,
-    );
-  }
+  const strikerLooks = [
+    fallbackLookIdForForm('striker-prime'),
+    fallbackLookIdForForm('striker-prime-volley-stance'),
+  ];
+  assert.equal(
+    new Set(strikerLooks).size,
+    2,
+    `striker mobile and stance are separate (${strikerLooks.join(', ')})`,
+  );
+  const bulwarkLooks = [
+    fallbackLookIdForForm('bulwark-prime'),
+    fallbackLookIdForForm('bulwark-prime-turret'),
+    fallbackLookIdForForm('bulwark-prime-aegis-shell'),
+  ];
+  assert.equal(
+    new Set(bulwarkLooks).size,
+    3,
+    `bulwark mobile, turret and shell are separate (${bulwarkLooks.join(', ')})`,
+  );
   // A family with no stance skill is never handed one.
-  assert.equal(fallbackLookIdForForm('fabricator-prime-volley-stance'), 'orbiter');
+  assert.equal(
+    fallbackLookIdForForm('fabricator-prime-volley-stance'),
+    'lattice-loom',
+  );
 });
 
 test('a unit resolves its stance from the replay catalog, not from a naming rule', () => {
@@ -308,13 +311,17 @@ test('a unit resolves its stance from the replay catalog, not from a naming rule
   );
 
   const mobile = unitLook(arm, SHOOTER_UNIT, 'striker-child');
-  const emplaced = unitEmplacedLook(arm, SHOOTER_UNIT, 'striker-child');
   const standing = unitStanceLook(arm, SHOOTER_UNIT, 'striker-child');
   assert.ok(standing, 'the stance has artwork of its own');
   assert.equal(
-    new Set([mobile.id, emplaced!.id, standing.id]).size,
-    3,
-    'three bodies, three looks',
+    new Set([mobile.id, standing.id]).size,
+    2,
+    'mobile and directional stance use different class-owned bodies',
+  );
+  assert.equal(
+    unitEmplacedLook(arm, SHOOTER_UNIT, 'striker-child'),
+    null,
+    'striker owns no omnidirectional emplacement',
   );
 });
 

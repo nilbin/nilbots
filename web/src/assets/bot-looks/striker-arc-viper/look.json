@@ -1,0 +1,9 @@
+{
+  "id": "striker-arc-viper",
+  "label": "Arc Viper",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#a3e635",
+  "classId": "striker",
+  "defaultProjectile": "striker-arc-cutter",
+  "scale": 1.26
+}

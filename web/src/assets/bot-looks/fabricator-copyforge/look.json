@@ -1,0 +1,9 @@
+{
+  "id": "fabricator-copyforge",
+  "label": "Copyforge",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#34d399",
+  "classId": "fabricator",
+  "defaultProjectile": "fabricator-copy-bit",
+  "scale": 1.18
+}

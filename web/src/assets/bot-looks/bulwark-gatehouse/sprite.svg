@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gatehouse bulwark chassis facing east">
+  <defs>
+    <linearGradient id="gh-armor" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5b6469"/>
+      <stop offset=".4" stop-color="#30383d"/>
+      <stop offset="1" stop-color="#171d21"/>
+    </linearGradient>
+    <linearGradient id="gh-red" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#8e3c3a"/>
+      <stop offset=".5" stop-color="#c5544e"/>
+      <stop offset="1" stop-color="#6e2b2b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Four corner bastions make the protected footprint read before its details do. -->
+  <path d="M84 108h70l26 36h178l28-36h62v70l-34 28v100l34 28v70h-62l-28-36H180l-26 36H84v-70l34-28V206l-34-28Z"
+    fill="#080c0f" stroke="#070a0c" stroke-width="18" stroke-linejoin="round"/>
+  <g fill="url(#gh-armor)" stroke="#697278" stroke-width="5">
+    <path d="M94 120h52l30 42-38 38-44-30Z"/>
+    <path d="M94 392h52l30-42-38-38-44 30Z"/>
+    <path d="M438 120h-44l-32 42 36 38 40-30Z"/>
+    <path d="M438 392h-44l-32-42 36-38 40 30Z"/>
+  </g>
+  <path d="M126 170h252l44 48v76l-44 48H126l-28-40v-92Z"
+    fill="url(#gh-armor)" stroke="#7a8389" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- The red gate plates stay authored; the narrow signal bars carry team identity. -->
+  <path d="M254 180h112l42 46v60l-42 46H254l-42-36v-80Z"
+    fill="url(#gh-red)" stroke="#31191a" stroke-width="6"/>
+  <path d="m270 196 82 2 36 36v44l-36 36-82 2-36-30v-60Z"
+    fill="#9d403d" stroke="#d37a72" stroke-width="3"/>
+  <path d="M112 210h78v92h-78Z" fill="#232b30" stroke="#10161a" stroke-width="5"/>
+  <path d="M126 224h18v64h-18Zm26 0h9v64h-9Zm18 0h9v64h-9Z" fill="#596268"/>
+
+  <path d="M378 226h52v60h-52l-30-14v-32Z" fill="#1b2327" stroke="#778087" stroke-width="5"/>
+  <path d="M416 238h30v36h-30Z" fill="#20292e" stroke="#687177" stroke-width="4"/>
+  <path d="M438 247h25v18h-25Z" fill="#0d1316"/>
+
+  <path d="M128 192h58v12h-58Zm0 116h58v12h-58Z" fill="#0b1114"/>
+  <path data-team-accent="true" d="M132 194h40v8h-40Z" fill="#fb645b"/>
+  <path data-team-accent="true" d="M132 310h40v8h-40Z" fill="#fb645b"/>
+  <path data-team-accent="true" d="M270 206h74l16 12h-90Z" fill="#fb645b"/>
+  <path data-team-accent="true" d="M270 306h74l16-12h-90Z" fill="#fb645b"/>
+
+  <circle cx="244" cy="256" r="72" fill="#12191d" stroke="#697278" stroke-width="8"/>
+  <circle cx="244" cy="256" r="52" fill="#2c3439" stroke="#0d1316" stroke-width="8"/>
+  <path d="m244 216 34 20v40l-34 20-34-20v-40Z" fill="#131a1e" stroke="#828b90" stroke-width="6"/>
+  <path data-team-accent="true" d="m244 229 23 14v26l-23 14-23-14v-26Z" fill="#fecaca"/>
+  <circle data-team-accent="true" cx="244" cy="256" r="12" fill="#fb645b"/>
+
+  <g fill="#a1a9ae">
+    <circle cx="136" cy="152" r="5"/>
+    <circle cx="136" cy="360" r="5"/>
+    <circle cx="400" cy="152" r="5"/>
+    <circle cx="400" cy="360" r="5"/>
+  </g>
+</svg>

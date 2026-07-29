@@ -95,6 +95,14 @@ web/src/assets/projectile-looks/<look-id>/
   look.json
   sprite.svg
 
+web/src/assets/class-looks/<form-look-id>/
+  look.json
+  sprite.svg
+
+web/src/assets/class-projectile-looks/<form-projectile-id>/
+  look.json
+  sprite.svg
+
 web/src/render/
   arenaThemes.ts     data loader and legacy fallbacks
   drawArena.ts       layered replay-driven rendering and effects
@@ -299,6 +307,17 @@ presentation constant.
   weapon direction must remain readable around 48 px.
 - Record a stable ID, label, suggested accent, sprite filename, and render scale
   in the look's standalone `look.json`.
+- A class-oriented look may declare presentation-only `classId` metadata:
+  `striker`, `bulwark`, or `fabricator`. It lets the frontend describe intent
+  without parsing the look ID; it does not yet enforce account equip policy.
+  Manifest discovery validates the value and exposes it as `BotLook.classId`
+  (`null` for ordinary looks). Consumers must not infer a class by parsing a
+  look ID.
+- A genuine SVG may mark a restrained set of direct, filled shape elements
+  `data-team-accent="true"`. Canvas2D and WebGL substitute the replay-resolved
+  team accent on those paths only. Keep them around 5–10% of the visible
+  chassis, retain a valid fallback fill/stroke, and never tag a parent group:
+  authored armor, material, and class silhouette must survive the tint.
 - A look may declare `defaultProjectile` as a recommended companion. The
   appearance UI selects that projectile with the chassis when both are owned,
   but projectile choice remains independently editable.
@@ -324,7 +343,11 @@ presentation constant.
 
 Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, Aureate Warden,
 Rift Runner, Mossback, Helio Kite, Scrap Jackal, Glass Manta, and Mantis. All
-twelve are genuine path-based SVGs. The earlier generated PNGs remain under
+are genuine path-based SVGs. Six locked Frontline class packs add Vector
+Kestrel and Arc Viper for Striker, Gatehouse and Mirror Bastion for Bulwark,
+and Copyforge and Rivet Mantis for Fabricator; each carries `classId`, semantic
+team-accent surfaces, and a paired projectile in one purchase pack. The
+earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
@@ -337,6 +360,34 @@ and Glass Manta are manifest-discovered but entitlement-locked for future
 achievement, challenge, and competition sources respectively. Mantis unlocks
 the first time any of the account's bots reaches 1300 rating on an official
 ladder.
+
+Frontline's selected base bodies are renderer-owned form presentation rather
+than account cosmetics. Trident Wasp supplies Striker mobile and three-barrel
+Volley bodies; Aegis Tortoise supplies Bulwark mobile, omnidirectional turret,
+and exact-facing-quadrant Shell bodies; Lattice Loom is the one identical
+mobile chassis used by every Fabricator life. They live under
+`assets/class-looks`, never enter appearance options, and pair respectively
+with internal Trident Spark, Rebound Diamond, and Lattice Rivet masks. An
+authored replay form look/projectile still wins; this internal mapping exists
+for Labs replays whose presentation metadata predates the art.
+
+The frontend keeps the two routes deliberately separate:
+
+- `botLook()` and `botLookOptions()` resolve account cosmetics only. Alternate
+  class skins remain normal entitlement-backed cosmetics and expose their
+  intended family through `BotLook.classId`.
+- `presentationBotLook()` can additionally resolve the internal
+  `assets/class-looks` packages, but those packages never enter appearance
+  options. `presentationProjectileLook()` does the same for
+  `assets/class-projectile-looks`.
+- `unitLook()` resolves authored per-form presentation, then the internal
+  class-form compatibility mapping, then the participant's snapshotted
+  cosmetic, then the legacy slot fallback. `unitProjectileLook()` uses the
+  corresponding authored form, internal class pair, participant projectile,
+  and Pulse Bolt order.
+- Canvas2D and WebGL both consume these shared unit resolvers and the same
+  replay-resolved team accent. `classId` describes a cosmetic; it does not
+  override the replay's authoritative form or team.
 
 To create another look:
 
@@ -377,15 +428,24 @@ To create another look:
 
 Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark,
 Regent Lance, Phase Needle, Cinder Disc, Helix Dart, Gravity Knot, Prism Fan,
-and Talon. All eleven are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard,
+and Talon, plus the six paired class-pack masks Vector Fork, Arc Cutter, Gate
+Slug, Mirror Wedge, Copy Bit, and Rivet Punch. All are genuine SVG masks. Pulse
+Bolt, Ion Orb, Razor Shard,
 Phase Needle, and Cinder Disc are starter-accessible; Arc Spark unlocks after
 the account completes its first unranked challenge match on the official
 service. Regent Lance unlocks with Aureate Warden after 100 completed ranked
 matches. Helix Dart, Gravity Knot, and Prism Fan are independently
 entitlement-locked for future achievement, challenge, and competition sources.
 Talon unlocks with Mantis at 1300 rating; the two share an unlock source
-without the chassis manifest recommending the projectile, which per
-DECISIONS #106 stays an Aureate Warden exception.
+without the chassis manifest recommending the projectile. The six Frontline
+store packs do declare their projectile companions: each pack grants one
+complete visual pair, while ownership still leaves chassis and projectile
+independently equipable.
+
+Trident Spark, Rebound Diamond, and Lattice Rivet are separate internal
+class-form projectile masks. They are resolved after an authored per-form
+`projectileLookId` and before a participant cosmetic only for class forms, so
+historical Duel playback keeps the snapshotted participant projectile.
 
 To create another projectile look:
 

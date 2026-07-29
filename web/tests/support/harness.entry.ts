@@ -24,14 +24,20 @@ export {
 export { createPresenter } from '../../src/replayPresentation';
 export {
   classFamilyForForm,
+  fallbackProjectileLookIdForForm,
   fallbackLookIdForForm,
   stanceFormForUnit,
   stanceKindForForm,
   unitAccent,
   unitEmplacedLook,
   unitLook,
+  unitProjectileLook,
   unitStanceLook,
 } from '../../src/render/unitPresentation';
+export {
+  applyTeamAccentToSvg,
+  presentationBotLook,
+} from '../../src/render/arenaThemes';
 export {
   volleyArrowOutline,
   volleyLanes,

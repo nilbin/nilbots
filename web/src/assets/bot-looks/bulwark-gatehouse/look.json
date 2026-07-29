@@ -1,0 +1,9 @@
+{
+  "id": "bulwark-gatehouse",
+  "label": "Gatehouse",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#fb645b",
+  "classId": "bulwark",
+  "defaultProjectile": "bulwark-gate-slug",
+  "scale": 1.18
+}

@@ -116,6 +116,78 @@
       }
     },
     {
+      "key": "bot-look:striker-vector-kestrel",
+      "kind": "bot-look",
+      "id": "striker-vector-kestrel",
+      "label": "Vector Kestrel",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "striker-vector-kestrel",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "bot-look:striker-arc-viper",
+      "kind": "bot-look",
+      "id": "striker-arc-viper",
+      "label": "Arc Viper",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "striker-arc-viper",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "bot-look:bulwark-gatehouse",
+      "kind": "bot-look",
+      "id": "bulwark-gatehouse",
+      "label": "Gatehouse",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "bulwark-gatehouse",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "bot-look:bulwark-mirror-bastion",
+      "kind": "bot-look",
+      "id": "bulwark-mirror-bastion",
+      "label": "Mirror Bastion",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "bulwark-mirror-bastion",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "bot-look:fabricator-copyforge",
+      "kind": "bot-look",
+      "id": "fabricator-copyforge",
+      "label": "Copyforge",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "fabricator-copyforge",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "bot-look:fabricator-rivet-mantis",
+      "kind": "bot-look",
+      "id": "fabricator-rivet-mantis",
+      "label": "Rivet Mantis",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "fabricator-rivet-mantis",
+        "hint": "Available in the store."
+      }
+    },
+    {
       "key": "projectile-look:pulse-bolt",
       "kind": "projectile-look",
       "id": "pulse-bolt",
@@ -223,6 +295,78 @@
       }
     },
     {
+      "key": "projectile-look:striker-vector-fork",
+      "kind": "projectile-look",
+      "id": "striker-vector-fork",
+      "label": "Vector Fork",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "striker-vector-kestrel",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "projectile-look:striker-arc-cutter",
+      "kind": "projectile-look",
+      "id": "striker-arc-cutter",
+      "label": "Arc Cutter",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "striker-arc-viper",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "projectile-look:bulwark-gate-slug",
+      "kind": "projectile-look",
+      "id": "bulwark-gate-slug",
+      "label": "Gate Slug",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "bulwark-gatehouse",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "projectile-look:bulwark-mirror-wedge",
+      "kind": "projectile-look",
+      "id": "bulwark-mirror-wedge",
+      "label": "Mirror Wedge",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "bulwark-mirror-bastion",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "projectile-look:fabricator-copy-bit",
+      "kind": "projectile-look",
+      "id": "fabricator-copy-bit",
+      "label": "Copy Bit",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "fabricator-copyforge",
+        "hint": "Available in the store."
+      }
+    },
+    {
+      "key": "projectile-look:fabricator-rivet-punch",
+      "kind": "projectile-look",
+      "id": "fabricator-rivet-punch",
+      "label": "Rivet Punch",
+      "availability": "entitlement",
+      "unlock": {
+        "sourceKind": "purchase",
+        "sourceId": "fabricator-rivet-mantis",
+        "hint": "Available in the store."
+      }
+    },
+    {
       "key": "capacity:extra-daily-builds",
       "kind": "capacity",
       "id": "extra-daily-builds",
@@ -275,6 +419,66 @@
       "items": [
         "bot-look:glass-manta",
         "projectile-look:prism-fan"
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "striker-vector-kestrel",
+      "label": "Vector Kestrel",
+      "description": "A swept Striker chassis with the forked shot that matches its three-vector silhouette.",
+      "items": [
+        "bot-look:striker-vector-kestrel",
+        "projectile-look:striker-vector-fork"
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "striker-arc-viper",
+      "label": "Arc Viper",
+      "description": "A coiled Striker chassis and the cutting arc it drives downrange.",
+      "items": [
+        "bot-look:striker-arc-viper",
+        "projectile-look:striker-arc-cutter"
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "bulwark-gatehouse",
+      "label": "Gatehouse",
+      "description": "A fortified Bulwark chassis paired with a dense, gate-shaped slug.",
+      "items": [
+        "bot-look:bulwark-gatehouse",
+        "projectile-look:bulwark-gate-slug"
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "bulwark-mirror-bastion",
+      "label": "Mirror Bastion",
+      "description": "A mirrored Bulwark bastion and the broad wedge fired from its protected core.",
+      "items": [
+        "bot-look:bulwark-mirror-bastion",
+        "projectile-look:bulwark-mirror-wedge"
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "fabricator-copyforge",
+      "label": "Copyforge",
+      "description": "An open-frame Fabricator with outward assembly tools and a precise copy bit.",
+      "items": [
+        "bot-look:fabricator-copyforge",
+        "projectile-look:fabricator-copy-bit"
+      ],
+      "category": "appearance"
+    },
+    {
+      "id": "fabricator-rivet-mantis",
+      "label": "Rivet Mantis",
+      "description": "A tool-ring Fabricator whose paired rivet punch echoes its empty assembly jaws.",
+      "items": [
+        "bot-look:fabricator-rivet-mantis",
+        "projectile-look:fabricator-rivet-punch"
       ],
       "category": "appearance"
     },

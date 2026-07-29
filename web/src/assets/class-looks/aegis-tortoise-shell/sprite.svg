@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Aegis Tortoise directional shell with guarded east quadrant">
+  <defs>
+    <linearGradient id="ats-navy" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#38486e"/>
+      <stop offset=".46" stop-color="#1c2947"/>
+      <stop offset="1" stop-color="#0b1326"/>
+    </linearGradient>
+    <linearGradient id="ats-bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e0c08a"/>
+      <stop offset=".42" stop-color="#a47b47"/>
+      <stop offset="1" stop-color="#4b321c"/>
+    </linearGradient>
+    <radialGradient id="ats-core">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".25" stop-color="#a5ddff"/>
+      <stop offset=".65" stop-color="#2c82c9"/>
+      <stop offset="1" stop-color="#102746"/>
+    </radialGradient>
+  </defs>
+
+  <path d="M67 176 124 111 207 94 292 126 373 94 488 202 505 256 488 310 373 418 292 386 207 418 124 401 67 336 88 285 68 256 88 227Z"
+    fill="#070b13" stroke="#050810" stroke-width="15" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <path d="m82 181 49-55 72-16 84 32 49 57-51 46-93-15-66 21-48-27Z"
+      fill="url(#ats-navy)" stroke="#617097" stroke-width="6"/>
+    <path d="m82 331 49 55 72 16 84-32 49-57-51-46-93 15-66-21-48 27Z"
+      fill="#15213d" stroke="#3b4c70" stroke-width="6"/>
+    <path d="m101 220 91-29 101 65-101 65-91-29-23-36Z"
+      fill="url(#ats-navy)" stroke="#68789d" stroke-width="6"/>
+
+    <!-- The physical shield is exactly the facing quadrant: its radial edges leave the
+         core at -45 and +45 degrees and stop hard where the unguarded flanks begin. -->
+    <path d="M256 256 376 108 472 198 501 256 472 314 376 404Z"
+      fill="url(#ats-bronze)" stroke="#c19b63" stroke-width="9"/>
+    <path d="M292 256 386 139 450 203 478 256 450 309 386 373Z"
+      fill="#17233d" stroke="#85683e" stroke-width="6"/>
+    <path d="M319 256 397 174 438 215 459 256 438 297 397 338Z"
+      fill="#0e182c" stroke="#62759b" stroke-width="5"/>
+
+    <path data-team-accent="true" d="M273 241 365 126 382 144 299 250Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="M273 271 365 386 382 368 299 262Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="m92 239 42-12 24 29-24 29-42-12-11-17Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+
+    <circle cx="252" cy="256" r="86" fill="#0a1120" stroke="#765c38" stroke-width="9"/>
+    <path d="M252 176 309 199 332 256 309 313 252 336 195 313 172 256 195 199Z"
+      fill="url(#ats-navy)" stroke="#7482a2" stroke-width="6"/>
+    <circle cx="252" cy="256" r="51" fill="#101a31" stroke="#9b7443" stroke-width="8"/>
+    <circle cx="252" cy="256" r="29" fill="#0b1427" stroke="#4ba3e2" stroke-width="6"/>
+    <circle cx="252" cy="256" r="18" fill="url(#ats-core)" stroke="#d9f2ff" stroke-width="3"/>
+  </g>
+
+  <!-- Two exposed rear braces make the missing three quadrants intentional, not absent art. -->
+  <g fill="none" stroke="#73809b" stroke-width="5" stroke-linecap="round" opacity=".72">
+    <path d="M198 168 133 143 102 175"/>
+    <path d="M198 344 133 369 102 337"/>
+  </g>
+</svg>

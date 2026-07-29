@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Trident Wasp three-barrel volley stance facing east">
+  <defs>
+    <linearGradient id="twv-hull" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#59616a"/>
+      <stop offset=".45" stop-color="#29313a"/>
+      <stop offset="1" stop-color="#10171f"/>
+    </linearGradient>
+    <linearGradient id="twv-metal" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#e0c88f"/>
+      <stop offset=".45" stop-color="#987943"/>
+      <stop offset="1" stop-color="#49341b"/>
+    </linearGradient>
+    <radialGradient id="twv-core">
+      <stop stop-color="#fffceb"/>
+      <stop offset=".28" stop-color="#ffd45a"/>
+      <stop offset=".68" stop-color="#e8790c"/>
+      <stop offset="1" stop-color="#431b08"/>
+    </radialGradient>
+  </defs>
+
+  <path d="M62 158 129 103 219 137 278 179 340 151 469 80 491 96 404 194 486 237 504 256 486 275 404 318 491 416 469 432 340 361 278 333 219 375 129 409 62 354 88 291 68 256 88 221Z"
+    fill="#070b10" stroke="#05080c" stroke-width="14" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <path d="m76 164 58-46 77 31 77 57-53 42-91-30-53 15Z"
+      fill="url(#twv-hull)" stroke="#707982" stroke-width="5"/>
+    <path d="m76 348 58 46 77-31 77-57-53-42-91 30-53-15Z"
+      fill="#202833" stroke="#454f5a" stroke-width="5"/>
+    <path d="m101 223 79-23 103 56-103 56-79-23-20-33Z"
+      fill="#1a232c" stroke="#6b7580" stroke-width="5"/>
+    <path d="m165 190 86-37 91 52 31 51-31 51-91 52-86-37 57-66Z"
+      fill="url(#twv-hull)" stroke="#777f87" stroke-width="6"/>
+
+    <path d="m311 198 56-38 103-64 14 12-80 96-63 40-55-9Z"
+      fill="url(#twv-metal)" stroke="#9d824f" stroke-width="5"/>
+    <path d="m322 237 71-24 88 30 18 13-18 13-88 30-71-24-45-19Z"
+      fill="#252b31" stroke="#927342" stroke-width="5"/>
+    <path d="m311 314 56 38 103 64 14-12-80-96-63-40-55 9Z"
+      fill="#6f5833" stroke="#4d3b21" stroke-width="5"/>
+
+    <path d="m381 181 93-81 10 8-70 96-49 27-26-5Z"
+      fill="#151c24" stroke="#d29a32" stroke-width="3"/>
+    <path d="m390 246 94 4 15 6-15 6-94 4-50-10Z"
+      fill="#151c24" stroke="#d29a32" stroke-width="3"/>
+    <path d="m381 331 93 81 10-8-70-96-49-27-26 5Z"
+      fill="#111820" stroke="#b87820" stroke-width="3"/>
+
+    <path data-team-accent="true" d="m129 169 59-21 54 25-58-8-46 18Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+    <path data-team-accent="true" d="m129 343 59 21 54-25-58 8-46-18Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+    <path data-team-accent="true" d="M286 218 328 205 360 224 342 244 301 241Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+    <path data-team-accent="true" d="M286 294 328 307 360 288 342 268 301 271Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+
+    <circle cx="252" cy="256" r="62" fill="#0b1118" stroke="#76592e" stroke-width="7"/>
+    <path d="m252 199 41 17 19 40-19 40-41 17-41-17-19-40 19-40Z"
+      fill="#2c3238" stroke="#ad8749" stroke-width="5"/>
+    <circle cx="252" cy="256" r="31" fill="#231707" stroke="#d38b18" stroke-width="6"/>
+    <circle cx="252" cy="256" r="18" fill="url(#twv-core)" stroke="#fff0a1" stroke-width="3"/>
+  </g>
+</svg>

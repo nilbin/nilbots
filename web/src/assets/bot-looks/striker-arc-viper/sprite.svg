@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Arc Viper striker chassis facing east">
+  <defs>
+    <linearGradient id="av-shell" x1="0" y1="0" x2="1" y2=".8">
+      <stop stop-color="#596169"/>
+      <stop offset=".48" stop-color="#2b3339"/>
+      <stop offset="1" stop-color="#10161a"/>
+    </linearGradient>
+    <linearGradient id="av-spine" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#182126"/>
+      <stop offset=".55" stop-color="#3d474d"/>
+      <stop offset="1" stop-color="#151c20"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Broad shoulders coil into one pointed head, like a viper already striking. -->
+  <path d="M70 178 190 178 252 154 306 184 462 244 462 268 306 328 252 358 190 334 70 334 96 292 82 256 96 220Z"
+    fill="#070c0f" stroke="#070a0d" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M82 188h112l58-24 48 28 146 58v12l-146 58-48 28-58-24H82l24-34-14-34 14-34Z"
+    fill="url(#av-shell)" stroke="#737c82" stroke-width="5" stroke-linejoin="round"/>
+
+  <path d="M96 198h92l42 18-28 24H94l14-20Z" fill="#394248" stroke="#11181c" stroke-width="4"/>
+  <path d="M96 314h92l42-18-28-24H94l14 20Z" fill="#1b2328" stroke="#0b1115" stroke-width="4"/>
+  <path d="m202 232 62-54 50 26 112 47-124 5 124 5-112 47-50 26-62-54 24-24Z"
+    fill="url(#av-spine)" stroke="#677078" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Ribbed charge chamber remains unmistakable after downscaling. -->
+  <path d="M134 231h126l48 25-48 25H134l-22-25Z" fill="#11181c" stroke="#596269" stroke-width="5"/>
+  <g fill="#59636a" stroke="#10171b" stroke-width="3">
+    <path d="m144 234 18 3v38l-18 3-10-22Z"/>
+    <path d="m172 237 18 2v34l-18 2-9-19Z"/>
+    <path d="m200 239 18 2v30l-18 2-8-17Z"/>
+    <path d="m228 241 18 2v26l-18 2-7-15Z"/>
+  </g>
+  <g>
+    <path data-team-accent="true" d="M150 239h7v34h-7Z" fill="#a3e635"/>
+    <path data-team-accent="true" d="M178 241h7v30h-7Z" fill="#a3e635"/>
+    <path data-team-accent="true" d="M206 243h7v26h-7Z" fill="#a3e635"/>
+    <path data-team-accent="true" d="M234 245h7v22h-7Z" fill="#a3e635"/>
+  </g>
+
+  <!-- The two live rails visually bend toward the muzzle: an authored motion cue. -->
+  <path d="M111 215h80l70-30 52 29 94 33-8 9-93-28-49-25-62 28h-84Z"
+    fill="#141c20" stroke="#778087" stroke-width="4"/>
+  <path d="M111 297h80l70 30 52-29 94-33-8-9-93 28-49 25-62-28h-84Z"
+    fill="#11181c" stroke="#59636a" stroke-width="4"/>
+  <path data-team-accent="true" d="M113 218h78l68-27 49 27 82 28-16 2-68-21-48-26-66 27h-79Z" fill="#a3e635"/>
+  <path data-team-accent="true" d="M113 294h78l68 27 49-27 82-28-16-2-68 21-48 26-66-27h-79Z" fill="#84cc16"/>
+
+  <path d="m300 240 88 12 32 4-32 4-88 12 18-16Z" fill="#0b1215"/>
+  <path data-team-accent="true" d="m332 249 78 7-78 7 11-7Z" fill="#d9f99d"/>
+  <g fill="#929ba1">
+    <circle cx="103" cy="207" r="4"/>
+    <circle cx="103" cy="305" r="4"/>
+    <circle cx="270" cy="190" r="4"/>
+    <circle cx="270" cy="322" r="4"/>
+  </g>
+</svg>

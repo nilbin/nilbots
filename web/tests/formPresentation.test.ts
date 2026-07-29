@@ -15,10 +15,12 @@ import {
   classFamilyForForm,
   drawArena,
   fallbackLookIdForForm,
+  fallbackProjectileLookIdForForm,
   posesAt,
   unitAccent,
   unitEmplacedLook,
   unitLook,
+  unitProjectileLook,
 } from './.harness/harness.entry.js';
 
 /**
@@ -256,25 +258,26 @@ test('the 2.5D mobile body carries a facing marker and an emplaced one does not'
   actors.dispose();
 });
 
-test('class form IDs fall back to distinct catalog looks, turrets included', () => {
+test('class form IDs resolve to the selected class-owned looks and projectiles', () => {
   assert.equal(classFamilyForForm('striker-prime'), 'striker');
   assert.equal(classFamilyForForm('bulwark-child-turret'), 'bulwark');
   assert.equal(classFamilyForForm('fabricator-prime'), 'fabricator');
 
-  const families = ['striker', 'bulwark', 'fabricator'].map((family) =>
-    fallbackLookIdForForm(`${family}-prime`),
+  assert.deepEqual(
+    ['striker', 'bulwark', 'fabricator'].map((family) => [
+      fallbackLookIdForForm(`${family}-prime`),
+      fallbackProjectileLookIdForForm(`${family}-prime`),
+    ]),
+    [
+      ['trident-wasp', 'trident-spark'],
+      ['aegis-tortoise', 'rebound-diamond'],
+      ['lattice-loom', 'lattice-rivet'],
+    ],
   );
   assert.equal(
-    new Set(families).size,
-    families.length,
-    `each class family gets its own chassis (${families.join(', ')})`,
+    fallbackLookIdForForm('bulwark-child-turret'),
+    'aegis-tortoise-turret',
   );
-  for (const family of ['striker', 'bulwark', 'fabricator'])
-    assert.notEqual(
-      fallbackLookIdForForm(`${family}-prime-turret`),
-      fallbackLookIdForForm(`${family}-prime`),
-      `${family} emplaces into a different silhouette`,
-    );
 
   // Legacy and Frontline form IDs are not class forms and must keep their pixels.
   for (const formId of ['legacy-mobile', 'prime-mobile', 'child-mobile', 'turret'])
@@ -334,5 +337,25 @@ test('authored presentation and distinct participant accents are left alone', ()
   assert.equal(
     unitLook(authored, 'frontline:0:unit:1', 'bulwark-child').id,
     'rift-runner',
+  );
+
+  const form = authored.forms.find(
+    (candidate) => candidate.formId === 'bulwark-child',
+  );
+  assert.ok(form);
+  form.projectileLookId = 'ion-orb';
+  assert.equal(
+    unitProjectileLook(
+      authored,
+      'frontline:0:unit:1',
+      'bulwark-child',
+    ).id,
+    'ion-orb',
+    'an authored per-form projectile outranks the class default',
+  );
+  assert.equal(
+    unitProjectileLook(duel, 'duel:0:unit:0').id,
+    'pulse-bolt',
+    'a non-class replay keeps the participant projectile',
   );
 });
