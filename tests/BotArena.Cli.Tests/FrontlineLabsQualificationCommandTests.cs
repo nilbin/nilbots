@@ -288,7 +288,7 @@ public sealed class FrontlineLabsQualificationCommandTests
                 File.ReadAllText(
                     Path.Combine(temporary, "qualification.json")));
             JsonElement root = document.RootElement;
-            Assert.Equal(3, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(4, root.GetProperty("schemaVersion").GetInt32());
             Assert.Equal(
                 "frontline-duel-depth-union-t2-v1",
                 root.GetProperty("qualificationProfileId").GetString());
@@ -312,9 +312,22 @@ public sealed class FrontlineLabsQualificationCommandTests
                     !probe.GetProperty("passed").GetBoolean()
                     && probe.GetProperty("probeId").GetString()
                         == "automatic-life-cycle");
+            Assert.All(
+                probes.Single(probe =>
+                        probe.GetProperty("probeId").GetString()
+                            == "automatic-life-cycle")
+                    .GetProperty("assignments")
+                    .EnumerateArray(),
+                assignment => Assert.Contains(
+                    "every-automatic-child-closed-on-the-objective-or-"
+                    + "dealt-damage",
+                    assignment.GetProperty("failedCriteria")
+                        .EnumerateArray()
+                        .Select(criterion => criterion.GetString()!)));
             foreach (JsonElement assignment in probes.SelectMany(probe =>
                          probe.GetProperty("assignments").EnumerateArray()))
             {
+                AssertCaseDiagnostics(assignment);
                 AssertReplayVerifies(
                     temporary,
                     assignment.GetProperty("primary"));
@@ -380,6 +393,11 @@ public sealed class FrontlineLabsQualificationCommandTests
                         probe.GetProperty("passed").GetBoolean(),
                         probe.GetProperty("probeId").GetString()));
 
+            Assert.All(
+                probes.SelectMany(probe =>
+                    probe.GetProperty("assignments").EnumerateArray()),
+                AssertCaseDiagnostics);
+
             JsonElement evade = Assert.Single(
                 probes,
                 probe =>
@@ -432,7 +450,7 @@ public sealed class FrontlineLabsQualificationCommandTests
                 File.ReadAllText(
                     Path.Combine(temporary, "qualification.json")));
             JsonElement root = document.RootElement;
-            Assert.Equal(4, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(5, root.GetProperty("schemaVersion").GetInt32());
             Assert.Equal(
                 "frontline-duel-depth-union-t3-v1",
                 root.GetProperty("qualificationProfileId").GetString());
@@ -482,9 +500,25 @@ public sealed class FrontlineLabsQualificationCommandTests
                             == "cadence-parity")
                     .GetProperty("cases")
                     .GetArrayLength());
+            Assert.All(
+                probes.Single(probe =>
+                        probe.GetProperty("probeId").GetString()
+                            == "cooldown-window")
+                    .GetProperty("cases")
+                    .EnumerateArray(),
+                item => Assert.Equal(
+                    [
+                        "closed-on-the-objective-or-dealt-damage-during-"
+                        + "the-declared-cooldown-window",
+                    ],
+                    item.GetProperty("failedCriteria")
+                        .EnumerateArray()
+                        .Select(criterion => criterion.GetString()!)
+                        .ToArray()));
             foreach (JsonElement item in probes.SelectMany(probe =>
                          probe.GetProperty("cases").EnumerateArray()))
             {
+                AssertCaseDiagnostics(item);
                 AssertReplayVerifies(
                     temporary,
                     item.GetProperty("run"));
@@ -538,6 +572,67 @@ public sealed class FrontlineLabsQualificationCommandTests
                         probe.GetProperty("passed").GetBoolean(),
                         probe.GetProperty("probeId").GetString()));
 
+            Assert.All(
+                root.GetProperty("probes")
+                    .EnumerateArray()
+                    .SelectMany(probe =>
+                        probe.GetProperty("cases").EnumerateArray()),
+                AssertCaseDiagnostics);
+
+            JsonElement[] cadence =
+            [
+                .. root.GetProperty("probes")
+                    .EnumerateArray()
+                    .Single(probe =>
+                        probe.GetProperty("probeId").GetString()
+                            == "cadence-parity")
+                    .GetProperty("cases")
+                    .EnumerateArray(),
+            ];
+            JsonElement[] harmless =
+            [
+                .. cadence.Where(item =>
+                    item.GetProperty("variantId").GetString()
+                        == "range-3-harmless"),
+            ];
+            JsonElement[] threatening =
+            [
+                .. cadence.Where(item =>
+                    item.GetProperty("variantId").GetString()
+                        == "range-4-threatening"),
+            ];
+            Assert.Equal(2, harmless.Length);
+            Assert.Equal(2, threatening.Length);
+            Assert.NotEqual(
+                harmless[0].GetProperty("expectation").GetString(),
+                threatening[0].GetProperty("expectation").GetString());
+            Assert.All(
+                harmless,
+                item =>
+                {
+                    JsonElement scenario =
+                        item.GetProperty("resolvedScenario");
+                    Assert.Equal(
+                        3,
+                        scenario.GetProperty("controller")
+                            .GetProperty("attack")
+                            .GetProperty("maxTravelTiles")
+                            .GetInt32());
+                    Assert.True(
+                        scenario.GetProperty("bot")
+                            .GetProperty("startsOnActiveObjective")
+                            .GetBoolean());
+                });
+            Assert.All(
+                threatening,
+                item => Assert.Equal(
+                    4,
+                    item.GetProperty("resolvedScenario")
+                        .GetProperty("controller")
+                        .GetProperty("attack")
+                        .GetProperty("maxTravelTiles")
+                        .GetInt32()));
+
             JsonElement bend = root.GetProperty("probes")
                 .EnumerateArray()
                 .Single(probe =>
@@ -590,7 +685,7 @@ public sealed class FrontlineLabsQualificationCommandTests
                 File.ReadAllText(
                     Path.Combine(temporary, "qualification.json")));
             JsonElement root = document.RootElement;
-            Assert.Equal(5, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(6, root.GetProperty("schemaVersion").GetInt32());
             Assert.False(root.GetProperty("passed").GetBoolean());
             Assert.Equal(
                 "T3",
@@ -609,6 +704,44 @@ public sealed class FrontlineLabsQualificationCommandTests
                         !probe.GetProperty("passed").GetBoolean())
                     .Select(probe =>
                         probe.GetProperty("probeId").GetString()!)
+                    .ToArray());
+            Assert.All(
+                root.GetProperty("probes")
+                    .EnumerateArray()
+                    .SelectMany(probe =>
+                        probe.GetProperty("cases").EnumerateArray()),
+                AssertCaseDiagnostics);
+            JsonElement failedEntry = Assert.Single(
+                root.GetProperty("probes")
+                    .EnumerateArray()
+                    .Single(probe =>
+                        probe.GetProperty("probeId").GetString()
+                            == "entry-initiative")
+                    .GetProperty("cases")
+                    .EnumerateArray(),
+                item => !item.GetProperty("passed").GetBoolean());
+            Assert.Equal(
+                [
+                    "first-life-reached-the-active-objective",
+                    "entered-having-taken-at-most-one-hit",
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                ],
+                failedEntry.GetProperty("failedCriteria")
+                    .EnumerateArray()
+                    .Select(criterion => criterion.GetString()!)
+                    .ToArray());
+            Assert.Equal(
+                ["current", "thin-fronts"],
+                root.GetProperty("probes")
+                    .EnumerateArray()
+                    .SelectMany(probe =>
+                        probe.GetProperty("cases").EnumerateArray())
+                    .Select(item =>
+                        item.GetProperty("resolvedScenario")
+                            .GetProperty("mapArm")
+                            .GetString()!)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal)
                     .ToArray());
         }
         finally
@@ -660,6 +793,7 @@ public sealed class FrontlineLabsQualificationCommandTests
                          .SelectMany(probe =>
                              probe.GetProperty("cases").EnumerateArray()))
             {
+                AssertCaseDiagnostics(item);
                 AssertReplayVerifies(
                     temporary,
                     item.GetProperty("run"));
@@ -738,6 +872,70 @@ public sealed class FrontlineLabsQualificationCommandTests
             if (Directory.Exists(temporary))
                 Directory.Delete(temporary, recursive: true);
         }
+    }
+
+    /// <summary>
+    /// Every probe case must explain itself: one plain-language expectation,
+    /// the resolved per-variant scenario values, and — exactly when the case
+    /// failed — the predicate clauses that did not hold.
+    /// </summary>
+    private static void AssertCaseDiagnostics(JsonElement item)
+    {
+        string expectation =
+            item.GetProperty("expectation").GetString()!;
+        Assert.False(string.IsNullOrWhiteSpace(expectation));
+
+        JsonElement scenario = item.GetProperty("resolvedScenario");
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                scenario.GetProperty("probeId").GetString()));
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                scenario.GetProperty("variantId").GetString()));
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                scenario.GetProperty("mapId").GetString()));
+        Assert.False(
+            string.IsNullOrWhiteSpace(
+                scenario.GetProperty("mapArm").GetString()));
+        Assert.True(scenario.GetProperty("maxTicks").GetInt32() > 0);
+        foreach (string side in new[] { "bot", "controller" })
+        {
+            JsonElement actor = scenario.GetProperty(side);
+            Assert.False(
+                string.IsNullOrWhiteSpace(
+                    actor.GetProperty("role").GetString()));
+            Assert.False(
+                string.IsNullOrWhiteSpace(
+                    actor.GetProperty("startFormId").GetString()));
+            Assert.False(
+                string.IsNullOrWhiteSpace(
+                    actor.GetProperty("startFacing").GetString()));
+            JsonElement position = actor.GetProperty("startPosition");
+            Assert.True(position.GetProperty("x").GetInt32() >= 0);
+            Assert.True(position.GetProperty("y").GetInt32() >= 0);
+            JsonElement attack = actor.GetProperty("attack");
+            Assert.True(
+                attack.GetProperty("maxTravelTiles").GetInt32() > 0);
+            Assert.True(
+                attack.GetProperty("cooldownTicks").GetInt32() >= 0);
+            attack.GetProperty("shotProgramEnabled").GetBoolean();
+            Assert.NotEmpty(actor.GetProperty("unitSlots")
+                .EnumerateArray());
+        }
+
+        string[] failedCriteria =
+        [
+            .. item.GetProperty("failedCriteria")
+                .EnumerateArray()
+                .Select(criterion => criterion.GetString()!),
+        ];
+        Assert.All(
+            failedCriteria,
+            criterion => Assert.False(string.IsNullOrWhiteSpace(criterion)));
+        Assert.Equal(
+            item.GetProperty("passed").GetBoolean(),
+            failedCriteria.Length == 0);
     }
 
     private static void AssertReplayVerifies(

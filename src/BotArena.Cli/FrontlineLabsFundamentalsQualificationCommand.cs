@@ -23,6 +23,12 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
     private const string PredicateFingerprint =
         "frontline-qualification-3-t2-predicates-v1";
 
+    /// <summary>
+    /// Every T2 probe derives from the default duel-depth map arm; the
+    /// report states it so an author never infers it from a map ID.
+    /// </summary>
+    private const string MapArm = "current";
+
     private enum ControllerKind
     {
         Wait,
@@ -70,7 +76,8 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         int ChildTurnCount,
         string ReplayHash,
         string ReplayPath,
-        bool Passed);
+        bool Passed,
+        IReadOnlyList<string> FailedCriteria);
 
     private sealed record AssignmentEvidence(
         int BotTeamId,
@@ -85,7 +92,10 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         RunEvidence Primary,
         RunEvidence? DeterminismRepeat,
         bool? ReplayHashMatched,
-        bool Passed);
+        bool Passed,
+        string Expectation,
+        FrontlineLabsQualificationScenario ResolvedScenario,
+        IReadOnlyList<string> FailedCriteria);
 
     private sealed record ProbeEvidence(
         string ProbeId,
@@ -229,6 +239,15 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                 bool passed = primary.Passed
                     && (repeat?.Passed ?? true)
                     && (replayHashMatched ?? true);
+                var failed = new List<string>(primary.FailedCriteria);
+                if (repeat is not null)
+                    failed.AddRange(repeat.FailedCriteria);
+                if (replayHashMatched == false)
+                    failed.Add("identical-replay-hash-on-repeat");
+                string[] failedCriteria =
+                [
+                    .. failed.Distinct(StringComparer.Ordinal),
+                ];
                 assignments.Add(
                     new AssignmentEvidence(
                         botTeamId,
@@ -247,7 +266,16 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                         primary,
                         repeat,
                         replayHashMatched,
-                        passed));
+                        passed,
+                        Expectation(plan.Analysis),
+                        FrontlineLabsQualificationScenario.Resolve(
+                            definition,
+                            plan.ProbeId,
+                            variantId: plan.ProbeId,
+                            MapArm,
+                            ControllerRole(plan.Controller),
+                            botTeamId),
+                        failedCriteria));
             }
             probes.Add(
                 new ProbeEvidence(
@@ -299,7 +327,7 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         string qualificationFingerprint = Fingerprint(
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
-            SchemaVersion: 3,
+            SchemaVersion: 4,
             FrontlineLabsQualificationDefinition.FundamentalsSuiteId,
             FrontlineLabsQualificationDefinition.FundamentalsSuiteVersion,
             FrontlineLabsQualificationDefinition.FundamentalsProfileId,
@@ -665,38 +693,86 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
                     item.GetProperty("runtimeFaultCount").GetString()!,
                     System.Globalization.CultureInfo.InvariantCulture) == 0
                 && !item.GetProperty("disqualified").GetBoolean());
-        bool common = contractValid
-            && botEligible
-            && runtimeFaultCount == 0
-            && !disqualified
-            && controllerValid
-            && initialLifeStarted
-            && botTurnCount > 0
-            && faultedTurnCount == 0;
-        bool passed = common && analysis switch
+        var criteria = new List<(string Name, bool Satisfied)>
         {
-            AnalysisKind.Contract =>
-                automaticLifeStartCount == 2
-                && childTurnCount > 0,
-            AnalysisKind.AutomaticLife =>
-                automaticLifeStartCount == 2
-                && usefulAutomaticChildCount == 2,
-            AnalysisKind.ObjectivePath =>
-                objectiveEntryTick is <= 8
-                && maxConsecutiveCaptureTicks >= 5,
-            AnalysisKind.DirectFire =>
-                acceptedAttackCount > 0
-                && damageDealt > 0,
-            AnalysisKind.StraightEvade =>
-                threatenedTurnCount > 0
-                && successfulThreatMoveCount > 0
-                && damageTaken == 0,
-            AnalysisKind.ManualFabrication =>
-                acceptedFabricationCount > 0
-                && fabricatedLifeStartCount > 0
-                && childTurnCount > 0,
-            _ => false,
+            ("replay-verifies-against-its-own-hash", contractValid),
+            ("tested-team-eligible-at-match-end", botEligible),
+            ("no-runtime-faults", runtimeFaultCount == 0),
+            ("not-disqualified", !disqualified),
+            ("probe-controller-ran-without-fault", controllerValid),
+            ("initial-life-started", initialLifeStarted),
+            ("tested-artifact-took-at-least-one-turn", botTurnCount > 0),
+            ("no-faulted-turns", faultedTurnCount == 0),
         };
+        switch (analysis)
+        {
+            case AnalysisKind.Contract:
+                criteria.Add((
+                    "both-declared-automatic-companions-started",
+                    automaticLifeStartCount == 2));
+                criteria.Add((
+                    "at-least-one-child-life-took-a-turn",
+                    childTurnCount > 0));
+                break;
+            case AnalysisKind.AutomaticLife:
+                criteria.Add((
+                    "both-declared-automatic-companions-started",
+                    automaticLifeStartCount == 2));
+                criteria.Add((
+                    "every-automatic-child-closed-on-the-objective-or-"
+                    + "dealt-damage",
+                    usefulAutomaticChildCount == 2));
+                break;
+            case AnalysisKind.ObjectivePath:
+                criteria.Add((
+                    "reached-the-active-objective",
+                    objectiveEntryTick is not null));
+                criteria.Add((
+                    "reached-it-early-rather-than-eventually",
+                    objectiveEntryTick is <= 8));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxConsecutiveCaptureTicks >= 5));
+                break;
+            case AnalysisKind.DirectFire:
+                criteria.Add((
+                    "got-at-least-one-attack-accepted",
+                    acceptedAttackCount > 0));
+                criteria.Add((
+                    "dealt-at-least-one-damage",
+                    damageDealt > 0));
+                break;
+            case AnalysisKind.StraightEvade:
+                criteria.Add((
+                    "was-on-the-declared-two-advance-hazard-path",
+                    threatenedTurnCount > 0));
+                criteria.Add((
+                    "moved-successfully-on-a-threatened-turn",
+                    successfulThreatMoveCount > 0));
+                criteria.Add(("took-no-damage", damageTaken == 0));
+                break;
+            case AnalysisKind.ManualFabrication:
+                criteria.Add((
+                    "got-at-least-one-fabrication-accepted",
+                    acceptedFabricationCount > 0));
+                criteria.Add((
+                    "a-fabricated-life-started",
+                    fabricatedLifeStartCount > 0));
+                criteria.Add((
+                    "at-least-one-child-life-took-a-turn",
+                    childTurnCount > 0));
+                break;
+            default:
+                criteria.Add(("known-analysis-kind", false));
+                break;
+        }
+        string[] failedCriteria =
+        [
+            .. criteria
+                .Where(criterion => !criterion.Satisfied)
+                .Select(criterion => criterion.Name),
+        ];
+        bool passed = failedCriteria.Length == 0;
         return new RunEvidence(
             contractValid,
             botEligible,
@@ -720,8 +796,50 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
             childTurnCount,
             replayHash,
             replayPath,
-            passed);
+            passed,
+            failedCriteria);
     }
+
+    /// <summary>
+    /// One plain-language line per probe stating the shape of a passing
+    /// case. It is derived from the same clauses the analyzer evaluates so
+    /// a failing report never leaves an author guessing what was wanted.
+    /// </summary>
+    private static string Expectation(AnalysisKind analysis) =>
+        analysis switch
+        {
+            AnalysisKind.Contract =>
+                "Run the whole declared contract cleanly under non-default "
+                + "identities: both scheduled automatic companions start on "
+                + "their declared unlock ticks, at least one child life "
+                + "takes a turn, no turn faults, and the same seed replays "
+                + "to an identical hash.",
+            AnalysisKind.AutomaticLife =>
+                "Give every automatic companion a job: both scheduled child "
+                + "lives start, and each of them either closes distance "
+                + "toward the active objective or deals damage; a child "
+                + "that spawns and idles fails.",
+            AnalysisKind.ObjectivePath =>
+                "Walk the tested life onto the active objective and stay "
+                + "there: reach it early in this short contract rather than "
+                + "eventually, then hold sole capture control for an "
+                + "uninterrupted run of ticks instead of touching it and "
+                + "drifting off.",
+            AnalysisKind.DirectFire =>
+                "Take the free shot: with an open lane to an inert target, "
+                + "get at least one attack accepted and deal at least one "
+                + "point of damage.",
+            AnalysisKind.StraightEvade =>
+                "Step off the line of the controller's one straight shot: "
+                + "be on its declared two-advance hazard path at least "
+                + "once, answer at least one such turn with a successful "
+                + "move, and finish having taken no damage.",
+            AnalysisKind.ManualFabrication =>
+                "Use the explicit lifecycle: get at least one fabrication "
+                + "accepted, have the fabricated life actually start, and "
+                + "let a child life take at least one turn.",
+            _ => "Unknown probe analysis.",
+        };
 
     private static (
         int? EntryTick,
@@ -908,6 +1026,11 @@ internal static class FrontlineLabsFundamentalsQualificationCommand
         kind == ControllerKind.Wait
             ? WaitControllerFingerprint
             : OneShotControllerFingerprint;
+
+    private static string ControllerRole(ControllerKind kind) =>
+        kind == ControllerKind.Wait
+            ? "passive-wait-controller"
+            : "one-shot-straight-controller";
 
     private static string Fingerprint(string value) =>
         Convert.ToHexString(

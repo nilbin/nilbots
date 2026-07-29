@@ -22,6 +22,12 @@ internal static class FrontlineLabsTacticalQualificationCommand
     private const string PredicateFingerprint =
         "frontline-qualification-4-t3-predicates-v1";
 
+    /// <summary>
+    /// Every T3 case derives from the default duel-depth map arm; the
+    /// report states it so an author never infers it from a map ID.
+    /// </summary>
+    private const string MapArm = "current";
+
     private enum ControllerKind
     {
         Wait,
@@ -79,7 +85,8 @@ internal static class FrontlineLabsTacticalQualificationCommand
         int MaxConsecutiveCaptureTicks,
         string ReplayHash,
         string ReplayPath,
-        bool Passed);
+        bool Passed,
+        IReadOnlyList<string> FailedCriteria);
 
     private sealed record CaseEvidence(
         string VariantId,
@@ -93,7 +100,10 @@ internal static class FrontlineLabsTacticalQualificationCommand
         string ControllerFingerprint,
         string AnalyzerFingerprint,
         RunEvidence Run,
-        bool Passed);
+        bool Passed,
+        string Expectation,
+        FrontlineLabsQualificationScenario ResolvedScenario,
+        IReadOnlyList<string> FailedCriteria);
 
     private sealed record ProbeEvidence(
         string ProbeId,
@@ -253,7 +263,16 @@ internal static class FrontlineLabsTacticalQualificationCommand
                             ControllerFingerprint(plan.Controller),
                             AnalyzerFingerprint,
                             run,
-                            run.Passed)
+                            run.Passed,
+                            Expectation(plan.Analysis),
+                            FrontlineLabsQualificationScenario.Resolve(
+                                definition,
+                                plan.ProbeId,
+                                plan.VariantId,
+                                MapArm,
+                                ControllerRole(plan.Controller),
+                                botTeamId),
+                            run.FailedCriteria)
                     ));
             }
         }
@@ -334,7 +353,7 @@ internal static class FrontlineLabsTacticalQualificationCommand
         string qualificationFingerprint = Fingerprint(
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
-            SchemaVersion: 4,
+            SchemaVersion: 5,
             FrontlineLabsQualificationDefinition.TacticalSuiteId,
             FrontlineLabsQualificationDefinition.TacticalSuiteVersion,
             FrontlineLabsQualificationDefinition.TacticalProfileId,
@@ -776,48 +795,102 @@ internal static class FrontlineLabsTacticalQualificationCommand
                     item.GetProperty("runtimeFaultCount").GetString()!,
                     System.Globalization.CultureInfo.InvariantCulture) == 0
                 && !item.GetProperty("disqualified").GetBoolean());
-        bool common = contractValid
-            && botEligible
-            && runtimeFaultCount == 0
-            && !disqualified
-            && controllerValid
-            && botTurnCount > 0
-            && faultedTurnCount == 0;
-        bool passed = common && analysis switch
+        var criteria = new List<(string Name, bool Satisfied)>
         {
-            AnalysisKind.CurvedIntercept =>
-                curvedAttackCount > 0
-                && curvedProjectileHits.Count == curvedAttackCount
-                && curvedDamageDealt > 0,
-            AnalysisKind.StrictCorner =>
-                curvedAttackCount == 0
-                && damageTaken == 0
-                && maxCaptureTicks >= 3,
-            AnalysisKind.CadenceHarmless =>
-                controllerAttackCount > 0
-                && apparentThreatTurnCount > 0
-                && realThreatTurnCount == 0
-                && apparentThreatMoves == 0
-                && damageTaken == 0
-                && maxCaptureTicks >= 3,
-            AnalysisKind.CadenceThreatening =>
-                controllerAttackCount > 0
-                && realThreatTurnCount > 0
-                && realThreatMoves > 0
-                && damageTaken == 0,
-            AnalysisKind.CooldownWindow =>
-                controllerAttackCount > 0
-                && ((
-                    distanceAtAttack is int initialDistance
-                    && minimumCooldownDistance is int minimumDistance
-                    && minimumDistance < initialDistance)
-                    || cooldownDamage > 0),
-            AnalysisKind.LocalFormSafety =>
-                unsafeCommitmentCount == 0
-                && maxCaptureTicks >= 4
-                && damageTaken == 0,
-            _ => false,
+            ("replay-verifies-against-its-own-hash", contractValid),
+            ("tested-team-eligible-at-match-end", botEligible),
+            ("no-runtime-faults", runtimeFaultCount == 0),
+            ("not-disqualified", !disqualified),
+            ("probe-controller-ran-without-fault", controllerValid),
+            ("tested-artifact-took-at-least-one-turn", botTurnCount > 0),
+            ("no-faulted-turns", faultedTurnCount == 0),
         };
+        switch (analysis)
+        {
+            case AnalysisKind.CurvedIntercept:
+                criteria.Add((
+                    "fired-at-least-one-curved-shot",
+                    curvedAttackCount > 0));
+                criteria.Add((
+                    "wasted-no-curved-shot-every-curve-fired-hit",
+                    curvedProjectileHits.Count == curvedAttackCount));
+                criteria.Add((
+                    "curved-fire-dealt-damage",
+                    curvedDamageDealt > 0));
+                break;
+            case AnalysisKind.StrictCorner:
+                criteria.Add((
+                    "fired-no-curved-shot",
+                    curvedAttackCount == 0));
+                criteria.Add(("took-no-damage", damageTaken == 0));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxCaptureTicks >= 3));
+                break;
+            case AnalysisKind.CadenceHarmless:
+                criteria.Add((
+                    "controller-committed-its-one-shot",
+                    controllerAttackCount > 0));
+                criteria.Add((
+                    "stood-on-the-apparent-two-advance-line-of-that-shot",
+                    apparentThreatTurnCount > 0));
+                criteria.Add((
+                    "never-entered-the-shot-declared-remaining-range",
+                    realThreatTurnCount == 0));
+                criteria.Add((
+                    "made-no-evasive-move-while-the-threat-was-apparent-"
+                    + "only",
+                    apparentThreatMoves == 0));
+                criteria.Add(("took-no-damage", damageTaken == 0));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxCaptureTicks >= 3));
+                break;
+            case AnalysisKind.CadenceThreatening:
+                criteria.Add((
+                    "controller-committed-its-one-shot",
+                    controllerAttackCount > 0));
+                criteria.Add((
+                    "was-inside-the-shot-declared-remaining-range",
+                    realThreatTurnCount > 0));
+                criteria.Add((
+                    "moved-successfully-off-a-really-threatened-turn",
+                    realThreatMoves > 0));
+                criteria.Add(("took-no-damage", damageTaken == 0));
+                break;
+            case AnalysisKind.CooldownWindow:
+                criteria.Add((
+                    "controller-committed-its-one-shot",
+                    controllerAttackCount > 0));
+                criteria.Add((
+                    "closed-on-the-objective-or-dealt-damage-during-the-"
+                    + "declared-cooldown-window",
+                    (
+                        distanceAtAttack is int initialDistance
+                        && minimumCooldownDistance is int minimumDistance
+                        && minimumDistance < initialDistance)
+                    || cooldownDamage > 0));
+                break;
+            case AnalysisKind.LocalFormSafety:
+                criteria.Add((
+                    "accepted-no-same-life-transition",
+                    unsafeCommitmentCount == 0));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxCaptureTicks >= 4));
+                criteria.Add(("took-no-damage", damageTaken == 0));
+                break;
+            default:
+                criteria.Add(("known-analysis-kind", false));
+                break;
+        }
+        string[] failedCriteria =
+        [
+            .. criteria
+                .Where(criterion => !criterion.Satisfied)
+                .Select(criterion => criterion.Name),
+        ];
+        bool passed = failedCriteria.Length == 0;
         return new RunEvidence(
             contractValid,
             botEligible,
@@ -842,8 +915,58 @@ internal static class FrontlineLabsTacticalQualificationCommand
             maxCaptureTicks,
             replayHash,
             replayPath,
-            passed);
+            passed,
+            failedCriteria);
     }
+
+    /// <summary>
+    /// One plain-language line per case stating the shape of a passing run.
+    /// It is derived from the same clauses the analyzer evaluates, so a
+    /// failing report never leaves an author replaying evidence to guess
+    /// whether a metric of zero was the goal or the fault.
+    /// </summary>
+    private static string Expectation(AnalysisKind analysis) =>
+        analysis switch
+        {
+            AnalysisKind.CurvedIntercept =>
+                "Land at least one curved (one-bend) shot on the off-axis "
+                + "target and waste no commitment: every curved shot fired "
+                + "must hit, and the curved fire must deal damage. Both "
+                + "halves count: firing no curve fails, and firing extra "
+                + "curves that miss fails even when one of them hits.",
+            AnalysisKind.StrictCorner =>
+                "Refuse the intercept that only the lax preview allows: "
+                + "fire no curved shot at all here, take no damage, and "
+                + "keep sole control of the objective you already stand on "
+                + "for an uninterrupted run of ticks.",
+            AnalysisKind.CadenceHarmless =>
+                "Stand your ground against a shot that cannot reach you: "
+                + "the controller's single straight shot is aimed along "
+                + "your line and still looks live two of its advances out, "
+                + "but its declared remaining travel expires before your "
+                + "tile, so hold the objective, make no evasive move while "
+                + "the threat is apparent-only, never step into the range "
+                + "where it could really connect, take no damage, and keep "
+                + "sole objective control uninterrupted. The mirrored "
+                + "range-4-threatening variant is the one that requires a "
+                + "dodge; these two differ only in the resolved projectile "
+                + "maxTravelTiles reported below.",
+            AnalysisKind.CadenceThreatening =>
+                "The mirrored real threat: this shot's declared travel does "
+                + "reach your tile, so standing on its line is genuinely "
+                + "dangerous; leave that line with a successful move on at "
+                + "least one really-threatened turn and take no damage.",
+            AnalysisKind.CooldownWindow =>
+                "Use the window the controller's committed shot opens: "
+                + "while its declared cooldown runs, either get strictly "
+                + "closer to the active objective than you were when it "
+                + "fired, or deal damage; either one alone passes.",
+            AnalysisKind.LocalFormSafety =>
+                "Keep the objective weight you already have: accept no "
+                + "same-life transition at all, hold sole objective control "
+                + "uninterrupted, and take no damage.",
+            _ => "Unknown probe analysis.",
+        };
 
     private static PrerequisiteEvidence ReadPrerequisite(
         string reportPath,
@@ -1082,6 +1205,15 @@ internal static class FrontlineLabsTacticalQualificationCommand
         {
             ControllerKind.Wait => WaitControllerFingerprint,
             ControllerKind.OneShot => OneShotControllerFingerprint,
+            _ => throw new InvalidOperationException(
+                "Unknown qualification controller."),
+        };
+
+    private static string ControllerRole(ControllerKind kind) =>
+        kind switch
+        {
+            ControllerKind.Wait => "passive-wait-controller",
+            ControllerKind.OneShot => "one-shot-straight-controller",
             _ => throw new InvalidOperationException(
                 "Unknown qualification controller."),
         };

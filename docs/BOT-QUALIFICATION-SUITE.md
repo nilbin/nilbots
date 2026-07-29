@@ -31,6 +31,31 @@ Every suite run records:
 - one row per pass predicate;
 - per-axis result, cumulative T/C result, and any unqualified axes.
 
+Suites 3–5 additionally record, on every probe case, the diagnostics an
+author needs to act on a failure without hand-replaying evidence:
+
+- `expectation` — one plain-language line stating the shape of a passing
+  case, generated from the same clauses the analyzer evaluates. It names
+  zero/at-least-one comparisons that are already visible in the metrics and
+  describes tuned margins qualitatively, so it explains the task without
+  publishing values to overfit;
+- `resolvedScenario` — the per-variant contract values: ruleset and map ID,
+  map arm, tick cap, capture threshold, the initially active objective region
+  and its tiles, and, for both the tested artifact and the probe controller,
+  start position/facing/form, objective weight, allowed actions, resolved
+  attack-profile values (`maxTravelTiles`, `tilesPerAdvance`,
+  `ticksPerAdvance`, `launchTiles`, `cooldownTicks`, `damagePerHit`,
+  `shotProgramEnabled`, `maxBendCount`) and unit-slot availability;
+- `failedCriteria` — exactly the predicate clauses that did not hold, empty
+  on a pass. A metric of zero is therefore never ambiguous: the report says
+  whether zero was the requirement or the fault.
+
+These fields are additive. Earlier evidence files and their recorded hashes
+remain valid historical artifacts; only the report `schemaVersion` moves
+(suite 3 → 4, suite 4 → 5, suite 5 → 6). Suite versions, profile IDs,
+predicate fingerprints, and the qualification contract fingerprint are
+unchanged, because no probe or pass predicate changed.
+
 No aggregate score may hide a failed prerequisite. A T5 claim includes T1–T4.
 A coordination claim is separate.
 
@@ -113,7 +138,10 @@ runtime identity, then runs five tactical components from both assignments:
 - `strict-corner` rejects a tempting lax curve whose authoritative strict
   diagonal is wall-blocked while retaining objective control;
 - `cadence-parity` presents identical geometry under declared range-three and
-  range-four rules; only the latter projectile can reach the tested body;
+  range-four rules; only the latter projectile can reach the tested body, so
+  the tested life starts on the objective and passes `range-3-harmless` by
+  holding it (an evasive move there fails the case) and `range-4-threatening`
+  by leaving the line;
 - `cooldown-window` requires measurable post-action objective progress or
   damage during the opponent's declared missed-shot cooldown;
 - `local-form-safety` requires retaining useful objective weight instead of

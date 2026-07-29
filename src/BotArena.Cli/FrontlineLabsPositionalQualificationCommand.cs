@@ -43,6 +43,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
     private sealed record CasePlan(
         string ProbeId,
         string VariantId,
+        string MapArm,
         ControllerKind Controller,
         AnalysisKind Analysis,
         Func<int, ActorResolvedMatchDefinition> Definition);
@@ -83,7 +84,8 @@ internal static class FrontlineLabsPositionalQualificationCommand
         int MaxAdvancedObjectiveResidenceTicks,
         string ReplayHash,
         string ReplayPath,
-        bool Passed);
+        bool Passed,
+        IReadOnlyList<string> FailedCriteria);
 
     private sealed record CaseEvidence(
         string VariantId,
@@ -97,7 +99,10 @@ internal static class FrontlineLabsPositionalQualificationCommand
         string ControllerFingerprint,
         string AnalyzerFingerprint,
         RunEvidence Run,
-        bool Passed);
+        bool Passed,
+        string Expectation,
+        FrontlineLabsQualificationScenario ResolvedScenario,
+        IReadOnlyList<string> FailedCriteria);
 
     private sealed record ProbeEvidence(
         string ProbeId,
@@ -168,6 +173,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 FrontlineLabsQualificationDefinition
                     .SuppressionChokeProbeId,
                 "objective-hold-straight-pressure",
+                "current",
                 ControllerKind.Wait,
                 AnalysisKind.Suppression,
                 FrontlineLabsQualificationDefinition
@@ -175,6 +181,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
             new(
                 FrontlineLabsQualificationDefinition.EntryProbeId,
                 "current-map-pressure-entry",
+                "current",
                 ControllerKind.Pressure,
                 AnalysisKind.Entry,
                 FrontlineLabsQualificationDefinition
@@ -183,6 +190,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
                 FrontlineLabsQualificationDefinition
                     .PredictionChamberProbeId,
                 "objective-preserving-response",
+                "current",
                 ControllerKind.OneShot,
                 AnalysisKind.Prediction,
                 FrontlineLabsQualificationDefinition
@@ -190,6 +198,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
             new(
                 FrontlineLabsQualificationDefinition.FrontRotationProbeId,
                 "advance-after-capture",
+                "current",
                 ControllerKind.Wait,
                 AnalysisKind.Rotation,
                 FrontlineLabsQualificationDefinition
@@ -197,6 +206,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
             new(
                 FrontlineLabsQualificationDefinition.MapHoldoutProbeId,
                 "thin-fronts-pressure-entry",
+                "thin-fronts",
                 ControllerKind.Pressure,
                 AnalysisKind.MapHoldout,
                 FrontlineLabsQualificationDefinition
@@ -250,7 +260,16 @@ internal static class FrontlineLabsPositionalQualificationCommand
                             ControllerFingerprint(plan.Controller),
                             AnalyzerFingerprint,
                             run,
-                            run.Passed)
+                            run.Passed,
+                            Expectation(plan.Analysis),
+                            FrontlineLabsQualificationScenario.Resolve(
+                                definition,
+                                plan.ProbeId,
+                                plan.VariantId,
+                                plan.MapArm,
+                                ControllerRole(plan.Controller),
+                                botTeamId),
+                            run.FailedCriteria)
                     ));
             }
         }
@@ -330,7 +349,7 @@ internal static class FrontlineLabsPositionalQualificationCommand
         string qualificationFingerprint = Fingerprint(
             string.Join("\n", fingerprintParts));
         var report = new QualificationReport(
-            SchemaVersion: 5,
+            SchemaVersion: 6,
             FrontlineLabsQualificationDefinition.PositionalSuiteId,
             FrontlineLabsQualificationDefinition.PositionalSuiteVersion,
             FrontlineLabsQualificationDefinition.PositionalProfileId,
@@ -713,42 +732,95 @@ internal static class FrontlineLabsPositionalQualificationCommand
             && healthAtFirstLifeObjective is int entryHealth
                 ? initialHealth - entryHealth
                 : null;
-        bool common = contractValid
-            && botEligible
-            && runtimeFaultCount == 0
-            && !disqualified
-            && controllerValid
-            && botTurnCount > 0
-            && faultedTurnCount == 0;
-        bool passed = common && analysis switch
+        var criteria = new List<(string Name, bool Satisfied)>
         {
-            AnalysisKind.Suppression =>
-                firstAcceptedActionId is not null
-                && ActionIds(contract, "attack")
-                    .Contains(firstAcceptedActionId)
-                && straightAttackCount > 0
-                && curvedAttackCount == 0
-                && damageDealt > 0,
-            AnalysisKind.Entry or AnalysisKind.MapHoldout =>
-                controllerAttackCount > 0
-                && firstLifeObjectiveTick is not null
-                && damageBeforeEntry is >= 0 and <= 1
-                && maxCaptureTicks >= 5,
-            AnalysisKind.Prediction =>
-                controllerAttackCount > 0
-                && threatTurnCount > 0
-                && threatMoveIntoObjectiveCount > 0
-                && damageTaken == 0
-                && maxCaptureTicks >= 3,
-            AnalysisKind.Rotation =>
-                firstAdvancedIndex
-                    == initialActiveIndex + (botTeamId == 0 ? 1 : -1)
-                && firstAdvancedTick is not null
-                && firstAdvancedEntryTick is not null
-                && firstAdvancedEntryTick > firstAdvancedTick
-                && maxAdvancedResidence >= 4,
-            _ => false,
+            ("replay-verifies-against-its-own-hash", contractValid),
+            ("tested-team-eligible-at-match-end", botEligible),
+            ("no-runtime-faults", runtimeFaultCount == 0),
+            ("not-disqualified", !disqualified),
+            ("probe-controller-ran-without-fault", controllerValid),
+            ("tested-artifact-took-at-least-one-turn", botTurnCount > 0),
+            ("no-faulted-turns", faultedTurnCount == 0),
         };
+        switch (analysis)
+        {
+            case AnalysisKind.Suppression:
+                criteria.Add((
+                    "first-accepted-action-was-an-attack",
+                    firstAcceptedActionId is not null
+                    && ActionIds(contract, "attack")
+                        .Contains(firstAcceptedActionId)));
+                criteria.Add((
+                    "fired-at-least-one-straight-shot",
+                    straightAttackCount > 0));
+                criteria.Add((
+                    "fired-no-curved-shot",
+                    curvedAttackCount == 0));
+                criteria.Add((
+                    "dealt-at-least-one-damage",
+                    damageDealt > 0));
+                break;
+            case AnalysisKind.Entry:
+            case AnalysisKind.MapHoldout:
+                criteria.Add((
+                    "controller-applied-straight-pressure",
+                    controllerAttackCount > 0));
+                criteria.Add((
+                    "first-life-reached-the-active-objective",
+                    firstLifeObjectiveTick is not null));
+                criteria.Add((
+                    "entered-having-taken-at-most-one-hit",
+                    damageBeforeEntry is >= 0 and <= 1));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxCaptureTicks >= 5));
+                break;
+            case AnalysisKind.Prediction:
+                criteria.Add((
+                    "controller-committed-its-one-shot",
+                    controllerAttackCount > 0));
+                criteria.Add((
+                    "was-really-threatened-at-least-once",
+                    threatTurnCount > 0));
+                criteria.Add((
+                    "answered-a-threat-with-a-move-that-stayed-on-the-"
+                    + "active-objective",
+                    threatMoveIntoObjectiveCount > 0));
+                criteria.Add(("took-no-damage", damageTaken == 0));
+                criteria.Add((
+                    "held-sole-objective-control-for-an-uninterrupted-run",
+                    maxCaptureTicks >= 3));
+                break;
+            case AnalysisKind.Rotation:
+                criteria.Add((
+                    "captured-so-the-front-advanced-one-step-in-the-tested-"
+                    + "team-direction",
+                    firstAdvancedIndex
+                        == initialActiveIndex + (botTeamId == 0 ? 1 : -1)
+                    && firstAdvancedTick is not null));
+                criteria.Add((
+                    "entered-the-newly-active-objective",
+                    firstAdvancedEntryTick is not null));
+                criteria.Add((
+                    "entered-it-after-the-rotation-rather-than-already-"
+                    + "standing-there",
+                    firstAdvancedEntryTick > firstAdvancedTick));
+                criteria.Add((
+                    "held-residence-on-the-new-objective-for-an-"
+                    + "uninterrupted-run",
+                    maxAdvancedResidence >= 4));
+                break;
+            default:
+                criteria.Add(("known-analysis-kind", false));
+                break;
+        }
+        string[] failedCriteria =
+        [
+            .. criteria
+                .Where(criterion => !criterion.Satisfied)
+                .Select(criterion => criterion.Name),
+        ];
+        bool passed = failedCriteria.Length == 0;
         return new RunEvidence(
             contractValid,
             botEligible,
@@ -775,8 +847,54 @@ internal static class FrontlineLabsPositionalQualificationCommand
             maxAdvancedResidence,
             replayHash,
             replayPath,
-            passed);
+            passed,
+            failedCriteria);
     }
+
+    /// <summary>
+    /// One plain-language line per case stating the shape of a passing run,
+    /// derived from the same clauses the analyzer evaluates.
+    /// </summary>
+    private static string Expectation(AnalysisKind analysis) =>
+        analysis switch
+        {
+            AnalysisKind.Suppression =>
+                "Suppress from the ground you already hold: your first "
+                + "accepted action must be an attack, all of your fire must "
+                + "be straight (no curved shot at all, because every bend "
+                + "here is consumed by the approach walls), and it must "
+                + "deal damage.",
+            AnalysisKind.Entry =>
+                "Cross under fire and hold: with the pressure controller "
+                + "shooting down the approach, get your first life onto the "
+                + "active objective having taken at most one hit on the way "
+                + "in, then keep sole capture control uninterrupted. "
+                + "Waiting for a perfectly safe moment fails, and so does "
+                + "rushing in damaged.",
+            AnalysisKind.Prediction =>
+                "Answer the real shot without conceding the ground: while a "
+                + "projectile that can actually reach you is on your line, "
+                + "make at least one successful move whose resulting "
+                + "position is still on the active objective, take no "
+                + "damage, and keep sole capture control uninterrupted.",
+            AnalysisKind.Rotation =>
+                "Rotate with the front: finish the short declared capture "
+                + "so the active position advances one step in your team's "
+                + "advance direction, then enter that newly active "
+                + "objective after it becomes active (standing on it "
+                + "beforehand does not count) and hold residence there for "
+                + "an uninterrupted run of ticks.",
+            AnalysisKind.MapHoldout =>
+                "The same cross-under-fire-and-hold task on the held-out "
+                + "thin-fronts objective topology: reach the active "
+                + "objective with your first life having taken at most one "
+                + "hit on the way in while the pressure controller shoots, "
+                + "then keep sole capture control uninterrupted. The "
+                + "resolved map and objective tiles differ from "
+                + "entry-initiative, so coordinate constants do not carry "
+                + "over.",
+            _ => "Unknown probe analysis.",
+        };
 
     private static PrerequisiteEvidence ReadPrerequisite(
         string reportPath,
@@ -1018,6 +1136,16 @@ internal static class FrontlineLabsPositionalQualificationCommand
             ControllerKind.Wait => WaitControllerFingerprint,
             ControllerKind.OneShot => OneShotControllerFingerprint,
             ControllerKind.Pressure => PressureControllerFingerprint,
+            _ => throw new InvalidOperationException(
+                "Unknown qualification controller."),
+        };
+
+    private static string ControllerRole(ControllerKind kind) =>
+        kind switch
+        {
+            ControllerKind.Wait => "passive-wait-controller",
+            ControllerKind.OneShot => "one-shot-straight-controller",
+            ControllerKind.Pressure => "repeated-straight-pressure-controller",
             _ => throw new InvalidOperationException(
                 "Unknown qualification controller."),
         };
