@@ -14,9 +14,14 @@ public sealed record PublicMatchTopology
     public required ImmutableArray<PublicInitialLife> InitialLives { get; init; }
 }
 
-public sealed record PublicScoringTeam(int TeamId);
+public sealed record PublicScoringTeam(
+    int TeamId,
+    string? ClassId = null);
 
-public sealed record PublicParticipant(int ParticipantId, int TeamId);
+public sealed record PublicParticipant(
+    int ParticipantId,
+    int TeamId,
+    string? ClassId = null);
 
 public sealed record PublicUnitSlot(
     int TeamId,

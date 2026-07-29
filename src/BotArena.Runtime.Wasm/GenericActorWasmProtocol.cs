@@ -5,8 +5,8 @@ using Sdk = BotArena.Sdk;
 namespace BotArena.Runtime.Wasm;
 
 /// <summary>
-/// Exact-profile host facade for the schema-2 generic actor contract over
-/// actor protocol 1.0.
+/// Exact-profile host facade for frozen schema-2 and current schema-3 generic
+/// actor contracts over actor protocol 1.0.
 /// </summary>
 public static class GenericActorWasmProtocol
 {
@@ -20,12 +20,20 @@ public static class GenericActorWasmProtocol
         Sdk.ActorWireProtocol.MaxGuestFrameBytes;
 
     public static byte[] FormatHello() =>
+        FormatHello(Sdk.ActorContractProfile.GenericV3);
+
+    public static byte[] FormatHello(Sdk.ActorContractProfile profile) =>
         Sdk.ActorWireProtocol.EncodeHello(
             MajorVersion,
             MajorVersion,
-            Sdk.ActorContractProfile.GenericV2);
+            profile);
 
-    public static int ParseHelloAck(ReadOnlySpan<byte> bytes)
+    public static int ParseHelloAck(ReadOnlySpan<byte> bytes) =>
+        ParseHelloAck(bytes, Sdk.ActorContractProfile.GenericV3);
+
+    public static int ParseHelloAck(
+        ReadOnlySpan<byte> bytes,
+        Sdk.ActorContractProfile requiredProfile)
     {
         byte[] frame = bytes.ToArray();
         if (!Sdk.ActorWireProtocol.HasMagic(frame))
@@ -45,7 +53,7 @@ public static class GenericActorWasmProtocol
                 $"Guest selected unsupported actor protocol major " +
                 $"{ack.SelectedMajor}.");
         }
-        if (ack.SelectedProfile != Sdk.ActorContractProfile.GenericV2)
+        if (ack.SelectedProfile != requiredProfile)
         {
             throw new FormatException(
                 "Guest HelloAck did not select the exact generic actor " +
@@ -71,14 +79,16 @@ public static class GenericActorWasmProtocol
         ThrowIfFault(frame);
         Sdk.ActorWireReady ready =
             Sdk.ActorWireProtocol.DecodeReady(frame);
+        Sdk.ActorContractProfile requiredProfile =
+            RequiredProfile(start);
         if (ready.SelectedMajor != MajorVersion
-            || ready.SelectedProfile != Sdk.ActorContractProfile.GenericV2
+            || ready.SelectedProfile != requiredProfile
             || ready.RuntimeContractVersion != start.RuntimeContractVersion
             || ready.MatchStartSchemaVersion != start.SchemaVersion
             || ready.ObservationSchemaVersion
-                != BotArenaVersions.GenericActorObservationSchemaVersion
+                != requiredProfile.ObservationSchemaVersion
             || ready.DecisionSchemaVersion
-                != BotArenaVersions.GenericActorDecisionSchemaVersion)
+                != requiredProfile.DecisionSchemaVersion)
         {
             throw new FormatException(
                 "Guest Ready does not attest the exact generic actor " +
@@ -114,6 +124,35 @@ public static class GenericActorWasmProtocol
 
     public static byte[] FormatMatchEnd(string reason = "life-ended") =>
         Sdk.ActorWireProtocol.EncodeMatchEnd(reason);
+
+    public static Sdk.ActorContractProfile RequiredProfile(
+        GenericActorRuntimeStart start)
+    {
+        ArgumentNullException.ThrowIfNull(start);
+        ActorMatchCapabilityVersions capabilities =
+            start.Contract.CapabilityVersions;
+        Sdk.ActorContractProfile profile;
+        if (capabilities == ActorMatchCapabilityVersions.GenericV2)
+        {
+            profile = Sdk.ActorContractProfile.GenericV2;
+        }
+        else if (capabilities == ActorMatchCapabilityVersions.Current)
+        {
+            profile = Sdk.ActorContractProfile.GenericV3;
+        }
+        else
+        {
+            throw new FormatException(
+                "MatchStart does not use a supported generic actor profile.");
+        }
+        if (start.RuntimeContractVersion != profile.RuntimeContractVersion
+            || start.SchemaVersion != profile.MatchStartSchemaVersion)
+        {
+            throw new FormatException(
+                "MatchStart versions do not match its generic actor profile.");
+        }
+        return profile;
+    }
 
     private static void ThrowIfFault(byte[] frame)
     {

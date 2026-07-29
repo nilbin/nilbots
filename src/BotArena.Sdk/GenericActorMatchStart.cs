@@ -2,7 +2,7 @@ namespace BotArena.Sdk;
 
 /// <summary>
 /// Immutable initialization delivered once to one generic actor life. Static
-/// match data is parsed from the exact canonical schema-2 contract carried by
+/// match data is parsed from the exact canonical schema-3 contract carried by
 /// the wire and is not repeated in observations.
 /// </summary>
 public sealed record GenericActorMatchStart

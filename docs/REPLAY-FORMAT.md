@@ -35,7 +35,7 @@ assign a fun score or verify the canonical hash; replay-v2 admission and a
 public verification surface remain hosted-product follow-ons.
 
 A separate replay v3 is now implemented for generic actor matches. It embeds
-the exact schema-3 rules and map, schema-2 resolved match contract, variable
+the exact schema-3 rules and map, schema-3 resolved match contract, variable
 team/participant/unit topology, canonical per-life observations and
 resolutions, lifecycle lineage, authoritative events/post-state, tied
 standings, and a closed typed Deathmatch or Frontline terminal arm. Signed

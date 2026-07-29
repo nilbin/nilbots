@@ -83,10 +83,10 @@ public sealed class ActorWireProtocolTests
                 GenericActorContractVersions.MatchStartSchemaVersion,
                 GenericActorContractVersions.ObservationSchemaVersion,
                 GenericActorContractVersions.DecisionSchemaVersion,
-                ActorContractProfile.GenericV2));
+                ActorContractProfile.GenericV3));
 
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             ready.SelectedProfile);
     }
 
@@ -99,7 +99,7 @@ public sealed class ActorWireProtocolTests
             GenericActorContractVersions.MatchStartSchemaVersion,
             GenericActorContractVersions.ObservationSchemaVersion,
             GenericActorContractVersions.DecisionSchemaVersion,
-            ActorContractProfile.GenericV2);
+            ActorContractProfile.GenericV3);
         byte[] contradictory = ChangeByte(
             ready,
             ActorWireProtocol.HeaderSize + 16,

@@ -14,17 +14,20 @@ public sealed class FrontlineLabsPlaylistDefinition
 {
     public const string PlaylistKey = "frontline-labs";
     public const string DisplayName = "Frontline Labs";
-    public const int Version = 1;
+    public const int LegacyVersion = 1;
+    public const int Version = 2;
     public const string SeriesPolicyId = "single-match-v1";
     public const string MatchmakingPolicyId = "direct-challenge-v1";
     public const string Visibility = PlaylistVisibilityIds.Labs;
 
     private FrontlineLabsPlaylistDefinition(
+        int version,
         ActorResolvedMatchDefinition match,
         string canonicalDefinition,
         string definitionFingerprint,
         string provenance)
     {
+        HostedVersion = version;
         Match = match;
         CanonicalDefinition = canonicalDefinition;
         DefinitionFingerprint = definitionFingerprint;
@@ -35,6 +38,7 @@ public sealed class FrontlineLabsPlaylistDefinition
     public string CanonicalDefinition { get; }
     public string DefinitionFingerprint { get; }
     public string Provenance { get; }
+    public int HostedVersion { get; }
 
     public string GameModeId => Match.Rules.GameMode.ModeId;
     public string RulesetId => Match.Rules.RulesetId;
@@ -47,12 +51,22 @@ public sealed class FrontlineLabsPlaylistDefinition
     public string ExecutionEngineVersion =>
         BotArenaVersions.GenericActorEngineVersion;
     string IHostedGenericMatchDefinition.PlaylistKey => PlaylistKey;
-    int IHostedGenericMatchDefinition.Version => Version;
+    int IHostedGenericMatchDefinition.Version => HostedVersion;
 
-    public static FrontlineLabsPlaylistDefinition Create()
+    public static FrontlineLabsPlaylistDefinition Create() =>
+        Create(
+            Version,
+            FrontlineLabsDefinition.CreateProfile3());
+
+    public static FrontlineLabsPlaylistDefinition CreateV1() =>
+        Create(
+            LegacyVersion,
+            FrontlineLabsDefinition.Create());
+
+    private static FrontlineLabsPlaylistDefinition Create(
+        int version,
+        ActorResolvedMatchDefinition match)
     {
-        ActorResolvedMatchDefinition match =
-            FrontlineLabsDefinition.Create();
         string resolvedMatchJson =
             ActorContractManifestSerializer.ToCanonicalJson(match);
         string resolvedMatchFingerprint =
@@ -101,6 +115,7 @@ public sealed class FrontlineLabsPlaylistDefinition
         });
 
         return new FrontlineLabsPlaylistDefinition(
+            version,
             match,
             canonicalDefinition,
             Sha256(canonicalDefinition),
@@ -114,7 +129,10 @@ public sealed class FrontlineLabsPlaylistDefinition
 
         Equal(nameof(playlist.Key), PlaylistKey, playlist.Key);
         Equal(nameof(version.PlaylistId), playlist.Id, version.PlaylistId);
-        Equal(nameof(version.Version), Version, version.Version);
+        Equal(
+            nameof(version.Version),
+            HostedVersion,
+            version.Version);
         Equal(nameof(version.GameModeId), GameModeId, version.GameModeId);
         Equal(nameof(version.RulesetId), RulesetId, version.RulesetId);
         Equal(

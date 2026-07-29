@@ -1145,15 +1145,33 @@ function validateTopology(
     integer(counts[key], `${path}.counts.${key}`, fail);
   }
   array(topology.teams, `${path}.teams`, fail).forEach((entry, index) => {
-    const team = exact(entry, `${path}.teams[${index}]`, ['teamId'], fail);
+    const teamValue = object(entry, `${path}.teams[${index}]`, fail);
+    const hasClassId = own(teamValue, 'classId');
+    const team = exact(
+      teamValue,
+      `${path}.teams[${index}]`,
+      hasClassId ? ['teamId', 'classId'] : ['teamId'],
+      fail,
+    );
     integer(team.teamId, `${path}.teams[${index}].teamId`, fail);
+    if (hasClassId) {
+      semanticId(team.classId, `${path}.teams[${index}].classId`, fail);
+    }
   });
   array(topology.participants, `${path}.participants`, fail).forEach(
     (entry, index) => {
-      const participant = exact(
+      const participantValue = object(
         entry,
         `${path}.participants[${index}]`,
-        ['participantId', 'teamId'],
+        fail,
+      );
+      const hasClassId = own(participantValue, 'classId');
+      const participant = exact(
+        participantValue,
+        `${path}.participants[${index}]`,
+        hasClassId
+          ? ['participantId', 'teamId', 'classId']
+          : ['participantId', 'teamId'],
         fail,
       );
       integer(
@@ -1162,6 +1180,13 @@ function validateTopology(
         fail,
       );
       integer(participant.teamId, `${path}.participants[${index}].teamId`, fail);
+      if (hasClassId) {
+        semanticId(
+          participant.classId,
+          `${path}.participants[${index}].classId`,
+          fail,
+        );
+      }
     },
   );
   array(topology.unitSlots, `${path}.unitSlots`, fail).forEach(
@@ -1297,16 +1322,27 @@ function participantStatus(
   path: string,
   fail: ReplayV3Fail,
 ): void {
+  const status = object(value, path, fail);
+  const hasClassId = own(status, 'classId');
   const item = exact(
-    value,
+    status,
     path,
-    ['participantId', 'teamId', 'runtimeFaultCount', 'disqualified'],
+    hasClassId
+      ? [
+          'participantId',
+          'teamId',
+          'runtimeFaultCount',
+          'disqualified',
+          'classId',
+        ]
+      : ['participantId', 'teamId', 'runtimeFaultCount', 'disqualified'],
     fail,
   );
   integer(item.participantId, `${path}.participantId`, fail);
   integer(item.teamId, `${path}.teamId`, fail);
   int64(item.runtimeFaultCount, `${path}.runtimeFaultCount`, fail, true);
   boolean(item.disqualified, `${path}.disqualified`, fail);
+  if (hasClassId) semanticId(item.classId, `${path}.classId`, fail);
 }
 
 function pendingTransition(
@@ -1682,18 +1718,35 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
     return;
   }
   if (base.kind === 'frontline') {
+    const hasHoldOwner = own(base, 'holdOwnerTeamId');
+    const hasHoldRemaining = own(base, 'holdRemainingTicks');
+    if (hasHoldOwner !== hasHoldRemaining) {
+      fail(path, 'holdOwnerTeamId and holdRemainingTicks must be encoded together');
+    }
     const item = exact(
       base,
       path,
-      [
-        'kind',
-        'modeId',
-        'activePositionIndex',
-        'claimingTeamId',
-        'captureProgress',
-        'decayTicksElapsed',
-        'controlResumesAtTick',
-      ],
+      hasHoldOwner
+        ? [
+            'kind',
+            'modeId',
+            'activePositionIndex',
+            'claimingTeamId',
+            'captureProgress',
+            'decayTicksElapsed',
+            'controlResumesAtTick',
+            'holdOwnerTeamId',
+            'holdRemainingTicks',
+          ]
+        : [
+            'kind',
+            'modeId',
+            'activePositionIndex',
+            'claimingTeamId',
+            'captureProgress',
+            'decayTicksElapsed',
+            'controlResumesAtTick',
+          ],
       fail,
     );
     nonEmpty(item.modeId, `${path}.modeId`, fail);
@@ -1706,6 +1759,19 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
       integer(item[key], `${path}.${key}`, fail);
     }
     nullable(item.claimingTeamId, `${path}.claimingTeamId`, integer, fail);
+    if (hasHoldOwner) {
+      integer(item.holdOwnerTeamId, `${path}.holdOwnerTeamId`, fail);
+      integer(item.holdRemainingTicks, `${path}.holdRemainingTicks`, fail);
+      if ((item.holdOwnerTeamId as number) < 0) {
+        fail(`${path}.holdOwnerTeamId`, 'must be non-negative');
+      }
+      if ((item.holdRemainingTicks as number) <= 0) {
+        fail(
+          `${path}.holdRemainingTicks`,
+          'must be positive when a hold is encoded',
+        );
+      }
+    }
     return;
   }
   fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
@@ -1811,21 +1877,37 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
 }
 
 function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const self = object(value, path, fail);
+  const hasClassId = own(self, 'classId');
   const item = exact(
-    value,
+    self,
     path,
-    [
-      'actorId',
-      'generation',
-      'formId',
-      'position',
-      'facing',
-      'health',
-      'cooldown',
-      'energy',
-      'previousActionResolution',
-      'pendingSameLifeTransition',
-    ],
+    hasClassId
+      ? [
+          'actorId',
+          'generation',
+          'formId',
+          'position',
+          'facing',
+          'health',
+          'cooldown',
+          'energy',
+          'previousActionResolution',
+          'pendingSameLifeTransition',
+          'classId',
+        ]
+      : [
+          'actorId',
+          'generation',
+          'formId',
+          'position',
+          'facing',
+          'health',
+          'cooldown',
+          'energy',
+          'previousActionResolution',
+          'pendingSameLifeTransition',
+        ],
     fail,
   );
   actorId(item.actorId, `${path}.actorId`, fail);
@@ -1847,6 +1929,7 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
     `${path}.pendingSameLifeTransition`,
     fail,
   );
+  if (hasClassId) semanticId(item.classId, `${path}.classId`, fail);
 }
 
 function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
@@ -2255,7 +2338,12 @@ function actionConstraint(
   fail(`${path}.kind`, `unknown action constraint ${String(base.kind)}`);
 }
 
-function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
+function observation(
+  value: unknown,
+  path: string,
+  observationSchemaVersion: number,
+  fail: ReplayV3Fail,
+): void {
   const item = exact(
     value,
     path,
@@ -2305,18 +2393,35 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
     observedSelf(entry, `${path}.allies[${index}]`, fail),
   );
   array(item.enemies, `${path}.enemies`, fail).forEach((entry, index) => {
-    const enemy = exact(
+    const enemyValue = object(
       entry,
       `${path}.enemies[${index}]`,
-      [
-        'actorId',
-        'formId',
-        'position',
-        'facing',
-        'health',
-        'pendingSameLifeTransition',
-        'observedBy',
-      ],
+      fail,
+    );
+    const hasClassId = own(enemyValue, 'classId');
+    const enemy = exact(
+      enemyValue,
+      `${path}.enemies[${index}]`,
+      hasClassId
+        ? [
+            'actorId',
+            'formId',
+            'position',
+            'facing',
+            'health',
+            'pendingSameLifeTransition',
+            'observedBy',
+            'classId',
+          ]
+        : [
+            'actorId',
+            'formId',
+            'position',
+            'facing',
+            'health',
+            'pendingSameLifeTransition',
+            'observedBy',
+          ],
       fail,
     );
     actorId(enemy.actorId, `${path}.enemies[${index}].actorId`, fail);
@@ -2337,13 +2442,30 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           fail,
         ),
     );
+    if (hasClassId) {
+      semanticId(enemy.classId, `${path}.enemies[${index}].classId`, fail);
+    }
   });
   array(item.visibleTiles, `${path}.visibleTiles`, fail).forEach(
     (entry, index) => {
-      const tile = exact(
+      const tileValue = object(
         entry,
         `${path}.visibleTiles[${index}]`,
-        ['position', 'isWall', 'observedBy'],
+        fail,
+      );
+      const hasSpawnReservation = own(tileValue, 'spawnReservation');
+      if (observationSchemaVersion < 3 && hasSpawnReservation) {
+        fail(
+          `${path}.visibleTiles[${index}].spawnReservation`,
+          'spawn reservations require observation schema 3',
+        );
+      }
+      const tile = exact(
+        tileValue,
+        `${path}.visibleTiles[${index}]`,
+        hasSpawnReservation
+          ? ['position', 'isWall', 'observedBy', 'spawnReservation']
+          : ['position', 'isWall', 'observedBy'],
         fail,
       );
       position(tile.position, `${path}.visibleTiles[${index}].position`, fail);
@@ -2359,25 +2481,84 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           fail,
         ),
       );
+      if (hasSpawnReservation) {
+        const reservationPath =
+          `${path}.visibleTiles[${index}].spawnReservation`;
+        const reservationValue = object(
+          tile.spawnReservation,
+          reservationPath,
+          fail,
+        );
+        string(reservationValue.kind, `${reservationPath}.kind`, fail);
+        const automatic = reservationValue.kind === 'automatic-return';
+        const hasDueTick = own(reservationValue, 'dueTick');
+        if (
+          !automatic &&
+          reservationValue.kind !== 'fabrication' &&
+          reservationValue.kind !== 'replication'
+        ) {
+          fail(
+            `${reservationPath}.kind`,
+            `unknown spawn reservation ${String(reservationValue.kind)}`,
+          );
+        }
+        if (automatic === hasDueTick) {
+          fail(
+            reservationPath,
+            automatic
+              ? 'automatic-return must omit dueTick'
+              : 'dynamic spawn reservations require dueTick',
+          );
+        }
+        const reservation = exact(
+          reservationValue,
+          reservationPath,
+          hasDueTick
+            ? ['teamId', 'unitId', 'kind', 'dueTick']
+            : ['teamId', 'unitId', 'kind'],
+          fail,
+        );
+        integer(reservation.teamId, `${reservationPath}.teamId`, fail);
+        integer(reservation.unitId, `${reservationPath}.unitId`, fail);
+        if (hasDueTick) {
+          integer(reservation.dueTick, `${reservationPath}.dueTick`, fail);
+        }
+      }
     },
   );
   if (item.visibleProjectiles !== null) {
     array(item.visibleProjectiles, `${path}.visibleProjectiles`, fail).forEach(
       (entry, index) => {
+        const projectileFields =
+          observationSchemaVersion >= 3
+            ? [
+                'projectileId',
+                'ownerTeamId',
+                'ownerActorId',
+                'position',
+                'heading',
+                'tilesPerAdvance',
+                'ticksPerAdvance',
+                'ticksUntilAdvance',
+                'remainingTiles',
+                'damage',
+                'observedBy',
+              ]
+            : [
+                'projectileId',
+                'ownerTeamId',
+                'ownerActorId',
+                'position',
+                'heading',
+                'tilesPerAdvance',
+                'ticksUntilAdvance',
+                'remainingTiles',
+                'observedBy',
+              ];
         const projectile = exact(
           entry,
           `${path}.visibleProjectiles[${index}]`,
-          [
-            'projectileId',
-            'ownerTeamId',
-            'ownerActorId',
-            'position',
-            'heading',
-            'tilesPerAdvance',
-            'ticksUntilAdvance',
-            'remainingTiles',
-            'observedBy',
-          ],
+          projectileFields,
           fail,
         );
         int64(
@@ -2407,15 +2588,40 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           `${path}.visibleProjectiles[${index}].heading`,
           fail,
         );
-        for (const key of [
-          'tilesPerAdvance',
-          'ticksUntilAdvance',
-          'remainingTiles',
-        ]) {
+        const numericFields =
+          observationSchemaVersion >= 3
+            ? [
+                'tilesPerAdvance',
+                'ticksPerAdvance',
+                'ticksUntilAdvance',
+                'remainingTiles',
+                'damage',
+              ]
+            : [
+                'tilesPerAdvance',
+                'ticksUntilAdvance',
+                'remainingTiles',
+              ];
+        for (const key of numericFields) {
           integer(
             projectile[key],
             `${path}.visibleProjectiles[${index}].${key}`,
             fail,
+          );
+        }
+        if (
+          (projectile.tilesPerAdvance as number) <= 0 ||
+          (projectile.ticksUntilAdvance as number) <= 0 ||
+          (projectile.remainingTiles as number) < 0 ||
+          (observationSchemaVersion >= 3 &&
+            ((projectile.ticksPerAdvance as number) <= 0 ||
+              (projectile.ticksUntilAdvance as number) >
+                (projectile.ticksPerAdvance as number) ||
+              (projectile.damage as number) <= 0))
+        ) {
+          fail(
+            `${path}.visibleProjectiles[${index}]`,
+            'projectile timing, speed, range, and damage are outside their canonical domains',
           );
         }
         array(
@@ -2528,7 +2734,12 @@ function submittedDecision(
   nullable(item.debugMessage, `${path}.debugMessage`, string, fail);
 }
 
-function actorTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
+function actorTurn(
+  value: unknown,
+  path: string,
+  observationSchemaVersion: number,
+  fail: ReplayV3Fail,
+): void {
   const turn = exact(
     value,
     path,
@@ -2545,7 +2756,12 @@ function actorTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
   integer(turn.tick, `${path}.tick`, fail);
   integer(turn.participantId, `${path}.participantId`, fail);
   actorId(turn.actorId, `${path}.actorId`, fail);
-  observation(turn.observation, `${path}.observation`, fail);
+  observation(
+    turn.observation,
+    `${path}.observation`,
+    observationSchemaVersion,
+    fail,
+  );
   nullable(
     turn.submittedDecision,
     `${path}.submittedDecision`,
@@ -3074,7 +3290,12 @@ export function validateReplayV3(
     );
     array(tick.actorTurns, `replay.ticks[${index}].actorTurns`, fail).forEach(
       (turn, turnIndex) =>
-        actorTurn(turn, `replay.ticks[${index}].actorTurns[${turnIndex}]`, fail),
+        actorTurn(
+          turn,
+          `replay.ticks[${index}].actorTurns[${turnIndex}]`,
+          runtime.observationSchemaVersion as number,
+          fail,
+        ),
     );
     array(tick.events, `replay.ticks[${index}].events`, fail).forEach(
       (event, eventIndex) =>
@@ -3534,6 +3755,45 @@ function validateV3Relationships(
       );
     }
   }
+  const capabilities = contract.capabilityVersions;
+  const isProfile2 =
+    capabilities.contractProfileId === 'generic-actor-match-2' &&
+    capabilities.runtimeProtocolVersion === '1.0' &&
+    capabilities.runtimeConfigurationVersion === '1.0' &&
+    capabilities.runtimeContractVersion === 2 &&
+    capabilities.matchStartSchemaVersion === 2 &&
+    capabilities.observationSchemaVersion === 2 &&
+    capabilities.decisionSchemaVersion === 2 &&
+    capabilities.matchContractSchemaVersion === 2 &&
+    contract.schemaVersion === 2;
+  const isProfile3 =
+    capabilities.contractProfileId === 'generic-actor-match-3' &&
+    capabilities.runtimeProtocolVersion === '1.0' &&
+    capabilities.runtimeConfigurationVersion === '1.0' &&
+    capabilities.runtimeContractVersion === 3 &&
+    capabilities.matchStartSchemaVersion === 3 &&
+    capabilities.observationSchemaVersion === 3 &&
+    capabilities.decisionSchemaVersion === 2 &&
+    capabilities.matchContractSchemaVersion === 3 &&
+    contract.schemaVersion === 3;
+  if (!isProfile2 && !isProfile3) {
+    fail(
+      'replay.header.contract.capabilityVersions',
+      'must select one exact supported generic actor contract profile',
+    );
+  }
+  if (
+    isProfile2 &&
+    (topology.teams.some((team) => team.classId !== undefined) ||
+      topology.participants.some(
+        (participant) => participant.classId !== undefined,
+      ))
+  ) {
+    fail(
+      'replay.header.contract.topology',
+      'profile 2 cannot encode class identity',
+    );
+  }
   if (contract.rules.rulesetId !== header.gameRulesVersion) {
     fail(
       'replay.header.gameRulesVersion',
@@ -3660,6 +3920,9 @@ function validateV3Relationships(
   }
 
   const teams = new Set(topology.teams.map((team) => team.teamId));
+  const teamDefinitions = new Map(
+    topology.teams.map((team) => [team.teamId, team]),
+  );
   if (contract.modeMapBinding.kind === 'frontline') {
     const advances = contract.modeMapBinding.teamAdvances;
     ensureUnique(
@@ -3702,12 +3965,28 @@ function validateV3Relationships(
   const slots = new Map(
     topology.unitSlots.map((slot) => [unitValue(slot), slot]),
   );
+  const classForActor = (actor: V3.ReplayV3ActorId): string | undefined => {
+    const slot = slots.get(unitValue(actor));
+    return slot
+      ? participants.get(slot.controllerParticipantId)?.classId
+      : undefined;
+  };
+  const attackProfiles = new Map(
+    contract.rules.attackProfiles.map((profile) => [profile.id, profile]),
+  );
   const forms = new Set(contract.rules.forms.map((form) => form.id));
   for (const [index, participant] of topology.participants.entries()) {
-    if (!teams.has(participant.teamId)) {
+    const team = teamDefinitions.get(participant.teamId);
+    if (!team) {
       fail(
         `replay.header.contract.topology.participants[${index}].teamId`,
         `unknown team ${participant.teamId}`,
+      );
+    }
+    if (participant.classId !== team.classId) {
+      fail(
+        `replay.header.contract.topology.participants[${index}].classId`,
+        'must exactly match the scoring team classId, including omission',
       );
     }
   }
@@ -3753,6 +4032,106 @@ function validateV3Relationships(
     'replay.header.contract.initialDeployment.lives',
     fail,
   );
+  const declaredSpawns = new Map(
+    contract.map.spawnAnchors.map((spawn) => [
+      spawn.spawnId,
+      spawn.position,
+    ]),
+  );
+  const permanentReservations = new Map<
+    string,
+    V3.ReplayV3SpawnReservation
+  >();
+  const lifecycle = object(
+    contract.rules.lifecycle,
+    'replay.header.contract.rules.lifecycle',
+    fail,
+  );
+  const automaticProfileIds = new Set(
+    array(
+      lifecycle.profiles,
+      'replay.header.contract.rules.lifecycle.profiles',
+      fail,
+    )
+      .map((value, index) =>
+        object(
+          value,
+          `replay.header.contract.rules.lifecycle.profiles[${index}]`,
+          fail,
+        ),
+      )
+      .filter(
+        (profile) => profile.destructionPolicy === 'automatic-respawn',
+      )
+      .map((profile) => {
+        semanticId(
+          profile.profileId,
+          'replay.header.contract.rules.lifecycle.profiles[].profileId',
+          fail,
+        );
+        return profile.profileId as string;
+      }),
+  );
+  contract.lifecycleAssignments.forEach((assignment, index) => {
+    if (!automaticProfileIds.has(assignment.lifecycleProfileId)) return;
+    if (assignment.assignedRespawnSpawnId === null) return;
+    const position = declaredSpawns.get(
+      assignment.assignedRespawnSpawnId,
+    );
+    if (!position) {
+      fail(
+        `replay.header.contract.lifecycleAssignments[${index}].assignedRespawnSpawnId`,
+        'must reference a declared map spawn',
+      );
+    }
+    const key = `${position[0]},${position[1]}`;
+    if (permanentReservations.has(key)) {
+      fail(
+        `replay.header.contract.lifecycleAssignments[${index}].assignedRespawnSpawnId`,
+        'automatic-return spawn reservations must be position-unique',
+      );
+    }
+    permanentReservations.set(key, {
+      teamId: assignment.teamId,
+      unitId: assignment.unitId,
+      kind: 'automatic-return',
+    });
+  });
+  const spawnReservationAt = (
+    position: V3.ReplayV3Position,
+    world: V3.ReplayV3WorldState,
+  ): V3.ReplayV3SpawnReservation | null => {
+    for (const replication of world.pendingReplications) {
+      const descendant = replication.descendants.find(
+        (candidate) =>
+          candidate.position.x === position.x &&
+          candidate.position.y === position.y,
+      );
+      if (descendant) {
+        return {
+          teamId: descendant.teamId,
+          unitId: descendant.unitId,
+          kind: 'replication',
+          dueTick: replication.dueTick,
+        };
+      }
+    }
+    for (const slot of world.slots) {
+      if (
+        slot.state.kind === 'fabrication-pending' &&
+        slot.state.reservedPosition.x === position.x &&
+        slot.state.reservedPosition.y === position.y
+      ) {
+        return {
+          teamId: slot.teamId,
+          unitId: slot.unitId,
+          kind: 'fabrication',
+          dueTick: slot.state.dueTick,
+        };
+      }
+    }
+    return permanentReservations.get(`${position.x},${position.y}`) ?? null;
+  };
   if (
     !sameSet(
       contract.initialDeployment.lives.map(actorValue),
@@ -3860,10 +4239,14 @@ function validateV3Relationships(
       fail(`${path}.slots`, 'must cover exactly topology unit slots');
     }
     for (const [index, status] of world.participants.entries()) {
-      if (participants.get(status.participantId)?.teamId !== status.teamId) {
+      const participant = participants.get(status.participantId);
+      if (
+        participant?.teamId !== status.teamId ||
+        participant.classId !== status.classId
+      ) {
         fail(
-          `${path}.participants[${index}].teamId`,
-          'must match topology participant team',
+          `${path}.participants[${index}]`,
+          'must match topology participant team and classId',
         );
       }
     }
@@ -3947,6 +4330,10 @@ function validateV3Relationships(
       const claimantKnown =
         control.claimingTeamId === null ||
         teams.has(control.claimingTeamId);
+      const holdOwnerKnown =
+        control.holdOwnerTeamId === undefined ||
+        teams.has(control.holdOwnerTeamId);
+      const ratchetHoldTicks = capture.ratchetHoldTicks ?? 0;
       const neutral = control.claimingTeamId === null;
       const invalidControl =
         control.activePositionIndex < 0 ||
@@ -3963,6 +4350,12 @@ function validateV3Relationships(
         control.controlResumesAtTick < 0 ||
         control.controlResumesAtTick - world.nextTick >
           capture.redeployPauseTicks ||
+        !holdOwnerKnown ||
+        (control.holdOwnerTeamId === undefined
+          ? control.holdRemainingTicks !== undefined
+          : control.holdRemainingTicks === undefined ||
+            control.holdRemainingTicks <= 0 ||
+            control.holdRemainingTicks > ratchetHoldTicks) ||
         (world.nextTick < control.controlResumesAtTick &&
           (!neutral ||
             control.captureProgress !== 0 ||
@@ -4155,6 +4548,7 @@ function validateV3Relationships(
         actor.health !== observedSelf.health ||
         actor.cooldown !== observedSelf.cooldown ||
         actor.energy !== observedSelf.energy ||
+        observedSelf.classId !== classForActor(turn.actorId) ||
         JSON.stringify(actor.previousActionResolution) !==
           JSON.stringify(observedSelf.previousActionResolution) ||
         JSON.stringify(actor.pendingSameLifeTransition) !==
@@ -4207,6 +4601,89 @@ function validateV3Relationships(
           );
         }
       });
+      [...turn.observation.allies, ...turn.observation.enemies].forEach(
+        (observedActor, observedIndex) => {
+          if (
+            observedActor.classId !==
+            classForActor(observedActor.actorId)
+          ) {
+            fail(
+              `${turnPath}.observation.visibleActors[${observedIndex}].classId`,
+              'must match the observed actor controller classId',
+            );
+          }
+        },
+      );
+      if (header.runtime.observationSchemaVersion >= 3) {
+        turn.observation.visibleTiles.forEach((tile, tileIndex) => {
+          const expected = spawnReservationAt(
+            tile.position,
+            tick.tickStart.state,
+          );
+          if (
+            JSON.stringify(tile.spawnReservation ?? null) !==
+            JSON.stringify(expected)
+          ) {
+            fail(
+              `${turnPath}.observation.visibleTiles[${tileIndex}].spawnReservation`,
+              'must match the authoritative tick-start spawn claim',
+            );
+          }
+        });
+      }
+      const authoritativeProjectiles = new Map(
+        tick.tickStart.state.projectiles.map((projectile) => [
+          projectile.projectileId,
+          projectile,
+        ]),
+      );
+      turn.observation.visibleProjectiles?.forEach(
+        (observedProjectile, projectileIndex) => {
+          const authoritative = authoritativeProjectiles.get(
+            observedProjectile.projectileId,
+          );
+          const profile = authoritative
+            ? attackProfiles.get(authoritative.attackProfileId)
+            : undefined;
+          const expectedOwnerActorId =
+            authoritative &&
+            (authoritative.ownerTeamId === turn.actorId.teamId ||
+              turn.observation.enemies.some(
+                (enemy) =>
+                  actorValue(enemy.actorId) ===
+                  actorValue(authoritative.ownerActorId),
+              ))
+              ? authoritative.ownerActorId
+              : null;
+          if (
+            !authoritative ||
+            !profile ||
+            observedProjectile.ownerTeamId !==
+              authoritative.ownerTeamId ||
+            JSON.stringify(observedProjectile.ownerActorId) !==
+              JSON.stringify(expectedOwnerActorId) ||
+            JSON.stringify(observedProjectile.position) !==
+              JSON.stringify(authoritative.position) ||
+            observedProjectile.heading !== authoritative.heading ||
+            observedProjectile.tilesPerAdvance !==
+              profile.projectile.tilesPerAdvance ||
+            observedProjectile.ticksUntilAdvance !==
+              authoritative.ticksUntilAdvance ||
+            observedProjectile.remainingTiles !==
+              authoritative.remainingTiles ||
+            (header.runtime.observationSchemaVersion >= 3 &&
+              (observedProjectile.ticksPerAdvance !==
+                profile.projectile.ticksPerAdvance ||
+                observedProjectile.damage !==
+                  profile.projectile.damagePerHit))
+          ) {
+            fail(
+              `${turnPath}.observation.visibleProjectiles[${projectileIndex}]`,
+              'must match the authoritative projectile and attack profile',
+            );
+          }
+        },
+      );
       const actionsById = new Map(
         contract.rules.actions.map((action) => [action.id, action]),
       );
@@ -4885,6 +5362,7 @@ export function normalizeReplayV3(
         participantId: participant.participantId,
         teamKey: replayTeamKey(participant.teamId),
         teamId: participant.teamId,
+        classId: participant.classId ?? null,
         name: source?.name ?? `participant ${participant.participantId}`,
         runtimeKind: source?.runtimeKind ?? 'unknown',
         artifactHash: source?.artifactHash ?? null,
@@ -4920,6 +5398,7 @@ export function normalizeReplayV3(
     .map<Model.ReplayTeam>((team) => ({
       teamKey: replayTeamKey(team.teamId),
       teamId: team.teamId,
+      classId: team.classId ?? null,
       participantKeys: participants
         .filter((participant) => participant.teamId === team.teamId)
         .map((participant) => participant.participantKey),
@@ -5345,12 +5824,14 @@ function contractFromV3(
       teams: topology.teams.map((team) => ({
         teamId: team.teamId,
         teamKey: replayTeamKey(team.teamId),
+        classId: team.classId ?? null,
       })),
       participants: topology.participants.map((participant) => ({
         participantId: participant.participantId,
         participantKey: replayParticipantKey(participant.participantId),
         teamId: participant.teamId,
         teamKey: replayTeamKey(participant.teamId),
+        classId: participant.classId ?? null,
       })),
       unitSlots: topology.unitSlots.map((slot) => ({
         teamId: slot.teamId,
@@ -5439,6 +5920,8 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         captureProgress: mode.captureProgress,
         decayTicksElapsed: mode.decayTicksElapsed,
         controlResumesAtTick: mode.controlResumesAtTick,
+        holdOwnerTeamId: mode.holdOwnerTeamId ?? null,
+        holdRemainingTicks: mode.holdRemainingTicks ?? 0,
       };
 }
 
@@ -5454,6 +5937,8 @@ function objectiveFromV3(
       captureProgress: mode.captureProgress,
       decayTicksElapsed: mode.decayTicksElapsed,
       controlResumesAtTick: mode.controlResumesAtTick,
+      holdOwnerTeamId: mode.holdOwnerTeamId ?? null,
+      holdRemainingTicks: mode.holdRemainingTicks ?? 0,
       winnerTeamId: null,
       completeness: 'exact',
     };
@@ -5638,6 +6123,7 @@ function worldFromV3(
       participantId: participant.participantId,
       teamKey: replayTeamKey(participant.teamId),
       teamId: participant.teamId,
+      classId: participant.classId ?? null,
       runtimeFaultCount: participant.runtimeFaultCount,
       disqualified: participant.disqualified,
     })),
@@ -5698,7 +6184,12 @@ function tickFromV3(
     ),
     lifecycleEvents: tick.tickStart.events.map(eventFromV3),
     actorTurns: tick.actorTurns.map((turn) =>
-      actorTurnFromV3(turn, starts.get(actorValue(turn.actorId)) ?? null),
+      actorTurnFromV3(
+        turn,
+        starts.get(actorValue(turn.actorId)) ?? null,
+        tick.tickStart.state,
+        document,
+      ),
     ),
     events: tick.events.map(eventFromV3),
     projectileTraversals: [
@@ -5848,6 +6339,7 @@ function observedActor(
 ): Model.ReplayObservedActor {
   return {
     actor: { kind: 'exact', identity: identity(actor.actorId) },
+    classId: actor.classId ?? null,
     formId: actor.formId,
     position: copyPosition(actor.position),
     facing: actor.facing,
@@ -5900,8 +6392,22 @@ function observedUnitFromV3(
 
 function observationFromV3(
   observation: V3.ReplayV3Observation,
+  world: V3.ReplayV3WorldState,
+  document: V3.ReplayV3Document,
 ): Model.ReplayActorObservation {
   const self = identity(observation.self.actorId);
+  const authoritativeProjectiles = new Map(
+    world.projectiles.map((projectile) => [
+      projectile.projectileId,
+      projectile,
+    ]),
+  );
+  const attackProfiles = new Map(
+    document.header.contract.rules.attackProfiles.map((profile) => [
+      profile.id,
+      profile,
+    ]),
+  );
   return {
     completeness: 'exact',
     schemaVersion: observation.schemaVersion,
@@ -5913,6 +6419,7 @@ function observationFromV3(
       participantId: participant.participantId,
       teamKey: replayTeamKey(participant.teamId),
       teamId: participant.teamId,
+      classId: participant.classId ?? null,
       runtimeFaultCount: participant.runtimeFaultCount,
       disqualified: participant.disqualified,
     })),
@@ -5923,6 +6430,7 @@ function observationFromV3(
     ),
     enemies: observation.enemies.map((enemy) => ({
       actor: { kind: 'exact', identity: identity(enemy.actorId) },
+      classId: enemy.classId ?? null,
       formId: enemy.formId,
       position: copyPosition(enemy.position),
       facing: enemy.facing,
@@ -5940,12 +6448,30 @@ function observationFromV3(
       position: copyPosition(tile.position),
       isWall: tile.isWall,
       observedBy: tile.observedBy.map((actor) => identity(actor).actorKey),
+      spawnReservation: tile.spawnReservation
+        ? {
+            teamId: tile.spawnReservation.teamId,
+            unitId: tile.spawnReservation.unitId,
+            unitKey: genericUnitKey(
+              tile.spawnReservation.teamId,
+              tile.spawnReservation.unitId,
+            ),
+            kind: tile.spawnReservation.kind,
+            dueTick: tile.spawnReservation.dueTick ?? null,
+          }
+        : null,
     })),
     visibleProjectiles:
       observation.visibleProjectiles?.map((projectile) => {
         const owner = projectile.ownerActorId
           ? identity(projectile.ownerActorId)
           : null;
+        const authoritative = authoritativeProjectiles.get(
+          projectile.projectileId,
+        );
+        const attackProfile = authoritative
+          ? attackProfiles.get(authoritative.attackProfileId)
+          : undefined;
         return {
           projectileHandle: projectile.projectileId,
           projectileId: projectile.projectileId,
@@ -5957,8 +6483,16 @@ function observationFromV3(
           position: copyPosition(projectile.position),
           heading: projectile.heading,
           tilesPerAdvance: projectile.tilesPerAdvance,
+          ticksPerAdvance:
+            projectile.ticksPerAdvance ??
+            attackProfile?.projectile.ticksPerAdvance ??
+            0,
           ticksUntilAdvance: projectile.ticksUntilAdvance,
           remainingTiles: projectile.remainingTiles,
+          damage:
+            projectile.damage ??
+            attackProfile?.projectile.damagePerHit ??
+            0,
           observedBy: projectile.observedBy.map(
             (actor) => identity(actor).actorKey,
           ),
@@ -5984,6 +6518,10 @@ function observationFromV3(
             captureProgress: observation.mode.captureProgress,
             decayTicksElapsed: observation.mode.decayTicksElapsed,
             controlResumesAtTick: observation.mode.controlResumesAtTick,
+            holdOwnerTeamId:
+              observation.mode.holdOwnerTeamId ?? null,
+            holdRemainingTicks:
+              observation.mode.holdRemainingTicks ?? 0,
           }
         : null,
     actions: observation.actionLegalities.map((legality) => {
@@ -6036,6 +6574,8 @@ function observationFromV3(
 function actorTurnFromV3(
   turn: V3.ReplayV3ActorTurn,
   start: V3.ReplayV3LifeStart | null,
+  world: V3.ReplayV3WorldState,
+  document: V3.ReplayV3Document,
 ): Model.ReplayActorTurn {
   const actor = identity(turn.actorId);
   const submitted = turn.submittedDecision;
@@ -6043,7 +6583,11 @@ function actorTurnFromV3(
     actor,
     actorKey: actor.actorKey,
     lifeStart: start ? lifeStartFromV3(start) : null,
-    observation: observationFromV3(turn.observation),
+    observation: observationFromV3(
+      turn.observation,
+      world,
+      document,
+    ),
     aliases: {
       completeness: 'exact',
       enemyLives: [],
@@ -6408,7 +6952,13 @@ function resultFromV3(
         : {
             kind: 'frontline',
             reason: result.mode.reason,
-            control: { ...result.mode.control },
+            control: {
+              ...result.mode.control,
+              holdOwnerTeamId:
+                result.mode.control.holdOwnerTeamId ?? null,
+              holdRemainingTicks:
+                result.mode.control.holdRemainingTicks ?? 0,
+            },
             scores: result.mode.scores.map((score) => ({
               teamKey: replayTeamKey(score.teamId),
               ...score,

@@ -5,7 +5,7 @@ version 1. It is experimental, setless, and unranked. This document describes
 `frontline-labs-1`; it does not describe the older `frontline-alpha-1`
 `IActorBot` experiment or shipped Duel.
 
-The exact schema-2 resolved match contract delivered to
+The exact schema-3 resolved match contract delivered to
 `IGenericActorBot.StartLife` and embedded in replay v3 is authoritative. Bots
 should discover catalog entries, counts, map geometry, and legality from that
 contract instead of turning the current values below into structural

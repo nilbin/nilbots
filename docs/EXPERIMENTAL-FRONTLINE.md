@@ -17,8 +17,8 @@ are experiment inputs, not a balance or ship verdict.
 
 The App also contains a separate generation-3 contract named
 `frontline-labs-1`. It does not reinterpret `frontline-alpha-1`: it uses
-resolved match contract 2, rules schema 3, map format 3, exact profile
-`generic-actor-match-2`, and replay 3.
+resolved match contract 3, rules schema 3, map format 3, exact profile
+`generic-actor-match-3`, and replay 3.
 
 The hosted boundary is deliberately narrow:
 

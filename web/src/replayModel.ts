@@ -506,12 +506,14 @@ export interface ReplayContractTopology {
   teams: {
     teamId: number;
     teamKey: ReplayTeamKey;
+    classId: string | null;
   }[];
   participants: {
     participantId: number;
     participantKey: ReplayParticipantKey;
     teamId: number;
     teamKey: ReplayTeamKey;
+    classId: string | null;
   }[];
   unitSlots: {
     teamId: number;
@@ -685,6 +687,7 @@ export interface ReplayParticipantController {
   participantId: number;
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   name: string;
   runtimeKind: string;
   artifactHash: string | null;
@@ -696,6 +699,7 @@ export interface ReplayParticipantController {
 export interface ReplayTeam {
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   participantKeys: ReplayParticipantKey[];
   unitKeys: ReplayStableUnitKey[];
 }
@@ -845,6 +849,7 @@ export interface ReplayParticipantStatus {
   participantId: number;
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   runtimeFaultCount: string;
   disqualified: boolean;
 }
@@ -879,6 +884,8 @@ export type ReplayModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
+      holdOwnerTeamId: number | null;
+      holdRemainingTicks: number;
     }
   | {
       kind: string;
@@ -927,6 +934,8 @@ export interface ReplayFrontlineObjectiveState {
   captureProgress: number;
   decayTicksElapsed: number;
   controlResumesAtTick: number;
+  holdOwnerTeamId: number | null;
+  holdRemainingTicks: number;
   winnerTeamId: number | null;
   completeness: 'exact';
 }
@@ -986,6 +995,7 @@ export type ReplayObservedActorRef =
 
 export interface ReplayObservedActor {
   actor: ReplayObservedActorRef;
+  classId: string | null;
   formId: string;
   position: ReplayPosition;
   facing: ReplayDirection;
@@ -1001,6 +1011,15 @@ export interface ReplayObservedTile {
   position: ReplayPosition;
   isWall: boolean | null;
   observedBy: ReplayActorLifeKey[];
+  spawnReservation: ReplayObservedSpawnReservation | null;
+}
+
+export interface ReplayObservedSpawnReservation {
+  teamId: number;
+  unitId: number;
+  unitKey: ReplayStableUnitKey;
+  kind: 'automatic-return' | 'fabrication' | 'replication';
+  dueTick: number | null;
 }
 
 export interface ReplayObservedProjectile {
@@ -1014,8 +1033,10 @@ export interface ReplayObservedProjectile {
   position: ReplayPosition;
   heading: ReplayProjectileHeading;
   tilesPerAdvance: number;
+  ticksPerAdvance: number | null;
   ticksUntilAdvance: number;
   remainingTiles: number;
+  damage: number | null;
   observedBy: ReplayActorLifeKey[];
   /** Exact authoritative projectile identity in replay-v3. */
   projectileId?: string;
@@ -1076,6 +1097,8 @@ export interface ReplayObservedFrontlineObjective {
   captureProgress: number;
   decayTicksElapsed: number;
   controlResumesAtTick: number;
+  holdOwnerTeamId: number | null;
+  holdRemainingTicks: number;
 }
 
 export interface ReplayActorObservation {

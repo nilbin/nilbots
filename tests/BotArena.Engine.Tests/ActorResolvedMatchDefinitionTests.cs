@@ -95,6 +95,86 @@ public sealed class ActorResolvedMatchDefinitionTests
     }
 
     [Fact]
+    public void ConstructorValidatesClassIdsAndExactTeamAgreement()
+    {
+        ActorRulesDefinition rules = CreateRules();
+        ActorMapDefinition map = CreateMap();
+        PublicMatchTopology classless = CreateTopology([[10], [20]]);
+        PublicMatchTopology classed = classless with
+        {
+            Teams = classless.Teams
+                .Select(team => team with
+                {
+                    ClassId = team.TeamId == 0
+                        ? "bulwark"
+                        : "striker",
+                })
+                .ToImmutableArray(),
+            Participants = classless.Participants
+                .Select(participant => participant with
+                {
+                    ClassId = participant.TeamId == 0
+                        ? "bulwark"
+                        : "striker",
+                })
+                .ToImmutableArray(),
+        };
+
+        ActorResolvedMatchDefinition accepted = Resolve(
+            rules,
+            map,
+            new HeadToHeadMatchFormatDefinition(),
+            classed,
+            ["west", "east"]);
+        Assert.Equal(
+            ["bulwark", "striker"],
+            accepted.Topology.Teams.Select(team => team.ClassId));
+
+        PublicMatchTopology mismatch = classed with
+        {
+            Participants = classed.Participants.SetItem(
+                0,
+                classed.Participants[0] with { ClassId = "striker" }),
+        };
+        ActorResolvedMatchValidationException mismatchFailure =
+            Assert.Throws<ActorResolvedMatchValidationException>(() =>
+                Resolve(
+                    rules,
+                    map,
+                    new HeadToHeadMatchFormatDefinition(),
+                    mismatch,
+                    ["west", "east"]));
+        Assert.Contains(
+            mismatchFailure.Errors,
+            error => error.Contains(
+                "exactly match scoring team",
+                StringComparison.Ordinal));
+
+        PublicMatchTopology noncanonical = classed with
+        {
+            Teams = classed.Teams.SetItem(
+                0,
+                classed.Teams[0] with { ClassId = "Bulwark" }),
+            Participants = classed.Participants.SetItem(
+                0,
+                classed.Participants[0] with { ClassId = "Bulwark" }),
+        };
+        ActorResolvedMatchValidationException noncanonicalFailure =
+            Assert.Throws<ActorResolvedMatchValidationException>(() =>
+                Resolve(
+                    rules,
+                    map,
+                    new HeadToHeadMatchFormatDefinition(),
+                    noncanonical,
+                    ["west", "east"]));
+        Assert.Contains(
+            noncanonicalFailure.Errors,
+            error => error.Contains(
+                "lowercase-kebab",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RejectsMissingCoverageUnknownSpawnAndWrongModeBinding()
     {
         ActorRulesDefinition rules = CreateRules();

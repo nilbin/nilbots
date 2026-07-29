@@ -66,6 +66,20 @@ public sealed record ActorMatchCapabilityVersions
     public int DecisionSchemaVersion { get; }
     public int MatchContractSchemaVersion { get; }
 
+    /// <summary>
+    /// Frozen generic actor profile used by hosted Frontline Labs v1 and its
+    /// historical replay-v3 documents.
+    /// </summary>
+    public static ActorMatchCapabilityVersions GenericV2 { get; } = new(
+        contractProfileId: "generic-actor-match-2",
+        runtimeProtocolVersion: "1.0",
+        runtimeConfigurationVersion: "1.0",
+        runtimeContractVersion: 2,
+        matchStartSchemaVersion: 2,
+        observationSchemaVersion: 2,
+        decisionSchemaVersion: 2,
+        matchContractSchemaVersion: 2);
+
     public static ActorMatchCapabilityVersions Current { get; } = new(
         BotArenaVersions.GenericActorContractProfileId,
         BotArenaVersions.GenericActorRuntimeProtocolVersion,

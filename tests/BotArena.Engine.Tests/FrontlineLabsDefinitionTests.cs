@@ -40,15 +40,7 @@ public sealed class FrontlineLabsDefinitionTests
         Assert.Equal(6, definition.Topology.UnitSlots.Length);
         Assert.Equal(2, definition.Topology.InitialLives.Length);
         Assert.Equal(
-            new ActorMatchCapabilityVersions(
-                "generic-actor-match-2",
-                "1.0",
-                "1.0",
-                2,
-                2,
-                2,
-                2,
-                2),
+            ActorMatchCapabilityVersions.GenericV2,
             definition.CapabilityVersions);
         Assert.All(
             definition.Topology.Participants,
@@ -113,6 +105,23 @@ public sealed class FrontlineLabsDefinitionTests
                     == ActorMapTileTagDefinition.TileTagKind
                         .TransitionPlacementForbidden)
                 .Tiles.Length);
+    }
+
+    [Fact]
+    public void CreateProfile3_UsesTheCurrentCapabilityProfile()
+    {
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsDefinition.CreateProfile3();
+
+        Assert.Equal(
+            ActorMatchCapabilityVersions.Current,
+            definition.CapabilityVersions);
+        Assert.Equal(
+            ActorResolvedMatchDefinition.CurrentSchemaVersion,
+            definition.SchemaVersion);
+        Assert.NotEqual(
+            MatchFingerprint,
+            ActorContractFingerprint.ComputeMatch(definition));
     }
 
     [Fact]

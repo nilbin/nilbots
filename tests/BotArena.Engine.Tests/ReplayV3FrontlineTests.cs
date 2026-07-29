@@ -7,7 +7,12 @@ namespace BotArena.Engine.Tests;
 
 public sealed class ReplayV3FrontlineTests
 {
-    private const string FixtureName = "generic-frontline-replay-v3.json";
+    private const string FixtureName =
+        "generic-frontline-replay-v3-profile3.json";
+    private const string HistoricalFixtureName =
+        "generic-frontline-replay-v3.json";
+    private const string HistoricalFixtureReplayHash =
+        "2807e3c6b407b2534db03a5f576bdab72921d2c5f3350eaba5ffe70fab68c6bc";
 
     [Fact]
     public void ProjectionAndCanonicalRoundTripPreserveTypedFrontlineResult()
@@ -361,12 +366,46 @@ public sealed class ReplayV3FrontlineTests
             failure);
     }
 
+    [Fact]
+    public void HistoricalProfile2FrontlineDocumentRemainsByteExactAndReadable()
+    {
+        string fixture = File.ReadAllText(
+            FixturePath(HistoricalFixtureName));
+        Assert.EndsWith("\n", fixture, StringComparison.Ordinal);
+        string canonical = fixture[..^1];
+
+        Assert.True(
+            ReplayV3Serializer.VerifyHash(
+                canonical,
+                out string? failure),
+            failure);
+        ReplayV3 replay =
+            ReplayV3Serializer.ReadCanonicalComplete(canonical);
+        ReplayV3 generated =
+            GenericFrontlineReplayV3TestFixture.CreateReplay(
+                GenericFrontlineReplayV3TestFixture.Definition(
+                    capabilityVersions:
+                        ActorMatchCapabilityVersions.GenericV2));
+
+        Assert.Equal(HistoricalFixtureReplayHash, replay.ReplayHash);
+        Assert.Equal(canonical, ReplayV3Serializer.ToJson(replay));
+        Assert.Equal(canonical, ReplayV3Serializer.ToJson(generated));
+    }
+
     private static string CompleteJson()
     {
         (ReplayV3 replay, _) =
             GenericFrontlineReplayV3TestFixture.CreateCompleteReplay();
         return ReplayV3Serializer.ToJson(replay);
     }
+
+    private static string FixturePath(string fixtureName) =>
+        Path.Combine(
+            FindRepoRoot(),
+            "tests",
+            "BotArena.Engine.Tests",
+            "Fixtures",
+            fixtureName);
 
     private static JsonObject InitialControl(JsonObject root) =>
         root["initialFrame"]!["state"]!["mode"]!.AsObject();

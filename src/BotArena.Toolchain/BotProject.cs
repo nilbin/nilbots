@@ -113,9 +113,11 @@ public static class ToolchainInfo
     // 0.10.4: dormant slots may declare a first automatic activation tick and
     // life starts identify that parentless origin separately from deployment,
     // return, fabrication, and replication.
-    public const string SdkVersion = "0.10.4";
+    // 0.11.0: class identity and the batched Frontline observability ledger
+    // (ratchet holds, projectile timing/damage, and spawn reservations).
+    public const string SdkVersion = "0.11.0";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.4";
+    public const string GuestAdapterVersion = "0.11.0";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

@@ -14,18 +14,20 @@ internal static class ReplayV3Projection
         ReplayV3.PresentationMetadata? presentation = null)
     {
         ArgumentNullException.ThrowIfNull(chronology);
+        bool includesLedger = chronology.Descriptor.Definition
+            .CapabilityVersions.ObservationSchemaVersion >= 3;
 
         return new ReplayV3(
             Header(
                 chronology.Descriptor,
                 Presentation(presentation)),
-            InitialFrame(chronology.InitialFrame),
+            InitialFrame(chronology.InitialFrame, includesLedger),
             chronology.Ticks
-                .Select(TickFrame)
+                .Select(frame => TickFrame(frame, includesLedger))
                 .ToImmutableArray(),
             chronology.Result is null
                 ? null
-                : MatchResult(chronology.Result),
+                : MatchResult(chronology.Result, includesLedger),
             ReplayHash: null,
             Partial: chronology.Partial);
     }
@@ -203,30 +205,39 @@ internal static class ReplayV3Projection
             participant.ProjectileLookId);
 
     private static ReplayV3.ReplayInitialFrame InitialFrame(
-        GenericActorMatchInitialFrame frame) =>
+        GenericActorMatchInitialFrame frame,
+        bool includesLedger) =>
         new(
-            WorldState(frame.State),
+            WorldState(frame.State, includesLedger),
             frame.LifeStarts.Select(LifeStart).ToImmutableArray(),
-            frame.Events.Select(Event).ToImmutableArray());
+            frame.Events
+                .Select(value => Event(value, includesLedger))
+                .ToImmutableArray());
 
     private static ReplayV3.TickFrame TickFrame(
-        GenericActorMatchTickFrame frame) =>
+        GenericActorMatchTickFrame frame,
+        bool includesLedger) =>
         new(
             frame.Tick,
-            TickStart(frame.TickStart),
+            TickStart(frame.TickStart, includesLedger),
             frame.ActorTurns.Select(ActorTurn).ToImmutableArray(),
-            frame.Events.Select(Event).ToImmutableArray(),
+            frame.Events
+                .Select(value => Event(value, includesLedger))
+                .ToImmutableArray(),
             frame.Traversals.Select(Traversal).ToImmutableArray(),
-            WorldState(frame.PostState));
+            WorldState(frame.PostState, includesLedger));
 
     private static ReplayV3.TickStart TickStart(
-        GenericActorMatchTickStart tickStart) =>
+        GenericActorMatchTickStart tickStart,
+        bool includesLedger) =>
         new(
             tickStart.Tick,
-            WorldState(tickStart.State),
+            WorldState(tickStart.State, includesLedger),
             tickStart.ActiveActorIds.Select(ActorId).ToImmutableArray(),
             tickStart.LifeStarts.Select(LifeStart).ToImmutableArray(),
-            tickStart.Events.Select(Event).ToImmutableArray(),
+            tickStart.Events
+                .Select(value => Event(value, includesLedger))
+                .ToImmutableArray(),
             tickStart.Traversals.Select(Traversal).ToImmutableArray());
 
     private static ReplayV3.ActorTurn ActorTurn(
@@ -260,34 +271,39 @@ internal static class ReplayV3Projection
             start.MatchContractFingerprint);
 
     private static ReplayV3.Observation Observation(
-        GenericActorRuntimeObservation observation) =>
-        new(
+        GenericActorRuntimeObservation observation)
+    {
+        bool includesLedger = observation.SchemaVersion >= 3;
+        return new(
             observation.SchemaVersion,
             observation.Tick,
             observation.MatchContractFingerprint,
-            ObservedSelf(observation.Self),
+            ObservedSelf(observation.Self, includesLedger),
             observation.TeamUnits
                 .Select(ObservedUnitSlot)
                 .ToImmutableArray(),
             observation.Participants
-                .Select(ParticipantStatus)
+                .Select(value =>
+                    ParticipantStatus(value, includesLedger))
                 .ToImmutableArray(),
             observation.Allies
-                .Select(ObservedAlly)
+                .Select(value => ObservedAlly(value, includesLedger))
                 .ToImmutableArray(),
             observation.Enemies
-                .Select(ObservedEnemy)
+                .Select(value => ObservedEnemy(value, includesLedger))
                 .ToImmutableArray(),
             observation.VisibleTiles
-                .Select(ObservedTile)
+                .Select(value => ObservedTile(value, includesLedger))
                 .ToImmutableArray(),
             observation.VisibleProjectiles is { } projectiles
                 ? projectiles
-                    .Select(ObservedProjectile)
+                    .Select(value =>
+                        ObservedProjectile(value, includesLedger))
                     .ToImmutableArray()
                 : null,
             observation.VisibleEvents
-                .Select(ObservedEvent)
+                .Select(value =>
+                    ObservedEvent(value, includesLedger))
                 .ToImmutableArray(),
             observation.HeardSounds is { } sounds
                 ? sounds
@@ -295,13 +311,15 @@ internal static class ReplayV3Projection
                     .ToImmutableArray()
                 : null,
             Scoreboard(observation.Scoreboard),
-            ModeState(observation.Mode),
+            ModeState(observation.Mode, includesLedger),
             observation.ActionLegalities
                 .Select(ActionLegality)
                 .ToImmutableArray());
+    }
 
     private static ReplayV3.ObservedSelf ObservedSelf(
-        GenericActorRuntimeObservation.ObservedSelfState value) =>
+        GenericActorRuntimeObservation.ObservedSelfState value,
+        bool includesLedger) =>
         new(
             ActorId(value.ActorId),
             value.Generation,
@@ -314,10 +332,12 @@ internal static class ReplayV3Projection
             value.PreviousActionResolution is null
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
-            PendingTransition(value.PendingSameLifeTransition));
+            PendingTransition(value.PendingSameLifeTransition),
+            includesLedger ? value.ClassId : null);
 
     private static ReplayV3.ObservedAlly ObservedAlly(
-        GenericActorRuntimeObservation.ObservedAllyState value) =>
+        GenericActorRuntimeObservation.ObservedAllyState value,
+        bool includesLedger) =>
         new(
             ActorId(value.ActorId),
             value.Generation,
@@ -330,10 +350,12 @@ internal static class ReplayV3Projection
             value.PreviousActionResolution is null
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
-            PendingTransition(value.PendingSameLifeTransition));
+            PendingTransition(value.PendingSameLifeTransition),
+            includesLedger ? value.ClassId : null);
 
     private static ReplayV3.ObservedEnemy ObservedEnemy(
-        GenericActorRuntimeObservation.ObservedEnemyState value) =>
+        GenericActorRuntimeObservation.ObservedEnemyState value,
+        bool includesLedger) =>
         new(
             ActorId(value.ActorId),
             value.FormId,
@@ -341,7 +363,8 @@ internal static class ReplayV3Projection
             Direction(value.Facing),
             value.Health,
             PendingTransition(value.PendingSameLifeTransition),
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            includesLedger ? value.ClassId : null);
 
     private static ReplayV3.PendingSameLifeTransition? PendingTransition(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -411,22 +434,33 @@ internal static class ReplayV3Projection
         };
 
     private static ReplayV3.ParticipantStatus ParticipantStatus(
-        GenericActorRuntimeObservation.ObservedParticipantStatus value) =>
+        GenericActorRuntimeObservation.ObservedParticipantStatus value,
+        bool includesLedger) =>
         new(
             value.ParticipantId,
             value.TeamId,
             Decimal(value.RuntimeFaultCount),
-            value.Disqualified);
+            value.Disqualified,
+            includesLedger ? value.ClassId : null);
 
     private static ReplayV3.ObservedTile ObservedTile(
-        GenericActorRuntimeObservation.ObservedTile value) =>
+        GenericActorRuntimeObservation.ObservedTile value,
+        bool includesLedger) =>
         new(
             Position(value.Position),
             value.IsWall,
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            !includesLedger || value.SpawnReservation is null
+                ? null
+                : new ReplayV3.SpawnReservation(
+                    value.SpawnReservation.TeamId,
+                    value.SpawnReservation.UnitId,
+                    SpawnReservationKind(value.SpawnReservation.Kind),
+                    value.SpawnReservation.DueTick));
 
     private static ReplayV3.ObservedProjectile ObservedProjectile(
-        GenericActorRuntimeObservation.ObservedProjectile value) =>
+        GenericActorRuntimeObservation.ObservedProjectile value,
+        bool includesLedger) =>
         new(
             Decimal(value.ProjectileId),
             value.OwnerTeamId,
@@ -438,16 +472,20 @@ internal static class ReplayV3Projection
             value.TilesPerAdvance,
             value.TicksUntilAdvance,
             value.RemainingTiles,
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            TicksPerAdvance:
+                includesLedger ? value.TicksPerAdvance : null,
+            Damage: includesLedger ? value.Damage : null);
 
     private static ReplayV3.ObservedEvent ObservedEvent(
-        GenericActorRuntimeObservation.ObservedEvent value) =>
+        GenericActorRuntimeObservation.ObservedEvent value,
+        bool includesLedger) =>
         new(
             value.EventHandle,
             value.SourceTick,
             value.SourceOrdinal,
             EventKind(value.Kind),
-            EventPayload(value.Payload),
+            EventPayload(value.Payload, includesLedger),
             value.ObservedBy.Select(ActorId).ToImmutableArray());
 
     private static ReplayV3.ObservedSound ObservedSound(
@@ -622,7 +660,8 @@ internal static class ReplayV3Projection
         };
 
     private static ReplayV3.EventPayload EventPayload(
-        GenericActorRuntimeObservation.EventPayload value) =>
+        GenericActorRuntimeObservation.EventPayload value,
+        bool includesLedger) =>
         value switch
         {
             GenericActorRuntimeObservation.EventPayload.Rotation payload =>
@@ -756,7 +795,7 @@ internal static class ReplayV3Projection
             GenericActorRuntimeObservation.EventPayload.ModeChanged
                 payload =>
                 new ReplayV3.EventPayload.ModeChanged(
-                    ModeState(payload.State)),
+                    ModeState(payload.State, includesLedger)),
             GenericActorRuntimeObservation.EventPayload
                 .LifecycleClockCancelled payload =>
                 new ReplayV3.EventPayload.LifecycleClockCancelled(
@@ -771,14 +810,15 @@ internal static class ReplayV3Projection
         };
 
     private static ReplayV3.AuthoritativeEvent Event(
-        GenericActorAuthoritativeEvent value) =>
+        GenericActorAuthoritativeEvent value,
+        bool includesLedger) =>
         new(
             value.EventHandle,
             value.Tick,
             Decimal(value.GlobalOrdinal),
             value.SourceOrdinal,
             EventKind(value.Kind),
-            EventPayload(value.UnredactedPayload),
+            EventPayload(value.UnredactedPayload, includesLedger),
             EventAudience(value.EventAudience));
 
     private static ReplayV3.EventAudience EventAudience(
@@ -857,13 +897,17 @@ internal static class ReplayV3Projection
         };
 
     private static ReplayV3.WorldState WorldState(
-        GenericActorWorldSnapshot value) =>
+        GenericActorWorldSnapshot value,
+        bool includesLedger) =>
         new(
             value.MatchContractFingerprint,
             value.NextTick,
             Decimal(value.NextProjectileId),
             value.Participants
-                .Select(ParticipantStatus)
+                .Select(participant =>
+                    ParticipantStatus(
+                        participant,
+                        includesLedger))
                 .ToImmutableArray(),
             value.Slots.Select(SlotState).ToImmutableArray(),
             value.ActiveLives.Select(LifeState).ToImmutableArray(),
@@ -874,7 +918,7 @@ internal static class ReplayV3Projection
                 .Select(ProjectileState)
                 .ToImmutableArray(),
             Scoreboard(value.Scoreboard),
-            ModeState(value.Mode));
+            ModeState(value.Mode, includesLedger));
 
     private static ReplayV3.SlotState SlotState(
         GenericActorWorldSnapshot.SlotSnapshot value) =>
@@ -976,7 +1020,8 @@ internal static class ReplayV3Projection
                 .ToImmutableArray());
 
     private static ReplayV3.ModeState ModeState(
-        GenericActorRuntimeObservation.ModeObservationState value) =>
+        GenericActorRuntimeObservation.ModeObservationState value,
+        bool includesLedger = true) =>
         value switch
         {
             GenericActorRuntimeObservation.ModeObservationState.Deathmatch
@@ -984,7 +1029,7 @@ internal static class ReplayV3Projection
                 new ReplayV3.ModeState.Deathmatch(deathmatch.ModeId),
             GenericActorRuntimeObservation.ModeObservationState.Frontline
                 frontline =>
-                FrontlineModeState(frontline),
+                FrontlineModeState(frontline, includesLedger),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -993,24 +1038,28 @@ internal static class ReplayV3Projection
 
     private static ReplayV3.ModeState.Frontline FrontlineModeState(
         GenericActorRuntimeObservation.ModeObservationState.Frontline
-            value) =>
+            value,
+        bool includesLedger = true) =>
         new(
             value.ModeId,
             value.ActivePositionIndex,
             value.ClaimingTeamId,
             value.CaptureProgress,
             value.DecayTicksElapsed,
-            value.ControlResumesAtTick);
+            value.ControlResumesAtTick,
+            includesLedger ? value.HoldOwnerTeamId : null,
+            includesLedger ? value.HoldRemainingTicks : 0);
 
     private static ReplayV3.MatchResult MatchResult(
-        GenericActorMatchResult value) =>
+        GenericActorMatchResult value,
+        bool includesLedger) =>
         new(
             value.CompletionReason,
             value.EndTick,
             Standings(value.Standings),
             value.EligibleTeamIds,
             value.Units.Select(UnitTerminalFact).ToImmutableArray(),
-            ModeResult(value.Mode));
+            ModeResult(value.Mode, includesLedger));
 
     private static ReplayV3.Standings Standings(
         TeamStandings value) =>
@@ -1039,7 +1088,8 @@ internal static class ReplayV3Projection
                 : LifeState(value.ActiveLife));
 
     private static ReplayV3.ModeResult ModeResult(
-        GenericActorMatchModeResult value) =>
+        GenericActorMatchModeResult value,
+        bool includesLedger) =>
         value switch
         {
             GenericActorMatchModeResult.Deathmatch deathmatch =>
@@ -1056,7 +1106,9 @@ internal static class ReplayV3Projection
             GenericActorMatchModeResult.Frontline frontline =>
                 new ReplayV3.ModeResult.Frontline(
                     FrontlineEndReason(frontline.Reason),
-                    FrontlineModeState(frontline.Control),
+                    FrontlineModeState(
+                        frontline.Control,
+                        includesLedger),
                     frontline.Scores.Teams
                         .Select(score =>
                             new ReplayV3.FrontlineTeamScore(
@@ -1153,6 +1205,19 @@ internal static class ReplayV3Projection
                 .InitialUnlock => "initial-unlock",
             GenericActorRuntimeObservation.AvailabilityReason
                 .DestructionRecovery => "destruction-recovery",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    private static string SpawnReservationKind(
+        GenericActorRuntimeObservation.SpawnReservationKind value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .AutomaticReturn => "automatic-return",
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .Fabrication => "fabrication",
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .Replication => "replication",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

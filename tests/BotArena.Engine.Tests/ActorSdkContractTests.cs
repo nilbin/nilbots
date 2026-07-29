@@ -119,7 +119,7 @@ public sealed class ActorSdkContractTests
                 .MaxCanonicalContractCollectionCount);
         Assert.Equal(
             Sdk.GenericActorContractVersions.ContractProfileId,
-            Sdk.ActorContractProfile.GenericV2.ProfileId);
+            Sdk.ActorContractProfile.GenericV3.ProfileId);
     }
 
     private static IReadOnlyDictionary<string, Type> PublicEnums(

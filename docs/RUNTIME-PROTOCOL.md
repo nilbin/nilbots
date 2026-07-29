@@ -34,7 +34,7 @@ Hello -> HelloAck -> MatchStart -> Ready
 
 `Hello` may require one exact actor-contract profile. An absent profile selects
 the frozen Frontline-alpha actor contract. The current generic generation
-requires `generic-actor-match-2`. `HelloAck` and `Ready` attest that same exact
+requires `generic-actor-match-3`. `HelloAck` and `Ready` attest that same exact
 selection; a guest cannot downgrade, retry with another generation, or infer a
 generation from later payload bytes. Unknown or unavailable profiles produce a
 typed terminal `Unsupported("actor-contract-profile", ...)` reply before
@@ -91,14 +91,14 @@ union provenance, projectiles, and events. Legacy-only guests keep their
 historical 128 KiB buffer and allocate the larger actor buffer only after
 negotiation.
 
-### Generic actor-match profile 2
+### Generic actor-match profile 3
 
-The generic profile is an all-or-nothing tuple: runtime contract 2,
-MatchStart 2, observation 2, decision 2, and resolved match contract 2. It
+The generic profile is an all-or-nothing tuple: runtime contract 3,
+MatchStart 3, observation 3, decision 2, and resolved match contract 3. It
 does not widen or reinterpret Frontline-alpha's schema-1 objects.
 
 MatchStart carries the exact canonical rules-schema-3/map-format-3/match-
-contract-schema-2 JSON plus its independently recomputed fingerprints,
+contract-schema-3 JSON plus its independently recomputed fingerprints,
 topology, life identity, deterministic seed, and lifecycle origin. Admission
 bounds the canonical contract before any guest receives it:
 
@@ -110,9 +110,14 @@ Per-tick observations use variable, canonically ordered entity collections;
 exact `teamId + unitId + lifeId` identity; participant and lifecycle state;
 nullable capability collections whose `null` and empty meanings differ;
 generic score channels; a tagged mode state; typed events and lineage; and
-per-action legality masks. Decisions use stable action ID/code pairs and a
-bounded tagged argument union. Signed 64-bit projectile and score values keep
-their exact integer meaning across the wire.
+per-action legality masks. Class identity is explicit on teams, participants,
+self, allies, and visible enemies. Active ratchet holds expose their owner and
+inclusive remaining duration. Visible projectile observations include their
+advance cadence and damage, while already-visible tiles expose permanent
+automatic-return claims and due-tick fabrication or replication claims.
+Decisions use stable action ID/code pairs and a bounded tagged argument union.
+Signed 64-bit projectile and score values keep their exact integer meaning
+across the wire.
 
 The SDK parses static canonical contracts without `System.Text.Json`, keeping
 controlled NativeAOT guests below the existing 16 MiB ceiling. Full semantic
@@ -158,11 +163,13 @@ field ID, changing its meaning, or requiring a contract an old guest cannot
 attest requires a new version and explicit eligibility handling.
 
 The Frontline-alpha delivery remains the historical SDK/Guest 0.9.0,
-actor-protocol/configuration 1.0 checkpoint. The generic profile is introduced
+actor-protocol/configuration 1.0 checkpoint. Generic profile 2 was introduced
 by SDK/Guest 0.10.2, extended in 0.10.3 with optional canonical Frontline
 capture-gain schedules, and extended in 0.10.4 with declared delayed first-life
-activation and its distinct life-origin reason. Controlled-build pipeline 4
-remains unchanged, and CLI 0.9.5 carries that SDK. Actor framing and sandbox
-configuration remain 1.0 because these additive static-contract branches do
-not change frame or resource semantics. Legacy duel
-protocol/configuration remain exactly 0.1.
+activation and its distinct life-origin reason. CLI 0.9.5 carried that 0.10.4
+SDK. SDK/Guest 0.11.0 replaces the exact tuple with generic profile 3 and adds
+class identity plus the batched hold, projectile, and spawn-reservation
+observability ledger. Controlled-build pipeline 4 remains unchanged. Actor
+framing and sandbox configuration remain 1.0 because the tagged framing and
+resource semantics do not change. Legacy duel protocol/configuration remain
+exactly 0.1.

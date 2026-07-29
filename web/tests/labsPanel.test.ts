@@ -9,7 +9,7 @@ import {
   LabsPanel,
 } from './.harness/harness.entry.js';
 
-const GENERIC_PROFILE = 'generic-actor-match-2';
+const GENERIC_PROFILE = 'generic-actor-match-3';
 
 test('an eligible Labs panel opens match setup through the shared Play composer', () => {
   const markup = renderPanel({

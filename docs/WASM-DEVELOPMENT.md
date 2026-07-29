@@ -152,13 +152,14 @@ actor protocol/configuration 1.0. The explicit local
 `nilbots experiment frontline` command selects it; historical `play`,
 App/server admission, and ladders do not.
 
-SDK/Guest 0.10.4 carries the separately negotiated
-`generic-actor-match-2` profile and `IGenericActorBot`. Its static match
+SDK/Guest 0.11.0 carries the separately negotiated
+`generic-actor-match-3` profile and `IGenericActorBot`. Its static match
 contract, variable entity observations, generic scores/mode state, typed
 actions/events/lineage, and exact profile attestation do not widen the
-Frontline-alpha objects. Version 0.10.4 adds a data-declared delayed
-first-life activation and distinct parentless origin; it does not silently
-change a hosted lifecycle. One bot type may implement several programming
+Frontline-alpha objects. Version 0.11.0 retains 0.10.4's data-declared delayed
+first-life activation and adds explicit class identity, ratchet-hold ownership
+and remaining duration, projectile cadence and damage, and visible spawn
+reservations. One bot type may implement several programming
 interfaces; controlled-build pipeline 4 detects those interfaces from the
 closed entry type without constructing a throwaway instance. Hosted App
 execution selects the generic Engine host/session only through an immutable

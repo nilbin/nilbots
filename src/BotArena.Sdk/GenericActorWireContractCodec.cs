@@ -1,7 +1,7 @@
 namespace BotArena.Sdk;
 
 /// <summary>
-/// Tagged binary envelope for generic-v2 MatchStart. The embedded static
+/// Tagged binary envelope for generic-v3 MatchStart. The embedded static
 /// contract is always the original Engine-validated canonical UTF-8 JSON,
 /// never a second SDK serialization of the typed view.
 /// </summary>
@@ -120,12 +120,20 @@ internal static class GenericActorWireContractCodec
     {
         string message = "";
         if (value.SchemaVersion
-            != GenericActorContractVersions.MatchStartSchemaVersion)
+                != ActorContractProfile.GenericV2
+                    .MatchStartSchemaVersion
+            && value.SchemaVersion
+                != ActorContractProfile.GenericV3
+                    .MatchStartSchemaVersion)
         {
             message = "MatchStart schema is unsupported.";
         }
         else if (value.RuntimeContractVersion
-            != GenericActorContractVersions.RuntimeContractVersion)
+                != ActorContractProfile.GenericV2
+                    .RuntimeContractVersion
+            && value.RuntimeContractVersion
+                != ActorContractProfile.GenericV3
+                    .RuntimeContractVersion)
         {
             message = "Runtime contract version is unsupported.";
         }

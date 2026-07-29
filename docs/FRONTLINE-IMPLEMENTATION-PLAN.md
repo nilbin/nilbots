@@ -29,7 +29,7 @@ replay-v2 evaluator.
 
 A separate generic successor is also implemented as an off-by-default hosted
 vertical slice: immutable Frontline Labs playlist v1, exact
-`generic-actor-match-2` admission, one setless unranked H2H match between two
+`generic-actor-match-3` admission, one setless unranked H2H match between two
 eligible submitted bots, normalized match-team results, replay 3 with
 broadcast-safe prefixes, and the existing direct match viewer. It adds no
 ladder, season, rating, series settlement, or product verdict. General

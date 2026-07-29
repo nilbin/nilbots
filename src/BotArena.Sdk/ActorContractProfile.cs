@@ -14,6 +14,14 @@ public sealed record ActorContractProfile(
     int MatchContractSchemaVersion)
 {
     public static ActorContractProfile GenericV2 { get; } = new(
+        GenericActorContractVersions.GenericV2ContractProfileId,
+        GenericActorContractVersions.GenericV2RuntimeContractVersion,
+        GenericActorContractVersions.GenericV2MatchStartSchemaVersion,
+        GenericActorContractVersions.GenericV2ObservationSchemaVersion,
+        GenericActorContractVersions.GenericV2DecisionSchemaVersion,
+        GenericActorContractVersions.GenericV2MatchContractSchemaVersion);
+
+    public static ActorContractProfile GenericV3 { get; } = new(
         GenericActorContractVersions.ContractProfileId,
         GenericActorContractVersions.RuntimeContractVersion,
         GenericActorContractVersions.MatchStartSchemaVersion,

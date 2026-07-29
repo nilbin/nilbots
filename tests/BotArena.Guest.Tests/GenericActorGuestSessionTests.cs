@@ -40,12 +40,12 @@ public sealed class GenericActorGuestSessionTests
             ActorWireProtocol.EncodeMatchEnd("life-ended"));
 
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             ActorWireProtocol.DecodeHelloAckContract(ack).SelectedProfile);
         ActorWireReady decodedReady =
             ActorWireProtocol.DecodeReady(ready);
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             decodedReady.SelectedProfile);
         Assert.Equal(
             GenericActorContractVersions.RuntimeContractVersion,
@@ -88,6 +88,37 @@ public sealed class GenericActorGuestSessionTests
         Assert.Throws<FormatException>(
             () => dispatcher.Handle(
                 ActorWireProtocol.EncodeMatchEnd("again")));
+    }
+
+    [Fact]
+    public void DispatcherRunsTheFrozenProfile2LaneWithoutSchema3Fields()
+    {
+        var bot = new RecordingGenericBot();
+        var dispatcher = new ActorGuestDispatcher(
+            actorFactory: null,
+            genericActorFactory: _ => bot);
+        GenericActorMatchStart start =
+            GenericGuestTestFixture.StartV2();
+
+        byte[] ack = Assert.IsType<byte[]>(
+            dispatcher.Handle(GenericGuestTestFixture.GenericV2Hello()));
+        byte[] ready = Assert.IsType<byte[]>(
+            dispatcher.Handle(
+                ActorWireProtocol.EncodeGenericMatchStart("v2-bot", start)));
+        _ = Assert.IsType<byte[]>(
+            dispatcher.Handle(
+                ActorWireProtocol.EncodeGenericObservation(
+                    GenericGuestTestFixture.Context(start))));
+
+        Assert.Equal(
+            ActorContractProfile.GenericV2,
+            ActorWireProtocol.DecodeHelloAckContract(ack).SelectedProfile);
+        Assert.Equal(
+            ActorContractProfile.GenericV2,
+            ActorWireProtocol.DecodeReady(ready).SelectedProfile);
+        Assert.Equal(
+            ActorContractProfile.GenericV2.ObservationSchemaVersion,
+            Assert.Single(bot.ObservedContexts).SchemaVersion);
     }
 
     [Fact]

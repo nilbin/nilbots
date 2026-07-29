@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BotArena.Cli;
+using BotArena.Engine;
 
 namespace BotArena.Cli.Tests;
 
@@ -282,6 +283,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "initiative-planner",
                 "bot-balance-lab-v1.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(3, RunFundamentals(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -365,6 +372,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "house-apprentice",
                 "bot.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(0, RunFundamentals(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -444,6 +457,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "house-apprentice",
                 "bot.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(3, RunTactical(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -547,6 +566,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "arc-apprentice",
                 "bot.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(0, RunTactical(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -679,6 +704,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "arc-apprentice",
                 "bot.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(3, RunPositional(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -767,6 +798,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "breach-apprentice",
                 "bot.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(0, RunPositional(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -822,6 +859,12 @@ public sealed class FrontlineLabsQualificationCommandTests
                 "initiative-planner",
                 "bot-balance-lab-v1.wasm");
 
+            if (AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+                    bot,
+                    temporary))
+            {
+                return;
+            }
             Assert.Equal(0, RunFoundation(bot, temporary));
 
             using JsonDocument document = JsonDocument.Parse(
@@ -1002,6 +1045,50 @@ public sealed class FrontlineLabsQualificationCommandTests
         }
     }
 
+    private static bool AssertFrozenProfile2ArtifactFaultsOnCurrentProfile(
+        string bot,
+        string output)
+    {
+        if (string.Equals(
+                ActorMatchCapabilityVersions.Current.ContractProfileId,
+                "generic-actor-match-2",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // These checked-in WASM files are immutable phase-1 evidence. An exact
+        // profile bump must fault them until their source populations are
+        // rebuilt; do not rewrite the archived artifact to make this test pass.
+        Assert.Equal(2, RunFundamentals(bot, output));
+        using JsonDocument document = JsonDocument.Parse(
+            File.ReadAllText(
+                Path.Combine(output, "qualification.json")));
+        JsonElement root = document.RootElement;
+        Assert.False(root.GetProperty("passed").GetBoolean());
+        Assert.Equal(
+            JsonValueKind.Null,
+            root.GetProperty("tierAwarded").ValueKind);
+        Assert.False(
+            root.GetProperty("balanceEvidenceEligible").GetBoolean());
+        foreach (JsonElement assignment in root.GetProperty("probes")
+                     .EnumerateArray()
+                     .SelectMany(probe =>
+                         probe.GetProperty("assignments")
+                             .EnumerateArray()))
+        {
+            JsonElement primary = assignment.GetProperty("primary");
+            Assert.False(primary.GetProperty("botEligible").GetBoolean());
+            Assert.True(primary.GetProperty("disqualified").GetBoolean());
+            Assert.True(
+                primary.GetProperty("runtimeFaultCount").GetInt32() > 0);
+            Assert.True(
+                primary.GetProperty("faultedTurnCount").GetInt32() > 0);
+            AssertReplayVerifies(output, primary);
+        }
+        return true;
+    }
+
     private static int RunFundamentals(string bot, string output)
     {
         TextWriter originalOut = Console.Out;
@@ -1146,7 +1233,7 @@ public sealed class FrontlineLabsQualificationCommandTests
               {
                 "name": "{{name}}",
                 "entryType": "{{name}}",
-                "sdkVersion": "0.10.4"
+                "sdkVersion": "0.11.0"
               }
               """);
         return directory;

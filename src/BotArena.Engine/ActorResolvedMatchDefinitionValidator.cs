@@ -82,6 +82,7 @@ public static class ActorResolvedMatchDefinitionValidator
 
         if (topologyValid)
         {
+            ValidateClassIdentity(topology, errors);
             ValidateScoreAccumulatorBounds(rules, topology, errors);
             try
             {
@@ -128,6 +129,71 @@ public static class ActorResolvedMatchDefinitionValidator
                 error => $"Format/topology: {error}"));
             return false;
         }
+    }
+
+    private static void ValidateClassIdentity(
+        PublicMatchTopology topology,
+        List<string> errors)
+    {
+        Dictionary<int, string?> classByTeam = topology.Teams
+            .ToDictionary(team => team.TeamId, team => team.ClassId);
+        foreach (PublicScoringTeam team in topology.Teams)
+        {
+            if (team.ClassId is not null
+                && !IsCanonicalSemanticId(team.ClassId))
+            {
+                errors.Add(
+                    $"Scoring team {team.TeamId} class ID "
+                    + $"'{team.ClassId}' is not a lowercase-kebab ID.");
+            }
+        }
+        foreach (PublicParticipant participant in topology.Participants)
+        {
+            if (participant.ClassId is not null
+                && !IsCanonicalSemanticId(participant.ClassId))
+            {
+                errors.Add(
+                    $"Participant {participant.ParticipantId} class ID "
+                    + $"'{participant.ClassId}' is not a lowercase-kebab ID.");
+            }
+            if (classByTeam.TryGetValue(
+                    participant.TeamId,
+                    out string? teamClassId)
+                && !string.Equals(
+                    participant.ClassId,
+                    teamClassId,
+                    StringComparison.Ordinal))
+            {
+                errors.Add(
+                    $"Participant {participant.ParticipantId} class ID must "
+                    + $"exactly match scoring team {participant.TeamId}.");
+            }
+        }
+    }
+
+    private static bool IsCanonicalSemanticId(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length > 64)
+            return false;
+
+        bool needsSegmentStart = true;
+        foreach (char character in value)
+        {
+            if (character == '-')
+            {
+                if (needsSegmentStart)
+                    return false;
+                needsSegmentStart = true;
+                continue;
+            }
+            if (character is not (>= 'a' and <= 'z')
+                and not (>= '0' and <= '9'))
+            {
+                return false;
+            }
+            needsSegmentStart = false;
+        }
+        return !needsSegmentStart;
     }
 
     private static void ValidateRuleCatalogReferences(

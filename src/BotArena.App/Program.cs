@@ -111,6 +111,8 @@ builder.Services.AddScoped<LegacyCompetitionIdentityResolver>();
 builder.Services.AddScoped<LegacyCompetitionIdentityBackfiller>();
 builder.Services.AddScoped<FrontlineLabsPlaylistSeeder>();
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => FrontlineLabsPlaylistDefinition.CreateV1());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => FrontlineLabsPlaylistDefinition.Create());
 builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
 

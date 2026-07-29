@@ -40,6 +40,8 @@ internal static class ActorGuestProtocol
             return ActorGuestContractGeneration.LegacyActorV1;
         if (hello.RequiredProfile == ActorContractProfile.GenericV2)
             return ActorGuestContractGeneration.GenericActorV2;
+        if (hello.RequiredProfile == ActorContractProfile.GenericV3)
+            return ActorGuestContractGeneration.GenericActorV3;
 
         throw new ActorCapabilityNotSupportedException(
             "actor-contract-profile",
@@ -64,6 +66,11 @@ internal static class ActorGuestProtocol
                 ActorWireProtocol.EncodeHelloAck(
                     selected,
                     ActorContractProfile.GenericV2),
+            ActorGuestContractGeneration.GenericActorV3
+                when hello.RequiredProfile == ActorContractProfile.GenericV3 =>
+                ActorWireProtocol.EncodeHelloAck(
+                    selected,
+                    ActorContractProfile.GenericV3),
             _ => throw new FormatException(
                 "Actor contract selection does not match the host Hello."),
         };
@@ -108,11 +115,19 @@ internal static class ActorGuestProtocol
             ActorGuestContractGeneration.GenericActorV2 =>
                 ActorWireProtocol.EncodeReady(
                     MajorVersion,
-                    GenericActorContractVersions.RuntimeContractVersion,
-                    GenericActorContractVersions.MatchStartSchemaVersion,
-                    GenericActorContractVersions.ObservationSchemaVersion,
-                    GenericActorContractVersions.DecisionSchemaVersion,
+                    ActorContractProfile.GenericV2.RuntimeContractVersion,
+                    ActorContractProfile.GenericV2.MatchStartSchemaVersion,
+                    ActorContractProfile.GenericV2.ObservationSchemaVersion,
+                    ActorContractProfile.GenericV2.DecisionSchemaVersion,
                     ActorContractProfile.GenericV2),
+            ActorGuestContractGeneration.GenericActorV3 =>
+                ActorWireProtocol.EncodeReady(
+                    MajorVersion,
+                    ActorContractProfile.GenericV3.RuntimeContractVersion,
+                    ActorContractProfile.GenericV3.MatchStartSchemaVersion,
+                    ActorContractProfile.GenericV3.ObservationSchemaVersion,
+                    ActorContractProfile.GenericV3.DecisionSchemaVersion,
+                    ActorContractProfile.GenericV3),
             _ => throw new InvalidOperationException(
                 "Actor Ready requires a negotiated contract generation."),
         };

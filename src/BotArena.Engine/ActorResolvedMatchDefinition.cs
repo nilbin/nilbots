@@ -9,7 +9,7 @@ namespace BotArena.Engine;
 /// </summary>
 public sealed record ActorResolvedMatchDefinition
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public ActorResolvedMatchDefinition(
         ActorRulesDefinition rules,
@@ -71,7 +71,13 @@ public sealed record ActorResolvedMatchDefinition
         ModeMapBinding = modeMapBinding;
     }
 
-    public int SchemaVersion => CurrentSchemaVersion;
+    /// <summary>
+    /// Frozen canonical envelope selected by the match capability profile.
+    /// Historical profile-2 definitions must remain byte-identical while new
+    /// definitions use <see cref="CurrentSchemaVersion"/>.
+    /// </summary>
+    public int SchemaVersion =>
+        CapabilityVersions.MatchContractSchemaVersion;
     public ActorMatchCapabilityVersions CapabilityVersions { get; }
     public ActorRulesDefinition Rules { get; }
     public ActorMapDefinition Map { get; }

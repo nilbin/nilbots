@@ -149,14 +149,14 @@ internal static class GenericActorWasmTestFixture
     {
         byte[] helloAck = Sdk.ActorWireProtocol.EncodeHelloAck(
             Sdk.ActorWireProtocol.MajorVersion,
-            Sdk.ActorContractProfile.GenericV2);
+            Sdk.ActorContractProfile.GenericV3);
         byte[] ready = Sdk.ActorWireProtocol.EncodeReady(
             Sdk.ActorWireProtocol.MajorVersion,
             Sdk.GenericActorContractVersions.RuntimeContractVersion,
             Sdk.GenericActorContractVersions.MatchStartSchemaVersion,
             Sdk.GenericActorContractVersions.ObservationSchemaVersion,
             Sdk.GenericActorContractVersions.DecisionSchemaVersion,
-            Sdk.ActorContractProfile.GenericV2);
+            Sdk.ActorContractProfile.GenericV3);
         byte[] firstDecision =
             Sdk.ActorWireProtocol.EncodeGenericDecision(
                 Sdk.GenericActorDecision.WithoutArguments(

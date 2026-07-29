@@ -12,8 +12,9 @@ public sealed record FrontlineControlState(
 {
     /// <summary>
     /// The live territory-ratchet hold, or null when no advance is currently
-    /// protected. Only the high-water-mark redeploy policy ever sets it; it is
-    /// kernel-internal and is not part of the public observed control state.
+    /// protected. Only the high-water-mark redeploy policy ever sets it. The
+    /// observation projection exposes its owner and remaining duration while
+    /// retaining this richer authoritative position/tick representation.
     /// </summary>
     public FrontlineRatchetHold? RatchetHold { get; init; }
 }

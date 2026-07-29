@@ -35,7 +35,7 @@ Implementation checkpoint:
   canonical wire IDs, provenance separation, captured capability versions,
   and literal golden fingerprints. Package C is complete.
 - Package D's static and dynamic SDK contract, strict tagged codecs, exact
-  `generic-actor-match-2` negotiation, profile-aware Guest state machine, and
+  `generic-actor-match-3` negotiation, profile-aware Guest state machine, and
   controlled-build capability detection are implemented and independently
   reviewed. The neutral actor runtime boundary executes schema-3 matches and
   replay 3 is the strict generic chronology/result envelope.
@@ -593,7 +593,7 @@ layers:
 - immutable playlist `frontline-labs`, version 1, pins ruleset
   `frontline-labs-1`, map `frontline-labs-01`, head-to-head format,
   `single-match-v1`, direct-challenge admission, and exact contract profile
-  `generic-actor-match-2`;
+  `generic-actor-match-3`;
 - creation accepts exactly two distinct eligible submitted bots. The first
   entrant is owned by the caller; both active versions must have compile-time
   support for the exact generic profile;

@@ -45,6 +45,7 @@ public sealed class GenericActorObservationCodecTests
         Assert.Equal(new string('a', 64), decoded.MatchContractFingerprint);
         Assert.Equal(GenericActorDynamicTestFixture.SelfActor, decoded.Self.ActorId);
         Assert.Equal(2, decoded.Self.Generation);
+        Assert.Equal("striker", decoded.Self.ClassId);
         Assert.Equal("anchor:0:0:4:9",
             decoded.Self.PendingSameLifeTransition?.OperationId);
         Assert.Equal(
@@ -76,8 +77,26 @@ public sealed class GenericActorObservationCodecTests
 
         Assert.Equal([10, 20, 30, 40],
             decoded.Participants.Select(value => value.ParticipantId));
+        Assert.Equal(
+            ["striker", "bulwark", "fabricator", "striker"],
+            decoded.Participants.Select(value => value.ClassId));
         Assert.Equal(long.MaxValue,
             decoded.Participants[0].RuntimeFaultCount);
+        Assert.Equal(
+            "striker",
+            Assert.Single(decoded.Allies).ClassId);
+        Assert.Equal(
+            ["bulwark", "fabricator"],
+            decoded.Enemies.Select(value => value.ClassId));
+        GenericActorContext.SpawnReservation reservation =
+            Assert.Single(
+                decoded.VisibleTiles,
+                tile => tile.SpawnReservation is not null)
+                .SpawnReservation!;
+        Assert.Equal(
+            GenericActorContext.SpawnReservationKind.Fabrication,
+            reservation.Kind);
+        Assert.Equal(12, reservation.DueTick);
         Assert.Equal(4, decoded.Scoreboard.Teams.Length);
         Assert.Equal(
             long.MinValue,
@@ -91,14 +110,58 @@ public sealed class GenericActorObservationCodecTests
         Assert.Equal(long.MaxValue, projectile.ProjectileId);
         Assert.Null(projectile.OwnerActorId);
         Assert.Equal(0, projectile.RemainingTiles);
+        Assert.Equal(1, projectile.TicksPerAdvance);
+        Assert.Equal(3, projectile.Damage);
 
         var mode = Assert.IsType<
             GenericActorContext.ModeObservationState.Frontline>(decoded.Mode);
         Assert.Equal(2, mode.ActivePositionIndex);
         Assert.Equal(0, mode.ClaimingTeamId);
+        Assert.Equal(1, mode.HoldOwnerTeamId);
+        Assert.Equal(3, mode.HoldRemainingTicks);
         Assert.Equal(
             [0, 99],
             decoded.ActionLegalities.Select(value => value.ActionCode));
+    }
+
+    [Fact]
+    public void FrozenSchema2EncodingOmitsTheSchema3Ledger()
+    {
+        GenericActorContext source =
+            GenericActorDynamicTestFixture.Context(
+                schemaVersion:
+                    ActorContractProfile.GenericV2
+                        .ObservationSchemaVersion);
+
+        GenericActorContext decoded =
+            GenericActorWireObservationCodec.Decode(
+                GenericActorWireObservationCodec.Encode(source));
+
+        Assert.Equal(
+            ActorContractProfile.GenericV2.ObservationSchemaVersion,
+            decoded.SchemaVersion);
+        Assert.Null(decoded.Self.ClassId);
+        Assert.All(
+            decoded.Participants,
+            participant => Assert.Null(participant.ClassId));
+        Assert.All(
+            decoded.Allies,
+            ally => Assert.Null(ally.ClassId));
+        Assert.All(
+            decoded.Enemies,
+            enemy => Assert.Null(enemy.ClassId));
+        Assert.DoesNotContain(
+            decoded.VisibleTiles,
+            tile => tile.SpawnReservation is not null);
+        GenericActorContext.ObservedProjectile projectile =
+            Assert.Single(decoded.VisibleProjectiles!.Value);
+        Assert.Equal(projectile.TicksUntilAdvance, projectile.TicksPerAdvance);
+        Assert.Equal(1, projectile.Damage);
+        var mode = Assert.IsType<
+            GenericActorContext.ModeObservationState.Frontline>(
+                decoded.Mode);
+        Assert.Null(mode.HoldOwnerTeamId);
+        Assert.Equal(0, mode.HoldRemainingTicks);
     }
 
     [Fact]
@@ -386,8 +449,10 @@ public sealed class GenericActorObservationCodecTests
                 new Position(1, 1),
                 ProjectileHeading.North,
                 tilesPerAdvance: 1,
+                ticksPerAdvance: 1,
                 ticksUntilAdvance: 1,
                 remainingTiles: -1,
+                damage: 1,
                 []));
     }
 
@@ -477,7 +542,7 @@ public sealed class GenericActorObservationCodecTests
                     teamId: 0,
                     unitId: 9,
                     lifeId: 1)));
-        for (ushort fieldId = 4; fieldId <= 9; fieldId++)
+        for (ushort fieldId = 4; fieldId <= 11; fieldId++)
             malformedProjectile.Field(
                 fieldId,
                 projectile.Required(fieldId));
@@ -498,6 +563,54 @@ public sealed class GenericActorObservationCodecTests
         Assert.Throws<FormatException>(
             () => GenericActorWireObservationCodec.Decode(
                 malformedObservation.ToArray()));
+    }
+
+    [Fact]
+    public void WireRejectsPartialAndExplicitlyInertFrontlineHold()
+    {
+        byte[] encoded = GenericActorWireObservationCodec.EncodeMode(
+            Assert.IsType<
+                GenericActorContext.ModeObservationState.Frontline>(
+                    GenericActorDynamicTestFixture.Context(
+                        includeAllEvents: false).Mode));
+        var mode = new ActorWireObjectReader(encoded, 0);
+        var payload = new ActorWireObjectReader(mode.Required(3), 1);
+
+        byte[] PartialPayload()
+        {
+            var writer = new ActorWireObjectWriter();
+            for (ushort fieldId = 1; fieldId <= 6; fieldId++)
+                writer.Field(fieldId, payload.Required(fieldId));
+            return writer.ToArray();
+        }
+
+        byte[] InertPayload()
+        {
+            var writer = new ActorWireObjectWriter();
+            for (ushort fieldId = 1; fieldId <= 5; fieldId++)
+                writer.Field(fieldId, payload.Required(fieldId));
+            writer.Field(6, ActorWireValue.Int32(0));
+            writer.Field(7, ActorWireValue.Int32(0));
+            return writer.ToArray();
+        }
+
+        byte[] RewritePayload(byte[] replacement)
+        {
+            var writer = new ActorWireObjectWriter();
+            writer.Field(1, mode.Required(1));
+            writer.Field(2, mode.Required(2));
+            writer.Field(3, replacement);
+            return writer.ToArray();
+        }
+
+        Assert.Throws<FormatException>(() =>
+            GenericActorWireObservationCodec.DecodeMode(
+                RewritePayload(PartialPayload()),
+                0));
+        Assert.Throws<FormatException>(() =>
+            GenericActorWireObservationCodec.DecodeMode(
+                RewritePayload(InertPayload()),
+                0));
     }
 
     [Fact]

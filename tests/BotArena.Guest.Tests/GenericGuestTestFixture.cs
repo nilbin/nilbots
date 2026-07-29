@@ -36,6 +36,25 @@ internal static class GenericGuestTestFixture
         };
     }
 
+    public static GenericActorMatchStart StartV2()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.Create();
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(
+                ActorContractManifestSerializer.ToCanonicalJson(source));
+        return Start() with
+        {
+            SchemaVersion =
+                ActorContractProfile.GenericV2.MatchStartSchemaVersion,
+            RuntimeContractVersion =
+                ActorContractProfile.GenericV2.RuntimeContractVersion,
+            ActorId = new ActorIdentity(0, 0, 0),
+            ParticipantId = 0,
+            Contract = contract,
+        };
+    }
+
     public static GenericActorContext Context(
         GenericActorMatchStart start,
         int tick = 0,
@@ -43,7 +62,7 @@ internal static class GenericGuestTestFixture
         int? generation = null,
         string? fingerprint = null) =>
         new(
-            GenericActorContext.CurrentSchemaVersion,
+            start.Contract.CapabilityVersions.ObservationSchemaVersion,
             tick,
             fingerprint ?? start.Contract.MatchContractFingerprint,
             new GenericActorContext.ObservedSelfState(
@@ -125,6 +144,12 @@ internal static class GenericGuestTestFixture
             ]);
 
     public static byte[] GenericHello() =>
+        ActorWireProtocol.EncodeHello(
+            ActorWireProtocol.MajorVersion,
+            ActorWireProtocol.MajorVersion,
+            ActorContractProfile.GenericV3);
+
+    public static byte[] GenericV2Hello() =>
         ActorWireProtocol.EncodeHello(
             ActorWireProtocol.MajorVersion,
             ActorWireProtocol.MajorVersion,

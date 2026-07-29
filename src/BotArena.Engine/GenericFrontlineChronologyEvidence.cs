@@ -452,14 +452,28 @@ internal static class GenericFrontlineChronologyEvidence
     private static GenericActorRuntimeObservation.ModeObservationState
         .Frontline ProjectControl(
             FrontlineGameModeDefinition gameMode,
-            FrontlineControlState control) =>
-        new(
+            FrontlineControlState control)
+    {
+        FrontlineRatchetHold? activeHold =
+            control.RatchetHold is { } hold
+            && hold.HoldsThroughTick >= control.NextTick
+                ? hold
+                : null;
+        return new(
             gameMode.ModeId,
             control.ActivePositionIndex,
             control.ClaimingTeamId,
             control.CaptureProgress,
             control.DecayTicksElapsed,
-            control.ControlResumesAtTick);
+            control.ControlResumesAtTick,
+            activeHold?.TeamId,
+            activeHold is null
+                ? 0
+                : checked(
+                    activeHold.HoldsThroughTick
+                    - control.NextTick
+                    + 1));
+    }
 
     private static bool ScoreboardMatches(
         GenericActorRuntimeObservation.ScoreboardState scoreboard,

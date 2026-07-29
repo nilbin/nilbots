@@ -14,7 +14,7 @@ import {
 } from '../src/site/botContractProfiles';
 import { eligibleLabsPlaylist } from '../src/site/labs';
 
-const GENERIC_PROFILE = 'generic-actor-match-2';
+const GENERIC_PROFILE = 'generic-actor-match-3';
 
 test('legacy Duel treats omitted or null historical metadata as compatible', () => {
   assert.equal(supportsLegacyDuel(undefined), true);

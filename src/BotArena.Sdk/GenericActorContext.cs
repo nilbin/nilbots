@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace BotArena.Sdk;
 
 /// <summary>
-/// Canonical schema-2 public pre-tick input for one generic actor life. Static
+/// Canonical schema-3 public pre-tick input for one generic actor life. Static
 /// rules, map, topology, and counts are joined through the match fingerprint
 /// delivered at life start.
 /// </summary>
@@ -52,11 +52,16 @@ public sealed record GenericActorContext
         ModeObservationState mode,
         IEnumerable<GenericActorActionLegality> actionLegalities)
     {
-        if (schemaVersion != CurrentSchemaVersion)
+        if (schemaVersion
+                != ActorContractProfile.GenericV2
+                    .ObservationSchemaVersion
+            && schemaVersion
+                != ActorContractProfile.GenericV3
+                    .ObservationSchemaVersion)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(schemaVersion),
-                $"Generic actor observations require schema {CurrentSchemaVersion}.");
+                "Generic actor observations require a supported profile's observation schema.");
         }
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
@@ -214,6 +219,10 @@ public sealed record GenericActorContext
         /// <param name="pendingSameLifeTransition">
         /// Current form-transition windup, or <see langword="null"/>.
         /// </param>
+        /// <param name="classId">
+        /// Immutable chassis class, or <see langword="null"/> for a classless
+        /// contract.
+        /// </param>
         public ObservedSelfState(
             ActorIdentity actorId,
             int generation,
@@ -224,7 +233,8 @@ public sealed record GenericActorContext
             int cooldown,
             int? energy,
             GenericActorActionResolution? previousActionResolution,
-            PendingSameLifeTransition? pendingSameLifeTransition)
+            PendingSameLifeTransition? pendingSameLifeTransition,
+            string? classId = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
@@ -245,6 +255,11 @@ public sealed record GenericActorContext
             Energy = energy;
             PreviousActionResolution = previousActionResolution;
             PendingSameLifeTransition = pendingSameLifeTransition;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Exact body-life identity.</summary>
@@ -273,6 +288,10 @@ public sealed record GenericActorContext
         public GenericActorActionResolution? PreviousActionResolution { get; }
         /// <summary>Current same-life transition windup, if any.</summary>
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
+        /// <summary>
+        /// Immutable chassis class, or null for a classless contract.
+        /// </summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -292,6 +311,7 @@ public sealed record GenericActorContext
         /// <param name="energy">Current energy, or <see langword="null"/> if unsupported.</param>
         /// <param name="previousActionResolution">Allied prior action result, if any.</param>
         /// <param name="pendingSameLifeTransition">Allied transition windup, if any.</param>
+        /// <param name="classId">Immutable allied chassis class, if declared.</param>
         public ObservedAllyState(
             ActorIdentity actorId,
             int generation,
@@ -302,7 +322,8 @@ public sealed record GenericActorContext
             int cooldown,
             int? energy,
             GenericActorActionResolution? previousActionResolution,
-            PendingSameLifeTransition? pendingSameLifeTransition)
+            PendingSameLifeTransition? pendingSameLifeTransition,
+            string? classId = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
@@ -323,6 +344,11 @@ public sealed record GenericActorContext
             Energy = energy;
             PreviousActionResolution = previousActionResolution;
             PendingSameLifeTransition = pendingSameLifeTransition;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Exact allied body-life identity.</summary>
@@ -345,6 +371,8 @@ public sealed record GenericActorContext
         public GenericActorActionResolution? PreviousActionResolution { get; }
         /// <summary>Allied same-life transition windup, if any.</summary>
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
+        /// <summary>Immutable allied chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -698,11 +726,13 @@ public sealed record GenericActorContext
         /// <param name="teamId">Assigned scoring-team identifier.</param>
         /// <param name="runtimeFaultCount">Cumulative participant fault count.</param>
         /// <param name="disqualified">Whether the participant is ineligible to continue.</param>
+        /// <param name="classId">Immutable participant chassis class, if declared.</param>
         public ObservedParticipantStatus(
             int participantId,
             int teamId,
             long runtimeFaultCount,
-            bool disqualified)
+            bool disqualified,
+            string? classId = null)
         {
             if (participantId < 0)
                 throw new ArgumentOutOfRangeException(nameof(participantId));
@@ -717,6 +747,11 @@ public sealed record GenericActorContext
             TeamId = teamId;
             RuntimeFaultCount = runtimeFaultCount;
             Disqualified = disqualified;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Submitted-program identifier.</summary>
@@ -727,6 +762,8 @@ public sealed record GenericActorContext
         public long RuntimeFaultCount { get; }
         /// <summary>Whether the participant is ineligible to continue.</summary>
         public bool Disqualified { get; }
+        /// <summary>Immutable participant chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -745,6 +782,7 @@ public sealed record GenericActorContext
         /// <param name="observedBy">
         /// Exact allied life identities whose sensors revealed this state.
         /// </param>
+        /// <param name="classId">Immutable enemy chassis class, if declared.</param>
         public ObservedEnemyState(
             ActorIdentity actorId,
             string formId,
@@ -752,7 +790,8 @@ public sealed record GenericActorContext
             Direction facing,
             int health,
             PendingSameLifeTransition? pendingSameLifeTransition,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            string? classId = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ValidatePosition(position, nameof(position));
@@ -771,6 +810,11 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Exact visible enemy body-life identity.</summary>
@@ -790,6 +834,8 @@ public sealed record GenericActorContext
         /// Empty is valid only under a provenance policy that declares it.
         /// </summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>Immutable enemy chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>One sensor-visible map tile and its observation provenance.</summary>
@@ -799,10 +845,14 @@ public sealed record GenericActorContext
         /// <param name="position">Map coordinate in tiles.</param>
         /// <param name="isWall">Whether the gameplay tile blocks as a wall.</param>
         /// <param name="observedBy">Allied lives whose sensors revealed the tile.</param>
+        /// <param name="spawnReservation">
+        /// Visible lifecycle output claim, or <see langword="null"/>.
+        /// </param>
         public ObservedTile(
             Position position,
             bool isWall,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            SpawnReservation? spawnReservation = null)
         {
             ValidatePosition(position, nameof(position));
             Position = position;
@@ -810,6 +860,7 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            SpawnReservation = spawnReservation;
         }
 
         /// <summary>Map coordinate in tiles.</summary>
@@ -818,6 +869,59 @@ public sealed record GenericActorContext
         public bool IsWall { get; }
         /// <summary>Exact allied lives whose sensors revealed the tile.</summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>
+        /// Visible lifecycle output claim, or null when this tile is not
+        /// reserved for a future or recurring spawn.
+        /// </summary>
+        public SpawnReservation? SpawnReservation { get; }
+    }
+
+    /// <summary>One spawn claim attached to an already visible tile.</summary>
+    public sealed record SpawnReservation
+    {
+        /// <summary>Creates a visible spawn claim.</summary>
+        public SpawnReservation(
+            int teamId,
+            int unitId,
+            SpawnReservationKind kind,
+            int? dueTick)
+        {
+            if (teamId < 0)
+                throw new ArgumentOutOfRangeException(nameof(teamId));
+            if (unitId < 0)
+                throw new ArgumentOutOfRangeException(nameof(unitId));
+            Kind = GenericActorDynamicValueRules.EnumValue(
+                kind,
+                nameof(kind));
+            if (kind == SpawnReservationKind.AutomaticReturn
+                    && dueTick is not null
+                || kind != SpawnReservationKind.AutomaticReturn
+                    && dueTick is null or < 0)
+            {
+                throw new ArgumentException(
+                    "Permanent automatic-return claims omit dueTick; pending lifecycle claims require a non-negative dueTick.",
+                    nameof(dueTick));
+            }
+            TeamId = teamId;
+            UnitId = unitId;
+            DueTick = dueTick;
+        }
+
+        public int TeamId { get; }
+        public int UnitId { get; }
+        public SpawnReservationKind Kind { get; }
+        public int? DueTick { get; }
+    }
+
+    /// <summary>Why a visible tile is unavailable for another spawn.</summary>
+    public enum SpawnReservationKind
+    {
+        /// <summary>A slot's authored return anchor is permanently claimed.</summary>
+        AutomaticReturn = 0,
+        /// <summary>A queued fabrication claimed this output tile.</summary>
+        Fabrication = 1,
+        /// <summary>A queued replication claimed this output tile.</summary>
+        Replication = 2,
     }
 
     /// <summary>
@@ -835,8 +939,10 @@ public sealed record GenericActorContext
         /// <param name="position">Current projectile tile coordinate.</param>
         /// <param name="heading">Current absolute heading sector.</param>
         /// <param name="tilesPerAdvance">Tiles crossed on each advance.</param>
+        /// <param name="ticksPerAdvance">Ticks between scheduled advances.</param>
         /// <param name="ticksUntilAdvance">Ticks until the next advance.</param>
         /// <param name="remainingTiles">Remaining travel budget in tiles.</param>
+        /// <param name="damage">Health points applied on a damaging contact.</param>
         /// <param name="observedBy">Allied lives whose sensors revealed it.</param>
         public ObservedProjectile(
             long projectileId,
@@ -845,8 +951,10 @@ public sealed record GenericActorContext
             Position position,
             ProjectileHeading heading,
             int tilesPerAdvance,
+            int ticksPerAdvance,
             int ticksUntilAdvance,
             int remainingTiles,
+            int damage,
             IEnumerable<ActorIdentity> observedBy)
         {
             if (projectileId < 0)
@@ -863,10 +971,14 @@ public sealed record GenericActorContext
             ValidatePosition(position, nameof(position));
             if (tilesPerAdvance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(tilesPerAdvance));
+            if (ticksPerAdvance <= 0)
+                throw new ArgumentOutOfRangeException(nameof(ticksPerAdvance));
             if (ticksUntilAdvance <= 0)
                 throw new ArgumentOutOfRangeException(nameof(ticksUntilAdvance));
             if (remainingTiles < 0)
                 throw new ArgumentOutOfRangeException(nameof(remainingTiles));
+            if (damage <= 0)
+                throw new ArgumentOutOfRangeException(nameof(damage));
 
             ProjectileId = projectileId;
             OwnerTeamId = ownerTeamId;
@@ -876,8 +988,10 @@ public sealed record GenericActorContext
                 heading,
                 nameof(heading));
             TilesPerAdvance = tilesPerAdvance;
+            TicksPerAdvance = ticksPerAdvance;
             TicksUntilAdvance = ticksUntilAdvance;
             RemainingTiles = remainingTiles;
+            Damage = damage;
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
@@ -898,10 +1012,14 @@ public sealed record GenericActorContext
         public ProjectileHeading Heading { get; }
         /// <summary>Map tiles traversed by each scheduled advance.</summary>
         public int TilesPerAdvance { get; }
+        /// <summary>Ticks between scheduled projectile advances.</summary>
+        public int TicksPerAdvance { get; }
         /// <summary>Authoritative ticks remaining until the next advance.</summary>
         public int TicksUntilAdvance { get; }
         /// <summary>Remaining projectile travel budget in map tiles.</summary>
         public int RemainingTiles { get; }
+        /// <summary>Health points applied by a damaging contact.</summary>
+        public int Damage { get; }
         /// <summary>Exact allied lives whose sensors revealed the projectile.</summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
     }
@@ -2142,13 +2260,23 @@ public sealed record GenericActorContext
             /// <param name="controlResumesAtTick">
             /// Earliest tick on which objective control may resume.
             /// </param>
+            /// <param name="holdOwnerTeamId">
+            /// Team whose high-water mark is protected, or
+            /// <see langword="null"/> when no hold is active.
+            /// </param>
+            /// <param name="holdRemainingTicks">
+            /// Inclusive ticks remaining on the active hold, or zero when
+            /// inactive.
+            /// </param>
             public Frontline(
                 string modeId,
                 int activePositionIndex,
                 int? claimingTeamId,
                 int captureProgress,
                 int decayTicksElapsed,
-                int controlResumesAtTick)
+                int controlResumesAtTick,
+                int? holdOwnerTeamId = null,
+                int holdRemainingTicks = 0)
                 : base(modeId)
             {
                 if (activePositionIndex < 0)
@@ -2167,11 +2295,22 @@ public sealed record GenericActorContext
                     throw new ArgumentOutOfRangeException(
                         nameof(controlResumesAtTick));
                 }
+                if (holdOwnerTeamId is < 0
+                    || holdOwnerTeamId is null
+                        && holdRemainingTicks != 0
+                    || holdOwnerTeamId is not null
+                        && holdRemainingTicks <= 0)
+                {
+                    throw new ArgumentException(
+                        "An active hold requires a non-negative owner and positive remaining ticks; an inactive hold omits its owner and uses zero ticks.");
+                }
                 ActivePositionIndex = activePositionIndex;
                 ClaimingTeamId = claimingTeamId;
                 CaptureProgress = captureProgress;
                 DecayTicksElapsed = decayTicksElapsed;
                 ControlResumesAtTick = controlResumesAtTick;
+                HoldOwnerTeamId = holdOwnerTeamId;
+                HoldRemainingTicks = holdRemainingTicks;
             }
 
             /// <inheritdoc />
@@ -2187,6 +2326,10 @@ public sealed record GenericActorContext
             public int DecayTicksElapsed { get; }
             /// <summary>Earliest authoritative tick on which control may resume.</summary>
             public int ControlResumesAtTick { get; }
+            /// <summary>Team whose high-water mark is protected, if active.</summary>
+            public int? HoldOwnerTeamId { get; }
+            /// <summary>Inclusive ticks left on the active protection hold.</summary>
+            public int HoldRemainingTicks { get; }
         }
     }
 

@@ -15,7 +15,7 @@ import {
   eligibleOwnedLabsRoster,
 } from '../src/site/labs';
 
-const GENERIC_PROFILE = 'generic-actor-match-2';
+const GENERIC_PROFILE = 'generic-actor-match-3';
 
 const playlist: LabsPlaylist = {
   playlistVersionId: '10000000-0000-0000-0000-000000000001',

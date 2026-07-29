@@ -54,16 +54,16 @@ public sealed class ActorGuestNegotiationTests
             ActorGuestProtocol.FormatReady(generation));
 
         Assert.Equal(
-            ActorGuestContractGeneration.GenericActorV2,
+            ActorGuestContractGeneration.GenericActorV3,
             generation);
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             hello.RequiredProfile);
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             ack.SelectedProfile);
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             ready.SelectedProfile);
         Assert.Equal(
             GenericActorContractVersions.RuntimeContractVersion,
@@ -77,6 +77,26 @@ public sealed class ActorGuestNegotiationTests
         Assert.Equal(
             GenericActorContractVersions.DecisionSchemaVersion,
             ready.DecisionSchemaVersion);
+    }
+
+    [Fact]
+    public void FrozenGenericV2ProfileStillSelectsItsExactAckAndReady()
+    {
+        ActorProtocolHello hello = ActorGuestProtocol.ParseHello(
+            ActorGuestProtocol.ParseHostFrame(
+                GenericGuestTestFixture.GenericV2Hello()));
+        ActorGuestContractGeneration generation =
+            ActorGuestProtocol.SelectContractGeneration(hello);
+        ActorWireHelloAck ack = ActorWireProtocol.DecodeHelloAckContract(
+            ActorGuestProtocol.FormatHelloAck(hello, generation));
+        ActorWireReady ready = ActorWireProtocol.DecodeReady(
+            ActorGuestProtocol.FormatReady(generation));
+
+        Assert.Equal(
+            ActorGuestContractGeneration.GenericActorV2,
+            generation);
+        Assert.Equal(ActorContractProfile.GenericV2, ack.SelectedProfile);
+        Assert.Equal(ActorContractProfile.GenericV2, ready.SelectedProfile);
     }
 
     [Fact]
@@ -172,7 +192,7 @@ public sealed class ActorGuestNegotiationTests
         byte[] ack = Assert.IsType<byte[]>(
             dispatcher.Handle(GenericGuestTestFixture.GenericHello()));
         Assert.Equal(
-            ActorContractProfile.GenericV2,
+            ActorContractProfile.GenericV3,
             ActorWireProtocol.DecodeHelloAckContract(ack).SelectedProfile);
         Assert.Throws<FormatException>(
             () => dispatcher.Handle(

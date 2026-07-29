@@ -1479,7 +1479,7 @@ public sealed class FrontlineLabsExperimentCommandTests
               {
                 "name": "{{name}}",
                 "entryType": "{{name}}",
-                "sdkVersion": "0.10.4"
+                "sdkVersion": "0.11.0"
               }
               """);
         return directory;

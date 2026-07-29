@@ -36,7 +36,15 @@ public sealed record GenericActorRuntimeObservation(
         int Cooldown,
         int? Energy,
         GenericActorRuntimeActionResolution? PreviousActionResolution,
-        PendingSameLifeTransition? PendingSameLifeTransition);
+        PendingSameLifeTransition? PendingSameLifeTransition)
+    {
+        /// <summary>
+        /// Immutable chassis class, or null for a classless contract. It is
+        /// copied from the controlling participant rather than inferred from
+        /// <see cref="FormId"/>.
+        /// </summary>
+        public string? ClassId { get; init; }
+    }
 
     public sealed record ObservedAllyState(
         ActorIdentity ActorId,
@@ -48,7 +56,10 @@ public sealed record GenericActorRuntimeObservation(
         int Cooldown,
         int? Energy,
         GenericActorRuntimeActionResolution? PreviousActionResolution,
-        PendingSameLifeTransition? PendingSameLifeTransition);
+        PendingSameLifeTransition? PendingSameLifeTransition)
+    {
+        public string? ClassId { get; init; }
+    }
 
     public sealed record PendingSameLifeTransition(
         string TransitionId,
@@ -184,7 +195,10 @@ public sealed record GenericActorRuntimeObservation(
         int ParticipantId,
         int TeamId,
         long RuntimeFaultCount,
-        bool Disqualified);
+        bool Disqualified)
+    {
+        public string? ClassId { get; init; }
+    }
 
     public sealed record ObservedEnemyState(
         ActorIdentity ActorId,
@@ -193,12 +207,35 @@ public sealed record GenericActorRuntimeObservation(
         Direction Facing,
         int Health,
         PendingSameLifeTransition? PendingSameLifeTransition,
-        ImmutableArray<ActorIdentity> ObservedBy);
+        ImmutableArray<ActorIdentity> ObservedBy)
+    {
+        public string? ClassId { get; init; }
+    }
 
     public sealed record ObservedTile(
         Position Position,
         bool IsWall,
-        ImmutableArray<ActorIdentity> ObservedBy);
+        ImmutableArray<ActorIdentity> ObservedBy)
+    {
+        /// <summary>
+        /// A lifecycle output claim currently making this visible tile
+        /// unavailable. Null means the tile has no spawn claim.
+        /// </summary>
+        public SpawnReservation? SpawnReservation { get; init; }
+    }
+
+    public sealed record SpawnReservation(
+        int TeamId,
+        int UnitId,
+        SpawnReservationKind Kind,
+        int? DueTick);
+
+    public enum SpawnReservationKind
+    {
+        AutomaticReturn = 0,
+        Fabrication = 1,
+        Replication = 2,
+    }
 
     public sealed record ObservedProjectile(
         long ProjectileId,
@@ -207,8 +244,10 @@ public sealed record GenericActorRuntimeObservation(
         Position Position,
         ProjectileHeading Heading,
         int TilesPerAdvance,
+        int TicksPerAdvance,
         int TicksUntilAdvance,
         int RemainingTiles,
+        int Damage,
         ImmutableArray<ActorIdentity> ObservedBy);
 
     public sealed record ObservedSound(
@@ -468,7 +507,9 @@ public sealed record GenericActorRuntimeObservation(
                 int? claimingTeamId,
                 int captureProgress,
                 int decayTicksElapsed,
-                int controlResumesAtTick)
+                int controlResumesAtTick,
+                int? holdOwnerTeamId = null,
+                int holdRemainingTicks = 0)
                 : base(modeId)
             {
                 ActivePositionIndex = activePositionIndex;
@@ -476,6 +517,8 @@ public sealed record GenericActorRuntimeObservation(
                 CaptureProgress = captureProgress;
                 DecayTicksElapsed = decayTicksElapsed;
                 ControlResumesAtTick = controlResumesAtTick;
+                HoldOwnerTeamId = holdOwnerTeamId;
+                HoldRemainingTicks = holdRemainingTicks;
             }
 
             public int ActivePositionIndex { get; }
@@ -483,6 +526,8 @@ public sealed record GenericActorRuntimeObservation(
             public int CaptureProgress { get; }
             public int DecayTicksElapsed { get; }
             public int ControlResumesAtTick { get; }
+            public int? HoldOwnerTeamId { get; }
+            public int HoldRemainingTicks { get; }
         }
     }
 }

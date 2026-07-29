@@ -15,17 +15,20 @@ internal sealed class GenericActorGuestSession
     private readonly ActorIdentity _actorId;
     private readonly int _generation;
     private readonly string _contractFingerprint;
+    private readonly ActorContractProfile _profile;
     private int? _lastTick;
 
     private GenericActorGuestSession(
         IGenericActorBot bot,
-        GenericActorMatchStart start)
+        GenericActorMatchStart start,
+        ActorContractProfile profile)
     {
         _bot = bot;
         _random = new GuestRandom(start.ActorRandomSeed);
         _actorId = start.ActorId;
         _generation = start.Origin.Generation;
         _contractFingerprint = start.Contract.MatchContractFingerprint;
+        _profile = profile;
         _bot.StartLife(start);
     }
 
@@ -36,18 +39,21 @@ internal sealed class GenericActorGuestSession
         ArgumentNullException.ThrowIfNull(envelope);
         ArgumentNullException.ThrowIfNull(envelope.Start);
         ArgumentNullException.ThrowIfNull(botFactory);
-        ValidateStart(envelope.Start);
+        ActorContractProfile profile = ValidateStart(envelope.Start);
         IGenericActorBot bot = botFactory(envelope.BotName)
             ?? throw new InvalidOperationException(
                 "Generic actor bot factory returned null.");
-        return new GenericActorGuestSession(bot, envelope.Start);
+        return new GenericActorGuestSession(
+            bot,
+            envelope.Start,
+            profile);
     }
 
     public GenericActorDecision HandleTick(GenericActorContext observation)
     {
         ArgumentNullException.ThrowIfNull(observation);
         if (observation.SchemaVersion
-            != GenericActorContractVersions.ObservationSchemaVersion)
+            != _profile.ObservationSchemaVersion)
         {
             throw new FormatException(
                 $"Generic actor observation schema {observation.SchemaVersion} is unsupported.");
@@ -92,12 +98,26 @@ internal sealed class GenericActorGuestSession
                 MaxDiagnosticBytes));
     }
 
-    private static void ValidateStart(GenericActorMatchStart start)
+    private static ActorContractProfile ValidateStart(
+        GenericActorMatchStart start)
     {
-        if (start.SchemaVersion
-                != GenericActorContractVersions.MatchStartSchemaVersion
+        GenericActorResolvedMatchContract contract = start.Contract;
+        GenericActorResolvedMatchContract.CapabilityVersionSet capabilities =
+            contract.CapabilityVersions;
+        ActorContractProfile profile =
+            capabilities.ContractProfileId switch
+            {
+                GenericActorContractVersions
+                    .GenericV2ContractProfileId =>
+                    ActorContractProfile.GenericV2,
+                GenericActorContractVersions.ContractProfileId =>
+                    ActorContractProfile.GenericV3,
+                _ => throw new FormatException(
+                    "Generic actor MatchStart capability profile is unsupported."),
+            };
+        if (start.SchemaVersion != profile.MatchStartSchemaVersion
             || start.RuntimeContractVersion
-                != GenericActorContractVersions.RuntimeContractVersion)
+                != profile.RuntimeContractVersion)
         {
             throw new FormatException(
                 "Generic actor MatchStart contract or schema version is unsupported.");
@@ -107,22 +127,21 @@ internal sealed class GenericActorGuestSession
             throw new FormatException(
                 "Generic actor participant ID cannot be negative.");
         }
-        if (start.Contract.SchemaVersion
-                != GenericActorContractVersions.MatchContractSchemaVersion
-            || !string.Equals(
-                start.Contract.CapabilityVersions.ContractProfileId,
-                GenericActorContractVersions.ContractProfileId,
-                StringComparison.Ordinal)
-            || start.Contract.CapabilityVersions.RuntimeContractVersion
-                != GenericActorContractVersions.RuntimeContractVersion
-            || start.Contract.CapabilityVersions.MatchStartSchemaVersion
-                != GenericActorContractVersions.MatchStartSchemaVersion
-            || start.Contract.CapabilityVersions.ObservationSchemaVersion
-                != GenericActorContractVersions.ObservationSchemaVersion
-            || start.Contract.CapabilityVersions.DecisionSchemaVersion
-                != GenericActorContractVersions.DecisionSchemaVersion
-            || start.Contract.CapabilityVersions.MatchContractSchemaVersion
-                != GenericActorContractVersions.MatchContractSchemaVersion)
+        if (contract.SchemaVersion != profile.MatchContractSchemaVersion
+            || capabilities.RuntimeProtocolVersion
+                != GenericActorContractVersions.RuntimeProtocolVersion
+            || capabilities.RuntimeConfigurationVersion
+                != GenericActorContractVersions.RuntimeConfigurationVersion
+            || capabilities.RuntimeContractVersion
+                != profile.RuntimeContractVersion
+            || capabilities.MatchStartSchemaVersion
+                != profile.MatchStartSchemaVersion
+            || capabilities.ObservationSchemaVersion
+                != profile.ObservationSchemaVersion
+            || capabilities.DecisionSchemaVersion
+                != profile.DecisionSchemaVersion
+            || capabilities.MatchContractSchemaVersion
+                != profile.MatchContractSchemaVersion)
         {
             throw new FormatException(
                 "Generic actor MatchStart capability profile is unsupported.");
@@ -138,6 +157,7 @@ internal sealed class GenericActorGuestSession
             throw new FormatException(
                 "Generic actor MatchStart life origin is invalid.");
         }
+        return profile;
     }
 
     private static string? CombineDebug(string? returned, string? collected)

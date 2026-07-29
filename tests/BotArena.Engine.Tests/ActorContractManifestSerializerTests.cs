@@ -482,8 +482,65 @@ public sealed class ActorContractManifestSerializerTests
             "a83214570e1989e3bc170b80744a26b82d69abc272c6d0997789a11f26acd58a",
             actual[3]);
         Assert.Equal(
-            "74eae450caceb0cc83851686fc277a300785d48c501c6824cc36dbbf1d44e218",
+            "e15c9a316fd79a8c489fb50be21f8381d7dd1f99b88606f17fc73c985472f4fd",
             actual[4]);
+    }
+
+    [Fact]
+    public void ClassIdentityMovesTopologyAndMatchButNotRulesBytes()
+    {
+        ActorRulesDefinition rules = CreateRules();
+        ActorMapDefinition map = CreateMap();
+        var format = new HeadToHeadMatchFormatDefinition();
+        PublicMatchTopology classlessTopology =
+            CreateTopology([[10], [20]]);
+        PublicMatchTopology classedTopology = classlessTopology with
+        {
+            Teams = classlessTopology.Teams
+                .Select(team => team with
+                {
+                    ClassId = team.TeamId == 0
+                        ? "bulwark"
+                        : "striker",
+                })
+                .ToImmutableArray(),
+            Participants = classlessTopology.Participants
+                .Select(participant => participant with
+                {
+                    ClassId = participant.TeamId == 0
+                        ? "bulwark"
+                        : "striker",
+                })
+                .ToImmutableArray(),
+        };
+        ActorResolvedMatchDefinition classless = Resolve(
+            rules,
+            map,
+            format,
+            classlessTopology,
+            ["west", "east"]);
+        ActorResolvedMatchDefinition classed = Resolve(
+            rules,
+            map,
+            format,
+            classedTopology,
+            ["west", "east"]);
+
+        Assert.Equal(
+            "95b203b1966d7d7ccec38d4b6c1c51561bae2527ddcccb2e1249e744bef7f1c1",
+            ActorContractFingerprint.ComputeRules(rules));
+        Assert.Equal(
+            "a83214570e1989e3bc170b80744a26b82d69abc272c6d0997789a11f26acd58a",
+            ActorContractFingerprint.ComputeTopology(classlessTopology));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeTopology(classlessTopology),
+            ActorContractFingerprint.ComputeTopology(classedTopology));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeMatch(classless),
+            ActorContractFingerprint.ComputeMatch(classed));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeRules(classless.Rules),
+            ActorContractFingerprint.ComputeRules(classed.Rules));
     }
 
     [Fact]
@@ -521,7 +578,7 @@ public sealed class ActorContractManifestSerializerTests
         using JsonDocument document = JsonDocument.Parse(first);
         JsonElement root = document.RootElement;
         Assert.Equal(
-            ActorContractManifestSerializer.MatchContractSchemaVersion,
+            capabilities.MatchContractSchemaVersion,
             root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal(
             [

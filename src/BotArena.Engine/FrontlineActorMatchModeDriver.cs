@@ -197,14 +197,28 @@ internal sealed class FrontlineActorMatchModeDriver
     }
 
     private GenericActorRuntimeObservation.ModeObservationState.Frontline
-        ProjectControl(FrontlineControlState control) =>
-        new(
+        ProjectControl(FrontlineControlState control)
+    {
+        FrontlineRatchetHold? activeHold =
+            control.RatchetHold is { } hold
+            && hold.HoldsThroughTick >= control.NextTick
+                ? hold
+                : null;
+        return new(
             _gameMode.ModeId,
             control.ActivePositionIndex,
             control.ClaimingTeamId,
             control.CaptureProgress,
             control.DecayTicksElapsed,
-            control.ControlResumesAtTick);
+            control.ControlResumesAtTick,
+            activeHold?.TeamId,
+            activeHold is null
+                ? 0
+                : checked(
+                    activeHold.HoldsThroughTick
+                    - control.NextTick
+                    + 1));
+    }
 
     private static ImmutableArray<GenericActorModeScoreChange> ScoreChanges(
         FrontlineScoreState previous,

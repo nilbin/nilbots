@@ -114,9 +114,13 @@ public sealed class WasmGenericActorRuntime : IGenericActorRuntime
 
         try
         {
+            BotArena.Sdk.ActorContractProfile requiredProfile =
+                GenericActorWasmProtocol.RequiredProfile(start);
             GenericActorRuntimeReply helloReply = Exchange(
-                GenericActorWasmProtocol.FormatHello());
-            GenericActorWasmProtocol.ParseHelloAck(helloReply.Bytes);
+                GenericActorWasmProtocol.FormatHello(requiredProfile));
+            GenericActorWasmProtocol.ParseHelloAck(
+                helloReply.Bytes,
+                requiredProfile);
 
             GenericActorRuntimeReply readyReply = Exchange(
                 GenericActorWasmProtocol.FormatMatchStart(

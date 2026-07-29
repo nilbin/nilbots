@@ -61,8 +61,13 @@ catalog, routes, and legality masks; never assume your class's shape.
 
 ## Reading the class from the contract
 
-- Your forms carry your class prefix (`striker-prime`, `bulwark-child-turret`,
-  …); the enemy's visible `FormId`s carry theirs.
+- At `StartLife`, read `start.Contract.Topology.Teams[].ClassId` or the
+  participant's `ClassId`; both sides' declared classes are explicit and must
+  agree. A classless contract reports `null`.
+- Each tick, `context.Self.ClassId` gives your class directly.
+  `context.Participants[].ClassId` keeps both sides public, and visible allied
+  or enemy bodies carry their own `ClassId`. Do not parse a `FormId` prefix to
+  recover any of these facts.
 - Prefer conditioning on the enemy's *stats and routes* (health, cooldown,
   anchor routes, fabrication routes) over its name — stat-based counters
   generalize to classes that do not exist yet.

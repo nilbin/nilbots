@@ -252,7 +252,7 @@ export const botsFixture = [
       artifactHash: '4f9229f8eb7b7725',
       supportedContractProfiles: [
         'legacy-duel-0.1',
-        'generic-actor-match-2',
+        'generic-actor-match-3',
       ],
     },
     currentStanding: {
@@ -305,7 +305,7 @@ export const botsFixture = [
       artifactHash: '9f31c0a4b7de51aa',
       supportedContractProfiles: [
         'legacy-duel-0.1',
-        'generic-actor-match-2',
+        'generic-actor-match-3',
       ],
     },
     currentStanding: pincerStanding,
@@ -519,7 +519,7 @@ export const labsCatalogFixture = {
       participantCount: 2,
       scoringTeamCount: 2,
       participantsPerTeam: 1,
-      requiredContractProfileId: 'generic-actor-match-2',
+      requiredContractProfileId: 'generic-actor-match-3',
     },
   ],
 } satisfies LabsCatalog;
@@ -549,7 +549,7 @@ export const botDetailFixture = {
       sources: null,
       supportedContractProfiles: [
         'legacy-duel-0.1',
-        'generic-actor-match-2',
+        'generic-actor-match-3',
       ],
     },
     {

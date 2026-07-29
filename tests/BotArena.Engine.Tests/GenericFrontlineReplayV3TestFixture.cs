@@ -43,7 +43,8 @@ internal static class GenericFrontlineReplayV3TestFixture
     public static ActorResolvedMatchDefinition Definition(
         int maxTicks = 1,
         bool quickBreach = false,
-        int quickBreachRedeployPauseTicks = 0)
+        int quickBreachRedeployPauseTicks = 0,
+        ActorMatchCapabilityVersions? capabilityVersions = null)
     {
         ActorResolvedMatchDefinition baseline =
             GenericActorContractTestFixture.Frontline();
@@ -189,6 +190,89 @@ internal static class GenericFrontlineReplayV3TestFixture
             baseline.LifecycleAssignments,
             baseline.ParticipantRegionAssignments,
             modeMapBinding,
+            capabilityVersions ?? baseline.CapabilityVersions);
+    }
+
+    public static ActorResolvedMatchDefinition
+        ClassedStickyProbeDefinition()
+    {
+        ActorResolvedMatchDefinition baseline = Definition(
+            maxTicks: 2,
+            quickBreach: true);
+        var sourceMode = Assert.IsType<FrontlineGameModeDefinition>(
+            baseline.Rules.GameMode);
+        FrontlineCaptureDefinition sourceCapture = sourceMode.Capture;
+        var capture = new FrontlineCaptureDefinition(
+            sourceCapture.Threshold,
+            sourceCapture.GainPerSoleTeamTick,
+            sourceCapture.DecayAmount,
+            sourceCapture.DecayIntervalTicks,
+            sourceCapture.RedeployPauseTicks,
+            sourceCapture.GainSchedule,
+            sourceCapture.ControlPolicy,
+            sourceCapture.DecayClock,
+            FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks,
+            ratchetHoldTicks: 4);
+        var mode = new FrontlineGameModeDefinition(
+            sourceMode.FrontlineVictory,
+            sourceMode.ScoreCatalog,
+            sourceMode.FrontlinePositionCount,
+            capture);
+        ActorVisionProfileDefinition sourceVision =
+            baseline.Rules.VisionProfiles.Single();
+        var vision = new ActorVisionProfileDefinition(
+            sourceVision.Id,
+            range: 8,
+            sourceVision.DistanceMetric,
+            ActorVisionShape.Omnidirectional,
+            omnidirectionalProximityRange: 8,
+            sourceVision.LineOfSight,
+            sourceVision.HearingRadius,
+            sourceVision.HearingBearingSectors,
+            sourceVision.HearingBearingModel,
+            sourceVision.HearingDistanceBandUpperBounds,
+            sourceVision.LoudEventKinds);
+        ActorRulesDefinition source = baseline.Rules;
+        var rules = new ActorRulesDefinition(
+            "generic-frontline-class-observation-probe",
+            source.Limits,
+            source.SeedMechanics,
+            mode,
+            source.Lifecycle,
+            source.Forms,
+            source.MovementProfiles,
+            [vision],
+            source.AttackProfiles,
+            source.Actions,
+            source.FabricationTransitions,
+            source.SameLifeTransitions,
+            source.ReplicationTransitions,
+            source.TeamPerception,
+            source.Collisions,
+            source.TickResolution);
+        PublicMatchTopology topology = baseline.Topology with
+        {
+            Teams =
+            [
+                new PublicScoringTeam(0, "bulwark"),
+                new PublicScoringTeam(1, "striker"),
+            ],
+            Participants =
+            [
+                new PublicParticipant(10, 0, "bulwark"),
+                new PublicParticipant(20, 1, "striker"),
+            ],
+        };
+        return new ActorResolvedMatchDefinition(
+            rules,
+            baseline.Map,
+            baseline.Format,
+            topology,
+            baseline.InitialDeployment,
+            baseline.LifecycleAssignments,
+            baseline.ParticipantRegionAssignments,
+            baseline.ModeMapBinding,
             baseline.CapabilityVersions);
     }
 }

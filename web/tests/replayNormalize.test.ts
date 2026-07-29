@@ -886,6 +886,175 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
   }
 });
 
+test('historical profile-2 replay-v3 remains readable with derived projectile fields', () => {
+  const raw = historicalReplayV3FixtureText();
+  const decoded = decodeReplayJson(raw);
+  const replay = decoded.replay;
+  const projectile = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleProjectiles ?? [])
+    .at(0);
+
+  assert.equal(decoded.replayVersion, 3);
+  assert.equal(
+    (decoded.wire as ReplayV3Document).header.runtime
+      .observationSchemaVersion,
+    2,
+  );
+  assert.equal(projectile?.ticksPerAdvance, 1);
+  assert.equal(projectile?.damage, 1);
+  assert.ok(
+    replay.ticks
+      .flatMap((tick) => tick.actorTurns)
+      .flatMap((turn) => turn.observation.visibleTiles)
+      .every((tile) => tile.spawnReservation === null),
+  );
+  assert.equal(JSON.stringify(decoded.wire), raw);
+  assert.equal(decoded.rawJson, raw);
+});
+
+test('replay-v3 carries typed class identity through topology and both observed sides', () => {
+  const input = replayV3FixtureInput();
+  const classForTeam = (teamId: number) =>
+    teamId === 0 ? 'bulwark' : 'striker';
+  input.header.contract.topology.teams.forEach((team) => {
+    team.classId = classForTeam(team.teamId);
+  });
+  input.header.contract.topology.participants.forEach((participant) => {
+    participant.classId = classForTeam(participant.teamId);
+  });
+  const worlds = [
+    input.initialFrame.state,
+    ...input.ticks.flatMap((tick) => [
+      tick.tickStart.state,
+      tick.postState,
+    ]),
+  ];
+  worlds.forEach((world) => {
+    world.participants.forEach((participant) => {
+      participant.classId = classForTeam(participant.teamId);
+    });
+  });
+  input.ticks.forEach((tick) => {
+    tick.actorTurns.forEach((turn) => {
+      const observation = turn.observation;
+      observation.self.classId = classForTeam(
+        observation.self.actorId.teamId,
+      );
+      observation.participants.forEach((participant) => {
+        participant.classId = classForTeam(participant.teamId);
+      });
+      [...observation.allies, ...observation.enemies].forEach((actor) => {
+        actor.classId = classForTeam(actor.actorId.teamId);
+      });
+    });
+  });
+
+  const replay = decodeReplay(input).replay;
+  assert.deepEqual(
+    replay.teams.map((team) => team.classId),
+    ['bulwark', 'striker'],
+  );
+  assert.deepEqual(
+    replay.participants.map((participant) => participant.classId),
+    ['bulwark', 'striker'],
+  );
+  assert.ok(
+    replay.ticks.every((tick) =>
+      tick.actorTurns.every(
+        (turn) =>
+          turn.observation.self?.classId ===
+          classForTeam(turn.actor.teamId),
+      ),
+    ),
+  );
+  const observedEnemy = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.enemies)
+    .at(0);
+  assert.equal(
+    observedEnemy?.classId,
+    observedEnemy?.actor.kind === 'exact'
+      ? classForTeam(observedEnemy.actor.identity.teamId)
+      : classForTeam(observedEnemy?.actor.teamId ?? -1),
+  );
+});
+
+test('replay-v3 rejects explicitly inert class and hold encodings', () => {
+  const explicitNullClass = replayV3FixtureInput();
+  (
+    explicitNullClass.header.contract.topology.teams[0] as unknown as {
+      classId: null;
+    }
+  ).classId = null;
+  assert.throws(
+    () => decodeReplay(explicitNullClass),
+    /topology\.teams\[0\]\.classId/,
+  );
+
+  const partialHold = adaptReplayV3ToFrontline(replayV3FixtureInput());
+  if (partialHold.initialFrame.state.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline mode');
+  }
+  partialHold.initialFrame.state.mode.holdOwnerTeamId = 0;
+  assert.throws(
+    () => decodeReplay(partialHold),
+    /holdOwnerTeamId and holdRemainingTicks must be encoded together/,
+  );
+
+  const inertHold = adaptReplayV3ToFrontline(replayV3FixtureInput());
+  if (inertHold.initialFrame.state.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline mode');
+  }
+  inertHold.initialFrame.state.mode.holdOwnerTeamId = 0;
+  inertHold.initialFrame.state.mode.holdRemainingTicks = 0;
+  assert.throws(
+    () => decodeReplay(inertHold),
+    /holdRemainingTicks: must be positive when a hold is encoded/,
+  );
+});
+
+test('replay-v3 preserves projectile threat and spawn claims and rejects causal drift', () => {
+  const replay = decodeReplay(replayV3FixtureInput()).replay;
+  const projectile = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleProjectiles ?? [])
+    .at(0);
+  const reservation = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleTiles)
+    .map((tile) => tile.spawnReservation)
+    .find((claim) => claim !== null);
+
+  assert.equal(projectile?.ticksPerAdvance, 1);
+  assert.equal(projectile?.damage, 1);
+  assert.equal(reservation?.kind, 'automatic-return');
+  assert.equal(reservation?.dueTick, null);
+
+  const projectileDrift = replayV3FixtureInput();
+  const observedProjectile = projectileDrift.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleProjectiles ?? [])
+    .at(0)!;
+  observedProjectile.ticksPerAdvance += 1;
+  assert.throws(
+    () => decodeReplay(projectileDrift),
+    /must match the authoritative projectile and attack profile/,
+  );
+
+  const reservationDrift = replayV3FixtureInput();
+  const observedReservation = reservationDrift.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleTiles)
+    .map((tile) => tile.spawnReservation)
+    .find((claim) => claim !== undefined)!;
+  observedReservation.unitId += 1;
+  assert.throws(
+    () => decodeReplay(reservationDrift),
+    /must match the authoritative tick-start spawn claim/,
+  );
+});
+
 test('replay-v3 accepts a declared automatic return at the tick-start boundary', () => {
   const fixture = replayV3FixtureInput();
   const before = structuredClone(fixture.initialFrame.state);
@@ -1255,6 +1424,8 @@ test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and
       captureProgress: 0,
       decayTicksElapsed: 0,
       controlResumesAtTick: 0,
+      holdOwnerTeamId: null,
+      holdRemainingTicks: 0,
     },
     scores: [
       {
@@ -1908,6 +2079,16 @@ function replayFixtureText(name: string): string {
 }
 
 function replayV3FixtureText(): string {
+  return readFileSync(
+    new URL(
+      '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3-profile3.json',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+}
+
+function historicalReplayV3FixtureText(): string {
   return readFileSync(
     new URL(
       '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',

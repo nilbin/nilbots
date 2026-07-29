@@ -38,21 +38,28 @@ internal static class GenericActorSdkModelMapper
         GenericActorRuntimeObservation observation)
     {
         ArgumentNullException.ThrowIfNull(observation);
+        bool includesLedger = observation.SchemaVersion >= 3;
         return new Sdk.GenericActorContext(
             observation.SchemaVersion,
             observation.Tick,
             observation.MatchContractFingerprint,
-            ToSdk(observation.Self),
+            ToSdk(observation.Self, includesLedger),
             observation.TeamUnits.Select(ToSdk),
-            observation.Participants.Select(ToSdk),
-            observation.Allies.Select(ToSdk),
-            observation.Enemies.Select(ToSdk),
-            observation.VisibleTiles.Select(ToSdk),
-            observation.VisibleProjectiles?.Select(ToSdk),
-            observation.VisibleEvents.Select(ToSdk),
+            observation.Participants.Select(value =>
+                ToSdk(value, includesLedger)),
+            observation.Allies.Select(value =>
+                ToSdk(value, includesLedger)),
+            observation.Enemies.Select(value =>
+                ToSdk(value, includesLedger)),
+            observation.VisibleTiles.Select(value =>
+                ToSdk(value, includesLedger)),
+            observation.VisibleProjectiles?.Select(value =>
+                ToSdk(value, includesLedger)),
+            observation.VisibleEvents.Select(value =>
+                ToSdk(value, includesLedger)),
             observation.HeardSounds?.Select(ToSdk),
             ToSdk(observation.Scoreboard),
-            ToSdk(observation.Mode),
+            ToSdk(observation.Mode, includesLedger),
             observation.ActionLegalities.Select(ToSdk));
     }
 
@@ -71,7 +78,8 @@ internal static class GenericActorSdkModelMapper
     }
 
     private static Sdk.GenericActorContext.ObservedSelfState ToSdk(
-        GenericActorRuntimeObservation.ObservedSelfState value) =>
+        GenericActorRuntimeObservation.ObservedSelfState value,
+        bool includesLedger) =>
         new(
             ToSdk(value.ActorId),
             value.Generation,
@@ -82,10 +90,12 @@ internal static class GenericActorSdkModelMapper
             value.Cooldown,
             value.Energy,
             ToSdk(value.PreviousActionResolution),
-            ToSdk(value.PendingSameLifeTransition));
+            ToSdk(value.PendingSameLifeTransition),
+            includesLedger ? value.ClassId : null);
 
     private static Sdk.GenericActorContext.ObservedAllyState ToSdk(
-        GenericActorRuntimeObservation.ObservedAllyState value) =>
+        GenericActorRuntimeObservation.ObservedAllyState value,
+        bool includesLedger) =>
         new(
             ToSdk(value.ActorId),
             value.Generation,
@@ -96,7 +106,8 @@ internal static class GenericActorSdkModelMapper
             value.Cooldown,
             value.Energy,
             ToSdk(value.PreviousActionResolution),
-            ToSdk(value.PendingSameLifeTransition));
+            ToSdk(value.PendingSameLifeTransition),
+            includesLedger ? value.ClassId : null);
 
     private static Sdk.GenericActorContext.PendingSameLifeTransition? ToSdk(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -160,15 +171,18 @@ internal static class GenericActorSdkModelMapper
         };
 
     private static Sdk.GenericActorContext.ObservedParticipantStatus ToSdk(
-        GenericActorRuntimeObservation.ObservedParticipantStatus value) =>
+        GenericActorRuntimeObservation.ObservedParticipantStatus value,
+        bool includesLedger) =>
         new(
             value.ParticipantId,
             value.TeamId,
             value.RuntimeFaultCount,
-            value.Disqualified);
+            value.Disqualified,
+            includesLedger ? value.ClassId : null);
 
     private static Sdk.GenericActorContext.ObservedEnemyState ToSdk(
-        GenericActorRuntimeObservation.ObservedEnemyState value) =>
+        GenericActorRuntimeObservation.ObservedEnemyState value,
+        bool includesLedger) =>
         new(
             ToSdk(value.ActorId),
             value.FormId,
@@ -176,17 +190,31 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.Facing),
             value.Health,
             ToSdk(value.PendingSameLifeTransition),
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            includesLedger ? value.ClassId : null);
 
     private static Sdk.GenericActorContext.ObservedTile ToSdk(
-        GenericActorRuntimeObservation.ObservedTile value) =>
+        GenericActorRuntimeObservation.ObservedTile value,
+        bool includesLedger) =>
         new(
             ToSdk(value.Position),
             value.IsWall,
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            includesLedger ? ToSdk(value.SpawnReservation) : null);
+
+    private static Sdk.GenericActorContext.SpawnReservation? ToSdk(
+        GenericActorRuntimeObservation.SpawnReservation? value) =>
+        value is null
+            ? null
+            : new(
+                value.TeamId,
+                value.UnitId,
+                ToSdk(value.Kind),
+                value.DueTick);
 
     private static Sdk.GenericActorContext.ObservedProjectile ToSdk(
-        GenericActorRuntimeObservation.ObservedProjectile value) =>
+        GenericActorRuntimeObservation.ObservedProjectile value,
+        bool includesLedger) =>
         new(
             value.ProjectileId,
             value.OwnerTeamId,
@@ -194,8 +222,12 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.Position),
             ToSdk(value.Heading),
             value.TilesPerAdvance,
+            includesLedger
+                ? value.TicksPerAdvance
+                : value.TicksUntilAdvance,
             value.TicksUntilAdvance,
             value.RemainingTiles,
+            includesLedger ? value.Damage : 1,
             value.ObservedBy.Select(ToSdk));
 
     private static Sdk.GenericActorContext.ObservedSound ToSdk(
@@ -210,17 +242,19 @@ internal static class GenericActorSdkModelMapper
             value.Distance);
 
     private static Sdk.GenericActorContext.ObservedEvent ToSdk(
-        GenericActorRuntimeObservation.ObservedEvent value) =>
+        GenericActorRuntimeObservation.ObservedEvent value,
+        bool includesLedger) =>
         new(
             value.EventHandle,
             value.SourceTick,
             value.SourceOrdinal,
             ToSdk(value.Kind),
-            ToSdk(value.Payload),
+            ToSdk(value.Payload, includesLedger),
             value.ObservedBy.Select(ToSdk));
 
     private static Sdk.GenericActorContext.EventPayload ToSdk(
-        GenericActorRuntimeObservation.EventPayload value) =>
+        GenericActorRuntimeObservation.EventPayload value,
+        bool includesLedger) =>
         value switch
         {
             GenericActorRuntimeObservation.EventPayload.Rotation payload =>
@@ -325,7 +359,7 @@ internal static class GenericActorSdkModelMapper
                     payload.NewValue),
             GenericActorRuntimeObservation.EventPayload.ModeChanged payload =>
                 new Sdk.GenericActorContext.EventPayload.ModeChanged(
-                    ToSdk(payload.State)),
+                    ToSdk(payload.State, includesLedger)),
             GenericActorRuntimeObservation.EventPayload
                 .LifecycleClockCancelled payload =>
                 new Sdk.GenericActorContext.EventPayload
@@ -367,7 +401,8 @@ internal static class GenericActorSdkModelMapper
         new(value.Channel, value.Value);
 
     private static Sdk.GenericActorContext.ModeObservationState ToSdk(
-        GenericActorRuntimeObservation.ModeObservationState value) =>
+        GenericActorRuntimeObservation.ModeObservationState value,
+        bool includesLedger) =>
         value switch
         {
             GenericActorRuntimeObservation.ModeObservationState.Deathmatch mode =>
@@ -380,7 +415,9 @@ internal static class GenericActorSdkModelMapper
                     mode.ClaimingTeamId,
                     mode.CaptureProgress,
                     mode.DecayTicksElapsed,
-                    mode.ControlResumesAtTick),
+                    mode.ControlResumesAtTick,
+                    includesLedger ? mode.HoldOwnerTeamId : null,
+                    includesLedger ? mode.HoldRemainingTicks : 0),
             _ => throw UnknownUnion(value),
         };
 
@@ -615,6 +652,20 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.AvailabilityReason.DestructionRecovery =>
                 Sdk.GenericActorContext.AvailabilityReason
                     .DestructionRecovery,
+            _ => throw UnknownEnum(value),
+        };
+
+    private static Sdk.GenericActorContext.SpawnReservationKind ToSdk(
+        GenericActorRuntimeObservation.SpawnReservationKind value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .AutomaticReturn =>
+                Sdk.GenericActorContext.SpawnReservationKind.AutomaticReturn,
+            GenericActorRuntimeObservation.SpawnReservationKind.Fabrication =>
+                Sdk.GenericActorContext.SpawnReservationKind.Fabrication,
+            GenericActorRuntimeObservation.SpawnReservationKind.Replication =>
+                Sdk.GenericActorContext.SpawnReservationKind.Replication,
             _ => throw UnknownEnum(value),
         };
 

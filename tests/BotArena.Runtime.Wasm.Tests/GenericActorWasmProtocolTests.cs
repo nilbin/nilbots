@@ -15,14 +15,14 @@ public sealed class GenericActorWasmProtocolTests
         Assert.Equal(Sdk.ActorWireProtocol.MajorVersion, hello.MinimumMajor);
         Assert.Equal(Sdk.ActorWireProtocol.MajorVersion, hello.MaximumMajor);
         Assert.Equal(
-            Sdk.ActorContractProfile.GenericV2,
+            Sdk.ActorContractProfile.GenericV3,
             hello.RequiredProfile);
         Assert.Equal(
             Sdk.ActorWireProtocol.MajorVersion,
             GenericActorWasmProtocol.ParseHelloAck(
                 Sdk.ActorWireProtocol.EncodeHelloAck(
                     Sdk.ActorWireProtocol.MajorVersion,
-                    Sdk.ActorContractProfile.GenericV2)));
+                    Sdk.ActorContractProfile.GenericV3)));
 
         Assert.Throws<FormatException>(
             () => GenericActorWasmProtocol.ParseHelloAck(
@@ -32,7 +32,7 @@ public sealed class GenericActorWasmProtocolTests
             () => GenericActorWasmProtocol.ParseHelloAck(
                 Sdk.ActorWireProtocol.EncodeHelloAck(
                     Sdk.ActorWireProtocol.MajorVersion,
-                    Sdk.ActorContractProfile.GenericV2 with
+                    Sdk.ActorContractProfile.GenericV3 with
                     {
                         ProfileId = "future-generic-profile",
                     })));
@@ -51,7 +51,7 @@ public sealed class GenericActorWasmProtocolTests
             Sdk.GenericActorContractVersions.MatchStartSchemaVersion,
             Sdk.GenericActorContractVersions.ObservationSchemaVersion,
             Sdk.GenericActorContractVersions.DecisionSchemaVersion,
-            Sdk.ActorContractProfile.GenericV2);
+            Sdk.ActorContractProfile.GenericV3);
 
         GenericActorWasmProtocol.ParseReady(exact, start);
 
@@ -65,10 +65,10 @@ public sealed class GenericActorWasmProtocolTests
             () => GenericActorWasmProtocol.ParseReady(legacy, start));
 
         Sdk.ActorContractProfile differentTuple =
-            Sdk.ActorContractProfile.GenericV2 with
+            Sdk.ActorContractProfile.GenericV3 with
             {
                 MatchContractSchemaVersion =
-                    Sdk.ActorContractProfile.GenericV2
+                    Sdk.ActorContractProfile.GenericV3
                         .MatchContractSchemaVersion + 1,
             };
         byte[] mismatched = Sdk.ActorWireProtocol.EncodeReady(
@@ -82,6 +82,48 @@ public sealed class GenericActorWasmProtocolTests
             () => GenericActorWasmProtocol.ParseReady(
                 mismatched,
                 start));
+    }
+
+    [Fact]
+    public void FrozenProfile2MatchNegotiatesItsFrozenTuple()
+    {
+        Engine.ActorResolvedMatchDefinition contract =
+            Engine.FrontlineLabsDefinition.Create();
+        Engine.GenericActorRuntimeStart start =
+            GenericActorWasmTestFixture.Start(
+                contract,
+                teamId: 0) with
+            {
+                SchemaVersion =
+                    Sdk.ActorContractProfile.GenericV2
+                        .MatchStartSchemaVersion,
+                RuntimeContractVersion =
+                    Sdk.ActorContractProfile.GenericV2
+                        .RuntimeContractVersion,
+            };
+        Sdk.ActorContractProfile required =
+            GenericActorWasmProtocol.RequiredProfile(start);
+
+        Sdk.ActorWireHello hello = Sdk.ActorWireProtocol.DecodeHello(
+            GenericActorWasmProtocol.FormatHello(required));
+        Assert.Equal(Sdk.ActorContractProfile.GenericV2, required);
+        Assert.Equal(required, hello.RequiredProfile);
+        Assert.Equal(
+            Sdk.ActorWireProtocol.MajorVersion,
+            GenericActorWasmProtocol.ParseHelloAck(
+                Sdk.ActorWireProtocol.EncodeHelloAck(
+                    Sdk.ActorWireProtocol.MajorVersion,
+                    required),
+                required));
+
+        byte[] ready = Sdk.ActorWireProtocol.EncodeReady(
+            Sdk.ActorWireProtocol.MajorVersion,
+            required.RuntimeContractVersion,
+            required.MatchStartSchemaVersion,
+            required.ObservationSchemaVersion,
+            required.DecisionSchemaVersion,
+            required);
+        GenericActorWasmProtocol.ParseReady(ready, start);
     }
 
     [Fact]
@@ -242,6 +284,6 @@ public sealed class GenericActorWasmProtocolTests
                         .ObservationSchemaVersion,
                     Sdk.GenericActorContractVersions
                         .DecisionSchemaVersion,
-                    Sdk.ActorContractProfile.GenericV2)));
+                    Sdk.ActorContractProfile.GenericV3)));
     }
 }

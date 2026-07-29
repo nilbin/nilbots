@@ -66,10 +66,17 @@ public static class ActorCanonicalContractReader
             "modeMapBinding");
 
         int schemaVersion = Int(root, "schemaVersion");
-        RequireVersion(
-            schemaVersion,
-            GenericActorContractVersions.MatchContractSchemaVersion,
-            "match contract");
+        if (schemaVersion
+                != GenericActorContractVersions
+                    .GenericV2MatchContractSchemaVersion
+            && schemaVersion
+                != GenericActorContractVersions
+                    .MatchContractSchemaVersion)
+        {
+            throw Unsupported(
+                "match contract",
+                $"Unsupported match contract schema {schemaVersion}.");
+        }
         string fingerprint = Fingerprint(
             root,
             "matchContractFingerprint");
@@ -196,26 +203,50 @@ public static class ActorCanonicalContractReader
             Int(element, "decisionSchemaVersion"),
             Int(element, "matchContractSchemaVersion"));
 
-        if (result.ContractProfileId
-                != GenericActorContractVersions.ContractProfileId
-            || result.RuntimeProtocolVersion
-                != GenericActorContractVersions.RuntimeProtocolVersion
-            || result.RuntimeConfigurationVersion
-                != GenericActorContractVersions.RuntimeConfigurationVersion
-            || result.RuntimeContractVersion
-                != GenericActorContractVersions.RuntimeContractVersion
-            || result.MatchStartSchemaVersion
-                != GenericActorContractVersions.MatchStartSchemaVersion
-            || result.ObservationSchemaVersion
-                != GenericActorContractVersions.ObservationSchemaVersion
-            || result.DecisionSchemaVersion
-                != GenericActorContractVersions.DecisionSchemaVersion
-            || result.MatchContractSchemaVersion
-                != GenericActorContractVersions.MatchContractSchemaVersion)
+        bool genericV2 =
+            result.ContractProfileId
+                == GenericActorContractVersions.GenericV2ContractProfileId
+            && result.RuntimeProtocolVersion
+                == GenericActorContractVersions.RuntimeProtocolVersion
+            && result.RuntimeConfigurationVersion
+                == GenericActorContractVersions.RuntimeConfigurationVersion
+            && result.RuntimeContractVersion
+                == GenericActorContractVersions
+                    .GenericV2RuntimeContractVersion
+            && result.MatchStartSchemaVersion
+                == GenericActorContractVersions
+                    .GenericV2MatchStartSchemaVersion
+            && result.ObservationSchemaVersion
+                == GenericActorContractVersions
+                    .GenericV2ObservationSchemaVersion
+            && result.DecisionSchemaVersion
+                == GenericActorContractVersions
+                    .GenericV2DecisionSchemaVersion
+            && result.MatchContractSchemaVersion
+                == GenericActorContractVersions
+                    .GenericV2MatchContractSchemaVersion;
+        bool genericV3 =
+            result.ContractProfileId
+                == GenericActorContractVersions.ContractProfileId
+            && result.RuntimeProtocolVersion
+                == GenericActorContractVersions.RuntimeProtocolVersion
+            && result.RuntimeConfigurationVersion
+                == GenericActorContractVersions.RuntimeConfigurationVersion
+            && result.RuntimeContractVersion
+                == GenericActorContractVersions.RuntimeContractVersion
+            && result.MatchStartSchemaVersion
+                == GenericActorContractVersions.MatchStartSchemaVersion
+            && result.ObservationSchemaVersion
+                == GenericActorContractVersions.ObservationSchemaVersion
+            && result.DecisionSchemaVersion
+                == GenericActorContractVersions.DecisionSchemaVersion
+            && result.MatchContractSchemaVersion
+                == GenericActorContractVersions.MatchContractSchemaVersion;
+        if (!genericV2 && !genericV3)
         {
             throw Unsupported(
                 "capabilityVersions",
-                "The capability tuple is not the negotiated generic-v2 profile.");
+                "The capability tuple is not a supported generic actor profile.");
         }
         return result;
     }
@@ -350,16 +381,33 @@ public static class ActorCanonicalContractReader
 
     private static PublicScoringTeam ReadTeam(JsonElement element)
     {
-        ExactObject(element, "teamId");
-        return new PublicScoringTeam(Int(element, "teamId"));
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
+        ExactObject(
+            element,
+            hasClassId
+                ? ["teamId", "classId"]
+                : ["teamId"]);
+        return new PublicScoringTeam(
+            Int(element, "teamId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicParticipant ReadParticipant(JsonElement element)
     {
-        ExactObject(element, "participantId", "teamId");
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
+        ExactObject(
+            element,
+            hasClassId
+                ? ["participantId", "teamId", "classId"]
+                : ["participantId", "teamId"]);
         return new PublicParticipant(
             Int(element, "participantId"),
-            Int(element, "teamId"));
+            Int(element, "teamId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicUnitSlot ReadUnitSlot(JsonElement element)
@@ -1799,6 +1847,41 @@ public static class ActorCanonicalContractReader
             throw new FormatException(
                 "Topology counts do not match their canonical collections.");
         }
+        if (schemaVersion
+                == GenericActorContractVersions
+                    .GenericV2MatchContractSchemaVersion
+            && (topology.Teams.Any(team => team.ClassId is not null)
+                || topology.Participants.Any(
+                    participant => participant.ClassId is not null)))
+        {
+            throw new FormatException(
+                "Generic actor profile 2 cannot encode class identity.");
+        }
+        Dictionary<int, string?> teamClasses;
+        try
+        {
+            teamClasses = topology.Teams.ToDictionary(
+                team => team.TeamId,
+                team => team.ClassId);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new FormatException(
+                "Topology team identifiers must be unique.",
+                exception);
+        }
+        if (topology.Participants.Any(participant =>
+                !teamClasses.TryGetValue(
+                    participant.TeamId,
+                    out string? teamClassId)
+                || !string.Equals(
+                    participant.ClassId,
+                    teamClassId,
+                    StringComparison.Ordinal)))
+        {
+            throw new FormatException(
+                "Each participant classId must exactly match its scoring team classId.");
+        }
         if (format.ScoringTeamCount != topology.Teams.Length
             || format.ParticipantCount != topology.Participants.Length
             || format.ParticipantsPerTeam <= 0
@@ -1994,7 +2077,7 @@ public static class ActorCanonicalContractReader
                 StringComparer.Ordinal))
         {
             throw new FormatException(
-                "Tick resolution must use the complete generic-v2 phase order.");
+                "Tick resolution must use the complete generic-v3 phase order.");
         }
     }
 

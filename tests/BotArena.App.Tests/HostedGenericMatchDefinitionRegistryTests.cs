@@ -11,18 +11,25 @@ public sealed class HostedGenericMatchDefinitionRegistryTests
     {
         FrontlineLabsPlaylistDefinition frontline =
             FrontlineLabsPlaylistDefinition.Create();
+        FrontlineLabsPlaylistDefinition legacyFrontline =
+            FrontlineLabsPlaylistDefinition.CreateV1();
         var deathmatch = new FakeDefinition(
             "deathmatch-labs",
             version: 3,
             frontline.Match);
         var registry = new HostedGenericMatchDefinitionRegistry(
-            [frontline, deathmatch]);
+            [legacyFrontline, frontline, deathmatch]);
 
         Assert.Same(
             frontline,
             registry.Resolve(
                 FrontlineLabsPlaylistDefinition.PlaylistKey,
                 FrontlineLabsPlaylistDefinition.Version));
+        Assert.Same(
+            legacyFrontline,
+            registry.Resolve(
+                FrontlineLabsPlaylistDefinition.PlaylistKey,
+                FrontlineLabsPlaylistDefinition.LegacyVersion));
         Assert.Same(
             deathmatch,
             registry.Resolve("deathmatch-labs", 3));
@@ -34,11 +41,20 @@ public sealed class HostedGenericMatchDefinitionRegistryTests
             GenericActorMatchJobType.ForPlaylist(
                 "deathmatch-labs",
                 3);
+        string legacyFrontlineJobType =
+            GenericActorMatchJobType.ForPlaylist(
+                FrontlineLabsPlaylistDefinition.PlaylistKey,
+                FrontlineLabsPlaylistDefinition.LegacyVersion);
         Assert.Equal(
-            "ExecuteGenericActorMatch:frontline-labs:v1",
+            "ExecuteGenericActorMatch:frontline-labs:v2",
             frontlineJobType);
         Assert.Equal(
-            new[] { deathmatchJobType, frontlineJobType }
+            new[]
+            {
+                deathmatchJobType,
+                legacyFrontlineJobType,
+                frontlineJobType,
+            }
                 .Order(StringComparer.Ordinal),
             registry.ExecutionJobTypes);
         Assert.Same(

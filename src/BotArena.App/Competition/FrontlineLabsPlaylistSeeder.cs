@@ -12,8 +12,6 @@ public sealed class FrontlineLabsPlaylistSeeder(AppDbContext db)
     public async Task<PlaylistVersion> SeedAsync(
         CancellationToken cancellationToken = default)
     {
-        FrontlineLabsPlaylistDefinition expected =
-            FrontlineLabsPlaylistDefinition.Create();
         Playlist? playlist = await db.Playlists.SingleOrDefaultAsync(
             candidate =>
                 candidate.Key ==
@@ -31,19 +29,58 @@ public sealed class FrontlineLabsPlaylistSeeder(AppDbContext db)
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        FrontlineLabsPlaylistDefinition[] definitions =
+        [
+            FrontlineLabsPlaylistDefinition.CreateV1(),
+            FrontlineLabsPlaylistDefinition.Create(),
+        ];
+        PlaylistVersion? current = null;
+        foreach (FrontlineLabsPlaylistDefinition expected in definitions)
+        {
+            PlaylistVersion version = await SeedVersionAsync(
+                playlist,
+                expected,
+                cancellationToken);
+            expected.Validate(playlist, version);
+            if (await db.Ladders.AnyAsync(
+                    ladder => ladder.PlaylistVersionId == version.Id,
+                    cancellationToken))
+            {
+                throw new InvalidOperationException(
+                    $"Frontline Labs v{expected.HostedVersion} is an " +
+                    "unranked experimental playlist and must not have a " +
+                    "ladder.");
+            }
+            if (expected.HostedVersion
+                == FrontlineLabsPlaylistDefinition.Version)
+            {
+                current = version;
+            }
+        }
+
+        return current
+            ?? throw new InvalidOperationException(
+                "The current Frontline Labs playlist version was not seeded.");
+    }
+
+    private async Task<PlaylistVersion> SeedVersionAsync(
+        Playlist playlist,
+        FrontlineLabsPlaylistDefinition expected,
+        CancellationToken cancellationToken)
+    {
         PlaylistVersion? version =
             await db.PlaylistVersions.SingleOrDefaultAsync(
                 candidate =>
                     candidate.PlaylistId == playlist.Id &&
                     candidate.Version ==
-                        FrontlineLabsPlaylistDefinition.Version,
+                        expected.HostedVersion,
                 cancellationToken);
         if (version is null)
         {
             version = new PlaylistVersion
             {
                 PlaylistId = playlist.Id,
-                Version = FrontlineLabsPlaylistDefinition.Version,
+                Version = expected.HostedVersion,
                 GameModeId = expected.GameModeId,
                 RulesetId = expected.RulesetId,
                 MatchFormatId = expected.MatchFormatId,
@@ -65,16 +102,6 @@ public sealed class FrontlineLabsPlaylistSeeder(AppDbContext db)
             };
             db.PlaylistVersions.Add(version);
             await db.SaveChangesAsync(cancellationToken);
-        }
-
-        expected.Validate(playlist, version);
-        if (await db.Ladders.AnyAsync(
-                ladder => ladder.PlaylistVersionId == version.Id,
-                cancellationToken))
-        {
-            throw new InvalidOperationException(
-                "Frontline Labs v1 is an unranked experimental playlist and " +
-                "must not have a ladder.");
         }
 
         return version;

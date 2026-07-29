@@ -214,7 +214,7 @@ The first hosted consumer is Frontline Labs playlist v1 behind
 `BOTARENA_FRONTLINE_LABS_ENABLED`, which defaults off. While disabled, newly
 compiled artifacts must retain legacy Duel support; enabling it also admits
 generic-only artifacts. The playlist admits exactly two distinct
-`generic-actor-match-2` submitted bots to one setless unranked H2H match, pins
+`generic-actor-match-3` submitted bots to one setless unranked H2H match, pins
 the immutable playlist and participant teams, executes the generic WASM host,
 persists normalized match-team standings/signed scores, and serves replay 3
 through broadcast-safe prefixes and the existing direct match viewer. Split

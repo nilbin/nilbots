@@ -126,7 +126,24 @@ public static class FrontlineLabsDefinition
             captureThreshold: 15,
             captureGainSchedule: null,
             enableMobilize: false,
-            remoteFabrication: false);
+            remoteFabrication: false,
+            capabilityVersions:
+                ActorMatchCapabilityVersions.GenericV2);
+
+    /// <summary>
+    /// Creates the same hosted mechanics on the current generic actor
+    /// capability profile. This is a new immutable hosted playlist version;
+    /// <see cref="Create"/> remains the frozen profile-2/v1 contract.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreateProfile3() =>
+        CreateResolved(
+            RulesetId,
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            capabilityVersions:
+                ActorMatchCapabilityVersions.Current);
 
     /// <summary>
     /// Creates a local-only, content-identified capture-threshold arm without
@@ -787,7 +804,8 @@ public static class FrontlineLabsDefinition
         int primeRespawnTicks = DefaultPrimeRespawnTicks,
         FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None,
         FrontlineLabsBendEnvelopeArm bendEnvelope =
-            FrontlineLabsBendEnvelopeArm.StrikerOnly)
+            FrontlineLabsBendEnvelopeArm.StrikerOnly,
+        ActorMatchCapabilityVersions? capabilityVersions = null)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -850,19 +868,11 @@ public static class FrontlineLabsDefinition
                         FrontlineTeamAdvanceDefinition
                             .ObjectiveAdvanceDirection.TowardLowerIndex),
                 ]),
-            CreateCapabilityVersions());
+            capabilityVersions ?? CreateCapabilityVersions());
     }
 
     private static ActorMatchCapabilityVersions CreateCapabilityVersions() =>
-        new(
-            contractProfileId: "generic-actor-match-2",
-            runtimeProtocolVersion: "1.0",
-            runtimeConfigurationVersion: "1.0",
-            runtimeContractVersion: 2,
-            matchStartSchemaVersion: 2,
-            observationSchemaVersion: 2,
-            decisionSchemaVersion: 2,
-            matchContractSchemaVersion: 2);
+        ActorMatchCapabilityVersions.Current;
 
     private static ActorRulesDefinition CreateRules(
         string rulesetId,
@@ -2334,11 +2344,15 @@ public static class FrontlineLabsDefinition
         FrontlineLabsSkillKit skills) =>
         new()
         {
-            Teams = [new PublicScoringTeam(0), new PublicScoringTeam(1)],
+            Teams =
+            [
+                new PublicScoringTeam(0, classes?.TeamZero.Id),
+                new PublicScoringTeam(1, classes?.TeamOne.Id),
+            ],
             Participants =
             [
-                new PublicParticipant(0, 0),
-                new PublicParticipant(1, 1),
+                new PublicParticipant(0, 0, classes?.TeamZero.Id),
+                new PublicParticipant(1, 1, classes?.TeamOne.Id),
             ],
             UnitSlots =
             [

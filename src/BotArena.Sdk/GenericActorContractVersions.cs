@@ -17,8 +17,15 @@ public static class GenericActorContractVersions
 {
     internal const int MaxCanonicalContractDepth = 64;
     internal const int MaxSemanticIdBytes = 64;
+    internal const string GenericV2ContractProfileId =
+        "generic-actor-match-2";
+    internal const int GenericV2RuntimeContractVersion = 2;
+    internal const int GenericV2MatchStartSchemaVersion = 2;
+    internal const int GenericV2ObservationSchemaVersion = 2;
+    internal const int GenericV2DecisionSchemaVersion = 2;
+    internal const int GenericV2MatchContractSchemaVersion = 2;
     /// <summary>Exact all-or-nothing actor contract profile identifier.</summary>
-    public const string ContractProfileId = "generic-actor-match-2";
+    public const string ContractProfileId = "generic-actor-match-3";
     /// <summary>Actor framing protocol version used by this profile.</summary>
     public const string RuntimeProtocolVersion = "1.0";
     /// <summary>Runtime configuration schema version used by this profile.</summary>
@@ -40,15 +47,15 @@ public static class GenericActorContractVersions
     /// </summary>
     public const int MaxCanonicalContractCollectionCount = 4096;
     /// <summary>Generic host/runtime behavior contract version.</summary>
-    public const int RuntimeContractVersion = 2;
+    public const int RuntimeContractVersion = 3;
     /// <summary>MatchStart payload schema version.</summary>
-    public const int MatchStartSchemaVersion = 2;
+    public const int MatchStartSchemaVersion = 3;
     /// <summary>Per-tick observation schema version.</summary>
-    public const int ObservationSchemaVersion = 2;
+    public const int ObservationSchemaVersion = 3;
     /// <summary>Per-tick decision schema version.</summary>
     public const int DecisionSchemaVersion = 2;
     /// <summary>Resolved static match-contract schema version.</summary>
-    public const int MatchContractSchemaVersion = 2;
+    public const int MatchContractSchemaVersion = 3;
     /// <summary>Replay format associated with generic match projection.</summary>
     public const int ReplayFormatVersion = 3;
 }

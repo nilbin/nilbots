@@ -5784,6 +5784,7 @@ function normalizeReplayV1Internal(
       participantId: participant.slot,
       teamKey: replayTeamKey(participant.slot),
       teamId: participant.slot,
+      classId: null,
       name: participant.name,
       runtimeKind: participant.runtimeKind,
       artifactHash: participant.artifactHash,
@@ -5810,6 +5811,7 @@ function normalizeReplayV1Internal(
   const teams = participants.map<Model.ReplayTeam>((participant) => ({
     teamKey: participant.teamKey,
     teamId: participant.teamId,
+    classId: null,
     participantKeys: [participant.participantKey],
     unitKeys: [replayDuelIdentity(participant.teamId).unitKey],
   }));
@@ -6039,12 +6041,14 @@ function legacyContractFromV1(
       teams: participants.map((participant) => ({
         teamId: participant.slot,
         teamKey: replayTeamKey(participant.slot),
+        classId: null,
       })),
       participants: participants.map((participant) => ({
         participantId: participant.slot,
         participantKey: replayParticipantKey(participant.slot),
         teamId: participant.slot,
         teamKey: replayTeamKey(participant.slot),
+        classId: null,
       })),
       unitSlots: participants.map((participant) => {
         const actor = replayDuelIdentity(participant.slot);
@@ -6325,6 +6329,7 @@ function v1ActorTurn(
           const enemyIdentity = replayDuelIdentity(enemy.slot);
           return {
             actor: { kind: 'exact', identity: enemyIdentity },
+            classId: null,
             formId: 'legacy-mobile',
             position: { x: enemy.x, y: enemy.y },
             facing: directionFromV1(enemy.facing),
@@ -6343,6 +6348,7 @@ function v1ActorTurn(
           position,
           isWall: header.mapTiles[position.y]?.[position.x] === '#',
           observedBy: [identity.actorKey],
+          spawnReservation: null,
         })),
       visibleProjectiles: null,
       visibleEvents: [],
@@ -6598,6 +6604,7 @@ function observedActorFromState(
 ): Model.ReplayObservedActor {
   return {
     actor: { kind: 'exact', identity: state.identity },
+    classId: null,
     formId: state.formId,
     position: copyPosition(state.position),
     facing: state.facing,
@@ -6803,6 +6810,7 @@ export function normalizeReplayV2(
       participantId: participant.participantId,
       teamKey: replayTeamKey(participant.teamId),
       teamId: participant.teamId,
+      classId: null,
       name: participant.name,
       runtimeKind: participant.runtimeKind,
       artifactHash: participant.artifactHash,
@@ -6850,6 +6858,7 @@ export function normalizeReplayV2(
     .map<Model.ReplayTeam>((team) => ({
       teamKey: replayTeamKey(team.teamId),
       teamId: team.teamId,
+      classId: null,
       participantKeys: participants
         .filter((participant) => participant.teamId === team.teamId)
         .map((participant) => participant.participantKey),
@@ -7066,6 +7075,7 @@ function contractFromV2(
         .map((team) => ({
           teamId: team.teamId,
           teamKey: replayTeamKey(team.teamId),
+          classId: null,
         })),
       participants: [...topology.participants]
         .sort(compareParticipant)
@@ -7076,6 +7086,7 @@ function contractFromV2(
           ),
           teamId: participant.teamId,
           teamKey: replayTeamKey(participant.teamId),
+          classId: null,
         })),
       unitSlots: [...topology.unitSlots]
         .sort(compareUnitIdentity)
@@ -7313,6 +7324,8 @@ function objectiveFromV2(
     captureProgress: objective.captureProgress,
     decayTicksElapsed: objective.decayTicksElapsed,
     controlResumesAtTick: objective.controlResumesAtTick,
+    holdOwnerTeamId: null,
+    holdRemainingTicks: 0,
     winnerTeamId: objective.winnerTeamId,
     completeness: 'exact',
   };
@@ -7459,6 +7472,7 @@ function observationFromV2(
       )
       .map((enemy) => ({
         actor: opaqueEnemyActorFromV2(enemy.actor),
+        classId: null,
         formId: enemy.formId,
         position: copyPosition(enemy.position),
         facing: enemy.facing,
@@ -7483,6 +7497,7 @@ function observationFromV2(
         observedBy: [...tile.observedBy]
           .sort(compareActorIdentity)
           .map((actor) => actorIdentityFromV2(actor).actorKey),
+        spawnReservation: null,
       })),
     visibleProjectiles:
       observation.visibleProjectiles === null
@@ -7506,8 +7521,10 @@ function observationFromV2(
               position: copyPosition(projectile.position),
               heading: projectile.heading,
               tilesPerAdvance: projectile.tilesPerAdvance,
+              ticksPerAdvance: null,
               ticksUntilAdvance: projectile.ticksUntilAdvance,
               remainingTiles: projectile.remainingTiles,
+              damage: null,
               observedBy: [...projectile.observedBy]
                 .sort(compareActorIdentity)
                 .map((actor) => actorIdentityFromV2(actor).actorKey),
@@ -7585,6 +7602,8 @@ function observationFromV2(
             observation.frontlineObjective.decayTicksElapsed,
           controlResumesAtTick:
             observation.frontlineObjective.controlResumesAtTick,
+          holdOwnerTeamId: null,
+          holdRemainingTicks: 0,
         }
       : null,
     actions: [...observation.actions]
@@ -7631,6 +7650,7 @@ function observedSelfFromV2(
       kind: 'exact',
       identity: actorIdentityFromV2(observed.actorId),
     },
+    classId: null,
     formId: observed.formId,
     position: copyPosition(observed.position),
     facing: observed.facing,

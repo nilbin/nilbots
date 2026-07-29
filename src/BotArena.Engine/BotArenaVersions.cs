@@ -43,7 +43,7 @@ public static class BotArenaVersions
     /// Actor protocol framing/configuration 1.0 remain unchanged.
     /// </summary>
     public const string GenericActorContractProfileId =
-        "generic-actor-match-2";
+        "generic-actor-match-3";
     public const string GenericActorRuntimeProtocolVersion = "1.0";
     public const string GenericActorRuntimeConfigurationVersion = "1.0";
     /// <summary>
@@ -52,11 +52,11 @@ public static class BotArenaVersions
     /// the historical Duel/replay-v1 engine identity.
     /// </summary>
     public const string GenericActorEngineVersion = "1.0.0";
-    public const int GenericActorRuntimeContractVersion = 2;
-    public const int GenericActorMatchStartSchemaVersion = 2;
-    public const int GenericActorObservationSchemaVersion = 2;
+    public const int GenericActorRuntimeContractVersion = 3;
+    public const int GenericActorMatchStartSchemaVersion = 3;
+    public const int GenericActorObservationSchemaVersion = 3;
     public const int GenericActorDecisionSchemaVersion = 2;
-    public const int GenericActorMatchContractSchemaVersion = 2;
+    public const int GenericActorMatchContractSchemaVersion = 3;
     public const int GenericActorReplayFormatVersion = 3;
     /// <summary>
     /// Canonical static-contract budget after reserving one KiB for the

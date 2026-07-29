@@ -319,7 +319,7 @@ The narrower hosted Labs API is implemented separately:
   `BOTARENA_FRONTLINE_LABS_ENABLED=true`;
 - `POST /api/labs/matches` creates one direct, setless, unranked match for the
   exact immutable Labs playlist and exactly two distinct submitted bots whose
-  active versions support `generic-actor-match-2`;
+  active versions support `generic-actor-match-3`;
 - `GET /api/matches/{id}` and its existing replay endpoint expose the
   broadcast-safe match and replay 3 through the direct match viewer.
 

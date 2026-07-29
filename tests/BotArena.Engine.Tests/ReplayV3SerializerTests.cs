@@ -9,14 +9,17 @@ namespace BotArena.Engine.Tests;
 
 /// <summary>
 /// Freezes the replay-v3 envelope, canonical payload, safe integer encoding,
-/// and engine-authored golden bytes without exercising historical codecs.
+/// engine-authored golden bytes, and the frozen profile-2 replay-v3 reader.
 /// Set UPDATE_GOLDEN=1 deliberately to regenerate the fixture.
 /// </summary>
 public sealed class ReplayV3SerializerTests
 {
     private const ulong FixtureSeed = 9_007_199_254_740_993UL;
-    private const string FixtureName = "generic-replay-v3.json";
+    private const string FixtureName = "generic-replay-v3-profile3.json";
     private const string FixtureReplayHash =
+        "8f776cf8a8acfdc6442b4be55bb3d4c7c15519d0f4f95f82fcce3afd55258ba5";
+    private const string HistoricalFixtureName = "generic-replay-v3.json";
+    private const string HistoricalFixtureReplayHash =
         "bab89df8cbf1e25bdfdcb63c4adf6f9b6611e992c08687c5b1219734cf8dfc53";
 
     [Fact]
@@ -416,6 +419,56 @@ public sealed class ReplayV3SerializerTests
     }
 
     [Fact]
+    public void VerificationRejectsProjectileAndSpawnReservationDrift()
+    {
+        (ReplayV3 replay, _) = CreateCompleteReplay();
+        string json = ReplayV3Serializer.ToJson(replay);
+        string projectileDrift = MutateAndRehash(
+            json,
+            root =>
+            {
+                JsonObject projectile = root["ticks"]![1]![
+                        "actorTurns"]![0]!["observation"]![
+                        "visibleProjectiles"]![0]!
+                    .AsObject();
+                projectile["ticksPerAdvance"] =
+                    projectile["ticksPerAdvance"]!.GetValue<int>() + 1;
+            });
+        string reservationDrift = MutateAndRehash(
+            json,
+            root =>
+            {
+                JsonArray tiles = root["ticks"]![0]![
+                        "actorTurns"]![0]!["observation"]![
+                        "visibleTiles"]!
+                    .AsArray();
+                JsonObject reservation = tiles
+                    .Select(tile => tile!.AsObject())
+                    .First(tile => tile["spawnReservation"] is not null)[
+                        "spawnReservation"]!.AsObject();
+                reservation["unitId"] =
+                    reservation["unitId"]!.GetValue<int>() + 1;
+            });
+
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                projectileDrift,
+                out string? projectileFailure));
+        Assert.Contains(
+            "projectile",
+            projectileFailure,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                reservationDrift,
+                out string? reservationFailure));
+        Assert.Contains(
+            "spawn reservation",
+            reservationFailure,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Presentation_IsCanonicalReplayMetadataOutsideGameplayContract()
     {
         var presentation = new ReplayV3.PresentationMetadata(
@@ -760,6 +813,23 @@ public sealed class ReplayV3SerializerTests
             document.RootElement.GetProperty("replayHash").GetString());
     }
 
+    [Fact]
+    public void HistoricalProfile2Document_RemainsByteExactAndReadable()
+    {
+        string original = ReadFixture(HistoricalFixtureName);
+
+        Assert.True(
+            ReplayV3Serializer.VerifyHash(
+                original,
+                out string? failure),
+            failure);
+        ReplayV3 replay =
+            ReplayV3Serializer.ReadCanonicalComplete(original);
+
+        Assert.Equal(HistoricalFixtureReplayHash, replay.ReplayHash);
+        Assert.Equal(original, ReplayV3Serializer.ToJson(replay));
+    }
+
     private static (
         ReplayV3 Replay,
         ActorResolvedMatchDefinition Definition)
@@ -828,6 +898,15 @@ public sealed class ReplayV3SerializerTests
             $"Missing {fixtureName}. Regenerate deliberately with UPDATE_GOLDEN=1.");
         Assert.Equal(File.ReadAllText(path), actual);
     }
+
+    private static string ReadFixture(string fixtureName) =>
+        File.ReadAllText(
+            Path.Combine(
+                FindRepoRoot(),
+                "tests",
+                "BotArena.Engine.Tests",
+                "Fixtures",
+                fixtureName));
 
     private static string Rehash(string json)
     {

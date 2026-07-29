@@ -53,7 +53,7 @@ public sealed class ActorMatchCapabilityVersionsTests
     }
 
     private static ActorMatchCapabilityVersions Create(
-        string profile = "generic-actor-match-2",
+        string profile = "generic-actor-match-3",
         string protocol = "2.0",
         string configuration = "balanced-1",
         int runtimeContract = 2,

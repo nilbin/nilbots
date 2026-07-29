@@ -54,8 +54,8 @@ public sealed class DeathmatchModeKernel
         _teamIdSet = _teamIds.ToHashSet();
         _topology = topology with
         {
-            Teams = _teamIds
-                .Select(teamId => new PublicScoringTeam(teamId))
+            Teams = topology.Teams
+                .OrderBy(team => team.TeamId)
                 .ToImmutableArray(),
         };
         _gameMode = gameMode;

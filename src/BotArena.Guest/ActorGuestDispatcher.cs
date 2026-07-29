@@ -114,6 +114,7 @@ internal sealed class ActorGuestDispatcher(
                 break;
 
             case ActorGuestContractGeneration.GenericActorV2:
+            case ActorGuestContractGeneration.GenericActorV3:
                 _genericActorSession = GenericActorGuestSession.Start(
                     ActorGuestProtocol.ParseGenericMatchStart(frame),
                     _genericActorFactory!);
@@ -136,6 +137,7 @@ internal sealed class ActorGuestDispatcher(
                     _actorSession.HandleTick(
                         ActorGuestProtocol.ParseObservation(frame))),
             ActorGuestContractGeneration.GenericActorV2
+                or ActorGuestContractGeneration.GenericActorV3
                 when _genericActorSession is not null =>
                 ActorGuestProtocol.FormatGenericDecision(
                     _genericActorSession.HandleTick(
@@ -155,6 +157,7 @@ internal sealed class ActorGuestDispatcher(
                 "This artifact does not contain a legacy actor bot.");
         }
         if (generation is ActorGuestContractGeneration.GenericActorV2
+                or ActorGuestContractGeneration.GenericActorV3
             && _genericActorFactory is null)
         {
             throw new ActorCapabilityNotSupportedException(
