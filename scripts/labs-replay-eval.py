@@ -6,6 +6,40 @@ verdict. It exposes outcomes, action/form use, combat, territorial movement,
 faults, inactivity, and turret deadlocks for a frozen cohort. Causal claims
 still require paired rules arms; product claims still require independently
 authored doctrines and outcome-blind replay review.
+
+`--dynamics` adds the match-dynamics ("pendulum" / dullness) family defined by
+`docs/DESIGN-FORENSICS-DYNAMICS-2026-07-29.md`, so the pre-registered S1-S5 /
+N1-N5 pass-fail gates in that document can be evaluated mechanically instead of
+by hand. Every definition below is that document's, reproduced exactly:
+
+1. Leader extends - over every frontline position transition, the probability
+   that the currently leading side advances further. A breach is counted as the
+   final, uncensored advance in the winner's advance direction, so decisive
+   matches are not censored out of the transition matrix. Pooled over all
+   non-centre positions and broken out by signed displacement from centre.
+2. Reinforcement transit gradient - ticks from a life's spawn until its first
+   tick standing on the then-active objective, bucketed by the spawning team's
+   territorial lead (position displacement in that team's advance direction).
+   The spread between bucket medians is the rubber band (S2's gate).
+3. Sole-presence efficiency - sole-presence ticks split into productive (the
+   run closed a capture) and wasted, the share of earned capture progress
+   destroyed by decay, and the sole-run length distribution against the
+   capture threshold read from the replay's own contract.
+4. Frozen scoreboard and limit cycles - the longest run with unchanged
+   (frontline position, capture progress), and the longest exact repeat of the
+   whole visible state (bodies, forms, facings, healths, position, progress) at
+   any period up to 16 ticks.
+5. Close-contact-no-damage - the share of ticks where opposing bodies stand
+   within 3 tiles Chebyshev and no damage event occurs: the staring contest.
+6. Reversal metrics - advances per match, reversal rate, tug efficiency
+   (|net displacement| / advances) and the final-displacement distribution.
+7. Positional entropy - distinct tiles over floor tiles, effective tiles
+   (2^entropy of the body-tick tile distribution), dwell fraction and lag-k
+   position autocorrelation with its argmax lag, per stable-slot trace.
+
+The gate block transcribes the document's thresholds; two of them ("draws
+~0", "reversal rate stays ~0.65") are prose in the source and are
+operationalized here by explicitly named constants.
 """
 
 from __future__ import annotations
@@ -24,9 +58,35 @@ from typing import Any, Iterable
 
 REPORT_SCHEMA_VERSION = 2
 METRIC_DEFINITIONS_VERSION = "generic-frontline-replay-v3-7"
+DYNAMICS_DEFINITIONS_VERSION = "pendulum-dynamics-1"
 PRESENTATION_TICKS_PER_SECOND = 5
 STALL_TICKS = 20
 RECENT_FRAME_WINDOW = 20
+WALL_TILE = "#"
+# Match-dynamics parameters. These are the forensics document's, not tuning
+# knobs: changing one invalidates comparison with its published baseline.
+# Chebyshev matches the engine's eight-way movement. The forensics pipeline
+# measured proximity with Manhattan distance; the damage-free share of
+# close-contact ticks is the same to three decimals either way (0.828 vs
+# 0.826), while the sustained-stare share is not (0.268 vs the document's
+# 0.221), so only the former is a reconciliation target.
+CLOSE_CONTACT_TILES = 3
+CLOSE_CONTACT_DISTANCE = "chebyshev"
+SUSTAINED_STARE_TICKS = 10
+FROZEN_SCOREBOARD_TICKS = 50
+LIMIT_CYCLE_TICKS = 50
+LIMIT_CYCLE_MAX_PERIOD = 16
+POSITION_TRACE_MIN_TICKS = 40
+POSITION_AUTOCORRELATION_LAGS = (2, 41)
+SCORE_SIGN_PROBE_TICKS = (100, 200, 300, 400)
+# The document writes "draws 9.3%->~0" and "if reversal rate stays ~0.65";
+# both gates need a number, so the prose is operationalized exactly here.
+# "Stays ~0.65" is read as the per-match reversal-rate median remaining inside
+# 0.65 +/- 0.05 (the pendulum corpus sits at 0.625), so N1 only passes when a
+# numbers-only arm pulls that median below 0.60.
+NEAR_ZERO_DRAW_RATE = 0.01
+PENDULUM_REVERSAL_RATE = 0.65
+PENDULUM_REVERSAL_TOLERANCE = 0.05
 HEADING_SECTORS = {
     "north": 0,
     "north-east": 1,
@@ -80,6 +140,125 @@ def _nearest_rank(values: list[int], percentile: float) -> int | None:
 
 def _fraction(numerator: int, denominator: int) -> float:
     return numerator / denominator if denominator else 0.0
+
+
+def _quantile(values: list[float], percentile: float) -> float | None:
+    """Nearest-rank percentile over an unsorted float sample."""
+
+    if not values:
+        return None
+    ordered = sorted(values)
+    return ordered[max(0, math.ceil(percentile * len(ordered)) - 1)]
+
+
+def _median(values: list[float]) -> float | None:
+    return statistics.median(values) if values else None
+
+
+def _mean(values: list[float]) -> float | None:
+    return statistics.fmean(values) if values else None
+
+
+def _histogram(counts: Counter[int]) -> dict[str, int]:
+    """Serialize an integer-keyed histogram with deterministic key order."""
+
+    return {str(key): counts[key] for key in sorted(counts)}
+
+
+def _histogram_values(histogram: dict[str, int]) -> list[int]:
+    return [
+        int(key)
+        for key, count in sorted(histogram.items(), key=lambda kv: int(kv[0]))
+        for _ in range(count)
+    ]
+
+
+def _merge_histograms(
+    histograms: Iterable[dict[str, int]],
+) -> dict[str, int]:
+    merged: Counter[int] = Counter()
+    for histogram in histograms:
+        for key, count in histogram.items():
+            merged[int(key)] += count
+    return _histogram(merged)
+
+
+def _histogram_share_at_least(
+    histogram: dict[str, int],
+    threshold: int,
+) -> float:
+    total = sum(histogram.values())
+    return _fraction(
+        sum(
+            count
+            for key, count in histogram.items()
+            if int(key) >= threshold
+        ),
+        total,
+    )
+
+
+def _entropy_bits(counts: Counter[tuple[int, int]]) -> float:
+    total = sum(counts.values())
+    if total == 0:
+        return 0.0
+    return -sum(
+        (count / total) * math.log2(count / total)
+        for count in counts.values()
+        if count
+    )
+
+
+def _longest_repeat_run(
+    signatures: list[Any],
+    period: int,
+) -> int:
+    """Longest run of consecutive ticks that repeat the tick `period` back."""
+
+    longest = 0
+    run = 0
+    for index in range(period, len(signatures)):
+        if signatures[index] == signatures[index - period]:
+            run += 1
+            longest = max(longest, run)
+        else:
+            run = 0
+    return longest
+
+
+def _terminal_repeat_run(
+    signatures: list[Any],
+    period: int,
+) -> int:
+    """Length of the repeat run the replay ends inside, for this period."""
+
+    length = 0
+    index = len(signatures) - 1
+    while index - period >= 0 and signatures[index] == signatures[
+        index - period
+    ]:
+        length += 1
+        index -= 1
+    return length
+
+
+def _resolve_metric_path(value: Any, path: str) -> Any:
+    """Read a dotted path; numeric segments index into arrays."""
+
+    current = value
+    for segment in path.split("."):
+        if isinstance(current, list):
+            if not segment.lstrip("-").isdigit():
+                raise ValueError(f"'{path}' indexes an array with '{segment}'")
+            index = int(segment)
+            if index >= len(current) or index < -len(current):
+                raise ValueError(f"'{path}' is out of range at '{segment}'")
+            current = current[index]
+            continue
+        if not isinstance(current, dict) or segment not in current:
+            raise ValueError(f"'{path}' is missing at '{segment}'")
+        current = current[segment]
+    return current
 
 
 def _actor_key(
@@ -391,13 +570,496 @@ def _region_tiles(
     return regions
 
 
+def _body_row(life: dict[str, Any]) -> tuple[Any, ...]:
+    """Reduce one active life to the visible state the dynamics pass reads."""
+
+    actor = _object(life.get("actorId"), "active life actorId")
+    position = _object(life.get("position"), "active life position")
+    return (
+        _integer(actor.get("teamId"), "active life teamId"),
+        _integer(actor.get("unitId"), "active life unitId"),
+        _integer(actor.get("lifeId"), "active life lifeId"),
+        str(life.get("formId")),
+        _integer(position.get("x"), "active life position.x"),
+        _integer(position.get("y"), "active life position.y"),
+        str(life.get("facing")),
+        _integer(life.get("health"), "active life health"),
+    )
+
+
+def _advance_direction(delta: int) -> int:
+    return 1 if delta > 0 else -1
+
+
+def _control_class(
+    entry: dict[str, Any],
+    objective_tiles: list[set[tuple[int, int]]],
+    form_weights: dict[str, int],
+) -> str:
+    """Objective control at one tick: paused / empty / contested / sole-N.
+
+    Only forms with positive objective weight count, so an anchored turret
+    standing on the objective neither claims nor contests it.
+    """
+
+    if entry["tick"] < entry["controlResumesAtTick"]:
+        return "paused"
+    index = entry["positionIndex"]
+    tiles = (
+        objective_tiles[index]
+        if 0 <= index < len(objective_tiles)
+        else set()
+    )
+    teams = {
+        body[0]
+        for body in entry["bodies"]
+        if form_weights.get(body[3], 0) > 0 and (body[4], body[5]) in tiles
+    }
+    if not teams:
+        return "empty"
+    if len(teams) > 1:
+        return "contested"
+    return f"sole-{next(iter(teams))}"
+
+
+def _position_trace_metrics(
+    positions: list[tuple[int, int]],
+) -> dict[str, Any]:
+    """Repetition metrics for one stable slot's concatenated body trace."""
+
+    ticks = len(positions)
+    dwell = sum(
+        1
+        for index in range(1, ticks)
+        if positions[index] == positions[index - 1]
+    )
+    autocorrelation: dict[int, float] = {}
+    for lag in range(*POSITION_AUTOCORRELATION_LAGS):
+        span = ticks - lag
+        if span < 1:
+            break
+        autocorrelation[lag] = _fraction(
+            sum(
+                1
+                for index in range(span)
+                if positions[index] == positions[index + lag]
+            ),
+            span,
+        )
+    best_lag = None
+    best_value = 0.0
+    for lag in sorted(autocorrelation):
+        if autocorrelation[lag] > best_value:
+            best_lag = lag
+            best_value = autocorrelation[lag]
+    return {
+        "ticks": ticks,
+        "distinctTiles": len(set(positions)),
+        "tileRatio": _fraction(len(set(positions)), ticks),
+        "dwellFraction": _fraction(dwell, ticks - 1),
+        "argmaxLag": best_lag,
+        "argmaxAutocorrelation": best_value,
+        "lag2Autocorrelation": autocorrelation.get(2, 0.0),
+    }
+
+
+def _dynamics_metrics(
+    trace: list[dict[str, Any]],
+    *,
+    objective_tiles: list[set[tuple[int, int]]],
+    form_weights: dict[str, int],
+    advance_deltas: dict[int, int],
+    centre_index: int,
+    capture_threshold: int,
+    floor_tiles: int,
+    completion_reason: str,
+    winner_team_id: int | None,
+    final_signed_score: int,
+) -> dict[str, Any]:
+    """Derive one match's pendulum/dullness row from its per-tick trace."""
+
+    ticks = len(trace)
+    if ticks == 0:
+        raise ValueError("dynamics require at least one tick")
+    positive_teams = sorted(
+        team_id for team_id, delta in advance_deltas.items() if delta > 0
+    )
+    if len(positive_teams) != 1:
+        raise ValueError(
+            "dynamics require exactly one team advancing toward a higher "
+            "objective index"
+        )
+    positive_team = positive_teams[0]
+    indexes = [entry["positionIndex"] for entry in trace]
+    progress = [entry["captureProgress"] for entry in trace]
+
+    # ---- 1/6 frontline transitions, advances and reversals ----------------
+    transitions: Counter[tuple[int, int]] = Counter()
+    directions: list[int] = []
+    first_advance_tick: int | None = None
+    for index in range(1, ticks):
+        if indexes[index] == indexes[index - 1]:
+            continue
+        step = 1 if indexes[index] > indexes[index - 1] else -1
+        transitions[(indexes[index - 1], step)] += 1
+        directions.append(step)
+        if first_advance_tick is None:
+            first_advance_tick = trace[index]["tick"]
+    breach = completion_reason != "max-ticks" and winner_team_id is not None
+    if breach:
+        transitions[
+            (
+                indexes[-1],
+                _advance_direction(advance_deltas[int(winner_team_id)]),
+            )
+        ] += 1
+    advances = len(directions)
+    reversals = sum(
+        1
+        for index in range(1, advances)
+        if directions[index] != directions[index - 1]
+    )
+    position_dwell: Counter[int] = Counter()
+    run_start = 0
+    for index in range(1, ticks):
+        if indexes[index] != indexes[index - 1]:
+            position_dwell[index - run_start] += 1
+            run_start = index
+    position_dwell[ticks - run_start] += 1
+    net_displacement = indexes[-1] - indexes[0]
+
+    # ---- 2 reinforcement transit ------------------------------------------
+    first_seen: dict[tuple[int, int, int], int] = {}
+    first_on_objective: dict[tuple[int, int, int], int] = {}
+    occupancy: Counter[tuple[int, int]] = Counter()
+    slot_positions: dict[tuple[int, int], list[tuple[int, int]]] = defaultdict(
+        list
+    )
+    for index, entry in enumerate(trace):
+        position_index = entry["positionIndex"]
+        tiles = (
+            objective_tiles[position_index]
+            if 0 <= position_index < len(objective_tiles)
+            else set()
+        )
+        for body in entry["bodies"]:
+            key = (body[0], body[1], body[2])
+            first_seen.setdefault(key, index)
+            tile = (body[4], body[5])
+            if key not in first_on_objective and tile in tiles:
+                first_on_objective[key] = index
+            occupancy[tile] += 1
+            slot_positions[(body[0], body[1])].append(tile)
+    transit_by_lead: dict[int, Counter[int]] = defaultdict(Counter)
+    for key, spawn_index in first_seen.items():
+        if spawn_index == 0:
+            continue
+        delta = advance_deltas.get(key[0])
+        arrival_index = first_on_objective.get(key)
+        if delta is None or arrival_index is None:
+            continue
+        lead = (
+            indexes[spawn_index] - centre_index
+        ) * _advance_direction(delta)
+        transit_by_lead[lead][
+            trace[arrival_index]["tick"] - trace[spawn_index]["tick"]
+        ] += 1
+
+    # ---- 3 sole-presence efficiency ---------------------------------------
+    control = [
+        _control_class(entry, objective_tiles, form_weights)
+        for entry in trace
+    ]
+    control_mix = Counter(
+        value if not value.startswith("sole-") else "sole"
+        for value in control
+    )
+    sole_run_lengths: Counter[int] = Counter()
+    completed_run_lengths: Counter[int] = Counter()
+    terminations: Counter[str] = Counter()
+    incomplete_terminations: Counter[str] = Counter()
+    productive_ticks = 0
+    wasted_ticks = 0
+    index = 0
+    while index < ticks:
+        if not control[index].startswith("sole-"):
+            index += 1
+            continue
+        end = index
+        while end + 1 < ticks and control[end + 1] == control[index]:
+            end += 1
+        length = end - index + 1
+        completed = end + 1 < ticks and indexes[end + 1] != indexes[end]
+        termination = control[end + 1] if end + 1 < ticks else "match-end"
+        terminations[
+            "sole" if termination.startswith("sole-") else termination
+        ] += 1
+        sole_run_lengths[length] += 1
+        if completed:
+            completed_run_lengths[length] += 1
+            productive_ticks += length
+        else:
+            wasted_ticks += length
+            incomplete_terminations[
+                "sole" if termination.startswith("sole-") else termination
+            ] += 1
+        index = end + 1
+    progress_gained = 0
+    progress_lost = 0
+    for index in range(1, ticks):
+        if indexes[index] != indexes[index - 1]:
+            continue  # an advance resets progress by rule, not by decay
+        change = progress[index] - progress[index - 1]
+        if change > 0:
+            progress_gained += change
+        elif change < 0:
+            progress_lost -= change
+
+    # ---- 4 frozen scoreboard and exact limit cycles ------------------------
+    frozen_run = 0
+    longest_frozen = 0
+    for index in range(1, ticks):
+        if (indexes[index], progress[index]) == (
+            indexes[index - 1],
+            progress[index - 1],
+        ):
+            frozen_run += 1
+            longest_frozen = max(longest_frozen, frozen_run)
+        else:
+            frozen_run = 0
+    # The whole visible state: which stable slot stands where, facing which
+    # way, at what health and in what form, plus the scoreboard. Life ids and
+    # clocks are excluded, so a respawn into the same posture still repeats.
+    signatures = [
+        (
+            tuple(
+                sorted(
+                    (
+                        body[0],
+                        body[1],
+                        body[4],
+                        body[5],
+                        body[6],
+                        body[7],
+                        body[3],
+                    )
+                    for body in entry["bodies"]
+                )
+            ),
+            entry["positionIndex"],
+            entry["captureProgress"],
+        )
+        for entry in trace
+    ]
+    cycle_length = 0
+    cycle_period = 0
+    terminal_cycle_length = 0
+    terminal_cycle_period = 0
+    for period in range(1, LIMIT_CYCLE_MAX_PERIOD + 1):
+        longest = _longest_repeat_run(signatures, period)
+        if longest > cycle_length:
+            cycle_length = longest
+            cycle_period = period
+        terminal = _terminal_repeat_run(signatures, period)
+        if terminal > terminal_cycle_length:
+            terminal_cycle_length = terminal
+            terminal_cycle_period = period
+
+    # ---- 5 close contact without damage ------------------------------------
+    close_ticks = 0
+    close_no_damage_ticks = 0
+    stare_runs: Counter[int] = Counter()
+    stare_run = 0
+    for entry in trace:
+        by_team: dict[int, list[tuple[int, int]]] = defaultdict(list)
+        for body in entry["bodies"]:
+            by_team[body[0]].append((body[4], body[5]))
+        team_ids = sorted(by_team)
+        separation: int | None = None
+        for left in range(len(team_ids)):
+            for right in range(left + 1, len(team_ids)):
+                for source in by_team[team_ids[left]]:
+                    for target in by_team[team_ids[right]]:
+                        distance = max(
+                            abs(source[0] - target[0]),
+                            abs(source[1] - target[1]),
+                        )
+                        if separation is None or distance < separation:
+                            separation = distance
+        close = separation is not None and separation <= CLOSE_CONTACT_TILES
+        close_ticks += int(close)
+        if close and not entry["damage"]:
+            close_no_damage_ticks += 1
+            stare_run += 1
+        else:
+            if stare_run:
+                stare_runs[stare_run] += 1
+            stare_run = 0
+    if stare_run:
+        stare_runs[stare_run] += 1
+    sustained_stare_ticks = sum(
+        length * count
+        for length, count in stare_runs.items()
+        if length >= SUSTAINED_STARE_TICKS
+    )
+
+    # ---- 7 positional entropy ----------------------------------------------
+    entropy = _entropy_bits(occupancy)
+    traces = [
+        _position_trace_metrics(positions)
+        for _, positions in sorted(slot_positions.items())
+        if len(positions) >= POSITION_TRACE_MIN_TICKS
+    ]
+
+    # ---- signed territorial score trajectory (S4's predictiveness) ---------
+    signed_scores = []
+    for entry in trace:
+        claiming = entry["claimingTeamId"]
+        claim = 0
+        if claiming is not None and int(claiming) in advance_deltas:
+            claim = entry["captureProgress"] * _advance_direction(
+                advance_deltas[int(claiming)]
+            )
+        signed_scores.append(
+            (entry["positionIndex"] - centre_index) * capture_threshold + claim
+        )
+    signs = [1 if value > 0 else -1 for value in signed_scores if value != 0]
+    lead_changes = sum(
+        1
+        for index in range(1, len(signs))
+        if signs[index] != signs[index - 1]
+    )
+
+    return {
+        "definitionsVersion": DYNAMICS_DEFINITIONS_VERSION,
+        "contract": {
+            "captureThreshold": capture_threshold,
+            "positionCount": len(objective_tiles),
+            "centreIndex": centre_index,
+            "advanceDeltas": {
+                str(team_id): advance_deltas[team_id]
+                for team_id in sorted(advance_deltas)
+            },
+            "publicAdvanceTeamId": positive_team,
+            "floorTiles": floor_tiles,
+        },
+        "frontline": {
+            "transitions": {
+                f"{index}|{step}": count
+                for (index, step), count in sorted(transitions.items())
+            },
+            "breachCountedAsAdvance": breach,
+            "advances": advances,
+            "reversals": reversals,
+            "reversalRate": (
+                reversals / (advances - 1) if advances >= 2 else None
+            ),
+            "netDisplacement": net_displacement,
+            "finalDisplacement": indexes[-1] - centre_index,
+            "displacementEfficiency": (
+                abs(net_displacement) / advances if advances else None
+            ),
+            "firstAdvanceTick": first_advance_tick,
+            "positionDwellHistogram": _histogram(position_dwell),
+        },
+        "reinforcementTransit": {
+            "byLeadTickHistogram": {
+                str(lead): _histogram(transit_by_lead[lead])
+                for lead in sorted(transit_by_lead)
+            },
+            "arrivedLives": sum(
+                sum(counts.values()) for counts in transit_by_lead.values()
+            ),
+            "reinforcementLives": sum(
+                1 for index in first_seen.values() if index != 0
+            ),
+        },
+        "solePresence": {
+            "controlMixTicks": dict(sorted(control_mix.items())),
+            "productiveTicks": productive_ticks,
+            "wastedTicks": wasted_ticks,
+            "wastedShare": _fraction(
+                wasted_ticks,
+                productive_ticks + wasted_ticks,
+            ),
+            "runLengthHistogram": _histogram(sole_run_lengths),
+            "completedRunLengthHistogram": _histogram(completed_run_lengths),
+            "runsReachingThreshold": sum(
+                count
+                for length, count in sole_run_lengths.items()
+                if length >= capture_threshold
+            ),
+            "runs": sum(sole_run_lengths.values()),
+            "terminations": dict(sorted(terminations.items())),
+            "incompleteTerminations": dict(
+                sorted(incomplete_terminations.items())
+            ),
+            "progressGained": progress_gained,
+            "progressLost": progress_lost,
+            "decayDestroyedShare": _fraction(
+                progress_lost,
+                progress_gained,
+            ),
+            "captures": sum(completed_run_lengths.values()),
+        },
+        "staleness": {
+            "longestFrozenScoreboardTicks": longest_frozen,
+            "frozenScoreboard": longest_frozen >= FROZEN_SCOREBOARD_TICKS,
+            "longestLimitCycleTicks": cycle_length,
+            "limitCyclePeriod": cycle_period,
+            "limitCycle": cycle_length >= LIMIT_CYCLE_TICKS,
+            "terminalLimitCycleTicks": terminal_cycle_length,
+            "terminalLimitCyclePeriod": terminal_cycle_period,
+            "terminalLimitCycle": (
+                terminal_cycle_length >= LIMIT_CYCLE_TICKS
+            ),
+        },
+        "closeContact": {
+            "distanceMetric": CLOSE_CONTACT_DISTANCE,
+            "radiusTiles": CLOSE_CONTACT_TILES,
+            "ticks": close_ticks,
+            "noDamageTicks": close_no_damage_ticks,
+            "noDamageShare": _fraction(close_no_damage_ticks, close_ticks),
+            "sustainedStareRunTicks": SUSTAINED_STARE_TICKS,
+            "sustainedStareTicks": sustained_stare_ticks,
+            "sustainedStareShare": _fraction(sustained_stare_ticks, ticks),
+        },
+        "positional": {
+            "bodyTicks": sum(occupancy.values()),
+            "distinctTiles": len(occupancy),
+            "floorTiles": floor_tiles,
+            "coverage": _fraction(len(occupancy), floor_tiles),
+            "entropyBits": entropy,
+            "effectiveTiles": 2 ** entropy if occupancy else 0.0,
+            "traces": traces,
+        },
+        "score": {
+            "signedTerritorialProbes": {
+                str(probe): signed_scores[min(probe - 1, ticks - 1)]
+                for probe in SCORE_SIGN_PROBE_TICKS
+            },
+            "finalSignedTerritorial": final_signed_score,
+            "leadChanges": lead_changes,
+            "levelTicks": sum(1 for value in signed_scores if value == 0),
+            "maxAbsoluteTerritorial": max(
+                abs(value) for value in signed_scores
+            ),
+        },
+    }
+
+
 def analyze_replay(
     document: dict[str, Any],
     *,
     source: str = "",
     group: str = "",
+    dynamics: bool = False,
 ) -> dict[str, Any]:
-    """Validate and derive one generic Frontline per-match metric row."""
+    """Validate and derive one generic Frontline per-match metric row.
+
+    `dynamics` additionally derives the pendulum/dullness family; the row is
+    otherwise byte-identical to the descriptive report it has always emitted.
+    """
 
     header = _object(document.get("header"), "header")
     if header.get("replayVersion") != 3:
@@ -654,6 +1316,47 @@ def analyze_replay(
         )
     ]
 
+    dynamics_trace: list[dict[str, Any]] = []
+    objective_tiles: list[set[tuple[int, int]]] = []
+    advance_deltas: dict[int, int] = {}
+    capture_threshold = 0
+    centre_index = 0
+    floor_tiles = 0
+    if dynamics:
+        objective_tiles = [
+            region_tiles.get(region_id, set())
+            for region_id in objective_region_ids
+        ]
+        capture = _object(game_mode.get("capture"), "gameMode.capture")
+        capture_threshold = _integer(
+            capture.get("threshold"),
+            "gameMode.capture.threshold",
+        )
+        # The public max-tick score is
+        # (activePositionIndex - positionCount / 2) * captureThreshold + claim,
+        # so the neutral position is positionCount // 2.
+        centre_index = _integer(
+            game_mode.get("frontlinePositionCount"),
+            "gameMode.frontlinePositionCount",
+        ) // 2
+        for raw_advance in _array(
+            mode_binding.get("teamAdvances"),
+            "modeMapBinding.teamAdvances",
+        ):
+            advance = _object(raw_advance, "team advance")
+            advance_deltas[
+                _integer(advance.get("teamId"), "teamAdvance.teamId")
+            ] = _integer(
+                advance.get("objectiveIndexDelta"),
+                "teamAdvance.objectiveIndexDelta",
+            )
+        floor_tiles = sum(
+            1
+            for raw_row in _array(map_contract.get("tileRows"), "map.tileRows")
+            for tile in str(raw_row)
+            if tile != WALL_TILE
+        )
+
     for raw_tick in ticks:
         tick = _object(raw_tick, "tick")
         tick_number = _integer(tick.get("tick"), "tick.tick")
@@ -754,11 +1457,13 @@ def analyze_replay(
 
         meaningful = False
         combat_event = False
+        damage_this_tick = False
         for raw_event in tick_events:
             event = _object(raw_event, "event")
             kind = str(event.get("kind"))
             event_counts[kind] += 1
             combat_event = combat_event or kind in {"attack", "damage"}
+            damage_this_tick = damage_this_tick or kind == "damage"
             payload = _object(event.get("payload"), "event.payload")
             if kind == "life-spawned":
                 actor_participant[
@@ -1341,6 +2046,26 @@ def analyze_replay(
             mode.get("activePositionIndex"),
             "mode.activePositionIndex",
         )
+        if dynamics:
+            dynamics_trace.append(
+                {
+                    "tick": tick_number,
+                    "positionIndex": position_index,
+                    "claimingTeamId": mode.get("claimingTeamId"),
+                    "captureProgress": _integer(
+                        mode.get("captureProgress"),
+                        "mode.captureProgress",
+                    ),
+                    "controlResumesAtTick": _integer(
+                        mode.get("controlResumesAtTick") or 0,
+                        "mode.controlResumesAtTick",
+                    ),
+                    "damage": damage_this_tick,
+                    "bodies": tuple(
+                        _body_row(life) for life in active_lives
+                    ),
+                }
+            )
         objective_weight_by_team: Counter[int] = Counter()
         global_weight_by_team: Counter[int] = Counter()
         for life in active_lives:
@@ -1844,7 +2569,40 @@ def analyze_replay(
             }
         )
 
-    return {
+    dynamics_row = None
+    if dynamics and dynamics_trace:
+        positive_team_ids = sorted(
+            team_id
+            for team_id, delta in advance_deltas.items()
+            if delta > 0
+        )
+        final_signed_score = 0
+        for standing in team_standings:
+            if not positive_team_ids:
+                break
+            if standing["teamId"] != positive_team_ids[0]:
+                continue
+            for raw_score in _array(
+                standing["scores"] or [],
+                "standing.scores",
+            ):
+                score = _object(raw_score, "standing score")
+                if str(score.get("channel")) == "territorial-progress":
+                    final_signed_score = int(str(score.get("value")))
+        dynamics_row = _dynamics_metrics(
+            dynamics_trace,
+            objective_tiles=objective_tiles,
+            form_weights=form_weights,
+            advance_deltas=advance_deltas,
+            centre_index=centre_index,
+            capture_threshold=capture_threshold,
+            floor_tiles=floor_tiles,
+            completion_reason=str(result.get("completionReason")),
+            winner_team_id=winner_team_id,
+            final_signed_score=final_signed_score,
+        )
+
+    row = {
         "source": source,
         "group": group,
         "identity": {
@@ -2003,6 +2761,9 @@ def analyze_replay(
             ),
         },
     }
+    if dynamics_row is not None:
+        row["dynamics"] = dynamics_row
+    return row
 
 
 def _summarize_entrants(
@@ -2344,6 +3105,573 @@ def _summarize_pairings(
     return result
 
 
+def _criterion(
+    metric: str,
+    comparison: str,
+    threshold: float,
+    observed: float | None,
+    *,
+    operationalized: bool = False,
+    basis: str | None = None,
+) -> dict[str, Any]:
+    """One pre-registered pass/fail criterion with its observed value."""
+
+    if observed is None:
+        passed = None
+    elif comparison == ">":
+        passed = observed > threshold
+    elif comparison == "<":
+        passed = observed < threshold
+    elif comparison == "<=":
+        passed = observed <= threshold
+    else:
+        raise ValueError(f"unsupported comparison '{comparison}'")
+    criterion = {
+        "metric": metric,
+        "comparison": comparison,
+        "threshold": threshold,
+        "observed": observed,
+        "pass": passed,
+    }
+    if operationalized:
+        criterion["operationalized"] = True
+    if basis is not None:
+        criterion["basis"] = basis
+    return criterion
+
+
+def _dynamics_gates(dynamics: dict[str, Any]) -> dict[str, Any]:
+    """Evaluate the forensics document's pre-registered S1-S5 / N1 gates."""
+
+    pendulum = dynamics["pendulum"]
+    transit = dynamics["reinforcementTransit"]
+    sole = dynamics["solePresence"]
+    staleness = dynamics["staleness"]
+    positional = dynamics["positional"]
+    score = dynamics["score"]
+    frozen_basis = (
+        "capped-matches"
+        if staleness["cappedMatches"]
+        else "all-matches"
+    )
+    frozen_share = (
+        staleness["cappedFrozenScoreboardShare"]
+        if staleness["cappedMatches"]
+        else staleness["frozenScoreboardShare"]
+    )
+    gates = {
+        "S1-territory-ratchet": [
+            _criterion(
+                "pendulum.leaderExtendsProbability",
+                ">",
+                0.50,
+                pendulum["leaderExtendsProbability"],
+            ),
+            _criterion(
+                "pendulum.displacementEfficiencyMedian",
+                ">",
+                0.40,
+                pendulum["displacementEfficiencyMedian"],
+            ),
+            _criterion(
+                "pendulum.capShare",
+                "<",
+                0.35,
+                pendulum["capShare"],
+            ),
+            _criterion(
+                "pendulum.drawRate",
+                "<",
+                NEAR_ZERO_DRAW_RATE,
+                pendulum["drawRate"],
+                operationalized=True,
+            ),
+        ],
+        "S2-forward-spawn": [
+            _criterion(
+                "reinforcementTransit.gradientSpreadTicks",
+                "<=",
+                3,
+                transit["gradientSpreadTicks"],
+            ),
+        ],
+        "S3-contest-costs": [
+            _criterion(
+                "solePresence.contestedShare",
+                "<",
+                0.20,
+                sole["contestedShare"],
+            ),
+            _criterion(
+                "solePresence.wastedShare",
+                "<",
+                0.25,
+                sole["wastedShare"],
+            ),
+            _criterion(
+                "staleness.frozenScoreboardShare",
+                "<",
+                0.15,
+                frozen_share,
+                basis=frozen_basis,
+            ),
+        ],
+        "S4-overtime-escalation": [
+            _criterion(
+                "pendulum.capShare",
+                "<",
+                0.15,
+                pendulum["capShare"],
+            ),
+            _criterion(
+                "score.signPredictiveness.300",
+                ">",
+                0.80,
+                score["signPredictiveness"].get("300"),
+            ),
+        ],
+        "S5-map-geometry": [
+            _criterion(
+                "positional.effectiveTilesMedian",
+                ">",
+                60.0,
+                positional["effectiveTilesMedian"],
+            ),
+        ],
+        "N1-lower-capture-threshold": [
+            _criterion(
+                "pendulum.reversalRateMedian",
+                "<",
+                PENDULUM_REVERSAL_RATE - PENDULUM_REVERSAL_TOLERANCE,
+                pendulum["reversalRateMedian"],
+                operationalized=True,
+            ),
+        ],
+    }
+    return {
+        gate: {
+            "criteria": criteria,
+            "pass": (
+                None
+                if any(item["pass"] is None for item in criteria)
+                else all(item["pass"] for item in criteria)
+            ),
+        }
+        for gate, criteria in sorted(gates.items())
+    }
+
+
+def summarize_dynamics(
+    name: str,
+    rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Aggregate the pendulum/dullness family over one replay set.
+
+    Rows may span rules arms and maps: unlike `summarize_group` this block is
+    a pooled description of match dynamics, not a cohort claim.
+    """
+
+    if not rows:
+        raise ValueError(f"dynamics set '{name}' contains no replays")
+    missing = [row["source"] for row in rows if "dynamics" not in row]
+    if missing:
+        raise ValueError(
+            f"dynamics set '{name}' has rows without a dynamics block "
+            "(analyzed without --dynamics, or a zero-tick replay): "
+            f"{sorted(missing)[:3]}"
+        )
+    entries = [row["dynamics"] for row in rows]
+    centre_indexes = {entry["contract"]["centreIndex"] for entry in entries}
+    if len(centre_indexes) != 1:
+        raise ValueError(
+            f"dynamics set '{name}' mixes frontline centre indexes: "
+            f"{sorted(centre_indexes)}"
+        )
+    centre_index = next(iter(centre_indexes))
+    capped = [
+        entry
+        for row, entry in zip(rows, entries)
+        if row["result"]["completionReason"] == "max-ticks"
+    ]
+
+    transitions: Counter[tuple[int, int]] = Counter()
+    for entry in entries:
+        for key, count in entry["frontline"]["transitions"].items():
+            index, _, step = key.partition("|")
+            transitions[(int(index), int(step))] += count
+    by_displacement: dict[int, dict[str, int]] = {}
+    for (index, step), count in transitions.items():
+        bucket = by_displacement.setdefault(
+            index - centre_index,
+            {"advancesUp": 0, "advancesDown": 0},
+        )
+        bucket["advancesUp" if step > 0 else "advancesDown"] += count
+    displacement_rows = []
+    extends = 0
+    reverts = 0
+    for displacement in sorted(by_displacement):
+        bucket = by_displacement[displacement]
+        total = bucket["advancesUp"] + bucket["advancesDown"]
+        leading = (
+            None
+            if displacement == 0
+            else bucket["advancesUp"]
+            if displacement > 0
+            else bucket["advancesDown"]
+        )
+        if leading is not None:
+            extends += leading
+            reverts += total - leading
+        displacement_rows.append(
+            {
+                "displacement": displacement,
+                "positionIndex": displacement + centre_index,
+                **bucket,
+                "transitions": total,
+                "leaderExtendsProbability": (
+                    None if leading is None else _fraction(leading, total)
+                ),
+            }
+        )
+
+    advances = [entry["frontline"]["advances"] for entry in entries]
+    reversal_rates = [
+        entry["frontline"]["reversalRate"]
+        for entry in entries
+        if entry["frontline"]["reversalRate"] is not None
+    ]
+    efficiencies = [
+        entry["frontline"]["displacementEfficiency"]
+        for entry in entries
+        if entry["frontline"]["displacementEfficiency"] is not None
+    ]
+    final_displacements: Counter[int] = Counter(
+        entry["frontline"]["finalDisplacement"] for entry in entries
+    )
+    capped_final_displacements: Counter[int] = Counter(
+        entry["frontline"]["finalDisplacement"] for entry in capped
+    )
+
+    transit_by_lead: dict[int, Counter[int]] = defaultdict(Counter)
+    for entry in entries:
+        for lead, histogram in entry["reinforcementTransit"][
+            "byLeadTickHistogram"
+        ].items():
+            for key, count in histogram.items():
+                transit_by_lead[int(lead)][int(key)] += count
+    # Every lead the frontline can present is reported, sampled or not, so the
+    # bucket key set stays stable across replay sets.
+    position_counts = {
+        entry["contract"]["positionCount"] for entry in entries
+    }
+    reachable_leads = sorted(
+        {
+            (index - centre_index) * sign
+            for count in position_counts
+            for index in range(count)
+            for sign in (1, -1)
+        }
+        | set(transit_by_lead)
+    )
+    transit_rows = {}
+    transit_medians = []
+    for lead in reachable_leads:
+        samples = _histogram_values(_histogram(transit_by_lead[lead]))
+        median = _median(samples)
+        if median is not None:
+            transit_medians.append(median)
+        transit_rows[str(lead)] = {
+            "samples": len(samples),
+            "medianTicks": median,
+            "meanTicks": _mean(samples),
+            "p75Ticks": _quantile(samples, 0.75),
+        }
+
+    control_mix: Counter[str] = Counter()
+    terminations: Counter[str] = Counter()
+    incomplete_terminations: Counter[str] = Counter()
+    for entry in entries:
+        control_mix.update(entry["solePresence"]["controlMixTicks"])
+        terminations.update(entry["solePresence"]["terminations"])
+        incomplete_terminations.update(
+            entry["solePresence"]["incompleteTerminations"]
+        )
+    control_ticks = sum(control_mix.values())
+    run_histogram = _merge_histograms(
+        entry["solePresence"]["runLengthHistogram"] for entry in entries
+    )
+    run_samples = _histogram_values(run_histogram)
+    productive_ticks = sum(
+        entry["solePresence"]["productiveTicks"] for entry in entries
+    )
+    wasted_ticks = sum(
+        entry["solePresence"]["wastedTicks"] for entry in entries
+    )
+    progress_gained = sum(
+        entry["solePresence"]["progressGained"] for entry in entries
+    )
+    progress_lost = sum(
+        entry["solePresence"]["progressLost"] for entry in entries
+    )
+    runs = sum(entry["solePresence"]["runs"] for entry in entries)
+    runs_reaching = sum(
+        entry["solePresence"]["runsReachingThreshold"] for entry in entries
+    )
+
+    frozen_ticks = [
+        entry["staleness"]["longestFrozenScoreboardTicks"]
+        for entry in entries
+    ]
+    cycle_ticks = [
+        entry["staleness"]["longestLimitCycleTicks"] for entry in entries
+    ]
+    close_ticks = sum(entry["closeContact"]["ticks"] for entry in entries)
+    close_no_damage = sum(
+        entry["closeContact"]["noDamageTicks"] for entry in entries
+    )
+    sustained_stare = sum(
+        entry["closeContact"]["sustainedStareTicks"] for entry in entries
+    )
+    total_ticks = sum(row["duration"]["ticks"] for row in rows)
+
+    traces = [
+        trace
+        for entry in entries
+        for trace in entry["positional"]["traces"]
+    ]
+    argmax_lags: Counter[int] = Counter(
+        trace["argmaxLag"]
+        for trace in traces
+        if trace["argmaxLag"] is not None
+    )
+
+    predictiveness = {}
+    for probe in SCORE_SIGN_PROBE_TICKS:
+        agreeing = 0
+        comparable = 0
+        for entry in capped:
+            observed = entry["score"]["signedTerritorialProbes"][str(probe)]
+            final = entry["score"]["finalSignedTerritorial"]
+            if observed == 0 or final == 0:
+                continue
+            comparable += 1
+            agreeing += int((observed > 0) == (final > 0))
+        predictiveness[str(probe)] = (
+            _fraction(agreeing, comparable) if comparable else None
+        )
+        predictiveness[f"{probe}Matches"] = comparable
+
+    summary = {
+        "name": name,
+        "definitionsVersion": DYNAMICS_DEFINITIONS_VERSION,
+        "matches": len(rows),
+        "cappedMatches": len(capped),
+        "captureThresholds": sorted(
+            {entry["contract"]["captureThreshold"] for entry in entries}
+        ),
+        "pendulum": {
+            "leaderExtendsProbability": (
+                _fraction(extends, extends + reverts)
+                if extends + reverts
+                else None
+            ),
+            "leaderExtendsTransitions": extends + reverts,
+            "byDisplacement": displacement_rows,
+            "advancesPerMatchMean": _mean(advances),
+            "advancesPerMatchMedian": _median(advances),
+            "reversalRateMean": _mean(reversal_rates),
+            "reversalRateMedian": _median(reversal_rates),
+            "reversalRateMatches": len(reversal_rates),
+            "displacementEfficiencyMean": _mean(efficiencies),
+            "displacementEfficiencyMedian": _median(efficiencies),
+            "finalDisplacementHistogram": _histogram(final_displacements),
+            "cappedFinalDisplacementHistogram": _histogram(
+                capped_final_displacements
+            ),
+            "meanAbsoluteFinalDisplacement": _mean(
+                [
+                    abs(entry["frontline"]["finalDisplacement"])
+                    for entry in entries
+                ]
+            ),
+            "capShare": _fraction(len(capped), len(rows)),
+            "drawRate": _fraction(
+                sum(1 for row in rows if row["result"]["draw"]),
+                len(rows),
+            ),
+            "breachMatches": sum(
+                1
+                for entry in entries
+                if entry["frontline"]["breachCountedAsAdvance"]
+            ),
+        },
+        "reinforcementTransit": {
+            "byLead": transit_rows,
+            "gradientSpreadTicks": (
+                max(transit_medians) - min(transit_medians)
+                if transit_medians
+                else None
+            ),
+            "arrivedLives": sum(
+                entry["reinforcementTransit"]["arrivedLives"]
+                for entry in entries
+            ),
+            "reinforcementLives": sum(
+                entry["reinforcementTransit"]["reinforcementLives"]
+                for entry in entries
+            ),
+        },
+        "solePresence": {
+            "controlMixTicks": dict(sorted(control_mix.items())),
+            "controlMixShare": {
+                key: _fraction(value, control_ticks)
+                for key, value in sorted(control_mix.items())
+            },
+            "contestedShare": _fraction(
+                control_mix["contested"],
+                control_ticks,
+            ),
+            "productiveTicks": productive_ticks,
+            "wastedTicks": wasted_ticks,
+            "wastedShare": _fraction(
+                wasted_ticks,
+                productive_ticks + wasted_ticks,
+            ),
+            "progressGained": progress_gained,
+            "progressLost": progress_lost,
+            "decayDestroyedShare": _fraction(progress_lost, progress_gained),
+            "runs": runs,
+            "runLengthMedian": _median(run_samples),
+            "runLengthP90": _quantile(run_samples, 0.90),
+            "runsReachingThreshold": runs_reaching,
+            "runsReachingThresholdShare": _fraction(runs_reaching, runs),
+            "terminationShare": {
+                key: _fraction(value, sum(terminations.values()))
+                for key, value in sorted(terminations.items())
+            },
+            "incompleteTerminationShare": {
+                key: _fraction(
+                    value,
+                    sum(incomplete_terminations.values()),
+                )
+                for key, value in sorted(incomplete_terminations.items())
+            },
+            "capturesPerMatchMean": _mean(
+                [entry["solePresence"]["captures"] for entry in entries]
+            ),
+        },
+        "staleness": {
+            "cappedMatches": len(capped),
+            "frozenScoreboardShare": _fraction(
+                sum(1 for entry in entries if entry["staleness"][
+                    "frozenScoreboard"
+                ]),
+                len(entries),
+            ),
+            "cappedFrozenScoreboardShare": _fraction(
+                sum(
+                    1
+                    for entry in capped
+                    if entry["staleness"]["frozenScoreboard"]
+                ),
+                len(capped),
+            ),
+            "frozenScoreboardMedianTicks": _median(frozen_ticks),
+            "frozenScoreboardP90Ticks": _quantile(frozen_ticks, 0.90),
+            "limitCycleShare": _fraction(
+                sum(
+                    1
+                    for entry in entries
+                    if entry["staleness"]["limitCycle"]
+                ),
+                len(entries),
+            ),
+            "cappedLimitCycleShare": _fraction(
+                sum(1 for entry in capped if entry["staleness"]["limitCycle"]),
+                len(capped),
+            ),
+            "limitCycleMedianTicks": _median(cycle_ticks),
+            "limitCycleP90Ticks": _quantile(cycle_ticks, 0.90),
+            "terminalLimitCycleShare": _fraction(
+                sum(
+                    1
+                    for entry in entries
+                    if entry["staleness"]["terminalLimitCycle"]
+                ),
+                len(entries),
+            ),
+            "limitCyclePeriodHistogram": _histogram(
+                Counter(
+                    entry["staleness"]["limitCyclePeriod"]
+                    for entry in entries
+                    if entry["staleness"]["limitCycle"]
+                )
+            ),
+        },
+        "closeContact": {
+            "distanceMetric": CLOSE_CONTACT_DISTANCE,
+            "radiusTiles": CLOSE_CONTACT_TILES,
+            "ticks": close_ticks,
+            "closeShare": _fraction(close_ticks, total_ticks),
+            "noDamageTicks": close_no_damage,
+            "noDamageShare": _fraction(close_no_damage, close_ticks),
+            "sustainedStareTicks": sustained_stare,
+            "sustainedStareShare": _fraction(sustained_stare, total_ticks),
+        },
+        "positional": {
+            "effectiveTilesMedian": _median(
+                [entry["positional"]["effectiveTiles"] for entry in entries]
+            ),
+            "effectiveTilesP10": _quantile(
+                [entry["positional"]["effectiveTiles"] for entry in entries],
+                0.10,
+            ),
+            "effectiveTilesP90": _quantile(
+                [entry["positional"]["effectiveTiles"] for entry in entries],
+                0.90,
+            ),
+            "coverageMedian": _median(
+                [entry["positional"]["coverage"] for entry in entries]
+            ),
+            "traces": len(traces),
+            "tileRatioMedian": _median(
+                [trace["tileRatio"] for trace in traces]
+            ),
+            "dwellFractionMedian": _median(
+                [trace["dwellFraction"] for trace in traces]
+            ),
+            "argmaxAutocorrelationMedian": _median(
+                [trace["argmaxAutocorrelation"] for trace in traces]
+            ),
+            "lag2AutocorrelationMedian": _median(
+                [trace["lag2Autocorrelation"] for trace in traces]
+            ),
+            "argmaxLagHistogram": _histogram(argmax_lags),
+            "argmaxLag2Share": _fraction(argmax_lags[2], len(traces)),
+        },
+        "score": {
+            "signPredictiveness": predictiveness,
+            "leadChangesMean": _mean(
+                [entry["score"]["leadChanges"] for entry in entries]
+            ),
+            "leadChangesMedian": _median(
+                [entry["score"]["leadChanges"] for entry in entries]
+            ),
+            "levelTickShareMedian": _median(
+                [
+                    _fraction(
+                        entry["score"]["levelTicks"],
+                        row["duration"]["ticks"],
+                    )
+                    for row, entry in zip(rows, entries)
+                ]
+            ),
+        },
+    }
+    summary["gates"] = _dynamics_gates(summary)
+    return summary
+
+
 def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
         raise ValueError(f"group '{name}' contains no replays")
@@ -2427,7 +3755,7 @@ def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
     stagnant_ticks = sum(
         row["activity"]["stagnantTicks"] for row in rows
     )
-    return {
+    summary = {
         "name": name,
         "matches": len(rows),
         "cohort": {
@@ -2621,6 +3949,9 @@ def summarize_group(name: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
             ),
         },
     }
+    if all("dynamics" in row for row in rows):
+        summary["dynamics"] = summarize_dynamics(name, rows)
+    return summary
 
 
 def _find_replays(path: Path) -> list[Path]:
@@ -2634,6 +3965,100 @@ def _parse_group(value: str) -> tuple[str, Path]:
     if not separator or not name or not raw_path:
         raise argparse.ArgumentTypeError("expected NAME=PATH")
     return name, Path(raw_path)
+
+
+def _format_optional(value: float | None, template: str) -> str:
+    return "n/a" if value is None else template.format(value)
+
+
+def _print_dynamics(dynamics: dict[str, Any], indent: str = "  ") -> None:
+    """Compact human view of the pendulum/dullness family and its gates."""
+
+    pendulum = dynamics["pendulum"]
+    transit = dynamics["reinforcementTransit"]
+    sole = dynamics["solePresence"]
+    staleness = dynamics["staleness"]
+    close = dynamics["closeContact"]
+    positional = dynamics["positional"]
+    print(
+        f"{indent}pendulum  leader-extends="
+        + _format_optional(
+            pendulum["leaderExtendsProbability"],
+            "{:.3f}",
+        )
+        + f" (n={pendulum['leaderExtendsTransitions']}) "
+        + "advances/match="
+        + _format_optional(pendulum["advancesPerMatchMean"], "{:.1f}")
+        + " reversal="
+        + _format_optional(pendulum["reversalRateMean"], "{:.3f}")
+        + " |net|/adv="
+        + _format_optional(
+            pendulum["displacementEfficiencyMedian"],
+            "{:.3f}",
+        )
+        + f" cap={pendulum['capShare']:.1%}"
+        + f" draws={pendulum['drawRate']:.1%}"
+    )
+    print(
+        f"{indent}transit   "
+        + " ".join(
+            f"lead{int(lead):+d}="
+            + _format_optional(values["medianTicks"], "{:.0f}")
+            for lead, values in sorted(
+                transit["byLead"].items(),
+                key=lambda item: int(item[0]),
+            )
+        )
+        + " spread="
+        + _format_optional(transit["gradientSpreadTicks"], "{:.0f}")
+        + "t"
+    )
+    print(
+        f"{indent}sole      "
+        f"wasted={sole['wastedShare']:.1%} "
+        f"decay-destroyed={sole['decayDestroyedShare']:.1%} "
+        f"runs>=threshold={sole['runsReachingThresholdShare']:.1%} "
+        + "median-run="
+        + _format_optional(sole["runLengthMedian"], "{:.0f}")
+        + f" contested={sole['contestedShare']:.1%}"
+    )
+    print(
+        f"{indent}stale     "
+        f"frozen>=50={staleness['cappedFrozenScoreboardShare']:.1%} "
+        f"cycle>=50={staleness['cappedLimitCycleShare']:.1%} "
+        f"(capped n={staleness['cappedMatches']}) "
+        f"close-no-damage={close['noDamageShare']:.1%} "
+        f"stare>={SUSTAINED_STARE_TICKS}t="
+        f"{close['sustainedStareShare']:.1%}"
+    )
+    print(
+        f"{indent}space     eff-tiles="
+        + _format_optional(positional["effectiveTilesMedian"], "{:.1f}")
+        + " coverage="
+        + _format_optional(positional["coverageMedian"], "{:.1%}")
+        + " dwell="
+        + _format_optional(positional["dwellFractionMedian"], "{:.3f}")
+        + " pos-autocorr="
+        + _format_optional(
+            positional["argmaxAutocorrelationMedian"],
+            "{:.3f}",
+        )
+        + f" lag2-argmax={positional['argmaxLag2Share']:.1%}"
+    )
+    print(
+        f"{indent}gates     "
+        + " ".join(
+            f"{gate.split('-')[0]}="
+            + (
+                "n/a"
+                if values["pass"] is None
+                else "pass"
+                if values["pass"]
+                else "fail"
+            )
+            for gate, values in sorted(dynamics["gates"].items())
+        )
+    )
 
 
 def _print_report(groups: list[dict[str, Any]]) -> None:
@@ -2737,6 +4162,113 @@ def _print_report(groups: list[dict[str, Any]]) -> None:
                 f"opening-damage="
                 f"{entrant['opening'].get('damageAmount', 0)}"
             )
+        if "dynamics" in group:
+            _print_dynamics(group["dynamics"])
+
+
+def verify_dynamics(
+    report: dict[str, Any],
+    expectations: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Compare dynamics metrics against a pre-registered baseline file.
+
+    Each expectation names a dotted `path` inside a dynamics block, its
+    `expected` value and an absolute `tolerance`. `group` selects a named
+    group's block; omitting it reads the report-level pooled block.
+    """
+
+    groups = {group["name"]: group for group in report.get("groups", [])}
+    results = []
+    for raw in _array(
+        expectations.get("expectations"),
+        "expectations",
+    ):
+        expectation = _object(raw, "expectation")
+        group_name = expectation.get("group")
+        if group_name is None:
+            block = report.get("dynamics")
+            scope = "pooled"
+        else:
+            group = groups.get(str(group_name))
+            block = None if group is None else group.get("dynamics")
+            scope = str(group_name)
+        path = str(expectation.get("path"))
+        expected = float(expectation.get("expected"))
+        tolerance = float(expectation.get("tolerance"))
+        if block is None:
+            results.append(
+                {
+                    "scope": scope,
+                    "path": path,
+                    "expected": expected,
+                    "tolerance": tolerance,
+                    "observed": None,
+                    "deviation": None,
+                    "pass": False,
+                    "error": f"no dynamics block for scope '{scope}'",
+                }
+            )
+            continue
+        try:
+            observed = _resolve_metric_path(block, path)
+        except ValueError as error:
+            results.append(
+                {
+                    "scope": scope,
+                    "path": path,
+                    "expected": expected,
+                    "tolerance": tolerance,
+                    "observed": None,
+                    "deviation": None,
+                    "pass": False,
+                    "error": str(error),
+                }
+            )
+            continue
+        deviation = (
+            None if observed is None else abs(float(observed) - expected)
+        )
+        results.append(
+            {
+                "scope": scope,
+                "path": path,
+                "expected": expected,
+                "tolerance": tolerance,
+                "observed": observed,
+                "deviation": deviation,
+                "pass": deviation is not None and deviation <= tolerance,
+            }
+        )
+    return results
+
+
+def _print_verification(
+    expectations: dict[str, Any],
+    results: list[dict[str, Any]],
+) -> None:
+    print()
+    print(
+        "Dynamics verification against "
+        f"{expectations.get('baseline', 'baseline')}"
+    )
+    for result in results:
+        observed = (
+            "n/a"
+            if result["observed"] is None
+            else f"{float(result['observed']):.4f}"
+        )
+        print(
+            f"  [{'ok  ' if result['pass'] else 'FAIL'}] "
+            f"{result['scope']}:{result['path']} "
+            f"observed={observed} "
+            f"expected={result['expected']:.4f}"
+            f"+/-{result['tolerance']:.4f}"
+            + (f"  {result['error']}" if result.get("error") else "")
+        )
+    failures = sum(1 for result in results if not result["pass"])
+    print(
+        f"  {len(results) - failures}/{len(results)} within tolerance"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -2754,7 +4286,27 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Write the versioned report, including every per-match row.",
     )
+    parser.add_argument(
+        "--dynamics",
+        action="store_true",
+        help=(
+            "Add the pendulum/dullness metric family and the pre-registered "
+            "S1-S5 / N1 gate evaluation from "
+            "docs/DESIGN-FORENSICS-DYNAMICS-2026-07-29.md."
+        ),
+    )
+    parser.add_argument(
+        "--verify-against",
+        type=Path,
+        metavar="BASELINE",
+        help=(
+            "Check the dynamics metrics against a baseline expectations "
+            "file; implies --dynamics and exits non-zero on any deviation "
+            "beyond its stated tolerance."
+        ),
+    )
     args = parser.parse_args(argv)
+    dynamics = args.dynamics or args.verify_against is not None
 
     paths_by_group: dict[str, list[Path]] = defaultdict(list)
     for name, path in args.group:
@@ -2784,6 +4336,7 @@ def main(argv: list[str] | None = None) -> int:
                     .relative_to(source_root)
                     .as_posix(),
                     group=name,
+                    dynamics=dynamics,
                 )
             except (OSError, json.JSONDecodeError, ValueError) as error:
                 raise ValueError(f"{path}: {error}") from error
@@ -2803,7 +4356,24 @@ def main(argv: list[str] | None = None) -> int:
             key=lambda row: (row["group"], row["source"]),
         ),
     }
+    if dynamics:
+        report["dynamicsDefinitionsVersion"] = DYNAMICS_DEFINITIONS_VERSION
+        report["dynamics"] = summarize_dynamics("pooled", rows)
     _print_report(summaries)
+    if dynamics and len(summaries) > 1:
+        print()
+        print(f"pooled ({report['dynamics']['matches']} matches)")
+        _print_dynamics(report["dynamics"])
+    failures = 0
+    if args.verify_against is not None:
+        expectations = _object(
+            json.loads(args.verify_against.read_text(encoding="utf-8")),
+            str(args.verify_against),
+        )
+        results = verify_dynamics(report, expectations)
+        report["verification"] = results
+        _print_verification(expectations, results)
+        failures = sum(1 for result in results if not result["pass"])
     if args.json is not None:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(
@@ -2812,7 +4382,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         print()
         print(f"JSON: {args.json.resolve()}")
-    return 0
+    return 3 if failures else 0
 
 
 if __name__ == "__main__":

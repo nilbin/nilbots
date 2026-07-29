@@ -107,6 +107,17 @@ python3 scripts/labs-replay-eval.py \
   --group current=arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/matches \
   --json arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/dynamics.json
 
+# Pendulum/dullness family + the pre-registered S1-S5 / N1 gates of
+# docs/DESIGN-FORENSICS-DYNAMICS-2026-07-29.md, one --group per study cell.
+python3 scripts/labs-replay-eval.py --dynamics \
+  --group <cell>=<run>/studies/<study>/candidates/<cell> \
+  --json /tmp/<run>/pendulum.json
+
+# Reconcile the implementation against the published forensics corpus.
+python3 scripts/labs-replay-eval.py \
+  --group <cell>=... \
+  --verify-against balance/frontline-pendulum-dynamics-baseline-v1.json
+
 nilbots experiment frontline-labs \
   --bot <bot.wasm> --opponent <opponent.wasm> \
   --capture-threshold 12 --seed 104729

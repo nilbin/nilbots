@@ -1,0 +1,160 @@
+{
+  "baseline": "docs/DESIGN-FORENSICS-DYNAMICS-2026-07-29.md",
+  "description": "Pre-registered reconciliation target for the pendulum/dullness metric family emitted by 'python3 scripts/labs-replay-eval.py --dynamics'. Every expectation is a value published in the forensics document (or in the agent pipeline that produced it) for the corpus named below, with an absolute tolerance that absorbs sampling scope. This file pins the implementation against the published analysis; it is not a balance target, and a candidate rules arm is expected to deviate from it. Point --verify-against at it only when the replay set is that corpus.",
+  "corpus": "frontline-classes-wave-2-movement-factorial-v1 and its holdout: 810 verified replay-v3 matches",
+  "expectations": [
+    {
+      "path": "matches",
+      "expected": 810,
+      "tolerance": 0,
+      "note": "corpus size the published values were computed over"
+    },
+    {
+      "path": "pendulum.leaderExtendsProbability",
+      "expected": 0.350,
+      "tolerance": 0.02,
+      "note": "headline: P(the leading side pushes further), breach counted as the final uncensored advance"
+    },
+    {
+      "path": "pendulum.leaderExtendsTransitions",
+      "expected": 4282,
+      "tolerance": 40,
+      "note": "non-centre frontline transitions behind the pooled probability"
+    },
+    {
+      "path": "pendulum.capShare",
+      "expected": 0.680,
+      "tolerance": 0.02,
+      "note": "S1/S4 gate input: share of matches reaching max ticks"
+    },
+    {
+      "path": "pendulum.advancesPerMatchMean",
+      "expected": 8.06,
+      "tolerance": 0.3
+    },
+    {
+      "path": "pendulum.reversalRateMean",
+      "expected": 0.567,
+      "tolerance": 0.03,
+      "note": "N1 falsification input"
+    },
+    {
+      "path": "pendulum.reversalRateMedian",
+      "expected": 0.625,
+      "tolerance": 0.03
+    },
+    {
+      "path": "pendulum.displacementEfficiencyMedian",
+      "expected": 0.125,
+      "tolerance": 0.02,
+      "note": "S1 gate input: |net displacement| / advances"
+    },
+    {
+      "path": "pendulum.displacementEfficiencyMean",
+      "expected": 0.276,
+      "tolerance": 0.03
+    },
+    {
+      "path": "reinforcementTransit.byLead.-2.medianTicks",
+      "expected": 4,
+      "tolerance": 1,
+      "note": "trailing by two positions: the objective walks toward the loser"
+    },
+    {
+      "path": "reinforcementTransit.byLead.0.medianTicks",
+      "expected": 13,
+      "tolerance": 1
+    },
+    {
+      "path": "reinforcementTransit.byLead.2.medianTicks",
+      "expected": 20,
+      "tolerance": 2,
+      "note": "leading by two positions: the 5x penalty for winning"
+    },
+    {
+      "path": "solePresence.contestedShare",
+      "expected": 0.3158,
+      "tolerance": 0.02,
+      "note": "S3 gate input"
+    },
+    {
+      "path": "solePresence.wastedShare",
+      "expected": 0.480,
+      "tolerance": 0.02,
+      "note": "S3 gate input: sole-presence ticks whose run never closed a capture"
+    },
+    {
+      "path": "solePresence.decayDestroyedShare",
+      "expected": 0.347,
+      "tolerance": 0.02,
+      "note": "share of earned capture progress destroyed by decay"
+    },
+    {
+      "path": "solePresence.runLengthMedian",
+      "expected": 4,
+      "tolerance": 1
+    },
+    {
+      "path": "solePresence.runsReachingThresholdShare",
+      "expected": 0.0803,
+      "tolerance": 0.01,
+      "note": "sole runs that reach the contract's capture threshold"
+    },
+    {
+      "path": "staleness.cappedFrozenScoreboardShare",
+      "expected": 0.385,
+      "tolerance": 0.03,
+      "note": "S3 gate input: capped matches with a >=50-tick frozen scoreboard"
+    },
+    {
+      "path": "staleness.cappedLimitCycleShare",
+      "expected": 0.227,
+      "tolerance": 0.03,
+      "note": "capped matches containing an exact whole-visible-state cycle >=50 ticks"
+    },
+    {
+      "path": "closeContact.noDamageShare",
+      "expected": 0.826,
+      "tolerance": 0.02,
+      "note": "the staring contest; published with Manhattan proximity, within tolerance under Chebyshev"
+    },
+    {
+      "path": "positional.effectiveTilesMedian",
+      "expected": 35.4,
+      "tolerance": 2.0,
+      "note": "S5 gate input: 2^entropy of the body-tick tile distribution"
+    },
+    {
+      "path": "positional.coverageMedian",
+      "expected": 0.335,
+      "tolerance": 0.02
+    },
+    {
+      "path": "positional.dwellFractionMedian",
+      "expected": 0.637,
+      "tolerance": 0.02
+    },
+    {
+      "path": "positional.argmaxAutocorrelationMedian",
+      "expected": 0.529,
+      "tolerance": 0.03
+    },
+    {
+      "path": "positional.argmaxLag2Share",
+      "expected": 0.875,
+      "tolerance": 0.03,
+      "note": "the two-beat dance"
+    },
+    {
+      "path": "score.signPredictiveness.300",
+      "expected": 0.659,
+      "tolerance": 0.03,
+      "note": "S4 gate input"
+    },
+    {
+      "path": "score.leadChangesMean",
+      "expected": 3.49,
+      "tolerance": 0.3
+    }
+  ]
+}
