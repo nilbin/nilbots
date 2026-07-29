@@ -55,6 +55,13 @@ entrant's source, standings, aggregate balance reports, or non-assigned
 replays. Mechanical probe feedback may repair contract handling; strategic
 improvement consumes the declared equal improvement budget.
 
+Work only inside your assigned output directory plus a uniquely named
+private scratch directory — never a shared or guessably named scratch path.
+A wave-1 author accidentally read another entrant's replay statistics
+through a shared scratchpad; competitive independence is the experiment's
+evidence, and an accidental exposure must be disclosed in `DX.md` exactly
+as that author did.
+
 ## Non-negotiable implementation requirements
 
 - Implement `IGenericActorBot` and treat `StartLife.Contract` plus current

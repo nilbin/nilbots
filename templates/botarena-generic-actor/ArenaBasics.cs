@@ -90,6 +90,7 @@ internal static class ArenaBasics
         Position[] objectiveTiles = ActiveObjectiveTiles(contract, context);
         bool holdingObjective =
             objectiveTiles.Contains(context.Self.Position);
+        Direction[] preference = OrderedDirections(contract, context);
         Direction? selected = constraint.AllowedValues
             .Where(direction => Directions.Contains(direction))
             .Select(direction =>
@@ -117,7 +118,8 @@ internal static class ArenaBasics
                 hostile.Min(projectile =>
                     candidate.Destination.ChebyshevDistance(
                         projectile.Position)))
-            .ThenBy(candidate => candidate.Direction)
+            .ThenBy(candidate =>
+                Array.IndexOf(preference, candidate.Direction))
             .Select(candidate => (Direction?)candidate.Direction)
             .FirstOrDefault();
         if (selected is not Direction direction)
@@ -323,7 +325,8 @@ internal static class ArenaBasics
             context.Self.Position,
             goals.ToHashSet(),
             occupied,
-            constraint.AllowedValues.ToHashSet());
+            constraint.AllowedValues.ToHashSet(),
+            OrderedDirections(contract, context));
         if (step is not Direction direction)
             return null;
 
@@ -427,11 +430,16 @@ internal static class ArenaBasics
         Position start,
         IReadOnlySet<Position> goals,
         IReadOnlySet<Position> occupied,
-        IReadOnlySet<Direction> allowedFirstSteps)
+        IReadOnlySet<Direction> allowedFirstSteps,
+        Direction[]? searchOrder = null)
     {
+        // Iteration order is the tie-break for equal-length paths — an
+        // absolute order here is the same systematic side bias as an
+        // absolute movement preference. Callers pass OrderedDirections.
+        Direction[] order = searchOrder ?? Directions;
         var visited = new HashSet<Position> { start };
         var queue = new Queue<(Position Position, Direction First)>();
-        foreach (Direction direction in Directions)
+        foreach (Direction direction in order)
         {
             if (!allowedFirstSteps.Contains(direction))
                 continue;
@@ -449,7 +457,7 @@ internal static class ArenaBasics
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            foreach (Direction direction in Directions)
+            foreach (Direction direction in order)
             {
                 Position next = Offset(current.Position, direction);
                 if (!CanEnter(map, next, occupied)
@@ -584,6 +592,94 @@ internal static class ArenaBasics
         int difference = ((int)to - (int)from + 8) % 8;
         return difference > 4 ? difference - 8 : difference;
     }
+
+    /// <summary>
+    /// This team's advance direction as a map heading, derived from the
+    /// ordered objective regions and the team's declared index direction.
+    /// Null when the mode declares no advance (deathmatch, or degenerate
+    /// geometry).
+    /// </summary>
+    public static Direction? AdvanceDirection(
+        GenericActorResolvedMatchContract contract,
+        GenericActorContext context)
+    {
+        if (contract.ModeMapBinding
+            is not GenericActorResolvedMatchContract
+                .FrontlineModeMapBinding binding
+            || binding.OrderedObjectiveRegionIds.Length < 2)
+        {
+            return null;
+        }
+        var advance = binding.TeamAdvances.FirstOrDefault(entry =>
+            entry.TeamId == context.Self.ActorId.TeamId);
+        if (advance is null)
+            return null;
+
+        (double X, double Y)? Centroid(string regionId)
+        {
+            var region = contract.Map.Regions.FirstOrDefault(entry =>
+                string.Equals(
+                    entry.RegionId, regionId, StringComparison.Ordinal));
+            if (region is null || region.Tiles.IsEmpty)
+                return null;
+            return (
+                region.Tiles.Average(tile => (double)tile.X),
+                region.Tiles.Average(tile => (double)tile.Y));
+        }
+
+        (double X, double Y)? first =
+            Centroid(binding.OrderedObjectiveRegionIds[0]);
+        (double X, double Y)? last = Centroid(
+            binding.OrderedObjectiveRegionIds[^1]);
+        if (first is not { } from || last is not { } to)
+            return null;
+        double dx = to.X - from.X;
+        double dy = to.Y - from.Y;
+        if (advance.ObjectiveIndexDelta < 0)
+        {
+            dx = -dx;
+            dy = -dy;
+        }
+        if (dx == 0 && dy == 0)
+            return null;
+        return Math.Abs(dx) >= Math.Abs(dy)
+            ? dx > 0 ? Direction.East : Direction.West
+            : dy > 0 ? Direction.South : Direction.North;
+    }
+
+    /// <summary>
+    /// A mirror-fair direction preference: advance first, retreat last, and
+    /// the two perpendiculars ordered by the per-life deterministic random
+    /// stream. An absolute order (always prefer East) gives the east-advancing
+    /// team a systematic edge on a mirror-symmetric map — measured as a
+    /// 40-of-40 side sweep in the wave-1 factorial — because both teams share
+    /// the same absolute preference. Randomizing residual ties converts that
+    /// bias into seed noise, which mirrored accounting can wash out.
+    /// </summary>
+    public static Direction[] OrderedDirections(
+        GenericActorResolvedMatchContract contract,
+        GenericActorContext context)
+    {
+        Direction forward =
+            AdvanceDirection(contract, context) ?? context.Self.Facing;
+        Direction backward = Opposite(forward);
+        Direction[] laterals =
+            Directions.Where(direction =>
+                direction != forward && direction != backward)
+            .ToArray();
+        if (laterals.Length == 2 && context.Random.NextBool())
+            (laterals[0], laterals[1]) = (laterals[1], laterals[0]);
+        return [forward, .. laterals, backward];
+    }
+
+    private static Direction Opposite(Direction direction) =>
+        direction switch
+        {
+            Direction.North => Direction.South,
+            Direction.South => Direction.North,
+            Direction.East => Direction.West,
+            _ => Direction.East,
+        };
 
     /// <summary>
     /// The class of the team controlling <paramref name="teamId"/>, derived
