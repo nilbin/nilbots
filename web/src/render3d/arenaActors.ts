@@ -4,6 +4,7 @@ import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../replayModel';
+import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { projectileLook } from '../render/arenaThemes';
 import {
   defaultFormIdForUnit,
@@ -1150,7 +1151,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
       const firing = events.some(
         (event) =>
-          event.type === 'shot' &&
+          isAttackEvent(event.type) &&
           event.sourceActor?.actorKey === pose.actorKey,
       );
       const struck = events.some(
@@ -1160,7 +1161,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       const dying = events.some(
         (event) =>
-          event.type === 'destroyed' &&
+          isDestructionEvent(event.type) &&
           event.targetActor?.actorKey === pose.actorKey,
       );
       const collapse = dying

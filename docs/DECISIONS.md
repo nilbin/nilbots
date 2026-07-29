@@ -3201,6 +3201,60 @@ the implementation report; unreachable today, they bill to any future
 five-slot qualification work. Kit adoption is NOT decided here — it
 waits on the owner's outcome-blind prototype gallery.
 
+## 162. The prototype skills get a presentation, and it states the rule
+
+The watchability screen #161 defers to could not be run on the arms as
+they rendered. Both stances resolved to the mobile chassis, and the
+2.5D renderer — keying on `canMove === false` alone — reared them onto
+their noses as spinning omnidirectional turrets, which is a lie about
+two forms whose whole content is the direction they face. A volley
+arrived as three unrelated bolts; an absorbed bolt vanished. So the
+presentation layer now says all three out loud, and every cue is the
+rule rather than a flourish:
+
+- **A stance is a third body**, beside mobile and emplaced, resolved in
+  `unitPresentation` from the stance token the engine appends to the
+  source form ID (`-volley-stance`, `-aegis-shell`) and looked up in
+  the replay's own form catalog, never composed from a naming rule. It
+  keeps its facing marker; an emplacement still does not. The volley
+  grows three barrels at the fan's own −45/0/+45, so the shape predicts
+  the shot. The aegis fills the facing quadrant and stops hard at ±45°
+  — the *edge* is the counter-play, so the boundary is drawn, and the
+  unguarded three quarters are stated rather than left blank.
+- **A volley is one wide-arrow glyph**, recovered renderer-side from
+  what the contract guarantees and nothing weaker: same owner, same
+  launch tick, contiguous ascending IDs (`identityOrder`). A gap in the
+  identities means these were not one launch. The outline pushes each
+  blade forward along *its own* heading, which is what bows a symmetric
+  fan into a crescent — no code knows it is drawing one. A terminated
+  blade cuts the run, and survivors either side fly on as separate
+  arrows rather than being joined across the gap.
+- **An absorption is not a hit.** Nothing expands, nothing is thrown,
+  the camera does not move: the guarded arc rings at its own radius on
+  the event's own `targetFacing`, and the bolt collapses inward on the
+  contact tile. Every absorption restates which quadrant is covered.
+
+Two things this uncovered. The class-form look table gains a stance
+slot filled from the shipped catalog (`rift-runner`, `mossback`) — the
+same explicitly-temporary stand-in status the mobile and emplaced picks
+carry, no new assets, no catalog entries. And every presentation
+surface compared event types against the replay-v1/v2 spelling
+(`shot`/`destroyed`), so a generation-3 replay played back with no
+muzzle flash, no kill flare, no recoil, no death collapse, no camera
+knock and no sound cues; `isAttackEvent`/`isDestructionEvent` on the
+model now own that equivalence in one place. The model keeps each
+document's own vocabulary deliberately — re-labelling `attack` as
+`shot` during normalization would invent an equivalence the schemas do
+not state.
+
+Two limits the screen has to know about. On
+`frontline-labs-01-classes` the volley's flanking lanes almost always
+die within a tick or two: the map pinches at columns 10–12 and its one
+fully-open row is flush with the boundary, so the widest sustained fan
+the map allows is one tick of three lanes. And the naive shell probe is
+never flanked (#161's zero-damage finding), so the arc's *cost* is
+unproven on screen even though its extent is legible.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

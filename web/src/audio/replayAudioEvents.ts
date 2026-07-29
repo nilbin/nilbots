@@ -1,4 +1,5 @@
 import type { ReplayModel } from '../replayModel';
+import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import type { SoundEffectCueId } from './soundEffects';
 
 export interface ReplayAudioEvent {
@@ -37,17 +38,15 @@ export function replayAudioEventsAt(
   for (const event of tick.events) {
     // Events carry their origin tile; a shot is placed where it was fired from.
     const pan = panAt(event.from?.x ?? event.to?.x);
-    switch (event.type) {
-      case 'shot':
-        scheduled.push({ cue: 'projectile', tickOffset: 0.46, priority: 1, pan });
-        break;
-      case 'damage':
-        scheduled.push({ cue: 'impact', tickOffset: 0.56, priority: 2, pan });
-        break;
-      case 'destroyed':
-      case 'disqualified':
-        scheduled.push({ cue: 'destroyed', tickOffset: 0.68, priority: 4, pan });
-        break;
+    if (isAttackEvent(event.type)) {
+      scheduled.push({ cue: 'projectile', tickOffset: 0.46, priority: 1, pan });
+    } else if (event.type === 'damage') {
+      scheduled.push({ cue: 'impact', tickOffset: 0.56, priority: 2, pan });
+    } else if (
+      isDestructionEvent(event.type) ||
+      event.type === 'disqualified'
+    ) {
+      scheduled.push({ cue: 'destroyed', tickOffset: 0.68, priority: 4, pan });
     }
   }
 

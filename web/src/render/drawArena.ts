@@ -6,6 +6,7 @@ import type {
   ReplayProjectileHeading,
   ReplayStableUnitKey,
 } from '../replayModel';
+import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import {
   arenaTheme,
   projectileLook,
@@ -292,7 +293,7 @@ export function drawArena(
   function shakeOffset(): { x: number; y: number } | null {
     let strength = 0;
     for (const event of currentTick?.events ?? []) {
-      if (event.type === 'destroyed') strength = Math.max(strength, 1);
+      if (isDestructionEvent(event.type)) strength = Math.max(strength, 1);
       else if (event.type === 'damage')
         strength = Math.max(strength, 0.45);
     }
@@ -501,11 +502,11 @@ export function drawArena(
       if (!at) return;
       for (const event of at.events) {
         const kind: LightKind | null =
-          event.type === 'shot'
+          isAttackEvent(event.type)
             ? 'shot'
             : event.type === 'damage'
               ? 'impact'
-              : event.type === 'destroyed'
+              : isDestructionEvent(event.type)
                 ? 'destroyed'
                 : null;
         if (!kind) continue;
@@ -1184,14 +1185,14 @@ export function drawArena(
     const radius = tile * 0.38;
     const destroyedNow = (currentTick?.events ?? []).some(
       (event) =>
-        event.type === 'destroyed' &&
+        isDestructionEvent(event.type) &&
         event.targetActor?.actorKey === pose.actorKey,
     );
     const destroyed = pose.status !== 'active' || destroyedNow;
     const ghosted = hiddenByFog(pose);
     const fired = (currentTick?.events ?? []).some(
       (event) =>
-        event.type === 'shot' &&
+        isAttackEvent(event.type) &&
         event.sourceActor?.actorKey === pose.actorKey,
     );
     const damaged = (currentTick?.events ?? []).some(
@@ -1572,7 +1573,7 @@ export function drawArena(
     const progress = shotProgress();
     if (progress <= 0) return;
     for (const event of currentTick?.events ?? []) {
-      if (event.type !== 'shot') continue;
+      if (!isAttackEvent(event.type)) continue;
       const from = eventPoint(event.from);
       const to = eventPoint(event.to);
       if (!from || !to) continue;
@@ -1665,7 +1666,7 @@ export function drawArena(
         drawAbsorption(event, flash);
         continue;
       }
-      if (event.type === 'destroyed') {
+      if (isDestructionEvent(event.type)) {
         const at = eventPoint(event.from);
         if (!at) continue;
         ctx.save();

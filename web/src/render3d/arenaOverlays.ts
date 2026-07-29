@@ -4,6 +4,7 @@ import type {
   ReplayPosition,
   ReplayStableUnitKey,
 } from '../replayModel';
+import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { spentBoltsAt } from '../render/interpolate';
 import { PROJECTILE_HOVER } from './arenaActors';
 import { unitAccent } from '../render/unitPresentation';
@@ -122,7 +123,7 @@ export function buildOverlays(replay: ReplayModel): ArenaOverlays {
     const fraction = Math.max(0, Math.min(time - tick, 1));
     let strength = 0;
     for (const event of replay.ticks[tick]?.events ?? []) {
-      if (event.type === 'destroyed') strength = Math.max(strength, 1);
+      if (isDestructionEvent(event.type)) strength = Math.max(strength, 1);
       else if (event.type === 'damage')
         strength = Math.max(strength, 0.45);
     }
@@ -471,7 +472,7 @@ function buildImpacts(
   const update = (tick: number, fraction: number) => {
     let used = 0;
     for (const event of replay.ticks[tick]?.events ?? []) {
-      const killing = event.type === 'destroyed';
+      const killing = isDestructionEvent(event.type);
       if (event.type !== 'damage' && !killing) continue;
       // Where the hit landed. The model records that in `from`, which is what the flat
       // renderer has always drawn its impact at.
@@ -662,7 +663,7 @@ function buildFlashes(
     let used = 0;
     for (const event of events) {
       const flash =
-        event.type === 'shot' && event.from
+        isAttackEvent(event.type) && event.from
           ? {
               position: event.from,
               colour: new THREE.Color(
@@ -674,7 +675,7 @@ function buildFlashes(
               life: 0.45,
             }
           : (event.type === 'damage' ||
-                event.type === 'destroyed') &&
+                isDestructionEvent(event.type)) &&
               (event.to ?? event.from)
             ? {
                 // Replay-v2 carries the impact tile in `to`; normalized replay-v1

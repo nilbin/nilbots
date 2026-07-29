@@ -158,6 +158,28 @@ export type ReplayActionKind =
   | 'fabrication'
   | 'transformation'
   | (string & {});
+/**
+ * The two events every presentation surface keys off, under both names they carry.
+ *
+ * `ReplayCausalEvent.type` is the *source document's* vocabulary, deliberately: the model
+ * is version-neutral about structure, not about naming, and re-labelling a v3 `attack` as
+ * a v1 `shot` during normalization would invent an equivalence the schemas do not state.
+ * The cost is that a consumer comparing against one spelling silently stops firing on the
+ * other generation — which is exactly what happened to every muzzle flash, kill flare,
+ * recoil, death collapse, camera knock and sound cue the moment replay-v3 arrived: none of
+ * them matched `attack`/`destruction`, and a generation-3 match played back as bolts
+ * appearing from nothing and bodies quietly ceasing to exist.
+ *
+ * So the equivalence lives here, once, named, instead of in twelve string literals.
+ */
+export function isAttackEvent(type: string): boolean {
+  return type === 'shot' || type === 'attack';
+}
+
+export function isDestructionEvent(type: string): boolean {
+  return type === 'destroyed' || type === 'destruction';
+}
+
 export type ReplayTickResolutionPhase =
   | 'freeze-observations'
   | 'collect-joint-decisions'

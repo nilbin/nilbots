@@ -417,6 +417,33 @@ test('a volley is drawn, and its members are not also drawn as bolts', () => {
   );
 });
 
+test('a generation-3 replay gets the same muzzle flash and death as a duel', () => {
+  // The names are the only difference: replay-v1/v2 say `shot`/`destroyed`, replay-v3
+  // says `attack`/`destruction`, and the model deliberately keeps each document's own
+  // vocabulary. Every presentation surface compared against one spelling, so a class-arm
+  // replay played back with no muzzle flash, no kill flare, no recoil and no camera
+  // knock — the three skills under review would have been the only things on screen.
+  const spelled = structuredClone(asVolleyArm(frontline)) as ReplayModel;
+  let renamed = 0;
+  for (const tick of spelled.ticks)
+    for (const event of tick.events) {
+      if (event.type === 'shot') {
+        event.type = 'attack';
+        renamed++;
+      } else if (event.type === 'destroyed') {
+        event.type = 'destruction';
+        renamed++;
+      }
+    }
+  assert.ok(renamed > 0, 'the fixture has events worth renaming');
+  for (const time of [10.5, 10.8, 11.7])
+    assert.equal(
+      frameHash(spelled, time),
+      frameHash(asVolleyArm(frontline), time),
+      `both spellings of the same event draw the same frame at ${time}`,
+    );
+});
+
 test('an absorption is drawn on the guard, and is not a damage impact', () => {
   const arm = asVolleyArm(frontline);
   const guarded = structuredClone(arm) as ReplayModel;
