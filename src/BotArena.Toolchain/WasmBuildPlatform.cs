@@ -22,7 +22,7 @@ public static class WasmBuildPlatform
 
     public static string BackendDescription => NativeToolchainAvailable
         ? "native Linux x64"
-        : "Docker linux/amd64";
+        : "Docker (platform-matched)";
 
     public static bool DockerAvailable()
     {

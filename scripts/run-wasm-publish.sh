@@ -137,6 +137,20 @@ docker info >/dev/null 2>&1 || {
   exit 1
 }
 
+# The pinned NativeAOT-LLVM compiler host ships for both linux-x64 and
+# linux-arm64, and both emit byte-identical modules (DECISIONS #147). Matching
+# the container platform to the host CPU keeps the compiler native: an
+# emulated (Rosetta/qemu) builder is slower and can deadlock, so emulation is
+# reserved for an explicit BOTARENA_WASM_DOCKER_PLATFORM override.
+case "$host_arch" in
+  arm64|aarch64) host_docker_arch=arm64 ;;
+  *) host_docker_arch=amd64 ;;
+esac
+container_platform="${BOTARENA_WASM_DOCKER_PLATFORM:-linux/$host_docker_arch}"
+container_arch="${container_platform#linux/}"
+emulated=0
+[ "$container_arch" = "$host_docker_arch" ] || emulated=1
+
 builder_file="$repo_root/docker/wasm-builder.Dockerfile"
 builder_key="$(
   {
@@ -146,12 +160,12 @@ builder_key="$(
     git hash-object --stdin |
     cut -c1-12
 )"
-builder_image="${BOTARENA_WASM_BUILDER_IMAGE:-nilbots-wasm-builder:$builder_key}"
+builder_image="${BOTARENA_WASM_BUILDER_IMAGE:-nilbots-wasm-builder:$builder_key-$container_arch}"
 
 if [ "$rebuild_builder" -eq 1 ] || ! docker image inspect "$builder_image" >/dev/null 2>&1; then
   echo "Preparing cached WASM builder $builder_image (first run only)..."
   docker build \
-    --platform linux/amd64 \
+    --platform "$container_platform" \
     --file "$builder_file" \
     --tag "$builder_image" \
     "$repo_root"
@@ -166,12 +180,22 @@ if command -v id >/dev/null; then
   docker_user_args=(--user "$(id -u):$(id -g)")
 fi
 
-docker_command=(docker run --rm --platform linux/amd64)
+docker_command=(docker run --rm --platform "$container_platform")
 if [ -n "${BOTARENA_WASM_CONTAINER_NAME:-}" ]; then
   docker_command+=(--name "$BOTARENA_WASM_CONTAINER_NAME")
 fi
 if [ "${#docker_user_args[@]}" -gt 0 ]; then
   docker_command+=("${docker_user_args[@]}")
+fi
+if [ "$emulated" -eq 1 ]; then
+  # Under CPU emulation (Rosetta/qemu), MSBuild's multi-node fan-out
+  # intermittently deadlocks at 0% CPU: the entry node blocks in
+  # rt_mutex_schedule while a freshly spawned worker never completes its
+  # handshake (DECISIONS #147). Single-node, in-process compilation removes
+  # every cross-process handshake; ilc keeps its internal parallelism and the
+  # emitted artifact bytes are unchanged. Native platform-matched builds must
+  # not inherit these flags — they are slower and pointless there.
+  docker_command+=(--env DOTNET_EnableWriteXorExecute=0)
 fi
 docker_command+=(
   --mount "type=bind,src=$publish_root,dst=/workspace"
@@ -182,6 +206,13 @@ docker_command+=(
   -p:PathMap=/workspace=/src
   -p:ContinuousIntegrationBuild=true
 )
+if [ "$emulated" -eq 1 ]; then
+  docker_command+=(
+    -p:UseSharedCompilation=false
+    -maxcpucount:1
+    -nodeReuse:false
+  )
+fi
 if [ "${#dotnet_args[@]}" -gt 0 ]; then
   docker_command+=("${dotnet_args[@]}")
 fi

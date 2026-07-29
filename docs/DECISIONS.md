@@ -2613,6 +2613,46 @@ occurrences, time-zone/DST policy, worker leases, bounded retries, entitlement
 revocation and idempotent creation are not implied by the manual capability
 projection. Match-creation idempotency also remains a required follow-up.
 
+## 147. The Docker WASM builder matches the host CPU; emulated builds run single-node
+
+`nilbots build` on Apple Silicon intermittently sat at 0% CPU forever with an
+empty quiet-verbosity log. Captured `/proc` evidence from three reproduced
+stalls showed the same signature: the entry `dotnet publish` blocked in
+`rt_mutex_schedule` after spawning only some of its MSBuild worker nodes, the
+spawned workers parked in `futex_wait_queue` mid-handshake, and VBCSCompiler
+idle — a multi-node fan-out deadlock under Rosetta's x64 emulation inside the
+Docker VM. Measured baseline: 4 stalls in 45 builds (~9%), healthy builds 18 s
+serial. `DOTNET_EnableWriteXorExecute=0` alone was tested and refuted (stalled
+within 6 builds). Forcing `-maxcpucount:1 -nodeReuse:false
+-p:UseSharedCompilation=false` removed every cross-process handshake and every
+stall, but serialized the framework-object clang compiles behind
+`BuildInParallel` and doubled the build to 36 s.
+
+The structural fix: the pinned NativeAOT-LLVM release also publishes a
+`runtime.linux-arm64` compiler host (the historical "Linux x64 only" note was
+stale), and it emits **byte-identical** modules — verified by full SHA-256
+equality on the same sources. `run-wasm-publish.sh` therefore selects the
+container platform matching the host CPU (override:
+`BOTARENA_WASM_DOCKER_PLATFORM`), keys the cached builder image per
+architecture, and the generated workspace plus `BotArena.WasmGuest` reference
+the compiler host package conditionally on the build-process architecture. A
+native-arm64 `nilbots build` measures 9 s end-to-end against the emulated
+18 s, and no platform-matched configuration emulates at all. The anti-stall
+single-node flags and the W^X toggle remain, applied only when the selected
+container platform differs from the host CPU. `WasmPublishEmulationGuardTests`
+pins both shapes; the emulated fallback was re-verified against the prior
+amd64 image with identical hashes.
+
+Because artifact bytes are unchanged, `BuildPipelineVersion` stays at 1 and no
+player cache invalidates; because `run-wasm-publish.sh` and `BotBuilder` are
+in the CLI compatibility surface, `CliVersion` bumps to 0.9.5. The campaigns
+also surfaced a second, independent fault: deleting and recreating the
+workspace directory between builds occasionally raced macOS virtiofs into a
+transient empty container view (`MSB1009`, roughly 2% of Docker builds), so
+`BotBuilder` now empties the bind-mount root in place instead of replacing its
+inode. If an `osx-arm64` compiler host ever ships upstream, the Docker
+requirement itself could be revisited.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
