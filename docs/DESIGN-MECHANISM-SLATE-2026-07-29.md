@@ -77,6 +77,21 @@ barricades deliver ~80% as actors), and **more shot-program
 parameters** (proven worthless: 9, 17, and 217 programs solve to the
 same value).
 
+## Design guards (owner rulings)
+
+- **No skill may reintroduce facing-decoupled movement.** Strafe is dead
+  (DECISIONS #159) and facing-locked's balance win *is* the dodge tax —
+  sidestepping costs a rotation. Any skill granting lateral or
+  facing-free movement (dash-sideways, blink, dodge-step) silently
+  refunds that tax and unravels the coupling. Mobility skills must
+  commit along facing (charge is the template: less freedom than
+  normal movement, not more).
+- Skills are priced in public windups and tenure, never energy
+  (#47/#48) and never hidden state.
+- Every stance pays in the scoring currency deliberately or keeps
+  objective weight 1 deliberately — the turret's accidental 0.13%
+  usage is the cautionary precedent either way.
+
 ## Process requirements
 
 Every piloted mechanism enters `balance/frontline-ablation-debt-v1.json`
