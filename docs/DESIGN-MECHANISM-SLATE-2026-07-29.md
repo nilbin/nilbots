@@ -138,6 +138,16 @@ shared grammar on mobile facing-aimed guns (never on specials).
   return transition (volley fires-count 1, shell absorbs-count N) —
   one primitive, one new causal fact. Gallery drivers play the budget
   by etiquette until then.
+  **Deflection, not absorption (owner ruling).** The shield DEFLECTS:
+  the incoming bolt dies on the arc and a new bolt launches from the
+  shell along the reversed heading, owned by the bulwark's team (the
+  ownership flip is what makes it lethal to the shooter and renders
+  it in the deflector's colors). Fully public and dodgeable — a tempo
+  tax on frontal poke, not auto-damage. Feeding the break now costs
+  footwork: each of the ~3 shatter-buying bolts has a return to
+  sidestep. Converts the stance from a null into a threat and gives
+  the viewer the ricochet beat; still bounded by shield-break and the
+  locked arc.
 - **Fabricator FIVE SLOTS** (surge died with the treadmill critique:
   faster replacement of free bodies accelerates the exact loop the
   dynamics report convicted). The fabricator simply has more unit
