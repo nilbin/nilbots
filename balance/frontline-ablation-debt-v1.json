@@ -50,6 +50,27 @@
       "currentInterpretation": "Schema-3 movement is facing-decoupled (any cardinal step without turning) by architectural declaration, with no DECISIONS entry and no measurement — while the duel-game record convicted exactly this mechanic: DECISIONS #49 held strafe for oscillation-dodging and +80% game length, and the 0.5 record calls it the dodge-everything regression. The wave-1 factorial's dominant standoff-kiting doctrine and 500-tick draws are consistent with that verdict. Every exact-analysis and qualification layer currently assumes free lateral movement.",
       "requiredIsolation": "Pre-register facing-coupled movement arms (first candidate: move sets facing to the movement direction, rotate remains for free aim) as typed engine additions, run the same-population A/B against the current model, and recompute the exact duel analysis and evade probes under the winning model before any promotion.",
       "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "striker-volley-composite",
+      "status": "open",
+      "currentInterpretation": "The volley arm bundles three factors in one flag: a reversible immobile stance route, a three-lane simultaneous fan, and a slower stance cadence. A measured effect cannot be attributed to width, to the commitment window, or to the tempo trade on its own.",
+      "requiredIsolation": "Compare the stance with an ordinary single-bolt gun at the same cadence against the same stance with the fan, then vary cooldown alone, as separately fingerprinted arms on the same population.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "aegis-shell-composite",
+      "status": "open",
+      "currentInterpretation": "The shell arm bundles the facing-arc projectile guard with the form's price (immobile, gunless, objective weight retained) and with the reversible two-windup cycle. A blunted striker edge could come from the guard, from the retained scoring presence, or from the cycle's readability.",
+      "requiredIsolation": "Run the same stance without the guard, and the guard on a stance that forfeits objective weight, as separate arms; then vary entry/exit windups independently. Flank-approach share must be reported per arm since the guard's value is entirely positional.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "five-slots-composite",
+      "status": "open",
+      "currentInterpretation": "The five-slot arm bundles slot COUNT (three to five) with an unlock schedule (300/420, continuing the class cadence) and a slower rebuild clock (30 rather than 15) for the extra slots. It also changes topology, so it is not fingerprint-comparable to any three-slot arm on topology alone.",
+      "requiredIsolation": "Vary the extra slots' unlock ticks and rebuild delay separately at a fixed count of five, and compare against a four-slot arm, to separate arithmetic out-bodying from schedule. The treadmill metrics that convicted SURGE are the pass/fail gate for the rebuild factor.",
+      "requiredBefore": "internal-pilot"
     }
   ]
 }
