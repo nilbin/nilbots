@@ -248,7 +248,8 @@ public static class FrontlineLabsDefinition
     /// </summary>
     public static ActorResolvedMatchDefinition
         CreateMovementCouplingExperiment(
-            ActorMovementFacingCoupling movementCoupling)
+            ActorMovementFacingCoupling movementCoupling,
+            FrontlineLabsDuelMapArm mapArm = FrontlineLabsDuelMapArm.Current)
     {
         if (movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
         {
@@ -265,6 +266,7 @@ public static class FrontlineLabsDefinition
             captureGainSchedule: null,
             enableMobilize: false,
             remoteFabrication: false,
+            duelMapArm: mapArm,
             movementCoupling: movementCoupling);
     }
 

@@ -179,15 +179,17 @@ public static class FrontlineLabsExperimentCommand
                     + "class-agnostic bots).");
             }
         }
-        bool duelExperiment = oneBendShots
-            || automaticCompanions
-            || (duelMapArm is not null && classPair is null);
-        // --movement composes with --classes (and, through it, --duel-map);
-        // on its own it is the standalone base kinematics arm and therefore
-        // exclusive with every other experiment option.
+        // --movement composes with --classes and with --duel-map (a
+        // coupling test on the retreat-punishing map is exactly the wanted
+        // experiment); it is exclusive only with the unrelated numeric arms.
         bool standaloneMovementArm =
             movementCoupling != ActorMovementFacingCoupling.PreserveFacing
             && classPair is null;
+        bool duelExperiment = oneBendShots
+            || automaticCompanions
+            || (duelMapArm is not null
+                && classPair is null
+                && !standaloneMovementArm);
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
@@ -239,7 +241,9 @@ public static class FrontlineLabsExperimentCommand
         else if (standaloneMovementArm)
         {
             definition = FrontlineLabsDefinition
-                .CreateMovementCouplingExperiment(movementCoupling);
+                .CreateMovementCouplingExperiment(
+                    movementCoupling,
+                    duelMapArm ?? FrontlineLabsDuelMapArm.Current);
         }
         else if (automaticCompanions)
         {
