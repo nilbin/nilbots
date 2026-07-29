@@ -31,6 +31,16 @@ public static class FrontlineLabsDefinition
     /// </summary>
     public const string AsymmetricSlotsTopologyProfileId =
         "two-team-one-controller-asymmetric-slots-5-3-v1";
+
+    /// <summary>
+    /// The five-slot arm's OTHER shape: a fabricator mirror, where both teams
+    /// field five. It is symmetric and therefore not the same pre-registration
+    /// as the 5-vs-3 cell, even though the same flag produces it — a profile
+    /// ID names a topology, not an arm flag.
+    /// </summary>
+    public const string FiveSlotMirrorTopologyProfileId =
+        "two-team-one-controller-five-slots-v1";
+
     public const string DuelDepthSeedProfileId =
         "frontline-labs-duel-depth-1";
     public const string ClassesSeedProfileId =
@@ -58,17 +68,35 @@ public static class FrontlineLabsDefinition
     private const int MaxRulesetIdLength = 64;
 
     /// <summary>
-    /// The topology profile label for one resolved cell. Slot counts are the
-    /// only variable, so read them from the contract rather than from the arm
-    /// flags.
+    /// The topology profile label for one resolved cell, read from the
+    /// contract's per-team slot counts rather than from the arm flags. A
+    /// profile ID is a pre-registration, so an unregistered shape faults here
+    /// rather than borrowing a neighbouring label — a five-slot MIRROR is not
+    /// the five-versus-three cell, and mislabelling it would carry the wrong
+    /// topology into balance registration.
     /// </summary>
     public static string TopologyProfileIdFor(PublicMatchTopology topology)
     {
         ArgumentNullException.ThrowIfNull(topology);
-        return topology.Teams.All(team =>
-            topology.UnitSlots.Count(slot => slot.TeamId == team.TeamId) == 3)
-            ? TopologyProfileId
-            : AsymmetricSlotsTopologyProfileId;
+        int[] counts =
+        [
+            .. topology.Teams
+                .Select(team => topology.UnitSlots.Count(slot =>
+                    slot.TeamId == team.TeamId))
+                .OrderByDescending(count => count),
+        ];
+        return counts switch
+        {
+            [3, 3] => TopologyProfileId,
+            [5, 5] => FiveSlotMirrorTopologyProfileId,
+            [5, 3] => AsymmetricSlotsTopologyProfileId,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(topology),
+                string.Join("/", counts),
+                "No Frontline Labs topology profile is registered for these "
+                + "per-team slot counts. Register one before running the "
+                + "cell — the profile ID travels into balance evidence."),
+        };
     }
 
     private const string PrimeFormId = "prime-mobile";
@@ -371,7 +399,7 @@ public static class FrontlineLabsDefinition
                 + "class in this cell owns the requested skill: "
                 + string.Join(
                     ", ",
-                    All.Where(skill => skills.HasFlag(skill))
+                    Skills.Where(skill => skills.HasFlag(skill))
                         .Select(skill =>
                             $"{SkillToken(skill)} belongs to "
                             + $"{OwnerClassId(skill)}"))
@@ -448,7 +476,7 @@ public static class FrontlineLabsDefinition
         | FrontlineLabsSkillKit.FabricatorFiveSlots;
 
     /// <summary>Every skill in the pre-registered kit, in flag order.</summary>
-    public static ImmutableArray<FrontlineLabsSkillKit> All { get; } =
+    public static ImmutableArray<FrontlineLabsSkillKit> Skills { get; } =
     [
         FrontlineLabsSkillKit.StrikerVolley,
         FrontlineLabsSkillKit.BulwarkAegisShell,
@@ -610,7 +638,7 @@ public static class FrontlineLabsDefinition
     private static string SkillsToken(FrontlineLabsSkillKit skills) =>
         string.Join(
             "-",
-            All.Where(skill => skills.HasFlag(skill)).Select(SkillToken));
+            Skills.Where(skill => skills.HasFlag(skill)).Select(SkillToken));
 
     private static string SkillToken(FrontlineLabsSkillKit skill) =>
         skill switch

@@ -60,7 +60,7 @@ public sealed class FrontlineLabsSkillArmTests
             FrontlineLabsSkillKit.FabricatorFiveSlots,
             FrontlineLabsClassDefinition.Fabricator.Skill);
         Assert.Equal(
-            FrontlineLabsDefinition.All.Length,
+            FrontlineLabsDefinition.Skills.Length,
             FrontlineLabsClassDefinition.All
                 .Select(entry => entry.Skill)
                 .Distinct()
@@ -231,7 +231,7 @@ public sealed class FrontlineLabsSkillArmTests
                 ActorContractFingerprint.ComputeMatch(skilled));
             // Every single-skill subset is also its own distinct arm.
             foreach (FrontlineLabsSkillKit skill in
-                     FrontlineLabsDefinition.All.Where(
+                     FrontlineLabsDefinition.Skills.Where(
                          skill => owned.HasFlag(skill)))
             {
                 ActorResolvedMatchDefinition single =

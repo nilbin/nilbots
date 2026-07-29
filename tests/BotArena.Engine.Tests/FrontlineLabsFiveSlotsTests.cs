@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using BotArena.ActorContracts;
 
 namespace BotArena.Engine.Tests;
@@ -52,9 +53,30 @@ public sealed class FrontlineLabsFiveSlotsTests
         ActorResolvedMatchDefinition arm = Arm();
 
         Assert.Equal(10, arm.Topology.UnitSlots.Length);
+        // A mirror is five-versus-five, which is a different pre-registered
+        // topology from the five-versus-three cell even though the same flag
+        // produced it. A profile ID names a topology, not an arm flag.
         Assert.Equal(
-            FrontlineLabsDefinition.AsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.FiveSlotMirrorTopologyProfileId,
             FrontlineLabsDefinition.TopologyProfileIdFor(arm.Topology));
+        Assert.NotEqual(
+            FrontlineLabsDefinition.AsymmetricSlotsTopologyProfileId,
+            FrontlineLabsDefinition.FiveSlotMirrorTopologyProfileId);
+    }
+
+    [Fact]
+    public void AnUnregisteredSlotShapeFaultsInsteadOfBorrowingALabel()
+    {
+        PublicMatchTopology source = Arm().Topology;
+        var unregistered = source with
+        {
+            UnitSlots = source.UnitSlots
+                .Where(slot => slot.TeamId == 0 || slot.UnitId < 2)
+                .ToImmutableArray(),
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            FrontlineLabsDefinition.TopologyProfileIdFor(unregistered));
     }
 
     [Fact]

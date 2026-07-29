@@ -343,7 +343,7 @@ public static class FrontlineLabsExperimentCommand
                 "Skills:            "
                 + string.Join(
                     ", ",
-                    FrontlineLabsDefinition.All
+                    FrontlineLabsDefinition.Skills
                         .Where(skill => skills.HasFlag(skill))
                         .Select(skill => skill.ToString()))
                 + (skills == requestedSkills
