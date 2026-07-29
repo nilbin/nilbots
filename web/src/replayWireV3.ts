@@ -175,7 +175,8 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     decayIntervalTicks: number;
     redeployPauseTicks: number;
     controlPolicy:
-      'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral';
+      | 'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral'
+      | 'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral';
     timeoutPolicy:
       'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
     territorialProgressFormula:
@@ -187,10 +188,13 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     oppositionArithmetic:
       'erode-toward-zero-without-carrying-overshoot-into-own-claim';
     decayClock:
-      'consecutive-empty-or-contested-ticks-reset-by-any-sole-control';
+      | 'consecutive-empty-or-contested-ticks-reset-by-any-sole-control'
+      | 'empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only';
     disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero';
     redeployPolicy:
-      'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause';
+      | 'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause'
+      | 'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+    ratchetHoldTicks?: number;
     redeployTickArithmetic:
       'checked-int64-capture-tick-plus-one-plus-pause-require-int32';
   };

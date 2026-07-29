@@ -342,6 +342,20 @@ public sealed class FrontlineModeKernel
         int tick)
     {
         FrontlineCaptureDefinition capture = _gameMode.Capture;
+        if (capture.DecayClock
+            == FrontlineCaptureDefinition.DecayClockKind
+                .EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly)
+        {
+            // An empty or contested objective costs the claimant nothing:
+            // only sole opposition erodes a claim under this clock.
+            return new FrontlineControlStepResult(
+                state with
+                {
+                    NextTick = tick + 1,
+                    DecayTicksElapsed = 0,
+                },
+                Transition: null);
+        }
         if (state.ClaimingTeamId is null)
         {
             return new FrontlineControlStepResult(
@@ -416,6 +430,23 @@ public sealed class FrontlineModeKernel
                     state.ActivePositionIndex));
         }
 
+        int nextIndex = checked(state.ActivePositionIndex + delta);
+        if (IsDeniedByRatchetHold(state, tick, teamId, nextIndex))
+        {
+            // The capture is spent, not converted: the claim resets exactly
+            // as a completed capture does, the frontline holds, and nothing
+            // redeploys, so no pause and no advance fact.
+            return new FrontlineControlStepResult(
+                state with
+                {
+                    NextTick = tick + 1,
+                    ClaimingTeamId = null,
+                    CaptureProgress = 0,
+                    DecayTicksElapsed = 0,
+                },
+                Transition: null);
+        }
+
         long resumesAt = checked(
             (long)tick
             + 1
@@ -426,7 +457,7 @@ public sealed class FrontlineModeKernel
                 nameof(tick),
                 "Frontline redeploy schedule exceeds the signed 32-bit tick range.");
         }
-        int nextPosition = checked(state.ActivePositionIndex + delta);
+        int nextPosition = nextIndex;
         if (nextPosition < 0
             || nextPosition >= _gameMode.FrontlinePositionCount)
         {
@@ -443,12 +474,58 @@ public sealed class FrontlineModeKernel
                 CaptureProgress = 0,
                 DecayTicksElapsed = 0,
                 ControlResumesAtTick = (int)resumesAt,
+                RatchetHold = CreateRatchetHold(tick, teamId, nextPosition),
             },
             new FrontlinePositionAdvanced(
                 tick,
                 teamId,
                 state.ActivePositionIndex,
                 nextPosition));
+    }
+
+    /// <summary>
+    /// True when an enemy capture would push the frontline back across a live
+    /// high-water mark. The test is directional rather than positional so it
+    /// stays correct even if a future policy lets the objective drift away
+    /// from the mark while a hold stands.
+    /// </summary>
+    private bool IsDeniedByRatchetHold(
+        FrontlineControlState state,
+        int tick,
+        int teamId,
+        int nextIndex) =>
+        _gameMode.Capture.RedeployPolicy
+            == FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks
+        && state.RatchetHold is { } hold
+        && hold.TeamId != teamId
+        && tick <= hold.HoldsThroughTick
+        && (nextIndex - hold.PositionIndex) * _advanceByTeam[hold.TeamId] < 0;
+
+    private FrontlineRatchetHold? CreateRatchetHold(
+        int tick,
+        int teamId,
+        int reachedPosition)
+    {
+        if (_gameMode.Capture.RedeployPolicy
+            != FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks)
+        {
+            return null;
+        }
+
+        long holdsThrough = checked(
+            (long)tick + _gameMode.Capture.RatchetHoldTicks);
+        if (holdsThrough > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(tick),
+                "Frontline ratchet hold exceeds the signed 32-bit tick range.");
+        }
+        return new FrontlineRatchetHold(
+            teamId,
+            reachedPosition,
+            (int)holdsThrough);
     }
 
     private TeamStandings BuildStandings(
@@ -540,8 +617,18 @@ public sealed class FrontlineModeKernel
         bool decayDisabled =
             capture.DecayAmount == 0
             && capture.DecayIntervalTicks == 0;
+        bool ratchetPolicy = capture.RedeployPolicy
+            == FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks;
         bool invalid =
             state.NextTick < 0
+            || state.RatchetHold is not null && !ratchetPolicy
+            || state.RatchetHold is { } hold
+                && (!_teamIdSet.Contains(hold.TeamId)
+                    || hold.PositionIndex < 0
+                    || hold.PositionIndex
+                        >= _gameMode.FrontlinePositionCount
+                    || hold.HoldsThroughTick < 0)
             || state.ActivePositionIndex < 0
             || state.ActivePositionIndex
                 >= _gameMode.FrontlinePositionCount
@@ -553,6 +640,10 @@ public sealed class FrontlineModeKernel
             || state.CaptureProgress >= capture.Threshold
             || state.DecayTicksElapsed < 0
             || decayDisabled && state.DecayTicksElapsed != 0
+            || capture.DecayClock
+                    == FrontlineCaptureDefinition.DecayClockKind
+                        .EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly
+                && state.DecayTicksElapsed != 0
             || !decayDisabled
                 && state.DecayTicksElapsed >= capture.DecayIntervalTicks
             || state.ControlResumesAtTick < 0

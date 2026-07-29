@@ -22,6 +22,27 @@ public static class FrontlineLabsDefinition
     public const string ClassesSeedProfileId =
         "frontline-labs-classes-1";
 
+    /// <summary>The hosted contract's capture threshold.</summary>
+    public const int DefaultCaptureThreshold = 15;
+
+    /// <summary>The hosted contract's Prime automatic-return delay.</summary>
+    public const int DefaultPrimeRespawnTicks = 18;
+
+    /// <summary>
+    /// How long a territory ratchet holds a completed advance. The wave-2
+    /// corpus measured the advance-reversal latency at 33 ticks — respawn 18
+    /// plus transit 12, or capture 15 plus the 5-tick redeploy pause — so a
+    /// shorter hold would be undone by the reinforcement wave the capture
+    /// itself triggered. Forty ticks is the next round value above that
+    /// measurement and still only 8% of a 500-tick match, so a five-position
+    /// frontline can change hands repeatedly
+    /// (<c>docs/DESIGN-FORENSICS-DYNAMICS-2026-07-29.md</c>).
+    /// </summary>
+    public const int RatchetHoldTicksDefault = 40;
+
+    /// <summary>Canonical IDs are capped at 64 characters.</summary>
+    private const int MaxRulesetIdLength = 64;
+
     private const string PrimeFormId = "prime-mobile";
     private const string ChildFormId = "child-mobile";
     private const string ReplicaFormId = "replica-mobile";
@@ -271,6 +292,236 @@ public static class FrontlineLabsDefinition
     }
 
     /// <summary>
+    /// Creates a local-only candidate arm for the pre-registered phase-1
+    /// pendulum factorial (DECISIONS #158). Every factor is rules-side and
+    /// observation-schema-neutral: the structural counterweights select typed
+    /// capture and lifecycle policies, and the numbers-only level retunes the
+    /// capture threshold and the Prime respawn delay. The factors compose
+    /// with each other, with the class slate, with the movement-coupling arm,
+    /// and with the duel maps, so one factorial cell is one call.
+    /// </summary>
+    public static ActorResolvedMatchDefinition CreatePendulumExperiment(
+        FrontlineLabsPendulumArm pendulum,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes = null,
+        FrontlineLabsDuelMapArm mapArm = FrontlineLabsDuelMapArm.Current,
+        ActorMovementFacingCoupling movementCoupling =
+            ActorMovementFacingCoupling.PreserveFacing,
+        int captureThreshold = DefaultCaptureThreshold,
+        int primeRespawnTicks = DefaultPrimeRespawnTicks)
+    {
+        if ((pendulum & ~AllPendulumArms) != 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pendulum),
+                pendulum,
+                "Unknown Frontline Labs pendulum arm.");
+        }
+        if (captureThreshold <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(captureThreshold),
+                captureThreshold,
+                "Capture threshold must be positive.");
+        }
+        if (primeRespawnTicks < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(primeRespawnTicks),
+                primeRespawnTicks,
+                "The Prime respawn delay cannot be negative.");
+        }
+        if (classes is { } pair
+            && string.CompareOrdinal(pair.TeamZero.Id, pair.TeamOne.Id) > 0)
+        {
+            throw new ArgumentException(
+                "Class pairs are canonical: pass classes in ordinal ID order "
+                + "and mirror bot assignments instead of swapping teams.",
+                nameof(classes));
+        }
+        if (pendulum == FrontlineLabsPendulumArm.None
+            && captureThreshold == DefaultCaptureThreshold
+            && primeRespawnTicks == DefaultPrimeRespawnTicks
+            && classes is null
+            && movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pendulum),
+                pendulum,
+                "The uncounterweighted contract is the measured control, not "
+                + "an arm; call Create() for it.");
+        }
+
+        return CreateResolved(
+            PendulumRulesetId(
+                pendulum,
+                classes,
+                movementCoupling,
+                captureThreshold,
+                primeRespawnTicks),
+            captureThreshold,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            controlPolicy: ControlPolicy(pendulum),
+            duelMapArm: mapArm,
+            seedProfileId: classes is null ? null : ClassesSeedProfileId,
+            classes: classes,
+            movementCoupling: movementCoupling,
+            pendulum: pendulum,
+            primeRespawnTicks: primeRespawnTicks);
+    }
+
+    private const FrontlineLabsPendulumArm AllPendulumArms =
+        FrontlineLabsPendulumArm.StickyFrontline
+        | FrontlineLabsPendulumArm.ForwardRally
+        | FrontlineLabsPendulumArm.ContestMajority
+        | FrontlineLabsPendulumArm.EnemySoleDecay;
+
+    private static FrontlineCaptureDefinition.ControlPolicyKind ControlPolicy(
+        FrontlineLabsPendulumArm pendulum) =>
+        pendulum.HasFlag(FrontlineLabsPendulumArm.ContestMajority)
+            ? FrontlineCaptureDefinition.ControlPolicyKind
+                .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral
+            : FrontlineCaptureDefinition.ControlPolicyKind
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral;
+
+    private static FrontlineCaptureDefinition.DecayClockKind DecayClock(
+        FrontlineLabsPendulumArm pendulum) =>
+        pendulum.HasFlag(FrontlineLabsPendulumArm.EnemySoleDecay)
+            ? FrontlineCaptureDefinition.DecayClockKind
+                .EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly
+            : FrontlineCaptureDefinition.DecayClockKind
+                .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl;
+
+    private static FrontlineCaptureDefinition.RedeployPolicyKind
+        RedeployPolicy(FrontlineLabsPendulumArm pendulum) =>
+        pendulum.HasFlag(FrontlineLabsPendulumArm.StickyFrontline)
+            ? FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks
+            : FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause;
+
+    private static int RatchetHoldTicks(
+        FrontlineLabsPendulumArm pendulum) =>
+        pendulum.HasFlag(FrontlineLabsPendulumArm.StickyFrontline)
+            ? RatchetHoldTicksDefault
+            : 0;
+
+    private static ActorLifecycleDefinition
+        .ActorAutomaticReturnPlacementKind AutomaticReturnPlacement(
+            FrontlineLabsPendulumArm pendulum) =>
+        pendulum.HasFlag(FrontlineLabsPendulumArm.ForwardRally)
+            ? ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileThenAssignedSpawn
+            : ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims;
+
+    /// <summary>
+    /// Content-identified ruleset ID for one factorial cell. A class pair
+    /// drops the <c>-experiment-classes-</c> segment and every token shortens,
+    /// for the reason #156 already recorded: canonical IDs are capped at 64
+    /// characters and the longest class pair plus the longest movement token
+    /// leaves eight characters for everything else.
+    /// </summary>
+    private static string PendulumRulesetId(
+        FrontlineLabsPendulumArm pendulum,
+        (FrontlineLabsClassDefinition TeamZero,
+            FrontlineLabsClassDefinition TeamOne)? classes,
+        ActorMovementFacingCoupling movementCoupling,
+        int captureThreshold,
+        int primeRespawnTicks)
+    {
+        bool composed = classes is not null
+            || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
+        string[] tokens =
+        [
+            .. PendulumToken(pendulum, composed) is { Length: > 0 } arm
+                ? new[] { arm }
+                : [],
+            .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
+                is { Length: > 0 } numbers
+                ? new[] { numbers }
+                : [],
+            .. movementCoupling == ActorMovementFacingCoupling.PreserveFacing
+                ? []
+                : new[]
+                {
+                    composed
+                        ? ComposedArmToken(movementCoupling)
+                        : ArmToken(movementCoupling),
+                },
+        ];
+        string suffix = string.Join("-", tokens);
+        string id = classes is { } pair
+            ? $"{RulesetId}-{pair.TeamZero.Id}-vs-{pair.TeamOne.Id}-{suffix}"
+            : $"{RulesetId}-experiment-{suffix}";
+        if (id.Length > MaxRulesetIdLength)
+        {
+            throw new InvalidOperationException(
+                $"The candidate ID '{id}' needs {id.Length} of the "
+                + $"{MaxRulesetIdLength} canonical characters. Drop one "
+                + "factor from this cell — the class pair, the movement "
+                + "coupling, or a pendulum arm — or register the "
+                + "combination under a shorter token.");
+        }
+        return id;
+    }
+
+    /// <summary>
+    /// The registered phase-1 levels get their pre-registration names; any
+    /// other combination joins its per-factor tokens in the declared order.
+    /// </summary>
+    private static string PendulumToken(
+        FrontlineLabsPendulumArm pendulum,
+        bool composed) =>
+        pendulum switch
+        {
+            FrontlineLabsPendulumArm.None => string.Empty,
+            FrontlineLabsPendulumArm.StickyFrontline
+                | FrontlineLabsPendulumArm.ForwardRally => "ratchet",
+            FrontlineLabsPendulumArm.StickyFrontline
+                | FrontlineLabsPendulumArm.ForwardRally
+                | FrontlineLabsPendulumArm.ContestMajority =>
+                composed ? "contest" : "ratchet-contest",
+            _ => string.Join(
+                "-",
+                new[]
+                {
+                    (FrontlineLabsPendulumArm.StickyFrontline,
+                        composed ? "sticky" : "sticky-frontline"),
+                    (FrontlineLabsPendulumArm.ForwardRally,
+                        composed ? "rally" : "forward-rally"),
+                    (FrontlineLabsPendulumArm.ContestMajority,
+                        composed ? "majority" : "contest-majority"),
+                    (FrontlineLabsPendulumArm.EnemySoleDecay,
+                        composed ? "decay" : "enemy-sole-decay"),
+                }
+                    .Where(entry => pendulum.HasFlag(entry.Item1))
+                    .Select(entry => entry.Item2)),
+        };
+
+    private static string NumbersToken(
+        int captureThreshold,
+        int primeRespawnTicks,
+        bool composed) =>
+        string.Join(
+            "-",
+            new[]
+            {
+                captureThreshold == DefaultCaptureThreshold
+                    ? string.Empty
+                    : composed
+                        ? $"c{captureThreshold}"
+                        : $"capture-{captureThreshold}",
+                primeRespawnTicks == DefaultPrimeRespawnTicks
+                    ? string.Empty
+                    : composed
+                        ? $"r{primeRespawnTicks}"
+                        : $"respawn-{primeRespawnTicks}",
+            }.Where(token => token.Length > 0));
+
+    /// <summary>
     /// Content-identified ruleset ID for a class pair, optionally composed
     /// with a movement-coupling arm. A PreserveFacing pair keeps the exact
     /// historical <c>-experiment-classes-</c> identity byte for byte. A
@@ -338,7 +589,9 @@ public static class FrontlineLabsDefinition
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classes = null,
         ActorMovementFacingCoupling movementCoupling =
-            ActorMovementFacingCoupling.PreserveFacing)
+            ActorMovementFacingCoupling.PreserveFacing,
+        FrontlineLabsPendulumArm pendulum = FrontlineLabsPendulumArm.None,
+        int primeRespawnTicks = DefaultPrimeRespawnTicks)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -351,7 +604,9 @@ public static class FrontlineLabsDefinition
             automaticCompanions,
             seedProfileId,
             classes,
-            movementCoupling);
+            movementCoupling,
+            pendulum,
+            primeRespawnTicks);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -421,7 +676,9 @@ public static class FrontlineLabsDefinition
         string? seedProfileId,
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classes,
-        ActorMovementFacingCoupling movementCoupling)
+        ActorMovementFacingCoupling movementCoupling,
+        FrontlineLabsPendulumArm pendulum,
+        int primeRespawnTicks)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -434,7 +691,9 @@ public static class FrontlineLabsDefinition
                 captureThreshold,
                 seedProfileId,
                 classPair,
-                movement);
+                movement,
+                pendulum,
+                primeRespawnTicks);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -614,6 +873,7 @@ public static class FrontlineLabsDefinition
             captureThreshold,
             captureGainSchedule,
             controlPolicy,
+            pendulum,
             seedProfileId,
             new ActorLifecycleDefinition(
                 [
@@ -621,7 +881,7 @@ public static class FrontlineLabsDefinition
                         PrimeLifecycleId,
                         ActorLifecycleProfileDefinition
                             .DestructionPolicyKind.AutomaticRespawn,
-                        delayTicks: 18,
+                        primeRespawnTicks,
                         automaticReturnFormId: PrimeFormId),
                     new ActorLifecycleProfileDefinition(
                         ChildLifecycleId,
@@ -634,7 +894,8 @@ public static class FrontlineLabsDefinition
                         delayTicks: 30,
                         automaticReturnFormId:
                             automaticCompanions ? ChildFormId : null),
-                ]),
+                ],
+                AutomaticReturnPlacement(pendulum)),
             [
                 new ActorFormDefinition(
                     PrimeFormId,
@@ -750,6 +1011,7 @@ public static class FrontlineLabsDefinition
         IEnumerable<FrontlineCaptureGainPhaseDefinition>?
             captureGainSchedule,
         FrontlineCaptureDefinition.ControlPolicyKind controlPolicy,
+        FrontlineLabsPendulumArm pendulum,
         string? seedProfileId,
         ActorLifecycleDefinition lifecycle,
         IEnumerable<ActorFormDefinition> forms,
@@ -800,7 +1062,10 @@ public static class FrontlineLabsDefinition
                     decayIntervalTicks: 2,
                     redeployPauseTicks: 5,
                     gainSchedule: captureGainSchedule,
-                    controlPolicy)),
+                    controlPolicy,
+                    DecayClock(pendulum),
+                    RedeployPolicy(pendulum),
+                    RatchetHoldTicks(pendulum))),
             lifecycle,
             forms,
             movementProfiles,
@@ -845,7 +1110,9 @@ public static class FrontlineLabsDefinition
         string? seedProfileId,
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne) classes,
-        ActorMovementProfileDefinition movement)
+        ActorMovementProfileDefinition movement,
+        FrontlineLabsPendulumArm pendulum,
+        int primeRespawnTicks)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
@@ -1025,7 +1292,7 @@ public static class FrontlineLabsDefinition
                     entry.PrimeLifecycleProfileId,
                     ActorLifecycleProfileDefinition
                         .DestructionPolicyKind.AutomaticRespawn,
-                    delayTicks: 18,
+                    primeRespawnTicks,
                     automaticReturnFormId: entry.PrimeFormId));
             lifecycleProfiles.Add(
                 new ActorLifecycleProfileDefinition(
@@ -1097,10 +1364,12 @@ public static class FrontlineLabsDefinition
             rulesetId,
             captureThreshold,
             captureGainSchedule: null,
-            FrontlineCaptureDefinition.ControlPolicyKind
-                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
+            ControlPolicy(pendulum),
+            pendulum,
             seedProfileId,
-            new ActorLifecycleDefinition(lifecycleProfiles),
+            new ActorLifecycleDefinition(
+                lifecycleProfiles,
+                AutomaticReturnPlacement(pendulum)),
             forms,
             [movement],
             visions,

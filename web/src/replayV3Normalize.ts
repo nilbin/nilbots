@@ -607,6 +607,10 @@ function validateContract(
     const capturePath = `${modePath}.capture`;
     const captureValue = object(mode.capture, capturePath, fail);
     const hasGainSchedule = own(captureValue, 'gainSchedule');
+    // Additive optional field with the capture-gain schedule's discipline:
+    // the engine writes a hold duration only for the high-water-mark
+    // redeploy policy, so its presence is itself part of the contract.
+    const hasRatchetHold = own(captureValue, 'ratchetHoldTicks');
     const capture = exact(
       captureValue,
       capturePath,
@@ -627,6 +631,7 @@ function validateContract(
         'decayClock',
         'disabledDecay',
         'redeployPolicy',
+        ...(hasRatchetHold ? ['ratchetHoldTicks'] : []),
         'redeployTickArithmetic',
       ],
       fail,
@@ -713,8 +718,6 @@ function validateContract(
       });
     }
     const fixedPolicies = {
-      controlPolicy:
-        'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
       timeoutPolicy:
         'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
       territorialProgressFormula:
@@ -725,11 +728,7 @@ function validateContract(
         'checked-int64-add-compare-threshold-completes-one-push-and-discards-overshoot',
       oppositionArithmetic:
         'erode-toward-zero-without-carrying-overshoot-into-own-claim',
-      decayClock:
-        'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
       disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero',
-      redeployPolicy:
-        'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause',
       redeployTickArithmetic:
         'checked-int64-capture-tick-plus-one-plus-pause-require-int32',
     } as const;
@@ -737,6 +736,45 @@ function validateContract(
       if (capture[key] !== expected) {
         fail(`${capturePath}.${key}`, `expected ${expected}`);
       }
+    }
+    // The three policies with pre-registered candidate arms. Each value is a
+    // distinct ruleset with its own fingerprint; the viewer accepts any of
+    // them and pins the rest of the capture contract as before.
+    const RATCHET_REDEPLOY_POLICY =
+      'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+    const policyArms = {
+      controlPolicy: [
+        'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
+        'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral',
+      ],
+      decayClock: [
+        'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
+        'empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only',
+      ],
+      redeployPolicy: [
+        'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause',
+        RATCHET_REDEPLOY_POLICY,
+      ],
+    } as const;
+    for (const [key, allowed] of Object.entries(policyArms)) {
+      if (!(allowed as readonly string[]).includes(String(capture[key]))) {
+        fail(`${capturePath}.${key}`, `expected one of ${allowed.join(', ')}`);
+      }
+    }
+    if (hasRatchetHold) {
+      integer(capture.ratchetHoldTicks, `${capturePath}.ratchetHoldTicks`, fail);
+      if ((capture.ratchetHoldTicks as number) <= 0) {
+        fail(
+          `${capturePath}.ratchetHoldTicks`,
+          'must be omitted instead of emitted inert',
+        );
+      }
+    }
+    if (hasRatchetHold !== (capture.redeployPolicy === RATCHET_REDEPLOY_POLICY)) {
+      fail(
+        `${capturePath}.ratchetHoldTicks`,
+        'is carried by exactly the high-water-mark redeploy policy',
+      );
     }
     if (
       scoreCatalog.length !== 1 ||

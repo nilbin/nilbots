@@ -49,7 +49,14 @@ public sealed record FrontlineCaptureDefinition
         IEnumerable<FrontlineCaptureGainPhaseDefinition>? gainSchedule = null,
         ControlPolicyKind controlPolicy =
             ControlPolicyKind
-                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral)
+                .BinaryPositiveWeightPerTeamNoStackingNonSoleAppliesConfiguredDecayOppositionErodesToNeutral,
+        DecayClockKind decayClock =
+            DecayClockKind
+                .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl,
+        RedeployPolicyKind redeployPolicy =
+            RedeployPolicyKind
+                .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause,
+        int ratchetHoldTicks = 0)
     {
         if (threshold <= 0)
             throw new ArgumentOutOfRangeException(nameof(threshold));
@@ -73,6 +80,20 @@ public sealed record FrontlineCaptureDefinition
         }
         if (!Enum.IsDefined(controlPolicy))
             throw new ArgumentOutOfRangeException(nameof(controlPolicy));
+        if (!Enum.IsDefined(decayClock))
+            throw new ArgumentOutOfRangeException(nameof(decayClock));
+        if (!Enum.IsDefined(redeployPolicy))
+            throw new ArgumentOutOfRangeException(nameof(redeployPolicy));
+        bool ratchet = redeployPolicy
+            == RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks;
+        if (ratchet ? ratchetHoldTicks <= 0 : ratchetHoldTicks != 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ratchetHoldTicks),
+                ratchetHoldTicks,
+                "A hold duration is positive exactly when the redeploy policy holds a high-water mark; every other policy leaves it inert at zero.");
+        }
         FrontlineCaptureGainPhaseDefinition[] schedule =
             gainSchedule?.ToArray() ?? [];
         if (schedule.Any(phase => phase is null))
@@ -121,6 +142,9 @@ public sealed record FrontlineCaptureDefinition
         RedeployPauseTicks = redeployPauseTicks;
         GainSchedule = schedule.ToImmutableArray();
         ControlPolicy = controlPolicy;
+        DecayClock = decayClock;
+        RedeployPolicy = redeployPolicy;
+        RatchetHoldTicks = ratchetHoldTicks;
     }
 
     public int Threshold { get; }
@@ -132,6 +156,14 @@ public sealed record FrontlineCaptureDefinition
     public int DecayAmount { get; }
     public int DecayIntervalTicks { get; }
     public int RedeployPauseTicks { get; }
+
+    /// <summary>
+    /// How long a completed advance holds its position against enemy
+    /// regression. Inert (zero) for every policy except
+    /// <see cref="RedeployPolicyKind.AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks"/>,
+    /// and canonical bytes omit it while it is inert.
+    /// </summary>
+    public int RatchetHoldTicks { get; }
 
     /// <summary>
     /// Resolves the phase visible at one authoritative tick. Static rulesets
@@ -180,14 +212,10 @@ public sealed record FrontlineCaptureDefinition
     public OppositionArithmeticKind OppositionArithmetic =>
         OppositionArithmeticKind
             .ErodeTowardZeroWithoutCarryingOvershootIntoOwnClaim;
-    public DecayClockKind DecayClock =>
-        DecayClockKind
-            .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl;
+    public DecayClockKind DecayClock { get; }
     public DisabledDecayKind DisabledDecay =>
         DisabledDecayKind.ZeroPairPreservesClaimAndKeepsClockZero;
-    public RedeployPolicyKind RedeployPolicy =>
-        RedeployPolicyKind
-            .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause;
+    public RedeployPolicyKind RedeployPolicy { get; }
     public RedeployTickArithmeticKind RedeployTickArithmetic =>
         RedeployTickArithmeticKind
             .CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32;
@@ -264,6 +292,18 @@ public sealed record FrontlineCaptureDefinition
         /// No claimant always has clock zero.
         /// </summary>
         ConsecutiveEmptyOrContestedTicksResetByAnySoleControl = 0,
+
+        /// <summary>
+        /// Empty and contested ticks preserve the claim exactly and keep the
+        /// decay clock at zero, so the only way a claim falls is the control
+        /// policy's sole-opposition erosion — an enemy body standing alone on
+        /// the objective. The declared decay amount and interval stay part of
+        /// the ruleset and are what the baseline clock consumes; selecting
+        /// this clock therefore differs from the baseline in exactly one
+        /// canonical field, which is what makes it a measurable A/B arm
+        /// rather than a retuning to the disabled zero pair.
+        /// </summary>
+        EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly = 1,
     }
 
     public enum DisabledDecayKind
@@ -283,6 +323,22 @@ public sealed record FrontlineCaptureDefinition
         /// </summary>
         AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause
             = 0,
+
+        /// <summary>
+        /// Everything the baseline policy does, plus a high-water mark: a
+        /// completed advance records the reached position, the advancing
+        /// team, and a hold through captureTick + RatchetHoldTicks. While
+        /// that hold stands, an enemy capture that would move the frontline
+        /// back across the mark is denied — it resets claimant, claim, and
+        /// decay clock exactly like a completed capture, but the objective
+        /// does not move, no advance fact is emitted, and no redeploy pause
+        /// begins, because nothing redeployed. The enemy must pay the
+        /// threshold again after the hold expires. The holding team's own
+        /// captures always convert and re-arm the mark forward; a base
+        /// breach is terminal and is never denied.
+        /// </summary>
+        AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks
+            = 1,
     }
 
     public enum RedeployTickArithmeticKind

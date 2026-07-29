@@ -616,6 +616,104 @@ public sealed record GenericActorMatchChronology
             parameterName);
     }
 
+    /// <summary>
+    /// Recomputes the authoritative arrival tile of every automatic
+    /// activation and automatic return due at this tick start. Contracts that
+    /// place arrivals on the permanently reserved assigned spawn produce an
+    /// empty map and keep the historical assertion; the forward-rally
+    /// placement derives its tiles from the objective chain, in the exact
+    /// order the session applies them, with each arrival blocking the next.
+    /// </summary>
+    private static Dictionary<(int TeamId, int UnitId), Position>
+        ExpectedAutomaticArrivals(
+            ActorResolvedMatchDefinition definition,
+            GenericActorWorldSnapshot before,
+            int tick,
+            IReadOnlyDictionary<string, InitialSpawnDefinition> spawns,
+            IReadOnlyDictionary<(int TeamId, int UnitId),
+                ActorUnitSlotLifecycleAssignmentDefinition> assignments,
+            IReadOnlyDictionary<string, ActorLifecycleProfileDefinition>
+                profiles)
+    {
+        var arrivals = new Dictionary<(int TeamId, int UnitId), Position>();
+        if (!FrontlineForwardRallyPlacement.IsEnabled(definition)
+            || before.Mode
+                is not GenericActorRuntimeObservation.ModeObservationState
+                    .Frontline frontline)
+        {
+            return arrivals;
+        }
+
+        var blocked = new HashSet<Position>(
+            FrontlineForwardRallyPlacement.BlockedTiles(
+                before.ActiveLives.Select(life => life.Position),
+                [
+                    .. before.Slots
+                        .Select(slot => slot.State)
+                        .OfType<GenericActorRuntimeObservation.UnitSlotState
+                            .FabricationPending>()
+                        .Select(pending => pending.ReservedPosition),
+                    .. before.PendingReplications.SelectMany(reservation =>
+                        reservation.Descendants.Select(
+                            descendant => descendant.Position)),
+                ],
+                assignments.Values
+                    .Where(assignment =>
+                        profiles[assignment.LifecycleProfileId]
+                            .DestructionPolicy
+                        == ActorLifecycleProfileDefinition
+                            .DestructionPolicyKind.AutomaticRespawn)
+                    .Select(assignment =>
+                        spawns[assignment.AssignedRespawnSpawnId!]
+                            .Position)));
+
+        // Exactly the session's tick-start order: activations first, then
+        // automatic returns, each pass in canonical team/unit order.
+        foreach (GenericActorWorldSnapshot.SlotSnapshot slot in before.Slots)
+        {
+            if (slot.State
+                    is not GenericActorRuntimeObservation.UnitSlotState
+                        .AvailabilityPending availability
+                || availability.DueTick != tick
+                || availability.Reason
+                    != GenericActorRuntimeObservation.AvailabilityReason
+                        .InitialUnlock
+                || assignments[(slot.TeamId, slot.UnitId)].InitialAvailability
+                    != ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick)
+            {
+                continue;
+            }
+            AddArrival(slot);
+        }
+        foreach (GenericActorWorldSnapshot.SlotSnapshot slot in before.Slots)
+        {
+            if (slot.State
+                    is not GenericActorRuntimeObservation.UnitSlotState
+                        .AutomaticReturnPending pending
+                || pending.DueTick != tick)
+            {
+                continue;
+            }
+            AddArrival(slot);
+        }
+        return arrivals;
+
+        void AddArrival(GenericActorWorldSnapshot.SlotSnapshot slot)
+        {
+            Position arrival = FrontlineForwardRallyPlacement.Resolve(
+                definition,
+                slot.TeamId,
+                spawns[assignments[(slot.TeamId, slot.UnitId)]
+                    .AssignedRespawnSpawnId!].Position,
+                frontline.ActivePositionIndex,
+                blocked);
+            arrivals[(slot.TeamId, slot.UnitId)] = arrival;
+            blocked.Add(arrival);
+        }
+    }
+
     private static void ValidateSlotClockLifecycleBoundary(
         ActorResolvedMatchDefinition definition,
         GenericActorWorldSnapshot before,
@@ -645,6 +743,18 @@ public sealed record GenericActorMatchChronology
                 StringComparer.Ordinal);
         var expectedAutomaticActors = new List<ActorIdentity>();
         var expectedActivationActors = new List<ActorIdentity>();
+        // Under the forward-rally placement the arrival tile is derived from
+        // the objective chain and from what is already standing, so the
+        // expected positions are recomputed in the declared tick-start order
+        // (activations, then returns) before any slot is judged.
+        Dictionary<(int TeamId, int UnitId), Position> arrivals =
+            ExpectedAutomaticArrivals(
+                definition,
+                before,
+                tickStart.Tick,
+                spawns,
+                assignments,
+                profiles);
 
         foreach (GenericActorWorldSnapshot.SlotSnapshot beforeSlot in
                  before.Slots)
@@ -687,6 +797,9 @@ public sealed record GenericActorMatchChronology
                         InitialSpawnDefinition activationSpawn = spawns[
                             availabilityAssignment
                                 .AssignedRespawnSpawnId!];
+                        Position activationArrival = arrivals.GetValueOrDefault(
+                            (beforeSlot.TeamId, beforeSlot.UnitId),
+                            activationSpawn.Position);
                         ActorLifecycleProfileDefinition activationProfile =
                             profiles[
                                 availabilityAssignment.LifecycleProfileId];
@@ -764,7 +877,7 @@ public sealed record GenericActorMatchChronology
                                 activationFormId,
                                 StringComparison.Ordinal)
                             || activationLife.Position
-                                != activationSpawn.Position
+                                != activationArrival
                             || activationLife.Facing
                                 != activationSpawn.Facing
                             || activationLife.Health
@@ -811,7 +924,7 @@ public sealed record GenericActorMatchChronology
                             || activationSpawned.Health
                                 != activationForm.MaxHealth
                             || activationSpawned.Position
-                                != activationSpawn.Position
+                                != activationArrival
                             || activationSpawned.SourceTransitionId
                                 is not null
                             || activationSpawned.SourceOperationId
@@ -866,6 +979,9 @@ public sealed record GenericActorMatchChronology
                             (beforeSlot.TeamId, beforeSlot.UnitId)];
                     InitialSpawnDefinition spawn =
                         spawns[assignment.AssignedRespawnSpawnId!];
+                    Position arrival = arrivals.GetValueOrDefault(
+                        (beforeSlot.TeamId, beforeSlot.UnitId),
+                        spawn.Position);
                     var actorId = new ActorIdentity(
                         beforeSlot.TeamId,
                         beforeSlot.UnitId,
@@ -925,7 +1041,7 @@ public sealed record GenericActorMatchChronology
                             life.FormId,
                             pending.TargetFormId,
                             StringComparison.Ordinal)
-                        || life.Position != spawn.Position
+                        || life.Position != arrival
                         || life.Facing != spawn.Facing
                         || life.Health != form.MaxHealth
                         || life.Cooldown != 0
@@ -962,7 +1078,7 @@ public sealed record GenericActorMatchChronology
                             pending.TargetFormId,
                             StringComparison.Ordinal)
                         || spawned.Health != form.MaxHealth
-                        || spawned.Position != spawn.Position
+                        || spawned.Position != arrival
                         || spawned.SourceTransitionId is not null
                         || spawned.SourceOperationId is not null)
                     {

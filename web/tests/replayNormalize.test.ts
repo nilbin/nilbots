@@ -1671,6 +1671,87 @@ test('replay-v3 accepts backend-grouped event tags without collapsing payload ki
   );
 });
 
+test('replay-v3 accepts every pre-registered pendulum capture policy and rejects an inert hold', () => {
+  const frontline = () => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    return input.header.contract.rules.gameMode.capture;
+  };
+  const withCapture = (
+    mutate: (capture: ReturnType<typeof frontline>) => void,
+  ) => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    mutate(input.header.contract.rules.gameMode.capture);
+    return input;
+  };
+  const RATCHET =
+    'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+
+  assert.equal(
+    decodeReplay(
+      withCapture((capture) => {
+        capture.controlPolicy =
+          'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral';
+      }),
+    ).replay.sourceVersion,
+    3,
+  );
+  assert.equal(
+    decodeReplay(
+      withCapture((capture) => {
+        capture.decayClock =
+          'empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only';
+      }),
+    ).replay.sourceVersion,
+    3,
+  );
+  assert.equal(
+    decodeReplay(
+      withCapture((capture) => {
+        capture.redeployPolicy = RATCHET;
+        capture.ratchetHoldTicks = 40;
+      }),
+    ).replay.sourceVersion,
+    3,
+  );
+
+  // The engine writes a hold duration only for the high-water-mark policy, so
+  // both halves of the inert encoding are non-canonical.
+  assert.throws(
+    () =>
+      decodeReplay(
+        withCapture((capture) => {
+          capture.ratchetHoldTicks = 0;
+        }),
+      ),
+    /ratchetHoldTicks: must be omitted instead of emitted inert/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        withCapture((capture) => {
+          capture.redeployPolicy = RATCHET;
+        }),
+      ),
+    /ratchetHoldTicks: is carried by exactly the high-water-mark redeploy policy/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        withCapture((capture) => {
+          (capture as { decayClock: string }).decayClock =
+            'never-decays-at-all';
+        }),
+      ),
+    /decayClock: expected one of/,
+  );
+});
+
 test('replay-v3 accepts the optional movement facing coupling and rejects an inert or unknown one', () => {
   const coupled = replayV3FixtureInput();
   coupled.header.contract.rules.movementProfiles[0]!.facingCoupling =

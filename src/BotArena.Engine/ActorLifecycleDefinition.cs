@@ -11,9 +11,17 @@ namespace BotArena.Engine;
 public sealed record ActorLifecycleDefinition
 {
     public ActorLifecycleDefinition(
-        IEnumerable<ActorLifecycleProfileDefinition> profiles)
+        IEnumerable<ActorLifecycleProfileDefinition> profiles,
+        ActorAutomaticReturnPlacementKind automaticReturnPlacement =
+            ActorAutomaticReturnPlacementKind
+                .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims)
     {
         ArgumentNullException.ThrowIfNull(profiles);
+        if (!Enum.IsDefined(automaticReturnPlacement))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(automaticReturnPlacement));
+        }
 
         ActorLifecycleProfileDefinition[] snapshot = [.. profiles];
         if (snapshot.Length == 0)
@@ -41,6 +49,7 @@ public sealed record ActorLifecycleDefinition
         Profiles = snapshot
             .OrderBy(profile => profile.ProfileId, StringComparer.Ordinal)
             .ToImmutableArray();
+        AutomaticReturnPlacement = automaticReturnPlacement;
     }
 
     public ImmutableArray<ActorLifecycleProfileDefinition> Profiles { get; }
@@ -65,9 +74,7 @@ public sealed record ActorLifecycleDefinition
         GenerationSemanticsKind
             .AutomaticRespawnPreservesDestroyedGenerationFabricationAndReplicationUseSourcePlusOne;
 
-    public ActorAutomaticReturnPlacementKind AutomaticReturnPlacement =>
-        ActorAutomaticReturnPlacementKind
-            .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims;
+    public ActorAutomaticReturnPlacementKind AutomaticReturnPlacement { get; }
 
     public TickStartLifecycleOrderKind TickStartLifecycleOrder =>
         TickStartLifecycleOrderKind
@@ -136,6 +143,25 @@ public sealed record ActorLifecycleDefinition
         /// rule.
         /// </summary>
         AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims = 0,
+
+        /// <summary>
+        /// Forward rally. Every automatic return and automatic activation
+        /// arrives on the mode's active objective position measured one step
+        /// toward its own base — the chain-adjacent objective region on the
+        /// slot's own side — instead of at its home spawn, so reinforcement
+        /// distance stops depending on which side is winning. No map region
+        /// is authored for this: the tile is derived from the objective
+        /// chain the mode already binds. The arrival takes the first tile of
+        /// that region in canonical map order (row, then column) that is not
+        /// a wall, an occupied tile, a reserved lifecycle output tile, or a
+        /// reserved automatic-return spawn; if the region offers none, or the
+        /// active objective already sits on the slot's own chain edge, the
+        /// arrival falls back to the permanently reserved assigned spawn,
+        /// which keeps that reservation load-bearing. Facing always comes
+        /// from the assigned spawn. Same-tick arrivals resolve in the
+        /// declared tick-start order and each one blocks the next.
+        /// </summary>
+        OwnSideChainAdjacentObjectiveTileThenAssignedSpawn = 1,
     }
 
     public enum TickStartLifecycleOrderKind

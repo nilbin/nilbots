@@ -295,6 +295,18 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString(
             "redeployPolicy",
             Id(capture.RedeployPolicy));
+        // Inert-default omission, exactly like the optional capture-gain
+        // schedule and the movement profile's facing coupling: a hold
+        // duration exists only for the high-water-mark redeploy policy, so
+        // every contract authored before the territory ratchet existed —
+        // including the immutable hosted frontline-labs-1 — writes no bytes
+        // for it and keeps its exact fingerprint.
+        if (capture.RatchetHoldTicks != 0)
+        {
+            writer.WriteNumber(
+                "ratchetHoldTicks",
+                capture.RatchetHoldTicks);
+        }
         writer.WriteString(
             "redeployTickArithmetic",
             Id(capture.RedeployTickArithmetic));

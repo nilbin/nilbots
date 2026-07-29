@@ -546,12 +546,13 @@ public sealed class GenericActorMatchSession : IDisposable
                         "Automatic activation has no target form.");
                 InitialSpawnDefinition spawn = _spawns[
                     slot.Assignment.AssignedRespawnSpawnId!];
-                ConsumeProjectilesAt(spawn.Position, traversals);
+                Position arrival = ResolveAutomaticArrival(slot, spawn);
+                ConsumeProjectilesAt(arrival, traversals);
                 LifeState life = CreateLife(
                     slot,
                     formId,
                     slot.Assignment.InitialGeneration!.Value,
-                    spawn.Position,
+                    arrival,
                     spawn.Facing,
                     _forms[formId].MaxHealth,
                     GenericActorRuntimeStart.SpawnReason
@@ -592,14 +593,15 @@ public sealed class GenericActorMatchSession : IDisposable
                         "Automatic return has no target form.");
                 InitialSpawnDefinition spawn = _spawns[
                     slot.Assignment.AssignedRespawnSpawnId!];
+                Position arrival = ResolveAutomaticArrival(slot, spawn);
                 ConsumeProjectilesAt(
-                    spawn.Position,
+                    arrival,
                     traversals);
                 LifeState life = CreateLife(
                     slot,
                     formId,
                     slot.PendingGeneration!.Value,
-                    spawn.Position,
+                    arrival,
                     spawn.Facing,
                     _forms[formId].MaxHealth,
                     GenericActorRuntimeStart.SpawnReason.AutomaticReturn,
@@ -2832,6 +2834,48 @@ public sealed class GenericActorMatchSession : IDisposable
                 "Unknown allied projectile policy."),
         };
     }
+
+    /// <summary>
+    /// Where a due automatic return or activation for this slot lands. The
+    /// assigned spawn stays the answer for every contract except the
+    /// forward-rally placement, and stays the fallback under it, so its
+    /// permanent reservation remains load-bearing.
+    /// </summary>
+    private Position ResolveAutomaticArrival(
+        SlotState slot,
+        InitialSpawnDefinition spawn)
+    {
+        if (!FrontlineForwardRallyPlacement.IsEnabled(_definition))
+            return spawn.Position;
+        if (_mode.State is not GenericActorModeState.Frontline frontline)
+            return spawn.Position;
+
+        return FrontlineForwardRallyPlacement.Resolve(
+            _definition,
+            slot.TeamId,
+            spawn.Position,
+            frontline.Control.ActivePositionIndex,
+            FrontlineForwardRallyPlacement.BlockedTiles(
+                _lives.Values.Select(life => life.Position),
+                [
+                    .. _fabricationReservations.Select(reservation =>
+                        reservation.ReservedPosition),
+                    .. _splitReservations.SelectMany(reservation =>
+                        reservation.Descendants.Select(
+                            descendant => descendant.Position)),
+                ],
+                ReservedReturnSpawnPositions()));
+    }
+
+    private IEnumerable<Position> ReservedReturnSpawnPositions() =>
+        _slots.Values
+            .Where(slot =>
+                _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .DestructionPolicy
+                == ActorLifecycleProfileDefinition.DestructionPolicyKind
+                    .AutomaticRespawn)
+            .Select(slot =>
+                _spawns[slot.Assignment.AssignedRespawnSpawnId!].Position);
 
     private bool IsForeignReservedReturnTile(
         LifeState mover,

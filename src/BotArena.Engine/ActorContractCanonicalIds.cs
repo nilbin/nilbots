@@ -78,12 +78,18 @@ internal static class ActorContractCanonicalIds
         FrontlineCaptureDefinition.DecayClockKind
                 .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl =>
             "consecutive-empty-or-contested-ticks-reset-by-any-sole-control",
+        FrontlineCaptureDefinition.DecayClockKind
+                .EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly =>
+            "empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only",
         FrontlineCaptureDefinition.DisabledDecayKind
                 .ZeroPairPreservesClaimAndKeepsClockZero =>
             "zero-pair-preserves-claim-and-keeps-clock-zero",
         FrontlineCaptureDefinition.RedeployPolicyKind
                 .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause =>
             "advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause",
+        FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks =>
+            "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks",
         FrontlineCaptureDefinition.RedeployTickArithmeticKind
                 .CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32 =>
             "checked-int64-capture-tick-plus-one-plus-pause-require-int32",
@@ -200,6 +206,9 @@ internal static class ActorContractCanonicalIds
         ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
                 .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims =>
             "assigned-spawn-permanently-reserved-for-slot-against-other-actors-and-lifecycle-claims",
+        ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileThenAssignedSpawn =>
+            "own-side-chain-adjacent-objective-tile-then-assigned-spawn",
         ActorLifecycleDefinition.TickStartLifecycleOrderKind
                 .DueTickThenReturnsAndReadinessThenFabricationThenReplicationCanonicalActorOrder =>
             "due-tick-then-returns-and-readiness-then-fabrication-then-replication-canonical-actor-order",

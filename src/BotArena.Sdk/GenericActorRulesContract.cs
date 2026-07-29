@@ -314,6 +314,15 @@ public sealed class GenericActorRulesContract
         } = [];
 
         /// <summary>
+        /// How long a completed advance is protected against being pushed
+        /// back, when <see cref="RedeployPolicy"/> holds a high-water mark.
+        /// Zero means the field is inert and absent from the contract: the
+        /// frontline can be pushed back the moment the enemy completes its
+        /// own capture.
+        /// </summary>
+        public int RatchetHoldTicks { get; init; }
+
+        /// <summary>
         /// Resolves the active phase from the authoritative observation tick.
         /// Static rulesets return a synthetic <c>default</c> phase.
         /// </summary>

@@ -775,48 +775,46 @@ public static class ActorCanonicalContractReader
     {
         bool hasGainSchedule =
             element.TryGetProperty("gainSchedule", out JsonElement schedule);
+        // Additive optional field, exactly like the capture-gain schedule and
+        // the movement profile's facing coupling: the canonical writer emits
+        // a hold duration only for the high-water-mark redeploy policy, so an
+        // absent field means "no ratchet" and an explicitly inert zero is a
+        // second, non-canonical encoding of the same contract.
+        bool hasRatchetHold = element.TryGetProperty(
+            "ratchetHoldTicks",
+            out JsonElement ratchetHoldTicks);
         ExactObject(
             element,
-            hasGainSchedule
-                ?
-                [
-                    "threshold",
-                    "gainPerSoleTeamTick",
-                    "gainSchedule",
-                    "decayAmount",
-                    "decayIntervalTicks",
-                    "redeployPauseTicks",
-                    "controlPolicy",
-                    "timeoutPolicy",
-                    "territorialProgressFormula",
-                    "completionPolicy",
-                    "initialPosition",
-                    "captureArithmetic",
-                    "oppositionArithmetic",
-                    "decayClock",
-                    "disabledDecay",
-                    "redeployPolicy",
-                    "redeployTickArithmetic",
-                ]
-                :
-                [
-                    "threshold",
-                    "gainPerSoleTeamTick",
-                    "decayAmount",
-                    "decayIntervalTicks",
-                    "redeployPauseTicks",
-                    "controlPolicy",
-                    "timeoutPolicy",
-                    "territorialProgressFormula",
-                    "completionPolicy",
-                    "initialPosition",
-                    "captureArithmetic",
-                    "oppositionArithmetic",
-                    "decayClock",
-                    "disabledDecay",
-                    "redeployPolicy",
-                    "redeployTickArithmetic",
-                ]);
+            [
+                "threshold",
+                "gainPerSoleTeamTick",
+                .. hasGainSchedule ? new[] { "gainSchedule" } : [],
+                "decayAmount",
+                "decayIntervalTicks",
+                "redeployPauseTicks",
+                "controlPolicy",
+                "timeoutPolicy",
+                "territorialProgressFormula",
+                "completionPolicy",
+                "initialPosition",
+                "captureArithmetic",
+                "oppositionArithmetic",
+                "decayClock",
+                "disabledDecay",
+                "redeployPolicy",
+                .. hasRatchetHold ? new[] { "ratchetHoldTicks" } : [],
+                "redeployTickArithmetic",
+            ]);
+        int hold = hasRatchetHold ? Int(element, "ratchetHoldTicks") : 0;
+        bool ratchetPolicy = string.Equals(
+            Semantic(element, "redeployPolicy"),
+            RatchetRedeployPolicyId,
+            StringComparison.Ordinal);
+        if (hasRatchetHold != ratchetPolicy || hasRatchetHold && hold <= 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline capture carries a positive ratchetHoldTicks exactly when its redeploy policy holds a high-water mark, and omits it otherwise.");
+        }
         return new RulesContract.FrontlineCapture(
             Int(element, "threshold"),
             Int(element, "gainPerSoleTeamTick"),
@@ -838,8 +836,16 @@ public static class ActorCanonicalContractReader
             GainSchedule = hasGainSchedule
                 ? Array(schedule, ReadFrontlineCaptureGainPhase)
                 : [],
+            RatchetHoldTicks = hold,
         };
     }
+
+    /// <summary>
+    /// The one redeploy policy that owns a hold duration. Named here so the
+    /// mirror can reject both halves of the inert encoding.
+    /// </summary>
+    private const string RatchetRedeployPolicyId =
+        "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks";
 
     private static RulesContract.FrontlineCaptureGainPhase
         ReadFrontlineCaptureGainPhase(JsonElement element)
