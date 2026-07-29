@@ -366,6 +366,14 @@ public static class ActorRulesDefinitionValidator
                 maxTicks,
                 1L + frontline.Capture.RedeployPauseTicks,
                 errors);
+            if (frontline.Capture.RatchetHoldTicks > 0)
+            {
+                ValidateMaximumDueTick(
+                    "Frontline ratchet hold",
+                    maxTicks,
+                    frontline.Capture.RatchetHoldTicks,
+                    errors);
+            }
         }
     }
 
