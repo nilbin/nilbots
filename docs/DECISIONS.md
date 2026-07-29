@@ -3412,6 +3412,26 @@ levels while being the one built counterweight the registered levels
 never included. Same gates, unchanged thresholds — a failed gate is
 answered with a stronger dose, never a softer bar.
 
+## 167. Classes get real skins: internal defaults plus six approved purchase packs
+
+The class-skins branch (Codex; integration notes in
+`HANDOVER-CODEX-NOTES.md`) lands the visual identities the class system
+has been renting from catalog stand-ins. The **class defaults are
+internal form presentation, not account cosmetics** — Trident Wasp +
+Trident Spark (striker), Aegis Tortoise + Rebound Diamond (bulwark),
+Lattice Loom + Lattice Rivet (fabricator) — and rendering them never
+depends on ownership. The owner approved the remaining six concept
+pairs as live purchase packs, which **supersedes the historical
+invariant that Aureate Warden is the only chassis manifest carrying a
+recommended projectile**; that prose is reconciled here rather than on
+the branch, which deliberately minted no number. Known gap, explicitly
+deferred: alternate manifests expose a presentation-only `classId`,
+but account appearance persistence has no class-compatibility
+enforcement — purchased looks remain globally equipable until the
+class-first-class branch supplies the end-to-end policy. No schema was
+added. Art sources and the generation pipeline live under
+`art/class-look-concepts/` with `scripts/build-class-look-concepts.py`.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
