@@ -432,6 +432,34 @@ the ceiling, tune rules, or expose the leading bot's source unless the product
 owner explicitly changes the acceptance policy; in that case preserve the
 failed result and record a separate override per the balance-harness skill.
 
+## 1.9 Pre-flight gate — never commission authors against an unverified mechanism
+
+Agent authoring time is the expensive resource; a mechanism or DX defect
+discovered by a running author wastes the whole round. Before launching
+any authoring or revision wave that touches new rules, verbs, or arms,
+every item below must pass — this gate is what made the wave-1 revision
+round go six-for-six:
+
+- **Contract truth**: each new action/skill appears in
+  `--print-candidate-contract` output and in real legality masks; a
+  scripted probe match exercises the full lifecycle (attempt → windup →
+  completion/cancellation → events) and the replay verifies.
+- **Template safety**: run the scaffold starter against itself on every
+  new arm and confirm it *acts* (moves, fires, uses no-trap helpers).
+  Precedent: the facing-locked starter freeze — three isolated agents
+  independently burned hours rediscovering the same
+  mask-as-search-space trap that one pre-flight self-match would have
+  caught.
+- **Doc truth**: rule card, class addendum, and author packet agree
+  with the engine (DocDrift green is necessary, not sufficient — read
+  the prose against the contract).
+- **Fresh tooling**: republish the sandbox CLI authors will use; clear
+  any DX-ledger items that would block or mislead authors.
+
+If any item fails, fix it first. Commissioning "to see what the agents
+hit" is strictly worse than one probe match — agents report friction at
+the END, in their DX notes, after the budget is spent.
+
 ## 2. Launch the challenger(s)
 
 Give each agent: a persona (one challenger: pick the archetype most relevant
@@ -485,6 +513,34 @@ completion notification → the agent likely died with the environment:
 verify postgres + the app are up (restart per §1 if not), then SendMessage
 the agent — it resumes from its transcript. Stop the check-ins once all
 reports are in.
+
+## 2.6 Friction watch — kill a doomed round early
+
+At each §2.5 check-in, also grep the agents' fresh partial output and
+draft DX notes for **critical-friction** signals — defects in the game,
+template, docs, or tooling that no author can overcome:
+
+```bash
+grep -rn -i -E "template (bug|trap)|never (legal|available)|contradicts|\
+unsatisfiable|exited before|freezes|schema|cannot qualify" \
+  sandbox/*-scratch-*/ arena-bots/**/DX.md 2>/dev/null | tail
+```
+
+Critical friction: the starter misbehaves under the arm's rules; an
+action the brief describes is never legal; the contract contradicts the
+docs; a qualification clause is unsatisfiable; frozen artifacts crash on
+the new contract. Ordinary struggle — losing matches, doctrine churn,
+slow progress — is NOT a kill signal; leave healthy agents alone.
+
+On a critical signal, do not let the rest of the round keep paying for
+it: **kill the affected agents, fix the root cause once, re-verify per
+§1.9, then relaunch a fresh isolated round.** Never message the fix into
+running isolated authors — mid-flight information contaminates the brief
+and creates unequal authoring conditions. The fairness rule stays what
+it has always been: same brief, same opportunity, every author; a
+kill-fix-relaunch round satisfies it, a selectively-patched round does
+not. Archive the killed round's partial work (it is forensic evidence,
+not waste).
 
 ## 3. Tournament
 
