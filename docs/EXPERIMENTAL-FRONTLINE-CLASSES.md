@@ -70,6 +70,13 @@ catalog, routes, and legality masks; never assume your class's shape.
   `shoot-straight`, the action takes no payload and fires along your facing.
 - Companion timing comes from your slots' lifecycle assignments — do not
   hard-code 120/260.
+- Movement-coupling arms declare `facingCoupling` on your form's movement
+  profile (`face-movement-direction` or `facing-locked`). The field is
+  **absent** on the baseline — canonical contracts omit the default — so
+  read it as "missing means preserve-facing", and never plan routes
+  against the movement legality mask under `facing-locked`: the mask
+  offers only your current facing each tick; plan on map geometry and
+  spend rotations explicitly.
 
 ## Running matches
 

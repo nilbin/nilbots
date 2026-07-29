@@ -284,9 +284,10 @@ static int CommandHelp(string command)
             backpedal-kiting costs the aim it was holding. facing-locked
             offers only the current facing to a movement action, making a
             turn a separate decision. Absolute rotate is unchanged in every
-            arm. It may be paired with --classes (and through it --duel-map);
-            on its own it is a standalone arm and cannot be combined with the
-            other experiment options.
+            arm. It composes with --classes and with --duel-map (declared
+            manifest classes compose the same way); it is exclusive only
+            with the unrelated numeric arms such as --capture-threshold or
+            --net-control.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             --print-candidate-contract emits the exact resolved candidate
