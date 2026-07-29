@@ -354,6 +354,13 @@ public static class FrontlineLabsDefinition
                 skills,
                 "Unknown Frontline Labs class skill.");
         }
+        if (skills != FrontlineLabsSkillKit.None && classes is null)
+        {
+            throw new ArgumentException(
+                "Class skills are class capabilities and have no meaning "
+                + "without a class pair; pass one.",
+                nameof(skills));
+        }
         FrontlineLabsSkillKit effectiveSkills =
             EffectiveSkills(skills, classes);
         if (skills != FrontlineLabsSkillKit.None

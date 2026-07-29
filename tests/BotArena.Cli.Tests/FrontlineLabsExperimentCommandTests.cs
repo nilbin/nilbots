@@ -636,6 +636,148 @@ public sealed class FrontlineLabsExperimentCommandTests
             exclusive.Message);
     }
 
+    [Fact]
+    public void SkillArms_CarryOnlyTheSkillsTheCellsClassesOwn()
+    {
+        JsonElement plain = PrintedContract(
+            ["--print-candidate-contract", "--classes", "bulwark-vs-striker"]);
+        JsonElement none = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--skills",
+                "none",
+            ]);
+        JsonElement kit = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--skills",
+                "kit",
+            ]);
+        JsonElement subset = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--skills",
+                "volley,shell",
+            ]);
+
+        // The inert default must not perturb an existing arm's identity.
+        Assert.Equal(
+            "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+            none.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            plain.GetProperty("matchContractFingerprint").GetString(),
+            none.GetProperty("matchContractFingerprint").GetString());
+
+        // FIVE SLOTS has no owner in this cell, so `kit` and the explicit
+        // subset are the same content-identified arm.
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-fan-shell",
+            kit.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            subset.GetProperty("rulesetId").GetString(),
+            kit.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            subset.GetProperty("matchContractFingerprint").GetString(),
+            kit.GetProperty("matchContractFingerprint").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("rulesFingerprint").GetString(),
+            kit.GetProperty("rulesFingerprint").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.TopologyProfileId,
+            kit.GetProperty("topologyProfileId").GetString());
+    }
+
+    [Fact]
+    public void FiveSlotArm_PublishesTheAsymmetricTopologyProfile()
+    {
+        JsonElement plain = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "fabricator-vs-striker",
+            ]);
+        JsonElement slots = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "fabricator-vs-striker",
+                "--skills",
+                "five-slots",
+            ]);
+
+        Assert.Equal(
+            "frontline-labs-1-fabricator-vs-striker-slot5",
+            slots.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.AsymmetricSlotsTopologyProfileId,
+            slots.GetProperty("topologyProfileId").GetString());
+        Assert.NotEqual(
+            plain.GetProperty("topologyFingerprint").GetString(),
+            slots.GetProperty("topologyFingerprint").GetString());
+        // The map is held constant so the factor is the slot count alone.
+        Assert.Equal(
+            plain.GetProperty("mapFingerprint").GetString(),
+            slots.GetProperty("mapFingerprint").GetString());
+    }
+
+    [Fact]
+    public void SkillArms_ComposeWithMovementAndPendulumAndRejectOrphans()
+    {
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-fan-shell-facing-locked",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--skills",
+                    "kit",
+                    "--movement",
+                    "facing-locked",
+                ]).GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-bulwark-vs-striker-ratchet-shell",
+            PrintedContract(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--skills",
+                    "shell",
+                    "--pendulum",
+                    "ratchet",
+                ]).GetProperty("rulesetId").GetString());
+
+        // A skill needs its owning class, and skills need a class cell.
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--skills",
+                    "five-slots",
+                ]));
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                ["--print-candidate-contract", "--skills", "volley"]));
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                [
+                    "--print-candidate-contract",
+                    "--classes",
+                    "bulwark-vs-striker",
+                    "--skills",
+                    "barricade",
+                ]));
+    }
+
     private static JsonElement PrintedContract(string[] args)
     {
         TextWriter original = Console.Out;
