@@ -3466,6 +3466,34 @@ or adopt keel as the phase-2 pendulum baseline — displacement passed,
 draws zero, caps down 22 points from control — and carry overtime as a
 parallel arm inside phase 2. Gates stay unmoved either way.
 
+## 169. Keel is the phase-2 baseline; the schema window executes with the observability mini-bump
+
+Owner ruling on #168's fork: proceed to phase 2 on the keel baseline —
+displacement gate passed twice, draws at zero, cap share down 22
+points — rather than chasing the 0.35 cap bar first. S4
+(overtime/escalation) is parked as registered follow-up debt, not
+abandoned: the leader-extends plateau says the remaining reversion
+lives in the flat cap or the map, and either returns to the bench if
+phase 2's pacing gates demand it. Phase 2's design consequence: the
+movement factor is dropped (all cells keel + facing-locked; #159
+demoted preserve-facing to a coupling-measurement control, and phase 2
+measures the kit, not the coupling — a deliberate deviation from the
+original 48-cell design, disclosed here). The factorial is skill-kit
+(off/on) × bend-envelope (striker-only/universal) × six class pairs =
+24 cells, with kit-off/striker-only anchoring as a keel replication.
+
+The batched SDK-bump window between phases executes now, scoped to the
+measured consensus: the ratchet-hold observability fields (five
+authors, two waves — the hold's owner and remaining ticks become
+readable instead of inferred) and the ObservedProjectile
+timing/damage fields (the wave-2 "should I eat this?" forensics).
+Typed classId and cosmetic class-compatibility enforcement stay with
+the Codex class-first-class branch (not started at this window; class
+remains readable via form prefixes, so nothing in phase 2 blocks on
+it). Composite arm identities for the phase-2 cells get the keel
+treatment — registered short tokens, since even keel+bend overflows
+the worst class cell by one character.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
