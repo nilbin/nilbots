@@ -125,6 +125,19 @@ shared grammar on mobile facing-aimed guns (never on specials).
   shell was priced before the pendulum fix; with ratchet +
   contest-majority attacking passivity structurally, skills no longer
   carry the pacing burden.
+  **Shield break (owner ruling — indefinite absorption is an
+  off-switch for ranged combat; the probe's 121-absorb zero-damage
+  match is the proof).** The shell absorbs a BUDGET of bolts (~3) and
+  shatters on the last: forced auto-exit, per-absorb crack visuals,
+  exit+reentry windups as the punish gap. **Facing locks on entry** —
+  the protected quadrant is chosen when the shield rises and never
+  tracks, so flanking stays real even 1v1 (weight 1 + tracking arc
+  would be an invincible capturer). Counter-play becomes two-axis: go
+  around it, or feed it three bolts to buy the window. Adoption-grade
+  mechanism is SHARED with volley: one threshold-triggered automatic
+  return transition (volley fires-count 1, shell absorbs-count N) —
+  one primitive, one new causal fact. Gallery drivers play the budget
+  by etiquette until then.
 - **Fabricator FIVE SLOTS** (surge died with the treadmill critique:
   faster replacement of free bodies accelerates the exact loop the
   dynamics report convicted). The fabricator simply has more unit
