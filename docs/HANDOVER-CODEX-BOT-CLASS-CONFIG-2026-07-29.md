@@ -40,4 +40,3 @@ must match it.
 The wider App suite reached 253 passes and three expected skips. One unrelated
 anonymous-auth test is blocked locally by a rejected cached development
 OpenIddict certificate; it reproduces without the class changes.
-
