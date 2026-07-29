@@ -783,6 +783,9 @@ export type ReplayV3EventPayload =
       toFormId: string;
       startedTick: number;
       dueTick: number;
+      // Absent means the author requested it; present means the engine
+      // started it when the source form's declared counter hit its threshold.
+      reason?: 'automatic-threshold-return';
     }
   | {
       kind: 'score-changed';

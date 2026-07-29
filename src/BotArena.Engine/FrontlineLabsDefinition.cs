@@ -366,8 +366,25 @@ public static class FrontlineLabsDefinition
             ActorMovementFacingCoupling.PreserveFacing,
         int captureThreshold = DefaultCaptureThreshold,
         int primeRespawnTicks = DefaultPrimeRespawnTicks,
-        FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None)
+        FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None,
+        FrontlineLabsBendEnvelopeArm bendEnvelope =
+            FrontlineLabsBendEnvelopeArm.StrikerOnly)
     {
+        if (!Enum.IsDefined(bendEnvelope))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(bendEnvelope),
+                bendEnvelope,
+                "Unknown Frontline Labs bend envelope.");
+        }
+        if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly
+            && classes is null)
+        {
+            throw new ArgumentException(
+                "The curve grammar is handed to class chassis, so a bend "
+                + "envelope has no meaning without a class pair; pass one.",
+                nameof(bendEnvelope));
+        }
         if ((pendulum & ~AllPendulumArms) != 0)
         {
             throw new ArgumentOutOfRangeException(
@@ -433,6 +450,7 @@ public static class FrontlineLabsDefinition
             && primeRespawnTicks == DefaultPrimeRespawnTicks
             && classes is null
             && effectiveSkills == FrontlineLabsSkillKit.None
+            && bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
             && movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
         {
             throw new ArgumentOutOfRangeException(
@@ -449,7 +467,8 @@ public static class FrontlineLabsDefinition
                 movementCoupling,
                 captureThreshold,
                 primeRespawnTicks,
-                effectiveSkills),
+                effectiveSkills,
+                bendEnvelope),
             captureThreshold,
             captureGainSchedule: null,
             enableMobilize: false,
@@ -461,7 +480,8 @@ public static class FrontlineLabsDefinition
             movementCoupling: movementCoupling,
             pendulum: pendulum,
             primeRespawnTicks: primeRespawnTicks,
-            skills: effectiveSkills);
+            skills: effectiveSkills,
+            bendEnvelope: bendEnvelope);
     }
 
     private const FrontlineLabsPendulumArm AllPendulumArms =
@@ -554,7 +574,8 @@ public static class FrontlineLabsDefinition
         ActorMovementFacingCoupling movementCoupling,
         int captureThreshold,
         int primeRespawnTicks,
-        FrontlineLabsSkillKit skills)
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsBendEnvelopeArm bendEnvelope)
     {
         bool composed = classes is not null
             || movementCoupling != ActorMovementFacingCoupling.PreserveFacing;
@@ -566,6 +587,9 @@ public static class FrontlineLabsDefinition
             .. SkillsToken(skills) is { Length: > 0 } kit
                 ? new[] { kit }
                 : [],
+            .. bendEnvelope == FrontlineLabsBendEnvelopeArm.StrikerOnly
+                ? []
+                : new[] { BendEnvelopeToken },
             .. NumbersToken(captureThreshold, primeRespawnTicks, composed)
                 is { Length: > 0 } numbers
                 ? new[] { numbers }
@@ -640,18 +664,29 @@ public static class FrontlineLabsDefinition
             "-",
             Skills.Where(skill => skills.HasFlag(skill)).Select(SkillToken));
 
+    /// <summary>
+    /// The curve grammar is not a class capability, so it gets its own token
+    /// beside the skills rather than joining them, and the striker-only
+    /// baseline adds none. It is the codebase's own word for the mechanic.
+    /// </summary>
+    private const string BendEnvelopeToken = "bend";
+
     private static string SkillToken(FrontlineLabsSkillKit skill) =>
         skill switch
         {
-            FrontlineLabsSkillKit.StrikerVolley => "fan",
-            // The token names the behaviour, not the silhouette: the arm that
-            // absorbed was `shell`, the arm that returns the bolt is `parry`,
-            // so the two are never confusable as one ruleset identity. It is
-            // `parry` rather than the plainer `deflect` for the reason #156
-            // already recorded — the longest cell
-            // (bulwark-vs-fabricator + slot5 + facing-locked) leaves exactly
-            // five characters here, and `deflect` needs seven.
-            FrontlineLabsSkillKit.BulwarkAegisShell => "parry",
+            // The token names the BEHAVIOUR, not the silhouette, and it is
+            // reminted whenever the behaviour changes — the arm that absorbed
+            // was `shell`, the arm that returned the bolt was `parry`, and
+            // neither is confusable with what stands here now. A prototype
+            // volley squatted in its stance and was a `fan`; the adopted one
+            // fires once and is automatically returned, which is a `cast`. A
+            // prototype shell parried without end; the adopted one shatters on
+            // its third deflection, which is a `break`. Both stay inside the
+            // five characters #156 measured for the longest cell
+            // (bulwark-vs-fabricator + slot5 + facing-locked), so the rename
+            // costs no identity budget.
+            FrontlineLabsSkillKit.StrikerVolley => "cast",
+            FrontlineLabsSkillKit.BulwarkAegisShell => "break",
             FrontlineLabsSkillKit.FabricatorFiveSlots => "slot5",
             _ => throw new ArgumentOutOfRangeException(
                 nameof(skill),
@@ -750,7 +785,9 @@ public static class FrontlineLabsDefinition
             ActorMovementFacingCoupling.PreserveFacing,
         FrontlineLabsPendulumArm pendulum = FrontlineLabsPendulumArm.None,
         int primeRespawnTicks = DefaultPrimeRespawnTicks,
-        FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None)
+        FrontlineLabsSkillKit skills = FrontlineLabsSkillKit.None,
+        FrontlineLabsBendEnvelopeArm bendEnvelope =
+            FrontlineLabsBendEnvelopeArm.StrikerOnly)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -766,7 +803,8 @@ public static class FrontlineLabsDefinition
             movementCoupling,
             pendulum,
             primeRespawnTicks,
-            skills);
+            skills,
+            bendEnvelope);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -842,7 +880,8 @@ public static class FrontlineLabsDefinition
         ActorMovementFacingCoupling movementCoupling,
         FrontlineLabsPendulumArm pendulum,
         int primeRespawnTicks,
-        FrontlineLabsSkillKit skills)
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsBendEnvelopeArm bendEnvelope)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
@@ -858,7 +897,8 @@ public static class FrontlineLabsDefinition
                 movement,
                 pendulum,
                 primeRespawnTicks,
-                skills);
+                skills,
+                bendEnvelope);
         }
         ActorVisionProfileDefinition mobileVision = Vision(
             MobileVisionId,
@@ -1278,12 +1318,20 @@ public static class FrontlineLabsDefinition
         ActorMovementProfileDefinition movement,
         FrontlineLabsPendulumArm pendulum,
         int primeRespawnTicks,
-        FrontlineLabsSkillKit skills)
+        FrontlineLabsSkillKit skills,
+        FrontlineLabsBendEnvelopeArm bendEnvelope)
     {
         FrontlineLabsClassDefinition[] distinct =
             classes.TeamZero.Id == classes.TeamOne.Id
                 ? [classes.TeamZero]
                 : [classes.TeamZero, classes.TeamOne];
+        // The curve grammar is a rules-wide factor rather than a class
+        // capability, so it reads as one predicate over every chassis: a class
+        // bends if it always did, or if this arm hands the grammar to
+        // everyone. Depth stays per class either way.
+        bool Bends(FrontlineLabsClassDefinition entry) =>
+            entry.OneBendShotPrograms
+            || bendEnvelope == FrontlineLabsBendEnvelopeArm.Universal;
         // A stance is a class skill selected by the arm, so "this class has a
         // stance here" is the one predicate the catalog builds from.
         bool HasStance(FrontlineLabsClassDefinition entry) =>
@@ -1325,7 +1373,7 @@ public static class FrontlineLabsDefinition
                 ActorActionKind.Rotation,
                 [ActorActionParameterKind.Direction]),
         };
-        if (distinct.Any(entry => entry.OneBendShotPrograms))
+        if (distinct.Any(Bends))
         {
             actions.Add(
                 new ActorActionDefinition(
@@ -1370,8 +1418,7 @@ public static class FrontlineLabsDefinition
         // The volley stance fires straight (no shot programs on a special —
         // the slate's law), so it needs the parameterless action even in a
         // striker mirror where no chassis otherwise carries it.
-        if (distinct.Any(entry =>
-                !entry.OneBendShotPrograms || HasVolley(entry)))
+        if (distinct.Any(entry => !Bends(entry) || HasVolley(entry)))
         {
             actions.Add(
                 new ActorActionDefinition(
@@ -1390,7 +1437,7 @@ public static class FrontlineLabsDefinition
             new List<ActorSameLifeTransitionDefinition>();
         foreach (FrontlineLabsClassDefinition entry in distinct)
         {
-            string shootActionId = entry.OneBendShotPrograms
+            string shootActionId = Bends(entry)
                 ? "shoot"
                 : ShootStraightActionId;
             visions.Add(
@@ -1410,8 +1457,9 @@ public static class FrontlineLabsDefinition
                     energyRegenerationIntervalTicks: 0,
                     energyRegenerationAmount: 0,
                     ShotProgram(
-                        enabled: entry.OneBendShotPrograms,
-                        oneBendOnly: true)));
+                        enabled: Bends(entry),
+                        oneBendOnly: true,
+                        maxBendAfterTiles: entry.MobileMaxBendAfterTiles)));
             bool mayTransform = entry.MayAnchor || HasStance(entry);
             string[] primeActions =
             [
@@ -1548,18 +1596,22 @@ public static class FrontlineLabsDefinition
                         entry.ChildFormId,
                         entry.ChildStanceFormId,
                         entry.StanceEntryWindupTicks));
+                ActorAutomaticReturnTriggerDefinition automaticReturn =
+                    StanceAutomaticReturn(entry);
                 sameLifeTransitions.Add(
                     StanceReturnRoute(
                         $"unstance-{entry.Id}-prime",
                         entry.PrimeStanceFormId,
                         entry.PrimeFormId,
-                        entry.StanceExitWindupTicks));
+                        entry.StanceExitWindupTicks,
+                        automaticReturn));
                 sameLifeTransitions.Add(
                     StanceReturnRoute(
                         $"unstance-{entry.Id}-child",
                         entry.ChildStanceFormId,
                         entry.ChildFormId,
-                        entry.StanceExitWindupTicks));
+                        entry.StanceExitWindupTicks,
+                        automaticReturn));
             }
             if (skills.HasFlag(FrontlineLabsSkillKit.FabricatorFiveSlots)
                 && entry.Skill == FrontlineLabsSkillKit.FabricatorFiveSlots)
@@ -1772,7 +1824,8 @@ public static class FrontlineLabsDefinition
         string transitionId,
         string stanceFormId,
         string returnFormId,
-        int windupTicks) =>
+        int windupTicks,
+        ActorAutomaticReturnTriggerDefinition automaticReturn) =>
         new(
             transitionId,
             MobilizeActionId,
@@ -1798,7 +1851,48 @@ public static class FrontlineLabsDefinition
                 forbiddenTileTags: [],
                 ActorSameLifePlacementDefinition
                     .FailedCompletionKind.CancelAndRemainInSourceForm),
-            irreversibleForLife: false);
+            irreversibleForLife: false,
+            automaticReturn);
+
+    /// <summary>
+    /// The adoption-grade half of both stances, and one primitive rather than
+    /// two: the same threshold-triggered automatic return serves the striker's
+    /// cast (fires-count 1 — the moment the fan launches the return begins, so
+    /// artillery squatting is impossible by rule rather than by driver
+    /// etiquette) and the bulwark's shield break (deflections-count 3 — the
+    /// third bolt shatters the shield into a forced return, so indefinite
+    /// deflection stops being an off-switch for ranged combat). Both are owner
+    /// rulings; both spend the same exit windup the early manual exit spends.
+    /// </summary>
+    private static ActorAutomaticReturnTriggerDefinition StanceAutomaticReturn(
+        FrontlineLabsClassDefinition entry) =>
+        entry.Skill switch
+        {
+            FrontlineLabsSkillKit.StrikerVolley => new(
+                ActorAutomaticReturnTriggerDefinition
+                    .AutomaticReturnCounterKind
+                    .AttacksIssuedSinceEnteringSourceForm,
+                VolleyCastBudget),
+            FrontlineLabsSkillKit.BulwarkAegisShell => new(
+                ActorAutomaticReturnTriggerDefinition
+                    .AutomaticReturnCounterKind
+                    .ProjectilesDeflectedSinceEnteringSourceForm,
+                ShieldBreakBudget),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(entry),
+                entry.Skill,
+                "This class owns no same-life stance skill."),
+        };
+
+    /// <summary>One fan per entry: the volley is a cast, not a stance.</summary>
+    public const int VolleyCastBudget = 1;
+
+    /// <summary>
+    /// Bolts the aegis shell turns before it shatters. Counter-play is
+    /// two-axis by design: go around the locked arc, or feed it three bolts —
+    /// each with a return to sidestep — to buy the punish window.
+    /// </summary>
+    public const int ShieldBreakBudget = 3;
 
     private static ActorFormTransitionDefinition MobilizeRoute(
         string transitionId,
@@ -1867,9 +1961,17 @@ public static class FrontlineLabsDefinition
                 ActorAudibleEventKind.Attack,
             ]);
 
+    /// <summary>
+    /// The deepest bend distance any arm has ever offered, and the striker's
+    /// own envelope. It is the default so every contract authored before the
+    /// universal grammar keeps its exact bytes.
+    /// </summary>
+    private const int DeepestBendAfterTiles = 4;
+
     private static ActorShotProgramDefinition ShotProgram(
         bool enabled,
-        bool oneBendOnly) =>
+        bool oneBendOnly,
+        int maxBendAfterTiles = DeepestBendAfterTiles) =>
         new(
             enabled,
             headingSectors: 8,
@@ -1880,7 +1982,9 @@ public static class FrontlineLabsDefinition
             new ActorAimOnlyShotProgramDefinition(0, 0, 1, 0),
             allowedCurvedBendDirections: [-1, 1],
             minBendAfterTiles: 1,
-            maxBendAfterTiles: enabled ? 4 : 1,
+            // A disabled program must carry the canonical inert bounds, so the
+            // depth only reaches the contract on a gun that actually bends.
+            maxBendAfterTiles: enabled ? maxBendAfterTiles : 1,
             minBendEveryTiles: 1,
             maxBendEveryTiles: enabled && !oneBendOnly ? 3 : 1,
             minBendCount: 1,

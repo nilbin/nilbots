@@ -382,6 +382,11 @@ internal static class GenericActorWireEventCodec
                     6,
                     ActorWireValue.Int32(transition.StartedTick));
                 writer.Field(7, ActorWireValue.Int32(transition.DueTick));
+                // Additive optional tag: a requested transition writes no
+                // field, so an artifact compiled before automatic returns
+                // decodes exactly the histories it always did.
+                if (transition.Automatic)
+                    writer.Field(8, ActorWireValue.Boolean(true));
                 break;
             case GenericActorContext.EventPayload.ScoreChanged score:
                 writer.Field(1, ActorWireValue.Int32(score.TeamId));
@@ -723,8 +728,10 @@ internal static class GenericActorWireEventCodec
     private static GenericActorContext.EventPayload.FormTransition
         DecodeFormTransition(
             ActorWireObjectReader reader,
-            int depth) =>
-        new(
+            int depth)
+    {
+        byte[]? automatic = reader.Optional(8);
+        return new GenericActorContext.EventPayload.FormTransition(
             GenericActorWireCodecValues.DecodeIdentity(
                 reader.Required(1),
                 depth + 1),
@@ -733,5 +740,14 @@ internal static class GenericActorWireEventCodec
             GenericActorWireCodecValues.SemanticId(reader.Required(4)),
             GenericActorWireCodecValues.SemanticId(reader.Required(5)),
             GenericActorWireCodecValues.Int32(reader, 6),
-            GenericActorWireCodecValues.Int32(reader, 7));
+            GenericActorWireCodecValues.Int32(reader, 7),
+            automatic is null
+                ? false
+                : ActorWireValue.Boolean(automatic)
+                    ? true
+                    : throw new FormatException(
+                        "A requested form transition omits the automatic "
+                        + "field; an explicit false is a second encoding of "
+                        + "the same event."));
+    }
 }

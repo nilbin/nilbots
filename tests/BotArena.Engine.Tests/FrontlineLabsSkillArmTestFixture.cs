@@ -135,6 +135,32 @@ internal static class FrontlineLabsSkillArmTestFixture
                         .ProjectileDeflected)item.Payload),
         ];
 
+    /// <summary>
+    /// Form-transition facts of one kind, in ordinal order, across both the
+    /// tick-start and resolution boundaries — the automatic return can land on
+    /// either, and a test that only looked at one would silently pass.
+    /// </summary>
+    public static ImmutableArray<
+            GenericActorRuntimeObservation.EventPayload.FormTransition>
+        Transitions(
+            GenericActorMatchTickFrame frame,
+            GenericActorRuntimeObservation.EventKind kind) =>
+        [
+            .. frame.TickStart.Events
+                .Concat(frame.Events)
+                .Where(item => item.Kind == kind)
+                .OrderBy(item => item.Ordinal)
+                .Select(item =>
+                    (GenericActorRuntimeObservation.EventPayload
+                        .FormTransition)item.Payload),
+        ];
+
+    public static bool IsAutomatic(
+        GenericActorRuntimeObservation.EventPayload.FormTransition value) =>
+        value.Reason
+        == GenericActorRuntimeObservation.FormTransitionReason
+            .AutomaticThresholdReturn;
+
     public static ImmutableArray<
             GenericActorRuntimeObservation.EventPayload.Damage>
         Damages(GenericActorMatchTickFrame frame) =>

@@ -1401,6 +1401,11 @@ internal static class ReplayV3Serializer
                     "startedTick",
                     payload.StartedTick);
                 writer.WriteNumber("dueTick", payload.DueTick);
+                // Inert-default omission: a requested transition writes no
+                // reason at all, so replays authored before automatic returns
+                // existed stay byte-identical (DECISIONS #156).
+                if (payload.Reason is string transitionReason)
+                    writer.WriteString("reason", transitionReason);
                 break;
             case ReplayV3.EventPayload.ScoreChanged payload:
                 writer.WriteNumber("teamId", payload.TeamId);
@@ -4981,6 +4986,18 @@ internal static class ReplayV3Serializer
                         $"Replay-v3 {context} deflected-projectile heading or facing is invalid.");
                 }
                 break;
+            case ReplayV3.EventPayload.FormTransition transition:
+                // Absent means requested. An explicit "requested" would be a
+                // second encoding of the same history, so it is refused here
+                // exactly as the contract mirrors refuse an inert guard.
+                if (transition.Reason is string reason
+                    && !IsFormTransitionReason(reason))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} form-transition reason is invalid; " +
+                        "a requested transition omits the property.");
+                }
+                break;
             case ReplayV3.EventPayload.LifeSpawned spawned:
                 if (!IsSpawnReason(spawned.Reason))
                 {
@@ -5209,6 +5226,13 @@ internal static class ReplayV3Serializer
             or "fabrication"
             or "replication"
             or "automatic-activation";
+
+    /// <summary>
+    /// "requested" is deliberately absent: the inert cause is encoded by
+    /// omitting the property, so naming it explicitly is refused.
+    /// </summary>
+    private static bool IsFormTransitionReason(string value) =>
+        value is "automatic-threshold-return";
 
     private static bool IsRetirementReason(string value) =>
         value is "replication" or "participant-disqualified";

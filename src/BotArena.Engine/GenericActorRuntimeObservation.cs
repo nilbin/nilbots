@@ -159,6 +159,27 @@ public sealed record GenericActorRuntimeObservation(
         DestructionRecovery = 1,
     }
 
+    /// <summary>
+    /// What caused a same-life form transition. The route alone cannot say:
+    /// a stance's return route serves both the author's early exit and the
+    /// engine's threshold return, so the cause is a fact of its own — the
+    /// same shape <see cref="GenericActorRuntimeStart.SpawnReason"/> gives a
+    /// life's origin. <see cref="Requested"/> is today's only cause and the
+    /// inert default; canonical replay omits it.
+    /// </summary>
+    public enum FormTransitionReason
+    {
+        /// <summary>A successful same-life transition action started it.</summary>
+        Requested = 0,
+
+        /// <summary>
+        /// The engine started it with no action because the source form's
+        /// declared automatic-return counter reached its threshold
+        /// (<see cref="ActorAutomaticReturnTriggerDefinition"/>).
+        /// </summary>
+        AutomaticThresholdReturn = 1,
+    }
+
     public sealed record ObservedParticipantStatus(
         int ParticipantId,
         int TeamId,
@@ -323,7 +344,9 @@ public sealed record GenericActorRuntimeObservation(
             string FromFormId,
             string ToFormId,
             int StartedTick,
-            int DueTick) : EventPayload;
+            int DueTick,
+            FormTransitionReason Reason = FormTransitionReason.Requested)
+            : EventPayload;
 
         public sealed record ScoreChanged(
             int TeamId,

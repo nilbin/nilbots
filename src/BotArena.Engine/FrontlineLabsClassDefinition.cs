@@ -27,8 +27,19 @@ public sealed record FrontlineLabsClassDefinition
     public required int MobileMaxTravelTiles { get; init; }
 
     /// <summary>One private bend (the duel-depth envelope). A class without
-    /// programs fires straight through the parameterless attack action.</summary>
+    /// programs fires straight through the parameterless attack action —
+    /// unless the arm's bend envelope is universal, which hands every mobile
+    /// gun the same grammar at its own depth.</summary>
     public required bool OneBendShotPrograms { get; init; }
+
+    /// <summary>
+    /// How far this class's mobile gun may fly before its one bend. Depth is
+    /// the identity: the striker keeps the full 1–4 envelope it was measured
+    /// on, and a class that gains the grammar in a universal-bend arm gets the
+    /// shallower half the skill-shot forensics justified — option richness
+    /// rather than raw power (owner ruling, the slate's "Current kit").
+    /// </summary>
+    public required int MobileMaxBendAfterTiles { get; init; }
 
     /// <summary>Class-wide fortification: prime and children may Anchor into
     /// per-source turret forms and Mobilize back once per life. The prime's
@@ -134,6 +145,7 @@ public sealed record FrontlineLabsClassDefinition
         MobileCooldownTicks = 2,
         MobileMaxTravelTiles = 8,
         OneBendShotPrograms = true,
+        MobileMaxBendAfterTiles = 4,
         MayAnchor = false,
         PrimeAnchorWindupTicks = 0,
         ChildAnchorWindupTicks = 0,
@@ -167,6 +179,7 @@ public sealed record FrontlineLabsClassDefinition
         MobileCooldownTicks = 3,
         MobileMaxTravelTiles = 6,
         OneBendShotPrograms = false,
+        MobileMaxBendAfterTiles = 2,
         MayAnchor = true,
         PrimeAnchorWindupTicks = 3,
         ChildAnchorWindupTicks = 1,
@@ -198,6 +211,7 @@ public sealed record FrontlineLabsClassDefinition
         MobileCooldownTicks = 2,
         MobileMaxTravelTiles = 7,
         OneBendShotPrograms = false,
+        MobileMaxBendAfterTiles = 2,
         MayAnchor = false,
         PrimeAnchorWindupTicks = 0,
         ChildAnchorWindupTicks = 0,
