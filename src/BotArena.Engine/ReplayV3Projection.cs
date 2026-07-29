@@ -665,15 +665,16 @@ internal static class ReplayV3Projection
                     payload.Amount,
                     payload.NewHealth,
                     Position(payload.Position)),
-            GenericActorRuntimeObservation.EventPayload.ProjectileAbsorbed
+            GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
                 payload =>
-                new ReplayV3.EventPayload.ProjectileAbsorbed(
+                new ReplayV3.EventPayload.ProjectileDeflected(
                     payload.SourceTeamId,
                     payload.SourceActorId is null
                         ? null
                         : ActorId(payload.SourceActorId),
                     ActorId(payload.TargetActorId),
                     Decimal(payload.ProjectileId),
+                    Decimal(payload.DeflectedProjectileId),
                     payload.TargetFormId,
                     Direction(payload.TargetFacing),
                     ProjectileHeading(payload.Heading),
@@ -1211,8 +1212,8 @@ internal static class ReplayV3Projection
             GenericActorRuntimeObservation.EventKind
                 .LifecycleClockCancelled =>
                 "lifecycle-clock-cancelled",
-            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed =>
-                "projectile-absorbed",
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
+                "projectile-deflected",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1242,6 +1243,9 @@ internal static class ReplayV3Projection
                 "scheduled-advance",
             GenericActorProjectileTraversal.TraversalTrigger.AttackLaunch =>
                 "attack-launch",
+            GenericActorProjectileTraversal.TraversalTrigger
+                .GuardDeflection =>
+                "guard-deflection",
             GenericActorProjectileTraversal.TraversalTrigger
                 .ParticipantDisqualification =>
                 "participant-disqualification",

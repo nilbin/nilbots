@@ -433,7 +433,7 @@ internal static class GenericFrontlineChronologyEvidence
             or GenericActorRuntimeObservation.EventKind.Movement
             or GenericActorRuntimeObservation.EventKind.MovementBlocked
             or GenericActorRuntimeObservation.EventKind.Attack
-            or GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed
+            or GenericActorRuntimeObservation.EventKind.ProjectileDeflected
             or GenericActorRuntimeObservation.EventKind.Damage
             or GenericActorRuntimeObservation.EventKind.Destruction
             or GenericActorRuntimeObservation.EventKind.LifeSpawned

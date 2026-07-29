@@ -677,7 +677,7 @@ public sealed class FrontlineLabsExperimentCommandTests
         // FIVE SLOTS has no owner in this cell, so `kit` and the explicit
         // subset are the same content-identified arm.
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-fan-shell",
+            "frontline-labs-1-bulwark-vs-striker-fan-parry",
             kit.GetProperty("rulesetId").GetString());
         Assert.Equal(
             subset.GetProperty("rulesetId").GetString(),
@@ -730,7 +730,7 @@ public sealed class FrontlineLabsExperimentCommandTests
     public void SkillArms_ComposeWithMovementAndPendulumAndRejectOrphans()
     {
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-fan-shell-facing-locked",
+            "frontline-labs-1-bulwark-vs-striker-fan-parry-facing-locked",
             PrintedContract(
                 [
                     "--print-candidate-contract",
@@ -742,7 +742,7 @@ public sealed class FrontlineLabsExperimentCommandTests
                     "facing-locked",
                 ]).GetProperty("rulesetId").GetString());
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-ratchet-shell",
+            "frontline-labs-1-bulwark-vs-striker-ratchet-parry",
             PrintedContract(
                 [
                     "--print-candidate-contract",

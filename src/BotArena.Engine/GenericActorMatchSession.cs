@@ -329,6 +329,7 @@ public sealed class GenericActorMatchSession : IDisposable
         var projectileTransitions =
             ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
         var contacts = new List<PendingDamageContact>();
+        var deflections = new List<PendingDeflection>();
         int contactOrdinal = 0;
 
         ResolveRotations(resolutions, events);
@@ -336,6 +337,7 @@ public sealed class GenericActorMatchSession : IDisposable
             resolutions,
             contacts,
             ref contactOrdinal,
+            deflections,
             events,
             projectileTransitions);
         ReserveLifecycleCreations(resolutions, events);
@@ -343,10 +345,21 @@ public sealed class GenericActorMatchSession : IDisposable
         AdvanceExistingProjectiles(
             contacts,
             ref contactOrdinal,
+            deflections,
             events,
             projectileTransitions);
         ResolveAttacks(
             resolutions,
+            contacts,
+            ref contactOrdinal,
+            deflections,
+            events,
+            projectileTransitions);
+        // The tick's one launch point for guard returns: after every advance
+        // and every attack, so a returned bolt joins the world exactly like a
+        // freshly fired one.
+        LaunchDeflectedProjectiles(
+            deflections,
             contacts,
             ref contactOrdinal,
             events,
@@ -951,6 +964,7 @@ public sealed class GenericActorMatchSession : IDisposable
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
@@ -1028,9 +1042,9 @@ public sealed class GenericActorMatchSession : IDisposable
                         projectile.Profile.Projectile.DamagePerHit,
                         contactOrdinal++));
                 }
-                else if (contact.Absorbed)
+                else if (contact.Deflected)
                 {
-                    events.Add(AbsorptionEvent(projectile, life));
+                    Deflect(projectile, life, events, deflections);
                 }
             }
         }
@@ -1409,6 +1423,7 @@ public sealed class GenericActorMatchSession : IDisposable
     private void AdvanceExistingProjectiles(
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
@@ -1426,6 +1441,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 projectile.Profile.Projectile.TilesPerAdvance,
                 contacts,
                 ref contactOrdinal,
+                deflections,
                 events,
                 traversals,
                 GenericActorProjectileTraversal.TraversalTrigger
@@ -1437,6 +1453,7 @@ public sealed class GenericActorMatchSession : IDisposable
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
@@ -1510,6 +1527,7 @@ public sealed class GenericActorMatchSession : IDisposable
                     launchTraversal,
                     contacts,
                     ref contactOrdinal,
+                    deflections,
                     events,
                     traversals,
                     GenericActorProjectileTraversal.TraversalTrigger
@@ -1560,6 +1578,7 @@ public sealed class GenericActorMatchSession : IDisposable
         int maximumTiles,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals,
         GenericActorProjectileTraversal.TraversalTrigger trigger)
@@ -1608,9 +1627,9 @@ public sealed class GenericActorMatchSession : IDisposable
                     projectile.Profile.Projectile.DamagePerHit,
                     contactOrdinal++));
             }
-            else if (contact.Absorbed)
+            else if (contact.Deflected)
             {
-                events.Add(AbsorptionEvent(projectile, target));
+                Deflect(projectile, target, events, deflections);
             }
             break;
         }
@@ -2878,10 +2897,11 @@ public sealed class GenericActorMatchSession : IDisposable
         if (target.ActorId.TeamId != projectile.OwnerTeamId)
         {
             // A hostile contact is the only one a projectile guard answers:
-            // the shell blanks incoming enemy fire, it does not filter its own
-            // team's bolts.
-            return AbsorbsFrontalContact(target, projectile)
-                ? ProjectileContact.Absorb
+            // the shell turns incoming enemy fire, it does not deflect its own
+            // team's bolts. Allied contacts fall through to the collision
+            // contract below and never reach the guard at all.
+            return DeflectsFrontalContact(target, projectile)
+                ? ProjectileContact.Deflect
                 : ProjectileContact.Damage;
         }
         return _definition.Rules.Collisions.AlliedProjectileContact switch
@@ -2898,42 +2918,154 @@ public sealed class GenericActorMatchSession : IDisposable
     }
 
     /// <summary>
-    /// Whether the target's form guard consumes this hostile contact without
-    /// damage. Contact puts both bodies on one tile, so the arc question is
-    /// asked of the projectile's approach vector — the reverse of its travel
-    /// heading — against the target's facing quadrant.
+    /// Whether the target's form guard turns this hostile contact instead of
+    /// taking damage from it. Contact puts both bodies on one tile, so the arc
+    /// question is asked of the projectile's approach vector — the reverse of
+    /// its travel heading — against the target's facing quadrant.
     /// </summary>
-    private bool AbsorbsFrontalContact(
+    private bool DeflectsFrontalContact(
         LifeState target,
         ProjectileState projectile)
     {
         if (_forms[target.FormId].ProjectileGuard
-            != ActorFormProjectileGuardKind
-                .FacingQuadrantContactsConsumedWithoutDamage)
+            != ActorFormProjectileGuardKind.FacingQuadrantContactsDeflected)
         {
             return false;
         }
+        // A bolt returned on this very tick is still leaving the guard that
+        // returned it and cannot be turned a second time before it has flown.
+        // The rule exists so the cascade terminates by construction: two
+        // shields facing each other one tile apart trade a hit instead of
+        // volleying one bolt forever inside a single tick.
+        if (projectile.ReturnedAtTick == Tick)
+            return false;
         var (dx, dy) = projectile.Heading.Vector();
         return Visibility.InQuadrant(-dx, -dy, target.Facing);
     }
 
-    private GenericActorAuthoritativeEvent AbsorptionEvent(
+    /// <summary>
+    /// Publishes one deflection and reserves the returned bolt's identity. The
+    /// identity is allocated here, in contact order, so multiple deflections
+    /// in one tick are ordered by the tick's deterministic contact sequence;
+    /// the projectile itself is materialized later by
+    /// <see cref="LaunchDeflectedProjectiles"/>.
+    /// </summary>
+    private void Deflect(
         ProjectileState projectile,
-        LifeState target) =>
-        EmitSpatial(
+        LifeState target,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ICollection<PendingDeflection> deflections)
+    {
+        long deflectedId = checked(_nextProjectileId++);
+        events.Add(EmitSpatial(
             Tick,
-            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed,
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected,
             new GenericActorRuntimeObservation.EventPayload
-                .ProjectileAbsorbed(
+                .ProjectileDeflected(
                     projectile.OwnerTeamId,
                     projectile.OwnerActorId,
                     target.ActorId,
                     projectile.Id,
+                    deflectedId,
                     target.FormId,
                     target.Facing,
                     projectile.Heading,
                     target.Position),
-            target.Position);
+            target.Position));
+        deflections.Add(new PendingDeflection(
+            deflectedId,
+            target,
+            // The exactly reversed heading: the bolt retraces its approach.
+            // The deflector never aims, so the locked arc chosen on entry is
+            // the whole of its control over where the return goes.
+            projectile.Heading.Reversed(),
+            // The shooter's own bolt comes back: identical damage, speed, and
+            // range class, with a fresh travel budget from the guard's tile.
+            // The stance form declares no attack profile of its own, and a
+            // deflection is not an attack action.
+            projectile.Profile));
+    }
+
+    /// <summary>
+    /// Materializes this tick's returned bolts. It runs once, after existing
+    /// projectiles advanced and after attacks launched, so a return is exactly
+    /// as kinematically ordinary as a freshly fired bolt: one launch traversal
+    /// of the profile's launch tiles, then the ordinary advance cadence.
+    ///
+    /// The work list cannot grow while it drains, because a bolt returned this
+    /// tick is not eligible to be returned again this tick (see
+    /// <see cref="DeflectsFrontalContact"/>) — which is what makes two shields
+    /// facing each other one tile apart resolve instead of volleying forever.
+    /// </summary>
+    private void LaunchDeflectedProjectiles(
+        ICollection<PendingDeflection> deflections,
+        ICollection<PendingDamageContact> contacts,
+        ref int contactOrdinal,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        // A return carries no aim of its own. Where the profile publishes a
+        // shot program the world contract requires one to be present, so it
+        // takes that profile's own default — which is the straight, bendless
+        // program — and otherwise none at all.
+        foreach (PendingDeflection deflection in deflections.ToArray())
+        {
+            ActorProjectileDefinition kinematics =
+                deflection.Profile.Projectile;
+            ShotProgram? program =
+                deflection.Profile.ShotProgram.Enabled
+                    ? new ShotProgram(
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .InitialAimOffset,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendDirection,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendAfterTiles,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendEveryTiles,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendCount)
+                    : null;
+            var returned = new ProjectileState(
+                deflection.ProjectileId,
+                deflection.Deflector.ParticipantId,
+                deflection.Deflector.ActorId.TeamId,
+                deflection.Deflector.ActorId,
+                Tick,
+                deflection.Deflector.Position,
+                deflection.Heading,
+                program,
+                deflection.Profile,
+                TraceProjectilePath(
+                    deflection.Deflector.Position,
+                    deflection.Heading,
+                    deflection.Profile,
+                    program))
+            {
+                ReturnedAtTick = Tick,
+            };
+            TraverseProjectile(
+                returned,
+                kinematics.Mode == ActorProjectileMode.InstantRay
+                    ? kinematics.MaxTravelTiles
+                    : kinematics.LaunchTiles,
+                contacts,
+                ref contactOrdinal,
+                // A return cannot produce a further return this tick, so this
+                // sink stays empty and the snapshot above is the whole work.
+                deflections,
+                events,
+                traversals,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .GuardDeflection);
+            if (!returned.Consumed
+                && returned.RemainingTiles > 0
+                && kinematics.Mode == ActorProjectileMode.Discrete)
+            {
+                _projectiles.Add(returned);
+            }
+        }
+    }
 
     /// <summary>
     /// Where a due automatic return or activation for this slot lands. The
@@ -4065,6 +4197,14 @@ public sealed class GenericActorMatchSession : IDisposable
         public int RemainingTiles { get; set; }
         public int TicksUntilAdvance { get; set; }
         public bool Consumed { get; set; }
+
+        /// <summary>
+        /// Set only on a bolt a projectile guard returned, to the tick it was
+        /// returned on. Runtime-only bookkeeping: the world snapshot never
+        /// carries it, because the chronology reads the same fact from the
+        /// deflection event that names the bolt.
+        /// </summary>
+        public int? ReturnedAtTick { get; init; }
     }
 
     private sealed record PendingDamageContact(
@@ -4078,17 +4218,34 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly record struct ProjectileContact(
         bool Consumes,
         bool Damages,
-        bool Absorbed = false)
+        bool Deflected = false)
     {
         public static ProjectileContact Pass => new(false, false);
         public static ProjectileContact Block => new(true, false);
         public static ProjectileContact Damage => new(true, true);
 
         /// <summary>
-        /// Consumed by a form's projectile guard: the bolt is spent, no damage
-        /// is scheduled, and the blank is published as its own event.
+        /// Turned by a form's projectile guard: the incoming bolt is spent, no
+        /// damage is scheduled, and a replacement bolt is launched back along
+        /// the reversed heading under the guard's ownership.
         /// </summary>
-        public static ProjectileContact Absorb =>
-            new(true, false, Absorbed: true);
+        public static ProjectileContact Deflect =>
+            new(true, false, Deflected: true);
     }
+
+    /// <summary>
+    /// One deflection accepted during this tick's contact resolution. The
+    /// returned bolt's identity is allocated at contact time — contact order
+    /// is therefore identity order — while the body is materialized in the
+    /// tick's single launch phase, so a deflected bolt can never advance on
+    /// the tick that created it (the invariant
+    /// <see cref="ActorProjectileDefinition.AdvancesOnLaunchTick"/> already
+    /// states for attack launches) and a deflection chain cannot recurse
+    /// inside one tick.
+    /// </summary>
+    private sealed record PendingDeflection(
+        long ProjectileId,
+        LifeState Deflector,
+        ProjectileHeading Heading,
+        ActorAttackProfileDefinition Profile);
 }

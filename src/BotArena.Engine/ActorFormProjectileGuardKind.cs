@@ -14,11 +14,13 @@ public enum ActorFormProjectileGuardKind
 
     /// <summary>
     /// An enemy projectile whose direction of travel approaches from inside
-    /// the life's facing quadrant is consumed without damage; flank and rear
-    /// contacts damage normally. The quadrant is the vision cone's convention
+    /// the life's facing quadrant dies on the arc without damage, and a new
+    /// bolt is launched from the guard's own tile along the exactly reversed
+    /// heading, owned by the guard's team. Flank and rear contacts damage
+    /// normally. The quadrant is the vision cone's convention
     /// (forward &gt;= 0, |lateral| &lt;= forward, diagonal edges included)
     /// evaluated on the projectile's approach vector rather than on a tile,
     /// because a contact puts both bodies on the same tile.
     /// </summary>
-    FacingQuadrantContactsConsumedWithoutDamage = 1,
+    FacingQuadrantContactsDeflected = 1,
 }

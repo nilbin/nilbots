@@ -953,9 +953,9 @@ public static class ActorCanonicalContractReader
                 "A canonical form projectile guard must be a string.");
         return value switch
         {
-            "facing-quadrant-contacts-consumed-without-damage" =>
+            "facing-quadrant-contacts-deflected" =>
                 RulesContract.FormProjectileGuard
-                    .FacingQuadrantContactsConsumedWithoutDamage,
+                    .FacingQuadrantContactsDeflected,
             _ => throw new FormatException(
                 "A canonical form omits projectileGuard when it declares no "
                 + "guard; an explicitly inert value is a second encoding of "

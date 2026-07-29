@@ -251,16 +251,20 @@ public sealed record GenericActorRuntimeObservation(
             Position Position) : EventPayload;
 
         /// <summary>
-        /// An enemy projectile was consumed by the target form's declared
-        /// projectile guard instead of damaging it. The absorbing life, the
-        /// firing life, and the projectile are all named so an observer can
-        /// attribute the blank exactly as it attributes a hit.
+        /// An enemy projectile died on the target form's declared projectile
+        /// guard instead of damaging it, and the guard launched a replacement
+        /// bolt back along the reversed heading under its own team's
+        /// ownership. The deflecting life, the firing life, the consumed bolt,
+        /// and the returned bolt are all named, so an observer can attribute
+        /// the return exactly as it attributes a hit — and so the returned
+        /// bolt's launch has a single authoritative cause.
         /// </summary>
-        public sealed record ProjectileAbsorbed(
+        public sealed record ProjectileDeflected(
             int SourceTeamId,
             ActorIdentity? SourceActorId,
             ActorIdentity TargetActorId,
             long ProjectileId,
+            long DeflectedProjectileId,
             string TargetFormId,
             Direction TargetFacing,
             ProjectileHeading Heading,
@@ -396,11 +400,12 @@ public sealed record GenericActorRuntimeObservation(
 
         /// <summary>
         /// Additive append (DECISIONS #156's discipline applied to the
-        /// observed-event enum): a projectile guard consumed an enemy bolt
-        /// without damage. Contracts whose forms declare no guard never emit
-        /// it, so no existing replay or observation changes.
+        /// observed-event enum): a projectile guard killed an enemy bolt on
+        /// its arc and returned a team-flipped bolt along the reversed
+        /// heading. Contracts whose forms declare no guard never emit it, so
+        /// no existing replay or observation changes.
         /// </summary>
-        ProjectileAbsorbed = 19,
+        ProjectileDeflected = 19,
     }
 
     public sealed record ScoreboardState(

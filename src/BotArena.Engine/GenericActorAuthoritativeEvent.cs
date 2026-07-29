@@ -179,9 +179,9 @@ public sealed record GenericActorAuthoritativeEvent
                     .LifecycleClockCancelled =>
                 payload is GenericActorRuntimeObservation.EventPayload
                     .LifecycleClockCancelled,
-            GenericActorRuntimeObservation.EventKind.ProjectileAbsorbed =>
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
                 payload is GenericActorRuntimeObservation.EventPayload
-                    .ProjectileAbsorbed,
+                    .ProjectileDeflected,
             _ => false,
         };
 
@@ -204,13 +204,16 @@ public sealed record GenericActorAuthoritativeEvent
                     nameof(damage.ProjectileId));
                 break;
             case GenericActorRuntimeObservation.EventPayload
-                .ProjectileAbsorbed absorbed:
+                .ProjectileDeflected deflected:
                 RequireNonnegative(
-                    absorbed.SourceTeamId,
-                    nameof(absorbed.SourceTeamId));
+                    deflected.SourceTeamId,
+                    nameof(deflected.SourceTeamId));
                 RequireNonnegative(
-                    absorbed.ProjectileId,
-                    nameof(absorbed.ProjectileId));
+                    deflected.ProjectileId,
+                    nameof(deflected.ProjectileId));
+                RequireNonnegative(
+                    deflected.DeflectedProjectileId,
+                    nameof(deflected.DeflectedProjectileId));
                 break;
             case GenericActorRuntimeObservation.EventPayload.Destruction
                 destruction:

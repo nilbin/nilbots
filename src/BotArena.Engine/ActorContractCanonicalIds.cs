@@ -119,9 +119,8 @@ internal static class ActorContractCanonicalIds
             "face-movement-direction",
         ActorMovementFacingCoupling.FacingLocked => "facing-locked",
         ActorFormProjectileGuardKind.None => "none",
-        ActorFormProjectileGuardKind
-                .FacingQuadrantContactsConsumedWithoutDamage =>
-            "facing-quadrant-contacts-consumed-without-damage",
+        ActorFormProjectileGuardKind.FacingQuadrantContactsDeflected =>
+            "facing-quadrant-contacts-deflected",
         ActorAttackVolleyDefinition.VolleySpreadKind.SharedResolvedHeading =>
             "shared-resolved-heading",
         ActorAttackVolleyDefinition.VolleySpreadKind

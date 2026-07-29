@@ -422,15 +422,16 @@ internal sealed record ReplayV3(
             int NewHealth,
             PositionValue Position) : EventPayload("damage");
 
-        internal sealed record ProjectileAbsorbed(
+        internal sealed record ProjectileDeflected(
             int SourceTeamId,
             ActorId? SourceActorId,
             ActorId TargetActorId,
             string ProjectileId,
+            string DeflectedProjectileId,
             string TargetFormId,
             string TargetFacing,
             string Heading,
-            PositionValue Position) : EventPayload("projectile-absorbed");
+            PositionValue Position) : EventPayload("projectile-deflected");
 
         internal sealed record Destruction(
             ActorId ActorId,

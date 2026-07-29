@@ -139,14 +139,16 @@ nilbots experiment frontline-labs \
 `--movement` arm, `--pendulum` level, and `--duel-map`. **Each skill is owned
 by exactly one class**, so a cell carries only the skills whose owning class is
 actually in it: `--skills kit` on `bulwark-vs-striker` resolves to
-volley + shell, and the ruleset ID names exactly what resolved. Nothing about
+volley + shell and yields `frontline-labs-1-bulwark-vs-striker-fan-parry`. The
+ruleset ID names exactly what resolved, by behaviour rather than by silhouette
+— the shell's token is `parry` because the stance returns fire. Nothing about
 the classes you already know changes; what changes is what your class can do.
 
 | token | owner | what appears in the contract | what it means on the board |
 | --- | --- | --- | --- |
 | `none` (default) | — | nothing | today's measured baseline |
 | `volley` | striker | `striker-prime-volley-stance` / `striker-child-volley-stance` forms, the `striker-volley` attack profile with `volley.projectileCount = 3`, `volley-striker-*` / `unstance-striker-*` routes | windup **2** into an immobile stance whose gun fires **three simultaneous damage-1 bolts** — your facing lane and both adjacent 45-degree headings — straight only, on cooldown **5** against the mobile gun's 2. Objective weight stays **1**. Windup **1** back out, and the cycle repeats. |
-| `shell` | bulwark | `bulwark-prime-aegis-shell` / `bulwark-child-aegis-shell` forms carrying `projectileGuard`, `shell-bulwark-*` / `unstance-bulwark-*` routes | windup **1** into a stance that **consumes enemy bolts arriving inside its facing quadrant with no damage**; flank and rear contacts hurt normally. The shell cannot move and has no gun; objective weight stays **1**, so it still holds ground. Windup **1** back out; tenure is not clock-limited, it is priced by what the form cannot do. |
+| `shell` | bulwark | `bulwark-prime-aegis-shell` / `bulwark-child-aegis-shell` forms carrying `projectileGuard`, `shell-bulwark-*` / `unstance-bulwark-*` routes | windup **1** into a stance that **deflects enemy bolts arriving inside its facing quadrant**: the incoming bolt dies on the arc and a **new bolt launches from the shell's tile along the exactly reversed heading, owned by the bulwark's team** — so poking a shell head-on shoots yourself. Flank and rear contacts hurt normally. The shell cannot move, shoot, **or rotate** — the protected quadrant is chosen before the shield rises; objective weight stays **1**, so it still holds ground. Windup **1** back out; tenure is not clock-limited, it is priced by what the form cannot do. |
 | `five-slots` | fabricator | five `unitSlots` for each fabricator team, the `fabricator-late-child-ready` lifecycle profile, a new topology profile and fingerprint (`…-asymmetric-slots-5-3-v1` against another class, `…-five-slots-v1` in a fabricator mirror) | the fabricator fields **prime plus four children**; a non-fabricator opponent keeps three. The extra two unlock at **300** and **420** (continuing the class's own 120-tick cadence 60/180/300/420) and rebuild on a **30**-tick clock instead of 15 — more bodies, deliberately not faster bodies. |
 | `kit` | — | all three, filtered to the cell's classes | the whole slate at once |
 
@@ -163,13 +165,18 @@ Reading it from the contract, without hard-coding:
   so read it as "missing means one bolt". Bolts are ordinary projectiles: they
   appear in `visibleProjectiles`, each has its own ID, and the IDs are
   contiguous ascending in launch order (leftmost lane first).
-- **The shell is public data too.** The guarding form carries
-  `projectileGuard: "facing-quadrant-contacts-consumed-without-damage"`, again
-  absent on every unguarded form. An absorption is published as its own
-  observed event kind, `projectile-absorbed`, naming the shell, the shooter,
-  and the projectile — so "my bolt was blanked" is something you can learn and
-  react to. Shoot a shell from the flank or from two angles; poking its face
-  is free for the bulwark.
+- **The shell is public data too, and now it shoots back.** The guarding form
+  carries `projectileGuard: "facing-quadrant-contacts-deflected"`, again absent
+  on every unguarded form. A deflection is published as its own observed event
+  kind, `projectile-deflected`, naming the shell, the shooter, the bolt that
+  died, and — in `deflectedProjectileId` — the bolt that was sent back. The
+  return is an ordinary projectile: it appears in `visibleProjectiles`, it
+  belongs to the **bulwark's** team, it starts on the shell's tile, it flies
+  the exact reverse of the heading that arrived, it carries the same damage
+  and range class as the bolt you fired, and it is fully dodgeable. Poking a
+  shell's face is no longer free — it is a tempo tax with a bill: sidestep the
+  return, shoot from the flank, or come from two angles. The shell's arc never
+  tracks you, so going around it always works.
 - **Never hard-code three slots.** Count your own and the enemy's entries in
   the topology's `unitSlots`, and take unlock ticks from your slots' lifecycle
   assignments. In a five-slot arm your fourth and fifth slots become Ready

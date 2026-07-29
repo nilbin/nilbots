@@ -103,6 +103,7 @@ public sealed record GenericActorProjectileTraversal
                 TraversalTrigger.MovementContact
                     or TraversalTrigger.ScheduledAdvance
                     or TraversalTrigger.AttackLaunch
+                    or TraversalTrigger.GuardDeflection
                     or TraversalTrigger.ParticipantDisqualification) => true,
             _ => false,
         };
@@ -125,13 +126,15 @@ public sealed record GenericActorProjectileTraversal
                     or TerminalDisposition.MovementContact
                     or TerminalDisposition.ParticipantDisqualification) =>
                 false,
-            (TraversalTrigger.AttackLaunch,
+            (TraversalTrigger.AttackLaunch
+                    or TraversalTrigger.GuardDeflection,
                 TerminalDisposition.LifecyclePlacementPurge
                     or TerminalDisposition.MovementContact
                     or TerminalDisposition.ParticipantDisqualification) =>
                 false,
             _ => trigger is TraversalTrigger.ScheduledAdvance
-                or TraversalTrigger.AttackLaunch,
+                or TraversalTrigger.AttackLaunch
+                or TraversalTrigger.GuardDeflection,
         };
         if (!terminalMatchesTrigger)
         {
@@ -205,6 +208,14 @@ public sealed record GenericActorProjectileTraversal
         ScheduledAdvance = 2,
         AttackLaunch = 3,
         ParticipantDisqualification = 4,
+
+        /// <summary>
+        /// The launch step of a bolt a form's projectile guard returned. It is
+        /// an attack launch in every kinematic respect; the separate trigger
+        /// exists so a reader never has to infer that a launch without an
+        /// attack action is legitimate.
+        /// </summary>
+        GuardDeflection = 5,
     }
 
     public abstract record TerminalDisposition

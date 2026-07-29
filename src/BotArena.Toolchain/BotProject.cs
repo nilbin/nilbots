@@ -57,9 +57,13 @@ public static class ToolchainInfo
     /// (VOLLEY / AEGIS SHELL / FIVE SLOTS) — multi-projectile attacks, a
     /// form-level projectile guard with its own observed event, and asymmetric
     /// slot topology — all additive, so player artifact bytes and cache keys
-    /// are unchanged. Keep in lockstep with BotArena.Cli.csproj's
+    /// are unchanged. 0.9.10 converts AEGIS SHELL from absorption to
+    /// DEFLECTION on owner ruling: the guard returns a team-flipped bolt along
+    /// the reversed heading, the observed event becomes projectile-deflected
+    /// and names both bolts, the stance's arc locks on entry, and the arm is
+    /// identified `parry`. Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.9";
+    public const string CliVersion = "0.9.10";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

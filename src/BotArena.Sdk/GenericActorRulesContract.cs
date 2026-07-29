@@ -447,11 +447,14 @@ public sealed class GenericActorRulesContract
 
         /// <summary>
         /// A hostile projectile approaching from inside the life's facing
-        /// quadrant is consumed without damage and published as a
-        /// <c>ProjectileAbsorbed</c> event; flank and rear contacts damage
-        /// normally.
+        /// quadrant dies on the arc without damage, and a replacement bolt is
+        /// launched from the guard's own tile along the exactly reversed
+        /// heading under the guard's team's ownership — so it can kill the
+        /// bot that fired it. The exchange is published as a
+        /// <c>ProjectileDeflected</c> event naming both bolts. Flank and rear
+        /// contacts damage normally, and allied fire is never deflected.
         /// </summary>
-        FacingQuadrantContactsConsumedWithoutDamage = 1,
+        FacingQuadrantContactsDeflected = 1,
     }
 
     /// <summary>

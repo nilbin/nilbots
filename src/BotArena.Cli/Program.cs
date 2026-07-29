@@ -311,9 +311,13 @@ static int CommandHelp(string command)
             lane and both adjacent 45-degree headings, straight only, on a
             slower cadence; the stance is immobile and keeps objective weight
             1. shell gives the bulwark a reversible windup-1 stance that
-            consumes enemy projectiles arriving inside its facing quadrant
-            without damage while it cannot move or shoot; flank and rear hits
-            still land. five-slots gives a fabricator team five unit slots
+            DEFLECTS enemy projectiles arriving inside its facing quadrant:
+            the incoming bolt dies on the arc and a new bolt launches from the
+            shell's tile along the exactly reversed heading, owned by the
+            bulwark's team, so a bot that pokes a shell head-on is shot by its
+            own fire. The stance cannot move, shoot, or rotate — the protected
+            quadrant is chosen before the shield rises — and flank and rear
+            hits still land. five-slots gives a fabricator team five unit slots
             against the opponent's three, unlocking at 60/180/300/420 with the
             extra two rebuilding on the slower 30-tick clock; that arm mints
             its own topology profile and fingerprint. Skills compose with

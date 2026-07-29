@@ -855,10 +855,7 @@ function validateContract(
     if (!own(formValue, 'projectileGuard')) {
       return;
     }
-    if (
-      formValue.projectileGuard !==
-      'facing-quadrant-contacts-consumed-without-damage'
-    ) {
+    if (formValue.projectileGuard !== 'facing-quadrant-contacts-deflected') {
       fail(
         `${formPath}.projectileGuard`,
         'must be omitted instead of emitted inert',
@@ -1857,7 +1854,7 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       heading(item.heading, `${path}.heading`, fail);
       return;
     }
-    case 'projectile-absorbed': {
+    case 'projectile-deflected': {
       const item = exact(
         base,
         path,
@@ -1867,6 +1864,7 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
           'sourceActorId',
           'targetActorId',
           'projectileId',
+          'deflectedProjectileId',
           'targetFormId',
           'targetFacing',
           'heading',
@@ -1878,6 +1876,12 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       nullable(item.sourceActorId, `${path}.sourceActorId`, actorId, fail);
       actorId(item.targetActorId, `${path}.targetActorId`, fail);
       int64(item.projectileId, `${path}.projectileId`, fail, true);
+      int64(
+        item.deflectedProjectileId,
+        `${path}.deflectedProjectileId`,
+        fail,
+        true,
+      );
       nonEmpty(item.targetFormId, `${path}.targetFormId`, fail);
       direction(item.targetFacing, `${path}.targetFacing`, fail);
       heading(item.heading, `${path}.heading`, fail);
@@ -2110,7 +2114,7 @@ function validateEventKindAndPayload(
       case 'movement':
       case 'movement-blocked':
       case 'attack':
-      case 'projectile-absorbed':
+      case 'projectile-deflected':
       case 'damage':
       case 'destruction':
       case 'life-spawned':

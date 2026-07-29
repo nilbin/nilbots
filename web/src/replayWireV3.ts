@@ -799,11 +799,12 @@ export type ReplayV3EventPayload =
       cancellationReason: string;
     }
   | {
-      kind: 'projectile-absorbed';
+      kind: 'projectile-deflected';
       sourceTeamId: number;
       sourceActorId: ReplayV3ActorId | null;
       targetActorId: ReplayV3ActorId;
       projectileId: string;
+      deflectedProjectileId: string;
       targetFormId: string;
       targetFacing: string;
       heading: string;
@@ -830,7 +831,7 @@ export type ReplayV3EventKind =
   | 'score-changed'
   | 'mode-changed'
   | 'lifecycle-clock-cancelled'
-  | 'projectile-absorbed';
+  | 'projectile-deflected';
 
 export interface ReplayV3ObservedEvent {
   eventHandle: string;

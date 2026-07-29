@@ -186,30 +186,34 @@ internal static class GenericActorWireEventCodec
                     GenericActorWireCodecValues.EncodePosition(
                         damage.Position));
                 break;
-            case GenericActorContext.EventPayload.ProjectileAbsorbed absorbed:
-                writer.Field(1, ActorWireValue.Int32(absorbed.SourceTeamId));
+            case GenericActorContext.EventPayload.ProjectileDeflected deflected:
+                writer.Field(1, ActorWireValue.Int32(deflected.SourceTeamId));
                 writer.Optional(
                     2,
-                    absorbed.SourceActorId is null
+                    deflected.SourceActorId is null
                         ? null
                         : GenericActorWireCodecValues.EncodeIdentity(
-                            absorbed.SourceActorId));
+                            deflected.SourceActorId));
                 writer.Field(
                     3,
                     GenericActorWireCodecValues.EncodeIdentity(
-                        absorbed.TargetActorId));
+                        deflected.TargetActorId));
                 writer.Field(
                     4,
-                    GenericActorWireCodecValues.Int64(absorbed.ProjectileId));
+                    GenericActorWireCodecValues.Int64(deflected.ProjectileId));
                 writer.Field(
                     5,
-                    ActorWireValue.String(absorbed.TargetFormId));
-                writer.Field(6, ActorWireValue.Enum(absorbed.TargetFacing));
-                writer.Field(7, ActorWireValue.Enum(absorbed.Heading));
+                    ActorWireValue.String(deflected.TargetFormId));
+                writer.Field(6, ActorWireValue.Enum(deflected.TargetFacing));
+                writer.Field(7, ActorWireValue.Enum(deflected.Heading));
                 writer.Field(
                     8,
                     GenericActorWireCodecValues.EncodePosition(
-                        absorbed.Position));
+                        deflected.Position));
+                writer.Field(
+                    9,
+                    GenericActorWireCodecValues.Int64(
+                        deflected.DeflectedProjectileId));
                 break;
             case GenericActorContext.EventPayload.Destruction destruction:
                 writer.Field(
@@ -437,8 +441,8 @@ internal static class GenericActorWireEventCodec
                     DecodeAttack(reader, depth),
                 GenericActorContext.EventKind.Damage =>
                     DecodeDamage(reader, depth),
-                GenericActorContext.EventKind.ProjectileAbsorbed =>
-                    DecodeProjectileAbsorbed(reader, depth),
+                GenericActorContext.EventKind.ProjectileDeflected =>
+                    DecodeProjectileDeflected(reader, depth),
                 GenericActorContext.EventKind.Destruction =>
                     DecodeDestruction(reader, depth),
                 GenericActorContext.EventKind.LifeSpawned =>
@@ -583,13 +587,13 @@ internal static class GenericActorWireEventCodec
                 depth + 1));
     }
 
-    private static GenericActorContext.EventPayload.ProjectileAbsorbed
-        DecodeProjectileAbsorbed(
+    private static GenericActorContext.EventPayload.ProjectileDeflected
+        DecodeProjectileDeflected(
             ActorWireObjectReader reader,
             int depth)
     {
         byte[]? sourceActorId = reader.Optional(2);
-        return new GenericActorContext.EventPayload.ProjectileAbsorbed(
+        return new GenericActorContext.EventPayload.ProjectileDeflected(
             GenericActorWireCodecValues.Int32(reader, 1),
             sourceActorId is null
                 ? null
@@ -600,6 +604,7 @@ internal static class GenericActorWireEventCodec
                 reader.Required(3),
                 depth + 1),
             GenericActorWireCodecValues.Int64(reader.Required(4)),
+            GenericActorWireCodecValues.Int64(reader.Required(9)),
             GenericActorWireCodecValues.SemanticId(reader.Required(5)),
             GenericActorWireCodecValues.Enum<Direction>(reader, 6),
             GenericActorWireCodecValues.Enum<ProjectileHeading>(reader, 7),
