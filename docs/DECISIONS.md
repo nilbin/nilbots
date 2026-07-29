@@ -2901,6 +2901,65 @@ first movement-touching verdict. Contract-driven bots survive any arm
 through the movement legality mask. The blind-review verdict on standoff
 watchability decides the arm's priority.
 
+## 156. Facing coupling is a typed movement-profile policy with an inert default
+
+#155 registered facing-coupled movement as pre-registered arms rather than a
+hot rules change; this is that capability. `ActorMovementProfileDefinition`
+gains one optional `ActorMovementFacingCoupling`, so the policy belongs to a
+movement profile — the same place the movement layer already lives — and a
+form inherits it by selecting that profile. **PreserveFacing** is today's
+behaviour and the default. **FaceMovementDirection** sets the life's facing to
+the direction it moved on a *successful* step, before the Movement event is
+emitted, so that event's facing payload is the change's evidence; a Blocked
+step changes neither position nor facing, which keeps the wall-bump from
+becoming a free turn. **FacingLocked** restricts the published Direction
+domain of Movement-kind actions to the mover's current facing while Rotation
+keeps all four, and resolution defensively Blocks an off-facing movement that
+somehow reaches it. Bots read all of this from the legality mask, so a
+contract-driven entrant needs no re-authoring to play any arm — the
+observable difference is which directions the movement mask offers and what
+the Movement event reports.
+
+The load-bearing part is the fingerprint discipline. The canonical writer
+emits `facingCoupling` **only when it is not PreserveFacing**, following the
+exact precedent of the optional capture-gain schedule, and both mirrors — the
+SDK canonical reader and the web replay-v3 normalizer — reject an explicitly
+inert value as a second, non-canonical encoding of the same contract. That is
+what lets an immutable hosted contract acquire a new capability at all: every
+existing ruleset, `frontline-labs-1` included, keeps byte-identical rules,
+map, and match fingerprints, and the pinned golden tests passed unmodified.
+The same additive discipline runs through the SDK wire mirror (an absent field
+means PreserveFacing) and the engine's replay-v3 causality validator, which
+previously reconstructed every facing change from rotation evidence and now
+accepts a Movement event as the evidence for a coupled step — the second time
+this session that a new authoritative fact had to be taught to a validator
+that reasonably assumed the old exclusive cause.
+
+**Absolute rotate is deliberately held constant.** Rotation remains a free,
+absolute, one-action turn to any cardinal in every arm, so the A/B measures
+exactly one mechanic: whether movement spends the aim. Rotation granularity —
+relative turns, multi-tick turns, or a turn rate that would make
+FacingLocked genuine tank movement rather than a legality mask — is named here
+as follow-on debt (`movement-rotation-granularity`) and is a separate
+pre-registered arm, not a tuning knob to fold into this one. #155's full tank
+movement still requires the complete exact-analysis and probe recomputation it
+named.
+
+The arms exist for the pre-registered A/B, not as a ship decision:
+`frontline-labs-1-experiment-move-sets-facing` and
+`frontline-labs-1-experiment-facing-locked` on the base contract, plus
+composition with the class slate so the movement factor can be measured inside
+the wave-1 doctrine rather than only against class-free bots. Composed arms
+are identified `frontline-labs-1-classes-<a>-vs-<b>-sets-facing` /
+`-facing-locked`: the `-experiment-classes-` segment is dropped and the
+coupling token shortened because canonical IDs are capped at 64 characters and
+the longest class pair leaves no room — a naming compromise, and the
+PreserveFacing pair keeps its historical `-experiment-classes-` identity byte
+for byte. Each family keeps its existing seed profile. `nilbots experiment
+frontline-labs --movement <preserve-facing|move-sets-facing|facing-locked>`
+selects the arm and composes with `--classes` and `--duel-map`; the default
+adds no ruleset suffix and leaves every existing arm identity unchanged.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.

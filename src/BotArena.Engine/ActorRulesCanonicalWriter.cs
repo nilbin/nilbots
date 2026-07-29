@@ -394,6 +394,18 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteString(
                 "movementLayer",
                 Id(profile.MovementLayer));
+            // Inert-default omission, exactly like the optional capture-gain
+            // schedule above: PreserveFacing writes no bytes, so every
+            // contract authored before facing coupling existed — including
+            // the immutable hosted frontline-labs-1 — keeps its exact
+            // fingerprint.
+            if (profile.FacingCoupling
+                != ActorMovementFacingCoupling.PreserveFacing)
+            {
+                writer.WriteString(
+                    "facingCoupling",
+                    Id(profile.FacingCoupling));
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

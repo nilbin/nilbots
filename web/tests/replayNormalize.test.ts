@@ -1671,6 +1671,107 @@ test('replay-v3 accepts backend-grouped event tags without collapsing payload ki
   );
 });
 
+test('replay-v3 accepts the optional movement facing coupling and rejects an inert or unknown one', () => {
+  const coupled = replayV3FixtureInput();
+  coupled.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'face-movement-direction';
+  const decoded = decodeReplay(coupled).replay;
+
+  assert.equal(decoded.sourceVersion, 3);
+  assert.equal(decoded.forms[0]?.movementLayer, 'ground');
+
+  // The engine's canonical writer omits the property entirely while the
+  // profile preserves facing, so an explicitly inert value is a second,
+  // non-canonical encoding of the same contract.
+  const inert = replayV3FixtureInput();
+  inert.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'preserve-facing';
+  assert.throws(
+    () => decodeReplay(inert),
+    /facingCoupling: must be omitted instead of emitted inert/,
+  );
+
+  const unknown = replayV3FixtureInput();
+  unknown.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'tank-controls';
+  assert.throws(
+    () => decodeReplay(unknown),
+    /facingCoupling: expected face-movement-direction or facing-locked/,
+  );
+
+  const strayField = replayV3FixtureInput();
+  (
+    unknown.header.contract.rules.movementProfiles[0] as unknown as {
+      facingCoupling?: string;
+    }
+  ).facingCoupling = undefined;
+  (
+    strayField.header.contract.rules.movementProfiles[0] as unknown as {
+      couplings?: string;
+    }
+  ).couplings = 'face-movement-direction';
+  assert.throws(
+    () => decodeReplay(strayField),
+    /movementProfiles\[0\]\.couplings: unknown property/,
+  );
+});
+
+test('replay-v3 accepts a movement-coupled facing change with no rotation evidence', () => {
+  const coupled = replayV3FixtureInput();
+  coupled.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'face-movement-direction';
+  const tick = coupled.ticks.at(-1)!;
+  const life = tick.postState.activeLives[0]!;
+  const from = { ...life.position };
+  const to = { x: from.x, y: from.y - 1 };
+  const turned = life.facing === 'north' ? 'south' : 'north';
+
+  // Under FaceMovementDirection the Movement event is itself the
+  // facing-change evidence: no rotation event accompanies it, and the tick's
+  // authoritative post-state carries the new facing.
+  life.facing = turned;
+  life.position = to;
+  const resultUnit = coupled.result!.units.find(
+    (unit) =>
+      unit.slot.teamId === life.actorId.teamId &&
+      unit.slot.unitId === life.actorId.unitId,
+  )!;
+  resultUnit.activeLife = structuredClone(life);
+  tick.events.push({
+    eventHandle: 'synthetic-coupled-movement',
+    tick: tick.tick,
+    globalOrdinal: '900',
+    sourceOrdinal: (tick.events.at(-1)?.sourceOrdinal ?? -1) + 1,
+    kind: 'movement',
+    payload: {
+      kind: 'movement',
+      actorId: { ...life.actorId },
+      action: { actionId: 'move', actionCode: 1, arguments: [] },
+      from,
+      to,
+      facing: turned,
+    },
+    audience: { kind: 'spatial', primaryPosition: to },
+  } as (typeof tick.events)[number]);
+
+  const replay = decodeReplay(coupled).replay;
+  const moved = replay.ticks.at(-1)!.after.actors.find(
+    (actor) =>
+      actor.identity.teamId === life.actorId.teamId &&
+      actor.identity.unitId === life.actorId.unitId,
+  );
+
+  assert.equal(moved?.facing, turned);
+  assert.equal(
+    replay.ticks.at(-1)!.events.some((event) => event.type === 'rotation'),
+    false,
+  );
+  assert.equal(
+    replay.ticks.at(-1)!.events.at(-1)?.type,
+    'movement',
+  );
+});
+
 test('replay-v3 strictly rejects unknown fields and cross-frame identity drift', () => {
   const duplicate = replayV3FixtureText().replace(
     '"partial":false',

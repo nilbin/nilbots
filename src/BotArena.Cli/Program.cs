@@ -238,6 +238,7 @@ static int CommandHelp(string command)
                    [--auto-companions]
                    [--duel-map current|thin-fronts|outer-shoulder-bypass]
                    [--classes <class>-vs-<class>]
+                   [--movement preserve-facing|move-sets-facing|facing-locked]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
@@ -276,6 +277,16 @@ static int CommandHelp(string command)
             shared; classes differ in durability, vision, fire tempo, shot
             language, anchor play, and fabrication economics. May be paired
             with --duel-map.
+            --movement selects the pre-registered movement-kinematics arm.
+            preserve-facing is the default measured baseline: a step never
+            turns the body, and it adds no ruleset suffix. move-sets-facing
+            turns the body to the direction a successful step moved, so
+            backpedal-kiting costs the aim it was holding. facing-locked
+            offers only the current facing to a movement action, making a
+            turn a separate decision. Absolute rotate is unchanged in every
+            arm. It may be paired with --classes (and through it --duel-map);
+            on its own it is a standalone arm and cannot be combined with the
+            other experiment options.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
             --print-candidate-contract emits the exact resolved candidate

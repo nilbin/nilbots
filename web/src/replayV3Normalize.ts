@@ -151,6 +151,26 @@ function direction(value: unknown, path: string, fail: ReplayV3Fail): void {
   }
 }
 
+/**
+ * A movement profile's optional facing coupling. The engine's canonical
+ * writer omits the property entirely while the profile preserves facing —
+ * the same omit-when-inert discipline the capture-gain schedule uses — so an
+ * absent field means 'preserve-facing' and an explicitly inert one is a
+ * second, non-canonical encoding of the same contract.
+ */
+function movementFacingCoupling(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  if (value === 'preserve-facing') {
+    fail(path, 'must be omitted instead of emitted inert');
+  }
+  if (!['face-movement-direction', 'facing-locked'].includes(String(value))) {
+    fail(path, 'expected face-movement-direction or facing-locked');
+  }
+}
+
 function heading(value: unknown, path: string, fail: ReplayV3Fail): void {
   if (
     ![
@@ -762,6 +782,30 @@ function validateContract(
       jsonValue(entry, `${path}.rules.${key}[${index}]`, fail),
     );
   }
+  array(
+    rules.movementProfiles,
+    `${path}.rules.movementProfiles`,
+    fail,
+  ).forEach((entry, index) => {
+    const profilePath = `${path}.rules.movementProfiles[${index}]`;
+    const profileValue = object(entry, profilePath, fail);
+    const hasFacingCoupling = own(profileValue, 'facingCoupling');
+    const profile = exact(
+      profileValue,
+      profilePath,
+      ['id', 'movementLayer', ...(hasFacingCoupling ? ['facingCoupling'] : [])],
+      fail,
+    );
+    semanticId(profile.id, `${profilePath}.id`, fail);
+    nonEmpty(profile.movementLayer, `${profilePath}.movementLayer`, fail);
+    if (hasFacingCoupling) {
+      movementFacingCoupling(
+        profile.facingCoupling,
+        `${profilePath}.facingCoupling`,
+        fail,
+      );
+    }
+  });
 
   const map = exact(
     contract.map,

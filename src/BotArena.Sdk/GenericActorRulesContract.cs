@@ -415,12 +415,51 @@ public sealed class GenericActorRulesContract
         int ObjectiveWeight,
         ImmutableArray<string> AllowedActionIds);
 
+    /// <summary>
+    /// How a movement profile couples body facing to a movement action.
+    /// Facing drives vision cones and straight-shot aim, so this decides
+    /// whether a step is a free strafe or a committed turn.
+    /// </summary>
+    public enum MovementFacingCoupling
+    {
+        /// <summary>
+        /// Movement never changes facing; rotation is the only way to turn.
+        /// This is the inert default, and canonical contract bytes omit the
+        /// field entirely for it — an absent field always means this value.
+        /// </summary>
+        PreserveFacing = 0,
+
+        /// <summary>
+        /// A successful move sets facing to the direction moved, and the
+        /// Movement event's facing carries the new value. A blocked move
+        /// changes neither position nor facing. Every cardinal stays legal.
+        /// </summary>
+        FaceMovementDirection = 1,
+
+        /// <summary>
+        /// A life may only move where it faces: the Direction constraint on
+        /// movement actions offers exactly the current facing (rotation keeps
+        /// all four), and any other movement direction resolves as blocked.
+        /// Movement itself does not change facing.
+        /// </summary>
+        FacingLocked = 2,
+    }
+
     /// <summary>Named movement-layer capability.</summary>
     /// <param name="Id">Stable movement-profile identifier.</param>
     /// <param name="MovementLayer">Map collision/traversal layer.</param>
     public sealed record MovementProfile(
         string Id,
-        GenericActorMapContract.MovementLayer MovementLayer);
+        GenericActorMapContract.MovementLayer MovementLayer)
+    {
+        /// <summary>
+        /// Optional facing coupling for this profile. Contracts that do not
+        /// publish the field use
+        /// <see cref="MovementFacingCoupling.PreserveFacing"/>.
+        /// </summary>
+        public MovementFacingCoupling FacingCoupling { get; init; }
+            = MovementFacingCoupling.PreserveFacing;
+    }
 
     /// <summary>
     /// Named sight and hearing sensor model. Ranges and distance-band bounds

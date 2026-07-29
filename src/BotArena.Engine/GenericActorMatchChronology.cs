@@ -2491,6 +2491,10 @@ public sealed record GenericActorMatchChronology
             definition.Rules.Forms.ToDictionary(
                 form => form.Id,
                 StringComparer.Ordinal);
+        Dictionary<string, ActorMovementProfileDefinition> movementProfiles =
+            definition.Rules.MovementProfiles.ToDictionary(
+                profile => profile.Id,
+                StringComparer.Ordinal);
         var rotatedActors = new HashSet<ActorIdentity>();
         foreach (GenericActorMatchActorTurn turn in turns)
         {
@@ -2667,16 +2671,29 @@ public sealed record GenericActorMatchChronology
                     reservation.Position == target
                     && (reservation.TeamId != life.ActorId.TeamId
                         || reservation.UnitId != life.ActorId.UnitId));
+            ActorMovementFacingCoupling coupling =
+                movementProfiles[forms[life.FormId].MovementProfileId]
+                    .FacingCoupling;
+            Direction queueFacing = poses[turn.ActorId].Facing;
             bool blocked = definition.Map.IsWall(target)
                 || occupiedPositions.Contains(target)
                 || reservedLifecyclePositions.Contains(target)
-                || foreignReturnReservation;
+                || foreignReturnReservation
+                // Mirrors the session's defensive block: a FacingLocked mover
+                // that somehow validated an off-facing direction is Blocked,
+                // never displaced.
+                || (coupling == ActorMovementFacingCoupling.FacingLocked
+                    && direction != queueFacing);
             candidates.Add(
                 turn.ActorId,
                 new MovementQueueCandidate(
                     life.Position,
                     target,
-                    poses[turn.ActorId].Facing,
+                    queueFacing,
+                    coupling
+                        == ActorMovementFacingCoupling.FaceMovementDirection
+                        ? direction
+                        : queueFacing,
                     blocked));
         }
 
@@ -2848,7 +2865,11 @@ public sealed record GenericActorMatchChronology
                     when !candidate.Blocked =>
                     movement.From == candidate.Source
                     && movement.To == candidate.Target
-                    && movement.Facing == candidate.Facing
+                    // Under a facing-coupled movement profile the successful
+                    // Movement event is itself the facing-change evidence, so
+                    // it carries the post-step facing rather than the
+                    // queue-time one.
+                    && movement.Facing == candidate.SuccessFacing
                     && ResolvedActionsSemanticallyEqual(
                         turn.ActionResolution.ValidatedAction,
                         movement.Action),
@@ -2873,6 +2894,7 @@ public sealed record GenericActorMatchChronology
                 poses[actorId] = poses[actorId] with
                 {
                     Position = candidate.Target,
+                    Facing = candidate.SuccessFacing,
                 };
             }
         }
@@ -3488,10 +3510,21 @@ public sealed record GenericActorMatchChronology
         Position Position,
         Direction Facing);
 
+    /// <param name="Facing">
+    /// The mover's facing entering the movement phase — the facing a Blocked
+    /// attempt must still evidence, because a blocked move changes nothing.
+    /// </param>
+    /// <param name="SuccessFacing">
+    /// The facing a successful move must evidence. It equals
+    /// <paramref name="Facing"/> unless the mover's movement profile couples
+    /// facing to movement, in which case a successful step turns the body to
+    /// the movement direction (DECISIONS #156).
+    /// </param>
     private readonly record struct MovementQueueCandidate(
         Position Source,
         Position Target,
         Direction Facing,
+        Direction SuccessFacing,
         bool Blocked);
 
     private readonly record struct MovementContactExpectation(

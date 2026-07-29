@@ -112,6 +112,7 @@ public static class ActorRulesDefinitionValidator
         ValidateGenericActionShapes(actions, errors);
         ValidateLifecycle(lifecycle, formsById, errors);
         ValidateGroundAdmission(movementProfiles, errors);
+        ValidateFacingCouplingAdmission(movementProfiles, errors);
         ValidateCombatAdmission(attackProfiles, errors);
         ValidateObjectiveWeights(gameMode, forms, errors);
         ValidateCheckedTickArithmetic(
@@ -494,6 +495,23 @@ public static class ActorRulesDefinitionValidator
                 errors.Add(
                     $"Movement profile '{profile.Id}' selects '{profile.MovementLayer}', " +
                     "but actor rules schema 3 admits only implemented Ground semantics.");
+            }
+        }
+    }
+
+    private static void ValidateFacingCouplingAdmission(
+        IReadOnlyList<ActorMovementProfileDefinition> movementProfiles,
+        List<string> errors)
+    {
+        foreach (ActorMovementProfileDefinition? profile in movementProfiles)
+        {
+            if (profile is null)
+                continue;
+            if (!Enum.IsDefined(profile.FacingCoupling))
+            {
+                errors.Add(
+                    $"Movement profile '{profile.Id}' selects undefined facing " +
+                    $"coupling '{profile.FacingCoupling}'.");
             }
         }
     }

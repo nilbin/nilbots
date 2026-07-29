@@ -20,6 +20,8 @@ public sealed class GenericActorMatchSession : IDisposable
         _visionProfiles;
     private readonly Dictionary<string, ActorAttackProfileDefinition>
         _attackProfiles;
+    private readonly Dictionary<string, ActorMovementProfileDefinition>
+        _movementProfiles;
     private readonly Dictionary<string, ActorActionDefinition> _actions;
     private readonly Dictionary<string, ActorLifecycleProfileDefinition>
         _lifecycleProfiles;
@@ -64,6 +66,9 @@ public sealed class GenericActorMatchSession : IDisposable
             profile => profile.Id,
             StringComparer.Ordinal);
         _attackProfiles = definition.Rules.AttackProfiles.ToDictionary(
+            profile => profile.Id,
+            StringComparer.Ordinal);
+        _movementProfiles = definition.Rules.MovementProfiles.ToDictionary(
             profile => profile.Id,
             StringComparer.Ordinal);
         _actions = definition.Rules.Actions.ToDictionary(
@@ -974,7 +979,14 @@ public sealed class GenericActorMatchSession : IDisposable
             if (_definition.Map.IsWall(target)
                 || IsForeignReservedReturnTile(life, target)
                 || IsReservedLifecycleTile(target)
-                || occupants.ContainsKey(target))
+                || occupants.ContainsKey(target)
+                // Defence in depth: the legality mask already offers only the
+                // facing to a FacingLocked mover, so a non-facing direction
+                // never survives argument admission. If one ever did, it must
+                // resolve as Blocked rather than as a free sidestep.
+                || (MovementFor(life).FacingCoupling
+                        == ActorMovementFacingCoupling.FacingLocked
+                    && direction != life.Facing))
             {
                 blocked.Add(life.ActorId);
             }
@@ -1051,6 +1063,17 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             life.Position = target;
+            if (MovementFor(life).FacingCoupling
+                == ActorMovementFacingCoupling.FaceMovementDirection)
+            {
+                // Facing is set before the event is emitted so the Movement
+                // payload carries — and therefore evidences — the new facing.
+                life.Facing = resolution.ValidatedAction.Arguments
+                    .OfType<
+                        GenericActorRuntimeActionArgument.DirectionArgument>()
+                    .Single()
+                    .Value;
+            }
             events.Add(EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind.Movement,
@@ -2383,7 +2406,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 ActorActionParameterKind.Direction =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .DirectionConstraint(
-                            Enum.GetValues<Direction>().ToImmutableArray()),
+                            AllowedDirections(life, action)),
                 ActorActionParameterKind.UnitTarget =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .UnitTargetConstraint(
@@ -2420,6 +2443,22 @@ public sealed class GenericActorMatchSession : IDisposable
         }
         return constraints.ToImmutable();
     }
+
+    /// <summary>
+    /// Publishes the Direction domain for one action. A FacingLocked mover
+    /// may only step where it already looks, so the movement mask offers
+    /// exactly its current facing; Rotation keeps all four cardinals under
+    /// every coupling, and every other coupling keeps all four for movement
+    /// too.
+    /// </summary>
+    private ImmutableArray<Direction> AllowedDirections(
+        LifeState life,
+        ActorActionDefinition action) =>
+        action.Kind == ActorActionKind.Movement
+        && MovementFor(life).FacingCoupling
+            == ActorMovementFacingCoupling.FacingLocked
+            ? [life.Facing]
+            : Enum.GetValues<Direction>().ToImmutableArray();
 
     private HashSet<Position> VisibleTilesFor(LifeState sensor)
     {
@@ -2591,6 +2630,9 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private ActorVisionProfileDefinition VisionFor(LifeState life) =>
         _visionProfiles[_forms[life.FormId].VisionProfileId];
+
+    private ActorMovementProfileDefinition MovementFor(LifeState life) =>
+        _movementProfiles[_forms[life.FormId].MovementProfileId];
 
     private ActorAttackProfileDefinition? AttackFor(LifeState life)
     {

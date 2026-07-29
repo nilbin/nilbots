@@ -36,6 +36,7 @@ public static class FrontlineLabsExperimentCommand
             "auto-companions",
             "duel-map",
             "classes",
+            "movement",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -86,6 +87,8 @@ public static class FrontlineLabsExperimentCommand
             "print-candidate-contract");
         FrontlineLabsDuelMapArm? duelMapArm =
             OptionalDuelMapArm(options);
+        ActorMovementFacingCoupling movementCoupling =
+            OptionalMovementCoupling(options);
         (FrontlineLabsClassDefinition TeamZero,
             FrontlineLabsClassDefinition TeamOne)? classPair =
             OptionalClassPair(options);
@@ -179,6 +182,12 @@ public static class FrontlineLabsExperimentCommand
         bool duelExperiment = oneBendShots
             || automaticCompanions
             || (duelMapArm is not null && classPair is null);
+        // --movement composes with --classes (and, through it, --duel-map);
+        // on its own it is the standalone base kinematics arm and therefore
+        // exclusive with every other experiment option.
+        bool standaloneMovementArm =
+            movementCoupling != ActorMovementFacingCoupling.PreserveFacing
+            && classPair is null;
         int experimentCount =
             (captureThreshold is null ? 0 : 1)
             + (captureGainPhase is null ? 0 : 1)
@@ -186,7 +195,8 @@ public static class FrontlineLabsExperimentCommand
             + (remoteFabrication ? 1 : 0)
             + (netControl ? 1 : 0)
             + (duelExperiment ? 1 : 0)
-            + (classPair is null ? 0 : 1);
+            + (classPair is null ? 0 : 1)
+            + (standaloneMovementArm ? 1 : 0);
         if (experimentCount > 1)
         {
             throw new InvalidOperationException(
@@ -223,7 +233,13 @@ public static class FrontlineLabsExperimentCommand
             definition = FrontlineLabsDefinition.CreateClassesExperiment(
                 selectedClasses.TeamZero,
                 selectedClasses.TeamOne,
-                duelMapArm ?? FrontlineLabsDuelMapArm.Current);
+                duelMapArm ?? FrontlineLabsDuelMapArm.Current,
+                movementCoupling);
+        }
+        else if (standaloneMovementArm)
+        {
+            definition = FrontlineLabsDefinition
+                .CreateMovementCouplingExperiment(movementCoupling);
         }
         else if (automaticCompanions)
         {
@@ -536,6 +552,31 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --duel-map '{value}' " +
                 "(use current, thin-fronts, or outer-shoulder-bypass)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the movement-kinematics arm. Omitting the option — or naming
+    /// <c>preserve-facing</c> explicitly — selects today's measured baseline
+    /// and adds no ruleset suffix, so every existing arm identity stays byte
+    /// for byte what it was.
+    /// </summary>
+    private static ActorMovementFacingCoupling OptionalMovementCoupling(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("movement", out string? value))
+            return ActorMovementFacingCoupling.PreserveFacing;
+        return value.ToLowerInvariant() switch
+        {
+            "preserve-facing" =>
+                ActorMovementFacingCoupling.PreserveFacing,
+            "move-sets-facing" =>
+                ActorMovementFacingCoupling.FaceMovementDirection,
+            "facing-locked" =>
+                ActorMovementFacingCoupling.FacingLocked,
+            _ => throw new InvalidOperationException(
+                $"Unknown --movement '{value}' " +
+                "(use preserve-facing, move-sets-facing, or facing-locked)."),
         };
     }
 

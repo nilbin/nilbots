@@ -69,6 +69,13 @@ export interface ReplayV3ContractForm {
 export interface ReplayV3MovementProfile {
   id: string;
   movementLayer: string;
+  /**
+   * Optional facing coupling: 'preserve-facing' (the inert default),
+   * 'face-movement-direction', or 'facing-locked'. The engine's canonical
+   * writer omits the property entirely while the profile preserves facing,
+   * so an absent field means 'preserve-facing' — never a missing value.
+   */
+  facingCoupling?: string;
 }
 
 export interface ReplayV3VisionProfile {

@@ -208,7 +208,9 @@ public static class FrontlineLabsDefinition
     public static ActorResolvedMatchDefinition CreateClassesExperiment(
         FrontlineLabsClassDefinition teamZeroClass,
         FrontlineLabsClassDefinition teamOneClass,
-        FrontlineLabsDuelMapArm mapArm = FrontlineLabsDuelMapArm.Current)
+        FrontlineLabsDuelMapArm mapArm = FrontlineLabsDuelMapArm.Current,
+        ActorMovementFacingCoupling movementCoupling =
+            ActorMovementFacingCoupling.PreserveFacing)
     {
         ArgumentNullException.ThrowIfNull(teamZeroClass);
         ArgumentNullException.ThrowIfNull(teamOneClass);
@@ -221,16 +223,100 @@ public static class FrontlineLabsDefinition
         }
 
         return CreateResolved(
-            $"{RulesetId}-experiment-classes-"
-            + $"{teamZeroClass.Id}-vs-{teamOneClass.Id}",
+            ClassesRulesetId(
+                teamZeroClass,
+                teamOneClass,
+                movementCoupling),
             captureThreshold: 15,
             captureGainSchedule: null,
             enableMobilize: false,
             remoteFabrication: false,
             duelMapArm: mapArm,
             seedProfileId: ClassesSeedProfileId,
-            classes: (teamZeroClass, teamOneClass));
+            classes: (teamZeroClass, teamOneClass),
+            movementCoupling: movementCoupling);
     }
+
+    /// <summary>
+    /// Creates a local-only movement-kinematics arm for the pre-registered
+    /// facing-coupling A/B (DECISIONS #155/#156). Everything except the
+    /// movement profile's facing coupling — map, mode, scoring, projectile
+    /// kinematics, and the free absolute rotate — is held constant against
+    /// the base contract, so the arm isolates exactly one mechanic.
+    /// <see cref="ActorMovementFacingCoupling.PreserveFacing"/> is the
+    /// measured baseline and is not a separate arm.
+    /// </summary>
+    public static ActorResolvedMatchDefinition
+        CreateMovementCouplingExperiment(
+            ActorMovementFacingCoupling movementCoupling)
+    {
+        if (movementCoupling == ActorMovementFacingCoupling.PreserveFacing)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(movementCoupling),
+                movementCoupling,
+                "PreserveFacing is the baseline contract, not an arm; call "
+                + "Create() for it.");
+        }
+
+        return CreateResolved(
+            $"{RulesetId}-experiment-{ArmToken(movementCoupling)}",
+            captureThreshold: 15,
+            captureGainSchedule: null,
+            enableMobilize: false,
+            remoteFabrication: false,
+            movementCoupling: movementCoupling);
+    }
+
+    /// <summary>
+    /// Content-identified ruleset ID for a class pair, optionally composed
+    /// with a movement-coupling arm. A PreserveFacing pair keeps the exact
+    /// historical <c>-experiment-classes-</c> identity byte for byte. A
+    /// coupled pair drops that segment because canonical IDs are capped at 64
+    /// characters and the longest pair plus the longest coupling token would
+    /// not fit (DECISIONS #156).
+    /// </summary>
+    private static string ClassesRulesetId(
+        FrontlineLabsClassDefinition teamZeroClass,
+        FrontlineLabsClassDefinition teamOneClass,
+        ActorMovementFacingCoupling movementCoupling) =>
+        movementCoupling == ActorMovementFacingCoupling.PreserveFacing
+            ? $"{RulesetId}-experiment-classes-"
+                + $"{teamZeroClass.Id}-vs-{teamOneClass.Id}"
+            : $"{RulesetId}-classes-"
+                + $"{teamZeroClass.Id}-vs-{teamOneClass.Id}-"
+                + ComposedArmToken(movementCoupling);
+
+    /// <summary>Ruleset-ID token for a standalone coupling arm.</summary>
+    private static string ArmToken(
+        ActorMovementFacingCoupling movementCoupling) =>
+        movementCoupling switch
+        {
+            ActorMovementFacingCoupling.FaceMovementDirection =>
+                "move-sets-facing",
+            ActorMovementFacingCoupling.FacingLocked => "facing-locked",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(movementCoupling),
+                movementCoupling,
+                "Unknown movement facing coupling."),
+        };
+
+    /// <summary>
+    /// Shorter token for composed arms, whose class pair already spends most
+    /// of the 64-character canonical-ID budget.
+    /// </summary>
+    private static string ComposedArmToken(
+        ActorMovementFacingCoupling movementCoupling) =>
+        movementCoupling switch
+        {
+            ActorMovementFacingCoupling.FaceMovementDirection =>
+                "sets-facing",
+            ActorMovementFacingCoupling.FacingLocked => "facing-locked",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(movementCoupling),
+                movementCoupling,
+                "Unknown movement facing coupling."),
+        };
 
     private static ActorResolvedMatchDefinition CreateResolved(
         string rulesetId,
@@ -248,7 +334,9 @@ public static class FrontlineLabsDefinition
         bool automaticCompanions = false,
         string? seedProfileId = null,
         (FrontlineLabsClassDefinition TeamZero,
-            FrontlineLabsClassDefinition TeamOne)? classes = null)
+            FrontlineLabsClassDefinition TeamOne)? classes = null,
+        ActorMovementFacingCoupling movementCoupling =
+            ActorMovementFacingCoupling.PreserveFacing)
     {
         ActorRulesDefinition rules = CreateRules(
             rulesetId,
@@ -260,7 +348,8 @@ public static class FrontlineLabsDefinition
             oneBendShots,
             automaticCompanions,
             seedProfileId,
-            classes);
+            classes,
+            movementCoupling);
         ActorMapDefinition map = CreateMap(
             remoteFabrication,
             duelMapArm,
@@ -329,11 +418,13 @@ public static class FrontlineLabsDefinition
         bool automaticCompanions,
         string? seedProfileId,
         (FrontlineLabsClassDefinition TeamZero,
-            FrontlineLabsClassDefinition TeamOne)? classes)
+            FrontlineLabsClassDefinition TeamOne)? classes,
+        ActorMovementFacingCoupling movementCoupling)
     {
         var movement = new ActorMovementProfileDefinition(
             GroundMovementId,
-            ActorMovementLayer.Ground);
+            ActorMovementLayer.Ground,
+            movementCoupling);
         if (classes is { } classPair)
         {
             return CreateClassesRules(

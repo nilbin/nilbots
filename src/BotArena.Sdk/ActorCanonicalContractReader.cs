@@ -926,10 +926,25 @@ public static class ActorCanonicalContractReader
     private static RulesContract.MovementProfile ReadMovementProfile(
         JsonElement element)
     {
-        ExactObject(element, "id", "movementLayer");
+        // Additive optional field, exactly like the capture-gain schedule:
+        // the canonical writer omits it while the profile preserves facing,
+        // so an absent property means PreserveFacing rather than an error.
+        bool hasFacingCoupling = element.TryGetProperty(
+            "facingCoupling",
+            out JsonElement facingCoupling);
+        ExactObject(
+            element,
+            hasFacingCoupling
+                ? ["id", "movementLayer", "facingCoupling"]
+                : ["id", "movementLayer"]);
         return new RulesContract.MovementProfile(
             Id(element, "id"),
-            MovementLayer(element, "movementLayer"));
+            MovementLayer(element, "movementLayer"))
+        {
+            FacingCoupling = hasFacingCoupling
+                ? MovementFacingCoupling(facingCoupling)
+                : RulesContract.MovementFacingCoupling.PreserveFacing,
+        };
     }
 
     private static RulesContract.VisionProfile ReadVisionProfile(
@@ -2184,6 +2199,20 @@ public static class ActorCanonicalContractReader
             "ground" => MapContract.MovementLayer.Ground,
             "air" => MapContract.MovementLayer.Air,
             string value => throw Unsupported("movement layer", value),
+        };
+
+    private static RulesContract.MovementFacingCoupling
+        MovementFacingCoupling(JsonElement element) =>
+        Semantic(element) switch
+        {
+            // Omitted, never written inert: canonical bytes have exactly one
+            // encoding of a facing-preserving profile.
+            "face-movement-direction" =>
+                RulesContract.MovementFacingCoupling.FaceMovementDirection,
+            "facing-locked" =>
+                RulesContract.MovementFacingCoupling.FacingLocked,
+            string value =>
+                throw Unsupported("movement facing coupling", value),
         };
 
     private static MapContract.RegionKind RegionKind(

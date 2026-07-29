@@ -348,6 +348,130 @@ public sealed class FrontlineLabsExperimentCommandTests
     }
 
     [Fact]
+    public void ClassesArm_ComposesWithMovementAndKeepsTheBaselineIdentity()
+    {
+        JsonElement uncoupled = PrintedContract(
+            ["--print-candidate-contract", "--classes", "bulwark-vs-striker"]);
+        JsonElement inert = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--movement",
+                "preserve-facing",
+            ]);
+        JsonElement coupled = PrintedContract(
+            [
+                "--print-candidate-contract",
+                "--classes",
+                "bulwark-vs-striker",
+                "--movement",
+                "facing-locked",
+                "--duel-map",
+                "thin-fronts",
+            ]);
+
+        // The inert default must not perturb an existing arm's identity.
+        Assert.Equal(
+            "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+            inert.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            uncoupled.GetProperty("rulesFingerprint").GetString(),
+            inert.GetProperty("rulesFingerprint").GetString());
+        Assert.Equal(
+            uncoupled.GetProperty("matchContractFingerprint").GetString(),
+            inert.GetProperty("matchContractFingerprint").GetString());
+
+        Assert.Equal(
+            "frontline-labs-1-classes-bulwark-vs-striker-facing-locked",
+            coupled.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            FrontlineLabsDefinition.ClassesSeedProfileId,
+            coupled.GetProperty("seedProfileId").GetString());
+        Assert.Equal(
+            "frontline-labs-01-thin-fronts-classes",
+            coupled.GetProperty("mapId").GetString());
+        Assert.NotEqual(
+            uncoupled.GetProperty("rulesFingerprint").GetString(),
+            coupled.GetProperty("rulesFingerprint").GetString());
+    }
+
+    [Fact]
+    public void MovementArm_WritesDistinctKinematicsIdentity()
+    {
+        JsonElement baseline =
+            PrintedContract(["--print-candidate-contract"]);
+        JsonElement setsFacing = PrintedContract(
+            ["--print-candidate-contract", "--movement", "move-sets-facing"]);
+        JsonElement locked = PrintedContract(
+            ["--print-candidate-contract", "--movement", "facing-locked"]);
+        JsonElement inert = PrintedContract(
+            ["--print-candidate-contract", "--movement", "preserve-facing"]);
+
+        Assert.Equal(
+            FrontlineLabsDefinition.RulesetId,
+            inert.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            baseline.GetProperty("matchContractFingerprint").GetString(),
+            inert.GetProperty("matchContractFingerprint").GetString());
+        Assert.Equal(
+            "frontline-labs-1-experiment-move-sets-facing",
+            setsFacing.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            "frontline-labs-1-experiment-facing-locked",
+            locked.GetProperty("rulesetId").GetString());
+        Assert.Equal(
+            baseline.GetProperty("mapFingerprint").GetString(),
+            setsFacing.GetProperty("mapFingerprint").GetString());
+        Assert.Equal(
+            3,
+            new HashSet<string?>
+            {
+                baseline.GetProperty("rulesFingerprint").GetString(),
+                setsFacing.GetProperty("rulesFingerprint").GetString(),
+                locked.GetProperty("rulesFingerprint").GetString(),
+            }.Count);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            FrontlineLabsExperimentCommand.Run(
+                [
+                    "--print-candidate-contract",
+                    "--movement",
+                    "tank-controls",
+                ]));
+        InvalidOperationException exclusive =
+            Assert.Throws<InvalidOperationException>(() =>
+                FrontlineLabsExperimentCommand.Run(
+                    [
+                        "--print-candidate-contract",
+                        "--movement",
+                        "facing-locked",
+                        "--one-bend-shots",
+                    ]));
+        Assert.Contains(
+            "one Frontline Labs experiment option at a time",
+            exclusive.Message);
+    }
+
+    private static JsonElement PrintedContract(string[] args)
+    {
+        TextWriter original = Console.Out;
+        using var output = new StringWriter();
+        try
+        {
+            Console.SetOut(output);
+            Assert.Equal(0, FrontlineLabsExperimentCommand.Run(args));
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        return document.RootElement.Clone();
+    }
+
+    [Fact]
     public void PrintCandidateContract_RequiresNoBotsAndEmitsExactIdentity()
     {
         TextWriter original = Console.Out;

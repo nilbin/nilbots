@@ -108,6 +108,10 @@ internal static class ActorContractCanonicalIds
 
         ActorMovementLayer.Ground => "ground",
         ActorMovementLayer.Air => "air",
+        ActorMovementFacingCoupling.PreserveFacing => "preserve-facing",
+        ActorMovementFacingCoupling.FaceMovementDirection =>
+            "face-movement-direction",
+        ActorMovementFacingCoupling.FacingLocked => "facing-locked",
         ActorMapRegionDefinition.RegionKind.Objective => "objective",
         ActorMapRegionDefinition.RegionKind.TransitionPlacement =>
             "transition-placement",
