@@ -265,7 +265,9 @@ internal sealed record ReplayV3(
         int TilesPerAdvance,
         int TicksUntilAdvance,
         int RemainingTiles,
-        ImmutableArray<ActorId> ObservedBy);
+        ImmutableArray<ActorId> ObservedBy,
+        int TicksPerAdvance,
+        int DamagePerHit);
 
     internal sealed record ObservedEvent(
         string EventHandle,
@@ -678,7 +680,9 @@ internal sealed record ReplayV3(
             int? ClaimingTeamId,
             int CaptureProgress,
             int DecayTicksElapsed,
-            int ControlResumesAtTick)
+            int ControlResumesAtTick,
+            int? HoldOwnerTeamId,
+            int? HoldEndsAtTick)
             : ModeState("frontline", Id);
     }
 

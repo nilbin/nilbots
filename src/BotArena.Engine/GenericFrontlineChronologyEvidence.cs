@@ -453,13 +453,7 @@ internal static class GenericFrontlineChronologyEvidence
         .Frontline ProjectControl(
             FrontlineGameModeDefinition gameMode,
             FrontlineControlState control) =>
-        new(
-            gameMode.ModeId,
-            control.ActivePositionIndex,
-            control.ClaimingTeamId,
-            control.CaptureProgress,
-            control.DecayTicksElapsed,
-            control.ControlResumesAtTick);
+        FrontlineControlProjection.Project(gameMode.ModeId, control);
 
     private static bool ScoreboardMatches(
         GenericActorRuntimeObservation.ScoreboardState scoreboard,

@@ -196,7 +196,9 @@ internal static class GenericActorSdkModelMapper
             value.TilesPerAdvance,
             value.TicksUntilAdvance,
             value.RemainingTiles,
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            value.TicksPerAdvance,
+            value.DamagePerHit);
 
     private static Sdk.GenericActorContext.ObservedSound ToSdk(
         GenericActorRuntimeObservation.ObservedSound value) =>
@@ -380,7 +382,9 @@ internal static class GenericActorSdkModelMapper
                     mode.ClaimingTeamId,
                     mode.CaptureProgress,
                     mode.DecayTicksElapsed,
-                    mode.ControlResumesAtTick),
+                    mode.ControlResumesAtTick,
+                    mode.HoldOwnerTeamId,
+                    mode.HoldEndsAtTick),
             _ => throw UnknownUnion(value),
         };
 

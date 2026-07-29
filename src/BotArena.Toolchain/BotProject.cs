@@ -87,10 +87,22 @@ public static class ToolchainInfo
     /// those cells fit the 64-character canonical ID budget beside a class
     /// pair; it renames nothing, every existing arm and the hosted contract
     /// stay byte-identical, and player artifact bytes and cache keys are
-    /// unchanged. Keep in lockstep with
+    /// unchanged. 0.9.14 is the batched between-phase observability bump
+    /// (DECISIONS #169): the Frontline mode observation publishes the live
+    /// territory-ratchet hold's owner and expiry, and ObservedProjectile
+    /// publishes the firing profile's advance cadence and damage per hit. All
+    /// four were already authoritative engine-side and none is a rules fact,
+    /// so every ruleset — the hosted contract included — keeps byte-identical
+    /// rules, map, and match fingerprints, and the negotiated observation
+    /// schema version is unchanged because the new fields are trailing tagged
+    /// fields an older guest ignores. Replay-v3 documents grow two mode keys
+    /// and two projectile keys, so a replay recorded before this version is
+    /// not readable by the new reader and vice versa. The same version
+    /// registers the phase-2 composite arm identities `helm`, `veer`, and
+    /// `rig`, which rename nothing that already existed. Keep in lockstep with
     /// BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.13";
+    public const string CliVersion = "0.9.14";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -127,9 +139,14 @@ public static class ToolchainInfo
     // 0.10.4: dormant slots may declare a first automatic activation tick and
     // life starts identify that parentless origin separately from deployment,
     // return, fabrication, and replication.
-    public const string SdkVersion = "0.10.4";
+    // 0.10.5: the Frontline mode observation carries the live territory-ratchet
+    // hold as nullable holdOwnerTeamId/holdEndsAtTick, and ObservedProjectile
+    // carries TicksPerAdvance/DamagePerHit. Both ride the wire as trailing
+    // tagged fields, so the observation schema version stays 2 and an older
+    // artifact still negotiates and still runs — it simply cannot see them.
+    public const string SdkVersion = "0.10.5";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
-    public const string GuestAdapterVersion = "0.10.4";
+    public const string GuestAdapterVersion = "0.10.5";
     // Compiler invocation/container changes that affect artifact bytes without changing
     // the SDK or guest contract. Included in every player-bot cache key.
     // 2: reproducible builds (DECISIONS #81) — the workspace path is mapped to a fixed

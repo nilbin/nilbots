@@ -24,6 +24,13 @@ internal static class ReplayV3Serializer
         "partial",
     ];
 
+    /// <summary>
+    /// The one redeploy policy that carries a territory-ratchet hold, and
+    /// therefore the only one whose observations may publish hold clocks.
+    /// </summary>
+    private const string RatchetRedeployPolicy =
+        "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks";
+
     private static readonly JsonSerializerOptions ReadOptions =
         CreateReadOptions();
 
@@ -899,6 +906,8 @@ internal static class ReplayV3Serializer
             "observedBy",
             value.ObservedBy,
             WriteActorId);
+        writer.WriteNumber("ticksPerAdvance", value.TicksPerAdvance);
+        writer.WriteNumber("damagePerHit", value.DamagePerHit);
         writer.WriteEndObject();
     }
 
@@ -1810,6 +1819,19 @@ internal static class ReplayV3Serializer
                 writer.WriteNumber(
                     "controlResumesAtTick",
                     frontline.ControlResumesAtTick);
+                // Trailing additive pair, both nullable and always present:
+                // the same discipline claimingTeamId already follows, where
+                // null is a fact about this tick rather than an omitted
+                // field. Null means no live territory-ratchet hold, which
+                // includes every ruleset whose redeploy policy has none.
+                WriteNullableNumber(
+                    writer,
+                    "holdOwnerTeamId",
+                    frontline.HoldOwnerTeamId);
+                WriteNullableNumber(
+                    writer,
+                    "holdEndsAtTick",
+                    frontline.HoldEndsAtTick);
                 break;
             default:
                 throw new NotSupportedException(
@@ -2630,6 +2652,29 @@ internal static class ReplayV3Serializer
             int redeployPauseTicks = RequiredInt32(
                 capture,
                 "redeployPauseTicks");
+            // The hold duration is inert-omitted, and it is carried by
+            // exactly the high-water-mark redeploy policy (DECISIONS #160).
+            // The observed hold clocks are validated against both, so the
+            // index has to carry both.
+            bool ratchet = string.Equals(
+                RequiredString(capture, "redeployPolicy"),
+                RatchetRedeployPolicy,
+                StringComparison.Ordinal);
+            int ratchetHoldTicks =
+                capture.TryGetProperty(
+                    "ratchetHoldTicks",
+                    out JsonElement holdTicks)
+                    ? holdTicks.ValueKind == JsonValueKind.Number
+                        && holdTicks.TryGetInt32(out int holdValue)
+                        ? holdValue
+                        : throw new ArgumentException(
+                            "Embedded Frontline ratchetHoldTicks must be an Int32.")
+                    : 0;
+            if (ratchet != ratchetHoldTicks > 0)
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline hold duration is carried by exactly the high-water-mark redeploy policy.");
+            }
             ImmutableArray<ContractTeamAdvance> teamAdvances =
                 RequiredArray(modeMapBinding, "teamAdvances")
                     .EnumerateArray()
@@ -2706,7 +2751,9 @@ internal static class ReplayV3Serializer
                     decayAmount,
                     decayIntervalTicks,
                     redeployPauseTicks,
-                    teamAdvances));
+                    teamAdvances,
+                    ratchet,
+                    ratchetHoldTicks));
         }
         if (!string.Equals(kind, "deathmatch", StringComparison.Ordinal))
         {
@@ -4899,7 +4946,23 @@ internal static class ReplayV3Serializer
                     || frontline.CaptureProgress != 0
                     || frontline.DecayTicksElapsed != 0)
             || (long)frontline.ControlResumesAtTick - nextTick
-                > configuration.RedeployPauseTicks;
+                > configuration.RedeployPauseTicks
+            // The hold clocks travel as a pair, only a ratchet ruleset may
+            // carry them at all, an owner must be a real scoring team, and a
+            // published hold is by definition still live and cannot outlast
+            // the declared duration measured from this tick.
+            || (frontline.HoldOwnerTeamId is null)
+                != (frontline.HoldEndsAtTick is null)
+            || frontline.HoldOwnerTeamId is not null && !configuration.Ratchet
+            || frontline.HoldOwnerTeamId is int holdOwner
+                && !contract.TeamIds.Contains(holdOwner)
+            // A hold is created on the advance tick T with expiry T+hold+1,
+            // and the earliest boundary that can publish it has nextTick T+1,
+            // so the widest honest gap is exactly the declared duration.
+            || frontline.HoldEndsAtTick is int holdEnds
+                && (holdEnds <= nextTick
+                    || (long)holdEnds - nextTick
+                        > configuration.RatchetHoldTicks);
         if (invalid)
         {
             throw new ArgumentException(
@@ -5323,7 +5386,9 @@ internal static class ReplayV3Serializer
         int DecayAmount,
         int DecayIntervalTicks,
         int RedeployPauseTicks,
-        ImmutableArray<ContractTeamAdvance> TeamAdvances);
+        ImmutableArray<ContractTeamAdvance> TeamAdvances,
+        bool Ratchet,
+        int RatchetHoldTicks);
 
     private sealed record ContractTeamAdvance(
         int TeamId,
@@ -5762,6 +5827,27 @@ internal static class ReplayV3Serializer
                     $"Replay-v3 '{propertyName}' must be an Int32.");
     }
 
+    /// <summary>
+    /// Reads a nullable Int32 whose PROPERTY is mandatory: an explicit null
+    /// is the value, an absent property is a malformed document. This is the
+    /// shape every nullable mode fact uses (<c>claimingTeamId</c> and, since
+    /// DECISIONS #169, the two ratchet-hold clocks).
+    /// </summary>
+    private static int? NullableInt32(
+        JsonElement value,
+        string propertyName)
+    {
+        JsonElement property = value.GetProperty(propertyName);
+        return property.ValueKind switch
+        {
+            JsonValueKind.Null => null,
+            JsonValueKind.Number when property.TryGetInt32(out int result) =>
+                result,
+            _ => throw new JsonException(
+                $"Replay-v3 '{propertyName}' must be Int32 or null."),
+        };
+    }
+
     private static T RequiredValue<T>(
         JsonElement value,
         string propertyName,
@@ -5970,27 +6056,22 @@ internal static class ReplayV3Serializer
                             "claimingTeamId",
                             "captureProgress",
                             "decayTicksElapsed",
-                            "controlResumesAtTick");
-                        JsonElement claiming =
-                            root.GetProperty("claimingTeamId");
-                        int? claimingTeamId =
-                            claiming.ValueKind == JsonValueKind.Null
-                                ? null
-                                : claiming.TryGetInt32(out int teamId)
-                                    ? teamId
-                                    : throw new JsonException(
-                                        "Replay-v3 claimingTeamId must be Int32 or null.");
+                            "controlResumesAtTick",
+                            "holdOwnerTeamId",
+                            "holdEndsAtTick");
                         return new ReplayV3.ModeState.Frontline(
                             modeId,
                             RequiredInt32(
                                 root,
                                 "activePositionIndex"),
-                            claimingTeamId,
+                            NullableInt32(root, "claimingTeamId"),
                             RequiredInt32(root, "captureProgress"),
                             RequiredInt32(root, "decayTicksElapsed"),
                             RequiredInt32(
                                 root,
-                                "controlResumesAtTick"));
+                                "controlResumesAtTick"),
+                            NullableInt32(root, "holdOwnerTeamId"),
+                            NullableInt32(root, "holdEndsAtTick"));
                     }
                 default:
                     throw new JsonException(

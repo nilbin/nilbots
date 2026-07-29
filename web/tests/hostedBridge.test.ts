@@ -246,6 +246,8 @@ test('bridge-v3 carries typed Frontline terminal control and signed scores', () 
       captureProgress: 0,
       decayTicksElapsed: 0,
       controlResumesAtTick: 0,
+      holdOwnerTeamId: null,
+      holdEndsAtTick: null,
     },
     scores: [
       {
@@ -272,6 +274,8 @@ test('bridge-v3 carries typed Frontline terminal control and signed scores', () 
     captureProgress: 0,
     decayTicksElapsed: 0,
     controlResumesAtTick: 0,
+    holdOwnerTeamId: null,
+    holdEndsAtTick: null,
   });
   assert.deepEqual(tick.scoreboard?.teams[1]?.scores, [
     { channel: 'territorial-progress', value: '-3' },

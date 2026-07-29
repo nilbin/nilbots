@@ -445,6 +445,63 @@ internal static class ArenaBasics
             : [];
 
     /// <summary>
+    /// Which team's advance the territory ratchet is protecting right now, and
+    /// the tick that protection lifts — READ from the observation, not inferred
+    /// from it. Null when no hold binds this tick, which includes every
+    /// contract whose capture definition declares no hold at all.
+    ///
+    /// <para>This used to be a derivation, and the derivation was expensive
+    /// and partly wrong. The start was recoverable as
+    /// <c>ControlResumesAtTick − RedeployPauseTicks</c>; the OWNER had no
+    /// derivation at all, only a guess from the signed displacement of the
+    /// front, which is wrong the first time an opponent regresses from a lead
+    /// and is unavailable to a life born inside the hold, because private
+    /// memory is life-scoped. Both facts are now published, so ask.</para>
+    ///
+    /// <para>Inside a live hold the two sides are playing opposite games: the
+    /// owner's presence buys ground and the opponent's presence buys nothing,
+    /// because a capture completed inside another team's hold is SPENT — the
+    /// claim resets exactly as a successful capture does and the objective does
+    /// not move. Compare <see cref="Hold.EndsAtTick"/> with
+    /// <c>context.Tick</c> the same way you compare
+    /// <c>ControlResumesAtTick</c>: the hold binds while the tick is strictly
+    /// below it.</para>
+    /// </summary>
+    public static Hold? LiveHold(GenericActorContext context) =>
+        context.Mode
+            is GenericActorContext.ModeObservationState.Frontline
+            {
+                HoldOwnerTeamId: int owner,
+                HoldEndsAtTick: int endsAt,
+            }
+            ? new Hold(
+                owner,
+                owner == context.Self.ActorId.TeamId,
+                endsAt,
+                endsAt - context.Tick)
+            : null;
+
+    /// <summary>
+    /// A live territory-ratchet hold as this life sees it.
+    /// </summary>
+    /// <param name="OwnerTeamId">Team whose advance is protected.</param>
+    /// <param name="Mine">
+    /// True when this life's team owns the hold — the side for which standing
+    /// on the objective is worth something.
+    /// </param>
+    /// <param name="EndsAtTick">
+    /// First tick on which the hold no longer denies regression.
+    /// </param>
+    /// <param name="RemainingTicks">
+    /// Ticks the hold still has to run from this observation's tick.
+    /// </param>
+    public sealed record Hold(
+        int OwnerTeamId,
+        bool Mine,
+        int EndsAtTick,
+        int RemainingTicks);
+
+    /// <summary>
     /// Tiles of one objective in the ordered chain. Empty for an index outside
     /// the chain, which is the honest answer for "one step past the end" —
     /// callers walking the chain do not need their own bounds check.
@@ -695,9 +752,11 @@ internal static class ArenaBasics
     /// come straight back. When a hold IS declared, a capture completed inside
     /// another team's live hold is SPENT: the claim resets exactly as a
     /// successful capture does and the objective does not move. Pricing a push
-    /// as if every capture advances the front is the mistake this field
-    /// exists to prevent; the advance itself is observable as a change in the
-    /// active position index, so track when the hold started.
+    /// as if every capture advances the front is the mistake this field exists
+    /// to prevent. This is the contract's DURATION; for the hold that is
+    /// running right now — whose it is and when it lifts — call
+    /// <see cref="LiveHold"/>, which reads both from the observation instead
+    /// of reconstructing them from the advance you happened to witness.
     /// </param>
     /// <param name="SurplusWeightScalesGain">
     /// True when net objective weight scales capture pressure, so a second
@@ -790,6 +849,56 @@ internal static class ArenaBasics
         }
         return null;
     }
+
+    /// <summary>
+    /// "Should I eat this?" — what one hostile bolt costs and how long you have
+    /// to decide, read from the bolt rather than reverse-engineered from the
+    /// attack profile that fired it (which a redacted owner may not even name).
+    /// Null when the bolt cannot reach <paramref name="target"/> on its current
+    /// heading and remaining range at all.
+    ///
+    /// <para>The arithmetic is the contract's own: the bolt crosses
+    /// <c>TilesPerAdvance</c> tiles every <c>TicksPerAdvance</c> ticks and the
+    /// next advance is <c>TicksUntilAdvance</c> away, so an exact tick of
+    /// arrival exists — and <c>DamagePerHit</c> says whether arriving matters.
+    /// Both new fields are per projectile: a volley bolt and an ordinary bolt
+    /// need not agree on either.</para>
+    /// </summary>
+    public static Incoming? Threat(
+        GenericActorContext.ObservedProjectile projectile,
+        Position target)
+    {
+        if (!TryRay(
+                projectile.Position,
+                target,
+                out ProjectileHeading heading,
+                out int distance)
+            || heading != projectile.Heading
+            || distance > projectile.RemainingTiles)
+        {
+            return null;
+        }
+
+        // The first advance is TicksUntilAdvance away; each later one adds a
+        // full cadence. Integer ceiling, because a partial advance does not
+        // move the bolt.
+        int advances = (distance + projectile.TilesPerAdvance - 1)
+            / projectile.TilesPerAdvance;
+        int ticks = projectile.TicksUntilAdvance
+            + (advances - 1) * projectile.TicksPerAdvance;
+        return new Incoming(ticks, projectile.DamagePerHit, distance);
+    }
+
+    /// <summary>One hostile bolt's exact bill and deadline.</summary>
+    /// <param name="TicksUntilArrival">
+    /// Ticks until the bolt reaches the target tile.
+    /// </param>
+    /// <param name="Damage">Health one contact removes.</param>
+    /// <param name="Tiles">Tiles between the bolt and the target.</param>
+    public sealed record Incoming(
+        int TicksUntilArrival,
+        int Damage,
+        int Tiles);
 
     private static bool ReachesWithinAdvances(
         GenericActorContext.ObservedProjectile projectile,

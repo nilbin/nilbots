@@ -838,6 +838,11 @@ public sealed record GenericActorContext
         /// <param name="ticksUntilAdvance">Ticks until the next advance.</param>
         /// <param name="remainingTiles">Remaining travel budget in tiles.</param>
         /// <param name="observedBy">Allied lives whose sensors revealed it.</param>
+        /// <param name="ticksPerAdvance">
+        /// Declared tick cadence between advances for the profile that fired
+        /// this projectile.
+        /// </param>
+        /// <param name="damagePerHit">Health removed by one contact.</param>
         public ObservedProjectile(
             long projectileId,
             int ownerTeamId,
@@ -847,7 +852,9 @@ public sealed record GenericActorContext
             int tilesPerAdvance,
             int ticksUntilAdvance,
             int remainingTiles,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            int ticksPerAdvance,
+            int damagePerHit)
         {
             if (projectileId < 0)
                 throw new ArgumentOutOfRangeException(nameof(projectileId));
@@ -867,6 +874,10 @@ public sealed record GenericActorContext
                 throw new ArgumentOutOfRangeException(nameof(ticksUntilAdvance));
             if (remainingTiles < 0)
                 throw new ArgumentOutOfRangeException(nameof(remainingTiles));
+            if (ticksPerAdvance <= 0)
+                throw new ArgumentOutOfRangeException(nameof(ticksPerAdvance));
+            if (damagePerHit <= 0)
+                throw new ArgumentOutOfRangeException(nameof(damagePerHit));
 
             ProjectileId = projectileId;
             OwnerTeamId = ownerTeamId;
@@ -881,6 +892,8 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            TicksPerAdvance = ticksPerAdvance;
+            DamagePerHit = damagePerHit;
         }
 
         /// <summary>Match-unique projectile identifier.</summary>
@@ -904,6 +917,20 @@ public sealed record GenericActorContext
         public int RemainingTiles { get; }
         /// <summary>Exact allied lives whose sensors revealed the projectile.</summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>
+        /// Ticks the firing profile spends between advances. With
+        /// <see cref="TicksUntilAdvance"/> and <see cref="TilesPerAdvance"/>
+        /// this closes the timing question a bot actually asks — when does
+        /// this bolt reach my tile — without reverse-engineering the attack
+        /// profile that fired it, which a redacted owner may not even name.
+        /// </summary>
+        public int TicksPerAdvance { get; }
+        /// <summary>
+        /// Health one contact with this projectile removes. Published per
+        /// projectile because a volley bolt and an ordinary bolt need not
+        /// agree, so "should I eat this?" is answerable from the bolt itself.
+        /// </summary>
+        public int DamagePerHit { get; }
     }
 
     /// <summary>
@@ -2142,13 +2169,23 @@ public sealed record GenericActorContext
             /// <param name="controlResumesAtTick">
             /// Earliest tick on which objective control may resume.
             /// </param>
+            /// <param name="holdOwnerTeamId">
+            /// Team whose advance a live territory-ratchet hold protects, or
+            /// <see langword="null"/> when no hold is live.
+            /// </param>
+            /// <param name="holdEndsAtTick">
+            /// First tick on which that hold no longer denies regression, or
+            /// <see langword="null"/> when no hold is live.
+            /// </param>
             public Frontline(
                 string modeId,
                 int activePositionIndex,
                 int? claimingTeamId,
                 int captureProgress,
                 int decayTicksElapsed,
-                int controlResumesAtTick)
+                int controlResumesAtTick,
+                int? holdOwnerTeamId = null,
+                int? holdEndsAtTick = null)
                 : base(modeId)
             {
                 if (activePositionIndex < 0)
@@ -2167,11 +2204,24 @@ public sealed record GenericActorContext
                     throw new ArgumentOutOfRangeException(
                         nameof(controlResumesAtTick));
                 }
+                if (holdOwnerTeamId is < 0)
+                    throw new ArgumentOutOfRangeException(nameof(holdOwnerTeamId));
+                if (holdEndsAtTick is < 0)
+                    throw new ArgumentOutOfRangeException(nameof(holdEndsAtTick));
+                if ((holdOwnerTeamId is null) != (holdEndsAtTick is null))
+                {
+                    throw new ArgumentException(
+                        "A territory-ratchet hold publishes its owner and its "
+                        + "expiry together or not at all.",
+                        nameof(holdOwnerTeamId));
+                }
                 ActivePositionIndex = activePositionIndex;
                 ClaimingTeamId = claimingTeamId;
                 CaptureProgress = captureProgress;
                 DecayTicksElapsed = decayTicksElapsed;
                 ControlResumesAtTick = controlResumesAtTick;
+                HoldOwnerTeamId = holdOwnerTeamId;
+                HoldEndsAtTick = holdEndsAtTick;
             }
 
             /// <inheritdoc />
@@ -2187,6 +2237,22 @@ public sealed record GenericActorContext
             public int DecayTicksElapsed { get; }
             /// <summary>Earliest authoritative tick on which control may resume.</summary>
             public int ControlResumesAtTick { get; }
+            /// <summary>
+            /// The team whose completed advance the territory ratchet is
+            /// currently protecting, or <see langword="null"/> when no hold is
+            /// live — which includes every ruleset whose redeploy policy has
+            /// no ratchet. Read it instead of inferring ownership from front
+            /// displacement: that inference is wrong after the first
+            /// regression and impossible for a life born inside the hold.
+            /// </summary>
+            public int? HoldOwnerTeamId { get; }
+            /// <summary>
+            /// The first tick on which the live hold stops denying enemy
+            /// regression, or <see langword="null"/> when no hold is live.
+            /// Same grammar as <see cref="ControlResumesAtTick"/>, so the hold
+            /// binds while the observed tick is strictly below it.
+            /// </summary>
+            public int? HoldEndsAtTick { get; }
         }
     }
 

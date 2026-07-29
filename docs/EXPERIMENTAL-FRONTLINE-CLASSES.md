@@ -134,11 +134,11 @@ its own for the same reason — see
 [Phase-2 cells have registered identities](#phase-2-cells-have-registered-identities).
 
 `--capture-threshold` and `--prime-respawn-ticks` are the numbers-only
-level and compose the same way. None of these arms changes the observation
-schema, the action catalog, or any class stat, so a contract-driven bot
-needs no re-authoring: read `gameMode.capture` and `lifecycle` from
-MatchStart if you want to adapt, and expect a respawn to put you near the
-fight under `forward-rally`. The arrival tile is derived from the objective
+level and compose the same way. None of these arms changes the action
+catalog or any class stat, so a contract-driven bot needs no re-authoring:
+read `gameMode.capture` and `lifecycle` from MatchStart if you want to
+adapt, and expect a respawn to put you near the fight under
+`forward-rally`. The arrival tile is derived from the objective
 chain and the placing team's own advance direction — never from the team ID
 — so the two sides' arrivals are exact reflections of each other. An older
 `automaticReturnPlacement` value names the same forward rally ordered by
@@ -151,6 +151,64 @@ nilbots experiment frontline-labs \
   --classes bulwark-vs-striker --pendulum ratchet-contest \
   --seed 42 --runtime wasm --out /tmp/pendulum
 ```
+
+### The live hold is published; do not infer it
+
+A sticky frontline changes what standing on the objective is WORTH, and it
+changes it differently for the two sides: inside a live hold the owner's
+presence buys ground and the opponent's presence buys nothing, because a
+capture completed inside another team's hold is **spent** — the claim resets
+exactly as a successful capture does and the front does not move. A doctrine
+that cannot tell which side of a hold it is on pays a full capture window for
+a reset, over and over.
+
+So the Frontline mode observation publishes the hold, beside the
+`controlResumesAtTick` clock that was already there:
+
+| field | meaning |
+| --- | --- |
+| `holdOwnerTeamId` | the team whose completed advance is currently protected, or **null** |
+| `holdEndsAtTick` | the first tick on which that protection lifts, or **null** |
+
+- **Null means no hold binds on this tick** — including every ruleset whose
+  `capture.redeployPolicy` has no ratchet at all, where both fields are null
+  for the whole match. The two always travel together: an owner without a
+  clock, or a clock without an owner, is a malformed observation.
+- **`holdEndsAtTick` reads exactly like `controlResumesAtTick`.** It names the
+  tick the restriction lifts, so the hold binds while `context.Tick` is
+  strictly below it, and `holdEndsAtTick - context.Tick` is the ticks
+  remaining. It never appears in the past: a published hold is a binding one.
+- **The lapse is an ordinary control change.** The tick a hold expires
+  publishes a `mode-changed` fact like any other, carrying the post-change
+  state, so you can react to the window closing without watching a number
+  stop.
+- **`capture.ratchetHoldTicks` is the DURATION, the observation is the
+  CLOCK.** The contract field stays inert-omitted when the ruleset declares no
+  hold; read it to price a push in advance, and read the observation to know
+  what is running now.
+
+This replaces a derivation that was expensive and partly wrong, and it is
+worth knowing what it replaces if you are porting a bot. The hold's *start*
+was recoverable as `controlResumesAtTick - capture.redeployPauseTicks`. Its
+*owner* had no derivation at all — only a guess from the signed displacement
+of the front, which is wrong the first time an opponent regresses from a lead,
+and which a life born inside the hold cannot make at all, because private
+memory is life-scoped and a fresh body has none. Delete that code; ask
+instead. The scaffold's `ArenaBasics.LiveHold(context)` is the one-line
+version.
+
+Two projectile facts land in the same window, for the same reason —
+they were authoritative engine-side and unreadable from an observation.
+Every entry in `visibleProjectiles` now carries **`ticksPerAdvance`** (the
+firing profile's cadence between advances) beside the existing
+`ticksUntilAdvance` and `tilesPerAdvance`, and **`damagePerHit`** (what one
+contact costs). Together they answer "should I eat this?" exactly: the bolt
+crosses `tilesPerAdvance` tiles every `ticksPerAdvance` ticks with the next
+advance `ticksUntilAdvance` away, so an exact arrival tick exists, and
+`damagePerHit` says whether arriving matters. Both are **per projectile** — a
+volley bolt and an ordinary bolt need not agree on either, and a deflected
+bolt carries the damage class of the bolt that was returned. The scaffold's
+`ArenaBasics.Threat(projectile, tile)` does the arithmetic.
 
 ## Class skills compose with your class too
 

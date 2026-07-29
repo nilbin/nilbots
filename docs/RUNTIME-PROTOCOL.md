@@ -166,3 +166,17 @@ remains unchanged, and CLI 0.9.5 carries that SDK. Actor framing and sandbox
 configuration remain 1.0 because these additive static-contract branches do
 not change frame or resource semantics. Legacy duel
 protocol/configuration remain exactly 0.1.
+
+SDK/Guest 0.10.5 (CLI 0.9.14) grows the per-tick observation instead of the
+static contract: the Frontline mode state publishes the live territory-ratchet
+hold's owner and expiry, and one visible projectile publishes its firing
+profile's advance cadence and damage per hit. **The generic observation schema
+version stays 2**, and that is the rule rather than an exemption — these are
+additive trailing tagged fields, an older guest ignores an unknown field ID and
+still attests the same profile, and the versioned capability block is inside
+the fingerprinted match contract, so bumping it would relabel every immutable
+generic ruleset including the hosted `frontline-labs-1`. A version moves when a
+field ID is reused, a meaning changes, or a guest is asked to attest a contract
+it cannot. Replay-v3 documents are a separate matter: the two mode keys and the
+two projectile keys are mandatory in the document, so a replay written before
+0.10.5 and one written after are not interchangeable.

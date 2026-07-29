@@ -274,6 +274,11 @@ function validateRankings(
   });
 }
 
+/// The one redeploy policy that carries a territory-ratchet hold, and
+/// therefore the only one whose observations may publish hold clocks.
+const RATCHET_REDEPLOY_POLICY =
+  'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+
 function validateContract(
   value: unknown,
   path: string,
@@ -740,8 +745,6 @@ function validateContract(
     // The three policies with pre-registered candidate arms. Each value is a
     // distinct ruleset with its own fingerprint; the viewer accepts any of
     // them and pins the rest of the capture contract as before.
-    const RATCHET_REDEPLOY_POLICY =
-      'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
     const policyArms = {
       controlPolicy: [
         'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
@@ -1693,6 +1696,11 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         'captureProgress',
         'decayTicksElapsed',
         'controlResumesAtTick',
+        // Trailing additive pair (DECISIONS #169). Nullable and always
+        // present, the discipline claimingTeamId already follows: null is a
+        // fact about this tick, not an omitted field.
+        'holdOwnerTeamId',
+        'holdEndsAtTick',
       ],
       fail,
     );
@@ -1706,6 +1714,14 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
       integer(item[key], `${path}.${key}`, fail);
     }
     nullable(item.claimingTeamId, `${path}.claimingTeamId`, integer, fail);
+    nullable(item.holdOwnerTeamId, `${path}.holdOwnerTeamId`, integer, fail);
+    nullable(item.holdEndsAtTick, `${path}.holdEndsAtTick`, integer, fail);
+    if ((item.holdOwnerTeamId === null) !== (item.holdEndsAtTick === null)) {
+      fail(
+        `${path}.holdOwnerTeamId`,
+        'territory-ratchet hold owner and expiry must be published together',
+      );
+    }
     return;
   }
   fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
@@ -2377,6 +2393,11 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
             'ticksUntilAdvance',
             'remainingTiles',
             'observedBy',
+            // Trailing additive pair (DECISIONS #169): the timing cadence and
+            // the cost of one contact, published per projectile because a
+            // volley bolt and a mobile bolt need not agree on either.
+            'ticksPerAdvance',
+            'damagePerHit',
           ],
           fail,
         );
@@ -2411,6 +2432,8 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           'tilesPerAdvance',
           'ticksUntilAdvance',
           'remainingTiles',
+          'ticksPerAdvance',
+          'damagePerHit',
         ]) {
           integer(
             projectile[key],
@@ -3966,7 +3989,24 @@ function validateV3Relationships(
         (world.nextTick < control.controlResumesAtTick &&
           (!neutral ||
             control.captureProgress !== 0 ||
-            control.decayTicksElapsed !== 0));
+            control.decayTicksElapsed !== 0)) ||
+        // The hold clocks travel as a pair, only the high-water-mark redeploy
+        // policy may carry them at all, an owner must be a real scoring team,
+        // and a PUBLISHED hold is by definition still live — so its expiry is
+        // strictly ahead of this tick and inside the declared duration.
+        (control.holdOwnerTeamId === null) !==
+          (control.holdEndsAtTick === null) ||
+        (control.holdOwnerTeamId !== null &&
+          capture.redeployPolicy !== RATCHET_REDEPLOY_POLICY) ||
+        (control.holdOwnerTeamId !== null &&
+          !teams.has(control.holdOwnerTeamId)) ||
+        // A hold is created on the advance tick T with expiry T+hold+1, and
+        // the earliest boundary that can publish it has nextTick T+1, so the
+        // widest honest gap is exactly the declared duration.
+        (control.holdEndsAtTick !== null &&
+          (control.holdEndsAtTick <= world.nextTick ||
+            control.holdEndsAtTick - world.nextTick >
+              (capture.ratchetHoldTicks ?? 0)));
       if (invalidControl) {
         fail(`${path}.mode`, 'violates frontline control invariants');
       }
@@ -5439,6 +5479,8 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         captureProgress: mode.captureProgress,
         decayTicksElapsed: mode.decayTicksElapsed,
         controlResumesAtTick: mode.controlResumesAtTick,
+        holdOwnerTeamId: mode.holdOwnerTeamId,
+        holdEndsAtTick: mode.holdEndsAtTick,
       };
 }
 
@@ -5962,6 +6004,8 @@ function observationFromV3(
           observedBy: projectile.observedBy.map(
             (actor) => identity(actor).actorKey,
           ),
+          ticksPerAdvance: projectile.ticksPerAdvance,
+          damagePerHit: projectile.damagePerHit,
         };
       }) ?? null,
     visibleEvents: observation.visibleEvents.map(observedEventFromV3),

@@ -590,6 +590,10 @@ export type ReplayV3ModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
+      /** Team a live territory-ratchet hold protects; null when none is live. */
+      holdOwnerTeamId: number | null;
+      /** First tick the live hold stops denying regression; null when none. */
+      holdEndsAtTick: number | null;
     };
 
 export interface ReplayV3WorldState {
@@ -656,6 +660,10 @@ export interface ReplayV3ObservedProjectile {
   ticksUntilAdvance: number;
   remainingTiles: number;
   observedBy: ReplayV3ActorId[];
+  /** Declared tick cadence between advances for the firing profile. */
+  ticksPerAdvance: number;
+  /** Health one contact with this projectile removes. */
+  damagePerHit: number;
 }
 
 export type ReplayV3ActionConstraint =

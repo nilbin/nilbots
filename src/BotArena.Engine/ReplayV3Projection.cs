@@ -438,7 +438,9 @@ internal static class ReplayV3Projection
             value.TilesPerAdvance,
             value.TicksUntilAdvance,
             value.RemainingTiles,
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            value.TicksPerAdvance,
+            value.DamagePerHit);
 
     private static ReplayV3.ObservedEvent ObservedEvent(
         GenericActorRuntimeObservation.ObservedEvent value) =>
@@ -1000,7 +1002,9 @@ internal static class ReplayV3Projection
             value.ClaimingTeamId,
             value.CaptureProgress,
             value.DecayTicksElapsed,
-            value.ControlResumesAtTick);
+            value.ControlResumesAtTick,
+            value.HoldOwnerTeamId,
+            value.HoldEndsAtTick);
 
     private static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>

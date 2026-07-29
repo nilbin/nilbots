@@ -151,7 +151,9 @@ internal static class GenericActorWireObservationCodec
                         GenericActorWireCodecValues.OptionalInt32(payload, 2),
                         GenericActorWireCodecValues.Int32(payload, 3),
                         GenericActorWireCodecValues.Int32(payload, 4),
-                        GenericActorWireCodecValues.Int32(payload, 5)),
+                        GenericActorWireCodecValues.Int32(payload, 5),
+                        GenericActorWireCodecValues.OptionalInt32(payload, 6),
+                        GenericActorWireCodecValues.OptionalInt32(payload, 7)),
                 _ => throw new FormatException(
                     "Unknown generic actor mode discriminator."),
             },
@@ -663,6 +665,11 @@ internal static class GenericActorWireObservationCodec
             Array(
                 value.ObservedBy,
                 GenericActorWireCodecValues.EncodeIdentity));
+        // Trailing additive tags, exactly as every prior observation growth
+        // rode the wire: an old guest ignores an unknown field ID, so
+        // observation schema 2 stays negotiable.
+        writer.Field(10, ActorWireValue.Int32(value.TicksPerAdvance));
+        writer.Field(11, ActorWireValue.Int32(value.DamagePerHit));
         return writer.ToArray();
     }
 
@@ -695,7 +702,9 @@ internal static class GenericActorWireObservationCodec
                     9,
                     item => GenericActorWireCodecValues.DecodeIdentity(
                         item,
-                        depth + 1))),
+                        depth + 1)),
+                GenericActorWireCodecValues.Int32(reader, 10),
+                GenericActorWireCodecValues.Int32(reader, 11)),
             "projectile observation");
     }
 
@@ -795,6 +804,16 @@ internal static class GenericActorWireObservationCodec
                 writer.Field(
                     5,
                     ActorWireValue.Int32(frontline.ControlResumesAtTick));
+                // Absent means "no live hold", which is the same encoding an
+                // absent claiming team already uses: one field, one meaning.
+                GenericActorWireCodecValues.OptionalInt32(
+                    writer,
+                    6,
+                    frontline.HoldOwnerTeamId);
+                GenericActorWireCodecValues.OptionalInt32(
+                    writer,
+                    7,
+                    frontline.HoldEndsAtTick);
                 break;
             default:
                 throw new InvalidOperationException(

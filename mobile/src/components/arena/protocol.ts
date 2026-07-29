@@ -133,6 +133,10 @@ export type ArenaFrontlineResult = {
     captureProgress: number;
     decayTicksElapsed: number;
     controlResumesAtTick: number;
+    /** Team a live territory-ratchet hold protects; absent before generation 3. */
+    holdOwnerTeamId?: number | null;
+    /** First tick the live hold stops denying regression; absent before generation 3. */
+    holdEndsAtTick?: number | null;
   };
   scores: {
     teamKey: string;
@@ -208,6 +212,10 @@ export type ArenaModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
+      /** Team a live territory-ratchet hold protects; absent before generation 3. */
+      holdOwnerTeamId?: number | null;
+      /** First tick the live hold stops denying regression; absent before generation 3. */
+      holdEndsAtTick?: number | null;
     }
   | {
       kind: string;

@@ -1283,6 +1283,8 @@ test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and
       captureProgress: 0,
       decayTicksElapsed: 0,
       controlResumesAtTick: 0,
+      holdOwnerTeamId: null,
+      holdEndsAtTick: null,
     },
     scores: [
       {
@@ -1777,6 +1779,93 @@ test('replay-v3 accepts every pre-registered pendulum capture policy and rejects
         }),
       ),
     /decayClock: expected one of/,
+  );
+});
+
+test('replay-v3 validates the published ratchet hold against the ratchet contract', () => {
+  const RATCHET =
+    'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+  type FrontlineControl = {
+    holdOwnerTeamId: number | null;
+    holdEndsAtTick: number | null;
+  };
+  // One live hold published on EVERY boundary, which is what a real ratchet
+  // history looks like: the tick-start boundary, the post state, and each
+  // actor's frozen copy all carry the same clocks, so the only thing under
+  // test is whether the contract could have produced them.
+  const held = (
+    mutate: (control: FrontlineControl) => void,
+    ratchet = true,
+  ) => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    if (ratchet) {
+      input.header.contract.rules.gameMode.capture.redeployPolicy = RATCHET;
+      input.header.contract.rules.gameMode.capture.ratchetHoldTicks = 40;
+    }
+    const controls: FrontlineControl[] = [
+      input.initialFrame.state.mode as unknown as FrontlineControl,
+      ...input.ticks.flatMap((tick) => [
+        tick.tickStart.state.mode as unknown as FrontlineControl,
+        tick.postState.mode as unknown as FrontlineControl,
+        ...tick.actorTurns.map(
+          (turn) => turn.observation.mode as unknown as FrontlineControl,
+        ),
+      ]),
+      ...(input.result?.mode.kind === 'frontline'
+        ? [input.result.mode.control as unknown as FrontlineControl]
+        : []),
+    ];
+    for (const control of controls) {
+      control.holdOwnerTeamId = 0;
+      control.holdEndsAtTick = 40;
+      mutate(control);
+    }
+    return input;
+  };
+
+  // The honest shape decodes, and the fields reach the model.
+  const decoded = decodeReplay(held(() => {})).replay;
+  assert.equal(decoded.sourceVersion, 3);
+  const mode = decoded.initialWorld?.mode;
+  assert.equal(mode?.kind, 'frontline');
+  assert.deepEqual(
+    {
+      holdOwnerTeamId: (mode as FrontlineControl).holdOwnerTeamId,
+      holdEndsAtTick: (mode as FrontlineControl).holdEndsAtTick,
+    },
+    { holdOwnerTeamId: 0, holdEndsAtTick: 40 },
+  );
+
+  // Both clocks travel together...
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdEndsAtTick = null; })),
+    /hold owner and expiry must be published together/,
+  );
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdOwnerTeamId = null; })),
+    /hold owner and expiry must be published together/,
+  );
+  // ...the owner is a real scoring team...
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdOwnerTeamId = 7; })),
+    /violates frontline control invariants/,
+  );
+  // ...a published hold still binds, and never outlasts its declared duration...
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdEndsAtTick = 0; })),
+    /violates frontline control invariants/,
+  );
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdEndsAtTick = 42; })),
+    /violates frontline control invariants/,
+  );
+  // ...and only the high-water-mark redeploy policy may publish one at all.
+  assert.throws(
+    () => decodeReplay(held(() => {}, false)),
+    /violates frontline control invariants/,
   );
 });
 

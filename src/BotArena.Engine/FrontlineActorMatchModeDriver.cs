@@ -198,13 +198,7 @@ internal sealed class FrontlineActorMatchModeDriver
 
     private GenericActorRuntimeObservation.ModeObservationState.Frontline
         ProjectControl(FrontlineControlState control) =>
-        new(
-            _gameMode.ModeId,
-            control.ActivePositionIndex,
-            control.ClaimingTeamId,
-            control.CaptureProgress,
-            control.DecayTicksElapsed,
-            control.ControlResumesAtTick);
+        FrontlineControlProjection.Project(_gameMode.ModeId, control);
 
     private static ImmutableArray<GenericActorModeScoreChange> ScoreChanges(
         FrontlineScoreState previous,

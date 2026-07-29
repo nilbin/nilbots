@@ -147,7 +147,9 @@ internal static class GenericActorDynamicTestFixture
                         tilesPerAdvance: 2,
                         ticksUntilAdvance: 1,
                         remainingTiles: 0,
-                        [SelfActor, AllyActor]),
+                        [SelfActor, AllyActor],
+                        ticksPerAdvance: 3,
+                        damagePerHit: 2),
                 ];
 
         return new GenericActorContext(
@@ -246,7 +248,9 @@ internal static class GenericActorDynamicTestFixture
                     claimingTeamId: 0,
                     captureProgress: 3,
                     decayTicksElapsed: 1,
-                    controlResumesAtTick: 12)
+                    controlResumesAtTick: 12,
+                    holdOwnerTeamId: 1,
+                    holdEndsAtTick: 47)
                 : new GenericActorContext.ModeObservationState.Deathmatch(
                     "deathmatch"),
             [

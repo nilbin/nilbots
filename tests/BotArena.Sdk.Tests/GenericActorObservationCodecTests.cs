@@ -91,11 +91,17 @@ public sealed class GenericActorObservationCodecTests
         Assert.Equal(long.MaxValue, projectile.ProjectileId);
         Assert.Null(projectile.OwnerActorId);
         Assert.Equal(0, projectile.RemainingTiles);
+        // The wave-2 "should I eat this?" pair rides the wire as trailing
+        // tags and must survive the round trip exactly (DECISIONS #169).
+        Assert.Equal(3, projectile.TicksPerAdvance);
+        Assert.Equal(2, projectile.DamagePerHit);
 
         var mode = Assert.IsType<
             GenericActorContext.ModeObservationState.Frontline>(decoded.Mode);
         Assert.Equal(2, mode.ActivePositionIndex);
         Assert.Equal(0, mode.ClaimingTeamId);
+        Assert.Equal(1, mode.HoldOwnerTeamId);
+        Assert.Equal(47, mode.HoldEndsAtTick);
         Assert.Equal(
             [0, 99],
             decoded.ActionLegalities.Select(value => value.ActionCode));
@@ -388,7 +394,9 @@ public sealed class GenericActorObservationCodecTests
                 tilesPerAdvance: 1,
                 ticksUntilAdvance: 1,
                 remainingTiles: -1,
-                []));
+                [],
+                ticksPerAdvance: 1,
+                damagePerHit: 1));
     }
 
     [Fact]

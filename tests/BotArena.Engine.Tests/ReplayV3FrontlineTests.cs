@@ -49,6 +49,8 @@ public sealed class ReplayV3FrontlineTests
                 "captureProgress",
                 "decayTicksElapsed",
                 "controlResumesAtTick",
+                "holdOwnerTeamId",
+                "holdEndsAtTick",
             ],
             mode.GetProperty("control")
                 .EnumerateObject()

@@ -879,6 +879,15 @@ export type ReplayModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
+      /**
+       * Team whose advance a live territory-ratchet hold protects, or null
+       * when no hold is live — which includes every ruleset whose redeploy
+       * policy has no ratchet at all. Only the generation-3 contract carries
+       * the fact, so it is absent on replays normalized from older wires.
+       */
+      holdOwnerTeamId?: number | null;
+      /** First tick the live hold stops denying regression; null when none. */
+      holdEndsAtTick?: number | null;
     }
   | {
       kind: string;
@@ -1019,6 +1028,13 @@ export interface ReplayObservedProjectile {
   observedBy: ReplayActorLifeKey[];
   /** Exact authoritative projectile identity in replay-v3. */
   projectileId?: string;
+  /**
+   * Declared tick cadence between advances for the profile that fired this
+   * projectile. Generation-3 observations publish it; older wires do not.
+   */
+  ticksPerAdvance?: number;
+  /** Health one contact removes. Generation-3 observations publish it. */
+  damagePerHit?: number;
 }
 
 export interface ReplayObservedEvent {

@@ -5,6 +5,7 @@ using BotArena.Sdk;
 using ActorIdentity = BotArena.Sdk.ActorIdentity;
 using Direction = BotArena.Sdk.Direction;
 using Position = BotArena.Sdk.Position;
+using ProjectileHeading = BotArena.Sdk.ProjectileHeading;
 
 namespace BotArena.Cli.Tests;
 
@@ -248,12 +249,107 @@ public sealed class ArenaBasicsTemplateTests
     /// the scaffold reads are populated; everything else is the emptiest legal
     /// value, so a test failure points at the helper rather than at scenery.
     /// </summary>
+    /// <summary>
+    /// The scaffold READS the live hold now instead of reconstructing it. Both
+    /// sides of it matter: the owner and the expiry come straight off the
+    /// observation, and the "whose is it" answer — the one that previously had
+    /// no derivation at all — is correct for the team that does NOT own it.
+    /// </summary>
+    [Fact]
+    public void TheScaffoldReadsTheLiveHoldRatherThanInferringIt()
+    {
+        GenericActorResolvedMatchContract contract =
+            Contract(
+                FrontlineLabsPendulumArm.StickyFrontline
+                    | FrontlineLabsPendulumArm.ForwardRally
+                    | FrontlineLabsPendulumArm.ContestMajority
+                    | FrontlineLabsPendulumArm.EnemySoleDecay);
+
+        // This life is team 0; the hold belongs to team 1.
+        ArenaBasics.Hold hostile = Assert.IsType<ArenaBasics.Hold>(
+            ArenaBasics.LiveHold(
+                Observation(
+                    contract,
+                    new Position(3, 7),
+                    activePositionIndex: 2,
+                    holdOwnerTeamId: 1,
+                    holdEndsAtTick: 41)));
+        Assert.Equal(1, hostile.OwnerTeamId);
+        Assert.False(hostile.Mine);
+        Assert.Equal(41, hostile.EndsAtTick);
+        // The observation is built on tick 1.
+        Assert.Equal(40, hostile.RemainingTicks);
+
+        ArenaBasics.Hold own = Assert.IsType<ArenaBasics.Hold>(
+            ArenaBasics.LiveHold(
+                Observation(
+                    contract,
+                    new Position(3, 7),
+                    activePositionIndex: 2,
+                    holdOwnerTeamId: 0,
+                    holdEndsAtTick: 41)));
+        Assert.True(own.Mine);
+
+        // No hold live: the scaffold answers "none" rather than guessing from
+        // front displacement, and the same is true on a contract that declares
+        // no hold at all.
+        Assert.Null(
+            ArenaBasics.LiveHold(
+                Observation(contract, new Position(3, 7), 2)));
+        Assert.Null(
+            ArenaBasics.LiveHold(
+                Observation(
+                    Contract(FrontlineLabsPendulumArm.None),
+                    new Position(3, 7),
+                    2)));
+    }
+
+    /// <summary>
+    /// "Should I eat this?" is now answerable from the bolt: the arrival tick
+    /// comes from the published cadence and the bill from the published damage.
+    /// </summary>
+    [Fact]
+    public void TheScaffoldPricesAnIncomingBoltFromTheBoltItself()
+    {
+        GenericActorResolvedMatchContract contract =
+            Contract(FrontlineLabsPendulumArm.None);
+        var target = new Position(8, 7);
+        var bolt = new GenericActorContext.ObservedProjectile(
+            projectileId: 4,
+            ownerTeamId: 1,
+            ownerActorId: null,
+            new Position(3, 7),
+            ProjectileHeading.East,
+            tilesPerAdvance: 2,
+            ticksUntilAdvance: 1,
+            remainingTiles: 9,
+            [new ActorIdentity(0, 0, 0)],
+            ticksPerAdvance: 3,
+            damagePerHit: 2);
+
+        ArenaBasics.Incoming incoming = Assert.IsType<ArenaBasics.Incoming>(
+            ArenaBasics.Threat(bolt, target));
+        Assert.Equal(5, incoming.Tiles);
+        Assert.Equal(2, incoming.Damage);
+        // Five tiles at two tiles per advance is three advances: the first is
+        // one tick away and each later one costs a full three-tick cadence.
+        Assert.Equal(1 + 2 * 3, incoming.TicksUntilArrival);
+
+        // Off the heading, and beyond the remaining range, are both "no".
+        Assert.Null(ArenaBasics.Threat(bolt, new Position(8, 9)));
+        Assert.Null(ArenaBasics.Threat(bolt, new Position(20, 7)));
+    }
+
     private static GenericActorContext Observation(
         GenericActorResolvedMatchContract contract,
         Position self,
         int activePositionIndex,
         IEnumerable<(Position Position, string FormId)>? allies = null,
-        IEnumerable<(Position Position, string FormId)>? enemies = null)
+        IEnumerable<(Position Position, string FormId)>? enemies = null,
+        int? holdOwnerTeamId = null,
+        int? holdEndsAtTick = null,
+        IEnumerable<GenericActorContext.ObservedProjectile>? projectiles =
+            null)
     {
         var selfId = new ActorIdentity(0, 0, 0);
         int allyUnit = 1;
@@ -316,7 +412,7 @@ public sealed class ArenaBasicsTemplateTests
                     null,
                     [selfId])),
             visibleTiles: [],
-            visibleProjectiles: [],
+            visibleProjectiles: projectiles ?? [],
             visibleEvents: [],
             heardSounds: null,
             new GenericActorContext.ScoreboardState(
@@ -330,7 +426,9 @@ public sealed class ArenaBasicsTemplateTests
                 claimingTeamId: null,
                 captureProgress: 0,
                 decayTicksElapsed: 0,
-                controlResumesAtTick: 0),
+                controlResumesAtTick: 0,
+                holdOwnerTeamId,
+                holdEndsAtTick),
             AllCardinalsLegal(contract))
         {
             Random = new AlwaysFalseRandom(),

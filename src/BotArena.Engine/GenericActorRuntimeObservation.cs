@@ -209,7 +209,9 @@ public sealed record GenericActorRuntimeObservation(
         int TilesPerAdvance,
         int TicksUntilAdvance,
         int RemainingTiles,
-        ImmutableArray<ActorIdentity> ObservedBy);
+        ImmutableArray<ActorIdentity> ObservedBy,
+        int TicksPerAdvance,
+        int DamagePerHit);
 
     public sealed record ObservedSound(
         string EventHandle,
@@ -468,14 +470,25 @@ public sealed record GenericActorRuntimeObservation(
                 int? claimingTeamId,
                 int captureProgress,
                 int decayTicksElapsed,
-                int controlResumesAtTick)
+                int controlResumesAtTick,
+                int? holdOwnerTeamId = null,
+                int? holdEndsAtTick = null)
                 : base(modeId)
             {
+                if ((holdOwnerTeamId is null) != (holdEndsAtTick is null))
+                {
+                    throw new ArgumentException(
+                        "A territory-ratchet hold publishes its owner and its "
+                        + "expiry together or not at all.",
+                        nameof(holdOwnerTeamId));
+                }
                 ActivePositionIndex = activePositionIndex;
                 ClaimingTeamId = claimingTeamId;
                 CaptureProgress = captureProgress;
                 DecayTicksElapsed = decayTicksElapsed;
                 ControlResumesAtTick = controlResumesAtTick;
+                HoldOwnerTeamId = holdOwnerTeamId;
+                HoldEndsAtTick = holdEndsAtTick;
             }
 
             public int ActivePositionIndex { get; }
@@ -483,6 +496,28 @@ public sealed record GenericActorRuntimeObservation(
             public int CaptureProgress { get; }
             public int DecayTicksElapsed { get; }
             public int ControlResumesAtTick { get; }
+
+            /// <summary>
+            /// The team whose completed advance is currently protected by the
+            /// territory ratchet, or null when no hold is live — including
+            /// every ruleset whose redeploy policy has no ratchet at all.
+            /// Published beside <see cref="ControlResumesAtTick"/> because
+            /// both are authoritative control clocks, and published rather
+            /// than inferred because the only derivation available to a bot
+            /// was signed front displacement, which is wrong after the first
+            /// regression and unavailable to a life born inside the hold
+            /// (DECISIONS #168/#169).
+            /// </summary>
+            public int? HoldOwnerTeamId { get; }
+
+            /// <summary>
+            /// The first tick on which the live hold no longer denies enemy
+            /// regression, or null when no hold is live. Same grammar as
+            /// <see cref="ControlResumesAtTick"/>: the clock names the tick
+            /// the restriction lifts, so the hold binds while the observed
+            /// tick is strictly below it.
+            /// </summary>
+            public int? HoldEndsAtTick { get; }
         }
     }
 }

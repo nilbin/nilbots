@@ -1,0 +1,36 @@
+namespace BotArena.Engine;
+
+/// <summary>
+/// The single projection from the kernel's private objective state to the
+/// public Frontline mode observation. Both the live mode driver and the
+/// replay-v3 chronology validator go through here, which is what makes the
+/// validator's re-derivation an actual check rather than a second opinion: a
+/// forged, mis-owned, or mis-expiring hold in a recorded observation cannot
+/// match a projection computed from the authoritative kernel state.
+/// </summary>
+internal static class FrontlineControlProjection
+{
+    public static GenericActorRuntimeObservation.ModeObservationState.Frontline
+        Project(string modeId, FrontlineControlState control)
+    {
+        // The hold is published only while it is LIVE. The kernel keeps the
+        // last protected advance on the state after it lapses (a later advance
+        // replaces it), and denies regression while the acting tick is at or
+        // below HoldsThroughTick — so the observed clock is that tick plus
+        // one, read with the same grammar as ControlResumesAtTick: the tick
+        // the restriction lifts. A ruleset with no ratchet never sets a hold
+        // at all, so both fields stay null for its whole match.
+        bool live = control.RatchetHold is { } hold
+            && control.NextTick <= hold.HoldsThroughTick;
+        return new GenericActorRuntimeObservation.ModeObservationState
+            .Frontline(
+                modeId,
+                control.ActivePositionIndex,
+                control.ClaimingTeamId,
+                control.CaptureProgress,
+                control.DecayTicksElapsed,
+                control.ControlResumesAtTick,
+                live ? control.RatchetHold!.TeamId : null,
+                live ? control.RatchetHold!.HoldsThroughTick + 1 : null);
+    }
+}

@@ -2224,7 +2224,19 @@ public sealed class GenericActorMatchSession : IDisposable
                                     .TilesPerAdvance,
                                 item.projectile.TicksUntilAdvance,
                                 item.projectile.RemainingTiles,
-                                item.observedBy))
+                                item.observedBy,
+                                // Both were already authoritative on the
+                                // firing profile and both were unreadable
+                                // from an observation: the wave-2 forensics
+                                // asked "should I eat this?" and could answer
+                                // neither how fast the bolt closes nor what
+                                // it costs. A volley bolt and a mobile bolt
+                                // can differ in both, so they are per
+                                // projectile rather than per contract.
+                                item.projectile.Profile.Projectile
+                                    .TicksPerAdvance,
+                                item.projectile.Profile.Projectile
+                                    .DamagePerHit))
                     .ToImmutableArray();
 
         var visibleEvents =
