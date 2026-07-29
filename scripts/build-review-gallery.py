@@ -70,6 +70,11 @@ PANEL_TEMPLATE = """
 (function(){
 var SID="__SID__",KEY="nilbots-blind-review::"+SID,
 DIMS=[["fun","Fun to watch"],["clarity","Easy to follow"]];
+// The viewer binds global playback shortcuts (space = play/pause); keys
+// typed into the panel must never reach them.
+["keydown","keyup","keypress"].forEach(function(kind){
+ document.getElementById("brv").addEventListener(kind,function(e){
+  e.stopPropagation()})});
 var data=JSON.parse(localStorage.getItem(KEY)||"{}");
 var rows=document.getElementById("brvrows");
 DIMS.forEach(function(d){

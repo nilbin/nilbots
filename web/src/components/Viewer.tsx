@@ -148,7 +148,14 @@ export default function Viewer({
   useEffect(() => {
     if (isLive) return; // No seeking during a live broadcast — viewers stay synchronized.
     const onKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
       switch (event.key) {
         case ' ':
           event.preventDefault();
