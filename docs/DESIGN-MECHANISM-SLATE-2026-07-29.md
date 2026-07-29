@@ -98,8 +98,12 @@ shared grammar on mobile facing-aimed guns (never on specials).
   beats the covering number). Public windup, then simultaneous
   damage-1 bolts down three adjacent lanes. Tuned as zoning, not a
   wipe: it must *soften* striker-vs-fabricator toward the band, not
-  deepen the game's most lopsided edge. Open question: striker also
-  keeps the deepest curve envelope as heritage.
+  deepen the game's most lopsided edge. **Resolved (owner ruling):
+  striker keeps the deepest curve envelope while every class gains the
+  one-bend grammar on its mobile gun** — identity and option richness,
+  not raw power (the solver's covering-number cap is envelope-
+  invariant). Specials never curve. Universal-vs-striker-only remains
+  a phase-2 factor so the change is measured, not assumed.
   **Volley is a CAST, not a stance (owner ruling).** A parked striker
   firing repeated fans is artillery — the bulwark's fantasy leaking
   into the striker's kit. The prototype implements it on stance
