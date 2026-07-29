@@ -12,7 +12,11 @@ public sealed record MetaResponse(
     string SdkVersion,
     string BuildPipelineVersion,
     string CliVersion,
-    IReadOnlyList<MetaMapResponse> Maps);
+    IReadOnlyList<MetaMapResponse> Maps,
+    IReadOnlyList<MetaBotClassResponse> BotClasses);
+
+/// <summary>One class identity accepted at bot creation and legacy assignment.</summary>
+public sealed record MetaBotClassResponse(string Id);
 
 /// <summary>
 /// One playable arena map as advertised to clients. <see cref="ThemeId"/> is nullable:

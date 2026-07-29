@@ -57,6 +57,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasIndex(b => b.Slug).IsUnique();
             entity.Property(b => b.Name).HasMaxLength(60);
             entity.Property(b => b.Slug).HasMaxLength(80);
+            entity.Property(b => b.ClassId).HasMaxLength(64);
             entity.Property(b => b.Accent).HasMaxLength(16);
             entity.Property(b => b.LookId).HasMaxLength(64);
             entity.Property(b => b.ProjectileLookId).HasMaxLength(64);

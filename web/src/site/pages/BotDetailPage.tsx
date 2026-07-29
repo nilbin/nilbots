@@ -5,6 +5,7 @@ import { botLook, projectileLook } from '../../render/arenaThemes';
 import AppearanceCard from '../components/AppearanceCard';
 import ArenaAction, { type ArenaMode } from '../components/ArenaAction';
 import BotIdentity from '../components/BotIdentity';
+import BotClassCard from '../components/BotClassCard';
 import BotStatisticsPanel from '../components/BotStatisticsPanel';
 import CurrentLadderStanding from '../components/CurrentLadderStanding';
 import LabsPanel from '../components/LabsPanel';
@@ -261,6 +262,7 @@ export default function BotDetailPage() {
             where building happens, so the page's job is to hand you the right command
             for the bot you are looking at rather than to reproduce the CLI in HTML. */}
         <aside className="order-first flex flex-col gap-3.5 min-[900px]:order-none">
+          <BotClassCard bot={bot} botKey={botKey!} />
           {bot.isOwner && <LabsPanel bot={bot} />}
           <WorkOnThisBot isOwner={bot.isOwner} />
         </aside>

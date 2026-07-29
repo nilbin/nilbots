@@ -6,6 +6,13 @@ public class Bot
     public Guid OwnerUserId { get; set; }
     public required string Name { get; set; }
     public required string Slug { get; set; }
+    /// <summary>
+    /// Immutable hosted Frontline class identity. Null is retained for bots created
+    /// before classes became first-class and for intentionally class-agnostic bots.
+    /// Once assigned, this value is authoritative even when submitted code does not
+    /// declare a class in its local manifest.
+    /// </summary>
+    public string? ClassId { get; set; }
     public string Accent { get; set; } = "#22d3ee";
     public string LookId { get; set; } = "vanguard";
     public string ProjectileLookId { get; set; } = "pulse-bolt";

@@ -10,6 +10,7 @@ import {
   type MatchLive,
   type MatchSetDetail,
   type MatchSummary,
+  type AssignBotClassRequest,
   type SubmitVersionRequest,
   type UpdateBotAppearanceRequest,
 } from './api';
@@ -368,6 +369,24 @@ export function useCreateBot() {
       void client.invalidateQueries({ queryKey: keys.myBots });
       void client.invalidateQueries({ queryKey: keys.bots });
       void client.invalidateQueries({ queryKey: keys.arena });
+    },
+  });
+}
+
+/** Class identity is immutable, but its first assignment changes every bot roster view. */
+export function useAssignBotClass(botKey: string, botId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AssignBotClassRequest) =>
+      endpoints.assignBotClass(botId, body),
+    // A 409 can mean another tab won the one-time assignment, so failures refresh too.
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: keys.bot(botKey) });
+      void client.invalidateQueries({ queryKey: keys.bot(botId) });
+      void client.invalidateQueries({ queryKey: keys.myBots });
+      void client.invalidateQueries({ queryKey: keys.bots });
+      void client.invalidateQueries({ queryKey: keys.arena });
+      void client.invalidateQueries({ queryKey: keys.labs });
     },
   });
 }

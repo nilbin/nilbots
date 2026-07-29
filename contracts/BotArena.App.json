@@ -548,6 +548,46 @@
         }
       }
     },
+    "/api/bots/{botId}/class": {
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "botId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignBotClassRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignedBotClass"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/bots/{botId}/build-status": {
       "get": {
         "tags": [
@@ -1320,6 +1360,36 @@
           }
         }
       },
+      "AssignBotClassRequest": {
+        "required": [
+          "classId"
+        ],
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AssignedBotClass": {
+        "required": [
+          "id",
+          "classId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "classId": {
+            "type": "string"
+          }
+        }
+      },
       "AuthProvidersResponse": {
         "required": [
           "google"
@@ -1492,6 +1562,12 @@
             "items": {
               "$ref": "#/components/schemas/BotVersionResponse"
             }
+          },
+          "classId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1756,6 +1832,12 @@
               {
                 "$ref": "#/components/schemas/LadderStanding"
               }
+            ]
+          },
+          "classId": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -2085,6 +2167,12 @@
               "null",
               "string"
             ]
+          },
+          "classId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2123,7 +2211,8 @@
           "slug",
           "accent",
           "lookId",
-          "projectileLookId"
+          "projectileLookId",
+          "classId"
         ],
         "type": "object",
         "properties": {
@@ -2145,6 +2234,12 @@
           },
           "projectileLookId": {
             "type": "string"
+          },
+          "classId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3081,6 +3176,17 @@
           }
         }
       },
+      "MetaBotClassResponse": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      },
       "MetaMapResponse": {
         "required": [
           "id",
@@ -3117,7 +3223,8 @@
           "sdkVersion",
           "buildPipelineVersion",
           "cliVersion",
-          "maps"
+          "maps",
+          "botClasses"
         ],
         "type": "object",
         "properties": {
@@ -3143,6 +3250,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MetaMapResponse"
+            }
+          },
+          "botClasses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetaBotClassResponse"
             }
           }
         }
@@ -3186,6 +3299,12 @@
               {
                 "$ref": "#/components/schemas/MyBotVersionResponse"
               }
+            ]
+          },
+          "classId": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }

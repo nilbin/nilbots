@@ -9,7 +9,8 @@ public sealed record CreateBotCommand(
     string? Name,
     string? Accent,
     string? BotLookId,
-    string? ProjectileLookId);
+    string? ProjectileLookId,
+    string? ClassId = null);
 
 public sealed record CreatedBot(
     Guid Id,
@@ -17,10 +18,12 @@ public sealed record CreatedBot(
     string Slug,
     string Accent,
     string LookId,
-    string ProjectileLookId);
+    string ProjectileLookId,
+    string? ClassId);
 
 public sealed class CreateBotUseCase(
     AppDbContext db,
+    BotClassPolicy classPolicy,
     BotAppearancePolicy appearancePolicy,
     TimeProvider timeProvider,
     ILogger<CreateBotUseCase> logger)
@@ -61,6 +64,11 @@ public sealed class CreateBotUseCase(
                 accountId);
         }
 
+        ApplicationResult<string?> classIdentity =
+            classPolicy.ValidateForCreation(command.ClassId);
+        if (!classIdentity.Succeeded)
+            return Failure(classIdentity.Error!, accountId);
+
         ApplicationResult<BotAppearance> appearance =
             await appearancePolicy.ValidateForCreationAsync(
                 accountId,
@@ -77,6 +85,7 @@ public sealed class CreateBotUseCase(
             OwnerUserId = accountId,
             Name = name,
             Slug = slug,
+            ClassId = classIdentity.Value,
             Accent = value.Accent.Value,
             LookId = value.BotLook.Value,
             ProjectileLookId = value.ProjectileLook.Value,
@@ -102,9 +111,10 @@ public sealed class CreateBotUseCase(
         }
 
         logger.LogInformation(
-            "Bot {BotId} created by account {AccountId} with look {BotLookId} and projectile {ProjectileLookId}",
+            "Bot {BotId} created by account {AccountId} with class {ClassId}, look {BotLookId}, and projectile {ProjectileLookId}",
             bot.Id,
             accountId,
+            bot.ClassId,
             bot.LookId,
             bot.ProjectileLookId);
         ApplicationTelemetry.Record("bots.create", "created", accountId, bot.Id);
@@ -114,7 +124,8 @@ public sealed class CreateBotUseCase(
             bot.Slug,
             bot.Accent,
             bot.LookId,
-            bot.ProjectileLookId));
+            bot.ProjectileLookId,
+            bot.ClassId));
     }
 
     private static string Slugify(string name)
