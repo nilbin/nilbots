@@ -40,6 +40,7 @@ public static class FrontlineLabsExperimentCommand
             "classes",
             "movement",
             "skills",
+            "bend",
             "ignore-declared-classes",
             "print-candidate-contract");
         if (options.ContainsKey("seed") && options.ContainsKey("seeds"))
@@ -209,6 +210,16 @@ public static class FrontlineLabsExperimentCommand
                 + "it needs a class pair: pass --classes <a>-vs-<b> or run "
                 + "two class-declaring projects.");
         }
+        FrontlineLabsBendEnvelopeArm bendEnvelope =
+            OptionalBendEnvelope(options);
+        if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly
+            && classPair is null)
+        {
+            throw new InvalidOperationException(
+                "--bend hands the curve grammar to class chassis, so it "
+                + "needs a class pair: pass --classes <a>-vs-<b> or run two "
+                + "class-declaring projects.");
+        }
         FrontlineLabsSkillKit skills = FrontlineLabsDefinition.EffectiveSkills(
             requestedSkills,
             classPair);
@@ -224,6 +235,7 @@ public static class FrontlineLabsExperimentCommand
             pendulum != FrontlineLabsPendulumArm.None
             || primeRespawnTicks is not null
             || skills != FrontlineLabsSkillKit.None
+            || bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly
             || (captureThreshold is not null
                 && (classPair is not null || standaloneMovementArm));
         bool duelExperiment = oneBendShots
@@ -259,7 +271,8 @@ public static class FrontlineLabsExperimentCommand
                     ?? FrontlineLabsDefinition.DefaultCaptureThreshold,
                 primeRespawnTicks
                     ?? FrontlineLabsDefinition.DefaultPrimeRespawnTicks,
-                skills);
+                skills,
+                bendEnvelope);
         }
         else if (captureThreshold is int threshold)
         {
@@ -354,6 +367,12 @@ public static class FrontlineLabsExperimentCommand
                 "Topology profile:  "
                 + FrontlineLabsDefinition.TopologyProfileIdFor(
                     definition.Topology));
+        }
+        if (bendEnvelope != FrontlineLabsBendEnvelopeArm.StrikerOnly)
+        {
+            Console.WriteLine(
+                "Bend envelope:     universal (every mobile gun bends; the "
+                + "striker keeps the deepest, and specials never curve)");
         }
         Console.WriteLine(
             $"Contract profile:  " +
@@ -656,6 +675,29 @@ public static class FrontlineLabsExperimentCommand
             _ => throw new InvalidOperationException(
                 $"Unknown --movement '{value}' " +
                 "(use preserve-facing, move-sets-facing, or facing-locked)."),
+        };
+    }
+
+    /// <summary>
+    /// Reads the curve-grammar arm. Omitting the option — or naming
+    /// <c>striker-only</c> explicitly — selects today's measured contract and
+    /// adds no ruleset suffix, so every existing arm identity stays byte for
+    /// byte what it was. <c>universal</c> hands every class's mobile gun the
+    /// one-bend grammar at its own declared depth; specials never curve either
+    /// way.
+    /// </summary>
+    private static FrontlineLabsBendEnvelopeArm OptionalBendEnvelope(
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!options.TryGetValue("bend", out string? value))
+            return FrontlineLabsBendEnvelopeArm.StrikerOnly;
+        return value.ToLowerInvariant() switch
+        {
+            "striker-only" => FrontlineLabsBendEnvelopeArm.StrikerOnly,
+            "universal" => FrontlineLabsBendEnvelopeArm.Universal,
+            _ => throw new InvalidOperationException(
+                $"Unknown --bend '{value}' "
+                + "(use striker-only or universal)."),
         };
     }
 

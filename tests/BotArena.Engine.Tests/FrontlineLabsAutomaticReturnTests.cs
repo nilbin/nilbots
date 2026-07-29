@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using BotArena.ActorContracts;
 
 namespace BotArena.Engine.Tests;
 
@@ -401,6 +402,64 @@ public sealed class FrontlineLabsAutomaticReturnTests
         Assert.Contains(
             "could never fire",
             error.Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The canonical half of the mirror set: the trigger is written only where
+    /// it exists, both mirrors read it back, and an explicitly inert encoding
+    /// of "no trigger" is refused as a second spelling of the same contract
+    /// (DECISIONS #156's discipline, the third field to follow it).
+    /// </summary>
+    [Fact]
+    public void TheTriggerIsWrittenOnlyWhereItExistsAndRoundTripsExactly()
+    {
+        ActorResolvedMatchDefinition arm =
+            FrontlineLabsSkillArmTestFixture.Arm(
+                FrontlineLabsClassDefinition.Striker,
+                FrontlineLabsClassDefinition.Striker,
+                FrontlineLabsSkillKit.StrikerVolley);
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Striker,
+                FrontlineLabsClassDefinition.Striker);
+        string canonical =
+            ActorContractManifestSerializer.ToCanonicalJson(arm);
+        string plain =
+            ActorContractManifestSerializer.ToCanonicalJson(baseline);
+
+        // (The lifecycle profile's unrelated automaticReturnFormId is why this
+        // matches the property with its object, not the bare name.)
+        Assert.DoesNotContain(
+            "\"automaticReturn\":{",
+            plain,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "\"automaticReturn\":{\"counter\":"
+            + "\"attacks-issued-since-entering-source-form\","
+            + "\"threshold\":1}",
+            canonical,
+            StringComparison.Ordinal);
+
+        GenericActorCanonicalContractValidation validation =
+            GenericActorCanonicalContractValidator.Validate(canonical);
+        Assert.Equal(arm.Rules.RulesetId, validation.RulesetId);
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMatch(arm),
+            validation.MatchContractFingerprint);
+
+        // A zero threshold is the second encoding of "the engine never fires
+        // this route", and the reader refuses it.
+        string inert = canonical.Replace(
+            "\"threshold\":1}",
+            "\"threshold\":0}",
+            StringComparison.Ordinal);
+        Assert.NotEqual(canonical, inert);
+        Assert.Contains(
+            "automaticReturn",
+            Assert.Throws<FormatException>(() =>
+                    GenericActorCanonicalContractValidator.Validate(inert))
+                .Message,
             StringComparison.Ordinal);
     }
 
