@@ -364,6 +364,10 @@ public sealed class GenericActorMatchSession : IDisposable
             ref contactOrdinal,
             events,
             projectileTransitions);
+        // Counters are final here — the fan has launched and every guard
+        // return has been published — and damage has not landed yet, so a
+        // lethal hit cancels this windup exactly as it cancels a requested one.
+        StartAutomaticReturns(events);
         ImmutableArray<GenericActorModeDamageContact> scoredContacts =
             ApplyDamage(contacts, events);
 
@@ -1355,6 +1359,8 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             life.PendingSameLifeTransition = reservation;
+            life.PendingSameLifeTransitionReason =
+                GenericActorRuntimeObservation.FormTransitionReason.Requested;
             events.Add(EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind
@@ -1363,6 +1369,100 @@ public sealed class GenericActorMatchSession : IDisposable
                 life.Position));
         }
     }
+
+    /// <summary>
+    /// The engine's own same-life cause: a form whose declared automatic
+    /// return has reached its threshold begins that return with no action
+    /// (<see cref="ActorAutomaticReturnTriggerDefinition"/>). It runs after
+    /// every attack, advance, and guard return of this tick — so the counters
+    /// are final — and before damage is applied, so a lethal hit cancels the
+    /// windup through the ordinary destruction path exactly as it cancels a
+    /// requested one. A life already leaving is left alone: an early exit
+    /// below the threshold is the author's to make, and the return it is
+    /// already serving cannot be started twice.
+    /// </summary>
+    private void StartAutomaticReturns(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (LifeState life in _lives.Values
+                     .Where(life =>
+                         life.Health > 0
+                         && life.PendingSameLifeTransition is null)
+                     .OrderBy(life => life.ActorId)
+                     .ToArray())
+        {
+            if (AutomaticReturnRoute(life.FormId) is not
+                    { AutomaticReturn: { } trigger } route
+                || AutomaticReturnCount(life, trigger) < trigger.Threshold)
+            {
+                continue;
+            }
+
+            var request = new ActorSameLifeTransitionRequest(
+                life.ActorId,
+                route.TransitionId,
+                $"automatic-return:{Tick}:{life.ActorId.TeamId}:" +
+                $"{life.ActorId.UnitId}:{life.ActorId.LifeId}:" +
+                $"{route.TransitionId}");
+            ActorSameLifeTransitionQueueOutcome outcome = _sameLife.Queue(
+                Tick,
+                request,
+                SameLifeSnapshot(life));
+            if (outcome.Reservation is not
+                ActorSameLifeTransitionReservation reservation)
+            {
+                // A blocked queue (an illegal completion tile, say) does not
+                // discharge the threshold: the counter still stands, so the
+                // return is retried every tick until it takes. The budget is
+                // a rule, and a rule cannot be waited out.
+                continue;
+            }
+
+            life.PendingSameLifeTransition = reservation;
+            life.PendingSameLifeTransitionReason =
+                GenericActorRuntimeObservation.FormTransitionReason
+                    .AutomaticThresholdReturn;
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted,
+                FormTransitionPayload(
+                    reservation,
+                    GenericActorRuntimeObservation.FormTransitionReason
+                        .AutomaticThresholdReturn),
+                life.Position));
+        }
+    }
+
+    /// <summary>
+    /// The one automatic-return route declared out of a form, or null. The
+    /// rules validator has already refused a second one, so this is exact.
+    /// </summary>
+    private ActorFormTransitionDefinition? AutomaticReturnRoute(
+        string formId) =>
+        _definition.Rules.SameLifeTransitions
+            .OfType<ActorFormTransitionDefinition>()
+            .SingleOrDefault(transition =>
+                transition.AutomaticReturn is not null
+                && string.Equals(
+                    transition.SourceFormId,
+                    formId,
+                    StringComparison.Ordinal));
+
+    private static int AutomaticReturnCount(
+        LifeState life,
+        ActorAutomaticReturnTriggerDefinition trigger) =>
+        trigger.Counter switch
+        {
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .AttacksIssuedSinceEnteringSourceForm =>
+                life.AttacksIssuedInForm,
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .ProjectilesDeflectedSinceEnteringSourceForm =>
+                life.ProjectilesDeflectedInForm,
+            _ => throw new NotSupportedException(
+                "The automatic return counts an unsupported fact."),
+        };
 
     private void CompleteDueSameLifeTransitions(
         ActorTransitionWindupDefinition.ActorTransitionCompletionKind
@@ -1398,13 +1498,20 @@ public sealed class GenericActorMatchSession : IDisposable
                 completion.State
                 ?? throw new InvalidOperationException(
                     "A completed same-life transition has no state.");
-            life.FormId = state.FormId;
+            // EnterForm, not an assignment: arriving in a form restarts its
+            // automatic-return counters, so a second stance entry within one
+            // life starts its budget over instead of returning on entry.
+            life.EnterForm(state.FormId);
             life.Position = state.Position;
             life.Facing = state.Facing;
             life.Health = state.Health;
             life.Cooldown = state.Cooldown;
             life.Energy = state.Energy;
+            GenericActorRuntimeObservation.FormTransitionReason reason =
+                life.PendingSameLifeTransitionReason;
             life.PendingSameLifeTransition = null;
+            life.PendingSameLifeTransitionReason =
+                GenericActorRuntimeObservation.FormTransitionReason.Requested;
             life.HasPriorSameLifeTransition = true;
             if (SameLifeTransition(reservation).IrreversibleForLife)
             {
@@ -1415,7 +1522,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 Tick,
                 GenericActorRuntimeObservation.EventKind
                     .FormTransitionCompleted,
-                FormTransitionPayload(reservation),
+                FormTransitionPayload(reservation, reason),
                 life.Position));
         }
     }
@@ -1480,6 +1587,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 profile,
                 resolution.ValidatedAction);
             resolution.SuccessfulAttack = true;
+            // The cast counter: one ACTION is one count whatever its declared
+            // projectile count, so a three-bolt fan is one cast rather than
+            // three (ActorAutomaticReturnTriggerDefinition).
+            shooter.CountAttackIssued();
 
             // One successful attack action issues the profile's declared
             // projectile count. Each bolt is an ordinary projectile with its
@@ -2957,6 +3068,10 @@ public sealed class GenericActorMatchSession : IDisposable
         ICollection<PendingDeflection> deflections)
     {
         long deflectedId = checked(_nextProjectileId++);
+        // The shield-break counter, counted where the deflection is published
+        // so that every deflection this tick — several may land at once — is
+        // already in the total when the automatic return is evaluated.
+        target.CountProjectileDeflected();
         events.Add(EmitSpatial(
             Tick,
             GenericActorRuntimeObservation.EventKind.ProjectileDeflected,
@@ -3351,11 +3466,15 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             return;
         }
+        GenericActorRuntimeObservation.FormTransitionReason reason =
+            life.PendingSameLifeTransitionReason;
         life.PendingSameLifeTransition = null;
+        life.PendingSameLifeTransitionReason =
+            GenericActorRuntimeObservation.FormTransitionReason.Requested;
         events.Add(EmitSpatial(
             Tick,
             GenericActorRuntimeObservation.EventKind.FormTransitionCancelled,
-            FormTransitionPayload(reservation),
+            FormTransitionPayload(reservation, reason),
             life.Position));
     }
 
@@ -3637,7 +3756,10 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private static GenericActorRuntimeObservation.EventPayload.FormTransition
         FormTransitionPayload(
-            ActorSameLifeTransitionReservation reservation) =>
+            ActorSameLifeTransitionReservation reservation,
+            GenericActorRuntimeObservation.FormTransitionReason reason =
+                GenericActorRuntimeObservation.FormTransitionReason
+                    .Requested) =>
         new(
             reservation.SourceActorId,
             reservation.TransitionId,
@@ -3645,7 +3767,8 @@ public sealed class GenericActorMatchSession : IDisposable
             reservation.SourceFormId,
             reservation.TargetFormId,
             reservation.StartedTick,
-            reservation.DueTick);
+            reservation.DueTick,
+            reason);
 
     private static SplitReplicationReservedDescendant? SplitTarget(
         SplitReplicationReservation reservation) =>
@@ -4097,6 +4220,40 @@ public sealed class GenericActorMatchSession : IDisposable
         public ActorSameLifeTransitionReservation?
             PendingSameLifeTransition
         { get; set; }
+
+        /// <summary>
+        /// Why <see cref="PendingSameLifeTransition"/> exists. The stance
+        /// return route serves both the author's early exit and the engine's
+        /// threshold return, so the cause has to be remembered rather than
+        /// re-derived, and every event about this instance repeats it.
+        /// </summary>
+        public GenericActorRuntimeObservation.FormTransitionReason
+            PendingSameLifeTransitionReason
+        { get; set; }
+
+        /// <summary>
+        /// Automatic-return counters, scoped to the current occupancy of this
+        /// life's form. They live on the life, so nothing survives a respawn,
+        /// and <see cref="EnterForm"/> clears them, so nothing survives a
+        /// stance cycle either.
+        /// </summary>
+        public int AttacksIssuedInForm { get; private set; }
+
+        public int ProjectilesDeflectedInForm { get; private set; }
+
+        public void CountAttackIssued() => AttacksIssuedInForm++;
+
+        public void CountProjectileDeflected() =>
+            ProjectilesDeflectedInForm++;
+
+        /// <summary>Adopts a new form and restarts its trigger counters.</summary>
+        public void EnterForm(string formId)
+        {
+            FormId = formId;
+            AttacksIssuedInForm = 0;
+            ProjectilesDeflectedInForm = 0;
+        }
+
         public bool HasPriorSameLifeTransition { get; set; }
         public HashSet<string> IrreversibleReturnFormIds { get; } =
             new(StringComparer.Ordinal);

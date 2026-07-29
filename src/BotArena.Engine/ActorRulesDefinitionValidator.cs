@@ -900,6 +900,7 @@ public static class ActorRulesDefinitionValidator
         List<string> errors)
     {
         var routeCounts = new Dictionary<(string Source, string Action), int>();
+        var automaticReturnSources = new HashSet<string>(StringComparer.Ordinal);
         foreach (ActorSameLifeTransitionDefinition? transition in transitions)
         {
             if (transition is null)
@@ -947,6 +948,19 @@ public static class ActorRulesDefinitionValidator
                     "exactly FormTarget.");
             }
 
+            if (transition is ActorFormTransitionDefinition
+                {
+                    AutomaticReturn: { } trigger,
+                } automatic)
+            {
+                ValidateAutomaticReturn(
+                    automatic,
+                    trigger,
+                    formsById,
+                    automaticReturnSources,
+                    errors);
+            }
+
             var route = (
                 transition.SourceFormId,
                 transition.ActionId,
@@ -980,6 +994,53 @@ public static class ActorRulesDefinitionValidator
                 $"Parameterless same-life action '{actionId}' on form " +
                 $"'{source}' resolves {routeCount} targets; it must declare " +
                 "exactly FormTarget.");
+        }
+    }
+
+    /// <summary>
+    /// An automatic return has to be unambiguous and countable: one source
+    /// form may declare at most one, and the counter it names must be a fact
+    /// that form can actually produce. A shell that cannot deflect would never
+    /// leave; a stance that cannot attack would never cast.
+    /// </summary>
+    private static void ValidateAutomaticReturn(
+        ActorFormTransitionDefinition transition,
+        ActorAutomaticReturnTriggerDefinition trigger,
+        IReadOnlyDictionary<string, ActorFormDefinition> formsById,
+        HashSet<string> automaticReturnSources,
+        List<string> errors)
+    {
+        if (!automaticReturnSources.Add(transition.SourceFormId))
+        {
+            errors.Add(
+                $"Form '{transition.SourceFormId}' declares more than one " +
+                "automatic-return route; the engine's actionless choice must " +
+                "resolve to exactly one.");
+        }
+        if (!formsById.TryGetValue(
+                transition.SourceFormId,
+                out ActorFormDefinition? source))
+        {
+            return;
+        }
+
+        bool countable = trigger.Counter switch
+        {
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .AttacksIssuedSinceEnteringSourceForm =>
+                source.AttackProfileId is not null,
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .ProjectilesDeflectedSinceEnteringSourceForm =>
+                source.ProjectileGuard != ActorFormProjectileGuardKind.None,
+            _ => false,
+        };
+        if (!countable)
+        {
+            errors.Add(
+                $"Same-life transition '{transition.TransitionId}' counts " +
+                $"'{ActorContractCanonicalIds.Id(trigger.Counter)}' on form " +
+                $"'{transition.SourceFormId}', which can never produce that " +
+                "fact, so the automatic return could never fire.");
         }
     }
 

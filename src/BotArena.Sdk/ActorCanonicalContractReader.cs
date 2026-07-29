@@ -1387,19 +1387,29 @@ public static class ActorCanonicalContractReader
         if (kind != "form-transition")
             throw Unsupported("sameLifeTransitions[].kind", kind);
 
+        // Additive and omitted while inert, exactly like the form's projectile
+        // guard: a route the engine never fires by itself carries no trigger,
+        // so the key is spliced in only when it is actually present and every
+        // pre-existing contract keeps its fingerprint.
+        bool hasAutomaticReturn = element.TryGetProperty(
+            "automaticReturn",
+            out JsonElement automaticReturn);
         ExactObject(
             element,
-            "kind",
-            "transitionId",
-            "actionId",
-            "sourceFormId",
-            "targetFormId",
-            "windup",
-            "memoryContinuity",
-            "health",
-            "combatState",
-            "placement",
-            "irreversibleForLife");
+            [
+                "kind",
+                "transitionId",
+                "actionId",
+                "sourceFormId",
+                "targetFormId",
+                "windup",
+                "memoryContinuity",
+                "health",
+                "combatState",
+                "placement",
+                "irreversibleForLife",
+                .. hasAutomaticReturn ? new[] { "automaticReturn" } : [],
+            ]);
         return new RulesContract.FormTransition(
             Id(element, "transitionId"),
             Id(element, "actionId"),
@@ -1410,7 +1420,33 @@ public static class ActorCanonicalContractReader
             ReadSameLifeHealth(Property(element, "health")),
             ReadSameLifeCombatState(Property(element, "combatState")),
             ReadSameLifePlacement(Property(element, "placement")),
-            Bool(element, "irreversibleForLife"));
+            Bool(element, "irreversibleForLife"),
+            hasAutomaticReturn
+                ? ReadAutomaticReturn(automaticReturn)
+                : null);
+    }
+
+    private static RulesContract.AutomaticReturnTrigger ReadAutomaticReturn(
+        JsonElement element)
+    {
+        ExactObject(element, "counter", "threshold");
+        string counter = Semantic(element, "counter");
+        if (counter is not "attacks-issued-since-entering-source-form"
+            and not "projectiles-deflected-since-entering-source-form")
+        {
+            throw Unsupported(
+                "sameLifeTransitions[].automaticReturn.counter",
+                counter);
+        }
+        int threshold = Int(element, "threshold");
+        if (threshold < 1)
+        {
+            throw new FormatException(
+                "A canonical route omits automaticReturn when the engine "
+                + "never fires it; a non-positive threshold is a second "
+                + $"encoding of the same contract (read {threshold}).");
+        }
+        return new RulesContract.AutomaticReturnTrigger(counter, threshold);
     }
 
     private static RulesContract.TransitionWindup ReadWindup(

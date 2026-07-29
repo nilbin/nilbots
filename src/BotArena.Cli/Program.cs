@@ -241,6 +241,7 @@ static int CommandHelp(string command)
                    [--movement preserve-facing|move-sets-facing|facing-locked]
                    [--pendulum control|ratchet|ratchet-contest|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
                    [--skills none|kit|volley|shell|five-slots]
+                   [--bend striker-only|universal]
                    [--prime-respawn-ticks <positive-n>]
                    [--print-candidate-contract]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
@@ -323,6 +324,20 @@ static int CommandHelp(string command)
             its own topology profile and fingerprint. Skills compose with
             --classes, --movement, --pendulum, the numbers-only factors, and
             --duel-map, subject to the 64-character canonical ID budget.
+            Both stances spend a declared budget and then return by
+            themselves: the volley returns the tick its fan launches (one cast
+            per entry, so a parked striker cannot become artillery), and the
+            shell shatters on its third deflection. Leaving earlier is still
+            yours to do through the parameterless mobilize; leaving later is
+            not. Read the budget from the return route's automaticReturn.
+            --bend selects the curve grammar. striker-only (the default) is
+            today's contract: only a chassis declaring shot programs bends.
+            universal hands every class's mobile gun the one-bend grammar at
+            its own depth — the striker keeps 1-4 tiles, the classes that gain
+            it here get 1-2 — moving those guns from shoot-straight to shoot
+            with an optional payload. Specials never curve: a volley profile
+            refuses programmed shots and turret guns stay straight. It needs a
+            class pair and composes like the other factors.
             --prime-respawn-ticks retunes the Prime automatic-return delay
             (18 by default); with --capture-threshold it is the numbers-only
             factor level. Both compose with --pendulum, --skills, --classes,

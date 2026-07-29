@@ -350,7 +350,7 @@ public sealed class FrontlineLabsStrikerVolleyTests
                 FrontlineLabsClassDefinition.Striker);
 
         Assert.Equal(
-            "frontline-labs-1-striker-vs-striker-fan",
+            "frontline-labs-1-striker-vs-striker-cast",
             arm.Rules.RulesetId);
         Assert.True(arm.Rules.RulesetId.Length <= 64);
         Assert.NotEqual(

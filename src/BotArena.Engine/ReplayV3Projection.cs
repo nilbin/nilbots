@@ -745,7 +745,8 @@ internal static class ReplayV3Projection
                     payload.FromFormId,
                     payload.ToFormId,
                     payload.StartedTick,
-                    payload.DueTick),
+                    payload.DueTick,
+                    FormTransitionReason(payload.Reason)),
             GenericActorRuntimeObservation.EventPayload.ScoreChanged
                 payload =>
                 new ReplayV3.EventPayload.ScoreChanged(
@@ -1126,6 +1127,21 @@ internal static class ReplayV3Projection
                 "replication",
             GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
                 "automatic-activation",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    /// <summary>
+    /// Null for the inert cause, so the canonical document omits the property
+    /// and every replay written before automatic returns keeps its bytes.
+    /// </summary>
+    private static string? FormTransitionReason(
+        GenericActorRuntimeObservation.FormTransitionReason value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.FormTransitionReason.Requested =>
+                null,
+            GenericActorRuntimeObservation.FormTransitionReason
+                .AutomaticThresholdReturn => "automatic-threshold-return",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 

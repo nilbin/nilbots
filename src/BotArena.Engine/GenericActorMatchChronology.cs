@@ -56,6 +56,10 @@ public sealed record GenericActorMatchChronology
             descriptor.Definition,
             tickSnapshot,
             nameof(ticks));
+        ValidateAutomaticReturnEvidence(
+            descriptor.Definition,
+            tickSnapshot,
+            nameof(ticks));
         if (descriptor.Definition.Rules.GameMode
             is FrontlineGameModeDefinition)
         {
@@ -261,6 +265,400 @@ public sealed record GenericActorMatchChronology
                 frame,
                 parameterName);
         }
+    }
+
+    /// <summary>
+    /// The third causality fact the class-skill kit introduced, and the one
+    /// with no action behind it: a form may declare that the engine starts its
+    /// return route by itself once a typed counter reaches a threshold
+    /// (<see cref="ActorAutomaticReturnTriggerDefinition"/>). A validator that
+    /// reasonably assumed every same-life start was requested now has to
+    /// accept a second cause — and refuse three ways of faking it.
+    ///
+    /// * **Forged** — a start claiming the automatic cause on a route that
+    ///   declares no trigger, or before its count is actually reached.
+    /// * **Suppressed** — a life that reached the threshold, could have
+    ///   queued, and simply stayed. The budget is a rule; it cannot be waited
+    ///   out, and this is the whole point of the mechanism.
+    /// * **Mislabelled** — a completion or cancellation whose cause disagrees
+    ///   with the start it consumes. One instance, one cause.
+    ///
+    /// A manual exit BELOW the threshold stays entirely legal: leaving early
+    /// is the author's choice and the same route serves it.
+    /// </summary>
+    private static void ValidateAutomaticReturnEvidence(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        string parameterName)
+    {
+        Dictionary<string, ActorFormTransitionDefinition> routes =
+            definition.Rules.SameLifeTransitions
+                .OfType<ActorFormTransitionDefinition>()
+                .Where(transition => transition.AutomaticReturn is not null)
+                .ToDictionary(
+                    transition => transition.SourceFormId,
+                    StringComparer.Ordinal);
+        if (routes.Count == 0)
+        {
+            // No contract in this match can produce the fact, so any claim of
+            // it is a forgery — cheap to check and worth checking.
+            foreach (GenericActorMatchTickFrame frame in ticks)
+            {
+                if (AutomaticStarts(frame).Length != 0)
+                {
+                    throw new ArgumentException(
+                        "An automatic-return start requires a route that declares the trigger.",
+                        parameterName);
+                }
+            }
+            return;
+        }
+
+        var walk = new Dictionary<ActorIdentity, AutomaticReturnCounts>();
+        var automaticPending = new HashSet<ActorIdentity>();
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            // Lives already leaving at the boundary are exempt for the whole
+            // tick: the engine never queues a second route over a pending one,
+            // and the return they are serving is the one that matters.
+            HashSet<ActorIdentity> leaving =
+            [
+                .. frame.TickStart.State.ActiveLives
+                    .Where(life => life.PendingSameLifeTransition is not null)
+                    .Select(life => life.ActorId),
+            ];
+            SeedForms(frame, walk);
+            Dictionary<ActorIdentity, AutomaticReturnCounts> frameStart =
+                walk.ToDictionary(entry => entry.Key, entry => entry.Value);
+            var owed =
+                new Dictionary<ActorIdentity, ActorFormTransitionDefinition>();
+
+            foreach (GenericActorAuthoritativeEvent item in frame.TickStart
+                         .Events
+                         .Concat(frame.Events)
+                         .OrderBy(item => item.Tick)
+                         .ThenBy(item => item.Ordinal))
+            {
+                ApplyAutomaticReturnEvent(
+                    item,
+                    routes,
+                    walk,
+                    automaticPending,
+                    leaving,
+                    owed,
+                    frameStart,
+                    parameterName);
+            }
+
+            ValidateNoSuppressedAutomaticReturn(
+                definition,
+                owed,
+                frame,
+                parameterName);
+        }
+    }
+
+    /// <summary>
+    /// Records the form each life is standing in at the tick boundary, for
+    /// every life the walk has not seen yet. Afterwards the walk owns the form
+    /// itself, because a completed transition both moves the life and restarts
+    /// its counters.
+    /// </summary>
+    private static void SeedForms(
+        GenericActorMatchTickFrame frame,
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk)
+    {
+        foreach (GenericActorWorldSnapshot.LifeSnapshot life in
+                 frame.TickStart.State.ActiveLives)
+        {
+            if (!walk.ContainsKey(life.ActorId))
+                walk[life.ActorId] = new AutomaticReturnCounts(life.FormId);
+        }
+    }
+
+    /// <summary>
+    /// One event's effect on the automatic-return bookkeeping. Counters are
+    /// cumulative since the life entered its current form, so a completed
+    /// transition clears them: a second stance entry starts its budget over
+    /// rather than returning on arrival.
+    /// </summary>
+    private static void ApplyAutomaticReturnEvent(
+        GenericActorAuthoritativeEvent item,
+        IReadOnlyDictionary<string, ActorFormTransitionDefinition> routes,
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk,
+        ISet<ActorIdentity> automaticPending,
+        ISet<ActorIdentity> leaving,
+        IDictionary<ActorIdentity, ActorFormTransitionDefinition> owed,
+        IReadOnlyDictionary<ActorIdentity, AutomaticReturnCounts> frameStart,
+        string parameterName)
+    {
+        switch (item.Payload)
+        {
+            case GenericActorRuntimeObservation.EventPayload.Attack attack:
+                // One action is one cast whatever its projectile count, and a
+                // life acts at most once per tick, so a volley's three bolts
+                // advance the counter exactly once.
+                Bump(
+                    attack.ActorId,
+                    value => value.WithAttackOn(item.Tick),
+                    routes,
+                    walk,
+                    leaving,
+                    owed);
+                return;
+            case GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+                deflected:
+                Bump(
+                    deflected.TargetActorId,
+                    value => value.WithDeflection(),
+                    routes,
+                    walk,
+                    leaving,
+                    owed);
+                return;
+            case GenericActorRuntimeObservation.EventPayload.FormTransition:
+                break;
+            default:
+                return;
+        }
+
+        var transition =
+            (GenericActorRuntimeObservation.EventPayload.FormTransition)
+            item.Payload;
+        bool automatic = transition.Reason
+            == GenericActorRuntimeObservation.FormTransitionReason
+                .AutomaticThresholdReturn;
+        switch (item.Kind)
+        {
+            case GenericActorRuntimeObservation.EventKind
+                .FormTransitionStarted:
+                if (automatic)
+                {
+                    ValidateAutomaticReturnStart(
+                        transition,
+                        routes,
+                        Count(walk, transition.ActorId),
+                        frameStart.TryGetValue(
+                            transition.ActorId,
+                            out AutomaticReturnCounts before)
+                            ? before
+                            : default,
+                        parameterName);
+                    automaticPending.Add(transition.ActorId);
+                    owed.Remove(transition.ActorId);
+                }
+                else
+                {
+                    automaticPending.Remove(transition.ActorId);
+                }
+                // A requested start ordered BEFORE the crossing is the engine's
+                // own phase order — same-life starts resolve ahead of attacks
+                // and projectile advance — so the life was already leaving when
+                // the threshold arrived. A requested start ordered AFTER it is
+                // an automatic return wearing the wrong cause, and stays owed.
+                leaving.Add(transition.ActorId);
+                return;
+            case GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted:
+            case GenericActorRuntimeObservation.EventKind
+                .FormTransitionCancelled:
+                if (automatic != automaticPending.Contains(transition.ActorId))
+                {
+                    throw new ArgumentException(
+                        "A same-life completion or cancellation must report the same cause as the start it consumes.",
+                        parameterName);
+                }
+                automaticPending.Remove(transition.ActorId);
+                if (item.Kind
+                    == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted)
+                {
+                    walk[transition.ActorId] =
+                        new AutomaticReturnCounts(transition.ToFormId);
+                    leaving.Remove(transition.ActorId);
+                }
+                return;
+            default:
+                return;
+        }
+    }
+
+    /// <summary>
+    /// Advances one counter and, if that is the moment its form's declared
+    /// threshold is reached, records that this life now owes a return.
+    /// </summary>
+    private static void Bump(
+        ActorIdentity actorId,
+        Func<AutomaticReturnCounts, AutomaticReturnCounts> advance,
+        IReadOnlyDictionary<string, ActorFormTransitionDefinition> routes,
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk,
+        ISet<ActorIdentity> leaving,
+        IDictionary<ActorIdentity, ActorFormTransitionDefinition> owed)
+    {
+        AutomaticReturnCounts before = Count(walk, actorId);
+        AutomaticReturnCounts after = advance(before);
+        walk[actorId] = after;
+        if (leaving.Contains(actorId)
+            || !routes.TryGetValue(
+                after.FormId,
+                out ActorFormTransitionDefinition? route)
+            || route.AutomaticReturn is not { } trigger
+            || before.Of(trigger.Counter) >= trigger.Threshold
+            || after.Of(trigger.Counter) < trigger.Threshold)
+        {
+            return;
+        }
+        owed[actorId] = route;
+    }
+
+    private static void ValidateAutomaticReturnStart(
+        GenericActorRuntimeObservation.EventPayload.FormTransition transition,
+        IReadOnlyDictionary<string, ActorFormTransitionDefinition> routes,
+        AutomaticReturnCounts current,
+        AutomaticReturnCounts beforeThisTick,
+        string parameterName)
+    {
+        if (!routes.TryGetValue(
+                transition.FromFormId,
+                out ActorFormTransitionDefinition? route)
+            || route.AutomaticReturn is not { } trigger
+            || !string.Equals(
+                route.TransitionId,
+                transition.TransitionId,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "An automatic-return start must name the exact route its source form declares.",
+                parameterName);
+        }
+        if (current.Of(trigger.Counter) < trigger.Threshold
+            || beforeThisTick.Of(trigger.Counter) >= trigger.Threshold)
+        {
+            throw new ArgumentException(
+                "An automatic return must start on the exact tick its declared counter first reaches the threshold.",
+                parameterName);
+        }
+    }
+
+    /// <summary>
+    /// A life that earned its return this tick, was not already leaving, and
+    /// survived must be leaving by the end of it. The one honest exception is
+    /// a route the kernel itself would have refused to queue, so the placement
+    /// is re-evaluated here rather than assumed legal.
+    /// </summary>
+    private static void ValidateNoSuppressedAutomaticReturn(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyDictionary<ActorIdentity, ActorFormTransitionDefinition> owed,
+        GenericActorMatchTickFrame frame,
+        string parameterName)
+    {
+        if (owed.Count == 0)
+            return;
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            survivors = frame.PostState.ActiveLives.ToDictionary(
+                life => life.ActorId);
+        foreach ((ActorIdentity actorId, ActorFormTransitionDefinition route)
+                 in owed)
+        {
+            // A life that died owes nothing, and neither does one whose route
+            // the kernel itself would have refused to queue — the placement is
+            // re-evaluated rather than assumed legal. Everything else earned
+            // its return this tick and did not start one, whether it stayed
+            // put or left under a cause it did not have.
+            if (!survivors.TryGetValue(
+                    actorId,
+                    out GenericActorWorldSnapshot.LifeSnapshot? life)
+                || !AutomaticReturnPlacementIsLegal(
+                    definition,
+                    life.Position,
+                    route.Placement))
+            {
+                continue;
+            }
+
+            throw new ArgumentException(
+                "A life whose automatic-return threshold is reached must be leaving; the budget is not waitable.",
+                parameterName);
+        }
+    }
+
+    private static bool AutomaticReturnPlacementIsLegal(
+        ActorResolvedMatchDefinition definition,
+        Position position,
+        ActorSameLifePlacementDefinition placement)
+    {
+        if (definition.Map.IsWall(position))
+            return false;
+        HashSet<ActorMapTileTagDefinition.TileTagKind> actual =
+            definition.Map.TileTags
+                .Where(tag => tag.Tiles.Contains(position))
+                .Select(tag => tag.Kind)
+                .ToHashSet();
+        return placement.RequiredTileTags.All(actual.Contains)
+            && !placement.ForbiddenTileTags.Any(actual.Contains);
+    }
+
+    private static GenericActorAuthoritativeEvent[] AutomaticStarts(
+        GenericActorMatchTickFrame frame) =>
+        [
+            .. frame.TickStart.Events
+                .Concat(frame.Events)
+                .Where(item =>
+                    item.Payload is GenericActorRuntimeObservation.EventPayload
+                            .FormTransition { Reason:
+                                GenericActorRuntimeObservation
+                                    .FormTransitionReason
+                                    .AutomaticThresholdReturn }),
+        ];
+
+    private static AutomaticReturnCounts Count(
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk,
+        ActorIdentity actorId) =>
+        walk.TryGetValue(actorId, out AutomaticReturnCounts value)
+            ? value
+            : default;
+
+    /// <summary>
+    /// Automatic-return counters as the chronology re-derives them from the
+    /// recorded facts alone, scoped to the form the life currently stands in.
+    /// <see cref="LastAttackTick"/> makes the attack counter idempotent within
+    /// a tick, so a volley's bolts cannot inflate a cast count the engine only
+    /// ever advances once per action.
+    /// </summary>
+    private readonly record struct AutomaticReturnCounts(
+        string FormId,
+        int Attacks,
+        int Deflections,
+        int LastAttackTick)
+    {
+        public AutomaticReturnCounts(string formId)
+            : this(formId, 0, 0, -1)
+        {
+        }
+
+        public AutomaticReturnCounts WithAttackOn(int tick) =>
+            LastAttackTick == tick
+                ? this
+                : this with { Attacks = Attacks + 1, LastAttackTick = tick };
+
+        public AutomaticReturnCounts WithDeflection() =>
+            this with { Deflections = Deflections + 1 };
+
+        public int Of(
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                counter) =>
+            counter switch
+            {
+                ActorAutomaticReturnTriggerDefinition
+                    .AutomaticReturnCounterKind
+                    .AttacksIssuedSinceEnteringSourceForm => Attacks,
+                ActorAutomaticReturnTriggerDefinition
+                    .AutomaticReturnCounterKind
+                    .ProjectilesDeflectedSinceEnteringSourceForm =>
+                    Deflections,
+                _ => throw new NotSupportedException(
+                    "The automatic return counts an unsupported fact."),
+            };
     }
 
     private static void ValidateVolleyEvidence(

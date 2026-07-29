@@ -246,7 +246,7 @@ public sealed class FrontlineLabsAegisShellTests
                 FrontlineLabsClassDefinition.Bulwark);
 
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-bulwark-parry",
+            "frontline-labs-1-bulwark-vs-bulwark-break",
             arm.Rules.RulesetId);
         Assert.True(arm.Rules.RulesetId.Length <= 64);
         Assert.NotEqual(

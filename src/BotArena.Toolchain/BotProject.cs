@@ -61,13 +61,20 @@ public static class ToolchainInfo
     /// DEFLECTION on owner ruling: the guard returns a team-flipped bolt along
     /// the reversed heading, the observed event becomes projectile-deflected
     /// and names both bolts, the stance's arc locks on entry, and the arm is
-    /// identified `parry`. 0.9.11 is presentation only: the packaged replay
-    /// viewer's camera follows the active lives instead of framing the whole
-    /// map forever, and a life arriving — fabrication, automatic return,
-    /// automatic activation — materializes instead of appearing. No engine,
-    /// replay schema, SDK/Guest, or player artifact bytes change; it is
-    /// carried here because the viewer is part of the CLI compatibility
-    /// surface. Keep in lockstep with BotArena.Cli.csproj's
+    /// identified `parry`. 0.9.11 makes the kit adoption-grade and follows
+    /// the fight: one threshold-triggered automatic return serves both
+    /// stances (VOLLEY after one fan, AEGIS SHELL after three deflections),
+    /// so a form-transition event now carries its cause and a same-life
+    /// route may declare an automatic-return trigger — both omitted while
+    /// inert, so player artifact bytes and cache keys are unchanged; the
+    /// two stance arms are reidentified `cast` and `break` because their
+    /// behaviour changed, and `--bend universal` hands every class's mobile
+    /// gun the one-bend grammar at its own depth. The same version carries
+    /// the packaged viewer's camera (follows the active lives, with manual
+    /// override and a fit toggle) and arrival materialization for
+    /// fabrication, automatic return, and automatic activation — viewer
+    /// changes ride the CLI compatibility surface. Keep in lockstep with
+    /// BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.11";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).

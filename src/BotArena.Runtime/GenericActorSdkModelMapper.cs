@@ -314,7 +314,10 @@ internal static class GenericActorSdkModelMapper
                     payload.FromFormId,
                     payload.ToFormId,
                     payload.StartedTick,
-                    payload.DueTick),
+                    payload.DueTick,
+                    payload.Reason
+                        == GenericActorRuntimeObservation
+                            .FormTransitionReason.AutomaticThresholdReturn),
             GenericActorRuntimeObservation.EventPayload.ScoreChanged payload =>
                 new Sdk.GenericActorContext.EventPayload.ScoreChanged(
                     payload.TeamId,

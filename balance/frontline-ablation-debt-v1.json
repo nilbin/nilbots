@@ -47,22 +47,22 @@
     {
       "id": "movement-facing-coupling",
       "status": "open",
-      "currentInterpretation": "Schema-3 movement is facing-decoupled (any cardinal step without turning) by architectural declaration, with no DECISIONS entry and no measurement — while the duel-game record convicted exactly this mechanic: DECISIONS #49 held strafe for oscillation-dodging and +80% game length, and the 0.5 record calls it the dodge-everything regression. The wave-1 factorial's dominant standoff-kiting doctrine and 500-tick draws are consistent with that verdict. Every exact-analysis and qualification layer currently assumes free lateral movement.",
+      "currentInterpretation": "Schema-3 movement is facing-decoupled (any cardinal step without turning) by architectural declaration, with no DECISIONS entry and no measurement \u2014 while the duel-game record convicted exactly this mechanic: DECISIONS #49 held strafe for oscillation-dodging and +80% game length, and the 0.5 record calls it the dodge-everything regression. The wave-1 factorial's dominant standoff-kiting doctrine and 500-tick draws are consistent with that verdict. Every exact-analysis and qualification layer currently assumes free lateral movement.",
       "requiredIsolation": "Pre-register facing-coupled movement arms (first candidate: move sets facing to the movement direction, rotate remains for free aim) as typed engine additions, run the same-population A/B against the current model, and recompute the exact duel analysis and evade probes under the winning model before any promotion.",
       "requiredBefore": "internal-pilot"
     },
     {
       "id": "striker-volley-composite",
       "status": "open",
-      "currentInterpretation": "The volley arm bundles three factors in one flag: a reversible immobile stance route, a three-lane simultaneous fan, and a slower stance cadence. A measured effect cannot be attributed to width, to the commitment window, or to the tempo trade on its own.",
-      "requiredIsolation": "Compare the stance with an ordinary single-bolt gun at the same cadence against the same stance with the fan, then vary cooldown alone, as separately fingerprinted arms on the same population.",
+      "currentInterpretation": "The volley arm bundles four factors in one flag: a reversible immobile stance route, a three-lane simultaneous fan, a slower stance cadence, and \u2014 since adoption \u2014 the threshold-triggered automatic return that makes one entry buy exactly one fan. A measured effect cannot be attributed to width, to the commitment window, to the tempo trade, or to the enforced single cast on its own.",
+      "requiredIsolation": "Compare the stance with an ordinary single-bolt gun at the same cadence against the same stance with the fan, then vary cooldown alone, then run the fan WITHOUT the automatic return (etiquette-driven exits) as a separately fingerprinted arm \u2014 the prototype's own behaviour \u2014 so the cast rule's contribution is measured rather than assumed.",
       "requiredBefore": "internal-pilot"
     },
     {
       "id": "aegis-shell-composite",
       "status": "open",
-      "currentInterpretation": "The shell arm bundles the facing-arc projectile guard with the form's price (immobile, gunless, objective weight retained) and with the reversible two-windup cycle. A blunted striker edge could come from the guard, from the retained scoring presence, or from the cycle's readability.",
-      "requiredIsolation": "Run the same stance without the guard, and the guard on a stance that forfeits objective weight, as separate arms; then vary entry/exit windups independently. Flank-approach share must be reported per arm since the guard's value is entirely positional.",
+      "currentInterpretation": "The shell arm bundles the facing-arc projectile guard, the deflected return bolt, the form's price (immobile, gunless, arc locked on entry, objective weight retained), the reversible two-windup cycle, and \u2014 since adoption \u2014 the three-deflection shield break. A blunted striker edge could come from the guard, from the ownership flip, from the retained scoring presence, from the cycle's readability, or from the budget that ends it.",
+      "requiredIsolation": "Run the same stance without the guard, and the guard on a stance that forfeits objective weight, as separate arms; vary entry/exit windups independently; and vary the shield-break threshold (including an unbounded shell) as its own level, since the budget is what converts the stance from an off-switch into a tempo tax. Flank-approach share must be reported per arm since the guard's value is entirely positional.",
       "requiredBefore": "internal-pilot"
     },
     {
@@ -71,6 +71,20 @@
       "currentInterpretation": "The five-slot arm bundles slot COUNT (three to five) with an unlock schedule (300/420, continuing the class cadence) and a slower rebuild clock (30 rather than 15) for the extra slots. It also changes topology, so it is not fingerprint-comparable to any three-slot arm on topology alone.",
       "requiredIsolation": "Vary the extra slots' unlock ticks and rebuild delay separately at a fixed count of five, and compare against a four-slot arm, to separate arithmetic out-bodying from schedule. The treadmill metrics that convicted SURGE are the pass/fail gate for the rebuild factor.",
       "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "automatic-return-primitive",
+      "status": "open",
+      "currentInterpretation": "One threshold-triggered automatic return serves both stances (volley fires-count 1, shell deflections-count 3), which is deliberate mechanism economy but makes the two skills share a factor. An effect attributed to 'the cast rule' and one attributed to 'the shield break' are the same primitive at two thresholds on two counters, so a result on one arm is weak evidence about the other.",
+      "requiredIsolation": "Report the counter and threshold per arm, and vary threshold as its own registered level on at least one stance before generalising any finding about automatic returns. The prototype arms (fan/parry, no automatic return) are the control level and remain reachable only by re-authoring, so schedule that comparison rather than assuming it.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "bend-envelope-universality",
+      "status": "open",
+      "currentInterpretation": "The universal-bend arm changes two things at once for a class that gains the grammar: it acquires curved shots AT ALL, and its mobile gun moves from the parameterless shoot-straight action to the payload-bearing shoot action. A change in that class's win rate could be the trajectory option or the action-catalog change a contract-driven bot has to notice.",
+      "requiredIsolation": "Depth is already separable \u2014 the striker keeps 1-4 and the gaining classes get 1-2 \u2014 so run a third level that grants the shoot action with an envelope of exactly one legal bend distance, isolating grammar from catalog. Report the share of shots that actually carry a non-zero bend count per class, since the skill-shot forensics measured most bends as too short to read.",
+      "requiredBefore": "phase-2-verdict"
     }
   ]
 }

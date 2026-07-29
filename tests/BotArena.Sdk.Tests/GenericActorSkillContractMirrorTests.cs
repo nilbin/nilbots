@@ -53,6 +53,69 @@ public sealed class GenericActorSkillContractMirrorTests
         Assert.Equal(source.SourceOrdinal, decoded.SourceOrdinal);
     }
 
+    /// <summary>
+    /// The automatic return's cause is additive on the wire: an artifact
+    /// compiled before it existed writes no field, so the inert cause is
+    /// encoded by absence and an explicit false is refused as a second
+    /// encoding of the same event.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AFormTransitionCarriesItsCauseOverTheWire(bool automatic)
+    {
+        var payload =
+            new GenericActorContext.EventPayload.FormTransition(
+                new ActorIdentity(1, 0, 2),
+                "unstance-striker-prime",
+                "automatic-return:31:1:0:2:unstance-striker-prime",
+                "striker-prime-volley-stance",
+                "striker-prime",
+                startedTick: 31,
+                dueTick: 31,
+                automatic);
+        var source = new GenericActorContext.ObservedEvent(
+            "event:31:9",
+            sourceTick: 31,
+            sourceOrdinal: 9,
+            GenericActorContext.EventKind.FormTransitionStarted,
+            payload,
+            [new ActorIdentity(1, 0, 2)]);
+
+        byte[] encoded = GenericActorWireEventCodec.EncodeEvent(source);
+        GenericActorContext.ObservedEvent decoded =
+            GenericActorWireEventCodec.DecodeEvent(encoded, depth: 0);
+        var round =
+            Assert.IsType<GenericActorContext.EventPayload.FormTransition>(
+                decoded.Payload);
+
+        Assert.Equal(automatic, round.Automatic);
+        Assert.Equal(payload, round);
+        // Absence is the inert encoding: the requested form is strictly the
+        // shorter of the two, which is what makes it byte-compatible with
+        // every artifact compiled before the cause existed.
+        Assert.Equal(
+            automatic,
+            encoded.Length > RequestedTransitionByteCount());
+    }
+
+    private static int RequestedTransitionByteCount() =>
+        GenericActorWireEventCodec.EncodeEvent(
+            new GenericActorContext.ObservedEvent(
+                "event:31:9",
+                sourceTick: 31,
+                sourceOrdinal: 9,
+                GenericActorContext.EventKind.FormTransitionStarted,
+                new GenericActorContext.EventPayload.FormTransition(
+                    new ActorIdentity(1, 0, 2),
+                    "unstance-striker-prime",
+                    "automatic-return:31:1:0:2:unstance-striker-prime",
+                    "striker-prime-volley-stance",
+                    "striker-prime",
+                    startedTick: 31,
+                    dueTick: 31),
+                [new ActorIdentity(1, 0, 2)])).Length;
+
     [Fact]
     public void ADeflectionPayloadOnlyFitsItsOwnEventKind()
     {

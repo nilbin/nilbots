@@ -1792,6 +1792,13 @@ public sealed record GenericActorContext
             /// <param name="toFormId">Target form.</param>
             /// <param name="startedTick">Tick on which the operation was accepted.</param>
             /// <param name="dueTick">Scheduled completion tick.</param>
+            /// <param name="automatic">
+            /// True when the engine started this route with no action because
+            /// the source form's declared counter reached its threshold — the
+            /// stance's own budget spending itself. False when an action
+            /// requested it, which is every transition on a contract that
+            /// declares no automatic return.
+            /// </param>
             public FormTransition(
                 ActorIdentity actorId,
                 string transitionId,
@@ -1799,7 +1806,8 @@ public sealed record GenericActorContext
                 string fromFormId,
                 string toFormId,
                 int startedTick,
-                int dueTick)
+                int dueTick,
+                bool automatic = false)
             {
                 ArgumentNullException.ThrowIfNull(actorId);
                 if (startedTick < 0)
@@ -1825,10 +1833,16 @@ public sealed record GenericActorContext
                     nameof(toFormId));
                 StartedTick = startedTick;
                 DueTick = dueTick;
+                Automatic = automatic;
             }
 
             /// <summary>Life retaining identity through the transition.</summary>
             public ActorIdentity ActorId { get; }
+            /// <summary>
+            /// Whether the engine started this route on its own because the
+            /// source form's automatic-return threshold was reached.
+            /// </summary>
+            public bool Automatic { get; }
             /// <summary>Static transition catalog identifier.</summary>
             public string TransitionId { get; }
             /// <summary>Unique operation occurrence handle.</summary>

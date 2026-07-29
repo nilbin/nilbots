@@ -479,6 +479,13 @@ internal sealed record ReplayV3(
             int? DueTick,
             string? CancellationReason) : EventPayload("lifecycle");
 
+        /// <summary>
+        /// <paramref name="Reason"/> is null for a requested transition and
+        /// omitted from the canonical document, so every replay written
+        /// before automatic returns existed stays byte-identical; a reader
+        /// refuses an explicitly-inert <c>"requested"</c> as a second
+        /// encoding (DECISIONS #156's additive discipline).
+        /// </summary>
         internal sealed record FormTransition(
             ActorId ActorId,
             string TransitionId,
@@ -486,7 +493,8 @@ internal sealed record ReplayV3(
             string FromFormId,
             string ToFormId,
             int StartedTick,
-            int DueTick) : EventPayload("form-transition");
+            int DueTick,
+            string? Reason = null) : EventPayload("form-transition");
 
         internal sealed record ScoreChanged(
             int TeamId,

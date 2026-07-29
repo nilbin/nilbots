@@ -88,7 +88,7 @@ public sealed class FrontlineLabsSkillArmTests
                     | FrontlineLabsSkillKit.BulwarkAegisShell);
 
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-fan-parry",
+            "frontline-labs-1-bulwark-vs-striker-cast-break",
             kit.Rules.RulesetId);
         Assert.Equal(subset.Rules.RulesetId, kit.Rules.RulesetId);
         Assert.Equal(
@@ -287,7 +287,7 @@ public sealed class FrontlineLabsSkillArmTests
                 skills: FrontlineLabsSkillKit.BulwarkAegisShell);
 
         Assert.Equal(
-            "frontline-labs-1-bulwark-vs-striker-contest-parry",
+            "frontline-labs-1-bulwark-vs-striker-contest-break",
             cell.Rules.RulesetId);
         Assert.Equal(
             FrontlineLabsDefinition.RatchetHoldTicksDefault,

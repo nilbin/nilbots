@@ -915,6 +915,39 @@ function validateContract(
       );
     }
   });
+  array(
+    rules.sameLifeTransitions,
+    `${path}.rules.sameLifeTransitions`,
+    fail,
+  ).forEach((entry, index) => {
+    const routePath = `${path}.rules.sameLifeTransitions[${index}]`;
+    const routeValue = object(entry, routePath, fail);
+    if (!own(routeValue, 'automaticReturn')) {
+      return;
+    }
+    const triggerPath = `${routePath}.automaticReturn`;
+    const trigger = exact(
+      routeValue.automaticReturn,
+      triggerPath,
+      ['counter', 'threshold'],
+      fail,
+    );
+    if (
+      ![
+        'attacks-issued-since-entering-source-form',
+        'projectiles-deflected-since-entering-source-form',
+      ].includes(String(trigger.counter))
+    ) {
+      fail(`${triggerPath}.counter`, 'is not a known automatic-return counter');
+    }
+    integer(trigger.threshold, `${triggerPath}.threshold`, fail);
+    if ((trigger.threshold as number) < 1) {
+      fail(
+        `${triggerPath}.threshold`,
+        'must be omitted instead of emitted inert',
+      );
+    }
+  });
 
   const map = exact(
     contract.map,
@@ -2033,6 +2066,10 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       return;
     }
     case 'form-transition': {
+      // The cause is additive and omitted while inert: absent means the
+      // author requested it, so an explicit 'requested' is refused as a
+      // second encoding of the same history.
+      const hasReason = own(base, 'reason');
       const item = exact(
         base,
         path,
@@ -2045,6 +2082,7 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
           'toFormId',
           'startedTick',
           'dueTick',
+          ...(hasReason ? ['reason'] : []),
         ],
         fail,
       );
@@ -2059,6 +2097,9 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       }
       integer(item.startedTick, `${path}.startedTick`, fail);
       integer(item.dueTick, `${path}.dueTick`, fail);
+      if (hasReason && item.reason !== 'automatic-threshold-return') {
+        fail(`${path}.reason`, 'must be omitted instead of emitted inert');
+      }
       return;
     }
     case 'score-changed': {

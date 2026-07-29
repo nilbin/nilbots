@@ -129,6 +129,12 @@ internal static class ActorContractCanonicalIds
         ActorAttackVolleyDefinition.IdentityOrderKind
                 .ContiguousAscendingInLaunchOrder =>
             "contiguous-ascending-in-launch-order",
+        ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .AttacksIssuedSinceEnteringSourceForm =>
+            "attacks-issued-since-entering-source-form",
+        ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .ProjectilesDeflectedSinceEnteringSourceForm =>
+            "projectiles-deflected-since-entering-source-form",
         ActorMapRegionDefinition.RegionKind.Objective => "objective",
         ActorMapRegionDefinition.RegionKind.TransitionPlacement =>
             "transition-placement",

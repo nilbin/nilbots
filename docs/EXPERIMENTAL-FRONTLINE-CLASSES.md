@@ -21,7 +21,7 @@ recognizes the opposing class and adapts instead of hard-coding.
 | Mobile vision | facing quadrant, range 6 | omnidirectional, range 4 | facing quadrant, range 6 |
 | Fire cooldown | 2 | 3 | 2 |
 | Projectile range | 8 | 6 | 7 |
-| Other fire | — | straight only (`shoot-straight`) | straight only (`shoot-straight`) |
+| Other fire | — | straight only (`shoot-straight`), or one bend after 1–2 tiles under `--bend universal` | straight only (`shoot-straight`), or one bend after 1–2 tiles under `--bend universal` |
 | Turret forms | — | HP 7; **its own gun: travel 8, cooldown 1, eight headings** (not the mobile gun); windup **3** (prime) / **1** (child) | — |
 | Companions | automatic at 120 / 260, auto-rebuild 30 | automatic at 120 / 260, auto-rebuild 30 | **explicit** at 60 / 180, Ready again after 15 |
 
@@ -68,6 +68,9 @@ catalog, routes, and legality masks; never assume your class's shape.
   generalize to classes that do not exist yet.
 - If your forms allow `shoot`, you have the one-bend envelope; if they allow
   `shoot-straight`, the action takes no payload and fires along your facing.
+  **Read the envelope, do not assume it** — `shotProgram.maxBendAfterTiles`
+  differs by class in a universal-bend arm (see below), and a program outside
+  the declared bounds is rejected.
 - Companion timing comes from your slots' lifecycle assignments — do not
   hard-code 120/260.
 - Movement-coupling arms declare `facingCoupling` on your form's movement
@@ -136,29 +139,60 @@ nilbots experiment frontline-labs \
 
 `--skills` adds the pre-registered class-skill kit
 (`docs/DESIGN-MECHANISM-SLATE-2026-07-29.md`) on top of any class pair,
-`--movement` arm, `--pendulum` level, and `--duel-map`. **Each skill is owned
-by exactly one class**, so a cell carries only the skills whose owning class is
-actually in it: `--skills kit` on `bulwark-vs-striker` resolves to
-volley + shell and yields `frontline-labs-1-bulwark-vs-striker-fan-parry`. The
-ruleset ID names exactly what resolved, by behaviour rather than by silhouette
-— the shell's token is `parry` because the stance returns fire. Nothing about
-the classes you already know changes; what changes is what your class can do.
+`--movement` arm, `--pendulum` level, `--bend` envelope, and `--duel-map`.
+**Each skill is owned by exactly one class**, so a cell carries only the skills
+whose owning class is actually in it: `--skills kit` on `bulwark-vs-striker`
+resolves to volley + shell and yields
+`frontline-labs-1-bulwark-vs-striker-cast-break`. The ruleset ID names exactly
+what resolved, by behaviour rather than by silhouette, and it is reminted
+whenever the behaviour changes — the volley that fires once and is returned is
+`cast`, and the shell that shatters on its third deflection is `break`. Nothing
+about the classes you already know changes; what changes is what your class can
+do.
 
 | token | owner | what appears in the contract | what it means on the board |
 | --- | --- | --- | --- |
 | `none` (default) | — | nothing | today's measured baseline |
-| `volley` | striker | `striker-prime-volley-stance` / `striker-child-volley-stance` forms, the `striker-volley` attack profile with `volley.projectileCount = 3`, `volley-striker-*` / `unstance-striker-*` routes | windup **2** into an immobile stance whose gun fires **three simultaneous damage-1 bolts** — your facing lane and both adjacent 45-degree headings — straight only, on cooldown **5** against the mobile gun's 2. Objective weight stays **1**. Windup **1** back out, and the cycle repeats. |
-| `shell` | bulwark | `bulwark-prime-aegis-shell` / `bulwark-child-aegis-shell` forms carrying `projectileGuard`, `shell-bulwark-*` / `unstance-bulwark-*` routes | windup **1** into a stance that **deflects enemy bolts arriving inside its facing quadrant**: the incoming bolt dies on the arc and a **new bolt launches from the shell's tile along the exactly reversed heading, owned by the bulwark's team** — so poking a shell head-on shoots yourself. Flank and rear contacts hurt normally. The shell cannot move, shoot, **or rotate** — the protected quadrant is chosen before the shield rises; objective weight stays **1**, so it still holds ground. Windup **1** back out; tenure is not clock-limited, it is priced by what the form cannot do. |
+| `volley` | striker | `striker-prime-volley-stance` / `striker-child-volley-stance` forms, the `striker-volley` attack profile with `volley.projectileCount = 3`, `volley-striker-*` / `unstance-striker-*` routes, and `automaticReturn` on the return route | windup **2** into an immobile stance whose gun fires **three simultaneous damage-1 bolts** — your facing lane and both adjacent 45-degree headings — straight only. **Firing returns you.** The fan launches and the return begins on that same tick, so one entry buys exactly one cast: enter, aim by rotating, shoot. There is no exit to author, and a parked striker cannot become artillery. Objective weight stays **1** throughout. |
+| `shell` | bulwark | `bulwark-prime-aegis-shell` / `bulwark-child-aegis-shell` forms carrying `projectileGuard`, `shell-bulwark-*` / `unstance-bulwark-*` routes, and `automaticReturn` on the return route | windup **1** into a stance that **deflects enemy bolts arriving inside its facing quadrant**: the incoming bolt dies on the arc and a **new bolt launches from the shell's tile along the exactly reversed heading, owned by the bulwark's team** — so poking a shell head-on shoots yourself. Flank and rear contacts hurt normally. The shell cannot move, shoot, **or rotate** — the protected quadrant is chosen before the shield rises; objective weight stays **1**, so it still holds ground. **The shield breaks on its third deflection**: the third bolt shatters it into a forced return, and the punish window is the exit plus a fresh entry windup. |
 | `five-slots` | fabricator | five `unitSlots` for each fabricator team, the `fabricator-late-child-ready` lifecycle profile, a new topology profile and fingerprint (`…-asymmetric-slots-5-3-v1` against another class, `…-five-slots-v1` in a fabricator mirror) | the fabricator fields **prime plus four children**; a non-fabricator opponent keeps three. The extra two unlock at **300** and **420** (continuing the class's own 120-tick cadence 60/180/300/420) and rebuild on a **30**-tick clock instead of 15 — more bodies, deliberately not faster bodies. |
 | `kit` | — | all three, filtered to the cell's classes | the whole slate at once |
+
+### Every stance spends a budget, and the rule spends it for you
+
+Both stances declare **how much they are worth** and leave when it is gone.
+That is contract data, not etiquette: the return route carries
+
+```json
+"automaticReturn": { "counter": "…", "threshold": N }
+```
+
+with `counter` either `attacks-issued-since-entering-source-form` (the volley,
+threshold **1**) or `projectiles-deflected-since-entering-source-form` (the
+shell, threshold **3**). The property is **absent** on every route the engine
+never fires by itself — canonical contracts omit inert fields — so read it as
+"missing means this stance has no budget".
+
+- The counter starts at zero when you enter the form and never survives it. A
+  second entry starts a fresh budget; a respawn obviously does too.
+- The engine begins the return on the exact tick the counter reaches the
+  threshold, spending the same exit windup your own `mobilize` would.
+- **Leaving early is still yours.** A `mobilize` below the threshold is a
+  perfectly ordinary decision — cast nothing and walk away, or drop the shield
+  after one deflection. Leaving *late* is what no longer exists.
+- The form-transition events for an engine-started return carry
+  `reason: "automatic-threshold-return"`; a requested one omits the property.
+  You can read it on an enemy too: a shell that just broke is a shell you can
+  punish, and its return is public with a start and a completion tick.
 
 Reading it from the contract, without hard-coding:
 
 - A stance is an ordinary same-life route. Read `sameLifeTransitions` for its
-  source form, target form, windup, and reversibility, and read the
-  `transform` legality mask for the target forms you may enter this tick. The
-  return is the parameterless `mobilize` — one route per stance form, exactly
-  like turrets.
+  source form, target form, windup, reversibility, and any `automaticReturn`
+  budget, and read the `transform` legality mask for the target forms you may
+  enter this tick. The return is the parameterless `mobilize` — one route per
+  stance form, exactly like turrets — and it is also the route the engine
+  fires for you when the budget runs out.
 - **The volley is public data, not a surprise.** Your form's attack profile
   carries `volley: { projectileCount, spread, identityOrder }`. The field is
   **absent** on every ordinary gun — canonical contracts omit inert defaults —
@@ -187,4 +221,26 @@ nilbots experiment frontline-labs \
   --bot <generic-spec> --opponent <generic-spec> \
   --classes bulwark-vs-striker --skills kit \
   --seed 42 --runtime wasm --out /tmp/skills
+```
+
+## The curve grammar is its own factor
+
+`--bend` decides who may bend a shot. It composes with everything above and
+needs a class pair, because the grammar is handed to class chassis.
+
+| token | what appears in the contract | what it means on the board |
+| --- | --- | --- |
+| `striker-only` (default) | nothing | today's measured baseline: only a chassis that declares shot programs bends, and everyone else fires the parameterless `shoot-straight` |
+| `universal` | every class's mobile gun gets `shotProgram.enabled` and the `shoot` action; the ruleset gains a `-bend` token | **every class's mobile gun bends once**, at its own depth: the striker keeps **1–4** tiles, bulwark and fabricator get **1–2**. Their forms move from `shoot-straight` to `shoot`, whose payload stays optional, so a straight shot is still one decision |
+
+**Specials never curve, in either arm.** The volley fan is straight by
+construction — an attack profile carrying a `volley` refuses programmed shots
+outright — and turret guns keep their absolute eight-way `shoot-direction`.
+If you want a curve, it comes from your mobile gun.
+
+```bash
+nilbots experiment frontline-labs \
+  --bot <generic-spec> --opponent <generic-spec> \
+  --classes bulwark-vs-striker --skills kit --bend universal \
+  --seed 42 --runtime wasm --out /tmp/kit
 ```

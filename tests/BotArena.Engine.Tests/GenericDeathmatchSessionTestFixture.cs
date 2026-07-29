@@ -41,6 +41,21 @@ internal static class GenericDeathmatchSessionTestFixture
         public bool ForbidWestSpawn { get; init; }
         public bool IrreversibleForLife { get; init; } = true;
         public bool IncludeReverseRoute { get; init; }
+
+        /// <summary>
+        /// Declared on the reverse route, so the target form returns by itself
+        /// once the counter is spent. Null keeps the fixture's historical
+        /// contract exactly as it was.
+        /// </summary>
+        public ActorAutomaticReturnTriggerDefinition? ReverseAutomaticReturn
+        { get; init; }
+
+        /// <summary>
+        /// Windup on the reverse route. Longer than one tick makes the return
+        /// a windup a lethal hit can cancel, which is how the automatic cause
+        /// is shown to obey exactly the rules the requested one does.
+        /// </summary>
+        public int ReverseDurationTicks { get; init; } = 1;
     }
 
     public static ActorResolvedMatchDefinition Definition(
@@ -933,7 +948,7 @@ internal static class GenericDeathmatchSessionTestFixture
                         anchored.Id,
                         mobile.Id,
                         new ActorTransitionWindupDefinition(
-                            durationTicks: 1,
+                            transitionOptions.ReverseDurationTicks,
                             ActorTransitionWindupDefinition
                                 .PendingActionKind.WaitOnly,
                             ActorTransitionWindupDefinition.SourceFormKind
@@ -967,7 +982,8 @@ internal static class GenericDeathmatchSessionTestFixture
                             ActorSameLifePlacementDefinition
                                 .FailedCompletionKind
                                 .CancelAndRemainInSourceForm),
-                        irreversibleForLife: false),
+                        irreversibleForLife: false,
+                        transitionOptions.ReverseAutomaticReturn),
                 ]
                 : [transition];
         var rules = new ActorRulesDefinition(

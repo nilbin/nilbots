@@ -818,6 +818,13 @@ public sealed class GenericActorRulesContract
     /// <param name="CombatState">Cooldown and energy continuity.</param>
     /// <param name="Placement">Completion placement and tile legality.</param>
     /// <param name="IrreversibleForLife">Whether the life can later reverse this change.</param>
+    /// <param name="AutomaticReturn">
+    /// When present, the engine also starts this route with no action the tick
+    /// a counter scoped to <paramref name="SourceFormId"/> reaches its
+    /// threshold — the stance budget as a rule rather than a convention. Null
+    /// on every route the engine never fires by itself; canonical contracts
+    /// omit the property entirely rather than encoding the inert case.
+    /// </param>
     public sealed record FormTransition(
         string TransitionId,
         string ActionId,
@@ -828,11 +835,31 @@ public sealed class GenericActorRulesContract
         SameLifeHealth Health,
         SameLifeCombatState CombatState,
         SameLifePlacement Placement,
-        bool IrreversibleForLife)
+        bool IrreversibleForLife,
+        AutomaticReturnTrigger? AutomaticReturn = null)
         : SameLifeTransition(
             SameLifeTransitionKind.FormTransition,
             TransitionId,
             ActionId);
+
+    /// <summary>
+    /// The actionless cause of a same-life return: when the counter reaches
+    /// the threshold the engine begins the route itself, and the matching
+    /// form-transition events carry the reason
+    /// <c>automatic-threshold-return</c>. Leaving before the threshold stays
+    /// the author's choice through the route's ordinary action; staying past
+    /// it is not possible.
+    /// </summary>
+    /// <param name="Counter">
+    /// Semantic ID of the counted fact —
+    /// <c>attacks-issued-since-entering-source-form</c> or
+    /// <c>projectiles-deflected-since-entering-source-form</c>. Every counter
+    /// restarts when the life enters the source form and never survives it.
+    /// </param>
+    /// <param name="Threshold">Count at which the return begins; at least one.</param>
+    public sealed record AutomaticReturnTrigger(
+        string Counter,
+        int Threshold);
 
     /// <summary>Windup timing, visibility, cancellation, and placement semantics.</summary>
     /// <param name="DurationTicks">Ticks from acceptance to scheduled completion.</param>
