@@ -3112,6 +3112,33 @@ also attack the covering number and the eviction problem; (c) the
 numbers-only lethality/respawn arm runs as the control factor in the
 same factorial. Split remains parked; energy remains closed.
 
+## 159. Strafe is dead; facing-locked is the presumptive coupling, preserve-facing demoted to experimental control
+
+The owner has ruled free-direction movement out on identity grounds,
+twice, the second time blind: "a bot shouldn't be able to move north if
+it's facing east" (#155's reopening) and "strafing just doesn't feel
+right" written on a preserve-facing sample the owner could not identify
+(`BLIND-REVIEW-MOVEMENT-FACTORIAL-2026-07-29.md`). The wave-2 factorial
+was therefore always deciding *which* coupling, not *whether*.
+`move-sets-facing` is dropped as dominated (worst dullness metrics in
+the dynamics forensics; not the assumed midpoint — it taxes the wall's
+rotations while leaving one-action dodges intact, #157). That leaves
+**facing-locked as the only ship candidate**: best class balance
+(spread halved, holdout-replicated), no measured blind-viewing penalty,
+and it abolishes the strafe-dance outright.
+
+`preserve-facing` remains in the phase-2 skills factorial strictly as a
+**measurement control** — it isolates the skill kit's effect from the
+coupling's and anchors the bend-legibility comparison — not as a
+candidate. The remaining ship gate is confirmation, not selection:
+facing-locked must pass the phase-2 do-no-harm gates (cap share, wait
+share, leader-extends) and the watchability gate under the new kit,
+whose pieces were chosen compatible with it (a committed charge is
+coherent under locked and reads as a super-strafe under preserve; the
+dodge tax that halved class spread is unchanged). If facing-locked
+fails those gates the question reopens explicitly rather than falling
+back to strafe by default.
+
 ## Deferred decisions
 
 - Numeric limits for submissions (archive size, file counts) — Phase 3.
