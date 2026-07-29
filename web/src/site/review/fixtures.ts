@@ -146,6 +146,11 @@ export const metaFixture = {
     { id: 'bastion-01', width: 24, height: 18, themeId: 'control-room' },
     { id: 'gallery-01', width: 24, height: 18, themeId: 'frost-relay' },
   ],
+  botClasses: [
+    { id: 'striker' },
+    { id: 'bulwark' },
+    { id: 'fabricator' },
+  ],
 } satisfies Meta;
 
 export const currentLeaderboardEntries = [
@@ -243,6 +248,7 @@ export const botsFixture = [
     accent: '#7dd3fc',
     lookId: 'aureate-warden',
     projectileLookId: 'pulse-bolt',
+    classId: 'bulwark',
     createdAt: '2026-06-01T00:00:00Z',
     versionCount: 4,
     ratings: [{ rulesVersion: '0.5', rating: 1341, rankedSets: 14 }],
@@ -271,6 +277,7 @@ export const botsFixture = [
     accent: '#ef4444',
     lookId: 'bulwark',
     projectileLookId: 'pulse-bolt',
+    classId: 'bulwark',
     createdAt: '2026-05-24T00:00:00Z',
     versionCount: 5,
     ratings: [{ rulesVersion: '0.5', rating: 1309, rankedSets: 12 }],
@@ -296,6 +303,7 @@ export const botsFixture = [
     accent: '#22d3ee',
     lookId: 'vanguard',
     projectileLookId: 'pulse-bolt',
+    classId: 'striker',
     createdAt: '2026-05-11T00:00:00Z',
     versionCount: 10,
     ratings: [{ rulesVersion: '0.5', rating: 1284, rankedSets: 11 }],
@@ -482,6 +490,7 @@ export const myBotsFixture = [
     accent: '#22d3ee',
     lookId: 'vanguard',
     projectileLookId: 'pulse-bolt',
+    classId: 'striker',
     latestVersion: {
       versionNumber: 10,
       status: 'Built',
@@ -495,6 +504,7 @@ export const myBotsFixture = [
     accent: '#f5a623',
     lookId: 'mantis',
     projectileLookId: 'pulse-bolt',
+    classId: null,
     latestVersion: {
       versionNumber: 3,
       status: 'Built',
@@ -532,6 +542,7 @@ export const botDetailFixture = {
   accent: '#22d3ee',
   lookId: 'vanguard',
   projectileLookId: 'pulse-bolt',
+  classId: 'striker',
   createdAt: '2026-05-11T00:00:00Z',
   isOwner: true,
   currentStanding: pincerStanding,
@@ -591,6 +602,7 @@ function detailFromSummary(bot: BotSummary): BotDetail {
     accent: bot.accent,
     lookId: bot.lookId,
     projectileLookId: bot.projectileLookId,
+    classId: bot.classId ?? null,
     createdAt: bot.createdAt,
     isOwner: bot.owner === meFixture.displayName,
     currentStanding: bot.currentStanding ?? null,

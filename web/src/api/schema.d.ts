@@ -860,6 +860,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bots/{botId}/class": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    botId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssignBotClassRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignedBotClass"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bots/{botId}/build-status": {
         parameters: {
             query?: never;
@@ -1643,6 +1684,14 @@ export interface components {
             gamesPerMatch: number;
             defaultMapId: string;
         };
+        AssignBotClassRequest: {
+            classId: null | string;
+        };
+        AssignedBotClass: {
+            /** Format: uuid */
+            id: string;
+            classId: string;
+        };
         AuthProvidersResponse: {
             google: boolean;
         };
@@ -1689,6 +1738,7 @@ export interface components {
             isOwner: boolean;
             currentStanding: null | components["schemas"]["LadderStanding"];
             versions: components["schemas"]["BotVersionResponse"][];
+            classId?: null | string;
         };
         BotLadderRatingResponse: {
             rulesVersion: string;
@@ -1761,6 +1811,7 @@ export interface components {
             /** Format: int32 */
             versionCount: number;
             currentStanding?: null | components["schemas"]["LadderStanding"];
+            classId?: null | string;
         };
         BotVersionResponse: {
             /** Format: uuid */
@@ -1839,6 +1890,7 @@ export interface components {
             accent: null | string;
             lookId?: null | string;
             projectileLookId?: null | string;
+            classId?: null | string;
         };
         CreateLabsMatchRequest: {
             /** Format: uuid */
@@ -1855,6 +1907,7 @@ export interface components {
             accent: string;
             lookId: string;
             projectileLookId: string;
+            classId: null | string;
         };
         CreatedMatchResponse: {
             /** Format: uuid */
@@ -2106,6 +2159,9 @@ export interface components {
             scoreChannelId: string;
             value: string;
         };
+        MetaBotClassResponse: {
+            id: string;
+        };
         MetaMapResponse: {
             id: string;
             /** Format: int32 */
@@ -2122,6 +2178,7 @@ export interface components {
             buildPipelineVersion: string;
             cliVersion: string;
             maps: components["schemas"]["MetaMapResponse"][];
+            botClasses: components["schemas"]["MetaBotClassResponse"][];
         };
         MyBotResponse: {
             /** Format: uuid */
@@ -2132,6 +2189,7 @@ export interface components {
             lookId: string;
             projectileLookId: string;
             latestVersion: null | components["schemas"]["MyBotVersionResponse"];
+            classId?: null | string;
         };
         MyBotVersionResponse: {
             /** Format: int32 */

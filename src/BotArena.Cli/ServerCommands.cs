@@ -274,10 +274,11 @@ public static class ServerCommands
         string slug = BotsEndpointSlug(project.Manifest.Name);
         var bots = client.GetFromJsonAsync<IReadOnlyList<BotSummaryResponse>>("/api/bots")
             .GetAwaiter().GetResult() ?? [];
-        string? botId = bots
-            .Where(b => b.Slug == slug)
-            .Select(b => b.Id.ToString())
-            .FirstOrDefault();
+        BotSummaryResponse? registeredBot = bots.SingleOrDefault(b => b.Slug == slug);
+        string? botId = registeredBot?.Id.ToString();
+        string? declaredClass = string.IsNullOrWhiteSpace(project.Manifest.Class)
+            ? null
+            : project.Manifest.Class.Trim().ToLowerInvariant();
         if (botId is null)
         {
             var created = client.PostAsJsonAsync("/api/bots",
@@ -287,6 +288,7 @@ public static class ServerCommands
                     accent = project.Accent,
                     lookId = project.LookId,
                     projectileLookId = project.ProjectileLookId,
+                    classId = project.Manifest.Class,
                 }).GetAwaiter().GetResult();
             if (!created.IsSuccessStatusCode)
             {
@@ -296,6 +298,40 @@ public static class ServerCommands
             botId = created.Content.ReadFromJsonAsync<CreatedBot>()
                 .GetAwaiter().GetResult()?.Id.ToString();
             Console.WriteLine($"Registered new bot '{project.Manifest.Name}'.");
+        }
+        // An omitted manifest class is intentionally class-agnostic: the persisted bot
+        // identity remains authoritative for hosted play, while the same source can
+        // still be exercised against class-neutral local contracts. Only an explicit
+        // declaration assigns a legacy bot or has to match an existing assignment.
+        else if (declaredClass is not null)
+        {
+            if (registeredBot!.ClassId is null)
+            {
+                var assigned = client.PutAsJsonAsync(
+                    $"/api/bots/{botId}/class",
+                    new { classId = project.Manifest.Class })
+                    .GetAwaiter().GetResult();
+                if (!assigned.IsSuccessStatusCode)
+                {
+                    Console.Error.WriteLine(
+                        $"Could not assign class '{declaredClass}': " +
+                        assigned.Content.ReadAsStringAsync().Result);
+                    return 1;
+                }
+                Console.WriteLine(
+                    $"Assigned class '{declaredClass}' to '{project.Manifest.Name}'.");
+            }
+            else if (!string.Equals(
+                registeredBot.ClassId,
+                declaredClass,
+                StringComparison.Ordinal))
+            {
+                Console.Error.WriteLine(
+                    $"Submission rejected before upload: bot '{project.Manifest.Name}' " +
+                    $"is permanently classed as '{registeredBot.ClassId}', but " +
+                    $"botarena.json declares '{declaredClass}'.");
+                return 1;
+            }
         }
 
         var files = project.SourceFiles.Select(f => new

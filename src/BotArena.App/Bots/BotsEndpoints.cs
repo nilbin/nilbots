@@ -15,7 +15,9 @@ public sealed record CreateBotRequest(
     string Name,
     string? Accent,
     string? LookId = null,
-    string? ProjectileLookId = null);
+    string? ProjectileLookId = null,
+    string? ClassId = null);
+public sealed record AssignBotClassRequest(string? ClassId);
 public sealed record SubmitVersionRequest(
     string EntryType,
     List<SourceFileDto> Files,
@@ -63,7 +65,9 @@ public static class BotsEndpoints
                             v.ArtifactHash,
                             v.SupportedContractProfiles))
                         .FirstOrDefault(),
-                    b.Versions.Count(v => v.Status == BuildStatus.Built)))
+                    b.Versions.Count(v => v.Status == BuildStatus.Built),
+                    null,
+                    b.ClassId))
                 .ToListAsync();
 
             // Rank depends on the whole ladder, so it is resolved once here rather than
@@ -94,7 +98,8 @@ public static class BotsEndpoints
                     request.Name,
                     request.Accent,
                     request.LookId,
-                    request.ProjectileLookId),
+                    request.ProjectileLookId,
+                    request.ClassId),
                 cancellationToken);
             return result.Succeeded
                 ? Results.Ok(result.Value)
@@ -149,7 +154,8 @@ public static class BotsEndpoints
                             ? JsonSerializer.Deserialize<List<SourceFile>>(v.SourcesJson)
                             : null,
                         v.SupportedContractProfiles))
-                    .ToList()));
+                    .ToList(),
+                bot.ClassId));
         }).Produces<BotDetailResponse>();
 
         // Appearance is mutable independently of source versions. This endpoint is
@@ -181,6 +187,30 @@ public static class BotsEndpoints
                     ? Results.Ok(result.Value)
                     : result.Error!.ToProblemDetails(http);
             }).Produces<UpdatedBotAppearance>()
+            .RequireAuthorization();
+
+        group.MapPut(
+            "/{botId:guid}/class",
+            async (
+                Guid botId,
+                AssignBotClassRequest request,
+                ClaimsPrincipal principal,
+                ApplicationActorFactory actorFactory,
+                AssignBotClassUseCase useCase,
+                HttpContext http,
+                CancellationToken cancellationToken) =>
+            {
+                ApplicationActor actor = await actorFactory.ResolveAsync(
+                    principal,
+                    cancellationToken);
+                ApplicationResult<AssignedBotClass> result = await useCase.ExecuteAsync(
+                    actor,
+                    new AssignBotClassCommand(botId, request.ClassId),
+                    cancellationToken);
+                return result.Succeeded
+                    ? Results.Ok(result.Value)
+                    : result.Error!.ToProblemDetails(http);
+            }).Produces<AssignedBotClass>()
             .RequireAuthorization();
 
         // Slim polling view (gen-2 finding #8): build-status pollers shouldn't re-download
@@ -338,7 +368,8 @@ public static class BotsEndpoints
                     b.Versions.OrderByDescending(v => v.VersionNumber)
                         .Select(v => new MyBotVersionResponse(
                             v.VersionNumber, v.Status.ToString(), v.IsActive))
-                        .FirstOrDefault()))
+                        .FirstOrDefault(),
+                    b.ClassId))
                 .ToListAsync();
             return Results.Ok(bots);
         }).Produces<IReadOnlyList<MyBotResponse>>().RequireAuthorization();

@@ -71,6 +71,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
+builder.Services.AddSingleton<BotClassPolicy>();
 builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
 builder.Services.AddScoped<BotAppearancePolicy>();
@@ -192,6 +193,7 @@ if (mode.RunsWeb)
     // docs/MONETIZATION-OPTIONS.md for why it must be a merchant of record.
     builder.Services.AddSingleton<IStorePaymentProvider, ClosedStore>();
     builder.Services.AddScoped<CreateBotUseCase>();
+    builder.Services.AddScoped<AssignBotClassUseCase>();
     builder.Services.AddScoped<UpdateBotAppearanceUseCase>();
     builder.Services.AddScoped<BotStatisticsQuery>();
     builder.Services.AddScoped<CompilerSubmissionService>();
@@ -309,7 +311,10 @@ if (mode.RunsWeb)
             // the upgrade advice can be exact instead of "try updating".
             ToolchainInfo.BuildPipelineVersion,
             ToolchainInfo.CliVersion,
-            maps));
+            maps,
+            FrontlineLabsClassDefinition.All
+                .Select(definition => new MetaBotClassResponse(definition.Id))
+                .ToArray()));
     }).Produces<MetaResponse>();
 
     // Text mirrors for readers without a browser. The site is a JavaScript SPA, so

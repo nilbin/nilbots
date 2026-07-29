@@ -156,6 +156,9 @@ export type LabsPlaylist = Schemas['LabsPlaylistResponse'];
 export type CreatedMatch = Schemas['CreatedMatchResponse'];
 
 export type CreateBotRequest = Schemas['CreateBotRequest'];
+export type CreatedBot = Schemas['CreatedBot'];
+export type AssignBotClassRequest = Schemas['AssignBotClassRequest'];
+export type AssignedBotClass = Schemas['AssignedBotClass'];
 export type CreateLabsMatchRequest = Schemas['CreateLabsMatchRequest'];
 export type SubmitVersionRequest = Schemas['SubmitVersionRequest'];
 export type ChallengeRequest = Schemas['ChallengeRequest'];
@@ -219,7 +222,9 @@ export const endpoints = {
   // Writes, bound the same way and for the same reason. The request bodies are generated
   // too, so a field the server renamed fails here rather than silently posting a shape it
   // ignores — which a bare `api.post(url, { ... })` cannot catch at all.
-  createBot: (body: CreateBotRequest) => api.post<{ id: string }>('/api/bots', body),
+  createBot: (body: CreateBotRequest) => api.post<CreatedBot>('/api/bots', body),
+  assignBotClass: (botId: string, body: AssignBotClassRequest) =>
+    api.put<AssignedBotClass>(`/api/bots/${botId}/class`, body),
   submitVersion: (botId: string, body: SubmitVersionRequest) =>
     api.post<unknown>(`/api/bots/${botId}/versions`, body),
   challenge: (body: ChallengeRequest) =>
