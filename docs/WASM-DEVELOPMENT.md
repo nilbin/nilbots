@@ -15,7 +15,7 @@ only the **compiler host** has a platform restriction.
 
 The pinned toolchain publishes `runtime.linux-x64` and `runtime.linux-arm64`
 `Microsoft.DotNet.ILCompiler.LLVM` compiler-host packages, and both emit
-byte-identical modules (DECISIONS #145). There is no macOS host package at the
+byte-identical modules (DECISIONS #151). There is no macOS host package at the
 pinned version, so a Linux environment (Docker) remains required on macOS —
 but the builder container always matches the host CPU, so the compiler never
 runs emulated by default. `BOTARENA_WASM_DOCKER_PLATFORM` can force a specific

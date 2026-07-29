@@ -3,7 +3,7 @@
 # Cross-platform C# -> WASM build environment.
 #
 # NativeAOT-LLVM's pinned compiler host ships for linux-x64 and linux-arm64,
-# and both emit byte-identical modules (DECISIONS #145). Linux x64 developers
+# and both emit byte-identical modules (DECISIONS #151). Linux x64 developers
 # use it natively; other hosts build this image for their own CPU so the
 # compiler never runs emulated. Keep this image focused: it contains the
 # compiler prerequisites, not the app, web viewer, database, or source tree.

@@ -1,3 +1,5 @@
+import clsx from 'clsx';
+
 export interface ReplayChoice {
   id: string;
   url: string;
@@ -31,7 +33,7 @@ export default function ReplayPicker({
       className="flex flex-wrap items-center gap-2"
       aria-label="Choose a replay to review"
     >
-      <span className="font-mono text-[10px] tracking-widest text-arena-dim">REPLAY</span>
+      <span className="lab">Replay</span>
       {choices.map((choice) => {
         const active = choice.id === activeId;
         return (
@@ -40,15 +42,15 @@ export default function ReplayPicker({
             type="button"
             onClick={() => onSelect(choice)}
             aria-current={active}
-            className={
-              'rounded-md border px-2.5 py-1 text-left text-xs transition-colors ' +
-              (active
-                ? 'border-arena-accent bg-arena-panel text-arena-text'
-                : 'border-arena-edge bg-arena-panel/50 text-arena-dim hover:border-arena-dim')
-            }
+            className={clsx(
+              'panel-quiet px-2.5 py-1 text-left transition-colors',
+              active
+                ? 'border-arena-edge2 bg-arena-raise text-arena-text'
+                : 'text-arena-dim hover:border-arena-edge2 hover:text-arena-text',
+            )}
           >
-            <span className="block font-semibold">{choice.bots.join(' v ')}</span>
-            <span className="block font-mono text-[10px] text-arena-dim">
+            <span className="t-body block font-semibold">{choice.bots.join(' v ')}</span>
+            <span className="val block">
               {choice.map} · {choice.ticks}t{choice.reason ? ` · ${choice.reason}` : ''}
             </span>
           </button>

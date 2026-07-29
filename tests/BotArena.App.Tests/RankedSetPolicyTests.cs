@@ -1,4 +1,5 @@
 using BotArena.App.Matches;
+using BotArena.App.Shared;
 using BotArena.App.Store;
 
 namespace BotArena.App.Tests;
@@ -26,22 +27,27 @@ public class RankedSetPolicyTests
     [Fact]
     public void ConcurrencyIsRefusedBeforeTheDailyCap()
     {
-        string? refusal = RankedSetPolicy.Evaluate(new RankedSetSnapshot(0, 2), Base);
+        ApplicationError? refusal =
+            RankedSetPolicy.EvaluateError(new RankedSetSnapshot(10, 2), Base);
 
-        // Order matters for the message: someone with two sets running has not used up
-        // anything, and telling them about a daily quota would be a wrong explanation for
-        // a wait of a couple of minutes.
         Assert.NotNull(refusal);
-        Assert.Contains("in progress", refusal);
+        Assert.Equal(
+            ApplicationErrorCodes.MatchRankedConcurrentLimit,
+            refusal.Code);
+        Assert.Contains("in progress", refusal.Detail);
     }
 
     [Fact]
     public void TheDailyCapRefusesWithItsOwnReason()
     {
-        string? refusal = RankedSetPolicy.Evaluate(new RankedSetSnapshot(10, 0), Base);
+        ApplicationError? refusal =
+            RankedSetPolicy.EvaluateError(new RankedSetSnapshot(10, 0), Base);
 
         Assert.NotNull(refusal);
-        Assert.Contains("24 hours", refusal);
+        Assert.Equal(
+            ApplicationErrorCodes.MatchRankedDailyLimit,
+            refusal.Code);
+        Assert.Contains("24 hours", refusal.Detail);
     }
 
     [Fact]

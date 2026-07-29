@@ -1,9 +1,11 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using BotArena.App.Accounts;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Matches;
+using BotArena.App.Shared;
 using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +14,49 @@ namespace BotArena.App.Tests;
 [Collection(ApplicationHttpCollection.Name)]
 public class MatchCreationHttpTests
 {
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task SelfChallenge_IsAStableValidationFailure()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using (var migration = await database.CreateMigratedContextAsync())
+        {
+            Assert.Empty(migration.ChangeTracker.Entries());
+        }
+
+        using var factory = new BotArenaApplicationFactory(
+            database.ConnectionString);
+        using HttpClient client = factory.CreateClient();
+        _ = await RegisterAsync(
+            client,
+            "self-challenge@example.test",
+            "Self Challenger");
+        Guid botId = Guid.NewGuid();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/matches/challenge",
+            new
+            {
+                botId,
+                opponentBotId = botId,
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(
+            "application/problem+json",
+            response.Content.Headers.ContentType?.MediaType);
+        using JsonDocument problem = await JsonDocument.ParseAsync(
+            await response.Content.ReadAsStreamAsync());
+        Assert.Equal(
+            ApplicationErrorCodes.MatchSelfChallenge,
+            problem.RootElement.GetProperty("code").GetString());
+        Assert.Equal(
+            JsonValueKind.Null,
+            problem.RootElement.GetProperty("retryAfterSeconds").ValueKind);
+        await using var db = database.CreateContext();
+        Assert.Empty(await db.Matches.ToListAsync());
+    }
+
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
     public async Task RankedAndUnrankedCreation_ShareImmutableCompleteSnapshots()

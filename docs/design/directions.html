@@ -1,0 +1,966 @@
+<title>nilbots — nine redesigns of the web and mobile chrome</title>
+
+<style>
+  :root {
+    --page:#f4f5f7; --page-2:#eaecef; --ink:#12161b; --ink-2:#5c666f; --rule:#d0d5db;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --page:#0f1216; --page-2:#171c22; --ink:#dce2e9; --ink-2:#8a97a4; --rule:#252e38; }
+  }
+  :root[data-theme="dark"] { --page:#0f1216; --page-2:#171c22; --ink:#dce2e9; --ink-2:#8a97a4; --rule:#252e38; }
+  :root[data-theme="light"] { --page:#f4f5f7; --page-2:#eaecef; --ink:#12161b; --ink-2:#5c666f; --rule:#d0d5db; }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1240px; margin:0 auto; padding:40px 20px 110px; }
+
+  .eyebrow { font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-2); margin:0 0 14px; }
+  h1 { font-size:clamp(28px,4.2vw,46px); line-height:1.08; letter-spacing:-.022em; margin:0 0 18px; text-wrap:balance; font-weight:640; }
+  .lede { max-width:64ch; font-size:16.5px; margin:0 0 16px; }
+  .lede.sub { color:var(--ink-2); }
+  code { font-family:var(--mono); font-size:.88em; }
+  .wrap > header { border-bottom:1px solid var(--rule); padding-bottom:30px; }
+
+  .audit { margin-top:26px; display:grid; gap:14px; }
+  @media (min-width:820px){ .audit { grid-template-columns:1fr 1fr; } }
+  .box { border:1px solid var(--rule); background:var(--page-2); border-radius:7px; padding:16px 18px; }
+  .box h3 { margin:0 0 10px; font-family:var(--mono); font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-2); font-weight:500; }
+  .navrow { display:flex; flex-wrap:wrap; gap:6px; font-family:var(--mono); font-size:12px; }
+  .navrow span { border:1px solid var(--rule); border-radius:4px; padding:3px 8px; background:var(--page); }
+  .navrow span.gone { opacity:.42; text-decoration:line-through; }
+  .box p { margin:10px 0 0; font-size:13.5px; color:var(--ink-2); }
+  .loop { font-family:var(--mono); font-size:12.5px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .loop b { font-weight:400; border:1px solid var(--rule); border-radius:4px; padding:3px 8px; background:var(--page); }
+  .loop i { color:var(--ink-2); font-style:normal; }
+  .loop b.missing { border-style:dashed; color:var(--ink-2); }
+
+  .tier { margin-top:78px; border-top:1px solid var(--rule); padding-top:16px; }
+  .tier p { max-width:66ch; color:var(--ink-2); margin:8px 0 0; font-size:14.5px; }
+  .tier h2 { font-size:13px; font-family:var(--mono); letter-spacing:.16em; text-transform:uppercase; margin:0; color:var(--ink-2); font-weight:500; }
+
+  .dir { margin-top:60px; }
+  .dir > .head { border-top:2px solid var(--ink); padding-top:15px; }
+  .dir .name { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:10px; }
+  .dir h3 { font-size:29px; margin:0; letter-spacing:-.018em; font-weight:640; }
+  .dir.small h3 { font-size:23px; }
+  .dir .tag { font-family:var(--mono); font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); }
+  .dir .thesis { max-width:68ch; margin:0; }
+  .dir .moves { max-width:68ch; margin:12px 0 0; padding-left:18px; color:var(--ink-2); font-size:14.5px; }
+  .dir .moves li { margin-bottom:5px; }
+  .ia { display:grid; gap:10px; margin:20px 0 0; font-family:var(--mono); font-size:12px; }
+  .ia .r { display:grid; grid-template-columns:64px 1fr; gap:12px; align-items:start; }
+  .ia .k { color:var(--ink-2); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; padding-top:4px; }
+
+  .screens { display:grid; gap:16px; margin-top:22px; }
+  @media (min-width:1000px){ .screens { grid-template-columns:minmax(0,1fr) 300px; align-items:start; } }
+  .screens.solo { grid-template-columns:minmax(0,1fr); }
+
+  /* ---------------- shared components, entirely token-driven ---------------- */
+  .app, .phone { background:var(--t-bg); color:var(--t-text); font-family:var(--t-sans);
+                 border:1px solid var(--rule); border-radius:10px; overflow:hidden; }
+  .phone { border-radius:22px; }
+  .topbar { display:flex; align-items:center; gap:14px; padding:10px 14px;
+            border-bottom:1px solid var(--t-edge); background:var(--t-panel); }
+  .brand { font-family:var(--t-display); font-weight:var(--t-brand-w); letter-spacing:var(--t-brand-track);
+           text-transform:var(--t-brand-case); font-size:16px; color:var(--t-text); }
+  .tabs { display:flex; gap:2px; margin-left:auto; flex-wrap:wrap; }
+  .tabs a { font-family:var(--t-nav-face); font-size:var(--t-nav-size); letter-spacing:var(--t-nav-track);
+            text-transform:var(--t-nav-case); color:var(--t-dim); padding:5px 10px;
+            border-radius:var(--t-radius); text-decoration:none; border:1px solid transparent; }
+  .tabs a.on { color:var(--t-accent); border-color:var(--t-edge); background:var(--t-raise); }
+  .body { padding:14px; display:grid; gap:14px; }
+  .lab { font-family:var(--t-mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--t-dim); margin:0 0 8px; }
+  .panel { background:var(--t-panel); border:1px solid var(--t-edge); border-radius:var(--t-radius); }
+  .pad { padding:12px 14px; }
+
+  .look { display:block; flex:none; }
+  .who { display:flex; align-items:center; gap:9px; min-width:0; }
+  .who .stack { min-width:0; }
+  .who .n { display:block; font-family:var(--t-display); font-weight:var(--t-name-w);
+            letter-spacing:var(--t-name-track); font-size:14px; color:var(--t-text);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .who .s { display:block; font-family:var(--t-mono); font-size:10.5px; color:var(--t-dim); }
+
+  table.tbl { width:100%; border-collapse:collapse; font-family:var(--t-mono); font-size:12px; }
+  table.tbl th { text-align:left; font-weight:400; color:var(--t-dim); font-size:9.5px;
+                 letter-spacing:.16em; text-transform:uppercase; padding:0 8px 8px; border-bottom:1px solid var(--t-edge); }
+  table.tbl td { padding:8px; border-bottom:1px solid var(--t-edge); vertical-align:middle; }
+  table.tbl tr:last-child td { border-bottom:0; }
+  .num { font-variant-numeric:tabular-nums; text-align:right; }
+  .rank { font-family:var(--t-display); font-size:var(--t-rank-size); font-weight:var(--t-rank-w);
+          letter-spacing:-.03em; color:var(--t-text); font-variant-numeric:tabular-nums; }
+  .delta.up { color:var(--t-ok); } .delta.dn { color:var(--t-hot); }
+  .mine { background:var(--t-mine); }
+  .pill { font-family:var(--t-mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase;
+          border:1px solid currentColor; border-radius:99px; padding:1px 7px; white-space:nowrap; }
+  .pill.live { color:var(--t-hot); } .pill.ok { color:var(--t-ok); } .pill.mute { color:var(--t-dim); }
+  .btn { font-family:var(--t-mono); font-size:11px; letter-spacing:.06em; border:1px solid var(--t-edge);
+         background:transparent; color:var(--t-text); border-radius:var(--t-radius); padding:6px 11px; cursor:default; }
+  .btn.solid { background:var(--t-accent); color:var(--t-on-accent); border-color:var(--t-accent); }
+  .row { display:flex; align-items:center; gap:10px; }
+  .spread { justify-content:space-between; }
+
+  .still { border-radius:var(--t-radius); border:1px solid var(--t-edge); aspect-ratio:16/10;
+           background:var(--t-still); position:relative; overflow:hidden; }
+  .still::after { content:""; position:absolute; inset:32% 38% 30% 30%; border:1px solid var(--t-edge2); border-radius:2px; }
+  .still .dotA, .still .dotB { position:absolute; width:8px; height:8px; border-radius:50%; }
+  .still .dotA { background:#1acbe6; left:34%; top:44%; box-shadow:0 0 10px #1acbe6; }
+  .still .dotB { background:#ff4f47; left:62%; top:58%; box-shadow:0 0 10px #ff4f47; }
+
+  .phone .status { height:22px; background:var(--t-panel); border-bottom:1px solid var(--t-edge); }
+  .phone .screen { padding:12px; display:grid; gap:12px; min-height:330px; align-content:start; }
+  .phone .tabbar { display:flex; border-top:1px solid var(--t-edge); background:var(--t-panel); }
+  .phone .tabbar div { flex:1; text-align:center; padding:9px 2px 11px; font-family:var(--t-mono);
+                       font-size:8.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--t-dim); }
+  .phone .tabbar div.on { color:var(--t-accent); box-shadow:inset 0 2px 0 var(--t-accent); }
+
+  .scale { display:grid; gap:6px; margin-top:14px; }
+  .scale div { display:grid; grid-template-columns:92px 1fr; gap:12px; align-items:baseline; }
+  .scale .k { font-family:var(--mono); font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-2); }
+
+  /* ------------------------------- palettes ------------------------------- */
+  .ladder { --t-bg:#0b1017; --t-panel:#101823; --t-raise:#16202d; --t-edge:#202c3d; --t-edge2:#2b3a4d;
+    --t-text:#ccd8e6; --t-dim:#657485; --t-accent:#1acbe6; --t-on-accent:#06131a; --t-ok:#3fd97a;
+    --t-hot:#ff6b62; --t-mine:rgba(26,203,230,.07); --t-still:linear-gradient(160deg,#0d141d,#141d29);
+    --t-radius:5px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.03em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.1em; --t-nav-case:uppercase; --t-name-w:600;
+    --t-name-track:-.005em; --t-rank-size:22px; --t-rank-w:700; }
+  .ladder .standing { border-left:2px solid var(--t-accent); }
+
+  .bench { --t-bg:#d9dee3; --t-panel:#e9edf1; --t-raise:#dfe5ea; --t-edge:#aab6c1; --t-edge2:#8e9daa;
+    --t-text:#0f151d; --t-dim:#54626e; --t-accent:#0d5c73; --t-on-accent:#eef4f7; --t-ok:#1c6b3e;
+    --t-hot:#9a2d28; --t-mine:rgba(13,92,115,.08); --t-still:linear-gradient(160deg,#101821,#1a242f);
+    --t-radius:2px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--mono);
+    --t-brand-w:600; --t-brand-track:.16em; --t-brand-case:uppercase; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.13em; --t-nav-case:uppercase; --t-name-w:600;
+    --t-name-track:.01em; --t-rank-size:17px; --t-rank-w:600; }
+  .bench .stage { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--t-edge); border:1px solid var(--t-edge); }
+  .bench .stage > div { background:var(--t-panel); padding:9px 10px; }
+  .bench .stage .on { background:var(--t-raise); box-shadow:inset 0 -2px 0 var(--t-accent); }
+  .bench .stage .k { font-family:var(--t-mono); font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--t-dim); margin:0; }
+  .bench .stage .v { font-family:var(--t-mono); font-size:12px; color:var(--t-text); margin:0; }
+  .diff { font-family:var(--t-mono); font-size:11.5px; }
+  .diff div { padding:2px 8px; border-left:2px solid transparent; }
+  .diff .add { border-left-color:var(--t-ok); background:rgba(28,107,62,.08); }
+  .diff .rm { border-left-color:var(--t-hot); background:rgba(154,45,40,.07); }
+
+  .cast { --t-bg:#0b0705; --t-panel:#17110e; --t-raise:#211814; --t-edge:#3a2a20; --t-edge2:#4d382a;
+    --t-text:#e8dfd6; --t-dim:#95826f; --t-accent:#38d9c5; --t-on-accent:#08201d; --t-ok:#38d9c5;
+    --t-hot:#ff7a4d; --t-mine:rgba(56,217,197,.07); --t-still:linear-gradient(160deg,#120c09,#1d1410);
+    --t-radius:3px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:780; --t-brand-track:-.045em; --t-brand-case:none; --t-nav-face:var(--sans);
+    --t-nav-size:13px; --t-nav-track:-.01em; --t-nav-case:none; --t-name-w:700;
+    --t-name-track:-.02em; --t-rank-size:17px; --t-rank-w:600; }
+  .cast .feature { display:grid; gap:12px; }
+  @media (min-width:640px){ .cast .feature { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); align-items:center; } }
+  .cast .feature h4 { font-family:var(--t-display); font-size:24px; font-weight:780; letter-spacing:-.03em; margin:0 0 6px; color:var(--t-text); }
+  .strip { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(150px,1fr); gap:10px; overflow-x:auto; padding-bottom:4px; }
+
+  /* rack — physical shelf of machines */
+  .rack { --t-bg:#12100e; --t-panel:#1c1916; --t-raise:#241f1b; --t-edge:#332c26; --t-edge2:#453b33;
+    --t-text:#ece6df; --t-dim:#8e8378; --t-accent:#d9a441; --t-on-accent:#1a1408; --t-ok:#7bb661;
+    --t-hot:#d4643c; --t-mine:rgba(217,164,65,.08); --t-still:linear-gradient(160deg,#151210,#211b17);
+    --t-radius:4px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.02em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.12em; --t-nav-case:uppercase; --t-name-w:640;
+    --t-name-track:-.01em; --t-rank-size:18px; --t-rank-w:640; }
+  .bay { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+  .bay .slotcard { border:1px solid var(--t-edge); border-radius:var(--t-radius); background:var(--t-panel);
+                   padding:12px; display:grid; gap:8px; justify-items:center; text-align:center; }
+  .bay .slotcard.empty { border-style:dashed; color:var(--t-dim); align-content:center; min-height:150px; }
+  .bay .slotcard .nm { font-family:var(--t-display); font-weight:640; font-size:13.5px; }
+  .bay .slotcard .mt { font-family:var(--t-mono); font-size:10px; color:var(--t-dim); }
+
+  /* guide — catalogue of chassis */
+  .guide { --t-bg:#e8e4dc; --t-panel:#f3f0ea; --t-raise:#e2ded4; --t-edge:#bdb6a8; --t-edge2:#a49b8a;
+    --t-text:#191713; --t-dim:#5f594d; --t-accent:#7a3b1f; --t-on-accent:#f6f2ea; --t-ok:#2f6b3a;
+    --t-hot:#9c3327; --t-mine:rgba(122,59,31,.08); --t-still:linear-gradient(160deg,#14110e,#1f1a15);
+    --t-radius:1px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.02em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.14em; --t-nav-case:uppercase; --t-name-w:660;
+    --t-name-track:-.01em; --t-rank-size:17px; --t-rank-w:640; }
+  .entry { display:grid; gap:16px; }
+  @media (min-width:640px){ .entry { grid-template-columns:120px minmax(0,1fr); } }
+  .entry h4 { margin:0; font-size:26px; letter-spacing:-.02em; font-weight:660; }
+  .bars { display:grid; gap:6px; font-family:var(--t-mono); font-size:10.5px; }
+  .bars .b { display:grid; grid-template-columns:70px 1fr 34px; gap:10px; align-items:center; }
+  .bars .track { height:6px; background:var(--t-raise); border:1px solid var(--t-edge); }
+  .bars .fill { height:100%; background:var(--t-accent); }
+
+  /* term — the site as an extension of the CLI */
+  .term { --t-bg:#07090c; --t-panel:#0d1116; --t-raise:#141a21; --t-edge:#1c242e; --t-edge2:#27313d;
+    --t-text:#c6d0da; --t-dim:#5d6b7a; --t-accent:#8ce99a; --t-on-accent:#08120a; --t-ok:#8ce99a;
+    --t-hot:#ff8f7a; --t-mine:rgba(140,233,154,.07); --t-still:linear-gradient(160deg,#0a0e12,#121820);
+    --t-radius:2px; --t-sans:var(--mono); --t-mono:var(--mono); --t-display:var(--mono);
+    --t-brand-w:600; --t-brand-track:.1em; --t-brand-case:lowercase; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.06em; --t-nav-case:lowercase; --t-name-w:600;
+    --t-name-track:0; --t-rank-size:16px; --t-rank-w:600; }
+  .prompt { font-family:var(--t-mono); font-size:13px; display:flex; gap:8px; align-items:center;
+            border:1px solid var(--t-edge); background:var(--t-panel); border-radius:var(--t-radius); padding:9px 12px; }
+  .prompt .c { color:var(--t-accent); }
+  .prompt .caret { width:7px; height:15px; background:var(--t-accent); opacity:.75; }
+  .out { font-family:var(--t-mono); font-size:12px; border-left:2px solid var(--t-edge); padding-left:12px; }
+  .out .cmd { color:var(--t-dim); margin-bottom:8px; }
+
+  /* season — a competition with an arc */
+  .season { --t-bg:#0d0b14; --t-panel:#151222; --t-raise:#1c1830; --t-edge:#282243; --t-edge2:#372f5a;
+    --t-text:#ddd8ec; --t-dim:#7d759b; --t-accent:#c4b5fd; --t-on-accent:#130f22; --t-ok:#6ee7b7;
+    --t-hot:#fb7185; --t-mine:rgba(196,181,253,.08); --t-still:linear-gradient(160deg,#0f0d18,#191426);
+    --t-radius:8px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:720; --t-brand-track:-.03em; --t-brand-case:none; --t-nav-face:var(--sans);
+    --t-nav-size:13px; --t-nav-track:-.005em; --t-nav-case:none; --t-name-w:640;
+    --t-name-track:-.01em; --t-rank-size:30px; --t-rank-w:720; }
+
+  /* counter — the matchup matrix */
+  .counter { --t-bg:#0a0f0e; --t-panel:#101817; --t-raise:#16211f; --t-edge:#1f2c2a; --t-edge2:#2b3b38;
+    --t-text:#cfe0dc; --t-dim:#65817b; --t-accent:#5eead4; --t-on-accent:#041512; --t-ok:#5eead4;
+    --t-hot:#f87171; --t-mine:rgba(94,234,212,.08); --t-still:linear-gradient(160deg,#0b1211,#131c1a);
+    --t-radius:3px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.025em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.11em; --t-nav-case:uppercase; --t-name-w:620;
+    --t-name-track:-.005em; --t-rank-size:17px; --t-rank-w:620; }
+  .matrix { display:grid; grid-template-columns:auto repeat(5,1fr); gap:3px; font-family:var(--t-mono); font-size:10.5px; }
+  .matrix .h { color:var(--t-dim); font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+               display:flex; align-items:center; justify-content:center; padding:2px; }
+  .matrix .rh { color:var(--t-dim); display:flex; align-items:center; gap:6px; padding-right:6px; }
+  .matrix .cell { aspect-ratio:1.6; display:flex; align-items:center; justify-content:center;
+                  border-radius:2px; color:var(--t-bg); font-variant-numeric:tabular-nums; font-weight:600; }
+
+
+  /* climb — the ladder with a time axis. Identity stays per-chassis, so the season
+     layer needs a hue no chassis owns: #d6296f is the only one in the game that
+     qualifies, 77 degrees from its nearest neighbour. Every other zone colour sits
+     within 12 degrees of a trim and would read as "some bot" instead of "the season". */
+  .climb { --t-bg:#0b1017; --t-panel:#101823; --t-raise:#16202d; --t-edge:#202c3d; --t-edge2:#2b3a4d;
+    --t-text:#ccd8e6; --t-dim:#657485; --t-accent:#d6296f; --t-on-accent:#fdeaf1; --t-ok:#3fd97a;
+    --t-hot:#ff6b62; --t-mine:rgba(214,41,111,.09); --t-still:linear-gradient(160deg,#0d141d,#141d29);
+    --t-radius:5px; --t-sans:var(--sans); --t-mono:var(--mono); --t-display:var(--sans);
+    --t-brand-w:700; --t-brand-track:-.03em; --t-brand-case:none; --t-nav-face:var(--mono);
+    --t-nav-size:11px; --t-nav-track:.1em; --t-nav-case:uppercase; --t-name-w:600;
+    --t-name-track:-.005em; --t-rank-size:22px; --t-rank-w:700; }
+  .climb .seasonbar { border-left:2px solid var(--t-accent); }
+  .spark { display:block; }
+  .move { font-family:var(--t-mono); font-size:11px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .move.up { color:var(--t-ok); } .move.dn { color:var(--t-hot); } .move.flat { color:var(--t-dim); }
+  .band { font-family:var(--t-mono); font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+          color:var(--t-accent); border-top:1px dashed var(--t-accent); padding-top:3px; opacity:.85; }
+
+  .close { margin-top:80px; border-top:1px solid var(--rule); padding-top:28px; }
+  .close h2 { font-size:21px; margin:0 0 14px; letter-spacing:-.01em; }
+  .close ul { max-width:70ch; margin:0; padding-left:18px; }
+  .close li { margin-bottom:9px; }
+</style>
+
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden"><defs><symbol id="look-vanguard" viewBox="0 0 512 512"> <defs> <linearGradient id="vanguard-vg-hull" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#596675"/> <stop offset=".45" stop-color="#303a47"/> <stop offset="1" stop-color="#151d28"/> </linearGradient> <linearGradient id="vanguard-vg-dark" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#111925"/> <stop offset=".48" stop-color="#35404e"/> <stop offset="1" stop-color="#18222e"/> </linearGradient> <linearGradient id="vanguard-vg-energy" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#087895"/> <stop offset=".45" stop-color="#19cde9"/> <stop offset="1" stop-color="#b8f8ff"/> </linearGradient> <radialGradient id="vanguard-vg-reactor"> <stop stop-color="#ddfbff"/> <stop offset=".38" stop-color="#2edcf0"/> <stop offset="1" stop-color="#086c86"/> </radialGradient> <filter id="vanguard-vg-glow" x="-80%" y="-80%" width="260%" height="260%"> <feGaussianBlur stdDeviation="5"/> </filter> </defs> <path d="M80 125 145 87 211 90 281 137 371 175 465 256 371 337 281 375 211 422 145 425 80 387 95 321 88 256 95 191Z" fill="#09101a" stroke="#070c13" stroke-width="14" stroke-linejoin="round"/> <g stroke="#0b121c" stroke-linejoin="round"> <path d="m91 132 58-34 58 3 84 60-68 48-126-24Z" fill="url(#vanguard-vg-hull)" stroke="#697686" stroke-width="5"/> <path d="m91 380 58 34 58-3 84-60-68-48-126 24Z" fill="url(#vanguard-vg-hull)" stroke="#465463" stroke-width="5"/> <path d="m98 191 125 23 89 42-89 42-125 23-8-65Z" fill="url(#vanguard-vg-dark)" stroke="#586676" stroke-width="5"/> <path d="m221 210 74-60 74 31 96 75-96 75-74 31-74-60 79-46Z" fill="url(#vanguard-vg-hull)" stroke="#637181" stroke-width="5"/> <path d="m289 157 75 31 82 60-112-26-76-31Z" fill="#26313e" stroke="#111923" stroke-width="4"/> <path d="m289 355 75-31 82-60-112 26-76 31Z" fill="#1d2733" stroke="#111923" stroke-width="4"/> <path d="m330 224 116 25 18 7-18 7-116 25-45-32Z" fill="#111a25" stroke="#718091" stroke-width="4"/> <path d="m351 240 91 12 9 4-9 4-91 12-26-16Z" fill="#33404e" stroke="#0a1018" stroke-width="3"/> <path d="m126 145 31-20 42 3 51 38-42 25-100-19Z" fill="#202a36" stroke="#6b7888" stroke-width="3"/> <path d="m126 367 31 20 42-3 51-38-42-25-100 19Z" fill="#19232e" stroke="#4c5a68" stroke-width="3"/> <path d="m116 211 91 16 50 29-50 29-91 16-9-45Z" fill="#35414e" stroke="#121923" stroke-width="4"/> <path d="m139 229 62 10 29 17-29 17-62 10-8-27Z" fill="#121b25" stroke="#536171" stroke-width="3"/> <g fill="#202b38" stroke="#596878" stroke-width="3"> <path d="m76 143 26-13 27 14-8 45-35 1-15-18Z"/> <path d="m76 369 26 13 27-14-8-45-35-1-15 18Z"/> </g> <g fill="#111923" stroke="#0a1018" stroke-width="4"> <rect x="76" y="148" width="31" height="32" rx="8"/> <rect x="76" y="332" width="31" height="32" rx="8"/> </g> <path d="m215 218 80 38-80 38-48-38Z" fill="#101925" stroke="#677687" stroke-width="5"/> <path d="m205 235 44 21-44 21-25-21Z" fill="#08232d" stroke="#0b829d" stroke-width="4"/> <path d="m207 244 25 12-25 12-14-12Z" fill="url(#vanguard-vg-reactor)" stroke="#a9f4fc" stroke-width="2"/> <path d="m251 181 42 19 92 38-67-13-83-31Z" fill="url(#vanguard-vg-energy)" stroke="#06495a" stroke-width="3"/> <path d="m251 331 42-19 92-38-67 13-83 31Z" fill="url(#vanguard-vg-energy)" stroke="#06495a" stroke-width="3"/> <path d="m123 195 81 14 34 18-100-18Z" fill="#1acbe6" stroke="#064758" stroke-width="3"/> <path d="m123 317 81-14 34-18-100 18Z" fill="#1acbe6" stroke="#064758" stroke-width="3"/> <g fill="url(#vanguard-vg-energy)" stroke="#053746" stroke-width="2"> <rect x="82" y="152" width="16" height="24" rx="4"/> <rect x="82" y="336" width="16" height="24" rx="4"/> <path d="m399 247 36 9-36 9Z"/> </g> </g> <g fill="#27d9ed" opacity=".46" filter="url(#vanguard-vg-glow)"> <path d="m251 181 134 57-67-13-83-31Z"/> <path d="m251 331 134-57-67 13-83 31Z"/> <path d="m205 235 44 21-44 21-25-21Z"/> </g> <g fill="none" stroke="#8995a2" stroke-linecap="round" opacity=".72"> <path d="M157 153h42M165 359h37M322 197l33 12M322 315l33-12" stroke-width="3"/> <path d="M145 244h27M145 268h27" stroke-width="2"/> </g> <g fill="#96a3b0"> <circle cx="145" cy="135" r="3"/> <circle cx="145" cy="377" r="3"/> <circle cx="289" cy="174" r="3"/> <circle cx="289" cy="338" r="3"/> </g> </symbol><symbol id="look-needle" viewBox="0 0 512 512"> <defs> <linearGradient id="needle-nd-hull" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#66707a"/> <stop offset=".4" stop-color="#343c46"/> <stop offset="1" stop-color="#141b24"/> </linearGradient> <linearGradient id="needle-nd-plate" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#202934"/> <stop offset=".5" stop-color="#4b545e"/> <stop offset="1" stop-color="#1a222c"/> </linearGradient> <linearGradient id="needle-nd-gold" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#9b4d08"/> <stop offset=".48" stop-color="#f59e0b"/> <stop offset="1" stop-color="#fff0a6"/> </linearGradient> <radialGradient id="needle-nd-core"> <stop stop-color="#fff8d0"/> <stop offset=".3" stop-color="#ffbd27"/> <stop offset=".7" stop-color="#c66408"/> <stop offset="1" stop-color="#462107"/> </radialGradient> <filter id="needle-nd-glow" x="-100%" y="-100%" width="300%" height="300%"> <feGaussianBlur stdDeviation="6"/> </filter> </defs> <path d="M57 181 84 143 130 132 109 83 138 72 207 143 278 165 475 239 493 256 475 273 278 347 207 369 138 440 109 429 130 380 84 369 57 331 72 283 58 256 72 229Z" fill="#090e15" stroke="#070b11" stroke-width="13" stroke-linejoin="round"/> <g stroke="#0a1018" stroke-linejoin="round"> <path d="m116 91 27-10 71 73-38 34-39-31Z" fill="url(#needle-nd-hull)" stroke="#727c86" stroke-width="4"/> <path d="m116 421 27 10 71-73-38-34-39 31Z" fill="url(#needle-nd-hull)" stroke="#4c5762" stroke-width="4"/> <path d="m66 188 24-34 60-13 64 47-61 34-77 8Z" fill="url(#needle-nd-plate)" stroke="#65717d" stroke-width="5"/> <path d="m66 324 24 34 60 13 64-47-61-34-77-8Z" fill="url(#needle-nd-plate)" stroke="#4a5661" stroke-width="5"/> <path d="m76 230 80-7 74 33-74 33-80-7-12-26Z" fill="#1b242e" stroke="#5c6874" stroke-width="5"/> <path d="m151 183 61-32 70 23 190 66-173-30-91 6Z" fill="url(#needle-nd-hull)" stroke="#6e7882" stroke-width="5"/> <path d="m151 329 61 32 70-23 190-66-173 30-91-6Z" fill="#202934" stroke="#4b5661" stroke-width="5"/> <path d="m201 216 97-7 175 32-150 3-84 12Z" fill="#26303b" stroke="#111821" stroke-width="4"/> <path d="m201 296 97 7 175-32-150-3-84-12Z" fill="#17212b" stroke="#111821" stroke-width="4"/> <path d="m93 177 49-17 43 32-41 18-59 6Z" fill="#1b232d" stroke="#737d87" stroke-width="3"/> <path d="m93 335 49 17 43-32-41-18-59-6Z" fill="#161f28" stroke="#4d5863" stroke-width="3"/> <path d="m102 231 54-3 53 28-53 28-54-3-12-25Z" fill="#303a44" stroke="#101720" stroke-width="4"/> <g fill="#18212b" stroke="#55616d" stroke-width="4"> <path d="m52 204 24-23 33 8-9 39-31 8Z"/> <path d="m52 308 24 23 33-8-9-39-31-8Z"/> <path d="m55 237 34-7 20 26-20 26-34-7-9-19Z"/> </g> <g fill="#29333e" stroke="#0a1018" stroke-width="3"> <rect x="50" y="211" width="32" height="27" rx="8"/> <rect x="50" y="274" width="32" height="27" rx="8"/> <rect x="49" y="243" width="32" height="26" rx="8"/> </g> <path d="m144 219 67-25 79 25 50 37-50 37-79 25-67-25 43-37Z" fill="url(#needle-nd-plate)" stroke="#67727d" stroke-width="5"/> <path d="m191 231 70-16 54 16 35 25-35 25-54 16-70-16 31-25Z" fill="#111923" stroke="#3e4a56" stroke-width="5"/> <path d="m230 240 47-8 39 24-39 24-47-8-21-16Z" fill="#36230e" stroke="#c06708" stroke-width="4"/> <circle cx="271" cy="256" r="18" fill="url(#needle-nd-core)" stroke="#ffd36b" stroke-width="3"/> <g fill="url(#needle-nd-gold)" stroke="#5e3006" stroke-width="2"> <path d="m170 188 49-20 72 21-70-7-42 17Z"/> <path d="m170 324 49 20 72-21-70 7-42-17Z"/> <path d="m286 190 145 43-122-23-58-15Z"/> <path d="m286 322 145-43-122 23-58 15Z"/> <path d="m109 213 38-8 26 10-40 8Z"/> <path d="m109 299 38 8 26-10-40-8Z"/> <rect x="57" y="218" width="17" height="13" rx="4"/> <rect x="57" y="281" width="17" height="13" rx="4"/> <rect x="56" y="250" width="18" height="12" rx="4"/> </g> </g> <g fill="#f5a20d" opacity=".5" filter="url(#needle-nd-glow)"> <circle cx="271" cy="256" r="24"/> <path d="m286 190 145 43-122-23-58-15Z"/> <path d="m286 322 145-43-122 23-58 15Z"/> </g> <g fill="none" stroke="#949ca4" stroke-linecap="round" opacity=".72"> <path d="m137 112 28 29M137 400l28-29M242 179l34 8M242 333l34-8" stroke-width="3"/> <path d="M118 246h31M118 266h31" stroke-width="2"/> </g> <g fill="#aeb6bd"> <circle cx="147" cy="179" r="3"/> <circle cx="147" cy="333" r="3"/> <circle cx="217" cy="203" r="3"/> <circle cx="217" cy="309" r="3"/> </g> </symbol><symbol id="look-bulwark" viewBox="0 0 512 512"> <defs> <linearGradient id="bulwark-bw-hull" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#68727d"/> <stop offset=".42" stop-color="#343d47"/> <stop offset="1" stop-color="#171e27"/> </linearGradient> <linearGradient id="bulwark-bw-ring" x1="0" y1="0" x2="0" y2="1"> <stop stop-color="#515c68"/> <stop offset=".5" stop-color="#222b35"/> <stop offset="1" stop-color="#101720"/> </linearGradient> <linearGradient id="bulwark-bw-red" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#a71f26"/> <stop offset=".55" stop-color="#ff4f47"/> <stop offset="1" stop-color="#ffb09a"/> </linearGradient> <radialGradient id="bulwark-bw-core"> <stop stop-color="#ffe0d5"/> <stop offset=".28" stop-color="#ff6354"/> <stop offset=".65" stop-color="#b52229"/> <stop offset="1" stop-color="#34151c"/> </radialGradient> <filter id="bulwark-bw-glow" x="-100%" y="-100%" width="300%" height="300%"> <feGaussianBlur stdDeviation="7"/> </filter> </defs> <path d="m151 65 58 14 47-11 47 11 58-14 49 49 11 57 28 42 48 10v66l-48 10-28 42-11 57-49 49-58-14-47 11-47-11-58 14-49-49-11-57-27-42-17-44 17-44 27-42 11-57Z" fill="#080d14" stroke="#070b11" stroke-width="13" stroke-linejoin="round"/> <g stroke="#0b1119" stroke-linejoin="round"> <path d="m159 77 48 12 49-10 49 10 48-12 45 45 10 52 30 45-28 37 28 37-30 45-10 52-45 45-48-12-49 10-49-10-48 12-45-45-10-52-30-45 28-37-28-37 30-45 10-52Z" fill="url(#bulwark-bw-hull)" stroke="#68737f" stroke-width="5"/> <g fill="url(#bulwark-bw-ring)" stroke="#5e6975" stroke-width="4"> <path d="m159 82 46 11-14 62-44 31-44-17 11-51Z"/> <path d="m353 82-46 11 14 62 44 31 44-17-11-51Z"/> <path d="m159 430 46-11-14-62-44-31-44 17 11 51Z"/> <path d="m353 430-46-11 14-62 44-31 44 17-11 51Z"/> <path d="m94 183 47 18 16 55-16 55-47 18-28-42 24-31-24-31Z"/> <path d="m418 183-47 18-16 55 16 55 47 18 28-42-24-31 24-31Z"/> </g> <path d="m172 116 34 9 50-12 50 12 34-9 30 29-15 48-38-19-61-10-61 10-38 19-15-48Z" fill="#252e38" stroke="#707b86" stroke-width="4"/> <path d="m172 396 34-9 50 12 50-12 34 9 30-29-15-48-38 19-61 10-61-10-38-19-15 48Z" fill="#1b242e" stroke="#505c68" stroke-width="4"/> <circle cx="256" cy="256" r="151" fill="#151d26" stroke="#6b7580" stroke-width="7"/> <circle cx="256" cy="256" r="125" fill="url(#bulwark-bw-ring)" stroke="#111821" stroke-width="13"/> <circle cx="256" cy="256" r="101" fill="#202832" stroke="#67727e" stroke-width="5"/> <circle cx="256" cy="256" r="79" fill="#111821" stroke="#3f4a56" stroke-width="12"/> <g fill="#303a45" stroke="#111821" stroke-width="4"> <path d="M237 108h38l14 44-33 12-33-12Z"/> <path d="M237 404h38l14-44-33-12-33 12Z"/> <path d="M108 237v38l44 14 12-33-12-33Z"/> <path d="M404 237v38l-44 14-12-33 12-33Z"/> <path d="m147 147 27-27 41 22-15 32-32 15Z"/> <path d="m365 147-27-27-41 22 15 32 32 15Z"/> <path d="m147 365 27 27 41-22-15-32-32-15Z"/> <path d="m365 365-27 27-41-22 15-32 32-15Z"/> </g> <g fill="url(#bulwark-bw-red)" stroke="#46151a" stroke-width="3"> <path d="m224 118 32 7 32-7-6 22-26 7-26-7Z"/> <path d="m224 394 32-7 32 7-6-22-26-7-26 7Z"/> <path d="m118 224 7 32-7 32 22-6 7-26-7-26Z"/> <path d="m394 224-7 32 7 32-22-6-7-26 7-26Z"/> <path d="m166 161 23-14 15 20-22 16Z"/> <path d="m346 161-23-14-15 20 22 16Z"/> <path d="m166 351 23 14 15-20-22-16Z"/> <path d="m346 351-23 14-15-20 22-16Z"/> </g> <circle cx="256" cy="256" r="53" fill="#252d36" stroke="#59646f" stroke-width="6"/> <circle cx="256" cy="256" r="37" fill="#0f151d" stroke="#0a0e14" stroke-width="7"/> <circle cx="256" cy="256" r="23" fill="url(#bulwark-bw-core)" stroke="#ff7668" stroke-width="4"/> <circle cx="256" cy="256" r="10" fill="#ffd4c8"/> <path d="m360 222 75 2 23 15 39 2v30l-39 2-23 15-75 2-14-34Z" fill="#1a232d" stroke="#5b6671" stroke-width="5"/> <path d="m383 237 58 2 17 9 31 1v14l-31 1-17 9-58 2-15-19Z" fill="#303a45" stroke="#0b1118" stroke-width="4"/> <rect x="402" y="246" width="48" height="20" rx="5" fill="url(#bulwark-bw-red)" stroke="#48161c" stroke-width="3"/> </g> <g fill="#ff5148" opacity=".5" filter="url(#bulwark-bw-glow)"> <circle cx="256" cy="256" r="30"/> <rect x="404" y="248" width="43" height="16" rx="5"/> </g> <g fill="#111821" stroke="#87919b" stroke-width="3"> <circle cx="160" cy="160" r="8"/> <circle cx="352" cy="160" r="8"/> <circle cx="160" cy="352" r="8"/> <circle cx="352" cy="352" r="8"/> </g> <g fill="#929da7"> <circle cx="160" cy="160" r="3"/> <circle cx="352" cy="160" r="3"/> <circle cx="160" cy="352" r="3"/> <circle cx="352" cy="352" r="3"/> </g> </symbol><symbol id="look-orbiter" viewBox="0 0 512 512"> <defs> <linearGradient id="orbiter-ob-hull" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#586a91"/> <stop offset=".42" stop-color="#273651"/> <stop offset="1" stop-color="#121a2a"/> </linearGradient> <linearGradient id="orbiter-ob-ring" x1="0" y1="0" x2="0" y2="1"> <stop stop-color="#405176"/> <stop offset=".5" stop-color="#1d2941"/> <stop offset="1" stop-color="#0e1524"/> </linearGradient> <linearGradient id="orbiter-ob-violet" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#47238b"/> <stop offset=".5" stop-color="#9b6cff"/> <stop offset="1" stop-color="#eee7ff"/> </linearGradient> <radialGradient id="orbiter-ob-core"> <stop stop-color="#ffffff"/> <stop offset=".22" stop-color="#d9c8ff"/> <stop offset=".48" stop-color="#8e63e8"/> <stop offset=".78" stop-color="#352074"/> <stop offset="1" stop-color="#10152b"/> </radialGradient> <filter id="orbiter-ob-glow" x="-100%" y="-100%" width="300%" height="300%"> <feGaussianBlur stdDeviation="7"/> </filter> </defs> <g stroke="#080d17" stroke-linejoin="round"> <g transform="translate(0 -2)"> <path d="m135 141-47-47 4-31 28-28 31-4 47 47-11 45-20 20Z" fill="#09101d" stroke-width="12"/> <path d="m377 141 47-47-4-31-28-28-31-4-47 47 11 45 20 20Z" fill="#09101d" stroke-width="12"/> <path d="m135 375-47 47 4 31 28 28 31 4 47-47-11-45-20-20Z" fill="#09101d" stroke-width="12"/> <path d="m377 375 47 47-4 31-28 28-31 4-47-47 11-45 20-20Z" fill="#09101d" stroke-width="12"/> </g> <g fill="url(#orbiter-ob-hull)" stroke="#647394" stroke-width="4"> <path d="m137 143-39-39 3-34 25-25 34-3 39 39-17 38-21 21Z"/> <path d="m375 143 39-39-3-34-25-25-34-3-39 39 17 38 21 21Z"/> <path d="m137 369-39 39 3 34 25 25 34 3 39-39-17-38-21-21Z"/> <path d="m375 369 39 39-3 34-25 25-34 3-39-39 17-38 21-21Z"/> </g> <g fill="#1a2640" stroke="#0d1422" stroke-width="4"> <path d="m113 83 21-21 24 4 24 24-11 26-25 11-29-20Z"/> <path d="m399 83-21-21-24 4-24 24 11 26 25 11 29-20Z"/> <path d="m113 429 21 21 24-4 24-24-11-26-25-11-29 20Z"/> <path d="m399 429-21 21-24-4-24-24 11-26 25-11 29 20Z"/> </g> <g fill="url(#orbiter-ob-violet)" stroke="#291451" stroke-width="3"> <rect x="125" y="74" width="17" height="26" rx="4" transform="rotate(-45 133.5 87)"/> <rect x="370" y="74" width="17" height="26" rx="4" transform="rotate(45 378.5 87)"/> <rect x="125" y="412" width="17" height="26" rx="4" transform="rotate(45 133.5 425)"/> <rect x="370" y="412" width="17" height="26" rx="4" transform="rotate(-45 378.5 425)"/> </g> <g fill="#252f42" stroke="#596783" stroke-width="4"> <path d="m169 115 34 28-21 46-37-26Z"/> <path d="m343 115-34 28 21 46 37-26Z"/> <path d="m169 397 34-28-21-46-37 26Z"/> <path d="m343 397-34-28 21-46 37 26Z"/> </g> <path d="m195 102 61-12 61 12 52 34 34 52 12 68-12 68-34 52-52 34-61 12-61-12-52-34-34-52-12-68 12-68 34-52Z" fill="url(#orbiter-ob-hull)" stroke="#6c7892" stroke-width="6"/> <circle cx="256" cy="256" r="146" fill="#111a2b" stroke="#111827" stroke-width="12"/> <circle cx="256" cy="256" r="127" fill="url(#orbiter-ob-ring)" stroke="#576685" stroke-width="6"/> <circle cx="256" cy="256" r="101" fill="#121b2d" stroke="#0b111d" stroke-width="13"/> <circle cx="256" cy="256" r="78" fill="#26334d" stroke="#607093" stroke-width="5"/> <circle cx="256" cy="256" r="60" fill="#111928" stroke="#303d59" stroke-width="10"/> <g fill="#273550" stroke="#0b111d" stroke-width="4"> <path d="M237 108h38l14 38-33 17-33-17Z"/> <path d="M237 404h38l14-38-33-17-33 17Z"/> <path d="M108 237v38l38 14 17-33-17-33Z"/> <path d="M404 237v38l-38 14-17-33 17-33Z"/> <path d="m151 151 27-27 37 18-13 36-36 13Z"/> <path d="m361 151-27-27-37 18 13 36 36 13Z"/> <path d="m151 361 27 27 37-18-13-36-36-13Z"/> <path d="m361 361-27 27-37-18 13-36 36-13Z"/> </g> <g fill="url(#orbiter-ob-violet)" stroke="#241443" stroke-width="2"> <rect x="246" y="111" width="20" height="28" rx="4"/> <rect x="246" y="373" width="20" height="28" rx="4"/> <rect x="111" y="246" width="28" height="20" rx="4"/> <rect x="373" y="246" width="28" height="20" rx="4"/> <path d="m170 153 18-9 12 18-18 12Z"/> <path d="m342 153-18-9-12 18 18 12Z"/> <path d="m170 359 18 9 12-18-18-12Z"/> <path d="m342 359-18 9-12-18 18-12Z"/> </g> <circle cx="256" cy="256" r="40" fill="#202b40" stroke="#6c7790" stroke-width="5"/> <circle cx="256" cy="256" r="27" fill="url(#orbiter-ob-core)" stroke="#b8a1ff" stroke-width="3"/> <circle cx="256" cy="256" r="9" fill="#f8f5ff"/> <path d="m375 224 66 4 18 14 36 3v22l-36 3-18 14-66 4-16-32Z" fill="#1d283c" stroke="#64708a" stroke-width="5"/> <path d="m398 239 44 3 15 9 29 1v8l-29 1-15 9-44 3-15-17Z" fill="#34415a" stroke="#0a101b" stroke-width="3"/> <rect x="426" y="248" width="39" height="16" rx="4" fill="url(#orbiter-ob-violet)" stroke="#251548" stroke-width="2"/> </g> <g fill="#9467ed" opacity=".48" filter="url(#orbiter-ob-glow)"> <circle cx="256" cy="256" r="31"/> <rect x="427" y="249" width="36" height="14" rx="4"/> </g> <g fill="#d7dce5"> <circle cx="181" cy="181" r="3"/> <circle cx="331" cy="181" r="3"/> <circle cx="181" cy="331" r="3"/> <circle cx="331" cy="331" r="3"/> </g> </symbol><symbol id="look-mantis" viewBox="0 0 512 512"> <defs> <linearGradient id="mantis-mn-hull" x1="0" y1="0" x2="0" y2="1"> <stop stop-color="#4a5a63"/> <stop offset=".45" stop-color="#28353c"/> <stop offset="1" stop-color="#111b20"/> </linearGradient> <linearGradient id="mantis-mn-limb" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#33424a"/> <stop offset=".55" stop-color="#1b262d"/> <stop offset="1" stop-color="#0e161b"/> </linearGradient> <linearGradient id="mantis-mn-energy" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#116b3c"/> <stop offset=".5" stop-color="#3fd97a"/> <stop offset="1" stop-color="#d6ffe6"/> </linearGradient> <radialGradient id="mantis-mn-eye"> <stop stop-color="#f0fff5"/> <stop offset=".3" stop-color="#5cf09a"/> <stop offset=".68" stop-color="#0f9b52"/> <stop offset="1" stop-color="#0d2c1e"/> </radialGradient> <filter id="mantis-mn-glow" x="-100%" y="-100%" width="300%" height="300%"> <feGaussianBlur stdDeviation="7"/> </filter> <!-- Silhouette only: no fill or stroke here so the backing <use> can set both and every limb picks up one consistent outline weight at gameplay size. --> <g id="mantis-mn-shape"> <path d="M135 205 255 180 295 256 255 332 135 307 108 256Z"/> <path d="M288 218 404 248 404 264 288 294Z"/> <path d="M228 196 288 128 352 104 392 116 428 124 440 160 432 194 412 186 430 154 408 134 330 156 276 214Z"/> <path d="M228 316 288 384 352 408 392 396 428 388 440 352 432 318 412 326 430 358 408 378 330 356 276 298Z"/> <path d="M138 210 84 168 66 190 122 234Z"/> <path d="M138 302 84 344 66 322 122 278Z"/> <path d="M126 236 74 246 74 266 126 276Z"/> </g> </defs> <use href="#mn-shape" fill="#080e13" stroke="#070b0f" stroke-width="15" stroke-linejoin="round"/> <g stroke-linejoin="round"> <!-- rear legs and tail spar --> <g fill="url(#mantis-mn-limb)" stroke="#4d5c65" stroke-width="4"> <path d="M138 210 84 168 66 190 122 234Z"/> <path d="M138 302 84 344 66 322 122 278Z"/> <path d="M126 236 74 246 74 266 126 276Z"/> </g> <!-- raptorial arms, each ending in one bold inward hook --> <g fill="url(#mantis-mn-limb)" stroke="#5c6b74" stroke-width="5"> <path d="M228 196 288 128 352 104 392 116 428 124 440 160 432 194 412 186 430 154 408 134 330 156 276 214Z"/> <path d="M228 316 288 384 352 408 392 396 428 388 440 352 432 318 412 326 430 358 408 378 330 356 276 298Z"/> </g> <g fill="#26333a" stroke="#7c8b94" stroke-width="4"> <path d="M394 124 424 132 434 160 426 184 414 178 432 154 406 138Z"/> <path d="M394 388 424 380 434 352 426 328 414 334 432 358 406 374Z"/> </g> <!-- prow --> <path d="M288 218 404 248 404 264 288 294Z" fill="url(#mantis-mn-limb)" stroke="#6e7d86" stroke-width="5"/> <path d="M300 234 372 251 372 261 300 278Z" fill="#0f181d" stroke="#39474f" stroke-width="3"/> <!-- carapace --> <path d="M135 205 255 180 295 256 255 332 135 307 108 256Z" fill="url(#mantis-mn-hull)" stroke="#77868f" stroke-width="5"/> <path d="M152 216 246 196 274 256 246 316 152 296 132 256Z" fill="#1d282e" stroke="#43525a" stroke-width="4"/> <path d="M168 228 232 214 252 256 232 298 168 284 154 256Z" fill="#2b3941" stroke="#101a1f" stroke-width="3"/> </g> <!-- emissive: eye, thoracic vents, limb strips, prow tip --> <g fill="url(#mantis-mn-energy)" stroke="#08402a" stroke-width="3"> <path d="M264 190 322 154 316 172 262 202Z"/> <path d="M264 322 322 358 316 340 262 310Z"/> <path d="M396 254 424 256 396 258Z"/> <rect x="84" y="250" width="30" height="12" rx="5"/> </g> <path d="M245 256 230 282 200 282 185 256 200 230 230 230Z" fill="#0b1a14" stroke="#0f8a4d" stroke-width="5"/> <path d="M238 256 227 275 205 275 194 256 205 237 227 237Z" fill="url(#mantis-mn-eye)" stroke="#b9ffd6" stroke-width="3"/> <g fill="#3fd97a" opacity=".44" filter="url(#mantis-mn-glow)"> <path d="M245 256 230 282 200 282 185 256 200 230 230 230Z"/> <path d="M264 190 322 154 316 172 262 202Z"/> <path d="M264 322 322 358 316 340 262 310Z"/> <circle cx="410" cy="256" r="9"/> </g> <!-- surface detail: kept sparse so it dissolves cleanly rather than muddying at 48px --> <g fill="none" stroke="#8a99a2" stroke-linecap="round" opacity=".7"> <path d="M296 140 344 122M296 372 344 390" stroke-width="3"/> <path d="M170 236 150 256 170 276" stroke-width="2"/> </g> <g fill="#94a3ac"> <circle cx="262" cy="204" r="3"/> <circle cx="262" cy="308" r="3"/> <circle cx="286" cy="256" r="3"/> <circle cx="128" cy="220" r="3"/> <circle cx="128" cy="292" r="3"/> </g> </symbol><symbol id="look-aureate-warden" viewBox="0 0 512 512"> <defs> <linearGradient id="aureate-warden-aw-ivory-upper" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#fffaf0"/> <stop offset=".38" stop-color="#eadfc8"/> <stop offset=".72" stop-color="#c9b996"/> <stop offset="1" stop-color="#887858"/> </linearGradient> <linearGradient id="aureate-warden-aw-ivory-lower" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#d9ceb7"/> <stop offset=".42" stop-color="#b9aa8b"/> <stop offset="1" stop-color="#74664c"/> </linearGradient> <linearGradient id="aureate-warden-aw-graphite" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#515761"/> <stop offset=".38" stop-color="#292f38"/> <stop offset="1" stop-color="#0d1219"/> </linearGradient> <linearGradient id="aureate-warden-aw-spine" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#151b23"/> <stop offset=".48" stop-color="#3d444d"/> <stop offset="1" stop-color="#11161d"/> </linearGradient> <linearGradient id="aureate-warden-aw-gold" x1="0" y1="0" x2="1" y2="1"> <stop stop-color="#fff0ae"/> <stop offset=".26" stop-color="#e0b75f"/> <stop offset=".62" stop-color="#a9782a"/> <stop offset="1" stop-color="#5a3510"/> </linearGradient> <linearGradient id="aureate-warden-aw-energy" x1="0" y1="0" x2="1" y2="0"> <stop stop-color="#8c5316"/> <stop offset=".42" stop-color="#f1bd55"/> <stop offset=".76" stop-color="#fff0ae"/> <stop offset="1" stop-color="#fffdf1"/> </linearGradient> <radialGradient id="aureate-warden-aw-core"> <stop stop-color="#ffffff"/> <stop offset=".24" stop-color="#fff4bd"/> <stop offset=".52" stop-color="#e2b653"/> <stop offset=".8" stop-color="#8c5316"/> <stop offset="1" stop-color="#23190e"/> </radialGradient> <filter id="aureate-warden-aw-glow" x="-100%" y="-100%" width="300%" height="300%"> <feGaussianBlur stdDeviation="6"/> </filter> </defs> <path d="M56 176 100 109 165 70 231 76 291 119 342 175 424 199 483 232 501 256 483 280 424 313 342 337 291 393 231 436 165 442 100 403 56 336 82 295 66 256 82 217Z" fill="#070b11" stroke="#05080c" stroke-width="13" stroke-linejoin="round"/> <g stroke-linejoin="round"> <path d="m72 180 39-59 58-35 57 4 55 40 48 57-46 42-78-17-59-35-58 20Z" fill="url(#aureate-warden-aw-graphite)" stroke="#626872" stroke-width="5"/> <path d="m72 332 39 59 58 35 57-4 55-40 48-57-46-42-78 17-59 35-58-20Z" fill="#1a2028" stroke="#444b54" stroke-width="5"/> <path d="m69 184 42-65 57-35 50 7 57 42 35 43-52 31-48-11-55-37-60 33Z" fill="url(#aureate-warden-aw-ivory-upper)" stroke="#8f7541" stroke-width="5"/> <path d="m69 328 42 65 57 35 50-7 57-42 35-43-52-31-48 11-55 37-60-33Z" fill="url(#aureate-warden-aw-ivory-lower)" stroke="#755c31" stroke-width="5"/> <path d="m74 180 30-49 47-29 35 5-42 31-23 43-29 31Z" fill="#f7edda" stroke="#9d824b" stroke-width="4"/> <path d="m74 332 30 49 47 29 35-5-42-31-23-43-29-31Z" fill="#c6b899" stroke="#70582f" stroke-width="4"/> <path d="m112 196 46-28 58 39-34 32-71-8-28-17Z" fill="#1b2129" stroke="#666d75" stroke-width="4"/> <path d="m112 316 46 28 58-39-34-32-71 8-28 17Z" fill="#121820" stroke="#414850" stroke-width="4"/> <path d="m91 218 91 15 74 23-74 23-91 15-17-38Z" fill="url(#aureate-warden-aw-graphite)" stroke="#626a73" stroke-width="5"/> <path d="m117 232 66 10 43 14-43 14-66 10-15-24Z" fill="#111720" stroke="#7a6847" stroke-width="3"/> <path d="m185 194 83 18 71 44-71 44-83 18-56-62Z" fill="url(#aureate-warden-aw-graphite)" stroke="#706f6a" stroke-width="6"/> <path d="m217 215 58 12 46 29-46 29-58 12-42-41Z" fill="#111720" stroke="#88682f" stroke-width="5"/> <path d="m274 204 73-20 81 25 55 31-77 4-62 21-70 4-30-13Z" fill="url(#aureate-warden-aw-spine)" stroke="#626871" stroke-width="5"/> <path d="m274 308 73 20 81-25 55-31-77-4-62-21-70-4-30 13Z" fill="#171d25" stroke="#404750" stroke-width="5"/> <path d="m318 195 34-7 77 25 42 23-64-2-61 15-61-5Z" fill="url(#aureate-warden-aw-ivory-upper)" stroke="#8d7440" stroke-width="4"/> <path d="m318 317 34 7 77-25 42-23-64 2-61-15-61 5Z" fill="url(#aureate-warden-aw-ivory-lower)" stroke="#6f582f" stroke-width="4"/> <path d="m287 229 63 7 58 14 61 2 17 4-17 4-61 2-58 14-63 7-35-27Z" fill="#141a21" stroke="#8b7549" stroke-width="4"/> <path d="m315 241 42 5 51 10-51 10-42 5-26-15Z" fill="url(#aureate-warden-aw-spine)" stroke="#0a0f15" stroke-width="3"/> <path d="m393 246 72 4 25 6-25 6-72 4-26-10Z" fill="url(#aureate-warden-aw-gold)" stroke="#5f3b13" stroke-width="3"/> <path d="m447 244 40 5 17 7-17 7-40 5 13-12Z" fill="#dca84b" stroke="#6d4214" stroke-width="3"/> <g fill="url(#aureate-warden-aw-gold)" stroke="#5e3b16" stroke-width="3"> <path d="m126 133 37-23 35 4-12 14-29-3-27 18Z"/> <path d="m126 379 37 23 35-4-12-14-29 3-27-18Z"/> <path d="m179 177 31 18 49 11-50-2-38-17Z"/> <path d="m179 335 31-18 49-11-50 2-38 17Z"/> <path d="m292 192 47-12 43 10-43 2-41 11Z"/> <path d="m292 320 47 12 43-10-43-2-41-11Z"/> <path d="m96 211 25-12 27 3-23 11-21 9Z"/> <path d="m96 301 25 12 27-3-23-11-21-9Z"/> </g> <circle cx="229" cy="256" r="69" fill="#0b1016" stroke="#80642f" stroke-width="7"/> <circle cx="229" cy="256" r="55" fill="#2b3037" stroke="#d0ab5b" stroke-width="5"/> <circle cx="229" cy="256" r="41" fill="#11161d" stroke="#6b5127" stroke-width="8"/> <g fill="url(#aureate-warden-aw-gold)" stroke="#4e3215" stroke-width="2"> <path d="M220 190h18l6 24-15 9-15-9Z"/> <path d="M220 322h18l6-24-15-9-15 9Z"/> <path d="M163 247v18l24 6 9-15-9-15Z"/> <path d="M295 247v18l-24 6-9-15 9-15Z"/> </g> <circle cx="229" cy="256" r="28" fill="#19170f" stroke="#a7782e" stroke-width="5"/> <circle cx="229" cy="256" r="18" fill="url(#aureate-warden-aw-core)" stroke="#fff0ae" stroke-width="3"/> <circle cx="225" cy="252" r="7" fill="#fffef4"/> <path d="m246 248 143 4 24 4-24 4-143 4Z" fill="url(#aureate-warden-aw-energy)" stroke="#6e4516" stroke-width="2"/> </g> <g fill="#efbd55" opacity=".42" filter="url(#aureate-warden-aw-glow)"> <circle cx="229" cy="256" r="24"/> <path d="m247 249 167 7-167 7Z"/> </g> <g fill="none" stroke-linecap="round"> <path d="M146 122 205 96M152 145l51 34M145 390l60 26M152 367l51-34" stroke="#fff9e9" stroke-width="4" opacity=".68"/> <path d="m326 208 40-9M326 304l40 9M120 246h34M120 266h34" stroke="#a79c87" stroke-width="3" opacity=".72"/> <path d="m111 176 37-22 45 29M111 336l37 22 45-29" stroke="#9a7b41" stroke-width="3" opacity=".7"/> </g> <g fill="#fff5d9"> <circle cx="159" cy="122" r="3"/> <circle cx="159" cy="390" r="3"/> <circle cx="325" cy="203" r="3"/> <circle cx="325" cy="309" r="3"/> </g> </symbol></defs></svg>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">nilbots · redesign study · web + mobile chrome · renderers untouched</p>
+    <h1>Six nav items, four tabs, and nowhere does it say what you came to do.</h1>
+    <p class="lede">
+      The chrome today is a set of destinations — Arena, Bots, Leaderboard, Store, Docs, My
+      garage — six different <em>kinds</em> of thing given equal weight in one row. Mobile
+      keeps four and silently drops the rest.
+    </p>
+    <p class="lede sub">
+      Nine directions follow: three worked through in depth, five shorter ones, and a ninth that
+      fuses two of them. Every one changes navigation and page
+      composition, not just palette. Chassis art is the real sprite throughout — it is the
+      strongest identifier the product owns, and it belongs next to a bot's name everywhere.
+    </p>
+
+    <div class="audit">
+      <div class="box">
+        <h3>Today — web, then mobile</h3>
+        <div class="navrow" style="margin-bottom:8px">
+          <span>Arena</span><span>Bots</span><span>Leaderboard</span><span>Store</span><span>Docs</span><span>My garage</span>
+        </div>
+        <div class="navrow">
+          <span>Home</span><span>Arena</span><span>Bots</span><span>Garage</span>
+          <span class="gone">Leaderboard</span><span class="gone">Store</span><span class="gone">Docs</span>
+        </div>
+        <p>Two products with the same name. Someone who learns the app cannot navigate the site.</p>
+      </div>
+      <div class="box">
+        <h3>The loop, and who owns each stage</h3>
+        <div class="loop">
+          <b>write</b><i>→</i><b>submit</b><i>→</i><b>fight</b><i>→</i><b>read it back</b><i>→</i><b class="missing">decide what to change</b>
+        </div>
+        <p>
+          The first two belong to the editor and <code>nilbots submit</code> and should stay
+          there. The server runs the fight. These surfaces own one stage — reading a match
+          back — and not the one after it. No direction below moves building into a browser.
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================== TIER ONE ==== -->
+  <section class="tier">
+    <h2>Worked through</h2>
+    <p>Nav, home screen, phone screen, type scale and density.</p>
+  </section>
+
+  <!-- 1 — LADDER -->
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Ladder</h3><span class="tag">the product is a competition</span></div>
+      <p class="thesis">
+        Standing is the spine. Home is the ladder itself with your row pinned wherever you
+        scroll, and every match is reached <em>from</em> a row as evidence of how a rank was
+        earned. Recent form sits inline, so the table answers “who is climbing” without a
+        second page.
+      </p>
+      <ul class="moves">
+        <li>Six nav items become four; the store folds into a bot's appearance and docs becomes a utility link.</li>
+        <li>The arena feed stops being a destination — it becomes the per-row form strip and a “just finished” rail.</li>
+        <li>Mobile gets the same four, so the surfaces stop disagreeing.</li>
+        <li>Rank is the display type: large tabular numerals carry hierarchy instead of headings.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Ladder · Bots · Watch · Docs</span></div>
+        <div class="r"><span class="k">Home</span><span>Ladder · your row pinned · form per bot · just-finished rail</span></div>
+      </div>
+    </div>
+    <div class="screens">
+      <div class="app ladder">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#a">Ladder</a><a href="#a">Bots</a><a href="#a">Watch</a><a href="#a">Docs</a></nav></div>
+        <div class="body">
+          <div class="panel pad standing row spread">
+            <span class="who"><svg class="look" width="26" height="26" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span><span class="s">your best · Vanguard</span></span></span>
+            <span class="row" style="gap:18px">
+              <span><p class="lab" style="margin:0">rank</p><span class="rank">7</span></span>
+              <span><p class="lab" style="margin:0">rating</p><span class="rank">1284</span></span>
+              <span class="delta up" style="font-family:var(--t-mono);font-size:12px">▲ 31 this week</span>
+            </span>
+          </div>
+          <div class="panel">
+            <div class="pad" style="padding-bottom:0"><p class="lab">Ranked ladder · 214 bots</p></div>
+            <div class="pad" style="padding-top:8px">
+              <table class="tbl">
+                <thead><tr><th style="width:34px">#</th><th>Bot</th><th>Form</th><th class="num">Rating</th><th class="num">W–L</th></tr></thead>
+                <tbody>
+                  <tr><td class="rank">5</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td><td><span class="delta up">W W L W W</span></td><td class="num">1341</td><td class="num">62–29</td></tr>
+                  <tr><td class="rank">6</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="stack"><span class="n">Bastille gen-5</span></span></span></td><td><span class="delta dn">L W L L W</span></td><td class="num">1309</td><td class="num">54–31</td></tr>
+                  <tr class="mine"><td class="rank">7</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span></span></span></td><td><span class="delta up">W W W L W</span></td><td class="num">1284</td><td class="num">48–22</td></tr>
+                  <tr><td class="rank">8</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="stack"><span class="n">Rampart gen-2</span></span></span></td><td><span class="delta dn">L L W L L</span></td><td class="num">1250</td><td class="num">41–38</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Just finished</p>
+            <div class="row" style="gap:10px;flex-wrap:wrap">
+              <span class="pill live">live</span>
+              <span style="font-family:var(--t-mono);font-size:12px">Warden gen-1 beat Rampart gen-2 · crossfire-01 · 243t</span>
+              <button class="btn" type="button" style="margin-left:auto">Watch</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone ladder">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="panel pad standing">
+            <p class="lab">Your standing</p>
+            <div class="row spread"><span class="rank">7</span><span class="rank">1284</span></div>
+            <p style="margin:4px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">Pincer gen-10 · ▲31</p>
+          </div>
+          <table class="tbl"><tbody>
+            <tr><td class="rank">5</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td><td class="num">1341</td></tr>
+            <tr><td class="rank">6</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="stack"><span class="n">Bastille gen-5</span></span></span></td><td class="num">1309</td></tr>
+            <tr class="mine"><td class="rank">7</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span></span></span></td><td class="num">1284</td></tr>
+            <tr><td class="rank">8</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="stack"><span class="n">Rampart gen-2</span></span></span></td><td class="num">1250</td></tr>
+          </tbody></table>
+        </div>
+        <div class="tabbar"><div class="on">Ladder</div><div>Bots</div><div>Watch</div><div>Docs</div></div>
+      </div>
+    </div>
+    <div class="scale">
+      <div><span class="k">Display</span><span>Rank numerals 22/700, tabular. The largest type on the page is a number.</span></div>
+      <div><span class="k">Density</span><span>8px rows — a full ladder fits without scrolling on desktop.</span></div>
+    </div>
+  </section>
+
+  <!-- 2 — READOUT -->
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Readout</h3><span class="tag">the half of the loop the CLI cannot show you</span></div>
+      <p class="thesis">
+        You build in the CLI, and this does not argue with that. It designs the other half:
+        what you open <em>after</em> <code>nilbots submit</code> to find out whether the
+        change worked. Home is the current generation's readout — what is live, what it
+        changed against the generation before, and what the rating did about it. That last
+        part exists nowhere today, in the CLI or here.
+      </p>
+      <ul class="moves">
+        <li>Nav is the readback, not the build: Bot · Results · Compare · Docs.</li>
+        <li>Home pairs the diff between submitted generations with the rating delta over the games since.</li>
+        <li>Light ground, mono promoted to display, so it matches the terminal beside it rather than the arena it reports on.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Bot · Results · Compare · Docs — building stays in the CLI, deliberately</span></div>
+        <div class="r"><span class="k">New</span><span>Compare — the generation diff, on the only surface that has the ratings to score it</span></div>
+      </div>
+    </div>
+    <div class="screens">
+      <div class="app bench">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#b">Bot</a><a href="#b">Results</a><a href="#b">Compare</a><a href="#b">Docs</a></nav></div>
+        <div class="body">
+          <div class="stage">
+            <div><p class="k">Built in CLI</p><p class="v">gen-10 · 41s</p></div>
+            <div class="on"><p class="k">Live</p><p class="v">28 games</p></div>
+            <div><p class="k">Queued</p><p class="v">12 ranked</p></div>
+            <div><p class="k">Rules</p><p class="v">0.5</p></div>
+          </div>
+          <div class="panel pad">
+            <div class="row spread" style="margin-bottom:10px">
+              <span class="who"><svg class="look" width="26" height="26" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span><span class="s">nilbots submit · 4h ago · sdk 0.5.6</span></span></span><span class="pill ok">live on ladder</span>
+            </div>
+            <p class="lab">Changed since gen-9</p>
+            <div class="diff">
+              <div class="rm">− if (enemy.distance &lt; 3) Shoot();</div>
+              <div class="add">+ if (enemy.distance &lt; 5 &amp;&amp; cooldown == 0) Shoot();</div>
+              <div class="add">+ if (health &lt; 2) Retreat(cover);</div>
+            </div>
+            <div class="row" style="margin-top:12px;gap:16px;font-family:var(--t-mono);font-size:12px">
+              <span>rating <b class="delta up">+31</b> since</span>
+              <span>win rate <b class="delta up">62% → 68%</b></span>
+              <span class="pill mute">28 ranked games</span>
+            </div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Last fights</p>
+            <table class="tbl"><tbody>
+              <tr><td><span class="pill ok">win</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="stack"><span class="n">Bastille gen-5</span></span></span></td><td style="color:var(--t-dim)">elimination · 38t</td><td class="num delta up">+11</td></tr>
+              <tr><td><span class="pill mute">loss</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td><td style="color:var(--t-dim)">domination · 121t</td><td class="num delta dn">−8</td></tr>
+              <tr><td><span class="pill ok">win</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="stack"><span class="n">Rampart gen-2</span></span></span></td><td style="color:var(--t-dim)">elimination · 97t</td><td class="num delta up">+9</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+      <div class="phone bench">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="panel pad">
+            <p class="lab">Current build</p>
+            <span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span></span></span>
+            <p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">live · 28 games · ▲31</p>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Since gen-9</p>
+            <div class="diff"><div class="rm">− distance &lt; 3</div><div class="add">+ distance &lt; 5</div><div class="add">+ retreat at 1 hp</div></div>
+          </div>
+          <div class="panel pad">
+            <p class="lab">Next generation</p>
+            <p style="margin:0;font-family:var(--t-mono);font-size:11px">nilbots submit</p>
+            <p style="margin:4px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">from your machine · appears here when it builds</p>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on">Bot</div><div>Results</div><div>Compare</div><div>Docs</div></div>
+      </div>
+    </div>
+    <div class="scale">
+      <div><span class="k">Display</span><span>Mono, uppercase, tracked +.16em — the interface speaks in the same face as the code.</span></div>
+      <div><span class="k">Density</span><span>Tight; 2px radii, rules instead of shadows. An instrument, not a page.</span></div>
+    </div>
+  </section>
+
+  <!-- 3 — BROADCAST -->
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Broadcast</h3><span class="tag">the product is the match</span></div>
+      <p class="thesis">
+        The thing worth showing someone is a fight. Home leads with one featured match at
+        full width — live if anything is live, otherwise the best recent one — and everything
+        else is a rail beneath it. The ladder becomes context you can open, not the spine.
+      </p>
+      <ul class="moves">
+        <li>Home is a feature plus rails: the shape of a schedule, not a table.</li>
+        <li>Matches get titles, with map and rules as a byline.</li>
+        <li>Warm ground from ember-forge, one cold teal reserved for what is live right now.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Live · Bots · Ladder · Store</span></div>
+        <div class="r"><span class="k">Risk</span><span>Worst fit mid-loop: your own bot is not on the home screen</span></div>
+      </div>
+    </div>
+    <div class="screens">
+      <div class="app cast">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#c">Live</a><a href="#c">Bots</a><a href="#c">Ladder</a><a href="#c">Store</a></nav></div>
+        <div class="body">
+          <div class="feature">
+            <div class="still"><span class="dotA"></span><span class="dotB"></span></div>
+            <div>
+              <span class="pill live">on now · 41 watching</span>
+              <h4 style="margin-top:8px">Warden gen-1<br>vs Rampart gen-2</h4>
+              <div class="row" style="margin-bottom:10px"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-orbiter"></use></svg></div>
+              <p style="font-family:var(--t-mono);font-size:11.5px;color:var(--t-dim);margin:0 0 12px">
+                crossfire-01 · rules 0.5 · tick 128 of 243 · domination</p>
+              <div class="row"><button class="btn solid" type="button">Watch live</button>
+                <button class="btn" type="button">Ladder context</button></div>
+            </div>
+          </div>
+          <div>
+            <p class="lab">Finished today</p>
+            <div class="strip">
+              <div class="panel">
+                <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+                <div class="pad" style="padding:9px 10px">
+                  <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:13px">Pincer beat Bastille</p>
+                  <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">bastion-01 · 38t</p></div>
+              </div>
+              <div class="panel">
+                <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+                <div class="pad" style="padding:9px 10px">
+                  <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:13px">Warden held the zone</p>
+                  <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">arena-01 · 121t</p></div>
+              </div>
+              <div class="panel">
+                <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+                <div class="pad" style="padding:9px 10px">
+                  <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:13px">Rampart, 3 in a row</p>
+                  <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim)">gallery-01 · 46t</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone cast">
+        <div class="status"></div>
+        <div class="screen" style="gap:10px">
+          <div class="panel">
+            <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+            <div class="pad" style="padding:10px">
+              <span class="pill live">on now</span>
+              <p style="margin:6px 0 0;font-family:var(--t-display);font-weight:700;font-size:15px">Warden vs Rampart</p>
+              <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">crossfire-01 · t128</p></div>
+          </div>
+          <div class="panel">
+            <div class="still" style="border:0;border-bottom:1px solid var(--t-edge)"><span class="dotA"></span><span class="dotB"></span></div>
+            <div class="pad" style="padding:10px">
+              <p style="margin:0;font-family:var(--t-display);font-weight:700;font-size:15px">Pincer beat Bastille</p>
+              <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">bastion-01 · 38t</p></div>
+          </div>
+        </div>
+        <div class="tabbar"><div class="on">Live</div><div>Bots</div><div>Ladder</div><div>Store</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== TIER TWO ==== -->
+  <section class="tier">
+    <h2>Five more</h2>
+    <p>
+      Shorter, but each is a different answer to what the product is, not a restyle of the
+      three above. One screen each, at the moment that makes the case.
+    </p>
+  </section>
+
+  <!-- 4 — RACK -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Rack</h3><span class="tag">the product is your machines</span></div>
+      <p class="thesis">
+        You own a stable of bots and you dress them. Home is the rack: every chassis at
+        size, because the sprite is the best thing the product owns and a 22-pixel version
+        of it wastes that. Locked chassis sit in the same grid as empty bays, so the store
+        stops being a separate place you visit and becomes the obvious next slot.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Rack · Ladder · Watch · Docs — store is the empty bay</span></div>
+        <div class="r"><span class="k">Suits</span><span>Selling cosmetics: the shop is where you already are</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app rack">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#d">Rack</a><a href="#d">Ladder</a><a href="#d">Watch</a><a href="#d">Docs</a></nav></div>
+        <div class="body">
+          <p class="lab">Your rack · 4 of 6 bays</p>
+          <div class="bay">
+            <div class="slotcard"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="nm">Pincer gen-10</span>
+              <span class="mt">Vanguard · 1284 · ▲31</span><span class="pill ok">ranked</span></div>
+            <div class="slotcard"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-needle"></use></svg><span class="nm">Warden gen-1</span>
+              <span class="mt">Needle · 1341 · ▲12</span><span class="pill ok">ranked</span></div>
+            <div class="slotcard"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="nm">Bastille gen-5</span>
+              <span class="mt">Bulwark · 1309 · ▼4</span><span class="pill mute">idle 3d</span></div>
+            <div class="slotcard"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-mantis"></use></svg><span class="nm">Sprig gen-2</span>
+              <span class="mt">Mantis · unranked</span><span class="pill mute">7 games to rank</span></div>
+            <div class="slotcard empty"><span class="mt">empty bay</span><button class="btn" type="button">nilbots submit</button></div>
+            <div class="slotcard empty" style="border-color:var(--t-accent);color:var(--t-accent)">
+              <svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="mt">Orbiter · locked</span><button class="btn solid" type="button">Unlock</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — FIELD GUIDE -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Field guide</h3><span class="tag">the product is knowledge about the meta</span></div>
+      <p class="thesis">
+        Twelve chassis, four maps, one rules version — that is a subject with a literature.
+        Home is a catalogue: each chassis an entry with its silhouette, what it is good at,
+        how many bots run it and how they are doing. It is the only direction that helps
+        someone decide <em>what to build</em> rather than reporting what they built.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Guide · Ladder · Watch · Your bots</span></div>
+        <div class="r"><span class="k">Risk</span><span>Needs real analysis behind it, or the entries are decoration</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app guide">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#e">Guide</a><a href="#e">Ladder</a><a href="#e">Watch</a><a href="#e">Your bots</a></nav></div>
+        <div class="body">
+          <div class="panel pad">
+            <div class="entry">
+              <div><svg class="look" width="96" height="96" aria-hidden="true"><use href="#look-mantis"></use></svg><p style="font-family:var(--t-mono);font-size:10px;color:var(--t-dim);margin:6px 0 0">chassis 06 · mantis</p></div>
+              <div>
+                <h4>Mantis</h4>
+                <p style="margin:4px 0 12px;font-size:14px;max-width:52ch">
+                  Fast, fragile, and the only light chassis that keeps its cooldown under
+                  pressure. Runs well on open maps and badly in corridors, where its turn
+                  radius shows.</p>
+                <div class="bars">
+                  <div class="b"><span>win rate</span><span class="track"><span class="fill" style="width:58%"></span></span><span class="num">58%</span></div>
+                  <div class="b"><span>open maps</span><span class="track"><span class="fill" style="width:71%"></span></span><span class="num">71%</span></div>
+                  <div class="b"><span>corridors</span><span class="track"><span class="fill" style="width:34%"></span></span><span class="num">34%</span></div>
+                  <div class="b"><span>adoption</span><span class="track"><span class="fill" style="width:22%"></span></span><span class="num">47</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="strip">
+            <div class="panel pad" style="text-align:center"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-vanguard"></use></svg><p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Vanguard · 61%</p></div>
+            <div class="panel pad" style="text-align:center"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-needle"></use></svg><p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Needle · 54%</p></div>
+            <div class="panel pad" style="text-align:center"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-bulwark"></use></svg><p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Bulwark · 49%</p></div>
+            <div class="panel pad" style="text-align:center"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-orbiter"></use></svg><p style="margin:6px 0 0;font-family:var(--t-mono);font-size:10.5px">Orbiter · 44%</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — TERMINAL -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Terminal</h3><span class="tag">the product is the CLI, continued</span></div>
+      <p class="thesis">
+        If building happens at a prompt, the site can share its grammar instead of inventing
+        a second one. Navigation is a command line; pages are output blocks you can stack and
+        scroll back through. Everything has a copyable equivalent you could have typed
+        locally, which makes the web surface a teaching tool for the CLI rather than a rival.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>A prompt, plus recent commands as history</span></div>
+        <div class="r"><span class="k">Risk</span><span>Hostile to anyone who has not used the CLI — and to phones</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app term">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#f">~/arena</a><a href="#f">history</a><a href="#f">docs</a></nav></div>
+        <div class="body">
+          <div class="prompt"><span class="c">›</span><span>ladder --near me</span><span class="caret"></span></div>
+          <div class="out">
+            <p class="cmd">› ladder --near me</p>
+            <table class="tbl"><tbody>
+              <tr><td class="num" style="width:28px">5</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td><td class="num">1341</td></tr>
+              <tr><td class="num">6</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="stack"><span class="n">Bastille gen-5</span></span></span></td><td class="num">1309</td></tr>
+              <tr class="mine"><td class="num">7</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span></span></span></td><td class="num">1284</td></tr>
+              <tr><td class="num">8</td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="stack"><span class="n">Rampart gen-2</span></span></span></td><td class="num">1250</td></tr>
+            </tbody></table>
+          </div>
+          <div class="out">
+            <p class="cmd">› bot pincer --since gen-9</p>
+            <div class="diff"><div class="rm">− enemy.distance &lt; 3</div><div class="add">+ enemy.distance &lt; 5</div></div>
+            <p style="margin:8px 0 0;font-family:var(--t-mono);font-size:12px">rating <span class="delta up">+31</span> over 28 games</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — SEASON -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Season</h3><span class="tag">the product is an arc, not a snapshot</span></div>
+      <p class="thesis">
+        A rating is a number today and a story over six weeks. Home is your trajectory —
+        where you were, what each submission did to it, and how long is left — with the
+        ladder as the endpoint rather than the subject. It is the only direction that gives
+        a reason to come back on a day you did not submit anything.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Season · Bots · Watch · Docs</span></div>
+        <div class="r"><span class="k">Needs</span><span>Seasons to exist — this is a product decision before it is a design one</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app season">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#g">Season</a><a href="#g">Bots</a><a href="#g">Watch</a><a href="#g">Docs</a></nav></div>
+        <div class="body">
+          <div class="panel pad">
+            <div class="row spread" style="align-items:flex-end;margin-bottom:12px">
+              <div>
+                <p class="lab">Season 3 · 11 days left</p>
+                <div class="row" style="gap:14px"><svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-vanguard"></use></svg>
+                  <div><span class="rank">1284</span>
+                    <p style="margin:0;font-family:var(--t-mono);font-size:11px;color:var(--t-dim)">Pincer gen-10 · rank 7 of 214</p></div></div>
+              </div>
+              <span class="pill ok">▲ 31 this week</span>
+            </div>
+            <svg viewBox="0 0 600 120" width="100%" height="120" role="img" aria-label="Rating over the season, rising from 1120 to 1284">
+              <defs><linearGradient id="seasonfill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#c4b5fd" stop-opacity=".38"></stop>
+                <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0"></stop></linearGradient></defs>
+              <g stroke="#282243" stroke-width="1">
+                <line x1="0" y1="30" x2="600" y2="30"></line><line x1="0" y1="60" x2="600" y2="60"></line>
+                <line x1="0" y1="90" x2="600" y2="90"></line></g>
+              <path d="M0 96 L70 92 L140 78 L210 84 L280 62 L350 66 L420 44 L490 38 L560 22 L600 18 L600 120 L0 120 Z" fill="url(#seasonfill)"></path>
+              <path d="M0 96 L70 92 L140 78 L210 84 L280 62 L350 66 L420 44 L490 38 L560 22 L600 18"
+                    fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linejoin="round"></path>
+              <g fill="#6ee7b7"><circle cx="280" cy="62" r="3.5"></circle><circle cx="420" cy="44" r="3.5"></circle></g>
+              <circle cx="600" cy="18" r="4.5" fill="#0d0b14" stroke="#c4b5fd" stroke-width="2.5"></circle>
+            </svg>
+            <div class="row spread" style="font-family:var(--t-mono);font-size:10.5px;color:var(--t-dim);margin-top:6px">
+              <span>gen-6 submitted</span><span>gen-8</span><span>gen-10 · now</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 — COUNTER -->
+  <section class="dir small">
+    <div class="head">
+      <div class="name"><h3>Counter</h3><span class="tag">the product is the matchup</span></div>
+      <p class="thesis">
+        Rating tells you that you lost; it never tells you to whom, repeatedly. Home is the
+        matrix: your bot against the ladder, cell by cell, so a losing streak resolves into
+        “Warden beats you 7 times in 9 and nobody else does”. That is the most actionable
+        thing this product could show a person who writes bots.
+      </p>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Matchups · Ladder · Watch · Docs</span></div>
+        <div class="r"><span class="k">New</span><span>Head-to-head aggregation — the data exists, nothing surfaces it</span></div>
+      </div>
+    </div>
+    <div class="screens solo">
+      <div class="app counter">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#h">Matchups</a><a href="#h">Ladder</a><a href="#h">Watch</a><a href="#h">Docs</a></nav></div>
+        <div class="body">
+          <div class="panel pad">
+            <p class="lab">Pincer gen-10 · win rate against the top of the ladder</p>
+            <div class="matrix">
+              <span></span>
+              <span class="h">Warden</span><span class="h">Bastille</span><span class="h">Rampart</span><span class="h">Sprig</span><span class="h">Halyard</span>
+              <span class="rh"><svg class="look" width="18" height="18" aria-hidden="true"><use href="#look-vanguard"></use></svg> on arena-01</span>
+              <span class="cell" style="background:#f87171">22%</span><span class="cell" style="background:#5eead4">71%</span>
+              <span class="cell" style="background:#5eead4">64%</span><span class="cell" style="background:#a7c8bd">50%</span>
+              <span class="cell" style="background:#5eead4">68%</span>
+              <span class="rh"><svg class="look" width="18" height="18" aria-hidden="true"><use href="#look-vanguard"></use></svg> on bastion-01</span>
+              <span class="cell" style="background:#f87171">18%</span><span class="cell" style="background:#5eead4">66%</span>
+              <span class="cell" style="background:#a7c8bd">52%</span><span class="cell" style="background:#5eead4">61%</span>
+              <span class="cell" style="background:#5eead4">74%</span>
+              <span class="rh"><svg class="look" width="18" height="18" aria-hidden="true"><use href="#look-vanguard"></use></svg> on gallery-01</span>
+              <span class="cell" style="background:#f0a0a0">38%</span><span class="cell" style="background:#5eead4">70%</span>
+              <span class="cell" style="background:#5eead4">63%</span><span class="cell" style="background:#5eead4">59%</span>
+              <span class="cell" style="background:#a7c8bd">49%</span>
+            </div>
+            <p style="margin:14px 0 0;font-family:var(--t-mono);font-size:12px;color:var(--t-text)">
+              <span class="pill live">pattern</span>
+              &nbsp;Warden gen-1 beats you on every map — worst on bastion-01, 18% over 22 games.</p>
+            <div class="row" style="margin-top:10px"><button class="btn solid" type="button">Watch the 4 you lost</button>
+              <button class="btn" type="button">Compare gen-9 → gen-10 on this matchup</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================= SYNTHESIS ==== -->
+  <section class="tier">
+    <h2>The two you pointed at, put together</h2>
+    <p>
+      Ladder gives the season stakes; the season gives the ladder a memory. Worked through
+      as one direction rather than two features bolted together, because the fusion forces a
+      decision neither made alone.
+    </p>
+  </section>
+
+  <section class="dir">
+    <div class="head">
+      <div class="name"><h3>Climb</h3><span class="tag">standing, with a time axis</span></div>
+      <p class="thesis">
+        A ladder alone is a snapshot: it tells you where you are and nothing about whether
+        you are going anywhere. A season alone is a story with no stakes. Together, the table
+        <em>is</em> the season — every row carries where it started, where it is now and the
+        shape of the journey between, so “who is climbing” is legible without opening
+        anything.
+      </p>
+      <ul class="moves">
+        <li>Each row gains two columns that only exist because of the season: movement since it opened, and a sparkline of that bot's rating across it.</li>
+        <li>Your row expands in place into the full trajectory, with your submissions marked on it — the season chart is not a separate screen.</li>
+        <li>The season frame gives the ladder a deadline, which is what makes a rank worth defending.</li>
+        <li>Rows sort by rating but can re-sort by movement, which turns the same table into “who is hot right now”.</li>
+      </ul>
+      <div class="ia">
+        <div class="r"><span class="k">Nav</span><span>Season · Bots · Watch · Docs</span></div>
+        <div class="r"><span class="k">Home</span><span>Season header · your trajectory inline · ladder with movement and sparklines</span></div>
+        <div class="r"><span class="k">Colour</span><span>Chassis trim = identity · magenta #d6296f = the season layer · green/red = outcomes. Three roles, no collisions</span></div>
+        <div class="r"><span class="k">Needs</span><span>Seasons to exist. Everything else here is already in the database</span></div>
+      </div>
+    </div>
+
+    <div class="screens">
+      <div class="app climb">
+        <div class="topbar"><span class="brand">nilbots</span>
+          <nav class="tabs"><a class="on" href="#i">Season</a><a href="#i">Bots</a><a href="#i">Watch</a><a href="#i">Docs</a></nav></div>
+        <div class="body">
+
+          <div class="panel pad seasonbar">
+            <div class="row spread" style="align-items:flex-start;gap:20px;flex-wrap:wrap">
+              <div style="min-width:0">
+                <p class="lab" style="color:var(--t-accent)">Season 3 · 11 days left</p>
+                <div class="row" style="gap:14px">
+                  <svg class="look" width="64" height="64" aria-hidden="true"><use href="#look-vanguard"></use></svg>
+                  <div>
+                    <div class="row" style="gap:16px;align-items:baseline">
+                      <span><span class="rank">7</span><span style="font-family:var(--t-mono);font-size:11px;color:var(--t-dim)"> of 214</span></span>
+                      <span class="rank">1284</span>
+                      <span class="move up">▲ 14 places</span>
+                    </div>
+                    <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:11px;color:var(--t-dim)">
+                      Pincer gen-10 · opened at 1120 · peak 1291 on day 24</p>
+                  </div>
+                </div>
+              </div>
+              <div style="flex:1;min-width:240px">
+                <svg viewBox="0 0 600 96" width="100%" height="96" role="img"
+                     aria-label="Your rating across season 3, rising from 1120 to 1284 with submissions marked">
+                  <defs><linearGradient id="climbfill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#d6296f" stop-opacity=".34"></stop>
+                    <stop offset="100%" stop-color="#d6296f" stop-opacity="0"></stop></linearGradient></defs>
+                  <g stroke="#202c3d" stroke-width="1">
+                    <line x1="0" y1="24" x2="600" y2="24"></line>
+                    <line x1="0" y1="52" x2="600" y2="52"></line>
+                    <line x1="0" y1="80" x2="600" y2="80"></line></g>
+                  <path d="M0 80 L70 76 L140 62 L210 68 L280 48 L350 52 L420 32 L490 28 L560 16 L600 14 L600 96 L0 96 Z"
+                        fill="url(#climbfill)"></path>
+                  <path d="M0 80 L70 76 L140 62 L210 68 L280 48 L350 52 L420 32 L490 28 L560 16 L600 14"
+                        fill="none" stroke="#d6296f" stroke-width="2" stroke-linejoin="round"></path>
+                  <g fill="#657485">
+                    <circle cx="140" cy="62" r="3"></circle><circle cx="280" cy="48" r="3"></circle>
+                    <circle cx="420" cy="32" r="3"></circle></g>
+                  <circle cx="600" cy="14" r="4.5" fill="#0b1017" stroke="#d6296f" stroke-width="2.5"></circle>
+                </svg>
+                <div class="row spread" style="font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">
+                  <span>gen-6</span><span>gen-8</span><span>gen-9</span><span>gen-10 · now</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="pad" style="padding-bottom:0">
+              <div class="row spread">
+                <p class="lab" style="margin:0">Ranked ladder</p>
+                <span class="row" style="gap:6px">
+                  <button class="btn" type="button" style="border-color:var(--t-accent);color:var(--t-accent)">rating</button>
+                  <button class="btn" type="button">movement</button></span>
+              </div>
+            </div>
+            <div class="pad" style="padding-top:10px">
+              <table class="tbl">
+                <thead><tr>
+                  <th style="width:32px">#</th><th style="width:74px">Season</th><th>Bot</th>
+                  <th style="width:84px">Across S3</th><th class="num">Rating</th><th class="num">W–L</th>
+                </tr></thead>
+                <tbody>
+                  <tr><td class="rank">5</td><td><span class="move up">▲ 3</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,14 12,11 24,13 36,8 48,6 60,4 72,3" fill="none" stroke="var(--t-ok)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1341</td><td class="num">62–29</td></tr>
+                  <tr><td class="rank">6</td><td><span class="move dn">▼ 2</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="stack"><span class="n">Bastille gen-5</span></span></span></td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,4 12,6 24,5 36,9 48,8 60,12 72,13" fill="none" stroke="var(--t-hot)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1309</td><td class="num">54–31</td></tr>
+                  <tr class="mine"><td class="rank">7</td><td><span class="move up">▲ 14</span></td>
+                    <td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span></span></span></td><td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,17 12,15 24,12 36,13 48,8 60,6 72,2" fill="none" stroke="var(--t-accent)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1284</td><td class="num">48–22</td></tr>
+                  <tr><td class="rank">8</td><td><span class="move dn">▼ 6</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="stack"><span class="n">Rampart gen-2</span></span></span></td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,6 12,8 24,7 36,11 48,10 60,14 72,15" fill="none" stroke="var(--t-hot)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1250</td><td class="num">41–38</td></tr>
+                  <tr><td colspan="6" style="padding:2px 8px"><span class="band">top 8 qualify for season 4 seeding</span></td></tr>
+                  <tr><td class="rank">9</td><td><span class="move flat">—</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-needle"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td>
+                    <td><svg class="spark" width="72" height="20" viewBox="0 0 72 20" aria-hidden="true"><polyline points="0,10 12,9 24,11 36,10 48,11 60,9 72,10" fill="none" stroke="var(--t-dim)" stroke-width="1.5" stroke-linejoin="round"></polyline></svg></td><td class="num">1238</td><td class="num">39–35</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone climb">
+        <div class="status"></div>
+        <div class="screen">
+          <div class="panel pad seasonbar">
+            <p class="lab" style="color:var(--t-accent)">Season 3 · 11 days</p>
+            <div class="row spread" style="align-items:baseline">
+              <span class="rank">7</span><span class="rank">1284</span><span class="move up">▲14</span></div>
+            <svg viewBox="0 0 260 48" width="100%" height="48" role="img" aria-label="Your season trajectory, rising">
+              <path d="M0 40 L32 38 L64 30 L96 33 L128 23 L160 25 L192 15 L224 13 L260 6 L260 48 L0 48 Z"
+                    fill="#d6296f" fill-opacity=".22"></path>
+              <path d="M0 40 L32 38 L64 30 L96 33 L128 23 L160 25 L192 15 L224 13 L260 6"
+                    fill="none" stroke="#d6296f" stroke-width="1.8"></path>
+              <circle cx="260" cy="6" r="3.5" fill="#0b1017" stroke="#d6296f" stroke-width="2"></circle>
+            </svg>
+            <p style="margin:2px 0 0;font-family:var(--t-mono);font-size:10px;color:var(--t-dim)">
+              opened 1120 · peak 1291</p>
+          </div>
+          <table class="tbl"><tbody>
+            <tr><td class="rank">5</td><td><span class="move up">▲3</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-aureate-warden"></use></svg><span class="stack"><span class="n">Warden gen-1</span></span></span></td><td class="num">1341</td></tr>
+            <tr><td class="rank">6</td><td><span class="move dn">▼2</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-bulwark"></use></svg><span class="stack"><span class="n">Bastille gen-5</span></span></span></td><td class="num">1309</td></tr>
+            <tr class="mine"><td class="rank">7</td><td><span class="move up">▲14</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-vanguard"></use></svg><span class="stack"><span class="n">Pincer gen-10</span></span></span></td><td class="num">1284</td></tr>
+            <tr><td class="rank">8</td><td><span class="move dn">▼6</span></td><td><span class="who"><svg class="look" width="22" height="22" aria-hidden="true"><use href="#look-orbiter"></use></svg><span class="stack"><span class="n">Rampart gen-2</span></span></span></td><td class="num">1250</td></tr>
+          </tbody></table>
+        </div>
+        <div class="tabbar"><div class="on">Season</div><div>Bots</div><div>Watch</div><div>Docs</div></div>
+      </div>
+    </div>
+
+    <div class="scale">
+      <div><span class="k">Display</span><span>Rank and rating as tabular numerals, 22/700 — the biggest type is still a number.</span></div>
+      <div><span class="k">Season</span><span>Magenta carries time only: the trajectory, the deadline, the qualifying band. It never marks a bot.</span></div>
+      <div><span class="k">Density</span><span>Two extra columns fit because movement is a glyph and history is 72&#215;20 pixels.</span></div>
+    </div>
+  </section>
+
+  <section class="close">
+    <h2>How they differ, in one line each</h2>
+    <ul>
+      <li><strong>Ladder</strong> — for players who already have a bot; smallest build, best density, nothing for newcomers.</li>
+      <li><strong>Readout</strong> — the only one that answers “did my last change help”; most work, and the one thing the CLI structurally cannot do.</li>
+      <li><strong>Broadcast</strong> — for people who will never write a bot; best for sharing a link, worst mid-loop.</li>
+      <li><strong>Rack</strong> — puts the chassis art at the size it deserves and makes the store the obvious empty slot rather than a separate errand.</li>
+      <li><strong>Field guide</strong> — the only one that helps someone decide what to build; needs real matchup analysis behind it or it is decoration.</li>
+      <li><strong>Terminal</strong> — the most coherent with how people actually build, and the least welcoming to anyone who has not started.</li>
+      <li><strong>Season</strong> — the only one giving a reason to return on a day you did not submit; depends on seasons existing first.</li>
+      <li><strong>Counter</strong> — the most actionable screen in the set, and the data is already in the database.</li>
+      <li><strong>Climb</strong> — Ladder and Season as one thing: the table becomes the season, and your trajectory lives inside your own row rather than on a page of its own.</li>
+    </ul>
+    <p class="lede sub" style="margin-top:18px">
+      The identity chip, state pill and tabular treatment are the same in all nine and would
+      land as shared primitives whichever wins. Two of these — <strong>Counter</strong> and
+      <strong>Readout</strong> — are the only ones that show something the product does not
+      currently know how to say; the other six rearrange what is already there.
+    </p>
+  </section>
+</div>

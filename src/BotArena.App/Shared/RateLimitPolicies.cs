@@ -35,14 +35,22 @@ public static class RateLimitPolicies
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.OnRejected = (context, _) =>
+            options.OnRejected = async (context, cancellationToken) =>
             {
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter))
-                {
-                    context.HttpContext.Response.Headers.RetryAfter =
-                        Math.Max(1, (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
-                }
-                return ValueTask.CompletedTask;
+                TimeSpan? retryAfter =
+                    context.Lease.TryGetMetadata(
+                        MetadataName.RetryAfter,
+                        out TimeSpan retry)
+                        ? retry
+                        : null;
+                var refusal = new ApplicationError(
+                    ApplicationErrorCodes.RequestRateLimited,
+                    ApplicationErrorType.RateLimit,
+                    "Too many requests. Wait briefly and try again.",
+                    retryAfter);
+                await refusal
+                    .ToProblemDetails(context.HttpContext)
+                    .ExecuteAsync(context.HttpContext);
             };
 
             // Everything, by origin. A blunt ceiling so one host cannot exhaust the server

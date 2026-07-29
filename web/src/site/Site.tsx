@@ -1,18 +1,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useParams,
+} from 'react-router-dom';
 import { ApiError } from './api';
 import { AuthProvider } from './auth';
 import Shell from './Shell';
 import ArenaPage from './pages/ArenaPage';
 import AuthPage from './pages/AuthPage';
-import StorePage from './pages/StorePage';
+import ShopPage from './pages/ShopPage';
 import BotsPage from './pages/BotsPage';
+import BotAppearancePage from './pages/BotAppearancePage';
 import BotDetailPage from './pages/BotDetailPage';
 import GaragePage from './pages/GaragePage';
 import MatchPage from './pages/MatchPage';
 import MatchSetPage from './pages/MatchSetPage';
-import LeaderboardPage from './pages/LeaderboardPage';
+import RankingsPage from './pages/RankingsPage';
 import DocsPage from './pages/DocsPage';
 
 export default function Site() {
@@ -40,24 +48,157 @@ export default function Site() {
 
   return (
     <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Shell />}>
-            <Route index element={<ArenaPage />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/bots" element={<BotsPage />} />
-            <Route path="/bots/:botKey" element={<BotDetailPage />} />
-            <Route path="/garage" element={<GaragePage />} />
-            <Route path="/matches/:matchId" element={<MatchPage />} />
-            <Route path="/sets/:setId" element={<MatchSetPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/store" element={<StorePage />} />
-            <Route path="/docs" element={<DocsPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Shell />}>
+              <Route
+                index
+                element={
+                  <TitledPage title="Rankings">
+                    <RankingsPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/watch"
+                element={
+                  <TitledPage title="Watch">
+                    <ArenaPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/login"
+                element={
+                  <TitledPage title="Sign in">
+                    <AuthPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/bots"
+                element={
+                  <TitledPage title="Bots">
+                    <BotsPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/bots/:botKey/appearance"
+                element={
+                  <TitledPage title="Bot appearance">
+                    <BotAppearancePage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/bots/:botKey/play"
+                element={<LegacyBotPlayRedirect />}
+              />
+              <Route
+                path="/bots/:botKey"
+                element={
+                  <TitledPage title="Bot">
+                    <BotDetailPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/garage"
+                element={
+                  <TitledPage title="Garage">
+                    <GaragePage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/matches/:matchId"
+                element={
+                  <TitledPage title="Match">
+                    <MatchPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/sets/:setId"
+                element={
+                  <TitledPage title="Ranked set">
+                    <MatchSetPage />
+                  </TitledPage>
+                }
+              />
+              {/* The ladder used to live here and be called the leaderboard. Old links
+                  and bookmarks still resolve rather than 404. */}
+              <Route path="/rankings" element={<Navigate to="/" replace />} />
+              <Route path="/leaderboard" element={<Navigate to="/" replace />} />
+              <Route path="/looks" element={<Navigate to="/store" replace />} />
+              <Route
+                path="/store"
+                element={
+                  <TitledPage title="Shop">
+                    <ShopPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="/docs"
+                element={
+                  <TitledPage title="Docs">
+                    <DocsPage />
+                  </TitledPage>
+                }
+              />
+              <Route
+                path="*"
+                element={
+                  <TitledPage title="Not found">
+                    <NotFoundPage />
+                  </TitledPage>
+                }
+              />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+/** The short-lived review route now returns to the bot instead of becoming a dead link. */
+function LegacyBotPlayRedirect() {
+  const { botKey } = useParams<{ botKey: string }>();
+  return <Navigate to={`/bots/${botKey ?? ''}`} replace />;
+}
+
+function TitledPage({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    const nextTitle = `${title} · nilbots`;
+    document.title = nextTitle;
+    return () => {
+      if (document.title === nextTitle) document.title = 'nilbots';
+    };
+  }, [title]);
+  return <>{children}</>;
+}
+
+function NotFoundPage() {
+  return (
+    <section className="panel pad mx-auto max-w-xl text-center">
+      <p className="lab mb-2">404</p>
+      <h1 className="type-display text-[26px]">That route is outside the arena</h1>
+      <p className="t-meta mt-2">
+        The page may have moved, or the address may be incomplete.
+      </p>
+      <Link to="/" className="btn btn-on mt-4 inline-flex">
+        Return to Rankings
+      </Link>
+    </section>
   );
 }

@@ -7,9 +7,7 @@ export default function BotStatisticsPanel({ botId }: { botId: string }) {
 
   return (
     <section>
-      <h2 className="mb-3 font-mono text-xs tracking-widest text-arena-dim">
-        PERFORMANCE
-      </h2>
+      <h2 className="lab mb-2">Performance</h2>
       {isPending ? (
         <LoadingState label="Loading performance…" />
       ) : isError ? (
@@ -31,16 +29,14 @@ function BotStatisticsContent({
 }) {
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-3">
         <RecordCard label="Overall" record={statistics.overall} unit="match" featured />
         <RecordCard label="Ranked" record={statistics.ranked} unit="set" />
         <RecordCard label="Unranked" record={statistics.unranked} unit="match" />
       </div>
-      <div className="mt-3 rounded-lg border border-arena-edge bg-arena-panel/40 px-4 py-3">
-        <p className="font-mono text-[11px] tracking-wider text-arena-dim">
-          COMBAT TOTALS
-        </p>
-        <p className="mt-1 text-sm text-arena-text">
+      <div className="panel-quiet pad mt-2.5">
+        <p className="lab">Combat totals</p>
+        <p className="t-body tabular mt-1 text-arena-text">
           {formatCount(statistics.combat.games, 'arena game')}{' '}
           <span className="text-arena-dim">·</span>{' '}
           {statistics.combat.damageDealt.toLocaleString()} damage dealt{' '}
@@ -48,9 +44,9 @@ function BotStatisticsContent({
           {formatCount(statistics.combat.faults, 'fault')}
         </p>
       </div>
-      <p className="mt-2 text-xs text-arena-dim">
-        A ranked set and an unranked challenge each count as one match. Combat
-        totals retain all six arena games inside every ranked set.
+      <p className="t-meta mt-2">
+        A ranked set and an unranked fight each count as one match. Combat
+        totals retain every Arena game inside each ranked set.
       </p>
     </>
   );
@@ -69,34 +65,27 @@ function RecordCard({
 }) {
   const winRate =
     record.played === 0 ? 0 : Math.round((record.wins / record.played) * 100);
+  const playedUnit =
+    record.played === 1 ? unit : unit === 'match' ? 'matches' : `${unit}s`;
   return (
     <article
       className={
-        'rounded-lg border p-4 ' +
-        (featured
-          ? 'border-arena-accent/50 bg-arena-accent/5'
-          : 'border-arena-edge bg-arena-panel/60')
+        'pad ' +
+        (featured ? 'panel border-arena-edge2 bg-arena-raise' : 'panel-quiet')
       }
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="font-mono text-xs tracking-wider text-arena-dim">
-          {label.toUpperCase()}
-        </h3>
-        <span className="font-mono text-[11px] text-arena-dim">
-          {formatCount(
-            record.played,
-            unit,
-            unit === 'match' ? 'matches' : undefined,
-          )}
+        <h3 className="lab">{label}</h3>
+        <span className="t-meta">
+          <span className="val">{record.played.toLocaleString()}</span>{' '}
+          {playedUnit}
         </span>
       </div>
-      <p className="mt-3 text-xl font-bold">
-        <span className="text-emerald-400">{record.wins}W</span>{' '}
-        <span className="text-red-400">{record.losses}L</span>{' '}
-        <span className="text-arena-text">{record.draws}D</span>
+      <p className="t-body tabular mt-2 font-mono text-arena-text">
+        {record.wins}W · {record.losses}L · {record.draws}D
       </p>
-      <p className="mt-1 font-mono text-[11px] text-arena-dim">
-        {winRate}% win rate
+      <p className="t-micro mt-1">
+        <span className="val">{winRate}%</span> win rate
       </p>
     </article>
   );

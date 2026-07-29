@@ -6,7 +6,7 @@ import { buildActors } from './arenaActors';
 import { buildOverlays } from './arenaOverlays';
 
 /**
- * The 2.5D arena.
+ * The 3D arena.
  *
  * Same replay, same clock, same textures as the Canvas2D viewer — a different way of
  * putting them on screen. This one is loaded on demand and is not the default, so nothing

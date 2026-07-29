@@ -15,7 +15,7 @@ import {
 } from './.harness/harness.entry.js';
 
 /**
- * The reactions a bot has to being shot at, which are the one part of the 2.5D renderer
+ * The reactions a bot has to being shot at, which are the one part of the 3D renderer
  * that cannot be judged from a screenshot.
  *
  * A destruction ends an Elimination match, so the collapse plays across the last fraction
@@ -176,7 +176,7 @@ test('legacy damage and destruction flash at their normalized impact tile', () =
     }
   });
 
-  assert.ok(flash, 'the 2.5D renderer emits the legacy impact flare');
+  assert.ok(flash, 'the 3D renderer emits the legacy impact flare');
   assert.equal(flash.position.x, impact.from.x + 0.5);
   assert.equal(flash.position.z, impact.from.y + 0.5);
   overlays.dispose();

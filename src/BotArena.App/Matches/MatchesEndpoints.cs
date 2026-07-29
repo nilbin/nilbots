@@ -10,7 +10,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.Matches;
 
-public sealed record ChallengeRequest(Guid BotId, Guid OpponentBotId, string? MapId, long? Seed);
+public sealed record ChallengeRequest(
+    Guid BotId,
+    Guid OpponentBotId,
+    string? MapId = null,
+    long? Seed = null);
 
 public static class MatchesEndpoints
 {
@@ -34,7 +38,16 @@ public static class MatchesEndpoints
         {
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
-            string mapId = request.MapId is { Length: > 0 } m ? m : "arena-01";
+            if (request.BotId == request.OpponentBotId)
+            {
+                return new ApplicationError(
+                    ApplicationErrorCodes.MatchSelfChallenge,
+                    ApplicationErrorType.Validation,
+                    "A bot cannot challenge itself.")
+                    .ToProblemDetails(http);
+            }
+            string mapId =
+                DuelArenaDefinition.Official.ResolveUnrankedMapId(request.MapId);
             try
             {
                 _ = ArenaMapLoader.Load(mapId, matchSettings.MatchRules);
@@ -44,10 +57,11 @@ public static class MatchesEndpoints
                     or MatchDefinitionValidationException
                     or NotSupportedException)
             {
-                return Results.Problem(
-                    statusCode: StatusCodes.Status400BadRequest,
-                    title: "Map is not available for the current rules.",
-                    detail: $"Map '{mapId}' cannot be selected.");
+                return new ApplicationError(
+                    ApplicationErrorCodes.MatchMapUnavailable,
+                    ApplicationErrorType.Validation,
+                    $"Map '{mapId}' is not available for the current rules.")
+                    .ToProblemDetails(http);
             }
 
             // Durable, for the same reason ranked is: the HTTP limiter is per web process
@@ -67,10 +81,12 @@ public static class MatchesEndpoints
                 cancellationToken);
             if (startedToday >= unrankedLimits.AccountDailyLimit)
             {
-                return Results.Problem(
-                    $"Accounts may start at most {unrankedLimits.AccountDailyLimit} unranked " +
-                    "matches per 24 hours.",
-                    statusCode: 429);
+                return new ApplicationError(
+                    ApplicationErrorCodes.MatchUnrankedDailyLimit,
+                    ApplicationErrorType.RateLimit,
+                    $"Accounts may start at most {unrankedLimits.AccountDailyLimit} " +
+                    "unranked matches per 24 hours.")
+                    .ToProblemDetails(http);
             }
 
             ApplicationResult<AdmittedMatchBot> challenger =
@@ -117,7 +133,25 @@ public static class MatchesEndpoints
             await admissionScope.CommitAsync(cancellationToken);
             await challenges.AnnounceAsync(match, cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
-        }).Produces<CreatedMatchResponse>().RequireAuthorization().RequireRateLimiting(RateLimitPolicies.Challenge);
+        })
+        .Produces<CreatedMatchResponse>()
+        .Produces<ApplicationProblemResponse>(
+            StatusCodes.Status400BadRequest,
+            "application/problem+json")
+        .Produces<ApplicationProblemResponse>(
+            StatusCodes.Status403Forbidden,
+            "application/problem+json")
+        .Produces<ApplicationProblemResponse>(
+            StatusCodes.Status404NotFound,
+            "application/problem+json")
+        .Produces<ApplicationProblemResponse>(
+            StatusCodes.Status409Conflict,
+            "application/problem+json")
+        .Produces<ApplicationProblemResponse>(
+            StatusCodes.Status429TooManyRequests,
+            "application/problem+json")
+        .RequireAuthorization()
+        .RequireRateLimiting(RateLimitPolicies.Challenge);
 
         // Filters are server-side on purpose: a browser-side filter can only narrow the
         // page it already has, so "every match Bastille played" would silently mean

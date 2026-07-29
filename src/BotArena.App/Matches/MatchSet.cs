@@ -1,3 +1,5 @@
+using BotArena.App.Competition;
+
 namespace BotArena.App.Matches;
 
 public enum MatchSetStatus
@@ -14,8 +16,8 @@ public enum MatchSetStatus
 /// </summary>
 public class MatchSet
 {
-    public const int Games = 6;
-    public const double EloK = 32;
+    public const int Games = DuelMirrored6V1.GameCount;
+    public const double EloK = DuelEloV1.KFactor;
 
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid BotAId { get; set; }

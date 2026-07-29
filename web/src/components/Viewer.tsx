@@ -7,6 +7,8 @@ import type {
 import {
   participantForUnit,
   teamName,
+  unitName,
+  visualIndexForUnit,
 } from '../replayParticipants';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
@@ -21,13 +23,17 @@ import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
 import Logo from './Logo';
+import IdentityChip from './IdentityChip';
+import { playerAccent } from '../presentation/playerAccent';
+import { styleVariables } from '../presentation/styleVariables';
+import LiveStatus, { LiveDot } from './LiveStatus';
 
 /**
- * The hosted viewer's default 2.5D renderer.
+ * The hosted viewer's 3D renderer — what the web viewer is.
  *
- * `lazy` keeps three.js in its own chunk so the Canvas2D fallback can load
- * independently. The CLI's single-file artifact stubs this module out
- * entirely (see vite.cli.config.ts).
+ * It stays `lazy` so Three.js remains in its own chunk and Canvas2D can load as
+ * the no-WebGL floor. The CLI's single-file artifact stubs this module out
+ * entirely (see vite.cli.config.ts), so a copied replay never carries it.
  */
 const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
 const AdaptiveSoundtrack = lazy(
@@ -180,9 +186,28 @@ export default function Viewer({
   // stopped to look is not asking for the controls to vanish.
   useEffect(() => {
     if (!immersive.active || !chromeVisible || !playback.playing) return;
-    const timer = window.setTimeout(() => setChromeVisible(false), 2_800);
+    const timer = window.setTimeout(() => {
+      const focused = document.activeElement;
+      if (
+        focused instanceof HTMLElement &&
+        focused !== document.body &&
+        shell.current?.contains(focused)
+      ) {
+        return;
+      }
+      setChromeVisible(false);
+    }, 2_800);
     return () => window.clearTimeout(timer);
   }, [immersive.active, chromeVisible, playback.playing]);
+
+  useEffect(() => {
+    if (!immersive.active) return;
+    const revealForKeyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') setChromeVisible(true);
+    };
+    window.addEventListener('keydown', revealForKeyboard, true);
+    return () => window.removeEventListener('keydown', revealForKeyboard, true);
+  }, [immersive.active]);
 
   const { result } = replay;
   const winnerTeam =
@@ -198,6 +223,19 @@ export default function Viewer({
   const winnerParticipant = winnerUnit
     ? participantForUnit(replay, winnerUnit.unitKey)
     : null;
+  const transport = isLive ? (
+    <div className="panel pad val flex min-w-0 items-center gap-2.5">
+      <LiveDot className="size-2" />
+      Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees
+      this moment.
+    </div>
+  ) : (
+    <Controls
+      playback={playback}
+      replay={replay}
+      selectedUnitKey={selectedUnitKey}
+    />
+  );
 
   return (
     <div
@@ -211,45 +249,86 @@ export default function Viewer({
           : undefined
       }
       className={clsx(
-        'relative mx-auto flex flex-col',
+        'mx-auto flex min-w-0 flex-col',
         immersive.active
           // The arena takes the whole viewport and the chrome floats over it. Merely
           // trimming padding gained nothing on a phone, where the grid was already one
           // column — the controls still claimed their own row and the arena stayed the
           // same size. 100dvh, not vh: Safari's toolbars collapse on scroll and vh does
           // not follow them.
-          ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none gap-0 bg-arena-bg'
-          : 'h-full max-w-7xl gap-3 p-3 md:p-5',
+          ? 'fixed inset-0 z-50 h-[100dvh] max-w-none gap-0 bg-arena-bg'
+          : 'relative h-full w-full max-w-7xl gap-3 p-3 md:p-5',
       )}
     >
       <header
         className={clsx(
-          'flex flex-wrap items-baseline gap-x-4 gap-y-1',
+          'relative min-w-0 flex flex-wrap items-center gap-x-3.5 gap-y-1',
           immersive.active && 'hidden',
         )}
       >
-        <h1 className="text-xl"><Logo size={24} /></h1>
-        <span className="font-mono text-xs text-arena-dim">
-          {replay.map.mapId} · seed {replay.seed} · rules{' '}
-          {replay.versions.gameRulesVersion} ·{' '}
-          {replay.teams
-            .map((team) => teamName(replay, team.teamId))
-            .join(' vs ')}
+        <div aria-label="nilbots">
+          <Logo size={22} />
+        </div>
+        {/* Who is fighting, not what the match is made of. The map, the seed, the rules
+            version and the hash are provenance — they matter enormously, which is why
+            they get a disclosure of their own rather than a byline nobody reads. */}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          {replay.teams.map((team, index) => {
+            // A team's units, not a fixed pair: a duel shows one chip a side and a
+            // Frontline team shows however many it fields.
+            const unitKeys = replay.units
+              .filter((unit) => unit.teamId === team.teamId)
+              .map((unit) => unit.unitKey);
+            return (
+              <span key={team.teamKey} className="flex items-center gap-3">
+                {index > 0 && <span className="lab">vs</span>}
+                {unitKeys.slice(0, 3).map((unitKey) => (
+                  <IdentityChip
+                    key={unitKey}
+                    lookId={participantForUnit(replay, unitKey)?.lookId}
+                    visualIndex={visualIndexForUnit(replay, unitKey)}
+                    accent={participantForUnit(replay, unitKey)?.accent}
+                    name={unitName(replay, unitKey)}
+                    nameClassName="text-[14px]"
+                    size={22}
+                  />
+                ))}
+                {unitKeys.length > 3 && (
+                  <span className="val">+{unitKeys.length - 3}</span>
+                )}
+              </span>
+            );
+          })}
         </span>
         {isLive ? (
-          <span className="ml-auto flex items-center gap-1.5 rounded bg-red-500/15 px-2 py-0.5 font-mono text-[11px] font-bold text-red-400">
-            <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
-            LIVE
-          </span>
+          <LiveStatus className="ml-auto" />
         ) : (
-          replay.replayHash && (
-            <span
-              className="ml-auto font-mono text-[11px] text-arena-dim"
-              title={`replay ${replay.replayHash}`}
-            >
-              #{replay.replayHash.slice(0, 12)}
-            </span>
-          )
+          <details className="group ml-auto">
+            <summary className="btn cursor-pointer list-none text-arena-dim hover:text-arena-text">
+              Verify
+            </summary>
+            {/* Determinism is the product's core claim, so the thing that lets anyone
+                check it should be legible and copyable rather than a grey #de24f5aa in
+                the corner. */}
+            <dl className="panel pad absolute right-0 z-20 mt-2 grid grid-cols-[70px_1fr] items-baseline gap-x-3 gap-y-[7px]">
+              <dt className="lab">Map</dt>
+              <dd className="val text-arena-text">{replay.map.mapId}</dd>
+              <dt className="lab">Seed</dt>
+              <dd className="val text-arena-text">{String(replay.seed)}</dd>
+              <dt className="lab">Ruleset</dt>
+              <dd className="val text-arena-text">
+                {replay.versions.gameRulesVersion}
+              </dd>
+              {replay.replayHash && (
+                <>
+                  <dt className="lab">Replay</dt>
+                  <dd className="val break-all text-arena-text">
+                    {replay.replayHash}
+                  </dd>
+                </>
+              )}
+            </dl>
+          </details>
         )}
         {EXTERNAL_SOUNDTRACK_AVAILABLE && (
           <Suspense fallback={null}>
@@ -277,7 +356,7 @@ export default function Viewer({
           <button
             type="button"
             onClick={() => immersive.toggle(shell.current)}
-            className="ml-auto rounded-md border border-arena-edge px-2 py-1 font-mono text-[11px] text-arena-dim transition-colors hover:border-arena-accent hover:text-arena-accent"
+            className="btn ml-auto text-arena-dim hover:text-arena-text"
             aria-pressed={immersive.active}
           >
             {immersive.active ? 'exit full screen' : 'full screen'}
@@ -287,32 +366,38 @@ export default function Viewer({
 
       <div
         className={clsx(
-          'grid min-h-0 flex-1 gap-3',
+          'grid min-h-0 min-w-0 flex-1 gap-3',
           // Immersive is the arena and nothing else. Panels were tried in the landscape
           // letterbox — they cost the arena no size, since it is height-constrained — but
           // a third of the screen given to text is not "mainly the game". The black bars
           // are aspect ratio, not waste, and framing beats clutter.
-          immersive.active ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1fr_320px]',
+          immersive.active
+            ? 'grid-cols-1'
+            : 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]',
         )}
       >
-        <main
+        {/* The arena and transport are one column, as they are in the design guide.
+            Keeping the transport in that column means a taller index can never land on
+            top of it; the grid row simply grows, while the arena keeps its own ratio. */}
+        <div
           className={clsx(
-            'relative min-h-[320px] overflow-hidden bg-arena-bg',
-            // Edge to edge while immersive: a border and corner radius are panel styling,
-            // and they cost real pixels on a phone where the arena is already letterboxed.
-            immersive.active
-              ? ''
-              // **The arena decides how tall the arena is.** Both cells sit in one
-              // auto-height grid row, so the row is as tall as its tallest cell — and with
-              // the panel free to grow, that was the panel: the board visibly inflated
-              // under the playhead as the event feed filled, more than doubling over a long
-              // match. An aspect ratio gives the row a height that comes from the game
-              // rather than from how much has happened in it. It applies at every width,
-              // not just where the two are columns: stacked, the arena had only its
-              // minimum height to fall back on and came out shorter than it used to be.
-              : 'rounded-lg border border-arena-edge aspect-[16/10]',
+            'flex min-h-0 min-w-0 flex-col',
+            immersive.active ? 'flex-1' : 'gap-3',
           )}
         >
+          <section
+            aria-label="Arena"
+            className={clsx(
+              'relative min-w-0 overflow-hidden bg-arena-bg sm:min-h-[320px]',
+              // Edge to edge while immersive: a border and corner radius are panel styling,
+              // and they cost real pixels on a phone where the arena is already letterboxed.
+              immersive.active
+                ? 'flex-1'
+                // **The arena decides how tall the arena is.** The event index is bounded,
+                // so its contents cannot inflate the board as playback advances.
+                : 'rounded-[3px] border border-arena-edge aspect-[16/10]',
+            )}
+          >
           {dimensional ? (
             <Suspense fallback={null}>
               <ArenaCanvas3D
@@ -333,26 +418,55 @@ export default function Viewer({
               onSelectUnit={setSelectedUnitKey}
             />
           )}
+          {/* Where we are, over the game rather than under it: the eye is on the arena,
+              and this is the one number a spectator is always reading. It is also the
+              thing that must never disappear — when the immersive chrome fades, this
+              goes to 40% instead of to nothing, because a viewer who cannot see the tick
+              cannot tell how far in they are. */}
+          <p
+            className={clsx(
+              'val absolute top-2 left-2 rounded-full border border-arena-edge bg-arena-bg/75 px-[9px] py-[2px] backdrop-blur-[3px] transition-opacity duration-300',
+              immersive.active && !chromeVisible && 'opacity-40',
+            )}
+          >
+            <span className="text-arena-text">
+              {String(tick).padStart(3, '0')}
+            </span>{' '}
+            / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
+          </p>
           {!assets.ready && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/80">
-              <p className="font-mono text-xs tracking-widest text-arena-dim" role="status">
-                LOADING ARENA — {assets.pending} texture{assets.pending === 1 ? '' : 's'}
+              <p className="lab" role="status">
+                Loading arena — {assets.pending} texture
+                {assets.pending === 1 ? '' : 's'}
               </p>
             </div>
           )}
           {!isLive && playback.atEnd && result && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/70">
-              <div className="rounded-xl border border-arena-edge bg-arena-panel px-8 py-6 text-center shadow-2xl">
-                <p className="font-mono text-xs tracking-widest text-arena-dim">
-                  MATCH COMPLETE — {result.reason.toUpperCase()} · TICK {result.endTick}
+              <div className="panel px-8 py-6 text-center">
+                <p className="lab">
+                  Match complete — {result.reason} · tick {result.endTick}
                 </p>
-                <p className="mt-2 text-2xl font-black tracking-wide">
+                <p className="type-display mt-2 text-[21px]">
                   {winnerTeam ? (
                     <>
                       <span
-                        style={{
-                          color: winnerParticipant?.accent ?? '#38bdf8',
-                        }}
+                        className={
+                          winnerParticipant?.accent
+                            ? 'player-accent-text'
+                            : undefined
+                        }
+                        style={
+                          winnerParticipant?.accent
+                            ? styleVariables({
+                                '--player-accent': playerAccent(
+                                  winnerParticipant.accent,
+                                  'panel',
+                                ),
+                              })
+                            : undefined
+                        }
                       >
                         {teamName(replay, winnerTeam.teamId)}
                       </span>{' '}
@@ -363,7 +477,7 @@ export default function Viewer({
                   )}
                 </p>
                 {result.teams.some((team) => team.zoneTicks !== null) && (
-                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                  <p className="val mt-1">
                     zone{' '}
                     {[...result.teams]
                       .sort((left, right) => left.teamId - right.teamId)
@@ -376,14 +490,14 @@ export default function Viewer({
                 )}
                 {result.objective.kind === 'legacy' &&
                   result.objective.controlPressure !== null && (
-                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                  <p className="val mt-1">
                     final control{' '}
                     {result.objective.controlPressure > 0 ? '+' : ''}
                     {result.objective.controlPressure}
                   </p>
                 )}
                 {result.objective.kind === 'frontline' && (
-                  <p className="mt-1 font-mono text-xs text-arena-dim">
+                  <p className="val mt-1">
                     final position{' '}
                     {result.objective.activePositionIndex + 1}
                     {result.mode?.kind === 'frontline'
@@ -399,27 +513,30 @@ export default function Viewer({
                   </p>
                 )}
                 <button
+                  type="button"
                   onClick={playback.restart}
-                  className="mt-4 rounded-md border border-arena-accent px-4 py-1.5 font-mono text-sm text-arena-accent transition-colors hover:bg-arena-accent/15"
+                  className="btn mt-4"
                 >
                   ⟲ Watch again
                 </button>
               </div>
             </div>
           )}
-        </main>
+          </section>
 
-        {/* Out of flow beside the arena, in flow beneath it.
+          {!immersive.active && transport}
+        </div>
 
-            The inner wrapper is absolute at `lg`, which is where the two become columns:
-            that makes this cell contribute nothing to the row's height, so a growing feed
-            cannot stretch the arena. It is the same reason the arena canvas is absolute
-            inside `main`. Stacked on a narrow screen there is no shared row to distort, and
-            the panel is simply content below the game. */}
+        {/* In flow beside the arena column, and beneath it on a narrow screen. The event
+            list has its own cap and scroll, so the sidebar contributes a stable height
+            without ever escaping the grid or covering the transport. */}
         <aside
-          className={clsx('relative flex min-h-0 flex-col', immersive.active && 'hidden')}
+          className={clsx(
+            'relative flex min-h-0 min-w-0 flex-col',
+            immersive.active && 'hidden',
+          )}
         >
-          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:absolute lg:inset-0">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
             <BotPanel
               replay={replay}
               tick={tick}
@@ -428,7 +545,12 @@ export default function Viewer({
               onSelectUnit={setSelectedUnitKey}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
             />
-            <EventFeed replay={replay} tick={tick} />
+            <EventFeed
+              replay={replay}
+              tick={tick}
+              selectedUnitKey={selectedUnitKey}
+              onSeek={isLive ? undefined : playback.seek}
+            />
           </div>
         </aside>
       </div>
@@ -436,32 +558,27 @@ export default function Viewer({
       {/* Immersive: the transport floats over the arena rather than taking a row from it,
           which is the whole point — a row of controls under a phone-height canvas is the
           layout that made full screen pointless. Translucent and inset so it reads as
-          over the arena rather than crowding it. */}
-      <div
-        className={clsx(
-          immersive.active &&
-            'pointer-events-none absolute inset-x-0 bottom-0 z-10 p-2 pb-[env(safe-area-inset-bottom)]',
-        )}
-      >
-        <div
-          className={clsx(
-            immersive.active &&
-              clsx(
-                'pointer-events-auto transition-opacity duration-300',
-                chromeVisible ? 'opacity-95' : 'opacity-0',
-              ),
-          )}
-        >
-          {isLive ? (
-            <div className="flex items-center gap-3 rounded-lg border border-arena-edge bg-arena-panel p-4 font-mono text-xs text-arena-dim">
-              <span className="inline-block size-2 animate-pulse rounded-full bg-red-500" />
-              Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees this moment.
-            </div>
-          ) : (
-            <Controls playback={playback} />
-          )}
+          over the arena rather than crowding it.
+
+          A scrim carries it rather than the panel alone: map themes are not all dark.
+          gallery-01 is `frost-relay`, which is nearly white, and a hard-edged dark
+          rectangle dropped on it reads as damage. A gradient darkens whatever is
+          actually there — and it fades on the same element as the controls, so hidden
+          chrome cannot leave a permanent band across the bottom of the arena. */}
+      {immersive.active && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+          <div
+            className={clsx(
+              'bg-gradient-to-t from-arena-bg via-arena-bg/80 to-transparent p-2 pt-12 pb-[env(safe-area-inset-bottom)] transition-opacity duration-300',
+              chromeVisible
+                ? 'visible pointer-events-auto opacity-95'
+                : 'invisible pointer-events-none opacity-0',
+            )}
+          >
+            {transport}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* The only way out while the page chrome is hidden — on a pointer device. When the
           device's own orientation put us here, turning it back is the way out, and a
@@ -471,10 +588,11 @@ export default function Viewer({
           type="button"
           onClick={immersive.exit}
           className={clsx(
-            'absolute top-0 right-0 z-20 m-2 rounded-md border border-arena-edge bg-arena-panel/80 px-2.5 py-1.5 font-mono text-[11px] text-arena-dim backdrop-blur transition-opacity duration-300 hover:border-arena-accent hover:text-arena-accent',
-            chromeVisible ? 'opacity-95' : 'opacity-0',
+            'btn safe-area-top absolute top-0 right-0 z-20 m-2 bg-arena-panel/80 text-arena-dim backdrop-blur transition-opacity duration-300 hover:text-arena-text',
+            chromeVisible
+              ? 'visible pointer-events-auto opacity-95'
+              : 'invisible pointer-events-none opacity-0',
           )}
-          style={{ marginTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
           exit
         </button>

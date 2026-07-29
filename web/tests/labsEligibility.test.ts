@@ -10,6 +10,9 @@ import {
   createLabsMatchRequest,
   eligibleLabsOpponents,
   eligibleLabsPlaylist,
+  eligibleLabsPlaylists,
+  eligibleLabsPlaylistsForRosterBot,
+  eligibleOwnedLabsRoster,
 } from '../src/site/labs';
 
 const GENERIC_PROFILE = 'generic-actor-match-2';
@@ -98,6 +101,85 @@ test('Labs opponents are distinct active bots with the exact required profile', 
   assert.deepEqual(
     eligibleLabsOpponents(roster, entrantId, GENERIC_PROFILE),
     [eligible],
+  );
+});
+
+test('Labs exposes every eligible experiment in catalog order', () => {
+  const second = {
+    ...playlist,
+    playlistVersionId: '10000000-0000-0000-0000-000000000002',
+    key: 'frontline-nightly',
+    displayName: 'Frontline Nightly',
+  };
+  const unsupported = {
+    ...playlist,
+    playlistVersionId: '10000000-0000-0000-0000-000000000003',
+    key: 'future-mode',
+    requiredContractProfileId: 'future-contract-1',
+  };
+
+  assert.deepEqual(
+    eligibleLabsPlaylists(
+      botDetail(true, [botVersion(true, [GENERIC_PROFILE])]),
+      { enabled: true, playlists: [playlist, unsupported, second] },
+    ),
+    [playlist, second],
+  );
+});
+
+test('the roster eligibility seam uses only the active artifact profile', () => {
+  const compatible = botSummary(
+    '20000000-0000-0000-0000-000000000006',
+    'Compatible',
+    [GENERIC_PROFILE],
+  );
+  const incompatible = botSummary(
+    '20000000-0000-0000-0000-000000000007',
+    'Legacy',
+    ['legacy-duel-0.1'],
+  );
+
+  assert.deepEqual(
+    eligibleLabsPlaylistsForRosterBot(compatible, catalog),
+    [playlist],
+  );
+  assert.deepEqual(
+    eligibleLabsPlaylistsForRosterBot(incompatible, catalog),
+    [],
+  );
+  assert.deepEqual(
+    eligibleLabsPlaylistsForRosterBot(
+      { ...compatible, activeVersion: null },
+      catalog,
+    ),
+    [],
+  );
+});
+
+test('the global Labs roster requires authoritative ownership as well as compatibility', () => {
+  const owned = botSummary(
+    '20000000-0000-0000-0000-000000000008',
+    'Owned compatible',
+    [GENERIC_PROFILE],
+  );
+  const publicBot = botSummary(
+    '20000000-0000-0000-0000-000000000009',
+    'Public compatible',
+    [GENERIC_PROFILE],
+  );
+  const ownedIncompatible = botSummary(
+    '20000000-0000-0000-0000-000000000010',
+    'Owned legacy',
+    ['legacy-duel-0.1'],
+  );
+
+  assert.deepEqual(
+    eligibleOwnedLabsRoster(
+      [owned, publicBot, ownedIncompatible],
+      catalog,
+      new Set([owned.id, ownedIncompatible.id]),
+    ),
+    [owned],
   );
 });
 

@@ -4,7 +4,7 @@ namespace BotArena.Cli.Tests;
 
 /// <summary>
 /// Pins the platform-matching and anti-stall shape of the Docker publish
-/// (DECISIONS #145). The builder container must match the host CPU so the
+/// (DECISIONS #151). The builder container must match the host CPU so the
 /// compiler never runs emulated by default; when a platform override forces
 /// emulation, MSBuild's multi-node fan-out intermittently deadlocks at 0% CPU,
 /// so the emulated branch must run single-node with in-process compilation and

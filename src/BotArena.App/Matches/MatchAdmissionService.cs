@@ -119,6 +119,153 @@ public sealed class MatchAdmissionService(
             new AdmittedMatchBot(bot, version, ownerDisplayName));
     }
 
+    /// <summary>
+    /// Projects authoritative admission for many potential opponents with a
+    /// bounded number of database queries. Callers that need to prove ownership
+    /// of one initiating bot should continue to use <see cref="AdmitAsync"/>.
+    /// </summary>
+    public Task<
+        IReadOnlyDictionary<Guid, ApplicationResult<AdmittedMatchBot>>>
+        AdmitManyAsync(
+            IReadOnlyCollection<Guid> botIds,
+            CancellationToken cancellationToken = default) =>
+        AdmitManyForProfileAsync(
+            botIds,
+            BotContractProfiles.LegacyDuel,
+            cancellationToken);
+
+    public async Task<
+        IReadOnlyDictionary<Guid, ApplicationResult<AdmittedMatchBot>>>
+        AdmitManyForProfileAsync(
+            IReadOnlyCollection<Guid> botIds,
+            string requiredContractProfileId,
+            CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(botIds);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            requiredContractProfileId);
+
+        Guid[] ids = [.. botIds.Distinct()];
+        if (ids.Length == 0)
+        {
+            return new Dictionary<
+                Guid,
+                ApplicationResult<AdmittedMatchBot>>();
+        }
+
+        List<Bot> bots = await db.Bots
+            .AsNoTracking()
+            .Where(bot => ids.Contains(bot.Id))
+            .ToListAsync(cancellationToken);
+        var botsById = bots.ToDictionary(bot => bot.Id);
+        IReadOnlyDictionary<
+            Guid,
+            ApplicationResult<BotAppearance>> appearances =
+            await appearancePolicy.ValidateForMatchAdmissionBatchAsync(
+                bots,
+                cancellationToken);
+        List<BotVersion> activeBuiltVersions = await db.BotVersions
+            .AsNoTracking()
+            .Where(version =>
+                ids.Contains(version.BotId) &&
+                version.IsActive &&
+                version.Status == BuildStatus.Built)
+            .ToListAsync(cancellationToken);
+        ILookup<Guid, BotVersion> versionsByBot =
+            activeBuiltVersions.ToLookup(version => version.BotId);
+        Guid[] ownerIds =
+            [.. bots.Select(bot => bot.OwnerUserId).Distinct()];
+        Dictionary<Guid, string> ownerNames = await db.Users
+            .Where(user => ownerIds.Contains(user.Id))
+            .ToDictionaryAsync(
+                user => user.Id,
+                user => user.DisplayName,
+                cancellationToken);
+
+        var results =
+            new Dictionary<
+                Guid,
+                ApplicationResult<AdmittedMatchBot>>(ids.Length);
+        foreach (Guid botId in ids)
+        {
+            if (!botsById.TryGetValue(botId, out Bot? bot))
+            {
+                results.Add(
+                    botId,
+                    BatchFailure(
+                        new ApplicationError(
+                            ApplicationErrorCodes.BotNotFound,
+                            ApplicationErrorType.NotFound,
+                            "Bot not found.")));
+                continue;
+            }
+
+            ApplicationResult<BotAppearance> appearance =
+                appearances[bot.Id];
+            if (!appearance.Succeeded)
+            {
+                results.Add(
+                    bot.Id,
+                    BatchFailure(
+                        appearance.Error!));
+                continue;
+            }
+
+            BotVersion? version =
+                versionsByBot[bot.Id].SingleOrDefault();
+            if (version is null)
+            {
+                results.Add(
+                    bot.Id,
+                    BatchFailure(
+                        new ApplicationError(
+                            ApplicationErrorCodes
+                                .MatchActiveVersionRequired,
+                            ApplicationErrorType.Conflict,
+                            $"{bot.Name} has no successfully built active " +
+                            "version.")));
+                continue;
+            }
+            if (!BotContractProfiles.Supports(
+                    version.SupportedContractProfiles,
+                    requiredContractProfileId))
+            {
+                results.Add(
+                    bot.Id,
+                    BatchFailure(
+                        new ApplicationError(
+                            ApplicationErrorCodes
+                                .MatchContractProfileRequired,
+                            ApplicationErrorType.Conflict,
+                            $"{bot.Name}'s active version does not support " +
+                            $"contract profile " +
+                            $"'{requiredContractProfileId}'.")));
+                continue;
+            }
+
+            if (!ownerNames.TryGetValue(
+                    bot.OwnerUserId,
+                    out string? ownerDisplayName))
+            {
+                throw new InvalidOperationException(
+                    $"Owner {bot.OwnerUserId} for bot {bot.Id} was not found.");
+            }
+            results.Add(
+                bot.Id,
+                ApplicationResult<AdmittedMatchBot>.Success(
+                    new AdmittedMatchBot(
+                        bot,
+                        version,
+                        ownerDisplayName)));
+        }
+
+        return results;
+    }
+
+    private static ApplicationResult<AdmittedMatchBot> BatchFailure(
+        ApplicationError error) =>
+        ApplicationResult<AdmittedMatchBot>.Failure(error);
+
     private static ApplicationResult<AdmittedMatchBot> Failure(
         ApplicationError error,
         Guid? accountId,

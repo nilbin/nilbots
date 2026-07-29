@@ -1,130 +1,162 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useId, useMemo } from 'react';
 import type { BotDetail } from '../api';
 import { errorMessage } from '../errorMessage';
-import {
-  createLabsMatchRequest,
-  eligibleLabsOpponents,
-  eligibleLabsPlaylist,
-} from '../labs';
-import {
-  useBots,
-  useCreateLabsMatch,
-  useLabsCatalog,
-} from '../queries';
+import { eligibleLabsPlaylists } from '../labs';
+import { useLabsCatalog } from '../queries';
+import ArenaAction from './ArenaAction';
 
+/**
+ * Bot-page Labs discovery.
+ *
+ * Match setup belongs to the shared Play composer so this panel cannot drift from its
+ * allowance, mutation, focus or error behavior. The panel answers only whether this
+ * active generation has an experiment worth opening.
+ */
 export default function LabsPanel({ bot }: { bot: BotDetail }) {
-  const { data: catalog } = useLabsCatalog(bot.isOwner);
-  const playlist = catalog
-    ? eligibleLabsPlaylist(bot, catalog)
-    : undefined;
-  const roster = useBots(Boolean(playlist));
-  const opponents = useMemo(
+  const catalog = useLabsCatalog(bot.isOwner);
+  const playlists = useMemo(
     () =>
-      playlist
-        ? eligibleLabsOpponents(
-            roster.data ?? [],
-            bot.id,
-            playlist.requiredContractProfileId,
-          )
-        : [],
-    [bot.id, playlist, roster.data],
+      catalog.data ? eligibleLabsPlaylists(bot, catalog.data) : [],
+    [bot, catalog.data],
   );
-  const [opponentId, setOpponentId] = useState('');
-  const navigate = useNavigate();
-  const creation = useCreateLabsMatch();
+  const headingId = useId();
 
-  if (!playlist) return null;
+  if (!bot.isOwner) return null;
 
-  const selectedOpponent = opponents.some(
-    (opponent) => opponent.id === opponentId,
-  )
-    ? opponentId
-    : '';
-
-  const startMatch = () => {
-    if (!selectedOpponent) return;
-    creation.mutate(
-      createLabsMatchRequest(
-        playlist.playlistVersionId,
-        bot.id,
-        selectedOpponent,
-      ),
-      {
-        onSuccess: (match) => navigate(`/matches/${match.id}`),
-      },
+  if (catalog.isPending) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="Checking experiments…"
+        detail="Finding hosted game modes this active generation can run."
+        status
+      />
     );
-  };
+  }
+
+  if (catalog.error) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="Experiments unavailable"
+        detail={errorMessage(
+          catalog.error,
+          'The Labs catalog could not be loaded.',
+        )}
+        error
+        action={
+          <button
+            type="button"
+            onClick={() => void catalog.refetch()}
+            className="btn"
+          >
+            Try again
+          </button>
+        }
+      />
+    );
+  }
+
+  if (!catalog.data?.enabled) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="No experiments are running"
+        detail="Labs will appear here when a hosted experimental game mode is available."
+      />
+    );
+  }
+
+  if (playlists.length === 0) {
+    return (
+      <LabsState
+        headingId={headingId}
+        title="No compatible experiment"
+        detail="This active generation does not support any of the experiments running right now."
+      />
+    );
+  }
 
   return (
     <section
-      aria-labelledby="labs-heading"
-      className="flex flex-wrap items-end gap-4 rounded-xl border border-arena-edge bg-arena-panel p-5"
+      id="labs"
+      aria-labelledby={headingId}
+      className="panel pad flex flex-col gap-3"
     >
-      <div className="min-w-56 flex-1">
-        <p
-          id="labs-heading"
-          className="font-mono text-[11px] tracking-[0.2em] text-arena-accent"
-        >
-          LABS · UNRANKED
+      <header>
+        <p className="lab mb-1">Labs experiments · unranked</p>
+        <h2 id={headingId} className="t-body font-semibold text-arena-text">
+          {playlists.length === 1
+            ? playlists[0].displayName
+            : `${playlists.length} experiments available`}
+        </h2>
+        <p className="t-meta mt-1">
+          Experimental two-bot matches do not move either bot&apos;s rating.
         </p>
-        <h2 className="mt-1 font-semibold">{playlist.displayName}</h2>
-        <p className="mt-1 text-sm text-arena-dim">
-          Experimental two-bot match.
-        </p>
-      </div>
+      </header>
 
-      {roster.isPending ? (
-        <p className="pb-2 text-sm text-arena-dim">Finding compatible bots…</p>
-      ) : roster.error ? (
-        <div className="flex items-center gap-3 pb-1 text-sm text-red-400">
-          <span>{errorMessage(roster.error, 'Compatible bots could not be loaded.')}</span>
-          <button
-            type="button"
-            onClick={() => void roster.refetch()}
-            className="text-arena-accent hover:underline"
-          >
-            Retry
-          </button>
-        </div>
-      ) : opponents.length === 0 ? (
-        <p className="pb-2 text-sm text-arena-dim">
-          No compatible opponent is active yet.
-        </p>
-      ) : (
-        <>
-          <label className="flex flex-col gap-1 text-xs text-arena-dim">
-            Opponent
-            <select
-              aria-label="Labs opponent"
-              value={selectedOpponent}
-              onChange={(event) => setOpponentId(event.target.value)}
-              className="rounded-md border border-arena-edge bg-arena-bg px-3 py-2 text-sm text-arena-text"
-            >
-              <option value="">Choose a bot…</option>
-              {opponents.map((opponent) => (
-                <option key={opponent.id} value={opponent.id}>
-                  {opponent.name} ({opponent.owner})
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={startMatch}
-            disabled={creation.isPending || !selectedOpponent}
-            className="rounded-md bg-arena-accent px-5 py-2 text-sm font-bold text-slate-950 disabled:opacity-40"
-          >
-            {creation.isPending ? 'STARTING…' : 'RUN LAB MATCH'}
-          </button>
-        </>
+      {playlists.length > 1 && (
+        <ul className="t-meta flex flex-wrap gap-x-3 gap-y-1">
+          {playlists.map((playlist) => (
+            <li key={playlist.playlistVersionId}>{playlist.displayName}</li>
+          ))}
+        </ul>
       )}
 
-      {creation.error && (
-        <p className="w-full text-sm text-red-400">
-          {errorMessage(creation.error, 'Labs match could not be started.')}
-        </p>
-      )}
+      <ArenaAction
+        bot={{
+          id: bot.id,
+          slug: bot.slug,
+          name: bot.name,
+          accent: bot.accent,
+          lookId: bot.lookId,
+          isOwner: true,
+        }}
+        modes={['labs']}
+        initialMode="labs"
+        triggerLabel={
+          playlists.length === 1 ? 'Run lab match' : 'Choose experiment'
+        }
+        className="self-start"
+      />
+    </section>
+  );
+}
+
+function LabsState({
+  headingId,
+  title,
+  detail,
+  status = false,
+  error = false,
+  action,
+}: {
+  headingId: string;
+  title: string;
+  detail: string;
+  status?: boolean;
+  error?: boolean;
+  action?: React.ReactNode;
+}) {
+  return (
+    <section
+      id="labs"
+      aria-labelledby={headingId}
+      className="panel pad flex flex-col gap-3"
+    >
+      <header>
+        <p className="lab mb-1">Labs experiments · unranked</p>
+        <h2 id={headingId} className="t-body font-semibold text-arena-text">
+          {title}
+        </h2>
+      </header>
+      <p
+        className={`t-meta${error ? ' text-arena-hot' : ''}`}
+        role={error ? 'alert' : status ? 'status' : undefined}
+      >
+        {detail}
+      </p>
+      {action}
     </section>
   );
 }

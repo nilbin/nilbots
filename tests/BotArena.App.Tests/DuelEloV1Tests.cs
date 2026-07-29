@@ -9,6 +9,7 @@ public sealed class DuelEloV1Tests
     {
         Assert.Equal("duel-elo-v1", DuelEloV1.Id);
         Assert.Equal(6, DuelEloV1.Games);
+        Assert.Equal(DuelMirrored6V1.GameCount, DuelEloV1.Games);
         Assert.Equal(32, DuelEloV1.KFactor);
         Assert.Equal(100, DuelEloV1.MinimumRating);
     }
