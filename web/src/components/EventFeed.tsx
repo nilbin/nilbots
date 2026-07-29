@@ -2,6 +2,13 @@ import { useEffect, useMemo, useRef } from 'react';
 import clsx from 'clsx';
 import type { ReplayCausalEvent, ReplayModel } from '../replayModel';
 import {
+  isAttackEvent,
+  isDestructionEvent,
+  isDisqualificationEvent,
+  isMovementEvent,
+  isRotationEvent,
+} from '../replayModel';
+import {
   actorName,
   teamName,
   unitName,
@@ -23,7 +30,8 @@ export default function EventFeed({
         ...replayTick.lifecycleEvents,
         ...replayTick.events,
       ]) {
-        if (event.type === 'move' || event.type === 'turn') continue;
+        if (isMovementEvent(event.type) || isRotationEvent(event.type))
+          continue;
         list.push({ tick: replayTick.tick, event });
       }
     }
@@ -43,11 +51,27 @@ export default function EventFeed({
     const stableName = stableUnit
       ? unitName(replay, stableUnit.unitKey)
       : `team ${event.teamId ?? '?'} unit ${event.unitId ?? '?'}`;
+    // Attack/destruction/disqualification arrive in version-specific
+    // spellings; the model predicates own that equivalence.
+    if (isAttackEvent(event.type)) {
+      return event.targetActor
+        ? `${actorName(replay, event.sourceActor)} hits ${actorName(replay, event.targetActor)}`
+        : `${actorName(replay, event.sourceActor)} fires`;
+    }
+    if (isDestructionEvent(event.type)) {
+      return (
+        `${actorName(replay, event.targetActor)} is destroyed` +
+        (event.respawnAtTick !== null
+          ? ` · returns T${event.respawnAtTick}`
+          : event.rebuildReadyAtTick !== null
+            ? ` · rebuild ready T${event.rebuildReadyAtTick}`
+            : '')
+      );
+    }
+    if (isDisqualificationEvent(event.type)) {
+      return `${actorName(replay, event.targetActor)} is disqualified`;
+    }
     switch (event.type) {
-      case 'shot':
-        return event.targetActor
-          ? `${actorName(replay, event.sourceActor)} hits ${actorName(replay, event.targetActor)}`
-          : `${actorName(replay, event.sourceActor)} fires`;
       case 'projectile-deflected':
         // Named for what it costs the shooter: the guard's health is unchanged
         // and the bolt is coming back at whoever fired it.
@@ -62,23 +86,13 @@ export default function EventFeed({
             ? ''
             : ` (${event.newHealth} hp left)`)
         );
-      case 'destroyed':
-        return (
-          `${actorName(replay, event.targetActor)} is destroyed` +
-          (event.respawnAtTick !== null
-            ? ` · returns T${event.respawnAtTick}`
-            : event.rebuildReadyAtTick !== null
-              ? ` · rebuild ready T${event.rebuildReadyAtTick}`
-              : '')
-        );
       case 'respawned':
         return `${actorName(replay, event.sourceActor)} returns`;
       case 'move-blocked':
+      case 'movement-blocked':
         return `${actorName(replay, event.sourceActor)} bumps into something`;
       case 'fault':
         return `${actorName(replay, event.sourceActor)} runtime fault`;
-      case 'disqualified':
-        return `${actorName(replay, event.targetActor)} is disqualified`;
       case 'frontline-progress-changed':
         return event.claimingTeamId === null
           ? 'Frontline pressure neutralizes'
@@ -157,10 +171,10 @@ export default function EventFeed({
             key={event.eventId}
             className={clsx('flex gap-2', {
               'text-red-300':
-                event.type === 'destroyed' || event.type === 'damage',
+                isDestructionEvent(event.type) || event.type === 'damage',
               'text-amber-300':
                 event.type === 'fault' ||
-                event.type === 'disqualified',
+                isDisqualificationEvent(event.type),
               'text-cyan-200':
                 event.type === 'frontline-progress-changed' ||
                 event.type === 'frontline-position-advanced',
@@ -176,8 +190,9 @@ export default function EventFeed({
                 event.type === 'form-transition-cancelled',
               'text-sky-200': event.type === 'projectile-deflected',
               'text-arena-text':
-                event.type === 'shot' ||
-                event.type === 'move-blocked',
+                isAttackEvent(event.type) ||
+                event.type === 'move-blocked' ||
+                event.type === 'movement-blocked',
             })}
           >
             <span className="text-arena-dim">
