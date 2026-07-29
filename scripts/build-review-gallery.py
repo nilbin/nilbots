@@ -33,6 +33,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -110,15 +111,31 @@ def sample_entries(manifest_path: Path) -> list[dict]:
 
 
 def card_labels(entry: dict) -> str:
-    pairing = re.sub(r"^frontline-labs-1-experiment-classes-", "",
+    # Movement-coupling tokens are stripped so a movement-arm review stays
+    # arm-blind on its index; the sample manifest keeps the full ruleset id
+    # for un-blinding.
+    pairing = re.sub(r"^frontline-labs-1-(experiment-classes-|classes-)", "",
                      entry.get("rules", ""))
+    pairing = re.sub(r"-(sets-facing|facing-locked)$", "", pairing)
     arm = re.sub(r"^frontline-labs-01-|-classes$", "",
                  entry.get("map", "")) or "current"
     return f"{pairing} — {arm} map" if pairing else entry.get("rules", "")
 
 
 def build(args: argparse.Namespace) -> None:
-    entries = sample_entries(args.sample)
+    # Multiple --sample manifests merge into one blind sequence. The order
+    # is a deterministic hash shuffle: concatenation order would otherwise
+    # leak the per-manifest block structure (e.g. which samples share an
+    # experiment arm) to the reviewer.
+    entries = [
+        entry
+        for manifest in args.sample
+        for entry in sample_entries(manifest)
+    ]
+    entries.sort(key=lambda entry: hashlib.sha256(
+        str(entry.get("source", entry)).encode()).hexdigest())
+    for index, entry in enumerate(entries, start=1):
+        entry["id"] = f"sample-{index:02}"
     output = args.output
     output.mkdir(parents=True, exist_ok=True)
 
@@ -221,6 +238,7 @@ ending felt earned.</p>
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sample", required=True, type=Path,
+                        action="append",
                         help="replay-review-sample.py output manifest")
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--title", default="Replay review")
