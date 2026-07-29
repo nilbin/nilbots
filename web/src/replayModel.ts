@@ -159,7 +159,7 @@ export type ReplayActionKind =
   | 'transformation'
   | (string & {});
 /**
- * The two events every presentation surface keys off, under both names they carry.
+ * The events presentation surfaces key off, under both names they carry.
  *
  * `ReplayCausalEvent.type` is the *source document's* vocabulary, deliberately: the model
  * is version-neutral about structure, not about naming, and re-labelling a v3 `attack` as
@@ -178,6 +178,24 @@ export function isAttackEvent(type: string): boolean {
 
 export function isDestructionEvent(type: string): boolean {
   return type === 'destroyed' || type === 'destruction';
+}
+
+/**
+ * The same equivalence for the three the *score* reads. The music director counts
+ * movement and rotation as activity and treats a destruction or a disqualification as a
+ * decisive beat, so a generation-3 match scored as an empty field: no shots, no deaths,
+ * nobody moving, and an adaptive timeline that never left `sparse`.
+ */
+export function isMovementEvent(type: string): boolean {
+  return type === 'move' || type === 'movement';
+}
+
+export function isRotationEvent(type: string): boolean {
+  return type === 'turn' || type === 'rotation';
+}
+
+export function isDisqualificationEvent(type: string): boolean {
+  return type === 'disqualified' || type === 'participant-disqualified';
 }
 
 export type ReplayTickResolutionPhase =
