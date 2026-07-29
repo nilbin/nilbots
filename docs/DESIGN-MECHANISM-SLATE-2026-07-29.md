@@ -100,6 +100,16 @@ shared grammar on mobile facing-aimed guns (never on specials).
   wipe: it must *soften* striker-vs-fabricator toward the band, not
   deepen the game's most lopsided edge. Open question: striker also
   keeps the deepest curve envelope as heritage.
+  **Volley is a CAST, not a stance (owner ruling).** A parked striker
+  firing repeated fans is artillery — the bulwark's fantasy leaking
+  into the striker's kit. The prototype implements it on stance
+  machinery (the engine's only public-windup primitive), so gallery
+  drivers must play it enter→fire-once→exit, never squatting; if the
+  skill survives the screen, adoption requires the honest primitive —
+  a windup-bearing attack on the mobile form (telegraph, one fan,
+  back in motion, cooldown) — so authors get an action, not stance
+  bookkeeping. Renderer note: the wide-arrow glyph is the skill's
+  identity; the stance silhouette is transitional plumbing.
 - **Bulwark AEGIS SHELL** (barrage benched on owner review, and the
   RPS trace agrees: a radial proximity burst punishes whoever stands
   CLOSE — fabricator bodies, the class bulwark must lose to — while
